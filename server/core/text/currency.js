@@ -19,6 +19,7 @@
 const configStore = require('../../stores/configStore');
 const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
+const { fxFactorVia } = require('../../utils/fxFactor.mts');
 
 const FX_TTL_MS = 5 * 60_000;
 const FX_STALE_TTL_MS = 24 * 60 * 60_000; // last-good rate retained for 24h
@@ -114,6 +115,22 @@ async function getUsdToCurrencyRate(targetCurrency, opts = {}) {
 }
 
 /**
+ * The factor that converts an amount in `from` into `to` (e.g. a EUR price
+ * into the USD of azure_service_usage_log, or USD into a plan currency),
+ * through the USD-based rates above. NaN when a rate cannot be inverted;
+ * `strict` as for getUsdToCurrencyRate (a failed lookup throws instead of
+ * answering 1.0). The arithmetic is utils/fxFactor.mts, shared with
+ * stores/usage/logUsage.js.
+ * @param {string} from
+ * @param {string} to
+ * @param {{ strict?: boolean }} [opts]
+ * @returns {Promise<number>}
+ */
+function fxFactor(from, to, opts = {}) {
+    return fxFactorVia(getUsdToCurrencyRate, from, to, !!opts.strict);
+}
+
+/**
  * Bulk-fetch the full rate table for admin display. Returns an object keyed
  * by lowercase config-key suffix (e.g. `{ eur: 0.92, gbp: 0.78 }`). Skips
  * keys that don't look like valid 3-letter currency codes.
@@ -166,6 +183,7 @@ function invalidateFxCache() {
 
 module.exports = {
     getUsdToCurrencyRate,
+    fxFactor,
     getAllConfiguredRates,
     setUsdToCurrencyRate,
     invalidateFxCache,

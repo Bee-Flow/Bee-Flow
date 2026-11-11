@@ -18,7 +18,10 @@
  *     weights.
  * The usage column is USD (the Azure rates it was made for): a card in another
  * currency (Scaleway and IONOS quote EUR) is converted with the configured FX
- * rate, and the row's metadata says what priced it.
+ * rate, and the row's metadata says what priced it (price_currency, the native
+ * price_cost and the fx_rate applied; null when no rate could be read and the
+ * native amount was kept). routes/usage.js converts these USD figures into the
+ * plan currency of the answer they are shown in.
  */
 
 'use strict';
@@ -59,6 +62,29 @@ function registerServed(providerType, modelId) {
 }
 
 /**
+ * A price in USD, the currency of the usage column, and the factor applied.
+ * A price in another currency (Scaleway and IONOS quote EUR) is converted at
+ * the configured rate (core/text/currency fxFactor, as stores/usage/logUsage.js
+ * converts a chat row). A rate that cannot be read never drops the row: the
+ * native amount is kept, with a warning, and `fxRate` null says it was not
+ * converted.
+ * @param {number} cost
+ * @param {string} currency
+ * @returns {Promise<{ cost: number, fxRate: number | null }>}
+ */
+async function inUsd(cost, currency) {
+    if (!(cost > 0) || currency === 'USD') return { cost, fxRate: 1 };
+    /** @type {unknown} */
+    let failure = null;
+    try {
+        const factor = await require('../text/currency').fxFactor(currency, 'USD', { strict: true });
+        if (Number.isFinite(factor) && factor > 0) return { cost: cost * factor, fxRate: factor };
+    } catch (e) { failure = e; }
+    log.warn(`[LocalKBIngest] No ${currency}->USD rate for an embedding cost; the ${currency} amount is recorded unconverted`, failure);
+    return { cost, fxRate: null };
+}
+
+/**
  * What `tokens` embedding tokens cost on this provider, in USD, and what priced it.
  * @param {number} tokens
  * @param {string} providerType
@@ -74,14 +100,13 @@ async function providerCost(tokens, providerType, modelId) {
     const rated = require('../llm/modelCosts').rateUsage({
         model: modelId, provider_type: providerType, prompt_tokens: tokens, completion_tokens: 0,
     });
-    let cost = rated.cost;
-    if (cost > 0 && rated.currency !== 'USD') {
-        const perUsd = await require('../text/currency').getUsdToCurrencyRate(rated.currency);
-        cost = perUsd > 0 ? cost / perUsd : cost;
-    }
+    const { cost, fxRate } = await inUsd(rated.cost, rated.currency);
     return {
         cost,
-        metadata: { ...facts, cost_basis: rated.cost_basis, price_source: rated.source, price_currency: rated.currency, price_cost: rated.cost },
+        metadata: {
+            ...facts, cost_basis: rated.cost_basis, price_source: rated.source,
+            price_currency: rated.currency, price_cost: rated.cost, fx_rate: fxRate,
+        },
     };
 }
 

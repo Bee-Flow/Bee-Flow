@@ -19,6 +19,7 @@ const { loadPricing } = require('../../testUtils/pricingFeed');
 const config = useConfigRows();
 
 const azureServiceUsageStore = require('../../stores/azureServiceUsageStore');
+const log = require('../../telemetry/log');
 const { _resetScalewayModelRegistry } = require('../providers/scalewayModels');
 const { _resetIonosModelRegistry } = require('../providers/ionosModels');
 const { invalidateFxCache } = require('../text/currency');
@@ -67,7 +68,31 @@ test('a Scaleway target is priced at the Scaleway card (exact key), in USD at th
     assert.strictEqual(row.metadata.model, 'qwen3-embedding-8b');
     assert.strictEqual(row.metadata.price_currency, 'EUR');
     assert.ok(close(row.metadata.price_cost, 0.12));
+    assert.ok(close(row.metadata.fx_rate, 1 / 0.8), `the EUR->USD factor applied, got ${row.metadata.fx_rate}`);
     assert.strictEqual(row.metadata.price_source, 'litellm:scaleway');
+});
+
+test('a EUR card whose rate cannot be read keeps the EUR amount, with a warning and fx_rate null', async (t) => {
+    const currency = require('../text/currency');
+    const warned = /** @type {unknown[][]} */ ([]);
+    t.mock.method(log, 'warn', (/** @type {unknown[]} */ ...args) => { warned.push(args); });
+    t.mock.method(currency, 'fxFactor', async (/** @type {string} */ from, /** @type {string} */ to, /** @type {{ strict?: boolean }} */ opts) => {
+        assert.deepStrictEqual([from, to, opts], ['EUR', 'USD', { strict: true }]);
+        throw new Error('fx_rate_unavailable: USD->EUR');
+    });
+    await trackEmbeddingTokens(MILLION, { providerType: 'scaleway', modelId: 'qwen3-embedding-8b' });
+    const [row] = logged;
+    assert.ok(close(row.estimated_cost, 0.12), `the native EUR 0.12, got ${row.estimated_cost}`);
+    assert.strictEqual(row.metadata.price_currency, 'EUR');
+    assert.strictEqual(row.metadata.fx_rate, null);
+    assert.ok(warned.some(([msg]) => /EUR->USD/.test(String(msg))), 'a warning names the missing rate');
+
+    // A rate that cannot be inverted is the same: no guess.
+    logged.length = 0;
+    t.mock.method(currency, 'fxFactor', async () => NaN);
+    await trackEmbeddingTokens(MILLION, { providerType: 'scaleway', modelId: 'qwen3-embedding-8b' });
+    assert.ok(close(logged[0].estimated_cost, 0.12));
+    assert.strictEqual(logged[0].metadata.fx_rate, null);
 });
 
 test('an IONOS target is priced at the IONOS list price, never another host\'s rate', async () => {
@@ -92,6 +117,7 @@ test('another cloud provider is priced through modelCosts with its own model', a
     const [row] = logged;
     assert.ok(close(row.estimated_cost, 0.13), `got ${row.estimated_cost}`);
     assert.strictEqual(row.metadata.price_currency, 'USD');
+    assert.strictEqual(row.metadata.fx_rate, 1);
 });
 
 test('an Azure target, and no target at all (the legacy Azure path), are rated as before', async () => {
