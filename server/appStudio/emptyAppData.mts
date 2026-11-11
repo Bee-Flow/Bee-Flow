@@ -63,7 +63,9 @@ export type EmptyRefusal =
 
 type Plan = { ordered: Table[]; skipped: EmptyResult['skipped']; nullings: Array<{ table: Table; field: string }> };
 
-const OWNER_FILTER: Access = Object.freeze({ where: '1=1', params: [] }) as Access;
+// Emptying runs as the owner: every row and every column of any table, also of a table whose
+// fields carry column rights (a compiler that scopes columns refuses an access without that verdict).
+const { OWNER_ACCESS: OWNER_FILTER } = nodeRequire('./queryCompiler') as { OWNER_ACCESS: Access };
 const MAX_BATCH = 500;
 const qi = (name: string) => '"' + String(name).replace(/"/g, '""') + '"';
 const idOf = (t: Table) => t.id || t.key;

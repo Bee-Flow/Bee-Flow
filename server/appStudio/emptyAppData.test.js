@@ -192,3 +192,20 @@ test('only the connectors that fill an emptied table are reset', async () => {
     assert.deepEqual(second.calls.resets, ['conn_kid']);
     assert.equal(res2.connectorsReset, 1);
 });
+
+test('a table whose fields carry column rights is emptied as the owner: the compiler gets the owner\'s access', async () => {
+    const { scopeColumns } = require('../core/dataEngine/columnRights.mts');
+    const GUARDED = { id: 'tbl_guard00', key: 'guarded', name: 'Guarded', fields: [
+        { id: 'fld_s00001', key: 'title', name: 'Title', type: 'text' },
+        { id: 'fld_s00002', key: 'salary', name: 'Salary', type: 'number', access: { read: [] } },
+    ] };
+    const db = openDb([GUARDED]);
+    ins(db, 'guarded', { id: 'g1', title: 'a', salary: 1 });
+    ins(db, 'guarded', { id: 'g2', title: 'b', salary: 2 });
+    const { deps } = depsOver(db);
+    // The read compilers start with scopeColumns; a delete that ever does the same must still run here.
+    deps.compileDeleteAll = (t, a) => { scopeColumns(t, a); return qc.compileDeleteAll(t, a); };
+    const out = await emptyAppData(app, modelOf([GUARDED]), undefined, deps);
+    assert.deepEqual(out.emptied, [{ tableId: GUARDED.id, key: 'guarded', rows: 2 }]);
+    assert.equal(count(db, 'guarded'), 0);
+});
