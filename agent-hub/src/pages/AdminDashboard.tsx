@@ -16,6 +16,7 @@ import type { TranslateFn } from '@/hooks/useTranslation';
 import Modal from '../components/shared/Modal';
 import Spinner from '@/components/shared/Spinner';
 import { useDeploymentMode } from '../hooks/useDeploymentMode';
+import { useEntitlements } from '@/components/licensing/EntitlementsContext';
 import { useLicenseContext } from '../components/licensing/LicenseContext';
 import type { AdminCurrentUser } from '../components/admin/org/userManagement/types';
 import { resolveAgentSection } from '@/components/agents/agentSections';
@@ -42,6 +43,7 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashb
     // A server-wide licence covers the whole install — no org needs a Stripe
     // subscription, so the cloud Subscriptions management surface is moot.
     const { serverOverride, tier } = useLicenseContext();
+    const entitlements = useEntitlements();
     const isPlatformAdmin = isPlatformAdminUser(user);
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [scopeOverride, setScopeOverride] = useState<AdminScope | null>(null);
@@ -62,10 +64,13 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashb
     // reads as a broken console rather than a clean denial.
     const isSuperAdmin = isPlatformAdmin;
 
+    // The same capability rule as Settings > Compliance; an unread or failed snapshot fails open, like the other entitlement-gated rows.
+    const hasCapability = (capability: string) => entitlements.loading || entitlements.degraded || !!entitlements.error || entitlements.can(capability);
+
     // The Agents tab with no section left for this viewer would open an empty hub.
     const hasAgentSection = resolveAgentSection(user, '').visible.length > 0;
     const checkTabAccess = (tab: AdminTab | undefined) => canOpenAdminTab(tab, {
-        isCloud, isSelfHosted, tier, serverOverride: !!serverOverride, isSuperAdmin, hasPermission,
+        isCloud, isSelfHosted, tier, serverOverride: !!serverOverride, isSuperAdmin, hasPermission, hasCapability,
     }) && !(tab?.id === 'agents' && !hasAgentSection);
     const { activeTab, agentSection, firstAllowedTab, isTabAllowed } = resolveAdminTab(adminPath, checkTabAccess);
     const labelOf = (tab: AdminTab) => t(tab.labelKey, tab.labelFallback);

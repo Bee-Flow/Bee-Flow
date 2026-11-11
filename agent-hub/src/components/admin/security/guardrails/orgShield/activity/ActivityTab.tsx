@@ -53,6 +53,8 @@ interface Props {
     onGoTo?: (pane: string) => void;
     /** Kinds of personal data tools hold back, of all kinds (from the form). */
     toolHoldBack?: { held: number; total: number } | null;
+    /** The organisation to read when it is not the caller's own (a platform admin's choice). */
+    orgId?: string | null;
 }
 
 function Locked({ upgradeUrl, t }: Pick<Props, 'upgradeUrl' | 't'>) {
@@ -116,7 +118,7 @@ function useChips(filters: Filters, view: ActivityView, catLabel: (id: string) =
     }, [filters, view.stream, catLabel, locale, t]);
 }
 
-export default function ActivityTab({ t, shieldEnabled, licensed, upgradeUrl, onGoTo, toolHoldBack }: Props) {
+export default function ActivityTab({ t, shieldEnabled, licensed, upgradeUrl, onGoTo, toolHoldBack, orgId }: Props) {
     const { resolvedLocale: locale } = useTranslation();
     const [range, setRange] = useState(() => defaultRange('30d'));
     const rangeParams = useMemo(() => deriveRangeParams(range), [range]);
@@ -124,7 +126,7 @@ export default function ActivityTab({ t, shieldEnabled, licensed, upgradeUrl, on
     const [openRow, setOpenRow] = useState<string | null>(null);
     const [shown, setShown] = useState(PAGE);
     const catLabel = useCategoryLabels(t);
-    const data = useShieldActivityData({ enabled: !!licensed, rangeParams });
+    const data = useShieldActivityData({ enabled: !!licensed, rangeParams, orgId });
     const placeLabel = useCallback((row: Record<string, unknown>) => surfaceLabel(row, t), [t]);
 
     // The editor passes a fresh object each render; key the memo on its numbers.

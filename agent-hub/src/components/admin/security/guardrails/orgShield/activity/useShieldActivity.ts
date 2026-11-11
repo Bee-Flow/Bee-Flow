@@ -136,9 +136,15 @@ interface UseShieldActivityOptions {
      * happened" pane has its own live copy.
      */
     poll?: boolean;
+    /**
+     * The organisation to read, sent as `?orgId`. Only a platform admin's
+     * choice in the admin dashboard sets it; without it the server answers for
+     * the caller's own organisation.
+     */
+    orgId?: string | null;
 }
 
-export default function useShieldActivity({ enabled, rangeParams, limit = DETAIL_LIMIT, detail = true, poll = true }: UseShieldActivityOptions) {
+export default function useShieldActivity({ enabled, rangeParams, limit = DETAIL_LIMIT, detail = true, poll = true, orgId = null }: UseShieldActivityOptions) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [guard, setGuard] = useState(EMPTY_GUARD);
@@ -173,7 +179,8 @@ export default function useShieldActivity({ enabled, rangeParams, limit = DETAIL
         if (!enabled) return undefined;
         let cancelled = false;
         const range = currentRange();
-        const rangeKey = buildQS(range, { limit });
+        const scope: Raw = orgId ? { orgId } : {};
+        const rangeKey = buildQS(range, { limit, ...scope });
         // A refresh of what is already on screen, as opposed to a first load
         // or a new range: its failure must not blank the pane.
         const refresh = loadedOnce.current && loadedRange.current === rangeKey;
@@ -183,10 +190,10 @@ export default function useShieldActivity({ enabled, rangeParams, limit = DETAIL
             try {
                 const none = Promise.resolve({ notFound: true });
                 const [g, i, gr, er] = await Promise.all([
-                    fetchJson(`${API_BASE}/api/usage/guardrails/overview${buildQS(range)}`),
-                    fetchJson(`${API_BASE}/api/usage/integrations/overview${buildQS(range)}`),
-                    detail ? fetchJson(`${API_BASE}/api/usage/guardrails/recent${buildQS(range, { limit })}`) : none,
-                    detail ? fetchJson(`${API_BASE}/api/usage/integrations/egress${buildQS(range, { limit })}`) : none,
+                    fetchJson(`${API_BASE}/api/usage/guardrails/overview${buildQS(range, scope)}`),
+                    fetchJson(`${API_BASE}/api/usage/integrations/overview${buildQS(range, scope)}`),
+                    detail ? fetchJson(`${API_BASE}/api/usage/guardrails/recent${buildQS(range, { limit, ...scope })}`) : none,
+                    detail ? fetchJson(`${API_BASE}/api/usage/integrations/egress${buildQS(range, { limit, ...scope })}`) : none,
                 ]);
                 if (cancelled) return;
                 setGuard(g.notFound ? EMPTY_GUARD : { ...EMPTY_GUARD, ...g.data });
@@ -204,7 +211,7 @@ export default function useShieldActivity({ enabled, rangeParams, limit = DETAIL
             }
         })();
         return () => { cancelled = true; };
-    }, [enabled, detail, limit, tick, rangeParams?.startDate, rangeParams?.endDate, rangeParams?.days, rangeParams?.interval]);
+    }, [enabled, detail, limit, orgId, tick, rangeParams?.startDate, rangeParams?.endDate, rangeParams?.days, rangeParams?.interval]);
 
     return {
         loading: loading && !loadedOnce.current,

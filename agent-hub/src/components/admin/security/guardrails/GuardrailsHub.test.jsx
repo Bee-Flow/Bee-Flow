@@ -21,7 +21,7 @@ vi.mock('@/hooks/useTranslation', () => import('@/test/useTranslationMock'));
 vi.mock('./patterns/PatternsView', () => ({ default: () => <div data-testid="view-patterns" /> }));
 vi.mock('./directchat/DirectChatView', () => ({ default: () => <div data-testid="view-directchat" /> }));
 vi.mock('./orgShield/OrgShieldEditor', () => ({
-    default: (p) => <div data-testid="view-organisations" data-picker={String(p.allowOrgPicker)} />,
+    default: (p) => <div data-testid="view-organisations" data-picker={String(p.allowOrgPicker)} data-org={p.orgId || ''} data-activity={String(!!p.showActivityTab)} data-activity-org={p.activityOrgId || ''} />,
 }));
 
 const mockData = vi.hoisted(() => ({ current: null }));
@@ -30,6 +30,7 @@ vi.mock('./api/useGuardrailsData', () => ({
     __esModule: true,
 }));
 
+import { AdminOrgProvider } from '@/components/admin/dashboard/useAdminOrg';
 import GuardrailsHub from './GuardrailsHub';
 
 const baseData = (over = {}) => ({
@@ -113,6 +114,21 @@ describe('GuardrailsHub sections', () => {
         render(<GuardrailsHub section="organisations" onNavigate={vi.fn()} />);
         const view = await screen.findByTestId('view-organisations');
         expect(view.getAttribute('data-picker')).toBe('true');
+        expect(view.getAttribute('data-activity')).toBe('false');
+    });
+
+    // The dashboard's organisation is the shield's organisation, with the activity tab reading it too.
+    it('pins the dashboard organisation and offers its activity tab', async () => {
+        const choice = {
+            isPlatformAdmin: true, orgId: 'o2', orgName: 'Beta', organizations: [], organizationsLoaded: true,
+            pending: false, homeOrganization: null, setOrgId: () => {},
+        };
+        render(<AdminOrgProvider value={choice}><GuardrailsHub section="organisations" onNavigate={vi.fn()} /></AdminOrgProvider>);
+        const view = await screen.findByTestId('view-organisations');
+        expect(view.getAttribute('data-picker')).toBe('undefined');
+        expect(view.getAttribute('data-org')).toBe('o2');
+        expect(view.getAttribute('data-activity')).toBe('true');
+        expect(view.getAttribute('data-activity-org')).toBe('o2');
     });
 });
 

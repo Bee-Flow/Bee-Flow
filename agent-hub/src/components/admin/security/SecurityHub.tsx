@@ -13,6 +13,7 @@ import SectionNav from '@/components/shared/SectionNav';
 import StudioShell from '@/components/shared/StudioShell';
 import { adminSectionScope, isAdminSectionVisible, type AdminScope } from '@/components/admin/dashboard/adminTabs';
 import { homeOrgIdOf, isHomeOrgAdmin, isPlatformAdmin } from '@/utils/adminAccess';
+import { useAdminOrgChoice } from '@/components/admin/dashboard/useAdminOrg';
 import { useAdminScopeOverride } from '@/components/admin/dashboard/useAdminScopeOverride';
 import { ServerWideMark, serverWideLast } from '@/components/admin/dashboard/serverWideNav';
 
@@ -21,16 +22,17 @@ import { ServerWideMark, serverWideLast } from '@/components/admin/dashboard/ser
  * Groups Users, Guardrails, SSO and the operator sections in a StudioShell
  * with a SectionNav sidebar; the section is the URL (admin/security/<id>).
  *
- * `enterpriseOnly` sections are hidden on Community installs (the resolved
- * tier is the REAL tier — LicenseContext.hasTier has no super-admin
- * elevation — so the operator's own UI hides them too).
+ * Guardrails always offers the per-organisation Privacy Shield; the server
+ * console around it (patterns, Direct chat, ...) is Enterprise only (the
+ * resolved tier is the REAL tier — LicenseContext.hasTier has no super-admin
+ * elevation — so the operator's own UI hides it too).
  *
  * Beta features are no longer configured here — they moved to the unified
  * Access & Permissions hub (Admin → Access → Ceiling / Grants).
  */
 const SECTIONS = [
     { id: 'users', labelKey: 'admin.sec_users', icon: Users },
-    { id: 'guardrails', labelKey: 'admin.sec_guardrails', icon: Shield, enterpriseOnly: true },
+    { id: 'guardrails', labelKey: 'admin.sec_guardrails', icon: Shield },
     { id: 'sso', labelKey: 'admin.sec_sso', icon: KeyRound },
     { id: 'email-domains', labelKey: 'admin.sec_email_domains', icon: AtSign },
     { id: 'connector-health', labelKey: 'admin.sec_connector_health', icon: Activity },
@@ -62,9 +64,11 @@ const SecurityHub = ({ activeSection: activeProp = 'users', userSection = '', on
     // so, and the server-side gates require users.role === 'admin'. The 'all'
     // permission is deliberately NOT enough: it is obtainable inside a tenant.
     const platformAdmin = isPlatformAdmin(user);
+    // The shield's organisation: a platform admin's dashboard choice (none = the editor's picker), anyone else's home organisation.
+    const chosenOrgId = useAdminOrgChoice()?.orgId ?? null;
+    const shieldOrgId = platformAdmin ? chosenOrgId : homeOrgIdOf(user);
     const visibleSections = SECTIONS
         .filter(s => isAdminSectionVisible('security', platformAdmin, s.id))
-        .filter(s => !s.enterpriseOnly || isEnterprise)
         // The per-organisation shield is saved by an organisation admin of the home organisation
         // only (the server's strict check, utils/adminAccess isHomeOrgAdmin).
         .filter(s => s.id !== 'guardrails' || platformAdmin || isHomeOrgAdmin(user));
@@ -104,9 +108,9 @@ const SecurityHub = ({ activeSection: activeProp = 'users', userSection = '', on
                         ConnectorHealthPanel receives. Threading it here is what makes
                         /app/admin/security/guardrails/<section> a real, bookmarkable
                         URL without touching App.jsx's router. */}
-                    {platformAdmin
+                    {platformAdmin && isEnterprise
                         ? <GuardrailsHub section={userSection} onNavigate={onNavigate} />
-                        : <OrgGuardrails orgId={homeOrgIdOf(user)} />}
+                        : <OrgGuardrails orgId={shieldOrgId} activityOrgId={platformAdmin ? shieldOrgId : null} allowOrgPicker={platformAdmin} />}
                 </div>
             )}
             {active === 'sso' && (

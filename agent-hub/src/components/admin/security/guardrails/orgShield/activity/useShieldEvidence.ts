@@ -103,15 +103,17 @@ export function deriveEvidence(guard: Overview | null | undefined, integ: Overvi
 const RANGE = { days: EVIDENCE_DAYS };
 
 /**
+ * @param orgId    The organisation to read (a platform admin's choice); null = the caller's own.
  * @param enabled  The mount offers the activity pane AND the plan has the
  *   monitoring licence. Anything else fetches nothing and returns null.
  */
-export default function useShieldEvidence({ enabled }: { enabled: boolean }): ShieldEvidence | null {
+export default function useShieldEvidence({ enabled, orgId = null }: { enabled: boolean; orgId?: string | null }): ShieldEvidence | null {
     const { loaded, error, guard, integ } = useShieldActivity({
         enabled,
         rangeParams: RANGE,
         detail: false,
         poll: false,
+        orgId,
     });
     return useMemo(() => {
         if (!enabled || !loaded || error) return null;
