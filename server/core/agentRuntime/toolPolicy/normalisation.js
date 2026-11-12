@@ -127,8 +127,32 @@ function normaliseAppEntry(appId, entry, lent, st) {
     const normalised = actionsMissing ? { actAs } : { actions, actAs };
     if (mailAccess) normalised.mailAccess = mailAccess;
     if (confirm) normalised.confirm = confirm;
+    Object.assign(normalised, mailRunOptions(appId, entry, st));
     if (!_sameEntry(entry, normalised)) st.touch();
     return normalised;
+}
+
+/**
+ * The two switches for runs started by a received e-mail (./mailRun.mts), each kept only as a stored `true`:
+ *   `mailRuns`  on any app but Gmail and Outlook: its tools may be used in such a run (never one that asks first);
+ *   `replyAll`  on Gmail and Outlook: a reply in the thread also goes to the others on To and Cc.
+ * Anything else is the narrow reading (off), said out loud when it was not plain `false`.
+ * @param {string} appId
+ * @param {Record<string, any>} entry
+ * @param {NormState} st
+ * @returns {{ mailRuns?: true, replyAll?: true }}
+ */
+function mailRunOptions(appId, entry, st) {
+    /** @type {{ mailRuns?: true, replyAll?: true }} */
+    const out = {};
+    const mailApp = isMailApp(appId);
+    for (const [key, applies] of /** @type {Array<['mailRuns' | 'replyAll', boolean]>} */ ([['mailRuns', !mailApp], ['replyAll', mailApp]])) {
+        const v = entry[key];
+        if (v === undefined || v === false) continue;
+        if (v === true && applies) out[key] = true;
+        else st.note?.(`tools.${appId}: ${key} ${applies ? 'must be true or false' : 'does not apply to this app'} — off`);
+    }
+    return out;
 }
 
 /**

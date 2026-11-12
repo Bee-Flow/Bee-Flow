@@ -41,6 +41,8 @@ async function executeActivateSkillTool(toolName, toolArgs, context) {
         // Who starts an automation-linked skill (handoff 5 caller trace).
         callerAgentId: context.callerAgentId || context.agentId || null,
         runScope: context.runScope || null,
+        // A run started by a received e-mail loads a skill's text, never runs its automation.
+        runAutomations: !context.mailTrigger,
     });
 }
 

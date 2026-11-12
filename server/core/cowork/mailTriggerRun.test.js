@@ -175,3 +175,15 @@ test('an event without a message id, for another event type or without a schedul
     await mod.runForEvent({ user_id: 'u1' }, { messageId: 'x' }, deps);
     assert.strictEqual(state.ran.length, 0);
 });
+
+test('an automatic mail (Auto-Submitted other than no, or a list / bulk Precedence) starts no run', async () => {
+    const message = { from_email: 'ann@ext.com', subject: 'Out of office', body_text: 'Away', provider_thread_id: 'T1' };
+    for (const headers of [{ autoSubmitted: 'auto-replied', precedence: '' }, { autoSubmitted: '', precedence: 'list' }, { autoSubmitted: '', precedence: 'bulk' }]) {
+        const { deps, state } = fakeDeps({ fetchMessage: async () => ({ ...message, _autoHeaders: headers }) });
+        await mod.runForEvent(sub, { messageId: `auto-${headers.autoSubmitted}${headers.precedence}` }, deps);
+        assert.strictEqual(state.ran.length, 0, JSON.stringify(headers));
+    }
+    const { deps, state } = fakeDeps({ fetchMessage: async () => ({ ...message, _autoHeaders: { autoSubmitted: 'no', precedence: '' } }) });
+    await mod.runForEvent(sub, { messageId: 'human-1' }, deps);
+    assert.strictEqual(state.ran.length, 1, 'Auto-Submitted: no is a person');
+});

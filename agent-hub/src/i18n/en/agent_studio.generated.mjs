@@ -565,5 +565,10 @@ export default {
     "agent_studio.can_use.mail_access_draft_hint_gmail": "Drafts appear in your Gmail drafts for you to check and send.",
     "agent_studio.can_use.mail_access_draft_hint_outlook": "Drafts appear in your Outlook drafts for you to check and send.",
     "agent_studio.can_use.mail_access_send_reply_hint": "Only replies in the same thread, never to new addresses.",
+    "agent_studio.can_use.mail_reply_draft_hint": "If the agent used information from outside the thread, the reply is saved as a draft for you.",
+    "agent_studio.can_use.mail_reply_all": "Also answer the others on the mail",
+    "agent_studio.can_use.mail_reply_all_hint": "Off: a reply goes to the sender only.",
+    "agent_studio.can_use.mail_runs": "Also in runs started by an email",
+    "agent_studio.can_use.mail_runs_hint": "A run started by an email may then use this app, except actions that ask first.",
     "agent_studio.agent_designer_sections": "Agent settings",
 };

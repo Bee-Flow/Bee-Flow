@@ -251,6 +251,15 @@ test('a skill linked to an automation starts it for the asking member (not for n
     assert.strictEqual(linkedRuns[0].startedByUserId, 'member-7');
 });
 
+test('runAutomations: false (a run started by an e-mail) loads no automation-linked skill and runs nothing', async () => {
+    linkedRuns = [];
+    mockSkills = [legacySkill({ dynamicActivation: true, automationId: 'auto-9' }), legacySkill({ id: 'sk2', dynamicActivation: true })];
+    const out = await executeActivateSkill({ args: { skill_ids: ['sk1', 'sk2'] }, orgId: 'org1', userId: 'u1', runAutomations: false });
+    assert.strictEqual(linkedRuns.length, 0);
+    assert.match(out, /does not start automations/);
+    assert.match(out, /Be precise\./, 'a text skill still loads');
+});
+
 // ── the hang this file used to have ──────────────────────────────────
 test('no real automation runtime or config store was ever loaded', () => {
     // The reason this file terminates without `--test-force-exit`. The config
