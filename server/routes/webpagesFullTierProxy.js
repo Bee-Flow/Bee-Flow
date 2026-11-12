@@ -46,6 +46,22 @@ const MOUNT_PATH = '/api/webpages-preview/:id/full';
 const UPGRADE_URL_RE = /^\/api\/webpages-preview\/([^/?]+)\/full(?:\/|$)/;
 
 /**
+ * The sandbox the preview frame runs under (agent-hub PREVIEW_SANDBOX), sent by
+ * the server as well: a full-tier document is the webpage author's code, and it
+ * runs in an opaque origin wherever it is opened, framed or not.
+ */
+const FULL_TIER_CSP = 'sandbox allow-scripts allow-forms';
+
+/**
+ * Give every proxied full-tier response the preview sandbox, replacing any
+ * policy the container sent.
+ * @param {{ headers: Record<string, string | string[] | undefined> }} proxyRes
+ */
+function applyPreviewSandbox(proxyRes) {
+    proxyRes.headers['content-security-policy'] = FULL_TIER_CSP;
+}
+
+/**
  * Resolves (starting a cold container if needed) the target for a request
  * already authenticated by requirePreviewToken, and attaches it to `req` for
  * the proxy's `router` to read. Kept synchronous-for-the-router by design: a
@@ -80,6 +96,7 @@ function buildProxyMiddleware() {
         changeOrigin: true,
         ws: true,
         on: {
+            proxyRes: (proxyRes) => applyPreviewSandbox(proxyRes),
             error: (err, req, res) => {
                 log.error('[WebpagesFullTierProxy] proxy error:', err.message);
                 // `res` is a Socket (not an http.ServerResponse) on the WS
@@ -142,4 +159,4 @@ function mountFullTierProxy(app, server) {
     });
 }
 
-module.exports = { mountFullTierProxy };
+module.exports = { mountFullTierProxy, applyPreviewSandbox, FULL_TIER_CSP };
