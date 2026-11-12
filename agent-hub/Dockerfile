@@ -3,7 +3,7 @@
 # BuildKit schedules them CONCURRENTLY — the embed build no longer adds its full
 # duration to the wall clock (~104s → overlapped with the ~74s main build on a
 # multi-core box). npm ci and the context copy still happen exactly once.
-FROM node:22.23.4-alpine@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914 AS src
+FROM node:22.23.4-alpine@sha256:0e1754758c2df4cfa3e68d59e2e1b7374bb7fd9ea6328eaaacf15cc934af8202 AS src
 
 WORKDIR /app
 
@@ -110,7 +110,7 @@ FROM scratch AS sourcemaps
 COPY --from=build /app/dist/assets/*.map /
 
 # Production stage
-FROM nginx:alpine@sha256:a3554c0d0b48177b1413c26e01f695334428020d9df01243fbae3e11cfd17417
+FROM nginx:alpine@sha256:713fc2ebfd92e8217db451477182ee91944b123d2b1ee9fd5a8c6e91ca6c3a11
 # OS_PATCH_DATE (YYYY-MM-DD) is the cache key of the OS upgrade: the pinned base digest
 # and this instruction never change, so without it a cached layer would keep serving
 # packages with fixed CVEs. CI passes the build date, so the layer is refreshed daily.
