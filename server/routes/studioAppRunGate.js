@@ -193,20 +193,16 @@ function locateNode(def, nodeId, role = null) {
 
 /**
  * The gate of an ai_chat component for a viewer who is not the owner: the
- * same rules as a heavy step (a chat spends the owner's model budget). The
- * viewer needs a role in the app, and the chat must sit where that role sees
- * it. Answers itself (403 without a role, 404 for a chat the role does not
- * see, as if it were not there) and returns false; true when the chat may run.
+ * same rule as a wired action. The chat must sit where the viewer's role sees
+ * it (a viewer without an app role sees what no role restriction hides).
+ * Answers itself (404 for a chat the role does not see, as if it were not
+ * there) and returns false; true when the chat may run.
  * @param {import('express').Request} req
  * @param {import('express').Response} res
  * @param {{ app: { id: string, userId: string }, def: { screens?: unknown } | null | undefined, nodeId: string, userId: string }} chat
  */
 async function assertChatAccess(req, res, { app, def, nodeId, userId }) {
     const { role } = await resolveViewerRole(req, app, userId);
-    if (!role) {
-        res.status(403).json({ error: 'You do not have access to this app yet' });
-        return false;
-    }
     if (role !== 'owner' && !locateNode(def, nodeId, role)?.visible) {
         res.status(404).json({ error: 'Chat component not found' });
         return false;

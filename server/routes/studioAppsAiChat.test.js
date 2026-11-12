@@ -220,13 +220,17 @@ test('a stream failure is reported as an SSE error event, not a broken response'
     assert.doesNotMatch(evts[0].error, /exploded/);
 });
 
-test('a viewer without a role in the app cannot spend the owner\'s model budget through a chat', async () => {
-    const app = makeApp({ pubNodes: [chatNode()] });
+test('a viewer without an app role reaches an open chat, never one gated to roles', async () => {
     viewerRole = null;
-    const res = await dispatch({ url: `/${app.id}/ai/chat`, user: 'viewer-9', orgIds: [ORG], body: { nodeId: 'cmp_chat', messages: [{ role: 'user', content: 'x' }] } });
-    assert.strictEqual(res.statusCode, 403);
+    const gated = makeApp({ pubNodes: [{ ...chatNode(), visibleToRoles: ['admin'] }] });
+    const refused = await dispatch({ url: `/${gated.id}/ai/chat`, user: 'viewer-9', orgIds: [ORG], body: { nodeId: 'cmp_chat', messages: [{ role: 'user', content: 'x' }] } });
+    assert.strictEqual(refused.statusCode, 404);
     assert.strictEqual(aiCalls.streamChat.length, 0);
     assert.strictEqual(aiCalls.resolveOwnerModel.length, 0);
+    const open = makeApp({ pubNodes: [chatNode()] });
+    const res = await dispatch({ url: `/${open.id}/ai/chat`, user: 'viewer-9', orgIds: [ORG], body: { nodeId: 'cmp_chat', messages: [{ role: 'user', content: 'x' }] } });
+    assert.notStrictEqual(res.statusCode, 404);
+    assert.notStrictEqual(res.statusCode, 403);
 });
 
 test('a chat on a screen, section or container gated to other roles is not there for a member', async () => {
