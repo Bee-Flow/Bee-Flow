@@ -199,12 +199,9 @@ function locateNode(def, nodeId, role = null) {
  * see, as if it were not there) and returns false; true when the chat may run.
  * @param {import('express').Request} req
  * @param {import('express').Response} res
- * @param {{ id: string, userId: string }} app
- * @param {{ screens?: unknown } | null | undefined} def
- * @param {string} nodeId
- * @param {string} userId
+ * @param {{ app: { id: string, userId: string }, def: { screens?: unknown } | null | undefined, nodeId: string, userId: string }} chat
  */
-async function assertChatAccess(req, res, app, def, nodeId, userId) {
+async function assertChatAccess(req, res, { app, def, nodeId, userId }) {
     const { role } = await resolveViewerRole(req, app, userId);
     if (!role) {
         res.status(403).json({ error: 'You do not have access to this app yet' });

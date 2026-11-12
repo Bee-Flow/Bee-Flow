@@ -545,7 +545,7 @@ router.post('/:id/ai/chat', requireAuth, stepLimiter, jsonBody, bodySizeGuard, v
         return res.status(404).json({ error: 'Chat component not found' });
     }
     // Who may talk to it: a viewer with a role that sees the chat (it spends the owner's model budget).
-    if (!isOwner && !await assertChatAccess(req, res, app, def, String(node.id), userId)) return;
+    if (!isOwner && !await assertChatAccess(req, res, { app, def, nodeId: String(node.id), userId })) return;
 
     const messages = sanitizeChatMessages(req.body?.messages);
     if (!messages.length) return res.status(400).json({ error: 'No message to send' });

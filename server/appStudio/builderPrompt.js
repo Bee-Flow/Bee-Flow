@@ -25,6 +25,7 @@ const { LIMITS } = require('./componentSpecs/limits');
 const { renderCatalogText, renderCompactCatalogText } = require('./builderPrompt/catalogRender');
 const { renderExtensionIndex } = require('./builderPrompt/extensionIndex.mts');
 const { buildCoreSystemPrompt } = require('./builderPrompt/corePrompt');
+const { APP_DATA_RULE } = require('./builderPrompt/appDataFrame.mts');
 const { buildFewShotMessages } = require('./builderPrompt/fewShots');
 const { computedBits, fieldRuleBits } = require('./builderPrompt/computedMarks');
 const { askTopic } = require('./builderPrompt/catalogDiet.mts');
@@ -406,7 +407,9 @@ ${askTopic('documents')} BEFORE you build one. An app shows ONLY documents you p
 ${documentsSection}
 ${discovery}
 
-${PITFALLS_SECTION}${diagnosisText(troubleshootTool, cleanIsNotRendered)}## Catalog (the component types, props, style knobs and action kinds you build with; nothing exists outside it and the Extensions list that may follow it)
+${PITFALLS_SECTION}${diagnosisText(troubleshootTool, cleanIsNotRendered)}${APP_DATA_RULE}
+
+## Catalog (the component types, props, style knobs and action kinds you build with; nothing exists outside it and the Extensions list that may follow it)
 
 ${catalog}${extensionIndex ? `\n\n${extensionIndex}` : ''}
 
