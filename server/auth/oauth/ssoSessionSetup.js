@@ -2,8 +2,9 @@
 /**
  * The session half of the OAuth callback (./providerCallbackRoutes.js): where
  * the user stands with an organisation (binding an org-less account by its
- * verified Microsoft tenant; placement by e-mail domain happens only when an
- * account is created, ./ssoUserProvisioning.js), and the session fields, token
+ * verified Microsoft tenant or an operator's allowed-domain list; placement by
+ * a contact e-mail domain happens only when an account is created,
+ * ./ssoUserProvisioning.js), and the session fields, token
  * vault and encryption flags written once the route's account-status gate has
  * passed.
  */
@@ -11,8 +12,9 @@
 const log = require('../../telemetry/log');
 const userStore = require('../../stores/userStore');
 const { getOrCreateSSOUserDEKCompat } = require('../encryption');
-const { planNewSSOUserPlacement } = require('../ssoUserResolver');
+const { resolveOrgByEmailDomain, planNewSSOUserPlacement } = require('../ssoUserResolver');
 const { parseGroupIds, orgIdsForUser } = require('../orgMembership');
+const freeEmailDomains = require('../../utils/freeEmailDomains');
 // Shared with loginRoutes and the admin gate — this was a verbatim copy that
 // read `allowed_features` alone, i.e. only the plan-grant half of entitlement,
 // so an org entitled via its licence tier failed it and `zk` silently wrote
@@ -56,12 +58,17 @@ async function resolveOrgStanding({ provider, user, msTenant, signupIntent }) {
     const isPersonalAccount = signupIntent?.accountType === 'consumer';
     await recordVerifiedAddress(provider, user, freshUser);
 
-    // An account without an organisation joins one here only through its
-    // verified Microsoft tenant. The e-mail domain places an account once,
-    // when it is created (../orgDomainMatch.mts), never on a later sign-in.
+    // An account without an organisation joins one here through its verified
+    // Microsoft tenant, or through an organisation's allowedDomains (set and
+    // kept unique by a self-hosted operator; a domain two organisations list
+    // places nobody). A contact e-mail domain places an account only when it
+    // is created (../orgDomainMatch.mts), never on a later sign-in: no
+    // confirmed-contact set is passed here, so that branch never matches.
     let pendingApproval = false;
-    if (!userHasOrg && !isPersonalAccount && provider === 'microsoft') {
-        const matchingOrg = await microsoftLogin.trustedMicrosoftOrg(user, msTenant, userStore);
+    if (!userHasOrg && !isPersonalAccount && (provider === 'microsoft' || (user.email && user.email.includes('@')))) {
+        const matchingOrg = provider === 'microsoft'
+            ? await microsoftLogin.trustedMicrosoftOrg(user, msTenant, userStore)
+            : resolveOrgByEmailDomain(user.email ?? '', await userStore.getAllOrganizations(), await freeEmailDomains.getEffectiveFreeEmailDomains());
 
         if (matchingOrg) {
             // Same auto-approve/pending decision the create path makes, from

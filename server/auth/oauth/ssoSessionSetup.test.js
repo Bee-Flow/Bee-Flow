@@ -3,7 +3,8 @@
  * ssoSessionSetup.resolveOrgStanding: an SSO sign-in to an account that waits
  * for approval (pending, or on the waitlist) is held, unless it is the org's
  * founder or a platform admin. An existing account without an organisation is
- * placed only through its Microsoft tenant, never by its e-mail domain.
+ * placed through its Microsoft tenant or an organisation's allowedDomains, never
+ * by an organisation's contact e-mail domain.
  *
  * Run: cd server && node --test auth/oauth/ssoSessionSetup.test.js
  */
@@ -67,12 +68,27 @@ test('binding an org-less account by its Microsoft tenant applies only the org\'
     } finally { groups = []; tenantOrg = null; }
 });
 
-test('a later sign-in of an account without an organisation is not placed by its e-mail domain', async () => {
+test('a later sign-in of an account without an organisation is placed through an organisation\'s allowedDomains', async () => {
     row = { id: 'u1', role: 'user', status: 'active', groups: [], email: 'u1@acme.test', email_verified_at: '2026-01-01' };
-    orgs = [
-        { id: 'acme', name: 'Acme', email: 'info@acme.test', autoApproveSSO: true, allowedDomains: [], contact_domain_verified: 'acme.test' },
-        { id: 'listed', name: 'Listed', allowedDomains: ['acme.test'], autoApproveSSO: true },
-    ];
+    orgs = [{ id: 'listed', name: 'Listed', allowedDomains: ['acme.test'], autoApproveSSO: true, defaultGroups: [] }];
+    updates.length = 0;
+    try {
+        const out = await resolveOrgStanding({ provider: 'nextcloud', user: /** @type {any} */ ({ id: 'u1', email: 'u1@acme.test' }) });
+        assert.equal(out.userHasOrg, true);
+        assert.equal(updates.length, 1);
+        assert.equal(updates[0].organizationId, 'listed');
+        assert.equal(updates[0].status, 'active');
+        // Two organisations listing the domain place nobody.
+        orgs = [...orgs, { id: 'listed-2', name: 'Listed 2', allowedDomains: ['acme.test'], autoApproveSSO: true }];
+        updates.length = 0;
+        assert.equal((await resolveOrgStanding({ provider: 'google', user: /** @type {any} */ ({ id: 'u1', email: 'u1@acme.test', emailVerified: true }) })).userHasOrg, false);
+        assert.deepEqual(updates, []);
+    } finally { orgs = []; }
+});
+
+test('a later sign-in of an account without an organisation is not placed by a contact e-mail domain', async () => {
+    row = { id: 'u1', role: 'user', status: 'active', groups: [], email: 'u1@acme.test', email_verified_at: '2026-01-01' };
+    orgs = [{ id: 'acme', name: 'Acme', email: 'info@acme.test', autoApproveSSO: true, allowedDomains: [], contact_domain_verified: 'acme.test' }];
     updates.length = 0;
     try {
         for (const provider of ['google', 'nextcloud']) {
