@@ -109,3 +109,24 @@ test('user-settings fields: empty clears, a valid connection passes, a private a
     assert.equal(parse('frappeCrmApiSecret', 'abc:123').success, true);
     assert.equal(parse('frappeCrmApiSecret', 'abc\n123').success, false);
 });
+
+test('INTEGRATION_TEST_MAX_PER_MINUTE: a user past the limit gets 429 without an attempt; 0 is unlimited', async () => {
+    const { integrationTestLimiter } = require('./integrationTestLimit.mts');
+    const deps = { requireAuth: (_req, _res, next) => next(), getSecret: async () => null, testConnection: async () => outcome };
+    process.env.INTEGRATION_TEST_MAX_PER_MINUTE = '2';
+    const limited = h.serve('/ai', createFrappeCrmTestRouter({ ...deps, rateLimit: integrationTestLimiter('frappe-crm-test-limit') }));
+    process.env.INTEGRATION_TEST_MAX_PER_MINUTE = '0';
+    const open = h.serve('/ai', createFrappeCrmTestRouter({ ...deps, rateLimit: integrationTestLimiter('frappe-crm-test-open') }));
+    delete process.env.INTEGRATION_TEST_MAX_PER_MINUTE;
+    try {
+        const statuses = [];
+        for (let i = 0; i < 3; i++) statuses.push((await limited.call('POST', '/ai/frappe-crm/test', { body: {} })).status);
+        assert.deepEqual(statuses, [200, 200, 429]);
+        const other = await limited.call('POST', '/ai/frappe-crm/test', { body: {}, user: { id: 'u2' } });
+        assert.equal(other.status, 200, 'the limit is per user');
+        for (let i = 0; i < 5; i++) assert.equal((await open.call('POST', '/ai/frappe-crm/test', { body: {} })).status, 200);
+    } finally {
+        await limited.close();
+        await open.close();
+    }
+});

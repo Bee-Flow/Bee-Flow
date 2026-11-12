@@ -151,6 +151,8 @@ const STATUS_TEXT: Record<number, string> = {
 export class FrappeCrmError extends Error {
     /** The HTTP status Frappe answered with; undefined when no answer came. */
     status?: number;
+    /** True when the message carries text the site itself answered with. */
+    fromSite?: boolean;
     constructor(message: string, status?: number) {
         super(message);
         this.name = 'FrappeCrmError';
@@ -176,7 +178,10 @@ export function mapFrappeError(err: unknown, creds: FrappeCreds): FrappeCrmError
     const detail = at >= 0 ? frappeServerMessage(text.slice(at + marker.length)) : '';
     let shown = scrub(detail, creds);
     if (shown.length > MAX_MESSAGE_CHARS) shown = `${shown.slice(0, MAX_MESSAGE_CHARS)}…`;
-    return new FrappeCrmError(shown ? `HTTP ${status}: ${shown}` : `the site answered HTTP ${status}.`, status);
+    const mapped = new FrappeCrmError(shown ? `HTTP ${status}: ${shown}` : `the site answered HTTP ${status}.`, status);
+    // The site's own words: the tools pass them to the model, the connection test never shows them.
+    if (shown) mapped.fromSite = true;
+    return mapped;
 }
 
 // ─── Request ───────────────────────────────────────────────────
