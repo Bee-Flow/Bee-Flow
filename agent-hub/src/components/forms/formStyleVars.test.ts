@@ -95,12 +95,21 @@ describe('mergeFormStyle', () => {
 });
 
 describe('scopedFormCss', () => {
-    it('nests the sanitised CSS inside this form\'s scope', () => {
+    it('puts the sanitised CSS inside an @scope of this form\'s root', () => {
         const sheet = scopedFormCss({ customCss: '.bf-form__title { color: #7c2d12; } .a { background: url(https://x.example/a.png); }' }, 'r1');
-        expect(sheet.startsWith('.bf-form-scope[data-bf-scope="r1"] {')).toBe(true);
+        expect(sheet.startsWith('@scope (.bf-form-scope[data-bf-scope="r1"]) {\n:scope {\n')).toBe(true);
         expect(sheet).toContain('.bf-form__title { color: #7c2d12; }');
         expect(sheet).not.toContain('x.example');
         expect(sheet.trim().endsWith('}')).toBe(true);
+    });
+
+    it('keeps selectors that name the form inside :has() or :is() within the @scope, where they cannot match outside the form', () => {
+        for (const customCss of ['html:has(&) body { display: none; }', ':is(&) ~ div { color: red; }']) {
+            const sheet = scopedFormCss({ customCss }, 'r1');
+            expect(sheet.startsWith('@scope (.bf-form-scope[data-bf-scope="r1"]) {')).toBe(true);
+            expect(sheet.trim().endsWith('}\n}')).toBe(true);
+            expect(sheet.indexOf(customCss.split(' {')[0])).toBeGreaterThan(sheet.indexOf(':scope {'));
+        }
     });
 
     it('is empty without custom CSS, or when nothing survives', () => {

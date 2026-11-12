@@ -31,10 +31,12 @@ function cleanElement(el: Element): void {
     }
 }
 
-export function sanitizeEmailHtml(raw: string): string {
+/** `dropLinks`: also remove every <link> (a stylesheet, prefetch or preconnect to another host). */
+export function sanitizeEmailHtml(raw: string, { dropLinks = false }: { dropLinks?: boolean } = {}): string {
     if (!raw) return '';
     const doc = new DOMParser().parseFromString(raw, 'text/html');
     doc.querySelectorAll(DROP_ELEMENTS).forEach(el => el.remove());
+    if (dropLinks) doc.querySelectorAll('link').forEach(el => el.remove());
     doc.querySelectorAll(UNWRAP_ELEMENTS).forEach(el => el.replaceWith(...Array.from(el.childNodes)));
     doc.querySelectorAll('*').forEach(cleanElement);
     if (/<html[\s>]/i.test(raw)) return `<!DOCTYPE html>${doc.documentElement.outerHTML}`;

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from '../../hooks/useTranslation';
 import { logger } from '../../utils/logger';
 import { sanitizeEmailHtml } from './emailHtmlSanitize';
+import { ALLOW_REMOTE_CSP, BLOCK_REMOTE_CSP, cspMeta, hasRemoteContent } from './emailRemoteContent';
 import { collapseQuotedHistory, isQuoteToggle, type QuoteController } from './emailQuoteCollapse';
 
 /**
@@ -13,9 +14,12 @@ import { collapseQuotedHistory, isQuoteToggle, type QuoteController } from './em
  * PARENT measure the rendered height (the srcDoc iframe stays same-origin); it
  * does NOT enable scripting inside the email. Never add `allow-scripts` here —
  * `allow-scripts` + `allow-same-origin` together would let the email strip its
- * own sandbox. The body is cleaned first (emailHtmlSanitize.ts). Remote images
- * load (matches the real email); a click on an http(s) or mailto link is opened
- * by the app in a new tab with noopener, so the sandbox needs no popup escape.
+ * own sandbox. The body is cleaned first (emailHtmlSanitize.ts). With
+ * `remoteImages="ask"` nothing from another host loads (a CSP in the framed
+ * document, emailRemoteContent.ts) until the viewer clicks "Show images" for
+ * that message; otherwise remote images load as in the real email. A click on
+ * an http(s) or mailto link is opened by the app in a new tab with noopener,
+ * so the sandbox needs no popup escape.
  */
 
 const WRAPPER_STYLE = `
@@ -71,15 +75,17 @@ export function measureContentHeight(doc: Document): number {
  * <base> + the image cap into its existing <head>; bare fragments get wrapped
  * in our minimal readable shell.
  */
-function buildSrcDoc(html?: string | null, inlineImages?: Record<string, string>): string {
-    const raw = sanitizeEmailHtml(resolveCidImages(html || '', inlineImages));
+function buildSrcDoc(html?: string | null, inlineImages?: Record<string, string>, csp: string | null = null): string {
+    // The policy goes first in the head, before anything that could load.
+    const inject = `${csp ? cspMeta(csp) : ''}${HEAD_INJECT}`;
+    const raw = sanitizeEmailHtml(resolveCidImages(html || '', inlineImages), { dropLinks: csp === BLOCK_REMOTE_CSP });
     if (/<html[\s>]/i.test(raw)) {
         if (/<head[\s>]/i.test(raw)) {
-            return raw.replace(/<head([^>]*)>/i, `<head$1>${HEAD_INJECT}`);
+            return raw.replace(/<head([^>]*)>/i, `<head$1>${inject}`);
         }
-        return raw.replace(/<html([^>]*)>/i, `<html$1><head>${HEAD_INJECT}</head>`);
+        return raw.replace(/<html([^>]*)>/i, `<html$1><head>${inject}</head>`);
     }
-    return `<!DOCTYPE html><html><head><meta charset="utf-8">${HEAD_INJECT}${WRAPPER_STYLE}</head><body>${raw}</body></html>`;
+    return `<!DOCTYPE html><html><head><meta charset="utf-8">${inject}${WRAPPER_STYLE}</head><body>${raw}</body></html>`;
 }
 
 /** A content id as the mail writes it (`cid:<abc@x>`, maybe percent-encoded) and as the attachment row stores it. */
@@ -131,10 +137,17 @@ interface EmailHtmlBodyProps {
     html?: string | null;
     /** Content id → URL of the app's own file, for `cid:` images in the body. */
     inlineImages?: Record<string, string>;
+    /** 'ask': nothing from another host loads until the viewer shows the images of this message. Default 'load'. */
+    remoteImages?: 'load' | 'ask';
 }
 
-export default function EmailHtmlBody({ html, inlineImages }: EmailHtmlBodyProps) {
+export default function EmailHtmlBody({ html, inlineImages, remoteImages = 'load' }: EmailHtmlBodyProps) {
     const { t } = useTranslation();
+    const [showRemote, setShowRemote] = useState(false);
+    const ask = remoteImages === 'ask';
+    const csp = ask ? (showRemote ? ALLOW_REMOTE_CSP : BLOCK_REMOTE_CSP) : null;
+    const hasRemote = useMemo(() => ask && hasRemoteContent(sanitizeEmailHtml(html || '')), [ask, html]);
+    const remoteHeld = hasRemote && !showRemote;
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const observerRef = useRef<ResizeObserver | null>(null);
     const quoteRef = useRef<QuoteController | null>(null);
@@ -181,9 +194,9 @@ export default function EmailHtmlBody({ html, inlineImages }: EmailHtmlBodyProps
 
     useEffect(() => () => observerRef.current?.disconnect(), []);
 
-    const srcDoc = useMemo(() => buildSrcDoc(html, inlineImages), [html, inlineImages]);
+    const srcDoc = useMemo(() => buildSrcDoc(html, inlineImages, csp), [html, inlineImages, csp]);
 
-    return (
+    const frame = (
         <iframe
             ref={iframeRef}
             title={t('support.email_html_body_email_message', 'Email message')}
@@ -193,5 +206,17 @@ export default function EmailHtmlBody({ html, inlineImages }: EmailHtmlBodyProps
             className="w-full block"
             style={{ height, border: 'none', background: '#fff' }}
         />
+    );
+    if (!remoteHeld) return frame;
+    return (
+        <div>
+            <div className="flex flex-wrap items-center gap-2 px-2 py-1 text-xs text-[var(--text-muted)]" data-testid="email-remote-held">
+                <span>{t('support.email_remote_blocked', 'Pictures from the web are not loaded, so the sender cannot see that you opened this message.')}</span>
+                <button type="button" className="underline text-[var(--text-secondary)]" onClick={() => setShowRemote(true)}>
+                    {t('support.email_remote_show', 'Show images')}
+                </button>
+            </div>
+            {frame}
+        </div>
     );
 }

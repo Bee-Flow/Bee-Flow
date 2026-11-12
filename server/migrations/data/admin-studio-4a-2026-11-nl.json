@@ -61,6 +61,8 @@
     "support.drawer_status_resolved": "Opgelost",
     "support.drawer_subject_and_message_required": "Onderwerp en bericht zijn verplicht",
     "support.drawer_you": "Jij",
+    "support.email_remote_blocked": "Afbeeldingen van internet worden niet geladen, zodat de afzender niet kan zien dat je dit bericht hebt geopend.",
+    "support.email_remote_show": "Afbeeldingen tonen",
     "support.inbox_composer_note_placeholder": "Interne notitie (alleen zichtbaar voor medewerkers)…",
     "support.inbox_composer_reply_placeholder": "Antwoord aan de klant…  (typ / voor sjablonen)",
     "support.inbox_composer_save_note": "Notitie opslaan",

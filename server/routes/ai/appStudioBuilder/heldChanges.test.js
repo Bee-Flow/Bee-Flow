@@ -3,8 +3,8 @@
  * confirmation (heldChanges.mts), and app data reaches the model framed as
  * data (appStudio/builderPrompt/appDataFrame.mts).
  *
- * The data store and the app store are stubs laid over the real modules; the
- * builder tools and the build loop's tool runner are the real ones.
+ * The data store and the app store are stubs (no database); the builder tools
+ * and the build loop's tool runner are the real ones.
  *
  * Run: cd server && node --test routes/ai/appStudioBuilder/heldChanges.test.js
  */
@@ -18,11 +18,17 @@ process.env.NODE_ENV = 'test';
 
 const clone = (v) => JSON.parse(JSON.stringify(v));
 const state = { saves: [], defSaves: 0 };
-Object.assign(require('../../../stores/studioAppDataStore'), {
+// The two store seams the tools save through, stubbed before anything loads them (no database).
+function stub(rel, exports) {
+    const filename = require.resolve(rel);
+    require.cache[filename] = { id: filename, filename, loaded: true, exports };
+}
+stub('../../../stores/studioAppDataStore', {
     async saveDataModel(_appId, _owner, model) { state.saves.push(clone(model)); return { ok: true, version: state.saves.length + 1 }; },
     async getRowCounts() { return { tbl_orders: 3 }; },
 });
-Object.assign(require('../../../stores/studioAppStore'), {
+stub('../../../stores/userStore', { async getUser() { return null; } });
+stub('../../../stores/studioAppStore', {
     async saveDefinition() { state.defSaves += 1; return { ok: true, version: 10 + state.defSaves }; },
     async updateStudioApp() { return null; },
 });

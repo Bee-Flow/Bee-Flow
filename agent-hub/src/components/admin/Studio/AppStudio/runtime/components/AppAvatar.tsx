@@ -2,7 +2,7 @@ import { User } from 'lucide-react';
 import { useState } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import AssetImage from '../assets/AssetImage';
-import { isImageValue } from '../assets/assetUrl';
+import { isAllowedBoundImage, isImageValue } from '../assets/assetUrl';
 import { resolveBinding } from '../resolveBinding';
 import type { BindingInput } from '../resolveBinding.types';
 import { useRuntime } from '../RuntimeContext';
@@ -12,7 +12,8 @@ import type { NodeProps } from './appNode.types';
  * App Studio runtime - 'avatar' (schema 3). Spec: server/appStudio/componentSpecs/types/avatar.js.
  *
  * A round picture. The source follows the image type: an https URL or `asset:<id>`, `srcFrom`
- * (a binding) first and `src` as the fallback. When there is no usable picture, or it fails to
+ * (a binding) first and `src` as the fallback; a bound address off the app's `allowedLinkHosts`
+ * is never loaded (the initials show). When there is no usable picture, or it fails to
  * load, the initials of `name` stand in (a person icon when there is no name either).
  */
 interface AvatarProps {
@@ -40,11 +41,11 @@ function textOf(raw: unknown): string {
 
 export default function AppAvatar({ node }: NodeProps<AvatarProps>) {
     const { t } = useTranslation();
-    const { actionState, dataState, scope } = useRuntime();
+    const { actionState, dataState, scope, linkHosts } = useRuntime();
     const { src = null, srcFrom, name = null, nameFrom, size = 'md' } = node.props || {};
     const { value: boundSrc } = resolveBinding(srcFrom, { actionState, dataState, scope });
     const { value: boundName } = resolveBinding(nameFrom, { actionState, dataState, scope });
-    const shown = isImageValue(boundSrc) ? boundSrc : src;
+    const shown = isAllowedBoundImage(boundSrc, linkHosts) ? boundSrc : (isImageValue(boundSrc) ? null : src);
     const who = textOf(boundName) || textOf(name);
     const [failedSrc, setFailedSrc] = useState<string | null>(null);
     const initials = (

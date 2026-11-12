@@ -51,6 +51,8 @@ const OWNED_KEYS = new Set([
     'support.attach_issue_nothing_matches_create',
     'support.attach_issue_search',
     'support.attach_issue_searching',
+    'support.email_remote_blocked',
+    'support.email_remote_show',
     'support.connections_default_project',
     'support.connections_default_project_hint',
     'support.connections_event_customer_message',
