@@ -9,7 +9,7 @@ const HINT_EN: Record<MemoryMode, string> = {
     off: 'Memory off for this chat: nothing is read or saved. Click to turn it on.',
 };
 
-const LOCK_EN: Record<Exclude<MemoryLock, null>, string> = {
+const LOCK_EN: Record<Exclude<MemoryLock, null | 'incognito'>, string> = {
     user_paused: 'Memory is paused. Resume it under Settings, Memory, to use it in chats.',
     org_off: 'Memory is switched off for your organisation. An admin can turn it on.',
 };
@@ -20,6 +20,7 @@ export function memoryStateLabel(t: TranslateFn, mode: MemoryMode): string {
 
 /** The tooltip: what the state means and what a click does, or why the control is locked. */
 export function memoryHint(t: TranslateFn, mode: MemoryMode, lock: MemoryLock): string {
+    if (lock === 'incognito') return t('incognito.memory_locked', 'Memory is off in an incognito chat: nothing is read or saved.');
     if (lock) return t(`chat.memory.lock_${lock}`, LOCK_EN[lock]);
     return t(`chat.memory.hint_${mode}`, HINT_EN[mode]);
 }

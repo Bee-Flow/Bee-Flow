@@ -32,6 +32,8 @@ const { randomUUID } = require('crypto');
 const { run, getOne, getAll, exec, withTransaction } = require('../../db');
 const { makeStoreInit } = require('../lib/storeInit');
 const { runDdl } = require('../lib/_ddl');
+// messages_migrated on the parent tables; fails the init while they are missing.
+const { addParentFlagColumns } = require('./conversationParentFlags');
 const { encryptField, decryptField, isEnvelope } = require('../lib/fieldEnvelope');
 const { conversationKey, messageAad, PLAINTEXT_CONTEXT } = require('./messageCrypto');
 const { fallback } = require('../../utils/bestEffort');
@@ -62,15 +64,7 @@ async function _initMessagesTable() {
         CREATE INDEX IF NOT EXISTS idx_conv_messages_conv_type
         ON conversation_messages(conversation_id, conversation_type)
     `);
-    // Migration flag columns on the parent tables —
-    // added lazily so this is safe on existing databases.
-    // Via runDdl (stores/lib/_ddl.js): each statement's failure is reported on its own.
-    await runDdl('conversationMessages', [
-        `ALTER TABLE agent_conversations
-            ADD COLUMN IF NOT EXISTS messages_migrated BOOLEAN DEFAULT FALSE`,
-        `ALTER TABLE direct_conversations
-            ADD COLUMN IF NOT EXISTS messages_migrated BOOLEAN DEFAULT FALSE`,
-    ]);
+    await addParentFlagColumns();
 
     // ── Shared-thread columns ────────────────────────────────────────────────
     //

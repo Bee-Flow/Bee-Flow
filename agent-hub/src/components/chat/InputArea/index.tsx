@@ -120,7 +120,7 @@ const InputArea = ({
     // useChatSignals in the host), and the person's "don't count me" switch.
     // Null everywhere else, so no other composer announces anything.
     chatSignalsNotice = null,
-    onChatSignalsCounted = null, kbNoticeIds = null,
+    onChatSignalsCounted = null, kbNoticeIds = null, incognito = false,
 }: InputAreaProps) => {
     const { t } = useTranslation();
     const [voiceMode, setVoiceMode] = useState(false);
@@ -161,7 +161,7 @@ const InputArea = ({
     // the old two-state value `memoryWriteEnabled=false` reads as Read only.
     // A paused or organisation-off memory locks the control (memoryLockOf).
     const [memoryMode, setMemoryMode] = useState(readStoredMemoryMode);
-    const memoryLock = memoryLockOf(user);
+    const memoryLock = incognito ? 'incognito' : memoryLockOf(user);
     const changeMemoryMode = useCallback((next: MemoryMode) => {
         setMemoryMode(next);
         storeMemoryMode(next);
@@ -215,7 +215,7 @@ const InputArea = ({
     const {
         processFiles, handleFileSelect,
         handleDragEnter, handleDragLeave, handleDragOver, handleDrop,
-    } = useFileIntake({ setAttachments, setIsDragOver, fileInputRef, dropZoneRef });
+    } = useFileIntake({ setAttachments, setIsDragOver, fileInputRef, dropZoneRef, refuse: incognito });
 
     // ---- Paste (Ctrl+V) ----
     // The textarea's own paste AND the document-level one, with every browser
@@ -274,7 +274,7 @@ const InputArea = ({
     // The flags are derived HERE, once, because the rows and the pills both
     // read them: a row that opens a panel the panel's own condition would hide
     // is exactly the bug one shared derivation makes impossible.
-    const voiceReady = useVoiceChatReady(user);
+    const voiceReady = useVoiceChatReady(user) && !incognito; // voice runs a session of its own
     const externalToolsOk = !selectedAgent?.config?.disableExternalTools;
     const orgOn = (id: string) => !orgEnabledIntegrations || orgEnabledIntegrations.includes(id);
     const showImageGen = externalToolsOk && orgOn('image-gen') && hasGoogleKey;
@@ -348,8 +348,8 @@ const InputArea = ({
     // Two apps open an attachment picker rather than seeding text; everything
     // else just starts the sentence for you.
     const onPickApp = (app: AppDef) => {
-        if (app.id === 'google-drive') { setDrivePickerOpen(true); return; }
-        if (app.id === 'gmail') { setGmailPickerOpen(true); return; }
+        if (app.id === 'google-drive') { setDrivePickerOpen(!incognito); return; }
+        if (app.id === 'gmail') { setGmailPickerOpen(!incognito); return; }
         const seed = seedTextForApp(app);
         if (seed) setInput(seed);
     };
@@ -377,7 +377,7 @@ const InputArea = ({
     // can read `.current` while it renders.
     const openFilePicker = () => { fileInputRef.current?.click(); };
     const composerTools = buildComposerTools({
-        t, onAttachClick: openFilePicker,
+        t, onAttachClick: openFilePicker, incognito,
         canCreateMedia, mediaMenuOpen, setMediaMenuOpen,
         canPickApps, appsOpen, setAppsOpen,
         canWebSearch, webSearchEnabled, webSearchBlocked, webSearchUnavailable, setWebSearchEnabled,
@@ -445,7 +445,7 @@ const InputArea = ({
                 onDrop={handleDrop}
             >
                 {/* Drag overlay */}
-                {isDragOver && (
+                {isDragOver && !incognito && (
                     <div className="absolute inset-0 z-30 flex items-center justify-center bg-[var(--accent-primary)] bg-opacity-10 border-2 border-dashed border-[var(--accent-primary)] rounded-xl backdrop-blur-sm pointer-events-none [margin:8px]"
                     >
                         <div className="flex flex-col items-center gap-2 text-[var(--accent-primary)]">
@@ -577,7 +577,7 @@ const InputArea = ({
                 onDriveClose={() => setDrivePickerOpen(false)}
                 gmailOpen={gmailPickerOpen}
                 onGmailClose={() => setGmailPickerOpen(false)}
-                onAdd={(newAttachments) => setAttachments(prev => [...prev, ...newAttachments])}
+                onAdd={(newAttachments) => { if (!incognito) setAttachments(prev => [...prev, ...newAttachments]); }}
             />
         </>
     );

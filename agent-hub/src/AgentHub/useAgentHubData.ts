@@ -3,6 +3,7 @@ import { buildSidePanelPayload } from './sidePanelPayload';
 import { updateAgentUrl, updateDirectChatUrl } from './hubUrl';
 import useChatScroll from './useChatScroll';
 import useHubStartup from './useHubStartup';
+import useIncognitoSession, { useIncognitoControls } from './useIncognitoSession';
 import useSelectConversation from './useSelectConversation';
 import useChatSignals from '../components/chat/chatSignals/useChatSignals';
 import useChatEngine from '../hooks/useChatEngine';
@@ -51,6 +52,12 @@ const useAgentHubData = ({
     } = webpage;
     const { refreshAgents, loadConversations, loadDirectConversations, loadLabels, loadModelTiers } = lists;
 
+    // Incognito chat (useIncognitoSession): while on, the engine stores
+    // nothing and the webpage panel, which reroutes the turn to an endpoint
+    // that keeps its own state, is left out of the turn.
+    const { incognitoSession, setIncognito: setIncognitoSession, endIncognito } = useIncognitoSession();
+    const webpagePanelId = incognitoSession ? null : sidePanelWebpageId;
+
     // The conversation the latest turn wrote to, as the server reported it: a
     // new object per report. A chat started from a project shares exactly the
     // conversation its own turn created (useProjectChatStart), never whichever
@@ -66,7 +73,7 @@ const useAgentHubData = ({
         user,
         surface: chatSignalsSurfaceFor(resolveTurnEndpoint({
             isDirectMode: !!directChatMode,
-            customEndpoint: sidePanelWebpageId ? '/ai/chat/webpage/stream' : undefined,
+            customEndpoint: webpagePanelId ? '/ai/chat/webpage/stream' : undefined,
             agentId: selectedAgent?.id,
         })),
         agentId: selectedAgent?.id,
@@ -123,13 +130,13 @@ const useAgentHubData = ({
             // chat to the dedicated webpage endpoint — same one the standalone
             // Webpage Editor uses, so the AI gets the full toolbelt
             // (file/multi-file/db tools + sources).
-            ...(sidePanelWebpageId ? { customEndpoint: '/ai/chat/webpage/stream' } : {}),
+            ...(webpagePanelId ? { customEndpoint: '/ai/chat/webpage/stream' } : {}),
             getExtraPayload: () => ({
                 ...(Array.isArray(directSessionSkills) && directSessionSkills.length > 0 ? { sessionSkills: directSessionSkills } : {}),
                 ...(Array.isArray(directActivatedSessionSkillIds) && directActivatedSessionSkillIds.length > 0 ? { activatedSessionSkillIds: directActivatedSessionSkillIds } : {}),
                 ...(Array.isArray(directChatKBIds) && directChatKBIds.length > 0 ? { knowledgeBaseIds: directChatKBIds } : {}),
-                ...(sidePanelWebpageId ? {
-                    webpageId: sidePanelWebpageId,
+                ...(webpagePanelId ? {
+                    webpageId: webpagePanelId,
                     htmlContent: sidePanelWebpageFiles.html,
                     cssContent: sidePanelWebpageFiles.css,
                     jsContent: sidePanelWebpageFiles.js,
@@ -207,6 +214,13 @@ const useAgentHubData = ({
         }, [directChatMode, currentDirectConversation?.id, currentConversation?.id, selectedAgent?.id]),
         getChatSignalsPayload,
         getMemoryLock,
+        incognito: incognitoSession,
+    });
+
+    // Incognito ends when the chat stops being the active one: see
+    // useIncognitoControls for which setter replaces and which one appends.
+    const { replaceMessages, leaveIncognito, setIncognito } = useIncognitoControls({
+        endIncognito, setIncognitoSession, setMessages, stopGenerating, setCoworkMode, selectedTier, setSelectedTier,
     });
 
     // Once a thread has a message in it the mode is settled — see
@@ -258,18 +272,20 @@ const useAgentHubData = ({
     }, [selectedAgent]);
 
     const selectConversation = useSelectConversation({
-        setCurrentConversation, setMessages, setNotebookContent, setShowNotebook, setNotebookLinkedId, openAtLatest,
+        setCurrentConversation, setMessages: replaceMessages, setNotebookContent, setShowNotebook, setNotebookLinkedId, openAtLatest,
     });
     useHubStartup({
         initialAgentId, initialConversationId, initialDirectConvId,
         selectedAgent, setSelectedAgent, setDirectChatMode,
         setCurrentConversation, setCurrentDirectConversation, setSelectedTier, setDirectChatKBIds,
-        setMessages, setNotebookContent, setNotebookSelection, setShowNotebook, setNotebookLinkedId,
+        setMessages: replaceMessages, setNotebookContent, setNotebookSelection, setShowNotebook, setNotebookLinkedId,
         openAtLatest, refreshAgents, loadConversations, loadDirectConversations, loadLabels, loadModelTiers, selectConversation,
     });
 
     return {
-        messages, setMessages, isLoading, sendMessage, stopGenerating, retryMessage, editAndRegenerate,
+        // `setMessages` is the replacing setter: whoever replaces the conversation ends incognito.
+        messages, setMessages: replaceMessages, isLoading, sendMessage, stopGenerating, retryMessage, editAndRegenerate,
+        incognito: !!incognitoSession, setIncognito, leaveIncognito,
         turnConversation, chatSignals,
         conversationStarted, handleVoiceTurnComplete,
         agentAttachedSkillIds,

@@ -99,3 +99,46 @@ describe('buildTurnRequest: direct chat', () => {
         expect(payload).not.toHaveProperty('toolDecisions');
     });
 });
+
+describe('buildTurnRequest: incognito', () => {
+    const incognito = { sessionId: '7d3f0c1e-1111-4222-8333-944455556666' };
+
+    it('direct: no conversation id, the whole history, incognito and memory off', () => {
+        const { url, payload } = buildTurnRequest(base({ isDirectMode: true, conversationId: 'c1', messages: convo, incognito }));
+        expect(url).toBe('/base/ai/chat/direct/stream');
+        expect(payload).not.toHaveProperty('conversationId');
+        expect(payload).not.toHaveProperty('testSessionId');
+        expect(payload).toMatchObject({ incognito: true, history: toHistory(convo), memoryReadEnabled: false, memoryWriteEnabled: false });
+    });
+
+    it('direct: ignores the webpage endpoint and the side-panel payload', () => {
+        const getNotebookPayload = vi.fn(() => ({ notebookspaceAvailable: true }));
+        const { url, payload } = buildTurnRequest(base({
+            isDirectMode: true, incognito, getNotebookPayload,
+            directMode: { customEndpoint: '/ai/chat/webpage/stream' },
+        }));
+        expect(url).toBe('/base/ai/chat/direct/stream');
+        expect(payload).not.toHaveProperty('notebookspaceAvailable');
+        expect(getNotebookPayload).not.toHaveBeenCalled();
+    });
+
+    it('agent: the session id as testSessionId, the whole history, never the test fields', () => {
+        const { url, payload } = buildTurnRequest(base({
+            conversationId: 'c1', messages: convo, incognito,
+            testChat: { sessionId: 'tc-1', toolDecisions: { k: 'approve' } },
+        }));
+        expect(url).toBe('/base/agents/a1/chat/stream');
+        expect(payload).not.toHaveProperty('conversationId');
+        expect(payload).not.toHaveProperty('test');
+        expect(payload).not.toHaveProperty('toolDecisions');
+        expect(payload).toMatchObject({
+            incognito: true, testSessionId: incognito.sessionId, history: toHistory(convo),
+            memoryReadEnabled: false, memoryWriteEnabled: false,
+        });
+    });
+
+    it('still carries the chat-signals marker: usage counts apply to incognito too', () => {
+        const getChatSignalsPayload = vi.fn(() => ({ signalsNotice: 'v1' }));
+        expect(buildTurnRequest(base({ incognito, getChatSignalsPayload })).payload.signalsNotice).toBe('v1');
+    });
+});

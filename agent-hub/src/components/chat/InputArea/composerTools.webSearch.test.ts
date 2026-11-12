@@ -4,17 +4,21 @@ import { buildComposerTools, type ComposerTool } from './composerTools';
 
 const t = (_key: string, en: string) => en;
 
-function webRow(over: Record<string, unknown> = {}) {
-    const setWebSearchEnabled = vi.fn();
-    const rows = buildComposerTools({
+function rowsWith(over: Record<string, unknown>, setWebSearchEnabled = vi.fn()) {
+    return buildComposerTools({
         t, onAttachClick: () => {}, canCreateMedia: false, canPickApps: false,
         canWebSearch: true, webSearchEnabled: true, webSearchBlocked: false, setWebSearchEnabled,
         simpleMode: true, showTierSlider: true, memoryWriteEnabled: true, toggleMemoryWrite: () => {},
         voiceReady: false, voiceMode: false, setVoiceMode: () => {},
         memoryMode: 'on', changeMemoryMode: () => {},
         ...over,
-    } as Parameters<typeof buildComposerTools>[0]);
-    return { row: (rows as ComposerTool[]).find((r) => r.id === 'web-search') as ComposerTool, setWebSearchEnabled };
+    } as Parameters<typeof buildComposerTools>[0]).filter(Boolean) as ComposerTool[];
+}
+
+function webRow(over: Record<string, unknown> = {}) {
+    const setWebSearchEnabled = vi.fn();
+    const rows = rowsWith(over, setWebSearchEnabled);
+    return { row: rows.find((r) => r.id === 'web-search') as ComposerTool, setWebSearchEnabled };
 }
 
 describe('the Web search row', () => {
@@ -36,5 +40,18 @@ describe('the Web search row', () => {
         const { row, setWebSearchEnabled } = webRow();
         (row.onSelect as () => void)();
         expect(setWebSearchEnabled).toHaveBeenCalledWith(false);
+    });
+});
+
+describe('in an incognito chat', () => {
+    it('keeps the attach row, inert, with the reason as its hint', () => {
+        const attach = rowsWith({ incognito: true }).find((r) => r.id === 'attach');
+        expect(attach).toMatchObject({ disabled: true, hint: 'Attachments are off in an incognito chat: a file would have to be stored to be read.' });
+        expect(rowsWith({}).find((r) => r.id === 'attach')?.disabled).toBeUndefined();
+    });
+
+    it('shows memory locked off with the incognito reason', () => {
+        const memory = rowsWith({ showTierSlider: false, simpleMode: false, memoryLock: 'incognito' }).find((r) => r.id === 'memory');
+        expect(memory).toMatchObject({ on: false, disabled: true, hint: 'Memory is off in an incognito chat: nothing is read or saved.' });
     });
 });

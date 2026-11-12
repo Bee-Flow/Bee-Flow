@@ -28,6 +28,7 @@ const agentStore = require('../../stores/agentStore');
 const { buildToolPolicy, isUnattended, automationConfirmsFor } = require('./toolPolicy');
 const log = require('../../telemetry/log');
 const { REPLY_IN_THREAD_TOOLS } = require('./toolPolicy/mailAccess');
+const { withholdIncognitoTools } = require('../conversation/incognito.mts');
 
 /**
  * The agent fields tool assembly reads.
@@ -284,6 +285,9 @@ function narrowToolsForTurn({ tools, agent, agentId, messageMetadata }) {
     // ── Mail-triggered run: a mailbox is read-only unless the owner said more ──
     if (messageMetadata?.mailTrigger) out = narrowMailTriggerTools(out, agent);
     else out = out.filter(t => !REPLY_IN_THREAD_TOOLS.includes(String(t?.function?.name)));
+
+    // ── Incognito: no memory and no notebook tools (core/conversation/incognito.mts) ──
+    out = withholdIncognitoTools(out, messageMetadata?.incognito === true);
 
     // ── Test run: the narrower drop ──────────────────────────────────
     // A test set replays somebody's questions through the REAL runtime, so it

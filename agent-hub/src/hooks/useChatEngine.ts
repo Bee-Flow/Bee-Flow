@@ -3,111 +3,22 @@ import { registerStream, releaseStream, detachStream } from './streamRegistry';
 import type { ContentFlusher } from './useChatEngine/contentFlusher';
 import type { ChatAttachment } from './useChatEngine/historyAttachment';
 import { dispatchSSEEvent } from './useChatEngine/sseEvents';
-import type { ChatSignalsTurnSurface } from './useChatEngine/turnEndpoint';
 import { finishPermissionDenied, finishStreamEnd, finishWithError, httpTurnErrorFrom, type TurnEndDeps } from './useChatEngine/turnEnd';
+import type { UseChatEngineOptions } from './useChatEngine/options';
 import { buildTurnRequest } from './useChatEngine/turnRequest';
 import { noteServerClock, openTurn, turnTarget } from './useChatEngine/turnStart';
 import { readTurnStream } from './useChatEngine/turnStream';
 import type { ChatMessage, SseDispatchIds, SseEventData } from './useChatEngine/types';
 import useTranslation from './useTranslation';
 import { authFetch } from '../utils/helpers';
-import { readStoredMemoryFlags, type MemoryLock } from '../utils/memoryMode';
+import { readStoredMemoryFlags } from '../utils/memoryMode';
 
 // Re-exported so the module's public surface is unchanged — the colocated unit
 // tests (and any other consumer) keep importing these from './useChatEngine'.
 export { createContentFlusher } from './useChatEngine/contentFlusher';
 export { extractMdHeading, summarizeWorkItem } from './useChatEngine/workSummary';
+export type { UseChatEngineOptions } from './useChatEngine/options';
 
-/** The agent answering, as the page hands it over. */
-interface ChatAgent {
-    id?: string;
-    name?: string;
-    avatar?: string;
-    [key: string]: unknown;
-}
-
-/** Direct (agent-less) chat: which model, and where to send the turn. */
-interface DirectMode {
-    enabled?: boolean;
-    modelTier?: string;
-    conversationId?: string;
-    customEndpoint?: string;
-    systemPrompt?: string;
-    getExtraPayload?: () => Record<string, unknown>;
-    [key: string]: unknown;
-}
-
-/**
- * The TEST CHAT (A4). One object instead of two loose flags, because `asGroup`
- * without a test chat is another, existing path, and the two may not accidentally
- * be half on at once.
- */
-interface TestChatMode {
-    enabled?: boolean;
-    asGroup?: string;
-    sessionId?: string;
-    ephemeralConversationId?: string;
-    [key: string]: unknown;
-}
-
-/** What the notebook panel contributes to a turn, when it is open. */
-interface NotebookPayload {
-    notebookspaceContent?: string;
-    notebookspaceSelection?: string;
-    [key: string]: unknown;
-}
-
-export interface UseChatEngineOptions {
-    selectedAgent?: ChatAgent | null;
-    currentConversation?: { id?: string | null;[key: string]: unknown } | null;
-    /** Called when the stream creates or updates a conversation. */
-    onConversationCreated?: (conversationId: string) => void;
-    getNotebookPayload?: () => NotebookPayload | null;
-    onNotebookUpdate?: (content?: string) => void;
-    directMode?: DirectMode | null;
-    /** Called with { conversationId, title } for direct chats. */
-    onDirectConversationCreated?: (info: unknown) => void;
-    activeProject?: { id?: string;[key: string]: unknown } | null;
-    onNotebookDocUpdate?: (content: unknown, title?: unknown, version?: unknown) => void;
-    onNotebookSourceAdded?: (source: unknown) => void;
-    /**
-     * The server refused to persist the turn because the stored encrypted
-     * history can't be opened with this session's key (SSE `history_locked`).
-     * Lets the page lock the composer.
-     */
-    onHistoryLocked?: (data: unknown) => void;
-    onNotebookThemeUpdate?: (theme: unknown) => void;
-    onWebpageDocUpdate?: (doc: { file: unknown; content: unknown; title: unknown }) => void;
-    onWebpageSourceAdded?: (source: unknown) => void;
-    onWebpageExtraUpdate?: (extra: { path: unknown; meta: unknown }) => void;
-    onWebpageExtraDeleted?: (extra: { path: unknown }) => void;
-    /** Gamma generation/preview data from Gamma tool results. */
-    onGammaPreview?: (preview: unknown) => void;
-    activeSkillIds?: string[];
-    onSessionSkillsChanged?: (payload: unknown) => void;
-    /**
-     * Refetch the persisted conversation so a dropped stream can auto-recover
-     * the saved reply (the server persists the finished message even when the
-     * SSE connection drops mid/post-stream). Omitted → the interrupted notice
-     * is shown as before.
-     */
-    reloadConversation?: () => Promise<ChatMessage[] | null | undefined>;
-    testChat?: TestChatMode | null;
-    /**
-     * Chat signals: the fields to add to a turn on a counted endpoint (the
-     * notice marker, and the opt-out when the person chose it). Asked only
-     * for the endpoint the turn really goes to; a host that shows no notice
-     * passes nothing, so its turns carry no marker and are not counted.
-     */
-    getChatSignalsPayload?: (surface: ChatSignalsTurnSurface) => Record<string, unknown> | null;
-    /**
-     * Only the main chat passes this. It switches on the "Remembered" chip: a
-     * finished turn that could save memories gets a `memoryWatch` the message
-     * row polls on. It answers why the person's memory is locked (paused by
-     * them, off for the organisation), in which case nothing is watched.
-     */
-    getMemoryLock?: () => MemoryLock;
-}
 
 /**
  * Custom hook that encapsulates the chat messaging engine.
@@ -139,6 +50,7 @@ export default function useChatEngine({
     testChat = null,
     getChatSignalsPayload,
     getMemoryLock,
+    incognito = null,
 }: UseChatEngineOptions) {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -262,6 +174,9 @@ export default function useChatEngine({
     // Server clock minus browser clock, learned from the `Date` header of the last turn.
     const serverSkewMsRef = useRef(0);
     useEffect(() => { getMemoryLockRef.current = getMemoryLock; }, [getMemoryLock]);
+    // Read at send time, like testChatRef, so toggling does not rebuild sendMessage.
+    const incognitoRef = useRef(incognito);
+    useEffect(() => { incognitoRef.current = incognito; }, [incognito]);
 
     // Cleanup abort controller on unmount. Mount-only effect — the ref
     // always points at the current controller, so we don't need to re-run.
@@ -343,7 +258,8 @@ export default function useChatEngine({
         abortControllerRef.current?.abort();
         const controller = new AbortController();
         abortControllerRef.current = controller;
-        const { streamKey, chatProjectId, conversationId } = turnTarget(currentConversation, directMode, activeProject);
+        const incognitoTurn = incognitoRef.current; // read once: a toggle mid-stream changes nothing
+        const { streamKey, chatProjectId, conversationId } = turnTarget(currentConversation, directMode, activeProject, !!incognitoTurn);
         streamKeyRef.current = streamKey;
         registerStream(streamKey, controller);
         setIsLoading(true);
@@ -361,11 +277,11 @@ export default function useChatEngine({
             setIsLoading,
             t: () => tRef.current,
             messages: () => messagesRef.current,
-            reloadConversation: () => reloadConversationRef.current,
+            reloadConversation: () => (incognitoTurn ? undefined : reloadConversationRef.current), // incognito: nothing to recover
         };
 
         try {
-            const testChat = testChatRef.current?.enabled ? testChatRef.current : null;
+            const testChat = !incognitoTurn && testChatRef.current?.enabled ? testChatRef.current : null;
             const { url, payload } = buildTurnRequest({
                 text, attachments, isHidden, historyOverride, overrideTier, isDirectMode, directMode, chatProjectId, activeSkillIds,
                 messages: messagesRef.current,
@@ -373,7 +289,7 @@ export default function useChatEngine({
                 conversationId: currentConversation?.id,
                 getNotebookPayload,
                 testChat: testChat && { asGroup: testChat.asGroup, sessionId: testSessionIdRef.current, toolDecisions: toolDecisionsRef.current },
-                getChatSignalsPayload: getChatSignalsPayloadRef.current,
+                getChatSignalsPayload: getChatSignalsPayloadRef.current, incognito: incognitoTurn,
             });
             // The outbox is now in the body. Empty it: sent is consumed. The
             // LEDGER stays, so the card that was clicked keeps its colour.
@@ -398,10 +314,11 @@ export default function useChatEngine({
                 dispatch: (event, data, ids) => handleSSEEventRef.current(event, data, ids),
                 isDirectMode,
                 onDirectConversation: onDirectConversationCreated,
+                incognito: !!incognitoTurn, // drops every conversation id before the callbacks see one
             });
             finishStreamEnd(turn, endDeps, {
                 getMemoryLock: getMemoryLockRef.current,
-                isTestChat: !!testChatRef.current?.enabled,
+                isTestChat: !!testChatRef.current?.enabled, isIncognito: !!incognitoTurn,
                 customEndpoint: directMode?.customEndpoint,
                 memoryWriteEnabled: () => readStoredMemoryFlags().memoryWriteEnabled,
             });

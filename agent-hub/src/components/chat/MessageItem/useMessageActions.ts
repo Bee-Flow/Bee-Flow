@@ -18,6 +18,21 @@ export interface FeedbackContext {
     agentId?: string | null;
     chatSource: string;
     allMessages: ChatMessage[];
+    /**
+     * An incognito chat: the rating still goes, but never the conversation
+     * itself. The snapshot would be the one stored copy of a chat that
+     * promised to keep nothing.
+     */
+    incognito?: boolean;
+}
+
+/** What MessageItem hands over; `feedbackContextOf` fills in its defaults. */
+type FeedbackProps = Omit<FeedbackContext, 'chatSource' | 'allMessages'> & { chatSource?: string; allMessages?: ChatMessage[] };
+
+/** What the feedback hook reads, with MessageItem's defaults. */
+export function feedbackContextOf(p: FeedbackProps): FeedbackContext {
+    const { msg, idx, allMessages = [], chatSource = 'agent' } = p;
+    return { msg, idx, selectedAgent: p.selectedAgent, conversationId: p.conversationId, agentId: p.agentId, chatSource, allMessages, incognito: !!p.incognito };
 }
 
 /**
@@ -48,7 +63,7 @@ async function submitFeedback(c: FeedbackContext, rating: string | null, comment
     try {
         const API = (typeof API_BASE !== 'undefined' ? API_BASE : '') + '/api/feedback';
         const payload = feedbackPayload(c, rating, comment);
-        if (withConversation && c.allMessages?.length > 0) {
+        if (withConversation && !c.incognito && c.allMessages?.length > 0) {
             payload.conversationSnapshot = c.allMessages.map(m => ({
                 id: m.id || null,
                 role: m.role,
@@ -119,6 +134,8 @@ export function useMessageFeedback(c: FeedbackContext) {
     return {
         feedbackRating, feedbackSubmitted, showFeedbackForm, feedbackComment, setFeedbackComment,
         includeConversation, setIncludeConversation, handleThumbClick, handleFeedbackSubmit, handleFeedbackSkip,
+        // The "Include conversation" box is not offered in an incognito chat.
+        canIncludeConversation: !c.incognito,
     };
 }
 

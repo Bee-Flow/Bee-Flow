@@ -87,6 +87,9 @@ const DirectTurnBody = orEmpty(z.object({
     // chat turns" switch. A turn without the marker is not counted.
     chatSignalsNotice: text('chatSignalsNotice', 120).nullish(),
     chatSignalsOptOut: onOff('chatSignalsOptOut').nullish(),
+    // Incognito: nothing of the conversation is stored, the client sends the
+    // whole history every turn (core/conversation/incognito.mts).
+    incognito: onOff('incognito').nullish(),
 }, { error: typeError({ invalid: 'A chat turn is a JSON object.' }) }).passthrough());
 
 /**

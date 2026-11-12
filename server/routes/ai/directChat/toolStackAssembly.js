@@ -21,8 +21,9 @@ const { evaluateNotebookWriteGate } = require('./notebookWriteGate');
 const { encryptionOpts } = require('./shared');
 const log = require('../../../telemetry/log');
 const { fallback } = require('../../../utils/bestEffort');
+const { withholdIncognitoTools } = require('../../../core/conversation/incognito.mts');
 
-async function assembleToolStack({ req, send, userId, conversationId, resolvedTier, attachments, history, disabledMedia, webSearchEnabled, disableSearchOnUpload, message, notebookspaceContent, activeSkillIds, userOrgForTiers }) {
+async function assembleToolStack({ req, send, userId, conversationId, resolvedTier, attachments, history, disabledMedia, webSearchEnabled, disableSearchOnUpload, message, notebookspaceContent, activeSkillIds, userOrgForTiers, incognito = false }) {
         // ─── Progressive tool disclosure: prior activations ─────────────
         // Which heavy integration groups has this conversation already
         // expanded? Those keep their full schemas (eager) instead of being
@@ -257,6 +258,11 @@ async function assembleToolStack({ req, send, userId, conversationId, resolvedTi
             }
         }
 
+        // Incognito: no memory and no notebook tools (core/conversation/incognito.mts).
+        // Before the disclosure split, so no lazy group can bring them back;
+        // `baseDirectToolNames` keeps them out of a mid-turn skill refresh.
+        directChatTools = withholdIncognitoTools(directChatTools, incognito);
+
         emitPhaseEnd(send, 'loading_tools', Date.now() - _toolsT);
 
         // ─── Deterministic notebook-write gate ────────────────
@@ -314,7 +320,8 @@ async function assembleToolStack({ req, send, userId, conversationId, resolvedTi
         } catch (discErr) {
             log.warn('[DirectChat] Tool disclosure failed (sending full toolset):', /** @type {Error} */ (discErr).message);
         }
-        return { toolDisclosure, activatedToolGroups, disclosureLazyByGroup, activatedLibrarySkillIds, skillApps, directChatTools, baseDirectToolNames, n8nOrgId, notebooksEnabled, canUseNotebooks, toolCatalogText, notebookWriteGate };
+        // Incognito offers no notebook tools, so the prompt must not announce them either.
+        return { toolDisclosure, activatedToolGroups, disclosureLazyByGroup, activatedLibrarySkillIds, skillApps, directChatTools, baseDirectToolNames, n8nOrgId, notebooksEnabled, canUseNotebooks: canUseNotebooks && !incognito, toolCatalogText, notebookWriteGate };
 }
 
 module.exports = { assembleToolStack };

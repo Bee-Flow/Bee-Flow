@@ -1,11 +1,15 @@
 import { EyeOff, Menu, MoreVertical, Pencil, PenLine } from 'lucide-react';
 import DocumentsHeaderButton from './DocumentsHeaderButton';
 import EmptyChatState from './EmptyChatState';
+import { useLeaveOnUnmount } from './useIncognitoSession';
 import InputArea from '../components/chat/InputArea';
 import MessageItem from '../components/chat/MessageItem';
 import ProjectContextPill from '../components/chat/ProjectContextPill';
 import SharedChatReadOnly, { isReadOnlySharedChat } from '../components/chat/SharedChatReadOnly';
 import CoworkModeToggle from '../components/cowork/CoworkModeToggle';
+import IncognitoBanner from '../components/chat/incognito/IncognitoBanner';
+import { INCOGNITO_FRAME_CLASS, incognitoModelTiers } from '../components/chat/incognito/incognitoChat';
+import IncognitoToggle from '../components/chat/incognito/IncognitoToggle';
 import WelcomeScreen from '../components/shell/WelcomeScreen';
 import { isImageAvatar, pickAgentAvatar, resolveAvatarSrc } from '../utils/agentAvatar';
 import { lazy } from '../utils/lazyWithReload';
@@ -77,6 +81,11 @@ interface AgentChatViewProps {
     onOpenActiveProject?: (project: { id: string }) => void;
     onLeaveActiveProject: () => void;
     chatSignals?: ChatSignalsState | null;
+    /** Incognito chat (useIncognitoSession): nothing of it is stored. */
+    incognito?: boolean;
+    onIncognitoChange?: (on: boolean) => void;
+    /** The view unmounted: an incognito chat ends here. */
+    onLeaveIncognito?: () => void;
 }
 
 
@@ -100,8 +109,10 @@ const AgentChatView = ({
     // endpoint this chat posts to, and the person's own switch. Both composers
     // below get it, so the empty state and the conversation say the same.
     chatSignals = null,
+    incognito = false, onIncognitoChange, onLeaveIncognito,
 }: AgentChatViewProps) => {
     const { t } = useTranslation();
+    useLeaveOnUnmount(onLeaveIncognito);
     // The empty state and the conversation render the same composer.
     const composerProps = {
         // sendMessage is (text, attachments, isHidden, ...): the composer's third
@@ -127,9 +138,10 @@ const AgentChatView = ({
         // The bases this agent answers from: the line under the box names the ones that log.
         kbNoticeIds: Array.isArray(selectedAgent?.config?.knowledge_base_ids) ? selectedAgent.config.knowledge_base_ids as string[] : null,
         onChatSignalsCounted: chatSignals?.setCounted ?? null,
-        cowork: coworkComposer,
+        cowork: incognito ? undefined : coworkComposer,
         coworkMode,
         onCoworkModeChange: (mode: CoworkMode) => setCoworkModeForAgent(mode, selectedAgent?.id),
+        incognito,
     };
     return (
                     <>
@@ -222,23 +234,27 @@ const AgentChatView = ({
                                 does. Absolutely positioned so it stays on the
                                 header's centre line however wide the two groups
                                 either side of it grow. */}
-                            <div className="absolute left-1/2 -translate-x-1/2 flex items-center">
+                            <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
+                                {/* Cowork produces a stored run: not offered in incognito. */}
                                 <CoworkModeToggle
                                     enabled
                                     value={coworkMode}
                                     onChange={(mode) => setCoworkModeForAgent(mode, selectedAgent?.id)}
-                                    locked={conversationStarted}
+                                    locked={conversationStarted || incognito}
                                 />
+                                {onIncognitoChange && (
+                                    <IncognitoToggle on={incognito} onChange={onIncognitoChange} locked={conversationStarted} />
+                                )}
                             </div>
                             <div className="flex items-center gap-2 relative">
-                                {!isMobile && !inCoworkMode && (
+                                {!isMobile && !inCoworkMode && !incognito && (
                                     <DocumentsHeaderButton
                                         sidePanelDocumentId={sidePanelDocumentId}
                                         openDocumentInSidePanel={openDocumentInSidePanel}
                                         closeDocumentPanel={closeDocumentPanel}
                                     />
                                 )}
-                                {!isMobile && canUseWebpagesSide && !inCoworkMode && (
+                                {!isMobile && canUseWebpagesSide && !inCoworkMode && !incognito && (
                                     <>
                                         <button
                                             ref={webpageButtonRef}
@@ -265,8 +281,9 @@ const AgentChatView = ({
                         {/* Split Panes if Workspace Enabled */}
                         <div className="flex-1 flex overflow-hidden">
                             {/* Chat Pane */}
-                            <div className="flex-1 flex flex-col min-w-0 border-r [border-color:var(--border-subtle)]!">
+                            <div className={`flex-1 flex flex-col min-w-0 border-r [border-color:var(--border-subtle)]! ${incognito ? INCOGNITO_FRAME_CLASS : ''}`} data-incognito={incognito || undefined}>
                                 <div ref={messagesContainerRef} className={`flex-1 overflow-y-auto overflow-x-hidden ${isMobile ? 'p-2' : 'p-4'} custom-scrollbar`}>
+                                    {incognito && <IncognitoBanner />}
                                     {messages.length === 0 ? (
                                         <EmptyChatState>
                                             <WelcomeScreen
@@ -294,7 +311,8 @@ const AgentChatView = ({
                                                     chatSource="agent"
                                                     onRetry={retryMessage}
                                                     onEditMessage={editAndRegenerate}
-                                                    modelTiers={modelTiers}
+                                                    modelTiers={(incognito ? incognitoModelTiers(modelTiers) : modelTiers) as RetryModelTiers}
+                                                    incognito={incognito}
                                                 />
                                             ))}
                                             <div ref={messagesEndRef} />
@@ -312,7 +330,8 @@ const AgentChatView = ({
                                 )}
                             </div>
 
-                            {renderSidePanels('agent')}
+                            {/* The side panels are workspaces stored with a conversation. */}
+                            {!incognito && renderSidePanels('agent')}
                         </div>
                     </>
     );

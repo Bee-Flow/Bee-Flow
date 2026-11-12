@@ -329,7 +329,7 @@ const AgentHub = ({
     // The chat core: engine, voice turns, scroll, opening conversations.
     const {
         messages, setMessages, isLoading, sendMessage, stopGenerating, retryMessage, editAndRegenerate,
-        turnConversation, chatSignals,
+        incognito, setIncognito, leaveIncognito, turnConversation, chatSignals,
         conversationStarted, handleVoiceTurnComplete,
         agentAttachedSkillIds,
         messagesEndRef, messagesContainerRef, shouldForceScrollRef, openAtLatest,
@@ -652,7 +652,7 @@ const AgentHub = ({
                         directSessionSkills, directActivatedSessionSkillIds, directCompletedSessionSkillIds,
                         currentDirectConversation, directChatKbs, directChatKBIds, setDirectChatKBIds,
                         attachedWebpageSelection, clearWebpageSelection, setAttachedWebpageSelection,
-                        onCloseSettings, onCloseAgentDesigner, setShowMarketplace,
+                        onCloseSettings, onCloseAgentDesigner, setShowMarketplace, incognito, setIncognito, leaveIncognito,
                     }}
                 />
             </div>

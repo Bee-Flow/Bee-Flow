@@ -29,6 +29,8 @@ import type { MemoryLock, MemoryMode } from '@/utils/memoryMode';
 export interface ComposerToolsProps {
     t: TranslateFn;
     onAttachClick: () => void;
+    /** An incognito chat takes no attachments: the row stays, inert, and says why. */
+    incognito?: boolean;
     canCreateMedia: boolean;
     mediaMenuOpen?: boolean;
     setMediaMenuOpen?: (open: boolean) => void;
@@ -66,9 +68,16 @@ export interface ComposerTool {
     onSelect?: () => void;
 }
 
+/** An incognito chat keeps the attach row, inert, with the reason as its hint. */
+function incognitoAttach(t: TranslateFn, incognito: boolean): Partial<ComposerTool> {
+    if (!incognito) return {};
+    return { disabled: true, hint: t('incognito.attachments_off', 'Attachments are off in an incognito chat: a file would have to be stored to be read.') };
+}
+
 export function buildComposerTools({
     t,
     onAttachClick,
+    incognito = false,
     canCreateMedia,
     mediaMenuOpen,
     setMediaMenuOpen,
@@ -93,6 +102,7 @@ export function buildComposerTools({
         {
             id: 'attach', group: 'add', kind: 'action', icon: Paperclip,
             label: t('chat.composer.tools_attach', 'Add photos & files'),
+            ...incognitoAttach(t, incognito),
             onSelect: onAttachClick,
         },
         canCreateMedia && {

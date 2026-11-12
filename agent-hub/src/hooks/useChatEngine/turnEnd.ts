@@ -27,24 +27,49 @@ export class HttpTurnError extends Error {
     readonly status: number;
     /** The server's own `{error}` text, when the body was Bee Flow's JSON. */
     readonly serverMessage: string | null;
-    constructor(status: number, serverMessage: string | null) {
+    /** The server's machine-readable `{code}` (an HttpError), when it sent one. */
+    readonly code: string | null;
+    constructor(status: number, serverMessage: string | null, code: string | null = null) {
         super(`Failed to send message (${status})`);
         this.name = 'HttpTurnError';
         this.status = status;
         this.serverMessage = serverMessage;
+        this.code = code;
     }
 }
 
-/** Read status and the `{error}` text of a non-OK turn response; a non-JSON body (a proxy page) is ignored. */
+function nonEmpty(v: unknown): string | null {
+    return typeof v === 'string' && v.trim() ? v.trim() : null;
+}
+
+/** Read status, `{error}` text and `{code}` of a non-OK turn response; a non-JSON body (a proxy page) is ignored. */
 export async function httpTurnErrorFrom(response: Pick<Response, 'status' | 'json'>): Promise<HttpTurnError> {
     // A proxy answers with an HTML page, not JSON: that body carries no message.
-    const body = await response.json().catch(() => null) as { error?: unknown } | null;
-    const serverMessage = body && typeof body.error === 'string' && body.error.trim() ? body.error.trim() : null;
-    return new HttpTurnError(response.status, serverMessage);
+    const body = await response.json().catch(() => null) as { error?: unknown; code?: unknown } | null;
+    return new HttpTurnError(response.status, nonEmpty(body?.error), nonEmpty(body?.code));
+}
+
+/**
+ * The refusals of an incognito turn, by the code the server answers with. The
+ * code may arrive as `{code}` or as the `{error}` text itself.
+ */
+const INCOGNITO_ERRORS: Record<string, [key: string, fallback: string]> = {
+    incognito_no_attachments: ['incognito.error.no_attachments', 'An incognito chat cannot take attachments. Remove the file, or start a normal chat.'],
+    incognito_unsupported_mode: ['incognito.error.unsupported_mode', 'This mode is not available in an incognito chat. Pick another model, or start a normal chat.'],
+    incognito_conversation_id: ['incognito.error.conversation_id', 'This incognito chat cannot continue. Start a new chat.'],
+};
+
+function incognitoErrorText(err: HttpTurnError, t: TranslateFn): string | null {
+    const code = [err.code, err.serverMessage].find(c => c && Object.hasOwn(INCOGNITO_ERRORS, c));
+    if (!code) return null;
+    const [key, fallback] = INCOGNITO_ERRORS[code];
+    return t(key, fallback);
 }
 
 /** What the user reads for a refused turn: a clear cause, never the bare generic line. */
 function httpErrorText(err: HttpTurnError, t: TranslateFn): string {
+    const incognito = incognitoErrorText(err, t);
+    if (incognito) return incognito;
     if (err.status === 413) return t('chat.error.request_too_large');
     if (err.status === 502 || err.status === 503 || err.status === 504) return t('chat.error.gateway_timeout');
     return err.serverMessage || t('chat.error.http_status', { status: err.status });
@@ -86,16 +111,18 @@ export interface MemoryWatchInput {
     /** Only the main chat passes this; it answers why memory is locked, if it is. */
     getMemoryLock?: (() => unknown) | null;
     isTestChat: boolean;
+    /** An incognito turn reads and writes no memory. */
+    isIncognito?: boolean;
     customEndpoint?: string;
     memoryWriteEnabled: () => boolean;
 }
 
 /**
  * Watch for memories this turn saved, unless it could not have saved any:
- * writing was off, memory is locked, or it is a test chat.
+ * writing was off, memory is locked, or it is a test chat or incognito.
  */
 export function turnMemoryWatch(turn: ChatTurn, input: MemoryWatchInput): ChatMessage['memoryWatch'] {
-    const canWatch = !!input.getMemoryLock && !input.isTestChat
+    const canWatch = !!input.getMemoryLock && !input.isTestChat && !input.isIncognito
         && !input.customEndpoint
         && !!turn.conversationId
         && input.memoryWriteEnabled()

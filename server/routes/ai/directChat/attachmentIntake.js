@@ -39,11 +39,14 @@ const {
  *      `[person_N]` echoes leak through to the rendered response.
  * Side effect: a brand-new conversation row appears slightly earlier in the
  * turn; the orphan-row risk is unchanged.
- * @param {{ convId?: string | null, userId: string, modelTier?: string | null, send: AttachmentCtx['send'] }} p
- * @returns {Promise<string>}
+ * An incognito turn never gets a row (core/conversation/incognito.mts): it
+ * carries no attachments and no notebook tools, the two reasons above.
+ * @param {{ convId?: string | null, userId: string, modelTier?: string | null, send: AttachmentCtx['send'], incognito?: boolean }} p
+ * @returns {Promise<string | null>}
  */
-async function ensureConversation({ convId, userId, modelTier, send }) {
+async function ensureConversation({ convId, userId, modelTier, send, incognito = false }) {
     if (convId) return convId;
+    if (incognito) return null;
     // Persist the user's pick (e.g. "auto"), not the classifier's resolution.
     // On reload the UI restores `selectedTier` from this value; storing "fast"
     // here would turn Auto into Fast after refresh.
@@ -123,10 +126,10 @@ async function intakeAttachments({ req, res, send, userId, convId, conversationI
 }
 
 /**
- * @param {IntakeInput & { convId?: string | null, modelTier?: string | null, messages: import('../../../core/agentRuntime/chatStream/turnState').ChatMessage[] }} p
+ * @param {IntakeInput & { convId?: string | null, modelTier?: string | null, messages: import('../../../core/agentRuntime/chatStream/turnState').ChatMessage[], incognito?: boolean }} p
  */
-async function processAttachmentsAndUserMessage({ req, res, send, userId, convId, conversationId, modelTier, message, attachments, adapter, modelId, config, messages, documentScope }) {
-    convId = await ensureConversation({ convId, userId, modelTier, send });
+async function processAttachmentsAndUserMessage({ req, res, send, userId, convId, conversationId, modelTier, message, attachments, adapter, modelId, config, messages, documentScope, incognito }) {
+    convId = await ensureConversation({ convId, userId, modelTier, send, incognito });
 
     /** @type {AttachmentCtx['persistedAttachments']} */
     const persistedAttachments = []; // Track attachments for conversation persistence

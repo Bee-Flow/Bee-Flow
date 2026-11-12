@@ -70,3 +70,18 @@ describe('readTurnStream', () => {
         expect(turn.conversationId).toBe('c2');
     });
 });
+
+describe('applyTurnEvent: incognito', () => {
+    it('drops conversation_created and every conversation id, and reports nothing to the page', () => {
+        const turn = newTurn();
+        const onDirectConversation = vi.fn();
+        const h = handlers({ isDirectMode: true, onDirectConversation, incognito: true });
+        applyTurnEvent(turn, 'conversation_created', { conversationId: 'c1' }, h);
+        applyTurnEvent(turn, 'title', { conversationId: 'c1', title: 'T' }, h);
+        applyTurnEvent(turn, 'done', { conversationId: 'c1' }, h);
+        expect(onDirectConversation).not.toHaveBeenCalled();
+        expect(turn.conversationId).toBeUndefined();
+        expect(turn.sawDone).toBe(true);
+        expect((h.dispatch as ReturnType<typeof vi.fn>).mock.calls.map(c => [c[0], c[1]])).toEqual([['title', { title: 'T' }], ['done', {}]]);
+    });
+});

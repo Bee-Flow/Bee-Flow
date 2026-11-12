@@ -47,7 +47,8 @@
  *   requestSessionSkills?: unknown,
  *   requestActivatedSessionSkillIds?: string[] | null,
  *   requestedKbIds?: string[] | null,
- *   webpagePlanExecution?: unknown }} TurnInput
+ *   webpagePlanExecution?: unknown,
+ *   incognito?: boolean }} TurnInput
  */
 
 /**
@@ -58,7 +59,7 @@ function createTurnState({
     message, conversationId, modelTier, history, attachments, imageGenSettings, nanoBananaSettings,
     disabledMedia, webSearchEnabled, notebookspaceContent, notebookspaceSelection, notebookspaceAvailable,
     sidePanelWebpage, sidePanelDocument, projectId, timezone, requestSystemPrompt, activeSkillIds, requestReasoningEffort,
-    requestSessionSkills, requestActivatedSessionSkillIds, requestedKbIds, webpagePlanExecution,
+    requestSessionSkills, requestActivatedSessionSkillIds, requestedKbIds, webpagePlanExecution, incognito = false,
 }) {
     return {
         // ── The request and its SSE side channel ──────────────────────
@@ -67,6 +68,9 @@ function createTurnState({
         disabledMedia, webSearchEnabled, notebookspaceContent, notebookspaceSelection, notebookspaceAvailable,
         sidePanelWebpage, sidePanelDocument, projectId, timezone, requestSystemPrompt, activeSkillIds, requestReasoningEffort,
         requestSessionSkills, requestActivatedSessionSkillIds, requestedKbIds, webpagePlanExecution,
+        // Incognito (core/conversation/incognito.mts): no conversation row is
+        // ever created, so `convId` stays null for the whole turn.
+        incognito,
         // This turn's id and the server time it was asked, taken now (at the
         // start): turns asked on the same history are stored in the order they
         // were asked, whichever finishes first (stores/agent/conversationTurns.js).

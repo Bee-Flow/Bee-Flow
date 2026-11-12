@@ -112,6 +112,7 @@ No request schema.
 | `isHidden` | any |  |  |
 | `chatSignalsNotice` | string |  | max length 120 |
 | `chatSignalsOptOut` | boolean |  |  |
+| `incognito` | boolean |  |  |
 
 ### `GET /agents/:id/conversations`
 

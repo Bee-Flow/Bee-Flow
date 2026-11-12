@@ -2,6 +2,7 @@ import { Menu, X } from 'lucide-react';
 import React from 'react';
 import DocumentsHeaderButton from './DocumentsHeaderButton';
 import EmptyChatState from './EmptyChatState';
+import { useLeaveOnUnmount } from './useIncognitoSession';
 import DirectChatWelcome from '../components/chat/DirectChatWelcome';
 import InputArea from '../components/chat/InputArea';
 import MessageItem from '../components/chat/MessageItem';
@@ -9,6 +10,9 @@ import ProjectContextPill from '../components/chat/ProjectContextPill';
 import SharedChatReadOnly, { isReadOnlySharedChat } from '../components/chat/SharedChatReadOnly';
 import CoworkModeToggle from '../components/cowork/CoworkModeToggle';
 import CoworkWelcome from '../components/cowork/CoworkWelcome';
+import IncognitoBanner from '../components/chat/incognito/IncognitoBanner';
+import { INCOGNITO_FRAME_CLASS, incognitoModelTiers } from '../components/chat/incognito/incognitoChat';
+import IncognitoToggle from '../components/chat/incognito/IncognitoToggle';
 import { lazy } from '../utils/lazyWithReload';
 import { useTranslation } from '../hooks/useTranslation';
 import type { UseCoworkComposerReturn } from '../components/cowork/useCoworkComposer';
@@ -83,6 +87,11 @@ interface DirectChatViewProps {
     onOpenActiveProject?: (project: { id: string }) => void;
     onLeaveActiveProject: () => void;
     chatSignals?: ChatSignalsState | null;
+    /** Incognito chat (useIncognitoSession): nothing of it is stored. */
+    incognito?: boolean;
+    onIncognitoChange?: (on: boolean) => void;
+    /** The view unmounted: an incognito chat ends here. */
+    onLeaveIncognito?: () => void;
 }
 
 
@@ -107,8 +116,12 @@ const DirectChatView = ({
     // endpoint this chat posts to, and the person's own switch. Both composers
     // below get it, so the empty state and the conversation say the same.
     chatSignals = null,
+    incognito = false, onIncognitoChange, onLeaveIncognito,
 }: DirectChatViewProps) => {
     const { t } = useTranslation();
+    useLeaveOnUnmount(onLeaveIncognito);
+    // Incognito offers no tier that runs something stored (Swarm).
+    const tiers = (incognito ? incognitoModelTiers(modelTiers) : modelTiers) as RetryModelTiers;
     // The empty state and the conversation render the same composer; only how
     // a send ends (the conversation also drops a picked webpage selection) and
     // the empty state's Shield note differ, so those two stay on the elements.
@@ -116,7 +129,7 @@ const DirectChatView = ({
         onStopGenerating: stopGenerating,
         isLoading,
         directMode: true,
-        modelTiers,
+        modelTiers: tiers,
         selectedTier,
         onTierChange: setSelectedTier,
         input: chatInput,
@@ -132,12 +145,13 @@ const DirectChatView = ({
         onVoiceTurnComplete: handleVoiceTurnComplete,
         chatSignalsNotice: chatSignals?.notice ?? null,
         onChatSignalsCounted: chatSignals?.setCounted ?? null,
-        cowork: coworkComposer,
+        cowork: incognito ? null : coworkComposer,
         coworkMode,
         onCoworkModeChange: setCoworkMode,
         availableKBs: directChatKbs,
         selectedKBIds: directChatKBIds,
         onChangeKBIds: setDirectChatKBIds,
+        incognito,
     };
     return (
                     /* Direct Chat Mode */
@@ -169,23 +183,27 @@ const DirectChatView = ({
                                     )}
                                 </div>
                                 {/* Centred — see the agent header above. */}
-                                <div className="absolute left-1/2 -translate-x-1/2 flex items-center">
+                                <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
+                                    {/* Cowork produces a stored run: not offered in incognito. */}
                                     <CoworkModeToggle
                                         enabled
                                         value={coworkMode}
                                         onChange={setCoworkMode}
-                                        locked={conversationStarted}
+                                        locked={conversationStarted || incognito}
                                     />
+                                    {onIncognitoChange && (
+                                        <IncognitoToggle on={incognito} onChange={onIncognitoChange} locked={conversationStarted} />
+                                    )}
                                 </div>
                                 <div className="flex items-center gap-2 relative">
-                                    {!isMobile && !inCoworkMode && (
+                                    {!isMobile && !inCoworkMode && !incognito && (
                                         <DocumentsHeaderButton
                                             sidePanelDocumentId={sidePanelDocumentId}
                                             openDocumentInSidePanel={openDocumentInSidePanel}
                                             closeDocumentPanel={closeDocumentPanel}
                                         />
                                     )}
-                                    {!isMobile && canUseWebpagesSide && !inCoworkMode && (
+                                    {!isMobile && canUseWebpagesSide && !inCoworkMode && !incognito && (
                                         <>
                                             <button
                                                 ref={webpageButtonRefDirect}
@@ -213,8 +231,9 @@ const DirectChatView = ({
                         {/* Split Panes: Chat + Workspace */}
                         <div className="flex-1 flex overflow-hidden">
                             {/* Chat Pane */}
-                            <div className="flex-1 flex flex-col min-w-0 border-r [border-color:var(--border-subtle)]!">
+                            <div className={`flex-1 flex flex-col min-w-0 border-r [border-color:var(--border-subtle)]! ${incognito ? INCOGNITO_FRAME_CLASS : ''}`} data-incognito={incognito || undefined}>
                                 <div ref={messagesContainerRef} className={`flex-1 overflow-y-auto overflow-x-hidden ${isMobile ? 'p-2' : 'p-4'} custom-scrollbar`}>
+                                    {incognito && <IncognitoBanner />}
                                     {messages.length === 0 ? (
                                         <EmptyChatState>
                                             {/* In Cowork the next thing typed is not
@@ -231,7 +250,7 @@ const DirectChatView = ({
                                                         onStarterClick: (text) => setChatInput(text),
                                                     }
                                                     : {
-                                                        tiers: modelTiers,
+                                                        tiers,
                                                         selectedTier,
                                                         onTierChange: setSelectedTier,
                                                         onPromptClick: (text) => setChatInput(text),
@@ -260,7 +279,8 @@ const DirectChatView = ({
                                                     chatSource="direct"
                                                     onRetry={retryMessage}
                                                     onEditMessage={editAndRegenerate}
-                                                    modelTiers={modelTiers}
+                                                    modelTiers={tiers}
+                                                    incognito={incognito}
                                                 />
                                             ))}
                                             <div ref={messagesEndRef} />
@@ -305,7 +325,8 @@ const DirectChatView = ({
                                 )}
                             </div>
 
-                            {renderSidePanels('direct')}
+                            {/* The side panels are workspaces stored with a conversation. */}
+                            {!incognito && renderSidePanels('direct')}
                         </div>
                     </>
     );
