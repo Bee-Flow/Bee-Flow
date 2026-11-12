@@ -59,7 +59,7 @@ test('the admin session is checked before the body', async () => {
 });
 
 test('a valid public status check reaches the database and answers as before', async () => {
-    const res = await api.call('GET', '/api/dsr/requests/7/public?email=person%40example.org', { user: null });
+    const res = await api.call('GET', '/api/dsr/requests/7/public', { user: null, headers: { 'x-subject-email': 'person@example.org' } });
     assert.strictEqual(res.status, 404, res.text);
     assert.deepStrictEqual(res.body, { error: 'not found' });
     assert.ok(db.queries.some((q) => /FROM dsr_requests/.test(q)));

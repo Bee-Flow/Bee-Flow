@@ -158,6 +158,9 @@ const mockPermissions = {
     requirePermission: () => (req, res, next) => (req.session?.user?.canCompliance
         ? next()
         : res.status(403).json({ error: "Permission 'admin_compliance' required" })),
+    // Where the permission holds: everywhere, or only in `complianceIn` when the session names it.
+    hasPermissionInOrg: async (_userId, _perm, orgId, session) => !!session?.user?.canCompliance
+        && (!session.user.complianceIn || session.user.complianceIn === orgId),
 };
 
 const mockDb = {
@@ -222,11 +225,11 @@ test.before(async () => {
 });
 test.after(async () => { if (server) await new Promise((r) => server.close(r)); });
 
-async function call(method, path, { session = null, body, ip } = {}) {
+async function call(method, path, { session = null, body, ip, headers = {} } = {}) {
     currentSession = session;
     const res = await fetch(base + path, {
         method,
-        headers: { 'content-type': 'application/json', ...(ip ? { 'x-forwarded-for': ip } : {}) },
+        headers: { 'content-type': 'application/json', ...(ip ? { 'x-forwarded-for': ip } : {}), ...headers },
         body: body === undefined ? undefined : JSON.stringify(body),
     });
     const text = await res.text();
@@ -275,6 +278,19 @@ test('an admin whose organisation cannot be looked up gets 503, never the defaul
     const manual = await post('/requests/manual', { session: ADMIN, body: { subject_email: 'other@example.org' } });
     assert.strictEqual(manual.status, 503);
     assert.strictEqual(state.rows.size, 1, 'no manual intake filed under the default org');
+});
+
+test('admin_compliance held only in another organisation opens nothing of the home organisation', async () => {
+    const id = await seed();
+    const CROSS = { user: { id: 'admin_a', canCompliance: true, complianceIn: 'org_b' } };
+    const manual = await post('/requests/manual', { session: CROSS, body: { subject_email: 'other@example.org' } });
+    assert.strictEqual(manual.status, 403);
+    assert.strictEqual(state.rows.size, 1, 'no manual intake filed');
+    assert.strictEqual((await post(`/requests/${id}/start`, { session: CROSS })).status, 403);
+    assert.strictEqual(state.rows.get(id).status, 'pending');
+    assert.strictEqual((await get('/requests', { session: CROSS })).status, 403);
+    assert.strictEqual((await get(`/requests/${id}`, { session: CROSS })).status, 403);
+    assert.strictEqual(state.audits.length, 0);
 });
 
 // ── Public intake ───────────────────────────────────────────────────
@@ -327,13 +343,16 @@ test('public POST rejects a missing or malformed address', async () => {
 
 test('public status returns the minimal shape for the matching (id, email) and 404 otherwise', async () => {
     const id = await seed({ extended_until: null });
-    const res = await get(`/requests/${id}/public?email=${encodeURIComponent(EMAIL)}`, { ip: '198.51.100.1' });
+    const as = (email) => ({ ip: '198.51.100.1', headers: { 'x-subject-email': email } });
+    const res = await get(`/requests/${id}/public`, as(' Person@Example.org '));
     assert.strictEqual(res.status, 200);
     assert.deepStrictEqual(Object.keys(res.body).sort(), ['created_at', 'due_at', 'extended_until', 'fulfilled_at', 'id', 'request_type', 'status']);
     assert.ok(!res.text.includes('notes'));
-    assert.strictEqual((await get(`/requests/${id}/public?email=other@example.org`, { ip: '198.51.100.1' })).status, 404);
+    assert.strictEqual((await get(`/requests/${id}/public`, as('other@example.org'))).status, 404);
     assert.strictEqual((await get(`/requests/${id}/public`, { ip: '198.51.100.1' })).status, 400);
-    assert.strictEqual((await get(`/requests/abc/public?email=${EMAIL}`, { ip: '198.51.100.1' })).status, 400);
+    assert.strictEqual((await get(`/requests/abc/public`, as(EMAIL))).status, 400);
+    // The address is not taken from the URL.
+    assert.strictEqual((await get(`/requests/${id}/public?email=${encodeURIComponent(EMAIL)}`, { ip: '198.51.100.1' })).status, 400);
     assert.ok(res.headers.get('ratelimit-limit'), 'the public read is rate-limited');
     assert.strictEqual(res.headers.get('ratelimit-limit'), '60');
 });

@@ -1,17 +1,18 @@
 // @typecheck strict
 /**
  * The session half of the OAuth callback (./providerCallbackRoutes.js): where
- * the user stands with an organisation (binding an org-less account by
- * domain or tenant), and the session fields, token vault and encryption
- * flags written once the route's account-status gate has passed.
+ * the user stands with an organisation (binding an org-less account by its
+ * verified Microsoft tenant; placement by e-mail domain happens only when an
+ * account is created, ./ssoUserProvisioning.js), and the session fields, token
+ * vault and encryption flags written once the route's account-status gate has
+ * passed.
  */
 
 const log = require('../../telemetry/log');
 const userStore = require('../../stores/userStore');
 const { getOrCreateSSOUserDEKCompat } = require('../encryption');
-const { resolveOrgByEmailDomain, planNewSSOUserPlacement } = require('../ssoUserResolver');
+const { planNewSSOUserPlacement } = require('../ssoUserResolver');
 const { parseGroupIds, orgIdsForUser } = require('../orgMembership');
-const freeEmailDomains = require('../../utils/freeEmailDomains');
 // Shared with loginRoutes and the admin gate — this was a verbatim copy that
 // read `allowed_features` alone, i.e. only the plan-grant half of entitlement,
 // so an org entitled via its licence tier failed it and `zk` silently wrote
@@ -21,8 +22,8 @@ const { _vaultUpsertSafe } = require('./shared');
 const microsoftLogin = require('./microsoftLogin');
 
 /**
- * The fresh row, whether it belongs to an organisation (binding it by
- * domain/tenant when it does not), and whether it awaits approval.
+ * The fresh row, whether it belongs to an organisation (binding it by its
+ * Microsoft tenant when it does not), and whether it awaits approval.
  * @param {{ provider: string, user: import('./providerCallbackRoutes').OAuthUser, msTenant?: string, signupIntent?: import('./ssoUserProvisioning').SignupIntent | null }} opts
  */
 async function resolveOrgStanding({ provider, user, msTenant, signupIntent }) {
@@ -50,16 +51,17 @@ async function resolveOrgStanding({ provider, user, msTenant, signupIntent }) {
     // Also check if user has an organizationId set directly (e.g. added manually by admin)
     if (freshUser?.organizationId) userHasOrg = true;
 
-    // A personal account has no organisation by definition: never domain-match
-    // it into one, and never show it the "No Organisation Found" gate.
+    // A personal account has no organisation by definition: never place it
+    // in one, and never show it the "No Organisation Found" gate.
     const isPersonalAccount = signupIntent?.accountType === 'consumer';
+    await recordVerifiedAddress(provider, user, freshUser);
 
-    // If user has no org, try domain-matching
+    // An account without an organisation joins one here only through its
+    // verified Microsoft tenant. The e-mail domain places an account once,
+    // when it is created (../orgDomainMatch.mts), never on a later sign-in.
     let pendingApproval = false;
-    if (!userHasOrg && !isPersonalAccount && (provider === 'microsoft' || (user.email && user.email.includes('@')))) {
-        const matchingOrg = provider === 'microsoft'
-            ? await microsoftLogin.trustedMicrosoftOrg(user, msTenant, userStore)
-            : resolveOrgByEmailDomain(user.email ?? '', await userStore.getAllOrganizations(), await freeEmailDomains.getEffectiveFreeEmailDomains());
+    if (!userHasOrg && !isPersonalAccount && provider === 'microsoft') {
+        const matchingOrg = await microsoftLogin.trustedMicrosoftOrg(user, msTenant, userStore);
 
         if (matchingOrg) {
             // Same auto-approve/pending decision the create path makes, from
@@ -86,6 +88,21 @@ async function resolveOrgStanding({ provider, user, msTenant, signupIntent }) {
         pendingApproval = true;
     }
     return { freshUser, userHasOrg, pendingApproval, isPersonalAccount };
+}
+
+/**
+ * A Google sign-in vouches for the address: the account's own address, when it
+ * is the one Google verified, counts as a verified sign-in address
+ * (`email_verified_at`, read by stores/user/verifiedAdminDomains.mts).
+ * @param {string} provider
+ * @param {import('./providerCallbackRoutes').OAuthUser} user
+ * @param {Record<string, any> | null | undefined} row
+ */
+async function recordVerifiedAddress(provider, user, row) {
+    if (provider !== 'google' || user.emailVerified !== true || !row || row.email_verified_at) return;
+    const own = String(row.email || '').trim().toLowerCase();
+    if (!own || own !== String(user.email || '').trim().toLowerCase()) return;
+    await userStore.updateUser(row.id, { emailVerifiedAt: new Date().toISOString() });
 }
 
 /**

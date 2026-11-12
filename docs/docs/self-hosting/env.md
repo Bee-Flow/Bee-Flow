@@ -83,6 +83,7 @@ Each limit is in bytes, has a generous default, and `0` means no limit. They kee
 | `KB_SITEMAP_MAX_BYTES` | `52428800` (50 MB) | Largest sitemap a crawl reads (the sitemap specification's own maximum). A bigger one is skipped; the entry page is still indexed. |
 | `KB_CLOUD_MAX_FILES` | `2000` | Files one cloud-folder knowledge source reads. A folder with more is read up to this number and nothing is removed. `0` = unlimited. |
 | `KB_CLOUD_MAX_FILE_MB` | `50` | Largest file (MB) a cloud-folder knowledge source reads. A bigger file is skipped and logged. `0` = unlimited. |
+| `KB_QUERY_LOG_READS_PER_HOUR` | `600` | Pages of a knowledge base's query log (question and answer text) one person reads per hour. Each page is recorded in the access audit. `0` = unlimited. |
 | `KB_CLOUD_CHANGE_POLL_SECONDS` | `300` | How often a cloud-folder source set to "on change" checks its folder (a cheap change check; the folder is read only when it moved). |
 | `ATTACHMENT_MAX_BYTES` | `26214400` (25 MB) | Largest single attachment the Email Sender component adds, a file or a downloaded http(s) URL. Files come only from `ATTACHMENTS_DIR` (created when missing; default `beeflow-attachments` in the temp directory). |
 

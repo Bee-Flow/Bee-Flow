@@ -216,6 +216,31 @@ async function isOrgAdminForOrg(req, orgId) {
 }
 
 /**
+ * A password reset or a two-factor reset by someone else hands over the
+ * account. An organisation admin may do that for a member of their
+ * organisation, but not for an account that administers an organisation the
+ * caller does not (an admin-carrying group of another organisation): that
+ * account is that organisation's to manage. A platform admin may. Returns the
+ * refusal body, or null.
+ * @param {Request} req
+ * @param {Record<string, any> | null | undefined} target
+ * @returns {Promise<{ error: string, code: string } | null>}
+ */
+async function credentialResetRefusal(req, target) {
+    if (req.session?.isAdmin || req.session?.user?.role === 'admin') return null;
+    if (!target || target.id === req.session?.user?.id) return null;
+    for (const orgId of await orgsAdministeredBy(target)) {
+        if (!(await isOrgAdminForOrg(req, orgId))) {
+            return {
+                error: 'This account administers another organisation; only a platform administrator can reset its password or two-factor authentication',
+                code: 'admin_elsewhere_target',
+            };
+        }
+    }
+    return null;
+}
+
+/**
  * Middleware factory: require org admin access for the org specified by req.params[paramName].
  * Falls back to requireAuth first, then checks org admin status.
  * @param {string} [paramName]
@@ -368,6 +393,7 @@ module.exports = {
     repairIfOrphaned,
     refuseLastOrgAdmin,
     isOrgAdminForOrg,
+    credentialResetRefusal,
     requireOrgAdmin,
     normaliseOrgId,
     requireOrgAdminForUser,

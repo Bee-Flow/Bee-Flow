@@ -127,18 +127,22 @@ const PERSON_LEVEL_PATHS = new Set([
 
 /**
  * Org admins and holders of admin_monitoring see the organisation per person;
- * anyone else in the org sees only their own rows there. A failed lookup
- * answers no.
+ * anyone else in the org sees only their own rows there. Both are decided IN
+ * the organisation the filters read (req.usageFilters.organizationId): the
+ * orgRole of the caller's home organisation counts for that organisation only,
+ * and admin_monitoring must hold there (auth/permissionGrants.mts), not in some
+ * other organisation the caller is in. A failed lookup answers no.
  * @param {import('express').Request} req
  * @returns {Promise<boolean>}
  */
 async function mayViewColleagues(req) {
     const userId = req.session?.user?.id;
-    if (!userId) return false;
+    const orgId = req.usageFilters?.organizationId;
+    if (!userId || typeof orgId !== 'string' || !orgId) return false;
     try {
         const user = await userStore.getUser(userId);
-        if (user && auth.isOrgAdminRole(user.orgRole)) return true;
-        return !!(await auth.hasPermission(userId, 'admin_monitoring', req.session));
+        if (user && auth.isOrgAdminRole(user.orgRole) && user.organizationId === orgId) return true;
+        return (await auth.resolvePermissionsByOrg(userId, req.session)).holds('admin_monitoring', orgId);
     } catch (e) {
         log.warn('[usage] colleague-view check failed:', /** @type {Error} */ (e).message);
         return false;

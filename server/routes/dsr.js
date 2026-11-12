@@ -4,7 +4,7 @@
  *
  *   public (no auth; rate-limited per IP)
  *   POST   /api/dsr/requests                         intake via the public form
- *   GET    /api/dsr/requests/:id/public?email=       minimal status view
+ *   GET    /api/dsr/requests/:id/public              minimal status view (address in X-Subject-Email)
  *   POST   /api/dsr/requests/:id/verify {token}      identity link from the ack mail
  *   POST   /api/dsr/requests/verify {token}          the same link with the id lost
  *
@@ -111,7 +111,8 @@ const ManualIntakeBody = bodyOf({
     notes: dsrText(`notes is text of at most ${MAX_NOTE} characters.`, 20_000).nullish(),
     received_at: dsrText('received_at is a date, like 2026-09-01T09:00:00Z.', 64).nullish(),
 }, 'Recording a request');
-const PublicStatusQuery = queryOf({ email: dsrText('email query param required', 320).optional() }, 'The status check');
+const PublicStatusQuery = queryOf({}, 'The status check');
+const SUBJECT_EMAIL_HEADER = 'x-subject-email';
 const ListQuery = queryOf({
     status: choice(['pending', 'in_progress', 'fulfilled', 'rejected'], 'status is pending, in_progress, fulfilled or rejected.').optional(),
 }, 'The request register');
@@ -364,10 +365,12 @@ router.post('/requests', publicSubmitLimiter, validate({ body: PublicIntakeBody 
 });
 
 // Public status check (no auth, only by id + email match — does not leak the
-// request body). Minimal shape.
+// request body). Minimal shape. The address comes in a header, never in the
+// URL, which proxies and access logs keep (the status page sends it; the
+// e-mailed link carries the id only).
 router.get('/requests/:id/public', publicReadLimiter, validate({ query: PublicStatusQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof PublicStatusQuery>>} */ req, res) => {
-    const email = (req.query.email || '').toString().trim().toLowerCase();
-    if (!email) return res.status(400).json({ error: 'email query param required' });
+    const email = String(req.get(SUBJECT_EMAIL_HEADER) || '').trim().toLowerCase();
+    if (!email || email.length > 320) return res.status(400).json({ error: 'The X-Subject-Email header is required' });
     const id = parseId(req);
     if (!id) return res.status(400).json({ error: 'invalid id' });
     // We need to scan without orgId here — the public submitter may not
