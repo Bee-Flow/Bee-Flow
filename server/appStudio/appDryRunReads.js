@@ -34,9 +34,15 @@ function isPlainObject(v) { return v !== null && typeof v === 'object' && !Array
  * With `{}` a filter like {value:{kind:'formula',expr:'vars.status'}} resolved
  * to undefined, the entry was omitted, and the dry run probed the UNFILTERED
  * query — reporting a row count the real screen will never show.
+ *
+ * `atMs` is the clock the scope (and the derived variables that read `today`)
+ * starts from: now by default, a fixed instant for a reproducible compile.
+ * @param {unknown} currentUser
+ * @param {unknown} variables
+ * @param {number} [atMs]
  */
-function syntheticScope(currentUser, variables) {
-    const now = Date.now();
+function syntheticScope(currentUser, variables, atMs = Date.now()) {
+    const now = atMs;
     const today = new Date(now).toISOString().slice(0, 10);
     // Derived variables (schema 3) start from the same screen-level roots as the screenshot render.
     return {

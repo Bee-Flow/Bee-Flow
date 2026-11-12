@@ -39,7 +39,7 @@ type Compiled = { sql: string; params: unknown[] };
 
 const { collectDataBindings } = nodeRequire('../collectDataBindings') as { collectDataBindings: (def: unknown) => { nodeId: string | null; prop: string; binding: Binding }[] };
 const dryRunReads = nodeRequire('../appDryRunReads') as {
-    syntheticScope: (viewer: Obj, variables: unknown) => Obj;
+    syntheticScope: (viewer: Obj, variables: unknown, atMs?: number) => Obj;
     resolveDryRunFilters: (binding: Obj, scope: Obj) => { filters?: unknown; skipped?: boolean };
 };
 const engineFlag = nodeRequire('../../utils/engineFlag') as { _setForTests: (d: string | null) => void };
@@ -84,7 +84,7 @@ function identities(entry: CorpusEntry): Identity[] {
 }
 
 function fixedScope(viewer: Obj, variables: unknown): Obj {
-    return { ...dryRunReads.syntheticScope(viewer, variables), now: COMPAT_NOW, today: new Date(COMPAT_NOW).toISOString().slice(0, 10) };
+    return dryRunReads.syntheticScope(viewer, variables, COMPAT_NOW);
 }
 
 /** The descriptor the runtime posts for this binding (run view, not the editor's sample). */

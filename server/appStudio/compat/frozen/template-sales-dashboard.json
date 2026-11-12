@@ -72,7 +72,7 @@
           "sql": "SELECT SUM(\"amount\") AS \"v\" FROM \"deals\" WHERE (1=1) AND \"stage\" = ? AND \"closed_on\" >= ? LIMIT ?",
           "params": [
             "won",
-            "2026-08-13T00:00:00.000Z",
+            "2025-10-17T00:00:00.000Z",
             50
           ]
         }
@@ -82,7 +82,7 @@
           "sql": "SELECT SUM(\"amount\") AS \"v\" FROM \"deals\" WHERE (1=1) AND \"stage\" = ? AND \"closed_on\" >= ? LIMIT ?",
           "params": [
             "won",
-            "2026-08-13T00:00:00.000Z",
+            "2025-10-17T00:00:00.000Z",
             50
           ]
         }
@@ -122,7 +122,7 @@
           "sql": "SELECT COUNT(*) AS \"v\" FROM \"deals\" WHERE (1=1) AND \"stage\" = ? AND \"closed_on\" >= ? LIMIT ?",
           "params": [
             "won",
-            "2026-08-13T00:00:00.000Z",
+            "2025-10-17T00:00:00.000Z",
             50
           ]
         }
@@ -132,7 +132,7 @@
           "sql": "SELECT COUNT(*) AS \"v\" FROM \"deals\" WHERE (1=1) AND \"stage\" = ? AND \"closed_on\" >= ? LIMIT ?",
           "params": [
             "won",
-            "2026-08-13T00:00:00.000Z",
+            "2025-10-17T00:00:00.000Z",
             50
           ]
         }
@@ -147,7 +147,7 @@
           "sql": "SELECT AVG(\"amount\") AS \"v\" FROM \"deals\" WHERE (1=1) AND \"stage\" = ? AND \"closed_on\" >= ? LIMIT ?",
           "params": [
             "won",
-            "2026-08-13T00:00:00.000Z",
+            "2025-10-17T00:00:00.000Z",
             50
           ]
         }
@@ -157,7 +157,7 @@
           "sql": "SELECT AVG(\"amount\") AS \"v\" FROM \"deals\" WHERE (1=1) AND \"stage\" = ? AND \"closed_on\" >= ? LIMIT ?",
           "params": [
             "won",
-            "2026-08-13T00:00:00.000Z",
+            "2025-10-17T00:00:00.000Z",
             50
           ]
         }
@@ -172,7 +172,7 @@
           "sql": "SELECT strftime('%Y-%m', \"closed_on\") AS \"month\", SUM(\"amount\") AS \"revenue\", COUNT(*) AS \"deals\" FROM \"deals\" WHERE (1=1) AND \"stage\" = ? AND \"closed_on\" >= ? GROUP BY strftime('%Y-%m', \"closed_on\") ORDER BY \"month\" ASC LIMIT ?",
           "params": [
             "won",
-            "2026-08-13T00:00:00.000Z",
+            "2025-10-17T00:00:00.000Z",
             50
           ]
         }
@@ -182,7 +182,7 @@
           "sql": "SELECT to_char(\"closed_on\"::timestamptz, 'YYYY-MM') AS \"month\", SUM(\"amount\") AS \"revenue\", COUNT(*) AS \"deals\" FROM \"deals\" WHERE (1=1) AND \"stage\" = ? AND \"closed_on\" >= ? GROUP BY to_char(\"closed_on\"::timestamptz, 'YYYY-MM') ORDER BY \"month\" ASC LIMIT ?",
           "params": [
             "won",
-            "2026-08-13T00:00:00.000Z",
+            "2025-10-17T00:00:00.000Z",
             50
           ]
         }
@@ -320,7 +320,7 @@
           "sql": "SELECT SUM(\"amount\") AS \"v\" FROM \"deals\" WHERE (1=1) AND \"stage\" = ? AND \"closed_on\" >= ? LIMIT ?",
           "params": [
             "won",
-            "2026-08-13T00:00:00.000Z",
+            "2025-10-17T00:00:00.000Z",
             50
           ]
         }
@@ -330,7 +330,7 @@
           "sql": "SELECT SUM(\"amount\") AS \"v\" FROM \"deals\" WHERE (1=1) AND \"stage\" = ? AND \"closed_on\" >= ? LIMIT ?",
           "params": [
             "won",
-            "2026-08-13T00:00:00.000Z",
+            "2025-10-17T00:00:00.000Z",
             50
           ]
         }
