@@ -2,11 +2,11 @@
 # No model, no torch, no gliclass: the tests swap in a FakeClassifier
 # (tests/conftest.py). The service lines carry the same pins as
 # requirements.txt, so the tests import the versions the image ships.
-pytest==9.1.1
+pytest==9.2.0
 pytest-cov==7.1.0
 fastapi==0.162.0
 pydantic==2.14.1
-pydantic-settings==2.16.1
+pydantic-settings==2.16.2
 # TestClient's transport; not in the image.
 httpx==0.28.1
 certifi==2026.10.23
