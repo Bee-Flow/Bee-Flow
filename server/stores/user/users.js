@@ -241,10 +241,10 @@ async function updateUser(userId, updates) {
         await assertNotStageRunAs(userId, { organizationId: existing.organizationId || '' });
     }
 
-    // Same choke point as createUser — see the note there. Only the name
-    // fields, and only when the caller actually supplied them, so a partial
-    // update (a token write, a DEK rewrap) is untouched.
+    // Same choke point as createUser (only names the caller supplied). A new e-mail address is not a verified one.
     updates = { ...updates, ...sanitizeUserNames(updates, { onlyPresent: true }) };
+    const newAddress = updates.email !== undefined && String(updates.email || '').toLowerCase() !== String(existing.email || '').toLowerCase();
+    if (newAddress && updates.emailVerifiedAt === undefined) updates = { ...updates, emailVerifiedAt: null };
 
     // Every path that writes a new password hash also dates it, at the one point
     // they all pass through: the admin edit form, the admin reset, self-service

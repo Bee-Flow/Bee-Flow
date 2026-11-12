@@ -263,10 +263,11 @@ async function run() {
         assert.strictEqual(match.id, 'acme');
     });
 
-    await test('resolveOrgByEmailDomain falls back to org.email domain when allowedDomains empty', () => {
+    await test('resolveOrgByEmailDomain uses the contact e-mail domain only when it is confirmed for that org', () => {
         const orgs = [{ id: 'acme', email: 'info@acme.com', allowedDomains: [] }];
-        const match = resolveOrgByEmailDomain('someone@acme.com', orgs);
-        assert.strictEqual(match.id, 'acme');
+        assert.strictEqual(resolveOrgByEmailDomain('someone@acme.com', orgs, undefined, new Set(['acme'])).id, 'acme');
+        assert.strictEqual(resolveOrgByEmailDomain('someone@acme.com', orgs), null);
+        assert.strictEqual(resolveOrgByEmailDomain('someone@acme.com', orgs, undefined, new Set(['other'])), null);
     });
 
     await test('resolveOrgByEmailDomain returns null when nothing matches', () => {
@@ -279,7 +280,7 @@ async function run() {
         // The incident: a manually created org whose contact email is a
         // personal gmail. Previously every gmail signup bound to it.
         const orgs = [{ id: 'freemail-org', email: 'example-shared-inbox@gmail.com', allowedDomains: [] }];
-        assert.strictEqual(resolveOrgByEmailDomain('victim@gmail.com', orgs), null);
+        assert.strictEqual(resolveOrgByEmailDomain('victim@gmail.com', orgs, undefined, new Set(['freemail-org'])), null);
     });
 
     await test('resolveOrgByEmailDomain never matches a free provider via allowedDomains', () => {
@@ -295,29 +296,33 @@ async function run() {
 
     await test('resolveOrgByEmailDomain free-provider guard is case-insensitive', () => {
         const orgs = [{ id: 'freemail-org', email: 'demo@gmail.com', allowedDomains: [] }];
-        assert.strictEqual(resolveOrgByEmailDomain('Someone@GMail.COM', orgs), null);
+        assert.strictEqual(resolveOrgByEmailDomain('Someone@GMail.COM', orgs, undefined, new Set(['freemail-org'])), null);
     });
 
     await test('resolveOrgByEmailDomain blocks the googlemail.com alias', () => {
         const orgs = [{ id: 'freemail-org', email: 'demo@googlemail.com', allowedDomains: [] }];
-        assert.strictEqual(resolveOrgByEmailDomain('x@googlemail.com', orgs), null);
+        assert.strictEqual(resolveOrgByEmailDomain('x@googlemail.com', orgs, undefined, new Set(['freemail-org'])), null);
     });
 
     await test('resolveOrgByEmailDomain honours an extra (admin-added) blocklist domain', () => {
         const orgs = [{ id: 'acme', email: 'info@acme.com', allowedDomains: [] }];
+        const confirmed = new Set(['acme']);
         // acme.com is corporate → matches with the built-in floor…
-        assert.strictEqual(resolveOrgByEmailDomain('x@acme.com', orgs).id, 'acme');
+        assert.strictEqual(resolveOrgByEmailDomain('x@acme.com', orgs, undefined, confirmed).id, 'acme');
         // …but if an admin adds it to the effective set, it is treated as public.
         const extra = new Set(['acme.com']);
-        assert.strictEqual(resolveOrgByEmailDomain('x@acme.com', orgs, extra), null);
+        assert.strictEqual(resolveOrgByEmailDomain('x@acme.com', orgs, extra, confirmed), null);
     });
 
-    await test('resolveOrgByEmailDomain returns the first matching org (deterministic-order contract)', () => {
+    await test('resolveOrgByEmailDomain places nobody when two organisations match the domain', () => {
         const orgs = [
             { id: 'first', email: 'x@acme.com', allowedDomains: [] },
             { id: 'second', email: 'y@acme.com', allowedDomains: [] },
         ];
-        assert.strictEqual(resolveOrgByEmailDomain('z@acme.com', orgs).id, 'first');
+        assert.strictEqual(resolveOrgByEmailDomain('z@acme.com', orgs, undefined, new Set(['first', 'second'])), null);
+        assert.strictEqual(resolveOrgByEmailDomain('z@acme.com', orgs, undefined, new Set(['second'])).id, 'second');
+        const listed = [{ id: 'a', allowedDomains: ['acme.com'] }, { id: 'b', allowedDomains: ['acme.com'] }];
+        assert.strictEqual(resolveOrgByEmailDomain('z@acme.com', listed), null);
     });
 
     // ── planNewSSOUserPlacement (approval-bypass fix) ───────

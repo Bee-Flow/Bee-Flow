@@ -17,9 +17,10 @@ const KB = '11111111-1111-4111-8111-111111111111';
 const ENTRY = '22222222-2222-4222-8222-222222222222';
 
 /** @param {{ managers?: string[], licensed?: boolean }} [o] */
-function setup({ managers = ['owner', 'viewer'], licensed = true, showNames = true, askers = ['u9'] } = {}) {
-    const calls = { list: [], review: [] };
+function setup({ managers = ['owner', 'viewer'], licensed = true, showNames = true, askers = ['u9'], auditFails = false } = {}) {
+    const calls = { list: [], review: [], audit: [] };
     B._setBuilderDeps({
+        audit: async (entry) => { if (auditFails) throw new Error('audit down'); calls.audit.push(entry); },
         getKB: async (id) => (id === KB ? { id: KB, organization_id: 'org1', query_log_show_names: showNames } : null),
         canManage: async (_kb, userId) => ({ ok: managers.includes(userId) }),
         hasFeature: async () => licensed,
@@ -44,6 +45,30 @@ test('owner and viewer who manage the KB get decrypted rows and the total', asyn
     assert.strictEqual(r.result.rows[0].answer, 'a');
     assert.strictEqual(calls.list[0].includeContent, true);
     assert.strictEqual(calls.list[0].kbId, KB);
+});
+
+test('a full list is recorded in the access audit first; a summary list carries no text and is not', async () => {
+    const calls = setup();
+    assert.strictEqual((await list({ detail: 'full' })).ok, true);
+    assert.strictEqual(calls.audit.length, 1);
+    assert.deepStrictEqual(
+        { action: calls.audit[0].action, targetId: calls.audit[0].targetId, orgId: calls.audit[0].orgId, actorId: calls.audit[0].actorId },
+        { action: 'kb.query_log.content_viewed', targetId: KB, orgId: 'org1', actorId: 'viewer' },
+    );
+    assert.ok(!JSON.stringify(calls.audit).includes('Una Nine'));
+    await list({ detail: 'full' }, { ownerId: 'owner' });
+    assert.strictEqual(calls.audit[1].actorId, 'owner', 'an automation run is recorded on its owner');
+    const summary = await list();
+    assert.strictEqual(summary.ok, true);
+    assert.strictEqual(calls.audit.length, 2);
+});
+
+test('a full list whose audit cannot be written reads nothing', async () => {
+    const calls = setup({ auditFails: true });
+    const r = await list({ detail: 'full' });
+    assert.strictEqual(r.ok, false);
+    assert.strictEqual(r.status, 503);
+    assert.strictEqual(calls.list.length, 0);
 });
 
 test('a viewer who only reads is refused, with the neutral sentence', async () => {

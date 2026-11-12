@@ -5,7 +5,7 @@
  *   (the notice, the acknowledgement and the DPIA list are in queryLogNotice.js)
  *   PUT /:id/query-log/settings         switch on or off, retention, "delete now"
  *   DELETE /:id/query-log               switch off and delete everything (no licence needed)
- *   GET /:id/query-log                  the entries, filtered
+ *   GET /:id/query-log                  the entries, filtered (audited per page, rate limited)
  *   GET /:id/query-log/export.csv       the same, as a file (audited, capped)
  *   GET /:id/query-log/:entryId         one entry in full
  *   PATCH /:id/query-log/:entryId/review  status and note
@@ -21,7 +21,7 @@
  * others.
  *
  * ── AUDIT IS WRITTEN FIRST ──────────────────────────────────────────
- * A change of the settings and an export are recorded in the access audit BEFORE they happen
+ * A change of the settings, a page of the list and an export are recorded in the access audit BEFORE they happen
  * (stores/kb/queryLog/audit.mts throws when the row is not written). A failure answers 503 and
  * nothing has changed.
  */
@@ -43,6 +43,7 @@ const { validateAttestation } = require('../../core/kb/queryLog/attestation.mts'
 const { maskAsker, resolveAskerFilter, showsNames } = require('../../core/kb/queryLog/askers.mts');
 const { csvHead, csvLine } = require('../../core/kb/queryLog/csvExport.mts');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
+const { envByteLimit } = require('../../core/http/httpResponseLimits');
 const { once } = require('node:events');
 const { isDeepStrictEqual } = require('node:util');
 const log = require('../../telemetry/log');
@@ -60,6 +61,11 @@ const PAGE_MAX = 200;
 const EXPORT_CAP = 50_000;
 /** Same ceiling as the compliance export: what a stolen session can carry away per hour. */
 const exportLimiter = perUserRateLimit({ windowMs: 60 * 60 * 1000, max: 20, name: 'kb-query-log-kb-export' });
+/** Pages of the list (question and answer text) one person reads per hour: KB_QUERY_LOG_READS_PER_HOUR, 0 = no limit. */
+const READS_PER_HOUR = envByteLimit('KB_QUERY_LOG_READS_PER_HOUR', 600);
+/** @type {import('express').RequestHandler} */
+const readLimiter = READS_PER_HOUR === Infinity ? (_req, _res, next) => next()
+    : perUserRateLimit({ windowMs: 60 * 60 * 1000, max: READS_PER_HOUR, name: 'kb-query-log-kb-read' });
 const NOTE_MAX = 4000;
 
 // ── What a caller may send ──────────────────────────────────────────
@@ -272,11 +278,16 @@ router.get('/:id/query-log/settings', ...gates, validate({ query: NoQuery }), as
 
 // ── GET /:id/query-log ──────────────────────────────────────────────
 
-router.get('/:id/query-log', ...gates, validate({ query: ListQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof ListQuery>>} */ req, res) => {
+router.get('/:id/query-log', ...gates, readLimiter, validate({ query: ListQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof ListQuery>>} */ req, res) => {
     const kb = res.locals.kb;
     const limit = req.query.limit ?? PAGE_DEFAULT;
     const offset = req.query.offset ?? 0;
     const filter = metadataFilter(req.query);
+    // Every page carries question and answer text: who read which page is recorded first, as for the export.
+    await auditFirst([{
+        action: 'kb.query_log.content_viewed', targetType: 'knowledge_base', targetId: kb.id, orgId: kb.organization_id ?? null,
+        actorId: getUserId(req), newValues: { filters: filter, text: req.query.q ? true : false, limit, offset, showNames: showsNames(kb) },
+    }]);
     const { rows, total } = await queryLogStore.listEntries({
         kbId: kb.id, orgId: kb.organization_id ?? null, ...filter, userId: await askerFilter(kb, filter.userId), q: req.query.q || null,
         limit, offset, includeContent: true,

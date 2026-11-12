@@ -46,6 +46,7 @@ const MOCKS = {
         requireOrgAdminForUser: pass, isActiveUserStatus: (s) => !s || s === 'active', wouldOrphanOrg: async () => false,
         orgsAdministeredBy: async () => new Set(['orgA']), repairIfOrphaned: async () => {},
         countOtherOrgAdmins: async () => 2, isOrgAdminForOrg: async () => true,
+        credentialResetRefusal: async () => null,
     },
     '../../stores/userStore': {
         getUser: async (id) => ({ id, username: id, passwordHash: 'h', email: 'u@example.test' }),

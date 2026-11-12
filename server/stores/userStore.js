@@ -18,6 +18,7 @@ const {
 } = require('./user/users');
 const { completePasswordReset } = require('./user/passwordReset');
 const { claimNcInstanceForOrganization } = require('./user/orgNcInstance.mts');
+const { orgIdsWithVerifiedAdminAtDomain } = require('./user/verifiedAdminDomains.mts');
 const {
     getAllOrganizations, getSingleOrgId, hasAnyOrganization, getOrganization, getOrganizationByNcInstanceId,
     createOrganization, updateOrganization, deleteOrganization,
@@ -90,7 +91,7 @@ module.exports = {
     getAllUsers, getAllUserAvatars, getUserAvatarsByIds, getOrgMembersForDirectory, getUser, getUserByEmail, getUserByPasswordResetToken, getUserByEmailVerificationToken, createUser, updateUser, deleteUser,
     createUserWithSeatCheck, SeatCapExceededError, PlanInUseError, touchLastSeen, replacePasswordHash, completePasswordReset,
     getAllOrganizations, getSingleOrgId, hasAnyOrganization, getOrganization, getOrganizationByNcInstanceId, createOrganization, updateOrganization, deleteOrganization,
-    findUnboundOrgByEmailDomain, claimNcInstanceForOrganization,
+    findUnboundOrgByEmailDomain, claimNcInstanceForOrganization, orgIdsWithVerifiedAdminAtDomain,
     getOrgEnabledIntegrations, setOrgEnabledIntegrations, getOrgEnabledBetaFeatures, setOrgEnabledBetaFeatures,
     getOrgGrantedCapabilities, setOrgGrantedCapabilities,
     getOrgAvailableCapabilities, setOrgAvailableCapabilities,

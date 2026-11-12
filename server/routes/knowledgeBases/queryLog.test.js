@@ -332,6 +332,35 @@ test('the export is rate limited per user, like the compliance export', () => {
     assert.deepEqual(h.limitersOn(require('./queryLog'), 'get', '/:id/query-log/export.csv'), ['kb-query-log-kb-export']);
 });
 
+test('every page of the list is recorded in the access audit first, and the list is rate limited per user', async () => {
+    await seed([{ id: 'p1' }, { id: 'p2', searchGroupId: 'g-p2' }]);
+    const one = await api.call('GET', `/${kbId}/query-log?limit=1`, as(OWNER));
+    const two = await api.call('GET', `/${kbId}/query-log?limit=1&offset=1&q=notice`, as(OWNER));
+    assert.equal(one.status, 200);
+    assert.equal(two.status, 200);
+    const reads = (await audit()).filter((r) => r.action === 'kb.query_log.content_viewed');
+    assert.equal(reads.length, 2);
+    assert.equal(reads[0].target_id, kbId);
+    assert.equal(reads[0].changed_by, OWNER.id);
+    assert.equal(reads[0].organization_id, ORG);
+    const payload = typeof reads[1].new_values === 'string' ? JSON.parse(reads[1].new_values) : reads[1].new_values;
+    assert.deepEqual({ limit: payload.limit, offset: payload.offset, text: payload.text }, { limit: 1, offset: 1, text: true });
+    assert.ok(!JSON.stringify(reads).includes('notice period'), 'no text of the log in the audit');
+    assert.deepEqual(h.limitersOn(require('./queryLog'), 'get', '/:id/query-log'), ['kb-query-log-kb-read']);
+});
+
+test('a list page whose audit write fails shows nothing', async () => {
+    await seed([{ id: 'p3' }]);
+    await pg.exec('ALTER TABLE access_audit_log RENAME TO access_audit_log_off');
+    try {
+        const res = await api.call('GET', `/${kbId}/query-log`, as(OWNER));
+        assert.equal(res.status, 503);
+        assert.ok(!res.text.includes('notice period'));
+    } finally {
+        await pg.exec('ALTER TABLE access_audit_log_off RENAME TO access_audit_log');
+    }
+});
+
 // ── Notice ──────────────────────────────────────────────────────────
 
 test('the notice names only logging bases the caller can read, and only with the licence', async () => {

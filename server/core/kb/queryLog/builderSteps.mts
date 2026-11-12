@@ -15,6 +15,10 @@
  * used to find out which knowledge bases exist.
  *
  * A dry run reads but never writes the review (`dryRun: true` on the review call).
+ *
+ * A list with `detail: 'full'` hands out question and answer text: like a page of the list route,
+ * it is recorded in the access audit first (`kb.query_log.content_viewed`, the person pressing the
+ * button, else the owner), and an audit that cannot be written is a refusal.
  */
 
 import { createRequire } from 'node:module';
@@ -48,6 +52,7 @@ export interface BuilderDeps {
         setReview: (kbId: string, id: string, p: { status: ReviewStatus; note?: string | null; reviewedBy: string }) => Promise<EntryRow | null>;
         askersOfKb: (kbId: string) => Promise<string[]>;
     };
+    audit: (entry: { action: 'kb.query_log.content_viewed'; targetType: 'knowledge_base'; targetId: string; orgId: string | null; actorId: string; newValues: Record<string, unknown> }) => Promise<void>;
 }
 
 let overrides: Partial<BuilderDeps> | null = null;
@@ -60,6 +65,7 @@ function deps(): BuilderDeps {
         canManage: (kbId, userId) => nodeRequire('../kbWriteAccess.js').canOwnerWriteToKb(kbId, userId),
         hasFeature: (scope, feature) => nodeRequire('../../../license/index.js').hasFeature(scope, feature),
         store: nodeRequire('../../../stores/kb/queryLog/index.mts'),
+        audit: (entry) => nodeRequire('../../../stores/kb/queryLog/audit.mts').recordKbQueryLogAudit(entry),
     };
     return { ...real, ...(overrides ?? {}) };
 }
@@ -125,6 +131,16 @@ export async function listQueryLog(input: ListInput, scope: Scope): Promise<Step
     const store = deps().store;
     // Without `show_names` the person filter takes a pseudonym id, and rows carry a pseudonym instead of the person.
     const userId = await resolveAskerFilter(cleaned.filters.userId, access.kb, (id) => store.askersOfKb(id));
+    if (input.detail === 'full') {
+        try {
+            await deps().audit({
+                action: 'kb.query_log.content_viewed', targetType: 'knowledge_base', targetId: access.kb.id, orgId: access.kb.organization_id ?? null,
+                actorId: String(scope.viewerId || scope.ownerId), newValues: { filters: cleaned.filters, limit, detail: 'full', step: true },
+            });
+        } catch {
+            return refuse('kb_query_log_audit_unavailable', 'This could not be recorded in the access audit, so the log was not read. Try again later.', 503);
+        }
+    }
     const { rows, total } = await store.listEntries({
         kbId: access.kb.id, orgId: access.kb.organization_id ?? null, ...cleaned.filters, userId, limit, offset: 0, includeContent: true,
     });

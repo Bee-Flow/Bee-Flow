@@ -28,7 +28,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { requireAuth, requirePermission, hasPermission } = require('../../auth/permissions');
+const { requireAuth, requirePermission, hasPermission, hasPermissionInOrg } = require('../../auth/permissions');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
@@ -83,10 +83,18 @@ const DeleteBody = bodyOf({
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
-/** The caller's own organisation. Never a default: this decides whose log is read. @param {import('express').Request} req */
+/**
+ * The caller's own organisation. Never a default: this decides whose log is read. The gate's
+ * `admin_compliance` may come from any organisation the caller is in; the log is read only when
+ * the caller holds it IN this one (auth/permissionGrants.mts).
+ * @param {import('express').Request} req
+ */
 async function orgOf(req) {
     const orgId = await resolveOrgIdStrict(/** @type {import('../../auth/orgScope').OrgScopeRequest} */ (/** @type {unknown} */ (req)));
     if (!orgId) throw new HttpError(403, 'no_organisation', 'This account is not in an organisation, so it has no query log to show.');
+    if (!(await hasPermissionInOrg(req.session?.user?.id, 'admin_compliance', orgId, req.session))) {
+        throw new HttpError(403, 'permission_required', 'This needs the compliance permission in this organisation.');
+    }
     return orgId;
 }
 

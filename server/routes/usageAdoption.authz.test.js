@@ -232,13 +232,29 @@ test('people are pseudonymous, stable, and different per organisation', async ()
     assert.notEqual(ps.id('a-owner', kit.ORG_A), ps.id('a-owner', kit.ORG_B));
     assert.equal(first.body.audit, undefined);
     assert.equal(first.body.total, 5);
-    // The colleague's runs are theirs: the top row is the colleague, at 2.5.
+    // The colleague's runs are theirs: the top row is the colleague, at 2.5 (shown as 3: one significant digit).
     assert.equal(first.body.people[0].id, ps.id('a-colleague'));
     assert.equal(first.body.people[0].name, ps.label('a-colleague'));
-    assert.equal(first.body.people[0].cost, 2.5);
+    assert.equal(first.body.people[0].cost, 3);
     assert.deepEqual(first.body.people[0].areas, ['apps', 'automations']);
     assert.equal(first.body.people[0].status, 'ai_active');
     assert.deepEqual(first.body.people[0].groups, ['Big a']);
+});
+
+test('under a pseudonym cost and calls are rough and moments are weeks; revealed, they are exact', async () => {
+    const hidden = await get('/people?days=30', as('a-owner'));
+    const shown = await get('/people?days=30&reveal=true', as('a-owner'));
+    const exact = new Map(shown.body.people.map((p) => [p.cost, p]));
+    for (const p of hidden.body.people) {
+        for (const at of [p.lastSeenAt, p.firstAiUseAt]) {
+            if (at === null) continue;
+            assert.match(at, /^\d{4}-\d{2}-\d{2}$/, 'a date, not a timestamp');
+            assert.equal(new Date(`${at}T00:00:00Z`).getUTCDay(), 1, 'the Monday of its week');
+        }
+        if (p.cost) assert.equal(Number(p.cost.toPrecision(1)), p.cost, 'one significant digit');
+    }
+    assert.ok(exact.has(2.5), 'the revealed row carries the exact cost');
+    assert.ok(shown.body.people.some((p) => typeof p.lastSeenAt === 'string' && p.lastSeenAt.includes('T')), 'revealed moments stay timestamps');
 });
 
 test('reveal writes one audit row with the allow-listed payload, then shows names', async () => {

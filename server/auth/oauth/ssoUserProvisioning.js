@@ -13,10 +13,9 @@ const {
     deriveLocalUserId,
     deriveAvailableLocalUserId,
     resolveExistingSSOUser,
-    resolveOrgByEmailDomain,
     planNewSSOUserPlacement,
 } = require('../ssoUserResolver');
-const { getEffectiveFreeEmailDomains } = require('../../utils/freeEmailDomains');
+const { orgForNewAccount } = require('../orgDomainMatch.mts');
 const { checkWebSignupAllowed } = require('../signupGuards');
 const accountProvisioning = require('../accountProvisioning');
 const microsoftLogin = require('./microsoftLogin');
@@ -99,14 +98,14 @@ async function planNewSsoUser({ req, provider, user, msTenant }) {
         ({ signupIntent, placement } = wizard);
     } else {
         // Pre-resolve the organisation by email domain so the record
-        // isn't orphaned — never for a free/public email provider
-        // (nobody owns gmail.com; that is the cross-tenant bug).
+        // isn't orphaned (auth/orgDomainMatch.mts: never a free/public email
+        // provider, a contact address only once its domain is confirmed, and
+        // nobody when two organisations match). This is the only place an
+        // account is placed by its domain.
         // Microsoft: by the verified tenant, never by the e-mail domain (microsoftLogin.js).
         if (provider === 'microsoft') preResolvedOrg = await microsoftLogin.trustedMicrosoftOrg(user, msTenant, userStore);
         else if (user.email && user.email.includes('@')) {
-            const allOrgs = await userStore.getAllOrganizations();
-            const freeDomains = await getEffectiveFreeEmailDomains();
-            preResolvedOrg = resolveOrgByEmailDomain(user.email, allOrgs, freeDomains);
+            preResolvedOrg = await orgForNewAccount(user.email, user.emailVerified === true);
         }
         // Honour the matched org's auto-approve setting at create time (org
         // default groups on auto-approve; 'pending' status otherwise). This

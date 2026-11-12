@@ -49,6 +49,8 @@ Deleting or demoting the last org admin of an organisation that still has other 
 
 When the organisation signs in through Google or Microsoft, the Users tab also has **Auto-approve users from trusted domains**: on, matching users are added straight away; off, they are added as pending and wait for approval.
 
+Which users match: a Microsoft account by the organisation's verified tenant. Any account, also an existing one without an organisation, by a domain on a self-hosted server's allowed-domain list. A Google account, only when it is created, by the domain of the organisation's contact e-mail once an organisation admin signs in with a verified address on that domain (or a platform admin set the contact e-mail); an existing account is not added by the contact e-mail domain on a later sign-in: invite it. A domain that two organisations use adds nobody, and a public mail domain (such as gmail.com) never matches. The contact e-mail cannot be set to a domain another organisation already uses.
+
 ### Invitations
 
 1. On the **Users** tab, click **Invite User**.

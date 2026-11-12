@@ -44,6 +44,9 @@ const ACCOUNT_MIGRATIONS = [
     `CREATE INDEX IF NOT EXISTS idx_orgs_status ON organizations(status) WHERE status <> 'active'`,
     `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS "enabledIntegrations" TEXT DEFAULT NULL`,
     `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS "allowed_domains" TEXT DEFAULT NULL`,
+    // The contact-address domain a platform admin set for the organisation
+    // (auth/orgDomainMatch.mts). NULL = not confirmed that way.
+    `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS "contact_domain_verified" TEXT DEFAULT NULL`,
     // Org-admin "active" subsets of the super-admin allow-lists. The super
     // admin grants capabilities (enabledIntegrations / beta_features); the
     // org admin then chooses which of those to actually turn on for their

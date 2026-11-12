@@ -23,6 +23,7 @@ const freeEmailDomains = require('../../utils/freeEmailDomains');
 const { requireOrgAdmin } = require('./orgAdminGuards');
 const { defaultGroupsUpdateRefusal } = require('./groupAssignGuards');
 const { HttpError } = require('../../core/http/errors');
+const { contactDomainUpdate } = require('./orgContactDomain.mts');
 
 /**
  * The fields PUT /organizations/:id writes. The user route has had an
@@ -436,10 +437,9 @@ router.put('/organizations/:id/encryption', validate({ body: EncryptionBody }), 
 router.put('/organizations/:id', requireOrgAdmin('id'), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     const { id } = req.params;
 
-    // Unknown keys are refused here for the same reason they are on
-    // PUT /users/:id — a body field accepted, answered 200, and then dropped is
-    // how a real privilege change gets mistaken for a failed one. The users
-    // route grew that guard after a pentest; this one never did.
+    // Unknown keys are refused here for the same reason they are on PUT /users/:id —
+    // a body field accepted, answered 200, and then dropped is how a real privilege
+    // change gets mistaken for a failed one.
     const unknownOrgFields = Object.keys(req.body || {}).filter(k => !ORG_UPDATE_ALLOWED_KEYS.has(k));
     if (unknownOrgFields.length > 0) {
         return res.status(400).json({
@@ -460,6 +460,8 @@ router.put('/organizations/:id', requireOrgAdmin('id'), async (/** @type {import
         if (refusal) return res.status(refusal.status).json(refusal.body);
     }
     const finalAuthMethod = (existing && existing.authMethod) ? undefined : authMethod;
+    const contact = await contactDomainUpdate(req, id, existing, email); // a new contact domain (./orgContactDomain.mts)
+    if ('refusal' in contact) return res.status(409).json(contact.refusal);
 
     // enabledIntegrations: only super admins can change this
     const isSuperAdmin = req.session.isAdmin || req.session.user?.role === 'admin';
@@ -509,7 +511,7 @@ router.put('/organizations/:id', requireOrgAdmin('id'), async (/** @type {import
         finalAllowedDomains = normalised;
     }
 
-    const orgUpdates = sanitizeOrgText({ name, description, tagline, address, billingLine2, billingPostalCode, billingCity, billingCountry, email, phone, website, kvk, vat, logo, footerText, defaultGroups, allowSignup, authMethod: finalAuthMethod, enabledIntegrations: finalIntegrations, autoApproveSSO, allowedDomains: finalAllowedDomains, usagePooled });
+    const orgUpdates = sanitizeOrgText({ name, description, tagline, address, billingLine2, billingPostalCode, billingCity, billingCountry, email, phone, website, kvk, vat, logo, footerText, defaultGroups, allowSignup, authMethod: finalAuthMethod, enabledIntegrations: finalIntegrations, autoApproveSSO, allowedDomains: finalAllowedDomains, usagePooled, contactDomainVerified: contact.contactDomainVerified });
     if (await userStore.updateOrganization(id, orgUpdates)) {
         // Record only the access-relevant deltas. existing was loaded above
         // for the authMethod check; reuse it.

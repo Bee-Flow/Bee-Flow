@@ -172,7 +172,8 @@ export default function DsrRequestPage({ search = typeof window !== 'undefined' 
         setChecking(true);
         setCheckResult(null);
         try {
-            const r = await fetch(`${API}/requests/${encodeURIComponent(checkId)}/public?email=${encodeURIComponent(checkEmail)}`);
+            // The address goes in a header, not in the URL (URLs end up in logs).
+            const r = await fetch(`${API}/requests/${encodeURIComponent(checkId)}/public`, { headers: { 'X-Subject-Email': checkEmail } });
             const body = await r.json().catch(() => ({}));
             setCheckResult(r.ok ? body : { error: body.error || 'not found' });
         } catch {

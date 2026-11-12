@@ -43,6 +43,7 @@ let planLookupFails = false;             // getOrgSubscription throws
 let planMarkup = null;                   // markup_percent of the org's plan
 let orgLookupFails = false;              // resolveUserOrgIds throws (strict: the store stumbled)
 let memberPerms = [];                    // what hasPermission grants
+let memberPermsOrg = null;               // the organisation memberPerms hold in (null: the caller's own)
 let userGroupIds = [];                   // groups on the user RECORD
 
 // The organisations that exist, and one group of org_b that carries admin rights.
@@ -57,6 +58,9 @@ const authStub = {
     },
     isOrgAdminRole: (role) => role === 'org_admin' || role === 'org_owner',
     async hasPermission(_id, perm) { return memberPerms.includes(perm); },
+    async resolvePermissionsByOrg() {
+        return { holds: (perm, orgId) => memberPerms.includes(perm) && orgId === (memberPermsOrg || userRecordOrgId) };
+    },
 };
 const userStoreStub = {
     async getUser(id) { return { id, orgRole: userOrgRole, organizationId: userRecordOrgId, groups: userGroupIds }; },
@@ -378,6 +382,21 @@ test('Z-N5: org admins and admin_monitoring holders keep the per-person view', a
     await get('/api/usage/by-user');
     assert.strictEqual(captured.byUser.userId, undefined);
     memberPerms = [];
+});
+
+test('admin_monitoring held only in another organisation does not open the per-person view of the home organisation', async () => {
+    asOrgUser('member');
+    memberPerms = ['admin_monitoring'];
+    memberPermsOrg = 'org_b';
+    try {
+        for (const [p, key] of [['/api/usage/by-user', 'byUser'], ['/api/usage/models-by-user', 'modelsByUser']]) {
+            captured[key] = undefined;
+            assert.strictEqual((await get(p)).status, 200, p);
+            assert.strictEqual(captured[key].userId, 'u1', `${p} must be narrowed to the caller`);
+        }
+        await get('/api/usage/recent?user=u2');
+        assert.strictEqual(captured.recent.filters.userId, 'u1');
+    } finally { memberPerms = []; memberPermsOrg = null; }
 });
 
 test('Z-N5: filter value lists are scoped to the caller\'s organisation', async () => {

@@ -187,23 +187,53 @@ function identityOf(row, ctx) {
 }
 
 /**
- * One person as the report shows them.
+ * A figure to one significant digit (1234 -> 1000, 0.0347 -> 0.03); null,
+ * undefined (a figure the lens hides) and 0 stay as they are.
+ * @param {number | null | undefined} v
+ * @returns {number | null | undefined}
+ */
+function roughFigure(v) {
+    if (v == null || !Number.isFinite(v)) return v;
+    if (v === 0) return 0;
+    return Number(v.toPrecision(1));
+}
+
+/**
+ * The Monday (UTC) of the week a moment falls in, as a date: when, to the week.
+ * @param {unknown} at
+ * @returns {string | null}
+ */
+function weekOf(at) {
+    if (at == null || at === '') return null;
+    const t = new Date(/** @type {string | number | Date} */ (at));
+    if (Number.isNaN(t.getTime())) return null;
+    const day = (t.getUTCDay() + 6) % 7;
+    return new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth(), t.getUTCDate() - day)).toISOString().slice(0, 10);
+}
+
+/**
+ * One person as the report shows them. Under a pseudonym the figures are
+ * rough (one significant digit) and the moments are weeks: exact cost, calls
+ * and timestamps would match the named views (usage per person, the user list)
+ * one to one and name the row without the audited reveal. A revealed row
+ * carries them exactly.
  * @param {CachedPerson} row
  * @param {PersonContext} ctx
  */
 function shapePerson(row, ctx) {
     const u = row.member;
+    const exact = figures(ctx.lens, row);
     return {
         ...identityOf(row, ctx),
         role: String(u.orgRole || 'member'),
         groups: row.groupIds.map((gid) => ctx.groupNames.get(gid) || gid),
-        lastSeenAt: u.lastSeenAt,
+        lastSeenAt: ctx.reveal ? u.lastSeenAt : weekOf(u.lastSeenAt),
         status: row.status,
-        ...figures(ctx.lens, row),
+        ...(ctx.reveal ? exact : { calls: roughFigure(exact.calls), cost: roughFigure(exact.cost) }),
         areas: row.areas,
         built: row.built,
-        firstAiUseAt: row.firstAiUseAt,
+        firstAiUseAt: ctx.reveal ? row.firstAiUseAt : weekOf(row.firstAiUseAt),
     };
 }
 
-module.exports = { inlineAvatar, shapeSummary, shapeAreas, shapeStudio, shapeItems, shapeGroups, shapePerson, compactPeople };
+module.exports = { inlineAvatar, shapeSummary, shapeAreas, shapeStudio, shapeItems, shapeGroups, shapePerson, compactPeople, roughFigure, weekOf };
