@@ -140,7 +140,7 @@ async function performKnowledgeSearch({ agent, userId, userMessage, isStrictKnow
     // These never carry search intent and always return low-quality matches.
     const trimmedInput = (userMessage || '').trim();
     if (GREETING_RE.test(trimmedInput)) {
-        log.info(`[KnowledgeSearch] Skipping KB search — greeting/small-talk detected: "${trimmedInput}"`);
+        log.info(`[KnowledgeSearch] Skipping KB search — greeting/small-talk detected (${trimmedInput.length} chars)`);
         // In strict-knowledge mode, still let the agent respond naturally to greetings
         // (the "no results" prompt would be confusing for a simple "hi")
         return '';

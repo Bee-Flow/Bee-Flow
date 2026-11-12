@@ -164,7 +164,7 @@ async function executeContactsTool(toolName, args, session) {
             if (!query) return { error: 'query is required' };
 
             const limit = Math.min(Math.max(maxResults, 1), 30);
-            log.info(`[Contacts] Searching: "${query}"`);
+            log.info(`[Contacts] Searching: query ${String(query).length} chars`);
 
             const response = await people.people.searchContacts({
                 query,

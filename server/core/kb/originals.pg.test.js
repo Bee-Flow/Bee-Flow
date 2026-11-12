@@ -70,6 +70,7 @@ test('a document starts without an original and the list says so', async () => {
 });
 
 test('keep: the list says has_original, never the key; open returns the bytes; delete clears it', async () => {
+    await store.updateKB(kb.id, { keepOriginals: true });
     const ref = { tenantId: 'owner1', kbId: kb.id, documentId: doc.id };
     const res = await originals.keepOriginal({ ...ref, buffer: BYTES, mime: 'application/pdf', filename: 'Contract.pdf' }, deps);
     assert.equal(res.kept, true);
@@ -102,6 +103,20 @@ test('the whole base is swept by prefix, and only when it kept something', async
     assert.equal(blobs.size, 1);
     await originals.deleteOriginalsForKb({ id: kb.id, tenant_id: 'owner1' }, { deps });
     assert.equal(blobs.size, 0);
+});
+
+test('switching keep-originals off: the files go, then the pointers, and the base serves none', async () => {
+    const ref = { tenantId: 'owner1', kbId: kb.id, documentId: doc.id };
+    await store.updateKB(kb.id, { keepOriginals: true });
+    await originals.keepOriginal({ ...ref, buffer: BYTES, mime: 'application/pdf' }, deps);
+    assert.equal((await store.getDocument(doc.id)).has_original, true);
+    const off = await store.updateKB(kb.id, { keepOriginals: false });
+    assert.equal(await originals.openOriginal(ref, deps), null, 'withheld as soon as the flag is off');
+    assert.equal(await originals.dropOriginalsForKb(off, { deps }), true);
+    assert.equal(blobs.size, 0);
+    assert.equal((await store.getDocument(doc.id)).has_original, false);
+    await store.updateKB(kb.id, { keepOriginals: true });
+    assert.equal(await originals.openOriginal(ref, deps), null, 'switching it on again brings nothing back');
 });
 
 test('withOriginalFlags reads the base and the flag of a document from the database', async () => {

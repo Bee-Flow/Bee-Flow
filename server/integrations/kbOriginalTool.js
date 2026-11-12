@@ -92,6 +92,28 @@ function cardKind(mime, name) {
 }
 
 /**
+ * A stored original that may be handed out now. The same rule as the download route (core/kb/originals.mts
+ * originalWithheldReason): no file while the base does not keep originals, or while redaction is in force
+ * for the document. Any failure withholds.
+ * @param {Record<string, any>} doc
+ * @param {{ getKB: (id: string) => Promise<Record<string, any> | null> }} kbStore
+ * @param {Record<string, any>} deps  test seam: originalWithheldReason
+ * @returns {Promise<boolean>}
+ */
+async function originalServable(doc, kbStore, deps) {
+    if (!doc.has_original) return false;
+    try {
+        const kb = await kbStore.getKB(String(doc.knowledge_base_id));
+        if (!kb || String(kb.tenant_id) !== String(doc.tenant_id)) return false;
+        const withheld = deps.originalWithheldReason || require('../core/kb/originals.mts').originalWithheldReason;
+        return !(await withheld(kb, doc));
+    } catch (e) {
+        log.warn('[KBOriginal] Could not check the original:', /** @type {Error} */ (e).message);
+        return false;
+    }
+}
+
+/**
  * @param {{ documentId?: unknown }} args
  * @param {{ userId?: string, agentId?: string, testAs?: unknown }} context
  * @param {Record<string, any>} [deps]  test seams: kbStore, agentStore, visibleKbIdsFor
@@ -107,7 +129,7 @@ async function executeKbGetOriginal(args, context, deps = {}) {
     if (!doc) return notFound;
     const visible = await agentVisibleKbIds(context, deps);
     if (!visible.includes(String(doc.knowledge_base_id))) return notFound;
-    if (!doc.has_original) {
+    if (!(await originalServable(doc, kbStore, deps))) {
         return { error: 'This document has no stored original (its knowledge base does not keep the uploaded files). Offer the text from kb_search instead.' };
     }
 

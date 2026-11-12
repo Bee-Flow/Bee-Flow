@@ -33,7 +33,7 @@ async function executeBingSearchTool(toolName, args) {
     const market = (await configStore.getConfig('bing_search_market')) || '';
     const maxResults = Math.min(Math.max(parseInt(max_results) || 5, 1), 10);
 
-    log.info(`[BingSearch] Searching: "${query}" (count=${maxResults}, mkt=${market || 'auto'})`);
+    log.info(`[BingSearch] Searching: query ${String(query).length} chars (count=${maxResults}, mkt=${market || 'auto'})`);
 
     try {
         const params = new URLSearchParams({

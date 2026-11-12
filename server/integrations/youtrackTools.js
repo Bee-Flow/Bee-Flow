@@ -72,7 +72,7 @@ async function searchIssues(args, { baseUrl, token }) {
         $skip: String(skip),
     });
 
-    log.info(`[YouTrack] Searching issues: "${query}"`);
+    log.info(`[YouTrack] Searching issues: query ${String(query).length} chars`);
     const issues = await youtrackRequest(baseUrl, token, 'GET', `/issues?${params}`);
 
     if (!issues || issues.length === 0) {
@@ -348,7 +348,7 @@ async function findUser(args, { baseUrl, token }) {
         $top: String(limit),
     });
 
-    log.info(`[YouTrack] Finding users: "${query}"`);
+    log.info(`[YouTrack] Finding users: query ${String(query).length} chars`);
     try {
         const users = await youtrackRequest(baseUrl, token, 'GET', `/users?${params}`);
         if (!users || users.length === 0) {
