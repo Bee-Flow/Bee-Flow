@@ -29,15 +29,21 @@ test('an unrecognised tier value falls back to disabled, not to on', () => {
     assert.strictEqual(p.enabled, false);
 });
 
-test('the default tier for new orgs is none unless an operator overrides it', () => {
+test('the default tier for new orgs is managed unless an operator overrides it', () => {
     const prev = process.env.BEEFLOW_DEFAULT_ENCRYPTION_TIER;
     try {
         delete process.env.BEEFLOW_DEFAULT_ENCRYPTION_TIER;
-        assert.strictEqual(defaultTier(), 'none');
-        process.env.BEEFLOW_DEFAULT_ENCRYPTION_TIER = 'managed';
         assert.strictEqual(defaultTier(), 'managed');
+        process.env.BEEFLOW_DEFAULT_ENCRYPTION_TIER = '';
+        assert.strictEqual(defaultTier(), 'managed');
+        for (const off of ['none', 'off', 'OFF', ' false ', '0', 'disabled']) {
+            process.env.BEEFLOW_DEFAULT_ENCRYPTION_TIER = off;
+            assert.strictEqual(defaultTier(), 'none', off);
+        }
+        process.env.BEEFLOW_DEFAULT_ENCRYPTION_TIER = 'zero-knowledge';
+        assert.strictEqual(defaultTier(), 'zk');
         process.env.BEEFLOW_DEFAULT_ENCRYPTION_TIER = 'nonsense';
-        assert.strictEqual(defaultTier(), 'none', 'a bad env value must not enable anything');
+        assert.strictEqual(defaultTier(), 'managed', 'a value that names no tier falls back to the built-in default');
     } finally {
         if (prev === undefined) delete process.env.BEEFLOW_DEFAULT_ENCRYPTION_TIER;
         else process.env.BEEFLOW_DEFAULT_ENCRYPTION_TIER = prev;

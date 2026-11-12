@@ -226,7 +226,8 @@ const TIER_FEATURES = {
         'custom_themes',
         'swarm',
         'advanced_analytics',
-        // Content encryption at rest (org encryption_tier: managed | zk).
+        // Zero-knowledge content encryption (org encryption_tier: zk). Managed
+        // encryption is on every plan (stores/encryptionAvailability.js).
         //
         // Registering it here is what makes the gate work on SELF-HOSTED:
         // those installs never consult subscriptions (subscriptionsEnabled()

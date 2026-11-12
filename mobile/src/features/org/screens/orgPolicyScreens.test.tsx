@@ -70,7 +70,7 @@ describe('OrgEncryptionScreen', () => {
     it('lists every tier, a locked one with its reason, and saves the new tier alone', async () => {
         await render(<OrgEncryptionScreen />);
         expect(await screen.findByText('Managed')).toBeTruthy();
-        expect(screen.getByText(/Encryption is not included in your current plan/)).toBeTruthy();
+        expect(screen.queryByText(/Encryption is not included in your current plan/)).toBeNull();
         expect(screen.getByText(/Not in your plan\. Enterprise · Upgrade at beeflow\.nl/)).toBeTruthy();
         expect(screen.queryByTestId('save-bar')).toBeNull();
 

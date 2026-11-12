@@ -121,11 +121,28 @@ function isSurfaceImplemented(surface) {
 }
 const TIERS = Object.freeze(['none', 'managed', 'zk']);
 
-// Operators can change what a NEW org gets without touching code. Existing
-// orgs are never affected by this — their column value already exists.
+/** The tier a NEW org starts on when the operator sets nothing. */
+const BUILT_IN_DEFAULT_TIER = 'managed';
+
+/** What an operator may write in BEEFLOW_DEFAULT_ENCRYPTION_TIER, per tier. */
+const TIER_WORDS = Object.freeze({
+    none: ['none', 'off', 'false', '0', 'disabled'],
+    managed: ['managed'],
+    zk: ['zk', 'zero-knowledge', 'zero_knowledge'],
+});
+
+// Operators can change what a NEW org gets without touching code
+// (BEEFLOW_DEFAULT_ENCRYPTION_TIER=off keeps new orgs unencrypted). Existing
+// orgs are never affected by this — their column value already exists, and
+// only organisation creation reads it (initialTier.js). A value that names no
+// tier falls back to the built-in default.
 function defaultTier() {
-    const t = String(process.env.BEEFLOW_DEFAULT_ENCRYPTION_TIER || 'none').trim();
-    return TIERS.includes(t) ? t : 'none';
+    const raw = String(process.env.BEEFLOW_DEFAULT_ENCRYPTION_TIER || '').trim().toLowerCase();
+    if (!raw) return BUILT_IN_DEFAULT_TIER;
+    for (const [tier, words] of Object.entries(TIER_WORDS)) {
+        if (words.includes(raw)) return tier;
+    }
+    return BUILT_IN_DEFAULT_TIER;
 }
 
 // Small TTL cache. Bounded and expiring on purpose — the existing per-user key

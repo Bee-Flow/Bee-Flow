@@ -185,15 +185,26 @@ test('a verdict on one OPAQUE value is never applied to another', async () => {
 
 // ── Combined availability ───────────────────────────────────────────────────
 
-test('an unentitled org can only select none', async () => {
+test('an org without the encryption feature selects none and managed; zero-knowledge is the plan block', async () => {
     await withEnv({ MASTER_ENCRYPTION_KEY: 'x'.repeat(32) }, async () => {
         const a = await getEncryptionAvailability('org-a');
         assert.strictEqual(a.entitled, false);
-        assert.deepStrictEqual(a.allowedTiers, ['none']);
+        assert.deepStrictEqual(a.allowedTiers, ['none', 'managed']);
         const managed = a.tiers.find(t => t.tier === 'managed');
+        assert.strictEqual(managed.selectable, true, 'managed encryption is on every plan');
+        assert.strictEqual(managed.blockedBy, null);
+        const zk = a.tiers.find(t => t.tier === 'zk');
+        assert.strictEqual(zk.selectable, false);
+        assert.strictEqual(zk.blockedBy, 'entitlement', 'a billing block, so the UI shows an upgrade path');
+        assert.strictEqual(zk.reason, NOT_ENTITLED_REASON);
+    });
+});
+
+test('without a master key managed is a server block, not a plan block, on every plan', async () => {
+    await withEnv({ MASTER_ENCRYPTION_KEY: undefined }, async () => {
+        const managed = (await getEncryptionAvailability('org-a')).tiers.find(t => t.tier === 'managed');
         assert.strictEqual(managed.selectable, false);
-        assert.strictEqual(managed.blockedBy, 'entitlement', 'a billing block, so the UI shows an upgrade path');
-        assert.strictEqual(managed.reason, NOT_ENTITLED_REASON);
+        assert.strictEqual(managed.blockedBy, 'readiness');
     });
 });
 
@@ -302,6 +313,17 @@ test("the login gate is false while the org's tier is 'none', however entitled",
     });
 });
 
+test('the login gate derives a key on managed without the encryption feature, never on zk', async () => {
+    await withUsers(IN_ORG, async () => {
+        const { isEncryptionEnabledForUser } = require('./encryptionAvailability');
+        for (const [tier, expected] of [['none', false], ['managed', true], ['zk', false]]) {
+            orgTiers.set('org-a', tier);
+            invalidatePolicyCache();
+            assert.strictEqual(await isEncryptionEnabledForUser('u-in-org'), expected, `tier '${tier}'`);
+        }
+    });
+});
+
 test('the login gate follows the tier the org actually chose', async () => {
     await withUsers(IN_ORG, async () => {
         const { isEncryptionEnabledForUser } = require('./encryptionAvailability');
@@ -350,8 +372,11 @@ test('a licence lookup failure fails closed', async () => {
     lic.hasFeature = async () => { throw new Error('licence server unreachable'); };
     try {
         assert.strictEqual(await isOrgEntitled('org-a'), false, 'must not hand out a paid feature on error');
-        const a = await getEncryptionAvailability('org-a');
-        assert.deepStrictEqual(a.allowedTiers, ['none']);
+        await withEnv({ MASTER_ENCRYPTION_KEY: 'x'.repeat(32) }, async () => {
+            const a = await getEncryptionAvailability('org-a');
+            assert.deepStrictEqual(a.allowedTiers, ['none', 'managed'], 'managed is on every plan; the paid tier is not handed out');
+            assert.strictEqual(a.tiers.find(t => t.tier === 'zk').blockedBy, 'entitlement');
+        });
     } finally {
         lic.hasFeature = original;
     }
