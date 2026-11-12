@@ -6,8 +6,8 @@
  * terminal handler, and never reaches the next handler.
  *
  * And: one Nextcloud account has one user per organisation. A token whose
- * address finds no user, while a user of the organisation holds its uid, is
- * answered 409 nc_user_id_conflict and creates nobody.
+ * signed uid a user of the organisation holds signs in as that user, whatever
+ * its address (the sync brings a new address over), and creates nobody.
  *
  * And: the id of a new user is `nc_<organisation>_<uid with dashes, cut to
  * 40>`; when that id is the row of another account, the id with a hash.
@@ -92,15 +92,14 @@ test('a failed auto-provision is 500 "Failed to provision user" and does not rea
 
 // The row's id has the shape `nc_<org>_<uid with dashes>`.
 for (const [id, uid] of [['nc_org1_john-doe', 'john.doe'], ['nc_org1_jdoe', 'jdoe'], ['nc_org1_a-b-nl', 'a@b.nl'], ['nc_org1_Jan-de-Vries', 'Jan de Vries']]) {
-    test(`a token with a new address for uid "${uid}", which a user of the organisation holds: 409, nobody is created`, async () => {
+    test(`a token with a new address for uid "${uid}", which a user of the organisation holds: that user, nobody is created`, async () => {
         users = [{ id, email: 'old@acme.example', organizationId: 'org1', nc_uid: uid, provider: 'nextcloud_connector', status: 'active' }];
         createAnswer = { created: true };
-        const { res, body } = await signIn({ email: 'new@acme.example', sub: uid });
-        assert.equal(res.status, 409);
-        assert.equal(body.code, 'nc_user_id_conflict');
+        const { res } = await signIn({ email: 'new@acme.example', sub: uid });
+        assert.equal(res.status, 200);
         assert.deepEqual(creates, []);
         assert.equal(users.length, 1);
-        assert.equal(reached, false);
+        assert.equal(reached, true);
     });
 }
 

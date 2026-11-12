@@ -9,6 +9,8 @@ const {
     NC_VERIFICATION_TTL_SECONDS, NC_VERIFICATION_MAX_ATTEMPTS, NC_VERIFICATION_MAX_CODE_SENDS, NC_VERIFICATION_MAX_TOTAL_ATTEMPTS,
     _ncRowSpentSql, _ncRowCodeSentSql, _hashNcVerificationCode, _ncCodeMatches,
 } = require('./ncVerificationCode.mts');
+const { takeDailyNcVerification } = require('./ncVerificationDaily.mts');
+const { hashPairingCode, normalisePairingCode, isHashedPairingCode } = require('./pairingCodeHash.mts');
 
 // ── Pending NC bindings ───────────────────────────────────────────────────
 
@@ -30,7 +32,10 @@ function parsePendingBinding(row) {
         expiresAt: row.expires_at,
         approvedAt: row.approved_at,
         approvedByUserId: row.approved_by_user_id,
-        pairingCode: row.pairing_code || null,
+        // The code itself only on a row written before codes were hashed;
+        // createOrgPairingCode hands a new code back once.
+        pairingCode: row.pairing_code && !isHashedPairingCode(row.pairing_code) ? row.pairing_code : null,
+        hasPairingCode: !!row.pairing_code,
         pairingCodeConsumedAt: row.pairing_code_consumed_at || null,
         verificationEmail: row.verification_email || null,
         verificationAttempts: row.verification_attempts || 0,
@@ -59,6 +64,8 @@ function _generatePairingCodeString() {
 // Mint a new pairing code for an org. Caller (the SaaS endpoint) is responsible
 // for org-admin auth. We always create a fresh row — the unique index on
 // pairing_code (active) prevents two unused codes from colliding by chance.
+// The row keeps the code's hash (pairingCodeHash.mts); the code itself is in
+// the returned object only.
 /**
  * @param orgId
  * @param {{ mintedByUserId?: string, ttlSeconds?: number }} [opts]
@@ -77,8 +84,8 @@ async function createOrgPairingCode(orgId, { mintedByUserId, ttlSeconds = 900 } 
                     (id, org_id, pairing_code, expires_at, approved_by_user_id)
                 VALUES ($1, $2, $3, $4, $5)
                 RETURNING *
-            `, [id, orgId, code, expiresAt, mintedByUserId || null]);
-            return parsePendingBinding(row);
+            `, [id, orgId, await hashPairingCode(code), expiresAt, mintedByUserId || null]);
+            return { ...parsePendingBinding(row), pairingCode: code };
         } catch (e) {
             if (/idx_pending_nc_bindings_pairing_code_active/i.test(/** @type {Error} */ (e).message)) continue;
             throw e;
@@ -88,16 +95,18 @@ async function createOrgPairingCode(orgId, { mintedByUserId, ttlSeconds = 900 } 
 }
 
 async function getPendingBindingByPairingCode(code) {
-    if (!code) return null;
+    const plain = normalisePairingCode(code);
+    if (!plain) return null;
     await initDB();
+    // The hash, or the code itself on a row written before hashing.
     const row = await getOne(`
         SELECT * FROM pending_nc_bindings
-        WHERE pairing_code = $1
+        WHERE pairing_code IN ($1, $2)
           AND status = 'pending'
           AND pairing_code_consumed_at IS NULL
           AND expires_at > NOW()
         LIMIT 1
-    `, [String(code).trim().toUpperCase()]);
+    `, [await hashPairingCode(plain), plain]);
     return parsePendingBinding(row);
 }
 
@@ -302,6 +311,8 @@ async function verifyPendingNcCode(id, code) {
     // The code of an approved row has done its work.
     if (existing.status !== 'pending' || expired) return { status: 'expired' };
 
+    // The organisation's daily budget (ncVerificationDaily.mts) first.
+    if (!(await takeDailyNcVerification(existing.org_id, 'attempts'))) return { status: 'too_many' };
     // Count this attempt atomically against a still-valid pending row.
     const row = await getOne(
         `UPDATE pending_nc_bindings
@@ -355,6 +366,7 @@ async function resetNcVerificationCode(id, code, ttlSeconds = NC_VERIFICATION_TT
     await initDB();
     const existing = await getOne(`SELECT * FROM pending_nc_bindings WHERE id = $1`, [id]);
     if (!existing || !existing.verification_code_hash || existing.status !== 'pending') return { status: 'not_eligible' };
+    if (!(await takeDailyNcVerification(existing.org_id, 'sends'))) return { status: 'too_many' };
     const expiresAt = new Date(Date.now() + ttlSeconds * 1000).toISOString();
     const hash = _hashNcVerificationCode(existing.org_id, existing.nc_instance_id, code);
     const row = await getOne(
@@ -395,6 +407,7 @@ async function retargetNcVerification(id, { email, uid, displayName, code, ttlSe
     await initDB();
     const existing = await getOne(`SELECT * FROM pending_nc_bindings WHERE id = $1`, [id]);
     if (!existing || !existing.verification_code_hash || existing.status !== 'pending') return { status: 'not_eligible' };
+    if (!(await takeDailyNcVerification(existing.org_id, 'sends'))) return { status: 'too_many' };
     const expiresAt = new Date(Date.now() + ttlSeconds * 1000).toISOString();
     const hash = _hashNcVerificationCode(existing.org_id, existing.nc_instance_id, code);
     const row = await getOne(
@@ -411,6 +424,27 @@ async function retargetNcVerification(id, { email, uid, displayName, code, ttlSe
             AND ${_NC_SEND_BUDGET_SQL}
           RETURNING *`,
         [id, String(email).toLowerCase(), uid || null, displayName || null, hash, expiresAt]
+    );
+    return _ncSendResult(id, row);
+}
+
+// A send for an address the code does not go to (connectorBootstrap.js
+// sendOrCount): counted against the same budgets and with the same expiry as a
+// real send, but no code is made and the row's address and code stay.
+/** @returns {Promise<NcCodeSendResult>} */
+async function countNcVerificationSend(id, ttlSeconds = NC_VERIFICATION_TTL_SECONDS) {
+    if (!id) return { status: 'not_eligible' };
+    await initDB();
+    const existing = await getOne(`SELECT * FROM pending_nc_bindings WHERE id = $1`, [id]);
+    if (!existing || !existing.verification_code_hash || existing.status !== 'pending') return { status: 'not_eligible' };
+    if (!(await takeDailyNcVerification(existing.org_id, 'sends'))) return { status: 'too_many' };
+    const row = await getOne(
+        `UPDATE pending_nc_bindings
+            SET verification_code_sends = COALESCE(verification_code_sends, 0) + 1, expires_at = $2
+          WHERE id = $1 AND status = 'pending' AND verification_code_hash IS NOT NULL
+            AND ${_NC_SEND_BUDGET_SQL}
+          RETURNING *`,
+        [id, new Date(Date.now() + ttlSeconds * 1000).toISOString()]
     );
     return _ncSendResult(id, row);
 }
@@ -504,7 +538,7 @@ async function expirePendingNcBindings() {
 module.exports = {
     createPendingNcBinding, getPendingNcBinding, getPendingNcBindingForOrg,
     createPendingNcVerification, verifyPendingNcCode, resetNcVerificationCode,
-    retargetNcVerification, countActivePendingNcVerificationsForOrg,
+    retargetNcVerification, countNcVerificationSend, countActivePendingNcVerificationsForOrg,
     createOrgPairingCode, getPendingBindingByPairingCode, consumePairingCode,
     getActivePairingCodesForOrg, deletePairingCode,
     countActivePendingNcBindingsForOrg, markPendingNcBindingApproved,

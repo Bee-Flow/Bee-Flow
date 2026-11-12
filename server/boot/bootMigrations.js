@@ -281,6 +281,7 @@ const NL_TRANSLATIONS = [
     'add-nl-billing-status-2026-11-translations', // Subscriptions: the label of the status manual_action_required (payment failed until the dunning cap)
     'add-nl-mail-trigger-2026-11-translations', // New-email trigger: the Cowork option and its settings, the agent's mail trigger dialog
     'add-nl-ai-act-register-2026-11-translations', // AI Act register: the Current / Removed filter and the names of removed automations and agents
+    'add-nl-nc-link-2026-11-translations', // Linking a Nextcloud account once after a normal sign-in; a pairing code is shown once
     'add-nl-teams-setup-2026-11-translations', 'add-nl-frappe-crm-translations', // Teams meeting notes setup (guide, diagnostics, consent link, members overview, organisation-wide import); then the Frappe CRM integration card
     'add-nl-fix-english-2026-10-translations', // Corrects keys an earlier catalogue shipped as English: after every catalogue above, so its Dutch wins.
     // Settings menu clean-up: "Instellingen → Integraties" becomes "Instellingen → Koppelingen", "Organisatie-instellingen → …" the real menu path, and the relabelled rows (old shipped text only). After the memory catalogue, whose "Context in lange gesprekken" it rewords.

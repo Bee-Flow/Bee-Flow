@@ -40,6 +40,8 @@ export default {
     "app.nc_sign_in_failed_retry": "Try again",
     "app.nc_sign_in_failed_title": "Not signed in to Bee Flow",
     "app.nc_sign_in_failed_use_account": "Sign in with a Bee Flow account",
+    "app.nc_link_required_link": "Sign in to link",
+    "app.nc_link_required_hint": "Bee Flow opens in a new tab. Sign in there and link your Nextcloud account, then come back here and try again.",
     "app.nc_verify_your_admin": "your email",
     "app.retry_connection": "Retry Connection",
     "app.server_unavailable_desc": "Could not connect to the Bee Flow server. Please make sure the server is running and try again.",

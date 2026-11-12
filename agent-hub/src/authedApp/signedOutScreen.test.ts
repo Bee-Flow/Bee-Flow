@@ -46,6 +46,16 @@ describe('readSignInRefusal', () => {
         expect(await readSignInRefusal(answer(409, { error: ' Already linked. ' }))).toEqual({ status: 409, code: null, message: 'Already linked.' });
     });
 
+    it('passes on the link page of nc_link_required, and only an http(s) address', async () => {
+        const url = 'https://app.example.org/app/settings/security#nc_link=abc.def';
+        expect(await readSignInRefusal(answer(409, { error: 'Link first.', code: 'nc_link_required', linkUrl: url })))
+            .toEqual({ status: 409, code: 'nc_link_required', message: 'Link first.', linkUrl: url });
+        expect(await readSignInRefusal(answer(409, { error: 'Link first.', code: 'nc_link_required', linkUrl: 'javascript:alert(1)' })))
+            .toEqual({ status: 409, code: 'nc_link_required', message: 'Link first.' });
+        expect(await readSignInRefusal(answer(409, { error: 'x', code: 'other', linkUrl: url })))
+            .toEqual({ status: 409, code: 'other', message: 'x' });
+    });
+
     it('does not pass on the text of other statuses', async () => {
         expect(await readSignInRefusal(answer(502, { error: 'Tenant key not configured' }))).toEqual({ status: 502, code: null, message: null });
         expect(await readSignInRefusal(answer(401, { error: 'Unauthorized', code: 'x' }))).toEqual({ status: 401, code: 'x', message: null });

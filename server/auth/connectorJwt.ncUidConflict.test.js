@@ -7,10 +7,12 @@
  *     another account. The stored uid stays, the sign-in answers 409
  *     nc_uid_conflict and the organisation gets a health event.
  *   - The stored account is gone, disabled or has another address: the stored
- *     uid is replaced by the signed one and the sign-in continues.
- *   - Nextcloud cannot say: as the line above. When it cannot say until
- *     someone acts (no stored admin, or one without administrator rights),
- *     the organisation's health says so.
+ *     uid is replaced by the signed one and the sign-in continues (the user
+ *     is one the connector created, with no credential of its own).
+ *   - Nextcloud cannot say: the sign-in is refused (503 nc_uid_unverified)
+ *     and the stored uid stays. When it cannot say until someone acts (no
+ *     stored admin, or one without administrator rights), the organisation's
+ *     health says so.
  *
  * The middleware, its phases and services/ncStoredUid.mts are the real ones;
  * the stores are stubbed and the Nextcloud answer comes from a fetch stub.
@@ -69,6 +71,7 @@ beforeEach(() => {
     resetStoredUidCache();
     resetSightings();
     connectorJwtMiddleware.invalidateTenantKeyCache();
+    phases._linkDeps.hasSsoIdentity = async () => false;
     // A new user id per test: the encryption-key cache is process-wide.
     row = { id: `u${++seq}`, email: EMAIL, organizationId: ORG, nc_uid: 'first', provider: 'nextcloud_connector', role: 'user' };
     Object.assign(configStore, {
@@ -121,14 +124,25 @@ const CONFLICT_BODY = {
     error: 'Your e-mail address is already linked to another Nextcloud account in Bee Flow. Ask your Nextcloud administrator to give each account its own e-mail address.',
     code: 'nc_uid_conflict',
 };
-function assertRefused(out) {
-    assert.equal(out.status, 409);
-    assert.deepEqual(out.body, CONFLICT_BODY);
+const UNVERIFIED_BODY = {
+    error: 'Bee Flow could not check your Nextcloud account just now. Try again in a few minutes; if this message stays, ask your Bee Flow administrator.',
+    code: 'nc_uid_unverified',
+};
+function assertRefused(out, status = 409, body = CONFLICT_BODY) {
+    assert.equal(out.status, status);
+    assert.deepEqual(out.body, body);
     assert.equal(out.next, 0);
     assert.notEqual(out.req.session.isAuthenticated, true);
     assert.equal(out.req.connectorAuth, undefined);
     assert.deepEqual(rec.updates, [], 'the stored uid is not rewritten');
     assert.equal(row.nc_uid, 'first');
+}
+/** Nextcloud could not say: refused, nothing written; `standing` as below. */
+function assertUnverified(out, standing = null) {
+    assertRefused(out, 503, UNVERIFIED_BODY);
+    assert.deepEqual(rec.problems, standing
+        ? [{ code: 'connector.nc_admin_rights_missing', opts: { orgId: ORG, source: 'ncStoredUid', meta: { reason: standing } } }]
+        : []);
 }
 /** `standing` = why Nextcloud cannot say until someone acts; the organisation's health then says so. */
 function assertHealed(out, sub = 'second', standing = null) {
@@ -225,31 +239,31 @@ const CANNOT_SAY = {
     'an enabled flag that is not a yes or no': () => json({ ocs: { data: { id: 'first', enabled: 1, email: EMAIL } } }),
 };
 for (const [name, answer] of Object.entries(CANNOT_SAY)) {
-    test(`the read answers ${name}: the stored uid is replaced and the sign-in continues`, async () => {
+    test(`the read answers ${name}: refused, the stored uid stays`, async () => {
         ncAnswer = answer;
-        assertHealed(await signIn('second'), 'second', name === 'a record without the enabled flag' ? 'enabled_not_reported' : null);
+        assertUnverified(await signIn('second'), name === 'a record without the enabled flag' ? 'enabled_not_reported' : null);
     });
 }
 
-test('a read that takes longer than the wait: the sign-in continues, the stored uid is replaced', async () => {
+test('a read that takes longer than the wait: refused, the stored uid stays', async () => {
     process.env.NEXTCLOUD_UID_CONFLICT_WAIT_MS = '20';
     let release;
     ncAnswer = () => new Promise((resolve) => { release = () => resolve(json({ ocs: { data: { id: 'first', enabled: true, email: EMAIL } } })); });
     const out = await signIn('second');
-    assertHealed(out);
+    assertUnverified(out);
     release();
 });
 
-test('an organisation without a stored Nextcloud admin: no read, replaced', async () => {
+test('an organisation without a stored Nextcloud admin: no read, refused', async () => {
     userStore.getOrganization = async (id) => ({ id, nc_instance_id: 'nc1', nc_onboarding_completed_at: 1, connector_callback_url: CALLBACK[id] });
-    assertHealed(await signIn('second'), 'second', 'no_stored_admin');
+    assertUnverified(await signIn('second'), 'no_stored_admin');
     assert.deepEqual(rec.requests, []);
 });
 
-test('the organisation row cannot be read: replaced', async () => {
+test('the organisation row cannot be read: refused', async () => {
     const usual = userStore.getOrganization;
     userStore.getOrganization = async () => { throw new Error('db down'); };
-    try { assertHealed(await signIn('second')); } finally { userStore.getOrganization = usual; }
+    try { assertUnverified(await signIn('second')); } finally { userStore.getOrganization = usual; }
     assert.deepEqual(rec.requests, []);
 });
 
@@ -292,10 +306,9 @@ test('a refusal is remembered for the cache time; 0 asks Nextcloud every time', 
     assert.equal(rec.requests.length, 2);
 });
 
-test('only a refusal is remembered: an account that could not be read is asked about again', async () => {
+test('only a live answer is remembered: an account that could not be read is asked about again', async () => {
     ncAnswer = () => ({ ok: false, status: 503, json: async () => ({}) });
-    assertHealed(await signIn('second'));
-    rec.updates.length = 0; row.nc_uid = 'first';
+    assertUnverified(await signIn('second'));
     ncAnswer = null;
     ncAccounts.first = { enabled: true, email: EMAIL };
     assertRefused(await signIn('second'));
@@ -322,14 +335,6 @@ test('a user of another organisation is refused as an organisation mismatch, wit
     assert.deepEqual(rec.requests, []);
     assert.deepEqual(rec.updates, []);
     assert.deepEqual(rec.problems.map((p) => p.code), ['auth.blocked_org_mismatch']);
-});
-
-test('the gate itself asks nothing about a user outside the token\'s organisation', async () => {
-    ncAccounts.first = { enabled: true, email: EMAIL };
-    const outcome = await phases.ncUidConflictGate({}, { ...row, organizationId: OTHER_ORG }, ORG, { sub: 'second', email: EMAIL });
-    assert.equal(outcome, null);
-    assert.deepEqual(rec.requests, []);
-    assert.deepEqual(rec.problems, []);
 });
 
 test('the same pair of uids in a second organisation is answered by that organisation\'s Nextcloud only', async () => {

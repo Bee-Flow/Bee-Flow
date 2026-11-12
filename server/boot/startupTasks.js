@@ -86,6 +86,11 @@ function runStartupChecks() {
     // form expired" when the submit round-robined to another (BFSF-420).
     const { ensureDurableSecret: ensurePublicShareSecret } = require('../auth/publicShareToken');
     ensurePublicShareSecret().catch(err => log.error('[PublicShareToken] bootstrap failed:', err.message));
+
+    // Nextcloud link-ticket HMAC secret: a ticket issued by one replica is
+    // redeemed on whichever one the browser reaches.
+    const { ensureDurableSecret: ensureNcLinkTicketSecret } = require('../auth/connector/ncLinkTicket.mts');
+    ensureNcLinkTicketSecret().catch(err => log.error('[NcLinkTicket] bootstrap failed:', err.message));
 }
 
 function runStartupTasks() {

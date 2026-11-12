@@ -56,7 +56,8 @@ Both ask their questions in the terminal; Enter accepts each default:
 | Install directory | Where the release's files and the settings file live. The script asks (default `beeflow`); the container uses `/opt/beeflow`. |
 | Version | The script takes the newest production release unless you name one. The container installs the release it was built for. |
 | PII guard and topic classifier | On by default. They need about 7 GB of memory and a larger first download. |
-| Is the Nextcloud on a private address | On by default. Lets the server call private addresses (`NEXTCLOUD_ALLOW_PRIVATE_HOSTS`). Answer no for a Nextcloud on the internet. |
+| Is the Nextcloud on a private address | On by default. Answer no for a Nextcloud on the internet. |
+| Name or IP address of the Nextcloud | Asked for a private Nextcloud: the host as this machine reaches it. The server may call that private host and no other (`NEXTCLOUD_ALLOW_PRIVATE_HOSTS=<host>`). |
 | Name of your organisation | The installer creates it and prints a pairing code for your Nextcloud. |
 
 Before it starts anything the installer checks that this machine can run Bee Flow (Docker, an
@@ -81,6 +82,16 @@ you want to be sure.
 Without questions, for a script of your own: every answer is an option or a variable, for example
 `BEEFLOW_HOST=192.168.1.20 BEEFLOW_ORGANISATION="Acme" bash beeflow-install.sh --yes` (with the
 container: `-e BEEFLOW_HOST=…` and `--yes` after the image name). `--help` lists every option.
+
+**HTTPS before wider use.** The installer publishes the server and the web app on every network
+interface of the machine over plain http, so that Nextcloud can reach them; Docker publishes those
+ports past a host firewall such as ufw. Over plain http the sign-in, the connector's key and every
+request can be read on the network path. Before Bee Flow is used beyond the machine's own network,
+put a reverse proxy with HTTPS in front of both ports, set `SERVER_PROTOCOL=https`,
+`CLIENT_PROTOCOL=https` and the public host names in the settings file, close the plain ports with
+`SERVER_BIND_HOST=127.0.0.1` and `CLIENT_BIND_HOST=127.0.0.1` once the proxy runs on the same
+machine, and enter the https addresses in Nextcloud. The end of the install prints these steps.
+An update leaves these settings as they are.
 
 Keep the settings file (`.env` in the install directory) and a copy of the secrets the installer
 prints: without `MASTER_ENCRYPTION_KEY` the stored data cannot be read again.

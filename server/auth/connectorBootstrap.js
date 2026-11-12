@@ -36,8 +36,6 @@
 
 const express = require('express');
 const crypto = require('crypto');
-// The CJS build exports the limiter function itself (its .d.cts only describes the namespace).
-const rateLimit = /** @type {typeof import('express-rate-limit').rateLimit} */ (/** @type {unknown} */ (require('express-rate-limit')));
 const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 const router = express.Router();
@@ -63,64 +61,15 @@ const {
     INSTANCE_BOUND_ELSEWHERE_PROBLEM, alreadyLinkedAnswer, ncInstanceBoundElsewhere, refuseInstanceBoundElsewhere,
     bindOrgToNcInstance, bindOrRefuse,
 } = require('./connector/instanceBinding');
-const { stableInstanceIdFallback, verifyNcInstance } = require('./connector/ncVerify');
+const { stableInstanceIdFallback, verifyNcInstance, verifyFailureCategory } = require('./connector/ncVerify');
 const { readBootstrapHeaders, callbackUrlRefusal } = require('./connector/bootstrapHeaders');
 const { PENDING_TTL_SECONDS, generateVerificationCode, maskEmail } = require('./connector/verificationCode');
 const { isAddressOfOrgAdmin, notOrgAdminAnswer } = require('./connector/pendingBinding.mts');
 const { NC_SUBJECT_PROBLEM_CODES, runBootstrapBranches } = require('./connector/bootstrapBranches');
 const { resolveConnectorBearer, registerRotateKeyRoute } = require('./connector/rotateKey.mts');
 
-// Bootstrap is unauthenticated by design (the connector has no SaaS creds
-// at this point). Rate-limit per source IP so an attacker can't flood the
-// pending-binding queue or fish for org-emails. The numbers below are
-// generous enough for a real fleet rollout (multiple NC instances behind
-// the same NAT) but tight enough to make brute-force/DoS impractical.
-// `validate: { trustProxy: false }` silences express-rate-limit's strict
-// trust-proxy validator. The server runs behind Nginx Proxy Manager which
-// sets X-Forwarded-For; Express resolves req.ip via app.set('trust proxy').
-// We accept that a determined attacker could spoof XFF to evade per-IP
-// limiting — bootstrap is also gated by the NC capabilities round-trip,
-// and the limiter's main job is slowing down org-email enumeration.
-const bootstrapLimiter = rateLimit({
-    windowMs: 15 * 60_000,        // 15 minutes
-    max: 20,                       // 20 bootstrap attempts per IP per window
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: { error: 'Too many bootstrap attempts; try again later.' },
-    validate: { trustProxy: false },
-});
-
-const pendingPollLimiter = rateLimit({
-    windowMs: 60_000,              // 1 minute
-    max: 60,                       // 1 poll/sec average — connector polls every ~5s
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: { error: 'Too many poll requests.' },
-    validate: { trustProxy: false },
-});
-
-// Phone-home status reports are a periodic heartbeat (connector pings ~6-hourly
-// plus one report per failure episode) — 12/hour/IP is generous for a real
-// fleet behind one NAT while keeping unauthenticated probing cheap to absorb.
-const statusReportLimiter = rateLimit({
-    windowMs: 60 * 60_000,         // 1 hour
-    max: 12,                       // 12 status reports per IP per window
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: { error: 'Too many status reports; try again later.' },
-    validate: { trustProxy: false },
-});
-
-// Resending a verification code emails the org's admin mailbox; cap it tightly
-// per source IP so a held pendingId can't be used to mail-bomb the address.
-const verificationResendLimiter = rateLimit({
-    windowMs: 15 * 60_000,         // 15 minutes
-    max: 5,                        // 5 resends per IP per window
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: { error: 'Too many code requests; try again later.' },
-    validate: { trustProxy: false },
-});
+// Per-IP limits of these unauthenticated routes (CONNECTOR_BOOTSTRAP_RATE_LIMIT and the fixed ones).
+const { bootstrapLimiter, pendingPollLimiter, statusReportLimiter, verificationResendLimiter } = require('./connector/bootstrapLimiters.mts');
 
 router.post('/connector/bootstrap', bootstrapLimiter, async (req, res) => {
     const { ncInstanceId, ncBaseUrl, ncAdminUid, ncAdminEmail, ncAdminDisplayName, connectorCallbackUrl, pairingCode } = readBootstrapHeaders(req);
@@ -157,16 +106,20 @@ router.post('/connector/bootstrap', bootstrapLimiter, async (req, res) => {
             nc = await verifyNcInstance(ncBaseUrl, ncInstanceId);
         } catch (e) {
             log.warn(`[ConnectorBootstrap] verify_failed url=${ncBaseUrl} ncInstance=${ncInstanceId} reason=${e.message}`);
-            const isUnreachable = /unreachable|fetch failed|timeout|ENOTFOUND|ECONNREFUSED/i.test(e.message);
+            // The caller is not authenticated: it learns the category only,
+            // never the status, error text or body of what was fetched.
+            const isUnreachable = verifyFailureCategory(e) === 'unreachable';
             orgHealth.problem('bootstrap.verify_failed', {
                 ncInstanceId, source: 'connectorBootstrap', req,
                 meta: { reason: isUnreachable ? 'nc_capabilities_unreachable' : 'nc_capabilities_mismatch', ncBaseUrl },
             });
             return res.status(403).json({
-                error: 'Could not verify NC instance ownership: ' + e.message,
+                error: isUnreachable
+                    ? 'Could not verify NC instance ownership: Nextcloud could not be reached.'
+                    : 'Could not verify NC instance ownership: Nextcloud did not confirm this instance.',
                 code: isUnreachable ? 'nc_capabilities_unreachable' : 'nc_capabilities_mismatch',
                 remediation: isUnreachable
-                    ? 'The Bee Flow server could not reach your Nextcloud at ' + ncBaseUrl + '. The server sends its requests to Nextcloud, so that address must be reachable from where the server runs. Make Nextcloud reachable there (a public address, a tunnel or a reverse proxy) and, if Nextcloud is reachable at another address than this one, set BEEFLOW_NC_PUBLIC_URL on the connector to it. A Nextcloud on a private network needs a self-hosted Bee Flow server on that network with NEXTCLOUD_ALLOW_PRIVATE_HOSTS=1 set on the server.'
+                    ? 'The Bee Flow server could not reach your Nextcloud at ' + ncBaseUrl + '. The server sends its requests to Nextcloud, so that address must be reachable from where the server runs. Make Nextcloud reachable there (a public address, a tunnel or a reverse proxy) and, if Nextcloud is reachable at another address than this one, set BEEFLOW_NC_PUBLIC_URL on the connector to it. A Nextcloud on a private network needs a self-hosted Bee Flow server on that network with its host listed in NEXTCLOUD_ALLOW_PRIVATE_HOSTS (or NEXTCLOUD_ALLOW_PRIVATE_HOSTS=1) on the server.'
                     : 'Your Nextcloud responded but its instance id does not match the one the connector sent. This usually means the connector was reinstalled while the Bee Flow server still tracked the old instance. Contact support if it persists.',
             });
         }
@@ -213,7 +166,7 @@ router.get('/connector/bootstrap/pending/:id', pendingPollLimiter, async (req, r
     if (!row) return res.status(404).json({ status: 'not_found' });
     // Verification rows answer on /verify and pairing-code rows on the
     // bootstrap that presents the code; neither is polled.
-    if (row.hasVerification || row.pairingCode) return res.status(404).json({ status: 'not_found' });
+    if (row.hasVerification || row.hasPairingCode) return res.status(404).json({ status: 'not_found' });
 
     const expired = row.expiresAt && new Date(row.expiresAt).getTime() <= Date.now();
     if (row.status === 'denied') return res.status(410).json({ status: 'denied' });
@@ -320,38 +273,54 @@ const tooManyCodeRequests = (res) => res.status(429).json({
 });
 
 // Re-send the verification code (new code, per-code attempts reset, TTL
-// extended), capped per pendingId. Goes to the address on the row, and only
-// when that is the address of an administrator of the row's organisation.
+// extended), capped per pendingId and per organisation per day. Goes to the
+// address on the row, and only when that is the address of an administrator
+// of the row's organisation; the answer is the same either way (sendOrCount).
 router.post('/connector/bootstrap/pending/:id/resend', verificationResendLimiter, async (req, res) => {
     const id = String(req.params.id || '').trim();
     if (!id) return res.status(400).json({ error: 'Missing id' });
     const current = await userStore.getPendingNcBinding(id);
-    if (current?.hasVerification && current.status === 'pending'
-        && !(await isAddressOfOrgAdmin(current.orgId, current.verificationEmail || current.ncAdminEmail))) {
-        return res.status(403).json(notOrgAdminAnswer());
-    }
+    const to = current ? (current.verificationEmail || current.ncAdminEmail) : null;
+    return sendOrCount(req, res, { id, row: current, to, send: (code) => userStore.resetNcVerificationCode(id, code) });
+});
+
+/**
+ * A code goes out only to an organisation administrator, but the caller is
+ * not authenticated and is told the same in both cases: status, masked
+ * address and expiry. For another address no code is made or sent, and the
+ * row's send budget is used just the same (countNcVerificationSend).
+ * @param {import('express').Request} req @param {import('express').Response} res
+ * @param {{ id: string, row: Awaited<ReturnType<typeof userStore.getPendingNcBinding>>, to: string | null, send: (code: string) => Promise<any> }} o
+ */
+async function sendOrCount(req, res, { id, row, to, send }) {
+    const admin = !!row && !!to && await isAddressOfOrgAdmin(row.orgId, to);
     const code = generateVerificationCode();
-    const sent = await userStore.resetNcVerificationCode(id, code);
+    const sent = admin ? await send(code) : await userStore.countNcVerificationSend(id);
     if (sent.status === 'too_many') return tooManyCodeRequests(res);
     if (sent.status !== 'ok') return res.status(410).json({ status: 'expired', code: 'expired' });
-    const row = sent.row;
-    const to = row.verificationEmail || row.ncAdminEmail;
-    let emailSent = false;
-    try {
-        const org = await userStore.getOrganization(row.orgId);
-        const r = await sendNcVerificationCodeEmail({ to, code, orgName: org?.name, expiresAt: row.expiresAt });
-        emailSent = !!r?.success;
-    } catch (e) {
-        log.warn(`[ConnectorBootstrap] resend_email_error pendingId=${id} reason=${e.message}`);
+    const updated = sent.row;
+    let emailSent = true;
+    if (admin) {
+        try {
+            const org = await userStore.getOrganization(updated.orgId);
+            const r = await sendNcVerificationCodeEmail({ to, code, orgName: org?.name, expiresAt: updated.expiresAt });
+            emailSent = !!r?.success;
+            if (!emailSent) log.warn(`[ConnectorBootstrap] code_email_failed pendingId=${id} reason=${r?.error}`);
+        } catch (e) {
+            emailSent = false;
+            log.warn(`[ConnectorBootstrap] code_email_error pendingId=${id} reason=${e.message}`);
+        }
     }
-    log.info(`[ConnectorBootstrap] verification_resent pendingId=${id} emailSent=${emailSent} expiresAt=${row.expiresAt}`);
-    return res.json({ ok: true, maskedEmail: maskEmail(to), expiresAt: row.expiresAt, emailSent });
-});
+    log.info(`[ConnectorBootstrap] verification_code_requested pendingId=${id} org=${updated.orgId} sent=${admin && emailSent}`);
+    // `emailSent: false` only for a delivery that failed; the connector reads a missing field as sent.
+    return res.json({ ok: true, maskedEmail: maskEmail(to), expiresAt: updated.expiresAt, ...(emailSent ? {} : { emailSent: false }) });
+}
 
 // Re-point a pending verification at the admin who is actually performing the
 // setup (the NC user in the embedded view), then email them the code. The
 // connector supplies the current user's email/uid; the code is sent only when
-// that address is the one of an administrator of the row's organisation.
+// that address is the one of an administrator of the row's organisation, and
+// the answer is the same either way (sendOrCount).
 router.post('/connector/bootstrap/pending/:id/retarget', verificationResendLimiter, async (req, res) => {
     const id = String(req.params.id || '').trim();
     const email = String(req.body?.email || '').trim().toLowerCase();
@@ -367,26 +336,7 @@ router.post('/connector/bootstrap/pending/:id/retarget', verificationResendLimit
     }
     const expired = row.expiresAt && new Date(row.expiresAt).getTime() <= Date.now();
     if (expired) return res.status(410).json({ status: 'expired', code: 'expired' });
-
-    if (!(await isAddressOfOrgAdmin(row.orgId, email))) return res.status(403).json(notOrgAdminAnswer());
-
-    const code = generateVerificationCode();
-    const sent = await userStore.retargetNcVerification(id, { email, uid, displayName, code });
-    if (sent.status === 'too_many') return tooManyCodeRequests(res);
-    if (sent.status !== 'ok') return res.status(410).json({ status: 'expired', code: 'expired' });
-    const updated = sent.row;
-
-    let emailSent = false;
-    try {
-        const org = await userStore.getOrganization(row.orgId);
-        const r = await sendNcVerificationCodeEmail({ to: email, code, orgName: org?.name, expiresAt: updated.expiresAt });
-        emailSent = !!r?.success;
-        if (!emailSent) log.warn(`[ConnectorBootstrap] retarget_email_failed pendingId=${id} reason=${r?.error}`);
-    } catch (e) {
-        log.warn(`[ConnectorBootstrap] retarget_email_error pendingId=${id} reason=${e.message}`);
-    }
-    log.info(`[ConnectorBootstrap] verification_retargeted pendingId=${id} org=${row.orgId} emailSent=${emailSent}`);
-    return res.json({ ok: true, maskedEmail: maskEmail(email), expiresAt: updated.expiresAt, emailSent });
+    return sendOrCount(req, res, { id, row, to: email, send: (code) => userStore.retargetNcVerification(id, { email, uid, displayName, code }) });
 });
 
 // Diagnostic endpoint — connector calls this when /api/license/* keeps
@@ -406,9 +356,10 @@ router.post('/connector/diagnose', bootstrapLimiter, async (req, res) => {
     try {
         await verifyNcInstance(h.ncBaseUrl, h.ncInstanceId);
     } catch (e) {
+        log.warn(`[ConnectorBootstrap] diagnose verify_failed ncInstance=${h.ncInstanceId} reason=${e.message}`);
         return res.status(403).json({
             error: 'NC ownership verification failed',
-            detail: e.message,
+            code: verifyFailureCategory(e) === 'unreachable' ? 'nc_capabilities_unreachable' : 'nc_capabilities_mismatch',
         });
     }
 

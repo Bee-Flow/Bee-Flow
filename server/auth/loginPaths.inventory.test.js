@@ -77,3 +77,17 @@ test('synthetic: a call site is keyed by audit method and extra keys, and a seco
         'x.js#unknown{}',
     ]);
 });
+
+test('synthetic: a session made authenticated in place by Object.assign is a call site too', () => {
+    const src = `
+        function a(req) {
+            Object.assign(req.session, { isAuthenticated: true, user });
+            Object.assign(req.session, { isAuthenticated: false });
+            Object.assign(other, { isAuthenticated: true });
+        }`;
+    assert.deepEqual(callSitesIn(src, 'y.js').map((s) => s.key), ['y.js#session-assign{}']);
+});
+
+test('the connector sign-in is in the inventory', () => {
+    assert.ok(sites.some((s) => s.key === 'auth/connectorJwtPhases.js#session-assign{}'));
+});

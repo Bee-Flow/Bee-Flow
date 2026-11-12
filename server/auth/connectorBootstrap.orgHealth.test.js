@@ -48,6 +48,7 @@ const MOCKS = {
         // Verification-code send paths (resend / retarget): the per-pendingId cap.
         resetNcVerificationCode: async (id) => { fx.calls.push(['resetNcVerificationCode', id]); return fx.sendResult; },
         retargetNcVerification: async (id) => { fx.calls.push(['retargetNcVerification', id]); return fx.sendResult; },
+        countNcVerificationSend: async (id) => { fx.calls.push(['countNcVerificationSend', id]); return fx.sendResult; },
         getPendingNcBinding: async () => fx.pendingRow,
         getPendingBindingByPairingCode: async () => null,
         getUserByEmail: async () => fx.userByEmail || null,
@@ -287,6 +288,8 @@ const SENT_ROW = { orgId: 'org-v', verificationEmail: 'admin@acme.test', ncAdmin
 
 test('resend: a spent per-pendingId budget answers 429 and sends no mail', async () => {
     resetFx();
+    fx.pendingRow = pendingVerification();
+    fx.userByEmail = { ...ORG_V_ADMIN, email: 'admin@acme.test' };
     fx.sendResult = { status: 'too_many' };
     const res = await dispatch({ url: '/connector/bootstrap/pending/p1/resend' });
     assert.equal(res.statusCode, 429);
@@ -296,6 +299,8 @@ test('resend: a spent per-pendingId budget answers 429 and sends no mail', async
 
 test('resend: not a pending verification stays 410 expired', async () => {
     resetFx();
+    fx.pendingRow = pendingVerification();
+    fx.userByEmail = { ...ORG_V_ADMIN, email: 'admin@acme.test' };
     fx.sendResult = { status: 'not_eligible' };
     const res = await dispatch({ url: '/connector/bootstrap/pending/p1/resend' });
     assert.equal(res.statusCode, 410);
@@ -304,12 +309,14 @@ test('resend: not a pending verification stays 410 expired', async () => {
 
 test('resend: within budget mails the new code and answers as before', async () => {
     resetFx();
+    fx.pendingRow = pendingVerification();
+    fx.userByEmail = { ...ORG_V_ADMIN, email: 'admin@acme.test' };
     fx.sendResult = { status: 'ok', row: SENT_ROW };
     const res = await dispatch({ url: '/connector/bootstrap/pending/p1/resend' });
     assert.equal(res.statusCode, 200);
     assert.equal(res.body.ok, true);
     assert.equal(res.body.expiresAt, SENT_ROW.expiresAt);
-    assert.equal(res.body.emailSent, true);
+    assert.notEqual(res.body.emailSent, false, 'a delivered code: no emailSent: false');
     assert.equal(callsOf('sendNcVerificationCodeEmail')[0][1].to, 'admin@acme.test');
 });
 
@@ -344,7 +351,10 @@ test('retarget: within budget mails the code to the new admin', async () => {
     assert.equal(callsOf('sendNcVerificationCodeEmail')[0][1].to, 'setup@acme.test');
 });
 
-// The emailed code goes only to an administrator of the organisation it links.
+// The emailed code goes only to an administrator of the organisation it links,
+// and the caller (not authenticated) gets the same answer either way: status,
+// masked address, expiry. For another address no code is made or mailed, and
+// the row's send budget is used just the same.
 const NOT_AN_ADMIN_OF_ORG_V = {
     'no account (an address at the organisation\'s e-mail domain)': null,
     'a member who is not an administrator': { ...ORG_V_ADMIN, orgRole: 'member' },
@@ -353,32 +363,48 @@ const NOT_AN_ADMIN_OF_ORG_V = {
     'an administrator whose account is suspended': { ...ORG_V_ADMIN, status: 'suspended' },
 };
 
+async function retargetAs(account) {
+    resetFx();
+    fx.pendingRow = pendingVerification();
+    fx.userByEmail = account;
+    fx.sendResult = { status: 'ok', row: SENT_ROW };
+    return dispatch({ url: '/connector/bootstrap/pending/p1/retarget', body: { email: 'setup@acme.test' } });
+}
+
 for (const [who, account] of Object.entries(NOT_AN_ADMIN_OF_ORG_V)) {
-    test(`retarget to ${who}: 403, no code issued, no mail`, async () => {
-        resetFx();
-        fx.pendingRow = pendingVerification();
-        fx.userByEmail = account;
-        fx.sendResult = { status: 'ok', row: SENT_ROW };
-        const res = await dispatch({ url: '/connector/bootstrap/pending/p1/retarget', body: { email: 'setup@acme.test' } });
-        assert.equal(res.statusCode, 403);
-        assert.equal(res.body.code, 'email_not_in_org');
-        assert.match(res.body.error, /pairing code/);
+    test(`retarget to ${who}: the same answer as for an administrator, no code issued, no mail`, async () => {
+        const admin = await retargetAs(ORG_V_ADMIN);
+        const res = await retargetAs(account);
+        assert.equal(res.statusCode, admin.statusCode);
+        assert.deepEqual(res.body, admin.body);
         assert.equal(callsOf('retargetNcVerification').length, 0);
+        assert.equal(callsOf('countNcVerificationSend').length, 1, 'the send budget is used just the same');
         assert.equal(callsOf('sendNcVerificationCodeEmail').length, 0);
     });
 
-    test(`resend for a row addressed to ${who}: 403, no code issued, no mail`, async () => {
+    test(`resend for a row addressed to ${who}: the same answer, no code issued, no mail`, async () => {
         resetFx();
         fx.pendingRow = pendingVerification();
         fx.userByEmail = account;
         fx.sendResult = { status: 'ok', row: SENT_ROW };
         const res = await dispatch({ url: '/connector/bootstrap/pending/p1/resend' });
-        assert.equal(res.statusCode, 403);
-        assert.equal(res.body.code, 'email_not_in_org');
+        assert.equal(res.statusCode, 200);
+        assert.deepEqual(Object.keys(res.body).sort(), ['expiresAt', 'maskedEmail', 'ok']);
         assert.equal(callsOf('resetNcVerificationCode').length, 0);
+        assert.equal(callsOf('countNcVerificationSend').length, 1);
         assert.equal(callsOf('sendNcVerificationCodeEmail').length, 0);
     });
 }
+
+test('retarget to another address with a spent budget answers 429, like an administrator\'s', async () => {
+    resetFx();
+    fx.pendingRow = pendingVerification();
+    fx.userByEmail = null;
+    fx.sendResult = { status: 'too_many' };
+    const res = await dispatch({ url: '/connector/bootstrap/pending/p1/retarget', body: { email: 'setup@acme.test' } });
+    assert.equal(res.statusCode, 429);
+    assert.equal(res.body.code, 'too_many_code_requests');
+});
 
 test('resend for a row addressed to an administrator of the organisation: the code is mailed', async () => {
     resetFx();
@@ -521,6 +547,51 @@ test('a callback URL this server may not connect to is refused before any branch
     }
     assert.equal(callsOf('updateOrganization').length, 0);
     assert.equal(callsOf('event').length, 0);
+});
+
+// ═══ POST /connector/bootstrap and /connector/diagnose: the answer to an unauthenticated caller ═══
+
+test('a private Nextcloud that answers an error, HTML or nothing: the 403 names a fixed code only, never status or body text', async () => {
+    const http = require('node:http');
+    const answers = {
+        500: (res) => { res.statusCode = 500; res.end('internal-detail-500'); },
+        html: (res) => { res.setHeader('content-type', 'text/html'); res.end('<html>internal-detail-html</html>'); },
+    };
+    const prev = { allow: process.env.NEXTCLOUD_ALLOW_PRIVATE_HOSTS, skip: process.env.BEEFLOW_BOOTSTRAP_SKIP_VERIFY };
+    process.env.NEXTCLOUD_ALLOW_PRIVATE_HOSTS = '1';
+    delete process.env.BEEFLOW_BOOTSTRAP_SKIP_VERIFY;
+    const bases = [];
+    const servers = [];
+    try {
+        for (const answer of Object.values(answers)) {
+            const srv = http.createServer((_req, res) => answer(res));
+            await new Promise((r) => srv.listen(0, '127.0.0.1', () => r(undefined)));
+            servers.push(srv);
+            bases.push(`http://127.0.0.1:${srv.address().port}`);
+        }
+        // Nothing listens here: the connection is refused.
+        const closed = http.createServer();
+        await new Promise((r) => closed.listen(0, '127.0.0.1', () => r(undefined)));
+        bases.push(`http://127.0.0.1:${closed.address().port}`);
+        await new Promise((r) => closed.close(() => r(undefined)));
+        for (const base of bases) {
+            for (const url of ['/connector/bootstrap', '/connector/diagnose']) {
+                resetFx();
+                const res = await dispatch({ url, headers: bootstrapHeaders({ ncBaseUrl: base }) });
+                assert.equal(res.statusCode, 403, `${url} ${base}`);
+                assert.ok(['nc_capabilities_unreachable', 'nc_capabilities_mismatch'].includes(res.body.code), JSON.stringify(res.body));
+                const text = JSON.stringify(res.body);
+                for (const leak of ['internal-detail', 'HTTP 500', 'ECONNREFUSED', 'fetch failed', 'Unexpected token', 'not valid JSON']) {
+                    assert.ok(!text.includes(leak), `${url} ${base}: ${leak} in ${text}`);
+                }
+                assert.equal('detail' in res.body, false);
+            }
+        }
+    } finally {
+        for (const srv of servers) await new Promise((r) => srv.close(() => r(undefined)));
+        if (prev.allow === undefined) delete process.env.NEXTCLOUD_ALLOW_PRIVATE_HOSTS; else process.env.NEXTCLOUD_ALLOW_PRIVATE_HOSTS = prev.allow;
+        if (prev.skip !== undefined) process.env.BEEFLOW_BOOTSTRAP_SKIP_VERIFY = prev.skip;
+    }
 });
 
 // ═══ POST /connector/bootstrap: Nextcloud not reachable from this server ═══

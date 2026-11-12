@@ -98,4 +98,10 @@ export default {
     "mfa.authenticator_qr_alt": "MFA QR code",
     "mfa.reauth_sign_in": "Sign in again",
     "mfa.link_providers_title": "Sign-in providers",
+    "mfa.nc_link_title": "Link your Nextcloud account",
+    "mfa.nc_link_body": "Link the Nextcloud account {uid} on {host} to this Bee Flow account. Bee Flow inside Nextcloud then signs you in as this account. Continue only if you opened this page yourself from Bee Flow in Nextcloud.",
+    "mfa.nc_link_button": "Link Nextcloud account",
+    "mfa.nc_link_done": "Your Nextcloud account is linked. Go back to Nextcloud and reload Bee Flow.",
+    "mfa.nc_link_failed": "The Nextcloud account could not be linked. Open Bee Flow in Nextcloud again for a new link.",
+    "mfa.nc_link_other_account": "This link is for another Bee Flow account. Sign in with the account it was made for.",
 };

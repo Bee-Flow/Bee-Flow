@@ -11,6 +11,7 @@ import MfaHelpAssistant from '../../components/mfa/MfaHelpAssistant';
 import RecoveryCodes from '../../components/mfa/RecoveryCodes';
 import ReauthNotice, { isReauthRequired } from '../../components/mfa/ReauthNotice';
 import LinkSignInProviders from '../../components/mfa/LinkSignInProviders';
+import LinkNextcloudAccount from '../../components/mfa/LinkNextcloudAccount';
 import { securityKeyMessage } from '../../components/mfa/securityKeyMessages';
 import SecurityKeysCard from '../../components/mfa/SecurityKeysCard';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -322,6 +323,7 @@ export default function SecuritySection() {
                 <SecurityKeysCard mfaEnabled={!!status.enabled} totpEnabled={totpOn} onRecoveryCodes={setNewCodes} onChange={loadStatus} />
             )}
 
+            <LinkNextcloudAccount />
             <LinkSignInProviders />
             {/* Change password — only for accounts that have a password */}
             {status.hasPassword && <ChangePassword />}

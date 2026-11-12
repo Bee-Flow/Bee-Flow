@@ -195,7 +195,7 @@ function unlink(orgId) {
 
 /** A pairing code an administrator of `orgId` generated. */
 function pairingCodeFor(orgId) {
-    const row = { id: `pc${++db.seq}`, orgId, pairingCode: `CODE-${db.seq}`, status: 'pending' };
+    const row = { id: `pc${++db.seq}`, orgId, pairingCode: `CODE-${db.seq}`, hasPairingCode: true, status: 'pending' };
     db.pending.set(row.id, row);
     return row;
 }

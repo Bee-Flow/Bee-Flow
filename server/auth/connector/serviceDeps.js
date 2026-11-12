@@ -19,7 +19,23 @@ const planEntitlements = require('../../services/planEntitlements');
  * @returns {Promise<boolean>}
  */
 function storedUidIsLiveWithEmail(org, storedUid, email) {
-    return require('../../services/ncStoredUid.mts').storedUidIsLiveWithEmail(org, storedUid, email);
+    return ncStoredUid().storedUidIsLiveWithEmail(org, storedUid, email);
 }
 
-module.exports = { orgHealth, planEntitlements, storedUidIsLiveWithEmail };
+/** services/ncStoredUid.mts, loaded on first use (it pulls in the sync). */
+function ncStoredUid() {
+    return /** @type {typeof import('../../services/ncStoredUid.mts')} */ (require('../../services/ncStoredUid.mts'));
+}
+
+/**
+ * The three-way form: 'live', 'free' (a definite other answer) or 'unknown'.
+ * @param {{ id?: string, [key: string]: unknown } | null | undefined} org
+ * @param {string} storedUid
+ * @param {string} email
+ * @returns {Promise<'live' | 'free' | 'unknown'>}
+ */
+function storedUidState(org, storedUid, email) {
+    return ncStoredUid().storedUidState(org, storedUid, email);
+}
+
+module.exports = { orgHealth, planEntitlements, storedUidIsLiveWithEmail, storedUidState };
