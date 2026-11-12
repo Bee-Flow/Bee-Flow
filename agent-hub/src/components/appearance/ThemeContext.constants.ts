@@ -35,7 +35,7 @@ export const ThemeContext = createContext<ThemeContextValue>({
     uploadWallpaper: async () => {},
     deleteWallpaper: async () => {},
     reload: async () => {},
-    setSignInLook: () => {},
+    setScreenPreset: () => {},
 });
 
 export const THEME_PRESETS: ThemeOption[] = [
@@ -56,14 +56,3 @@ export const FONT_OPTIONS: ThemeOption[] = [
     { id: 'plex', label: 'IBM Plex Sans' },
     { id: 'geist', label: 'Geist' },
 ];
-
-const DARK_SURFACE_PRESETS = new Set(['dark', 'obsidian', 'glass-dark']);
-
-/**
- * The preset the sign-in screens are drawn in: glass, in the lightness the
- * organisation chose. High contrast is an accessibility choice and stays.
- */
-export function signInPreset(preset: string): string {
-    if (preset === 'high-contrast') return preset;
-    return DARK_SURFACE_PRESETS.has(preset) ? 'glass-dark' : 'glass';
-}

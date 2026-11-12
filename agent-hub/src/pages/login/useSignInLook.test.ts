@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { signInPreset } from './ThemeContext.constants';
+import { signInPreset } from './useSignInLook';
 
 describe('signInPreset', () => {
     it('draws light-surface presets in glass', () => {

@@ -39,8 +39,8 @@ interface ThemeActions {
     uploadWallpaper: (file: File | Blob) => Promise<unknown>;
     deleteWallpaper: () => Promise<void>;
     reload: () => Promise<void>;
-    /** Sign-in screens call this while they are on screen: the glass look of the theme's own lightness. */
-    setSignInLook: (on: boolean) => void;
+    /** A screen draws the document in another preset while it is mounted (null: back to the theme's own). */
+    setScreenPreset: (presetFor: ((preset: string) => string) | null) => void;
 }
 
 export type ThemeContextValue = ThemeState & ThemeActions;

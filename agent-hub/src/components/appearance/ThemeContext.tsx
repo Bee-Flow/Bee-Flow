@@ -6,7 +6,7 @@ import type { ThemeProviderProps, ThemeSettings, ThemeState } from './ThemeConte
 import { messageOf } from '../../utils/caughtError';
 import { logger } from '../../utils/logger';
 import { mutate, errorBody, RefusedError } from '../../api/mutate';
-import { DEFAULTS, ThemeContext, signInPreset } from './ThemeContext.constants';
+import { DEFAULTS, ThemeContext } from './ThemeContext.constants';
 import { readBootstrap, writeBootstrap, detectPreviewMode } from './ThemeContext.helpers';
 export { THEME_PRESETS, FONT_OPTIONS } from './ThemeContext.constants';
 
@@ -87,12 +87,12 @@ export function ThemeProvider({ children, initialOverride = null }: ThemeProvide
     // the document, so admin/user changes propagate immediately without
     // touching individual components. The pure application function lives in
     // `theme/applyTheme.js` so it's scannable and unit-testable.
-    // The sign-in screens draw in glass while they are on screen (see
-    // useSignInLook). Only the document changes: the saved baseline below
-    // keeps the real preset.
-    const [signInLook, setSignInLook] = useState(false);
+    // A screen may draw the document in another preset while it is mounted
+    // (the sign-in screens, pages/login/useSignInLook). Only the document
+    // changes: the saved baseline below keeps the real preset.
+    const [screenPreset, setScreenPreset] = useState<{ of: (preset: string) => string } | null>(null);
     const applyStateToDocument = useEffectEvent(() => {
-        applyThemeToDocument(signInLook ? { ...state, preset: signInPreset(state.preset) } : state);
+        applyThemeToDocument(screenPreset ? { ...state, preset: screenPreset.of(state.preset) } : state);
         // In preview mode AND when running under an initialOverride (e.g. the
         // public embed) we MUST NOT touch the admin's bootstrap cache so the
         // saved baseline stays clean.
@@ -104,7 +104,7 @@ export function ThemeProvider({ children, initialOverride = null }: ThemeProvide
         state.wallpaperPreset, state.glassTint, state.glassLens,
         state.glassAnimation, state.glassGrain, state.glassBorder,
         state.glassTierSubtle, state.glassTierDefault, state.glassTierOpaque,
-        inPreview, signInLook,
+        inPreview, screenPreset,
     ]);
 
     const reload = useCallback(async () => {
@@ -293,6 +293,8 @@ export function ThemeProvider({ children, initialOverride = null }: ThemeProvide
         await reload();
     }, [reload]);
 
+    const pinScreenPreset = useCallback((of: ((preset: string) => string) | null) => setScreenPreset(of ? { of } : null), []);
+
     const value = useMemo(() => ({
         ...state,
         setUserOverride,
@@ -301,8 +303,8 @@ export function ThemeProvider({ children, initialOverride = null }: ThemeProvide
         uploadWallpaper,
         deleteWallpaper,
         reload,
-        setSignInLook,
-    }), [state, setUserOverride, clearUserOverride, setAdminDefault, uploadWallpaper, deleteWallpaper, reload]);
+        setScreenPreset: pinScreenPreset,
+    }), [state, setUserOverride, clearUserOverride, setAdminDefault, uploadWallpaper, deleteWallpaper, reload, pinScreenPreset]);
 
     return (
         <ThemeContext.Provider value={value}>
@@ -314,15 +316,6 @@ export function ThemeProvider({ children, initialOverride = null }: ThemeProvide
 
 export function useTheme() {
     return useContext(ThemeContext);
-}
-
-/** Draws the document in the sign-in look for as long as the calling screen is mounted. */
-export function useSignInLook(): void {
-    const { setSignInLook } = useContext(ThemeContext);
-    useLayoutEffect(() => {
-        setSignInLook(true);
-        return () => setSignInLook(false);
-    }, [setSignInLook]);
 }
 
 export default ThemeContext;

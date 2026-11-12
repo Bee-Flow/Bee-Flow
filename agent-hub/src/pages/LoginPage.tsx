@@ -14,9 +14,9 @@ import { useLoginUrlParams } from './login/useLoginUrlParams';
 import { useOAuthPopup } from './login/useOAuthPopup';
 import { usePasswordResetActions } from './login/usePasswordResetActions';
 import { useSignupActions } from './login/useSignupActions';
+import { useSignInLook } from './login/useSignInLook';
 import { useSignupPlans } from './login/useSignupPlans';
 import VerifyEmailGate from './login/VerifyEmailGate';
-import { useSignInLook } from '../components/appearance/ThemeContext';
 import { useTranslation } from '../hooks/useTranslation';
 
 interface LoginPageProps {
