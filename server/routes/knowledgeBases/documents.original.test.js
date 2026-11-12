@@ -23,7 +23,7 @@ const FOREIGN_DOC_ID = '55555555-5555-4555-8555-555555555555';
 const NO_ORIGINAL_DOC_ID = '66666666-6666-4666-8666-666666666666';
 const BYTES = Buffer.from('%PDF-1.7 the original bytes');
 
-const KB = { id: KB_ID, tenant_id: 'u1', organization_id: 'org1', is_published: false, shared_groups: '[]' };
+const KB = { id: KB_ID, tenant_id: 'u1', organization_id: 'org1', is_published: false, shared_groups: '[]', keep_originals: true };
 const DOCS = {
     [DOC_ID]: { id: DOC_ID, knowledge_base_id: KB_ID, tenant_id: 'u1', title: 'Contract', original_storage_key: `orgs/u1/kb/${KB_ID}/${DOC_ID}/abc`, original_mime: 'application/pdf', original_filename: 'Contract.pdf' },
     [NO_ORIGINAL_DOC_ID]: { id: NO_ORIGINAL_DOC_ID, knowledge_base_id: KB_ID, tenant_id: 'u1', title: 'Notes', original_storage_key: null },
@@ -111,4 +111,24 @@ test('somebody who may not read the base is refused before any document is looke
 
 test('no session: 401', async () => {
     assert.equal((await get(KB_ID, DOC_ID, null)).status, 401);
+});
+
+test('a base that no longer keeps originals serves none: 404 no_original', async () => {
+    KB.keep_originals = false;
+    try {
+        const res = await get(KB_ID, DOC_ID);
+        assert.equal(res.status, 404);
+        assert.equal(res.body.code, 'no_original');
+        assert.deepEqual(streamed, []);
+    } finally { KB.keep_originals = true; }
+});
+
+test('a document whose text came out redacted serves no original: 404 no_original', async () => {
+    DOCS[DOC_ID].pii_status = 'redacted';
+    try {
+        const res = await get(KB_ID, DOC_ID);
+        assert.equal(res.status, 404);
+        assert.equal(res.body.code, 'no_original');
+        assert.deepEqual(streamed, []);
+    } finally { delete DOCS[DOC_ID].pii_status; }
 });

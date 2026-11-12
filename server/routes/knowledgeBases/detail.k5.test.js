@@ -30,6 +30,7 @@ const fx = {
     snapshots: [],
     orgIds: new Set(['org1']),
     orgAssertFails: false,
+    dropped: [],
 };
 
 function resetFx() {
@@ -38,7 +39,7 @@ function resetFx() {
     fx.usage = { rows: [], partial: [] };
     fx.orgIds = new Set(['org1']);
     fx.orgAssertFails = false;
-    for (const k of ['deleted', 'scrubbed', 'updates', 'snapshots', 'purged']) fx[k].length = 0;
+    for (const k of ['deleted', 'scrubbed', 'updates', 'snapshots', 'purged', 'dropped']) fx[k].length = 0;
 }
 resetFx();
 
@@ -79,6 +80,10 @@ const MOCKS = {
         purgeUsageFor: async (kind, id) => { fx.purged.push({ kind, id }); return 1; },
     },
     '../core/kb/localKBIngest': { deleteChunksLocally: async () => {} },
+    '../core/kb/originals.mts': {
+        originalsBlockedReason: async () => null,
+        dropOriginalsForKb: async (kb) => { fx.dropped.push(kb); return true; },
+    },
     'multer': Object.assign(() => ({ any: () => mw, single: () => mw, array: () => mw }), { memoryStorage: () => ({}) }),
 };
 
@@ -261,6 +266,16 @@ test('keepOriginals is a boolean setting of the base, passed to the store as suc
     assert.strictEqual(res.body.keep_originals, undefined, 'the store row is returned as it is');
     assert.ok('originals_blocked_reason' in res.body, 'the response says whether originals can be kept');
     await assert.rejects(dispatch({ method: 'PATCH', url: '/kb1', body: { keepOriginals: 'yes' } }), /keepOriginals is true or false/);
+});
+
+test('switching keepOriginals off removes the kept files of the base; switching it on or leaving it removes nothing', async () => {
+    fx.kb = { ...fx.kb, keep_originals: true };
+    await dispatch({ method: 'PATCH', url: '/kb1', body: { keepOriginals: true } });
+    await dispatch({ method: 'PATCH', url: '/kb1', body: { name: 'Renamed' } });
+    assert.deepStrictEqual(fx.dropped, []);
+    const res = await dispatch({ method: 'PATCH', url: '/kb1', body: { keepOriginals: false } });
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(fx.dropped, [{ id: 'kb1', tenant_id: 'u1' }]);
 });
 
 test('the base payload carries keep_originals and why originals are blocked', async () => {

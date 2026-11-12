@@ -96,3 +96,17 @@ test('keepUploadedOriginal: only for an opted-in base, an indexed document and a
     await keepUploadedOriginal({ kb: { id: 'kb1', keep_originals: true }, docId: 'd1', status: 'processed', file: {}, log });
     assert.deepEqual(logs, []);
 });
+
+test('a re-ingest that comes out redacted removes the earlier original and keeps no new one', async () => {
+    const dropped = [];
+    const h = harness({ status: 'redacted' });
+    h.deps.deleteOriginal = async (ref) => { dropped.push(ref); };
+    await run(h);
+    assert.equal(h.kept.length, 0);
+    assert.deepEqual(dropped, [{ tenantId: 'tenant1', kbId: 'kb1', documentId: 'new_a' }]);
+    // Also when the base no longer keeps originals, and on the upload route's path.
+    const { keepIfEnabled } = require('./keepOriginals');
+    await keepIfEnabled({ kb: { id: 'kb1', tenant_id: 't1', keep_originals: false }, docId: 'd1', status: 'redacted', original: null, log: () => {},
+        deleteOriginal: async (ref) => { dropped.push(ref); } });
+    assert.deepEqual(dropped.at(-1), { tenantId: 't1', kbId: 'kb1', documentId: 'd1' });
+});

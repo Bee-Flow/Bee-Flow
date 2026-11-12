@@ -8,22 +8,28 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { executeKbGetOriginal, cardKind, KB_GET_ORIGINAL_TOOL } = require('./kbOriginalTool');
 const { executeKbSearchTool, isKbSearchTool, KB_SEARCH_TOOLS } = require('./kbSearchTools');
+const { originalWithheldReason } = require('../core/kb/originals.mts');
 
 const DOC = '33333333-3333-4333-8333-333333333333';
 const KB_VISIBLE = 'kb-visible';
 const KB_HIDDEN = 'kb-hidden';
 
-function world({ docKb = KB_VISIBLE, visible = [KB_VISIBLE], hasOriginal = true } = {}) {
+function world({ docKb = KB_VISIBLE, visible = [KB_VISIBLE], hasOriginal = true, keepOriginals = true, redaction = false, piiStatus = 'none' } = {}) {
     const seen = { visibleFor: null };
     const row = {
         id: DOC, knowledge_base_id: docKb, tenant_id: 'owner1', title: 'Contract', has_original: hasOriginal,
+        status: 'processed', pii_status: piiStatus,
         original_mime: hasOriginal ? 'application/pdf' : null, original_size: hasOriginal ? 1234 : null,
         metadata: hasOriginal ? { originalFilename: 'Contract.pdf' } : {},
     };
     return {
         seen,
         deps: {
-            kbStore: { getDocument: async (id) => (id === DOC ? row : null) },
+            kbStore: {
+                getDocument: async (id) => (id === DOC ? row : null),
+                getKB: async (id) => ({ id, tenant_id: 'owner1', keep_originals: keepOriginals }),
+            },
+            originalWithheldReason: (kb, doc) => originalWithheldReason(kb, doc, { redactionInForce: async () => redaction }),
             agentStore: { getForRuntime: async () => ({ config: { knowledge_base_ids: [KB_VISIBLE, KB_HIDDEN] } }) },
             visibleKbIdsFor: async (ids, opts) => { seen.visibleFor = { ids, opts }; return ids.filter((id) => visible.includes(id)); },
         },
@@ -65,6 +71,17 @@ test('a document without a stored original says so', async () => {
     const w = world({ hasOriginal: false });
     const res = await executeKbGetOriginal({ documentId: DOC }, CTX, w.deps);
     assert.match(res.error, /no stored original/);
+});
+
+test('no file while the base does not keep originals, or while redaction is in force for the document', async () => {
+    for (const opts of [{ keepOriginals: false }, { redaction: true }, { piiStatus: 'redacted' }]) {
+        const res = await executeKbGetOriginal({ documentId: DOC }, CTX, world(opts).deps);
+        assert.match(res.error, /no stored original/, JSON.stringify(opts));
+        assert.equal(res.file, undefined);
+    }
+    const failing = world();
+    const res = await executeKbGetOriginal({ documentId: DOC }, CTX, { ...failing.deps, originalWithheldReason: async () => { throw new Error('policy'); } });
+    assert.match(res.error, /no stored original/, 'a failing check withholds');
 });
 
 test('a bad documentId and no user are errors, not throws', async () => {

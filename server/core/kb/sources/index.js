@@ -60,6 +60,7 @@ const cloudFolder = require('./cloudFolder.mts');
  *   helpers: typeof import('../kbIngestionHelpers'), datatableStore?: typeof import('../../../stores/datatableStore'),
  *   extractSummary?: typeof import('../extractSummary'),
  *   keepOriginal?: typeof import('../originals.mts').keepOriginal,
+ *   deleteOriginal?: typeof import('../originals.mts').deleteOriginal,
  *   transcriptionStore?: typeof import('../../../stores/transcriptionStore') }} SyncDeps
  */
 /**
