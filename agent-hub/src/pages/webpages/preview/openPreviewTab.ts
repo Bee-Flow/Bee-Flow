@@ -12,6 +12,8 @@
  * frame nor anything it loads can reach the editor window through it.
  */
 
+import { logger } from '@/utils/logger';
+
 /** The sandbox every preview frame runs under, inline and in its own tab. */
 export const PREVIEW_SANDBOX = 'allow-scripts allow-forms';
 
@@ -33,9 +35,10 @@ export function openPreviewInNewTab(source: PreviewTabSource, title: string): bo
     if (!tab) return false;
     try {
         tab.opener = null;
-    } catch {
+    } catch (err) {
         // A browser that will not clear it still gets the frame: the frame's
         // own origin is opaque either way.
+        logger.debug('[WebpagePreview] could not clear the new tab opener', err);
     }
     const doc = tab.document;
     doc.title = title;

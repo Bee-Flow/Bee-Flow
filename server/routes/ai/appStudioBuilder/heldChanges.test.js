@@ -18,20 +18,22 @@ process.env.NODE_ENV = 'test';
 
 const clone = (v) => JSON.parse(JSON.stringify(v));
 const state = { saves: [], defSaves: 0 };
-// The two store seams the tools save through, stubbed before anything loads them (no database).
-function stub(rel, exports) {
-    const filename = require.resolve(rel);
-    require.cache[filename] = { id: filename, filename, loaded: true, exports };
-}
-stub('../../../stores/studioAppDataStore', {
-    async saveDataModel(_appId, _owner, model) { state.saves.push(clone(model)); return { ok: true, version: state.saves.length + 1 }; },
-    async getRowCounts() { return { tbl_orders: 3 }; },
-});
-stub('../../../stores/userStore', { async getUser() { return null; } });
-stub('../../../stores/studioAppStore', {
-    async saveDefinition() { state.defSaves += 1; return { ok: true, version: 10 + state.defSaves }; },
-    async updateStudioApp() { return null; },
-});
+// The stores the tools save through are loaded for real and the methods these tests reach swapped
+// for stand-ins (no database); the originals come back when the file is done.
+const swaps = [
+    [require('../../../stores/studioAppDataStore'), {
+        async saveDataModel(_appId, _owner, model) { state.saves.push(clone(model)); return { ok: true, version: state.saves.length + 1 }; },
+        async getRowCounts() { return { tbl_orders: 3 }; },
+    }],
+    [require('../../../stores/userStore'), { async getUser() { return null; } }],
+    [require('../../../stores/studioAppStore'), {
+        async saveDefinition() { state.defSaves += 1; return { ok: true, version: 10 + state.defSaves }; },
+        async updateStudioApp() { return null; },
+    }],
+];
+const originals = swaps.map(([target, methods]) => [target, Object.fromEntries(Object.keys(methods).map((k) => [k, target[k]]))]);
+swaps.forEach(([target, methods]) => Object.assign(target, methods));
+test.after(() => originals.forEach(([target, saved]) => Object.assign(target, saved)));
 
 const { holdCall, readConfirmation, settleHeldChange, APPLY, SKIP } = require('./heldChanges.mts');
 const { frameAppData, APP_DATA_RULE } = require('../../../appStudio/builderPrompt/appDataFrame.mts');

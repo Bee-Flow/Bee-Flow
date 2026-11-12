@@ -20,7 +20,7 @@ const { StoreInputError } = require('../../stores/lib/storeInputError');
 const DEFAULT_DEPS = {
     getUser: (id) => userStore.getUser(id),
     mode: deploymentMode,
-    holds: (userId, permission, orgId, session) => require('../../auth/permissions').hasPermissionInOrg(userId, permission, orgId, /** @type {any} */ (session)),
+    holds: (userId, permission, orgId, session) => require('../../auth/permissions').hasPermissionInOrg(userId, permission, orgId, /** @type {import('../../core/entitlements/entitlementTypes').SessionLike | null} */ (session)),
 };
 
 /** The permission every admin DSR route is gated on. */
