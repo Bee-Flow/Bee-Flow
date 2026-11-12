@@ -162,8 +162,10 @@ function dispatch({ method = 'POST', url, user = 'viewer-1', userOrgId = null, o
 const OWNER = 'owner-1';
 const ORG = 'org-1';
 
+// Without screens of its own, a fixture wires one open button per action: an action nothing in the app wires is the owner's alone.
+const wiredScreens = (actions) => [{ id: 's1', name: 'Home', sections: [{ id: 'sec1', children: Object.keys(actions || {}).map((id, i) => ({ id: `cmp_w${i}`, type: 'button', props: {}, onClick: id })) }] }];
 function defWithActions(actions, screens) {
-    return { schemaVersion: 1, meta: {}, theme: {}, homeScreenId: 's1', screens: screens || [], actions: actions || {} };
+    return { schemaVersion: 1, meta: {}, theme: {}, homeScreenId: 's1', screens: screens || wiredScreens(actions), actions: actions || {} };
 }
 
 let seq = 0;
@@ -443,13 +445,16 @@ test('ONE reachable wiring is enough, even when another is gated away', async ()
     assert.strictEqual(r.statusCode, 200);
 });
 
-test('an action NO node wires stays runnable (programmatic actions are not gated)', async () => {
+test('an action NO node wires runs for the owner only', async () => {
     const app = makeApp({
         actionsPub: { act1: RUN_ACTION },
         screensPub: screensWith([{ id: 'cmp_other', type: 'button', props: {}, onClick: 'act2', visibleToRoles: ['admin'] }]),
     });
-    const r = await dispatch({ url: `/${app.id}/actions/act1/run`, orgIds: [ORG], body: {} });
-    assert.strictEqual(r.statusCode, 200);
+    const r = await dispatch({ url: `/${app.id}/actions/act1/run`, user: 'viewer-9', orgIds: [ORG], body: {} });
+    assert.strictEqual(r.statusCode, 403);
+    assert.strictEqual(runnerCalls.length, 0);
+    const own = await dispatch({ url: `/${app.id}/actions/act1/run`, user: OWNER, body: {} });
+    assert.strictEqual(own.statusCode, 200);
     assert.strictEqual(runnerCalls.length, 1);
 });
 

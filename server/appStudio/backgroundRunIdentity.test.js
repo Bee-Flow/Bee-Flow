@@ -107,8 +107,7 @@ test('rule 6: the role today is the role the run started with, and it still reac
     assert.equal(await refusal(world({ role: 'manager' })), 'role_changed', 'promoted');
     assert.equal(await refusal(world({ role: null })), 'role_changed', 'removed');
     assert.equal(await refusal(world({ access: { referenced: true, allowed: false } })), 'role_denied');
-    const programmatic = await loadResumeContext(row(), meta(), world({ access: { referenced: false, allowed: false } }));
-    assert.equal(programmatic.ok, true, 'an action no control wires is not role-gated, as at the start');
+    assert.equal(await refusal(world({ access: { referenced: false, allowed: false } })), 'role_denied', 'an action nothing wires is the owner\'s alone, as at the start');
 });
 
 test('a refusal names no person', async () => {

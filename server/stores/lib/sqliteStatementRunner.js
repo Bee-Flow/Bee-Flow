@@ -13,7 +13,10 @@
  * deadline therefore only touches the statements of that owner. The number of
  * processes is capped by SQLITE_STATEMENT_MAX_PROCESSES (default 8, 0 =
  * unlimited): at the cap an idle process is retired for the new owner, and
- * when none is idle the owner shares the least busy one. A process that has
+ * when none is idle the new owner's statement waits, at most one deadline,
+ * until a process is free (StatementTimeoutError after that; it never ran).
+ * Two owners therefore never share a process, so a stop at the deadline
+ * never fails another owner's write. A process that has
  * had nothing to do for SQLITE_STATEMENT_IDLE_MS (default 60000, 0 = never)
  * is retired. A statement that does not answer within the deadline
  * ends the process (SIGKILL): the operating system releases its file locks,
@@ -41,6 +44,7 @@ const path = require('path');
 const { fork } = require('child_process');
 const log = require('../../telemetry/log');
 const { STATEMENT_OPS } = require('./sqliteBlobStatements');
+const { LaneWaiters } = require('./laneWaiters.mts');
 
 const DEFAULT_TIMEOUT_MS = 5000;
 const DEFAULT_MAX_PROCESSES = 8;
@@ -102,10 +106,14 @@ function reviveBlobs(v) {
 
 /** One statement process and the statements sent to it. */
 class StatementLane {
-    /** @param {{ timeoutMs: number, entityLabel: string, logPrefix: string, idleMs?: number, onIdle?: () => void }} opts */
-    constructor({ timeoutMs, entityLabel, logPrefix, idleMs = 0, onIdle }) {
+    /** @param {{ timeoutMs: number, entityLabel: string, logPrefix: string, idleMs?: number, onIdle?: () => void, onFree?: () => void }} opts */
+    constructor({ timeoutMs, entityLabel, logPrefix, idleMs = 0, onIdle, onFree }) {
         this.idleMs = idleMs;
         this.onIdle = onIdle;
+        /** Called whenever the lane has nothing left to do (the runner may hand it to a waiting owner). */
+        this.onFree = onFree;
+        /** Statements waiting for a stopped process to exit before they are sent. */
+        this.queued = 0;
         /** @type {NodeJS.Timeout | null} */
         this.idleTimer = null;
         this.timeoutMs = timeoutMs;
@@ -137,10 +145,11 @@ class StatementLane {
             this.idleTimer = setTimeout(() => { this.idleTimer = null; if (this.isIdle()) onIdle(); }, this.idleMs);
             this.idleTimer.unref();
         }
+        if (this.isIdle()) this.onFree?.();
     }
 
-    /** Nothing in flight and no stopped process still exiting. */
-    isIdle() { return this.inflight.size === 0 && !this.draining; }
+    /** Nothing in flight, nothing waiting to be sent and no stopped process still exiting. */
+    isIdle() { return this.inflight.size === 0 && this.queued === 0 && !this.draining; }
 
     /** End an idle process cleanly: it closes its connections on disconnect. */
     retire() {
@@ -245,7 +254,11 @@ class StatementLane {
         this.pendingRecovery.push(...this.failFor(victim, new StatementTimeoutError(
             `${this.entityLabel} statement exceeded the ${this.timeoutMs} ms limit and was stopped`), spare, again));
         log.warn(`[${this.logPrefix}] statement exceeded ${this.timeoutMs} ms on ${path.basename(p.entry.localPath)}; stopping the statement process`);
-        this.draining = new Promise((resolve) => victim.once('exit', () => { this.draining = null; resolve(); }));
+        this.draining = new Promise((resolve) => victim.once('exit', () => {
+            this.draining = null;
+            resolve();
+            if (this.isIdle()) this.onFree?.();
+        }));
         victim.kill('SIGKILL');
         // Waits for the stopped process to exit (run() awaits draining), once.
         for (const q of again) this.run(q.entry, q.op, q.args, true).then(q.resolve, q.reject);
@@ -259,8 +272,12 @@ class StatementLane {
      */
     async run(entry, op, args, retried = false) {
         // A killed process may still hold the file's lock for a moment; its
-        // successor would only wait on it.
-        while (this.draining) await this.draining;
+        // successor would only wait on it. Counted as queued meanwhile, so the
+        // lane is not handed to another owner while it still has work.
+        if (this.draining) {
+            this.queued++;
+            try { while (this.draining) await this.draining; } finally { this.queued--; }
+        }
         if (!this.child) this.child = this.spawn();
         const proc = this.child;
         return new Promise((resolve, reject) => {
@@ -300,15 +317,23 @@ class ProcessRunner {
         this.maxProcesses = maxProcesses;
         /** @type {Map<string, StatementLane>} */
         this.lanes = new Map();
+        /** Owners waiting for a process at the cap. @type {import('./laneWaiters.mts').LaneWaiters<StatementLane>} */
+        this.waiters = new LaneWaiters();
     }
 
-    /** @param {string} key */
+    /**
+     * The process of owner `key`: its own, a new one, or, at the cap, an idle
+     * one retired for it. Null when the cap is reached and every process is
+     * busy: an owner never sends to another owner's process.
+     * @param {string} key
+     * @returns {StatementLane | null}
+     */
     laneFor(key) {
         const existing = this.lanes.get(key);
         if (existing) return existing;
         if (this.maxProcesses > 0 && this.lanes.size >= this.maxProcesses) {
             const idle = [...this.lanes].find(([, l]) => l.isIdle());
-            if (!idle) return [...this.lanes.values()].reduce((a, b) => (b.inflight.size < a.inflight.size ? b : a));
+            if (!idle) return null;
             idle[1].retire();
             this.lanes.delete(idle[0]);
         }
@@ -319,15 +344,24 @@ class ProcessRunner {
                 lane.retire();
                 this.lanes.delete(key);
             },
+            onFree: () => this.waiters.serve((k) => this.laneFor(k)),
         });
         this.lanes.set(key, lane);
         return lane;
     }
 
     /** @param {RunnerHandle} entry @param {StatementOp} op @param {unknown[]} args */
-    run(entry, op, args) { return this.laneFor(String(entry.ownerId ?? '')).run(entry, op, args); }
+    run(entry, op, args) {
+        const key = String(entry.ownerId ?? '');
+        const lane = this.laneFor(key);
+        if (lane) return lane.run(entry, op, args);
+        return new Promise((resolve, reject) => this.waiters.add(key, this.timeoutMs,
+            (/** @type {StatementLane} */ l) => { l.run(entry, op, args).then(resolve, reject); }, reject,
+            () => new StatementTimeoutError(`${this.laneOpts.entityLabel} statement waited ${this.timeoutMs} ms for a free statement process and was not run`)));
+    }
 
     stop() {
+        this.waiters.failAll(new Error(`${this.laneOpts.entityLabel} statement process stopped`));
         for (const lane of this.lanes.values()) lane.stop();
         this.lanes.clear();
     }

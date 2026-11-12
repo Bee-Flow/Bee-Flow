@@ -39,17 +39,32 @@ test('two levels deep: the grand-callee follows the root', () => {
     assert.strictEqual(actionRoleAccess(def, 'act_leaf', 'admin').allowed, true);
 });
 
-test('one reachable caller is enough: open root, or a programmatic (unwired, uncalled) root', () => {
+test('one reachable caller is enough; a root nothing wires lets no one but the owner reach its callees', () => {
     const both = defWith([['act_admin', ['admin']], ['act_open']], { act_admin: SEQ(CALL('act_mail')), act_open: SEQ(CALL('act_mail')), act_mail: MAIL });
     assert.deepStrictEqual(actionRoleAccess(both, 'act_mail', 'member'), { referenced: true, allowed: true });
-    const programmatic = defWith([], { act_root: SEQ(CALL('act_mail')), act_mail: MAIL });
-    assert.deepStrictEqual(actionRoleAccess(programmatic, 'act_mail', 'member'), { referenced: true, allowed: true });
+    const unwired = defWith([], { act_root: SEQ(CALL('act_mail')), act_mail: MAIL });
+    assert.deepStrictEqual(actionRoleAccess(unwired, 'act_mail', 'member'), { referenced: true, allowed: false });
+    assert.strictEqual(assertActionRoleAccess(fakeRes(), unwired, 'act_mail', 'member', { isOwner: false }), false);
+    assert.strictEqual(assertActionRoleAccess(fakeRes(), unwired, 'act_mail', 'member', { isOwner: true }), true);
 });
 
-test('an action nothing wires and nothing calls stays programmatic (unchanged behaviour)', () => {
+test('an action nothing wires and nothing calls is the owner\'s alone', () => {
     const def = defWith([['act_admin', ['admin']]], { act_admin: MAIL, act_chain: MAIL });
     assert.deepStrictEqual(actionRoleAccess(def, 'act_chain', 'member'), { referenced: false, allowed: false });
-    assert.strictEqual(assertActionRoleAccess(fakeRes(), def, 'act_chain', 'member', { isOwner: false }), true);
+    const res = fakeRes();
+    assert.strictEqual(assertActionRoleAccess(res, def, 'act_chain', 'member', { isOwner: false }), false);
+    assert.strictEqual(res.statusCode, 403);
+    assert.strictEqual(assertActionRoleAccess(fakeRes(), def, 'act_chain', 'member', { isOwner: true }), true, 'the owner runs it');
+    assert.strictEqual(documentChecks(def, 'member').actionAllowed('act_chain'), false);
+});
+
+test('an action only a mailbox hook names (it lives in the data model) is refused to a member, like a trigger\'s', () => {
+    // model.connectors[].onNewRecord.actionId is outside the definition: nothing in the app wires the action.
+    const def = defWith([['act_open']], { act_open: MAIL, act_hook: SEQ({ kind: 'create_record', tableId: 't', values: {} }) });
+    const res = fakeRes();
+    assert.strictEqual(assertActionRoleAccess(res, def, 'act_hook', 'member', { isOwner: false }), false);
+    assert.strictEqual(res.statusCode, 403);
+    assert.strictEqual(assertActionRoleAccess(fakeRes(), def, 'act_open', 'member', { isOwner: false }), true, 'a wired action still runs for its roles');
 });
 
 test('a callee wired to an open button of its own stays allowed', () => {
@@ -85,8 +100,17 @@ test('an action a node lists in its props follows that node\'s role gate, whiche
     }
 });
 
-test('an action nothing wires and nothing calls stays programmatic', () => {
-    const def = defWith([['act_other', ['admin']]], { act_other: MAIL, act_chain: MAIL });
-    assert.deepStrictEqual(actionRoleAccess(def, 'act_chain', 'member'), { referenced: false, allowed: false });
-    assert.strictEqual(assertActionRoleAccess(fakeRes(), def, 'act_chain', 'member', { isOwner: false }), true);
+test('a node gated for one role hides its chat from another; the owner role sees everything', () => {
+    const { locateNode } = require('./studioAppRunGate');
+    const def = { screens: [
+        { id: 'scr_admin', visibleToRoles: ['admin'], sections: [{ id: 'sec_1', children: [{ id: 'cmp_chat1', type: 'ai_chat' }] }] },
+        { id: 'scr_open', sections: [{ id: 'sec_2', visibleToRoles: ['admin'], children: [{ id: 'cmp_chat2', type: 'ai_chat' }] },
+            { id: 'sec_3', children: [{ id: 'cmp_box', type: 'container', visibleToRoles: ['admin'], children: [{ id: 'cmp_chat3', type: 'ai_chat' }] }, { id: 'cmp_chat4', type: 'ai_chat' }] }] },
+    ] };
+    for (const id of ['cmp_chat1', 'cmp_chat2', 'cmp_chat3']) {
+        assert.strictEqual(locateNode(def, id, 'member').visible, false, id);
+        assert.strictEqual(locateNode(def, id, 'admin').visible, true, id);
+    }
+    assert.strictEqual(locateNode(def, 'cmp_chat4', 'member').visible, true);
+    assert.strictEqual(locateNode(def, 'cmp_none', 'member'), null);
 });

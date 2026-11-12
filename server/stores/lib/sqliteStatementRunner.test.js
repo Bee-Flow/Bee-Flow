@@ -251,3 +251,40 @@ test('the process count is capped and an idle process is retired', async (t) => 
     assert.strictEqual(runner.lanes.size, 0, 'idle processes are retired');
     assert.strictEqual(DEFAULT_MAX_PROCESSES > 0 && DEFAULT_IDLE_MS > 0, true);
 });
+
+test('at the cap a new owner waits for a free process: a stop at the deadline never fails its write', async (t) => {
+    const runner = createStatementRunner({ timeoutMs: GENEROUS_MS, entityLabel: 'x', logPrefix: 'x', maxProcesses: 1, idleMs: 0 });
+    const engine = makeEngine({ statementTimeoutMs: GENEROUS_MS });
+    t.after(() => { runner.stop(); return engine.closeAll(); });
+    const slow = freshId();
+    const other = freshId();
+    await engine.exec(OWNER, slow, 'CREATE TABLE t (a)');
+    await engine.exec('owner-B', other, 'CREATE TABLE u (b)');
+    const [hSlow, hOther] = [engine._handles.get(slow), engine._handles.get(other)];
+    runner.laneFor(OWNER).timeoutMs = CUTOFF_MS;
+    const stopped = runner.run(hSlow, 'query', [ENDLESS, []]);
+    const write = runner.run(hOther, 'exec', ['INSERT INTO u VALUES (1)', []]);
+    assert.strictEqual(runner.lanes.size, 1, 'the second owner does not share the busy process');
+    const results = await Promise.allSettled([stopped, write]);
+    assert.ok(results[0].status === 'rejected' && results[0].reason instanceof StatementTimeoutError);
+    assert.strictEqual(results[1].status, 'fulfilled', 'the other owner\'s write ran once a process was free');
+    assert.deepStrictEqual((await runner.run(hOther, 'query', ['SELECT b FROM u', []])).rows, [{ b: 1 }]);
+});
+
+test('a statement that finds no free process within the deadline fails without running', async (t) => {
+    const runner = createStatementRunner({ timeoutMs: GENEROUS_MS, entityLabel: 'x', logPrefix: 'x', maxProcesses: 1, idleMs: 0 });
+    const engine = makeEngine({ statementTimeoutMs: GENEROUS_MS });
+    t.after(() => { runner.stop(); return engine.closeAll(); });
+    const slow = freshId();
+    const other = freshId();
+    await engine.exec(OWNER, slow, 'CREATE TABLE t (a)');
+    await engine.exec('owner-B', other, 'CREATE TABLE u (b)');
+    const [hSlow, hOther] = [engine._handles.get(slow), engine._handles.get(other)];
+    const stopped = runner.run(hSlow, 'query', [ENDLESS, []]);
+    runner.timeoutMs = CUTOFF_MS; // the wait of the next owner only
+    const waited = runner.run(hOther, 'exec', ['INSERT INTO u VALUES (1)', []]);
+    await assert.rejects(waited, StatementTimeoutError);
+    runner.stop();
+    await assert.rejects(stopped);
+    assert.deepStrictEqual((await engine.query('owner-B', other, 'SELECT b FROM u')).rows, []);
+});

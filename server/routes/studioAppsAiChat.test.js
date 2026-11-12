@@ -51,7 +51,9 @@ stub('../auth/audience', {
 stub('../core/automationRunner', { executeAutomation: async () => ({ id: 'r', status: 'success' }) });
 stub('../stores/studioAppDataStore', { getDataModel: async () => ({ model: null }), getMemberRole: async () => null });
 stub('../stores/studioAppDbStore', {});
-stub('../appStudio/rlsGateway', { resolveViewerRole: async () => 'owner' });
+/** The role the next request's viewer has in the app (null = none). */
+let viewerRole = 'owner';
+stub('../appStudio/rlsGateway', { resolveViewerRole: async () => viewerRole });
 
 // The AI runtime is stubbed — no model, KB or provider is touched.
 const aiCalls = { resolveOwnerModel: [], groundWithKB: [], streamChat: [] };
@@ -131,6 +133,7 @@ function makeApp({ published = true, pubNodes, draftNodes } = {}) {
 }
 
 test.beforeEach(() => {
+    viewerRole = 'owner';
     for (const k of Object.keys(aiCalls)) aiCalls[k].length = 0;
     streamImpl = (onEvent) => { onEvent('text', { text: 'Hi' }); onEvent('done', { usage: {} }); };
 });
@@ -215,4 +218,39 @@ test('a stream failure is reported as an SSE error event, not a broken response'
     assert.strictEqual(evts[0].type, 'error');
     // internal fault details never leak to the viewer
     assert.doesNotMatch(evts[0].error, /exploded/);
+});
+
+test('a viewer without a role in the app cannot spend the owner\'s model budget through a chat', async () => {
+    const app = makeApp({ pubNodes: [chatNode()] });
+    viewerRole = null;
+    const res = await dispatch({ url: `/${app.id}/ai/chat`, user: 'viewer-9', orgIds: [ORG], body: { nodeId: 'cmp_chat', messages: [{ role: 'user', content: 'x' }] } });
+    assert.strictEqual(res.statusCode, 403);
+    assert.strictEqual(aiCalls.streamChat.length, 0);
+    assert.strictEqual(aiCalls.resolveOwnerModel.length, 0);
+});
+
+test('a chat on a screen, section or container gated to other roles is not there for a member', async () => {
+    const gated = { ...chatNode(), visibleToRoles: ['admin'] };
+    const box = { id: 'cmp_box', type: 'container', visibleToRoles: ['admin'], children: [chatNode()] };
+    const apps3 = [makeApp({ pubNodes: [gated] }), makeApp({ pubNodes: [box] }), makeApp({ pubNodes: [chatNode()] })];
+    apps3[2].publishedDefinition.screens[0].visibleToRoles = ['admin'];
+    viewerRole = 'member';
+    for (const app of apps3) {
+        const res = await dispatch({ url: `/${app.id}/ai/chat`, user: 'viewer-9', orgIds: [ORG], body: { nodeId: 'cmp_chat', messages: [{ role: 'user', content: 'x' }] } });
+        assert.strictEqual(res.statusCode, 404, app.id);
+    }
+    assert.strictEqual(aiCalls.streamChat.length, 0);
+    viewerRole = 'admin';
+    const ok = await dispatch({ url: `/${apps3[1].id}/ai/chat`, user: 'viewer-9', orgIds: [ORG], body: { nodeId: 'cmp_chat', messages: [{ role: 'user', content: 'x' }] } });
+    assert.deepStrictEqual(events(ok), [{ type: 'text', text: 'Hi' }, { type: 'done' }]);
+    // The owner reaches every chat of the app.
+    const own = await dispatch({ url: `/${apps3[0].id}/ai/chat`, user: OWNER, body: { nodeId: 'cmp_chat', messages: [{ role: 'user', content: 'x' }] } });
+    assert.deepStrictEqual(events(own), [{ type: 'text', text: 'Hi' }, { type: 'done' }]);
+});
+
+test('a member whose role sees the chat talks to it', async () => {
+    const app = makeApp({ pubNodes: [chatNode()] });
+    viewerRole = 'member';
+    const res = await dispatch({ url: `/${app.id}/ai/chat`, user: 'viewer-9', orgIds: [ORG], body: { nodeId: 'cmp_chat', messages: [{ role: 'user', content: 'x' }] } });
+    assert.deepStrictEqual(events(res), [{ type: 'text', text: 'Hi' }, { type: 'done' }]);
 });
