@@ -1,12 +1,13 @@
 import { ArrowUpRight, ChevronDown } from 'lucide-react';
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { CHOOSER_SECTION, chooserRequest } from './toolChooser';
-import { ACT_AS, ACT_AS_KIND, CONFIRM, MAIL_ACCESS } from './toolGrants.helpers';
+import { ACT_AS, ACT_AS_KIND, CONFIRM, MAIL_ACCESS, MAIL_RUN_OPTIONS } from './toolGrants.helpers';
 import { getIntegrationIcon } from '@/config/integrationIcons';
 import { nOf } from '@/components/admin/Studio/KnowledgeStudio/plural';
 import { actionLabelMap } from '@/components/automation/Builder/flow/appLabels';
 import AnchoredMenu from '@/components/shared/AnchoredMenu';
 import SegmentedControl from '@/components/shared/SegmentedControl';
+import Toggle from '@/components/shared/Toggle';
 import type { ToolApp, ToolCardRow, ToolRowProps, TranslateFn } from './ToolsCard.types';
 
 /** Waarschuwingstekst onder een rij — één regel, altijd in de waarschuwkleur. */
@@ -202,8 +203,58 @@ function MailAccessControl({ t, row, ro, onChange }: { t: TranslateFn; row: Tool
     );
 }
 
+/** A small labelled switch under the controls of a row. */
+function RowSwitch({ testId, checked, ro, label, hint, onChange }: {
+    testId: string; checked: boolean; ro?: boolean; label: string; hint: string; onChange: (next: boolean) => void;
+}) {
+    return (
+        <div className="flex items-start gap-2" data-testid={testId}>
+            <Toggle size="sm" checked={checked} disabled={ro} onChange={onChange} ariaLabel={label} />
+            <span className="min-w-0">
+                <span className="block text-[12px] text-[var(--text-secondary)]">{label}</span>
+                <span className="block text-[11px] text-[var(--text-tertiary)]">{hint}</span>
+            </span>
+        </div>
+    );
+}
+
+/**
+ * Runs started by an e-mail. Gmail and Outlook with "Send replies": may a reply also go to the others on the mail.
+ * Every other app: may such a run use it at all (off by default; actions that ask first never run there).
+ */
+function MailRunSwitches({ t, row, ro, onChange }: { t: TranslateFn; row: ToolCardRow; ro?: boolean; onChange: (option: string, on: boolean) => void }) {
+    if (row.supportsMailAccess) {
+        if (row.mailAccess !== MAIL_ACCESS.SEND_REPLY) return null;
+        return (
+            <>
+                <span className="text-[11px] text-[var(--text-tertiary)]">
+                    {t('agent_studio.can_use.mail_reply_draft_hint', 'If the agent used information from outside the thread, the reply is saved as a draft for you.')}
+                </span>
+                <RowSwitch
+                    testId="agent-tool-reply-all"
+                    checked={row.replyAll}
+                    ro={ro}
+                    label={t('agent_studio.can_use.mail_reply_all', 'Also answer the others on the mail')}
+                    hint={t('agent_studio.can_use.mail_reply_all_hint', 'Off: a reply goes to the sender only.')}
+                    onChange={(on) => onChange(MAIL_RUN_OPTIONS.REPLY_ALL, on)}
+                />
+            </>
+        );
+    }
+    return (
+        <RowSwitch
+            testId="agent-tool-mail-runs"
+            checked={row.mailRuns}
+            ro={ro}
+            label={t('agent_studio.can_use.mail_runs', 'Also in runs started by an email')}
+            hint={t('agent_studio.can_use.mail_runs_hint', 'A run started by an email may then use this app, except actions that ask first.')}
+            onChange={(on) => onChange(MAIL_RUN_OPTIONS.MAIL_RUNS, on)}
+        />
+    );
+}
+
 /** Eén app-rij. Grid `1fr 1fr 220px 32px`, zoals het artboard hem tekent. */
-export function ToolRow({ t, ro, row, app, onChangeConfirm, onChangeActAs, onChangeMailAccess, onOpenChooser }: ToolRowProps) {
+export function ToolRow({ t, ro, row, app, onChangeConfirm, onChangeActAs, onChangeMailAccess, onChangeMailRunOption, onOpenChooser }: ToolRowProps) {
     const verbs = useVerbs(row, app);
     const shownVerbs = verbs ? verbs.slice(0, MAX_VERBS) : null;
     const restVerbs = verbs ? verbs.length - (shownVerbs?.length || 0) : 0;
@@ -297,6 +348,7 @@ export function ToolRow({ t, ro, row, app, onChangeConfirm, onChangeActAs, onCha
                 {row.supportsMailAccess && (
                     <MailAccessControl t={t} row={row} ro={ro} onChange={(next) => onChangeMailAccess?.(row.appId, next)} />
                 )}
+                <MailRunSwitches t={t} row={row} ro={ro} onChange={(option, on) => onChangeMailRunOption?.(row.appId, option, on)} />
                 {row.confirmLocked && (
                     <span className="text-[11px] text-[var(--text-tertiary)]">
                         {row.sends === true

@@ -13,7 +13,7 @@ import { INTEGRATION_CATALOG } from '../../AgentDesigner/integrations';
 import type { ReadState } from '../canUse/canUseFacts';
 import { READ, datatableGrantsOf, datatableRows, knowledgeBaseRows, skillRows } from '../canUse/canUseFacts';
 import { CHOOSER_SECTION } from '../canUse/toolChooser';
-import { automationGrantsOf, automationRows, keepRequiresGrantApps, setAppActAs, setAppConfirm, setAppMailAccess, toolRows } from '../canUse/toolGrants';
+import { automationGrantsOf, automationRows, keepRequiresGrantApps, setAppActAs, setAppConfirm, setAppMailAccess, setAppMailRunOption, toolRows } from '../canUse/toolGrants';
 import useCanUseSources from '../canUse/useCanUseSources';
 import useToolCatalog from '../canUse/useToolCatalog';
 import { AGENT_TAB_IDS } from './AgentEditorHeader';
@@ -95,6 +95,10 @@ function useGrantMutations(d: CanUseTabDeps, catalogApps: Loose) {
         writeTools(setAppMailAccess(stateRef.current.config?.tools ?? null, appId, mailAccess,
             { requiresGrant: requiresGrantOf(appId) }));
     }, [writeTools, stateRef, requiresGrantOf]);
+    const onChangeMailRunOption = useCallback((appId: string, option: string, on: boolean) => {
+        writeTools(setAppMailRunOption(stateRef.current.config?.tools ?? null, appId, option, on,
+            { requiresGrant: requiresGrantOf(appId) }));
+    }, [writeTools, stateRef, requiresGrantOf]);
 
     // What the tool chooser yields: ONE save for both gates. The chooser
     // serves the app-level list (`enabledIntegrations`) and the action-level
@@ -110,7 +114,7 @@ function useGrantMutations(d: CanUseTabDeps, catalogApps: Loose) {
         }
         patchConfig({ tools });
     }, [patchConfig, setEnabledIntegrations, setToolsConfig]);
-    return { onChangeConfirm, onChangeActAs, onChangeMailAccess, onCommitTools };
+    return { onChangeConfirm, onChangeActAs, onChangeMailAccess, onChangeMailRunOption, onCommitTools };
 }
 
 /**

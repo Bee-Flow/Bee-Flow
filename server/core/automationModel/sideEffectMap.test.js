@@ -122,6 +122,12 @@ test('effectOf splits sends out of writes, fail-closed', () => {
     assert.strictEqual(effectOf('signrequest_send_document'), 'sends');
     assert.strictEqual(effectOf('nextcloud_mail_send'), 'sends');
     assert.strictEqual(effectOf('calendar_create_event'), 'sends');
+    // A CRM record outside the workspace: a person decides, as for the CRM's MCP server.
+    for (const name of ['frappe_crm_create_lead', 'frappe_crm_update_lead', 'frappe_crm_create_deal',
+        'frappe_crm_update_deal', 'frappe_crm_add_note', 'frappe_crm_create_task']) {
+        assert.strictEqual(effectOf(name), 'sends', name);
+    }
+    assert.strictEqual(effectOf('frappe_crm_list_deals'), 'reads');
     // A draft is the opposite of a send — it must stay a plain write, or every
     // "prepare this for me" turn would need a confirmation it already has.
     assert.strictEqual(effectOf('gmail_create_draft'), 'writes');

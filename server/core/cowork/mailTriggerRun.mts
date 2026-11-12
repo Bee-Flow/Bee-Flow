@@ -10,6 +10,7 @@
  *   - at most AGENT_MAIL_TRIGGER_MAX_PER_HOUR runs per schedule per hour (default 60, 0 = unlimited): over it the
  *     mail is skipped and logged, never queued without bound;
  *   - one run at a time per schedule: the rest wait in a short in-process queue (a full queue drops the mail, logged);
+ *   - an automatic mail (Auto-Submitted other than "no", or a bulk / list / junk Precedence) starts no run;
  *   - the text of the mail is somebody else's: it goes into the prompt as marked, untrusted data, and the run is
  *     unattended with `mailTrigger` metadata, which narrows the tool stack (core/agentRuntime/toolStackAssembly.js)
  *     and is what the reply-in-thread tools check their thread against;
@@ -50,6 +51,18 @@ export type MailMessage = {
     from: string; to: string; cc: string; subject: string; date: string; body: string;
     messageId: string; threadId: string; mailbox: string | null; bodyAvailable: boolean;
 };
+
+/** Where fetchProviderMessage puts the automatic-mail headers on the fetched row. */
+const AUTO_HEADERS = '_autoHeaders';
+type AutoHeaders = { autoSubmitted: string; precedence: string };
+
+/** Auto-Submitted other than "no", or a bulk / list / junk Precedence (../../integrations/mailReplyGuard.js). */
+export function isAutomaticFetched(fetched: Row | null): boolean {
+    const headers = fetched ? (fetched[AUTO_HEADERS] as AutoHeaders | undefined) : undefined;
+    if (!headers) return false;
+    const { isAutomaticMail } = nodeRequire('../../integrations/mailReplyGuard.js') as { isAutomaticMail: (h: AutoHeaders) => boolean };
+    return isAutomaticMail(headers);
+}
 
 type Schedule = {
     id: string; userId: string; agentId: string | null; isActive: boolean; title?: string; prompt?: string;
@@ -108,20 +121,49 @@ function htmlToText(html: string): string {
         .replace(/[ \t]+/g, ' ').replace(/\n\s*\n\s*\n+/g, '\n\n').trim();
 }
 
+type Tokens = { accessToken: unknown; refreshToken: unknown; scope: unknown };
+type HeaderList = Array<{ name?: string | null; value?: string | null }> | null | undefined;
+
+const headerIn = (headers: HeaderList, name: string): string =>
+    String((headers || []).find((h) => String(h?.name || '').toLowerCase() === name)?.value || '');
+
+/** The two headers that mark an automatic mail, read straight from the provider (the read layer does not keep them). */
+async function automaticHeaders(provider: 'gmail' | 'outlook', tokens: Tokens, messageId: string, shared: string | null): Promise<AutoHeaders> {
+    const clients = nodeRequire('../../services/email/providerClients.js') as {
+        gmailClientFromTokens: (t: Tokens, r: () => void) => Promise<{ users: { messages: { get: (p: Row) => Promise<{ data?: { payload?: { headers?: HeaderList } } }> } } }>;
+        graphFetchFromTokens: (t: Tokens, r: () => void, path: string) => Promise<{ internetMessageHeaders?: HeaderList }>;
+    };
+    let headers: HeaderList = [];
+    if (provider === 'gmail') {
+        const gmail = await clients.gmailClientFromTokens(tokens, () => undefined);
+        const res = await gmail.users.messages.get({ userId: 'me', id: messageId, format: 'metadata', metadataHeaders: ['Auto-Submitted', 'Precedence'] });
+        headers = res.data?.payload?.headers;
+    } else {
+        const base = shared ? `/users/${encodeURIComponent(shared)}` : '/me';
+        headers = (await clients.graphFetchFromTokens(tokens, () => undefined, `${base}/messages/${encodeURIComponent(messageId)}?$select=internetMessageHeaders`)).internetMessageHeaders;
+    }
+    return { autoSubmitted: headerIn(headers, 'auto-submitted'), precedence: headerIn(headers, 'precedence') };
+}
+
 /** Read the new message through the shared read layer. Null when the credential or the provider cannot answer. */
 async function fetchProviderMessage(p: { provider: 'gmail' | 'outlook'; userId: string; messageId: string; mailbox: string | null }): Promise<Row | null> {
     const automationAuth = nodeRequire('../../auth/automationAuth.js') as { getProviderAuth: (userId: string, provider: string) => Promise<Row | null> };
     const cred = await automationAuth.getProviderAuth(p.userId, p.provider === 'gmail' ? 'google' : 'microsoft');
     if (!cred || !cred.accessToken) return null;
     const { getMessage } = nodeRequire('../../services/email/fetch.js') as { getMessage: (o: Row) => Promise<Row> };
-    const shared = p.provider === 'outlook' && !!p.mailbox && p.mailbox !== 'me';
-    return await getMessage({
+    const shared = p.provider === 'outlook' && !!p.mailbox && p.mailbox !== 'me' ? p.mailbox : null;
+    const tokens = { accessToken: cred.accessToken, refreshToken: cred.refreshToken, scope: cred.scope };
+    const message = await getMessage({
         provider: p.provider,
-        tokens: { accessToken: cred.accessToken, refreshToken: cred.refreshToken, scope: cred.scope },
+        tokens,
         onRefresh: () => undefined,
-        mailbox: shared ? { mode: 'shared', address: p.mailbox } : { mode: 'personal' },
+        mailbox: shared ? { mode: 'shared', address: shared } : { mode: 'personal' },
         id: p.messageId,
     });
+    // Without them the run goes ahead: the reply tools check the same headers again before they answer.
+    const auto = await automaticHeaders(p.provider, tokens, p.messageId, shared)
+        .catch((e: Error) => { log.warn(`[MailTrigger] could not read the automatic-mail headers: ${e.message}`); return null; });
+    return auto ? { ...message, [AUTO_HEADERS]: auto } : message;
 }
 
 /**
@@ -228,6 +270,8 @@ async function processEvent(sub: MailSubscription, payload: MailPayload, deps: D
     let fetched: Row | null = null;
     try { fetched = await deps.fetchMessage({ provider, userId, messageId, mailbox }); }
     catch (e) { log.warn(`[MailTrigger] schedule ${scheduleId}: could not read the message: ${(e as Error).message}`); }
+    // Answering an automatic mail (an auto-reply, a list, a bulk mailing) is how mail loops start.
+    if (isAutomaticFetched(fetched)) { log.info(`[MailTrigger] schedule ${scheduleId}: an automatic mail starts no run`); return; }
     const mail = shapeMessage(payload, fetched, messageId, mailbox);
 
     const mailTrigger = {

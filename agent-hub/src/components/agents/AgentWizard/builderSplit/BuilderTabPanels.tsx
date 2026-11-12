@@ -58,7 +58,7 @@ export function CanUseTabPanel({
     t, ro, rel, onNavigate, allSkills, knowledgeBaseIds, includeSourceReferences, onIncludeSourceReferencesChange,
     kbsState, refreshKbs, knowledgeRows, tableGrantRows, tablesState, tablesTruncated, refetchTables,
     attachedSkillRows, skillUsageState, appToolRows, catalogApps, catalogState, catalogDegraded, refetchCatalog,
-    lentState, refetchLent, grantedAutomationRows, onChangeConfirm, onChangeActAs, onChangeMailAccess, openChooser,
+    lentState, refetchLent, grantedAutomationRows, onChangeConfirm, onChangeActAs, onChangeMailAccess, onChangeMailRunOption, openChooser,
 }: Loose) {
     return (
         <div className="max-w-4xl mx-auto px-10 py-6">
@@ -102,6 +102,7 @@ export function CanUseTabPanel({
                 onChangeConfirm={onChangeConfirm}
                 onChangeActAs={onChangeActAs}
                 onChangeMailAccess={onChangeMailAccess}
+                onChangeMailRunOption={onChangeMailRunOption}
                 onOpenChooser={openChooser}
             />
         </div>

@@ -30,11 +30,27 @@ function sanitizeHeaderValue(value) {
 }
 
 /**
+ * The header lines a message carries only when they have a value (already sanitised).
+ * @param {{ cc?: string | null, bcc?: string | null, inReplyTo?: string | null, references?: string | null, autoReply?: boolean }} fields
+ * @returns {string[]}
+ */
+function optionalHeaders({ cc, bcc, inReplyTo, references, autoReply }) {
+    const lines = [];
+    if (cc) lines.push(`Cc: ${cc}`);
+    if (bcc) lines.push(`Bcc: ${bcc}`);
+    if (inReplyTo) lines.push(`In-Reply-To: ${inReplyTo}`);
+    if (references) lines.push(`References: ${references} ${inReplyTo || ''}`);
+    // An automatic reply says so (RFC 3834), so other responders do not answer it.
+    if (autoReply) lines.push('Auto-Submitted: auto-replied');
+    return lines;
+}
+
+/**
  * Build a base64url-encoded RFC 2822 message — the `raw` field shared by
  * messages.send (gmail_compose) and drafts.create (gmail_create_draft).
  * All header values pass through sanitizeHeaderValue first.
  */
-function buildRawMessage({ to, cc, bcc, subject, body, userEmail = '', inReplyTo = null, references = null }) {
+function buildRawMessage({ to, cc, bcc, subject, body, userEmail = '', inReplyTo = null, references = null, autoReply = false }) {
     // Every value below is interpolated into an RFC 2822 header block joined
     // with CRLF, and every one of them is attacker-reachable: to/cc/bcc/subject
     // come from model arguments (which an automation over inbound mail lets a
@@ -64,10 +80,7 @@ function buildRawMessage({ to, cc, bcc, subject, body, userEmail = '', inReplyTo
         'Content-Type: text/plain; charset=UTF-8',
         'Content-Transfer-Encoding: base64',
     ];
-    if (cc) headers.push(`Cc: ${cc}`);
-    if (bcc) headers.push(`Bcc: ${bcc}`);
-    if (inReplyTo) headers.push(`In-Reply-To: ${inReplyTo}`);
-    if (references) headers.push(`References: ${references} ${inReplyTo || ''}`);
+    headers.push(...optionalHeaders({ cc, bcc, inReplyTo, references, autoReply }));
 
     const encodedBody = Buffer.from(body || '', 'utf-8').toString('base64');
     const rawMessage = headers.join('\r\n') + '\r\n\r\n' + encodedBody;
@@ -82,10 +95,10 @@ function buildRawMessage({ to, cc, bcc, subject, body, userEmail = '', inReplyTo
 /**
  * @param {import('./messageShape').GmailClient} gmail
  * @param {{ to?: string, cc?: string, bcc?: string, subject?: string, body?: string, userEmail?: string,
- *   threadId?: string | null, inReplyTo?: string | null, references?: string | null }} message
+ *   threadId?: string | null, inReplyTo?: string | null, references?: string | null, autoReply?: boolean }} message
  */
-async function sendGmailMessage(gmail, { to, cc, bcc, subject, body, userEmail = '', threadId = null, inReplyTo = null, references = null }) {
-    const encodedMessage = buildRawMessage({ to, cc, bcc, subject, body, userEmail, inReplyTo, references });
+async function sendGmailMessage(gmail, { to, cc, bcc, subject, body, userEmail = '', threadId = null, inReplyTo = null, references = null, autoReply = false }) {
+    const encodedMessage = buildRawMessage({ to, cc, bcc, subject, body, userEmail, inReplyTo, references, autoReply });
 
     const sendParams = { userId: 'me', requestBody: { raw: encodedMessage } };
     if (threadId) sendParams.requestBody.threadId = threadId;
@@ -99,5 +112,5 @@ module.exports = { sanitizeHeaderValue, buildRawMessage, sendGmailMessage };
 
 /**
  * @typedef {{ to?: string | null, cc?: string | null, bcc?: string | null, subject?: string | null, body?: string,
- *   userEmail?: string, inReplyTo?: string | null, references?: string | null }} MailFields
+ *   userEmail?: string, inReplyTo?: string | null, references?: string | null, autoReply?: boolean }} MailFields
  */

@@ -101,15 +101,15 @@ test('mail-triggered with mailAccess: draft adds only the draft tool, send_reply
     assert.ok(!send.includes('gmail_compose'));
 });
 
-test('mail-triggered, uncurated agent: every other app\'s send is dropped too, reads and writes stay', () => {
+test('mail-triggered, uncurated agent: other apps keep their reads only; sends and writes are dropped', () => {
     const fn = (name) => ({ type: 'function', function: { name, parameters: { type: 'object', properties: {} } } });
     const others = ['nextcloud_mail_send', 'nextcloud_talk_send_message', 'nextcloud_share_by_email', 'nextcloud_list_files', 'nextcloud_create_folder'];
     assert.strictEqual(effectOf('nextcloud_mail_send'), 'sends');
     assert.strictEqual(effectOf('nextcloud_list_files'), 'reads');
     const got = names(narrowToolsForTurn({ tools: [...stack(), ...others.map(fn)], agent: { config: null, id: 'a1' }, agentId: 'a1', messageMetadata: mailRun }).tools);
     for (const n of others) {
-        if (effectOf(n) === 'sends') assert.ok(!got.includes(n), `${n} must not be offered in a mail-triggered run`);
-        else assert.ok(got.includes(n), `${n} should stay`);
+        if (effectOf(n) === 'reads') assert.ok(got.includes(n), `${n} should stay`);
+        else assert.ok(!got.includes(n), `${n} must not be offered in a mail-triggered run`);
     }
     assert.ok(!got.includes('gmail_compose') && !got.includes('outlook_compose'));
 });

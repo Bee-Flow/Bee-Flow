@@ -3,7 +3,8 @@
 /**
  * Dutch for round 4a of the admin dashboard in the Studio layout (2026-11):
  * the Agent Designer's section bodies, the Support views behind the switch
- * and the Subscriptions tables. Data in data/admin-studio-4a-2026-11-nl.json.
+ * and the Subscriptions tables; and the agent's switches for runs started by
+ * an e-mail (Tools card). Data in data/admin-studio-4a-2026-11-nl.json.
  * SAME_AS_ENGLISH lists keys whose Dutch is the English text itself; they are
  * not seeded.
  *
@@ -20,7 +21,7 @@ const DATA = require(path.join(__dirname, 'data', 'admin-studio-4a-2026-11-nl.js
  * migration when THIS FILE's checksum changes and knows nothing about the data
  * file, so the data's hash is pinned here; the test fails until it is updated.
  */
-const DATA_SHA256 = '99ad456fe89ae20d251cba39f398ac5e81d818977b61d50291c45386a284c37c';
+const DATA_SHA256 = 'b054bdeb18b9253e2c0ee912834fbc49bb09fb581c51a1887932d70045ccb48a';
 
 const NL_TRANSLATIONS = Object.freeze({ ...DATA.translations });
 

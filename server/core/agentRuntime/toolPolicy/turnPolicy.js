@@ -103,7 +103,9 @@ function buildToolPolicy({ agentConfig, tools, unattended = false, automationCon
         // dispatcher, which has its own handling for one (an agent-callable
         // automation of the caller, a progressive-disclosure hint, a component
         // tool). Refusing it there was a behaviour change nobody opted into.
-        enforceNames: hasStoredGrants || sawOverride,
+        // A run started by a received e-mail closes gate 1 for every agent: its stack is an allow-list
+        // (./mailRun.mts), and a name outside it must not reach the dispatcher's own fallbacks.
+        enforceNames: hasStoredGrants || sawOverride || !!mailTrigger,
         unattended: !!unattended, droppedForUnattended,
     };
 }
@@ -138,7 +140,7 @@ function buildToolPolicy({ agentConfig, tools, unattended = false, automationCon
  *
  * Never throws: it is the handler for something that already threw.
  */
-function fallbackToolPolicy({ agentConfig, tools, unattended = false, automationConfirms = null }) {
+function fallbackToolPolicy({ agentConfig, tools, unattended = false, automationConfirms = null, mailTrigger = false }) {
     const allowedToolNames = new Set();
     const confirmByTool = new Map();
     const effectByTool = new Map();
@@ -210,7 +212,7 @@ function fallbackToolPolicy({ agentConfig, tools, unattended = false, automation
         // reading here (a map that is merely THERE counts, an unreadable
         // config counts), so a failure never opens gate 1 for an agent that
         // has one.
-        enforceNames: curated || sawOverride,
+        enforceNames: curated || sawOverride || !!mailTrigger,
         unattended: !!unattended, droppedForUnattended: [],
     };
 }

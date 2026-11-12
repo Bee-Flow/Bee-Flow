@@ -35,8 +35,7 @@ import { READ } from './canUseFacts';
 import type { ToolApp } from './toolCatalogTypes';
 import type { CallableAutomation } from '@/components/admin/Studio/SkillsStudio/skillModel.types';
 import type { AutomationLike, ToolsConfig, ToolsConfigIn, SelectionMap, ToolRowsArgs, AutomationRowsArgs } from './toolGrants.types';
-import { UNSAFE_OBJECT_KEYS, CONFIRM, ACT_AS, MAIL_ACCESS, MAIL_ACCESS_APPS, isPlainObject, uniqueStrings, isAppKey, grantedActionsOf, claimantsOf, effectiveActionsOf, hasCuratedGrants, cloneTools, toolRow } from './toolGrants.helpers';
-;
+import { UNSAFE_OBJECT_KEYS, CONFIRM, ACT_AS, MAIL_ACCESS, MAIL_ACCESS_APPS, MAIL_RUN_OPTIONS, isPlainObject, uniqueStrings, isAppKey, grantedActionsOf, claimantsOf, effectiveActionsOf, hasCuratedGrants, cloneTools, toolRow } from './toolGrants.helpers';
 export type { AutomationLike, ToolsConfig, SelectionMap } from './toolGrants.types';
 
 // ── Twee rijen over dezelfde module ─────────────────────────────────
@@ -120,6 +119,15 @@ export function setAppMailAccess(toolsConfig: ToolsConfigIn, appId: string, mail
     else delete next.mailAccess;
     out[appId] = next;
     return out;
+}
+
+/** Switch `mailRuns` (other apps) or `replyAll` (Gmail, Outlook) on or off: off removes the key; the actions are written out. */
+export function setAppMailRunOption(toolsConfig: ToolsConfigIn, appId: string, option: string, on: boolean, { requiresGrant = false } = {}): ToolsConfig {
+    const mailApp = MAIL_ACCESS_APPS.includes(appId);
+    if (!isAppKey(appId) || option !== (mailApp ? MAIL_RUN_OPTIONS.REPLY_ALL : MAIL_RUN_OPTIONS.MAIL_RUNS)) return cloneTools(toolsConfig);
+    const next = _entryKeepingActions(toolsConfig, appId, requiresGrant);
+    if (on === true) next[option] = true; else delete next[option];
+    return { ...cloneTools(toolsConfig), [appId]: next };
 }
 
 /**

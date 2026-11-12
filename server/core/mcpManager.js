@@ -516,18 +516,17 @@ async function saveUserCredential(userId, serverId, credKey, value) {
     }
 }
 
+/**
+ * Close every pooled connection of one user (an account that is deleted). Pool keys are `${userId}:${serverId}`.
+ * @param {string} userId
+ */
+async function disconnectUser(userId) {
+    const prefix = `${userId}:`;
+    for (const poolKey of [...connectionPool.keys()]) if (userId && poolKey.startsWith(prefix)) await closeConnection(poolKey);
+}
+
 module.exports = {
-    initialize,
-    getAllToolsAsOpenAI,
-    callToolByPrefixedName,
-    callTool,
-    testCommand,
-    refreshServerTools,
-    addServer,
-    removeServer,
-    getServersSummary,
-    getServersForUser,
-    saveUserCredential,
-    resolveBundledArgs,
+    initialize, getAllToolsAsOpenAI, callToolByPrefixedName, callTool, testCommand, refreshServerTools, addServer, removeServer,
+    getServersSummary, getServersForUser, saveUserCredential, resolveBundledArgs, disconnectUser,
     _setSdkForTests: ({ Client, StdioClientTransport }) => { _Client = Client; _StdioClientTransport = StdioClientTransport; },
 };
