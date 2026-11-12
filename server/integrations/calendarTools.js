@@ -228,7 +228,7 @@ async function executeCalendarTool(toolName, args, session, opts = {}) {
         const future = new Date(now);
         future.setDate(future.getDate() + daysAhead);
 
-        log.info(`[Calendar] Searching events: "${query}"`);
+        log.info(`[Calendar] Searching events: query ${String(query).length} chars`);
 
         const response = await calendar.events.list({
             calendarId: 'primary',
