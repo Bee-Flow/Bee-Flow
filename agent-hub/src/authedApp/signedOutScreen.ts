@@ -32,7 +32,7 @@ export interface SignInRefusal {
 }
 
 /** The code the connector sign-in answers for an account that is linked after a normal sign-in. */
-export const NC_LINK_REQUIRED_CODE = 'nc_link_required';
+const NC_LINK_REQUIRED_CODE = 'nc_link_required';
 
 /** An http(s) address, or null: nothing else is ever opened. */
 function webAddress(value: unknown): string | null {

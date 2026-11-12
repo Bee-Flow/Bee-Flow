@@ -11,6 +11,7 @@
 function applySecurityHeaders(app) {
     // ── Security headers (helmet) ─────────────────────────────────────────────────
     const helmet = /** @type {any} */ (require('helmet'));
+    // nosemgrep: ajinabraham.njsscan.headers.header_helmet_disabled.helmet_feature_disabled -- nginx adds the app's Content-Security-Policy; routes that serve other content set their own
     app.use(helmet({
         hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
         contentSecurityPolicy: false,        // Nginx adds the app's policy; routes that serve something else set their own

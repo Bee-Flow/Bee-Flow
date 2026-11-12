@@ -11,6 +11,16 @@ const URL_ATTRIBUTES = ['href', 'src', 'action', 'formaction', 'xlink:href', 'ba
 const BLOCKED_SCHEME = /^(javascript|vbscript|data):/i;
 const IMAGE_DATA = /^data:image\/(png|jpe?g|gif|webp|bmp);/i;
 
+/** Whether the mail is a whole document: an `<html` tag followed by whitespace or `>`. */
+function isWholeDocument(raw: string): boolean {
+    const lower = raw.toLowerCase();
+    for (let at = lower.indexOf('<html'); at !== -1; at = lower.indexOf('<html', at + 5)) {
+        const next = lower.charAt(at + 5);
+        if (next === '>' || next.trim() === '') return next !== '';
+    }
+    return false;
+}
+
 function cleanUrl(value: string): string {
     // Browsers ignore whitespace and control characters inside a scheme.
     return value.replace(/[\u0000- \u007f-\u009f]/g, '');
@@ -39,6 +49,6 @@ export function sanitizeEmailHtml(raw: string, { dropLinks = false }: { dropLink
     if (dropLinks) doc.querySelectorAll('link').forEach(el => el.remove());
     doc.querySelectorAll(UNWRAP_ELEMENTS).forEach(el => el.replaceWith(...Array.from(el.childNodes)));
     doc.querySelectorAll('*').forEach(cleanElement);
-    if (/<html[\s>]/i.test(raw)) return `<!DOCTYPE html>${doc.documentElement.outerHTML}`;
+    if (isWholeDocument(raw)) return `<!DOCTYPE html>${doc.documentElement.outerHTML}`;
     return doc.head.innerHTML + doc.body.innerHTML;
 }
