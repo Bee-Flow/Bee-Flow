@@ -31,7 +31,7 @@
 const { randomUUID } = require('crypto');
 const { run, getOne, getAll, exec, withTransaction } = require('../../db');
 const { makeStoreInit } = require('../lib/storeInit');
-const { runDdl } = require('../lib/_ddl');
+const { runDdl, CODES } = require('../lib/_ddl');
 const { encryptField, decryptField, isEnvelope } = require('../lib/fieldEnvelope');
 const { conversationKey, messageAad, PLAINTEXT_CONTEXT } = require('./messageCrypto');
 const { fallback } = require('../../utils/bestEffort');
@@ -62,15 +62,7 @@ async function _initMessagesTable() {
         CREATE INDEX IF NOT EXISTS idx_conv_messages_conv_type
         ON conversation_messages(conversation_id, conversation_type)
     `);
-    // Migration flag columns on the parent tables —
-    // added lazily so this is safe on existing databases.
-    // Via runDdl (stores/lib/_ddl.js): each statement's failure is reported on its own.
-    await runDdl('conversationMessages', [
-        `ALTER TABLE agent_conversations
-            ADD COLUMN IF NOT EXISTS messages_migrated BOOLEAN DEFAULT FALSE`,
-        `ALTER TABLE direct_conversations
-            ADD COLUMN IF NOT EXISTS messages_migrated BOOLEAN DEFAULT FALSE`,
-    ]);
+    await addParentFlagColumns();
 
     // ── Shared-thread columns ────────────────────────────────────────────────
     //
@@ -97,6 +89,32 @@ async function _initMessagesTable() {
             ON conversation_messages(conversation_id, client_msg_id)
             WHERE client_msg_id IS NOT NULL`,
     ]);
+}
+
+/**
+ * Migration flag columns on the parent tables, added lazily so this is safe on
+ * existing databases. Via runDdl (stores/lib/_ddl.js): each statement's
+ * failure is reported on its own.
+ *
+ * The parent tables belong to another store (agent/initSchema.base.js), and
+ * boot starts every store's init at once (boot/storeSchemas.js), so on a fresh
+ * database these ALTERs can run before those tables exist. runDdl reports that
+ * and resolves; the memo would then count this init as done and every turn
+ * write would fail on the missing column until a restart. A missing parent
+ * table therefore fails the init instead: the memo forgets it, and the next
+ * caller (the first turn write, placeTurnMessages) runs it again once the
+ * tables are there.
+ */
+async function addParentFlagColumns() {
+    const { failures } = await runDdl('conversationMessages', [
+        `ALTER TABLE agent_conversations
+            ADD COLUMN IF NOT EXISTS messages_migrated BOOLEAN DEFAULT FALSE`,
+        `ALTER TABLE direct_conversations
+            ADD COLUMN IF NOT EXISTS messages_migrated BOOLEAN DEFAULT FALSE`,
+    ]);
+    if (failures.some((f) => f.code === CODES.UNDEFINED_TABLE)) {
+        throw new Error('conversationMessages: a parent conversation table does not exist yet; the init runs again on the next call');
+    }
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
