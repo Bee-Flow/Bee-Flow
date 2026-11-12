@@ -116,6 +116,7 @@ const userStoreStub = {
     getUser: async (id) => state.users.get(id) || null,
     getAllGroups: async () => state.groups,
     getAllOrganizations: async () => state.orgs,
+    orgIdsWithVerifiedAdminAtDomain: async () => [], // no org admin with a verified address in these fixtures
     updateUser: async (id, updates) => { state.updateCalls.push({ id, updates }); return true; },
     getUserByEmail: async email => [...state.users.values()].find(user => user.email?.toLowerCase() === email.toLowerCase()) || null,
     getUserByAzureId: async (oid, tid) => [...state.users.values()].find(user => user.azureUserId === oid && user.azureTenantId === tid) || null,
