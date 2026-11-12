@@ -65,6 +65,20 @@ export function clearedSignupData(): ClearedSignupData {
     };
 }
 
-export const INPUT_CLASS = "w-full pl-10 pr-4 py-3 bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-lg text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent transition-all";
-export const INPUT_CLASS_SIMPLE = "w-full px-4 py-3 bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-lg text-[var(--text-primary)] placeholder-[var(--text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent transition-all text-sm";
-export const LABEL_CLASS = "block text-sm font-medium text-[var(--text-secondary)] mb-1.5";
+// One look for every sign-in screen (login, MFA, password reset, signup, verify):
+// the theme's own surfaces, and honey only on the primary action.
+const FIELD = "bg-[var(--bg-primary)] border border-[var(--border-default)] rounded-md text-[var(--text-primary)] placeholder-[var(--text-tertiary)] hover:border-[var(--text-tertiary)] focus:outline-none focus:border-[var(--text-primary)] focus:ring-2 focus:ring-[var(--focus-ring)] transition-colors";
+export const INPUT_CLASS = `w-full pl-10 pr-4 py-2.5 ${FIELD}`;
+export const INPUT_CLASS_SIMPLE = `w-full px-4 py-2.5 text-sm ${FIELD}`;
+export const LABEL_CLASS = "block text-sm font-medium text-[var(--text-primary)] mb-1.5";
+
+/** The page behind the card. */
+export const LOGIN_PAGE_CLASS = "min-h-screen flex items-center justify-center p-4 relative bg-[var(--bg-primary)]";
+/** The card every sign-in screen sits in. */
+export const LOGIN_CARD_CLASS = "relative rounded-xl p-6 sm:p-8 border bg-[var(--bg-card)] border-[var(--border-default)] shadow-[var(--shadow-lg)] backdrop-blur-xl";
+/** The one honey button: the action that moves the sign-in forward. */
+export const PRIMARY_BUTTON_CLASS = "w-full py-2.5 px-4 rounded-md text-base font-semibold bg-amber-400 hover:bg-amber-500 active:bg-amber-500 text-stone-950 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--focus-ring)] focus-visible:ring-offset-[var(--bg-card)]";
+/** Every other button: another way to sign in, creating an account. */
+export const SECONDARY_BUTTON_CLASS = "w-full py-2.5 px-4 rounded-md font-medium bg-[var(--bg-primary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)] border border-[var(--border-default)] transition-colors flex items-center justify-center gap-2.5 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]";
+/** A quiet text action under a form (back, another method). */
+export const LINK_BUTTON_CLASS = "w-full py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors flex items-center justify-center gap-1.5 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]";

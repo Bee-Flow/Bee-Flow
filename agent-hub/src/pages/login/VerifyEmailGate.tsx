@@ -1,7 +1,8 @@
 import React from 'react';
 import { MailCheck, CheckCircle } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
-import type { Setter } from './loginShared';
+import { LoginBackdrop } from './LoginChrome';
+import { LINK_BUTTON_CLASS, LOGIN_CARD_CLASS, LOGIN_PAGE_CLASS, PRIMARY_BUTTON_CLASS, type Setter } from './loginShared';
 
 interface VerifyEmailGateProps {
     verifyEmail: string;
@@ -21,13 +22,14 @@ interface VerifyEmailGateProps {
 const VerifyEmailGate = ({ verifyEmail, setVerifyEmail, resending, resendDone, onResend, onBack, inputClass }: VerifyEmailGateProps) => {
     const { t } = useTranslation();
     return (
-        <div className="min-h-screen flex items-center justify-center p-4 relative [background:linear-gradient(160deg,var(--bg-primary)_0%,var(--bg-secondary)_50%,var(--bg-tertiary)_100%)]">
-            <div className="w-full max-w-md">
-                <div className="rounded-2xl shadow-xl p-8 text-center bg-[var(--bg-secondary)]">
-                    <div className="w-16 h-16 mx-auto mb-5 rounded-full flex items-center justify-center bg-[var(--bg-primary)]">
-                        <MailCheck className="w-8 h-8 text-[var(--accent-primary)]" />
+        <div className={LOGIN_PAGE_CLASS}>
+            <LoginBackdrop />
+            <div className="w-full max-w-[26rem] relative z-10">
+                <div className={`${LOGIN_CARD_CLASS} text-center`}>
+                    <div className="w-12 h-12 mx-auto mb-5 rounded-md flex items-center justify-center bg-[var(--bg-tertiary)]">
+                        <MailCheck className="w-6 h-6 text-[var(--text-primary)]" />
                     </div>
-                    <h2 className="text-xl font-bold mb-2 text-[var(--text-primary)]">
+                    <h2 className="text-xl font-semibold tracking-tight mb-2 text-[var(--text-primary)]">
                         {t('login.verify_title', 'Confirm your email address')}
                     </h2>
                     <p className="text-sm mb-1 text-[var(--text-secondary)]">
@@ -58,7 +60,7 @@ const VerifyEmailGate = ({ verifyEmail, setVerifyEmail, resending, resendDone, o
                             <button
                                 onClick={() => onResend(verifyEmail)}
                                 disabled={resending || !verifyEmail.trim()}
-                                className="w-full py-2.5 rounded-lg text-sm font-medium text-white disabled:opacity-50 transition-opacity bg-[var(--accent-primary)]"
+                                className={PRIMARY_BUTTON_CLASS}
                             >
                                 {resending ? t('login.verify_resending', 'Sending…') : t('login.verify_resend', 'Resend confirmation email')}
                             </button>
@@ -67,7 +69,7 @@ const VerifyEmailGate = ({ verifyEmail, setVerifyEmail, resending, resendDone, o
 
                     <button
                         onClick={onBack}
-                        className="text-sm font-medium text-[var(--accent-primary)]"
+                        className={LINK_BUTTON_CLASS}
                     >
                         {t('login.back_to_login', 'Back to login')}
                     </button>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import ForgotPasswordStep from './login/ForgotPasswordStep';
 import { LoginBackdrop, LanguagePicker, LoginFooter, LoginHeader, LoginNotices } from './login/LoginChrome';
 import LoginForm from './login/LoginForm';
-import { INPUT_CLASS, INPUT_CLASS_SIMPLE, LABEL_CLASS, initialSignupData, initialSignupMode, type OnLogin } from './login/loginShared';
+import { INPUT_CLASS, INPUT_CLASS_SIMPLE, LABEL_CLASS, LOGIN_CARD_CLASS, LOGIN_PAGE_CLASS, initialSignupData, initialSignupMode, type OnLogin } from './login/loginShared';
 import MfaLoginStep from './login/MfaLoginStep';
 import RecoveryKeyModal from './login/RecoveryKeyModal';
 import ResetPasswordStep from './login/ResetPasswordStep';
@@ -126,7 +126,7 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4 relative [background:linear-gradient(160deg,var(--bg-primary)_0%,var(--bg-secondary)_50%,var(--bg-tertiary)_100%)]">
+        <div className={LOGIN_PAGE_CLASS}>
 
             {adminRecoveryKey && (
                 <RecoveryKeyModal
@@ -137,11 +137,8 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
 
             <LoginBackdrop />
 
-            <div className="w-full max-w-md relative z-10 transition-all duration-300">
-                <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border relative overflow-hidden bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
-                    {/* Top highlight line for glass effect */}
-                    <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-[var(--border-default)] to-transparent" />
-
+            <div className="w-full max-w-[26rem] relative z-10">
+                <div className={LOGIN_CARD_CLASS}>
                     <LanguagePicker availableLocales={availableLocales} locale={locale} setLocale={setLocale} />
 
                     <LoginHeader

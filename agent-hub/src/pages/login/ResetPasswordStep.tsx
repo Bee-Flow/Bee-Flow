@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Lock, Loader2, CheckCircle2 } from 'lucide-react';
 import type { FormEvent } from 'react';
+import { PRIMARY_BUTTON_CLASS } from './loginShared';
 import { useTranslation } from '../../hooks/useTranslation';
 
 interface ResetPasswordStepProps {
@@ -26,11 +27,11 @@ const ResetPasswordStep = ({ onSubmit, onDone, isLoading, done, inputClass, labe
     if (done) {
         return (
             <div className="space-y-5 text-center">
-                <div className="flex justify-center"><CheckCircle2 className="w-12 h-12 text-emerald-400" /></div>
+                <div className="flex justify-center"><CheckCircle2 className="w-12 h-12 text-[var(--success)]" /></div>
                 <p className="text-sm text-[var(--text-secondary)]">
                     {t('reset.success', 'Your password has been reset. You can now sign in with your new password.')}
                 </p>
-                <button onClick={onDone} className="w-full py-3 text-white rounded-xl font-semibold bg-[var(--accent-primary)]">
+                <button onClick={onDone} className={PRIMARY_BUTTON_CLASS}>
                     {t('reset.go_signin', 'Go to sign in')}
                 </button>
             </div>
@@ -47,7 +48,7 @@ const ResetPasswordStep = ({ onSubmit, onDone, isLoading, done, inputClass, labe
 
     return (
         <form onSubmit={submit} className="space-y-5">
-            <p className="text-sm text-[var(--text-secondary)] text-center">{t('reset.choose_new', 'Choose a new password for your account.')}</p>
+            <p className="text-sm text-[var(--text-secondary)]">{t('reset.choose_new', 'Choose a new password for your account.')}</p>
             <div>
                 <label className={labelClass}>{t('reset.new_password', 'New password')}</label>
                 <div className="relative">
@@ -64,7 +65,7 @@ const ResetPasswordStep = ({ onSubmit, onDone, isLoading, done, inputClass, labe
             </div>
             {localErr && <p className="text-sm text-red-500">{localErr}</p>}
             <button type="submit" disabled={isLoading}
-                className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50 text-base shadow-lg shadow-amber-500/20">
+                className={PRIMARY_BUTTON_CLASS}>
                 {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : t('reset.set_password', 'Set new password')}
             </button>
         </form>
