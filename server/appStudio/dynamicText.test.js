@@ -110,11 +110,13 @@ test('allowedLinkHosts keeps bare lowercase hosts, drops the rest, and an empty 
     assert.equal('allowedLinkHosts' in canon(app({ steps: [] }, { allowedLinkHosts: 'example.com' })), false);
 });
 
-test('allowedLinkHosts is never sent to an anonymous visitor', () => {
+test('allowedLinkHosts ships with a public page, so its bound images follow the same host rule', () => {
     const { buildPublicDefinition } = require('./publicAccess');
     const def = canon(app({ steps: [] }, { allowedLinkHosts: ['example.com'] }));
     const out = buildPublicDefinition(def, { title: 'Public', entryScreenId: 'scr_home0001', screens: def.screens, actionIds: [] });
-    assert.equal('allowedLinkHosts' in out, false);
+    assert.deepEqual(out.allowedLinkHosts, ['example.com']);
+    const none = buildPublicDefinition(canon(app({ steps: [] })), { title: 'Public', entryScreenId: 'scr_home0001', screens: def.screens, actionIds: [] });
+    assert.equal('allowedLinkHosts' in none, false);
 });
 
 test('a switch case may carry whenExpr; it is kept in order and checked as a formula', () => {

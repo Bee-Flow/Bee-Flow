@@ -12,15 +12,24 @@
 /**
  * @typedef {{ kb: Record<string, any>, tenantId?: string, docId: string | null | undefined, status?: string,
  *   original: { buffer: Buffer, mime?: string | null, filename?: string | null } | null | undefined,
- *   log: (...a: unknown[]) => void, keepOriginal?: typeof import('../originals.mts').keepOriginal }} KeepArgs
+ *   log: (...a: unknown[]) => void, keepOriginal?: typeof import('../originals.mts').keepOriginal,
+ *   deleteOriginal?: typeof import('../originals.mts').deleteOriginal }} KeepArgs
  */
 
 /**
  * @param {KeepArgs} p  `status` is the outcome of the ingest; only an indexed ('processed') document keeps its file
  * @returns {Promise<void>}
  */
-async function keepIfEnabled({ kb, tenantId, docId, status, original, log, keepOriginal }) {
-    if (!kb.keep_originals || !original || !docId) return;
+async function keepIfEnabled({ kb, tenantId, docId, status, original, log, keepOriginal, deleteOriginal }) {
+    if (!docId) return;
+    // A document whose text came out redacted keeps no file: an earlier copy would be the unredacted one
+    // beside the redacted text (deleteOriginal never throws and does nothing without one).
+    if (status === 'redacted') {
+        const drop = deleteOriginal || require('../originals.mts').deleteOriginal;
+        await drop({ tenantId: tenantId || kb.tenant_id, kbId: kb.id, documentId: docId }).catch((e) => log(`original of ${docId} not removed: ${/** @type {Error} */ (e).message}`));
+        return;
+    }
+    if (!kb.keep_originals || !original) return;
     // Only a document that was indexed: a skipped, failed or duplicate row has no text to go with the file
     // (and a file the privacy policy held back must not be kept through the side door).
     if (status !== 'processed') return;
@@ -44,7 +53,7 @@ async function keepIfEnabled({ kb, tenantId, docId, status, original, log, keepO
  */
 function keepFetchedOriginal({ kb, tenantId, docId, status, fetched, log, deps }) {
     const original = fetched.original ? { ...fetched.original, mime: fetched.original.mime || fetched.mime || null, filename: fetched.original.filename || fetched.title || null } : null;
-    return keepIfEnabled({ kb, tenantId, docId, status, original, log, keepOriginal: deps.keepOriginal });
+    return keepIfEnabled({ kb, tenantId, docId, status, original, log, keepOriginal: deps.keepOriginal, deleteOriginal: deps.deleteOriginal });
 }
 
 /**

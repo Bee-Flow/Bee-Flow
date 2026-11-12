@@ -31,6 +31,10 @@ RAW_BASE="${BEEFLOW_RAW_BASE:-https://raw.githubusercontent.com}"
 DOCS_UPGRADES='https://docs.beeflow.ai/self-hosting/upgrades'
 MULTI_STACK_DOCS='https://docs.beeflow.ai/self-hosting/multi-stack'
 RELEASE_FILES='selfhost.sh docker-compose.from-registry.yml .env.selfhost.example'
+# The first release published with SHA256SUMS. From it on, a release whose
+# checksums cannot be downloaded is not installed; an older one is, with a
+# warning that its files could not be checked.
+FIRST_CHECKSUMMED_TAG="${BEEFLOW_FIRST_CHECKSUMMED_TAG:-v2026.11.11}"
 # A bundle: a directory that already holds the three files of one release (the
 # installer image carries one). Then nothing is downloaded, and that release
 # is the only one this run installs or updates to.
@@ -80,6 +84,8 @@ Install
   --private-nextcloud | --public-nextcloud
                           BEEFLOW_PRIVATE_NEXTCLOUD=1|0
                                                      the Nextcloud is on a private address (default 1)
+  --nextcloud-host NAME   BEEFLOW_NEXTCLOUD_HOST     with a private Nextcloud: its name or IP address as
+                                                     this machine reaches it; only that host is allowed
   --organisation NAME     BEEFLOW_ORGANISATION       a pairing code is made for it; empty = none
   --stack-name NAME       BEEFLOW_STACK_NAME         a second Bee Flow on this machine (default none)
 
@@ -119,6 +125,15 @@ check_host() {
     for label in $host; do [ "${#label}" -le 63 ] || return 1; done
     PROBLEM='Use an address Nextcloud can reach: localhost points at the Nextcloud container itself.'
     case "$host" in localhost|127.*) return 1 ;; esac
+    CLEAN="$host"
+}
+
+check_nextcloud_host() {
+    local host="${1,,}"
+    PROBLEM='Enter the name or IP address of the Nextcloud as this machine reaches it, for example 192.168.1.30 or nextcloud.lan (no http://, no port).'
+    [ -n "$host" ] && [ "${#host}" -le 253 ] || return 1
+    case "$host" in *[!a-z0-9.-]*) return 1 ;; esac
+    case ".$host." in *..*|*.-*|*-.*) return 1 ;; esac
     CLEAN="$host"
 }
 
@@ -401,6 +416,12 @@ fetch_release() { # tag
         return 0
     fi
     if ! curl -fsSL "$base/SHA256SUMS" -o "$DOWNLOAD_DIR/SHA256SUMS" 2>/dev/null; then
+        # Every release from FIRST_CHECKSUMMED_TAG on carries its checksums:
+        # without them its files are not used.
+        if is_version "$1" && [ "$(printf '%s\n%s\n' "$FIRST_CHECKSUMMED_TAG" "$1" | sort -V | head -n1)" = "$FIRST_CHECKSUMMED_TAG" ]; then
+            drop_download
+            die "The checksums of release $1 could not be downloaded, so its files cannot be checked. Nothing was changed. Try again; if it happens again, report it: $RELEASES_URL"
+        fi
         checked=0
         base="$RAW_BASE/$REPOSITORY/$1"
         rm -f "$DOWNLOAD_DIR/SHA256SUMS"
@@ -440,11 +461,17 @@ value() { # key
 # server container, makes the organisation when it is not there, and asks for
 # a code. Exit 3: the server refused the sign-in.
 pairing_request() { # organisation  server port  web app address
-    docker exec -i \
-        -e BF_PASSWORD="$(value INIT_ADMIN_PASSWORD)" -e BF_ORGANISATION="$1" \
-        -e BF_BASE="http://localhost:$2" -e BF_ORIGIN="$3" \
-        "$SERVER_CONTAINER" node - <<'EOJS'
-const { BF_PASSWORD, BF_ORGANISATION, BF_BASE, BF_ORIGIN } = process.env;
+    # The first password travels on standard input, as the first line of the
+    # script node reads there (printf is a shell builtin): never on a command
+    # line, where other users of this machine could list it.
+    local pw back='\' quote='"'
+    pw="$(value INIT_ADMIN_PASSWORD)"
+    pw="${pw//"$back"/"$back$back"}"
+    pw="${pw//"$quote"/"$back$quote"}"
+    {
+        printf 'const BF_PASSWORD = "%s";\n' "$pw"
+        cat <<'EOJS'
+const { BF_ORGANISATION, BF_BASE, BF_ORIGIN } = process.env;
 const fail = (what, code) => { console.error(what); process.exit(code || 1); };
 const refused = (status) => (status === 401 || status === 403 ? 3 : 1);
 (async () => {
@@ -475,6 +502,10 @@ const refused = (status) => (status === 401 || status === 403 ? 3 : 1);
     console.log(code.json.code);
 })().catch(e => fail(String(e && e.message || e)));
 EOJS
+    } | docker exec -i \
+        -e BF_ORGANISATION="$1" \
+        -e BF_BASE="http://localhost:$2" -e BF_ORIGIN="$3" \
+        "$SERVER_CONTAINER" node -
 }
 
 # → PAIRING_CODE, or PAIRING_PROBLEM with why there is none.
@@ -544,6 +575,12 @@ install_answers() {
     ask_version
     ask BEEFLOW_SIDECARS 'Also run the PII guard and the topic classifier (about 7 GB of memory)' y Y/n check_yes_no
     ask BEEFLOW_PRIVATE_NEXTCLOUD 'Is the Nextcloud on a private address (same machine or local network)' y Y/n check_yes_no
+    NEXTCLOUD_HOST=''
+    if [ "$BEEFLOW_PRIVATE_NEXTCLOUD" = 1 ]; then
+        # Only this host is allowed as a private address (NEXTCLOUD_ALLOW_PRIVATE_HOSTS).
+        ask BEEFLOW_NEXTCLOUD_HOST 'Name or IP address of the Nextcloud, as this machine reaches it' '' '' check_nextcloud_host
+        NEXTCLOUD_HOST="$BEEFLOW_NEXTCLOUD_HOST"
+    fi
     ask BEEFLOW_ORGANISATION 'Name of your organisation, for a pairing code (empty = skip)' '' '' check_organisation
     ask_stack_name
 
@@ -564,7 +601,7 @@ install_summary() {
     note "Server:         $SERVER_URL"
     note "Web app:        $WEB_URL"
     note "Containers:     $PROFILES"
-    note "Nextcloud:      $([ "$BEEFLOW_PRIVATE_NEXTCLOUD" = 1 ] && printf 'on a private address' || printf 'on a public address')"
+    note "Nextcloud:      $([ "$BEEFLOW_PRIVATE_NEXTCLOUD" = 1 ] && printf 'on a private address (%s)' "$NEXTCLOUD_HOST" || printf 'on a public address')"
     note "Organisation:   ${ORGANISATION:-none (no pairing code is made)}"
     [ -z "$STACK_NAME" ] || note "Stack name:     $STACK_NAME"
     if [ -n "$BUNDLE_DIR" ]; then
@@ -573,6 +610,9 @@ install_summary() {
         note "It downloads the installer of that release from GitHub and starts the containers."
     fi
     note "Every secret is generated on this machine and shown at the end."
+    note "The server and the web app are published on every network interface of this machine over plain"
+    note "http, so that Nextcloud can reach them. Put a reverse proxy with HTTPS in front before anyone"
+    note "uses Bee Flow from outside this machine's own network (see the end of the install)."
 }
 
 # selfhost.sh copies the template to the settings file and generates every
@@ -594,7 +634,8 @@ write_settings() {
     # Published on every interface, so Nextcloud's connector can reach them.
     setting SERVER_BIND_HOST 0.0.0.0
     setting CLIENT_BIND_HOST 0.0.0.0
-    if [ "$BEEFLOW_PRIVATE_NEXTCLOUD" = 1 ]; then setting NEXTCLOUD_ALLOW_PRIVATE_HOSTS 1; fi
+    # Exactly the Nextcloud host that was given; an install made before keeps its own value.
+    if [ "$BEEFLOW_PRIVATE_NEXTCLOUD" = 1 ]; then setting NEXTCLOUD_ALLOW_PRIVATE_HOSTS "$NEXTCLOUD_HOST"; fi
 }
 
 # The server runs as uid 1000 and writes in the components directory. Made by
@@ -678,8 +719,17 @@ install_report() {
     note "Update:        $SELF update --dir $(pwd)${STACK_NAME:+ --stack-name $STACK_NAME}"
     note "Pairing code:  $SELF pairing-code --dir $(pwd)${STACK_NAME:+ --stack-name $STACK_NAME}"
     note "Logs:          cd $(pwd) && $SELFHOST --logs      Stop: $SELFHOST --stop"
-    note "Ports $SERVER_PORT and $CLIENT_PORT are open on this machine's network interfaces, over plain http."
-    note "For use outside your own network, put a reverse proxy with HTTPS in front."
+
+    say "Before Bee Flow is used beyond this machine's own network: HTTPS"
+    note "Ports $SERVER_PORT and $CLIENT_PORT are open on every network interface of this machine, over plain"
+    note "http. Docker publishes them past a host firewall such as ufw. Over plain http the sign-in, the"
+    note "connector's key and every request can be read by anyone on the network path."
+    note "1. Put a reverse proxy with HTTPS (Caddy, nginx, Traefik) in front of both ports."
+    note "2. In $(pwd)/$ENV_FILE set SERVER_PROTOCOL=https and CLIENT_PROTOCOL=https, and"
+    note "   SERVER_PUBLIC_HOST / CLIENT_PUBLIC_HOST to the names the proxy answers on."
+    note "3. Once the proxy runs on this machine, set SERVER_BIND_HOST=127.0.0.1 and CLIENT_BIND_HOST=127.0.0.1"
+    note "   so the plain ports are closed, then run: $SELFHOST"
+    note "4. In Nextcloud, enter the https addresses as the server URL and the web app URL."
 }
 
 run_install() {
@@ -857,6 +907,7 @@ while [ "$#" -gt 0 ]; do
         --no-sidecars) BEEFLOW_SIDECARS=0 ;;
         --private-nextcloud) BEEFLOW_PRIVATE_NEXTCLOUD=1 ;;
         --public-nextcloud) BEEFLOW_PRIVATE_NEXTCLOUD=0 ;;
+        --nextcloud-host) option_value "$1" "$#"; BEEFLOW_NEXTCLOUD_HOST="$2"; shift ;;
         *) die "Unknown option: $1. See --help." ;;
     esac
     shift

@@ -39,7 +39,7 @@ type Compiled = { sql: string; params: unknown[] };
 
 const { collectDataBindings } = nodeRequire('../collectDataBindings') as { collectDataBindings: (def: unknown) => { nodeId: string | null; prop: string; binding: Binding }[] };
 const dryRunReads = nodeRequire('../appDryRunReads') as {
-    syntheticScope: (viewer: Obj, variables: unknown) => Obj;
+    syntheticScope: (viewer: Obj, variables: unknown, atMs?: number) => Obj;
     resolveDryRunFilters: (binding: Obj, scope: Obj) => { filters?: unknown; skipped?: boolean };
 };
 const engineFlag = nodeRequire('../../utils/engineFlag') as { _setForTests: (d: string | null) => void };
@@ -61,6 +61,12 @@ const { relationRead } = nodeRequire('../../core/dataEngine/relationRead.mts') a
 const { isDatatableBacked } = nodeRequire('../datatableSource') as { isDatatableBacked: (table: Obj) => boolean };
 
 export const COMPAT_NOW = Date.UTC(2026, 0, 15, 12, 0, 0);
+/**
+ * The clock derived variables (schema 3, e.g. `dateAdd(today, ...)`) start from: the day the
+ * frozen files that hold such variables were written, so their compiled params stay as frozen.
+ * The scope's own `now`/`today` stay on COMPAT_NOW.
+ */
+export const COMPAT_DERIVED_NOW = Date.UTC(2026, 10, 11, 12, 0, 0);
 export const DIALECTS = ['sqlite', 'pg'];
 const OWNER_ID = 'usr_compat_owner';
 /** The aggregate fields the client resolves when they are authored as a formula. */
@@ -84,7 +90,7 @@ function identities(entry: CorpusEntry): Identity[] {
 }
 
 function fixedScope(viewer: Obj, variables: unknown): Obj {
-    return { ...dryRunReads.syntheticScope(viewer, variables), now: COMPAT_NOW, today: new Date(COMPAT_NOW).toISOString().slice(0, 10) };
+    return { ...dryRunReads.syntheticScope(viewer, variables, COMPAT_DERIVED_NOW), now: COMPAT_NOW, today: new Date(COMPAT_NOW).toISOString().slice(0, 10) };
 }
 
 /** The descriptor the runtime posts for this binding (run view, not the editor's sample). */

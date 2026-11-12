@@ -27,6 +27,10 @@ function run({ uid = '0', env = {} } = {}) {
     stub('chown', `echo "chown $*" >> "${trace}"`);
     stub('su-exec', `echo "su-exec $*" >> "${trace}"`);
     stub('app', `echo "app $*" >> "${trace}"`);
+    stub('frpc', `echo "frpc $*" >> "${trace}"`);
+    stub('chmod', `echo "chmod $*" >> "${trace}"`);
+    // The supervisor loop ends after one round: sleep stops the subshell that runs it.
+    stub('sleep', 'kill "$PPID"');
     const result = spawnSync('bash', [SCRIPT, 'app', 'src/server.js'], {
         env: { PATH: `${bin}:/usr/bin:/bin`, APP_PERSISTENT_STORAGE: storage, ...env },
         encoding: 'utf8',
@@ -52,4 +56,19 @@ test('BEEFLOW_RUN_AS=root keeps the app on root', () => {
 test('already unprivileged: the app starts directly', () => {
     const { lines } = run({ uid: '1000' });
     assert.deepEqual(lines, ['app src/server.js']);
+});
+
+test('under HaRP as root: frpc runs as the node user too, and its config is readable by that user only', () => {
+    const { status, lines } = run({ env: { HP_SHARED_KEY: 'k', HP_FRP_ADDRESS: 'harp', HP_FRP_PORT: '8782', APP_PORT: '23000', APP_ID: 'bee_flow' } });
+    assert.equal(status, 0);
+    assert.ok(lines.includes('su-exec node frpc -c /tmp/frpc.toml'), lines.join('\n'));
+    assert.ok(!lines.includes('frpc -c /tmp/frpc.toml'), 'frpc does not run as root');
+    assert.ok(lines.includes('chmod 600 /tmp/frpc.toml'), lines.join('\n'));
+    assert.ok(lines.includes('chown node:node /tmp/frpc.toml'), lines.join('\n'));
+    assert.equal(lines.filter((l) => l === 'su-exec node app src/server.js').length, 1);
+});
+
+test('under HaRP with BEEFLOW_RUN_AS=root: frpc stays on root', () => {
+    const { lines } = run({ env: { BEEFLOW_RUN_AS: 'root', HP_SHARED_KEY: 'k', HP_FRP_ADDRESS: 'harp', HP_FRP_PORT: '8782', APP_PORT: '23000', APP_ID: 'bee_flow' } });
+    assert.ok(lines.includes('frpc -c /tmp/frpc.toml'), lines.join('\n'));
 });

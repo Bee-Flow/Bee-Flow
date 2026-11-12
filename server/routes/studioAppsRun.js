@@ -120,7 +120,8 @@ const ACTION_WAIT_MS = parseInt(process.env.STUDIO_APP_ACTION_WAIT_MS, 10) || 60
 // ── App visibility + role gates ─────────────────────────────────────
 // Extracted to routes/studioAppRunGate.js so the streaming browse bridge shares
 // the SAME copy — a second walk is how one surface drifts wider than the other.
-const { loadVisibleApp, assertActionRoleAccess, visibleFormValues, wideScopeFor, stepDocumentContext } = require('./studioAppRunGate');
+const { loadVisibleApp, assertActionRoleAccess, visibleFormValues, wideScopeFor, stepDocumentContext, locateNode, assertChatAccess } = require('./studioAppRunGate');
+const findNodeById = (/** @type {Parameters<typeof locateNode>[0]} */ def, /** @type {unknown} */ nodeId) => locateNode(def, nodeId)?.node || null;
 
 // ── Input resolution + final output ─────────────────────────────────
 // resolveInputs (action.inputMapping → automation inputs; the ONLY bridge
@@ -521,35 +522,6 @@ function sanitizeChatMessages(raw) {
     return out;
 }
 
-/** @typedef {{ id?: string, type?: string, props?: { modelTier?: string, knowledgeBaseIds?: string[], systemPrompt?: unknown }, children?: unknown }} ComponentNode  an ai_chat component's configuration, as the definition stores it */
-
-/**
- * Find a component node by id anywhere in the definition tree.
- * @param {{ screens?: unknown } | null | undefined} def
- * @param {unknown} nodeId
- * @returns {ComponentNode | null}
- */
-function findNodeById(def, nodeId) {
-    if (!def || typeof nodeId !== 'string' || !nodeId) return null;
-    /** @param {unknown} children @returns {ComponentNode | null} */
-    const walk = (children) => {
-        for (const c of (Array.isArray(children) ? children : [])) {
-            if (!c || typeof c !== 'object') continue;
-            if (c.id === nodeId) return c;
-            const hit = walk(c.children);
-            if (hit) return hit;
-        }
-        return null;
-    };
-    for (const screen of (Array.isArray(def?.screens) ? def.screens : [])) {
-        for (const section of (Array.isArray(screen?.sections) ? screen.sections : [])) {
-            const hit = walk(section.children);
-            if (hit) return hit;
-        }
-    }
-    return null;
-}
-
 router.post('/:id/ai/chat', requireAuth, stepLimiter, jsonBody, bodySizeGuard, validate({ query: R.DraftQuery, body: R.ChatBody }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const userId = req.session.user.id;
     const app = await loadVisibleApp(req, res);
@@ -572,6 +544,8 @@ router.post('/:id/ai/chat', requireAuth, stepLimiter, jsonBody, bodySizeGuard, v
         }
         return res.status(404).json({ error: 'Chat component not found' });
     }
+    // Who may talk to it: a viewer with a role that sees the chat (it spends the owner's model budget).
+    if (!isOwner && !await assertChatAccess(req, res, { app, def, nodeId: String(node.id), userId })) return;
 
     const messages = sanitizeChatMessages(req.body?.messages);
     if (!messages.length) return res.status(400).json({ error: 'No message to send' });

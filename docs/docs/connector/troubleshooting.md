@@ -139,14 +139,14 @@ Cause: the connection runs in both directions. The connector calls the Bee Flow 
 | **Bee Flow Cloud** | Needs a Nextcloud it can reach from the internet: directly, or through a tunnel or reverse proxy that gives it a public HTTPS address. Enter that address as **Public Nextcloud URL** on the setup page. A tunnel makes your Nextcloud reachable from the internet; if that is what you want to avoid, Bee Flow Cloud is not the fit for this Nextcloud. |
 | **Your own Bee Flow server** | Works with a private Nextcloud when the server can reach it over your network **and** is allowed to call private addresses (below). See [Bee Flow on your own server next to Nextcloud](own-server.md). |
 
-**Allowing private addresses on your own server.** A Bee Flow server refuses to call private and loopback addresses unless you set this in the environment of the server container and restart it:
+**Allowing private addresses on your own server.** A Bee Flow server refuses to call private and loopback addresses unless you list your Nextcloud's host in the environment of the server container and restart it (several hosts: comma-separated; `1` allows every private address, as older installs have it):
 
 ```bash
-NEXTCLOUD_ALLOW_PRIVATE_HOSTS=1
+NEXTCLOUD_ALLOW_PRIVATE_HOSTS=nextcloud.lan
 ```
 
 :::warning This setting applies to the whole server
-It is not per organisation and not per Nextcloud. With it, the server calls private and loopback addresses for every Nextcloud address that anybody on that server enters, including the address a user saves next to an app password. Set it only on a server whose users you trust, and only when your Nextcloud really is on a private network. Cloud metadata addresses stay refused either way.
+It is not per organisation and not per Nextcloud. With `1`, the server calls private and loopback addresses for every Nextcloud address that anybody on that server enters (with a host list, only the listed hosts), including the address a user saves next to an app password. Set it only on a server whose users you trust, and only when your Nextcloud really is on a private network. Cloud metadata addresses stay refused either way.
 :::
 
 The server container must also be able to resolve the Nextcloud's hostname and route to it.

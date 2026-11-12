@@ -26,7 +26,7 @@ process.env.NODE_ENV = 'test';
 process.env.WEBPAGE_FULL_RUNTIME_ENABLED = '1';
 
 const webpageRuntimeManager = require('../services/webpageRuntimeManager');
-const { mountFullTierProxy } = require('./webpagesFullTierProxy');
+const { mountFullTierProxy, applyPreviewSandbox, FULL_TIER_CSP } = require('./webpagesFullTierProxy');
 
 function fakeServer() {
     const s = new EventEmitter();
@@ -123,4 +123,17 @@ test('WS upgrade with a VALID matching token proceeds to resolve a target (auth 
     } finally {
         webpageRuntimeManager.getReachableBase = originalGetReachableBase;
     }
+});
+
+test('a proxied full-tier response carries the preview sandbox, whatever the container sent', () => {
+    /** @type {{ headers: Record<string, string | string[] | undefined> }} */
+    const fromContainer = { headers: { 'content-type': 'text/html' } };
+    applyPreviewSandbox(fromContainer);
+    assert.strictEqual(fromContainer.headers['content-security-policy'], FULL_TIER_CSP);
+
+    /** @type {{ headers: Record<string, string | string[] | undefined> }} */
+    const withOwnPolicy = { headers: { 'content-security-policy': "default-src *; script-src 'unsafe-inline'" } };
+    applyPreviewSandbox(withOwnPolicy);
+    assert.strictEqual(withOwnPolicy.headers['content-security-policy'], 'sandbox allow-scripts allow-forms');
+    assert.ok(!FULL_TIER_CSP.includes('allow-same-origin'));
 });

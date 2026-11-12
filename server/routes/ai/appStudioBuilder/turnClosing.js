@@ -35,6 +35,7 @@ const { bestEffort } = require('../../../utils/bestEffort');
  *   builtThisTurn: boolean,
  *   proposedPlan: { planId?: string, plan?: unknown }|null,
  *   reviewQuestions: Array<{ id: string, prompt: string, options: string[], header?: string }>|null,
+ *   heldChange: import('./heldChanges.mts').HeldChange|null,
  *   lastPhaseIndex: number|null,
  *   lastValidation: { ok?: boolean, errors?: unknown[], warnings?: unknown[] }|null,
  *   persistBroken: boolean,
@@ -57,7 +58,7 @@ async function handleProposedPlan(turn, { draftWrap, send }) {
     let awaitingPlan = false;
     // An open question card needs an app row too: its snapshot is what the
     // next turn (and a reload) reads the questions from.
-    if ((turn.proposedPlan || turn.reviewQuestions) && !draftWrap.appId) {
+    if ((turn.proposedPlan || turn.reviewQuestions || turn.heldChange) && !draftWrap.appId) {
         try { await persistDraft(draftWrap); } catch (err) { bestEffort('routes/ai/appStudioBuilder/turnClosing:handleProposedPlan', err); /* no persistence this turn */ }
     }
     if (turn.proposedPlan) {
@@ -106,7 +107,7 @@ async function runAutoFinalizeNet(turn, { draftWrap, iterationBudget, approvedPl
     const builtAndEnded = turn.modelEndedTurn && turn.builtThisTurn && !approvedPlanForTurn;
     // Never in Just advise (the app must stay as it is) or while a question
     // card waits for the user's answer.
-    const netAllowed = workMode !== 'discuss' && !turn.reviewQuestions;
+    const netAllowed = workMode !== 'discuss' && !turn.reviewQuestions && !turn.heldChange;
     if (netAllowed && !turn.lastFinalized && !turn.persistBroken && !turn.proposedPlan && draftWrap.appId && (budgetOut || builtAndEnded)) {
         const finalCheck = validateAppDefinition(draftWrap.def, {
             dataModel: draftWrap.dataModel,
@@ -178,7 +179,7 @@ async function persistTurnSnapshot(turn, {
                     : String(effectiveMessage) },
                 ...(proseParts.length ? [{ role: 'assistant', content: proseParts.join('') }] : []),
             ];
-            /** @type {{ sessionId: string, appId: string, messages: Array<{ role: string, content: string }>, lastValidation: unknown, summary: string, updatedAt: string, lastTier: string, todos?: unknown, brief?: string, designBrief?: string, approvedPlan?: unknown, pendingPlan?: unknown, continueToken?: string, reviewQuestions?: unknown, questionsMeta?: unknown }} */
+            /** @type {{ sessionId: string, appId: string, messages: Array<{ role: string, content: string }>, lastValidation: unknown, summary: string, updatedAt: string, lastTier: string, todos?: unknown, brief?: string, designBrief?: string, approvedPlan?: unknown, pendingPlan?: unknown, continueToken?: string, reviewQuestions?: unknown, questionsMeta?: unknown, heldChange?: unknown }} */
             const snapshotBody = {
                 sessionId: draftWrap.builderSessionId,
                 appId: draftWrap.appId,
@@ -211,6 +212,8 @@ async function persistTurnSnapshot(turn, {
             } else if (!turn.proposedPlan && !isApproval && !turn.lastFinalized && priorSnapshot?.questionsMeta) {
                 snapshotBody.questionsMeta = priorSnapshot.questionsMeta;
             }
+            // A change held for the user's confirmation: the next turn applies it on their "apply" (./heldChanges.mts).
+            if (turn.heldChange) snapshotBody.heldChange = turn.heldChange;
             // Uncapped here; the store evicts from the HEAD in whole
             // blocks when the snapshot is over size, so the prefix the
             // model saw survives between evictions (the automation builder's
@@ -229,6 +232,7 @@ function classifyTurnOutcome(turn, { awaitingPlan, continuation, budgetExhausted
     return turn.lastFinalized ? 'finalized'
         : awaitingPlan ? 'awaiting_plan'
             : turn.reviewQuestions ? 'awaiting_questions'
+                : turn.heldChange ? 'awaiting_confirmation'
                 : continuation ? 'continuation'
                 : turn.persistBroken ? 'save_conflict'
                     : budgetExhausted ? 'budget_exhausted'

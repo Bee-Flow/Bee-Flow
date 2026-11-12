@@ -63,7 +63,9 @@ let n = 0;
 async function makeApp() {
     const studioAppStore = require('../stores/studioAppStore');
     const app = await studioAppStore.createStudioApp({ userId: OWNER.id, organizationId: ORG, name: `Usage app ${++n}` });
-    const def = { schemaVersion: 1, meta: {}, theme: {}, homeScreenId: 's1', screens: [], actions: { seq: SEQ } };
+    // A button wires `seq`, as in a real app: an action nothing wires is the owner's alone.
+    const screens = [{ id: 's1', name: 'Home', sections: [{ id: 'sec1', children: [{ id: 'cmp_go', type: 'button', props: {}, onClick: 'seq' }] }] }];
+    const def = { schemaVersion: 1, meta: {}, theme: {}, homeScreenId: 's1', screens, actions: { seq: SEQ } };
     const saved = await studioAppStore.saveDefinition(app.id, OWNER.id, def);
     assert.ok(saved && saved.ok, 'definition saved');
     assert.ok(await studioAppStore.setStudioAppPublished(app.id, true, OWNER.id, [], ORG), 'published to the org');

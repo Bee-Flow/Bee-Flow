@@ -93,6 +93,10 @@ async function dispatchToolRound({
     // unapproved. An agent without a curated map is untouched.
     let _roundPolicy;
     let _automationConfirms = null;
+    const _mailTrigger = !!messageMetadata?.mailTrigger;
+    // A run started by a received e-mail: the round is gated on the same allow-list the stack was built from
+    // (toolStackAssembly.narrowMailTriggerTools), so a tool added to the live array after assembly cannot run.
+    const _policyTools = _mailTrigger ? mailRunTools(tools, agent) : tools;
     try {
         // The per-automation confirm a granted automation carries. It
         // can only be resolved against the assembled stack (the
@@ -102,15 +106,16 @@ async function dispatchToolRound({
     } catch (err) { fallback('core/agentRuntime/chatStream/toolRoundGate:dispatchToolRound', err); /* no overrides is the pre-grant behaviour */ }
     try {
         _roundPolicy = buildToolPolicy({
-            agentConfig: agent.config, tools, unattended,
+            agentConfig: agent.config, tools: _policyTools, unattended,
             automationConfirms: _automationConfirms,
-            mailTrigger: !!messageMetadata?.mailTrigger,
+            mailTrigger: _mailTrigger,
         });
     } catch (policyErr) {
         log.warn('[AgentRuntime] Tool policy build failed — falling back to a fail-closed policy:', /** @type {Error} */ (policyErr).message);
         _roundPolicy = fallbackToolPolicy({
-            agentConfig: agent.config, tools, unattended,
+            agentConfig: agent.config, tools: _policyTools, unattended,
             automationConfirms: _automationConfirms,
+            mailTrigger: _mailTrigger,
         });
     }
 
@@ -126,6 +131,21 @@ async function dispatchToolRound({
     });
 
     return _bailReason;
+}
+
+/**
+ * The tools of a mail-started run that its allow-list keeps; none when the list cannot be applied.
+ * @param {import('./turnState').ToolDef[]} tools
+ * @param {{ config?: any }} agent
+ * @returns {import('./turnState').ToolDef[]}
+ */
+function mailRunTools(tools, agent) {
+    try {
+        return require('../toolStackAssembly').narrowMailTriggerTools(tools, agent);
+    } catch (err) {
+        fallback('core/agentRuntime/chatStream/toolRoundGate:mailRunTools', err);
+        return [];
+    }
 }
 
 module.exports = { buildRoundAssistantMessage, dispatchToolRound };

@@ -6,15 +6,21 @@ const { StoreInputError } = require('../../stores/lib/storeInputError');
 const { HttpError } = require('../../core/http/errors');
 
 const req = (id) => ({ session: id ? { user: { id } } : undefined });
-const deps = (org, mode = 'cloud', fail = false) => ({
+const deps = (org, mode = 'cloud', fail = false, holdsIn = [org]) => ({
     getUser: async () => { if (fail) throw Object.assign(new Error('down'), { code: 'ECONNREFUSED' }); return { organizationId: org }; },
     mode: () => mode,
+    holds: async (_u, perm, orgId) => perm === 'admin_compliance' && holdsIn.includes(orgId),
 });
 
 test('an admin reads their home organisation; without one only a single-tenant install falls back to default', async () => {
     assert.equal(await resolveAdminOrgId(req('u1'), deps('org_a')), 'org_a');
     assert.equal(await resolveAdminOrgId(req('u1'), deps(null, 'self-hosted')), 'default');
     await assert.rejects(resolveAdminOrgId(req('u1'), deps(null, 'cloud')), (e) => e instanceof HttpError && e.status === 403);
+});
+
+test('admin_compliance held only in another organisation does not open the home organisation\'s register', async () => {
+    await assert.rejects(resolveAdminOrgId(req('u1'), deps('org_a', 'cloud', false, ['org_b'])), (e) => e instanceof HttpError && e.status === 403 && e.code === 'permission_required');
+    assert.equal(await resolveAdminOrgId(req('u1'), deps('org_a', 'cloud', false, ['org_b', 'org_a'])), 'org_a');
 });
 
 test('no session is a 401 and a failed lookup a 503, never another tenant', async () => {

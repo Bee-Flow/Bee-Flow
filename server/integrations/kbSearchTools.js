@@ -245,7 +245,7 @@ async function executeKbSearchTool(toolName, args, context = {}) {
     // ── Greeting / small-talk guard (smallTalkCore) ─────────────────
     const queryCore = smallTalkCore(query);
     if (queryCore !== null) {
-        log.info(`[KBSearch] Skipped — greeting/small-talk: "${query}" (core: "${queryCore}")`);
+        log.info(`[KBSearch] Skipped — greeting/small-talk (query ${String(query).length} chars)`);
         return {
             _action: 'kb_sources',
             _sources: [],
@@ -281,11 +281,11 @@ async function executeKbSearchTool(toolName, args, context = {}) {
     const cacheQuery = `${query}|top_k=${topK}|preview=${previewMode}`;
     const cached = kbQueryCache.get(conversationId, cacheQuery, kbIds);
     if (cached) {
-        log.info(`[KBSearch] Cache HIT: conv=${context.conversationId} "${query}" → ${cached._sources?.length || 0} chunks`);
+        log.info(`[KBSearch] Cache HIT: conv=${context.conversationId} query ${String(query).length} chars → ${cached._sources?.length || 0} chunks`);
         return cached;
     }
 
-    log.info(`[KBSearch] Searching ${kbIds.length} KBs: "${query}" (top_k=${topK}, agent=${agentId})`);
+    log.info(`[KBSearch] Searching ${kbIds.length} KBs: query ${String(query).length} chars (top_k=${topK}, agent=${agentId})`);
 
     try {
         const { resolveKbProvider } = require('../core/kb/resolveProvider');

@@ -45,11 +45,22 @@ function deriveLocalUserId(email, azureUserId) {
  * not belong to a Microsoft identity, and a connector-provisioned row must
  * name the same Nextcloud uid. An account that does not qualify is linked by
  * its owner from account settings instead.
+ *
+ * The Nextcloud connector (identity provider `nextcloud_connector`, after its
+ * signed uid found no account of the organisation) applies the same rule,
+ * narrower: only an account the connector or the user sync created, and
+ * never an organisation administrator. The connector also checks that no SSO
+ * identity is linked to the row (connectorJwtPhases.js). Any other account
+ * is linked once, after a normal sign-in (connector/ncLinkTicket.mts).
  * @param {Record<string, any>} row
  * @param {{ provider?: string | null, localId?: string | null, subject?: string | null }} identity
  */
 function emailLinkAllowed(row, identity) {
     if (!noOwnCredential(row)) return false;
+    if (identity.provider === 'nextcloud_connector') {
+        // Loaded here: auth/permissions.js wires its dependencies on first use.
+        return row.provider === 'nextcloud_connector' && !require('./permissions').isOrgAdminRole(row.orgRole);
+    }
     if (row.provider === 'nextcloud_connector') {
         const uid = identity.subject || String(identity.localId || '').replace(/^nextcloud-/, '');
         return identity.provider === 'nextcloud' && !!uid && row.nc_uid === uid;
@@ -204,8 +215,10 @@ async function byEmail(identity, userStore, identities) {
 }
 
 /**
- * Find an organization whose allowedDomains (or contact-email domain) matches
- * the email address. Returns null if nothing matches.
+ * Find THE organization whose allowedDomains (or confirmed contact-email
+ * domain) matches the email address. Returns null if nothing matches, and
+ * also when more than one organisation does: a domain two organisations
+ * claim places nobody.
  *
  * SECURITY: a free/public email provider (gmail.com, outlook.com, …) NEVER
  * matches — nobody "owns" gmail.com, so a shared provider domain must not bind
@@ -213,23 +226,30 @@ async function byEmail(identity, userStore, identities) {
  * even a mis-configured allowedDomains entry or a dirty legacy row cannot leak.
  * (This omission was the root cause of the free-mail org-binding incident.)
  *
+ * The contact e-mail counts only for an organisation in `confirmedContactOrgIds`
+ * (auth/orgDomainMatch.mts decides which: an administrator with a verified
+ * address on the domain, or a platform admin who set it). Without the set the
+ * contact e-mail never matches.
+ *
  * @param {string} email
  * @param {Array<any>} orgs
  * @param {Set<string>} [freeDomains]  effective free-provider blocklist from
  *   getEffectiveFreeEmailDomains() (built-in floor ∪ admin extras). Omit to use
  *   the built-in floor only.
+ * @param {ReadonlySet<string>} [confirmedContactOrgIds]
  */
-function resolveOrgByEmailDomain(email, orgs, freeDomains) {
+function resolveOrgByEmailDomain(email, orgs, freeDomains, confirmedContactOrgIds = new Set()) {
     if (!email || !email.includes('@')) return null;
     const userDomain = email.split('@')[1].toLowerCase();
     if (isFreeEmailDomain(userDomain, freeDomains)) return null;
-    return orgs.find(org => {
+    const matches = orgs.filter(org => {
         if (Array.isArray(org.allowedDomains) && org.allowedDomains.length > 0) {
             return org.allowedDomains.includes(userDomain);
         }
-        if (!org.email || !org.email.includes('@')) return false;
+        if (!confirmedContactOrgIds.has(org.id) || !org.email || !org.email.includes('@')) return false;
         return org.email.split('@')[1].toLowerCase() === userDomain;
-    }) || null;
+    });
+    return matches.length === 1 ? matches[0] : null;
 }
 
 /**

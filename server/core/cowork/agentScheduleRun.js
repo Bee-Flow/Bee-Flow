@@ -226,6 +226,19 @@ function eventRunParts(task, scheduleText, trigger) {
 }
 
 /**
+ * A run started by a mail: whether a reply in the thread may also go to the others on To and Cc is the agent
+ * owner's setting (`replyAll` on the Gmail / Outlook entry), put on the mail-trigger context the reply tools read.
+ * @param {Record<string, unknown> | undefined} extraMetadata
+ * @param {{ config?: { tools?: unknown } | null } | null | undefined} agent
+ */
+function applyOwnerMailSettings(extraMetadata, agent) {
+    const mailTrigger = /** @type {{ provider?: string, replyAll?: boolean } | undefined} */ (extraMetadata?.mailTrigger);
+    if (!mailTrigger || typeof mailTrigger !== 'object') return;
+    const tools = /** @type {Record<string, unknown> | null} */ (agent?.config?.tools ?? null);
+    mailTrigger.replyAll = require('../agentRuntime/toolPolicy/mailRun.mts').replyAllAllowed(tools, mailTrigger.provider);
+}
+
+/**
  * Run the schedule's prompt through the agent's streaming runtime. Resolves to
  * the runtime's result, the answer as best the stream gave it, and what was
  * streamed / replaced (for the no-outcome log line).
@@ -259,6 +272,7 @@ async function runScheduleAgent(task, agent, userAuth, { scheduleText, prompt, e
         // An event run adds what it knows (unattended, mailTrigger): the tool stack and the reply tools read it.
         ...extraMetadata,
     };
+    applyOwnerMailSettings(extraMetadata, agent);
 
     // Capture both the streaming token deltas AND any post-stream content
     // replacements (the runtime emits `content_replace` after stripping

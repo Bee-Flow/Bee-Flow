@@ -32,7 +32,31 @@ for _ncenv in "${APP_PERSISTENT_STORAGE:-/data}/nc-trust/env" /tmp/nc-trust/env;
     fi
 done
 
+# Who the connector and frpc run as. The setup steps need root (the trust
+# store, the frpc certificates HaRP mounts root-only); the processes do not.
+RUN_AS="${BEEFLOW_RUN_AS:-node}"
+DROP=''
+if [ "$(id -u)" = 0 ] && [ "$RUN_AS" != root ] && command -v su-exec >/dev/null 2>&1; then DROP=1; fi
+
 if [ -n "$HP_SHARED_KEY" ]; then
+    # frpc reads the client certificate and key HaRP mounts at /certs/frp.
+    # Unprivileged, it gets copies that only that user can read; when the copy
+    # fails it stays on root, as before, so the tunnel still comes up.
+    FRP_CERTS=/certs/frp
+    FRPC=(frpc)
+    if [ -n "$DROP" ]; then
+        FRPC=(su-exec "$RUN_AS" frpc)
+        if [ -d /certs/frp ]; then
+            if mkdir -p /tmp/frp-certs \
+                && cp /certs/frp/client.crt /certs/frp/client.key /certs/frp/ca.crt /tmp/frp-certs/ \
+                && chown -R "$RUN_AS:$RUN_AS" /tmp/frp-certs && chmod 600 /tmp/frp-certs/*; then
+                FRP_CERTS=/tmp/frp-certs
+            else
+                echo "[harp-start] could not hand the frpc certificates to $RUN_AS; frpc runs as root" >&2
+                FRPC=(frpc)
+            fi
+        fi
+    fi
     if [ -d "/certs/frp" ]; then
         cat > /tmp/frpc.toml <<EOF
 serverAddr = "$HP_FRP_ADDRESS"
@@ -40,9 +64,9 @@ serverPort = $HP_FRP_PORT
 loginFailExit = false
 
 transport.tls.enable = true
-transport.tls.certFile = "/certs/frp/client.crt"
-transport.tls.keyFile = "/certs/frp/client.key"
-transport.tls.trustedCaFile = "/certs/frp/ca.crt"
+transport.tls.certFile = "$FRP_CERTS/client.crt"
+transport.tls.keyFile = "$FRP_CERTS/client.key"
+transport.tls.trustedCaFile = "$FRP_CERTS/ca.crt"
 transport.tls.serverName = "harp.nc"
 
 metadatas.token = "$HP_SHARED_KEY"
@@ -74,7 +98,10 @@ type = "unix_domain_socket"
 unixPath = "/tmp/exapp.sock"
 EOF
     fi
-    echo "[harp-start] launching frpc → ${HP_FRP_ADDRESS}:${HP_FRP_PORT}"
+    # The file holds the shared key: readable by the user frpc runs as only.
+    chmod 600 /tmp/frpc.toml
+    if [ "${FRPC[0]}" = su-exec ]; then chown "$RUN_AS:$RUN_AS" /tmp/frpc.toml; fi
+    echo "[harp-start] launching frpc → ${HP_FRP_ADDRESS}:${HP_FRP_PORT} as $([ "${FRPC[0]}" = su-exec ] && echo "$RUN_AS" || echo root)"
     # Supervise frpc: if it crashes, the Node app stays up and the container
     # still reports "healthy" (the healthcheck probes the local socket, not the
     # tunnel), but it would be unreachable through HaRP. Restart on exit so the
@@ -82,19 +109,17 @@ EOF
     # failures; this covers hard crashes. Operators: grep logs for "frpc exited".
     (
         while true; do
-            frpc -c /tmp/frpc.toml
+            "${FRPC[@]}" -c /tmp/frpc.toml
             echo "[harp-start] frpc exited ($?) — restarting in 2s" >&2
             sleep 2
         done
     ) &
 fi
 
-# The steps above need root (the trust store, the frpc certificates HaRP
-# mounts). The connector itself does not: hand the persistent storage and the
+# The connector does not need root either: hand the persistent storage and the
 # TLS helper's output to the unprivileged user and run the app as that user.
-# frpc stays a root child; it only relays to the app's unix socket.
-RUN_AS="${BEEFLOW_RUN_AS:-node}"
-if [ "$(id -u)" = 0 ] && [ "$RUN_AS" != root ] && command -v su-exec >/dev/null 2>&1; then
+# frpc (above) relays to the app's unix socket as the same user.
+if [ -n "$DROP" ]; then
     _storage="${APP_PERSISTENT_STORAGE:-/data}"
     mkdir -p "$_storage"
     chown -R "$RUN_AS:$RUN_AS" "$_storage"

@@ -296,7 +296,7 @@ async function executeNodeSearchTool(toolName, args) {
     const detailLevel = ['basic', 'detailed', 'highly_detailed'].includes(detail_level) ? detail_level : (modeDefaults.detail_level || 'detailed');
     const maxTokens = parseInt(modeDefaults.max_tokens_markdown) || (isWebFast ? 1500 : 2000);
 
-    log.info(`[NodeSearch] "${query}" mode=${searchMode} max=${maxResults} fetch=${fetchTopN} detail=${detailLevel}`);
+    log.info(`[NodeSearch] query ${String(query).length} chars mode=${searchMode} max=${maxResults} fetch=${fetchTopN} detail=${detailLevel}`);
 
     /** @type {{ embed: InferenceEntry; rerank: InferenceEntry; cleanup: InferenceEntry; }} */
     let targets;

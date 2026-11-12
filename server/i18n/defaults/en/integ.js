@@ -461,6 +461,7 @@ module.exports = {
     'integ.org_nc_pairing_environment_variable_on_the_connector': 'environment variable on the connector running on the new Nextcloud. The code binds that Nextcloud to this same Bee Flow organisation instead of creating a new one.',
     'integ.org_nc_pairing_refresh': 'Refresh',
     'integ.org_nc_pairing_no_active_pairing_codes_generated': 'No active pairing codes. Generated codes live for 15 minutes and disappear after use.',
+    'integ.org_nc_pairing_shown_once': 'Shown once, right after it is generated',
     'integ.org_nc_pairing_revoke': 'Revoke',
     'integ.org_nc_pairing_how_to_use_this_code_on_the_new': 'How to use this code on the new Nextcloud',
     'integ.org_nc_pairing_on_the_new_nextcloud_server_run': 'On the new Nextcloud server, run:',

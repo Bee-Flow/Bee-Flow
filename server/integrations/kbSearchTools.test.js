@@ -58,3 +58,37 @@ test('Z-N3: kb_fetch is only claimed when preview mode offers it', () => {
         if (prev === undefined) delete process.env.KB_PREVIEW_MODE; else process.env.KB_PREVIEW_MODE = prev;
     }
 });
+
+test('kb_search logs the length of a question, never its text', async () => {
+    preloadStubs(require, {
+        '../stores/agentStore': { getForRuntime: async () => ({ config: { knowledge_base_ids: ['kb1'] } }) },
+        '../core/agentRuntime/testAs': { visibleKbIdsFor: async (/** @type {string[]} */ ids) => ids },
+        '../core/kb/resolveProvider': { resolveKbProvider: async () => 'local' },
+        '../core/kb/localKBIngest': { searchLocally: async () => Object.assign([{ ...CHUNK }], { _orphanFiltered: true }) },
+    });
+    const log = require('../telemetry/log');
+    const tool = require('./kbSearchTools');
+    /** @type {string[]} */
+    const lines = [];
+    const saved = { info: log.info, warn: log.warn };
+    log.info = (/** @type {unknown[]} */ ...a) => { lines.push(a.map(String).join(' ')); };
+    log.warn = (/** @type {unknown[]} */ ...a) => { lines.push(a.map(String).join(' ')); };
+    try {
+        const question = 'salary of Jan de Vries in the payroll export';
+        const ctx = { userId: 'u3', agentId: 'a3', conversationId: 'conv-log-test' };
+        await tool.executeKbSearchTool('kb_search', { query: question }, ctx);
+        await tool.executeKbSearchTool('kb_search', { query: question }, ctx); // the cache hit
+        await tool.executeKbSearchTool('kb_search', { query: 'hello there' }, ctx); // small talk
+        const kbLines = lines.filter((l) => l.startsWith('[KBSearch]'));
+        assert.ok(kbLines.some((l) => l.includes(`query ${question.length} chars`)), kbLines.join('\n'));
+        assert.ok(kbLines.some((l) => l.includes('Cache HIT')), kbLines.join('\n'));
+        assert.ok(kbLines.some((l) => l.includes('small-talk')), kbLines.join('\n'));
+        for (const l of lines) {
+            assert.strictEqual(l.includes('Jan de Vries'), false, l);
+            assert.strictEqual(l.includes('hello there'), false, l);
+        }
+    } finally {
+        log.info = saved.info;
+        log.warn = saved.warn;
+    }
+});

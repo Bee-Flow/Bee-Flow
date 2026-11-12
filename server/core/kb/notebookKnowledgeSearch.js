@@ -438,7 +438,7 @@ async function executeNotebookKBSearchTool(args, userId, kbIds, sources = null, 
     }
 
     const topK = Math.min(Math.max(parseInt(top_k) || 5, 1), 10);
-    log.info(`[NotebookKBSearch] Tool search: "${query}" (top_k=${topK})`);
+    log.info(`[NotebookKBSearch] Tool search: query ${String(query).length} chars (top_k=${topK})`);
 
     const result = await searchNotebookKB({
         userId, kbIds, query, sources, log: queryLog,

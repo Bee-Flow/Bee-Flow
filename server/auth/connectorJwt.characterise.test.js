@@ -80,6 +80,7 @@ function reset() {
     log.warn = (m) => { rec.warns.push(String(m)); };
     log.info = (m) => { rec.infos.push(String(m)); };
     connectorBootstrap.helpers.ensureOrgAdminUser = async () => null;
+    require('./connectorJwtPhases')._linkDeps.hasSsoIdentity = async () => false;
 }
 beforeEach(reset);
 
@@ -201,7 +202,7 @@ test('getUser throwing is treated as "user missing": stale-session path, no reje
 
 test('stale session + valid connector JWT: regenerate happens first, then JWT auth succeeds', async () => {
     const id = `u${++uid}`;
-    userStore.getUserByEmail = async () => ({ id, email: 'ann@acme.example', organizationId: ORG });
+    userStore.getUserByNcUid = async () => ({ id, email: 'ann@acme.example', organizationId: ORG });
     const session = sessionOf({ isAuthenticated: true, user: { id: 'gone' } });
     const out = await run(connectorReq(goodPayload(), { session }));
     assertNextOnce(out);
@@ -265,7 +266,7 @@ test('malformed token shape (2 segments / bad chars / 4 segments): next() once a
 
 test('scheme is case-insensitive and the capitalised header key is honoured', async () => {
     const id = `u${++uid}`;
-    userStore.getUserByEmail = async () => ({ id, email: 'ann@acme.example', organizationId: ORG });
+    userStore.getUserByNcUid = async () => ({ id, email: 'ann@acme.example', organizationId: ORG });
     const req = connectorReq(goodPayload(), { tok: 'x' });
     delete req.headers.authorization;
     req.headers.Authorization = `BEARER   ${token(goodPayload())}  `;
@@ -314,7 +315,7 @@ test('no tenant keys at all / token without email claim domain: subjectKey "unkn
 test('tenant key only found through the fresh (cache-bypass) pass still authenticates', async () => {
     configStore.getSecret = async () => 'stale-key';
     const id = `u${++uid}`;
-    userStore.getUserByEmail = async () => ({ id, email: 'ann@acme.example', organizationId: ORG });
+    userStore.getUserByNcUid = async () => ({ id, email: 'ann@acme.example', organizationId: ORG });
     assertNextOnce(await run(connectorReq(goodPayload())));
 });
 
@@ -604,7 +605,7 @@ test('existing user bound to ANOTHER org: 403 NC_ORG_MISMATCH, no session mutati
 });
 
 test('existing pending user: 403 Account is pending admin approval', async () => {
-    userStore.getUserByEmail = async () => ({ id: 'u9', email: 'ann@acme.example', organizationId: ORG, status: 'pending' });
+    userStore.getUserByNcUid = async () => ({ id: 'u9', email: 'ann@acme.example', organizationId: ORG, status: 'pending' });
     const req = connectorReq(goodPayload());
     assertRejected(await run(req), 403, { error: 'Account is pending admin approval' });
     assert.deepEqual(rec.problems[0].opts.meta, { lastUserId: 'u9', reason: 'existing_user_pending' });
@@ -612,7 +613,7 @@ test('existing pending user: 403 Account is pending admin approval', async () =>
 });
 
 test('existing suspended user: 403 Account is not active', async () => {
-    userStore.getUserByEmail = async () => ({ id: 'u9', email: 'ann@acme.example', organizationId: ORG, status: 'suspended' });
+    userStore.getUserByNcUid = async () => ({ id: 'u9', email: 'ann@acme.example', organizationId: ORG, status: 'suspended' });
     const req = connectorReq(goodPayload());
     assertRejected(await run(req), 403, { error: 'Account is not active' });
     assert.deepEqual(rec.problems[0].opts.meta, { lastUserId: 'u9', reason: 'existing_user_suspended' });
@@ -665,13 +666,38 @@ test('existing platform admin in this org: 403 NC_ORG_MISMATCH, no session', asy
     assert.equal(req.session.isAuthenticated, undefined);
 });
 
-test('existing member of this org (any provider): authenticated, one next()', async () => {
+test('existing member of this org found by the signed uid (any provider): authenticated, one next()', async () => {
     const id = `u${++uid}`;
-    userStore.getUserByEmail = async () => ({ id, email: 'ann@acme.example', organizationId: ORG, provider: 'local', role: 'user' });
+    const asked = [];
+    userStore.getUserByNcUid = async (...a) => { asked.push(a); return { id, email: 'old@acme.example', organizationId: ORG, provider: 'local', role: 'user', nc_uid: 'ann' }; };
+    userStore.getUserByEmail = async () => { throw new Error('the address is not looked up'); };
     const req = connectorReq(goodPayload());
     assertNextOnce(await run(req));
+    assert.deepEqual(asked, [[ORG, 'ann']]);
+    assert.equal(req.session.user.id, id);
     assert.equal(req.session.user.organizationId, ORG);
     assert.equal(req.session.isAdmin, false);
+});
+
+test('an account found by address that the connector did not create: 409 nc_link_required with the link page, nothing written, no session', async (t) => {
+    const saved = process.env.CLIENT_PUBLIC_HOST;
+    process.env.CLIENT_PUBLIC_HOST = 'app.acme.example';
+    t.after(() => { if (saved === undefined) delete process.env.CLIENT_PUBLIC_HOST; else process.env.CLIENT_PUBLIC_HOST = saved; });
+    const updates = [];
+    userStore.updateUser = async (...a) => { updates.push(a); };
+    for (const extra of [{ provider: 'local' }, { provider: 'google' }, { provider: 'nextcloud_connector', passwordHash: 'h' },
+        { provider: 'nextcloud_connector', mfa_enabled: true }, { provider: 'nextcloud_connector', orgRole: 'org_admin' }]) {
+        const id = `u${++uid}`;
+        userStore.getUserByEmail = async () => ({ id, email: 'ann@acme.example', organizationId: ORG, role: 'user', nc_uid: null, ...extra });
+        const req = connectorReq(goodPayload());
+        const out = await run(req);
+        assert.equal(out.statusCode, 409, JSON.stringify(extra));
+        assert.equal(out.body.code, 'nc_link_required');
+        assert.ok(out.body.linkUrl.startsWith('https://app.acme.example/app/settings/security#nc_link='), out.body.linkUrl);
+        assert.equal(req.session.isAuthenticated, undefined);
+    }
+    assert.deepEqual(updates, []);
+    assert.deepEqual(rec.liveness, []);
 });
 
 test('token without exp, or with an exp further ahead than the ceiling: 401 no matching tenant key', async () => {
@@ -696,11 +722,14 @@ test('data-anomaly log: connector user under an org without nc_instance_id warns
     assert.equal(rec.warns.filter((m) => m.includes('Data anomaly')).length, 0);
 });
 
-test('stale nc_uid is repaired only when the email matches; failure is warned and swallowed', async () => {
+test('a stale nc_uid on a connector-created account is repaired when Nextcloud says the stored account is free; failure is warned and swallowed', async (t) => {
+    const serviceDeps = require('./connector/serviceDeps');
+    const orig = serviceDeps.storedUidState;
+    t.after(() => { serviceDeps.storedUidState = orig; });
+    serviceDeps.storedUidState = async () => 'free';
     const id = `u${++uid}`;
     const updates = [];
-    const user = { id, email: 'ann@acme.example', organizationId: ORG, nc_uid: 'old' };
-    userStore.getUserByEmail = async () => user;
+    userStore.getUserByEmail = async () => ({ id, email: 'ann@acme.example', organizationId: ORG, nc_uid: 'old', provider: 'nextcloud_connector' });
     userStore.updateUser = async (...a) => { updates.push(a); };
     const req = connectorReq(goodPayload());
     assertNextOnce(await run(req));
@@ -710,61 +739,49 @@ test('stale nc_uid is repaired only when the email matches; failure is warned an
     assert.ok(rec.warns.includes(`[ConnectorJWT] Repaired stale nc_uid for user ${id}: old → ann`));
 
     reset();
-    const id2 = `u${++uid}`;
-    userStore.getUserByEmail = async () => ({ id: id2, email: 'other@acme.example', organizationId: ORG, nc_uid: 'old' });
-    userStore.updateUser = async () => { updates.push('no'); };
-    updates.length = 0;
-    const req2 = connectorReq(goodPayload()); // payload email differs from stored email
-    assertNextOnce(await run(req2));
-    assert.deepEqual(updates, []);
-    assert.equal(req2.session.user.ncUid, 'old', 'stored uid wins');
-
-    reset();
+    serviceDeps.storedUidState = async () => 'free';
     const id3 = `u${++uid}`;
-    userStore.getUserByEmail = async () => ({ id: id3, email: 'ann@acme.example', organizationId: ORG, nc_uid: 'old' });
+    userStore.getUserByEmail = async () => ({ id: id3, email: 'ann@acme.example', organizationId: ORG, nc_uid: 'old', provider: 'nextcloud_connector' });
     userStore.updateUser = async () => { throw new Error('nope'); };
     assertNextOnce(await run(connectorReq(goodPayload())));
     assert.ok(rec.warns.includes(`[ConnectorJWT] Failed to repair nc_uid for ${id3}: nope`));
 });
 
-test('missing nc_uid is filled in from the signed sub for a member of this org with the same email', async () => {
+test('missing nc_uid is filled in from the signed sub for a connector-created member of this org', async () => {
     const id = `u${++uid}`;
     const updates = [];
     const asked = [];
-    userStore.getUserByEmail = async () => ({ id, email: 'Ann@acme.example', organizationId: ORG, provider: 'google', nc_uid: null });
+    userStore.getUserByEmail = async () => ({ id, email: 'Ann@acme.example', organizationId: ORG, provider: 'nextcloud_connector', nc_uid: null });
     userStore.getUserByNcUid = async (...a) => { asked.push(a); return null; };
     userStore.updateUser = async (...a) => { updates.push(a); };
     const req = connectorReq(goodPayload());
     assertNextOnce(await run(req));
-    assert.deepEqual(asked, [[ORG, 'ann']]);
+    assert.deepEqual(asked, [[ORG, 'ann'], [ORG, 'ann']], 'the sign-in lookup, then the check before the write');
     assert.deepEqual(updates, [[id, { ncUid: 'ann' }]]);
     assert.equal(req.session.user.ncUid, 'ann');
-    assert.equal(req.session.user.provider, 'google', 'the provider is left alone');
     assert.ok(rec.infos.includes(`[ConnectorJWT] Bound nc_uid ann to user ${id}`));
 });
 
-test('missing nc_uid is NOT filled in when the email differs or another row in the org holds the uid', async () => {
+test('missing nc_uid: an account with an SSO identity is not taken by address; a failed write is warned and swallowed', async () => {
     const id = `u${++uid}`;
     const updates = [];
-    userStore.getUserByEmail = async () => ({ id, email: 'other@acme.example', organizationId: ORG, provider: 'google', nc_uid: null });
+    require('./connectorJwtPhases')._linkDeps.hasSsoIdentity = async () => true;
+    userStore.getUserByEmail = async () => ({ id, email: 'ann@acme.example', organizationId: ORG, provider: 'nextcloud_connector', nc_uid: null });
     userStore.updateUser = async (...a) => { updates.push(a); };
-    assertNextOnce(await run(connectorReq(goodPayload())));
-    assert.deepEqual(updates, [], 'email mismatch: no write');
+    const out = await run(connectorReq(goodPayload()));
+    assert.equal(out.statusCode, 409);
+    assert.equal(out.body.code, 'nc_link_required');
+    assert.deepEqual(updates, []);
 
     reset();
-    const id2 = `u${++uid}`;
-    userStore.getUserByEmail = async () => ({ id: id2, email: 'ann@acme.example', organizationId: ORG, provider: 'google', nc_uid: null });
-    userStore.getUserByNcUid = async () => ({ id: 'someone-else', organizationId: ORG, nc_uid: 'ann' });
-    userStore.updateUser = async (...a) => { updates.push(a); };
-    const req2 = connectorReq(goodPayload());
-    assertNextOnce(await run(req2));
-    assert.deepEqual(updates, [], 'uid already held: no write');
-    assert.ok(rec.warns.includes(`[ConnectorJWT] Not binding nc_uid ann to user ${id2}: user someone-else in org ${ORG} already holds it`));
+    require('./connectorJwtPhases')._linkDeps.hasSsoIdentity = async () => { throw new Error('db down'); };
+    userStore.getUserByEmail = async () => ({ id, email: 'ann@acme.example', organizationId: ORG, provider: 'nextcloud_connector', nc_uid: null });
+    const out2 = await run(connectorReq(goodPayload()));
+    assert.equal(out2.body.code, 'nc_link_required', 'a failed read counts as an identity');
 
     reset();
     const id3 = `u${++uid}`;
-    userStore.getUserByEmail = async () => ({ id: id3, email: 'ann@acme.example', organizationId: ORG, nc_uid: null });
-    userStore.getUserByNcUid = async () => ({ id: id3, organizationId: ORG, nc_uid: 'ann' });
+    userStore.getUserByEmail = async () => ({ id: id3, email: 'ann@acme.example', organizationId: ORG, provider: 'nextcloud_connector', nc_uid: null });
     userStore.updateUser = async () => { throw new Error('nope'); };
     assertNextOnce(await run(connectorReq(goodPayload())));
     assert.ok(rec.warns.includes(`[ConnectorJWT] Failed to bind nc_uid for ${id3}: nope`), 'a failed write is warned and swallowed');
@@ -810,7 +827,7 @@ test('success: session shape, connectorAuth, persistence suppressed, liveness to
 
 test('success: defaults for a sparse user row (role user, empty orgRole, provider connector, session org)', async () => {
     const id = `u${++uid}`;
-    userStore.getUserByEmail = async () => ({ id, email: 'ann@acme.example', organizationId: ORG });
+    userStore.getUserByNcUid = async () => ({ id, email: 'ann@acme.example', organizationId: ORG });
     const req = connectorReq(goodPayload());
     assertNextOnce(await run(req));
     assert.equal(req.session.user.role, 'user');
@@ -823,7 +840,7 @@ test('success: defaults for a sparse user row (role user, empty orgRole, provide
 test('encryption key: SSO key preferred; fallback derivation when SSO gives none; none at all -> no key; cached per user', async () => {
     const id = `u${++uid}`;
     let ssoCalls = 0;
-    userStore.getUserByEmail = async () => ({ id, email: 'ann@acme.example', organizationId: ORG });
+    userStore.getUserByNcUid = async () => ({ id, email: 'ann@acme.example', organizationId: ORG });
     encryption.getOrCreateSSOUserDEKCompat = async (...a) => { ssoCalls++; assert.deepEqual(a, [id, true]); return { encryptionKey: 'k1' }; };
     const r1 = connectorReq(goodPayload());
     assertNextOnce(await run(r1));
@@ -836,7 +853,7 @@ test('encryption key: SSO key preferred; fallback derivation when SSO gives none
     const savedMaster = process.env.MASTER_ENCRYPTION_KEY;
     try {
         const id2 = `u${++uid}`;
-        userStore.getUserByEmail = async () => ({ id: id2, email: 'ann@acme.example', organizationId: ORG });
+        userStore.getUserByNcUid = async () => ({ id: id2, email: 'ann@acme.example', organizationId: ORG });
         encryption.getOrCreateSSOUserDEKCompat = async () => ({});
         process.env.MASTER_ENCRYPTION_KEY = 'm';
         const r3 = connectorReq(goodPayload());
@@ -844,7 +861,7 @@ test('encryption key: SSO key preferred; fallback derivation when SSO gives none
         assert.equal(r3.session.encryptionKey, 'fallback-key');
 
         const id3 = `u${++uid}`;
-        userStore.getUserByEmail = async () => ({ id: id3, email: 'ann@acme.example', organizationId: ORG });
+        userStore.getUserByNcUid = async () => ({ id: id3, email: 'ann@acme.example', organizationId: ORG });
         delete process.env.MASTER_ENCRYPTION_KEY;
         const r4 = connectorReq(goodPayload());
         assertNextOnce(await run(r4));
@@ -856,7 +873,7 @@ test('encryption key: SSO key preferred; fallback derivation when SSO gives none
 
 test('encryption derivation throwing: warn + auth.encryption_key_failed problem, request STILL authenticates without a key', async () => {
     const id = `u${++uid}`;
-    userStore.getUserByEmail = async () => ({ id, email: 'ann@acme.example', organizationId: ORG });
+    userStore.getUserByNcUid = async () => ({ id, email: 'ann@acme.example', organizationId: ORG });
     encryption.getOrCreateSSOUserDEKCompat = async () => { throw new Error('kms down'); };
     const req = connectorReq(goodPayload());
     assertNextOnce(await run(req));
@@ -870,7 +887,7 @@ test('encryption derivation throwing: warn + auth.encryption_key_failed problem,
 
 test('touchLiveness throwing: session is already populated but the response is 401 and next() is NOT called', async () => {
     const id = `u${++uid}`;
-    userStore.getUserByEmail = async () => ({ id, email: 'ann@acme.example', organizationId: ORG });
+    userStore.getUserByNcUid = async () => ({ id, email: 'ann@acme.example', organizationId: ORG });
     orgHealth.touchLiveness = () => { throw new Error('liveness down'); };
     const req = connectorReq(goodPayload());
     assertRejected(await run(req), 401, INVALID);
@@ -879,7 +896,7 @@ test('touchLiveness throwing: session is already populated but the response is 4
 
 test('next() throwing synchronously on success: caught by the try, next stays called once, then 401 is sent', async () => {
     const id = `u${++uid}`;
-    userStore.getUserByEmail = async () => ({ id, email: 'ann@acme.example', organizationId: ORG });
+    userStore.getUserByNcUid = async () => ({ id, email: 'ann@acme.example', organizationId: ORG });
     const out = await run(connectorReq(goodPayload()), { nextThrows: true });
     assert.equal(out.rejected, undefined);
     assert.deepEqual(out.actions, ['next', 'res.status', 'res.json']);
@@ -904,7 +921,7 @@ test('an unknown outcome kind from the last phase is 401, never next()', async (
     t.after(() => { phases.establishConnectorSession = orig; });
     phases.establishConnectorSession = async () => ({ kind: 'weird' });
     const id = `u${++uid}`;
-    userStore.getUserByEmail = async () => ({ id, email: 'ann@acme.example', organizationId: ORG });
+    userStore.getUserByNcUid = async () => ({ id, email: 'ann@acme.example', organizationId: ORG });
     assertRejected(await run(connectorReq(goodPayload())), 401, INVALID);
 });
 
@@ -914,7 +931,7 @@ test('a gate that returns ok() without an authenticated session is 401, never ne
     t.after(() => { phases.pendingApprovalGate = orig; });
     phases.pendingApprovalGate = () => ({ kind: 'ok', user: null });
     const id = `u${++uid}`;
-    userStore.getUserByEmail = async () => ({ id, email: 'ann@acme.example', organizationId: ORG });
+    userStore.getUserByNcUid = async () => ({ id, email: 'ann@acme.example', organizationId: ORG });
     const req = connectorReq(goodPayload());
     assertRejected(await run(req), 401, INVALID);
     assert.equal(req.session.isAuthenticated, undefined);

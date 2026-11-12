@@ -28,6 +28,12 @@ own, including a stylesheet. Visitors only reach what public access lists, and a
 visitors' changes could start needs a separate permission (see
 [Server runs and triggers](./apps-server-runs.md#when-a-record-changes)).
 
+A condition or switch that a public page checks in the visitor's browser decides what the page
+shows next; it is not enforced on the server, where each server step runs with the values the
+visitor's browser sends. Put every access rule a public page relies on where the server
+checks it: the roles and row filters of the `public` role on each table, the column rights, and
+the conditions inside the server steps themselves.
+
 ## Build with AI
 
 Open **Studio → Apps → New**, then describe the app in the builder chat:
@@ -60,6 +66,13 @@ tweak any part, then hit **Build it**. Small changes ("make the header blue", "a
 notes field") skip the plan and apply directly. Before finishing, the AI **dry-runs**
 the app — it actually reads the data through each binding, as the owner and as each
 role, and fixes anything that comes back empty or broken.
+
+**Changes to live data wait for you.** The data model and the rows are not held back by
+publishing, so a few builder changes take effect at once: writing to existing rows, a mailbox
+hook, and anything that gives more people access to stored data (wider column rights, other
+table access rules, new roles or another role mapping). For those the chat shows a card with
+**Apply this change** first; nothing happens until you choose it. The builder reads what is
+stored in the app (rows, mail, documents) as data, never as instructions to follow.
 
 Before the first build of a new app, the builder can make one short model call that proposes a
 design direction. It never blocks the build, and an administrator of a self-hosted install can

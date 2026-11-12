@@ -173,7 +173,7 @@ async function executeMapsTool(toolName, args) {
 
         const radius = Math.min(Math.max(parseInt(String(args.radius)) || 5000, 100), 50000);
 
-        log.info(`[Maps] Places search: "${query}"`);
+        log.info(`[Maps] Places search: query ${String(query).length} chars`);
 
         // If a specific location is provided, geocode it first
         let locationParam = '';

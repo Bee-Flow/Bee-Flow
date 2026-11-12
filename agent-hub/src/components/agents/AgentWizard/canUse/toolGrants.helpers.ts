@@ -192,6 +192,15 @@ function storedMailAccessOf(toolsConfig: ToolsConfigIn, appId: string): string |
     return v === MAIL_ACCESS.READ || v === MAIL_ACCESS.DRAFT || v === MAIL_ACCESS.SEND_REPLY ? v : null;
 }
 
+/** The two switches for runs started by an e-mail: `mailRuns` on any other app, `replyAll` on Gmail and Outlook. */
+export const MAIL_RUN_OPTIONS = Object.freeze({ MAIL_RUNS: 'mailRuns', REPLY_ALL: 'replyAll' });
+
+/** Is this switch stored as on for the app? Only a stored `true` counts, as on the server. */
+function storedSwitchOf(toolsConfig: ToolsConfigIn, appId: string, key: string): boolean {
+    const entry = isPlainObject(toolsConfig) ? toolsConfig[appId] : null;
+    return isPlainObject(entry) && entry[key] === true;
+}
+
 /** Een kopie van de map, met de gereserveerde secties intact. */
 export function cloneTools(toolsConfig: ToolsConfigIn) {
     const out: ToolsConfig = {};
@@ -311,5 +320,8 @@ export function toolRow({
         // Gmail and Outlook only: what the agent may do with the mailbox. Null elsewhere (and when nothing is stored).
         supportsMailAccess: MAIL_ACCESS_APPS.includes(appId),
         mailAccess: MAIL_ACCESS_APPS.includes(appId) ? storedMailAccessOf(toolsConfig, appId) : null,
+        // Runs started by an e-mail: other apps only when switched on; a reply to everyone only when switched on.
+        mailRuns: !MAIL_ACCESS_APPS.includes(appId) && storedSwitchOf(toolsConfig, appId, MAIL_RUN_OPTIONS.MAIL_RUNS),
+        replyAll: MAIL_ACCESS_APPS.includes(appId) && storedSwitchOf(toolsConfig, appId, MAIL_RUN_OPTIONS.REPLY_ALL),
     };
 }

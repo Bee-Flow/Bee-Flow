@@ -31,6 +31,8 @@ const BYSTANDER = mk('qc-bystander', ORG);
 const ADMIN_OTHER = mk('qc-admin-2', ORG_OTHER, { orgRole: 'org_admin' });
 const SUBJECT_OTHER = mk('qc-subject-2', ORG_OTHER);
 const ADMIN_FREE = mk('qc-admin-free', ORG_FREE, { orgRole: 'org_admin' });
+// A member of ORG who holds admin_compliance only through a group of ORG_OTHER.
+const CROSS = mk('qc-cross', ORG, { groups: ['qc-other-compliance'] });
 
 let api;
 let store;
@@ -52,7 +54,8 @@ before(async () => {
         await userStore.createOrganization({ id, name: id }, { autoGrantTrial: false });
         await userStore.setOrgSubscription(id, { plan_id: plan.id, status: 'active' });
     }
-    for (const u of [ADMIN, MEMBER, SUBJECT, BYSTANDER, ADMIN_OTHER, SUBJECT_OTHER, ADMIN_FREE]) await userStore.createUser({ ...u, passwordHash: 'x' });
+    await userStore.createGroup({ id: 'qc-other-compliance', name: 'Other compliance', organizationId: ORG_OTHER, permissions: ['admin_compliance'] });
+    for (const u of [ADMIN, MEMBER, SUBJECT, BYSTANDER, ADMIN_OTHER, SUBJECT_OTHER, ADMIN_FREE, CROSS]) await userStore.createUser({ ...u, passwordHash: 'x' });
     await require('../../stores/complianceStore').initDB();
     const dsr = require('../../stores/dsrStore');
     const kbStore = require('../../stores/knowledgeBases');
@@ -111,6 +114,19 @@ test('a member without admin_compliance is refused on every route', async () => 
     ]) {
         assert.equal((await api.call(method, url, { user: MEMBER, body: method === 'DELETE' ? { dsrRequestId: openRequest, reason: 'x' } : undefined })).status, 403, `${method} ${url}`);
     }
+});
+
+test('admin_compliance held through a group of another organisation opens nothing of the home organisation', async () => {
+    await seed([{}]);
+    for (const [method, url] of [
+        ['GET', '/kb-query-log/overview'], ['GET', '/kb-query-log/entries'], ['GET', '/kb-query-log/entries/export.csv'],
+        ['GET', `/kb-query-log/subjects/${SUBJECT.id}`], ['GET', `/kb-query-log/subjects/${SUBJECT.id}/content?dsrRequestId=${openRequest}`],
+        ['GET', `/kb-query-log/subjects/${SUBJECT.id}/export?dsrRequestId=${openRequest}`], ['DELETE', `/kb-query-log/subjects/${SUBJECT.id}`],
+    ]) {
+        assert.equal((await api.call(method, url, { user: CROSS, body: method === 'DELETE' ? { dsrRequestId: openRequest, reason: 'x' } : undefined })).status, 403, `${method} ${url}`);
+    }
+    assert.equal(Number((await pg.query('SELECT count(*)::int AS n FROM kb_query_log')).rows[0].n), 1);
+    assert.deepEqual(await audit(), []);
 });
 
 test('no session is a 401', async () => {

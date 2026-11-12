@@ -22,6 +22,8 @@ The values are stored per user and encrypted at rest (AES-256-GCM). The secret i
 - In **cloud mode** a private address is refused. The operator can allow it with `FRAPPE_CRM_ALLOW_PRIVATE_HOSTS=1`, or allow specific hosts by listing them in `FRAPPE_CRM_ALLOWED_HOSTS` (comma-separated).
 - When `FRAPPE_CRM_ALLOWED_HOSTS` is set, **only** the listed hosts can be used.
 - Link-local and cloud metadata addresses (such as `169.254.169.254`) are refused in every mode.
+- The address starts with `https://`. Plain `http://` is accepted only for a site on a private address where private addresses are allowed (a name must resolve to private addresses only), because the API key and secret travel with every request.
+- **Test connection** answers with a fixed sentence per kind of failure, and is limited to `INTEGRATION_TEST_MAX_PER_MINUTE` tests per user per minute (default 20, `0` = unlimited).
 - On a private address Bee Flow does not follow redirects: enter the final address of the site, usually the one starting with `https://`.
 
 ## Tools
@@ -44,7 +46,7 @@ The values are stored per user and encrypted at rest (AES-256-GCM). The secret i
 
 The list tools return a small default set of fields; pass `fields` with Frappe field names (custom fields such as `custom_region` included) to get others. Use the names from `frappe_crm_list_statuses` as status values.
 
-In automations the write tools count as side effects: a dry run simulates them, and the first unattended run asks for confirmation.
+In automations the write tools count as side effects: a dry run simulates them, and the first unattended run asks for confirmation. In agent chat a person confirms every write first, and an agent run started by a received e-mail is not offered the write tools.
 
 ## Use cases
 

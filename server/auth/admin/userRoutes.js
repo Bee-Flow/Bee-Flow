@@ -37,6 +37,7 @@ const {
     normaliseOrgId,
     requireOrgAdminForUser,
     defaultGroupsRefused,
+    credentialResetRefusal,
 } = require('./orgAdminGuards');
 const { LAST_PLATFORM_ADMIN_REFUSAL } = require('./platformAdminCount.mts');
 
@@ -399,6 +400,8 @@ router.put('/users/:id', requireOrgAdminForUser, async (req, res) => {
         return res.status(409).json(LAST_PLATFORM_ADMIN_REFUSAL);
     }
 
+    const resetRefusal = password ? await credentialResetRefusal(req, prevUser) : null;
+    if (resetRefusal) return res.status(403).json(resetRefusal);
     if (password && await refusedPassword(res, { id, password, oldPassword, prevUser, updates })) return;
 
     if (await userStore.updateUser(id, updates)) {
@@ -458,6 +461,8 @@ router.post('/users/:id/mfa/reset', requireOrgAdminForUser, async (req, res) => 
     const { id } = req.params;
     const target = await userStore.getUser(id);
     if (!target) return res.status(404).json({ error: 'User not found' });
+    const resetRefusal = await credentialResetRefusal(req, target);
+    if (resetRefusal) return res.status(403).json(resetRefusal);
     // Before the early return: a reset must leave no security key behind,
     // whatever state the MFA columns are in.
     const removedKeys = await userStore.deleteAllSecurityKeys(id);

@@ -144,8 +144,7 @@ export async function loadResumeContext(row: ActionRunRow, meta: RunMeta, given:
     const role = await deps.resolveRole(app, starter.id, model, { userGroups });
     if (role !== meta.role) return refuse('role_changed', PERSON);
     if (!isOwner && role !== 'owner') {
-        const access = deps.roleAccess(what.def, row.actionId, role);
-        if (access.referenced && !access.allowed) return refuse('role_denied', PERSON);
+        if (!deps.roleAccess(what.def, row.actionId, role).allowed) return refuse('role_denied', PERSON);
     }
     const text = (v: unknown): string | null => (typeof v === 'string' && v ? v : null);
     return {

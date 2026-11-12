@@ -27,6 +27,7 @@ const { ensureOrgAdminUser, bindOrgToNcInstance, getOrMintTenantKey } = bootstra
 const { validate } = require('../core/http/validate');
 const { z } = require('../utils/zod');
 const { worded } = require('../core/http/schemaParts');
+const { redeemLinkTicket } = require('./connector/ncLinkTicket.mts');
 
 /** @param {{ expiresAt?: string | Date | null }} row */
 function isExpired(row) {
@@ -262,7 +263,8 @@ router.get('/admin/nc-bindings/pairing-codes', requireAuth, async (req, res) => 
     // the empty list rather than a 403 so the panel renders as it always did.
     if (!preUser.organizationId) return res.json({ codes: [] });
 
-    // The code itself is returned below, so this is a credential read.
+    // Codes are kept as a hash and shown once, when generated; the list
+    // carries a code only for one written before that, so it stays org-admin only.
     const ctx = await loadOrgAdmin(req, res);
     if (!ctx) return;
     const orgId = ctx.orgId;
@@ -369,6 +371,26 @@ router.delete('/admin/nc-bindings/org/:orgId', requireAuth, async (req, res) => 
         meta: { ncInstanceId: before.ncInstanceId },
     });
     return res.json({ ok: true, organizationId: orgId });
+});
+
+// The one-time link of an existing account to a Nextcloud account: the
+// connector sign-in answered nc_link_required with a ticket, and the account's
+// owner, signed in normally just now, redeems it (connector/ncLinkTicket.mts).
+const TICKET_TEXT = 'ticket required';
+const NcLinkBody = z.object({ ticket: worded(TICKET_TEXT).trim().min(1, TICKET_TEXT).max(2048, TICKET_TEXT) }).strict();
+const NC_LINK_ERRORS = {
+    nc_link_invalid: 'This link is not valid or has expired. Open Bee Flow in Nextcloud again for a new one.',
+    nc_link_other_account: 'This link is for another Bee Flow account. Sign in with the account it was made for.',
+    reauth_required: 'Sign in again before linking your Nextcloud account.',
+    nc_link_stale: 'Your account or this Nextcloud account changed since the link was made. Open Bee Flow in Nextcloud again for a new one.',
+};
+router.post('/connector/link', requireAuth, validate({ body: NcLinkBody }), async (req, res) => {
+    const outcome = await redeemLinkTicket(req.session, req.body.ticket);
+    if ('error' in outcome) return res.status(outcome.status).json({ error: NC_LINK_ERRORS[outcome.error], code: outcome.error });
+    const userId = String(req.session?.user?.id || '');
+    userStore.logAccessAudit('nc_account_linked', 'user', userId, userId, null, { ncUid: outcome.ncUid }, req.session?.user?.organizationId || null)
+        .catch((err) => bestEffort('ncBindingRoutes:link-audit', err));
+    return res.json({ linked: true });
 });
 
 module.exports = router;

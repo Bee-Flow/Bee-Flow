@@ -120,6 +120,9 @@ describe('DsrRequestPage — the deadline', () => {
         const forms = document.querySelectorAll('form');
         fireEvent.submit(forms[forms.length - 1]);
         const line = await screen.findByTestId('dsr-check-due');
+        const [statusUrl, statusInit] = fetchMock.mock.calls[0];
+        expect(String(statusUrl)).not.toContain('email');          // the address is not in the URL
+        expect(statusInit.headers).toHaveProperty('X-Subject-Email');
         expect(line).toHaveTextContent('10 Nov 2026');            // the extension wins over due_at
         expect(line).toHaveTextContent('deadline extended (Art. 12(3))');
 

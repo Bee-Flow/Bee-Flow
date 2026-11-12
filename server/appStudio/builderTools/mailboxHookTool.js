@@ -104,7 +104,7 @@ async function applySetMailboxHook(draftWrap, args) {
         onNewRecord: hook,
         modelVersion: draftWrap.dataModelVersion,
         note: hook
-            ? 'From the next sync on, each new row runs the action as the app owner with { item: <the new row> }. Rows that are already stored are not processed. Runs are capped per sync and per minute, and appear in the audit log as studio_app_mailbox_hook_*.'
+            ? 'From the next sync on, each new row runs the PUBLISHED version of the action as the app owner with { item: <the new row> }; until the app is published (and after a change, until it is published again) the published copy is what runs, and an unpublished app runs nothing. Rows that are already stored are not processed. Runs are capped per sync and per minute, and appear in the audit log as studio_app_mailbox_hook_*.'
             : 'The hook is off: new rows no longer run an action.',
     };
 }

@@ -147,14 +147,19 @@ test('a member who is not an administrator gets no code and no key, and keeps th
     assert.equal(started.statusCode, 202);
     const id = started.body.pendingId;
 
+    // The answer is the one an administrator gets; no code is made or mailed,
+    // and the address on the row stays.
     for (const email of [o.member.email, `it@${o.domain}`]) {
         const retarget = await dispatch('POST', `/connector/bootstrap/pending/${id}/retarget`, { body: { email, uid: 'x' } });
-        assert.equal(retarget.statusCode, 403);
-        assert.equal(retarget.body.code, 'email_not_in_org');
+        assert.equal(retarget.statusCode, 200);
+        assert.deepEqual(Object.keys(retarget.body).sort(), ['expiresAt', 'maskedEmail', 'ok']);
     }
     const resend = await dispatch('POST', `/connector/bootstrap/pending/${id}/resend`);
-    assert.equal(resend.statusCode, 403);
-    assert.equal((await pg.query(`SELECT verification_code_sends AS n FROM pending_nc_bindings WHERE id = $1`, [id])).rows[0].n, 0);
+    assert.equal(resend.statusCode, 200);
+    const after = (await pg.query(`SELECT verification_code_sends AS n, verification_email AS e FROM pending_nc_bindings WHERE id = $1`, [id])).rows[0];
+    assert.equal(after.n, 3, 'each request used the row\'s send budget');
+    assert.equal(after.e, o.member.email);
+    assert.equal((await userStore.verifyPendingNcCode(id, CODE)).status, 'invalid', 'no code that was sent');
 
     // Even with a code on the row, the row's address has to be an administrator's.
     assert.equal((await userStore.retargetNcVerification(id, { email: o.member.email, uid: 'x', code: CODE })).status, 'ok');

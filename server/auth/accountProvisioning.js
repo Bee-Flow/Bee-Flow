@@ -218,14 +218,15 @@ function slugifyOrgId(name) {
  * error code rather than a plain refusal: the signup routes translate
  * ORG_DOMAIN_TAKEN into that silent-success response.
  * @param {string} orgEmail
+ * @param {string | null} [exceptOrgId] the organisation whose own address this is (an edit)
  */
-async function assertDomainAvailable(orgEmail) {
+async function assertDomainAvailable(orgEmail, exceptOrgId = null) {
     if (!orgEmail || !orgEmail.includes('@')) return;
     const domain = orgEmail.split('@')[1].toLowerCase();
     if (isFreeEmailDomain(domain, await getEffectiveFreeEmailDomains())) return;
-
     const existingOrgs = await userStore.getAllOrganizations();
     const taken = existingOrgs.find(o => {
+        if (exceptOrgId && o.id === exceptOrgId) return false;
         if (Array.isArray(o.allowedDomains) && o.allowedDomains.includes(domain)) return true;
         if (!o.email || !o.email.includes('@')) return false;
         return o.email.split('@')[1].toLowerCase() === domain;
@@ -233,8 +234,7 @@ async function assertDomainAvailable(orgEmail) {
     if (taken) {
         const err = /** @type {SignupError & {existingOrganizationId?: string, existingOrganizationName?: string, domain?: string}} */ (new SignupError('ORG_DOMAIN_TAKEN',
             'We could not create an organisation with this e-mail address. If your organisation already uses Bee Flow, ask a colleague for an invitation.'));
-        // Carried on the error object, NOT in `body` — `body` is spread straight
-        // into the HTTP response, which is the one place this must never appear.
+        // Carried on the error object, NOT in `body`: `body` is spread into the HTTP response.
         err.existingOrganizationId = taken.id;
         err.existingOrganizationName = taken.name || '';
         err.domain = domain;

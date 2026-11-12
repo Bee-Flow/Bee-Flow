@@ -68,3 +68,19 @@ test('a failing event run goes through failRun as a manual run, so the trigger i
     await executeAgentRun(task, { store, trigger }, deps(failed, chat));
     assert.deepStrictEqual(failed, [{ err: 'model down', manual: true }]);
 });
+
+test('reply-all in a mail-started run is the agent owner\'s setting for that mail app, off by default', async () => {
+    const withAgent = (config) => {
+        const d = deps([]);
+        d.services.agentStore = { getForRuntime: async () => ({ id: 'a1', name: 'Mail agent', owner_id: 'u1', organization_id: null, config }) };
+        return d;
+    };
+    const run = async (config, provider = 'gmail') => {
+        const t = { ...trigger, metadata: { unattended: true, mailTrigger: { provider, messageId: 'm1', threadId: 'T1' } } };
+        await executeAgentRun(task, { store: fakeStore(), trigger: t }, withAgent(config));
+        return seen.runtime.metadata.mailTrigger.replyAll;
+    };
+    assert.strictEqual(await run({}), false);
+    assert.strictEqual(await run({ tools: { gmail: { mailAccess: 'send_reply', replyAll: true } } }), true);
+    assert.strictEqual(await run({ tools: { gmail: { mailAccess: 'send_reply', replyAll: true } } }, 'outlook'), false);
+});

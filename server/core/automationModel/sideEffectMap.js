@@ -294,13 +294,9 @@ const SENDS = new Set([
     // Mail — a message addressed to a person, gone the moment it returns.
     'gmail_compose',
     'outlook_compose', 'gmail_reply_in_thread', 'outlook_reply_in_thread', // the reply: no free recipients, still a send
-    'nextcloud_mail_send',
-    'nextcloud_share_by_email',
+    'nextcloud_mail_send', 'nextcloud_share_by_email',
     // Group / channel posts.
-    'groups_reply',
-    'nextcloud_talk_send_message',
-    'nextcloud_talk_share_file',
-    'linkedin_create_post',
+    'groups_reply', 'nextcloud_talk_send_message', 'nextcloud_talk_share_file', 'linkedin_create_post',
     // Notifications delivered to other people's devices.
     'nextcloud_notifications_send',
     // Calendar invitations (see the docblock: name-level, so conservative).
@@ -309,6 +305,8 @@ const SENDS = new Set([
     'nextcloud_calendar_create_event', 'nextcloud_calendar_update_event',
     // A signature request is mailed to the signer.
     'signrequest_send_document',
+    // Frappe CRM writes (a record outside the workspace that a person decides about, like the CRM's MCP server).
+    'frappe_crm_create_lead', 'frappe_crm_update_lead', 'frappe_crm_create_deal', 'frappe_crm_update_deal', 'frappe_crm_add_note', 'frappe_crm_create_task',
 ]);
 
 /** The three effect classes, weakest first. */

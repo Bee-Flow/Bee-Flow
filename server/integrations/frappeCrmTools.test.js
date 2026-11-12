@@ -391,3 +391,35 @@ test('connection test: get_logged_user, and the error of a refused key', async (
     const shape = await testFrappeCrmConnection({ url: 'nope', apiKey: KEY, apiSecret: SECRET });
     assert.match(shape.error, /address of your Frappe CRM site/);
 });
+
+test('connection test: a site\'s own error text is never shown, only the kind of answer', async () => {
+    scriptFetch([{ status: 500, body: { exception: 'Internal service at 10.1.2.3 says: db password expired' } }]);
+    const out = await testFrappeCrmConnection({ url: 'https://crm.example.com', apiKey: KEY, apiSecret: SECRET });
+    assert.equal(out.ok, false);
+    assert.equal(out.error, 'Frappe CRM: the site answered HTTP 500.');
+    // A tool call still hands the site's message to the model, which needs it to correct a request.
+    setCreds();
+    scriptFetch([{ status: 417, body: { exception: 'Field status: unknown value' } }]);
+    assert.match((await executeFrappeCrmTool('frappe_crm_list_leads', {}, USER)).error, /unknown value/);
+});
+
+test('site URL: plain http only for a private address where private addresses are allowed', async () => {
+    assert.throws(() => host.checkSiteUrl('http://crm.example.com'), /must start with https:\/\//);
+    process.env.DEPLOYMENT_MODE = 'selfhosted';
+    try {
+        assert.throws(() => host.checkSiteUrl('http://8.8.8.8'), /must start with https:\/\//);
+        assert.equal(host.checkSiteUrl('http://10.0.0.5:8000').allowPrivate, true);
+        assert.equal(host.checkSiteUrl('https://crm.example.com').baseUrl, 'https://crm.example.com');
+        const named = host.checkSiteUrl('http://crm.example.com');
+        host._setHostLookupForTests(async () => [{ address: '93.184.216.34', family: 4 }]);
+        await assert.rejects(() => host.assertNotLinkLocal(named), /must start with https:\/\//);
+        host._setHostLookupForTests(async () => [{ address: '10.0.0.7', family: 4 }]);
+        await host.assertNotLinkLocal(named);
+        const tls = host.checkSiteUrl('https://crm.example.com');
+        host._setHostLookupForTests(async () => [{ address: '93.184.216.34', family: 4 }]);
+        await host.assertNotLinkLocal(tls);
+    } finally {
+        host._setHostLookupForTests(null);
+        delete process.env.DEPLOYMENT_MODE;
+    }
+});

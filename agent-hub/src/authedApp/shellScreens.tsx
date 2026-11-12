@@ -126,7 +126,7 @@ export function ServerUnavailableScreen({ useOrgBrand, orgLogo, bootstrapDiagnos
 // server's own sentence when it answered one for this person (not invited yet,
 // awaiting approval, no seat left). `onUseAccount` opens the sign-in form for a
 // person who has a Bee Flow account of their own.
-export function NcSignInFailedScreen({ message, onRetry, onUseAccount }: { message?: string | null; onRetry: () => void; onUseAccount?: () => void }) {
+export function NcSignInFailedScreen({ message, linkUrl, onRetry, onUseAccount }: { message?: string | null; linkUrl?: string | null; onRetry: () => void; onUseAccount?: () => void }) {
     const { t } = useTranslation();
     return (
         <div className="h-screen flex items-center justify-center p-4 [background:linear-gradient(160deg,var(--bg-primary)_0%,var(--bg-secondary)_50%,var(--bg-tertiary)_100%)]">
@@ -139,6 +139,21 @@ export function NcSignInFailedScreen({ message, onRetry, onUseAccount }: { messa
                     <p className="text-sm mb-6 [color:var(--text-secondary)]! [line-height:1.6]">
                         {message || t('app.nc_sign_in_failed_body', 'Inside Nextcloud, Bee Flow signs you in with your Nextcloud account. That did not happen for this page. Try again; if this message stays, ask your administrator.')}
                     </p>
+                    {linkUrl && (
+                        <>
+                            <a
+                                href={linkUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block w-full mb-3 py-2.5 rounded-xl font-semibold text-sm text-white [background:var(--accent-primary)]"
+                            >
+                                {t('app.nc_link_required_link', 'Sign in to link')}
+                            </a>
+                            <p className="text-xs mb-4 text-[var(--text-tertiary)]">
+                                {t('app.nc_link_required_hint', 'Bee Flow opens in a new tab. Sign in there and link your Nextcloud account, then come back here and try again.')}
+                            </p>
+                        </>
+                    )}
                     <button
                         onClick={onRetry}
                         className="w-full py-2.5 rounded-xl font-semibold text-sm text-white [background:var(--accent-primary)]"

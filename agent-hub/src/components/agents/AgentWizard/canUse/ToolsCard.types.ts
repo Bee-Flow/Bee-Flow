@@ -30,6 +30,10 @@ export interface ToolCardRow {
     ownerLendingUnset: boolean;
     supportsMailAccess: boolean;
     mailAccess: 'read' | 'draft' | 'send_reply' | null;
+    /** Other apps: may a run started by an e-mail use this app? */
+    mailRuns: boolean;
+    /** Gmail and Outlook: may a reply in the thread also go to the others on the mail? */
+    replyAll: boolean;
 }
 /** One automation grant, as `toolGrants.automationRows` builds it. */
 export type AutomationCardRow = ReturnType<typeof automationRows>[number];
@@ -37,6 +41,7 @@ type OpenChooser = (request: ReturnType<typeof chooserRequest>) => void;
 type ChangeConfirm = (appId: string, next: string) => void;
 type ChangeActAs = (appId: string, next: string) => void;
 type ChangeMailAccess = (appId: string, next: string) => void;
+type ChangeMailRunOption = (appId: string, option: string, on: boolean) => void;
 
 export interface ToolsCardProps {
     t: TranslateFn;
@@ -53,6 +58,7 @@ export interface ToolsCardProps {
     onChangeConfirm?: ChangeConfirm;
     onChangeActAs?: ChangeActAs;
     onChangeMailAccess?: ChangeMailAccess;
+    onChangeMailRunOption?: ChangeMailRunOption;
     onOpenChooser?: OpenChooser;
 }
 
@@ -66,5 +72,6 @@ export interface ToolRowProps {
     onChangeConfirm?: ChangeConfirm;
     onChangeActAs?: ChangeActAs;
     onChangeMailAccess?: ChangeMailAccess;
+    onChangeMailRunOption?: ChangeMailRunOption;
     onOpenChooser?: OpenChooser;
 }

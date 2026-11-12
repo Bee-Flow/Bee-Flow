@@ -103,3 +103,6 @@ test-services.sh
 .typecheck.tsconfig.json
 .typecheck.*.tsconfig.json
 shard-durations.json
+
+# Python wheels from a local pip download
+*.whl

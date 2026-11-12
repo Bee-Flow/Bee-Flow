@@ -51,3 +51,6 @@ Thumbs.db
 # The App Studio compatibility corpus: stored-app fixtures and their frozen
 # expectations, read only by the tests next to them (which stay out too).
 appStudio/compat
+
+# Python wheels (a local pip download) never belong in the image
+*.whl

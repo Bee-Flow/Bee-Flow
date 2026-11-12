@@ -222,6 +222,8 @@ router.patch('/:id', requireAuth, requirePermission('manage_knowledge'), validat
         ...(adoptOrgId ? { organizationId: adoptOrgId } : {}),
     });
     kbStore.snapshotKBVersion(kb.id, getUserId(req), adoptOrgId ? 'moved_to_organisation' : 'metadata_update').catch((e) => bestEffort('routes/knowledgeBases/detail:anon', e));
+    // A base that stops keeping originals removes the files it kept (never throws; a failure is retried the next time).
+    if (updated && keepOriginals === false) await require('../../core/kb/originals.mts').dropOriginalsForKb({ id: String(kb.id), tenant_id: String(kb.tenant_id) });
     res.json(updated ? { ...updated, originals_blocked_reason: await originalsBlockedReason(updated) } : updated);
 });
 

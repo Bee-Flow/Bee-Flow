@@ -67,8 +67,9 @@ function roleAllows(nodeOrScreen, role) {
 // its props (rowActions, itemActions, bulkActions, toolbarActions, addRowActionId, a
 // column's actionId) naming the action; a wiring counts only when its screen, its section (section.visibleToRoles)
 // AND every ancestor container clear the gate too. referenced:false means NO node wires the action and no
-// other action calls it — it is programmatic (an onSuccess chain), which role
-// gating never described, so the caller keeps running it.
+// other action calls it: nothing in the app runs it for a viewer, so only the owner may
+// (assertActionRoleAccess). A server trigger or a mailbox hook (its action lives in the data
+// model, outside the definition) is such a case: it runs as the owner, never from a viewer.
 /**
  * @param {{ screens?: unknown } | null | undefined} def
  * @param {string} actionId
@@ -133,10 +134,10 @@ function callersOf(actions, actionId) {
 
 // Role access through calls: a called action is as reachable as the actions
 // that call it. Its own wiring counts as before; on top of that it is allowed
-// when at least one caller is allowed (or is itself programmatic). An action
-// that something calls is never "programmatic", so a direct POST of a callee
-// of an admin-only root is refused like the root. The seen-set bounds a
-// hand-written cycle (the validator rejects those); a cycle grants nothing.
+// when at least one caller is allowed. A direct POST of a callee of an
+// admin-only root, or of a root nothing wires, is refused like the root. The
+// seen-set bounds a hand-written cycle (the validator rejects those); a cycle
+// grants nothing.
 /**
  * @param {{ screens?: unknown, actions?: unknown } | null | undefined} def
  * @param {string} actionId
@@ -152,17 +153,69 @@ function actionRoleAccess(def, actionId, role, seen = new Set()) {
     for (const caller of callersOf(def?.actions, actionId)) {
         referenced = true;
         if (seen.has(caller)) continue;
-        const via = actionRoleAccess(def, caller, role, seen);
-        if (!via.referenced || via.allowed) return { referenced: true, allowed: true };
+        if (actionRoleAccess(def, caller, role, seen).allowed) return { referenced: true, allowed: true };
     }
     return { referenced, allowed: false };
 }
 
+/** @typedef {{ id?: string, type?: string, props?: { modelTier?: string, knowledgeBaseIds?: string[], systemPrompt?: unknown }, children?: unknown, visibleToRoles?: unknown }} ComponentNode  a component as the definition stores it */
+
+/**
+ * A component node by id anywhere in the definition, and whether `role` sees
+ * it: its screen, its section and every container above it clear roleAllows
+ * (the walk of wiredRoleAccess).
+ * @param {{ screens?: unknown } | null | undefined} def
+ * @param {unknown} nodeId
+ * @param {string | null | undefined} [role]
+ * @returns {{ node: ComponentNode, visible: boolean } | null}
+ */
+function locateNode(def, nodeId, role = null) {
+    if (!def || typeof nodeId !== 'string' || !nodeId) return null;
+    /** @param {unknown} children @param {boolean} visible @returns {{ node: ComponentNode, visible: boolean } | null} */
+    const walk = (children, visible) => {
+        for (const c of (Array.isArray(children) ? children : [])) {
+            if (!c || typeof c !== 'object') continue;
+            const seen = visible && roleAllows(c, role);
+            if (c.id === nodeId) return { node: c, visible: seen };
+            const hit = walk(c.children, seen);
+            if (hit) return hit;
+        }
+        return null;
+    };
+    for (const screen of (Array.isArray(def?.screens) ? def.screens : [])) {
+        for (const section of (Array.isArray(screen?.sections) ? screen.sections : [])) {
+            const hit = walk(section?.children, roleAllows(screen, role) && roleAllows(section, role));
+            if (hit) return hit;
+        }
+    }
+    return null;
+}
+
+/**
+ * The gate of an ai_chat component for a viewer who is not the owner: the
+ * same rule as a wired action. The chat must sit where the viewer's role sees
+ * it (a viewer without an app role sees what no role restriction hides).
+ * Answers itself (404 for a chat the role does not see, as if it were not
+ * there) and returns false; true when the chat may run.
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {{ app: { id: string, userId: string }, def: { screens?: unknown } | null | undefined, nodeId: string, userId: string }} chat
+ */
+async function assertChatAccess(req, res, { app, def, nodeId, userId }) {
+    const { role } = await resolveViewerRole(req, app, userId);
+    if (role !== 'owner' && !locateNode(def, nodeId, role)?.visible) {
+        res.status(404).json({ error: 'Chat component not found' });
+        return false;
+    }
+    return true;
+}
+
 /**
  * The role gate for both bridges. Answers 403 itself and returns false when the
- * viewer's role cannot reach the action; returns true otherwise. The owner and
- * any action no node wires and no action calls (onSuccess chains) always pass;
- * a called action passes when the role can reach one of its callers.
+ * viewer's role cannot reach the action; returns true otherwise. The owner
+ * always passes; anyone else only through a wiring their role sees, or a
+ * caller of the action that passes. An action nothing in the app wires is the
+ * owner's alone.
  * @param {import('express').Response} res
  * @param {{ screens?: unknown } | null | undefined} def
  * @param {string} actionId
@@ -171,8 +224,7 @@ function actionRoleAccess(def, actionId, role, seen = new Set()) {
  */
 function assertActionRoleAccess(res, def, actionId, role, { isOwner }) {
     if (isOwner || role === 'owner') return true;
-    const access = actionRoleAccess(def, actionId, role);
-    if (access.referenced && !access.allowed) {
+    if (!actionRoleAccess(def, actionId, role).allowed) {
         res.status(403).json({ error: 'This action is not available for your role' });
         return false;
     }
@@ -226,11 +278,7 @@ function documentChecks(def, role) {
     const everything = role === 'owner';
     return {
         visible: (/** @type {unknown} */ nodeOrScreen) => everything || roleAllows(/** @type {{ visibleToRoles?: unknown } | null} */ (nodeOrScreen), role),
-        actionAllowed: (/** @type {string} */ actionId) => {
-            if (everything) return true;
-            const access = actionRoleAccess(def, actionId, role);
-            return !access.referenced || access.allowed;
-        },
+        actionAllowed: (/** @type {string} */ actionId) => everything || actionRoleAccess(def, actionId, role).allowed,
     };
 }
 
@@ -278,4 +326,4 @@ async function resolveViewerRole(req, app, userId) {
     return { role: role || null, model };
 }
 
-module.exports = { loadVisibleApp, roleAllows, actionRoleAccess, assertActionRoleAccess, visibleFormValues, wideScopeFor, documentChecks, stepDocumentContext, pickDefinition, resolveViewerRole };
+module.exports = { loadVisibleApp, roleAllows, actionRoleAccess, assertActionRoleAccess, locateNode, assertChatAccess, visibleFormValues, wideScopeFor, documentChecks, stepDocumentContext, pickDefinition, resolveViewerRole };

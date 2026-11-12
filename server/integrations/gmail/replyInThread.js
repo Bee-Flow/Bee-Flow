@@ -2,26 +2,21 @@
 /**
  * gmail_reply_in_thread: answer the mail that started a mail-triggered run, in its thread.
  *
- * No `to`, no `cc`: the recipients come from the original message (its Reply-To or From; with `replyAll` also the
- * people on To and Cc), and the thread must be the one the run was started for (../mailReplyGuard.js).
+ * No `to`, no `cc`: the recipients come from the original message (../mailReplyGuard.js `replyRecipients`: the
+ * sender, the others on To and Cc only when the owner switched reply-all on), and the thread must be the one the run
+ * was started for. A reply that goes out carries `Auto-Submitted: auto-replied`; one the guard holds back is saved as
+ * a draft in the thread instead.
  */
 
 'use strict';
 
 const { getHeader } = require('./messageShape');
-const { sendGmailMessage } = require('./compose');
-const { isAutomaticMail, assertReplyAllowed, recordOutcome } = require('../mailReplyGuard');
+const { sendGmailMessage, buildRawMessage } = require('./compose');
+const {
+    isAutomaticMail, assertReplyAllowed, recordOutcome, addressesIn, replyRecipients, replyDelivery,
+} = require('../mailReplyGuard');
 
 const MAX_BODY_CHARS = 20_000;
-
-/**
- * The bare addresses in a header value ("A <a@x.nl>, b@y.nl" -> ["a@x.nl", "b@y.nl"]), lower case.
- * @param {unknown} value
- * @returns {string[]}
- */
-function addressesIn(value) {
-    return String(value || '').match(/[^\s<>,;"']+@[^\s<>,;"']+/g)?.map(a => a.toLowerCase()) || [];
-}
 
 /**
  * Check the arguments the model gave.
@@ -41,23 +36,6 @@ function assertNotAutomatic(headers) {
 }
 
 /**
- * Who the reply goes to, from the original's headers: its Reply-To or From; with `replyAll` also the people on
- * To and Cc, minus the mailbox itself.
- * @param {any[]} headers
- * @param {boolean} replyAll
- * @param {Set<string>} own  our own addresses
- */
-function recipientsFrom(headers, replyAll, own) {
-    const to = addressesIn(getHeader(headers, 'Reply-To') || getHeader(headers, 'From'));
-    if (to.length === 0) throw new Error('The original message has no sender to answer.');
-    const cc = replyAll
-        ? [...new Set([...addressesIn(getHeader(headers, 'To')), ...addressesIn(getHeader(headers, 'Cc'))])]
-            .filter(a => !own.has(a) && !to.includes(a))
-        : [];
-    return { to, cc };
-}
-
-/**
  * What a reply to this original looks like: its recipients (from the original), its subject and its threading headers.
  * Refuses an automatic original.
  * @param {any[]} headers  the original's headers
@@ -66,7 +44,13 @@ function recipientsFrom(headers, replyAll, own) {
  */
 function replyTo(headers, replyAll, own) {
     assertNotAutomatic(headers);
-    const { to, cc } = recipientsFrom(headers, replyAll, own);
+    const { to, cc } = replyRecipients({
+        from: addressesIn(getHeader(headers, 'From')),
+        replyTo: addressesIn(getHeader(headers, 'Reply-To')),
+        to: addressesIn(getHeader(headers, 'To')),
+        cc: addressesIn(getHeader(headers, 'Cc')),
+        own, replyAll,
+    });
     const origSubject = getHeader(headers, 'Subject') || '';
     return {
         to: to.join(', '),
@@ -98,7 +82,7 @@ async function ownAddress(gmail, session) {
 
 /**
  * @param {import('./messageShape').GmailClient} gmail
- * @param {{ messageId?: string, body?: string, replyAll?: boolean }} args
+ * @param {{ messageId?: string, body?: string }} args  a `replyAll` from the model is ignored: the owner decides
  * @param {import('./toolHandlers').GmailSession} session
  * @param {{ mailTrigger?: import('../mailReplyGuard').MailTriggerContext | null }} opts
  */
@@ -112,13 +96,17 @@ async function replyInThread(gmail, args, session, opts) {
     });
     const mailTrigger = assertReplyAllowed(opts?.mailTrigger, 'gmail', original.data.threadId);
     const own = new Set([await ownAddress(gmail, session), String(mailTrigger.mailbox || '').toLowerCase()].filter(Boolean));
-    const { count, ...message } = replyTo(original.data.payload?.headers || [], !!args.replyAll, own);
-    const sent = await sendGmailMessage(gmail, {
-        ...message,
-        body: /** @type {string} */ (args.body),
-        userEmail: session?.user?.email || '',
-        threadId: original.data.threadId,
-    });
+    const { count, ...message } = replyTo(original.data.payload?.headers || [], mailTrigger.replyAll === true, own);
+    const body = /** @type {string} */ (args.body);
+    const userEmail = session?.user?.email || '';
+    const delivery = replyDelivery(mailTrigger, count);
+    if (!delivery.send) {
+        const raw = buildRawMessage({ ...message, bcc: null, body, userEmail });
+        const draft = await gmail.users.drafts.create({ userId: 'me', requestBody: { message: { raw, threadId: original.data.threadId } } });
+        recordOutcome(mailTrigger, 'draft_saved');
+        return { sent: false, draftId: draft.data?.id || null, threadId: original.data.threadId, message: delivery.note };
+    }
+    const sent = await sendGmailMessage(gmail, { ...message, body, userEmail, threadId: original.data.threadId, autoReply: true });
     recordOutcome(mailTrigger, 'reply_sent');
     return { sent: true, messageId: sent.id, threadId: sent.threadId, repliedTo: count, message: 'Reply sent in the thread.' };
 }

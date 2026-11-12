@@ -2,7 +2,8 @@
  * POST /ai/frappe-crm/test — can Bee Flow reach the Frappe CRM site with these
  * values? Accepts the unsaved values of the settings form; anything left out
  * falls back to the stored secret. Answers { ok: true, user } (the Frappe user
- * the key logs in as) or { ok: false, error }. The stored secret is only used
+ * the key logs in as) or { ok: false, error } with a fixed sentence per kind of
+ * failure. At most INTEGRATION_TEST_MAX_PER_MINUTE tests per user per minute. The stored secret is only used
  * with the stored site and key: a typed site or key that differs needs its
  * secret typed too. The secret is never echoed.
  *
@@ -13,6 +14,7 @@
 import { createRequire } from 'node:module';
 import type { Request, RequestHandler, Response, Router } from 'express';
 import { frappeCrmFields } from './frappeCrmFields.mts';
+import { integrationTestLimiter } from './integrationTestLimit.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 const express = nodeRequire('express') as typeof import('express');
@@ -33,6 +35,8 @@ export interface FrappeCrmTestDeps {
     getSecret?: (key: string) => Promise<string | null | undefined>;
     testConnection?: (creds: TestCreds) => Promise<TestOutcome>;
     requireAuth?: RequestHandler;
+    /** The per-user limit (./integrationTestLimit.mts). */
+    rateLimit?: RequestHandler;
 }
 
 type TestBody = { frappeCrmUrl?: string | null; frappeCrmApiKey?: string | null; frappeCrmApiSecret?: string | null };
@@ -80,7 +84,9 @@ export function createFrappeCrmTestRouter(deps: FrappeCrmTestDeps = {}): Router 
     const testConnection = deps.testConnection
         || (async (creds: TestCreds) => (await import('../../../integrations/frappeCrmTools.mts')).testFrappeCrmConnection(creds));
 
-    router.post('/frappe-crm/test', auth, validate({ body: FrappeCrmTestBody }), async (req: Request, res: Response) => {
+    const limit = deps.rateLimit || integrationTestLimiter('frappe-crm-test');
+
+    router.post('/frappe-crm/test', auth, limit, validate({ body: FrappeCrmTestBody }), async (req: Request, res: Response) => {
         const { secretNeeded, ...creds } = await credsFor(req, getSecret);
         if (secretNeeded) return res.json({ ok: false, error: SECRET_NEEDED });
         if (!creds.url || !creds.apiKey || !creds.apiSecret) return res.json({ ok: false, error: NOT_CONFIGURED });

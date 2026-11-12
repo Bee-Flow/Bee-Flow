@@ -27,7 +27,7 @@ const { withholdOwnerToolsFrom } = require('./guestAsker');
 const agentStore = require('../../stores/agentStore');
 const { buildToolPolicy, isUnattended, automationConfirmsFor } = require('./toolPolicy');
 const log = require('../../telemetry/log');
-const { MAIL_APPS, REPLY_IN_THREAD_TOOLS, mailAccessOf } = require('./toolPolicy/mailAccess');
+const { REPLY_IN_THREAD_TOOLS } = require('./toolPolicy/mailAccess');
 
 /**
  * The agent fields tool assembly reads.
@@ -321,64 +321,46 @@ function narrowToolsForTurn({ tools, agent, agentId, messageMetadata }) {
 }
 
 /**
- * One tool in a mail-triggered run (see narrowMailTriggerTools).
- * @param {string} name
- * @param {string | null | undefined} appId
- * @param {Record<string, unknown> | null} toolsConfig
- * @returns {boolean}
- */
-function keepInMailRun(name, appId, toolsConfig) {
-    const { effectOf } = require('../automationModel/sideEffectMap');
-    if (appId !== 'gmail' && appId !== 'outlook') return effectOf(name) !== 'sends';
-    if (name.endsWith('_compose') || name.includes('forward')) return false;
-    if (effectOf(name) === 'reads') return true;
-    const level = mailAccessOf(appId, toolsConfig ? toolsConfig[appId] : null);
-    const apps = MAIL_APPS[appId];
-    if (name === apps.draft) return level === 'draft' || level === 'send_reply';
-    if (name === apps.reply) return level === 'send_reply';
-    return false;
-}
-
-/**
- * A run started by a new mail is headless AND the text it reads is written by a stranger. So:
- *   - every other app's tool that SENDS (chat, other mail, sharing by mail, ...) and every granted automation that
- *     sends is dropped, curated or not: the only way out of such a run is a reply in the thread;
- * and for the Gmail and Outlook tools:
- *   - an app without a curated `mailAccess` gets reads and nothing else (a plain `gmail_compose` would otherwise
- *     send unattended: autoSend);
- *   - `*_compose` and anything that forwards are always dropped;
- *   - the reply-in-thread tools exist only here (they refuse a call without a mail trigger anyway), and only for
- *     `mailAccess: 'send_reply'`.
- * @template {{ function?: { name?: string } }} T
+ * A run started by a new mail is headless AND the text it reads is written by a stranger, so its stack is an
+ * allow-list (./toolPolicy/mailRun.mts):
+ *   - the Gmail and Outlook tools as `mailAccess` says: reads; the draft tool from `draft`; the reply-in-thread tool
+ *     only for `send_reply` (it exists only here and refuses a call without a mail trigger anyway); `*_compose` and
+ *     anything that forwards never;
+ *   - reads that stay inside Bee Flow or the owner's connected apps (no open-web fetches or searches);
+ *   - every other tool, and every granted automation, only for an app the owner switched on for these runs
+ *     (`mailRuns`), and never one that would ask for a confirmation.
+ * @template {{ function?: { name?: string }, __automation?: { id?: string } }} T
  * @param {T[]} tools
  * @param {AssemblyAgent} agent
  * @returns {T[]}
  */
 function narrowMailTriggerTools(tools, agent) {
     const toolsConfig = agent?.config?.tools && typeof agent.config.tools === 'object' ? /** @type {Record<string, unknown>} */ (agent.config.tools) : null;
-    const { appIdForTool } = require('./toolPolicy/appIndex');
-    // Granted automations that send (their confirm is 'ask'): the stranger who wrote the mail must not reach
-    // anybody through them either.
-    /** @type {Set<string>} */
-    const sendingAutomations = new Set();
-    try {
-        for (const [toolName, confirm] of automationConfirmsFor(tools, agent?.config) || []) {
-            if (confirm === 'ask') sendingAutomations.add(toolName);
-        }
-    } catch (e) {
-        log.warn('[AgentRuntime] Mail-triggered run: could not read automation grants:', /** @type {Error} */ (e).message);
-    }
+    const { appIdForToolDef } = require('./toolPolicy/appIndex');
+    const { confirmForTool } = require('./toolPolicy/confirmation');
+    const { keepInMailRun } = require('./toolPolicy/mailRun.mts');
     /** @type {string[]} */
     const dropped = [];
     const kept = tools.filter((t) => {
         const name = t?.function?.name;
-        if (typeof name !== 'string') return true;
-        const keep = !sendingAutomations.has(name) && keepInMailRun(name, appIdForTool(name), toolsConfig);
+        if (typeof name !== 'string' || !name) return false;
+        let keep = false;
+        try {
+            keep = keepInMailRun({
+                name,
+                appId: appIdForToolDef(t),
+                toolsConfig,
+                asks: confirmForTool(name, toolsConfig, { mailTrigger: true }) === 'ask',
+                isAutomation: !!t?.__automation?.id,
+            });
+        } catch (e) {
+            log.warn('[AgentRuntime] Mail-triggered run: could not classify a tool:', /** @type {Error} */ (e).message);
+        }
         if (!keep) dropped.push(name);
         return keep;
     });
-    if (dropped.length > 0) log.info(`[AgentRuntime] Mail-triggered run — withheld ${dropped.length} mail tool(s): ${dropped.join(', ')}`);
+    if (dropped.length > 0) log.info(`[AgentRuntime] Mail-triggered run — withheld ${dropped.length} tool(s): ${dropped.join(', ')}`);
     return kept;
 }
 
-module.exports = { assembleToolStack, narrowToolsForTurn };
+module.exports = { assembleToolStack, narrowToolsForTurn, narrowMailTriggerTools };

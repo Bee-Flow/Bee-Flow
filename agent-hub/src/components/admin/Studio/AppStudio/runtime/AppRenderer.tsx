@@ -392,6 +392,7 @@ export default function AppRenderer({
 
     // definition.format (schema 3, appFormat.ts); absent = every value written as before.
     const appFormat = definition?.format ?? null;
+    const linkHosts = Array.isArray(definition?.allowedLinkHosts) ? (definition.allowedLinkHosts as string[]) : null;
     const runtimeValue = useMemo<RuntimeValue>(() => ({
         mode: mode === 'edit' ? 'edit' : 'run',
         selectedNodeId,
@@ -419,8 +420,9 @@ export default function AppRenderer({
         appDesign: appDesignContext,
         initialUi: initialUi && typeof initialUi === 'object' ? initialUi : null,
         appFormat,
+        linkHosts,
         scope: baseScope,
-    }), [mode, selectedNodeId, selectedNodeIds, onSelectNode, recentlyAddedIds, actionState, dataState, runAction, registerFormValue, currentUser, previewRole, setVar, appDesignContext, initialUi, appFormat, baseScope]);
+    }), [mode, selectedNodeId, selectedNodeIds, onSelectNode, recentlyAddedIds, actionState, dataState, runAction, registerFormValue, currentUser, previewRole, setVar, appDesignContext, initialUi, appFormat, linkHosts, baseScope]);
 
     // The item templates of list rows and kanban cards (./itemTemplate.tsx, schema 3) render
     // their nodes through this renderer, so they are ordinary cells with the per-row scope.

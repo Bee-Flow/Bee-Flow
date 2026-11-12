@@ -261,6 +261,8 @@ export async function testFrappeCrmConnection(raw: { url?: unknown; apiKey?: unk
     } catch (err) {
         const status = err instanceof FrappeCrmError && err.status ? ` (HTTP ${err.status})` : '';
         log.warn(`[FrappeCRM] connection test failed${status}`);
-        return { ok: false, error: err instanceof FrappeCrmError ? `Frappe CRM: ${err.message}` : CONNECT_FAILED };
+        if (!(err instanceof FrappeCrmError)) return { ok: false, error: CONNECT_FAILED };
+        // A fixed sentence per kind of failure: never the text a site answered with.
+        return { ok: false, error: `Frappe CRM: ${err.fromSite ? `the site answered HTTP ${err.status}.` : err.message}` };
     }
 }

@@ -1,14 +1,14 @@
 import type { MermaidConfig } from 'mermaid';
+import { MERMAID_SAFE_OPTIONS } from '@/components/renderers/MermaidRenderer.constants';
 
 /* ── Premium Theme Configuration ──────────────────────── */
 export const MERMAID_CONFIG: MermaidConfig = {
-    startOnLoad: false,
-    // Pin this explicitly. Diagram source can arrive from an ingested document
-    // or an AI write, and 'loose' would let it emit click handlers and raw HTML
-    // labels — we render mermaid's output with innerHTML. It is mermaid's
-    // current default, but relying on a library default for a security boundary
-    // is not a decision worth leaving implicit.
-    securityLevel: 'strict',
+    // Diagram source can arrive from an ingested document, a colleague or an AI
+    // write, and mermaid's output is rendered with innerHTML: the same strict
+    // options as the chat's diagrams (labels as SVG text, a label sanitiser
+    // without images or styles, and keys a directive in the diagram cannot
+    // change).
+    ...MERMAID_SAFE_OPTIONS,
     theme: 'base',
     themeVariables: {
         darkMode: false,
@@ -62,7 +62,6 @@ export const MERMAID_CONFIG: MermaidConfig = {
     fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
     fontSize: 15,
     flowchart: {
-        htmlLabels: true,
         curve: 'basis',
         padding: 18,
         nodeSpacing: 50,

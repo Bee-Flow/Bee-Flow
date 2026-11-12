@@ -44,6 +44,9 @@ const ACCOUNT_MIGRATIONS = [
     `CREATE INDEX IF NOT EXISTS idx_orgs_status ON organizations(status) WHERE status <> 'active'`,
     `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS "enabledIntegrations" TEXT DEFAULT NULL`,
     `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS "allowed_domains" TEXT DEFAULT NULL`,
+    // The contact-address domain a platform admin set for the organisation
+    // (auth/orgDomainMatch.mts). NULL = not confirmed that way.
+    `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS "contact_domain_verified" TEXT DEFAULT NULL`,
     // Org-admin "active" subsets of the super-admin allow-lists. The super
     // admin grants capabilities (enabledIntegrations / beta_features); the
     // org admin then chooses which of those to actually turn on for their
@@ -309,6 +312,16 @@ const PENDING_NC_BINDINGS_DDL = [
     `ALTER TABLE pending_nc_bindings
             ADD COLUMN IF NOT EXISTS verification_attempts_total INTEGER NOT NULL DEFAULT 0,
             ADD COLUMN IF NOT EXISTS verification_code_sends     INTEGER NOT NULL DEFAULT 0`,
+    // Per organisation per day: the e-mailed codes sent and the attempts made,
+    // over every pending row of the organisation (ncVerificationDaily.mts).
+    // A row that runs out and starts over cannot reset these.
+    `CREATE TABLE IF NOT EXISTS nc_verification_daily (
+            org_id    TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+            day       DATE NOT NULL,
+            attempts  INTEGER NOT NULL DEFAULT 0,
+            sends     INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (org_id, day)
+        )`,
 ];
 
 module.exports = { ACCOUNT_MIGRATIONS, NC_CONNECTOR_COLUMNS, PENDING_NC_BINDINGS_DDL };

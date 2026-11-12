@@ -2014,6 +2014,13 @@ declare namespace DbRow {
         valid_from: Date;
         valid_to: Date | null;
     }
+    /** Row of `nc_verification_daily`. */
+    interface NcVerificationDaily {
+        attempts: number;
+        day: Date;
+        org_id: string;
+        sends: number;
+    }
     /** Row of `notebook_conversations`. */
     interface NotebookConversations {
         created_at: Date;
@@ -2258,6 +2265,7 @@ declare namespace DbRow {
         billing_line2: string | null;
         billing_postal_code: string | null;
         connector_callback_url: string | null;
+        contact_domain_verified: string | null;
         defaultGroups: string | null;
         deployment_mode: string | null;
         description: string | null;

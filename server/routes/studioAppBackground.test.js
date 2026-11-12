@@ -77,11 +77,15 @@ function hold() {
 
 const LOCKED = { kind: 'sequence', background: true, lockKey: { kind: 'formula', expr: 'form.orderId' }, steps: [{ kind: 'create_record', tableId: 'tbl_x', values: {} }] };
 
+// One button per action: an action nothing in the app wires is the owner's alone.
+const buttons = (acts) => Object.keys(acts).map((id, i) => ({ id: `cmp_b${i}`, type: 'button', props: { label: id }, onClick: id }));
+const appDef = (acts) => ({ schemaVersion: 2, meta: { name: 'Jobs' }, theme: {}, homeScreenId: 'scr_1', screens: [{ id: 'scr_1', name: 'Home', sections: [{ id: 'sec_1', children: buttons(acts) }] }], actions: acts });
+
 let n = 0;
 /** A published app of OWNER's org with `actions` (the draft may differ). */
 async function makeApp(actions, draftActions = actions) {
     const store = require('../stores/studioAppStore');
-    const def = (acts) => ({ schemaVersion: 2, meta: { name: 'Jobs' }, theme: {}, homeScreenId: 'scr_1', screens: [{ id: 'scr_1', name: 'Home', sections: [] }], actions: acts });
+    const def = appDef;
     const app = await store.createStudioApp({ userId: OWNER.id, organizationId: ORG, name: `Jobs ${++n}`, definition: def(draftActions) });
     await store.setStudioAppPublished(app.id, true, OWNER.id, [], ORG, def(actions), 1);
     return app;
@@ -299,7 +303,7 @@ test('a job on hold does not continue after the app was unpublished', async () =
     assert.match(row.error, /no longer published/);
 });
 
-const republished = (actions) => ({ schemaVersion: 2, meta: { name: 'Jobs' }, theme: {}, homeScreenId: 'scr_1', screens: [{ id: 'scr_1', name: 'Home', sections: [] }], actions });
+const republished = appDef;
 
 test('a job on hold goes on in the steps it paused in after its action was edited and published again', async () => {
     const store = require('../stores/studioAppStore');

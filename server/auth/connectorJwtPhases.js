@@ -28,12 +28,14 @@ const { orgHealth } = serviceDeps;
 const log = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
 const { isLoginBlockedAccount } = require('./accountStatusGate');
+const { emailLinkAllowed } = require('./ssoUserResolver');
+const { issueLinkTicket, linkPageUrl } = require('./connector/ncLinkTicket.mts');
 
 /** @typedef {{ kind: 'reject', status: number, body: object }} Reject */
 /** @typedef {{ kind: 'error', error: Error }} Fail */
 /** @typedef {{ kind: 'ok', user: any }} Ok */
 
-/** @param {number} status @param {{ error: string; code?: string; }} body @returns {Reject} */
+/** @param {number} status @param {{ error: string; code?: string; linkUrl?: string }} body @returns {Reject} */
 function reject(status, body) { return { kind: 'reject', status, body }; }
 /** @param {Error} error @returns {Fail} */
 function fail(error) { return { kind: 'error', error }; }
@@ -114,53 +116,131 @@ function pendingApprovalGate(req, user, orgId) {
 }
 
 /**
- * Two Nextcloud accounts can carry one e-mail address, and the user is found
- * by address. When the signed `sub` is not the uid stored on that user, ask
- * Nextcloud about the stored uid: if it is a live account with this address,
- * it is another account, the stored uid stays, and this sign-in is refused.
- * Any other answer (the stored account is gone or disabled, it has another
- * address, the read failed) is null = pass, and reconcileUserRecord then
- * repairs the stored uid. The read stays inside the token's organisation: the
- * user is a member of `orgId`, and the organisation row is `orgId`'s own.
+ * The account a verified token names first: the member of `orgId` that holds
+ * the signed uid. Null without a `sub` or when no member holds it; the caller
+ * then looks the address up (emailMatchGate decides what that may find).
+ * @param {string} orgId
+ * @param {ConnectorPayload} payload
  */
-async function ncUidConflictGate(req, user, orgId, payload) {
-    if (!user.nc_uid || !payload.sub || user.nc_uid === payload.sub) return null;
-    // Nextcloud uids are unique without regard to case: the same account.
-    if (String(user.nc_uid).toLowerCase() === String(payload.sub).toLowerCase()) return null;
-    if (user.organizationId !== orgId) return null;
-    if (!user.email || !payload.email || String(user.email).toLowerCase() !== String(payload.email).toLowerCase()) return null;
-    let live = false;
+async function findByNcUid(orgId, payload) {
+    const sub = String(payload?.sub || '').trim();
+    return sub ? userStore.getUserByNcUid(orgId, sub) : null;
+}
+
+/** Nextcloud uids are unique without regard to case: the same account. */
+const sameUid = (/** @type {unknown} */ a, /** @type {unknown} */ b) => !!a && !!b && String(a).toLowerCase() === String(b).toLowerCase();
+
+/** Seam the tests replace: is an SSO identity (Google, Nextcloud OAuth) linked to the account? */
+const _linkDeps = {
+    /** @param {string} userId */
+    hasSsoIdentity: async (userId) => (await require('./ssoIdentityStore.mts').ssoIdentities().listForUser(userId)).length > 0,
+};
+
+/**
+ * May the connector take this account by its address alone? Only an account
+ * the connector or the user sync created, with no credential, second factor,
+ * SSO identity or admin role of its own (emailLinkAllowed in
+ * ssoUserResolver.js, shared with the SSO sign-in). A failed identity read
+ * counts as no.
+ * @param {UserRec} user
+ */
+async function connectorMayTake(user) {
+    if (!emailLinkAllowed(user, { provider: 'nextcloud_connector' })) return false;
     try {
-        const org = await userStore.getOrganization(orgId);
-        live = !!org && org.id === orgId && await serviceDeps.storedUidIsLiveWithEmail(org, user.nc_uid, payload.email) === true;
+        return !(await _linkDeps.hasSsoIdentity(user.id));
     } catch (e) {
-        log.warn(`[ConnectorJWT] Stored nc_uid check failed for user ${user.id}: ${/** @type {Error} */ (e).message}`);
+        log.warn(`[ConnectorJWT] SSO identity read failed for user ${user.id}: ${/** @type {Error} */ (e).message}`);
+        return false;
     }
-    if (!live) return null;
-    log.warn(`[ConnectorJWT] Sign-in refused for org ${orgId}: the e-mail address of user ${user.id} belongs to two live Nextcloud accounts`);
-    orgHealth.problem('auth.blocked_nc_uid_conflict', {
-        orgId, source: 'connectorJwt', req,
-        meta: { lastUserId: user.id, sub: payload.sub, reason: 'stored_uid_live_with_same_email' },
-    });
+}
+
+/**
+ * The signed uid found no member and the address found `user`, which the
+ * connector may not take by its address. Not signed in: the answer says so
+ * and carries the page where the account's owner links it once, after a
+ * normal sign-in (connector/ncLinkTicket.mts).
+ * @param {ConnectorReq} req @param {UserRec} user @param {string} orgId @param {string} sub @param {string} stored
+ */
+async function linkRequired(req, user, orgId, sub, stored) {
+    let linkUrl = '';
+    if (sub) {
+        const org = await userStore.getOrganization(orgId).catch((err) => fallback('connectorJwtPhases:link-org', err, null));
+        let ncHost = '';
+        try { ncHost = org?.nc_base_url ? new URL(String(org.nc_base_url)).host : ''; } catch { ncHost = ''; }
+        const ticket = issueLinkTicket({ userId: user.id, orgId, ncUid: sub, storedUid: stored, ncHost });
+        linkUrl = linkPageUrl(req, ticket);
+    }
+    log.info(`[ConnectorJWT] Sign-in for org ${orgId} needs a link: the address belongs to user ${user.id}, which the connector does not take by address`);
     return reject(409, {
-        error: 'Your e-mail address is already linked to another Nextcloud account in Bee Flow. Ask your Nextcloud administrator to give each account its own e-mail address.',
-        code: 'nc_uid_conflict',
+        error: 'A Bee Flow account with your e-mail address already exists and is not linked to this Nextcloud account yet. Sign in to Bee Flow once to link them.',
+        code: 'nc_link_required',
+        ...(linkUrl ? { linkUrl } : {}),
     });
 }
 
 /**
- * Keep the DB row and the session coherent: log data anomalies, repair a
- * stale nc_uid, fill in a missing one. Each step swallows its own failure (warn, or silently for
- * the read-only anomaly lookup). The user reaching here is a member of
- * `orgId` (crossTenantGate), or was just provisioned into it, so the org
- * pointer needs no reconciling.
+ * The address found `user` (a member of `orgId`, crossTenantGate passed), and
+ * no member holds the signed uid. Returns `{ reject }`, or `{ write }`: what
+ * reconcileUserRecord may write on the row (null = nothing, 'fill' = the
+ * missing uid, 'repair' = replace the stored uid).
+ *
+ *   - The stored uid is the signed one in another case: the same account.
+ *   - An account the connector may not take by address (connectorMayTake):
+ *     nc_link_required.
+ *   - No stored uid: filled in from the signed one.
+ *   - Another stored uid: Nextcloud is asked about it, as the stored admin.
+ *     A live account with this address is another account (409
+ *     nc_uid_conflict, the stored uid stays); a definite other answer (gone,
+ *     disabled, another address) lets the stored uid be replaced; no answer
+ *     refuses the sign-in (503 nc_uid_unverified) and writes nothing.
+ * @param {ConnectorReq} req @param {UserRec} user @param {string} orgId @param {ConnectorPayload} payload
+ * @returns {Promise<{ reject: Reject } | { write: null | 'fill' | 'repair' }>}
  */
-async function reconcileUserRecord(user, orgId, payload) {
+async function emailMatchGate(req, user, orgId, payload) {
+    const sub = String(payload.sub || '').trim();
+    const stored = user.nc_uid ? String(user.nc_uid) : '';
+    if (stored && sameUid(stored, sub)) return { write: null };
+    if (!(await connectorMayTake(user))) return { reject: await linkRequired(req, user, orgId, sub, stored) };
+    if (!sub) return { write: null };
+    if (!stored) return { write: 'fill' };
+    let state = 'unknown';
+    try {
+        const org = await userStore.getOrganization(orgId);
+        if (org && org.id === orgId) state = await serviceDeps.storedUidState(org, stored, String(payload.email || ''));
+    } catch (e) {
+        log.warn(`[ConnectorJWT] Stored nc_uid check failed for user ${user.id}: ${/** @type {Error} */ (e).message}`);
+    }
+    if (state === 'free') return { write: 'repair' };
+    if (state === 'live') {
+        log.warn(`[ConnectorJWT] Sign-in refused for org ${orgId}: the e-mail address of user ${user.id} belongs to two live Nextcloud accounts`);
+        orgHealth.problem('auth.blocked_nc_uid_conflict', {
+            orgId, source: 'connectorJwt', req,
+            meta: { lastUserId: user.id, sub, reason: 'stored_uid_live_with_same_email' },
+        });
+        return { reject: reject(409, {
+            error: 'Your e-mail address is already linked to another Nextcloud account in Bee Flow. Ask your Nextcloud administrator to give each account its own e-mail address.',
+            code: 'nc_uid_conflict',
+        }) };
+    }
+    log.warn(`[ConnectorJWT] Sign-in refused for org ${orgId}: the Nextcloud uid stored on user ${user.id} could not be checked`);
+    return { reject: reject(503, {
+        error: 'Bee Flow could not check your Nextcloud account just now. Try again in a few minutes; if this message stays, ask your Bee Flow administrator.',
+        code: 'nc_uid_unverified',
+    }) };
+}
+
+/**
+ * Keep the DB row and the session coherent: log data anomalies, and write
+ * the signed uid where emailMatchGate allowed it (`write`). Each step
+ * swallows its own failure. The user reaching here is a member of `orgId`
+ * (crossTenantGate), or was just provisioned into it, so the org pointer
+ * needs no reconciling.
+ * @param {UserRec} user @param {string} orgId @param {ConnectorPayload} payload
+ * @param {null | 'fill' | 'repair'} [write]
+ */
+async function reconcileUserRecord(user, orgId, payload, write = null) {
     // Observability: surface data-corruption — a user marked as connector-
-    // sourced should always live under an NC-bound org. If we ever see
-    // provider=nextcloud_connector under an org without nc_instance_id,
-    // that's a sign of broken state (manual edit, failed migration, or a
-    // standalone-tenant data leak). Pure log; behaviour unchanged. Only
+    // sourced should always live under an NC-bound org. Pure log; only
     // resolves the org for connector-sourced users so non-NC traffic
     // doesn't pay an extra DB roundtrip.
     if (user.provider === 'nextcloud_connector') {
@@ -169,46 +249,36 @@ async function reconcileUserRecord(user, orgId, payload) {
             log.warn(`[ConnectorJWT] Data anomaly: user ${user.id} has provider=nextcloud_connector but org ${orgForCheck.id} has no nc_instance_id`);
         }
     }
-
-    // Self-heal a wrong stored nc_uid. Historical bug: connectorBootstrap's
-    // `if (!user.ncUid)` guard checked the camelCase spelling on a raw
-    // snake_case row, so EVERY bootstrap overwrote nc_uid with admins[0] —
-    // and since the stored uid wins below, an affected user's WebDAV calls
-    // impersonated the wrong NC account. payload.sub is signed with this
-    // org's tenant key (verified above), so when the requester's own uid
-    // disagrees with the stored one AND the email matches, the row is
-    // stale — repair it. Email must match so a shared/recycled Bee Flow
-    // account can never be rebound to a different person's NC identity.
-    // ncUidConflictGate ran first: a stored uid that is a live account with
-    // this address never reaches this point.
-    if (user.nc_uid && payload.sub && user.nc_uid !== payload.sub
-        && user.email && payload.email && user.email === payload.email) {
-        try {
-            await userStore.updateUser(user.id, { ncUid: payload.sub });
-            log.warn(`[ConnectorJWT] Repaired stale nc_uid for user ${user.id}: ${user.nc_uid} → ${payload.sub}`);
-            user.nc_uid = payload.sub;
-        } catch (e) {
-            log.warn(`[ConnectorJWT] Failed to repair nc_uid for ${user.id}: ${/** @type {Error} */ (e).message}`);
-        }
-    }
-    await fillMissingNcUid(user, orgId, payload);
+    if (write === 'repair') await repairNcUid(user, payload);
+    else if (write === 'fill') await fillMissingNcUid(user, orgId, payload);
 }
 
 /**
- * Bind an existing member with NO stored nc_uid (an account that signed up with
- * Google or a password before the org paired its Nextcloud) to the signed
- * `sub`. Without the row's nc_uid only the live session knew the Nextcloud
- * identity: chat and the builder offered Nextcloud, yet every automation run
- * (built from the row, see resolveNcBinding) had no binding and lost its
- * Nextcloud steps. Same rules as the repair above (email matches, signed by
- * this org's key), plus: the user is a member of this org, and no other row in
- * the org already holds the uid, so two accounts never share one NC identity.
- * A failure is warned and swallowed: the session still carries the uid.
+ * Replace a stored nc_uid that Nextcloud says is no longer this address's
+ * live account (emailMatchGate). A failure is warned and swallowed.
+ * @param {UserRec} user @param {ConnectorPayload} payload
+ */
+async function repairNcUid(user, payload) {
+    if (!user.nc_uid || !payload.sub || user.nc_uid === payload.sub) return;
+    try {
+        await userStore.updateUser(user.id, { ncUid: payload.sub });
+        log.warn(`[ConnectorJWT] Repaired stale nc_uid for user ${user.id}: ${user.nc_uid} → ${payload.sub}`);
+        user.nc_uid = payload.sub;
+    } catch (e) {
+        log.warn(`[ConnectorJWT] Failed to repair nc_uid for ${user.id}: ${/** @type {Error} */ (e).message}`);
+    }
+}
+
+/**
+ * Bind a member with NO stored nc_uid, which the connector may take by its
+ * address (emailMatchGate), to the signed `sub`, so automation runs (built
+ * from the row) keep their Nextcloud binding. No other row in the org may
+ * already hold the uid. A failure is warned and swallowed: the session still
+ * carries the uid.
+ * @param {UserRec} user @param {string} orgId @param {ConnectorPayload} payload
  */
 async function fillMissingNcUid(user, orgId, payload) {
     if (user.nc_uid || !payload.sub || user.organizationId !== orgId) return;
-    // Case-insensitive, like the getUserByEmail lookup that found this row.
-    if (!user.email || !payload.email || String(user.email).toLowerCase() !== String(payload.email).toLowerCase()) return;
     try {
         const holder = await userStore.getUserByNcUid(orgId, payload.sub);
         if (holder && holder.id !== user.id) {
@@ -309,8 +379,10 @@ module.exports = {
     ok,
     crossTenantGate,
     pendingApprovalGate,
-    ncUidConflictGate,
+    findByNcUid,
+    emailMatchGate,
     reconcileUserRecord,
+    _linkDeps,
     establishConnectorSession,
     _isOrgAdminRequester,
     _resolveRequesterNcUid,

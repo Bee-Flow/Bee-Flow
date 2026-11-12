@@ -85,6 +85,7 @@ export interface OriginalsDeps {
     getDoc: (ref: DocRef) => Promise<DocRow | null>;
     saveDoc: (ref: DocRef, fields: { key: string; mime: string; size: number; sha256: string; filename: string }) => Promise<boolean>;
     clearDoc: (ref: DocRef) => Promise<void>;
+    clearKb: (kb: { id: string; tenant_id: string }) => Promise<void>;
     anyOriginals: (kbId: string) => Promise<boolean>;
     redactionInForce: (kb: KbRow) => Promise<boolean>;
     storageAvailable: () => boolean;
@@ -146,6 +147,13 @@ function defaultDeps(): OriginalsDeps {
                 [documentId, kbId, tenantId],
             );
         },
+        clearKb: async (kb) => {
+            await db().run(
+                `UPDATE documents SET original_storage_key = NULL, original_mime = NULL, original_size = NULL, original_sha256 = NULL
+                  WHERE knowledge_base_id = $1 AND tenant_id = $2 AND original_storage_key IS NOT NULL`,
+                [kb.id, kb.tenant_id],
+            );
+        },
         anyOriginals: async (kbId) => !!(await db().getOne(
             'SELECT 1 AS present FROM documents WHERE knowledge_base_id = $1 AND original_storage_key IS NOT NULL LIMIT 1', [kbId],
         )),
@@ -199,6 +207,29 @@ export async function originalsBlockedReason(kb: KbRow, deps: Partial<OriginalsD
     return (await check(kb)) ? 'privacy_redaction' : null;
 }
 
+export type OriginalWithheldReason = 'not_kept' | 'privacy_redaction' | null;
+
+/** True when the document's text came out of the privacy screening redacted. */
+function isRedactedDoc(doc: Pick<DocRow, 'status' | 'pii_status'> | null | undefined): boolean {
+    return !!doc && (doc.status === 'redacted' || doc.pii_status === 'redacted');
+}
+
+/**
+ * Why a kept original may not be handed out now, or null when it may. Asked by both doors (the download
+ * route through openOriginal, and kb_get_original) on every request, so a file stays behind once the base
+ * stops keeping originals, once the document came out redacted, or once redaction is in force for the base.
+ */
+export async function originalWithheldReason(
+    kb: KbRow | null | undefined,
+    doc: Pick<DocRow, 'status' | 'pii_status'> | null | undefined,
+    deps: Partial<Pick<OriginalsDeps, 'redactionInForce'>> = {},
+): Promise<OriginalWithheldReason> {
+    if (!kb || !kb.keep_originals) return 'not_kept';
+    if (isRedactedDoc(doc)) return 'privacy_redaction';
+    const check = deps.redactionInForce || redactionInForce;
+    return (await check(kb)) ? 'privacy_redaction' : null;
+}
+
 /** The file name a download carries: the one that came in, else the title, with an extension from the type when it has none. */
 export function downloadName(doc: Pick<DocRow, 'title' | 'original_filename' | 'original_mime'>): string {
     const base = String(doc.original_filename || doc.title || 'document').replace(/[\\/\0]/g, '_').trim() || 'document';
@@ -230,26 +261,25 @@ export async function keepOriginal(args: KeepArgs, deps: Partial<OriginalsDeps> 
     try {
         const kb = await d.getKb(args.kbId);
         if (!kb || String(kb.tenant_id) !== String(args.tenantId)) return { kept: false, reason: 'kb_missing' };
+        const doc = await d.getDoc(ref);
+        if (!doc) return { kept: false, reason: 'document_missing' };
+
+        // Checked here, not only in the UI: the copy would carry what the redaction took out of the text.
+        // An earlier copy of this document would now be the unredacted one beside redacted text, so it goes too.
+        const redactedDoc = isRedactedDoc(doc);
+        if (redactedDoc || await d.redactionInForce(kb)) {
+            d.info(redactedDoc
+                ? `[KBOriginals] Not kept: document ${args.documentId} was redacted at ingest`
+                : `[KBOriginals] Not kept: privacy redaction is in force for knowledge base ${args.kbId}`);
+            if (doc.original_storage_key) await dropOriginal(d, ref, doc.original_storage_key);
+            return { kept: false, reason: 'privacy_redaction' };
+        }
 
         const size = args.buffer.length;
         const cap = maxOriginalBytes();
         if (cap > 0 && size > cap) {
             d.info(`[KBOriginals] Not kept: ${size} bytes is over KB_ORIGINAL_MAX_MB (document ${args.documentId})`);
             return { kept: false, reason: 'too_large' };
-        }
-
-        // Checked here, not only in the UI: the copy would carry what the redaction took out of the text.
-        if (await d.redactionInForce(kb)) {
-            d.info(`[KBOriginals] Not kept: privacy redaction is in force for knowledge base ${args.kbId}`);
-            return { kept: false, reason: 'privacy_redaction' };
-        }
-        const doc = await d.getDoc(ref);
-        if (!doc) return { kept: false, reason: 'document_missing' };
-        if (doc.status === 'redacted' || doc.pii_status === 'redacted') {
-            d.info(`[KBOriginals] Not kept: document ${args.documentId} was redacted at ingest`);
-            // An earlier copy of this document would now be the unredacted one beside redacted text.
-            if (doc.original_storage_key) await dropOriginal(d, ref, doc.original_storage_key);
-            return { kept: false, reason: 'privacy_redaction' };
         }
 
         if (!d.storageAvailable()) return { kept: false, reason: 'storage_unavailable' };
@@ -281,11 +311,17 @@ async function dropOriginal(d: OriginalsDeps, ref: DocRef, key: string): Promise
     await d.clearDoc(ref);
 }
 
-/** The kept original of a document, decrypted; null when there is none. Throws when the bytes cannot be read. */
+/**
+ * The kept original of a document, decrypted; null when there is none or it is withheld
+ * (originalWithheldReason). Throws when the bytes cannot be read.
+ */
 export async function openOriginal(ref: DocRef, deps: Partial<OriginalsDeps> = {}): Promise<OriginalFile | null> {
     const d: OriginalsDeps = { ...defaultDeps(), ...deps };
     const doc = await d.getDoc(ref);
     if (!doc || !doc.original_storage_key) return null;
+    const kb = await d.getKb(ref.kbId);
+    if (!kb || String(kb.tenant_id) !== String(ref.tenantId)) return null;
+    if (await originalWithheldReason(kb, doc, d)) return null;
     const buffer = await d.read(doc.original_storage_key);
     return {
         buffer,
@@ -323,35 +359,24 @@ export async function deleteOriginalsForKb(kb: { id: string; tenant_id: string }
     }
 }
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 /**
- * Retrieval rows with the knowledge base and `has_original` of their document added, for the citation
- * shape (core/kb/citation.js). One query for the whole list; best effort: on a failure the rows come
- * back as they were, and a citation without the flags simply offers no download.
+ * A base that stops keeping originals: remove every kept file, then the pointers on its documents. The
+ * pointers go only after the files did, so a failed removal leaves them for the next attempt (switching
+ * the option off again, or deleting the base) instead of a blob nothing points at any more. Never throws.
  */
-export async function withOriginalFlags<T extends { document_id?: unknown }>(
-    rows: T[],
-    query: (ids: string[]) => Promise<Array<{ id: string; kb_id: string; has_original: boolean }>> = defaultFlagQuery,
-): Promise<Array<T & { knowledge_base_id?: string; has_original?: boolean }>> {
-    if (!Array.isArray(rows) || rows.length === 0) return rows;
-    const ids = [...new Set(rows.map((r) => String(r?.document_id ?? '').toLowerCase()).filter((id) => UUID.test(id)))];
-    if (ids.length === 0) return rows;
+export async function dropOriginalsForKb(kb: { id: string; tenant_id: string }, { deps }: { deps?: Partial<OriginalsDeps> } = {}): Promise<boolean> {
+    const d: OriginalsDeps = { ...defaultDeps(), ...deps };
     try {
-        const found = new Map((await query(ids)).map((r) => [String(r.id).toLowerCase(), r]));
-        return rows.map((r) => {
-            const hit = found.get(String(r?.document_id ?? '').toLowerCase());
-            return hit ? { ...r, knowledge_base_id: hit.kb_id, has_original: !!hit.has_original } : r;
-        });
-    } catch {
-        return rows;
+        if (!(await d.anyOriginals(kb.id))) return true;
+        await d.removePrefix(kbPrefix(kb.tenant_id, kb.id));
+        await d.clearKb(kb);
+        d.info(`[KBOriginals] Removed the kept originals of knowledge base ${kb.id}`);
+        return true;
+    } catch (e) {
+        d.warn(`[KBOriginals] Could not remove the originals of knowledge base ${kb.id}:`, (e as Error).message);
+        return false;
     }
 }
 
-async function defaultFlagQuery(ids: string[]): Promise<Array<{ id: string; kb_id: string; has_original: boolean }>> {
-    return nodeRequire('../../db.js').getAll(
-        `SELECT id::text AS id, knowledge_base_id::text AS kb_id, (original_storage_key IS NOT NULL) AS has_original
-           FROM documents WHERE id = ANY($1::uuid[])`,
-        [ids],
-    );
-}
+/** Retrieval rows with the base and `has_original` of their document (core/kb/originalFlags.mts). */
+export { withOriginalFlags } from './originalFlags.mts';

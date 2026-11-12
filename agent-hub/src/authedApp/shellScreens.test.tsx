@@ -28,6 +28,15 @@ describe('NcSignInFailedScreen', () => {
         expect(screen.queryByRole('button', { name: 'Sign in with a Bee Flow account' })).toBeNull();
     });
 
+    it('offers the link page in a new tab when the sign-in needs a link', () => {
+        const url = 'https://app.example.org/app/settings/security#nc_link=abc.def';
+        render(<NcSignInFailedScreen message="Sign in to Bee Flow once to link them." linkUrl={url} onRetry={() => {}} />);
+        const link = screen.getByRole('link', { name: 'Sign in to link' });
+        expect(link.getAttribute('href')).toBe(url);
+        expect(link.getAttribute('target')).toBe('_blank');
+        expect(link.getAttribute('rel')).toContain('noopener');
+    });
+
     it("shows the server's sentence when it answered one", () => {
         render(<NcSignInFailedScreen message="Ask your Bee Flow administrator to invite you." onRetry={() => {}} />);
         expect(screen.getByText('Ask your Bee Flow administrator to invite you.')).toBeTruthy();
@@ -42,6 +51,8 @@ describe('the texts of the signed-out Nextcloud screens', () => {
             'app.nc_sign_in_failed_body',
             'app.nc_sign_in_failed_retry',
             'app.nc_sign_in_failed_use_account',
+            'app.nc_link_required_link',
+            'app.nc_link_required_hint',
             'integ.nc_onboarding_pending_setup_in_progress',
             'integ.nc_onboarding_pending_refresh',
         ]) {

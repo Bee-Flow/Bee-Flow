@@ -45,7 +45,7 @@ const STUBS = {
 printf 'docker %s\\n' "$*" >> "$STUB_LOG"
 case "\${1:-} $*" in
     exec*)
-        cat >/dev/null
+        cat > "$STUB_STATE/exec-stdin"
         if [ -n "\${STUB_EXEC_NOT_READY:-}" ]; then
             n=$(( $(cat "$STUB_STATE/exec-count" 2>/dev/null || echo 0) + 1 )); echo "$n" > "$STUB_STATE/exec-count"
             if [ "$n" -le "$STUB_EXEC_NOT_READY" ]; then echo 'sign-in as admin answered 401' >&2; exit 3; fi
@@ -189,7 +189,7 @@ async function freePorts(count = 4) {
 async function install(dir, env = {}, args = ['--yes']) {
     const [serverPort, clientPort, ...sidecarPorts] = await freePorts();
     const res = run(dir, args, {
-        BEEFLOW_HOST: '192.168.1.20', BEEFLOW_SERVER_PORT: serverPort, BEEFLOW_CLIENT_PORT: clientPort,
+        BEEFLOW_HOST: '192.168.1.20', BEEFLOW_NEXTCLOUD_HOST: '192.168.1.30', BEEFLOW_SERVER_PORT: serverPort, BEEFLOW_CLIENT_PORT: clientPort,
         // The real ones (8100, 8300) may be taken on the machine the tests run on.
         BEEFLOW_SIDECAR_PORTS: sidecarPorts.join(' '),
         ...env,
@@ -240,7 +240,7 @@ test('an unattended install checks the files, writes the answers into the templa
         `TAG=${NEW}`, `SERVER_PORT=${res.serverPort}`, `CLIENT_PORT=${res.clientPort}`,
         'SERVER_PROTOCOL=http', 'CLIENT_PROTOCOL=http',
         `SERVER_PUBLIC_HOST=192.168.1.20:${res.serverPort}`, `CLIENT_PUBLIC_HOST=192.168.1.20:${res.clientPort}`,
-        'SERVER_BIND_HOST=0.0.0.0', 'CLIENT_BIND_HOST=0.0.0.0', 'NEXTCLOUD_ALLOW_PRIVATE_HOSTS=1',
+        'SERVER_BIND_HOST=0.0.0.0', 'CLIENT_BIND_HOST=0.0.0.0', 'NEXTCLOUD_ALLOW_PRIVATE_HOSTS=192.168.1.30',
     ]) assert.ok(template.includes(line), `${line} in:\n${template.join('\n')}`);
     assert.ok(!template.includes('TAG=latest') && !template.includes('SERVER_PORT=3001'), 'a setting is there once');
     assert.ok(template.includes('DB_PASSWORD=CHANGE_ME'), 'the secrets are left to selfhost.sh');
@@ -257,7 +257,10 @@ test('an unattended install checks the files, writes the answers into the templa
         `The files match the checksums of release ${NEW}`,
         `Bee Flow ${NEW} is installed. The addresses to use from Nextcloud`,
         `Server URL:    http://192.168.1.20:${res.serverPort}`, `Web app URL:   http://192.168.1.20:${res.clientPort}`,
-        'Pairing code:  ABCD-1234', 'admin / first-sign-in');
+        'Pairing code:  ABCD-1234', 'admin / first-sign-in',
+        'Before Bee Flow is used beyond this machine', 'SERVER_PROTOCOL=https', 'SERVER_BIND_HOST=127.0.0.1');
+    assert.ok(!res.log.some((line) => line.includes('first-sign-in')), 'the password is on no command line');
+    assert.match(read(dir, 'exec-stdin'), /^const BF_PASSWORD = "first-sign-in";\n/);
     assert.doesNotMatch(res.out, /Warning/);
     assert.ok(!exists(dir, 'beeflow', '.beeflow-download'), 'the download directory is gone');
 });
@@ -282,12 +285,13 @@ test('questions are asked on the terminal, and asked again after an answer that 
     const [serverPort, clientPort] = await freePorts(2);
     const answers = path.join(dir, 'answers');
     // host (refused twice), server port, web app port (refused: the same), directory,
-    // version, sidecars, private Nextcloud, organisation, continue.
-    fs.writeFileSync(answers, ['localhost', 'http://x', 'BeeFlow.Example.com', serverPort, serverPort, clientPort, '', '', 'n', '', '', ''].join('\n') + '\n');
+    // version, sidecars, private Nextcloud, its host (refused once), organisation, continue.
+    fs.writeFileSync(answers, ['localhost', 'http://x', 'BeeFlow.Example.com', serverPort, serverPort, clientPort, '', '', 'n', '', 'http://nc', 'NC.lan', '', ''].join('\n') + '\n');
     const res = run(dir, [], { BEEFLOW_TTY: answers });
     assert.strictEqual(res.status, 0, res.out);
     shows(res, 'localhost points at the Nextcloud container itself', 'no http://, no port', 'two different ports', 'Install directory [./beeflow]', 'Version (a release tag) [newest production release]', 'Continue? [Y/n]');
     assert.ok(read(dir, 'beeflow', '.env.selfhost.example').includes(`SERVER_PUBLIC_HOST=beeflow.example.com:${serverPort}`), 'a host name is lower case');
+    assert.ok(read(dir, 'beeflow', '.env.selfhost.example').includes('NEXTCLOUD_ALLOW_PRIVATE_HOSTS=nc.lan'), 'only the Nextcloud host given');
     assert.deepStrictEqual(selfhostCalls(res.log), ['selfhost [] PROFILES=core STACK_NAME=']);
 });
 
@@ -302,7 +306,7 @@ test('without a terminal and without --yes the install stops before it does anyt
 test('an answer that is not a plain value is refused', opts, (t) => {
     const dir = world(t);
     const refused = (env) => {
-        const res = run(dir, ['--yes'], { BEEFLOW_HOST: '192.168.1.20', ...env });
+        const res = run(dir, ['--yes'], { BEEFLOW_HOST: '192.168.1.20', BEEFLOW_NEXTCLOUD_HOST: 'nc.lan', ...env });
         stopped(res, `${Object.keys(env)[0]}:`);
         assert.deepStrictEqual(res.log, [], 'nothing was run');
     };
@@ -314,6 +318,7 @@ test('an answer that is not a plain value is refused', opts, (t) => {
     for (const organisation of ["Acme'; id", 'a$b', 'a`b`', 'x'.repeat(81)]) refused({ BEEFLOW_ORGANISATION: organisation });
     for (const stack of ['Internal', '-x', 'a b', 'beeflow', 'a;b']) refused({ BEEFLOW_STACK_NAME: stack });
     for (const flag of ['maybe', '2']) refused({ BEEFLOW_SIDECARS: flag });
+    for (const nc of ['$(id)', 'a b', 'http://nc', 'nc:8080', 'x..y', '1,2']) refused({ BEEFLOW_NEXTCLOUD_HOST: nc });
     assert.ok(!exists(dir, 'beeflow'));
 });
 
@@ -397,6 +402,23 @@ test('run as root, the components directory is handed to the user the server run
     assert.ok(named.log.includes('chown -R 1000:1000 components.internal'), named.log.join('\n'));
 });
 
+test('a private Nextcloud without its host stops an unattended install before anything is done', opts, async (t) => {
+    const dir = world(t);
+    const res = await install(dir, { BEEFLOW_NEXTCLOUD_HOST: '' });
+    stopped(res, 'BEEFLOW_NEXTCLOUD_HOST');
+    assert.ok(!exists(dir, 'beeflow', '.env.selfhost.example'));
+});
+
+test('a release from the checksummed ones whose checksums cannot be downloaded is not installed', opts, async (t) => {
+    const dir = world(t);
+    // A newer release whose files are in the repository only.
+    writeRelease(path.join(dir, 'raw', 'Bee-Flow', 'Bee-Flow', 'v2026.11.20'), 'v2026.11.20');
+    const res = await install(dir, { BEEFLOW_VERSION: 'v2026.11.20' });
+    stopped(res, 'checksums of release v2026.11.20 could not be downloaded', 'Nothing was changed');
+    assert.ok(!exists(dir, 'beeflow', 'selfhost.sh'));
+    assert.deepStrictEqual(selfhostCalls(res.log), []);
+});
+
 // ── Pairing code ─────────────────────────────────────────────────────────
 
 test('a pairing code that could not be made is reported by the install, with what to do', opts, async (t) => {
@@ -425,7 +447,8 @@ test('pairing-code prints a fresh code for an organisation of an existing instal
     shows(res, 'Pairing code for "Acme BV"', 'ABCD-1234');
     const exec = res.log.find((line) => line.startsWith('docker exec'));
     assert.match(exec, /BF_ORGANISATION=Acme BV/);
-    assert.match(exec, /BF_PASSWORD=first-sign-in/);
+    assert.doesNotMatch(exec, /BF_PASSWORD|first-sign-in/);
+    assert.match(read(dir, 'exec-stdin'), /^const BF_PASSWORD = "first-sign-in";\n/);
     assert.match(exec, /BF_ORIGIN=http:\/\/192\.168\.1\.20:\d+ internal-server node -$/);
     assert.strictEqual(read(dir, 'beeflow', '.env.internal'), settings, 'the settings file is only read');
     assert.deepStrictEqual(selfhostCalls(res.log), []);
@@ -579,7 +602,7 @@ test('a release that cannot be downloaded, or does not match its checksums, chan
         assert.deepStrictEqual(selfhostCalls(res.log), []);
     };
     const missing = run(dir, ['update', '--yes', '--version', 'v2099.1.1']);
-    stopped(missing, 'Could not download selfhost.sh of release v2099.1.1');
+    stopped(missing, 'The checksums of release v2099.1.1 could not be downloaded');
     unchanged(missing);
 
     fs.appendFileSync(path.join(dir, 'download', NEW, 'docker-compose.from-registry.yml'), '# changed on the way\n');

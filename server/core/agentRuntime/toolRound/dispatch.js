@@ -20,6 +20,7 @@ const testChatMod = require('../testChat');
 const { isGuestAsker } = require('../guestAsker');
 const log = require('../../../telemetry/log');
 const { fallback, bestEffort } = require('../../../utils/bestEffort');
+const { noteMailRunToolUse } = require('../toolPolicy/mailRun.mts');
 
 /**
  * Dispatch the call. Never throws: a failing tool becomes a blocked sentinel
@@ -58,6 +59,11 @@ async function dispatchToolCall(rc, deps, { toolCall, toolName, toolArgs, fixedP
         }
     });
     const outboundProbe = probed.probe;
+    // A run started by a received e-mail remembers whether it used anything outside the triggering thread: its reply
+    // in the thread then goes to the owner's drafts (integrations/mailReplyGuard.js).
+    if (rc.messageMetadata?.mailTrigger) {
+        noteMailRunToolUse(rc.messageMetadata.mailTrigger, toolName, toolArgs, probed.result?.ok ? probed.result.value : null);
+    }
     if (!probed.result?.ok) {
         const toolErr = probed.result?.error;
         log.error(`[AgentRuntime] Tool '${toolName}' threw:`, toolErr?.message || toolErr);

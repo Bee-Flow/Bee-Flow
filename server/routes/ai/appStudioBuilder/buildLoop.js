@@ -98,7 +98,7 @@ async function runRound(turn, iter, ctx, ls) {
     // A question card is out: the refusals of calls made after it in the
     // same round are expected, not a stuck model, so they never print the
     // repeated-refusal message next to the card.
-    if (turn.reviewQuestions) return 'end';
+    if (turn.reviewQuestions || turn.heldChange) return 'end';
     if (ls.repeatedStop) {
         ctx.send('message', { content: repeatedStopMessage(ls.repeatedStop) });
         return 'end';

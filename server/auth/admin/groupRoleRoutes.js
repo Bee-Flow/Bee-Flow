@@ -6,6 +6,7 @@
  */
 
 const express = require('express');
+const crypto = require('crypto');
 const log = require('../../telemetry/log');
 const { bestEffort, fallback } = require('../../utils/bestEffort');
 const router = express.Router();
@@ -17,7 +18,7 @@ const userStore = require('../../stores/userStore');
 // — a 500 where the org-scoped group list should have been. That fails closed
 // rather than leaking other tenants' groups, but it left the sharing pickers
 // that read this endpoint permanently empty.
-const { requireAuth, requireAdmin, requireSuperAdmin, requirePrimaryOrgAdmin, getUserPermissions, invalidateAllPermissionCaches, resolveUserOrgIds, resolveAdminOrgId, resolveChosenOrgId, SYSTEM_PERMISSIONS, getOrgRolePermissions, orgWideGrantImpliedPermissions, orgRoleImpliedFill } = require('../permissions');
+const { requireAuth, requireAdmin, requireSuperAdmin, requirePrimaryOrgAdmin, getUserPermissions, resolvePermissionsByOrg, invalidateAllPermissionCaches, resolveUserOrgIds, resolveAdminOrgId, resolveChosenOrgId, SYSTEM_PERMISSIONS, getOrgRolePermissions, orgWideGrantImpliedPermissions, orgRoleImpliedFill } = require('../permissions');
 const orgRolePolicy = require('../orgRolePolicy');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
@@ -33,6 +34,23 @@ const { rejectUngrantableRoles, rejectUngrantableOrgRole } = require('./grantabl
 // honours that wildcard. Reads stay open (the org users panel needs the list to
 // render its role dropdown); only the mutating verbs are operator-only.
 const SYSTEM_ROLE_IDS = new Set(['admin', 'user']);
+
+/**
+ * What the caller holds IN one organisation (auth/permissionGrants.mts). The
+ * group routes below first check the flat union of every grant; a group of
+ * organisation A is managed only with org_admin or manage_users held in A, and
+ * only permissions held in A can be put on it.
+ * @param {import('express').Request} req
+ * @param {string | null | undefined} orgId
+ */
+async function heldInOrg(req, orgId) {
+    const held = await resolvePermissionsByOrg(req.session.user?.id, req.session);
+    return {
+        managesGroups: !!orgId && (held.holds('org_admin', orgId) || held.holds('manage_users', orgId)),
+        /** @param {string[]} perms */
+        notHeld: (perms) => perms.filter((p) => !orgId || !held.holds(p, orgId)),
+    };
+}
 
 // === Group Management API (Admin Only) ===
 
@@ -195,16 +213,15 @@ router.post('/groups', requireAuth, validate({ body: CreateGroupBody }), async (
             return res.status(403).json({ error: 'You must belong to an organisation to create groups' });
         }
         orgId = currentUser.organizationId;
+        const inOrg = await heldInOrg(req, orgId);
+        if (!inOrg.managesGroups) {
+            return res.status(403).json({ error: 'Organisation admin access required to manage groups' });
+        }
 
-        // Validate permissions — users can only grant permissions they possess
-        if (permissions && permissions.length > 0) {
-            const userPerms = await getUserPermissions(userId, req.session);
-            if (!userPerms.includes('all')) {
-                const unauthorized = permissions.filter(p => !userPerms.includes(p));
-                if (unauthorized.length > 0) {
-                    return res.status(403).json({ error: `Cannot assign permissions you don't have: ${unauthorized.join(', ')}` });
-                }
-            }
+        // Validate permissions — users can only grant permissions they hold in this organisation
+        const unauthorized = inOrg.notHeld(permissions || []);
+        if (unauthorized.length > 0) {
+            return res.status(403).json({ error: `Cannot assign permissions you don't have: ${unauthorized.join(', ')}` });
         }
 
         // Same rule for roles, which expand into permissions for every member.
@@ -212,7 +229,13 @@ router.post('/groups', requireAuth, validate({ body: CreateGroupBody }), async (
         if (roleError) return res.status(403).json({ error: roleError });
     }
 
-    const id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    // Group ids are one namespace for every organisation. A name another
+    // organisation already uses gets an id of its own, so the answer says
+    // nothing about other organisations' groups; "already exists" is about
+    // this organisation's (or, for a global group, the global) groups only.
+    let id = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const sameId = await userStore.getGroup(id);
+    if (sameId && (sameId.organizationId || null) !== (orgId || null)) id = `${id}-${crypto.randomBytes(3).toString('hex')}`;
     const newGroup = {
         id,
         organizationId: orgId,
@@ -261,16 +284,15 @@ router.put('/groups/:id', requireAuth, validate({ body: UpdateGroupBody }), asyn
         if (!group || !currentUser?.organizationId || group.organizationId !== currentUser.organizationId) {
             return res.status(403).json({ error: 'You can only edit groups in your organisation' });
         }
+        const inOrg = await heldInOrg(req, group.organizationId);
+        if (!inOrg.managesGroups) {
+            return res.status(403).json({ error: 'Organisation admin access required to manage groups' });
+        }
 
-        // Validate permissions — users can only grant permissions they possess
-        if (permissions && permissions.length > 0) {
-            const userPerms = await getUserPermissions(userId, req.session);
-            if (!userPerms.includes('all')) {
-                const unauthorized = permissions.filter(p => !userPerms.includes(p));
-                if (unauthorized.length > 0) {
-                    return res.status(403).json({ error: `Cannot assign permissions you don't have: ${unauthorized.join(', ')}` });
-                }
-            }
+        // Validate permissions — users can only grant permissions they hold in this organisation
+        const unauthorized = inOrg.notHeld(permissions || []);
+        if (unauthorized.length > 0) {
+            return res.status(403).json({ error: `Cannot assign permissions you don't have: ${unauthorized.join(', ')}` });
         }
 
         // Same rule for roles. Only additions are checked, so re-saving a group
@@ -371,6 +393,10 @@ async function assertCanManageGroupMembers(req, res, groupId) {
             res.status(403).json({ error: 'You can only manage groups in your organisation' });
             return null;
         }
+        if (!(await heldInOrg(req, group.organizationId)).managesGroups) {
+            res.status(403).json({ error: 'Organisation admin access required to manage group members' });
+            return null;
+        }
     }
     return { group, adminId, isSuperAdmin };
 }
@@ -433,6 +459,9 @@ router.delete('/groups/:id', requireAuth, async (/** @type {import('express').Re
         const group = allGroups.find(g => g.id === id);
         if (!group || !currentUser?.organizationId || group.organizationId !== currentUser.organizationId) {
             return res.status(403).json({ error: 'You can only delete groups in your organisation' });
+        }
+        if (!(await heldInOrg(req, group.organizationId)).managesGroups) {
+            return res.status(403).json({ error: 'Organisation admin access required to manage groups' });
         }
     }
 

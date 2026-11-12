@@ -19,7 +19,8 @@
  *                 synthesise: a headless dry run hands blanks downstream (marked);
  *                 harness: a scenario or golden supplies the answers
  *   approverSeat  configured (the step's own approvers) | tester (the sandbox
- *                 seat: the person who started the run decides alone)
+ *                 seat: the person who started the run decides alone). A test
+ *                 run of the live copy keeps the configured approvers.
  *   notify        outcome (success / failure to the owner's policy), approvers
  *                 (the approval request), tester (a "Test:" bell to the starter)
  *   answers       production: a form submission lands in the answers table;
@@ -170,12 +171,17 @@ export function profileFor(facts: ProfileFacts = {}, env: Env = process.env): Ru
         };
     }
     if (kind === 'test') {
+        // A test of the LIVE copy (an automation managed by a Solution stage)
+        // runs the deployed flow with real effects: its approvals go to the
+        // configured approvers under the normal rules. The sandbox seat is for
+        // tests of the author's own working copy.
+        const live = base.copy === 'live';
         return {
             ...base,
             effects: 'real',
             pauses: 'real',
-            approverSeat: testerSeat(facts),
-            notify: { outcome: false, approvers: false, tester: true },
+            approverSeat: live ? { kind: 'configured' } : testerSeat(facts),
+            notify: { outcome: false, approvers: live, tester: true },
             answers: 'none',
             holdsMarker: false,
             pauseTtlMs: testPauseTtlMs(env),

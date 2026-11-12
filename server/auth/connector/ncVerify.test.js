@@ -81,3 +81,46 @@ test('verifyNcInstance: NEXTCLOUD_ALLOW_PRIVATE_HOSTS=1 keeps a LAN self-host wo
         assert.equal(hits(), 1);
     }));
 });
+
+test('verifyNcInstance: a host list allows exactly the listed private hosts', async () => {
+    await withPrivateHostsFlag('nextcloud.lan, 127.0.0.1:8080', () => withLoopbackNc(async (base, hits) => {
+        const nc = await helpers.verifyNcInstance(base, 'internal-id');
+        assert.equal(nc.ncVersion, '30.0.0');
+        assert.equal(hits(), 1);
+        await assert.rejects(helpers.verifyNcInstance('http://10.0.0.5', 'x'), /NC capabilities unreachable/);
+        await assert.rejects(helpers.verifyNcInstance('http://169.254.169.254', 'x'), /NC capabilities unreachable/);
+    }));
+    await withPrivateHostsFlag('nextcloud.lan', () => withLoopbackNc(async (base, hits) => {
+        await assert.rejects(helpers.verifyNcInstance(base, 'internal-id'), /NC capabilities unreachable/);
+        assert.equal(hits(), 0, 'an unlisted private host is never contacted');
+    }));
+});
+
+test('verifyNcInstance: the base URL cannot carry a query or fragment; the suffix stays the path', async () => {
+    await withPrivateHostsFlag('1', () => withLoopbackNc(async (base, hits) => {
+        for (const bad of [`${base}/x?`, `${base}/x#`, `${base}?a=1`]) {
+            await assert.rejects(helpers.verifyNcInstance(bad, 'internal-id'), (e) => helpers.verifyFailureCategory(e) === 'unreachable', bad);
+        }
+        assert.equal(hits(), 0);
+    }));
+});
+
+test('verifyNcInstance: every failure has a category; the text stays on the server', async () => {
+    const http2 = require('node:http');
+    const answers = [
+        (res) => { res.statusCode = 500; res.end('internal secret page'); },
+        (res) => { res.setHeader('content-type', 'text/html'); res.end('<html>admin panel</html>'); },
+        (res) => { res.end(JSON.stringify({ ocs: { data: { version: { string: '1' }, capabilities: { theming: { instanceid: 'other' } } } } })); },
+    ];
+    for (const answer of answers) {
+        const srv = http2.createServer((_req, res) => answer(res));
+        await new Promise((r) => srv.listen(0, '127.0.0.1', () => r(undefined)));
+        const { port } = /** @type {import('node:net').AddressInfo} */ (srv.address());
+        try {
+            await withPrivateHostsFlag('1', async () => {
+                await assert.rejects(helpers.verifyNcInstance(`http://127.0.0.1:${port}`, 'mine'), (e) => helpers.verifyFailureCategory(e) === 'mismatch');
+            });
+        } finally { await new Promise((r) => srv.close(() => r(undefined))); }
+    }
+    assert.equal(helpers.verifyFailureCategory(new Error('anything')), 'unreachable');
+});

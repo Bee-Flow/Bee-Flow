@@ -1,6 +1,7 @@
 import { RefreshCw } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import PreviewToolbar, { type PreviewDevice } from './preview/PreviewToolbar';
+import { openPreviewInNewTab, PREVIEW_SANDBOX } from './preview/openPreviewTab';
 import { previewApiBase, usePreviewDocument } from './preview/usePreviewDocument';
 import { usePreviewToken, useSelectionBridge, type PreviewSelection } from './preview/usePreviewToken';
 import type { ExtraContents, ExtraFileMeta } from '../../api/webpageEditorTypes';
@@ -90,23 +91,6 @@ function PreviewOverlay({ kind, label }: { kind: 'busy' | 'empty'; label?: strin
     );
 }
 
-/**
- * Open the preview full-window. The full tier is already a real, same-origin
- * proxied URL; otherwise a blob: URL with a unique opaque origin gives a
- * full-window view without ever sharing an origin with the host app.
- */
-function openPreviewInNewTab(isFull: boolean, fullTierUrl: string | null, srcDoc: string) {
-    if (isFull) {
-        if (fullTierUrl) window.open(fullTierUrl, '_blank', 'noopener,noreferrer');
-        return;
-    }
-    const url = URL.createObjectURL(new Blob([srcDoc], { type: 'text/html' }));
-    window.open(url, '_blank', 'noopener,noreferrer');
-    // Revoke after a long beat so even high-latency networks finish loading the
-    // document before the URL is invalidated (best-effort cleanup).
-    setTimeout(() => URL.revokeObjectURL(url), 120_000);
-}
-
 export interface WebpagePreviewProps {
     webpageId?: string;
     html?: string;
@@ -147,7 +131,7 @@ export default function WebpagePreview({ webpageId, html = '', css = '', js = ''
             <PreviewToolbar
                 size={size} device={device} onDevice={setDevice}
                 onReload={() => setRefreshKey(k => k + 1)}
-                onOpen={() => openPreviewInNewTab(isFull, fullTierUrl, srcDoc)}
+                onOpen={() => openPreviewInNewTab({ isFull, fullTierUrl, srcDoc }, t('webpages.preview.frame_title', 'Webpage preview'))}
             />
             <div className="flex-1 min-h-0 relative flex justify-center">
                 {/* The device width is a CAP applied to the wrapper, so the
@@ -161,7 +145,7 @@ export default function WebpagePreview({ webpageId, html = '', css = '', js = ''
                     title={t('webpages.preview.frame_title', 'Webpage preview')}
                     data-device={device}
                     {...(isFull ? { src: fullTierUrl || 'about:blank' } : { srcDoc })}
-                    sandbox="allow-scripts allow-forms"
+                    sandbox={PREVIEW_SANDBOX}
                     referrerPolicy="no-referrer"
                     style={{
                         width: '100%',

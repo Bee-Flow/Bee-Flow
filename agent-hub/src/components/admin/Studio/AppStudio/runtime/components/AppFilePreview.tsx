@@ -219,8 +219,12 @@ export default function AppFilePreview({ node }: NodeProps<FilePreviewProps>) {
                     res = await studioAppFetch(href);
                     if (!res.ok) throw Object.assign(new Error(''), { status: res.status });
                 }
-                const blob = await res.blob();
+                const fetched = await res.blob();
                 if (!alive) return;
+                const mime = rendered ? 'image/png' : ((entry && typeof entry === 'object' && entry.mime) || fetched.type || 'application/octet-stream');
+                // A PDF is framed as a PDF and nothing else: the blob carries the type the
+                // record names, whatever type the response had (openAttachment.ts does the same).
+                const blob = mime === 'application/pdf' && fetched.type !== mime ? new Blob([fetched], { type: mime }) : fetched;
 
                 const url = URL.createObjectURL(blob);
                 urlRef.current = url;
@@ -246,7 +250,7 @@ export default function AppFilePreview({ node }: NodeProps<FilePreviewProps>) {
                     url,
                     blob,
                     downloadUrl,
-                    mime: rendered ? 'image/png' : ((entry && typeof entry === 'object' && entry.mime) || blob.type || 'application/octet-stream'),
+                    mime,
                     name: entryName(entry),
                     rendered,
                     error: null,

@@ -11,18 +11,18 @@
 function applySecurityHeaders(app) {
     // ── Security headers (helmet) ─────────────────────────────────────────────────
     const helmet = /** @type {any} */ (require('helmet'));
+    // nosemgrep: ajinabraham.njsscan.headers.header_helmet_disabled.helmet_feature_disabled -- nginx adds the app's Content-Security-Policy; routes that serve other content set their own
     app.use(helmet({
         hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
-        contentSecurityPolicy: false,        // Handled by Nginx
+        contentSecurityPolicy: false,        // Nginx adds the app's policy; routes that serve something else set their own
         // Match what nginx sends. Both layers were emitting Referrer-Policy with
         // DIFFERENT values (helmet's default `no-referrer` here, and
         // `strict-origin-when-cross-origin` from the template), so every proxied
         // response carried the header twice. Browsers read a repeated
         // Referrer-Policy as a token list and honour the last valid one, which was
         // already nginx's — so agreeing on that value removes the duplicate without
-        // changing what any browser actually does. The public-viewer `/p/` block
-        // still overrides to `no-referrer` on purpose; nginx appends after us, so
-        // that intent survives.
+        // changing what any browser actually does. nginx's `/share/` and `/w/`
+        // blocks (the public share viewer) send `no-referrer` instead, on purpose.
         referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
         crossOriginEmbedderPolicy: false,    // Can break embedded content
         crossOriginResourcePolicy: { policy: 'same-site' },  // Allow cross-subdomain resource loading (server.dev → dev.beeflow.nl)

@@ -51,6 +51,7 @@ const MOCKS = {
     '../../stores/userStore': {
         getAllUsers: async () => fx.users.map((u) => ({ ...u })),
         getAllGroups: async () => fx.groups.map((g) => ({ ...g })),
+        getGroup: async (id) => { const g = fx.groups.find((x) => x.id === id); return g ? { ...g } : null; },
         getAllRoles: async () => fx.roles.map((r) => ({ ...r })),
         getAllOrganizations: async () => fx.orgs.map((o) => ({ ...o })),
         getUser: async (id) => {
@@ -81,6 +82,11 @@ const MOCKS = {
             session?.isAdmin || session?.user?.role === 'admin' ? ['all'] : [...fx.callerPerms]
         ),
         hasPermission: async () => true,
+        // The caller's grants all sit in their own organisation (orgA) in these fixtures.
+        resolvePermissionsByOrg: async (userId, session) => {
+            const perms = session?.isAdmin || session?.user?.role === 'admin' ? ['all'] : [...fx.callerPerms];
+            return { holds: (permission, orgId) => orgId === 'orgA' && (perms.includes('all') || perms.includes(permission)) };
+        },
         isSuperAdmin: (req) => !!(req.session?.isAdmin || req.session?.user?.role === 'admin'),
         resolveUserOrgIds: async () => new Set(['orgA']),
         // No `?orgId` in these requests: the caller's own organisation.

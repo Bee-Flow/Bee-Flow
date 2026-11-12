@@ -22,6 +22,24 @@ map $upstream_http_content_security_policy $share_csp_fallback {
     default '';
 }
 
+# Every other response (the server-level add_header below): a policy the
+# backend sent for its own response stays, because the backend is the one that
+# knows what it is serving (a stored file, an image, a document preview, each
+# under its own sandbox policy). Anything that arrives without one, and every
+# file nginx serves itself, gets the SPA policy ($csp, set in the server block).
+map $upstream_http_content_security_policy $default_csp {
+    ''      $csp;
+    default '';
+}
+
+# /uploads: the backend serves every stored file under a sandbox policy
+# (boot/staticAssets.js); this fills in the same policy if one ever arrives
+# without it.
+map $upstream_http_content_security_policy $uploads_csp_fallback {
+    ''      "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox";
+    default '';
+}
+
 server {
     listen 80;
     server_name localhost;
@@ -209,12 +227,18 @@ server {
     # as no location declares its own), so this one declaration covers all
     # twenty proxy blocks below. The backend keeps sending them for anyone
     # reaching it directly, which is the connector and loopback only.
+    #
+    # Content-Security-Policy is NOT on this list. The backend sends one only
+    # where it serves something that is not the app (helmet's is off): a file
+    # download, an image, an inline SVG, a document preview, each under a
+    # sandbox or `default-src 'none'` policy. That policy has to reach the
+    # browser, so the add_header below uses $default_csp, which adds the SPA
+    # policy only to a response that arrived without one.
     proxy_hide_header X-Content-Type-Options;
     proxy_hide_header X-Frame-Options;
     proxy_hide_header X-XSS-Protection;
     proxy_hide_header Referrer-Policy;
     proxy_hide_header Permissions-Policy;
-    proxy_hide_header Content-Security-Policy;
 
     add_header X-Content-Type-Options  "nosniff" always;
     add_header X-Frame-Options         "SAMEORIGIN" always;
@@ -232,7 +256,7 @@ server {
     add_header X-XSS-Protection        "0" always;
     add_header Referrer-Policy         "strict-origin-when-cross-origin" always;
     add_header Permissions-Policy      "camera=(), microphone=(self), geolocation=(), clipboard-read=(self), clipboard-write=(self)" always;
-    add_header Content-Security-Policy $csp always;
+    add_header Content-Security-Policy $default_csp always;
 
     # ── Self-hosted fonts ──────────────────────────────────────────────────────
     #
@@ -629,41 +653,9 @@ server {
         proxy_buffering off;
     }
 
-    # Proxy /p/* requests — public webpage viewer (external share links).
-    # Unauthenticated; the server enforces its own gates (token + CSP + rate
-    # limit). Must be proxied because otherwise nginx would serve the SPA
-    # which redirects unauthenticated visitors to the login screen.
-    #
-    # Adding any `add_header` here suppresses inheritance of the server-level
-    # `add_header` directives (nginx behavior), so the backend's strict
-    # per-route CSP isn't shadowed by the SPA's permissive CSP. We re-add
-    # only the headers that are safe to apply uniformly.
-    #
-    # The `proxy_hide_header` block below is NOT redundant with the server-level
-    # one. Those directives de-duplicate headers the app and nginx both set, and
-    # `proxy_hide_header` IS inherited — which quietly broke exactly what the
-    # paragraph above is trying to achieve: the server-level list strips
-    # Content-Security-Policy, so the backend's `default-src 'none'` was being
-    # deleted in transit while this block added no CSP of its own, and the public
-    # viewer went out with no policy at all. Re-declaring the list here replaces
-    # the inherited one (array directives do not merge across levels), so every
-    # header nginx owns is still hidden EXCEPT the CSP, which is the one the
-    # backend is authoritative for on this route.
-    location /p/ {
-        proxy_pass $backend;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $forwarded_proto;
-        proxy_buffering off;
-        proxy_hide_header X-Content-Type-Options;
-        proxy_hide_header X-Frame-Options;
-        proxy_hide_header X-XSS-Protection;
-        proxy_hide_header Referrer-Policy;
-        proxy_hide_header Permissions-Policy;
-        add_header X-Content-Type-Options "nosniff" always;
-        add_header Referrer-Policy        "no-referrer" always;
-    }
+    # /p/<token> is the SPA's public Studio-app page (AppRoutes.tsx), not a
+    # server route: it has no location of its own, so it is served like every
+    # other app path (`location /` -> @render -> @shell) with the SPA headers.
 
     # Proxy /auth requests
     location /auth {
@@ -824,13 +816,12 @@ server {
     }
 
     # Public share viewer: /share/<token> and /w/<slug>, with their /content
-    # and /extras. Without these blocks the paths fell into `location /` and
-    # @render, where the server-level proxy_hide_header dropped the backend's
-    # CSP and the SPA's $csp took its place, so the content document lost its
-    # sandbox policy. Like /uploads, the location repeats the fixed headers, but
-    # it re-declares the proxy_hide_header list WITHOUT Content-Security-Policy
-    # so the backend's policy reaches the browser (arrays do not merge across
-    # levels). $share_csp_fallback only fills in when the backend sent none.
+    # and /extras. Without these blocks the paths fall into `location /` and
+    # @render, which adds the SPA's $csp next to the backend's policy. These
+    # locations repeat the fixed headers with their own values (no-referrer, no
+    # microphone) and keep the proxy_hide_header list WITHOUT
+    # Content-Security-Policy, so the backend's policy reaches the browser.
+    # $share_csp_fallback only fills in when the backend sent none.
     location ^~ /share/ {
         proxy_pass $backend;
         proxy_http_version 1.1;
@@ -875,10 +866,9 @@ server {
 
     # Proxy /uploads requests (avatars, org logos). These are stored files from
     # the admin upload routes, never a document of ours: the backend serves them
-    # nosniff under a sandbox policy (boot/staticAssets.js). The server-level
-    # proxy_hide_header drops that policy and the add_header above would put the
-    # SPA's $csp in its place, so the location repeats the fixed headers and
-    # carries the sandbox policy itself.
+    # nosniff under a sandbox policy (boot/staticAssets.js), which passes
+    # through; $uploads_csp_fallback carries the same policy for a response
+    # that arrives without one, never the SPA's $csp.
     location /uploads {
         proxy_pass $backend;
         proxy_http_version 1.1;
@@ -890,7 +880,7 @@ server {
         add_header X-XSS-Protection        "0" always;
         add_header Referrer-Policy         "strict-origin-when-cross-origin" always;
         add_header Permissions-Policy      "camera=(), microphone=(self), geolocation=(), clipboard-read=(self), clipboard-write=(self)" always;
-        add_header Content-Security-Policy "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox" always;
+        add_header Content-Security-Policy $uploads_csp_fallback always;
     }
 
     # Proxy /download requests (APK download page + file)

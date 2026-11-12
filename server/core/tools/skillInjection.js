@@ -405,7 +405,7 @@ async function loadSkillsForIds({ attachedSkillIds = [], sessionSkillIds = [], o
  * that the dispatcher feeds back as the tool result; the model then has the
  * full skill bodies available in conversation context for subsequent turns.
  */
-async function executeActivateSkill({ args, orgId, userId, onSkillsActivated, agentId = null, conversationId = null, callerAgentId = null, runScope = null }) {
+async function executeActivateSkill({ args, orgId, userId, onSkillsActivated, agentId = null, conversationId = null, callerAgentId = null, runScope = null, runAutomations = true }) {
     const ids = Array.isArray(args?.skill_ids) ? args.skill_ids.filter(Boolean) : [];
     if (ids.length === 0) return 'No skill_ids provided.';
     if (!orgId) return 'Cannot load skills without an organization context.';
@@ -459,6 +459,7 @@ async function executeActivateSkill({ args, orgId, userId, onSkillsActivated, ag
         // Linked automation: dispatch the flow and return its output instead of
         // injecting the skill's text body. The text fields (instructions, etc.)
         // become irrelevant — the automation IS the implementation.
+        if (s.automationId && !runAutomations) return `### SKILL — "${s.name}" (id: ${s.id})\n_This skill runs an automation, and a run started by an e-mail does not start automations._`;
         if (s.automationId && automationStore && automationRunner) {
             try {
                 const automation = await automationStore.getAutomation(s.automationId);

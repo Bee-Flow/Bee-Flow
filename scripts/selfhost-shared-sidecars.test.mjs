@@ -133,3 +133,27 @@ test('wire_bind_host: loopback for a named stack, untouched for the plain instal
     assert.match(run('internal', { CLIENT_BIND_HOST: '0.0.0.0' }).out, /BIND=0\.0\.0\.0/);
     assert.match(run('internal', { ENV_CONTENT: 'CLIENT_BIND_HOST=10.0.0.5\n' }).out, /BIND=$/m, 'the env file value reaches compose on its own');
 });
+
+test('the shared sidecars publish no port, and only Ollama has a way out', () => {
+    const compose = fs.readFileSync(path.join(REPO, 'docker-compose.sidecars.yml'), 'utf8').split('\n');
+    assert.ok(!compose.some((l) => l.trim().startsWith('ports:')), 'no published port');
+    // Which services name which network, by indentation (services at 2, their keys at 4, list items at 6).
+    const members = {};
+    let service = null;
+    let inServices = false;
+    let inNetworks = false;
+    for (const line of compose) {
+        if (line.startsWith('services:')) { inServices = true; continue; }
+        if (/^\S/.test(line)) inServices = false;
+        if (!inServices) continue;
+        if (line.startsWith('  ') && !line.startsWith('   ') && line.trim().endsWith(':')) { service = line.trim().slice(0, -1); inNetworks = false; continue; }
+        if (line.startsWith('    ') && !line.startsWith('     ')) inNetworks = line.trim() === 'networks:';
+        else if (inNetworks && line.trim().startsWith('- ')) (members[line.trim().slice(2)] ||= []).push(service);
+    }
+    assert.deepStrictEqual(members['sidecars-egress'], ['ollama']);
+    assert.ok(!members['sidecars-internal'].includes('ollama'));
+    const egressAt = compose.findIndex((l) => l.trim() === 'sidecars-egress:' && l.startsWith('  ') && !l.startsWith('   '));
+    const internalAt = compose.findIndex((l) => l.trim() === 'sidecars-internal:' && l.startsWith('  ') && !l.startsWith('   '));
+    assert.ok(compose.slice(internalAt, internalAt + 4).some((l) => l.trim() === 'internal: true'), 'the sidecars\' own network is internal');
+    assert.ok(egressAt > internalAt, 'the egress network is declared');
+});

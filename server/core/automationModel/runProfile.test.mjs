@@ -106,6 +106,28 @@ test('copy: a managed automation runs its live copy, test runs included; the rec
     assert.equal(definitionForRun(row, { mode: 'dry_run' }).source, 'working');
 });
 
+test('a test run of the live copy keeps the configured approvers, who are notified; a dry run of it stays sandboxed', () => {
+    for (const facts of [
+        { mode: 'live', isTest: true, managed: true, startedByUserId: 'u-editor', ownerUserId: 'u-owner' },
+        { mode: 'live', triggerKind: 'manual_step', copy: 'live', startedByUserId: 'u-editor' },
+        { mode: 'live', isTest: true, origin: 'test_link', copy: 'live', startedByUserId: 'u-member' },
+    ]) {
+        const p = profileFor(facts, NO_ENV);
+        assert.equal(p.kind, 'test');
+        assert.deepEqual(p.approverSeat, { kind: 'configured' });
+        assert.equal(p.notify.approvers, true);
+        assert.equal(p.holdsMarker, false);
+        // Stored and read back on resume, the seat stays configured.
+        assert.deepEqual(profileOfRun({ runProfile: JSON.stringify(p) }).approverSeat, { kind: 'configured' });
+    }
+    // The author's own working copy keeps the sandbox seat.
+    assert.deepEqual(profileFor({ mode: 'live', isTest: true, copy: 'working', startedByUserId: 'u-editor' }, NO_ENV).approverSeat,
+        { kind: 'tester', userId: 'u-editor' });
+    // A dry run simulates every effect: the sandbox seat stays, also on the live copy.
+    assert.deepEqual(profileFor({ mode: 'dry_run', managed: true, startedByUserId: 'u-editor' }, NO_ENV).approverSeat,
+        { kind: 'tester', userId: 'u-editor' });
+});
+
 // ── The gate: legacy rows keep today's semantics ─────────────────────────────
 
 const MODES = ['live', 'dry_run', undefined, null];

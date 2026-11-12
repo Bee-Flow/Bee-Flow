@@ -23,6 +23,7 @@ import { BrowserWindow, app, type BrowserWindowConstructorOptions, type WebConte
 
 import { VERSION_ARGUMENT } from '../../shared/ipc.ts';
 import { classifyNavigation, classifyWindowOpen, isIdentityProvider, isServerOrigin, type PolicyContext } from '../security/policy.ts';
+import { withoutBridge } from './popupPreferences.ts';
 import { preloadPath, shellPageUrl } from './shellPages.ts';
 import type { Bounds } from './windowState.ts';
 
@@ -134,7 +135,10 @@ export function applyNavigationPolicy(contents: WebContents, policy: () => Polic
                     // information somehow; the title is what is left, and
                     // Chromium keeps it in step with the page.
                     autoHideMenuBar: true,
-                    webPreferences: hardenedWebPreferences(),
+                    // The same isolation, without the preload: a sign-in
+                    // popup talks to its opener with postMessage and has no
+                    // use for the bridge (see popupPreferences.ts).
+                    webPreferences: withoutBridge(hardenedWebPreferences()),
                 },
             };
         }

@@ -6613,6 +6613,9 @@
       "gate": "open",
       "reason": "connector diagnostics: the same capabilities round trip as bootstrap, answers reachability and binding state only (auth/connectorBootstrap.js)"
     },
+    "POST /auth/connector/link": {
+      "gate": "auth"
+    },
     "POST /auth/connector/rotate-key": {
       "gate": "handler",
       "via": "registry:handler"

@@ -295,7 +295,8 @@ async function startEmailVerification(ctx, verifyOrg) {
         resendUrl: `/auth/connector/bootstrap/pending/${pending.id}/resend`,
         retargetUrl: `/auth/connector/bootstrap/pending/${pending.id}/retarget`,
         expiresAt: pending.expiresAt,
-        organizationName: verifyOrg.name,
+        // No organisation name: the caller is not authenticated, and the
+        // organisation was found by an address it supplied.
         message: 'Awaiting in-app verification by a Nextcloud admin.',
     });
 }

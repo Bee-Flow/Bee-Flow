@@ -197,7 +197,7 @@ test('an action only a trigger starts is reachable for the validator and for no 
     assert.deepEqual(unreachable, ['actions.act_free'], 'the trigger reaches its action and what that calls');
     assert.deepEqual(actionRoleAccess(def, 'act_job1', 'agent'), { referenced: true, allowed: false });
     assert.deepEqual(actionRoleAccess(def, 'act_part', 'agent'), { referenced: true, allowed: false }, 'what it calls is the trigger\'s too');
-    assert.deepEqual(actionRoleAccess(def, 'act_free', 'agent'), { referenced: false, allowed: false }, 'an action nothing names is as before');
+    assert.deepEqual(actionRoleAccess(def, 'act_free', 'agent'), { referenced: false, allowed: false }, 'an action nothing names reaches no viewer');
     const button = { id: 'cmp_btn00001', type: 'button', props: { label: 'Run' }, onClick: 'act_job1' };
     const wired = { ...def, screens: [{ ...def.screens[0], sections: [{ ...def.screens[0].sections[0], children: [button] }] }] };
     assert.deepEqual(actionRoleAccess(wired, 'act_job1', 'agent'), { referenced: true, allowed: true });

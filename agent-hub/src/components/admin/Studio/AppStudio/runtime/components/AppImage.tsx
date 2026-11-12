@@ -2,7 +2,7 @@ import { ImageOff } from 'lucide-react';
 import { useState } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import AssetImage from '../assets/AssetImage';
-import { isImageValue } from '../assets/assetUrl';
+import { isAllowedBoundImage, isImageValue } from '../assets/assetUrl';
 import { resolveBinding } from '../resolveBinding';
 import { useRuntime } from '../RuntimeContext';
 import type { BindingInput } from '../resolveBinding.types';
@@ -12,14 +12,16 @@ import type { NodeProps } from './appNode.types';
  * App Studio runtime — 'image'. Spec: server/appStudio/componentSpecs.js.
  *
  * The source is an https URL or an uploaded file of the app (`asset:<id>`, assets/assetUrl.ts).
- * `srcFrom` (a binding, since 3) wins when it resolves to either; `src` stays the fallback.
+ * `srcFrom` (a binding, since 3) wins when it resolves to an asset or to an https address on a host
+ * of the app's `allowedLinkHosts`; another address shows the placeholder. `src` stays the fallback
+ * when the binding gives no picture at all.
  */
 export default function AppImage({ node }: NodeProps<{ src?: string | null; alt?: string; fit?: string; srcFrom?: BindingInput }>) {
     const { t } = useTranslation();
-    const { actionState, dataState, scope } = useRuntime();
+    const { actionState, dataState, scope, linkHosts } = useRuntime();
     const { src = null, alt = '', fit = 'cover', srcFrom } = node.props || {};
     const { value: bound } = resolveBinding(srcFrom, { actionState, dataState, scope });
-    const shown = isImageValue(bound) ? bound : src;
+    const shown = isAllowedBoundImage(bound, linkHosts) ? bound : (isImageValue(bound) ? null : src);
     // Remembered per source, so a bound image that moves on to a working source draws it.
     const [failedSrc, setFailedSrc] = useState<string | null>(null);
     const hasHeight = node.style?.height && node.style.height !== 'auto';

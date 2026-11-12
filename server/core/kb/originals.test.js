@@ -168,6 +168,51 @@ test('deleteOriginalsForKb sweeps the base prefix, and only when the base kept a
     assert.deepEqual(w.calls.prefixes, ['orgs/u1/kb/kb1/']);
 });
 
+test('a re-ingest while redaction is in force for the base drops the earlier copy', async () => {
+    const w = world({ redaction: true, doc: { original_storage_key: 'orgs/u1/kb/kb1/doc1/old' } });
+    const res = await originals.keepOriginal({ ...REF, buffer: PDF, mime: 'application/pdf' }, w.deps);
+    assert.deepEqual(res, { kept: false, reason: 'privacy_redaction' });
+    assert.deepEqual(w.calls.removed, ['orgs/u1/kb/kb1/doc1/old']);
+    assert.equal(w.row.original_storage_key, null);
+    assert.equal(w.calls.uploads, 0);
+});
+
+test('openOriginal withholds the file while the base does not keep originals or redaction applies', async () => {
+    for (const opts of [{ kb: { keep_originals: false } }, { redaction: true }, { doc: { pii_status: 'redacted' } }, { kb: { tenant_id: 'u2' } }]) {
+        const w = world(opts);
+        w.row.original_storage_key = 'orgs/u1/kb/kb1/doc1/x';
+        w.blobs.set('orgs/u1/kb/kb1/doc1/x', PDF);
+        assert.equal(await originals.openOriginal(REF, w.deps), null, JSON.stringify(opts));
+    }
+    const kb = { id: 'kb1', tenant_id: 'u1', keep_originals: true };
+    const off = async () => false;
+    assert.equal(await originals.originalWithheldReason(kb, { status: 'processed' }, { redactionInForce: off }), null);
+    assert.equal(await originals.originalWithheldReason({ ...kb, keep_originals: false }, null, { redactionInForce: off }), 'not_kept');
+    assert.equal(await originals.originalWithheldReason(kb, { status: 'redacted' }, { redactionInForce: off }), 'privacy_redaction');
+    assert.equal(await originals.originalWithheldReason(kb, null, { redactionInForce: async () => true }), 'privacy_redaction');
+});
+
+test('dropOriginalsForKb removes the files, then the pointers; a failed removal keeps the pointers for a retry', async () => {
+    const empty = world();
+    const cleared = [];
+    assert.equal(await originals.dropOriginalsForKb({ id: 'kb1', tenant_id: 'u1' }, { deps: { ...empty.deps, clearKb: async (kb) => { cleared.push(kb.id); } } }), true);
+    assert.deepEqual(empty.calls.prefixes, []);
+    assert.deepEqual(cleared, []);
+
+    const w = world({ doc: { original_storage_key: 'orgs/u1/kb/kb1/doc1/x' } });
+    const order = [];
+    const deps = { ...w.deps, removePrefix: async (p) => { order.push(`files ${p}`); }, clearKb: async (kb) => { order.push(`pointers ${kb.id}`); } };
+    assert.equal(await originals.dropOriginalsForKb({ id: 'kb1', tenant_id: 'u1' }, { deps }), true);
+    assert.deepEqual(order, ['files orgs/u1/kb/kb1/', 'pointers kb1']);
+
+    const failing = [];
+    const res = await originals.dropOriginalsForKb({ id: 'kb1', tenant_id: 'u1' }, {
+        deps: { ...w.deps, removePrefix: async () => { throw new Error('storage down'); }, clearKb: async () => { failing.push('cleared'); } },
+    });
+    assert.equal(res, false);
+    assert.deepEqual(failing, [], 'the pointers stay when the files could not be removed');
+});
+
 test('originalsBlockedReason reports the privacy rule', async () => {
     const kb = { id: 'kb1', tenant_id: 'u1' };
     assert.equal(await originals.originalsBlockedReason(kb, { redactionInForce: async () => true }), 'privacy_redaction');

@@ -101,6 +101,7 @@ const { resolveBuilderModel } = require('./modelSelection');
 const { assembleTurnPrompt } = require('./promptAssembly');
 const { makeTurnUsageLogger } = require('./usageAccounting');
 const { runBuildLoop } = require('./buildLoop');
+const { settleHeldChange } = require('./heldChanges.mts');
 const { handleProposedPlan, runAutoFinalizeNet, persistTurnSnapshot, classifyTurnOutcome } = require('./turnClosing');
 const { bestEffort } = require('../../../utils/bestEffort');
 const { designNotesForTurn } = require('./designBrief.mts');
@@ -242,6 +243,7 @@ router.post('/stream', requireAuth, builderRateLimit, async (req, res) => {
         builtThisTurn: false,
         proposedPlan: null,    // { planId, plan } once app_propose_plan fires
         reviewQuestions: null, // [{ id, prompt, options, header? }] once app_ask_questions is accepted (work modes)
+        heldChange: null,      // a call held for the user's confirmation (./heldChanges.mts)
         lastPhaseIndex: null,  // highest phase index marked this turn
         lastValidation: null,
         persistBroken: false,
@@ -272,10 +274,12 @@ router.post('/stream', requireAuth, builderRateLimit, async (req, res) => {
             try { clientAbort.abort(); } catch (err) { log.debug('already aborted', err); }
         });
 
+        // The change held last turn: applied now on the user's "apply", before the draft state is rendered.
+        const confirmation = await settleHeldChange({ prior: priorSnapshot?.heldChange, message: effectiveMessage, workMode, draftWrap, send, turn });
         // The system prompt, the tool menu and this turn's folded user message.
         const { profile, tools, toolNameSet, history, approvedPlanForTurn, workModeState, messages } = await assembleTurnPrompt({
             send, userId, modelId, resolvedTier, draftWrap, priorSnapshot, isApproval, planApproval, planMode, workMode,
-            editorContext, inboundImages, modelSupportsVision, effectiveMessage,
+            editorContext, inboundImages, modelSupportsVision, effectiveMessage, confirmation,
             // A new app's look: the per-app seed and, once, a design brief from a model call of
             // its own (same adapter, same usage totals; it never blocks the build).
             designNotes: ({ profile: turnProfile, approvedPlan }) => designNotesForTurn({
