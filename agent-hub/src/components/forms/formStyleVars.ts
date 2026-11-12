@@ -237,13 +237,19 @@ function parsesAsOneRule(sheet: string): boolean {
 }
 
 /**
- * The `<style>` text for the author's custom CSS, nested inside this form's
- * scope (`.bf-form-scope[data-bf-scope="…"] { … }`), or '' when there is none
- * or it does not survive the checks.
+ * The `<style>` text for the author's custom CSS inside this form's scope, or
+ * '' when there is none or it does not survive the checks.
+ *
+ * `@scope (<this form's root>) { :scope { … } }`, as the app stylesheet does it
+ * (server/appStudio/appCss.mts wrapAppCss): every rule's matched element sits
+ * inside the form, whatever its selector says (`html:has(&) body *` or
+ * `:is(&) ~ x` match nothing outside). The `:scope { … }` nesting inside keeps
+ * what the text meant before: a bare declaration styles the form's root, a
+ * nested selector its descendants. A browser without @scope applies none of it.
  */
 export function scopedFormCss(raw: unknown, scopeId: string): string {
     const { css } = sanitizeFormCssClient(readFormStyle(raw).customCss);
     if (!css) return '';
-    const sheet = `.bf-form-scope[data-bf-scope="${scopeId.replace(/["\\]/g, '')}"] {\n${css}\n}`;
+    const sheet = `@scope (.bf-form-scope[data-bf-scope="${scopeId.replace(/["\\]/g, '')}"]) {\n:scope {\n${css}\n}\n}`;
     return parsesAsOneRule(sheet) ? sheet : '';
 }

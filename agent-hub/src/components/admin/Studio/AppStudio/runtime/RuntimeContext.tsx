@@ -109,6 +109,8 @@ export interface RuntimeValue {
     initialUi: InitialUi | null;
     /** definition.format (schema 3) as AppRenderer found it; absent or null = values written as before (appFormat.ts). */
     appFormat?: unknown;
+    /** definition.allowedLinkHosts (set by a person): the only hosts a bound image may load from. */
+    linkHosts?: readonly string[] | null;
     scope: Partial<ExpressionScope>;
     /** Editor-only members (selection, preview role, …) that the canvas adds. */
     [key: string]: unknown;

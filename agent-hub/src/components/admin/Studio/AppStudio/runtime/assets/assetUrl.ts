@@ -40,6 +40,21 @@ export function isImageValue(value: unknown): value is string {
 }
 
 /**
+ * A BOUND image value (`srcFrom`) the runtime may load: an asset reference, or a plain https address
+ * on a host the app's owner listed in `allowedLinkHosts` (set by a person; the builder cannot write
+ * it). A bound value is only known when the screen renders, and can carry the viewer's own data, so
+ * an address on any other host is never requested.
+ */
+export function isAllowedBoundImage(value: unknown, allowedHosts: unknown): value is string {
+    if (isAssetRef(value)) return true;
+    if (!isHttpsUrl(value)) return false;
+    let url: URL;
+    try { url = new URL(value.trim()); } catch { return false; }
+    if (url.protocol !== 'https:' || url.username || url.password || url.port) return false;
+    return Array.isArray(allowedHosts) && allowedHosts.includes(url.hostname.toLowerCase());
+}
+
+/**
  * The URL of `ref` for this transport, or null when it is not an asset reference or there is
  * nothing to address it by. API_BASE carries the Nextcloud proxy prefix inside Nextcloud.
  *   public page: /api/public-app/<token>/assets/<id>   (the page token; no visitor bearer needed)

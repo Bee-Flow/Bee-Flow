@@ -378,7 +378,8 @@ function toolResultFor(messages, toolName, nth = 0) {
         if (!hits.length) continue;
         const tc = hits[Math.min(nth, hits.length - 1)];
         const result = messages.slice(i + 1).find((x) => x.role === 'tool' && x.tool_call_id === tc.id);
-        if (result) { try { return JSON.parse(result.content); } catch (_) { return null; } }
+        const text = result ? String(result.content) : ''; // app data comes framed (appStudio/builderPrompt/appDataFrame.mts)
+        if (result) { try { return JSON.parse(text.startsWith('<app-data') ? text.slice(text.indexOf('\n') + 1, text.lastIndexOf('\n')) : text); } catch (_) { return null; } }
     }
     return null;
 }

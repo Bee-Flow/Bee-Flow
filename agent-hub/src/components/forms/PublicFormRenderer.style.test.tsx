@@ -75,7 +75,7 @@ describe('form.style on the renderer', () => {
         const { container } = render(<PublicFormRenderer form={base({ customCss: css })} preview />);
         const root = rootOf(container);
         const sheet = screen.getByTestId('form-custom-css').textContent || '';
-        expect(sheet.startsWith(`.bf-form-scope[data-bf-scope="${root.getAttribute('data-bf-scope')}"] {`)).toBe(true);
+        expect(sheet.startsWith(`@scope (.bf-form-scope[data-bf-scope="${root.getAttribute('data-bf-scope')}"]) {`)).toBe(true);
         expect(sheet).toContain('.bf-form__title { color: #7c2d12; }');
         expect(sheet).not.toMatch(/@import|tracker/);
         // The style element lives inside the form root it scopes.

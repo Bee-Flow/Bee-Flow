@@ -58,7 +58,7 @@ export function BubbleBody({ html, attachments, citations, attachmentLabelKey, c
         : undefined;
     return (
         <>
-            {html != null ? <EmailHtmlBody html={html} inlineImages={inlineImages} /> : children}
+            {html != null ? <EmailHtmlBody html={html} inlineImages={inlineImages} remoteImages="ask" /> : children}
 
             {/* The card zeroes its own padding so the mail can bleed
                 to the edge; the chips still need their gutter. */}

@@ -15,8 +15,9 @@
  *   • `expression(`, `behavior:`, `-moz-binding`, `javascript:`, `position: fixed`;
  *   • the sequences `</` and `<!--`, and every comment;
  *   • a selector that reaches OUT of the form (`& ~ x`, `& + x`, `~ x`), and a
- *     `}` that would close the wrapper: the renderer nests everything inside
- *     `.bf-form-scope { … }`, and an extra brace would end that scope early.
+ *     `}` that would close the wrapper: the renderer puts everything inside
+ *     `@scope (.bf-form-scope…) { :scope { … } }` (formStyleVars.scopedFormCss),
+ *     and an extra brace would end that scope early.
  *
  * The scan reads strings, escapes and unquoted `url(…)` the way the browser's
  * tokenizer does, because a brace inside one of those is not a brace to the

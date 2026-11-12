@@ -40,6 +40,9 @@ The `message_thread` component is the reading pane. For a mailbox:
 - `inlineContentIdKey` is the column holding the Content-ID (`content_id`). With
   `attachmentFileKey` set, the `cid:` images in an HTML mail are shown from the app's own
   files instead of being blocked.
+- Pictures, stylesheets and fonts from the web in an HTML mail are not loaded: a sender
+  would learn who opened the mail, and when. A notice above the mail offers **Show images**,
+  which loads them for that one message.
 
 ### Inline images
 
@@ -65,7 +68,8 @@ for every new row** after a sync, on the server, with the new row in scope as `i
 summarise an incoming request with an AI step, set a status, log it to another table.
 
 Set it in the connector editor under **When new mail arrives**, or over MCP with
-`app_set_mailbox_hook`. The setting on the connector is:
+`app_set_mailbox_hook`. When the AI builder in the app editor sets it, the chat asks you to
+confirm first. The setting on the connector is:
 
 ```json
 "onNewRecord": { "actionId": "act_triage", "target": "inbound_message" }
@@ -99,7 +103,8 @@ edited after the connector was saved.
 
 - After the sync, once its claim is released, so a slow model call never holds the connector.
 - As the app owner, through the same executor as a click: row access, quotas and the AI
-  budget apply. The live (published) copy of the app is used when there is one.
+  budget apply. Only the published copy of the action runs: an app that is not published runs
+  no hook, and a change to the action takes effect when you publish it.
 - Rows are processed one at a time. A failing step ends that row's run; the next row still
   runs. An error never fails the sync.
 - Only **new** rows count. Mail already in the table when you switch the hook on is not

@@ -20,7 +20,7 @@ const { buildSystemPrompt, renderOwnerContextNote } = require('../../../appStudi
 const { getProfileForModel, selectToolMenu } = require('../../../appStudio/builderModelProfiles');
 const { TOOL_SCHEMAS } = require('../../../appStudio/builderTools');
 const { systemPrefixFingerprint, toolSetFingerprint, toolBytesFingerprint } = require('../../../core/llm/promptCacheStability');
-const { sanitizeHistory } = require('./turnLoop');
+const { sanitizeHistory, CONFIRMATION_PREFIX } = require('./turnLoop');
 const { composeAppTurnMessages } = require('./turnMessages');
 const { renderDraftStateNote, renderApprovedPlanNote, renderPlanPolicyNote, renderEditorContextNote, renderWorkModeNote } = require('./turnNotes');
 const { ASK_QUESTIONS_TOOL } = require('./workMode.mts');
@@ -50,11 +50,12 @@ const { fallback } = require('../../../utils/bestEffort');
  *   modelSupportsVision?: boolean,
  *   effectiveMessage: string,
  *   designNotes?: (ctx: { profile: ReturnType<typeof getProfileForModel>, approvedPlan: unknown }) => Promise<string[]>,
+ *   confirmation?: string|null,
  * }} opts
  */
 async function assembleTurnPrompt({
     send, userId, modelId, resolvedTier, draftWrap, priorSnapshot, isApproval, planApproval, planMode, workMode,
-    editorContext, inboundImages, modelSupportsVision, effectiveMessage, designNotes,
+    editorContext, inboundImages, modelSupportsVision, effectiveMessage, designNotes, confirmation = null,
 }) {
     // Capability profile for this model — with the admin override map
     // `builder_model_profiles` ({ "<modelId>": {band, temperature, …} })
@@ -193,7 +194,7 @@ async function assembleTurnPrompt({
     const composed = composeAppTurnMessages({
         profile, modelId, sys,
         history: priorSnapshot?.messages,
-        notes: [renderDraftStateNote(draftWrap.def, draftWrap), ...designTurnNotes, renderOwnerContextNote(automationRows, documentRows), approvedPlanNote, contextNote, planPolicyNote, workModeNote, imageNote],
+        notes: [renderDraftStateNote(draftWrap.def, draftWrap), ...designTurnNotes, renderOwnerContextNote(automationRows, documentRows), approvedPlanNote, contextNote, planPolicyNote, workModeNote, confirmation ? `${CONFIRMATION_PREFIX}\n${confirmation}` : null, imageNote],
         userTurnContent,
     });
     const { messages } = composed;

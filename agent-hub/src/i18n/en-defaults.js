@@ -32704,6 +32704,8 @@ const EN_DEFAULTS = {
     "support.email_html_body_email_message": "Email message",
     "support.email_quote_hide": "Hide earlier messages",
     "support.email_quote_show": "Show earlier messages",
+    "support.email_remote_blocked": "Pictures from the web are not loaded, so the sender cannot see that you opened this message.",
+    "support.email_remote_show": "Show images",
     "support.linked_issues_youtrack_is_not_connected_yet_an_admin": "YouTrack is not connected yet. An admin can set it up in the Connections tab.",
     "support.linked_issues_can_t_reach_youtrack_host": "Can't reach YouTrack ({host}):",
     "support.linked_issues_detach_from_this_ticket": "Detach from this ticket",

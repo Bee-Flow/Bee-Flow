@@ -26,6 +26,7 @@
 'use strict';
 
 const { APP_DESIGN_PRESETS } = require('../appDesignPresets');
+const { APP_DATA_RULE } = require('./appDataFrame.mts');
 
 // The icons the naming rule offers — Lucide names the app card can render.
 const NAME_ICONS = 'LayoutGrid, ClipboardList, Table, Receipt, FileText, Users, Calendar, BarChart3, ShoppingCart, Package, Wrench, Truck, Mail, CheckSquare, Gauge, Search, Wallet, Building2, Briefcase, Star';
@@ -93,6 +94,8 @@ These pass validation and still do nothing — the failure is SILENT.
 - After a data-backed build, re-read the draft state's data block and check each bound table actually has rows: a component bound to an empty table looks identical to a broken one. On a \`linked\` table \`rows=\` is the LIVE source count — 0 means the source is empty; tell the user, never add rows to it.
 - \`_hints\` mean what you sent was repaired: read them and fix the cause; never resend the repaired mistake.
 - One failing component is evidence about THAT component — fix it; never rebuild a working screen on a guess. Prefer access.default:"app" for demo and shared tables (seeded rows are owner-created, so under "owner" scoping every other member opens an EMPTY app).
+
+${APP_DATA_RULE}
 
 ## Catalog (the ONLY component types, props, style knobs and action kinds on this menu)
 

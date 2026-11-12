@@ -9,7 +9,8 @@ const IMG = 'https://example.test/ada.png';
 
 const view = (props: Record<string, unknown> = {}, vars: Record<string, unknown> = {}) => {
     const node = { id: 'cmp_avatar', type: 'avatar', visible: true, style: {}, props };
-    return renderInRuntime(<AppAvatar node={node as never} />, { mode: 'run', scope: buildScope({ vars, now: '2026-01-01T00:00:00.000Z' }) });
+    // The app's owner listed example.test: a bound picture may load from there.
+    return renderInRuntime(<AppAvatar node={node as never} />, { mode: 'run', linkHosts: ['example.test'], scope: buildScope({ vars, now: '2026-01-01T00:00:00.000Z' }) });
 };
 
 describe('initialsOf', () => {

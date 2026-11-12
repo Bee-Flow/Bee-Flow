@@ -58,7 +58,7 @@ export type NewRecord = { id: string; values: Values };
 /** What one sync inserted: conversations (thread mode only) and messages. */
 export type NewRecords = { thread: NewRecord[]; message: NewRecord[] };
 
-type App = { id: string; userId: string; name?: string | null; organizationId?: string | null; definition?: unknown; publishedDefinition?: unknown };
+type App = { id: string; userId: string; name?: string | null; organizationId?: string | null; definition?: unknown; publishedDefinition?: unknown; isPublished?: boolean };
 type Step = Record<string, unknown> & { kind?: string };
 type StepResult = { ok: boolean; result?: unknown; error?: string; code?: string; retryable?: boolean };
 type Connector = { id?: string; kind?: string; onNewRecord?: unknown };
@@ -205,6 +205,9 @@ export async function runNewRecordHook(
         if (!rows.length) return null;
         const app = await deps.getApp(appRef.id);
         if (!app) return null;
+        // Only a published app runs its hook, and only the published actions: a draft never
+        // runs unattended. Until the owner publishes, new rows are stored and nothing runs.
+        if (app.isPublished === false || !app.publishedDefinition || typeof app.publishedDefinition !== 'object') return null;
         return await runRows(app, model, connector, hook, rows, deps);
     } catch (e) {
         deps.log.error(`[MailboxHook] ${appRef.id}: ${(e as Error)?.message}`);
@@ -215,8 +218,8 @@ export async function runNewRecordHook(
 async function runRows(app: App, model: unknown, connector: Connector, hook: { actionId: string; target: HookTarget }, rows: NewRecord[], deps: HookDeps): Promise<HookReport> {
     const report: HookReport = { ran: 0, failed: 0, refused: 0, skippedLimit: 0 };
     const base = { appId: app.id, connectorId: String(connector.id), actionId: hook.actionId, target: hook.target };
-    // The live copy when there is one, else the draft: the same pick a viewer's click makes for the owner.
-    const def = (app.publishedDefinition || app.definition || {}) as Record<string, unknown>;
+    // The published copy only (runNewRecordHook returns before this without one).
+    const def = (app.publishedDefinition || {}) as Record<string, unknown>;
     const actions = (def.actions && typeof def.actions === 'object' ? def.actions : {}) as Record<string, unknown>;
     const action = Object.hasOwn(actions, hook.actionId) ? actions[hook.actionId] : null;
 

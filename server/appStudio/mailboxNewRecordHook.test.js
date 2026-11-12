@@ -22,7 +22,11 @@ let clock;
 
 function deps(over = {}) {
     return {
-        getApp: async () => appRow,
+        // The tests write the hook's action into `definition`: the app is published with that
+        // copy unless a test sets its own publishedDefinition, or `published: false`.
+        getApp: async () => (appRow && (appRow.published === false
+            ? { ...appRow, isPublished: false, publishedDefinition: null }
+            : { ...appRow, isPublished: true, publishedDefinition: appRow.publishedDefinition || appRow.definition })),
         executeStep: async (_app, _model, step, ctx) => {
             calls.push({ kind: step.kind, item: ctx.item, vars: ctx.vars, viewerId: ctx.viewerId, role: ctx.role });
             if (failOn && failOn === step.kind) return { ok: false, error: 'Step failed' };
@@ -86,6 +90,21 @@ test('the published copy wins over the draft', async () => {
     appRow.publishedDefinition = { actions: { act_hook: { kind: 'sequence', steps: [{ kind: 'update_record' }] } } };
     await runNewRecordHook({ id: 'app_1' }, {}, CONNECTOR, { thread: [], message: [msg('r1', 'inbound')] }, deps());
     assert.deepEqual(calls.map((c) => c.kind), ['update_record']);
+});
+
+test('an app that is not published runs no hook: never the draft action', async () => {
+    appRow.published = false;
+    const report = await runNewRecordHook({ id: 'app_1' }, {}, CONNECTOR, { thread: [], message: [msg('r1', 'inbound')] }, deps());
+    assert.equal(report, null);
+    assert.equal(calls.length, 0);
+    assert.equal(recorded.length, 0);
+});
+
+test('a hook whose action exists only in the draft is refused; the draft never runs', async () => {
+    appRow.publishedDefinition = { actions: { act_other: ACTION } };
+    const report = await runNewRecordHook({ id: 'app_1' }, {}, CONNECTOR, { thread: [], message: [msg('r1', 'inbound')] }, deps());
+    assert.equal(report.refused, 1);
+    assert.equal(calls.length, 0);
 });
 
 test('a failing step stops that run, is recorded, and the next row still runs', async () => {

@@ -18,6 +18,8 @@ const { toolCallEvent, labelForTool } = require('./toolCallEvents');
 const { dataModelEvent } = require('./dataModelEvent');
 const { parseToolArgs, renderValidationNote, truncateJson, RECOVERED_CALL_HINT, REPAIRED_CALL_HINT } = require('./turnLoop');
 const { gateWorkModeCall, askQuestions } = require('./workMode.mts');
+const { heldWait, gateConfirmable } = require('./heldChanges.mts');
+const { frameAppData } = require('../../../appStudio/builderPrompt/appDataFrame.mts');
 const log = require('../../../telemetry/log');
 
 /**
@@ -274,7 +276,8 @@ async function runToolCall(turn, tc, ctx, ls) {
         toolResult = { error: `Your arguments for ${name} were not valid JSON (likely truncated mid-call). Resend just THIS single tool call with complete, valid JSON arguments.` };
         ls.escalateNextRound = true;
     } else {
-        toolResult = workModeCall(name, args, turn, ctx)
+        // A change held for the user's confirmation ends the turn at its card (./heldChanges.mts).
+        toolResult = heldWait(turn) || workModeCall(name, args, turn, ctx) || gateConfirmable(name, args, turn, ctx)
             || (name === 'app_set_plan' ? setPlan(args, ctx) : await applyToolCall(name, args, draftWrap));
     }
     addCallHints(tc, toolResult);
@@ -303,7 +306,7 @@ async function runToolCall(turn, tc, ctx, ls) {
     messages.push({
         role: 'tool',
         tool_call_id: tc.id,
-        content: toolContent ?? (typeof toolResult === 'string' ? toolResult : truncateJson(toolResult)),
+        content: toolContent ?? frameAppData(name, typeof toolResult === 'string' ? toolResult : truncateJson(toolResult)),
     });
     return mutated;
 }
