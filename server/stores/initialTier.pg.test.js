@@ -19,11 +19,6 @@ process.env.MASTER_ENCRYPTION_KEY ??= 'ci-master-encryption-key-for-tests-only!!
 const { usePglitePool } = require('../testUtils/pglitePool');
 const { query, close: closePg } = usePglitePool();
 
-// Encryption is a licence feature; these orgs are entitled, so readiness and the default decide.
-const license = require('../license/index');
-const originalHasFeature = license.hasFeature;
-license.hasFeature = async (_ctx, feature) => feature === 'encryption' || originalHasFeature(_ctx, feature);
-
 const userStore = require('./userStore');
 const { invalidatePolicyCache } = require('./encryptionPolicy');
 
@@ -43,12 +38,11 @@ async function tierOf(orgId) {
 test.before(async () => { await userStore.initDB(); }, { timeout: 120_000 });
 
 test.after(async () => {
-    license.hasFeature = originalHasFeature;
     setDefault(prevDefault);
     await closePg();
 });
 
-test('a new organisation starts on managed when nothing is configured', async () => {
+test('a new organisation starts on managed when nothing is configured, on a plan without the encryption feature', async () => {
     setDefault(undefined);
     await userStore.createOrganization({ id: 'org-tier-new', name: 'New org' }, { autoGrantTrial: false });
     assert.equal(await tierOf('org-tier-new'), 'managed');

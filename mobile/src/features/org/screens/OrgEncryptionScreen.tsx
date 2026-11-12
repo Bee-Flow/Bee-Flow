@@ -123,14 +123,6 @@ export function OrgEncryptionScreen() {
                             'Choose how your organisation’s conversation content is stored. This affects new messages; existing messages are left exactly as they are and stay readable either way.',
                         )}
                     </Banner>
-                    {!server.entitled ? (
-                        <Banner tone="warning">
-                            {t(
-                                'admin.encryption.not_entitled',
-                                'Encryption is not included in your current plan. You can still turn it off, but not on.',
-                            )}
-                        </Banner>
-                    ) : null}
                     <ChoiceGroup
                         title={t('admin.encryption.choose_tier', 'Encryption level')}
                         choices={tierChoices(server, t)}

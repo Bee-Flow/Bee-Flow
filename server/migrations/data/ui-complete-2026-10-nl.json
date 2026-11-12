@@ -131,7 +131,6 @@
   "admin.encryption.choose_tier": "Versleutelingsniveau",
   "admin.encryption.intro": "Kies hoe de gespreksinhoud van je organisatie wordt opgeslagen. Dit geldt voor nieuwe berichten; bestaande berichten blijven precies zoals ze zijn en blijven in beide gevallen leesbaar.",
   "admin.encryption.load_failed": "Versleutelingsinstellingen laden mislukt.",
-  "admin.encryption.not_entitled": "Versleuteling zit niet in je huidige abonnement. Je kunt het nog wel uitzetten, maar niet aanzetten.",
   "admin.encryption.save_failed": "Versleutelingsinstellingen opslaan mislukt",
   "admin.encryption.saved": "Versleutelingsinstellingen opgeslagen",
   "admin.encryption.sessions_busted": "Iedereen in deze organisatie is uitgelogd. Iedereen moet opnieuw inloggen zodat de versleutelingssleutel kan worden aangemaakt.",

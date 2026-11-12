@@ -3194,3 +3194,7 @@ app_studio.builder.quick.fix_errors_title
 app_studio.builder.quick.fix_errors_none
 app_studio.builder.chat.empty_hint
 app_studio.builder.chat.empty_title
+
+# Encryption (2026-11): managed encryption is on every plan; only the zero-knowledge card
+# carries the plan block (Enterprise badge and upgrade link), so the banner above the cards went.
+admin.encryption.not_entitled

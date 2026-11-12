@@ -5,7 +5,9 @@
  * Two independent questions, deliberately kept apart because they fail
  * differently and the UI must say different things about them:
  *
- *   ENTITLEMENT  — "does your plan/licence include encryption?"
+ *   ENTITLEMENT  — "does your plan/licence include this tier?"
+ *                  Managed encryption is on every plan; only zero-knowledge
+ *                  needs the `encryption` licence feature (TIERS_NEEDING_ENTITLEMENT).
  *                  A commercial answer. House style for org settings surfaces
  *                  is to clamp and upsell, not to 403 the route: the option is
  *                  rendered disabled with a badge and an upgrade link. See
@@ -30,6 +32,14 @@ const log = require('../telemetry/log');
 const users = require('./user/users');
 
 const FEATURE = 'encryption';
+
+/** The tiers the `encryption` licence feature unlocks; 'none' and 'managed' are on every plan. */
+const TIERS_NEEDING_ENTITLEMENT = Object.freeze(['zk']);
+
+/** @param {string} tier */
+function tierNeedsEntitlement(tier) {
+    return TIERS_NEEDING_ENTITLEMENT.includes(tier);
+}
 
 /**
  * Is this org entitled to content encryption?
@@ -121,7 +131,7 @@ function tierReadiness() {
 }
 
 const NOT_ENTITLED_REASON =
-    'Encryption is not included in your current plan. Contact your administrator or upgrade to enable it.';
+    'Zero-knowledge encryption is not included in your current plan. Contact your administrator or upgrade to enable it.';
 
 /**
  * Everything the admin API and the UI need to render and enforce the picker.
@@ -143,8 +153,8 @@ async function getEncryptionAvailability(orgId) {
         const r = readiness[tier] || /** @type {{ready: boolean, missing: string[], warnings: string[], reason?: string|null, warningReason?: string|null}} */ ({ ready: false, missing: [], warnings: [] });
         // 'none' is always selectable — an org must be able to turn encryption
         // OFF even after its entitlement lapses, or a downgrade would strand it
-        // on a tier it can no longer manage.
-        const needsEntitlement = tier !== 'none';
+        // on a tier it can no longer manage. 'managed' is on every plan.
+        const needsEntitlement = tierNeedsEntitlement(tier);
         const selectable = (!needsEntitlement || entitled) && r.ready;
         let reason = null;
         if (needsEntitlement && !entitled) reason = NOT_ENTITLED_REASON;
@@ -183,7 +193,8 @@ async function getEncryptionAvailability(orgId) {
  * BOTH HALVES, because they are different questions and a key is worth
  * deriving only when both say yes:
  *
- *   entitled  — the plan or licence includes encryption at all (isOrgEntitled)
+ *   entitled  — the plan or licence includes the org's tier (isOrgEntitled;
+ *               only zero-knowledge needs it, managed is on every plan)
  *   enabled   — the organisation actually switched it on, i.e. its
  *               `encryption_tier` is not 'none' (resolvePolicy)
  *
@@ -195,8 +206,8 @@ async function getEncryptionAvailability(orgId) {
  * false, so the session DEK was already being ignored on every read and write.
  * The prompt was the only thing anyone ever saw of it.
  *
- * The reverse order matters too — entitlement is checked first, so a lapsed
- * org still stops deriving keys even while its tier column says `zk`.
+ * A lapsed org still stops deriving keys while its tier column says `zk`:
+ * the entitlement is checked for that tier on every login.
  *
  * It previously read `allowed_features` alone, which is only the PLAN-grant
  * half of entitlement. An org entitled through its licence TIER (the normal
@@ -213,11 +224,14 @@ async function isEncryptionEnabledForUser(userId) {
         if (!user) return false;
         const orgId = user.organizationId;
         if (!orgId) return false;
-        if (!(await isOrgEntitled(orgId))) return false;
         // resolvePolicy never throws and fails to the disabled policy, so a
         // DB hiccup here means "no key", which is what every write path
         // already does under the same failure.
-        return (await resolvePolicy(orgId)).enabled;
+        const policy = await resolvePolicy(orgId);
+        if (!policy.enabled) return false;
+        // A tier behind the licence feature stops deriving keys once the
+        // entitlement lapses, even while the column still names it.
+        return tierNeedsEntitlement(policy.tier) ? await isOrgEntitled(orgId) : true;
     } catch (_) {
         return false;
     }
@@ -250,6 +264,8 @@ module.exports = {
     isSsoPinRequiredForUser,
     NOT_ENTITLED_REASON,
     isOrgEntitled,
+    tierNeedsEntitlement,
+    TIERS_NEEDING_ENTITLEMENT,
     isEncryptionEnabledForUser,
     tierReadiness,
     getEncryptionAvailability,

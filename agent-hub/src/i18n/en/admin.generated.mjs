@@ -324,7 +324,6 @@ export default {
     "admin.encryption.tier_managed_desc": "Encrypted at rest. Your administrators can reset a password without the user losing their data.",
     "admin.encryption.tier_zk": "Zero-knowledge",
     "admin.encryption.tier_zk_desc": "Encrypted with each user’s own secret. Nobody — not your administrators, not Bee Flow support — can recover a user’s data if they lose their password and recovery key.",
-    "admin.encryption.not_entitled": "Encryption is not included in your current plan. You can still turn it off, but not on.",
     "admin.encryption.warn_zk_signout": "Saving this will sign out everyone in the organisation, including you. Each person must sign in again so their encryption key can be created. Data can no longer be recovered by an administrator.",
     "admin.encryption.sessions_busted": "Everyone in this organisation has been signed out. Each person must sign in again so their encryption key can be created.",
     "admin.encryption.saved": "Encryption settings saved",
