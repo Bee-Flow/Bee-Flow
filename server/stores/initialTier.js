@@ -41,6 +41,21 @@ const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 
 /**
+ * Say that a new org stays on 'none'. An operator who set the variable asked for
+ * this tier, so falling short is a warning; the built-in default falling short
+ * (a plan without encryption, a server without a master key) is the normal case
+ * on many installs.
+ * @param {string} wanted
+ * @param {string} orgId
+ * @param {string} why
+ */
+function reportNotApplied(wanted, orgId, why) {
+    const chosen = !!String(process.env.BEEFLOW_DEFAULT_ENCRYPTION_TIER || '').trim();
+    const what = chosen ? `BEEFLOW_DEFAULT_ENCRYPTION_TIER='${wanted}'` : `Default encryption tier '${wanted}'`;
+    (chosen ? log.warn : log.info)(`[Encryption] ${what} not applied to new org '${orgId}' (${why}) — org starts on 'none'.`);
+}
+
+/**
  * Raise a freshly created organisation to the operator's configured default
  * tier, if and only if that tier is actually available to it.
  *
@@ -91,7 +106,7 @@ async function applyDefaultEncryptionTier(orgId, deps = {}) {
         // admin route keeps them apart for the UI: a billing answer and a
         // config answer need different fixes.
         const why = opt ? (opt.blockedBy || 'unavailable') : 'unknown_tier';
-        log.warn(`[Encryption] BEEFLOW_DEFAULT_ENCRYPTION_TIER='${wanted}' not applied to new org '${orgId}' (${why}${opt && opt.reason ? `: ${opt.reason}` : ''}) — org starts on 'none'.`);
+        reportNotApplied(wanted, orgId, `${why}${opt && opt.reason ? `: ${opt.reason}` : ''}`);
         return NONE(`not_selectable_${why}`);
     }
 
