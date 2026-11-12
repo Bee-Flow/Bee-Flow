@@ -42,12 +42,13 @@ export const LanguagePicker = ({ availableLocales, locale, setLocale }: Language
     if (availableLocales.length <= 1) return null;
     return (
         <div className="absolute top-6 right-6 sm:top-9 sm:right-8 z-10">
-            <div className="relative inline-flex items-center gap-1.5 pl-2.5 pr-1 py-1.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-default)] hover:border-[var(--text-tertiary)] focus-within:ring-2 focus-within:ring-[var(--focus-ring)] transition-colors cursor-pointer">
-                <Globe className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+            {/* The select itself is the control: a theme that styles form fields (glass) then styles one shape, not a box inside a pill. */}
+            <div className="relative">
+                <Globe className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-secondary)] pointer-events-none z-10" />
                 <select
                     value={locale}
                     onChange={(e) => setLocale(e.target.value)}
-                    className="appearance-none bg-transparent text-xs font-medium text-[var(--text-secondary)] cursor-pointer pr-4 outline-none min-w-[2rem]"
+                    className="appearance-none pl-8 pr-3 py-1.5 rounded-md bg-[var(--bg-primary)] border border-[var(--border-default)] hover:border-[var(--text-tertiary)] text-xs font-medium text-[var(--text-secondary)] cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
                 >
                     {availableLocales.map(l => (
                         <option key={l.code} value={l.code} className="bg-[var(--bg-secondary)]">

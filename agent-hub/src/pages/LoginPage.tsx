@@ -16,6 +16,7 @@ import { usePasswordResetActions } from './login/usePasswordResetActions';
 import { useSignupActions } from './login/useSignupActions';
 import { useSignupPlans } from './login/useSignupPlans';
 import VerifyEmailGate from './login/VerifyEmailGate';
+import { useSignInLook } from '../components/appearance/ThemeContext';
 import { useTranslation } from '../hooks/useTranslation';
 
 interface LoginPageProps {
@@ -24,6 +25,7 @@ interface LoginPageProps {
 
 const LoginPage = ({ onLogin }: LoginPageProps) => {
     const { t, locale, setLocale } = useTranslation();
+    useSignInLook();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
