@@ -2,6 +2,10 @@
   "_comment": "Every call site of establishSession (auth/loginPaths.js scans them; auth/loginPaths.inventory.test.js holds this file to the scan) and what it does about a second factor. `mfa` is `enforced` (the second-factor step runs before this call for an account that has one), `not-applicable:<why>` (there is no second factor to ask for here), or `pending` (a known gap). `pendingAllowed` equals the number of pending entries and may only go down (zero since the OPAQUE path gained its second-factor step).",
   "pendingAllowed": 0,
   "paths": {
+    "auth/connectorJwtPhases.js#session-assign{}": {
+      "mfa": "not-applicable:Nextcloud authenticates the person (its own second factor runs there) and the tenant key signs the uid; the account is found by that uid, by address only when the connector or the user sync created it and it has no password, OPAQUE record, second factor, SSO identity or admin role, and any other account is linked once after a normal sign-in with its second factor (connector/ncLinkTicket.mts)",
+      "note": "Nextcloud connector: an in-memory session per request, never persisted (connectorJwt.js, connectorJwtPhases.js establishConnectorSession)."
+    },
     "auth/login/finalizeLogin.js#password{...,encryptionKey}": {
       "mfa": "enforced",
       "note": "Same gate as above; the DEK is derived after the second factor and sealed at the store boundary (auth/sessionSeal.js)."

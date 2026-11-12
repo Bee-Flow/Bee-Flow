@@ -16,11 +16,16 @@
  *      that's the whole point of HS256 (we re-derive who it is by trying
  *      keys until one verifies). For a small number of tenants we iterate;
  *      at scale we'd index by a key hint in the JWT header (kid).
- *   3. Verify the signature, decode the payload, look up the user by email,
- *      populate req.session so downstream handlers see no difference from a
- *      cookie session.
- *   4. Reject (403) if the email isn't provisioned — never auto-create users
- *      from the connector path.
+ *   3. Verify the signature, decode the payload, find the member of the
+ *      organisation that holds the signed Nextcloud uid (`sub`), populate
+ *      req.session so downstream handlers see no difference from a cookie
+ *      session.
+ *   4. No member holds the uid: the address may find an account the
+ *      connector or the user sync created and that has no credential of its
+ *      own; any other account answers `nc_link_required`, and its owner
+ *      links it once after a normal sign-in (connectorJwtPhases.js
+ *      emailMatchGate, connector/ncLinkTicket.mts). No account at all: the
+ *      organisation's provisioning rules decide (connectorJwtProvision.js).
  *
  * Tenant keys live in configStore as encrypted secrets keyed
  * `connector_tenant_key_<organizationId>`. They're minted by the admin
@@ -298,20 +303,31 @@ async function _authenticateConnectorToken(req, token) {
         return reject(400, { error: 'Connector token missing email claim', code: 'nc_no_email' });
     }
 
-    let user = await userStore.getUserByEmail(payload.email);
-    if (!user) {
-        const provisioned = await provisionConnectorUser(req, orgId, payload);
-        if (provisioned.kind !== 'ok') return provisioned;
-        user = provisioned.user;
-    } else {
+    // The signed uid first; the address only when no member holds the uid,
+    // and then only as far as emailMatchGate allows.
+    /** @type {null | 'fill' | 'repair'} */
+    let write = null;
+    let user = await phases.findByNcUid(orgId, payload);
+    if (user) {
         const mismatch = phases.crossTenantGate(req, user, orgId);
         if (mismatch) return mismatch;
+    } else {
+        user = await userStore.getUserByEmail(payload.email);
+        if (!user) {
+            const provisioned = await provisionConnectorUser(req, orgId, payload);
+            if (provisioned.kind !== 'ok') return provisioned;
+            user = provisioned.user;
+        } else {
+            const mismatch = phases.crossTenantGate(req, user, orgId);
+            if (mismatch) return mismatch;
+            const match = await phases.emailMatchGate(req, user, orgId, payload);
+            if ('reject' in match) return match.reject;
+            write = match.write;
+        }
     }
     const pending = phases.pendingApprovalGate(req, user, orgId);
     if (pending) return pending;
-    const conflict = await phases.ncUidConflictGate(req, user, orgId, payload);
-    if (conflict) return conflict;
-    await phases.reconcileUserRecord(user, orgId, payload);
+    await phases.reconcileUserRecord(user, orgId, payload, write);
     return phases.establishConnectorSession(req, user, orgId, payload);
 }
 

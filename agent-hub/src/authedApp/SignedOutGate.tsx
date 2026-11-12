@@ -42,7 +42,7 @@ export function SignedOutGate({ ncOnboardingState, ncOrgName, bootstrapDiagnosti
         return <EmailVerificationScreen verification={(bootstrapDiagnostics as BootstrapDiagnostics & { verification?: { organizationName?: string } | null }).verification} t={t} />;
     }
     if (screen === 'nc_sign_in_failed') {
-        return <NcSignInFailedScreen message={signInRefusal?.message} onRetry={reload} onUseAccount={() => setFormRequested(true)} />;
+        return <NcSignInFailedScreen message={signInRefusal?.message} linkUrl={signInRefusal?.linkUrl} onRetry={reload} onUseAccount={() => setFormRequested(true)} />;
     }
     return <LoginPage onLogin={onLogin} />;
 }

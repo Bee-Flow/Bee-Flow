@@ -9,9 +9,12 @@
  *
  * Policy:
  *   - Private / loopback / link-local targets are REFUSED by default.
- *   - NEXTCLOUD_ALLOW_PRIVATE_HOSTS=1 re-allows RFC1918 + loopback, because
- *     self-hosted installs legitimately run Nextcloud on a LAN address. This is
- *     a deployment-level decision, not a per-user one.
+ *   - NEXTCLOUD_ALLOW_PRIVATE_HOSTS re-allows private and loopback targets,
+ *     because self-hosted installs legitimately run Nextcloud on a LAN
+ *     address. A comma-separated list of host names or IP addresses allows
+ *     exactly those hosts (the installer writes the Nextcloud host it asked
+ *     for); `1` allows every private host, as before. This is a
+ *     deployment-level decision, not a per-user one.
  *   - Cloud metadata endpoints stay blocked in BOTH modes. There is no
  *     legitimate Nextcloud at 169.254.169.254, and that is the one target where
  *     a blind SSRF turns directly into cloud credentials.
@@ -44,8 +47,40 @@ const LINK_LOCAL_MAPPED_RE = /^\[?::ffff:(?:a9fe:|169\.254\.)/i;
 
 const MAX_URL_LENGTH = 512;
 
+/** A host as compared: lower case, without IPv6 brackets. */
+function bareHost(host) {
+    const h = String(host || '').trim().toLowerCase();
+    return h.startsWith('[') && h.endsWith(']') ? h.slice(1, -1) : h;
+}
+
+/**
+ * The private hosts this deployment allows: null = every private host
+ * (NEXTCLOUD_ALLOW_PRIVATE_HOSTS=1), otherwise the listed hosts (empty = none).
+ * A list entry may carry a port (`nc.lan:8080`); only the host counts.
+ * @returns {string[] | null}
+ */
+function allowedPrivateHosts() {
+    const raw = String(process.env.NEXTCLOUD_ALLOW_PRIVATE_HOSTS || '').trim();
+    if (raw === '1') return null;
+    if (!raw || raw === '0') return [];
+    return raw.split(',').map((entry) => {
+        const e = entry.trim();
+        if (e.startsWith('[')) return bareHost(e.slice(0, e.indexOf(']') + 1));
+        // host:port (one colon); a bare IPv6 address has several.
+        return bareHost(e.split(':').length === 2 ? e.split(':')[0] : e);
+    }).filter(Boolean);
+}
+
+/** True when some private host is allowed (all of them, or a list). */
 function allowPrivateHosts() {
-    return process.env.NEXTCLOUD_ALLOW_PRIVATE_HOSTS === '1';
+    const allowed = allowedPrivateHosts();
+    return allowed === null || allowed.length > 0;
+}
+
+/** True when this private host may be called. */
+function privateHostAllowed(hostname) {
+    const allowed = allowedPrivateHosts();
+    return allowed === null || allowed.includes(bareHost(hostname));
 }
 
 /** Metadata endpoints — never reachable, whatever the deployment allows. */
@@ -79,11 +114,11 @@ function assertAllowedNextcloudHost(rawUrl) {
     if (isMetadataHost(parsed.hostname)) {
         throw new Error('That address is not a valid Nextcloud host.');
     }
-    if (isPrivateHostname(parsed.hostname) && !allowPrivateHosts()) {
+    if (isPrivateHostname(parsed.hostname) && !privateHostAllowed(parsed.hostname)) {
         throw new Error(
             'That Nextcloud URL points to a private or local network address. '
-            + 'If this is a self-hosted install on your own network, set '
-            + 'NEXTCLOUD_ALLOW_PRIVATE_HOSTS=1 on the server to allow it.'
+            + 'If this is a self-hosted install on your own network, list that host in '
+            + 'NEXTCLOUD_ALLOW_PRIVATE_HOSTS on the server (or set NEXTCLOUD_ALLOW_PRIVATE_HOSTS=1) to allow it.'
         );
     }
     return parsed;
@@ -116,8 +151,12 @@ function isAllowedNextcloudHost(rawUrl) {
  * written before this guard existed are already in the database.
  */
 async function nextcloudFetch(url, opts = {}) {
-    assertAllowedNextcloudHost(url);
-    if (allowPrivateHosts()) return privateHostFetch(url, opts);
+    const parsed = assertAllowedNextcloudHost(url);
+    // A listed host goes out as a private target; any other host keeps the
+    // connect-time screen of safeFetch (a public name that resolves to a
+    // private address is refused there).
+    const listed = allowedPrivateHosts();
+    if (listed === null || listed.includes(bareHost(parsed.hostname))) return privateHostFetch(url, opts);
     return safeFetch(url, opts);
 }
 
@@ -151,6 +190,9 @@ async function privateHostFetch(url, opts = {}) {
         if (next.origin !== new URL(target).origin) init = withoutCredentials(init);
         target = next.toString();
         assertAllowedNextcloudHost(target);
+        // With a host list, a redirect stays on the listed hosts.
+        const listed = allowedPrivateHosts();
+        if (listed !== null && !listed.includes(bareHost(next.hostname))) throw new Error('That address is not a valid Nextcloud host.');
     }
 }
 
@@ -274,6 +316,7 @@ module.exports = {
     isAllowedNextcloudHost,
     isMetadataHost,
     allowPrivateHosts,
+    privateHostAllowed,
     nextcloudFetch,
     nextcloudOAuthUrl,
     makePrivateModeDispatcher,

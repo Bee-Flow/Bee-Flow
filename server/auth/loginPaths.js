@@ -3,8 +3,10 @@
  * Login path inventory — every call site of establishSession, read from the
  * source with acorn (a dependency of the server install).
  *
- * establishSession is the single way a session becomes authenticated, so its
- * call sites ARE the login paths. loginPaths.inventory.json lists each one
+ * establishSession is the way a session becomes authenticated, so its call
+ * sites ARE the login paths; the one other way, an in-place
+ * `Object.assign(req.session, { isAuthenticated: true, ... })` (the
+ * connector's in-memory session), is found and listed the same way. loginPaths.inventory.json lists each one
  * with what it does about a second factor; loginPaths.inventory.test.js fails
  * on a call site the inventory does not know, so a login path added next year
  * has to say where its MFA step is before it can land.
@@ -80,16 +82,42 @@ function callSitesIn(text, rel) {
     /** @type {Map<string, number>} */
     const seen = new Map();
     walk(ast, (node) => {
-        if (node.type !== 'CallExpression' || calleeName(node.callee) !== 'establishSession') return;
-        const opts = node.arguments[1];
-        const method = methodOf(opts);
-        const extra = extraKeysOf(opts);
+        if (node.type !== 'CallExpression') return;
+        let method;
+        /** @type {string[]} */
+        let extra;
+        if (calleeName(node.callee) === 'establishSession') {
+            const opts = node.arguments[1];
+            method = methodOf(opts);
+            extra = extraKeysOf(opts);
+        } else if (isSessionAssign(node)) {
+            method = 'session-assign';
+            extra = [];
+        } else {
+            return;
+        }
         const base = `${rel}#${method}{${extra.join(',')}}`;
         const n = (seen.get(base) || 0) + 1;
         seen.set(base, n);
         out.push({ key: n === 1 ? base : `${base}#${n}`, file: rel, method, extra, line: node.loc.start.line });
     });
     return out;
+}
+
+/**
+ * `Object.assign(<x>.session, { isAuthenticated: true, ... })`: a session made
+ * authenticated in place, without establishSession (the connector's
+ * in-memory session). Keyed `<file>#session-assign{}`.
+ * @param {Node} node  a CallExpression
+ */
+function isSessionAssign(node) {
+    const c = node.callee;
+    if (c.type !== 'MemberExpression' || c.object.type !== 'Identifier' || c.object.name !== 'Object' || calleeName(c) !== 'assign') return false;
+    const [target, fields] = node.arguments;
+    if (!target || target.type !== 'MemberExpression' || calleeName(target) !== 'session') return false;
+    if (!fields || fields.type !== 'ObjectExpression') return false;
+    const v = propertyValue(fields, 'isAuthenticated');
+    return !!v && v.type === 'Literal' && v.value === true;
 }
 
 /**
@@ -143,7 +171,7 @@ function scanLoginPaths({ server = SERVER } = {}) {
     const sites = [];
     for (const f of files) {
         const text = fs.readFileSync(f, 'utf8');
-        if (!text.includes('establishSession(')) continue;
+        if (!text.includes('establishSession(') && !text.includes('isAuthenticated: true')) continue;
         const rel = path.relative(server, f).split(path.sep).join('/');
         if (rel === 'auth/establishSession.js') continue; // the definition
         sites.push(...callSitesIn(text, rel));

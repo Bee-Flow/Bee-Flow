@@ -13,7 +13,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
-const { assertAllowedNextcloudHost, isAllowedNextcloudHost, isMetadataHost } = require('./nextcloudTarget');
+const { assertAllowedNextcloudHost, isAllowedNextcloudHost, isMetadataHost, privateHostAllowed } = require('./nextcloudTarget');
 
 function withPrivateHostsAllowed(/** @type {() => unknown} */ fn) {
     const prev = process.env.NEXTCLOUD_ALLOW_PRIVATE_HOSTS;
@@ -65,6 +65,25 @@ test('NEXTCLOUD_ALLOW_PRIVATE_HOSTS=1 re-allows LAN self-host targets', () => {
             assert.ok(isAllowedNextcloudHost(url), `${url} should be allowed for self-host`);
         }
     });
+});
+
+test('a host list allows exactly the listed private hosts; metadata stays refused', () => {
+    const prev = process.env.NEXTCLOUD_ALLOW_PRIVATE_HOSTS;
+    process.env.NEXTCLOUD_ALLOW_PRIVATE_HOSTS = '192.168.1.50, nextcloud.lan:8080,[::1]';
+    try {
+        assert.ok(isAllowedNextcloudHost('http://192.168.1.50/nextcloud'));
+        assert.ok(isAllowedNextcloudHost('http://[::1]:8080'));
+        assert.ok(privateHostAllowed('NEXTCLOUD.lan'));
+        for (const url of ['http://10.1.2.3', 'http://127.0.0.1', 'http://localhost:8080', 'http://192.168.1.51']) {
+            assert.throws(() => assertAllowedNextcloudHost(url), /NEXTCLOUD_ALLOW_PRIVATE_HOSTS/, url);
+        }
+        for (const url of METADATA) assert.equal(isAllowedNextcloudHost(url), false, url);
+        process.env.NEXTCLOUD_ALLOW_PRIVATE_HOSTS = '0';
+        assert.equal(isAllowedNextcloudHost('http://192.168.1.50'), false);
+    } finally {
+        if (prev === undefined) delete process.env.NEXTCLOUD_ALLOW_PRIVATE_HOSTS;
+        else process.env.NEXTCLOUD_ALLOW_PRIVATE_HOSTS = prev;
+    }
 });
 
 test('cloud metadata endpoints are refused in BOTH modes', () => {

@@ -25,6 +25,9 @@
 'use strict';
 
 process.env.NODE_ENV = 'test';
+// The per-organisation daily budget has its own file (ncVerificationDaily.test.js).
+process.env.NC_VERIFICATION_DAILY_ATTEMPTS = '0';
+process.env.NC_VERIFICATION_DAILY_SENDS = '0';
 
 const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');

@@ -45,11 +45,22 @@ function deriveLocalUserId(email, azureUserId) {
  * not belong to a Microsoft identity, and a connector-provisioned row must
  * name the same Nextcloud uid. An account that does not qualify is linked by
  * its owner from account settings instead.
+ *
+ * The Nextcloud connector (identity provider `nextcloud_connector`, after its
+ * signed uid found no account of the organisation) applies the same rule,
+ * narrower: only an account the connector or the user sync created, and
+ * never an organisation administrator. The connector also checks that no SSO
+ * identity is linked to the row (connectorJwtPhases.js). Any other account
+ * is linked once, after a normal sign-in (connector/ncLinkTicket.mts).
  * @param {Record<string, any>} row
  * @param {{ provider?: string | null, localId?: string | null, subject?: string | null }} identity
  */
 function emailLinkAllowed(row, identity) {
     if (!noOwnCredential(row)) return false;
+    if (identity.provider === 'nextcloud_connector') {
+        // Loaded here: auth/permissions.js wires its dependencies on first use.
+        return row.provider === 'nextcloud_connector' && !require('./permissions').isOrgAdminRole(row.orgRole);
+    }
     if (row.provider === 'nextcloud_connector') {
         const uid = identity.subject || String(identity.localId || '').replace(/^nextcloud-/, '');
         return identity.provider === 'nextcloud' && !!uid && row.nc_uid === uid;

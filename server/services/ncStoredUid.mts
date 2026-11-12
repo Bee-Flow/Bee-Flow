@@ -8,17 +8,20 @@
  * account with the same address is another account, and the stored uid then
  * stays as it is.
  *
- * The answer is yes only on a definite reading, taken as the organisation's
- * stored Nextcloud admin (only an administrator is told whether an account is
- * enabled): the record is about the stored uid itself, it is enabled, and its
- * address is the one asked about. A read that fails or takes too long, a
- * missing account, a disabled one, an answer in another shape or without the
- * enabled flag, and an organisation without a stored admin are all "no".
+ * storedUidState answers in three: 'live' only on a definite reading, taken as
+ * the organisation's stored Nextcloud admin (only an administrator is told
+ * whether an account is enabled): the record is about the stored uid itself,
+ * it is enabled, and its address is the one asked about. 'free' on another
+ * definite reading: no such account, a disabled one, or one with another
+ * address. 'unknown' for a read that fails or takes too long, an answer in
+ * another shape or without the enabled flag, and an organisation without a
+ * stored admin; the sign-in then refuses and leaves the stored uid as it is.
+ * storedUidIsLiveWithEmail is the yes/no form ('live' or not).
  *
- * Two of those are not about the account but about the organisation, and last
- * until someone acts: there is no stored admin, or Nextcloud answers about the
- * account without saying whether it is enabled (the stored admin has no
- * administrator rights). The answer stays "no", and the organisation's health
+ * Two of the unknowns are not about the account but about the organisation,
+ * and last until someone acts: there is no stored admin, or Nextcloud answers
+ * about the account without saying whether it is enabled (the stored admin has
+ * no administrator rights). The answer stays 'unknown', and the organisation's health
  * says so (ADMIN_RIGHTS_MISSING), once per organisation per process; a later
  * reading that does carry the flag, or a full sync that reads the disabled
  * accounts, resolves it.
@@ -94,36 +97,91 @@ function isRecord(v: unknown): v is Record<string, unknown> {
     return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
-async function readLive(org: NcOrgRef, storedUid: string, email: string, ncProxyFetch: NcProxyFetch): Promise<boolean> {
+/**
+ * What Nextcloud says about the stored uid, read as the stored admin:
+ *   - 'live'    an enabled account with this address;
+ *   - 'free'    a definite other answer: no such account (404), a disabled
+ *               one, or one with another address;
+ *   - 'unknown' anything else (no stored admin, no enabled flag, a failed or
+ *               late read, an answer in another shape).
+ */
+export type StoredUidState = 'live' | 'free' | 'unknown';
+
+async function readState(org: NcOrgRef, storedUid: string, email: string, ncProxyFetch: NcProxyFetch): Promise<StoredUidState> {
     const adminUid = String(org.nc_admin_uid || org.ncAdminUid || '');
     if (!adminUid) {
         reportCannotTell(org, 'no_stored_admin');
-        return false;
+        return 'unknown';
     }
-    const body = await ncProxyFetch(org, `/ocs/v2.php/cloud/users/${encodeURIComponent(storedUid)}?format=json`, adminUid);
+    let body;
+    try {
+        body = await ncProxyFetch(org, `/ocs/v2.php/cloud/users/${encodeURIComponent(storedUid)}?format=json`, adminUid);
+    } catch (err) {
+        // Only Nextcloud's own "no such user" is an answer about the account.
+        if ((err as { status?: unknown })?.status === 404) return 'free';
+        throw err;
+    }
     const data = body?.ocs?.data;
-    if (!isRecord(data) || String(data.id ?? '') !== storedUid) return false;
+    if (!isRecord(data) || String(data.id ?? '') !== storedUid) return 'unknown';
     const enabled = readEnabled(data);
     // Only a record without the field at all is the standing state; a field
     // with another value is an answer in another shape.
     if (enabled === null) {
         if (!('enabled' in data)) reportCannotTell(org, 'enabled_not_reported');
-        return false;
+        return 'unknown';
     }
     reportCanTell(org);
-    return enabled && sameAddress(data.email, email);
+    return enabled && sameAddress(data.email, email) ? 'live' : 'free';
 }
 
-/** The read, or false once the wait is over (the read itself is left to finish on its own). */
-function withinWait(read: Promise<boolean>, waitMs: number): Promise<boolean> {
+/** The read, or 'unknown' once the wait is over (the read itself is left to finish on its own). */
+function withinWait(read: Promise<StoredUidState>, waitMs: number): Promise<StoredUidState> {
     if (waitMs <= 0) return read;
-    return new Promise<boolean>((resolve) => {
-        const timer = setTimeout(() => resolve(false), waitMs);
+    return new Promise<StoredUidState>((resolve) => {
+        const timer = setTimeout(() => resolve('unknown'), waitMs);
         read.then(
             (v) => { clearTimeout(timer); resolve(v); },
-            () => { clearTimeout(timer); resolve(false); },
+            () => { clearTimeout(timer); resolve('unknown'); },
         );
     });
+}
+
+/**
+ * The stored uid's state (see StoredUidState). Never throws. A 'live' answer
+ * is remembered for conflictCacheMs(); the other two are asked again.
+ */
+export async function storedUidState(
+    org: NcOrgRef | null | undefined,
+    storedUid: string,
+    email: string,
+    ncProxyFetch?: NcProxyFetch,
+): Promise<StoredUidState> {
+    if (!org?.id || !storedUid || !email) return 'unknown';
+    const key = `${org.id}|${storedUid}|${String(email).trim().toLowerCase()}`;
+    const now = Date.now();
+    const until = liveUntil.get(key);
+    if (until !== undefined) {
+        if (until > now) return 'live';
+        liveUntil.delete(key);
+    }
+    let state: StoredUidState = 'unknown';
+    try {
+        // The sync's own signed call, loaded on first use.
+        const fetchAs = ncProxyFetch || (nodeRequire('./ncUserGroupSync.js') as { ncProxyFetch: NcProxyFetch }).ncProxyFetch;
+        const read = readState(org, storedUid, email, fetchAs).catch((err: unknown): StoredUidState => {
+            log.warn(`[ncSync] stored uid read failed for org ${org.id}: ${(err as Error)?.message}`);
+            return 'unknown';
+        });
+        state = await withinWait(read, conflictWaitMs());
+    } catch {
+        state = 'unknown';
+    }
+    const keepMs = conflictCacheMs();
+    if (state === 'live' && keepMs > 0) {
+        if (liveUntil.size >= CACHE_MAX) liveUntil.clear();
+        liveUntil.set(key, now + keepMs);
+    }
+    return state;
 }
 
 /**
@@ -136,30 +194,5 @@ export async function storedUidIsLiveWithEmail(
     email: string,
     ncProxyFetch?: NcProxyFetch,
 ): Promise<boolean> {
-    if (!org?.id || !storedUid || !email) return false;
-    const key = `${org.id}|${storedUid}|${String(email).trim().toLowerCase()}`;
-    const now = Date.now();
-    const until = liveUntil.get(key);
-    if (until !== undefined) {
-        if (until > now) return true;
-        liveUntil.delete(key);
-    }
-    let live = false;
-    try {
-        // The sync's own signed call, loaded on first use.
-        const fetchAs = ncProxyFetch || (nodeRequire('./ncUserGroupSync.js') as { ncProxyFetch: NcProxyFetch }).ncProxyFetch;
-        const read = readLive(org, storedUid, email, fetchAs).catch((err: unknown) => {
-            log.warn(`[ncSync] stored uid read failed for org ${org.id}: ${(err as Error)?.message}`);
-            return false;
-        });
-        live = await withinWait(read, conflictWaitMs());
-    } catch {
-        live = false;
-    }
-    const keepMs = conflictCacheMs();
-    if (live && keepMs > 0) {
-        if (liveUntil.size >= CACHE_MAX) liveUntil.clear();
-        liveUntil.set(key, now + keepMs);
-    }
-    return live;
+    return (await storedUidState(org, storedUid, email, ncProxyFetch)) === 'live';
 }

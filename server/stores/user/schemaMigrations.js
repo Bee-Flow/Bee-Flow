@@ -309,6 +309,16 @@ const PENDING_NC_BINDINGS_DDL = [
     `ALTER TABLE pending_nc_bindings
             ADD COLUMN IF NOT EXISTS verification_attempts_total INTEGER NOT NULL DEFAULT 0,
             ADD COLUMN IF NOT EXISTS verification_code_sends     INTEGER NOT NULL DEFAULT 0`,
+    // Per organisation per day: the e-mailed codes sent and the attempts made,
+    // over every pending row of the organisation (ncVerificationDaily.mts).
+    // A row that runs out and starts over cannot reset these.
+    `CREATE TABLE IF NOT EXISTS nc_verification_daily (
+            org_id    TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+            day       DATE NOT NULL,
+            attempts  INTEGER NOT NULL DEFAULT 0,
+            sends     INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY (org_id, day)
+        )`,
 ];
 
 module.exports = { ACCOUNT_MIGRATIONS, NC_CONNECTOR_COLUMNS, PENDING_NC_BINDINGS_DDL };

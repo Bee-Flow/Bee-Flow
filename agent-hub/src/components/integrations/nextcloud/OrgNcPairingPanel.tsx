@@ -9,7 +9,8 @@ import { mutate, ApiError, request, RefusedError, errorBody } from '@/api/mutate
 
 interface PairingCode {
     id: string;
-    code: string;
+    /** Null for a stored code: the server keeps a hash and shows a code once, when it is generated. */
+    code: string | null;
     expiresAt?: string;
 }
 
@@ -42,6 +43,8 @@ const OrgNcPairingPanel = () => {
     const [loading, setLoading] = useState(true);
     const [generating, setGenerating] = useState(false);
     const [justCopiedId, setJustCopiedId] = useState<string | null>(null);
+    // Codes generated in this view, by id: the only time a code is readable.
+    const [generated, setGenerated] = useState<Record<string, string>>({});
     const [error, setError] = useState<string | null>(null);
 
     const reload = useCallback(async () => {
@@ -82,7 +85,8 @@ const OrgNcPairingPanel = () => {
                 const data = errorBody(err) ?? {};
                 throw new Error(data?.error || `HTTP ${err.status}`);
             }
-            const data = await res.json().catch(() => ({}));
+            const data = await res.json().catch(() => ({})) as { id?: string; code?: string };
+            if (data.id && data.code) setGenerated((prev) => ({ ...prev, [data.id as string]: data.code as string }));
             await reload();
         } catch (e) {
             setError(messageOf(e, 'Failed to generate pairing code'));
@@ -169,21 +173,24 @@ const OrgNcPairingPanel = () => {
                 </p>
             ) : (
                 <ul className="space-y-2">
-                    {codes.map((c: PairingCode) => (
+                    {codes.map((c: PairingCode) => {
+                        const shown = c.code || generated[c.id] || null;
+                        return (
                         <li key={c.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg [background:var(--bg-primary)] [border:1px_solid_var(--border-subtle)]">
                             <code className="text-[15px] font-mono font-semibold tracking-wider text-[var(--text-primary)]">
-                                {c.code}
+                                {shown || '••••-••••'}
                             </code>
                             <span className="text-[11px] flex-1 text-[var(--text-tertiary)]">
                                 {fmtCountdown(c.expiresAt)}
+                                {!shown && ` · ${t('integ.org_nc_pairing_shown_once', 'Shown once, right after it is generated')}`}
                             </span>
-                            <button
-                                onClick={() => copy(c.id, c.code)}
+                            {shown && <button
+                                onClick={() => copy(c.id, shown)}
                                 className={`p-1.5 rounded-md transition-colors hover:bg-[var(--bg-tertiary)] ${justCopiedId === c.id ? '[color:#10b981]' : '[color:var(--text-muted)]'}`}
                                 title={justCopiedId === c.id ? 'Copied!' : 'Copy'}
                             >
                                 {justCopiedId === c.id ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                            </button>
+                            </button>}
                             <button
                                 onClick={() => revoke(c.id)}
                                 className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)]"
@@ -192,7 +199,8 @@ const OrgNcPairingPanel = () => {
                                 <Trash2 className="w-3.5 h-3.5" />
                             </button>
                         </li>
-                    ))}
+                        );
+                    })}
                 </ul>
             )}
 

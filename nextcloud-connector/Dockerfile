@@ -141,8 +141,8 @@ COPY --from=spa-build /spa/dist ./public
 # canonical HaRP ExApp pattern runs as root because HaRP writes into
 # /usr/local/share/ca-certificates, /etc/ssl/certs, and /certs/frp on first
 # start — paths that are root-owned, so the image user stays root for those
-# steps. harp-start.sh then runs the connector itself as the unprivileged
-# `node` user through su-exec.
+# steps. harp-start.sh then runs the connector and frpc as the unprivileged
+# `node` user through su-exec (frpc gets its own copy of the HaRP certificates).
 RUN apk add --no-cache bash curl ca-certificates tar su-exec
 
 # The patched binary keeps the protocol expected by Nextcloud HaRP.

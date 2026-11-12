@@ -18,6 +18,7 @@ const {
 } = require('./user/users');
 const { completePasswordReset } = require('./user/passwordReset');
 const { claimNcInstanceForOrganization } = require('./user/orgNcInstance.mts');
+const { setNcUidIfUnchanged } = require('./user/ncUidLink.mts');
 const {
     getAllOrganizations, getSingleOrgId, hasAnyOrganization, getOrganization, getOrganizationByNcInstanceId,
     createOrganization, updateOrganization, deleteOrganization,
@@ -32,7 +33,7 @@ const {
 const {
     createPendingNcBinding, getPendingNcBinding, getPendingNcBindingForOrg,
     createPendingNcVerification, verifyPendingNcCode, resetNcVerificationCode,
-    retargetNcVerification, countActivePendingNcVerificationsForOrg,
+    retargetNcVerification, countNcVerificationSend, countActivePendingNcVerificationsForOrg,
     createOrgPairingCode, getPendingBindingByPairingCode, consumePairingCode,
     getActivePairingCodesForOrg, deletePairingCode,
     countActivePendingNcBindingsForOrg, markPendingNcBindingApproved,
@@ -96,11 +97,11 @@ module.exports = {
     getOrgAvailableCapabilities, setOrgAvailableCapabilities,
     getOrgBetaEveryone, setOrgBetaEveryone,
     getOrgEveryoneRevoked, setOrgEveryoneRevoked,
-    getUserByNcUid, hasMirroredNcUsers,
+    getUserByNcUid, hasMirroredNcUsers, setNcUidIfUnchanged,
     findOrgMemberIdByEmail,
     createPendingNcBinding, getPendingNcBinding, getPendingNcBindingForOrg,
     createPendingNcVerification, verifyPendingNcCode, resetNcVerificationCode,
-    retargetNcVerification, countActivePendingNcVerificationsForOrg,
+    retargetNcVerification, countNcVerificationSend, countActivePendingNcVerificationsForOrg,
     createOrgPairingCode, getPendingBindingByPairingCode, consumePairingCode,
     getActivePairingCodesForOrg, deletePairingCode,
     countActivePendingNcBindingsForOrg, markPendingNcBindingApproved,
