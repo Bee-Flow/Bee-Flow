@@ -84,11 +84,7 @@ No request schema.
 
 **Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
 
-**Query**
-
-| Field | Type | Required | Notes |
-|-------|------|:--------:|-------|
-| `email` | string |  | max length 320 |
+**Query:** object (no other keys)
 
 ### `POST /api/dsr/requests/:id/start`
 

@@ -8,7 +8,7 @@ custom_edit_url: null
 
 # Endpoint reference
 
-Every route the server mounts, 1913 in all, read from the running app rather than written by hand. 1082 of them declare a request schema (body, query or path parameters), shown below as fields; the other 831 say "No request schema". The same data as an OpenAPI 3.1 document: [openapi.json](pathname:///openapi.json).
+Every route the server mounts, 1914 in all, read from the running app rather than written by hand. 1083 of them declare a request schema (body, query or path parameters), shown below as fields; the other 831 say "No request schema". The same data as an OpenAPI 3.1 document: [openapi.json](pathname:///openapi.json).
 
 ## How to read it
 
@@ -54,6 +54,6 @@ Every route the server mounts, 1913 in all, read from the running app rather tha
 | [`/api/usage`](./reference/api-usage.md) | 51 | 51 |
 | [`/api/webpages`](./reference/api-webpages.md) | 51 | 46 |
 | [`/api/webpages-preview`](./reference/api-webpages-preview.md) | 18 | 3 |
-| [`/auth`](./reference/auth.md) | 171 | 75 |
+| [`/auth`](./reference/auth.md) | 172 | 76 |
 | [Other endpoints](./reference/other.md) | 229 | 116 |
-| **Total** | **1913** | **1082** |
+| **Total** | **1914** | **1083** |

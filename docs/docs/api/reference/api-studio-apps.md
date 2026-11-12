@@ -243,7 +243,7 @@ No request schema.
 
 ### `POST /api/studio-apps/:id/ai/chat`
 
-**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate`
+**Access:** Signed-in user · Capability `app_studio` · middleware `trainingGate` · the handler also checks who the caller is
 
 **Query**
 

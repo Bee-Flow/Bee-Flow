@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/auth`
 
-171 routes, 75 with a request schema. Back to the [endpoint reference](../reference.md).
+172 routes, 76 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `admin-login`
 
@@ -374,6 +374,16 @@ No request schema.
 **Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
 
 No request schema.
+
+### `POST /auth/connector/link`
+
+**Access:** Signed-in user
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `ticket` | string | yes | min length 1; max length 2048 |
 
 ### `POST /auth/connector/rotate-key`
 
