@@ -35,6 +35,16 @@ describe('fenced renderers keep remote images behind a click', () => {
         expect(screen.getAllByTestId('remote-image-deferred')).toHaveLength(2);
     });
 
+    it('research source cards show a local icon, not one fetched for the source host', () => {
+        const data = { title: 'R', blocks: [
+            { type: 'sources', items: [{ url: 'https://abc123.collector.example/x', title: 'A source' }] },
+        ] } as unknown as ResearchData;
+        const { container } = render(<ResearchRenderer data={data} />);
+        expect(container.querySelectorAll('img')).toHaveLength(0);
+        expect(screen.getByTestId('research-source-icon')).toBeTruthy();
+        expect(screen.getByText('A source').closest('a')?.getAttribute('href')).toBe('https://abc123.collector.example/x');
+    });
+
     it('page image element', () => {
         const { container } = render(<PageRenderer code={{ type: 'page', children: [{ type: 'image', src: REMOTE, alt: 'x' }] }} onAction={undefined} />);
         expect(remoteImgs(container)).toHaveLength(0);

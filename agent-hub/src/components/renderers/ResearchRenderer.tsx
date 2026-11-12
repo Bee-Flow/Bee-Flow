@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
-import { ExternalLink, ChevronDown, ChevronRight, Lightbulb, AlertTriangle, CheckCircle, Info } from 'lucide-react';
+import { ExternalLink, ChevronDown, ChevronRight, Lightbulb, AlertTriangle, CheckCircle, Info, Globe } from 'lucide-react';
 import MarkdownRenderer from './MarkdownRenderer';
 import { SafeImage } from './remoteImages';
 import type { ResearchItem, ResearchBlock, ResearchData } from './ResearchRenderer.types';
@@ -10,15 +10,6 @@ const ResearchRenderer = ({ data }: { data?: ResearchData | null }) => {
     const [collapsedSources, setCollapsedSources] = useState(false);
 
     if (!data || !data.blocks) return null;
-
-    const getFavicon = (url: string | URL) => {
-        try {
-            const domain = new URL(url).hostname;
-            return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
-        } catch {
-            return null;
-        }
-    };
 
     const getDomain = (url: string | URL) => {
         try {
@@ -137,14 +128,8 @@ const ResearchRenderer = ({ data }: { data?: ResearchData | null }) => {
                                             e.currentTarget.style.transform = 'translateY(0)';
                                         }}
                                     >
-                                        {getFavicon(src.url) && (
-                                            <img
-                                                src={getFavicon(src.url) as string}
-                                                alt=""
-                                                className="[width:20px] [height:20px] [border-radius:4px] [flex-shrink:0]"
-                                                onError={e => (e.target as HTMLImageElement).style.display = 'none'}
-                                            />
-                                        )}
+                                        {/* A local icon: a source card loads nothing from the host it names. */}
+                                        <Globe aria-hidden="true" data-testid="research-source-icon" className="[width:20px] [height:20px] [color:var(--text-muted,_#888)] [flex-shrink:0]" />
                                         <div className="[min-width:0] [flex:1]">
                                             <div className="[font-size:0.8rem] [font-weight:500] [color:var(--text-primary,_#fff)] [overflow:hidden] [text-overflow:ellipsis] [white-space:nowrap]">
                                                 {src.title || getDomain(src.url)}

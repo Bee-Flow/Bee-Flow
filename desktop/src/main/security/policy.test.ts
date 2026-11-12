@@ -267,4 +267,38 @@ describe('senderTrust', () => {
         assert.equal(senderTrust('https://github.com/x', context), 'other');
         assert.equal(senderTrust('', context), 'other');
     });
+
+    it('trusts only the workspace screens of the server, not every page on its origin', () => {
+        assert.equal(senderTrust('https://bee.example.com/app', context), 'server');
+        assert.equal(senderTrust('https://bee.example.com/app/', context), 'server');
+        assert.equal(senderTrust('https://bee.example.com/app/chat?x=1#y', context), 'server');
+        for (const url of [
+            'https://bee.example.com/share/t0ken/content',
+            'https://bee.example.com/share/t0ken',
+            'https://bee.example.com/w/some-page/content',
+            'https://bee.example.com/w/some-page/extras/a.html',
+            'https://bee.example.com/api/studio-documents/1/preview',
+            'https://bee.example.com/api/webpages-preview/1/full/',
+            'https://bee.example.com/p/0123456789abcdef01234567',
+            'https://bee.example.com/uploads/agents/a.svg',
+            'https://bee.example.com/auth/login/google',
+            'https://bee.example.com/',
+            'https://bee.example.com/pricing',
+            'https://bee.example.com/application',
+            'https://bee.example.com/app-old/chat',
+            'https://bee.example.com/app/../share/t0ken/content',
+            'https://bee.example.com/app/%2e%2e/share/t0ken/content',
+            'https://bee.example.com/app%2F..%2Fshare/t0ken',
+        ]) {
+            assert.equal(senderTrust(url, context), 'other', url);
+        }
+    });
+
+    it('measures the workspace from the configured path of a server under one', () => {
+        const sub: PolicyContext = { serverUrl: 'https://intranet.example.com/beeflow' };
+        assert.equal(senderTrust('https://intranet.example.com/beeflow/app/chat', sub), 'server');
+        assert.equal(senderTrust('https://intranet.example.com/beeflow/share/t/content', sub), 'other');
+        assert.equal(senderTrust('https://intranet.example.com/beeflow', sub), 'other');
+        assert.equal(senderTrust('https://intranet.example.com/app/chat', sub), 'other');
+    });
 });

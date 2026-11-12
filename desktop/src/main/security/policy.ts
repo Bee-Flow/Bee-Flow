@@ -78,7 +78,8 @@ export type WindowOpenVerdict = 'popup' | 'external' | 'block';
  * (`?popup=1&pickup=`, see server/auth/oauth/loginPickupRoutes.js), and a
  * system browser cannot hand anything back to a window it does not know about.
  * So these origins — and only these — may open in a child window inside the
- * app, with the same hardened preferences as every other window here.
+ * app, with the same hardened preferences as every other window here, minus
+ * the preload (windows/popupPreferences.ts).
  */
 const IDENTITY_PROVIDER_HOSTS = [
     'accounts.google.com',
@@ -264,19 +265,36 @@ export function isPackagedShellUrl(url: string, shellRoot?: string, platform: No
 }
 
 /**
+ * Is this URL one of the workspace's own screens: `/app` or a path under
+ * `/app/`, below the server's configured path?
+ *
+ * The server's origin answers far more than the workspace: the public share
+ * viewer and the documents it serves (`/share/`, `/w/`), the API (`/api/`),
+ * public app pages (`/p/`), stored files (`/uploads`), sign-in routes, the
+ * product website. Several of those show what a user or a model wrote, so
+ * only the workspace's own paths count as the workspace.
+ */
+export function isWorkspaceUrl(url: string, context: PolicyContext): boolean {
+    if (!isServerUrl(url, context)) return false;
+    const rest = pathOf(url).slice(pathOf(context.serverUrl).length);
+    return rest === '/app' || rest.startsWith('/app/');
+}
+
+/**
  * Who a renderer is, for deciding what it may ask of this process.
  *
  * - `shell`: a page this app shipped. Everything.
- * - `server`: the configured server's own origin — the workspace. What the
+ * - `server`: the workspace, the server's own SPA under `/app`. What the
  *   integration is for, and nothing that changes which server this is.
  * - `other`: anything else a window can end up showing — an identity provider
- *   mid-sign-in, the single sign-on origin, a popup. Nothing.
+ *   mid-sign-in, the single sign-on origin, a popup, and every page on the
+ *   server's origin that is not the workspace (see isWorkspaceUrl). Nothing.
  */
 export type SenderTrust = 'shell' | 'server' | 'other';
 
 export function senderTrust(url: string, context: PolicyContext): SenderTrust {
     if (isPackagedShellUrl(url, context.shellRoot, context.platform)) return 'shell';
-    if (isServerUrl(url, context)) return 'server';
+    if (isWorkspaceUrl(url, context)) return 'server';
     return 'other';
 }
 

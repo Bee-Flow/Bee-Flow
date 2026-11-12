@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { INVOKE } from '../../shared/ipc.ts';
-import type { SenderTrust } from '../security/policy.ts';
+import { senderTrust, type PolicyContext, type SenderTrust } from '../security/policy.ts';
 import { CHANNEL_TRUST, RefusedError, gatedHandle, isAllowed, requiredTrust, type GateEvent } from './trust.ts';
 
 type Listener = (event: GateEvent, ...args: unknown[]) => unknown;
@@ -127,6 +127,32 @@ describe('gatedHandle', () => {
         });
         await assert.rejects(Promise.resolve(ipcMain.listeners.get(INVOKE.relaunch)?.({ senderFrame: { url: URL_OF.shell } })), /boom/);
         assert.deepEqual(warnings, ['app:relaunch failed: boom']);
+    });
+
+    it('with the real sender policy, takes Nextcloud calls from the workspace only', async () => {
+        const context: PolicyContext = { serverUrl: 'https://bee.example.com' };
+        const ipcMain = stubIpcMain();
+        const ran: string[] = [];
+        const handle = gatedHandle<GateEvent>({
+            ipcMain,
+            trustOf: (event) => senderTrust(event.senderFrame?.url ?? '', context),
+            log: { warn: () => {} },
+        });
+        handle(INVOKE.ncSave, (event) => {
+            ran.push(event.senderFrame?.url ?? '');
+            return 'saved';
+        });
+        const save = (url: string) => Promise.resolve(ipcMain.listeners.get(INVOKE.ncSave)?.({ senderFrame: { url } }, { name: 'a.txt' }));
+        for (const url of [
+            'https://bee.example.com/share/t0ken/content',
+            'https://bee.example.com/w/page/content',
+            'https://bee.example.com/api/studio-documents/1/preview',
+            'https://bee.example.com/p/0123456789abcdef01234567',
+        ]) {
+            await assert.rejects(save(url), RefusedError, url);
+        }
+        assert.equal(await save('https://bee.example.com/app/chat/1'), 'saved');
+        assert.deepEqual(ran, ['https://bee.example.com/app/chat/1']);
     });
 
     it('refuses to register a channel that has no trust entry', () => {

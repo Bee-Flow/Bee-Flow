@@ -49,7 +49,12 @@ const MERMAID_SECURE_KEYS = [
     'htmlLabels', 'themeCSS', 'dompurifyConfig',
 ];
 
-export const MERMAID_CONFIG: MermaidConfig & { gantt?: { sidePadding?: number } } = {
+/**
+ * The part of the configuration every mermaid diagram in the app shares,
+ * whatever its theme: chat, notebooks and the document editor alike. Spread it
+ * into a diagram's config and keep `htmlLabels` out of the per-diagram blocks.
+ */
+export const MERMAID_SAFE_OPTIONS: MermaidConfig = {
     startOnLoad: false,
     securityLevel: 'strict',
     secure: MERMAID_SECURE_KEYS,
@@ -58,6 +63,10 @@ export const MERMAID_CONFIG: MermaidConfig & { gantt?: { sidePadding?: number } 
         FORBID_TAGS: ['style', 'img', 'image', 'picture', 'source', 'video', 'audio', 'iframe', 'object', 'embed', 'link', 'foreignObject'],
         FORBID_ATTR: ['style', 'src', 'srcset', 'background', 'poster'],
     },
+};
+
+export const MERMAID_CONFIG: MermaidConfig & { gantt?: { sidePadding?: number } } = {
+    ...MERMAID_SAFE_OPTIONS,
     theme: 'dark',
     themeVariables: MERMAID_THEME,
     fontFamily: 'Inter, system-ui, sans-serif',
