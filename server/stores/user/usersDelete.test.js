@@ -40,6 +40,9 @@ before(async () => {
     await db.run('CREATE TABLE IF NOT EXISTS user_sessions (sid varchar PRIMARY KEY, sess json NOT NULL, expire timestamp NOT NULL)');
     // The issue record of the leaver's legacy MCP token.
     await require('../configStore').setConfig('mcp_server_token_user_leaver_issued', { fp: 'x', at: 1 });
+    // Credentials entered for an MCP server, by the leaver and by somebody else.
+    await require('../configStore').setConfig('mcp_cred_frappe_FRAPPE_API_SECRET_user_leaver', 'sealed');
+    await require('../configStore').setConfig('mcp_cred_frappe_FRAPPE_API_SECRET_user_stayer', 'sealed');
     // An organisation-wide Teams import setting that names the leaver and a colleague.
     await require('../configStore').setConfig('org_org-x_teams_app_import', {
         enabled: true, coverage: 'selected', selectedUserIds: ['leaver', 'stayer'], tenantId: '11111111-2222-3333-4444-555555555555',
@@ -93,6 +96,10 @@ test('the retry erases the rest and removes the account; missing optional tables
     assert.deepStrictEqual(sids, ['s-other']);
     assert.strictEqual(await require('../configStore').getConfigFresh('mcp_server_token_user_leaver_issued'), null,
         'the issue record of the legacy MCP token goes with the account');
+    assert.strictEqual(await require('../configStore').getConfigFresh('mcp_cred_frappe_FRAPPE_API_SECRET_user_leaver'), null,
+        'the MCP server credentials go with the account');
+    assert.strictEqual(await require('../configStore').getConfigFresh('mcp_cred_frappe_FRAPPE_API_SECRET_user_stayer'), 'sealed',
+        'another person\'s MCP credentials stay');
     const teams = /** @type {any} */ (await require('../configStore').getConfigFresh('org_org-x_teams_app_import'));
     assert.deepStrictEqual([teams.selectedUserIds, teams.enabledBy, teams.updatedBy, teams.enabled], [['stayer'], null, 'stayer', true],
         'the organisation-wide Teams import setting no longer names the leaver');

@@ -66,3 +66,26 @@ test('a failed connect is not remembered: the next call spawns again', async (t)
     assert.strictEqual(await mcpManager.callTool('srv2', 'a', {}, 'user-1'), 'ok');
     await mcpManager.removeServer('srv2');
 });
+
+test('disconnectUser closes that user\'s connections only', async (t) => {
+    const clients = [];
+    class FakeTransport {}
+    class FakeClient {
+        constructor() { this.closed = false; clients.push(this); }
+        async connect() {}
+        async listTools() { return { tools: [] }; }
+        async callTool() { return { content: [{ type: 'text', text: 'ok' }] }; }
+        async close() { this.closed = true; }
+    }
+    mcpManager._setSdkForTests({ Client: FakeClient, StdioClientTransport: FakeTransport });
+    const server = { id: 'srv3', name: 'Srv3', enabled: true, command: 'node', args: [], required_credentials: [], tools_cache: [{ name: 'a' }] };
+    t.mock.method(mcpStore, 'getServer', async () => server);
+    t.mock.method(mcpStore, 'deleteServer', async () => true);
+    t.mock.method(configStore, 'getSecret', async () => null);
+
+    await mcpManager.callTool('srv3', 'a', {}, 'u1');
+    await mcpManager.callTool('srv3', 'a', {}, 'u12');
+    await mcpManager.disconnectUser('u1');
+    assert.deepStrictEqual(clients.map((c) => c.closed), [true, false], 'u12 is another user');
+    await mcpManager.removeServer('srv3');
+});

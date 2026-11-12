@@ -185,7 +185,6 @@ async function deleteUser(userId) {
                 }
             }
         } catch (e) { fail('certificate lookups', e); }
-
         const configKeys = [
             ...perUserConfigStems().map((stem) => `${stem}_user_${userId}`),
             // Learning Center (progress blob, exercise ledger, certificates,
@@ -199,8 +198,9 @@ async function deleteUser(userId) {
         for (const key of configKeys) await configStore.deleteConfig(key);
     } catch (e) { fail('config keys', e); }
     await step('sessions', () => require('../../auth/sessionCache').bustSessionsForUser(userId));
-    // Named MCP tokens. No FK to users, so they go explicitly.
+    // Named MCP tokens (no FK to users), and the credentials entered for MCP servers with their running connections.
     await step('mcp_tokens', () => run('DELETE FROM mcp_tokens WHERE user_id = $1', [userId]));
+    await step('mcp credentials', () => require('./mcpCredentialErasure.mts').eraseMcpCredentials(userId));
     await step('cms upload tickets', () => eraseCmsUploadTickets(userId));
 
     // Notebooks. These were missed entirely: deleting a user left their
