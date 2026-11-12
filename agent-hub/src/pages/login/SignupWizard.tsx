@@ -1,7 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, AlertCircle, Globe } from 'lucide-react';
+import { ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
-import beeFlowLogo from '../../assets/bee-flow-logo.svg';
+import beeFlowIcon from '../../assets/BeeFlow-logo-Icon-2026.svg';
+import { LanguagePicker, LoginBackdrop } from './LoginChrome';
+import { LOGIN_CARD_CLASS, LOGIN_PAGE_CLASS } from './loginShared';
 
 import SignupStepOrg from './SignupStepOrg';
 import SignupStepAuth from './SignupStepAuth';
@@ -157,38 +159,20 @@ const SignupWizard = ({
         }
     };
 
-    const logoSrc = (deploymentMode === 'self-hosted' && orgLogo) ? orgLogo : beeFlowLogo;
+    const logoSrc = (deploymentMode === 'self-hosted' && orgLogo) ? orgLogo : beeFlowIcon;
 
     return (
-        <div className="min-h-screen flex items-center justify-center p-4 relative [background:linear-gradient(160deg,var(--bg-primary)_0%,var(--bg-secondary)_50%,var(--bg-tertiary)_100%)]">
-
-            {/* Animated background shapes (match the login page) */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute w-[500px] h-[500px] rounded-full opacity-[0.07] [background:radial-gradient(circle,var(--accent-primary),transparent_70%)] [top:-5%] [left:-10%] [animation:pulse_4s_ease-in-out_infinite]" />
-                <div className="absolute w-80 h-80 rounded-full opacity-[0.05] [background:radial-gradient(circle,var(--accent-secondary),transparent_70%)] [bottom:5%] [right:-5%] [animation:pulse_5s_ease-in-out_infinite_1.5s]" />
-            </div>
+        <div className={LOGIN_PAGE_CLASS}>
+            <LoginBackdrop />
 
             <div className="w-full max-w-2xl relative z-10">
-                <div className="backdrop-blur-xl rounded-3xl p-8 shadow-2xl border relative overflow-hidden bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
-                    {/* Language picker */}
-                    {availableLocales.length > 1 && (
-                        <div className="absolute top-4 right-4 z-10">
-                            <div className="relative inline-flex items-center gap-1.5 pl-2.5 pr-1 py-1.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-subtle)] hover:border-[var(--border-default)] transition-colors cursor-pointer">
-                                <Globe className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-                                <select value={locale} onChange={(e) => setLocale(e.target.value)}
-                                    className="appearance-none bg-transparent text-xs font-medium text-[var(--text-secondary)] cursor-pointer pr-4 outline-none min-w-[2rem]">
-                                    {availableLocales.map(l => (
-                                        <option key={l.code} value={l.code} className="bg-[var(--bg-secondary)]">{l.code.toUpperCase()}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
-                    )}
+                <div className={LOGIN_CARD_CLASS}>
+                    <LanguagePicker availableLocales={availableLocales} locale={locale} setLocale={setLocale} />
 
                     {/* Header */}
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="w-12 h-12 rounded-2xl overflow-hidden ring-2 ring-[var(--border-subtle)] flex items-center justify-center bg-[var(--bg-primary)] shrink-0">
-                            <img src={logoSrc} alt={t('app.shell_logo_alt', 'Bee Flow')} className="w-full h-full object-cover" />
+                    <div className="flex items-center gap-3 mb-6 pr-20">
+                        <div className="w-11 h-11 rounded-md overflow-hidden border border-[var(--border-default)] flex items-center justify-center bg-white shrink-0">
+                            <img src={logoSrc} alt={t('app.shell_logo_alt', 'Bee Flow')} className="w-7 h-7 object-contain" />
                         </div>
                         <div className="flex-1 min-w-0">
                             <h1 className="text-lg font-semibold truncate text-[var(--text-primary)]">{titleFor(step)}</h1>
@@ -319,7 +303,7 @@ const SignupWizard = ({
                         </button>
                         {step !== 'account' && (
                             <button type="button" onClick={next} disabled={!canAdvance()}
-                                className="inline-flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium text-white disabled:opacity-30 bg-[var(--accent-primary)]">
+                                className="inline-flex items-center gap-2 px-5 py-2 rounded-md text-sm font-semibold disabled:opacity-30 bg-amber-400 hover:bg-amber-500 text-stone-950 transition-colors">
                                 {t('signup.next', 'Next')} <ChevronRight className="w-4 h-4" />
                             </button>
                         )}

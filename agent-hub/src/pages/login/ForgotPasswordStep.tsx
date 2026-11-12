@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Loader2, ArrowLeft, Send, CheckCircle2 } from 'lucide-react';
+import { LINK_BUTTON_CLASS, PRIMARY_BUTTON_CLASS } from './loginShared';
 import { useTranslation } from '../../hooks/useTranslation';
 
 interface ForgotPasswordStepProps {
@@ -22,11 +23,11 @@ const ForgotPasswordStep = ({ onSubmit, onBack, isLoading, sent, inputClass, lab
     if (sent) {
         return (
             <div className="space-y-5 text-center">
-                <div className="flex justify-center"><CheckCircle2 className="w-12 h-12 text-emerald-400" /></div>
+                <div className="flex justify-center"><CheckCircle2 className="w-12 h-12 text-[var(--success)]" /></div>
                 <p className="text-sm text-[var(--text-secondary)]">
                     {t('reset.check_email', "If an account exists for that email, we've sent a password reset link. Check your inbox.")}
                 </p>
-                <button onClick={onBack} className="w-full py-2.5 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center gap-1.5">
+                <button onClick={onBack} className={LINK_BUTTON_CLASS}>
                     <ArrowLeft className="w-4 h-4" /> {t('reset.back_to_signin', 'Back to sign in')}
                 </button>
             </div>
@@ -35,7 +36,7 @@ const ForgotPasswordStep = ({ onSubmit, onBack, isLoading, sent, inputClass, lab
 
     return (
         <form onSubmit={e => { e.preventDefault(); if (email.trim()) onSubmit(email.trim()); }} className="space-y-5">
-            <p className="text-sm text-[var(--text-secondary)] text-center">
+            <p className="text-sm text-[var(--text-secondary)]">
                 {t('reset.forgot_desc', "Enter your email and we'll send you a link to reset your password.")}
             </p>
             <div>
@@ -46,10 +47,10 @@ const ForgotPasswordStep = ({ onSubmit, onBack, isLoading, sent, inputClass, lab
                 </div>
             </div>
             <button type="submit" disabled={isLoading || !email.trim()}
-                className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50 text-base shadow-lg shadow-amber-500/20">
+                className={PRIMARY_BUTTON_CLASS}>
                 {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Send className="w-5 h-5" /> {t('reset.send_link', 'Send reset link')}</>}
             </button>
-            <button type="button" onClick={onBack} className="w-full py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center justify-center gap-1.5">
+            <button type="button" onClick={onBack} className={LINK_BUTTON_CLASS}>
                 <ArrowLeft className="w-4 h-4" /> {t('reset.back_to_signin', 'Back to sign in')}
             </button>
         </form>

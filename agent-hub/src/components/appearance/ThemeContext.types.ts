@@ -39,6 +39,8 @@ interface ThemeActions {
     uploadWallpaper: (file: File | Blob) => Promise<unknown>;
     deleteWallpaper: () => Promise<void>;
     reload: () => Promise<void>;
+    /** A screen draws the document in another preset while it is mounted (null: back to the theme's own). */
+    setScreenPreset: (presetFor: ((preset: string) => string) | null) => void;
 }
 
 export type ThemeContextValue = ThemeState & ThemeActions;

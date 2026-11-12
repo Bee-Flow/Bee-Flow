@@ -1,10 +1,8 @@
 import { ShieldCheck, Loader2, ArrowLeft, KeyRound, Usb, Smartphone } from 'lucide-react';
 import React, { useState } from 'react';
 import { securityKeysSupported } from '../../api/queries/securityKeys';
+import { LINK_BUTTON_CLASS as LINK_BUTTON, PRIMARY_BUTTON_CLASS as PRIMARY_BUTTON } from './loginShared';
 import { useTranslation, type TranslateParams } from '../../hooks/useTranslation';
-
-const PRIMARY_BUTTON = 'w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50 text-base shadow-lg shadow-amber-500/20';
-const LINK_BUTTON = 'w-full py-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors flex items-center justify-center gap-1.5';
 
 /** The code field and its submit button, for an authenticator or a recovery code. */
 interface CodeEntryProps {
@@ -125,11 +123,11 @@ const MfaLoginStep = ({ onVerify, onSecurityKey, methods = ['totp'], onCancel, i
 
     return (
         <form onSubmit={submit} className="space-y-5" data-testid="mfa-login-step">
-            <div className="flex flex-col items-center text-center gap-2">
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-[var(--bg-primary)]">
+            <div className="flex flex-col gap-3">
+                <div className="w-11 h-11 rounded-md flex items-center justify-center bg-[var(--bg-tertiary)]">
                     {view === 'key'
-                        ? <Usb className="w-6 h-6 text-[var(--accent-primary)]" />
-                        : <ShieldCheck className="w-6 h-6 text-[var(--accent-primary)]" />}
+                        ? <Usb className="w-5 h-5 text-[var(--text-primary)]" />
+                        : <ShieldCheck className="w-5 h-5 text-[var(--text-primary)]" />}
                 </div>
                 <p className="text-sm text-[var(--text-secondary)]">{promptFor(view, t)}</p>
                 {keyStranded && (
@@ -152,7 +150,7 @@ const MfaLoginStep = ({ onVerify, onSecurityKey, methods = ['totp'], onCancel, i
             <button
                 type="button"
                 onClick={onCancel}
-                className="w-full py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors flex items-center justify-center gap-1.5"
+                className={LINK_BUTTON}
             >
                 <ArrowLeft className="w-4 h-4" /> {t('login.back', 'Back')}
             </button>

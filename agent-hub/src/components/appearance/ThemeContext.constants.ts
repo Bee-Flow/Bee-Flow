@@ -35,6 +35,7 @@ export const ThemeContext = createContext<ThemeContextValue>({
     uploadWallpaper: async () => {},
     deleteWallpaper: async () => {},
     reload: async () => {},
+    setScreenPreset: () => {},
 });
 
 export const THEME_PRESETS: ThemeOption[] = [

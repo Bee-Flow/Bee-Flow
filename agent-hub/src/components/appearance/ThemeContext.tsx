@@ -87,8 +87,12 @@ export function ThemeProvider({ children, initialOverride = null }: ThemeProvide
     // the document, so admin/user changes propagate immediately without
     // touching individual components. The pure application function lives in
     // `theme/applyTheme.js` so it's scannable and unit-testable.
+    // A screen may draw the document in another preset while it is mounted
+    // (the sign-in screens, pages/login/useSignInLook). Only the document
+    // changes: the saved baseline below keeps the real preset.
+    const [screenPreset, setScreenPreset] = useState<{ of: (preset: string) => string } | null>(null);
     const applyStateToDocument = useEffectEvent(() => {
-        applyThemeToDocument(state);
+        applyThemeToDocument(screenPreset ? { ...state, preset: screenPreset.of(state.preset) } : state);
         // In preview mode AND when running under an initialOverride (e.g. the
         // public embed) we MUST NOT touch the admin's bootstrap cache so the
         // saved baseline stays clean.
@@ -100,7 +104,7 @@ export function ThemeProvider({ children, initialOverride = null }: ThemeProvide
         state.wallpaperPreset, state.glassTint, state.glassLens,
         state.glassAnimation, state.glassGrain, state.glassBorder,
         state.glassTierSubtle, state.glassTierDefault, state.glassTierOpaque,
-        inPreview,
+        inPreview, screenPreset,
     ]);
 
     const reload = useCallback(async () => {
@@ -289,6 +293,8 @@ export function ThemeProvider({ children, initialOverride = null }: ThemeProvide
         await reload();
     }, [reload]);
 
+    const pinScreenPreset = useCallback((of: ((preset: string) => string) | null) => setScreenPreset(of ? { of } : null), []);
+
     const value = useMemo(() => ({
         ...state,
         setUserOverride,
@@ -297,7 +303,8 @@ export function ThemeProvider({ children, initialOverride = null }: ThemeProvide
         uploadWallpaper,
         deleteWallpaper,
         reload,
-    }), [state, setUserOverride, clearUserOverride, setAdminDefault, uploadWallpaper, deleteWallpaper, reload]);
+        setScreenPreset: pinScreenPreset,
+    }), [state, setUserOverride, clearUserOverride, setAdminDefault, uploadWallpaper, deleteWallpaper, reload, pinScreenPreset]);
 
     return (
         <ThemeContext.Provider value={value}>

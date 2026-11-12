@@ -3,6 +3,7 @@ import { User, Lock, LogIn, Loader2, Zap, UserPlus, ChevronDown, Eye, EyeOff } f
 import type { ChangeEventHandler, FormEvent } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { TranslateFn } from '../../hooks/useTranslation';
+import { LINK_BUTTON_CLASS, PRIMARY_BUTTON_CLASS, SECONDARY_BUTTON_CLASS } from './loginShared';
 import type { MicrosoftLogin } from './useAuthSettings';
 
 interface PasswordInputProps {
@@ -79,9 +80,8 @@ const MicrosoftIcon = () => (
 );
 
 /** The Microsoft buttons: the primary app and every additional tenant, each with its own text and logo. */
-const MicrosoftButtons = ({ logins, onClick, disabled, dedicated }: { logins: MicrosoftLogin[]; onClick: (id: string) => void; disabled: boolean; dedicated?: boolean }) => {
+const MicrosoftButtons = ({ logins, onClick, disabled }: { logins: MicrosoftLogin[]; onClick: (id: string) => void; disabled: boolean }) => {
     const { t } = useTranslation();
-    const sizing = dedicated ? 'py-3.5 font-semibold gap-3 shadow-md text-base' : 'py-2.5 font-medium gap-2.5 shadow-sm';
     return (
         <>
             {logins.map((login) => {
@@ -90,7 +90,7 @@ const MicrosoftButtons = ({ logins, onClick, disabled, dedicated }: { logins: Mi
                     <button key={login.id} onClick={() => onClick(login.id)} disabled={disabled}
                         data-testid={login.id === 'default' ? 'sso-microsoft-button' : `sso-microsoft-button-${login.id}`}
                         aria-label={label}
-                        className={`w-full ${sizing} bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 rounded-xl transition-all flex items-center justify-center disabled:opacity-50`}>
+                        className={SECONDARY_BUTTON_CLASS}>
                         {login.logo ? <img src={login.logo} alt="" className="h-7 w-auto max-w-[120px] object-contain" /> : <MicrosoftIcon />} {label}
                     </button>
                 );
@@ -105,7 +105,7 @@ const PasswordInput = ({ value, onChange, inputClass, placeholder = "•••�
         <div>
             <label htmlFor={id} className={labelClass}>{label}</label>
             <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-tertiary)]" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[var(--text-tertiary)] pointer-events-none" />
                 <input
                     id={id}
                     name={id}
@@ -122,7 +122,7 @@ const PasswordInput = ({ value, onChange, inputClass, placeholder = "•••�
                 <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
                     aria-label={showPassword ? 'Toggle password visibility' : 'Toggle password visibility'}
                     tabIndex={-1}
                 >
@@ -135,15 +135,10 @@ const PasswordInput = ({ value, onChange, inputClass, placeholder = "•••�
 };
 
 const Divider = ({ label }: { label: string }) => (
-    <div className="relative my-6">
-        <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t-2 border-[var(--border-subtle)]" />
-        </div>
-        <div className="relative flex justify-center">
-            <span className="px-4 bg-[var(--bg-secondary)] text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider">
-                {label}
-            </span>
-        </div>
+    <div className="flex items-center gap-3 my-6 text-xs text-[var(--text-tertiary)]">
+        <div className="flex-1 border-t border-[var(--border-default)]" />
+        {label}
+        <div className="flex-1 border-t border-[var(--border-default)]" />
     </div>
 );
 
@@ -201,6 +196,9 @@ const LoginForm = ({
         (preferredMethod !== 'microsoft' && hasMicrosoft) ||
         (preferredMethod !== 'nextcloud' && isOAuthConfigured);
 
+    // The "or continue with" divider only stands when something follows it.
+    const hasAlternatives = !!(isOAuthConfigured || isGoogleConfigured || hasMicrosoft || (allowSignups && setSignupMode));
+
     const showDedicated = !setupMode && preferredMethod && isPreferredAvailable && !showAllMethods;
 
     // ── Dedicated view for a single preferred method ──
@@ -208,11 +206,11 @@ const LoginForm = ({
         return (
             <div className="space-y-4 animate-[fadeIn_0.3s_ease-out]">
                 {preferredMethod === 'password' && allowPasswordLogin && (
-                    <form onSubmit={handlePasswordLogin} className="space-y-5" aria-label={t('login.form_label', 'Login form')}>
+                    <form onSubmit={handlePasswordLogin} className="space-y-4" aria-label={t('login.form_label', 'Login form')}>
                         <div>
                             <label htmlFor="username" className={labelClass}>{t('login.email', 'Email address')}</label>
                             <div className="relative">
-                                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-tertiary)]" />
+                                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[var(--text-tertiary)] pointer-events-none" />
                                 <input id="username" name="username" type="text" inputMode="email" value={username} onChange={(e) => setUsername(e.target.value)} className={inputClass} placeholder={t('login.enter_email', 'you@example.com')} aria-label={t('login.email', 'Email address')} data-testid="username" autoComplete="email" required />
                             </div>
                         </div>
@@ -220,12 +218,12 @@ const LoginForm = ({
                         <button type="submit" disabled={isLoading}
                             aria-label={t('login.sign_in_btn')}
                             data-testid="login-submit-button"
-                            className="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50 text-base shadow-lg shadow-amber-500/20 mt-2">
+                            className={PRIMARY_BUTTON_CLASS}>
                             {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><LogIn className="w-5 h-5" /> {t('login.sign_in_btn')}</>}
                         </button>
                         {onForgotPassword && (
                             <button type="button" onClick={onForgotPassword}
-                                className="block w-full text-center text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
+                                className={LINK_BUTTON_CLASS}>
                                 {t('login.forgot_password', 'Forgot password?')}
                             </button>
                         )}
@@ -235,7 +233,7 @@ const LoginForm = ({
                 {preferredMethod === 'google' && (
                     <button onClick={handleGoogleWithCookie} disabled={isLoading}
                         data-testid="sso-google-button"
-                        className="w-full py-3.5 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 rounded-xl font-semibold transition-all flex items-center justify-center gap-3 disabled:opacity-50 shadow-md text-base">
+                        className={SECONDARY_BUTTON_CLASS}>
                         <GoogleIcon /> {t('login.sign_in_with_google')}
                     </button>
                 )}
@@ -243,21 +241,21 @@ const LoginForm = ({
                 {preferredMethod === 'nextcloud' && (
                     <button onClick={handleOAuthWithCookie} disabled={isLoading}
                         data-testid="sso-nextcloud-button"
-                        className="w-full py-3.5 bg-[var(--bg-primary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-xl font-semibold transition-all flex items-center justify-center gap-3 disabled:opacity-50 text-base">
+                        className={SECONDARY_BUTTON_CLASS}>
                         <NextcloudIcon /> {t('login.sign_in_with_nextcloud')}
                     </button>
                 )}
 
                 {preferredMethod === 'microsoft' && (
-                    <MicrosoftButtons logins={microsoftButtons} onClick={handleMicrosoftWithCookie} disabled={isLoading} dedicated />
+                    <MicrosoftButtons logins={microsoftButtons} onClick={handleMicrosoftWithCookie} disabled={isLoading} />
                 )}
 
                 {hasOtherMethods && (
-                    <div className="pt-2">
+                    <div>
                         <button
                             onClick={() => setShowAllMethods(true)}
                             data-testid="login-other-methods"
-                            className="w-full py-2.5 text-sm text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors flex items-center justify-center gap-1.5 rounded-lg hover:bg-[var(--bg-tertiary)]"
+                            className={LINK_BUTTON_CLASS}
                         >
                             <ChevronDown className="w-4 h-4" />
                             {t('login.other_methods')}
@@ -268,7 +266,7 @@ const LoginForm = ({
                 {allowSignups && setSignupMode && (
                     <button onClick={() => { setSignupMode(true); setError(''); }}
                         data-testid="create-account-button"
-                        className="w-full py-2.5 bg-[var(--bg-primary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-default)] rounded-xl font-medium transition-all flex items-center justify-center gap-2">
+                        className={SECONDARY_BUTTON_CLASS}>
                         <UserPlus className="w-4.5 h-4.5" /> {t('login.create_account_btn')}
                     </button>
                 )}
@@ -280,12 +278,12 @@ const LoginForm = ({
     return (
         <div className={showAllMethods ? 'animate-[fadeIn_0.3s_ease-out]' : ''}>
             {(setupMode || allowPasswordLogin) && (
-                <form onSubmit={handlePasswordLogin} className="space-y-5" aria-label={t('login.form_label', 'Login form')}>
+                <form onSubmit={handlePasswordLogin} className="space-y-4" aria-label={t('login.form_label', 'Login form')}>
                     {!setupMode && (
                         <div>
                             <label htmlFor="username" className={labelClass}>{t('login.email', 'Email address')}</label>
                             <div className="relative">
-                                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-tertiary)]" />
+                                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-[var(--text-tertiary)] pointer-events-none" />
                                 <input id="username" name="username" type="text" inputMode="email" value={username} onChange={(e) => setUsername(e.target.value)} className={inputClass} placeholder={t('login.enter_email', 'you@example.com')} aria-label={t('login.email', 'Email address')} data-testid="username" autoComplete="email" required />
                             </div>
                         </div>
@@ -315,10 +313,7 @@ const LoginForm = ({
                     <button type="submit" disabled={isLoading}
                         aria-label={setupMode ? t('login.initialize_system') : t('login.sign_in_btn')}
                         data-testid="login-submit-button"
-                        className={`w-full py-3 ${setupMode
-                            ? 'bg-green-600 hover:bg-green-700'
-                            : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 shadow-lg shadow-amber-500/20'
-                            } text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50 text-base mt-2`}>
+                        className={PRIMARY_BUTTON_CLASS}>
                         {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <>
                             {setupMode ? <Zap className="w-5 h-5" /> : <LogIn className="w-5 h-5" />}
                             {setupMode ? t('login.initialize_system') : t('login.sign_in_btn')}
@@ -326,7 +321,7 @@ const LoginForm = ({
                     </button>
                     {!setupMode && onForgotPassword && (
                         <button type="button" onClick={onForgotPassword}
-                            className="block w-full text-center text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
+                            className={LINK_BUTTON_CLASS}>
                             {t('login.forgot_password', 'Forgot password?')}
                         </button>
                     )}
@@ -335,14 +330,14 @@ const LoginForm = ({
 
             {!setupMode && (
                 <>
-                    {allowPasswordLogin && <Divider label={t('login.or_continue_with')} />}
+                    {allowPasswordLogin && hasAlternatives && <Divider label={t('login.or_continue_with')} />}
 
                     <div className="space-y-3">
                         {isOAuthConfigured && (
                             <button onClick={handleOAuthWithCookie} disabled={isLoading}
                                 data-testid="sso-nextcloud-button"
                                 aria-label={t('login.sign_in_with_nextcloud')}
-                                className="w-full py-2.5 bg-[var(--bg-primary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)] border border-[var(--border-default)] rounded-xl font-medium transition-all flex items-center justify-center gap-2.5 disabled:opacity-50">
+                                className={SECONDARY_BUTTON_CLASS}>
                                 <NextcloudIcon /> {t('login.sign_in_with_nextcloud')}
                             </button>
                         )}
@@ -351,7 +346,7 @@ const LoginForm = ({
                             <button onClick={handleGoogleWithCookie} disabled={isLoading}
                                 data-testid="sso-google-button"
                                 aria-label={t('login.sign_in_with_google')}
-                                className="w-full py-2.5 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 rounded-xl font-medium transition-all flex items-center justify-center gap-2.5 disabled:opacity-50 shadow-sm">
+                                className={SECONDARY_BUTTON_CLASS}>
                                 <GoogleIcon /> {t('login.sign_in_with_google')}
                             </button>
                         )}
@@ -363,7 +358,7 @@ const LoginForm = ({
                         {allowSignups && setSignupMode && (
                             <button onClick={() => { setSignupMode(true); setError(''); }}
                                 data-testid="create-account-button"
-                                className="w-full py-2.5 bg-[var(--bg-primary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-default)] rounded-xl font-medium transition-all flex items-center justify-center gap-2">
+                                className={SECONDARY_BUTTON_CLASS}>
                                 <UserPlus className="w-4.5 h-4.5" /> {t('login.create_account_btn')}
                             </button>
                         )}
