@@ -372,8 +372,11 @@ test('a licence lookup failure fails closed', async () => {
     lic.hasFeature = async () => { throw new Error('licence server unreachable'); };
     try {
         assert.strictEqual(await isOrgEntitled('org-a'), false, 'must not hand out a paid feature on error');
-        const a = await getEncryptionAvailability('org-a');
-        assert.deepStrictEqual(a.allowedTiers, ['none']);
+        await withEnv({ MASTER_ENCRYPTION_KEY: 'x'.repeat(32) }, async () => {
+            const a = await getEncryptionAvailability('org-a');
+            assert.deepStrictEqual(a.allowedTiers, ['none', 'managed'], 'managed is on every plan; the paid tier is not handed out');
+            assert.strictEqual(a.tiers.find(t => t.tier === 'zk').blockedBy, 'entitlement');
+        });
     } finally {
         lic.hasFeature = original;
     }
