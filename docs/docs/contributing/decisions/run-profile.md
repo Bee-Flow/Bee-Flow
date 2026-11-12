@@ -44,7 +44,9 @@ in some places and not in others.
 - **Three presets.** A production run uses the configured approvers, notifies as
   configured, writes form answers and holds the automation's running marker. A test run has
   real effects, sends every approval to the tester alone (the sandbox seat), tells only the
-  tester, writes no answers and holds no marker. A dry run simulates its writes, notifies
+  tester, writes no answers and holds no marker. A test run of the live copy (an automation
+  managed by a Solution stage) keeps the configured approvers and notifies them: the seat
+  is for tests of the working copy. A dry run simulates its writes, notifies
   nobody, and pauses for real only when the caller asks for it (the web builder); otherwise
   it synthesises the answers and marks them, or takes them from a scenario or a replayed run.
 - **Readers follow the profile, not the facts.** Approval routing, notifications, the

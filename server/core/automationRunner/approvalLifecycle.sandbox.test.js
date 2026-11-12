@@ -142,6 +142,34 @@ test('a legacy test run (no stored profile) keeps the configured approvers', asy
     });
 });
 
+test('a test run of a managed automation runs its live copy: the configured chain decides, not the editor who started it', async () => {
+    const { selectRunCopy } = require('./runSetup');
+    const { configureStageVars } = require('./stageVars');
+    const { canDecide } = require('../../automation/approvalRulebook');
+    const restore = configureStageVars({ managedInfo: async () => ({ stage: 'prd' }) });
+    try {
+        const managed = { ...AUTOMATION, kind: 'automation', projectId: 'p-prd', version: 4, liveVersion: 3, definition: { steps: ['working'] } };
+        Object.defineProperty(managed, 'liveDefinition', { value: { steps: ['live'] }, enumerable: false, writable: true, configurable: true });
+        const { profile } = await selectRunCopy({ automationStore: {} }, managed,
+            { mode: 'live', triggerKind: 'manual', isTest: true, startedByUserId: 'editor' });
+        assert.equal(profile.kind, 'test');
+        assert.equal(profile.copy, 'live');
+        await withPatched(async (rec) => {
+            const row = await createApprovalOnPause({ automation: AUTOMATION, run: runWith({ profile }), err: ERR });
+            assert.ok(row);
+            const written = rec.created[0];
+            assert.notEqual(written.isTest, true);
+            assert.equal(written.sandboxUserId, undefined);
+            assert.deepEqual(written.stages.map((/** @type {any} */ s) => s.key), ['lead', 'finance', 'director']);
+            assert.equal(rec.dispatched.length, 1, 'the configured approvers are asked');
+            const approval = { ...row, status: 'pending', organizationId: 'org1' };
+            assert.equal(canDecide(approval, { userId: 'editor', groupIds: [] }), false, 'the editor holds no seat');
+            assert.equal(canDecide(approval, { userId: 'owner', groupIds: [], isOrgAdminOfOrg: () => true }), false);
+            assert.equal(canDecide(approval, { userId: 'u1', groupIds: [] }), true, 'the first stage decides');
+        });
+    } finally { restore(); }
+});
+
 test('the tester bell: one "Test:" bell for a live test run, nothing for a dry or production run', async () => {
     await withPatched(async (rec) => {
         const test = profileFor({ mode: 'live', isTest: true, startedByUserId: 'tester' }, {});
