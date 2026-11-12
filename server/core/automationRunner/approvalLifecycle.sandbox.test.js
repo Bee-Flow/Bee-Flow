@@ -150,7 +150,7 @@ test('a test run of a managed automation runs its live copy: the configured chai
     try {
         const managed = { ...AUTOMATION, kind: 'automation', projectId: 'p-prd', version: 4, liveVersion: 3, definition: { steps: ['working'] } };
         Object.defineProperty(managed, 'liveDefinition', { value: { steps: ['live'] }, enumerable: false, writable: true, configurable: true });
-        const { profile } = await selectRunCopy({ automationStore: {} }, managed,
+        const { profile } = await selectRunCopy(/** @type {any} */ ({ automationStore: {} }), managed,
             { mode: 'live', triggerKind: 'manual', isTest: true, startedByUserId: 'editor' });
         assert.equal(profile.kind, 'test');
         assert.equal(profile.copy, 'live');
