@@ -9,7 +9,7 @@
 fastapi==0.162.0
 uvicorn[standard]==0.54.0
 pydantic==2.14.1
-pydantic-settings==2.16.1
+pydantic-settings==2.16.2
 httpx==0.28.1
 redis==8.1.0
 # certifi: GHSA-6q48-6c7w-9gw2 (compromised emSign intermediates), fixed in 2026.10.19.
@@ -44,4 +44,4 @@ huggingface_hub==1.33.0
 # ONNX runtime for fp32 CPU inference (much faster than fp32 PyTorch; we do
 # NOT INT8-quantize — that collapsed person-name recall, BFSF-269)
 onnx==1.23.2
-onnxruntime==1.31.0
+onnxruntime==1.31.1
