@@ -14,8 +14,8 @@ import type { ChatMessage } from './messageTypes';
 import type { SkillSummary } from '@/hooks/useChatEngine/types';
 import ToolOutput from './ToolOutput';
 import type { ToolDecisionHandler } from './ToolConfirmCard';
-import { useMessageActions, useMessageFeedback } from './useMessageActions';
-import type { FeedbackAgent, FeedbackContext } from './useMessageActions';
+import { feedbackContextOf, useMessageActions, useMessageFeedback } from './useMessageActions';
+import type { FeedbackAgent } from './useMessageActions';
 import { useMessageEdit, useSimpleMode } from './useMessageEdit';
 import UserEditComposer from './UserEditComposer';
 import useTranslation from '@/hooks/useTranslation';
@@ -43,6 +43,8 @@ interface MessageItemProps {
     conversationId?: string | null;
     agentId?: string | null;
     chatSource?: string;
+    /** An incognito chat: feedback goes without the conversation snapshot. */
+    incognito?: boolean;
     onRetry?: (idx: number, tierKey?: string) => void;
     onEditMessage?: ((idx: number, text: string) => void) | null;
     modelTiers?: RetryModelTiers;
@@ -160,7 +162,7 @@ const MessageItem = (props: MessageItemProps) => {
     // notebooks do) wins: it already has a place for the passage to land.
     const [openCitation, setOpenCitation] = useState<unknown>(null);
     const actions = useMessageActions(msg, props.onCopy, t);
-    const feedback = useMessageFeedback(feedbackContext(props));
+    const feedback = useMessageFeedback(feedbackContextOf(props));
     const edit = useMessageEdit(idx, onEditMessage);
 
     // ToolOutput is called as a function, so its useState is this
@@ -215,12 +217,6 @@ const MessageItem = (props: MessageItemProps) => {
         </div>
     );
 };
-
-/** What the feedback hook reads, with MessageItem's defaults. */
-function feedbackContext(p: MessageItemProps): FeedbackContext {
-    const { msg, idx, allMessages = [], chatSource = 'agent' } = p;
-    return { msg, idx, selectedAgent: p.selectedAgent, conversationId: p.conversationId, agentId: p.agentId, chatSource, allMessages };
-}
 
 /** Above the bubble: the responding agent's name (multi-agent) and a guardrail warning. */
 function MessageHeader({ msg, isAssistant }: { msg: ChatMessage; isAssistant: boolean }) {

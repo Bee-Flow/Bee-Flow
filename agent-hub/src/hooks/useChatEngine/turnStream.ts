@@ -58,6 +58,21 @@ export interface TurnStreamHandlers {
     isDirectMode: boolean;
     /** Direct chats report a created/renamed conversation to the page. */
     onDirectConversation?: (info: { conversationId?: string | null; title?: string | null }) => void;
+    /**
+     * An incognito turn. The server creates no conversation for it, and the
+     * client does not take its word for that: whatever id an event carries is
+     * dropped here, before the bookkeeping and the dispatcher see it, so no
+     * created-callback, URL change or list reload can follow.
+     */
+    incognito?: boolean;
+}
+
+/** An incognito event without any conversation id; `conversation_created` is dropped whole (null). */
+function incognitoEvent(event: string, data: SseEventData): SseEventData | null {
+    if (event === 'conversation_created') return null;
+    if (!data || typeof data !== 'object' || !('conversationId' in data)) return data;
+    const { conversationId: _dropped, ...rest } = data;
+    return rest as SseEventData;
 }
 
 /**
@@ -75,23 +90,30 @@ function noteWorkItem(turn: ChatTurn, event: string, data: SseEventData): void {
     turn.workRef.current = { kind, title };
 }
 
+/**
+ * Direct-chat specific events. An incognito chat has no conversation to create
+ * or rename, and no list entry to refresh.
+ */
+function noteDirectConversation(event: string, data: SseEventData, handlers: TurnStreamHandlers): void {
+    if (!handlers.isDirectMode || handlers.incognito) return;
+    if (event === 'conversation_created' && data.conversationId) {
+        handlers.onDirectConversation?.({ conversationId: data.conversationId });
+    } else if (event === 'title' && data.title) {
+        handlers.onDirectConversation?.({ conversationId: data.conversationId, title: data.title });
+    }
+}
+
 /** Book-keep one event on the turn, then dispatch it. */
-export function applyTurnEvent(turn: ChatTurn, event: string, data: SseEventData, handlers: TurnStreamHandlers): void {
+export function applyTurnEvent(turn: ChatTurn, event: string, raw: SseEventData, handlers: TurnStreamHandlers): void {
+    const data = handlers.incognito ? incognitoEvent(event, raw) : raw;
+    if (!data) return;
     if (WORK_EVENTS.has(event)) turn.producedWork = true;
     if (event === 'done') turn.sawDone = true;
     if ((event === 'done' || event === 'conversation_created') && typeof data.conversationId === 'string') {
         turn.conversationId = data.conversationId;
     }
     noteWorkItem(turn, event, data);
-
-    // Direct-chat specific events.
-    if (handlers.isDirectMode) {
-        if (event === 'conversation_created' && data.conversationId) {
-            handlers.onDirectConversation?.({ conversationId: data.conversationId });
-        } else if (event === 'title' && data.title) {
-            handlers.onDirectConversation?.({ conversationId: data.conversationId, title: data.title });
-        }
-    }
+    noteDirectConversation(event, data, handlers);
 
     handlers.dispatch(event, data, {
         assistantMsgId: turn.assistantMsgId,

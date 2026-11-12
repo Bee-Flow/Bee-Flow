@@ -40,6 +40,16 @@ interface TurnTestChat {
     toolDecisions: Record<string, string>;
 }
 
+/**
+ * Incognito chat: nothing of the conversation is stored on the server. The
+ * session id is the one key the agent route keeps its ephemeral turn under
+ * (`testSessionId`, as the embed chat does); it is minted once per incognito
+ * session and never stored.
+ */
+export interface TurnIncognito {
+    sessionId: string;
+}
+
 export interface TurnRequestInput {
     text: string;
     attachments: ChatAttachment[];
@@ -63,6 +73,8 @@ export interface TurnRequestInput {
     /** Set only while the test chat is on. */
     testChat: TurnTestChat | null;
     getChatSignalsPayload?: (surface: ChatSignalsTurnSurface) => Record<string, unknown> | null;
+    /** Set only while an incognito chat is on (wins over a test chat). */
+    incognito?: TurnIncognito | null;
 }
 
 export interface TurnRequest {
@@ -81,22 +93,45 @@ export interface TurnRequest {
  *     from `conversation_messages` instead, which is the durable source of
  *     truth and avoids drift (stripped tool messages, page-reload gaps, etc).
  */
-function directHistory({ historyOverride, conversationId, messages }: TurnRequestInput): HistoryEntry[] | undefined {
+function directHistory({ historyOverride, conversationId, messages, incognito }: TurnRequestInput): HistoryEntry[] | undefined {
     if (historyOverride) return toHistory(historyOverride);
-    if (!conversationId) return toHistory(messages);
+    if (!conversationId || incognito) return toHistory(messages);
     return undefined;
 }
 
+/**
+ * What an incognito turn adds. The memory flags are false whatever the
+ * composer's stored mode says (the server enforces the same); an incognito
+ * turn carries no conversation id at all, the payload builders leave it out.
+ */
+function incognitoFields(incognito: TurnIncognito, isDirectMode: boolean): Record<string, unknown> {
+    return {
+        incognito: true,
+        memoryReadEnabled: false,
+        memoryWriteEnabled: false,
+        ...(isDirectMode ? {} : { testSessionId: incognito.sessionId }),
+    };
+}
+
+/**
+ * The side panels (notebook, webpage, document) are workspaces stored next to
+ * a conversation; an incognito chat has none, so it never offers them.
+ */
+function sidePanelPayload(input: TurnRequestInput): Record<string, unknown> {
+    if (input.incognito) return {};
+    return input.getNotebookPayload?.() || {};
+}
+
 function directPayload(input: TurnRequestInput, reasoningEffort: string | null): Record<string, unknown> {
-    const { text, attachments, overrideTier, directMode, conversationId, chatProjectId, activeSkillIds } = input;
+    const { text, attachments, overrideTier, directMode, conversationId, chatProjectId, activeSkillIds, incognito } = input;
     const history = directHistory(input);
     return {
         message: text,
-        conversationId,
+        ...(incognito ? {} : { conversationId }),
         modelTier: overrideTier || directMode?.modelTier || 'fast',
         attachments,
         ...(history !== undefined ? { history } : {}),
-        ...input.getNotebookPayload?.(),
+        ...sidePanelPayload(input),
         ...(directMode?.systemPrompt ? { systemPrompt: directMode.systemPrompt } : {}),
         imageGenSettings: scopedStorage.getJSON('imageGenSettings', {}),
         nanoBananaSettings: scopedStorage.getJSON('nanoBananaSettings', {}),
@@ -108,6 +143,7 @@ function directPayload(input: TurnRequestInput, reasoningEffort: string | null):
         ...(typeof directMode?.getExtraPayload === 'function' ? directMode.getExtraPayload() : {}),
         ...(Array.isArray(activeSkillIds) && activeSkillIds.length > 0 ? { activeSkillIds } : {}),
         ...(reasoningEffort ? { reasoningEffort } : {}),
+        ...(incognito ? incognitoFields(incognito, true) : {}),
     };
 }
 
@@ -138,12 +174,14 @@ function testChatFields(testChat: TurnTestChat): Record<string, unknown> {
 
 /** Agent chat: post to /agents/:id/chat/stream. */
 function agentPayload(input: TurnRequestInput, reasoningEffort: string | null): Record<string, unknown> {
-    const { text, attachments, isHidden, historyOverride, overrideTier, agentId, conversationId, chatProjectId, testChat } = input;
-    const wsPayload = input.getNotebookPayload?.() || {};
+    const { text, attachments, isHidden, historyOverride, overrideTier, agentId, conversationId, chatProjectId, incognito } = input;
+    // An incognito chat is never a test chat as well: `test: true` runs the draft.
+    const testChat = incognito ? null : input.testChat;
+    const wsPayload = sidePanelPayload(input);
     return {
         message: text,
         agentId,
-        conversationId,
+        ...(incognito ? {} : { conversationId }),
         attachments,
         isHidden,
         stream: true,
@@ -162,10 +200,13 @@ function agentPayload(input: TurnRequestInput, reasoningEffort: string | null): 
         //     zero: turn 3 cannot refer to turn 1, a held action is never
         //     proposed again and its approval is never consumed. EmbedChat, the
         //     other ephemeral surface, does the same for exactly this reason.
+        //   - Incognito: the same, for the same reason: nothing is stored, so
+        //     the history only exists in this tab.
         //   - Otherwise: no history; the server reads the durable row.
-        ...(historyOverride || testChat ? { history: toHistory(historyOverride || input.messages) } : {}),
+        ...(historyOverride || testChat || incognito ? { history: toHistory(historyOverride || input.messages) } : {}),
         ...(reasoningEffort ? { reasoningEffort } : {}),
         ...(testChat ? testChatFields(testChat) : {}),
+        ...(incognito ? incognitoFields(incognito, false) : {}),
     };
 }
 
@@ -180,14 +221,16 @@ export function buildTurnRequest(input: TurnRequestInput): TurnRequest {
     // One path for the request and for the chat-signals marker below.
     const turnPath = resolveTurnEndpoint({
         isDirectMode: input.isDirectMode,
-        customEndpoint: input.directMode?.customEndpoint,
+        // A custom endpoint (the webpage panel) stores its own state; incognito
+        // always goes to the plain direct route.
+        customEndpoint: input.incognito ? undefined : input.directMode?.customEndpoint,
         agentId: input.agentId,
     });
     const payload = input.isDirectMode ? directPayload(input, reasoningEffort) : agentPayload(input, reasoningEffort);
 
     // Chat signals: only a counted endpoint asks for the marker, and a test
     // chat is never counted, so it carries none.
-    const signalsSurface = input.testChat ? null : chatSignalsSurfaceFor(turnPath);
+    const signalsSurface = input.testChat && !input.incognito ? null : chatSignalsSurfaceFor(turnPath);
     const signalsExtra = signalsSurface ? input.getChatSignalsPayload?.(signalsSurface) ?? null : null;
     if (signalsExtra) Object.assign(payload, signalsExtra);
 

@@ -121,6 +121,8 @@ function persistStreamedImage(turn, data) {
     const imgEntry = { data: data.data, mimeType: data.mimeType };
     turn.generatedImages.push(imgEntry);
     send('image', { data: data.data, mimeType: data.mimeType });
+    // Incognito: shown inline once, never stored (there is no reload to render it for).
+    if (turn.incognito) return;
     // Save to RustFS or local disk for persistence
     try {
         const storageStore = require('../../../stores/storageStore');

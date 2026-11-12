@@ -43,7 +43,7 @@ No request schema.
 
 ### `POST /ai/chat/direct/stream`
 
-**Access:** Signed-in user
+**Access:** Signed-in user · the handler also checks who the caller is
 
 **Body**
 
@@ -73,6 +73,7 @@ No request schema.
 | `knowledgeBaseIds` | array of any or null |  |  |
 | `chatSignalsNotice` | string or null |  |  |
 | `chatSignalsOptOut` | boolean or null |  |  |
+| `incognito` | boolean or null |  |  |
 
 ### `POST /ai/chat/generate-image`
 

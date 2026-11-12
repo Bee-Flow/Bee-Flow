@@ -38,6 +38,7 @@ function agentChat(p: AgentChatProps) {
         selectedAgent, sendMessage, setActiveProject, setChatInput, setCoworkModeForAgent, setShowAgentMenu,
         setSidebarOpen, setWebpagePickerOpen, shouldForceScrollRef, showAgentMenu, sidePanelDocumentId,
         sidePanelWebpageId, stopGenerating, user, webpageButtonRef, webpagePickerOpen,
+        incognito, setIncognito, leaveIncognito,
     } = p;
     return (
         <AgentChatView
@@ -90,6 +91,9 @@ function agentChat(p: AgentChatProps) {
             onOpenActiveProject={openActiveProject}
             onLeaveActiveProject={() => setActiveProject(null)}
             chatSignals={chatSignals}
+            incognito={incognito}
+            onIncognitoChange={setIncognito}
+            onLeaveIncognito={leaveIncognito}
         />
     );
 }
@@ -106,7 +110,7 @@ function directChat(p: HubChatContentProps) {
         sendMessage, setActiveProject, setAttachedWebpageSelection, setChatInput, setCoworkMode,
         setDirectChatKBIds, setSelectedTier, setSidebarOpen, setWebpagePickerOpen, shouldForceScrollRef,
         sidePanelDocumentId, sidePanelWebpageId, stopGenerating, user, webpageButtonRefDirect,
-        webpagePickerOpen,
+        webpagePickerOpen, incognito, setIncognito, leaveIncognito,
     } = p;
     return (
         /* Direct Chat Mode */
@@ -162,6 +166,9 @@ function directChat(p: HubChatContentProps) {
             onOpenActiveProject={openActiveProject}
             onLeaveActiveProject={() => setActiveProject(null)}
             chatSignals={chatSignals}
+            incognito={incognito}
+            onIncognitoChange={setIncognito}
+            onLeaveIncognito={leaveIncognito}
         />
     );
 }

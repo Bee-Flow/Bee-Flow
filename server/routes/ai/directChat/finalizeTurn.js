@@ -126,6 +126,17 @@ async function persistTurn(t, conv) {
 }
 
 /**
+ * The end of an incognito turn: the empty-response guard, and nothing stored.
+ * @param {Turn} turn
+ * @param {{ fullContent: string, displayContent: string }} content
+ */
+async function finalizeIncognitoTurn(turn, content) {
+    const { displayContent } = await guardEmptyResponse({ ...turn, convId: null, ...content });
+    turn.clearInterruptedTurnHook?.();
+    return { convId: null, pendingTitle: null, displayContent };
+}
+
+/**
  * `turn` is the TurnState (./turnState.js) that every phase of this turn
  * shares. `fullContent` (stored, tokenised) and `displayContent` (shown) are
  * settled first; then the turn is persisted and the aftercare scheduled.
@@ -142,6 +153,10 @@ async function finalizeDirectChatTurn(turn) {
     // Safety backend was dropped. PII detection still runs on the user input;
     // output is streamed through `untokeniseStream`, which restores PII
     // tokens to real values for display.
+
+    // Incognito (core/conversation/incognito.mts): the answer is settled and
+    // shown, and nothing is kept: no row, no title, no memory extraction.
+    if (turn.incognito) return finalizeIncognitoTurn(turn, { fullContent, displayContent });
 
     const convId = await ensureConversationWithKbs(turn);
     ({ fullContent, displayContent } = await guardEmptyResponse({ ...turn, convId, fullContent, displayContent }));

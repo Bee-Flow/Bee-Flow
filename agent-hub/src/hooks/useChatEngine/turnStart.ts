@@ -26,14 +26,18 @@ export interface TurnTarget {
  * instead of killing the answer (see hooks/streamRegistry), keyed by
  * conversation so a remount finds its own stream and a second send
  * supersedes the first.
+ *
+ * An incognito turn belongs to no conversation: its key is always a pending
+ * one, so an unmount aborts its stream instead of detaching it.
  */
 export function turnTarget(
     currentConversation: { id?: string | null; project_id?: string | null; projectId?: string | null } | null | undefined,
     directMode: { conversationId?: string } | null | undefined,
     activeProject: { id?: string } | null | undefined,
+    incognito = false,
 ): TurnTarget {
     const chatProjectId = activeProject?.id || currentConversation?.project_id || currentConversation?.projectId || null;
-    const conversationId = currentConversation?.id || directMode?.conversationId;
+    const conversationId = incognito ? undefined : (currentConversation?.id || directMode?.conversationId);
     return { streamKey: conversationId || `pending:${generateMessageId()}`, chatProjectId, conversationId };
 }
 

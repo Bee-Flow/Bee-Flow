@@ -1,0 +1,16 @@
+{
+  "translations": {
+    "incognito.attachments_off": "Bijlagen staan uit in een incognitochat: een bestand zou opgeslagen moeten worden om het te kunnen lezen.",
+    "incognito.banner_body": "Wordt niet bewaard, gebruikt geen geheugen en stopt zodra je deze chat verlaat.",
+    "incognito.banner_compliance": "De compliancelogs van je organisatie (zoals het zoeklog van de kennisbank) en de gebruikstellingen blijven gelden.",
+    "incognito.banner_title": "Incognitochat",
+    "incognito.error.conversation_id": "Deze incognitochat kan niet verder. Start een nieuwe chat.",
+    "incognito.error.no_attachments": "Een incognitochat kan geen bijlagen aannemen. Haal het bestand weg of start een gewone chat.",
+    "incognito.error.unsupported_mode": "Deze modus is niet beschikbaar in een incognitochat. Kies een ander model of start een gewone chat.",
+    "incognito.memory_locked": "Geheugen staat uit in een incognitochat: er wordt niets gelezen of opgeslagen.",
+    "incognito.toggle_hint_off": "Start een incognitochat: er wordt niets bewaard en er wordt geen geheugen gebruikt",
+    "incognito.toggle_hint_on": "Incognito staat aan. Klik om het uit te zetten voordat je het eerste bericht verstuurt",
+    "incognito.toggle_label": "Incognitochat"
+  },
+  "sameAsEnglish": []
+}

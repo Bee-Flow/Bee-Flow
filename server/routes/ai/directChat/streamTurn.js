@@ -53,6 +53,7 @@ const { validate } = require('../../../core/http/validate');
 const { DirectTurnBody } = require('./turnSchema');
 const { fallback } = require('../../../utils/bestEffort');
 const { sessionUser } = require('../../../core/http/sessionUser');
+const incognitoRules = require('../../../core/conversation/incognito.mts');
 
 const TITLE_HOLD_MS = 15_000;
 
@@ -71,6 +72,8 @@ function makeInterruptedTurnPersister(turn) {
     const { req, userId } = turn;
     /** @param {string} reason */
     return async (reason) => {
+        // Incognito: there is no conversation to record it in, and none is made for it.
+        if (turn.incognito) return;
         try {
             const { buildInterruptedTurnMessages } = require('./interruptedTurn');
             const { turnAnchorId } = require('./finalizeRows');
@@ -211,6 +214,11 @@ async function releaseTurn(turn) {
 const directChatLimiter = spendLimiter({ env: 'DIRECT_CHAT_RPM', fallback: 60, name: 'direct-chat' });
 
 router.post('/chat/direct/stream', requireAuth, directChatLimiter, validate({ body: DirectTurnBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof DirectTurnBody>, import('qs').ParsedQs>} */ req, res) => {
+    // Incognito: refused combinations are a 400 before anything runs; memory
+    // is switched off on the request itself (core/conversation/incognito.mts).
+    incognitoRules.assertIncognitoRequest(req.body, 'direct');
+    incognitoRules.applyIncognitoPolicy(req.body, 'direct');
+    const incognito = incognitoRules.isIncognito(req.body);
     const { message, conversationId, modelTier, history, attachments, imageGenSettings, nanoBananaSettings, disabledMedia, webSearchEnabled = true, notebookspaceContent, notebookspaceSelection, notebookspaceAvailable, sidePanelWebpage, sidePanelDocument, projectId, timezone, systemPrompt: requestSystemPrompt, activeSkillIds, reasoningEffort: requestReasoningEffort, sessionSkills: requestSessionSkills, activatedSessionSkillIds: requestActivatedSessionSkillIds, knowledgeBaseIds: requestedKbIds, planExecution: webpagePlanExecution } = req.body;
     const userId = sessionUser(req).id;
 
@@ -251,7 +259,7 @@ router.post('/chat/direct/stream', requireAuth, directChatLimiter, validate({ bo
         message, conversationId, modelTier, history, attachments, imageGenSettings, nanoBananaSettings,
         disabledMedia, webSearchEnabled, notebookspaceContent, notebookspaceSelection, notebookspaceAvailable,
         sidePanelWebpage, sidePanelDocument, projectId, timezone, requestSystemPrompt, activeSkillIds, requestReasoningEffort,
-        requestSessionSkills, requestActivatedSessionSkillIds, requestedKbIds, webpagePlanExecution,
+        requestSessionSkills, requestActivatedSessionSkillIds, requestedKbIds, webpagePlanExecution, incognito,
     };
     const turn = createTurnState({ req, res, send, clientAbort, userId, ...body });
     Object.assign(turn, turnSetup);
@@ -299,7 +307,7 @@ router.post('/chat/direct/stream', requireAuth, directChatLimiter, validate({ bo
             answerMs: turn.streamStartTime ? Date.now() - turn.streamStartTime : null,
         });
 
-        send('done', { conversationId: turn.convId });
+        send('done', incognito ? incognitoRules.incognitoDonePayload({ conversationId: turn.convId }) : { conversationId: turn.convId });
         await holdForTitle(finalized.pendingTitle);
     } catch (error) {
         failTurnLogs(turn.queryLogs, error, turn.streamStartTime, turn.modelId);

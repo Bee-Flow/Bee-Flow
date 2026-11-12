@@ -85,6 +85,8 @@ export interface FeedbackFormProps {
     setFeedbackComment: (v: string) => void;
     includeConversation: boolean;
     setIncludeConversation: (v: boolean) => void;
+    /** False in an incognito chat: the conversation never goes along. */
+    canIncludeConversation?: boolean;
     handleFeedbackSubmit: () => void;
     handleFeedbackSkip: () => void;
 }
@@ -101,7 +103,7 @@ export function FeedbackForm(p: FeedbackFormProps) {
                 className="w-full text-xs p-2 rounded-md bg-[var(--bg-primary)] border border-[var(--border-subtle)] text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] resize-none focus:outline-none focus:border-[var(--accent-primary)] transition-colors"
                 rows={2}
             />
-            <label className="flex items-center gap-2 mt-2 cursor-pointer select-none">
+            {p.canIncludeConversation !== false && <label className="flex items-center gap-2 mt-2 cursor-pointer select-none">
                 <input
                     type="checkbox"
                     checked={p.includeConversation}
@@ -111,7 +113,7 @@ export function FeedbackForm(p: FeedbackFormProps) {
                 <span className="text-[11px] text-[var(--text-secondary)]">
                     {t('chat.msg.feedback_include', 'Include conversation')} <span className="text-[var(--text-tertiary)]">{t('chat.msg.feedback_include_hint', '— helps us reproduce the issue')}</span>
                 </span>
-            </label>
+            </label>}
             <div className="flex items-center gap-2 mt-2">
                 <button
                     onClick={p.handleFeedbackSubmit}

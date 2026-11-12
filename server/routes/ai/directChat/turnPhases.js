@@ -30,7 +30,7 @@ async function runSetupPhases(turn, body) {
     Object.assign(turn, await assembleToolStack({
         req, send, userId, conversationId, resolvedTier: turn.resolvedTier, attachments, history, disabledMedia,
         webSearchEnabled, disableSearchOnUpload: turn.disableSearchOnUpload, message, notebookspaceContent,
-        activeSkillIds, userOrgForTiers: turn.userOrgForTiers,
+        activeSkillIds, userOrgForTiers: turn.userOrgForTiers, incognito: turn.incognito,
     }));
 
     // `usableKbIds` = the attached knowledge bases this turn was actually
@@ -72,6 +72,7 @@ async function runSetupPhases(turn, body) {
     const attachmentIntake = await processAttachmentsAndUserMessage({
         req, res: turn.res, send, userId, convId: turn.convId, conversationId, modelTier, message, attachments,
         adapter: turn.adapter, modelId: turn.modelId, config: turn.config, messages: turn.messages, documentScope: turn.documentScope,
+        incognito: turn.incognito,
     });
     if (!attachmentIntake) return false;
     Object.assign(turn, attachmentIntake);

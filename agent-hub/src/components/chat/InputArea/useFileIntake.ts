@@ -31,13 +31,15 @@ interface UseFileIntakeArgs {
     setIsDragOver: (value: boolean) => void;
     fileInputRef: RefObject<HTMLInputElement | null>;
     dropZoneRef: RefObject<HTMLElement | null>;
+    /** This chat takes no files (incognito): every path in is refused here, the drop still consumed. */
+    refuse?: boolean;
 }
 
-export default function useFileIntake({ setAttachments, setIsDragOver, fileInputRef, dropZoneRef }: UseFileIntakeArgs) {
+export default function useFileIntake({ setAttachments, setIsDragOver, fileInputRef, dropZoneRef, refuse = false }: UseFileIntakeArgs) {
     const { t } = useTranslation();
     // Process files (shared between file input, drop, and paste)
     const processFiles = useCallback(async (files: File[]) => {
-        if (files.length === 0) return;
+        if (refuse || files.length === 0) return;
         const newAttachments = await buildAttachments(files, file => {
             toast.error(t('chat.attachment_too_large', { name: file.name, limit: MAX_ATTACHMENT_MB }));
         });
@@ -45,7 +47,7 @@ export default function useFileIntake({ setAttachments, setIsDragOver, fileInput
         if (newAttachments.length > 0) {
             setAttachments((prev: ComposerAttachment[]) => [...prev, ...newAttachments]);
         }
-    }, [setAttachments, t]);
+    }, [setAttachments, t, refuse]);
 
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);

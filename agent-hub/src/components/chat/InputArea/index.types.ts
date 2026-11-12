@@ -51,4 +51,11 @@ export interface InputAreaProps {
     /** Knowledge bases whose query-log notice sits under the box. Omitted: the bases picked in a direct chat. */
     kbNoticeIds?: readonly string[] | null;
     onChatSignalsCounted?: ((counted: boolean) => Promise<void> | void) | null;
+    /**
+     * Incognito chat: nothing of it is stored, so nothing that needs storing is
+     * offered. Attachments (picker, drop, paste, Drive / Gmail) are refused with
+     * the reason on the attach row, memory shows locked off, and voice mode,
+     * which runs its own session, is not offered.
+     */
+    incognito?: boolean;
 }

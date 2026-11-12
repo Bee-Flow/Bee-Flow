@@ -14,8 +14,11 @@ const MODE_KEY = 'memoryMode';
 /** The key of the old two-state switch. Still read, and still written for older code. */
 const LEGACY_WRITE_KEY = 'memoryWriteEnabled';
 
-/** Where the person has to go to change a state the composer cannot change. */
-export type MemoryLock = 'user_paused' | 'org_off' | null;
+/**
+ * Where the person has to go to change a state the composer cannot change.
+ * `incognito`: this chat is incognito, which reads and writes no memory.
+ */
+export type MemoryLock = 'user_paused' | 'org_off' | 'incognito' | null;
 
 export interface MemoryFlags {
     memoryReadEnabled: boolean;
