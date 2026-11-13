@@ -92,6 +92,20 @@ test('levels are counted separately: strict counts as noImplicitAny, both as che
     assert.deepStrictEqual([floors(dir).checkedFiles, floors(dir).noImplicitAnyFiles, floors(dir).strictFiles], [4, 3, 2]);
 });
 
+test('a .mts file counts at every level without a marker, and not when it is a test', () => {
+    const dir = sandbox({ files: { 'a.mts': 'export const a: number = 1;\n', 'b.js': PLAIN, 'c.test.mts': 'export {};\n' } });
+    run(dir);
+    assert.deepStrictEqual([floors(dir).checkedFiles, floors(dir).noImplicitAnyFiles, floors(dir).strictFiles], [1, 1, 1]);
+});
+
+test('renaming a .mts file to an unmarked .js fails the floors', () => {
+    const dir = sandbox({ files: { 'a.js': PLAIN } });
+    fs.writeFileSync(path.join(dir, 'pkg/.checkjs-ratchet.json'), JSON.stringify({ checkedFiles: 1, noImplicitAnyFiles: 1, strictFiles: 1 }));
+    const r = run(dir);
+    assert.strictEqual(r.code, 1);
+    assert.match(r.stderr, /0 files carry \/\/ @typecheck strict, the floor is 1/);
+});
+
 test('a file that drops a level fails the floor of the level it left', () => {
     const dir = sandbox({ files: { 'a.js': CHECKED, 'b.js': NIA } });
     fs.writeFileSync(path.join(dir, 'pkg/.checkjs-ratchet.json'), JSON.stringify({ checkedFiles: 2, noImplicitAnyFiles: 2, strictFiles: 0 }));

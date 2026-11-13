@@ -13,6 +13,10 @@
  * `noImplicitAnyFiles` (that level or strict) and `strictFiles`. A file that moves
  * down a level fails the floor of the level it left.
  *
+ * A `.mts` file needs no marker: typecheck.mjs always checks it, strictly, so it
+ * counts at all three levels here. Renaming one back to `.js` without a marker
+ * therefore fails the floors, like dropping the marker does.
+ *
  * Mirror image of the count ratchets: the budget is a floor, `--update` only
  * raises it.
  *
@@ -31,6 +35,8 @@ const SKIP_DIRS = new Set(['node_modules', 'coverage', 'dist', 'build']);
 const TS_CHECK = /^\s*\/\/\s*@typecheck\b/m;
 const LEVEL = /^\s*\/\/\s*@typecheck[ \t]+(noImplicitAny|strict)\b/m;
 const TEST_FILE = /\.test\.[cm]?[jt]s$/;
+/** TypeScript source: always checked at the strict level, marker or not. */
+const ALWAYS_STRICT = /\.mts$/;
 
 const args = process.argv.slice(2);
 const pkg = args.find((a) => !a.startsWith('--'));
@@ -64,6 +70,12 @@ let strict = 0;
 const unchecked = new Map();
 const files = collect(dir, []);
 for (const file of files) {
+    if (ALWAYS_STRICT.test(file)) {
+        checked++;
+        noImplicitAny++;
+        strict++;
+        continue;
+    }
     const head = fs.readFileSync(file, 'utf8').split('\n').slice(0, 30).join('\n');
     if (TS_CHECK.test(head)) {
         checked++;

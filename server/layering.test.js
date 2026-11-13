@@ -108,8 +108,9 @@ function unitOf(rel) {
     return rel.split('/')[0];
 }
 
-const CODE = /\.(c|m)?js$/;
-const TEST_CODE = /\.test\.(c|m)?js$|\.testkit\.js$/;
+// TypeScript source (.mts) is code like any other: new server files are written in it.
+const CODE = /\.(c|m)?js$|\.mts$/;
+const TEST_CODE = /\.test\.(c|m)?js$|\.test\.mts$|\.testkit\.js$/;
 
 function walk(dir, out = []) {
     for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -125,33 +126,53 @@ function walk(dir, out = []) {
 
 /** The file a relative require lands on, as Node would pick it (enough of it). */
 function resolveTarget(abs) {
-    for (const c of [abs, abs + '.js', abs + '.cjs', abs + '.json',
-        path.join(abs, 'index.js'), path.join(abs, 'index.cjs')]) {
+    for (const c of [abs, abs + '.js', abs + '.cjs', abs + '.mts', abs + '.json',
+        path.join(abs, 'index.js'), path.join(abs, 'index.cjs'), path.join(abs, 'index.mts')]) {
         try { if (fs.statSync(c).isFile()) return c; } catch { /* next candidate */ }
     }
     return abs;
 }
 
 const REQUIRE = /require\(\s*['"](\.[^'"]+)['"]\s*\)/g;
+// `import x from './y'`, `export { x } from './y'`, `import './y'` and `await import('./y')`.
+// A statement may span lines, so these run over the whole file. `import type` and
+// `export type` load nothing at run time and are not edges; neither is the
+// `import('./y').T` of a type position, which is why the dynamic form needs its `await`.
+const STATIC_IMPORT = /^[ \t]*(import|export)\b(?![ \t]+type\b)(?:[^;'"]*?\bfrom)?[ \t\n]*['"](\.[^'"]+)['"]/gm;
+const DYNAMIC_IMPORT = /\bawait[ \t]+import\(\s*['"](\.[^'"]+)['"]\s*\)/g;
 const COMMENT_LINE = /^\s*(\/\/|\*|\/\*)/;
 const posix = (p) => p.split(path.sep).join('/');
 
-/** Every relative require between two different units: { from, to, at, target }. */
+/**
+ * Every relative specifier a file loads at run time, with its line: { spec, line }.
+ * Exported for the synthetic test below.
+ * @param {string} text
+ */
+function loadsOf(text) {
+    const found = [];
+    const lineAt = (index) => text.slice(0, index).split('\n').length;
+    const lines = text.split('\n');
+    lines.forEach((line, i) => {
+        if (COMMENT_LINE.test(line)) return;
+        for (const m of line.matchAll(REQUIRE)) found.push({ spec: m[1], line: i + 1 });
+        for (const m of line.matchAll(DYNAMIC_IMPORT)) found.push({ spec: m[1], line: i + 1 });
+    });
+    for (const m of text.matchAll(STATIC_IMPORT)) found.push({ spec: m[2], line: lineAt(m.index + m[0].length) });
+    return found;
+}
+
+/** Every relative require or import between two different units: { from, to, at, target }. */
 function edges() {
     const out = [];
     for (const file of walk(ROOT)) {
         const rel = posix(path.relative(ROOT, file));
         const from = unitOf(rel);
-        const lines = fs.readFileSync(file, 'utf8').split('\n');
-        lines.forEach((line, i) => {
-            if (COMMENT_LINE.test(line)) return;
-            for (const m of line.matchAll(REQUIRE)) {
-                const target = posix(path.relative(ROOT, resolveTarget(path.resolve(path.dirname(file), m[1]))));
-                if (target.startsWith('..')) continue;
-                const to = unitOf(target);
-                if (to !== from) out.push({ from, to, at: `${rel}:${i + 1}`, target });
-            }
-        });
+        for (const { spec, line } of loadsOf(fs.readFileSync(file, 'utf8'))) {
+            const target = posix(path.relative(ROOT, resolveTarget(path.resolve(path.dirname(file), spec))));
+            if (target.startsWith('..')) continue;
+            const to = unitOf(target);
+            if (to !== from) out.push({ from, to, at: `${rel}:${line}`, target });
+        }
     }
     return out;
 }
@@ -209,6 +230,28 @@ if (require.main === module && process.argv.includes('--list')) {
         console.log(`${String(n).padStart(5)} / ${String(budget[k] ?? 0).padEnd(5)} ${k}   (${LAYERS[from]} -> ${LAYERS[to]})`);
     }
 }
+
+test('synthetic: requires and imports are edges, type-only imports and comments are not', () => {
+    const specs = (text) => loadsOf(text).map((l) => `${l.spec}:${l.line}`).sort();
+    assert.deepEqual(specs([
+        "const a = require('./a');",
+        "import b from './b.mts';",
+        "import {",
+        "    c,",
+        "} from './c.mts';",
+        "export { d } from './d.mts';",
+        "import './e.mts';",
+        "const f = await import('./f.mts');",
+    ].join('\n')), ['./a:1', './b.mts:2', './c.mts:5', './d.mts:6', './e.mts:7', './f.mts:8']);
+    assert.deepEqual(specs([
+        "import type { T } from './t.mts';",
+        "export type { U } from './u.mts';",
+        "const v: import('./v.mts').V = make();",
+        "// const w = require('./w');",
+        " * import x from './x.mts';",
+        "import fs from 'node:fs';",
+    ].join('\n')), []);
+});
 
 test('every top-level entry of server/ is classified into a layer', () => {
     const missing = [];
