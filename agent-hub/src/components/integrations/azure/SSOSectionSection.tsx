@@ -191,7 +191,7 @@ export function SSOSectionSection({ t, status, formatTimeAgo, settings, handleSy
                     {t('azure.sync_permissions_title', 'Required Azure Permissions')}
                 </p>
                 <p className="text-[11px] text-[var(--text-muted)]">
-                    {t('azure.sync_permissions_desc', 'The following Application permissions must be granted in Azure Portal → App registrations → API permissions, with admin consent:')}
+                    {t('azure.sync_permissions_desc', 'Azure AD Group Sync needs these Application permissions in Azure Portal → App registrations → API permissions, with admin consent. Without group sync, leave them off the app registration:')}
                 </p>
                 <div className="flex flex-wrap gap-1.5 mt-1">
                     {['GroupMember.Read.All', 'User.Read.All', 'Application.Read.All'].map(perm => (

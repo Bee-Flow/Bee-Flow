@@ -24,10 +24,23 @@ const MICROSOFT_SCOPES = Object.freeze([
     'Calendars.ReadWrite', 'Files.ReadWrite', 'Contacts.ReadWrite',
     // Teams meeting notes: ReadWrite to switch on recordAutomatically for a
     // meeting the user organizes, Recording to download the MP4 we transcribe.
-    'OnlineMeetings.ReadWrite', 'OnlineMeetingTranscript.Read.All', 'OnlineMeetingArtifact.Read.All',
+    'OnlineMeetings.ReadWrite', 'OnlineMeetingTranscript.Read.All',
     'OnlineMeetingRecording.Read.All',
     'offline_access',
 ]);
+
+/**
+ * Scopes outside MICROSOFT_SCOPES that a stored grant can still carry. A
+ * refresh drops them: when an Entra administrator removes one from the app
+ * registration, re-requesting it fails the refresh with a consent error.
+ */
+const RETIRED_MICROSOFT_SCOPES = Object.freeze(['onlinemeetingartifact.read.all']);
+
+/** @param {string} scope */
+function isRetiredScope(scope) {
+    const name = scope.slice(scope.lastIndexOf('/') + 1).toLowerCase();
+    return RETIRED_MICROSOFT_SCOPES.includes(name);
+}
 
 /**
  * Scope string to send on a Microsoft refresh_token grant.
@@ -38,7 +51,9 @@ const MICROSOFT_SCOPES = Object.freeze([
  * refresh that only knows about the login scopes.
  */
 function microsoftRefreshScope(grantedScope) {
-    const granted = typeof grantedScope === 'string' ? grantedScope.trim() : '';
+    const granted = typeof grantedScope === 'string'
+        ? grantedScope.split(/\s+/).filter((s) => s && !isRetiredScope(s)).join(' ')
+        : '';
     return granted || MICROSOFT_SCOPES.join(' ');
 }
 

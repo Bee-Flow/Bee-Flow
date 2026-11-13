@@ -52,7 +52,6 @@ to the app registration. The admin-consent column follows Microsoft's
 | `OnlineMeetings.ReadWrite` | Optional | No | Switching on Teams' **Record automatically** |
 | `OnlineMeetingRecording.Read.All` | **Required** | **Yes** | Meeting recordings |
 | `OnlineMeetingTranscript.Read.All` | Optional | **Yes** | Meeting transcripts |
-| `OnlineMeetingArtifact.Read.All` | Asked for by Bee Flow | No | Asked for at sign-in, not used by meeting notes |
 
 Organisation-wide Teams import (application permissions) has its own table on
 [Teams meeting notes setup](./teams-meeting-notes.md#option-b-organisation-wide).

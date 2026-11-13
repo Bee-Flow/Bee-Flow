@@ -47,6 +47,12 @@ test('refresh preserves a WIDER granted scope', () => {
     assert.match(microsoftRefreshScope(granted), /Mail\.Read\.Shared/);
 });
 
+test('least privilege: the login set no longer asks for OnlineMeetingArtifact.Read.All, and a refresh drops it from an old grant', () => {
+    assert.ok(!MICROSOFT_SCOPES.includes('OnlineMeetingArtifact.Read.All'));
+    const old = 'openid User.Read https://graph.microsoft.com/OnlineMeetingArtifact.Read.All OnlineMeetingArtifact.Read.All offline_access';
+    assert.strictEqual(microsoftRefreshScope(old), 'openid User.Read offline_access');
+});
+
 test('no file re-declares the Microsoft scope string', () => {
     // Guards the de-duplication itself: a future copy-paste fails here.
     // Kept as source text on purpose: three of these four sites already call

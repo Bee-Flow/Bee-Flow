@@ -105,6 +105,17 @@ const ROLE_MEETINGS = 'OnlineMeetings.Read.All';
 const ROLE_RECORDINGS = 'OnlineMeetingRecording.Read.All';
 const ROLE_CALENDAR = 'Calendars.Read';
 const ROLE_TRANSCRIPTS = 'OnlineMeetingTranscript.Read.All';
+/**
+ * Application permissions other Bee Flow features read with the same kind of
+ * app token: Azure AD group sync (integrations/azureGraph.js) and the Entra
+ * compliance connector (compliance/connectors/microsoft-entra.js). Anything
+ * else in the token is a permission Bee Flow never uses.
+ */
+const ROLES_USED_ELSEWHERE: readonly string[] = Object.freeze([
+    'GroupMember.Read.All', 'User.Read.All', 'Application.Read.All',
+    'AuditLog.Read.All', 'RoleManagement.Read.Directory', 'Directory.Read.All',
+]);
+const ROLES_BEE_FLOW_USES: ReadonlySet<string> = new Set([ROLE_MEETINGS, ROLE_RECORDINGS, ROLE_CALENDAR, ROLE_TRANSCRIPTS, ...ROLES_USED_ELSEWHERE]);
 
 async function probe<T>(ctx: Ctx, run: () => Promise<T>, then: (value: T) => Outcome): Promise<Outcome> {
     const r = await raceProbe(run, ctx.timeoutMs);
@@ -165,6 +176,20 @@ function roleCheck(permission: string, missingStatus: 'fail' | 'warn') {
         if (roles.includes(permission)) return { status: 'pass', code: 'ok', params: { permission } };
         return { status: missingStatus, code: 'role_missing', params: { permission }, fix: 'grant_application_permission', fixer: 'entra_admin' };
     };
+}
+
+/**
+ * Least privilege: the admin consent link approves everything on the app
+ * registration, so a permission Bee Flow never uses (a calling bot's
+ * Calls.AccessMedia.All, say) is granted tenant-wide for nothing. Named here so
+ * an Entra administrator can remove it.
+ */
+async function unusedRoles(ctx: Ctx): Promise<Outcome> {
+    const roles = ctx.token?.roles;
+    if (!Array.isArray(roles)) return { status: 'unknown', code: 'roles_unreadable', fix: null, fixer: null };
+    const unused = roles.filter((r): r is string => typeof r === 'string' && !ROLES_BEE_FLOW_USES.has(r)).sort();
+    if (unused.length === 0) return { status: 'pass', code: 'ok' };
+    return { status: 'warn', code: 'unused_roles', params: { permissions: unused.join(', '), count: unused.length }, fix: 'remove_unused_permissions', fixer: 'entra_admin' };
 }
 
 async function stateOf(ctx: Ctx): Promise<TeamsAppImportState> {
@@ -269,6 +294,7 @@ const CATALOGUE: readonly Spec[] = Object.freeze([
     { id: 'b.role_recordings', dependsOn: ['b.app_token'], run: roleCheck(ROLE_RECORDINGS, 'fail') },
     { id: 'b.role_calendar', dependsOn: ['b.app_token'], run: roleCheck(ROLE_CALENDAR, 'fail') },
     { id: 'b.role_transcripts', dependsOn: ['b.app_token'], run: roleCheck(ROLE_TRANSCRIPTS, 'warn') },
+    { id: 'b.role_unused', dependsOn: ['b.app_token'], run: unusedRoles },
     { id: 'b.enabled', dependsOn: [], run: enabled },
     { id: 'b.coverage', dependsOn: ['b.org_tenant'], run: coverageCheck },
     { id: 'b.probe_user', dependsOn: ['b.coverage', 'b.app_token'], run: probeUser },

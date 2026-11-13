@@ -264,7 +264,7 @@ interface GraphScope { name: string; adminConsent: boolean }
 export const CONNECT_SCOPES_FALLBACK: readonly GraphScope[] = Object.freeze([
     'openid', 'email', 'profile', 'User.Read', 'Mail.Read', 'Mail.Send',
     'Calendars.ReadWrite', 'Files.ReadWrite', 'Contacts.ReadWrite',
-    'OnlineMeetings.ReadWrite', 'OnlineMeetingTranscript.Read.All', 'OnlineMeetingArtifact.Read.All',
+    'OnlineMeetings.ReadWrite', 'OnlineMeetingTranscript.Read.All',
     'OnlineMeetingRecording.Read.All', 'offline_access',
     'Mail.Read.Shared', 'Mail.Send.Shared', 'Mail.ReadWrite', 'Mail.ReadWrite.Shared',
 ].map((name) => ({ name, adminConsent: name === 'OnlineMeetingRecording.Read.All' || name === 'OnlineMeetingTranscript.Read.All' })));

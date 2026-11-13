@@ -111,7 +111,7 @@ export default function SSOSection({ ssoClientId, setSsoClientId, ssoClientSecre
                     <li>{t('azure.sso_under', 'Under')} <strong>{t('azure.sso_authentication', 'Authentication')}</strong>{t('azure.sso_add_a_redirect_uri', ', add a redirect URI:')} <code className="[background:var(--bg-tertiary)] [padding:1px_4px] [border-radius:3px] [font-size:10px]">https://your-domain/auth/callback/microsoft</code></li>
                     <li>{t('azure.sso_step_4')}</li>
                     <li>{t('azure.sso_step_5')}</li>
-                    <li>{t('azure.sso_step_6', 'Under API permissions, add Application permissions: GroupMember.Read.All, User.Read.All, Application.Read.All and grant admin consent')}</li>
+                    <li>{t('azure.sso_step_6', 'Only for Azure AD Group Sync: under API permissions, add the Application permissions GroupMember.Read.All, User.Read.All and Application.Read.All and grant admin consent. Sign-in itself needs no application permissions, so leave them off when you do not sync groups')}</li>
                 </ol>
             </div>
         </SectionCard>

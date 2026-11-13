@@ -64,7 +64,7 @@ test('all good: catalogue order, every check passes, the probes use the app sess
     assert.equal(report.level, 'org_app');
     assert.deepEqual(report.checks.map((c) => c.id), [...diagnostics.APP_IMPORT_CHECK_IDS]);
     assert.deepEqual(report.checks.map((c) => c.id), ['b.instance', 'b.org_tenant', 'b.app_credentials', 'b.app_token', 'b.role_meetings',
-        'b.role_recordings', 'b.role_calendar', 'b.role_transcripts', 'b.enabled', 'b.coverage', 'b.probe_user', 'b.calendar',
+        'b.role_recordings', 'b.role_calendar', 'b.role_transcripts', 'b.role_unused', 'b.enabled', 'b.coverage', 'b.probe_user', 'b.calendar',
         'b.access_policy', 'b.recordings', 'b.transcripts']);
     for (const c of report.checks) assert.equal(c.status, 'pass', `${c.id}: ${c.code}`);
     assert.equal(report.overall, 'pass');
@@ -117,6 +117,20 @@ test('a missing role fails and skips its probe; a missing transcript role only w
     assert.equal(c['b.recordings'].status, 'skipped');
     assert.equal(c['b.transcripts'].status, 'skipped');
     assert.equal(c['b.access_policy'].status, 'pass');
+});
+
+test('application permissions Bee Flow never uses warn by name, for an Entra admin; ones other features use pass', async () => {
+    setup({ token: { ok: true, accessToken: 'fixture-access-token', roles: [...ALL_ROLES, 'GroupMember.Read.All', 'User.Read.All', 'Calls.JoinGroupCall.All', 'Calls.AccessMedia.All'], tenantId: T, clientId: CLIENT } });
+    const u = byId(await run())['b.role_unused'];
+    assert.deepEqual([u.status, u.code, u.fixer], ['warn', 'unused_roles', 'entra_admin']);
+    assert.deepEqual(u.params, { permissions: 'Calls.AccessMedia.All, Calls.JoinGroupCall.All', count: 2 });
+});
+
+test('only the permissions Bee Flow uses: the unused-permissions check passes; unreadable roles are unknown', async () => {
+    setup();
+    assert.equal(byId(await run())['b.role_unused'].status, 'pass');
+    setup({ token: { ok: true, accessToken: 'fixture-access-token', roles: null, tenantId: T, clientId: CLIENT } });
+    assert.equal(byId(await run())['b.role_unused'].code, 'roles_unreadable');
 });
 
 test('no application access policy: fail application_access_policy_missing with the client id, for a Teams admin', async () => {
