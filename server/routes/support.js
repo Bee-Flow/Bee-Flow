@@ -27,6 +27,7 @@ const express = require('express');
 const { supportEvents, renderCannedBody, notifyStaff } = require('./support/shared');
 const threads = require('./support/threads');
 const mailbox = require('./support/mailbox');
+const companyMailbox = require('./support/companyMailbox.mts');
 const aiConfig = require('./support/aiConfig');
 const tags = require('./support/tags');
 const slaPolicies = require('./support/slaPolicies');
@@ -46,6 +47,7 @@ const router = express.Router();
 
 threads.registerThreadRoutes(router);
 mailbox.register(router);
+companyMailbox.register(router);
 aiConfig.register(router);
 tags.register(router);
 threads.registerBulkRoute(router);

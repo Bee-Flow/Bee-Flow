@@ -37,8 +37,8 @@ export default function SupportInboxPanel({ focusThreadId = null }: SupportInbox
             {/* Header */}
             <SupportInboxHeader activeTotal={activeTotal} resolved={counter('resolved')} view={view} setView={setView} loading={loading} onRefresh={fetchThreads} />
 
-            {/* A mailbox is feeding this inbox — offer a way out of it. */}
-            {view === 'inbox' && mailbox?.connected && (
+            {/* Mail left behind by a mailbox nobody connected here: offer a way out of it. */}
+            {view === 'inbox' && mailbox?.connected && !mailbox.imap && (
                 <SupportMailboxBanner mailbox={mailbox} disconnecting={disconnecting} onDisconnect={disconnectMailbox} />
             )}
 

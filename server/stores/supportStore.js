@@ -41,6 +41,7 @@ module.exports = {
     appendMessage: messages.appendMessage,
     deleteMailboxThreads: threads.deleteMailboxThreads,
     getCompanyMailboxSummary: threads.getCompanyMailboxSummary,
+    findCompanyThreadByRfcMessageId: threads.findCompanyThreadByRfcMessageId,
     getThreadMessages: messages.getThreadMessages,
     countThreadsByStatus: threads.countThreadsByStatus,
     findSlaAtRiskThreads: sla.findSlaAtRiskThreads,

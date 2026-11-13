@@ -152,6 +152,8 @@ const STORE_MODULES = [
     // standalone `npm run db:migrate` would not bring the support schema current.
     { name: 'supportStore', file: './stores/supportStore' },
     { name: 'supportInboxStore', file: './stores/supportInboxStore' },
+    // The IMAP/SMTP mailbox of Bee Flow's own company support inbox (one row).
+    { name: 'supportCompanyMailboxStore', file: './stores/supportCompanyMailboxStore' },
     // App Studio — studio_apps / studio_app_versions (self-init on load).
     { name: 'studioAppStore', file: './stores/studioAppStore' },
     // App Studio v2 DATA ENGINE metadata — studio_app_data_meta / datasets /

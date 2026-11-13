@@ -94,6 +94,33 @@ async function findThreadByRfcMessageId(inboxId, rfc822MessageIds = []) {
     return t2[0] || null;
 }
 
+/**
+ * The company-inbox twin of findThreadByRfcMessageId: correlate an inbound
+ * In-Reply-To / References (or the message's own Message-ID, for dedupe)
+ * against a thread of Bee Flow's own inbox (inbox_id IS NULL).
+ * @param {string[]} rfc822MessageIds
+ */
+async function findCompanyThreadByRfcMessageId(rfc822MessageIds = []) {
+    await initDB();
+    const ids = (Array.isArray(rfc822MessageIds) ? rfc822MessageIds : [rfc822MessageIds])
+        .map(x => String(x || '').trim()).filter(Boolean);
+    if (!ids.length) return null;
+    const { rows } = await pool.query(
+        `SELECT t.* FROM support_threads t
+          JOIN support_messages m ON m.thread_id = t.id
+         WHERE t.inbox_id IS NULL AND m.rfc822_message_id = ANY($1::text[])
+         ORDER BY m.created_at DESC LIMIT 1`,
+        [ids]
+    );
+    if (rows[0]) return rows[0];
+    const { rows: t2 } = await pool.query(
+        `SELECT * FROM support_threads
+          WHERE inbox_id IS NULL AND rfc822_message_id = ANY($1::text[]) LIMIT 1`,
+        [ids]
+    );
+    return t2[0] || null;
+}
+
 async function getThread(id) {
     await initDB();
     const { rows } = await pool.query(`SELECT * FROM support_threads WHERE id = $1`, [id]);
@@ -222,6 +249,17 @@ async function updateThread(id, patch = {}) {
 }
 
 /**
+ * Mail-sourced tickets in the company inbox that no connected mailbox of its
+ * own produced: residue of a removed Support-studio inbox. A ticket the
+ * company IMAP mailbox filed (services/supportCompanyMailbox, its messages
+ * carry provider ids 'imap:<uidvalidity>:<uid>') is a real ticket and stays
+ * out of both the residue count and its purge.
+ */
+const COMPANY_MAIL_RESIDUE = `inbox_id IS NULL AND source = 'email'
+    AND NOT EXISTS (SELECT 1 FROM support_messages m
+                     WHERE m.thread_id = support_threads.id AND m.provider_message_id LIKE 'imap:%')`;
+
+/**
  * Hard-delete the tickets that came in over a mailbox. `support_messages` and
  * `support_thread_events` disappear with them (ON DELETE CASCADE);
  * `support_audit_log` deliberately survives — it is append-only, carries no FK,
@@ -244,7 +282,7 @@ async function deleteMailboxThreads({ inboxId = null, companyMailbox = false } =
     }
     if (companyMailbox) {
         const { rowCount } = await pool.query(
-            `DELETE FROM support_threads WHERE inbox_id IS NULL AND source = 'email'`
+            `DELETE FROM support_threads WHERE ${COMPANY_MAIL_RESIDUE}`
         );
         return rowCount;
     }
@@ -265,7 +303,7 @@ async function getCompanyMailboxSummary() {
                 MIN(created_at) AS first_at,
                 MAX(last_message_at) AS last_at
            FROM support_threads
-          WHERE inbox_id IS NULL AND source = 'email'`
+          WHERE ${COMPANY_MAIL_RESIDUE}`
     );
     const r = rows[0] || {};
     return {
@@ -341,6 +379,7 @@ module.exports = {
     updateThread,
     deleteMailboxThreads,
     getCompanyMailboxSummary,
+    findCompanyThreadByRfcMessageId,
     countThreadsByStatus,
     firstStaffReplyTransition,
     getThreadByRef,

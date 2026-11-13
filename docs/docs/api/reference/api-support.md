@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/support`
 
-44 routes, 25 with a request schema. Back to the [endpoint reference](../reference.md).
+48 routes, 28 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `agent`
 
@@ -139,6 +139,68 @@ No request schema.
 **Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
 
 **Body:** object (no other keys)
+
+### `PUT /api/support/mailbox/imap`
+
+**Access:** Platform admin
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `emailAddress` | string | yes | max length 320 |
+| `displayName` | string |  | max length 120 |
+| `imap` | object | yes | no other keys |
+| `imap.host` | string | yes | min length 1; max length 253 |
+| `imap.port` | integer | yes | min 1; max 65535 |
+| `imap.security` | one of `"tls"`, `"starttls"` | yes |  |
+| `imap.folder` | string |  | min length 1; max length 200 |
+| `smtp` | object | yes | no other keys |
+| `smtp.host` | string | yes | min length 1; max length 253 |
+| `smtp.port` | integer | yes | min 1; max 65535 |
+| `smtp.security` | one of `"tls"`, `"starttls"` | yes |  |
+| `username` | string | yes | min length 1; max length 320 |
+| `password` | string |  | min length 1; max length 1024 |
+| `smtpUsername` | string or null |  |  |
+| `smtpPassword` | string or null |  |  |
+| `aiAutoReply` | boolean |  |  |
+
+### `DELETE /api/support/mailbox/imap`
+
+**Access:** Platform admin
+
+No request schema.
+
+### `POST /api/support/mailbox/imap/sync`
+
+**Access:** Platform admin
+
+**Body:** object (no other keys)
+
+### `POST /api/support/mailbox/imap/test`
+
+**Access:** Platform admin · the handler also checks who the caller is
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `emailAddress` | string | yes | max length 320 |
+| `displayName` | string |  | max length 120 |
+| `imap` | object | yes | no other keys |
+| `imap.host` | string | yes | min length 1; max length 253 |
+| `imap.port` | integer | yes | min 1; max 65535 |
+| `imap.security` | one of `"tls"`, `"starttls"` | yes |  |
+| `imap.folder` | string |  | min length 1; max length 200 |
+| `smtp` | object | yes | no other keys |
+| `smtp.host` | string | yes | min length 1; max length 253 |
+| `smtp.port` | integer | yes | min 1; max 65535 |
+| `smtp.security` | one of `"tls"`, `"starttls"` | yes |  |
+| `username` | string | yes | min length 1; max length 320 |
+| `password` | string |  | min length 1; max length 1024 |
+| `smtpUsername` | string or null |  |  |
+| `smtpPassword` | string or null |  |  |
+| `aiAutoReply` | boolean |  |  |
 
 ## `notifications`
 

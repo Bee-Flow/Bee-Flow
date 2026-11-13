@@ -106,4 +106,4 @@ async function sendReply(inboxId, thread, opts = {}) {
     return { ...result, status: { ok: true, provider: inbox.provider, at: new Date().toISOString() } };
 }
 
-module.exports = { sendReply, sanitizeHtml, htmlToText, textToHtml, markdownToHtml };
+module.exports = { sendReply, sanitizeHtml, htmlToText, textToHtml, markdownToHtml, buildAiDisclosureHtml, AI_DISCLOSURE_TEXT };

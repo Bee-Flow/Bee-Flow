@@ -9,6 +9,11 @@ export const supportInboxApi = {
     thread: (id: string) => authFetch(`${API_BASE}/api/support/threads/${id}`),
     mailbox: () => authFetch(`${API_BASE}/api/support/mailbox`),
     disconnectMailbox: () => authFetch(`${API_BASE}/api/support/mailbox/disconnect`, { method: 'POST' }),
+    // The IMAP/SMTP mailbox of the company inbox (super-admin).
+    saveImapMailbox: (body: unknown) => authFetch(`${API_BASE}/api/support/mailbox/imap`, { method: 'PUT', headers: JSON_HEADERS, body: JSON.stringify(body) }),
+    testImapMailbox: (body: unknown) => authFetch(`${API_BASE}/api/support/mailbox/imap/test`, { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(body) }),
+    syncImapMailbox: () => authFetch(`${API_BASE}/api/support/mailbox/imap/sync`, { method: 'POST' }),
+    deleteImapMailbox: () => authFetch(`${API_BASE}/api/support/mailbox/imap`, { method: 'DELETE' }),
     events: (id: string) => authFetch(`${API_BASE}/api/support/threads/${id}/events`),
     sendMessage: (id: string, body: string, internalNote: boolean) => authFetch(`${API_BASE}/api/support/threads/${id}/messages`, {
         method: 'POST',

@@ -7,6 +7,7 @@
  */
 
 const supportStore = require('../../stores/supportStore');
+const companyMailboxStore = require('../../stores/supportCompanyMailboxStore');
 const { isSuperAdmin } = require('../../auth');
 
 const { requireStaffSupport, _emit } = require('./shared');
@@ -37,7 +38,10 @@ function register(router) {
     // ──────────────────────────────────────────────────────────────────────────
     router.get('/mailbox', requireStaffSupport, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
         const summary = await supportStore.getCompanyMailboxSummary();
-        res.json({ mailbox: { connected: summary.count > 0, ...summary } });
+        // `imap`: the IMAP/SMTP mailbox connected to this inbox on purpose
+        // (routes/support/companyMailbox.mts), its public half only.
+        const imap = await companyMailboxStore.getMailbox();
+        res.json({ mailbox: { connected: summary.count > 0, ...summary, imap } });
     });
 
     router.post('/mailbox/disconnect', validate({ body: NoBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
