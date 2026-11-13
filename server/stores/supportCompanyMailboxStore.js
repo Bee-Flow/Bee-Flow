@@ -14,11 +14,15 @@
  * UIDVALIDITY means the server renumbered the folder and the cursor restarts
  * at the date anchor). `sync_locked_until` is a lease the database expires by
  * itself, so a killed pod never holds the mailbox (same handshake as
- * supportInboxStore.acquireSyncLock).
+ * supportInboxStore.acquireSyncLock), held by a token so a sync whose lease
+ * expired cannot release the next holder's. `generation` goes up on every
+ * save: a sync still running for the previous settings cannot write its
+ * cursor or outcome into the new ones.
  */
 
 const { pool, exec } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
+const crypto = require('crypto');
 const { createSecretBox } = require('../utils/secretBox');
 const log = require('../telemetry/log');
 
@@ -48,6 +52,8 @@ CREATE TABLE IF NOT EXISTS support_company_mailbox (
     sync_status TEXT NOT NULL DEFAULT 'idle' CHECK (sync_status IN ('idle','error')),
     sync_error TEXT,
     sync_locked_until TIMESTAMPTZ,
+    sync_lock_token TEXT,
+    generation INT NOT NULL DEFAULT 1,
     last_sync_at TIMESTAMPTZ,
     created_by TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -81,7 +87,7 @@ const PUBLIC_COLS = `email_address, display_name, imap_host, imap_port, imap_sec
  *   createdAt: string | null, updatedAt: string | null,
  * }} CompanyMailbox
  * @typedef {{ password: string, smtpPassword?: string | null }} MailboxSecrets
- * @typedef {CompanyMailbox & { secrets: MailboxSecrets, uidValidity: string | null, lastUid: number | null, syncAfter: string }} CompanyMailboxWithSecrets
+ * @typedef {CompanyMailbox & { secrets: MailboxSecrets, uidValidity: string | null, lastUid: number | null, syncAfter: string, generation: number }} CompanyMailboxWithSecrets
  * @typedef {Record<string, unknown>} Row
  */
 
@@ -114,6 +120,8 @@ function toPublic(r) {
     };
 }
 
+const UNREADABLE = 'The stored password can no longer be read. Enter it again and save the mailbox.';
+
 /** @returns {Promise<CompanyMailbox | null>} */
 async function getMailbox() {
     await initDB();
@@ -132,13 +140,22 @@ async function getMailboxWithSecrets() {
     const r = rows[0];
     if (!r) return null;
     const secrets = _box.decrypt(String(r.encrypted_secrets || ''));
-    if (!secrets || typeof secrets.password !== 'string') return null;
+    if (!secrets || typeof secrets.password !== 'string') {
+        // SESSION_SECRET changed (or the blob is damaged): say so on the
+        // screen instead of going quiet, and let callers treat it as not connected.
+        await pool.query(
+            `UPDATE support_company_mailbox SET sync_status = 'error', sync_error = $2 WHERE id = $1 AND sync_error IS DISTINCT FROM $2`,
+            [ROW_ID, UNREADABLE],
+        );
+        return null;
+    }
     return {
         ...toPublic(r),
         secrets: { password: secrets.password, smtpPassword: typeof secrets.smtpPassword === 'string' ? secrets.smtpPassword : null },
         uidValidity: typeof r.uid_validity === 'string' ? r.uid_validity : null,
         lastUid: r.last_uid == null ? null : Number(r.last_uid),
         syncAfter: iso(r.sync_after) || new Date().toISOString(),
+        generation: Number(r.generation) || 1,
     };
 }
 
@@ -177,6 +194,7 @@ async function saveMailbox(m) {
             smtp_security = EXCLUDED.smtp_security, username = EXCLUDED.username,
             smtp_username = EXCLUDED.smtp_username, encrypted_secrets = EXCLUDED.encrypted_secrets,
             ai_auto_reply = EXCLUDED.ai_auto_reply, active = true,
+            generation = support_company_mailbox.generation + 1,
             sync_status = 'idle', sync_error = NULL, updated_at = now(),
             uid_validity = CASE WHEN ${SAME_ACCOUNT} THEN support_company_mailbox.uid_validity ELSE NULL END,
             last_uid = CASE WHEN ${SAME_ACCOUNT} THEN support_company_mailbox.last_uid ELSE NULL END,
@@ -197,48 +215,54 @@ async function deleteMailbox() {
 }
 
 /**
- * Take the sync lease; false while another tick (or pod) holds it.
+ * Take the sync lease. Returns its token, or null while another tick (or pod) holds it.
  * @param {number} ttlMinutes
- * @returns {Promise<boolean>}
+ * @returns {Promise<string | null>}
  */
 async function acquireSyncLock(ttlMinutes) {
     await initDB();
+    const token = crypto.randomUUID();
     const { rows } = await pool.query(
         `UPDATE support_company_mailbox
-            SET sync_locked_until = now() + make_interval(mins => $2::int)
+            SET sync_locked_until = now() + make_interval(mins => $2::int), sync_lock_token = $3
           WHERE id = $1 AND active = true AND (sync_locked_until IS NULL OR sync_locked_until < now())
           RETURNING id`,
-        [ROW_ID, ttlMinutes],
+        [ROW_ID, ttlMinutes, token],
     );
-    return rows.length > 0;
+    return rows.length > 0 ? token : null;
 }
 
-async function releaseSyncLock() {
+/** Release the lease, only while `token` still holds it. @param {string} token */
+async function releaseSyncLock(token) {
     await initDB();
-    await pool.query(`UPDATE support_company_mailbox SET sync_locked_until = NULL WHERE id = $1`, [ROW_ID]);
+    await pool.query(
+        `UPDATE support_company_mailbox SET sync_locked_until = NULL, sync_lock_token = NULL WHERE id = $1 AND sync_lock_token = $2`,
+        [ROW_ID, token],
+    );
 }
 
 /**
- * Move the IMAP cursor after a message was ingested (or skipped on purpose).
- * @param {{ uidValidity: string, lastUid: number }} c
+ * Move the IMAP cursor after a message was handled, for the settings
+ * `generation` the sync read; a save in between makes it a no-op.
+ * @param {{ generation: number, uidValidity: string, lastUid: number }} c
  */
-async function setCursor({ uidValidity, lastUid }) {
+async function setCursor({ generation, uidValidity, lastUid }) {
     await initDB();
     await pool.query(
-        `UPDATE support_company_mailbox SET uid_validity = $2, last_uid = $3 WHERE id = $1`,
-        [ROW_ID, uidValidity, lastUid],
+        `UPDATE support_company_mailbox SET uid_validity = $2, last_uid = $3 WHERE id = $1 AND generation = $4`,
+        [ROW_ID, uidValidity, lastUid, generation],
     );
 }
 
 /**
  * The outcome of a sync: 'idle' or 'error' (never an in-flight marker; the lease is that).
- * @param {{ status: 'idle' | 'error', error?: string | null }} s
+ * @param {{ generation: number, status: 'idle' | 'error', error?: string | null }} s
  */
-async function setSyncResult({ status, error = null }) {
+async function setSyncResult({ generation, status, error = null }) {
     await initDB();
     await pool.query(
-        `UPDATE support_company_mailbox SET sync_status = $2, sync_error = $3, last_sync_at = now() WHERE id = $1`,
-        [ROW_ID, status, error ? String(error).slice(0, 500) : null],
+        `UPDATE support_company_mailbox SET sync_status = $2, sync_error = $3, last_sync_at = now() WHERE id = $1 AND generation = $4`,
+        [ROW_ID, status, error ? String(error).slice(0, 500) : null, generation],
     );
 }
 

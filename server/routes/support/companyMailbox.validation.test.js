@@ -81,7 +81,7 @@ const STORED = {
     smtp: { host: 'smtp.example.test', port: 587, security: /** @type {const} */ ('starttls') },
     username: 'support@example.test', smtpUsername: null,
     secrets: { password: 'stored-secret', smtpPassword: null },
-    uidValidity: null, lastUid: null, syncAfter: '', syncStatus: 'idle', syncError: null, lastSyncAt: null, createdAt: null, updatedAt: null,
+    uidValidity: null, lastUid: null, syncAfter: '', generation: 1, syncStatus: 'idle', syncError: null, lastSyncAt: null, createdAt: null, updatedAt: null,
 };
 
 test('resolveConnection reuses the stored password for the same account only', () => {
@@ -97,6 +97,14 @@ test('resolveConnection reuses the stored password for the same account only', (
     const typed = companyMailbox.resolveConnection(/** @type {any} */ (BODY), STORED);
     assert.strictEqual(typed.secrets.password, 'secret');
     assert.strictEqual(typed.imap.folder, 'INBOX');
+});
+
+test('resolveConnection never sends the stored password to an SMTP host just typed in', () => {
+    const { password: _drop, ...noPassword } = BODY;
+    assert.throws(
+        () => companyMailbox.resolveConnection(/** @type {any} */ ({ ...noPassword, smtp: { ...BODY.smtp, host: 'elsewhere.example.test' } }), STORED),
+        { code: 'password_required' },
+    );
 });
 
 test('resolveConnection asks for an SMTP password when the SMTP login differs', () => {

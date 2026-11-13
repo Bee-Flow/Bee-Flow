@@ -99,11 +99,15 @@ export function resolveConnection(body: MailboxInput, stored: Awaited<ReturnType
     const smtpUsername = body.smtpUsername ? body.smtpUsername : null;
     const sameSmtp = !!stored && lower(stored.smtp.host) === lower(body.smtp.host)
         && lower(stored.smtpUsername || stored.username) === lower(smtpUsername || body.username);
-    const password = body.password ?? (sameImap ? stored?.secrets.password : undefined);
+    const separateSmtp = !!smtpUsername && lower(smtpUsername) !== lower(body.username);
+    // Without a login of its own, SMTP logs in with the mailbox password, so a
+    // stored one is reused only while the SMTP host is the stored one too.
+    const reuseStored = sameImap && (separateSmtp || lower(stored?.smtp.host || '') === lower(body.smtp.host));
+    const password = body.password ?? (reuseStored ? stored?.secrets.password : undefined);
     if (!password) throw new HttpError(400, 'password_required', 'Enter the password of the mailbox.');
     // An SMTP password of its own only when the SMTP login differs; else the IMAP one.
     let smtpPassword: string | null = null;
-    if (smtpUsername && lower(smtpUsername) !== lower(body.username)) {
+    if (separateSmtp) {
         smtpPassword = body.smtpPassword ?? (sameSmtp ? stored?.secrets.smtpPassword ?? null : null);
         if (!smtpPassword) throw new HttpError(400, 'smtp_password_required', 'Enter the password of the SMTP account.');
     } else if (body.smtpPassword) {

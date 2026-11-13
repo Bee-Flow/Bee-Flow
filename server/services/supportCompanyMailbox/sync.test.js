@@ -12,7 +12,7 @@ const assert = require('node:assert');
 
 process.env.NODE_ENV = 'test';
 
-const { normalizeParsed, pickUids, ingestCompanyMail, maskAddress } = require('./sync.mts');
+const { normalizeParsed, pickUids, ingestCompanyMail, maskAddress, headerLinesOf, freshAnchor, givesUp } = require('./sync.mts');
 const { detectAutoOrBulk } = require('../email/parse');
 
 const MAILBOX = { emailAddress: 'support@example.test', aiAutoReply: false };
@@ -60,15 +60,15 @@ function fakes({ existing = /** @type {Record<string, unknown> | null} */ (null)
 
 const norm = (/** @type {Record<string, unknown>} */ over = {}) => normalizeParsed(/** @type {any} */ (parsed(over)), { uid: 7, uidValidity: '42' });
 
-test('normalizeParsed: the requester is Reply-To when present, lower-cased; ids and headers come through', () => {
+test('normalizeParsed: the requester is From (never the unauthenticated Reply-To), lower-cased; ids and headers come through', () => {
     const n = normalizeParsed(/** @type {any} */ (parsed({
         replyTo: { value: [{ address: 'Real@Person.test', name: 'Real Person' }] },
         inReplyTo: '<prev@x>',
         references: '<a@x>  <prev@x>',
         headerLines: [{ key: 'auto-submitted', line: 'Auto-Submitted: auto-replied' }],
     })), { uid: 7, uidValidity: '42' });
-    assert.strictEqual(n.from, 'real@person.test');
-    assert.strictEqual(n.fromName, 'Real Person');
+    assert.strictEqual(n.from, 'customer@customer.test');
+    assert.strictEqual(n.fromName, 'A Customer');
     assert.strictEqual(n.providerMessageId, 'imap:42:7');
     assert.deepStrictEqual(n.references, ['<a@x>', '<prev@x>']);
     assert.strictEqual(n.getHeader('Auto-Submitted'), 'auto-replied');
@@ -145,6 +145,25 @@ test('with aiAutoReply on, a reply on a ticket a person already answered is left
     await ingestCompanyMail(norm({ messageId: '<m3@c>', inReplyTo: '<ours@example.test>' }), { ...MAILBOX, aiAutoReply: true }, /** @type {any} */ (deps));
     await new Promise((r) => setImmediate(r));
     assert.deepStrictEqual(calls.ai, []);
+});
+
+test('headerLinesOf unfolds continuation lines so the bulk checks see oversized mail too', () => {
+    const lines = headerLinesOf('From: a@b.test\r\nList-Id: <news.example>\r\nReferences: <a@x>\r\n <b@x>\r\n\r\n');
+    assert.deepStrictEqual(lines.map((h) => h.key), ['from', 'list-id', 'references']);
+    assert.strictEqual(lines[2].line, 'References: <a@x> <b@x>');
+});
+
+test('freshAnchor: the connect moment, or shortly before the last sync when that is later', () => {
+    const syncAfter = '2026-01-01T00:00:00.000Z';
+    assert.strictEqual(freshAnchor({ syncAfter, lastSyncAt: null }).toISOString(), syncAfter);
+    assert.strictEqual(freshAnchor({ syncAfter, lastSyncAt: '2026-06-01T12:00:00.000Z' }).toISOString(), '2026-06-01T11:50:00.000Z');
+});
+
+test('givesUp only on the third failure of the same message', () => {
+    assert.strictEqual(givesUp('t:1'), false);
+    assert.strictEqual(givesUp('t:1'), false);
+    assert.strictEqual(givesUp('t:1'), true);
+    assert.strictEqual(givesUp('t:1'), false, 'and starts counting again after');
 });
 
 test('maskAddress keeps a hint, never the address', () => {

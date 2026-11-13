@@ -65,7 +65,7 @@ test('the public read has no password; the secret read decrypts it', async () =>
 
 test('the cursor survives a save of the same account and restarts for another one', async () => {
     await store.saveMailbox(INPUT);
-    await store.setCursor({ uidValidity: '42', lastUid: 17 });
+    await store.setCursor({ generation: Number((await store.getMailboxWithSecrets())?.generation), uidValidity: '42', lastUid: 17 });
     await store.saveMailbox({ ...INPUT, displayName: 'Helpdesk', aiAutoReply: true });
     let full = await store.getMailboxWithSecrets();
     assert.strictEqual(full?.lastUid, 17);
@@ -76,15 +76,38 @@ test('the cursor survives a save of the same account and restarts for another on
     assert.strictEqual(full?.uidValidity, null);
 });
 
-test('the lease is exclusive until released, and deleting removes the row', async () => {
+test('the lease is exclusive, only its own token releases it, and deleting removes the row', async () => {
     await store.saveMailbox(INPUT);
-    assert.strictEqual(await store.acquireSyncLock(10), true);
-    assert.strictEqual(await store.acquireSyncLock(10), false);
-    await store.releaseSyncLock();
-    assert.strictEqual(await store.acquireSyncLock(10), true);
+    const first = await store.acquireSyncLock(10);
+    assert.ok(first);
+    assert.strictEqual(await store.acquireSyncLock(10), null);
+    await store.releaseSyncLock('not-the-holder');
+    assert.strictEqual(await store.acquireSyncLock(10), null, 'an expired sync cannot release the next holder');
+    await store.releaseSyncLock(String(first));
+    assert.ok(await store.acquireSyncLock(10));
     assert.strictEqual(await store.deleteMailbox(), true);
     assert.strictEqual(await store.getMailbox(), null);
-    assert.strictEqual(await store.acquireSyncLock(10), false, 'no mailbox, no lease');
+    assert.strictEqual(await store.acquireSyncLock(10), null, 'no mailbox, no lease');
+});
+
+test('a cursor or outcome written for older settings does not land on newer ones', async () => {
+    await store.saveMailbox(INPUT);
+    const before = await store.getMailboxWithSecrets();
+    await store.saveMailbox({ ...INPUT, imap: { ...INPUT.imap, folder: 'Support' } });
+    await store.setCursor({ generation: Number(before?.generation), uidValidity: '42', lastUid: 900 });
+    await store.setSyncResult({ generation: Number(before?.generation), status: 'error', error: 'old account' });
+    const after = await store.getMailboxWithSecrets();
+    assert.strictEqual(after?.lastUid, null);
+    assert.strictEqual(after?.syncStatus, 'idle');
+});
+
+test('a password that no longer decrypts reads as not connected and says so on the screen', async () => {
+    await store.saveMailbox(INPUT);
+    await query(`UPDATE support_company_mailbox SET encrypted_secrets = 'aa:bb:cc'`);
+    assert.strictEqual(await store.getMailboxWithSecrets(), null);
+    const mb = await store.getMailbox();
+    assert.strictEqual(mb?.syncStatus, 'error');
+    assert.match(String(mb?.syncError), /Enter it again/);
 });
 
 /**
@@ -162,5 +185,46 @@ test('sync: a failure lands on the row as an error and releases the lease', asyn
     assert.match(String(out.error), /refused/);
     const mb = await store.getMailbox();
     assert.strictEqual(mb?.syncStatus, 'error');
-    assert.strictEqual(await store.acquireSyncLock(10), true, 'lease released');
+    assert.ok(await store.acquireSyncLock(10), 'lease released');
+});
+
+test('sync: a failing ingest stops the run before the cursor; after three tries that message is skipped', async () => {
+    await store.saveMailbox(INPUT);
+    const now = new Date();
+    await query('UPDATE support_company_mailbox SET sync_after = $1', [new Date(now.getTime() - 60_000)]);
+    const imap = fakeImap({ 10: { internalDate: now }, 11: { internalDate: now } }, '7');
+    /** @type {string[]} */
+    const ingested = [];
+    const deps = {
+        open: async () => /** @type {any} */ (imap),
+        parse: async (/** @type {Buffer} */ src) => ({ messageId: `<${src.toString()}@x>`, from: { value: [{ address: 'c@customer.test' }] }, text: 'hi', headerLines: [] }),
+        ingest: async (/** @type {{ providerMessageId: string }} */ n) => {
+            if (n.providerMessageId === 'imap:7:10') throw new Error('database unavailable');
+            ingested.push(n.providerMessageId);
+            return 'created';
+        },
+    };
+    for (let i = 0; i < 2; i++) {
+        const out = await syncCompanyMailbox(/** @type {any} */ (deps));
+        assert.match(String(out.error), /database unavailable/);
+        assert.strictEqual((await store.getMailboxWithSecrets())?.lastUid, null, 'the cursor stays before the failing message');
+        assert.deepStrictEqual(ingested, [], 'and nothing after it is read past it');
+    }
+    const third = await syncCompanyMailbox(/** @type {any} */ (deps));
+    assert.deepStrictEqual(third.results, ['error', 'created']);
+    assert.strictEqual((await store.getMailboxWithSecrets())?.lastUid, 11);
+});
+
+test('sync: a message that does not parse is skipped at once, the rest goes on', async () => {
+    await store.saveMailbox(INPUT);
+    const now = new Date();
+    await query('UPDATE support_company_mailbox SET sync_after = $1', [new Date(now.getTime() - 60_000)]);
+    const imap = fakeImap({ 1: { internalDate: now }, 2: { internalDate: now } }, '8');
+    const out = await syncCompanyMailbox(/** @type {any} */ ({
+        open: async () => imap,
+        parse: async (/** @type {Buffer} */ src) => { if (src.toString() === 'uid 1') throw new Error('bad mime'); return { from: { value: [{ address: 'c@customer.test' }] }, headerLines: [] }; },
+        ingest: async () => 'created',
+    }));
+    assert.deepStrictEqual(out.results, ['skipped:unparseable', 'created']);
+    assert.strictEqual((await store.getMailboxWithSecrets())?.lastUid, 2);
 });

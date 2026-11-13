@@ -20,6 +20,9 @@
 import { createRequire } from 'node:module';
 import { openImap, type MailboxConnection } from './connection.mts';
 import { sendCompanyReply } from './send.mts';
+import { headerLinesOf, maskAddress, normalizeParsed, pickUids, type NormalizedMail, type ParsedMail } from './parse.mts';
+
+export { headerLinesOf, maskAddress, normalizeParsed, pickUids, type NormalizedMail, type ParsedMail };
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -44,84 +47,20 @@ export interface Mailbox extends MailboxConnection {
     uidValidity: string | null;
     lastUid: number | null;
     syncAfter: string;
+    lastSyncAt: string | null;
+    generation: number;
 }
 
 interface MailboxStore {
     getMailboxWithSecrets: () => Promise<Mailbox | null>;
-    acquireSyncLock: (ttl: number) => Promise<boolean>;
-    releaseSyncLock: () => Promise<void>;
-    setCursor: (c: { uidValidity: string; lastUid: number }) => Promise<void>;
-    setSyncResult: (r: { status: 'idle' | 'error'; error?: string | null }) => Promise<void>;
+    acquireSyncLock: (ttl: number) => Promise<string | null>;
+    releaseSyncLock: (token: string) => Promise<void>;
+    setCursor: (c: { generation: number; uidValidity: string; lastUid: number }) => Promise<void>;
+    setSyncResult: (r: { generation: number; status: 'idle' | 'error'; error?: string | null }) => Promise<void>;
 }
 
 const store = (): MailboxStore => nodeRequire('../../stores/supportCompanyMailboxStore.js') as MailboxStore;
 const log = nodeRequire('../../telemetry/log.js') as { info: (...a: unknown[]) => void; warn: (...a: unknown[]) => void; error: (...a: unknown[]) => void };
-
-// ── Parsing ─────────────────────────────────────────────────────────────────
-
-export interface NormalizedMail {
-    providerMessageId: string;
-    rfc822MessageId: string | null;
-    inReplyTo: string | null;
-    references: string[];
-    from: string;
-    fromName: string;
-    subject: string;
-    text: string;
-    html: string;
-    attachments: Array<{ filename: string; mimeType: string; size: number }>;
-    getHeader: (name: string) => string;
-}
-
-interface ParsedAddress { value?: Array<{ address?: string; name?: string }> }
-export interface ParsedMail {
-    messageId?: string;
-    inReplyTo?: string;
-    references?: string | string[];
-    from?: ParsedAddress;
-    replyTo?: ParsedAddress;
-    subject?: string;
-    text?: string;
-    html?: string | false;
-    attachments?: Array<{ filename?: string; contentType?: string; size?: number }>;
-    headerLines?: Array<{ key: string; line: string }>;
-}
-
-const firstAddress = (a: ParsedAddress | undefined) => a?.value?.find((v) => v.address) ?? null;
-
-/** A parsed RFC 822 message as the ingest needs it. The requester is Reply-To when there is one (contact forms), else From. */
-export function normalizeParsed(p: ParsedMail, { uid, uidValidity }: { uid: number; uidValidity: string }): NormalizedMail {
-    const lines = p.headerLines || [];
-    const getHeader = (name: string): string => {
-        const key = name.toLowerCase();
-        const hit = lines.find((h) => h.key === key);
-        if (!hit) return '';
-        const i = hit.line.indexOf(':');
-        return i < 0 ? '' : hit.line.slice(i + 1).trim();
-    };
-    const sender = firstAddress(p.replyTo) || firstAddress(p.from);
-    const refs = Array.isArray(p.references) ? p.references : String(p.references || '').split(/\s+/);
-    return {
-        providerMessageId: `imap:${uidValidity}:${uid}`,
-        rfc822MessageId: p.messageId || null,
-        inReplyTo: p.inReplyTo || null,
-        references: refs.map((r) => r.trim()).filter(Boolean),
-        from: String(sender?.address || '').toLowerCase(),
-        fromName: String(sender?.name || ''),
-        subject: String(p.subject || '').trim() || '(no subject)',
-        text: p.text || '',
-        html: typeof p.html === 'string' ? p.html : '',
-        attachments: (p.attachments || []).map((a) => ({ filename: String(a.filename || 'attachment'), mimeType: String(a.contentType || ''), size: Number(a.size) || 0 })),
-        getHeader,
-    };
-}
-
-/** The UIDs after the cursor, oldest first, at most `max` (0 = all). `n:*` also returns the newest message when it is below n. */
-export function pickUids(found: number[], lastUid: number | null, max: number): number[] {
-    const after = lastUid ?? 0;
-    const uids = Array.from(new Set(found)).filter((u) => u > after).sort((a, b) => a - b);
-    return max > 0 ? uids.slice(0, max) : uids;
-}
 
 // ── Ingest ──────────────────────────────────────────────────────────────────
 
@@ -157,13 +96,6 @@ function defaultDeps(): Deps {
         detectAutoOrBulk: (r('../email/parse.js') as { detectAutoOrBulk: Deps['detectAutoOrBulk'] }).detectAutoOrBulk,
         htmlToText: (r('../supportMailer.js') as { htmlToText: Deps['htmlToText'] }).htmlToText,
     };
-}
-
-/** The address in a staff notification: enough to recognise, not the address itself. */
-export function maskAddress(addr: string): string {
-    const at = addr.indexOf('@');
-    if (at < 1) return `${addr.slice(0, 3)}***`;
-    return `${addr.slice(0, Math.min(2, at))}***@${addr.slice(at + 1).split('.')[0].slice(0, 1)}***`;
 }
 
 const ignore = () => undefined;
@@ -271,12 +203,15 @@ export interface SyncOutcome { ran: boolean; handled: number; results: string[];
 /** One pass over the folder under the lease. Never throws: the outcome lands on the row and is returned. */
 export async function syncCompanyMailbox(deps: SyncDeps = defaultSyncDeps()): Promise<SyncOutcome> {
     const st = store();
-    if (!await st.acquireSyncLock(LOCK_TTL_MINUTES)) return { ran: false, handled: 0, results: [] };
+    const token = await st.acquireSyncLock(LOCK_TTL_MINUTES);
+    if (!token) return { ran: false, handled: 0, results: [] };
     const results: string[] = [];
     let client: Imap | null = null;
+    let generation: number | null = null;
     try {
         const mb = await st.getMailboxWithSecrets();
         if (!mb || !mb.active) return { ran: false, handled: 0, results };
+        generation = mb.generation;
         client = await deps.open(mb);
         const lock = await client.getMailboxLock(mb.imap.folder || 'INBOX', { readOnly: true });
         try {
@@ -284,15 +219,15 @@ export async function syncCompanyMailbox(deps: SyncDeps = defaultSyncDeps()): Pr
         } finally {
             lock.release();
         }
-        await st.setSyncResult({ status: 'idle' });
+        await st.setSyncResult({ generation, status: 'idle' });
         return { ran: true, handled: results.length, results };
     } catch (e) {
         const message = (e as Error).message || 'sync failed';
-        await st.setSyncResult({ status: 'error', error: message }).catch(ignore);
+        if (generation !== null) await st.setSyncResult({ generation, status: 'error', error: message }).catch(ignore);
         return { ran: true, handled: results.length, results, error: message };
     } finally {
         if (client) await client.logout().catch(ignore);
-        await st.releaseSyncLock().catch(ignore);
+        await st.releaseSyncLock(token).catch(ignore);
     }
 }
 
@@ -300,25 +235,58 @@ async function readFolder(client: Imap, mb: Mailbox, deps: SyncDeps, results: st
     const box = client.mailbox;
     const uidValidity = String(box && typeof box === 'object' ? box.uidValidity : '');
     const fresh = mb.uidValidity !== uidValidity || mb.lastUid == null;
-    const since = new Date(mb.syncAfter);
+    const since = freshAnchor(mb);
     const found = fresh
         ? await client.search({ since }, { uid: true })
         : await client.search({ uid: `${(mb.lastUid ?? 0) + 1}:*` }, { uid: true });
     const uids = pickUids(Array.isArray(found) ? found : [], fresh ? null : mb.lastUid, MAX_PER_SYNC);
     const maxBytes = MAX_MESSAGE_MB > 0 ? MAX_MESSAGE_MB * 1024 * 1024 : Infinity;
     for (const uid of uids) {
+        // A connection or database failure throws out of here with the cursor
+        // left before this message, so the next sync tries it again; the
+        // Message-ID dedupe makes a repeat harmless.
         results.push(await handleOne(client, uid, { mb, uidValidity, fresh, since, maxBytes, deps }));
-        await store().setCursor({ uidValidity, lastUid: uid });
+        await store().setCursor({ generation: mb.generation, uidValidity, lastUid: uid });
     }
+}
+
+/**
+ * Where a fresh cursor starts reading: the connect moment, or, when the
+ * server renumbered the folder later, shortly before the last sync (not the
+ * whole history since connecting).
+ */
+export function freshAnchor(mb: Pick<Mailbox, 'syncAfter' | 'lastSyncAt'>): Date {
+    const connected = new Date(mb.syncAfter).getTime();
+    const last = mb.lastSyncAt ? new Date(mb.lastSyncAt).getTime() - RESYNC_OVERLAP_MS : 0;
+    return new Date(Math.max(connected, last));
+}
+
+const RESYNC_OVERLAP_MS = 10 * 60_000;
+/** A message whose ingest keeps failing is skipped after this many tries, so it cannot block the folder. */
+const MAX_TRIES = 3;
+const failures = new Map<string, number>();
+
+/** Count a failure of `key`; true once it has failed MAX_TRIES times (and forget it then). */
+export function givesUp(key: string): boolean {
+    const n = (failures.get(key) ?? 0) + 1;
+    if (n >= MAX_TRIES) { failures.delete(key); return true; }
+    failures.set(key, n);
+    return false;
 }
 
 interface OneCtx { mb: Mailbox; uidValidity: string; fresh: boolean; since: Date; maxBytes: number; deps: SyncDeps }
 
+/**
+ * Fetch, parse and ingest one message. Fetch and ingest errors throw (the
+ * sync stops and retries later) until the same message has failed MAX_TRIES
+ * times; a message that does not parse is skipped at once.
+ */
 async function handleOne(client: Imap, uid: number, c: OneCtx): Promise<string> {
+    const key = `${c.uidValidity}:${uid}`;
     try {
-        const meta = await client.fetchOne(String(uid), { uid: true, size: true, internalDate: true, envelope: true }, { uid: true });
+        const meta = await client.fetchOne(String(uid), { uid: true, size: true, internalDate: true, envelope: true, headers: true }, { uid: true });
         if (!meta) return 'skipped:gone';
-        // SEARCH SINCE has day precision: what arrived earlier on the connect day is history.
+        // SEARCH SINCE has day precision: what arrived earlier that day is history.
         const received = meta.internalDate ? new Date(meta.internalDate) : null;
         if (c.fresh && received && received < c.since) return 'skipped:before_connect';
         let parsed: ParsedMail;
@@ -327,27 +295,38 @@ async function handleOne(client: Imap, uid: number, c: OneCtx): Promise<string> 
         } else {
             const full = await client.fetchOne(String(uid), { source: true }, { uid: true });
             if (!full || !full.source) return 'skipped:gone';
-            parsed = await c.deps.parse(full.source);
+            try {
+                parsed = await c.deps.parse(full.source);
+            } catch (e) {
+                log.warn(`[CompanyMailbox] message uid ${uid} does not parse, skipped:`, (e as Error).message);
+                return 'skipped:unparseable';
+            }
         }
-        return await c.deps.ingest(normalizeParsed(parsed, { uid, uidValidity: c.uidValidity }), c.mb);
+        const out = await c.deps.ingest(normalizeParsed(parsed, { uid, uidValidity: c.uidValidity }), c.mb);
+        failures.delete(key);
+        return out;
     } catch (e) {
-        log.warn(`[CompanyMailbox] message uid ${uid}:`, (e as Error).message);
+        if (!givesUp(key)) throw e;
+        log.error(`[CompanyMailbox] message uid ${uid} failed ${MAX_TRIES} times, skipped:`, (e as Error).message);
         return 'error';
     }
 }
 
 /** A message over the size cap: its envelope, and a line that says where the rest is. */
-function tooLarge(meta: { size?: number; envelope?: { messageId?: string; inReplyTo?: string; subject?: string; from?: Array<{ address?: string; name?: string }>; replyTo?: Array<{ address?: string; name?: string }> } }, maxBytes: number): ParsedMail {
+function tooLarge(meta: { size?: number; headers?: Buffer; envelope?: { messageId?: string; inReplyTo?: string; subject?: string; from?: Array<{ address?: string; name?: string }> } }, maxBytes: number): ParsedMail {
     const env = meta.envelope || {};
     const mb = Math.round((meta.size ?? 0) / 1024 / 1024);
+    // The headers still go through the auto-reply / list / bounce checks.
+    const headerLines = headerLinesOf(meta.headers ? meta.headers.toString('utf8') : '');
+    const refs = headerLines.find((h) => h.key === 'references');
     return {
         messageId: env.messageId,
         inReplyTo: env.inReplyTo,
+        references: refs ? refs.line.slice(refs.line.indexOf(':') + 1).trim() : undefined,
         subject: env.subject,
         from: { value: env.from || [] },
-        replyTo: { value: env.replyTo || [] },
         text: `(This message is ${mb} MB, over the import limit of ${Math.round(maxBytes / 1024 / 1024)} MB. Open it in the mailbox itself.)`,
-        headerLines: [],
+        headerLines,
     };
 }
 

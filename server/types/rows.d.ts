@@ -3541,6 +3541,7 @@ declare namespace DbRow {
         display_name: string;
         email_address: string;
         encrypted_secrets: string;
+        generation: number;
         id: string;
         imap_folder: string;
         imap_host: string;
@@ -3554,6 +3555,7 @@ declare namespace DbRow {
         smtp_username: string | null;
         sync_after: Date;
         sync_error: string | null;
+        sync_lock_token: string | null;
         sync_locked_until: Date | null;
         sync_status: string;
         uid_validity: string | null;

@@ -17,7 +17,6 @@ const nodeRequire = createRequire(import.meta.url);
 
 type Row = Record<string, unknown>;
 interface MailboxStore {
-    getMailbox: () => Promise<{ active: boolean } | null>;
     getMailboxWithSecrets: () => Promise<(import('./connection.mts').MailboxConnection & { displayName: string; active: boolean }) | null>;
 }
 interface SupportStore {
@@ -41,7 +40,9 @@ export interface CompanyThread { id: string; source?: unknown; inbox_id?: unknow
 /** Does a reply to this ticket go out over the company mailbox? */
 export async function usesCompanyMailbox(thread: CompanyThread): Promise<boolean> {
     if (thread.source !== 'email' || thread.inbox_id != null) return false;
-    const mb = await mailboxStore().getMailbox();
+    // The secret read, not the public one: a password that no longer decrypts
+    // (SESSION_SECRET rotated) means the reply falls back to the notification mail.
+    const mb = await mailboxStore().getMailboxWithSecrets();
     return !!(mb && mb.active);
 }
 
