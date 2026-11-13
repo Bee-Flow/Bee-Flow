@@ -233,22 +233,25 @@ if (require.main === module && process.argv.includes('--list')) {
 
 test('synthetic: requires and imports are edges, type-only imports and comments are not', () => {
     const specs = (text) => loadsOf(text).map((l) => `${l.spec}:${l.line}`).sort();
+    // The specifiers are spelled through `R` so that importPaths.test.js, which reads this
+    // file's text too, does not take the fixture lines for imports of this file.
+    const R = './';
     assert.deepEqual(specs([
-        "const a = require('./a');",
-        "import b from './b.mts';",
-        "import {",
-        "    c,",
-        "} from './c.mts';",
-        "export { d } from './d.mts';",
-        "import './e.mts';",
-        "const f = await import('./f.mts');",
+        `const a = require('${R}a');`,
+        `import b from '${R}b.mts';`,
+        'import {',
+        '    c,',
+        `} from '${R}c.mts';`,
+        `export { d } from '${R}d.mts';`,
+        `import '${R}e.mts';`,
+        `const f = await import('${R}f.mts');`,
     ].join('\n')), ['./a:1', './b.mts:2', './c.mts:5', './d.mts:6', './e.mts:7', './f.mts:8']);
     assert.deepEqual(specs([
-        "import type { T } from './t.mts';",
-        "export type { U } from './u.mts';",
-        "const v: import('./v.mts').V = make();",
-        "// const w = require('./w');",
-        " * import x from './x.mts';",
+        `import type { T } from '${R}t.mts';`,
+        `export type { U } from '${R}u.mts';`,
+        `const v: import('${R}v.mts').V = make();`,
+        `// const w = require('${R}w');`,
+        ` * import x from '${R}x.mts';`,
         "import fs from 'node:fs';",
     ].join('\n')), []);
 });
