@@ -515,10 +515,11 @@ router.post('/:id/deactivate', validate({ body: NoBody }), async (/** @type {imp
         const grants = await cs.listGrants({});
         for (const g of grants) {
             if (g.provider === provider && g.grantee_type === 'org') {
-                await cs.revokeGrant(g.id).catch(() => {});
+                // The integration is already disabled; a lend that could not be revoked is left behind, so say so (ids only).
+                await cs.revokeGrant(g.id).catch((/** @type {unknown} */ err) => log.warn('[orgIntegrations] deactivate: an org-wide lend was not revoked', { integrationId: row.id, grantId: g.id, error: /** @type {Error} */ (err)?.message }));
             }
         }
-    } catch (err) { log.debug('best effort', err); }
+    } catch (err) { log.warn('[orgIntegrations] deactivate: the org-wide lends could not be listed for revocation', { integrationId: row.id, error: /** @type {Error} */ (err)?.message }); }
 
     await invalidateCaches(req.params.orgId);
     await audit(req, 'deactivate', row.id, { status: row.status }, { status: 'disabled' });

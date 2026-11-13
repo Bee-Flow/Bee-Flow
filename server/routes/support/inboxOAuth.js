@@ -14,6 +14,17 @@ const providerClients = require('../../services/email/providerClients');
 const { resolveOrgScope, loadInboxInScope } = require('./inboxScope');
 const { oauthClosePage: _oauthClosePage, serviceEmailClosePage: _serviceEmailClosePage } = require('./oauthClosePage');
 const { fallback } = require('../../utils/bestEffort');
+const { HttpError } = require('../../core/http/errors');
+
+/**
+ * What the popup may say about a connect that failed: the sentence of an error written for the
+ * client (HttpError), else a fixed one. The cause (a provider's token answer, a database error)
+ * goes to the log, not into the page.
+ * @param {unknown} err
+ */
+function failureText(err) {
+    return err instanceof HttpError ? err.message : 'The mailbox could not be connected. Try again; if it keeps failing, the server log has the cause.';
+}
 
 /**
  * Build the OAuth callback URL. Mirrors the login flow (server/auth/oauthRoutes.js):
@@ -67,7 +78,7 @@ async function _handleServiceEmailCallback(req, res) {
     } catch (err) {
         log.error('[ServiceEmail] oauth/callback error:', /** @type {Error} */ (err).message);
         delete req.session.serviceEmailConnect;
-        res.status(500).send(_serviceEmailClosePage(false, /** @type {Error} */ (err).message));
+        res.status(500).send(_serviceEmailClosePage(false, failureText(err)));
     }
 }
 
@@ -122,7 +133,7 @@ async function oauthCallback(req, res) {
         res.send(_oauthClosePage(true));
     } catch (err) {
         log.error('[SupportInbox] oauth/callback error:', /** @type {Error} */ (err).message);
-        res.status(500).send(_oauthClosePage(false, /** @type {Error} */ (err).message));
+        res.status(500).send(_oauthClosePage(false, failureText(err)));
     }
 }
 

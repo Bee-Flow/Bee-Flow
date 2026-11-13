@@ -61,7 +61,7 @@ const runner = require('./automationRunner');
     try {
         await runner.runPartial({ id: 'a', userId: 'u', definition: { trigger: { id: 't', type: 'trigger' }, steps: [] } }, 'does-not-exist');
     } catch (e) {
-        threw = e.message.includes('not found in definition');
+        threw = e.status === 404 && e.code === 'step_not_found';
     }
     assert.ok(threw, 'runPartial rejects when stepId is missing from definition');
 

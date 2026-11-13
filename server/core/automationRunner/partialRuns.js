@@ -31,6 +31,7 @@ const { runTriggerOnly } = require('./partialTriggerRun');
 const { replayedTriggerPayload, enteredTriggerOf, rootReaching } = require('./partialRunEntry.mts');
 const { runVarsFor, isManagedAutomation } = require('./stageVars');
 const { bestEffort } = require('../../utils/bestEffort');
+const { HttpError } = require('../http/errors');
 
 // The init seam for what a partial run hands its synthetic to and seeds its
 // replay from. Production never sets it; a test captures the synthetic here
@@ -525,7 +526,8 @@ async function runPartial(automation, stepId, { mode = 'only', triggerKind = 'ma
         if (inLayer) {
             return runPartialInLayer(automation, inLayer, layerTargetId, { mode, triggerKind, triggerPayload, recordPrefix, startedByUserId, seed, onRunCreated });
         }
-        throw new Error(`runPartial: step ${stepId} not found in definition`);
+        // The id comes from the caller (the canvas, a builder tool): a 404 they can read, not a 500.
+        throw new HttpError(404, 'step_not_found', 'Step not found in this automation.');
     }
 
     // "Run up to here" — a plain live run of the flow that stops once this

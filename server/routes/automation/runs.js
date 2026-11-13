@@ -237,19 +237,13 @@ router.get('/:id/steps/:stepId/rerun-plan', validate({ query: RerunPlanQuery }),
     const runner = require('../../core/automationRunner');
     const entered = resolveTriggerStepId(await entryDefinitionOf(a), req.query.triggerStepId);
     if (entered.error) return res.status(400).json({ error: entered.error });
-    let rerunPlan;
-    try {
-        rerunPlan = await runner.planPartialRun(a, req.params.stepId, {
-            mode: req.query.mode,
-            rootStepId: entered.rootStepId,
-            startedByUserId: req.session.user.id,
-            seedRunId: req.query.seedRunId,
-        });
-    } catch (e) {
-        // runPartial names a step it cannot find in a plain Error.
-        if (/not found in definition/.test(/** @type {Error} */ (e)?.message || '')) throw new HttpError(404, 'step_not_found', 'Step not found in this automation.');
-        throw e;
-    }
+    // A step the definition does not hold is runPartial's own 404 (step_not_found).
+    const rerunPlan = await runner.planPartialRun(a, req.params.stepId, {
+        mode: req.query.mode,
+        rootStepId: entered.rootStepId,
+        startedByUserId: req.session.user.id,
+        seedRunId: req.query.seedRunId,
+    });
     res.json({ rerunPlan });
 });
 
