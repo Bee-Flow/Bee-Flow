@@ -36,6 +36,12 @@ const ACCOUNT_MIGRATIONS = [
     // group gets for themselves (not a shared pot). NULL = no limit.
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS "monthly_cost_limit" REAL`,
     `ALTER TABLE groups ADD COLUMN IF NOT EXISTS "per_user_cost_limit" REAL`,
+    // Images a user may generate per rolling hour/day/week/month, as JSON text
+    // (`{"hour":5,"day":20}`; core/entitlements/imageLimit.mts). The user's own,
+    // a per-member limit on a group, and the organisation's default. NULL = not set.
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS "image_limits" TEXT`,
+    `ALTER TABLE groups ADD COLUMN IF NOT EXISTS "per_user_image_limits" TEXT`,
+    `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS "image_limits" TEXT`,
     // Org lifecycle state. 'active' is the default; 'suspended' blocks all
     // mutations (read-only) and is used for payment disputes / ToS holds;
     // 'archived' hides the org from listings and locks reads to owners.

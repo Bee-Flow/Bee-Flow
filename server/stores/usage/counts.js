@@ -126,4 +126,38 @@ async function getStudioAppRunCounts(appIds, { window = 'month', db = null } = {
     return out;
 }
 
-module.exports = { TEST_CHAT_SOURCE, STUDIO_APP_ACTION_SOURCE, RUN_COUNT_WINDOWS, getTestChatCounts, getStudioAppRunCounts };
+// The source every image generation logs under (core/media/imageGeneration.mts).
+const IMAGE_GENERATION_SOURCE = 'image_generation';
+
+/**
+ * How many images one user generated in the last hour, day, week and month
+ * (rolling windows ending at `now`), for the image limits. One row is one
+ * image: a generation is logged only after it produced an image.
+ *
+ * @param {string} userId
+ * @param {{ hour: number, day: number, week: number, month: number }} windowMs  the length of each window
+ * @param {{ now?: Date, db?: DbQueryable | null }} [opts]  db: injection point for the tests
+ * @returns {Promise<{ hour: number, day: number, week: number, month: number }>}
+ */
+async function getUserImageCounts(userId, windowMs, { now = new Date(), db = null } = {}) {
+    const since = (/** @type {number} */ ms) => new Date(now.getTime() - ms).toISOString();
+    const sql = `
+        SELECT COUNT(*) FILTER (WHERE timestamp >= $3) AS hour,
+               COUNT(*) FILTER (WHERE timestamp >= $4) AS day,
+               COUNT(*) FILTER (WHERE timestamp >= $5) AS week,
+               COUNT(*) AS month
+        FROM ai_usage_log
+        WHERE user_id = $1 AND source = $2 AND timestamp >= $6`;
+    const params = [userId, IMAGE_GENERATION_SOURCE, since(windowMs.hour), since(windowMs.day), since(windowMs.week), since(windowMs.month)];
+    let rows;
+    if (db && typeof db.query === 'function') {
+        rows = (await db.query(sql, params)).rows || [];
+    } else {
+        await initDB();
+        rows = await getAll(sql, params);
+    }
+    const row = rows[0] || {};
+    return { hour: Number(row.hour || 0), day: Number(row.day || 0), week: Number(row.week || 0), month: Number(row.month || 0) };
+}
+
+module.exports = { IMAGE_GENERATION_SOURCE, getUserImageCounts, TEST_CHAT_SOURCE, STUDIO_APP_ACTION_SOURCE, RUN_COUNT_WINDOWS, getTestChatCounts, getStudioAppRunCounts };

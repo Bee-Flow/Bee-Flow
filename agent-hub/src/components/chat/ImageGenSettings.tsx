@@ -1,7 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Settings, X, Check } from 'lucide-react';
+import React, { useRef, useEffect } from 'react';
+import { X, Check } from 'lucide-react';
 import scopedStorage from '../../utils/scopedStorage';
 import useTranslation from '../../hooks/useTranslation';
+import type { ImageModelOption } from '../../api/queries/composerSettings';
+import { limitedWindows, type ImageLimitWindow, type ImageQuota } from '../../utils/imageLimits';
+import { imageModelOptions, selectedImageModel } from './imageModelChoice';
 
 const ASPECT_RATIOS = [
     { label: '1:1', value: '1:1', icon: '⬛' },
@@ -11,12 +14,20 @@ const ASPECT_RATIOS = [
     { label: '3:4', value: '3:4', icon: '📋' },
 ];
 
-const MODELS = [
-    { label: 'Flash Image (Fast)', value: 'gemini-3.1-flash-image-preview' },
-    { label: 'Pro Image (Quality)', value: 'gemini-3-pro-image-preview' },
-];
-
 const STORAGE_KEY = 'imageGenSettings';
+
+/** One line per limited window; each is a whole sentence so a language can word the window its own way. */
+const QUOTA_LINES: Record<ImageLimitWindow, { key: string; en: string }> = {
+    hour: { key: 'image_limits.quota_hour', en: '{used} of {limit} images used in the last hour' },
+    day: { key: 'image_limits.quota_day', en: '{used} of {limit} images used in the last 24 hours' },
+    week: { key: 'image_limits.quota_week', en: '{used} of {limit} images used in the last 7 days' },
+    month: { key: 'image_limits.quota_month', en: '{used} of {limit} images used in the last 30 days' },
+};
+
+const CHOICE_ON = 'bg-[rgba(66,133,244,0.1)] text-[#4285f4] border-[rgba(66,133,244,0.25)]';
+const CHOICE_OFF = 'bg-transparent text-[var(--text-secondary)] border-[var(--border-subtle)]';
+const RATIO_ON = 'bg-[rgba(66,133,244,0.15)] text-[#4285f4] border-[rgba(66,133,244,0.3)]';
+const RATIO_OFF = 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] border-[var(--border-subtle)]';
 
 interface ImageGenSettingsValues {
     aspectRatio?: string;
@@ -29,6 +40,10 @@ interface Props {
     anchorRef?: React.RefObject<HTMLElement | null>;
     settings: ImageGenSettingsValues;
     onSettingsChange: (settings: ImageGenSettingsValues) => void;
+    /** The models the server offers; absent or empty = the two Google models. */
+    imageModels?: readonly ImageModelOption[] | null;
+    /** The user's image limits and what is used; null = no limit. */
+    imageQuota?: ImageQuota | null;
 }
 
 function loadSettings() {
@@ -39,7 +54,23 @@ function saveSettings(settings: ImageGenSettingsValues) {
     scopedStorage.setJSON(STORAGE_KEY, settings);
 }
 
-const ImageGenSettings = ({ isOpen, onClose, anchorRef, settings, onSettingsChange }: Props) => {
+/** "3 of 5 images used in the last 24 hours", one line per limited window; nothing without a limit. */
+function ImageQuotaLines({ quota }: { quota: ImageQuota | null | undefined }) {
+    const { t } = useTranslation();
+    const rows = limitedWindows(quota);
+    if (rows.length === 0) return null;
+    return (
+        <div className="space-y-0.5" role="status">
+            {rows.map(({ window, limit, used }) => (
+                <p key={window} className={`text-[11px] ${used >= limit ? 'text-[var(--warning-ink)] font-medium' : 'text-[var(--text-muted)]'}`}>
+                    {t(QUOTA_LINES[window].key, QUOTA_LINES[window].en, { used, limit })}
+                </p>
+            ))}
+        </div>
+    );
+}
+
+const ImageGenSettings = ({ isOpen, onClose, anchorRef, settings, onSettingsChange, imageModels, imageQuota }: Props) => {
     const { t } = useTranslation();
     const panelRef = useRef<HTMLDivElement>(null);
 
@@ -59,7 +90,8 @@ const ImageGenSettings = ({ isOpen, onClose, anchorRef, settings, onSettingsChan
     if (!isOpen) return null;
 
     const currentAspect = settings.aspectRatio || '1:1';
-    const currentModel = settings.model || 'gemini-3.1-flash-image-preview';
+    const models = imageModelOptions(imageModels);
+    const currentModel = selectedImageModel(settings.model, models);
 
     return (
         <div
@@ -84,6 +116,8 @@ const ImageGenSettings = ({ isOpen, onClose, anchorRef, settings, onSettingsChan
                     {t('chat.media.image_gen_intro', 'Just ask the AI to generate an image in your message. It will automatically use these settings.')}
                 </p>
 
+                <ImageQuotaLines quota={imageQuota} />
+
                 {/* Aspect Ratio */}
                 <div>
                     <label className="block text-[11px] font-medium mb-2 text-[var(--text-secondary)]">
@@ -98,12 +132,7 @@ const ImageGenSettings = ({ isOpen, onClose, anchorRef, settings, onSettingsChan
                                     onSettingsChange(updated);
                                     saveSettings(updated);
                                 }}
-                                className="flex-1 flex flex-col items-center gap-0.5 py-1.5 rounded-lg text-[10px] font-medium transition-all"
-                                style={{
-                                    background: currentAspect === ar.value ? 'rgba(66, 133, 244, 0.15)' : 'var(--bg-tertiary)',
-                                    color: currentAspect === ar.value ? '#4285f4' : 'var(--text-tertiary)',
-                                    border: `1px solid ${currentAspect === ar.value ? 'rgba(66, 133, 244, 0.3)' : 'var(--border-subtle)'}`,
-                                }}
+                                className={`flex-1 flex flex-col items-center gap-0.5 py-1.5 rounded-lg text-[10px] font-medium transition-all border ${currentAspect === ar.value ? RATIO_ON : RATIO_OFF}`}
                             >
                                 <span className="text-xs">{ar.icon}</span>
                                 <span>{ar.label}</span>
@@ -118,27 +147,23 @@ const ImageGenSettings = ({ isOpen, onClose, anchorRef, settings, onSettingsChan
                         {t('chat.media.model', 'Model')}
                     </label>
                     <div className="space-y-1">
-                        {MODELS.map(m => (
+                        {models.map(m => (
                             <button
-                                key={m.value}
+                                key={m.id}
                                 onClick={() => {
-                                    const updated = { ...settings, model: m.value };
+                                    const updated = { ...settings, model: m.id };
                                     onSettingsChange(updated);
                                     saveSettings(updated);
                                 }}
-                                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all text-left"
-                                style={{
-                                    background: currentModel === m.value ? 'rgba(66, 133, 244, 0.1)' : 'transparent',
-                                    color: currentModel === m.value ? '#4285f4' : 'var(--text-secondary)',
-                                    border: `1px solid ${currentModel === m.value ? 'rgba(66, 133, 244, 0.25)' : 'var(--border-subtle)'}`,
-                                }}
+                                aria-pressed={currentModel === m.id}
+                                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all text-left border ${currentModel === m.id ? CHOICE_ON : CHOICE_OFF}`}
                             >
-                                {currentModel === m.value ? (
+                                {currentModel === m.id ? (
                                     <Check className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
                                 ) : (
                                     <div className="w-3.5 h-3.5 rounded-full border flex-shrink-0 border-[var(--border-subtle)]" />
                                 )}
-                                {m.label}
+                                <span className="truncate">{m.label}</span>
                             </button>
                         ))}
                     </div>

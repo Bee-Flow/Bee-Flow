@@ -29,7 +29,7 @@ function parseOrg(o) {
         billingCountry: o.billing_country || '',
         // Default '1' = pooled (matches legacy behaviour) when the column
         // is null on rows older than the migration.
-        usagePooled: (o.usage_pooled ?? '1') !== '0',
+        usagePooled: (o.usage_pooled ?? '1') !== '0', imageLimits: parseJSON(o.image_limits, null), // the default image limits per user
         allowedDomains: parseJSON(o.allowed_domains, []),
         ncSyncGroups: parseJSON(o.nc_sync_groups, []),
         ncSyncExcludedGroups: parseJSON(o.nc_sync_excluded_groups, []),
@@ -233,7 +233,7 @@ async function updateOrganization(orgId, updates) {
     await initDB();
     const ex = await getOne('SELECT id FROM organizations WHERE id = $1', [orgId]);
     if (!ex) return false;
-    const colMap = { name: 'name', description: 'description', tagline: 'tagline', address: 'address', billingLine2: 'billing_line2', billingPostalCode: 'billing_postal_code', billingCity: 'billing_city', billingCountry: 'billing_country', email: 'email', phone: 'phone', website: 'website', kvk: 'kvk', vat: 'vat', logo: 'logo', footerText: 'footerText', authMethod: 'authMethod', connectorCallbackUrl: 'connector_callback_url', ncSyncMode: 'nc_sync_mode', ncNewUserDefaultStatus: 'nc_new_user_default_status', ncLastSyncAt: 'nc_last_sync_at', ncInstanceId: 'nc_instance_id', ncBaseUrl: 'nc_base_url', ncAdminUid: 'nc_admin_uid', ncProvisionedAt: 'nc_provisioned_at', ncOnboardingCompletedAt: 'nc_onboarding_completed_at', deploymentMode: 'deployment_mode', selectedPlanId: 'selected_plan_id', status: 'status', encryptionTier: 'encryption_tier', encryptionScope: 'encryption_scope', contactDomainVerified: 'contact_domain_verified' };
+    const colMap = { name: 'name', description: 'description', tagline: 'tagline', address: 'address', billingLine2: 'billing_line2', billingPostalCode: 'billing_postal_code', billingCity: 'billing_city', billingCountry: 'billing_country', email: 'email', phone: 'phone', website: 'website', kvk: 'kvk', vat: 'vat', logo: 'logo', footerText: 'footerText', authMethod: 'authMethod', connectorCallbackUrl: 'connector_callback_url', ncSyncMode: 'nc_sync_mode', ncNewUserDefaultStatus: 'nc_new_user_default_status', ncLastSyncAt: 'nc_last_sync_at', ncInstanceId: 'nc_instance_id', ncBaseUrl: 'nc_base_url', ncAdminUid: 'nc_admin_uid', ncProvisionedAt: 'nc_provisioned_at', ncOnboardingCompletedAt: 'nc_onboarding_completed_at', deploymentMode: 'deployment_mode', selectedPlanId: 'selected_plan_id', status: 'status', encryptionTier: 'encryption_tier', encryptionScope: 'encryption_scope', contactDomainVerified: 'contact_domain_verified', imageLimits: 'image_limits' };
     const updateMap = {};
     for (const k of Object.keys(colMap)) { if (updates[k] !== undefined) updateMap[k] = updates[k]; }
     if (updates.defaultGroups !== undefined) updateMap.defaultGroups = JSON.stringify(updates.defaultGroups);

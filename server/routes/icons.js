@@ -75,8 +75,9 @@ const { requireAuth } = require('../auth/permissions');
 const { uploadGuard } = require('../middleware/uploadGuard');
 const iconStore = require('../stores/iconStore');
 const userStore = require('../stores/userStore');
-const configStore = require('../stores/configStore');
-const { googleAdapter } = require('../core/providers');
+const { generateImageForRoute } = require('../core/media/imageHttp');
+const { isImageGenerationAvailable } = require('../core/media/imageModels.mts');
+const { mediaUsageFields } = require('../core/tools/mediaUsage');
 const { EMOJI_CATEGORIES, ALL_EMOJI_IDS, EMOJI_BY_ID } = require('../core/cms/emojiCatalog');
 const { z, typeError } = require('../utils/zod');
 const { worded } = require('../core/http/schemaParts');
@@ -346,24 +347,24 @@ async function saveBase64Png(base64, mimeType) {
     return `/api/icons/data/${filename}`;
 }
 
+/**
+ * One icon image through the shared image service: it picks the backend,
+ * checks the user's image limit and writes the usage row.
+ * @param {import('express').Request} req
+ * @param {string} prompt
+ * @param {{ aspectRatio: string, model?: string | null }} options
+ */
+const generateIconImage = (req, prompt, { aspectRatio, model }) => generateImageForRoute(
+    { prompt, aspectRatio, model: model || null, who: mediaUsageFields(req, null) },
+    { notConfiguredCode: 'image_generation_unavailable' },
+);
+
 // POST /api/icons/generate — single-icon generation, returns the saved URL
 router.post('/generate', imageGenLimiter, validate({ body: GenerateBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof GenerateBody>, import('qs').ParsedQs>} */ req, res) => {
     const { prompt, style, aspectRatio, model } = req.body;
 
-    const apiKey = await configStore.getSecret('google_api_key');
-    if (!apiKey) {
-        throw new HttpError(503, 'image_generation_unavailable', 'Image generation unavailable — Google API key not configured.');
-    }
-
     const fullPrompt = buildIconPrompt(prompt, { style });
-    const result = await googleAdapter.generateImage(apiKey, fullPrompt, {
-        aspectRatio: aspectRatio || '1:1',
-        model: model || 'gemini-3.1-flash-image-preview',
-    });
-
-    if (!result?.imageBase64) {
-        throw new HttpError(502, 'no_image_generated', 'Generation returned no image');
-    }
+    const result = await generateIconImage(req, fullPrompt, { aspectRatio: aspectRatio || '1:1', model });
 
     const url = await saveBase64Png(result.imageBase64, result.mimeType);
     res.json({ url, prompt: fullPrompt });
@@ -378,9 +379,8 @@ router.post('/:id/bulk-generate', imageGenLimiter, validate({ body: BulkGenerate
         return res.status(404).json({ error: 'Pack not found or access denied' });
     }
 
-    const apiKey = await configStore.getSecret('google_api_key');
-    if (!apiKey) {
-        throw new HttpError(503, 'image_generation_unavailable', 'Image generation unavailable — Google API key not configured.');
+    if (!(await isImageGenerationAvailable())) {
+        throw new HttpError(503, 'image_generation_unavailable', 'Image generation unavailable — no image model is configured.');
     }
 
     const { style, model, overwrite, only } = req.body;
@@ -404,11 +404,7 @@ router.post('/:id/bulk-generate', imageGenLimiter, validate({ body: BulkGenerate
             const label = entry?.label || id;
             const subject = `An icon representing "${label}"`;
             const fullPrompt = buildIconPrompt(subject, { style });
-            const r = await googleAdapter.generateImage(apiKey, fullPrompt, {
-                aspectRatio: '1:1',
-                model: model || 'gemini-3.1-flash-image-preview',
-            });
-            if (!r?.imageBase64) throw new Error('no image');
+            const r = await generateIconImage(req, fullPrompt, { aspectRatio: '1:1', model });
             const url = await saveBase64Png(r.imageBase64, r.mimeType);
             return { id, url };
         }));

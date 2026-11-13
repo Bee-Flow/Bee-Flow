@@ -34,6 +34,8 @@ const pass = (req, res, next) => next();
 const FULL_BUT_TWO = Object.fromEntries(ALL_EMOJI_IDS.slice(2).map((id) => [id, { type: 'emoji', value: '⭐' }]));
 const PACK = { id: 'p1', user_id: 'u1', name: 'Mine', icons: FULL_BUT_TWO };
 
+const { HttpError } = require('../core/http/errors');
+
 const MOCKS = {
     '../telemetry/log': { info() {}, warn() {}, error() {}, debug() {} },
     '../auth/permissions': { requireAuth: pass },
@@ -45,10 +47,13 @@ const MOCKS = {
         setIcon: async (id, userId, key, data) => { touched.push({ what: 'setIcon', args: [key, data] }); return {}; },
     },
     '../stores/userStore': { getUser: async () => ({ id: 'u1' }), updateUser: async () => {} },
-    '../stores/configStore': { getSecret: async () => 'google-key' },
-    '../core/providers': {
+    '../core/media/imageModels.mts': { isImageGenerationAvailable: async () => true },
+    '../core/media/imageHttp': {
         // No image comes back, so nothing is ever written to the icon folder.
-        googleAdapter: { generateImage: async (key, prompt, opts) => { touched.push({ what: 'generate', args: [opts] }); return {}; } },
+        generateImageForRoute: async ({ aspectRatio, model }) => {
+            touched.push({ what: 'generate', args: [{ aspectRatio, model }] });
+            throw new HttpError(502, 'image_no_image', 'No image was generated.');
+        },
     },
 };
 

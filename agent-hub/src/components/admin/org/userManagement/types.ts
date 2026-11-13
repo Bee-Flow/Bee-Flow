@@ -7,6 +7,8 @@
  * else, so nothing here reuses those.
  */
 
+import type { ImageLimits, ImageLimitsInput } from '@/utils/imageLimits';
+
 /** One row, as GET /auth/users returns it. Only what this screen reads is
  * named; the server owns the rest. */
 export interface AdminUser {
@@ -27,6 +29,8 @@ export interface AdminUser {
     isSystem?: boolean;
     /** Self-hosted monthly AI budget in EUR; null = none. */
     monthlyCostLimit?: number | null;
+    /** The user's own image limits per window; null = none set. */
+    imageLimits?: ImageLimits | null;
     [key: string]: unknown;
 }
 
@@ -45,6 +49,8 @@ export interface AdminGroup {
     orgRole?: string | null;
     /** Self-hosted AI budget in EUR that EACH member gets; null = none. */
     perUserCostLimit?: number | null;
+    /** The image limits EACH member gets per window; null = none set. */
+    perUserImageLimits?: ImageLimits | null;
     [key: string]: unknown;
 }
 
@@ -127,6 +133,8 @@ export interface UserFormData {
     orgRole: string;
     /** Monthly AI budget as typed (self-hosted only); empty = no limit. */
     monthlyCostLimit: string;
+    /** The user's own image limits as typed (edit only); empty = not set. */
+    imageLimits: ImageLimitsInput;
 }
 
 export interface OrgFormData {
@@ -162,6 +170,8 @@ export interface GroupFormData {
     orgRole?: string;
     /** AI budget per member as typed (self-hosted only); empty = no limit. */
     perUserCostLimit: string;
+    /** The image limits per member as typed; empty = not set. */
+    perUserImageLimits: ImageLimitsInput;
 }
 
 export interface RoleFormData {

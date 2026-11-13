@@ -89,11 +89,22 @@ async function addOAuthProviderTools({ userId, session, isAppOn, addTools, T, D 
     }
 }
 
+/**
+ * True when the admin listed an Azure (Foundry) image deployment and the Azure
+ * provider has its endpoint and key (core/media/imageModels.mts).
+ * @param {{ getConfig(key: string): Promise<unknown>, getSecret(key: string): Promise<unknown> }} configStore
+ */
+async function hasAzureImageModels(configStore) {
+    const { parseAzureImageModels, AZURE_IMAGE_MODELS_KEY } = require('../media/imageModels.mts');
+    if (parseAzureImageModels(await configStore.getConfig(AZURE_IMAGE_MODELS_KEY)).length === 0) return false;
+    return !!(await configStore.getConfig('azure_endpoint')) && !!(await configStore.getSecret('azure_api_key'));
+}
+
 /** Image/video generation, ElevenLabs, web search and the browser — install-wide keys and backends. */
 async function addKeyedServiceTools({ isAppOn, addTools, T, D }) {
-    // Image Generation — requires Google API key
+    // Image Generation — a Google API key or an Azure image deployment
     const hasGoogleKey = !!(await D.configStore.getSecret('google_api_key'));
-    if (hasGoogleKey && isAppOn('image-gen')) {
+    if (isAppOn('image-gen') && (hasGoogleKey || await hasAzureImageModels(D.configStore))) {
         addTools(T.IMAGE_GEN_TOOLS);
     }
 

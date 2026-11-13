@@ -18,7 +18,7 @@ const { requireAuth, requireSuperAdmin, getUserPermissions, resolveUserOrgIds, r
 const { sanitizePlainTextFields } = require('../../utils/htmlSanitizer');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
-const { worded } = require('../../core/http/schemaParts');
+const { worded, imageLimitsColumnBody } = require('../../core/http/schemaParts');
 const freeEmailDomains = require('../../utils/freeEmailDomains');
 const { requireOrgAdmin } = require('./orgAdminGuards');
 const { defaultGroupsUpdateRefusal } = require('./groupAssignGuards');
@@ -35,7 +35,7 @@ const ORG_UPDATE_FIELDS = Object.freeze([
     'name', 'description', 'tagline', 'address', 'billingLine2', 'billingPostalCode',
     'billingCity', 'billingCountry', 'email', 'phone', 'website', 'kvk', 'vat', 'logo',
     'footerText', 'defaultGroups', 'allowSignup', 'authMethod', 'enabledIntegrations',
-    'autoApproveSSO', 'allowedDomains', 'usagePooled',
+    'autoApproveSSO', 'allowedDomains', 'usagePooled', 'imageLimits',
 ]);
 const ORG_UPDATE_ALLOWED_KEYS = new Set(ORG_UPDATE_FIELDS);
 
@@ -434,7 +434,7 @@ router.put('/organizations/:id/encryption', validate({ body: EncryptionBody }), 
     });
 });
 
-router.put('/organizations/:id', requireOrgAdmin('id'), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
+router.put('/organizations/:id', requireOrgAdmin('id'), imageLimitsColumnBody('imageLimits'), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     const { id } = req.params;
 
     // Unknown keys are refused here for the same reason they are on PUT /users/:id —
@@ -449,7 +449,7 @@ router.put('/organizations/:id', requireOrgAdmin('id'), async (/** @type {import
         });
     }
 
-    const { name, description, tagline, address, billingLine2, billingPostalCode, billingCity, billingCountry, email, phone, website, kvk, vat, logo, footerText, defaultGroups, allowSignup, authMethod, enabledIntegrations, autoApproveSSO, allowedDomains, usagePooled } = req.body;
+    const { name, description, tagline, address, billingLine2, billingPostalCode, billingCity, billingCountry, email, phone, website, kvk, vat, logo, footerText, defaultGroups, allowSignup, authMethod, enabledIntegrations, autoApproveSSO, allowedDomains, usagePooled, imageLimits } = req.body;
 
     // authMethod can only be set once — if already set, ignore any change
     const existing = await userStore.getOrganization(id);
@@ -511,11 +511,11 @@ router.put('/organizations/:id', requireOrgAdmin('id'), async (/** @type {import
         finalAllowedDomains = normalised;
     }
 
-    const orgUpdates = sanitizeOrgText({ name, description, tagline, address, billingLine2, billingPostalCode, billingCity, billingCountry, email, phone, website, kvk, vat, logo, footerText, defaultGroups, allowSignup, authMethod: finalAuthMethod, enabledIntegrations: finalIntegrations, autoApproveSSO, allowedDomains: finalAllowedDomains, usagePooled, contactDomainVerified: contact.contactDomainVerified });
+    const orgUpdates = sanitizeOrgText({ name, description, tagline, address, billingLine2, billingPostalCode, billingCity, billingCountry, email, phone, website, kvk, vat, logo, footerText, defaultGroups, allowSignup, authMethod: finalAuthMethod, enabledIntegrations: finalIntegrations, autoApproveSSO, allowedDomains: finalAllowedDomains, usagePooled, imageLimits, contactDomainVerified: contact.contactDomainVerified });
     if (await userStore.updateOrganization(id, orgUpdates)) {
         // Record only the access-relevant deltas. existing was loaded above
         // for the authMethod check; reuse it.
-        const AUDIT_FIELDS = ['name', 'description', 'tagline', 'address', 'billingLine2', 'billingPostalCode', 'billingCity', 'billingCountry', 'email', 'phone', 'website', 'kvk', 'vat', 'authMethod', 'enabledIntegrations', 'allowSignup', 'autoApproveSSO', 'allowedDomains', 'defaultGroups', 'usagePooled'];
+        const AUDIT_FIELDS = ['name', 'description', 'tagline', 'address', 'billingLine2', 'billingPostalCode', 'billingCity', 'billingCountry', 'email', 'phone', 'website', 'kvk', 'vat', 'authMethod', 'enabledIntegrations', 'allowSignup', 'autoApproveSSO', 'allowedDomains', 'defaultGroups', 'usagePooled', 'imageLimits'];
         /** @type {Record<string, unknown>} */
         const oldVals = {};
         /** @type {Record<string, unknown>} */

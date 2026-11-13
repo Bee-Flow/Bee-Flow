@@ -6,6 +6,7 @@ const { initDB } = require('./schema');
 const { dynamicUpdate, parseJSON } = require('./shared');
 const log = require('../../telemetry/log');
 const { isMissingTable } = require('../../utils/isMissingTable');
+const { toImageLimits } = require('../../core/entitlements/imageLimit.mts');
 
 // ── Groups ─────────────────────────────
 async function getAllGroups() {
@@ -20,6 +21,7 @@ async function getAllGroups() {
         disabled_integrations: parseJSON(g.disabled_integrations, []),
         granted_capabilities: parseJSON(g.granted_capabilities, []),
         perUserCostLimit: g.per_user_cost_limit ?? null,
+        perUserImageLimits: toImageLimits(g.per_user_image_limits),
     }));
 }
 
@@ -46,6 +48,7 @@ async function getGroup(groupId) {
         disabled_integrations: parseJSON(g.disabled_integrations, []),
         granted_capabilities: parseJSON(g.granted_capabilities, []),
         perUserCostLimit: g.per_user_cost_limit ?? null,
+        perUserImageLimits: toImageLimits(g.per_user_image_limits),
     };
 }
 
@@ -70,6 +73,32 @@ async function getCostLimitInputs(userId) {
     return { userLimit: u.monthly_cost_limit ?? null, groupLimits };
 }
 
+/**
+ * What the image limits need for one user: their own limits, the per-member
+ * limits of every group they belong to and the default of their organisation,
+ * each as stored (JSON text or null). `core/entitlements/imageLimit.mts`
+ * resolves them per window.
+ * @param {string} userId
+ * @returns {Promise<{ userLimits: string | null, groupLimits: string[], orgLimits: string | null }>}
+ */
+async function getImageLimitInputs(userId) {
+    await initDB();
+    const u = await getOne('SELECT image_limits, groups, "organizationId" FROM users WHERE id = $1', [userId]);
+    if (!u) return { userLimits: null, groupLimits: [], orgLimits: null };
+    /** @type {string[]} */
+    const groupIds = parseJSON(u.groups, []);
+    /** @type {string[]} */
+    let groupLimits = [];
+    if (Array.isArray(groupIds) && groupIds.length > 0) {
+        const rows = await getAll('SELECT per_user_image_limits FROM groups WHERE id = ANY($1) AND per_user_image_limits IS NOT NULL', [groupIds]);
+        groupLimits = rows.map(r => r.per_user_image_limits);
+    }
+    const org = u.organizationId
+        ? await getOne('SELECT image_limits FROM organizations WHERE id = $1', [u.organizationId])
+        : null;
+    return { userLimits: u.image_limits ?? null, groupLimits, orgLimits: org?.image_limits ?? null };
+}
+
 async function createGroup(groupData) {
     await initDB();
     const { id, organizationId, name, description, permissions, roles, allowedAgentTypes, azureGroupId, azureTenantId, source, lastSyncedAt, orgRole, perUserCostLimit } = groupData;
@@ -82,6 +111,10 @@ async function createGroup(groupData) {
         // group before users in those groups could do anything.
         await run('INSERT INTO groups (id, "organizationId", name, description, permissions, roles, "userCount", "allowedAgentTypes", "azureGroupId", "source", "lastSyncedAt", "orgRole", "azureTenantId", "per_user_cost_limit") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)',
             [id, organizationId || null, name, description || '', JSON.stringify(permissions || []), JSON.stringify(roles || []), 0, JSON.stringify(allowedAgentTypes || []), azureGroupId || null, source || 'manual', lastSyncedAt || null, orgRole || 'member', azureTenantId || null, perUserCostLimit ?? null]);
+        // The per-member image limits ride along as their own statement: null stays NULL.
+        if (groupData.perUserImageLimits) {
+            await run('UPDATE groups SET per_user_image_limits = $1 WHERE id = $2', [JSON.stringify(groupData.perUserImageLimits), id]);
+        }
         return true;
     } catch (e) { log.error(e); return false; }
 }
@@ -90,7 +123,7 @@ async function updateGroup(groupId, updates) {
     await initDB();
     const ex = await getOne('SELECT id FROM groups WHERE id = $1', [groupId]);
     if (!ex) return false;
-    const colMap = { name: 'name', description: 'description', azureGroupId: 'azureGroupId', azureTenantId: 'azureTenantId', source: 'source', lastSyncedAt: 'lastSyncedAt', orgRole: 'orgRole' };
+    const colMap = { name: 'name', description: 'description', azureGroupId: 'azureGroupId', azureTenantId: 'azureTenantId', source: 'source', lastSyncedAt: 'lastSyncedAt', orgRole: 'orgRole', perUserCostLimit: 'per_user_cost_limit' };
     const updateMap = {};
     for (const k of Object.keys(colMap)) { if (updates[k] !== undefined) updateMap[k] = updates[k]; }
     if (updates.organizationId !== undefined) updateMap.organizationId = updates.organizationId;
@@ -99,9 +132,9 @@ async function updateGroup(groupId, updates) {
     if (updates.allowedAgentTypes !== undefined) updateMap.allowedAgentTypes = JSON.stringify(updates.allowedAgentTypes);
     if (updates.allowedTiers !== undefined) updateMap.allowedTiers = JSON.stringify(updates.allowedTiers);
     if (updates.disabledIntegrations !== undefined) updateMap.disabledIntegrations = JSON.stringify(updates.disabledIntegrations);
-    if (updates.perUserCostLimit !== undefined) updateMap.perUserCostLimit = updates.perUserCostLimit;
+    if (updates.perUserImageLimits !== undefined) updateMap.perUserImageLimits = updates.perUserImageLimits === null ? null : JSON.stringify(updates.perUserImageLimits);
     if (updates.grantedCapabilities !== undefined) updateMap.grantedCapabilities = JSON.stringify(updates.grantedCapabilities);
-    const fullColMap = { ...colMap, organizationId: 'organizationId', permissions: 'permissions', roles: 'roles', allowedAgentTypes: 'allowedAgentTypes', allowedTiers: 'allowedTiers', disabledIntegrations: 'disabled_integrations', grantedCapabilities: 'granted_capabilities', perUserCostLimit: 'per_user_cost_limit' };
+    const fullColMap = { ...colMap, organizationId: 'organizationId', permissions: 'permissions', roles: 'roles', allowedAgentTypes: 'allowedAgentTypes', allowedTiers: 'allowedTiers', disabledIntegrations: 'disabled_integrations', grantedCapabilities: 'granted_capabilities', perUserCostLimit: 'per_user_cost_limit', perUserImageLimits: 'per_user_image_limits' };
     try {
         const q = dynamicUpdate('groups', groupId, updateMap, fullColMap);
         if (q) await run(q.sql, q.params);
@@ -177,5 +210,5 @@ async function initDefaultGroups() {
 initDefaultGroups().catch(err => log.error('[UserStore] initDefaultGroups error:', err.message));
 
 module.exports = {
-    getAllGroups, getGroup, getCostLimitInputs, createGroup, updateGroup, deleteGroup, getGroupByAzureId, getUserByAzureId,
+    getAllGroups, getGroup, getCostLimitInputs, getImageLimitInputs, createGroup, updateGroup, deleteGroup, getGroupByAzureId, getUserByAzureId,
 };

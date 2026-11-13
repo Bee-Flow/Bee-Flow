@@ -6,6 +6,9 @@ import { settled } from '@/api/settled';
 import { toast } from '../../shared/Toast';
 import useOutsideDismiss from '@/hooks/useOutsideDismiss';
 import { mutate, ApiError, errorBody, RefusedError } from '@/api/mutate';
+import { useTranslation } from '@/hooks/useTranslation';
+import type { ImageLimits } from '@/utils/imageLimits';
+import { saveImageLimits } from './imageLimits/saveImageLimits';
 
 export interface OrgGroups {
     showCreateGroup: boolean;
@@ -41,6 +44,8 @@ export interface OrgGroups {
     handleUpdateGroupDesc: (groupId: string) => Promise<void>;
     handleUpdateGroupRole: (groupId: string, newRole: string) => Promise<void>;
     handleUpdateGroupCostLimit: (groupId: string, value: number | null) => Promise<void>;
+    /** Store the image limits every member of the group gets; true when the server took them. */
+    handleUpdateGroupImageLimits: (groupId: string, limits: ImageLimits | null) => Promise<boolean>;
     handleUserGroupToggle: (userId: string, groupId: string, currentGroups: string[]) => Promise<void>;
     getGroupCount: (groupId: string) => number;
     getGroupMembers: (groupId: string) => OrgMember[];
@@ -154,6 +159,7 @@ async function toggleUserGroup(fetchData: UseOrgGroupsOptions['fetchData'], user
  * so the two tabs never show a different answer to the same question.
  */
 export default function useOrgGroups({ users, organizations, fetchData, confirm }: UseOrgGroupsOptions): OrgGroups {
+    const { t } = useTranslation();
     // Group creation form
     const [showCreateGroup, setShowCreateGroup] = useState(false);
     const [newGroupName, setNewGroupName] = useState('');
@@ -254,6 +260,10 @@ export default function useOrgGroups({ users, organizations, fetchData, confirm 
 
     const handleUpdateGroupCostLimit = (groupId: string, value: number | null) => updateGroupCostLimit(fetchData, groupId, value);
 
+    const handleUpdateGroupImageLimits = (groupId: string, limits: ImageLimits | null) => saveImageLimits(`/auth/groups/${groupId}`, 'perUserImageLimits', limits, {
+        fetchData, failText: t('image_limits.save_failed', 'The image limits could not be saved.'),
+    });
+
     const handleUserGroupToggle = (userId: string, groupId: string, currentGroups: string[]) => toggleUserGroup(fetchData, userId, groupId, currentGroups);
 
     const getGroupCount = (groupId: string) => {
@@ -315,6 +325,7 @@ export default function useOrgGroups({ users, organizations, fetchData, confirm 
         handleUpdateGroupDesc,
         handleUpdateGroupRole,
         handleUpdateGroupCostLimit,
+        handleUpdateGroupImageLimits,
         handleUserGroupToggle,
         getGroupCount,
         getGroupMembers,

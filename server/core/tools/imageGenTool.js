@@ -5,10 +5,19 @@
 
 const fs = require('fs');
 const path = require('path');
-const configStore = require('../../stores/configStore');
-const { googleAdapter } = require('../providers');
 const log = require('../../telemetry/log');
 const { mediaUsageFields } = require('./mediaUsage');
+const { generateImage, ImageGenerationError } = require('../media/imageGeneration.mts');
+
+const NO_WORKAROUND = 'Do NOT attempt to generate images using code, HTML, Canvas, WebGL, SVG, or any other workaround.';
+
+/** What the model is told to do with each refusal; the user-facing reason follows it. */
+const IMAGE_ERROR_LEAD = {
+    not_configured: 'Image generation is not available. Tell the user and ask them to contact an administrator.',
+    limit_reached: 'The user has reached their image limit. Tell the user exactly this and do not try again:',
+    no_image: 'Image generation failed. Tell the user and suggest trying a different prompt.',
+    provider_error: 'Image generation failed. Tell the user what went wrong:',
+};
 
 const IMAGE_GEN_TOOLS = [
     {
@@ -43,23 +52,20 @@ function isImageGenTool(name) {
  * @param {import('./mediaUsage').MediaCaller | null} [caller] the dispatch context: who and which agent/conversation
  */
 async function executeImageGenTool(args, imageGenSettings, send, /** @type {import('express').Request} */ req, caller = null) {
-    const googleApiKey = await configStore.getSecret('google_api_key');
-    if (!googleApiKey) {
-        return { error: 'Image generation is not available — the API key is not configured. Tell the user that image generation is currently unavailable and ask them to contact an administrator. Do NOT attempt to generate images using code, HTML, Canvas, WebGL, SVG, or any other workaround.' };
-    }
-
     const prompt = args.prompt;
     const aspectRatio = args.aspect_ratio || imageGenSettings?.aspectRatio || '1:1';
 
-    log.info(`[ImageGen Tool] Generating: "${log.textForLog(prompt)}" (${aspectRatio})`);
-
-    const result = await googleAdapter.generateImage(googleApiKey, prompt, {
-        aspectRatio,
-        model: imageGenSettings?.model || 'gemini-3.1-flash-image-preview',
-    });
-
-    if (!result.imageBase64) {
-        return { error: 'Image generation failed — no image was produced. Tell the user and suggest trying a different prompt. Do NOT attempt to generate images using code, HTML, Canvas, WebGL, SVG, or any other workaround.' };
+    // One path for every backend (Google, Azure): it checks the user's image
+    // limit, generates, and writes the usage row.
+    let result;
+    try {
+        result = await generateImage({
+            prompt, aspectRatio, model: imageGenSettings?.model || null,
+            who: mediaUsageFields(req, caller),
+        });
+    } catch (e) {
+        if (!(e instanceof ImageGenerationError)) throw e;
+        return { error: `${IMAGE_ERROR_LEAD[e.code]} ${e.message} ${NO_WORKAROUND}` };
     }
 
     // Send image via SSE so it shows inline
@@ -90,21 +96,6 @@ async function executeImageGenTool(args, imageGenSettings, send, /** @type {impo
         }
     } catch (e) {
         log.warn('[ImageGen Tool] Failed to save image to disk:', /** @type {Error} */ (e).message);
-    }
-
-    // Log usage
-    try {
-        const usageStore = require('../../stores/usageStore');
-        await usageStore.logUsage({
-            ...mediaUsageFields(req, caller),
-            model: imageGenSettings?.model || 'gemini-3.1-flash-image-preview',
-            prompt_tokens: prompt.length,
-            completion_tokens: 0,
-            total_tokens: prompt.length,
-            source: 'image_generation',
-        });
-    } catch (e) {
-        log.warn('[ImageGen Tool] Failed to log usage:', /** @type {Error} */ (e).message);
     }
 
     return {

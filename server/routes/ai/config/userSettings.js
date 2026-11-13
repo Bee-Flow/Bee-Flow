@@ -334,7 +334,7 @@ router.get('/user-settings', requireAuth, async (req, res) => {
         nmbrsEnv: (await configStore.getSecret(`nmbrs_env_user_${userId}`)) || 'production',
         hasLinkedInConfig: !!(await configStore.getSecret('linkedin_client_id')) && !!(await configStore.getSecret('linkedin_client_secret')),
         hasWithingsConfig: !!(await configStore.getSecret('withings_client_id')) && !!(await configStore.getSecret('withings_client_secret')),
-        hasGoogleKey: !!(await configStore.getSecret('google_api_key')),
+        hasGoogleKey: !!(await configStore.getSecret('google_api_key')), ...(await require('../../../core/media/imageSettings.mts').imageSettingsFor(userId)), // + imageModels, hasImageGen, imageQuota
         hasElevenLabsKey: !!(await configStore.getSecret('elevenlabs_api_key')),
         isGoogleUser,
         isMicrosoftUser,

@@ -23,7 +23,8 @@ function stub(p, exports) {
 
 // Every adapter call lands in `calls`. A refused request must leave it empty.
 const calls = [];
-stub('../../../stores/configStore', { getSecret: async () => 'google-key' });
+stub('../../../stores/configStore', { getSecret: async () => 'google-key', getConfig: async () => null });
+stub('../../../core/entitlements/imageQuota.mts', { checkImageLimit: async () => null });
 stub('../../../core/providers', {
     googleAdapter: {
         async generateImage(apiKey, prompt, options) {
@@ -34,6 +35,7 @@ stub('../../../core/providers', {
 });
 stub('../../../auth/permissions', { requireAuth: (req, res, next) => next() });
 stub('../../../stores/usageStore', { logUsage: async () => {} });
+stub('../../../auth', { resolveUserOrgIds: async () => new Set(['org-1']) });
 
 const router = require('./imageGeneration');
 // A schema refusal travels as an error to the terminal handler, so the
@@ -87,13 +89,13 @@ test('a misspelled key is refused rather than ignored', async () => {
 test('an empty ratio still means the square default', async () => {
     const res = await dispatch({ prompt: 'a bee', aspectRatio: '' });
     assert.strictEqual(res.statusCode, 200);
-    assert.deepStrictEqual(calls, [{ prompt: 'a bee', options: { aspectRatio: '1:1' } }]);
+    assert.deepStrictEqual(calls, [{ prompt: 'a bee', options: { aspectRatio: '1:1', model: 'gemini-3.1-flash-image-preview' } }]);
 });
 
 test('a ratio the model may support is passed through for Google to decide', async () => {
     const res = await dispatch({ prompt: 'a bee', aspectRatio: '21:9', conversationId: 'c1' });
     assert.strictEqual(res.statusCode, 200);
-    assert.deepStrictEqual(calls[0].options, { aspectRatio: '21:9' });
+    assert.deepStrictEqual(calls[0].options, { aspectRatio: '21:9', model: 'gemini-3.1-flash-image-preview' });
     assert.strictEqual(res.body.conversationId, 'c1');
 });
 

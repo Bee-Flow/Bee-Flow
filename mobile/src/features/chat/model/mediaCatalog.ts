@@ -32,9 +32,14 @@ export interface MediaNumber {
     unit?: string;
 }
 
-/** Which org integration each generator hangs off, and which key it needs (InputArea's showImageGen & co). */
-export const MEDIA_GATES: Readonly<Record<MediaKind, { integration: string; key: 'google' | 'elevenlabs' }>> = {
-    image: { integration: 'image-gen', key: 'google' },
+/**
+ * Which org integration each generator hangs off, and what it needs
+ * (InputArea's showImageGen & co): the Google or ElevenLabs key, or, for
+ * images, any configured image model (Google or Azure, the server's
+ * `hasImageGen`).
+ */
+export const MEDIA_GATES: Readonly<Record<MediaKind, { integration: string; key: 'google' | 'elevenlabs' | 'imagegen' }>> = {
+    image: { integration: 'image-gen', key: 'imagegen' },
     music: { integration: 'music-gen', key: 'google' },
     elevenlabs: { integration: 'elevenlabs', key: 'elevenlabs' },
     video: { integration: 'video-gen', key: 'google' },
@@ -42,11 +47,43 @@ export const MEDIA_GATES: Readonly<Record<MediaKind, { integration: string; key:
 
 export const MEDIA_KINDS: readonly MediaKind[] = ['image', 'music', 'elevenlabs', 'video'];
 
+/** The slice of /ai/user-settings the gates read (ComposerFlags). */
+export interface MediaGateFlags {
+    orgEnabledIntegrations: string[] | null;
+    hasGoogleKey: boolean;
+    hasElevenLabsKey: boolean;
+    /** Absent from an older server: images then follow the Google key, as before. */
+    hasImageGen?: boolean;
+}
+
+/** Which generators this person may use: the org allows it and what it needs is there. No flags, nothing. */
+export function mediaGatesFor(flags: MediaGateFlags | null | undefined): Record<MediaKind, boolean> {
+    const has: Record<(typeof MEDIA_GATES)[MediaKind]['key'], boolean> = {
+        google: Boolean(flags?.hasGoogleKey),
+        elevenlabs: Boolean(flags?.hasElevenLabsKey),
+        imagegen: Boolean(flags?.hasImageGen ?? flags?.hasGoogleKey),
+    };
+    const out = {} as Record<MediaKind, boolean>;
+    for (const kind of MEDIA_KINDS) {
+        const gate = MEDIA_GATES[kind];
+        const orgOn = !flags?.orgEnabledIntegrations || flags.orgEnabledIntegrations.includes(gate.integration);
+        out[kind] = Boolean(flags) && orgOn && has[gate.key];
+    }
+    return out;
+}
+
 export const IMAGE_ASPECT_RATIOS: readonly MediaOption[] = ['1:1', '16:9', '9:16', '4:3', '3:4'].map((v) => ({ name: v, value: v }));
+/** Google's two image models: the choices when the server does not list its own (an older server). */
 export const IMAGE_MODELS: readonly MediaOption[] = [
     { name: 'Flash Image (Fast)', value: 'gemini-3.1-flash-image-preview' },
     { name: 'Pro Image (Quality)', value: 'gemini-3-pro-image-preview' },
 ];
+
+/** The image model choices: the server's list (Google and Azure deployments) when it sends one, else IMAGE_MODELS. */
+export function imageModelOptions(serverModels: readonly { id: string; label: string }[] | null | undefined): readonly MediaOption[] {
+    if (!serverModels || serverModels.length === 0) return IMAGE_MODELS;
+    return serverModels.map((m) => ({ name: m.label || m.id, value: m.id }));
+}
 
 export const VIDEO_MODELS: readonly MediaOption[] = [
     { name: 'Veo 3.1 (Quality)', value: 'veo-3.1-generate-preview' },

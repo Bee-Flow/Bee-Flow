@@ -13,7 +13,7 @@ const { receiveImage } = require('../../middleware/uploadedImage');
 const log = require('../../telemetry/log');
 const { bestEffort, fallback } = require('../../utils/bestEffort');
 const { isPlatformOperator } = require('../platformOperator');
-const { costLimitRefusal, stripKeyMaterial, buildRoleDowngradeHint, CreateUserBody, ChangePasswordBody, USER_UPDATE_FIELDS, SUPER_ADMIN_ONLY_FIELDS, isKnownRoleId, USER_TEXT_FIELDS, needsAdminPasswordFloor, unknownFieldsRefusal, accessChanges, endSessionsFor, leavesServerWithoutPlatformAdmin, refusedDelete } = require('./userSupportRoutes');
+const { costLimitRefusal, imageLimitsRefusal, imageLimitsColumn, stripKeyMaterial, buildRoleDowngradeHint, CreateUserBody, ChangePasswordBody, USER_UPDATE_FIELDS, SUPER_ADMIN_ONLY_FIELDS, isKnownRoleId, USER_TEXT_FIELDS, needsAdminPasswordFloor, unknownFieldsRefusal, accessChanges, endSessionsFor, leavesServerWithoutPlatformAdmin, refusedDelete } = require('./userSupportRoutes');
 const router = express.Router();
 
 const userStore = require('../../stores/userStore');
@@ -293,7 +293,7 @@ router.put('/users/:id', requireOrgAdminForUser, async (req, res) => {
     // failed one, and a failed one for a real escalation. Sibling refusals in
     // this file (role='admin' → 403 'Cannot assign super admin role') already
     // name what they reject; this does the same.
-    const refusal = unknownFieldsRefusal(body) || costLimitRefusal(body);
+    const refusal = unknownFieldsRefusal(body) || costLimitRefusal(body) || imageLimitsRefusal(body);
     if (refusal) return res.status(400).json(refusal);
 
     // Everything else is read through `updates` below, which is built from
@@ -330,6 +330,7 @@ router.put('/users/:id', requireOrgAdminForUser, async (req, res) => {
         Object.fromEntries(USER_UPDATE_FIELDS.map(f => [f, body[f]])),
         USER_TEXT_FIELDS,
     );
+    updates.imageLimits = imageLimitsColumn(body);
 
     // Tenant membership is super-admin-only (see SUPER_ADMIN_ONLY_FIELDS). For
     // anyone else the key is dropped rather than refused here — the middleware

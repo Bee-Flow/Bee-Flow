@@ -41,7 +41,7 @@ const {
     markPendingNcBindingDenied, expirePendingNcBindings,
 } = require('./user/ncBindings');
 const {
-    getAllGroups, getGroup, getCostLimitInputs, createGroup, updateGroup, deleteGroup, getGroupByAzureId, getUserByAzureId,
+    getAllGroups, getGroup, getCostLimitInputs, getImageLimitInputs, createGroup, updateGroup, deleteGroup, getGroupByAzureId, getUserByAzureId,
 } = require('./user/groups');
 const {
     storeAppPassword, getAppPassword, hasAppPassword, deleteAppPassword,
@@ -107,7 +107,7 @@ module.exports = {
     getActivePairingCodesForOrg, deletePairingCode,
     countActivePendingNcBindingsForOrg, markPendingNcBindingApproved,
     markPendingNcBindingDenied, expirePendingNcBindings,
-    getAllGroups, getGroup, getCostLimitInputs, createGroup, updateGroup, deleteGroup, getGroupByAzureId, getUserByAzureId,
+    getAllGroups, getGroup, getCostLimitInputs, getImageLimitInputs, createGroup, updateGroup, deleteGroup, getGroupByAzureId, getUserByAzureId,
     storeAppPassword, getAppPassword, hasAppPassword, deleteAppPassword,
     listSecurityKeys, addSecurityKey, renameSecurityKey, deleteSecurityKey,
     deleteAllSecurityKeys, recordSecurityKeyUse,

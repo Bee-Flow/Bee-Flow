@@ -5,6 +5,8 @@ import { API_BASE } from '@/utils/helpers';
 import { settled } from '@/api/settled';
 import { logger } from '@/utils/logger';
 import { mutate, ApiError, errorBody, RefusedError } from '@/api/mutate';
+import { imageLimitsToInput, parseImageLimitsInput } from '@/utils/imageLimits';
+import type { ImageLimits, ImageLimitsInput } from '@/utils/imageLimits';
 
 /** The organisation's editable fields; every one is sent on save. */
 interface OrgFormFields {
@@ -29,6 +31,8 @@ interface OrgFormFields {
     autoApproveSSO: boolean;
     usagePooled: boolean;
     allowedDomains: string[];
+    /** The default image limits per user, as typed; empty = not set. Sent as numbers. */
+    imageLimits: ImageLimitsInput;
 }
 
 /** The organisation form as this page edits it. */
@@ -37,7 +41,7 @@ export interface OrgFormData extends OrgFormFields {
 }
 
 /** One row of GET /auth/organizations, as far as the form reads it. */
-type OrgRow = Partial<OrgFormFields> & { id: string };
+type OrgRow = Partial<Omit<OrgFormFields, 'imageLimits'>> & { id: string; imageLimits?: ImageLimits | null };
 
 interface GroupRow {
     id: string;
@@ -116,6 +120,7 @@ function toFormData(myOrg: OrgRow): OrgFormData {
         // pre-migration orgs — matches the server-side default.
         usagePooled: myOrg.usagePooled === undefined ? true : !!myOrg.usagePooled,
         allowedDomains: Array.isArray(myOrg.allowedDomains) ? myOrg.allowedDomains : [],
+        imageLimits: imageLimitsToInput(myOrg.imageLimits),
     };
 }
 
@@ -287,6 +292,12 @@ export default function useOrgInfoForm({ user, orgId, t, onSave: parentOnSave, o
     const handleSave = async () => {
         const current = orgDataRef.current;
         if (!current?.id) return;
+        // The image limits go out as whole numbers (or null); a text that is not one stops the save.
+        const imageLimits = parseImageLimitsInput(current.imageLimits);
+        if (imageLimits === undefined) {
+            setMessage({ type: 'error', text: t('image_limits.invalid', 'An image limit is a whole number from 0 to 1,000,000, or empty.') });
+            return;
+        }
         setSaving(true);
         try {
             // The id is the URL; the route refuses any key it does not update ("Unsupported field(s): id").
@@ -296,7 +307,7 @@ export default function useOrgInfoForm({ user, orgId, t, onSave: parentOnSave, o
                 res = await mutate(`${API_BASE}/auth/organizations/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(fields),
+                body: JSON.stringify({ ...fields, imageLimits }),
             });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;

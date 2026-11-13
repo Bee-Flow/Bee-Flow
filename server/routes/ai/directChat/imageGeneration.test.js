@@ -15,7 +15,10 @@ function stub(p, exports) {
 }
 
 const calls = [];
-stub('../../../stores/configStore', { getSecret: async () => 'google-key' });
+stub('../../../stores/configStore', { getSecret: async () => 'google-key', getConfig: async () => null });
+// The user's image limit: null = may generate; a test sets a used-up limit.
+let limitReached = null;
+stub('../../../core/entitlements/imageQuota.mts', { checkImageLimit: async () => limitReached });
 stub('../../../core/providers', {
     googleAdapter: {
         async generateImage(apiKey, prompt, options) {
@@ -62,7 +65,7 @@ test('a prompt produces an image through the Google adapter', async () => {
     assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
     assert.strictEqual(res.body.imageBase64, 'aW1n');
     assert.strictEqual(res.body.mimeType, 'image/png');
-    assert.deepStrictEqual(calls, [{ apiKey: 'google-key', prompt: 'a bee on a flower', options: { aspectRatio: '16:9' } }]);
+    assert.deepStrictEqual(calls, [{ apiKey: 'google-key', prompt: 'a bee on a flower', options: { aspectRatio: '16:9', model: 'gemini-3.1-flash-image-preview' } }]);
 });
 
 test('a missing prompt is a 400, not a call', async () => {
@@ -84,4 +87,20 @@ test('the image is billed to the signed-in user and their organisation, in the c
     assert.strictEqual(row.agent_id, null);
     assert.strictEqual(row.agent_name, 'direct-chat');
     assert.notStrictEqual(require('../../../shared/usageAreas').areaOf(row.source), 'other');
+});
+
+test('a used-up image limit is a 429 with the reason, and no image is generated or billed', async () => {
+    calls.length = 0;
+    usageRows.length = 0;
+    limitReached = { window: 'day', limit: 5, used: 5, message: 'You have reached your image limit (5 per 24 hours).' };
+    try {
+        const res = await dispatch({ prompt: 'a bee' });
+        assert.strictEqual(res.statusCode, 429, JSON.stringify(res.body));
+        assert.strictEqual(res.body.code, 'image_limit_reached');
+        assert.match(res.body.error, /5 per 24 hours/);
+        assert.strictEqual(calls.length, 0);
+        assert.strictEqual(usageRows.length, 0);
+    } finally {
+        limitReached = null;
+    }
 });

@@ -1,6 +1,7 @@
 import { Check, Clock, Edit2, Mail, X } from 'lucide-react';
 import GroupAssignPopover from './GroupAssignPopover';
 import BudgetEditor from './BudgetEditor';
+import MemberImageLimitsPopover from './MemberImageLimitsPopover';
 import { ORG_ROLES } from '@/config/orgRoles';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useDeploymentMode } from '@/hooks/useDeploymentMode';
@@ -172,7 +173,7 @@ export default function OrgMemberRow({ member: u, orgGroups, usage, groupsState,
     );
 }
 
-/** What can be done to a member: approve or reject a pending one, else budget, role and groups. */
+/** What can be done to a member: approve or reject a pending one, else budget, image limits, role and groups. */
 function MemberActions({ member: u, orgGroups, groupsState, memberRoles, onCreateGroup }: Omit<OrgMemberRowProps, 'usage' | 'manageable'>) {
     const { t } = useTranslation();
     const { isSelfHosted } = useDeploymentMode();
@@ -187,6 +188,7 @@ function MemberActions({ member: u, orgGroups, groupsState, memberRoles, onCreat
                     onSave={v => memberRoles.handleUpdateUserCostLimit(u.id, v)}
                 />
             )}
+            <MemberImageLimitsPopover member={u} memberRoles={memberRoles} />
             <RoleDropdown member={u} memberRoles={memberRoles} />
             <GroupAssignPopover
                 userId={u.id}

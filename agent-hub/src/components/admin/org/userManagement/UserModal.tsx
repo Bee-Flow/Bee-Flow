@@ -5,6 +5,7 @@ import type { TranslateFn, TranslateParams } from '@/hooks/useTranslation';
 import { API_BASE } from '@/utils/helpers';
 import Modal from '@/components/shared/Modal';
 import PlatformAdminField from './PlatformAdminField';
+import ImageLimitsField from '../imageLimits/ImageLimitsField';
 import type { AdminGroup, AdminOrganization, UserFormData } from './types';
 
 const EMOJI_CHOICES = ['😀', '😎', '🤖', '👨', '👩', '👤', '🧑‍💻', '👨‍💼', '👩‍💼', '🦸', '🧙', '👷', '🎅', '🐝', '🦊', '🐱', '🐶', '🐻', '🦁', '🐸', '🌟', '⭐', '🔥', '💡', '🎯', '🚀', '💻', '🛡️', '🎨', '📊', '🔧', '⚡'];
@@ -139,6 +140,15 @@ function UserModalSection({ t, userData, setShowEmojiPicker, showEmojiPicker, on
         </div>
         <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{showEditUser ? t('admin_org.user_modal_password_new', 'New Password (blank to keep)') : t('admin_org.user_modal_password', 'Password')}</label><input type="password" value={userData.password} onChange={e => setUserData(p => ({ ...p, password: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder="••••••••" /></div>
         {isSelfHosted && showEditUser && <UserCostLimitField value={userData.monthlyCostLimit} onChange={v => setUserData(p => ({ ...p, monthlyCostLimit: v }))} t={t} />}
+        {/* Image limits: every deployment, cloud too. The create endpoint has no such field, so edit only. */}
+        {showEditUser && (
+            <ImageLimitsField
+                value={userData.imageLimits}
+                onChange={v => setUserData(p => ({ ...p, imageLimits: v }))}
+                label={t('image_limits.user_label', 'Image limits')}
+                hint={t('image_limits.user_hint', "This person's own limits. An empty window uses their groups (the most generous one), then the organisation's default. 0 lifts the limit for them.")}
+            />
+        )}
         {/* ── Organisation Assignment ── */}
         <div className="p-4 rounded-xl border border-[var(--border-default)] bg-[var(--bg-primary)]">
             <div className="flex items-center gap-2 mb-3">

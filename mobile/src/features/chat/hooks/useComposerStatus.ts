@@ -9,7 +9,7 @@ import { useMemo } from 'react';
 
 import { fetchComposerFlags, fetchShieldStatus } from '../api/composerStatus';
 import { composerKeys } from '../api/keys';
-import { MEDIA_GATES, MEDIA_KINDS, type MediaKind } from '../model/mediaCatalog';
+import { imageModelOptions, mediaGatesFor, type MediaKind, type MediaOption } from '../model/mediaCatalog';
 import { shieldLine, type ShieldWords } from '../model/shieldLine';
 
 /** The server polls its detector; a minute is fresh enough for a claim. */
@@ -25,23 +25,23 @@ export function useShieldLine(): ShieldWords | null {
     return shieldLine(query.data);
 }
 
-/** Which generators this person may use here: the org allows it and the key it needs is set. */
-export function useMediaGates(): Readonly<Record<MediaKind, boolean>> {
-    const query = useQuery({
+function useComposerFlags() {
+    return useQuery({
         queryKey: composerKeys.flags,
         queryFn: ({ signal }) => fetchComposerFlags(signal),
         staleTime: 5 * 60_000,
         retry: false,
-    });
-    const flags = query.data;
-    return useMemo(() => {
-        const out = {} as Record<MediaKind, boolean>;
-        for (const kind of MEDIA_KINDS) {
-            const gate = MEDIA_GATES[kind];
-            const orgOn = !flags?.orgEnabledIntegrations || flags.orgEnabledIntegrations.includes(gate.integration);
-            const keyed = gate.key === 'google' ? Boolean(flags?.hasGoogleKey) : Boolean(flags?.hasElevenLabsKey);
-            out[kind] = Boolean(flags) && orgOn && keyed;
-        }
-        return out;
-    }, [flags]);
+    }).data;
+}
+
+/** Which generators this person may use here: the org allows it and what it needs is configured. */
+export function useMediaGates(): Readonly<Record<MediaKind, boolean>> {
+    const flags = useComposerFlags();
+    return useMemo(() => mediaGatesFor(flags), [flags]);
+}
+
+/** The image models to offer: the server's list (Google and Azure), or Google's two from an older server. */
+export function useImageModelOptions(): readonly MediaOption[] {
+    const flags = useComposerFlags();
+    return useMemo(() => imageModelOptions(flags?.imageModels), [flags]);
 }

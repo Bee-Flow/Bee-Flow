@@ -150,6 +150,8 @@ Requests per minute one signed-in user may make on the routes that spend money o
 | `NOTEBOOK_AI_RPM` | `30` | Notebook generations (summary, quiz, ai-fill). |
 | `TEMPLATE_AI_RPM` | `20` | Template uploads, each of which starts the AI pipeline (context, knowledge base, parameters). |
 
+These are a guard against bursts, per minute. How many images one person may make per hour, 24 hours, 7 days or 30 days is not an environment variable: an admin sets it per organisation, group and member, see [Image limits](../admin/users-and-groups.md#image-limits).
+
 ## Teams meeting notes
 
 Optional; empty means the default. For the limits, `0` means unlimited (for the probe timeout: no

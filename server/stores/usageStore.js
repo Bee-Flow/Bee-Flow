@@ -30,10 +30,11 @@ const {
 } = require('./usage/breakdowns');
 const {
     TEST_CHAT_SOURCE, STUDIO_APP_ACTION_SOURCE, RUN_COUNT_WINDOWS, getTestChatCounts, getStudioAppRunCounts,
+    IMAGE_GENERATION_SOURCE, getUserImageCounts,
 } = require('./usage/counts');
 
 const { logUsage } = createLogUsage({
-    rateUsage,
+    rateUsage: require('./usage/unitPrice').withUnitPrice(rateUsage), // an image carries its own price
     resolveBilledModel,
     loadCurrency: () => require('../core/text/currency'),
     loadPaygDrain: () => require('../workers/paygDrain'),
@@ -48,6 +49,8 @@ module.exports = {
     getStudioAppRunCounts,
     STUDIO_APP_ACTION_SOURCE,
     RUN_COUNT_WINDOWS,
+    getUserImageCounts,
+    IMAGE_GENERATION_SOURCE,
     getUsageSummary,
     getUsageByModel,
     getUsageByAgent,

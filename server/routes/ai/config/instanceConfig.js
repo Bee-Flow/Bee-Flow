@@ -25,6 +25,8 @@ const { validate } = require('../../../core/http/validate');
 const { HttpError } = require('../../../core/http/errors');
 const { embeddingChoice, savedDimensions } = require('../../../core/embed/embeddingChoice.mts');
 const { z, worded, bodyOf, flag } = require('../../../core/http/schemaParts');
+const { parseAzureImageModels, AZURE_IMAGE_MODELS_KEY } = require('../../../core/media/imageModels.mts');
+const { AzureImageModelsBody } = require('../../../core/media/imageModelsBody');
 
 // ── What POST /config accepts ────────────────────────────────────────
 // Every key the handler reads, and nothing else: a misspelled key (the
@@ -60,7 +62,7 @@ const ConfigBody = bodyOf({
     askAiEnabled: cfgFlag, exportEnabled: cfgFlag, openInNotebookEnabled: cfgFlag,
     notebooksMenuEnabled: cfgFlag, stripeEnabled: cfgFlag, stripeTaxEnabled: cfgFlag,
     cpuRerankerEnabled: cfgFlag, voiceprintMatchingEnabled: cfgFlag, localWhisperEnabled: cfgFlag, piiDetectionEnabled: cfgFlag,
-    azureModels: z.unknown().optional(), regexGuardrails: RegexGuardrailsBody, piiDetectionCategories: z.unknown().optional(),
+    azureModels: z.unknown().optional(), azureImageModels: AzureImageModelsBody, regexGuardrails: RegexGuardrailsBody, piiDetectionCategories: z.unknown().optional(),
     piiDetectionConfidenceThreshold: z.unknown().optional(), piiDetectionScope: z.unknown().optional(),
     allowedModelsByAgentType: z.unknown().optional(), directChatRegexGuardrails: z.unknown().optional(),
     maxToolRoundsChat: z.unknown().optional(), pyannoteIdentifyThreshold: z.unknown().optional(),
@@ -109,6 +111,7 @@ router.get('/config', requireAuth, async (req, res) => {
         hasAzureEndpoint: !!(await configStore.getConfig('azure_endpoint')),
         hasAzureApiKey: !!(await configStore.getSecret('azure_api_key')),
         azureModels: await configStore.getConfig('azure_models') || '',
+        azureImageModels: parseAzureImageModels(await configStore.getConfig(AZURE_IMAGE_MODELS_KEY)),
         hasFirefliesKey: !!(req.session?.user?.id && (await configStore.getSecret(`fireflies_api_key_user_${req.session.user.id}`))),
         hasAgentSearchUrl: !!process.env.SEARCH_SERVICE_URL || !!(await configStore.getConfig('agent_search_url')),
         agentSearchUrl: process.env.SEARCH_SERVICE_URL || await configStore.getConfig('agent_search_url') || '',
@@ -235,6 +238,7 @@ router.post('/config', requireAuth, requireAdmin, validate({ body: ConfigBody })
     if (azureModels !== undefined) {
         await configStore.setConfig('azure_models', azureModels || '');
     }
+    if (req.body.azureImageModels !== undefined) await configStore.setConfig(AZURE_IMAGE_MODELS_KEY, parseAzureImageModels(req.body.azureImageModels));
     if (agentSearchUrl !== undefined) {
         await configStore.setConfig('agent_search_url', agentSearchUrl || '');
     }
