@@ -22,7 +22,7 @@ const { requireAuth, requireAdmin, requireSuperAdmin, requirePrimaryOrgAdmin, ge
 const orgRolePolicy = require('../orgRolePolicy');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
-const { worded, costLimit } = require('../../core/http/schemaParts');
+const { worded, costLimit, imageLimits, storedImageLimits } = require('../../core/http/schemaParts');
 const { rejectUngrantableRoles, rejectUngrantableOrgRole } = require('./grantableRoleGuards');
 
 // The `roles` table has no organizationId column — a role is install-wide, so
@@ -152,6 +152,7 @@ const CreateGroupBody = z.object({
     organizationId: worded('An organization id must be text.').trim().max(200, 'That organization id is too long.').nullable().optional(),
     allowedAgentTypes: idList('allowedAgentTypes'),
     perUserCostLimit: costLimit(),
+    perUserImageLimits: imageLimits(),
 }).strict();
 
 const UpdateGroupBody = z.object({
@@ -163,6 +164,7 @@ const UpdateGroupBody = z.object({
     allowedTiers: idList('allowedTiers'),
     orgRole: worded('An organisation role must be text.').max(64, 'That organisation role is too long.').nullable().optional(),
     perUserCostLimit: costLimit(),
+    perUserImageLimits: imageLimits(),
 }).strict();
 
 const MEMBER_TEXT = 'userId required';
@@ -188,8 +190,8 @@ const OrgRolePermissionsBody = z.object({
 }).strict();
 
 router.post('/groups', requireAuth, validate({ body: CreateGroupBody }), async (req, res) => {
-    /** @type {{ name: string, description?: string, permissions?: string[], roles?: string[], organizationId?: string | null, allowedAgentTypes?: string[], perUserCostLimit?: number | null }} */
-    const { name, description, permissions, roles, organizationId, allowedAgentTypes, perUserCostLimit } = req.body;
+    /** @type {{ name: string, description?: string, permissions?: string[], roles?: string[], organizationId?: string | null, allowedAgentTypes?: string[], perUserCostLimit?: number | null, perUserImageLimits?: Record<string, number | null | undefined> | null }} */
+    const { name, description, permissions, roles, organizationId, allowedAgentTypes, perUserCostLimit, perUserImageLimits } = req.body;
 
     if (!name) {
         return res.status(400).json({ error: 'Group name required' });
@@ -245,6 +247,7 @@ router.post('/groups', requireAuth, validate({ body: CreateGroupBody }), async (
         roles: roles || [],
         allowedAgentTypes: allowedAgentTypes || [],
         perUserCostLimit: perUserCostLimit ?? null,
+        perUserImageLimits: storedImageLimits(perUserImageLimits) ?? null,
     };
 
     if (await userStore.createGroup(newGroup)) {
@@ -266,8 +269,8 @@ router.post('/groups', requireAuth, validate({ body: CreateGroupBody }), async (
 
 router.put('/groups/:id', requireAuth, validate({ body: UpdateGroupBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     const { id } = req.params;
-    /** @type {{ description?: string, permissions?: string[], roles?: string[], organizationId?: string | null, allowedAgentTypes?: string[], allowedTiers?: string[], orgRole?: string | null, perUserCostLimit?: number | null }} */
-    const { description, permissions, roles, organizationId, allowedAgentTypes, allowedTiers, orgRole, perUserCostLimit } = req.body;
+    /** @type {{ description?: string, permissions?: string[], roles?: string[], organizationId?: string | null, allowedAgentTypes?: string[], allowedTiers?: string[], orgRole?: string | null, perUserCostLimit?: number | null, perUserImageLimits?: Record<string, number | null | undefined> | null }} */
+    const { description, permissions, roles, organizationId, allowedAgentTypes, allowedTiers, orgRole, perUserCostLimit, perUserImageLimits } = req.body;
 
     // Require org_admin or manage_users permission to edit groups
     const isSuperAdmin = req.session.isAdmin || req.session.user?.role === 'admin';
@@ -309,7 +312,7 @@ router.put('/groups/:id', requireAuth, validate({ body: UpdateGroupBody }), asyn
     }
 
     /** @type {{ description?: string, permissions?: string[], roles?: string[], organizationId?: string | null, allowedAgentTypes?: string[], allowedTiers?: string[], orgRole?: string | null, [key: string]: unknown }} */
-    const updates = { description, permissions, roles, perUserCostLimit };
+    const updates = { description, permissions, roles, perUserCostLimit, perUserImageLimits: storedImageLimits(perUserImageLimits) };
     // Only super admins can reassign a group to a different org
     if (organizationId !== undefined && isSuperAdmin) {
         updates.organizationId = organizationId;
@@ -335,7 +338,7 @@ router.put('/groups/:id', requireAuth, validate({ body: UpdateGroupBody }), asyn
 
     if (await userStore.updateGroup(id, updates)) {
         log.info(`[Audit] ${userId || 'system'} updated group '${id}' — fields: ${Object.keys(updates).filter(k => updates[k] !== undefined).join(', ')}`);
-        const AUDIT_FIELDS = ['permissions', 'roles', 'orgRole', 'allowedAgentTypes', 'allowedTiers', 'organizationId', 'perUserCostLimit'];
+        const AUDIT_FIELDS = ['permissions', 'roles', 'orgRole', 'allowedAgentTypes', 'allowedTiers', 'organizationId', 'perUserCostLimit', 'perUserImageLimits'];
         /** @type {Record<string, unknown>} */
         const oldVals = {};
         /** @type {Record<string, unknown>} */

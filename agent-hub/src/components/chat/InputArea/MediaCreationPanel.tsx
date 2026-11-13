@@ -4,8 +4,8 @@
  *
  * One row in the composer's "+" menu opens this; the row is gated there, and
  * each generator inside is gated again by the flag the composer passes down —
- * an org that has switched off video generation, or an account with no Google
- * key, must not see the entry at all.
+ * an org that has switched off video generation, a server with no image model,
+ * or (for music and video) no Google key, must not see the entry at all.
  *
  * Which generators are OPEN, what the image generator is set to, and which of
  * them the user has dimmed (right-click on a row, persisted per user through
@@ -20,7 +20,9 @@
  * already opened.
  */
 import React, { useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
+import { COMPOSER_ORG_SETTINGS_KEY, useComposerOrgSettings } from '@/api/queries/composerSettings';
 import useTranslation from '@/hooks/useTranslation';
 import scopedStorage from '@/utils/scopedStorage';
 import ElevenLabsSettings from '../ElevenLabsSettings';
@@ -48,6 +50,9 @@ const MediaCreationPanel = ({
     showVideoGen,
 }: MediaCreationPanelProps) => {
     const { t } = useTranslation();
+    const queryClient = useQueryClient();
+    // The image models to pick from and the user's image limit (what is used changes with every image).
+    const { imageModels, imageQuota } = useComposerOrgSettings();
     const [imageGenOpen, setImageGenOpen] = useState(false);
     const [imageGenSettings, setImageGenSettings] = useState(loadSettings as () => NonNullable<ReturnType<typeof loadSettings>>);
     const [musicGenOpen, setMusicGenOpen] = useState(false);
@@ -85,7 +90,12 @@ const MediaCreationPanel = ({
                     {showImageGen && (
                         <button
                             ref={imageGenBtnRef}
-                            onClick={() => { onOpenChange(false); setImageGenOpen(true); }}
+                            onClick={() => {
+                                onOpenChange(false);
+                                setImageGenOpen(true);
+                                // Re-read the settings so the "used" counts are today's, not the page load's.
+                                void queryClient.invalidateQueries({ queryKey: COMPOSER_ORG_SETTINGS_KEY });
+                            }}
                             onContextMenu={(e) => { e.preventDefault(); const next = { ...disabledMedia, image: !disabledMedia.image }; setDisabledMedia(next); scopedStorage.setJSON('disabledMedia', next); }}
                             className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors text-sm text-left ${disabledMedia.image ? '[opacity:0.35]' : '[opacity:1]'}`}
                         >
@@ -134,6 +144,8 @@ const MediaCreationPanel = ({
                 anchorRef={imageGenBtnRef}
                 settings={imageGenSettings}
                 onSettingsChange={setImageGenSettings}
+                imageModels={imageModels}
+                imageQuota={imageQuota}
             />
             <MusicGenSettings
                 isOpen={musicGenOpen}

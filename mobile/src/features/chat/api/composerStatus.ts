@@ -25,13 +25,31 @@ export interface ShieldStatus {
     coworkEnabled: boolean;
 }
 
+/** An image model the server can generate with (Google, or an Azure deployment as `azure/<deployment>`). */
+export interface ImageModelChoice {
+    id: string;
+    label: string;
+}
+
 export interface ComposerFlags {
     /** null: the org places no restriction. */
     orgEnabledIntegrations: string[] | null;
     hasGoogleKey: boolean;
     hasElevenLabsKey: boolean;
+    /** Whether any image model is configured; absent from a server older than Azure images. */
+    hasImageGen?: boolean;
+    /** The image models this person can pick; null from a server older than Azure images. */
+    imageModels: ImageModelChoice[] | null;
     /** 'disabled' switches web search off for everyone. */
     searchProvider: string | null;
+}
+
+const readImageModel = shapeOf({ id: field.str(''), label: field.str('') });
+
+/** The server's image models, rows without an id dropped; null when the server sends no list. */
+function readImageModels(value: unknown): ImageModelChoice[] | null {
+    if (!Array.isArray(value)) return null;
+    return value.map(readImageModel).filter((m) => m.id !== '');
 }
 
 export const readShieldStatus: (raw: unknown) => ShieldStatus | null = nullable(
@@ -51,6 +69,8 @@ export const readComposerFlags: (raw: unknown) => ComposerFlags | null = nullabl
         orgEnabledIntegrations: field.strArrayOrNull,
         hasGoogleKey: field.bool(false),
         hasElevenLabsKey: field.bool(false),
+        hasImageGen: field.optBool,
+        imageModels: readImageModels,
         searchProvider: field.strOrNull,
     }),
 );

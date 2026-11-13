@@ -47,3 +47,19 @@ it('shows a tab only for a generator this person may use', () => {
     expect(panelsFor(gates).map((p) => p.id)).toEqual(['image']);
     expect(panelsFor({ ...gates, image: false, elevenlabs: true }).map((p) => p.id)).toEqual(['music', 'sfx']);
 });
+
+it("offers the server's image models, and shows the first for a choice no longer offered", () => {
+    const gates = { image: true, music: false, elevenlabs: false, video: false };
+    const models = [
+        { name: 'gpt-image-1.5 (img)', value: 'azure/img' },
+        { name: 'MAI-Image-2.6 (mai)', value: 'azure/mai' },
+    ];
+    const control = panelsFor(gates, models)[0]?.controls.find((c) => c.key === 'model');
+    expect(control?.kind === 'options' && control.options).toEqual(models);
+    expect(control && controlValue(control, 'azure/mai')).toBe('azure/mai');
+    expect(control && controlValue(control, 'gemini-3-pro-image-preview')).toBe('azure/img');
+    expect(control && controlValue(control, undefined)).toBe('azure/img');
+
+    const builtIn = panelsFor(gates)[0]?.controls.find((c) => c.key === 'model');
+    expect(builtIn && controlValue(builtIn, 'azure/gone')).toBe('gemini-3.1-flash-image-preview');
+});

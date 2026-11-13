@@ -4,6 +4,7 @@ import { API_BASE } from '@/utils/helpers';
 import { settled } from '@/api/settled';
 import { useDeploymentMode } from '@/hooks/useDeploymentMode';
 import useCustomTiersMeta from './useCustomTiersMeta';
+import type { ImageLimits } from '@/utils/imageLimits';
 
 /**
  * One member, as GET /auth/users returns them. Only what the panel reads is
@@ -25,6 +26,8 @@ export interface OrgMember {
     isSystem?: boolean;
     /** Self-hosted monthly AI budget in euro; null/absent = none. */
     monthlyCostLimit?: number | null;
+    /** The member's own image limits per window; null/absent = none set. */
+    imageLimits?: ImageLimits | null;
     [key: string]: unknown;
 }
 
@@ -39,6 +42,8 @@ export interface OrgGroupRow {
     allowedTiers?: string[];
     /** Self-hosted AI budget per member per month in euro; null/absent = none. */
     perUserCostLimit?: number | null;
+    /** The image limits EACH member gets per window; null/absent = none set. */
+    perUserImageLimits?: ImageLimits | null;
     source?: string;
     lastSyncedAt?: string | null;
     [key: string]: unknown;

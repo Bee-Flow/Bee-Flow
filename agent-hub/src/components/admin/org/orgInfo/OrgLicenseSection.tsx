@@ -7,6 +7,7 @@ import type { OrgUsageData } from './license/licenseShared';
 import { NoSubscriptionOffers } from './license/PlanOffers';
 import { CheckoutSettlingNotice, ServerOverrideNotice, SubMessageBanner } from './license/SubscriptionNotices';
 import UsageSharingToggle from './license/UsageSharingToggle';
+import OrgImageLimitsCard from '../imageLimits/OrgImageLimitsCard';
 import type { OrgSubscriptionState } from './license/useOrgSubscription';
 
 interface OrgLicenseSectionProps<T extends OrgUsageData> {
@@ -94,6 +95,11 @@ const OrgLicenseSection = <T extends OrgUsageData>({
                 && limits.max_cost_per_month != null && limits.max_cost_per_month !== -1 && (
                 <UsageSharingToggle orgData={orgData} setOrgData={setOrgData} />
             )}
+
+            {/* ── Image limits per user: every plan, so not behind the budget above.
+                Self-hosted has no License & Usage page; it shows them under
+                Organisation Info (OrgInfoPanel). ── */}
+            {orgData && <OrgImageLimitsCard orgData={orgData} setOrgData={setOrgData} />}
 
             {/* ── Change-plan confirmation modal ── */}
             {changeTarget && changePreview && (

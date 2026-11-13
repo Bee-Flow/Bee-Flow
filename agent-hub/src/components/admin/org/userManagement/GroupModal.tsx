@@ -2,6 +2,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import Modal from '@/components/shared/Modal';
 import GroupAllowedTiers from '../orgUsers/GroupAllowedTiers';
+import ImageLimitsField from '../imageLimits/ImageLimitsField';
 import { GroupRoleSelect } from '../orgUsers/GroupSettings';
 import type { CustomTierMeta } from '../useOrgDirectory';
 import type { AdminCurrentUser, AdminOrganization, AdminPermission, AdminRole, GroupFormData } from './types';
@@ -72,7 +73,7 @@ export default function GroupModal({
 
                 <div><label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">{t('admin_org.group_modal_description', 'Description')}</label><input type="text" value={groupData.description} onChange={e => setGroupData(p => ({ ...p, description: e.target.value }))} className="w-full px-3 py-2 rounded-lg border bg-transparent outline-none focus:border-[var(--accent-primary)] border-[var(--border-default)] text-[var(--text-primary)]" placeholder={t('admin_org.group_modal_desc_ph', 'Can edit agents')} /></div>
                 {showEditGroup && <GroupInheritanceFields groupData={groupData} setGroupData={setGroupData} customTiersMeta={customTiersMeta} />}
-                {isSelfHosted && <GroupCostLimitField value={groupData.perUserCostLimit} onChange={v => setGroupData(p => ({ ...p, perUserCostLimit: v }))} t={t} />}
+                <GroupLimitFields groupData={groupData} setGroupData={setGroupData} isSelfHosted={isSelfHosted} t={t} />
                 <div><label className="block text-sm font-medium mb-2 text-[var(--text-primary)]">{t('admin_org.group_modal_permissions', 'Permissions')}</label>
                     <div className="grid grid-cols-2 gap-2 max-h-40 overflow-auto p-2 rounded border border-[var(--border-subtle)]">
                         {permissions.filter(p => isFullAdmin || (currentUser?.permissions || []).includes(p.id)).map(p => (
@@ -106,6 +107,26 @@ export default function GroupModal({
                 </div>
             </div>
         </Modal>
+    );
+}
+
+/** What each member gets for themselves: the AI budget (self-hosted only) and the image limits (every deployment). */
+function GroupLimitFields({ groupData, setGroupData, isSelfHosted, t }: {
+    groupData: GroupFormData;
+    setGroupData: Dispatch<SetStateAction<GroupFormData>>;
+    isSelfHosted: boolean;
+    t: TranslateFn;
+}) {
+    return (
+        <>
+            {isSelfHosted && <GroupCostLimitField value={groupData.perUserCostLimit} onChange={v => setGroupData(p => ({ ...p, perUserCostLimit: v }))} t={t} />}
+            <ImageLimitsField
+                value={groupData.perUserImageLimits}
+                onChange={v => setGroupData(p => ({ ...p, perUserImageLimits: v }))}
+                label={t('image_limits.group_label', 'Image limits per member')}
+                hint={t('image_limits.group_hint', "Each member gets these limits for themselves. A member's own limit comes first; with several groups the most generous one applies. An empty window uses the organisation's default.")}
+            />
+        </>
     );
 }
 

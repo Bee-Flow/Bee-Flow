@@ -11,6 +11,7 @@ import { View } from 'react-native';
 
 import { useTranslation } from '@/core/i18n';
 import { useThemedStyles, type Theme } from '@/core/theme/ThemeProvider';
+import { useImageModelOptions } from '@/features/chat/hooks/useComposerStatus';
 import type { MediaKind } from '@/features/chat/model/mediaCatalog';
 import { MEDIA_KIND_WORDS, panelsFor, type MediaPanel } from '@/features/chat/model/mediaPanels';
 import { useMediaSettings } from '@/features/chat/model/mediaSettings';
@@ -33,7 +34,8 @@ export function MediaSheet({
 }) {
     const t = useTranslation();
     const styles = useThemedStyles(makeStyles);
-    const panels = panelsFor(gates);
+    const imageModels = useImageModelOptions();
+    const panels = panelsFor(gates, imageModels);
     const [tab, setTab] = useState<MediaPanel['id']>(panels[0]?.id ?? 'image');
     const sections = useMediaSettings((s) => s.sections);
     const disabled = useMediaSettings((s) => s.disabled);

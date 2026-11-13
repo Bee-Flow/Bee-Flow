@@ -123,15 +123,30 @@ export const MEDIA_KIND_WORDS: Readonly<Record<MediaKind, Words>> = {
     elevenlabs: w('mobile.chat.media_elevenlabs', 'ElevenLabs audio'),
 };
 
-/** The tabs this person gets: those with at least one allowed generator. */
-export function panelsFor(gates: Readonly<Record<MediaKind, boolean>>): MediaPanel[] {
-    return MEDIA_PANELS.filter((panel) => panel.kinds.some((kind) => gates[kind]));
+/** The image tab's model row with the given choices, its default the first of them. */
+function withImageModels(control: MediaControl, imageModels: readonly MediaOption[] | undefined): MediaControl {
+    if (!imageModels?.length || control.kind !== 'options' || control.section !== 'image' || control.key !== 'model') return control;
+    return { ...control, options: imageModels, fallback: imageModels[0]!.value };
 }
 
-/** A control's shown value: what was set, else the web's default. */
+/**
+ * The tabs this person gets: those with at least one allowed generator. The
+ * image models, when given (the server's list), replace the built-in ones.
+ */
+export function panelsFor(gates: Readonly<Record<MediaKind, boolean>>, imageModels?: readonly MediaOption[]): MediaPanel[] {
+    return MEDIA_PANELS.filter((panel) => panel.kinds.some((kind) => gates[kind])).map((panel) =>
+        panel.id === 'image' && imageModels?.length ? { ...panel, controls: panel.controls.map((c) => withImageModels(c, imageModels)) } : panel,
+    );
+}
+
+/**
+ * A control's shown value: what was set, else the web's default. A choice
+ * that is no longer offered (an image deployment the admin removed) shows the
+ * default instead.
+ */
 export function controlValue(control: MediaControl, set: string | number | boolean | undefined): string | number | boolean {
+    if (control.kind === 'options') return control.options.some((o) => o.value === set) ? (set as string | number) : control.fallback;
     if (set !== undefined) return set;
-    if (control.kind === 'options') return control.fallback;
     if (control.kind === 'number') return control.spec.fallback;
     return false;
 }

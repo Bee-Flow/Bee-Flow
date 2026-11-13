@@ -186,7 +186,7 @@ const InputArea = ({
     // useAppsCatalog, which reads it through the module-cached
     // useIntegrationStatus rather than fetching it a second time.
     const {
-        orgEnabledIntegrations, hasGoogleKey, hasElevenLabsKey,
+        orgEnabledIntegrations, hasGoogleKey, hasImageGen, hasElevenLabsKey,
         disableSearchOnUpload: orgDisableSearchOnUpload, searchProvider: searchProviderConfig,
     } = useComposerOrgSettings();
     // Which apps exist, which are on, and how to flip one — shared with the
@@ -277,7 +277,7 @@ const InputArea = ({
     const voiceReady = useVoiceChatReady(user) && !incognito; // voice runs a session of its own
     const externalToolsOk = !selectedAgent?.config?.disableExternalTools;
     const orgOn = (id: string) => !orgEnabledIntegrations || orgEnabledIntegrations.includes(id);
-    const showImageGen = externalToolsOk && orgOn('image-gen') && hasGoogleKey;
+    const showImageGen = externalToolsOk && orgOn('image-gen') && hasImageGen;
     const showMusicGen = externalToolsOk && orgOn('music-gen') && hasGoogleKey;
     const showElevenLabs = externalToolsOk && orgOn('elevenlabs') && hasElevenLabsKey;
     const showVideoGen = externalToolsOk && orgOn('video-gen') && hasGoogleKey;

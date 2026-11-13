@@ -7,6 +7,7 @@
 import { useTranslation } from '@/hooks/useTranslation';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { formatDate } from '@/utils/dateFormatters';
+import type { ImageLimitsInput } from '@/utils/imageLimits';
 
 /** A sellable plan: an offer on the checkout list, or a target to change to. */
 export interface BillingPlan {
@@ -80,9 +81,10 @@ export interface SubMessage {
     text: string | undefined;
 }
 
-/** The org form's fields this page touches (the usage-sharing toggle). */
+/** The org form's fields this page touches (the usage-sharing toggle, the image limits). */
 export interface OrgUsageData {
     usagePooled?: boolean;
+    imageLimits?: ImageLimitsInput;
 }
 
 /** € / £ / $ for a plan's currency (EUR when unset). */

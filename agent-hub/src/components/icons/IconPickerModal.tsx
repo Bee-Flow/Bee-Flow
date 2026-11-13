@@ -82,7 +82,9 @@ function IconPickerModal({ isOpen, onClose, iconKey, iconLabel, defaultEmoji, cu
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     prompt,
-                    model: nanoBananaSettings?.image?.model,
+                    // The icon route takes only a Gemini model id; any other choice (an Azure
+                    // deployment) is left out and the server picks its default image model.
+                    model: nanoBananaSettings?.image?.model?.startsWith('gemini-') ? nanoBananaSettings.image.model : undefined,
                     aspectRatio: '1:1',
                 }),
             });

@@ -53,7 +53,8 @@ it('translates the Lyria modes with the web’s own words', () => {
 it('gates each generator on the integration and key the web checks', () => {
     const src = fs.readFileSync(`${AGENT_HUB_SRC}/components/chat/InputArea/index.tsx`, 'utf8');
     const gates: Record<string, { integration: string; key: string }> = {};
-    for (const m of src.matchAll(/const show(\w+) = externalToolsOk && orgOn\('([^']+)'\) && has(\w+)Key;/g)) {
+    // `hasGoogleKey` → google, `hasElevenLabsKey` → elevenlabs, `hasImageGen` → imagegen.
+    for (const m of src.matchAll(/const show(\w+) = externalToolsOk && orgOn\('([^']+)'\) && \(?has(\w+?)(?:Key)?\b/g)) {
         gates[m[2] as string] = { integration: m[2] as string, key: (m[3] as string).toLowerCase() };
     }
     const mine = Object.values(catalog.MEDIA_GATES).map((g) => ({ integration: g.integration, key: g.key }));

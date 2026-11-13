@@ -10,6 +10,7 @@ import OrgLicenseSection from './orgInfo/OrgLicenseSection';
 import useOrgInfoForm from './orgInfo/useOrgInfoForm';
 import type { OrgInfoSaveState, OrgInfoUser } from './orgInfo/useOrgInfoForm';
 import OrgIntegrationCacheEditor from './OrgIntegrationCacheEditor';
+import OrgImageLimitsCard from './imageLimits/OrgImageLimitsCard';
 import OrgMemoryEditor from './OrgMemoryEditor';
 import { useDeploymentMode } from '@/hooks/useDeploymentMode';
 import useProjectsAvailable from '@/hooks/useProjectsAvailable';
@@ -134,6 +135,14 @@ const OrgInfoPanel = ({ user, orgId, activeSection, onSave: parentOnSave, onStat
                         // The dashboard's own line (pages/AdminDashboard.tsx): users.role === 'admin', never the 'all' permission.
                         isPlatformAdmin={user?.isAdmin === true || user?.role === 'admin'}
                     />
+                )}
+                {/* ── Image limits per user. On cloud they sit on License & Usage
+                    next to the usage sharing; self-hosted has no such page, so
+                    they are part of this one (the same org form and save bar). ── */}
+                {activeSection === 'info' && isSelfHosted && (
+                    <div className="max-w-3xl mt-6">
+                        <OrgImageLimitsCard orgData={orgData} setOrgData={setOrgData} />
+                    </div>
                 )}
                 {/* ── Privacy Shield ── */}
                 {activeSection === 'privacy' && (

@@ -1486,6 +1486,7 @@ declare namespace DbRow {
         organizationId: string | null;
         orgRole: string | null;
         per_user_cost_limit: number | null;
+        per_user_image_limits: string | null;
         permissions: string | null;
         roles: string | null;
         source: string | null;
@@ -2275,6 +2276,7 @@ declare namespace DbRow {
         encryption_tier: string | null;
         footerText: string | null;
         id: string;
+        image_limits: string | null;
         kvk: string | null;
         logo: string | null;
         name: string;
@@ -3862,6 +3864,7 @@ declare namespace DbRow {
         firstName: string | null;
         groups: string | null;
         id: string;
+        image_limits: string | null;
         kdfMode: string | null;
         kekSalt: string | null;
         last_seen_at: Date | null;

@@ -254,7 +254,7 @@ No request schema.
 | `notebooksEnabled` | boolean or null |  |  |
 | `projectsEnabled` | boolean or null |  |  |
 
-19 more fields: see the full schema in [openapi.json](pathname:///openapi.json).
+23 more fields: see the full schema in [openapi.json](pathname:///openapi.json).
 
 ### `GET /ai/config/ai-step-model`
 

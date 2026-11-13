@@ -7,10 +7,13 @@ import type { AdminMessage, AdminUser, AskConfirm, UserFormData } from './types'
 import { mutate, ApiError } from '@/api/mutate';
 import { approvePendingUser } from '../useOrgMemberRoles';
 import { costLimitToInput, parseCostLimitInput } from './costLimitInput';
+import { EMPTY_IMAGE_LIMITS_INPUT, imageLimitsToInput, parseImageLimitsInput } from '@/utils/imageLimits';
+import type { ImageLimits } from '@/utils/imageLimits';
 
 const EMPTY_USER: UserFormData = {
     id: '', username: '', displayName: '', firstName: '', lastName: '', email: '', phone: '',
     avatar: '', avatarType: '', password: '', role: 'user', groups: [], organizationId: '', orgRole: '', monthlyCostLimit: '',
+    imageLimits: EMPTY_IMAGE_LIMITS_INPUT,
 };
 
 /** The edit form, filled from a row of GET /auth/users. */
@@ -31,12 +34,29 @@ function formFromUser(user: AdminUser): UserFormData {
         organizationId: user.organizationId || '',
         orgRole: user.orgRole || '',
         monthlyCostLimit: costLimitToInput(user.monthlyCostLimit),
+        imageLimits: imageLimitsToInput(user.imageLimits),
     };
 }
 
-/** The create endpoint has no budget field; the form value stays out of its body. */
-function withoutCostLimit({ monthlyCostLimit: _typed, ...rest }: UserFormData) {
+/** The create endpoint has neither the budget nor the image limits; the form values stay out of its body. */
+function withoutLimits({ monthlyCostLimit: _typed, imageLimits: _typedImages, ...rest }: UserFormData) {
     return rest;
+}
+
+/**
+ * The limit fields of an update: the monthly budget (self-hosted only) and the
+ * image limits (every deployment), or the error to show for a text that is not
+ * a usable value.
+ */
+function limitFields(form: UserFormData, isSelfHosted: boolean, t: TranslateFn):
+    | { ok: true; fields: { monthlyCostLimit?: number | null; imageLimits: ImageLimits | null } }
+    | { ok: false; error: string } {
+    const imageLimits = parseImageLimitsInput(form.imageLimits);
+    if (imageLimits === undefined) return { ok: false, error: t('image_limits.invalid', 'An image limit is a whole number from 0 to 1,000,000, or empty.') };
+    if (!isSelfHosted) return { ok: true, fields: { imageLimits } };
+    const monthlyCostLimit = parseCostLimitInput(form.monthlyCostLimit);
+    if (monthlyCostLimit === undefined) return { ok: false, error: t('admin_org.cost_limit_invalid', 'Enter a budget above zero, or leave the field empty.') };
+    return { ok: true, fields: { monthlyCostLimit, imageLimits } };
 }
 
 export interface UserActions {
@@ -114,7 +134,7 @@ export default function useUserActions({ loadData, setMessage, askConfirm, t, is
             const res = await authFetch(`${API_BASE}/auth/users`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(withoutCostLimit(userData)),
+                body: JSON.stringify(withoutLimits(userData)),
             });
             if (res.ok) {
                 setMessage({ type: 'success', text: 'User created successfully' });
@@ -136,21 +156,18 @@ export default function useUserActions({ loadData, setMessage, askConfirm, t, is
     // exactly that and left the tenant unrecoverable). The server answers 409
     // with the downgrade hint; we turn that into a real confirm and re-send.
     const handleUpdateUser = async (extra: Record<string, unknown> = {}) => {
-        let costLimit: number | null | undefined;
-        if (isSelfHosted) {
-            costLimit = parseCostLimitInput(userData.monthlyCostLimit);
-            if (costLimit === undefined) {
-                setMessage({ type: 'error', text: t('admin_org.cost_limit_invalid', 'Enter a budget above zero, or leave the field empty.') });
-                return;
-            }
+        const limits = limitFields(userData, isSelfHosted, t);
+        if (!limits.ok) {
+            setMessage({ type: 'error', text: limits.error });
+            return;
         }
         setPlatformRoleRefusal(null);
         try {
-            const { monthlyCostLimit: _typed, ...rest } = userData;
+            const rest = withoutLimits(userData);
             const res = await authFetch(`${API_BASE}/auth/users/${userData.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...rest, ...(isSelfHosted ? { monthlyCostLimit: costLimit } : {}), ...extra }),
+                body: JSON.stringify({ ...rest, ...limits.fields, ...extra }),
             });
             if (res.ok) {
                 setMessage({ type: 'success', text: 'User updated successfully' });

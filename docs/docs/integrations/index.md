@@ -71,7 +71,7 @@ Available via the [Nextcloud connector](../connector/index.md). The 11 integrati
 
 | Integration | What it does |
 |-------------|--------------|
-| [AI modules](ai-modules.md) | Agent Search, Image Gen (Veo), Video Gen, Music, TTS, Transcription |
+| [AI modules](ai-modules.md) | Agent Search, Image Gen (Google or Azure), Video Gen, Music, TTS, Transcription |
 
 ## Three-layer access control
 

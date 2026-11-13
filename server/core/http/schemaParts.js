@@ -118,4 +118,55 @@ const idList = (message, max = 200) => z.array(worded(message).trim().min(1, mes
 const costLimit = (message = 'A budget must be a number above zero, or empty for no limit.') =>
     z.number({ error: message }).positive(message).nullable().optional();
 
-module.exports = { z, typeError, onUnknownKeys, worded, closedObject, orEmpty, bodyOf, queryOf, choice, flag, wholeNumber, idList, unknownKeysText, costLimit };
+const IMAGE_LIMIT_TEXT = 'An image limit is a whole number from 0 (no limit) to 1,000,000, or empty when not set.';
+const imageLimitWindow = () => z.number({ error: IMAGE_LIMIT_TEXT }).int(IMAGE_LIMIT_TEXT).min(0, IMAGE_LIMIT_TEXT).max(1_000_000, IMAGE_LIMIT_TEXT).nullable().optional();
+
+/**
+ * Image limits per rolling window (core/entitlements/imageLimit.mts):
+ * `{ hour, day, week, month }`, each a whole number or absent; null clears
+ * them all. 0 in a window means "no limit" on purpose.
+ */
+const imageLimits = () => z.object({
+    hour: imageLimitWindow(), day: imageLimitWindow(), week: imageLimitWindow(), month: imageLimitWindow(),
+}, { error: 'Image limits are an object with hour, day, week and month.' }).strict().nullable().optional();
+
+/**
+ * Image limits as the store takes them: undefined when the request did not
+ * carry the field, null when no window is set, otherwise only the set windows.
+ * @param {Record<string, number | null | undefined> | null | undefined} value
+ * @returns {Record<string, number> | null | undefined}
+ */
+function storedImageLimits(value) {
+    if (value === undefined) return undefined;
+    if (value === null) return null;
+    /** @type {Record<string, number>} */
+    const out = {};
+    for (const [window, n] of Object.entries(value)) {
+        if (typeof n === 'number') out[window] = n;
+    }
+    return Object.keys(out).length > 0 ? out : null;
+}
+
+/**
+ * Middleware for a body that carries image limits in `field`: refuses a bad
+ * value (400 `invalid_image_limits`) and replaces a good one with what the
+ * column holds: JSON text of the set windows, or null when none is set. A body
+ * without the field passes untouched.
+ * @param {string} field
+ * @returns {import('express').RequestHandler}
+ */
+function imageLimitsColumnBody(field) {
+    const schema = imageLimits();
+    return (req, res, next) => {
+        if (!req.body || req.body[field] === undefined) return next();
+        const check = schema.safeParse(req.body[field]);
+        if (!check.success) {
+            return res.status(400).json({ error: check.error.issues[0]?.message || 'Invalid image limits', code: 'invalid_image_limits' });
+        }
+        const limits = storedImageLimits(check.data);
+        req.body[field] = limits ? JSON.stringify(limits) : null;
+        return next();
+    };
+}
+
+module.exports = { z, typeError, onUnknownKeys, worded, closedObject, orEmpty, bodyOf, queryOf, choice, flag, wholeNumber, idList, unknownKeysText, costLimit, imageLimits, storedImageLimits, imageLimitsColumnBody };

@@ -43,8 +43,8 @@ Deleting or demoting the last org admin of an organisation that still has other 
 
 | Tab | What it offers |
 |-----|----------------|
-| **Users** | The organisation's members. Per member: change the organisation role, assign groups, see this month's AI cost, and on a self-hosted server set a monthly AI budget. A member waiting for approval has **Approve** and **Reject** (reject removes the account; they can sign up again). |
-| **Groups** | Create and delete groups, add and remove members, and per group: description, a role all members inherit, allowed tiers and, on a self-hosted server, an AI budget per member. |
+| **Users** | The organisation's members. Per member: change the organisation role, assign groups, see this month's AI cost, set [image limits](#image-limits), and on a self-hosted server set a monthly AI budget. A member waiting for approval has **Approve** and **Reject** (reject removes the account; they can sign up again). |
+| **Groups** | Create and delete groups, add and remove members, and per group: description, a role all members inherit, allowed tiers, [image limits](#image-limits) per member and, on a self-hosted server, an AI budget per member. |
 | **Roles** | What each organisation role may do (Organisation Admin, Data Protection Officer, ISMS Internal Auditor, Agent Admin, Agent Editor, Member). Open a role to see its permissions; an org admin can switch the ones the organisation decides (such as Notebooks, the Studio sections, Approvals and Forms) on or off for that role. The rest of what a role is stays fixed by the install. |
 
 When the organisation signs in through Google or Microsoft, the Users tab also has **Auto-approve users from trusted domains**: on, matching users are added straight away; off, they are added as pending and wait for approval.
@@ -67,9 +67,34 @@ Groups are how access is handed out:
 - capabilities granted to a group in **Admin → Access → Grants** (a user gets everything granted to All members plus everything granted to any of their groups);
 - per-group exceptions for the [Nextcloud integrations](nc-integrations.md);
 - agents shared with a group;
-- the permissions, roles, allowed agent types and budgets set on the group itself.
+- the permissions, roles, allowed agent types, budgets and image limits set on the group itself.
 
 A group comes from one of three places: made in Bee Flow, mirrored from Nextcloud by the [Nextcloud sync](#nextcloud-sync), or synced from Azure AD. Azure groups are marked **Managed** under Admin → Security → Users and are changed by syncing, not by hand.
+
+## Image limits
+
+An admin can limit how many images one person generates. Every image counts, wherever it is made (chat, agents, automations, the icon generator) and whichever provider makes it (Google or Azure, see [AI modules](../integrations/ai-modules.md#image-generation)).
+
+A limit has four windows: **per hour**, **per 24 hours**, **per 7 days** and **per 30 days**. The windows are rolling: "per 24 hours" is the 24 hours before now, not the calendar day, so a limit cannot be doubled by generating on both sides of midnight. Set only the windows you need.
+
+There are three levels:
+
+| Level | Where | Applies to |
+|-------|-------|------------|
+| Organisation | The organisation's default, set by an org admin. | Every member who gets no value from the two levels below. |
+| Group | On the **Groups** tab, per group, as a limit per member. | Each member of the group, for themselves. The group does not share one pool. |
+| Member | On the **Users** tab, per member. | That person. |
+
+Each window is resolved on its own: the member's own value, else the most generous value among their groups, else the organisation's. A window that no level sets has no limit.
+
+- **Empty** means not set: the next level decides.
+- **0** means no limit, on purpose. It stops the fall-through, so you can exempt one person or one group from the organisation's default. Among groups, 0 beats any number.
+
+For example: the organisation allows 20 per 24 hours, and the group Design allows 100 per 24 hours. A member of Design without a value of their own gets 100. A member outside Design gets 20. A member whose own value is 0 has no limit per 24 hours.
+
+When a limit is used up, the next image is refused with a message that names the limit, such as "You have reached your image limit (20 per 24 hours). Try again later or contact your administrator." In chat the assistant passes that message on; the API answers `429` with the code `image_limit_reached`. If Bee Flow cannot check the limit (the database does not answer), the image is refused with `503` instead of made without a check, the same as the monthly AI budget.
+
+The image limits are separate from the per-minute guard on image requests (`IMAGE_GEN_RPM`, see [Environment variables](../self-hosting/env.md#per-user-spend-budgets)).
 
 ## Nextcloud sync
 

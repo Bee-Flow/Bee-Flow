@@ -1,0 +1,17 @@
+{
+  "translations": {
+    "azure_image_deployments.add": "Afbeeldingsdeployment toevoegen",
+    "azure_image_deployments.deployment": "Naam van de deployment",
+    "azure_image_deployments.deployment_placeholder": "bijv. images-prod",
+    "azure_image_deployments.hint": "Gebruikt het endpoint en de sleutel hierboven. Ondersteunde modellen: gpt-image en MAI-Image (FLUX niet). De prijs per afbeelding is wat Gebruik bij elke afbeelding toont; laat hem leeg om geen kosten vast te leggen.",
+    "azure_image_deployments.model_placeholder": "bijv. gpt-image-1.5",
+    "azure_image_deployments.price": "Prijs per afbeelding (€)",
+    "azure_image_deployments.price_invalid": "Een prijs per afbeelding is een getal van 0 tot 1000, of leeg.",
+    "azure_image_deployments.price_placeholder": "Niet ingesteld",
+    "azure_image_deployments.remove": "Deployment {n} verwijderen",
+    "azure_image_deployments.remove_title": "Verwijderen",
+    "azure_image_deployments.title": "Afbeeldingsdeployments",
+    "azure_image_deployments.too_many": "Maximaal 20 afbeeldingsdeployments."
+  },
+  "sameAsEnglish": ["azure_image_deployments.model"]
+}

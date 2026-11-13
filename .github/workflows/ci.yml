@@ -181,6 +181,7 @@ jobs:
               - 'server/auth/login/setupRoutes.js'
               - 'server/core/{agentRuntime,dlp}/**'
               - 'server/core/meetingNotes/actionItems.js'
+              - 'server/core/media/imageModels.mts'
               - 'server/routes/{agents,ai,knowledgeBases}/**'
               - 'server/routes/{healthSchema,skills}.js'
               - 'server/routes/automation/crud.js'

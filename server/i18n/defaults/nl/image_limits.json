@@ -1,0 +1,26 @@
+{
+  "translations": {
+    "image_limits.cancel": "Annuleren",
+    "image_limits.group_hint": "Elk lid krijgt deze limieten voor zichzelf. De eigen limiet van een lid gaat voor; bij meerdere groepen geldt de ruimste. Een leeg venster gebruikt de standaard van de organisatie.",
+    "image_limits.group_label": "Afbeeldingslimieten per lid",
+    "image_limits.invalid": "Een afbeeldingslimiet is een heel getal van 0 tot 1.000.000, of leeg.",
+    "image_limits.not_set": "Niet ingesteld",
+    "image_limits.org_desc": "Hoeveel afbeeldingen elke gebruiker mag maken. Dit is de standaard voor iedereen; een groep of gebruiker kan eigen limieten hebben, en die gaan voor.",
+    "image_limits.org_label": "Afbeeldingen per gebruiker",
+    "image_limits.org_title": "Afbeeldingslimieten",
+    "image_limits.quota_day": "{used} van {limit} afbeeldingen gebruikt in de afgelopen 24 uur",
+    "image_limits.quota_hour": "{used} van {limit} afbeeldingen gebruikt in het afgelopen uur",
+    "image_limits.quota_month": "{used} van {limit} afbeeldingen gebruikt in de afgelopen 30 dagen",
+    "image_limits.quota_week": "{used} van {limit} afbeeldingen gebruikt in de afgelopen 7 dagen",
+    "image_limits.rules_hint": "Leeg: niet ingesteld. 0: geen limiet.",
+    "image_limits.save": "Afbeeldingslimieten opslaan",
+    "image_limits.save_failed": "De afbeeldingslimieten konden niet worden opgeslagen.",
+    "image_limits.user_hint": "De eigen limieten van deze persoon. Een leeg venster gebruikt de groepen (de ruimste), daarna de standaard van de organisatie. 0 heft de limiet voor deze persoon op.",
+    "image_limits.user_label": "Afbeeldingslimieten",
+    "image_limits.window_day": "Per 24 uur",
+    "image_limits.window_hour": "Per uur",
+    "image_limits.window_month": "Per 30 dagen",
+    "image_limits.window_week": "Per 7 dagen"
+  },
+  "sameAsEnglish": []
+}

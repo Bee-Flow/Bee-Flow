@@ -1,6 +1,7 @@
 import { Check, X } from 'lucide-react';
 import GroupAllowedTiers from './GroupAllowedTiers';
 import BudgetEditor from './BudgetEditor';
+import ImageLimitsEditor from '../imageLimits/ImageLimitsEditor';
 import { ORG_ROLES } from '@/config/orgRoles';
 import { useTranslation } from '@/hooks/useTranslation';
 import { useDeploymentMode } from '@/hooks/useDeploymentMode';
@@ -71,7 +72,7 @@ export function GroupRoleSelect({ group, onChange }: { group: OrgGroupRow; onCha
     );
 }
 
-/** An expanded group's own settings: description, the role it grants, the tiers it allows. */
+/** An expanded group's own settings: description, the role it grants, its budget and image limits, the tiers it allows. */
 export default function GroupSettings({ group, customTiersMeta, groupsState }: GroupSettingsProps) {
     const { t } = useTranslation();
     const { isSelfHosted } = useDeploymentMode();
@@ -91,6 +92,12 @@ export default function GroupSettings({ group, customTiersMeta, groupsState }: G
                     onSave={v => groupsState.handleUpdateGroupCostLimit(group.id, v)}
                 />
             )}
+            <ImageLimitsEditor
+                value={group.perUserImageLimits}
+                label={t('image_limits.group_label', 'Image limits per member')}
+                hint={t('image_limits.group_hint', "Each member gets these limits for themselves. A member's own limit comes first; with several groups the most generous one applies. An empty window uses the organisation's default.")}
+                onSave={limits => groupsState.handleUpdateGroupImageLimits(group.id, limits)}
+            />
             <GroupAllowedTiers group={group} customTiersMeta={customTiersMeta} onChange={groupsState.handleUpdateGroupAllowedTiers} />
         </div>
     );

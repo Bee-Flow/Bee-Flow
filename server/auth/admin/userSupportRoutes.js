@@ -6,7 +6,7 @@ const { isPlatformOperator } = require('../platformOperator');
 const { wouldOrphanOrg, orgsAdministeredBy, refuseLastOrgAdmin } = require('./orgAdminGuards');
 const { leavesNoPlatformAdmin, LAST_PLATFORM_ADMIN_REFUSAL } = require('./platformAdminCount.mts');
 const { z, typeError } = require('../../utils/zod');
-const { worded, costLimit } = require('../../core/http/schemaParts');
+const { worded, costLimit, imageLimits, storedImageLimits } = require('../../core/http/schemaParts');
 const ORG_ROLE_DEFS = require('../../config/orgRoles.json');
 
 /**
@@ -97,11 +97,14 @@ const ChangePasswordBody = z.object({
 
 const USER_UPDATE_FIELDS = Object.freeze([
     'groups', 'displayName', 'firstName', 'lastName', 'email', 'phone',
-    'avatar', 'avatarType', 'orgRole', 'status', 'monthlyCostLimit',
+    'avatar', 'avatarType', 'orgRole', 'status', 'monthlyCostLimit', 'imageLimits',
 ]);
 
 /** The monthly AI budget of PUT /users/:id (self-hosted): a positive number or null. */
 const MonthlyCostLimit = costLimit();
+
+/** The image limits of PUT /users/:id: whole numbers per window, or null. */
+const UserImageLimits = imageLimits();
 
 /**
  * Writable ONLY by a platform super-admin.
@@ -211,6 +214,17 @@ function costLimitRefusal(body) {
 }
 
 /**
+ * The refusal for image limits that are not whole numbers per window or null,
+ * or null when they are fine or absent.
+ * @param {Record<string, unknown>} body
+ * @returns {{ error: string, code: 'invalid_image_limits' } | null}
+ */
+function imageLimitsRefusal(body) {
+    const check = UserImageLimits.safeParse(body.imageLimits);
+    return check.success ? null : { error: check.error.issues[0]?.message || 'Invalid image limits', code: 'invalid_image_limits' };
+}
+
+/**
  * The refusal for a user update that carries a field outside the allow-list,
  * or null. Refused, never silently dropped: a 200 for a privilege change that
  * did not happen is how a real escalation gets mistaken for a failed one.
@@ -293,4 +307,16 @@ async function refusedDelete(res, prevUser, id) {
     return true;
 }
 
-module.exports = { costLimitRefusal, stripKeyMaterial, buildRoleDowngradeHint, CreateUserBody, ChangePasswordBody, USER_UPDATE_FIELDS, SUPER_ADMIN_ONLY_FIELDS, isKnownRoleId, USER_UPDATE_ALLOWED_KEYS, USER_TEXT_FIELDS, needsAdminPasswordFloor, unknownFieldsRefusal, accessChanges, endSessionsFor, leavesServerWithoutPlatformAdmin, refusedDelete };
+/**
+ * The image limits of an update as the `users.image_limits` column holds them:
+ * JSON text of the set windows, null when none is set, undefined when the
+ * request did not carry the field.
+ * @param {Record<string, unknown>} body
+ * @returns {string | null | undefined}
+ */
+function imageLimitsColumn(body) {
+    const limits = storedImageLimits(/** @type {Record<string, number | null | undefined> | null | undefined} */ (body.imageLimits));
+    return limits ? JSON.stringify(limits) : /** @type {null | undefined} */ (limits);
+}
+
+module.exports = { costLimitRefusal, imageLimitsRefusal, imageLimitsColumn, stripKeyMaterial, buildRoleDowngradeHint, CreateUserBody, ChangePasswordBody, USER_UPDATE_FIELDS, SUPER_ADMIN_ONLY_FIELDS, isKnownRoleId, USER_UPDATE_ALLOWED_KEYS, USER_TEXT_FIELDS, needsAdminPasswordFloor, unknownFieldsRefusal, accessChanges, endSessionsFor, leavesServerWithoutPlatformAdmin, refusedDelete };

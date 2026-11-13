@@ -1973,8 +1973,18 @@ describe('the chat answer, its cards and its composer (features/chat)', () => {
             absentTokens(read('routes/privacyShieldStatus.js'), ['enabled', 'source', 'action', 'failMode', 'guardReachable', 'euMode', 'coworkEnabled']),
         ).toEqual([]);
         expect(
-            absentTokens(read('routes/ai/config/userSettings.js'), ['orgEnabledIntegrations', 'hasGoogleKey', 'hasElevenLabsKey', 'searchProvider', 'enabledApps']),
+            absentTokens(read('routes/ai/config/userSettings.js'), [
+                'orgEnabledIntegrations',
+                'hasGoogleKey',
+                'hasElevenLabsKey',
+                'hasImageGen',
+                'imageModels',
+                'searchProvider',
+                'enabledApps',
+            ]),
         ).toEqual([]);
+        // The image model rows the composer reads (id, label).
+        expect(read('core/media/imageModels.mts')).toContain("out.push({ id: `azure/${m.deployment}`, label:");
     });
 
     it('files a rating with a comment and, when asked, the conversation', () => {

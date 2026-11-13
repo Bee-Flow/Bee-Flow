@@ -4,6 +4,8 @@ import { useTranslation } from '@/hooks/useTranslation';
 import { API_BASE, authFetch } from '@/utils/helpers';
 import { mutate, ApiError } from '@/api/mutate';
 import { toast } from '@/components/shared/Toast';
+import type { ImageLimits } from '@/utils/imageLimits';
+import { saveImageLimits } from './imageLimits/saveImageLimits';
 
 /**
  * A role change the server refused with 'confirm_self_demotion': allowed, but
@@ -28,6 +30,8 @@ export interface OrgMemberRoles {
     setPendingSelfDemotion: Dispatch<SetStateAction<PendingSelfDemotion | null>>;
     handleUserRoleChange: (userId: string, newRole: string, opts?: Record<string, unknown>) => Promise<void>;
     handleUpdateUserCostLimit: (userId: string, value: number | null) => Promise<void>;
+    /** Store a member's own image limits; true when the server took them. */
+    handleUpdateUserImageLimits: (userId: string, limits: ImageLimits | null) => Promise<boolean>;
     handleApproveUser: (userId: string) => Promise<void>;
     handleRejectUser: (userId: string) => Promise<void>;
 }
@@ -134,6 +138,10 @@ export default function useOrgMemberRoles({ fetchData, confirm }: UseOrgMemberRo
 
     const handleUpdateUserCostLimit = (userId: string, value: number | null) => updateUserCostLimit(fetchData, userId, value);
 
+    const handleUpdateUserImageLimits = (userId: string, limits: ImageLimits | null) => saveImageLimits(`/auth/users/${userId}`, 'imageLimits', limits, {
+        fetchData, failText: t('image_limits.save_failed', 'The image limits could not be saved.'),
+    });
+
     const handleApproveUser = async (userId: string) => {
         if (await approvePendingUser(userId)) await fetchData();
     };
@@ -157,6 +165,7 @@ export default function useOrgMemberRoles({ fetchData, confirm }: UseOrgMemberRo
         pendingSelfDemotion, setPendingSelfDemotion,
         handleUserRoleChange,
         handleUpdateUserCostLimit,
+        handleUpdateUserImageLimits,
         handleApproveUser,
         handleRejectUser,
     };

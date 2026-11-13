@@ -14,16 +14,14 @@
 const express = require('express');
 const log = require('../../../telemetry/log');
 const router = express.Router();
-const configStore = require('../../../stores/configStore');
-const { googleAdapter } = require('../../../core/providers');
 const { requireAuth } = require('../../../auth/permissions');
 const { spendLimiter } = require('../../../utils/perUserRateLimit');
 const { validate } = require('../../../core/http/validate');
-const { HttpError } = require('../../../core/http/errors');
 const { z, typeError } = require('../../../utils/zod');
 const { sessionUser } = require('../../../core/http/sessionUser');
 const { mediaUsageFields } = require('../../../core/tools/mediaUsage');
 const { resolveTurnOrgId } = require('./inputShield');
+const { generateImageForRoute } = require('../../../core/media/imageHttp');
 
 const PROMPT_TEXT = 'Prompt is required';
 const RATIO_TEXT = "aspectRatio is width:height, like '1:1' or '16:9'.";
@@ -36,7 +34,7 @@ const GenerateImageBody = z.preprocess((v) => (v === undefined || v === null ? {
     conversationId: z.string({ error: typeError({ invalid: 'conversationId is the id of the conversation the image belongs to.' }) }).nullish(),
 }).strict());
 
-// ─── Image Generation (Google Nano Banana 2) ──────────────────────
+// ─── Image Generation (Google or Azure, core/media/imageGeneration.mts) ──────
 
 // Images per user per minute, each a paid generation. IMAGE_GEN_RPM sets it (0 = no limit).
 const imageGenLimiter = spendLimiter({ env: 'IMAGE_GEN_RPM', fallback: 30, name: 'chat-image-gen' });
@@ -45,35 +43,15 @@ router.post('/chat/generate-image', requireAuth, imageGenLimiter, validate({ bod
     const { prompt, aspectRatio, conversationId } = req.body;
     const userId = sessionUser(req).id;
 
-    const googleApiKey = await configStore.getSecret('google_api_key');
-    if (!googleApiKey) {
-        return res.status(400).json({ error: 'Google API key not configured. Add it in Admin → AI Config → API Keys.' });
-    }
+    log.info(`[ImageGen] Generating image for user ${userId}`);
 
-    log.info(`[ImageGen] Generating image for user ${userId}: "${log.textForLog(prompt)}"`);
-
-    const result = await googleAdapter.generateImage(googleApiKey, prompt, {
+    // One path for every backend (Google, Azure): it checks the user's image
+    // limit, generates, and writes the usage row.
+    const result = await generateImageForRoute({
+        prompt,
         aspectRatio: aspectRatio || '1:1',
+        who: mediaUsageFields(req, { userId, orgId: await resolveTurnOrgId(req), conversationId: conversationId || null }),
     });
-
-    if (!result.imageBase64) {
-        throw new HttpError(500, 'no_image_generated', 'No image was generated. Try a different prompt.');
-    }
-
-    // Log usage
-    try {
-        const usageStore = require('../../../stores/usageStore');
-        await usageStore.logUsage({
-            ...mediaUsageFields(req, { userId, orgId: await resolveTurnOrgId(req), conversationId: conversationId || null }),
-            model: 'gemini-3.1-flash-image-preview',
-            prompt_tokens: prompt.length,
-            completion_tokens: 0,
-            total_tokens: prompt.length,
-            source: 'image_generation',
-        });
-    } catch (e) {
-        log.warn('[ImageGen] Failed to log usage:', e.message);
-    }
 
     res.json({
         imageBase64: result.imageBase64,

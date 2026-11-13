@@ -5,9 +5,10 @@ import SecretInput from '../ProviderCards/shared/SecretInput';
 import { PRIMARY_BTN, INPUT, HINT } from '@/components/mcpLibrary/ui';
 import Section from '@/components/shared/Section';
 import { useAzureForm } from './useAzureForm';
+import AzureImageDeployments from './AzureImageDeployments';
 
 const AzureForm = ({ onMessage }: ProviderPaneProps) => {
-    const { t, endpoint, setEndpoint, apiKey, setApiKey, models, setModels, savedModels, saving, hasEndpoint, hasKey, handleSave, handleDeleteKey, handleDeleteEndpoint } = useAzureForm({ onMessage });
+    const { t, endpoint, setEndpoint, apiKey, setApiKey, models, setModels, savedModels, imageRows, setImageRows, imagesChanged, saving, hasEndpoint, hasKey, handleSave, handleDeleteKey, handleDeleteEndpoint } = useAzureForm({ onMessage });
 
     return (
         <Section title={t('admin_ai_config.azure_section', 'Connection')}>
@@ -47,6 +48,9 @@ const AzureForm = ({ onMessage }: ProviderPaneProps) => {
                 </p>
             </div>
 
+            {/* Image deployments (gpt-image, MAI-Image) on the same endpoint and key */}
+            <AzureImageDeployments rows={imageRows} onChange={setImageRows} />
+
             {/* Help + Save */}
             <div className="flex items-center justify-between">
                 <div className="flex gap-2 flex-wrap">
@@ -65,7 +69,7 @@ const AzureForm = ({ onMessage }: ProviderPaneProps) => {
                     <button
                         type="button"
                         onClick={handleSave}
-                        disabled={saving || (!endpoint.trim() && !apiKey.trim() && models === savedModels)}
+                        disabled={saving || (!endpoint.trim() && !apiKey.trim() && models === savedModels && !imagesChanged)}
                         className={PRIMARY_BTN}
                     >
                         {saving ? '...' : t('admin_ai_config.save', 'Save')}
