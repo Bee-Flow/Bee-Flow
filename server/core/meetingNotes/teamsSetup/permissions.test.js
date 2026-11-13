@@ -33,7 +33,7 @@ test('the Teams rows: required calendar and recordings, optional transcripts and
     assert.deepEqual(pick('OnlineMeetingRecording.Read.All'), { role: 'required', adminConsent: true, purpose: 'recordings' });
     assert.deepEqual(pick('OnlineMeetingTranscript.Read.All'), { role: 'optional', adminConsent: true, purpose: 'transcripts' });
     assert.deepEqual(pick('OnlineMeetings.ReadWrite'), { role: 'optional', adminConsent: false, purpose: 'auto_record' });
-    assert.deepEqual(pick('OnlineMeetingArtifact.Read.All'), { role: 'requested', adminConsent: false, purpose: 'unused' });
+    assert.equal(byName.has('OnlineMeetingArtifact.Read.All'), false, 'not asked for: nothing reads meeting artifacts');
     assert.deepEqual(pick('Mail.ReadWrite.Shared'), { role: 'requested', adminConsent: false, purpose: 'shared_mailbox' });
     assert.deepEqual(pick('offline_access'), { role: 'requested', adminConsent: false, purpose: 'offline' });
     for (const p of perms.delegatedPermissions()) {

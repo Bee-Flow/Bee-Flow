@@ -130,7 +130,7 @@ module.exports = {
     'azure.sso_step_2': 'Create a new registration (or select your existing app)',
     'azure.sso_step_4': 'Copy the Application (client) ID and Directory (tenant) ID from the Overview page',
     'azure.sso_step_5': 'Under Certificates & secrets, create a new client secret and paste the value above',
-    'azure.sso_step_6': 'Under API permissions, add Application permissions: GroupMember.Read.All, User.Read.All, Application.Read.All and grant admin consent',
+    'azure.sso_step_6': 'Only for Azure AD Group Sync: under API permissions, add the Application permissions GroupMember.Read.All, User.Read.All and Application.Read.All and grant admin consent. Sign-in itself needs no application permissions, so leave them off when you do not sync groups',
 
     // Azure AD Group Sync
     'azure.sync_groups_title': 'Azure AD Group Sync',
@@ -155,7 +155,7 @@ module.exports = {
     'azure.sync_overdue': 'Overdue',
     'azure.sync_next_imminent': 'Any moment',
     'azure.sync_permissions_title': 'Required Azure Permissions',
-    'azure.sync_permissions_desc': 'The following Application permissions must be granted in Azure Portal → App registrations → API permissions, with admin consent:',
+    'azure.sync_permissions_desc': 'Azure AD Group Sync needs these Application permissions in Azure Portal → App registrations → API permissions, with admin consent. Without group sync, leave them off the app registration:',
     'azure.group_source_azure': 'Managed by Azure AD',
     // Settings > Organisation > Group sync (an organisation admin's view of the sync, GroupSyncPanel)
     'azure.group_sync_nav': 'Group sync',

@@ -140,7 +140,7 @@ describe('Microsoft setup steps: the delegated permissions', () => {
         await user.click(await screen.findByRole('button', { name: /Microsoft/ }));
         const names = listed().map((s) => s.name);
         // The /.default admin consent link only approves what the registration lists.
-        for (const scope of ['Mail.ReadWrite', 'Mail.Read.Shared', 'Mail.Send.Shared', 'Mail.ReadWrite.Shared', 'OnlineMeetingArtifact.Read.All', 'OnlineMeetingRecording.Read.All', 'User.Read', 'offline_access']) {
+        for (const scope of ['Mail.ReadWrite', 'Mail.Read.Shared', 'Mail.Send.Shared', 'Mail.ReadWrite.Shared', 'OnlineMeetingRecording.Read.All', 'User.Read', 'offline_access']) {
             expect(names).toContain(scope);
         }
         expect(names).toEqual(CONNECT_SCOPES_FALLBACK.map((s) => s.name));

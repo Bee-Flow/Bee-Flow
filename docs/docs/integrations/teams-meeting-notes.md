@@ -137,7 +137,6 @@ approve what the registration lists.
 | `OnlineMeetings.ReadWrite` | Optional | No | Switching on Teams' **Record automatically** for a meeting |
 | `OnlineMeetingRecording.Read.All` | **Required** | **Yes** | Meeting recordings |
 | `OnlineMeetingTranscript.Read.All` | Optional | **Yes** | Meeting transcripts |
-| `OnlineMeetingArtifact.Read.All` | Asked for by Bee Flow | No | Asked for at sign-in, not used by meeting notes |
 
 The admin-consent column follows Microsoft's
 [permissions reference](https://learn.microsoft.com/en-us/graph/permissions-reference) for
@@ -160,6 +159,22 @@ Two ways:
   with `/.default`, so Microsoft asks to approve every permission on the app registration. Its
   tenant is the configured Directory (tenant) ID, or, with `common` or `organizations`, the tenant
   of the organisation admin's own Microsoft sign-in.
+
+:::tip[Only what Bee Flow uses]
+
+Because the link approves everything on the app registration, remove permissions Bee Flow does not
+use before you open it. The tables on this page are the complete list. Common leftovers:
+
+- `Calls.AccessMedia.All`, `Calls.JoinGroupCall.All` and other `Calls.*` permissions: Bee Flow has
+  no calling bot and never joins a meeting.
+- `GroupMember.Read.All`, `User.Read.All`, `Application.Read.All`: only for Azure AD Group Sync.
+- `OnlineMeetingArtifact.Read.All`: Bee Flow no longer asks for it.
+
+With organisation-wide import, the test names every application permission in the app token that
+Bee Flow does not use (`unused_roles`). Permissions already approved stay approved until you also
+remove them under **Enterprise apps**, the app, **Permissions**.
+
+:::
 
 When the answer comes back to the same browser within 30 minutes, Bee Flow records whether consent
 was granted, declined, or given in another tenant, and shows it in the organisation checks. A
@@ -451,6 +466,7 @@ usual one.
 | `tenant_mismatch_sso` | The linked tenant differs from the sign-in tenant | Platform administrator | Make the binding and the configured tenant agree |
 | `role_missing` | The app token lacks an application permission (named in the result) | Entra administrator | Add it as an Application permission and have a Privileged Role Administrator grant consent |
 | `roles_unreadable` | Bee Flow could not read the permissions from the app token | Nobody | The checks after it show whether they work |
+| `unused_roles` | The app token carries application permissions Bee Flow never uses (named in the result) | Entra administrator | Remove them under API permissions, and the consent already given under Enterprise apps, the app, Permissions |
 | `application_access_policy_missing` | No Teams application access policy allows the app for this member | Teams administrator | Create and grant the [policy](#2-teams-application-access-policy); allow up to 30 minutes |
 | `not_enabled` | Organisation-wide import is off | Organisation admin | Switch it on |
 | `nobody_covered` | No member is covered yet | Organisation admin | Members are covered once they signed in with Microsoft from your tenant and have Meeting Notes |

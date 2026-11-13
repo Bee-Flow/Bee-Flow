@@ -27,7 +27,7 @@ const CHECK_IDS = [
     'a.calendar', 'a.meeting_lookup', 'a.recordings', 'a.transcripts', 'a.transcript_content',
     'a.background_access', 'a.auto_import', 'org.consent_link', 'org.admin_consent',
     'b.instance', 'b.org_tenant', 'b.app_credentials', 'b.app_token', 'b.role_meetings', 'b.role_recordings',
-    'b.role_calendar', 'b.role_transcripts', 'b.enabled', 'b.coverage', 'b.probe_user', 'b.calendar',
+    'b.role_calendar', 'b.role_transcripts', 'b.role_unused', 'b.enabled', 'b.coverage', 'b.probe_user', 'b.calendar',
     'b.access_policy', 'b.recordings', 'b.transcripts',
 ];
 
@@ -44,7 +44,7 @@ const CODES = [
     'no_transcript_to_probe', 'speaker_attribution_off', 'application_access_policy_missing', 'no_stored_connection',
     'stored_connection_missing_scopes', 'stored_connection_expired', 'auto_import_off', 'auto_import_skipped',
     'tenant_unknown', 'consent_granted', 'consent_denied', 'consent_tenant_mismatch', 'consent_not_recorded',
-    'app_import_disabled_instance', 'tenant_not_bound', 'tenant_mismatch_sso', 'role_missing', 'roles_unreadable',
+    'app_import_disabled_instance', 'tenant_not_bound', 'tenant_mismatch_sso', 'role_missing', 'roles_unreadable', 'unused_roles',
     'not_enabled', 'nobody_covered', 'no_probe_user', 'probe_user_not_covered',
 ];
 
@@ -57,7 +57,7 @@ const FIXES = [
     'try_again_later', 'schedule_test_meeting', 'allow_cloud_recording', 'meeting_not_available', 'graph_forbidden',
     'enable_transcript_api', 'enable_speaker_attribution', 'connect_for_background', 'turn_on_auto_import',
     'turn_on_auto_import_org', 'open_consent_link', 'instance_disabled', 'bind_directory',
-    'grant_application_permission', 'enable_app_import', 'members_sign_in_with_microsoft', 'pick_probe_user',
+    'grant_application_permission', 'remove_unused_permissions', 'enable_app_import', 'members_sign_in_with_microsoft', 'pick_probe_user',
     'grant_access_policy', 'calendar_application_access',
 ];
 

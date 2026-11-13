@@ -50,7 +50,6 @@ const DELEGATED_META: Readonly<Record<string, Meta>> = Object.freeze({
     'Mail.ReadWrite.Shared': { role: 'requested', adminConsent: false, purpose: 'shared_mailbox' },
     'Files.ReadWrite': { role: 'requested', adminConsent: false, purpose: 'files' },
     'Contacts.ReadWrite': { role: 'requested', adminConsent: false, purpose: 'contacts' },
-    'OnlineMeetingArtifact.Read.All': { role: 'requested', adminConsent: false, purpose: 'unused' },
 });
 
 /** A scope nobody described yet: listed, but as asked for and unused, never as required. */
