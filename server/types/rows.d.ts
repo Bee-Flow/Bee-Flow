@@ -1845,6 +1845,40 @@ declare namespace DbRow {
         kb_id: string;
         user_id: string;
     }
+    /** Row of `kb_query_log`. */
+    interface KbQueryLog {
+        answer_enc: string | null;
+        answer_ms: number | null;
+        answered_at: Date | null;
+        channel: string;
+        channel_ref: Json | null;
+        chunk_count: number | null;
+        chunks_enc: string | null;
+        citations_enc: string | null;
+        created_at: Date | null;
+        error_code: string | null;
+        expires_at: Date;
+        id: string;
+        kb_id: string;
+        model: string | null;
+        organization_id: string | null;
+        outcome: string;
+        query_enc: string | null;
+        retrieval_ms: number | null;
+        review_note_enc: string | null;
+        review_status: string;
+        reviewed_at: Date | null;
+        reviewed_by: string | null;
+        search_group_id: string;
+        top_score: number | null;
+        user_id: string | null;
+    }
+    /** Row of `kb_query_log_ack`. */
+    interface KbQueryLogAck {
+        acknowledged_at: Date;
+        kb_id: string;
+        user_id: string;
+    }
     /** Row of `kb_sources`. */
     interface KbSources {
         cancel_requested: boolean;
@@ -1890,6 +1924,15 @@ declare namespace DbRow {
         last_content_at: Date | null;
         name: string;
         organization_id: string | null;
+        query_log_ai_act_high_risk: boolean;
+        query_log_attestation: Json | null;
+        query_log_attested_at: Date | null;
+        query_log_attested_by: string | null;
+        query_log_changed_at: Date | null;
+        query_log_changed_by: string | null;
+        query_log_enabled: boolean;
+        query_log_retention_days: number;
+        query_log_show_names: boolean;
         shared_groups: string | null;
         source_kind: string | null;
         system_slug: string | null;
@@ -3016,6 +3059,13 @@ declare namespace DbRow {
         solution_id: string;
         steering: boolean;
         type: string;
+    }
+    /** Row of `sso_identities`. */
+    interface SsoIdentities {
+        created_at: Date;
+        provider: string;
+        subject: string;
+        user_id: string;
     }
     /** Row of `stripe_processed_events`. */
     interface StripeProcessedEvents {
