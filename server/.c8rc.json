@@ -1,10 +1,12 @@
 {
   "all": true,
   "src": ["."],
-  "include": ["**/*.js"],
+  "extension": [".js", ".mjs", ".mts"],
+  "include": ["**/*.js", "**/*.mjs", "**/*.mts"],
   "exclude": [
     "**/*.test.js",
     "**/*.test.mjs",
+    "**/*.test.mts",
     "node_modules/**",
     "coverage/**",
     "scripts/**",
