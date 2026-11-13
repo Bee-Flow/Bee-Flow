@@ -49,7 +49,7 @@
 import { createRequire } from 'node:module';
 import { childStepSlots, errorHandlerOf } from '../shared/appDefinition/stepFlow.mjs';
 import { parallelRefusal } from '../shared/appDefinition/parallelRules.mjs';
-import { calleeTop, ordinalMap, stepPaths, topOf } from './sequencePaths.mts';
+import { ordinalMap, stepPaths, topOf } from './sequencePaths.mts';
 import { attemptStep, errorScopeOf } from './stepErrorFlow.mts';
 import { FLOW_KINDS, walkFlowStep, walkLoop } from './sequenceWalkFlow.mts';
 import { completeResumed, dropFrame, pauseAt, resumeFrame, resumeIndex, resumesUnder, setFrame } from './sequenceWalkPause.mts';

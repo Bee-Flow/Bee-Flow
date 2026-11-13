@@ -21,6 +21,7 @@
 
 const globals = require('globals');
 const { hardErrorRules } = require('../scripts/eslint/base.cjs');
+const { stripTypes } = require('../scripts/eslint/stripTypes.cjs');
 
 const correctnessRules = {
     // Hard errors shared with the small services (scripts/eslint/base.cjs) —
@@ -92,6 +93,22 @@ module.exports = [
         rules: { ...correctnessRules, ...sizeComplexityRules },
     },
     {
+        // TypeScript sources (.mts) run type-stripped, and are linted that way:
+        // the processor hands ESLint the text Node executes, under the name
+        // `<file>.mts/0.mjs`, so the `**/*.mjs` block above applies to it.
+        files: ['**/*.mts'],
+        processor: stripTypes,
+    },
+    {
+        // The correctness rules hold for every .mts file. The size and
+        // complexity limits are not on yet: the files were never measured, and
+        // 149 functions are over a limit today (102 complexity, 34 max-params,
+        // 10 max-lines-per-function, 3 max-depth). Turning them on needs those
+        // recorded in eslint-suppressions.json first, like the .js baseline.
+        files: ['**/*.mts/*.mjs'],
+        rules: Object.fromEntries(Object.keys(sizeComplexityRules).map((rule) => [rule, 'off'])),
+    },
+    {
         files: [
             'scripts/**',
             'migrations/**',
@@ -150,9 +167,11 @@ module.exports = [
             'services/webpageRender.js',
             'routes/notebookExport.js',
             'cms/mcp/screenshot.js',
+            'cms/mcp/screenshotWalk.mts/*.mjs',
+            'services/appStudioRenderShot.mts/*.mjs',
         ],
         languageOptions: {
-            globals: { window: 'readonly', document: 'readonly' },
+            globals: { window: 'readonly', document: 'readonly', requestAnimationFrame: 'readonly' },
         },
     },
     {
