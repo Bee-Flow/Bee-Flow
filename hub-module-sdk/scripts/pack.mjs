@@ -16,6 +16,9 @@
  * This integrity logic is pinned to server/modules/packageVerify.js — keep the
  * two in agreement (a round-trip test in the product enforces it).
  *
+ * The manifest is checked against MANIFEST.schema.json first
+ * (manifestSchema.mjs); one that does not match is refused and nothing is written.
+ *
  * Usage:  node scripts/pack.mjs <moduleDir> [--out <file.bfmod>]
  */
 
@@ -24,6 +27,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
+import { assertValidManifest } from './manifestSchema.mjs';
 
 const require = createRequire(import.meta.url);
 const JSZip = require('jszip');
@@ -86,6 +90,8 @@ async function pack(moduleDir, outFile) {
     if (!manifest.id || !manifest.version) {
         throw new Error('manifest.json missing id/version');
     }
+    // The whole shape, before anything is written: a manifest the schema refuses is not packed.
+    assertValidManifest(manifest);
 
     // Defense-in-depth: emit snake_case aliases for the compat claims next to
     // the authored camelCase, so even a loader that only reads one spelling
