@@ -295,10 +295,7 @@ async function renderBlog(req, res, { origin, siteId, parsed, defaultLocale, loc
     const shell = await getShell();
     if (!shell) return false;
     const siteName = (eff.header && eff.header.logoText) || 'Bee Flow';
-    // The homepage's generated card is the share image of a post without a cover and of the index.
-    const snapshot = await cmsStore.getPublishedSnapshot(siteId);
-    const shareImageVersion = versionOf(snapshot && snapshot.publishedAt);
-    const head = buildBlogHead({ origin, eff, locale, defaultLocale, locales: pageLocales, siteName, shareImageVersion });
+    const head = buildBlogHead({ origin, eff, locale, defaultLocale, locales: pageLocales, siteName, shareImageVersion: versionOf((await cmsStore.getPublishedSnapshot(siteId))?.publishedAt) });
     const body = renderBlogBody(eff);
     const bootstrap = jsonForScript({
         enabled: true,
