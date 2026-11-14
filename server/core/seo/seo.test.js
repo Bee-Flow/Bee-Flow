@@ -17,7 +17,7 @@ const { buildHead } = require('./head');
 const { faqPage, buildJsonLd } = require('./jsonld');
 const { renderBlocks, PREHYDRATE_CSS } = require('./renderBlocks');
 const { injectIntoShell } = require('./inject');
-const { buildSitemap, buildRobots, buildLlmsTxt } = require('./sitemap');
+const { buildSitemap, buildRobots, buildLlmsTxt, publicSiteName } = require('./sitemap');
 const { hasTranslation, localesForPage } = require('../../i18n/pageLocales');
 const { LEGACY_SLUGS } = require('./legacySlugs');
 const { esc, jsonForScript, clamp } = require('./html');
@@ -491,6 +491,14 @@ test('the retired Dutch V1 slugs still redirect somewhere real', () => {
     for (const dutch of ['overons', 'kennisbank', 'prijzen', 'notitieboeken']) {
         assert.ok(LEGACY_SLUGS[dutch], `${dutch} is still indexed by Google and needs a 301`);
     }
+});
+
+test('the public site name is the header brand, not the admin name of the site', () => {
+    // An imported site is named "<name> (imported)" in the site switcher; that label
+    // headed /llms.txt while every page carried the header brand.
+    assert.strictEqual(publicSiteName({ name: 'Bee Flow (imported)', header: { logoText: 'Bee Flow' } }), 'Bee Flow');
+    assert.strictEqual(publicSiteName({ name: 'Acme', header: { logoText: '  ' } }), 'Acme');
+    assert.strictEqual(publicSiteName(null), 'Bee Flow');
 });
 
 test('llms.txt is Markdown with a heading and links, and hides noIndex pages', () => {

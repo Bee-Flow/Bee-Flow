@@ -232,4 +232,15 @@ function buildLlmsTxt(pages, { origin, siteName = 'Bee Flow', summary = '' }) {
     return out.join('\n');
 }
 
-module.exports = { buildSitemap, buildRobots, buildLlmsTxt };
+/**
+ * The site's name as visitors see it: the header brand, as on every page,
+ * then the site's own name, which is an admin label ("<name> (imported)"
+ * after an import).
+ * @param {{ name?: string, header?: { logoText?: string } } | null | undefined} site
+ */
+function publicSiteName(site) {
+    const brand = String(site?.header?.logoText || '').trim();
+    return brand || String(site?.name || '').trim() || 'Bee Flow';
+}
+
+module.exports = { buildSitemap, buildRobots, buildLlmsTxt, publicSiteName };
