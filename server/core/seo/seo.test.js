@@ -373,6 +373,68 @@ test('the /app disallow is anchored so it cannot swallow a marketing slug', () =
     assert.ok(!/^Disallow: \/app$/m.test(txt), 'the unanchored prefix rule must be gone');
 });
 
+/**
+ * Google's robots.txt rule: the longest matching path wins, Allow wins a tie;
+ * `*` matches any run of characters, a trailing `$` anchors the end.
+ * @param {string} txt
+ * @param {string} url path plus query
+ */
+function robotsAllows(txt, url) {
+    /** @param {string} pattern */
+    const matches = (pattern) => {
+        const anchored = pattern.endsWith('$');
+        const parts = (anchored ? pattern.slice(0, -1) : pattern).split('*');
+        let at = 0;
+        for (let i = 0; i < parts.length; i++) {
+            const found = i === 0 ? (url.startsWith(parts[0]) ? 0 : -1) : url.indexOf(parts[i], at);
+            if (found < 0) return false;
+            at = found + parts[i].length;
+        }
+        return !anchored || at === url.length;
+    };
+    let best = { len: -1, allow: true };
+    for (const raw of txt.split('\n')) {
+        const [field, ...rest] = raw.split(':');
+        const kind = field.trim().toLowerCase();
+        if (kind !== 'allow' && kind !== 'disallow') continue;
+        const pattern = rest.join(':').trim();
+        if (!pattern || !matches(pattern)) continue;
+        const allow = kind === 'allow';
+        if (pattern.length > best.len || (pattern.length === best.len && allow)) best = { len: pattern.length, allow };
+    }
+    return best.allow;
+}
+
+test('robots lets crawlers fetch the public reads the pages load, and nothing else under /api/', () => {
+    const txt = buildRobots({ origin: ORIGIN, allow: true });
+    for (const url of [
+        '/api/cms/asset/cms/1-a-hero.png',
+        '/api/cms/asset/cms/1-a-hero.png?w=640',
+        '/api/cms/og/en/home.png',
+        '/api/billing/public-plans',
+        '/api/cms/site?locale=nl&slug=plans',
+        '/api/cms/blog/posts?locale=en&limit=3',
+        '/api/cms/stories?locale=en',
+        '/api/languages/public/locales',
+        '/api/languages/public/strings/nl',
+        '/api/public/github-stats',
+        '/api/release-notes/public',
+    ]) assert.ok(robotsAllows(txt, url), `${url} should be crawlable`);
+    for (const url of [
+        '/api/auth/me',
+        '/api/cms/sites/abc',
+        '/api/cms/sites/abc/posts',
+        '/api/cms/admin/site',
+        '/api/cms/forms/b1',
+        '/api/billing/subscription',
+        '/api/billing/public-plans/extra',
+        '/api/release-notes/admin',
+        '/api/branding/effective',
+        '/app/chat',
+    ]) assert.ok(!robotsAllows(txt, url), `${url} must stay disallowed`);
+    assert.ok(robotsAllows(txt, '/plans'), 'pages stay crawlable');
+});
+
 test('a page is only advertised in a language it was actually translated into', () => {
     // languageStore seeds en/nl/de/fr into every install, so "nl is available"
     // says nothing about whether THIS page has Dutch on it. Advertising a
