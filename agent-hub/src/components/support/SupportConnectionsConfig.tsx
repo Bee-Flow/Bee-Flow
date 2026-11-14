@@ -6,11 +6,13 @@ import { FIELD_INPUT, SAVE_BUTTON, SettingBlock, SettingRow, SettingsGroup, Sett
 import { ALERT_ERROR, ALERT_SUCCESS, ALERT_WARNING, SECONDARY_BTN } from '@/components/mcpLibrary/ui';
 import { errorMessage } from '../../utils/caughtError';
 import { request, RefusedError, mutate, errorBody } from '../../api/mutate';
+import SupportImapMailboxSection from './SupportImapMailboxSection';
 import { type YouTrackConnection, type ChatNotifications, type ChatPatch, PROVIDERS, eventLabelsFor } from './SupportConnectionsConfig.helpers';
 
 /**
- * Where support connects to the outside world: YouTrack, and the team chat
- * space that gets told about new tickets.
+ * Where support connects to the outside world: the email box tickets come in
+ * on (SupportImapMailboxSection), YouTrack, and the team chat space that gets
+ * told about new tickets.
  *
  * Neither credential ever comes back to the browser. The YouTrack token is
  * write-only, and a Google Chat webhook URL carries its key and token in the
@@ -170,6 +172,7 @@ export default function SupportConnectionsConfig() {
     return (
         <div className="h-full overflow-y-auto">
             <div className="flex max-w-4xl flex-col gap-8 p-6">
+                <SupportImapMailboxSection />
                 <YouTrackSection yt={yt} ytError={ytError} ytUrl={ytUrl} setYtUrl={setYtUrl} ytToken={ytToken} setYtToken={setYtToken} ytProject={ytProject} setYtProject={setYtProject} saveYt={saveYt} ytSaving={ytSaving} />
 
                 <SettingsGroup

@@ -29,6 +29,7 @@ const {
 } = require('./shared');
 const log = require('../../telemetry/log');
 const { bestEffort, fallback } = require('../../utils/bestEffort');
+const companyMailbox = require('../../services/supportCompanyMailbox/send.mts');
 
 /** GET /threads — the staff inbox. */
 async function listInbox(req, /** @type {import('express').Response} */ res) {
@@ -59,7 +60,18 @@ async function afterStaffReply(thread, { userId, authorDisplay, body, msg }) {
     // Atomic transition wins concurrent first-replies: COALESCE leaves any
     // already-set first_response_at / assignee_user_id intact.
     await supportStore.firstStaffReplyTransition(thread.id, userId);
-    sendOrNotifyStaff(
+    if (await companyMailbox.usesCompanyMailbox(thread)) {
+        // A ticket that came in by email is answered by email, from the
+        // company mailbox and into the customer's own conversation.
+        companyMailbox.sendCompanyReply(thread, { body, messageId: msg?.id || null })
+            .then(() => _emit('thread_updated', { threadId: thread.id }))
+            .catch((e) => {
+                log.warn(`[Support] mailbox reply failed (thread=${_shortId(thread.id)}):`, e.message);
+                notifyStaff({ title: `Reply not delivered: ${thread.subject}`, message: e.message, threadId: thread.id })
+                    .catch((err) => bestEffort('routes/support/threadHandlers:afterStaffReply#mailbox', err));
+                _emit('thread_updated', { threadId: thread.id });
+            });
+    } else sendOrNotifyStaff(
         sendStaffReplyEmail,
         {
             to: thread.requester_email,

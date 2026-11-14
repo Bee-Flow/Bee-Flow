@@ -3532,6 +3532,36 @@ declare namespace DbRow {
         title: string;
         updated_at: Date;
     }
+    /** Row of `support_company_mailbox`. */
+    interface SupportCompanyMailbox {
+        active: boolean;
+        ai_auto_reply: boolean;
+        created_at: Date;
+        created_by: string | null;
+        display_name: string;
+        email_address: string;
+        encrypted_secrets: string;
+        generation: number;
+        id: string;
+        imap_folder: string;
+        imap_host: string;
+        imap_port: number;
+        imap_security: string;
+        last_sync_at: Date | null;
+        last_uid: string | null;
+        smtp_host: string;
+        smtp_port: number;
+        smtp_security: string;
+        smtp_username: string | null;
+        sync_after: Date;
+        sync_error: string | null;
+        sync_lock_token: string | null;
+        sync_locked_until: Date | null;
+        sync_status: string;
+        uid_validity: string | null;
+        updated_at: Date;
+        username: string;
+    }
     /** Row of `support_inboxes`. */
     interface SupportInboxes {
         active: boolean | null;

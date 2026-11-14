@@ -63,6 +63,25 @@ export interface SupportMailbox {
     count?: number;
     activeCount?: number;
     lastAt?: string | null;
+    /** The IMAP/SMTP mailbox connected to the company inbox on purpose (no secrets). */
+    imap?: CompanyImapMailbox | null;
+}
+
+export type MailSecurity = 'tls' | 'starttls';
+
+/** GET /api/support/mailbox → mailbox.imap. */
+export interface CompanyImapMailbox {
+    emailAddress: string;
+    displayName: string;
+    imap: { host: string; port: number; security: MailSecurity; folder: string };
+    smtp: { host: string; port: number; security: MailSecurity };
+    username: string;
+    smtpUsername: string | null;
+    aiAutoReply: boolean;
+    active: boolean;
+    syncStatus: string;
+    syncError: string | null;
+    lastSyncAt: string | null;
 }
 
 export type ThreadPatch = Partial<Pick<SupportThread, 'status' | 'priority' | 'tags'>>;

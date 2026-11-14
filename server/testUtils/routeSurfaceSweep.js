@@ -314,7 +314,7 @@ function parseFnParams(src) {
         const name = m[1] || m[3];
         const params = m[2] !== undefined ? m[2] : m[4];
         if (!name || map.has(name)) continue;
-        const first = splitTopLevel(params)[0];
+        const first = (splitTopLevel(params)[0] || '').split(':')[0].trim(); // `router: Router` in a .mts helper
         if (first && /^\w+$/.test(first)) map.set(name, first);
     }
     return map;

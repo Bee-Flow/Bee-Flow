@@ -400,7 +400,8 @@ test('cache writes: a TTL that was only assumed is priced but the row says estim
 });
 
 test('regional uplift: the catalogue factor replaces the built-in 1.1 only for a model served regionally', () => {
-    catalog.setRows([card({ provider: 'openai', model_id: 'gpt-5.9-test', input: 10, output: 10, multipliers: { regional: 1.2 } })]);
+    // A fixed valid_from: the default (60 days before now) passes the fixed call date as time goes on.
+    catalog.setRows([card({ provider: 'openai', model_id: 'gpt-5.9-test', input: 10, output: 10, multipliers: { regional: 1.2 }, valid_from: '2026-01-01T00:00:00.000Z' })]);
     const usage = { model: 'gpt-5.9-test', prompt_tokens: 1_000_000, prompt_includes_cache: true, timestamp: '2026-09-15T00:00:00Z' };
     near(costs.rateUsage(usage).cost, 10, 'not served regionally: no uplift');
     registerEuServedModel('gpt-5.9-test');

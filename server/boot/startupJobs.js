@@ -181,6 +181,8 @@ function startSupportAndSyncJobs() {
     if (isModuleAvailable('support')) try {
         if (process.env.SUPPORT_INBOX_SYNC_IN_API !== 'false') {
             require('../services/supportInboxSyncEngine').startSupportInboxSync();
+            // The IMAP mailbox of Bee Flow's own company inbox (/app/admin/support).
+            require('../services/supportCompanyMailbox/sync.mts').startCompanyMailboxSync();
         }
     } catch (err) {
         log.warn('[Server] Support inbox sync engine load failed:', err.message);

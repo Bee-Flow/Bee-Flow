@@ -490,6 +490,10 @@
         "admin_support"
       ]
     },
+    "DELETE /api/support/mailbox/imap": {
+      "gate": "platform",
+      "via": "superAdmin"
+    },
     "DELETE /api/support/tags/:id": {
       "gate": "handler",
       "via": "handler"
@@ -6332,6 +6336,14 @@
       "gate": "handler",
       "via": "handler"
     },
+    "POST /api/support/mailbox/imap/sync": {
+      "gate": "platform",
+      "via": "superAdmin"
+    },
+    "POST /api/support/mailbox/imap/test": {
+      "gate": "platform",
+      "via": "superAdmin"
+    },
     "POST /api/support/notifications/test": {
       "gate": "permission",
       "anyOf": [
@@ -7483,6 +7495,10 @@
     "PUT /api/support/config": {
       "gate": "middleware",
       "via": "requireSuperAdmin"
+    },
+    "PUT /api/support/mailbox/imap": {
+      "gate": "platform",
+      "via": "superAdmin"
     },
     "PUT /api/support/notifications": {
       "gate": "permission",
