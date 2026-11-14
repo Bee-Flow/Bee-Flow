@@ -21,30 +21,10 @@
 }
 
 .marketing-root .blog-index a:focus-visible,
-.marketing-root .blog-post a:focus-visible,
-.marketing-root .blog-card a:focus-visible {
+.marketing-root .blog-post a:focus-visible {
     outline: 2px solid var(--brand-primary);
     outline-offset: 3px;
     border-radius: 2px;
-}
-
-/* Date and reading time: plain text with room between the parts. */
-.marketing-root .blog-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-1) var(--space-4);
-    margin: var(--space-3) 0 0;
-    font-size: var(--text-small);
-    color: var(--text-muted, var(--brand-text-secondary));
-    font-variant-numeric: tabular-nums;
-}
-
-/* The topic line above a card title (latest-posts block). */
-.marketing-root .blog-eyebrow {
-    font-size: var(--text-small);
-    font-weight: 600;
-    color: var(--accent-strong, var(--brand-primary));
-    margin: 0 0 var(--space-2);
 }
 
 /* ── Index: head ───────────────────────────────────────────────────── */
@@ -517,72 +497,5 @@
 
 @media (prefers-reduced-motion: reduce) {
     .marketing-root .blog-feature-title a,
-    .marketing-root .blog-row-title a,
-    .marketing-root .blog-card-cover img,
-    .marketing-root .blog-card-title a { transition: none; }
+    .marketing-root .blog-row-title a { transition: none; }
 }
-
-/* ── Latest posts block (on other pages): cards ────────────────────── */
-
-.marketing-root .blog-card {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
-    min-width: 0;
-}
-.marketing-root .blog-card-cover {
-    display: block;
-    aspect-ratio: 16 / 9;
-    overflow: hidden;
-    border-radius: var(--card-radius, calc(var(--radius-base) * 1.5));
-    background: var(--surface-2);
-}
-.marketing-root .blog-card-cover img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform var(--motion-slow) var(--ease-out);
-}
-.marketing-root .blog-card:hover .blog-card-cover img { transform: scale(1.025); }
-.marketing-root .blog-card-title {
-    font-size: 1.375rem;
-    line-height: 1.25;
-    margin: 0;
-}
-.marketing-root .blog-card-title a {
-    text-decoration: underline;
-    text-decoration-color: transparent;
-    text-underline-offset: 0.14em;
-    transition: text-decoration-color var(--motion-fast) var(--ease-soft);
-}
-.marketing-root .blog-card:hover .blog-card-title a { text-decoration-color: currentColor; }
-.marketing-root .blog-card-excerpt {
-    margin: var(--space-2) 0 0;
-    color: var(--brand-text-secondary);
-    line-height: var(--leading-body);
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-.marketing-root .blog-card--no-cover .blog-card-body {
-    padding-top: var(--space-6);
-    border-top: 1px solid var(--hairline-strong);
-    height: 100%;
-}
-
-.marketing-root .latest-posts-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: var(--space-12) var(--space-8);
-    margin-top: var(--space-8);
-}
-.marketing-root .latest-posts-more {
-    display: inline-flex;
-    gap: var(--space-2);
-    margin-top: var(--space-12);
-    font-weight: 600;
-    color: var(--accent-strong, var(--brand-primary));
-}
-.marketing-root .latest-posts-more:hover { text-decoration: underline; }
-.marketing-root .latest-posts-empty { color: var(--text-muted, var(--brand-text-secondary)); margin-top: var(--space-6); }

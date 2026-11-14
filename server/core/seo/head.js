@@ -56,6 +56,24 @@ function shareCardUrl(origin, locale, slug, version) {
 }
 
 /**
+ * The image a page is shared with. A page without its own share image gets the
+ * generated card (routes/cmsOgImage.js) when the caller says the site is
+ * published; without either it falls back to the site logo.
+ * @param {{ origin: string, locale: string, shareImageVersion?: string, shareCardSlug?: string }} ctx
+ * @param {CmsDoc} page
+ * @param {CmsDoc} design
+ * @returns {{ image: string, generated: boolean }} `generated`: the image is the generated card
+ */
+function shareImage(ctx, page, design) {
+    const seo = page.seo || {};
+    const cardSlug = ctx.shareCardSlug || page.slug;
+    if (!seo.ogImage && ctx.shareImageVersion && cardSlug) {
+        return { image: shareCardUrl(ctx.origin, ctx.locale, cardSlug, ctx.shareImageVersion), generated: true };
+    }
+    return { image: absolute(ctx.origin, seo.ogImage || design.logo || ''), generated: false };
+}
+
+/**
  * @param {{ origin: string, slug: string, locale: string, defaultLocale: string, locales: string[],
  *   page: CmsDoc, design: CmsDoc, siteName: string, ogType?: string,
  *   article?: { publishedTime: string, modifiedTime: string, author: string, tags?: string[] },
@@ -79,14 +97,7 @@ function buildHead(ctx) {
     const description = clamp(seo.metaDescription || '', DESC_MAX);
     const path = buildPublicPath(locale, slug, defaultLocale);
     const url = `${origin}${path === '/' ? '/' : path}`;
-    // A page without its own share image gets the generated card
-    // (routes/cmsOgImage.js) when the caller says the site is published; the
-    // ?v= publish time makes every publish a new, long-cacheable URL.
-    const cardSlug = ctx.shareCardSlug || page.slug;
-    const generated = !seo.ogImage && ctx.shareImageVersion && cardSlug
-        ? shareCardUrl(origin, locale, cardSlug, ctx.shareImageVersion)
-        : '';
-    const image = generated || absolute(origin, seo.ogImage || design.logo || '');
+    const { image, generated } = shareImage(ctx, page, design);
     const favicon = absolute(origin, design.favicon || '/app-icon.svg');
 
     /** @type {string[]} */

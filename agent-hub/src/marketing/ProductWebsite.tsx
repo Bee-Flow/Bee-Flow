@@ -9,7 +9,7 @@ import './self-hosted-fonts.css';
 // the published site does not block on it (#245).
 
 // The blog index / post body: replaces the block list when the content carries `blog`.
-import BlogView     from './blog/BlogView';
+import LazyBlogView from './blog/LazyBlogView';
 import Header       from './sections/Header';
 import Hero         from './sections/Hero';
 import LatestPosts  from './sections/LatestPosts';
@@ -871,7 +871,7 @@ function ProductWebsiteMain({ previewMode, content, orderedBlocks, inPreview, cm
         {previewMode === 'chrome' ? (
             <ChromePreviewPlaceholder />
         ) : content.blog ? (
-            <BlogView blog={content.blog} />
+            <LazyBlogView blog={content.blog} />
         ) : orderedBlocks ? (
             <>
                 {orderedBlocks.map((b: CmsBlock, orderedIndex: number) => {

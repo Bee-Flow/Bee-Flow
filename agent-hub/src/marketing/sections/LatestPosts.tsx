@@ -4,10 +4,9 @@ import SectionHeaderJs from '../components/SectionHeader';
 import EditableTextJs from '../components/EditableText';
 import SectionFrameJs from '../components/SectionFrame';
 import { sectionBgClass } from './sectionBg';
-import { PostCard } from '../blog/BlogIndex';
+import { PostCard } from '../blog/PostCard';
 import { indexHref, label, type BlogLabels, type BlogPostSummary } from '../blog/blogFormat';
 import { LOCALE_PREFIXES } from '../../utils/cmsPublicRouting';
-import '../blog/blog.css';
 
 const SectionHeader = SectionHeaderJs;
 const EditableText = EditableTextJs;
