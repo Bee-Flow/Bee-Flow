@@ -51,10 +51,10 @@ function applySecurityHeaders(app) {
     // Mark them non-cacheable. Image-ish endpoints (icons, branding) are excluded
     // so they keep their own long-lived caching.
     app.use((/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
-        if ((req.path.startsWith('/auth/') || req.path.startsWith('/api/')
-                || req.path.startsWith('/ai/') || req.path.startsWith('/agents/'))
-            && !req.path.startsWith('/api/icons')
-            && !req.path.startsWith('/api/branding')) {
+        const p = req.path.toLowerCase(); // the router matches case-insensitively
+        if ((p.startsWith('/auth/') || p.startsWith('/api/') || p.startsWith('/ai/') || p.startsWith('/agents/'))
+            && !p.startsWith('/api/icons')
+            && !p.startsWith('/api/branding')) {
             res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
             res.setHeader('Pragma', 'no-cache');
         }

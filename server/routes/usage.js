@@ -49,7 +49,7 @@ const UsageQuery = queryOf({
 
 // The customer view of the figures (markup, no tokens on cloud): routes/usageRedact.js.
 const { isAdminCaller, maybeRedact } = require('./usageRedact');
-const { attachOrgFilter, usageScopeOf } = require('./usageScope');
+const { attachOrgFilter, usageScopeOf, routePathOf } = require('./usageScope');
 
 // The session first, so an anonymous caller hears 401 rather than 400.
 router.use((req, res, next) => (req.session?.isAuthenticated ? next() : res.status(401).json({ error: 'Not authenticated' })));
@@ -90,10 +90,13 @@ function aboutAnotherPerson(req) {
 const PERSON_ROUTES = new Set(['/guardrails/recent', '/guardrails/by-user', '/integrations/recent', '/integrations/egress']);
 
 router.use((req, res, next) => {
-    if (!req.path.startsWith('/guardrails/') && !req.path.startsWith('/integrations/')) return next();
+    // Compared the way the router matched it (routePathOf), or `/Guardrails/by-user`
+    // and `/guardrails/by-user/` reach the handler past this guard.
+    const routePath = routePathOf(req);
+    if (!routePath.startsWith('/guardrails/') && !routePath.startsWith('/integrations/')) return next();
     if (!isSpecialCategory(req.query.pii) || ownRowsOnly(req)) return next();
-    const listsPeople = PERSON_ROUTES.has(req.path)
-        || (req.path === '/integrations/sovereignty' && (req.query.dimension || 'user') === 'user');
+    const listsPeople = PERSON_ROUTES.has(routePath)
+        || (routePath === '/integrations/sovereignty' && (req.query.dimension || 'user') === 'user');
     if (aboutAnotherPerson(req) || listsPeople) {
         return next(new HttpError(400, 'special_category_per_person',
             'Health categories are shown as organisation totals only, never per person. Remove the person or the category filter.'));

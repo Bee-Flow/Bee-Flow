@@ -182,10 +182,10 @@ const DeleteBody = bodyOf(scopeOf());
 // so once at boot rather than on every request. Read once here, like the
 // sidecars do, so the mode cannot flip under a running process.
 const SERVICES_KEY = (() => {
-    const expected = process.env.SERVICES_API_KEY || '';
-    if (expected) return { expected: Buffer.from(expected, 'utf8'), open: false };
+    const expected = process.env.SERVICES_API_KEY || ''; // in production the example files' `CHANGE_ME`, or a key under 16 characters, counts as not set
+    if (expected && !(process.env.NODE_ENV === 'production' && (expected === 'CHANGE_ME' || expected.length < 16))) return { expected: Buffer.from(expected, 'utf8'), open: false };
     if (process.env.NODE_ENV === 'production') {
-        log.error('[Search] SERVICES_API_KEY is not set; /api/search answers 503 until it is (openssl rand -hex 24).');
+        log.error(`[Search] SERVICES_API_KEY is ${expected ? 'a placeholder or shorter than 16 characters' : 'not set'}; /api/search answers 503 until it is set (openssl rand -hex 24).`);
         return { expected: null, open: false };
     }
     log.warn('[Search] SERVICES_API_KEY is not set; /api/search runs without a key (development only).');

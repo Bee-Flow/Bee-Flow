@@ -232,6 +232,9 @@ The repository layout is described in [REPO-STRUCTURE.md](./REPO-STRUCTURE.md).
 - **Encryption at rest, per organisation** (Enterprise licence): choose *managed* keys, which an
   administrator can recover, or *zero-knowledge*, where only the user can decrypt their content. It is off
   by default. Built on AES-256-GCM, Argon2id and OPAQUE.
+  While a user is signed in, the server holds that user's content key, sealed in the session, to answer
+  their requests: *zero-knowledge* describes content at rest between sessions, not a server that never
+  sees it. Text sent to a model is readable by that model's provider.
 - **Sign-in:** passwords, Google, Microsoft and Nextcloud sign-in, SAML (Enterprise), and two-factor
   authentication with an authenticator app or a security key.
 - **Audit trail:** sign-in and access logs, and a hash-chained evidence log in the Compliance Center.

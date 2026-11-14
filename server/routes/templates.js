@@ -34,6 +34,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth } = require('../auth/permissions');
+const { isAllowedUserId } = require('../utils/userIdRules');
 const { spendLimiter } = require('../utils/perUserRateLimit');
 const { validate } = require('../core/http/validate');
 const { contentDisposition, safeFileName } = require('../core/http/contentDisposition');
@@ -149,6 +150,7 @@ router.post('/upload', requireAuth, templateAiLimiter, upload.single('file'), va
     } else {
         // Fallback: store on local disk
         const path = require('path');
+        if (!isAllowedUserId(userId)) return res.status(400).json({ error: 'Templates are not available for this account' });
         const dir = path.join(__dirname, '..', 'data', 'templates', userId);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
         const localPath = path.join(dir, storageName);
@@ -348,6 +350,7 @@ router.post('/:id/fill-and-store', requireAuth, validate({ body: FillBody }), as
     } else {
         // Fallback: store locally
         const path = require('path');
+        if (!isAllowedUserId(userId)) return res.status(400).json({ error: 'Templates are not available for this account' });
         const dir = path.join(__dirname, '..', 'data', 'templates_filled', userId);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
         // safeFileName leaves no separator or leading dot to climb out of dir.
@@ -362,12 +365,19 @@ router.post('/:id/fill-and-store', requireAuth, validate({ body: FillBody }), as
 // Serves files stored locally when RustFS is not available.
 router.get('/download-filled/:filename', requireAuth, (req, res) => {
     const path = require('path');
-    const userId = req.session.user.id; // nosemgrep: ajinabraham.njsscan.traversal.resolve_path_traversal.join_resolve_path_traversal -- filename reduced to its basename, userId from the session
+    const userId = String(req.session.user.id); // nosemgrep: ajinabraham.njsscan.traversal.resolve_path_traversal.join_resolve_path_traversal -- filename reduced to its basename, userId checked as one plain segment and the result confined to baseDir below
     const filename = req.params.filename;
 
     // Sanitize filename to prevent directory traversal
     const sanitized = path.basename(filename);
-    const filePath = path.join(__dirname, '..', 'data', 'templates_filled', userId, sanitized); // nosemgrep: javascript.express.security.audit.express-path-join-resolve-traversal.express-path-join-resolve-traversal -- filename reduced to its basename above, userId from the session
+    // The user id is the username the account was created with, so it is not
+    // safe as a folder name by itself: an id shaped like `../../x` climbed out
+    // of templates_filled. One plain segment, and the result must stay inside.
+    const baseDir = path.join(__dirname, '..', 'data', 'templates_filled');
+    const filePath = path.join(baseDir, userId, sanitized); // nosemgrep: javascript.express.security.audit.express-path-join-resolve-traversal.express-path-join-resolve-traversal -- filename reduced to its basename, userId checked as one plain segment and the result confined to baseDir below
+    if (!isAllowedUserId(userId) || path.dirname(filePath) !== path.join(baseDir, userId) || !filePath.startsWith(baseDir + path.sep)) {
+        return res.status(404).json({ error: 'File not found' });
+    }
 
     if (!fs.existsSync(filePath)) {
         log.error(`[Templates] Download-filled file not found: ${log.nameForLog(sanitized)}`);

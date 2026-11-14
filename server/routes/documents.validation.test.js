@@ -42,6 +42,7 @@ fs.writeFileSync(path.join(OUTPUT_DIR, 'ghi789_notes.txt'), 'plain text');
 process.env.TMPDIR = TMP_ROOT;
 require('../testUtils/routeHarness').openGates();
 
+require('../usecases/documentsListScope').ports.organizationCount = async () => 1;
 const router = require('./documents');
 test.after(() => {
     fs.rmSync(TMP_ROOT, { recursive: true, force: true });

@@ -127,6 +127,10 @@ test('a session without isAuthenticated is still 401 (half-built session ≠ sig
 });
 
 // ── Signed in: the mobile "Generated" tab contract survives the gate ─
+// The listing depends on how many organisations the installation has; one, unless a test says otherwise.
+const listScope = require('../usecases/documentsListScope');
+listScope.ports.organizationCount = async () => 1;
+
 test('signed-in GET /list returns the listing shape the mobile tab renders', async () => {
     const res = await dispatch({ method: 'GET', url: '/list', session: authed });
     assert.strictEqual(res.statusCode, 200);
@@ -147,4 +151,14 @@ test('signed-in GET /view/:filename serves the file', async () => {
 test('signed-in GET /download of a missing file is a clean 404, not a 401', async () => {
     const res = await dispatch({ method: 'GET', url: '/download/nope_gone.pdf', session: authed });
     assert.strictEqual(res.statusCode, 404);
+});
+
+test('with several organisations a member gets an empty list, the platform admin the files', async () => {
+    listScope.ports.organizationCount = async () => 2;
+    try {
+        const member = await dispatch({ method: 'GET', url: '/list', session: authed });
+        assert.deepStrictEqual(member.body, { documents: [] });
+        const admin = await dispatch({ method: 'GET', url: '/list', session: { ...authed, isAdmin: true } });
+        assert.strictEqual(admin.body.documents.length, 1);
+    } finally { listScope.ports.organizationCount = async () => 1; }
 });

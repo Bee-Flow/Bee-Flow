@@ -41,6 +41,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const { requireAuth } = require('../auth');
+const { mayListSharedDocuments } = require('../usecases/documentsListScope');
 const { validate } = require('../core/http/validate');
 const { z } = require('../utils/zod');
 
@@ -95,8 +96,10 @@ router.get('/view/:filename', validate({ params: FileParams }), (req, res) => {
 });
 
 // GET /api/documents/list — list available documents (mobile "Generated" tab).
-// NOT per-user scoped — see the KNOWN LIMIT note in the header.
-router.get('/list', (req, res) => {
+// The directory keeps no owner per file (KNOWN LIMIT in the header), so who
+// may list it depends on the installation: usecases/documentsListScope.js.
+router.get('/list', async (req, res) => {
+    if (!(await mayListSharedDocuments(req.session))) return res.json({ documents: [] });
     if (!fs.existsSync(OUTPUT_DIR)) {
         return res.json({ documents: [] });
     }

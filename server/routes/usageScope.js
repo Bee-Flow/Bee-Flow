@@ -150,6 +150,19 @@ async function mayViewColleagues(req) {
 }
 
 /**
+ * The request path the way the router matched it: Express ignores case and a
+ * trailing slash, so a guard that compares `req.path` literally is skipped by
+ * `/By-User` or `/by-user/`.
+ * @param {import('express').Request} req
+ * @returns {string}
+ */
+function routePathOf(req) {
+    let p = String(req.path || '').toLowerCase();
+    while (p.length > 1 && p.endsWith('/')) p = p.slice(0, -1);
+    return p;
+}
+
+/**
  * Runs after attachOrgFilter. A member of an organisation who may not view
  * colleagues keeps the organisation totals, but on the per-person views, and
  * wherever ?user= names someone else, the filter is narrowed to the caller.
@@ -163,7 +176,7 @@ async function narrowMembersToOwnRows(req, _res, next) {
     const me = req.session?.user;
     if (!filters || !me || !filters.organizationId) return next();
     if (req.session?.isAdmin || me.role === 'admin') return next();
-    const personLevel = PERSON_LEVEL_PATHS.has(req.path);
+    const personLevel = PERSON_LEVEL_PATHS.has(routePathOf(req));
     const otherPerson = !!filters.userId && filters.userId !== me.id;
     if (!personLevel && !otherPerson) return next();
     if (await mayViewColleagues(req)) return next();
@@ -171,4 +184,4 @@ async function narrowMembersToOwnRows(req, _res, next) {
     next();
 }
 
-module.exports = { getDateFilters, getOrgFilter, buildRequestFilters, attachOrgFilter, narrowMembersToOwnRows, mayViewColleagues, usageScopeOf };
+module.exports = { getDateFilters, getOrgFilter, buildRequestFilters, attachOrgFilter, narrowMembersToOwnRows, mayViewColleagues, usageScopeOf, routePathOf };

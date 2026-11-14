@@ -195,3 +195,13 @@ test('a claim is handed back when the account is not created after all', async (
     assert.deepStrictEqual(invites.accepted, ['tok-1']);
     assert.deepStrictEqual(invites.released, ['inv-1']);
 });
+
+test('a username that would name another path, prefix or built-in owner makes no account', async () => {
+    // The id becomes a storage prefix (`users/<id>/`), a folder and a URL
+    // segment; `system` owns the agents every organisation shares.
+    for (const username of ['alice/uploads', '../../../proc/self', 'vic%74im', 'system', 'swarm']) {
+        const res = await signupWith({ username });
+        assert.strictEqual(res.statusCode, 400, `${username}: ${JSON.stringify(res.body)}`);
+        assert.strictEqual(res.body.error, 'This username is not available');
+    }
+});

@@ -114,15 +114,10 @@ server {
     #   user- and CMS-authored content — is a one-line
     #   <script src="https://attacker/x.js">. Only the hosts the app genuinely
     #   loads code from are listed:
-    #     • cdn.jsdelivr.net — @monaco-editor/react fetches the Monaco AMD
-    #       loader from jsdelivr (its built-in default; nothing in the app calls
-    #       loader.config to relocate it). Remove this and every code editor in
-    #       the admin UI stops rendering. The same loader pulls
-    #       editor.main.css and the codicon font from the same host, so
-    #       style-src and font-src list it too: without them the editor
-    #       mounts but renders unstyled and blank (the Code step's
-    #       "Code editor" tab showed an empty box while "Plain text" had the
-    #       code). Self-hosting Monaco would remove all three.
+    #     (cdn.jsdelivr.net is NOT listed: Monaco is served by this app from
+    #     /monaco/vs — vite.config.js monacoSelfHost, and both editors point the
+    #     loader there — so no public CDN that serves any npm package is a
+    #     script source, and no author's IP address reaches a third party.)
     #     • ${GA_ORIGIN} — Google Tag Manager (gtag.js), injected by
     #       marketing/components/GoogleAnalyticsTracker.jsx when a CMS site has
     #       a GA measurement id configured. EMPTY by default and
@@ -208,7 +203,7 @@ server {
     #   turnstile  https://challenges.cloudflare.com
     #   hcaptcha   https://js.hcaptcha.com https://newassets.hcaptcha.com
     #   recaptcha  https://www.google.com https://www.gstatic.com
-    set $csp_common "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://esm.sh ${GA_ORIGIN} ${ANALYTICS_ORIGIN} ${CAPTCHA_ORIGIN}; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net data:; img-src 'self' data: blob: https:; worker-src 'self' blob:; frame-src 'self' blob: ${CAPTCHA_ORIGIN}; object-src 'self' blob:; connect-src 'self' https://observe.beeflow.nl ${ANALYTICS_ORIGIN} ${EXTRA_CONNECT_SRC}; base-uri 'self'; form-action 'self'";
+    set $csp_common "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://esm.sh ${GA_ORIGIN} ${ANALYTICS_ORIGIN} ${CAPTCHA_ORIGIN}; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; worker-src 'self' blob:; frame-src 'self' blob: ${CAPTCHA_ORIGIN}; object-src 'self' blob:; connect-src 'self' https://observe.beeflow.nl ${ANALYTICS_ORIGIN} ${EXTRA_CONNECT_SRC}; base-uri 'self'; form-action 'self'";
     # Default policy. $csp_embed is the same policy WITHOUT frame-ancestors —
     # see the /chat/ block for why that one exception exists.
     set $csp       "$csp_common; frame-ancestors 'self'";

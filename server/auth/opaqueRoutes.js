@@ -332,7 +332,8 @@ router.post('/login/finish', opaqueLoginLimiter, validate({ body: LoginFinishBod
     const { loginId, finishLoginRequest, encryptedDEK } = req.body;
 
     const pending = await getPendingLogin(loginId);
-    if (!pending) {
+    // A PIN unlock's pending state is not a password login: it has its own finish.
+    if (!pending || pending.isPinLogin) {
         return res.status(400).json({ error: 'Login session expired or invalid' });
     }
 
@@ -531,7 +532,9 @@ router.post('/pin/login/finish', requireAuth, opaqueLoginLimiter, validate({ bod
     const { loginId, finishLoginRequest, encryptedDEK } = req.body;
 
     const pending = await getPendingLogin(loginId);
-    if (!pending || !pending.isPinLogin) {
+    // The pending login belongs to the session that started it: a PIN proof for
+    // one account must not mark another account's session as PIN-verified.
+    if (!pending || !pending.isPinLogin || pending.username !== req.session.user?.id) {
         return res.status(400).json({ error: 'Login session expired or invalid' });
     }
 

@@ -61,7 +61,8 @@ const notebookKillSwitch = async (req, res, next) => {
  * @param {import('express').NextFunction} next
  */
 const notebookChatGate = (req, res, next) => {
-    if (!req.path.startsWith('/chat/notebook')) return next();
+    // Lowercased: the router matches paths case-insensitively.
+    if (!req.path.toLowerCase().startsWith('/chat/notebook')) return next();
     // requireCapability answers feature_locked/feature_disabled itself, or hands a
     // 503 entitlement_unavailable to next(err). The continuation runs for BOTH, so
     // it must forward an error and only run the operator kill-switch on success.
@@ -82,7 +83,7 @@ const webpageCapGate = requireCapability('webpages');
  * @param {import('express').NextFunction} next
  */
 const webpageChatGate = (req, res, next) => {
-    if (!req.path.startsWith('/chat/webpage')) return next();
+    if (!req.path.toLowerCase().startsWith('/chat/webpage')) return next();
     return webpageCapGate(req, res, next);
 };
 router.use(webpageChatGate);

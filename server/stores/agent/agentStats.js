@@ -8,6 +8,27 @@ const { initDB } = require('./initSchema');
 const { fallback } = require('../../utils/bestEffort');
 
 /**
+ * Columns that give a conversation's message count. Once a conversation is
+ * migrated (`messages_migrated`) its messages live in conversation_messages
+ * and the `messages_json` blob freezes: reading the blob then reports the
+ * count of the day it was migrated. Rows for a migrated conversation, the
+ * blob only for one that is not (and the blob is not fetched when unused).
+ */
+const MESSAGE_COUNT_COLUMNS = `c.agent_id,
+    CASE WHEN c.messages_migrated THEN NULL ELSE c.messages_json END AS messages_json,
+    CASE WHEN c.messages_migrated THEN (SELECT COUNT(*)::int FROM conversation_messages m WHERE m.conversation_id = c.id) END AS message_rows`;
+
+/**
+ * @param {{ messages_json?: string | null, message_rows?: number | null }} row a row selected with MESSAGE_COUNT_COLUMNS
+ * @param {string} where the caller, for the fallback trace
+ * @returns {number}
+ */
+function messagesIn(row, where) {
+    if (row.message_rows !== null && row.message_rows !== undefined) return Number(row.message_rows);
+    try { return JSON.parse(row.messages_json || '[]').length; } catch (e) { fallback(where, e); return 0; /* not valid JSON: the conversation adds no messages */ }
+}
+
+/**
  * The organisations a read is narrowed to, as the WHERE fragments and the
  * parameter they share. `orgIds` null (the super admin's scope) narrows
  * nothing; an array narrows agents on their own column and conversations
@@ -41,7 +62,7 @@ async function getSystemStats(startDate = null, endDate = null, { orgIds = null 
         totalAgents = (await getOne(`SELECT COUNT(*) as count FROM agents WHERE owner_id NOT IN ('system', 'swarm')${org.agents}`, org.params)).count;
         totalConversations = (await getOne(`SELECT COUNT(*) as count FROM agent_conversations WHERE TRUE${org.conversations}`, org.params)).count;
         activeConversations = (await getOne(`SELECT COUNT(*) as count FROM agent_conversations WHERE updated_at > NOW() - INTERVAL '7 days'${org.conversations}`, org.params)).count;
-        allConvs = await getAll(`SELECT agent_id, messages_json FROM agent_conversations WHERE TRUE${org.conversations}`, org.params);
+        allConvs = await getAll(`SELECT ${MESSAGE_COUNT_COLUMNS} FROM agent_conversations c WHERE TRUE${org.conversations}`, org.params);
     } else {
         const org = orgNarrowing(orgIds, 3);
         const params = [startDate, endDate, ...org.params];
@@ -52,18 +73,16 @@ async function getSystemStats(startDate = null, endDate = null, { orgIds = null 
         totalAgents = (await getOne(`SELECT COUNT(*) as count FROM agents WHERE ${period}${org.agents}`, params)).count;
         totalConversations = (await getOne(`SELECT COUNT(*) as count FROM agent_conversations WHERE ${period}${org.conversations}`, params)).count;
         activeConversations = (await getOne(`SELECT COUNT(*) as count FROM agent_conversations WHERE updated_at > NOW() - INTERVAL '7 days' AND ${period}${org.conversations}`, params)).count;
-        allConvs = await getAll(`SELECT agent_id, messages_json FROM agent_conversations WHERE ${period}${org.conversations}`, params);
+        allConvs = await getAll(`SELECT ${MESSAGE_COUNT_COLUMNS} FROM agent_conversations c WHERE ${period}${org.conversations}`, params);
     }
 
     let totalMessages = 0;
     /** @type {Record<string, number>} */
     const agentMessageCounts = {};
     for (const row of allConvs) {
-        try {
-            const msgs = JSON.parse(row.messages_json || '[]');
-            totalMessages += msgs.length;
-            agentMessageCounts[row.agent_id] = (agentMessageCounts[row.agent_id] || 0) + msgs.length;
-        } catch (e) { fallback('stores/agent/agentStats:getSystemStats', e); /* ignore parse errors */ }
+        const count = messagesIn(row, 'stores/agent/agentStats:getSystemStats');
+        totalMessages += count;
+        agentMessageCounts[row.agent_id] = (agentMessageCounts[row.agent_id] || 0) + count;
     }
 
     return { totalAgents, totalConversations, activeConversations, totalMessages, agentMessageCounts };
@@ -76,7 +95,7 @@ async function getAgentStats(agentId, startDate = null, endDate = null) {
         (SELECT COUNT(*) FROM agent_conversations WHERE agent_id = $1) as conversation_count,
         (SELECT updated_at FROM agents WHERE id = $2) as last_updated`, [agentId, agentId]);
 
-    let sql = 'SELECT messages_json FROM agent_conversations WHERE agent_id = $1';
+    let sql = `SELECT ${MESSAGE_COUNT_COLUMNS} FROM agent_conversations c WHERE agent_id = $1`;
     const params = [agentId];
     let idx = 2;
     if (startDate) { sql += ` AND created_at >= $${idx++}`; params.push(startDate); }
@@ -86,7 +105,7 @@ async function getAgentStats(agentId, startDate = null, endDate = null) {
     const conversationCount = startDate || endDate ? convs.length : (stats?.conversation_count ?? 0);
     let messageCount = 0;
     for (const row of convs) {
-        try { messageCount += JSON.parse(row.messages_json || '[]').length; } catch (e) { fallback('stores/agent/agentStats:getAgentStats', e); /* messages_json is not valid JSON, the conversation adds no messages */ }
+        messageCount += messagesIn(row, 'stores/agent/agentStats:getAgentStats');
     }
 
     return { conversationCount, lastUpdated: stats?.last_updated, messageCount };
