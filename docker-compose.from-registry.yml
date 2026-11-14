@@ -179,6 +179,9 @@ services:
       # pairing code. NEXTCLOUD_ALLOW_PRIVATE_HOSTS=1 applies to the whole
       # deployment; see .env.selfhost.example before setting it.
       - NEXTCLOUD_ALLOW_PRIVATE_HOSTS=${NEXTCLOUD_ALLOW_PRIVATE_HOSTS:-}
+      # Components (the /execute workflow steps) may not call private or internal
+      # addresses unless listed here: comma-separated hosts, or 1 for all.
+      - COMPONENT_ALLOW_PRIVATE_HOSTS=${COMPONENT_ALLOW_PRIVATE_HOSTS:-}
       - BEEFLOW_CONNECTOR_PROVISIONING=${BEEFLOW_CONNECTOR_PROVISIONING:-}
       - LLM_API_URL=${LLM_API_URL:-}
       - LLM_API_KEY=${LLM_API_KEY:-}

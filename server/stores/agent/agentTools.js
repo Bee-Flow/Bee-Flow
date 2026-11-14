@@ -16,7 +16,8 @@ const log = require('../../telemetry/log');
 async function addAgentTool(agentId, componentId, params = null) {
     await initDB();
     const id = randomUUID();
-    log.info('[AgentTools] Adding tool:', componentId, 'with params:', params);
+    // Parameter NAMES only: the values are a tool's configuration, API tokens included.
+    log.info(`[AgentTools] Adding tool: ${componentId} with params: ${Object.keys(params || {}).join(', ')}`);
     await run('INSERT INTO agent_tools (id, agent_id, component_id, params_json) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING', [id, agentId, componentId, params ? JSON.stringify(params) : null]);
 }
 

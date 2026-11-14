@@ -3,7 +3,7 @@
 // cascade, and the auto-provisioned NC org-name backfill.
 const { run, getOne, getAll } = require('../../db');
 const { initDB } = require('./schema');
-const { dynamicUpdate, parseJSON } = require('./shared');
+const { dynamicUpdate, parseJSON, escapeLike } = require('./shared');
 const { deleteUser, assertNotStageRunAs } = require('./users');
 const { setOrgSubscription } = require('./subscriptions');
 const { getDefaultOrgPlanId } = require('./billingLifecycle');
@@ -12,7 +12,6 @@ const billingPorts = require('./billingPorts'); // the billing services install 
 const { applyDefaultEncryptionTier } = require('../initialTier');
 const log = require('../../telemetry/log');
 const { fallback, bestEffort } = require('../../utils/bestEffort');
-
 
 // ── Organizations ─────────────────────────────
 function parseOrg(o) {
@@ -479,7 +478,7 @@ async function deleteOrganization(orgId) { // stepwise: cross-store erasure; eve
         // convention (ORG_CONFIG_KEYS) by name, through configStore so every
         // replica's cache is invalidated with them.
         step = 'config';
-        const { rowCount: cfgDeleted } = await run('DELETE FROM config WHERE key LIKE $1', [`org_${orgId}_%`]);
+        const { rowCount: cfgDeleted } = await run("DELETE FROM config WHERE key LIKE $1 ESCAPE '\\'", [`${escapeLike(`org_${orgId}_`)}%`]);
         if (cfgDeleted > 0) log.info(`[UserStore] Deleted ${cfgDeleted} per-org config row(s) for '${orgId}'`);
         const configStore = require('../configStore');
         for (const key of orgConfigKeys(orgId)) await configStore.deleteConfig(key);

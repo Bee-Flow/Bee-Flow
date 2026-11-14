@@ -48,7 +48,9 @@ before(async () => {
         created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now())`);
     await pg.exec(`CREATE TABLE agent_conversations (
         id TEXT PRIMARY KEY, agent_id TEXT NOT NULL, user_id TEXT NOT NULL, messages_json TEXT DEFAULT '[]',
+        messages_migrated BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now())`);
+    await pg.exec(`CREATE TABLE conversation_messages (id TEXT PRIMARY KEY, conversation_id TEXT NOT NULL, role TEXT NOT NULL)`);
     await pg.exec(`CREATE TABLE agent_tools (agent_id TEXT, component_id TEXT)`);
     await pg.exec(`INSERT INTO agents (id, name, owner_id, organization_id, config) VALUES
         ('a-org-a', 'Support',  'u-a', 'org_a', '{}'),
@@ -97,4 +99,17 @@ test('a caller of no organisation sees nothing', async () => {
     assert.strictEqual(Number(stats.totalAgents), 0);
     assert.strictEqual(Number(stats.totalConversations), 0);
     assert.deepStrictEqual(await getAllAgents({ orgIds: [] }), []);
+});
+
+test('a migrated conversation counts its message rows, not the frozen blob', async () => {
+    // The blob stops at the two messages it held when the conversation was
+    // migrated; the five rows are what the user sees.
+    await pg.exec(`INSERT INTO agents (id, name, owner_id, organization_id, config) VALUES ('a-org-m', 'Migrated', 'u-m', 'org_m', '{}')`);
+    await pg.exec(`INSERT INTO agent_conversations (id, agent_id, user_id, messages_json, messages_migrated) VALUES
+        ('cm', 'a-org-m', 'u-m', '[{"r":"u"},{"r":"a"}]', TRUE)`);
+    await pg.exec(`INSERT INTO conversation_messages (id, conversation_id, role) VALUES
+        ('m1','cm','user'),('m2','cm','assistant'),('m3','cm','user'),('m4','cm','assistant'),('m5','cm','user')`);
+    const stats = await getSystemStats(null, null, { orgIds: ['org_m'] });
+    assert.strictEqual(stats.totalMessages, 5);
+    assert.strictEqual(stats.agentMessageCounts['a-org-m'], 5);
 });

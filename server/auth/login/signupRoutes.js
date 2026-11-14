@@ -10,6 +10,7 @@ const express = require('express');
 const passwords = require('../passwordHash');
 const log = require('../../telemetry/log');
 const { isPlatformOperator } = require('../platformOperator');
+const { isAllowedUserId } = require('../../utils/userIdRules');
 const router = express.Router();
 
 const userStore = require('../../stores/userStore');
@@ -59,7 +60,7 @@ const SignupBody = z.object({
 router.post('/signup', signupIpLimiter, signupTargetLimiter, validate({ body: SignupBody }), async (req, res) => {
     const { username, password, displayName, firstName, lastName, email, inviteToken } = req.body;
 
-    if (isPlatformOperator(username)) {
+    if (isPlatformOperator(username) || !isAllowedUserId(username)) {
         return res.status(400).json({ error: 'This username is not available' });
     }
 
@@ -185,7 +186,8 @@ router.post('/signup', signupIpLimiter, signupTargetLimiter, validate({ body: Si
             return res.status(e.status).json(e.toResponse());
         }
         if (e instanceof userStore.SeatCapExceededError) {
-            return res.status(403).json({ error: 'seat_cap_exceeded', current: e.current, max: e.max });
+            // The seat numbers are the organisation's business: only for a caller it invited.
+            return res.status(403).json({ error: 'seat_cap_exceeded', ...(inviteToken ? { current: e.current, max: e.max } : {}) });
         }
         throw e;
     }
