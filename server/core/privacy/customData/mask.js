@@ -266,7 +266,7 @@ function formatRun(cps) {
  * examples, the shared letter/punctuation prefix and/or suffix of ALL
  * examples, when it has at most 4 letters and leaves something to mask.
  * @param {unknown} examples
- * @param {string} method
+ * @param {string | undefined} method
  */
 function proposeKeepFixed(examples, method) {
     if (method !== 'pattern') return [];
@@ -292,7 +292,7 @@ function proposeKeepFixed(examples, method) {
  * preview shows exactly what is sent, so an ignored part is visible there.
  * @param {unknown} keepFixed
  * @param {unknown} examples
- * @param {string} method
+ * @param {string | undefined} method
  */
 function acceptedKeepFixed(keepFixed, examples, method) {
     if (method !== 'pattern' || !Array.isArray(keepFixed)) return [];

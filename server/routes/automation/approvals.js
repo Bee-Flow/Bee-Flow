@@ -1,3 +1,4 @@
+// @typecheck
 /** @typedef {import('stream').Readable} Readable */
 /**
  * The Approvals section's API — list, facets, detail, decide, attachment.
@@ -22,7 +23,6 @@
  * would otherwise swallow the /approvals literal (the same first-match rule
  * that keeps /templates above /:id in runs.js).
  */
-
 const express = require('express');
 const { sendStream } = require('../../core/http/sendStream');
 const log = require('../../telemetry/log');
@@ -35,7 +35,7 @@ const { requireModule } = require('../../modules');
 const { validate } = require('../../core/http/validate');
 const { contentDisposition } = require('../../core/http/contentDisposition');
 const { z, typeError } = require('../../utils/zod');
-const { worded } = require('../../core/http/schemaParts');
+const { worded, bodyOf: closedBody } = require('../../core/http/schemaParts');
 
 // -- What a caller may send ------------------------------------------
 //
@@ -51,7 +51,7 @@ const { worded } = require('../../core/http/schemaParts');
 // answered with EVERY approval the viewer may see, presented as the approved
 // ones somebody had filtered for.
 
-/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
+/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. @template {import('zod').ZodRawShape} S @param {S} shape */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 /**
@@ -230,7 +230,7 @@ router.get('/approvals', gate, validate({ query: ApprovalsQuery }), async (/** @
     res.json({ approvals, nextCursor, scope });
 });
 
-router.get('/approvals/facets', gate, validate({ query: FacetsQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof FacetsQuery>>} */ req, /** @type {import('express').Response} */ res) => {
+router.get('/approvals/facets', gate, validate({ query: FacetsQuery }), async (req, /** @type {import('express').Response} */ res) => {
     const viewer = await resolveApprovalViewer(req);
     if (!viewer.userId) return res.status(401).json({ error: 'Not signed in' });
     const scope = req.query.scope;
@@ -318,7 +318,7 @@ router.get('/approvals/:id', async (req, res) => {
     });
 });
 
-router.post('/approvals/:id/decide', validate({ body: DecideBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof DecideBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/approvals/:id/decide', validate({ body: DecideBody }), async (req, res) => {
     const viewer = await resolveApprovalViewer(req);
     if (!viewer.userId) return res.status(401).json({ error: 'Not signed in' });
     const approval = await automationStore.getApproval(req.params.id);
@@ -347,7 +347,7 @@ router.post('/approvals/:id/decide', validate({ body: DecideBody }), async (/** 
  * out declines with a reason; letting them silently retract someone else's
  * question would erase the ask from under the owner.
  */
-router.post('/approvals/:id/withdraw', validate({ body: WithdrawBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof WithdrawBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/approvals/:id/withdraw', validate({ body: WithdrawBody }), async (req, res) => {
     const viewer = await resolveApprovalViewer(req);
     if (!viewer.userId) return res.status(401).json({ error: 'Not signed in' });
     const approval = await automationStore.getApproval(req.params.id);
@@ -379,7 +379,7 @@ router.post('/approvals/:id/withdraw', validate({ body: WithdrawBody }), async (
  */
 const remindLimiter = require('../../utils/perUserRateLimit').perUserRateLimit({ windowMs: 60_000, max: 20 });
 const { fallback } = require('../../utils/bestEffort');
-router.post('/approvals/:id/remind', remindLimiter, async (req, res) => {
+router.post('/approvals/:id/remind', remindLimiter, validate({ body: closedBody({}, 'Reminding the approvers') }), async (req, res) => {
     const { makeApprovalReminder } = require('../../automation/approvalRemind');
     const { makeAutomationAccess } = require('../../automation/access');
     const reminder = makeApprovalReminder({
@@ -425,7 +425,7 @@ router.get('/approvals/:id/files/:fileId', async (req, res, next) => {
             .getAttachment(req.params.fileId, approval.studioAppId, approval.ownerId)
             .catch((e) => fallback('routes/automation/approvals:anon#6', e, null));
         if (!att || att.quarantined) return res.status(404).json({ error: 'Not found' });
-        const storageStore = require('../../stores/storageStore');
+        const storageStore = /** @type {typeof import('../../stores/storageStore')} */ (require('../../stores/storageStore'));
         /** @type {{ stream: Readable; contentType: string; contentLength: number; totalLength: number; contentRange: string | null; metadata: Object; }} */
         let streamed;
         try {

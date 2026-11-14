@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Webpage tools surfaced to studio automations.
  *
@@ -195,7 +195,7 @@ const READ_ONLY_TOOLS = new Set(['webpages_list', 'webpage_db_schema', 'webpage_
 
 /**
  * @param {string | undefined} webpageId
- * @param {{ userId: string; organizationId?: string; userGroupIds?: string[]; userOrgIds?: string[]; }} ctx
+ * @param {{ userId: string; organizationId?: string | null; userGroupIds?: string[]; userOrgIds?: string[]; }} ctx
  * @param {string} mode
  */
 async function resolveWebpageForAccess(webpageId, ctx, mode) {
@@ -218,7 +218,7 @@ async function resolveWebpageForAccess(webpageId, ctx, mode) {
  *
  * @param {string} toolName
  * @param {{ name?: string, description?: string, webpageId?: string, sql?: string, params?: unknown[] }} args
- * @param {{ userId: string, organizationId?: string, userGroupIds?: string[], userOrgIds?: string[] }} ctx
+ * @param {{ userId: string, organizationId?: string | null, userGroupIds?: string[], userOrgIds?: string[] }} ctx
  */
 async function executeWebpageAutomationTool(toolName, args, ctx) {
     if (!ctx?.userId) return { error: 'Internal: userId required to run a webpage tool.' };
@@ -263,7 +263,8 @@ async function executeWebpageAutomationTool(toolName, args, ctx) {
     if (toolName === 'webpage_db_schema' || toolName === 'webpage_db_query' || toolName === 'webpage_db_exec') {
         const dbArgs = { sql: args?.sql, params: args?.params };
         try {
-            return await executeDbTool(toolName, dbArgs, { webpageId, userId: ownerUserId });
+            // resolveWebpageForAccess found the page, so the id it was given is a string.
+            return await executeDbTool(toolName, dbArgs, { webpageId: /** @type {string} */ (webpageId), userId: ownerUserId });
         } catch (err) {
             return { error: `Webpage DB tool failed: ${publicDbErrorMessage(err)}` };
         }

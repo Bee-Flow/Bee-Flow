@@ -49,7 +49,7 @@ const HASH_PREFIX = 'k_';
  * key ('7,5', '7.5', '7.50', 7.5 → '7.5'); a cell that is not a number in
  * a number key column counts as "key missing".
  * @param {unknown} cell
- * @param {'text'|'number'} [type]   the key column's declared type
+ * @param {string} [type]   the key column's declared type ('number'; any other type keys as text)
  */
 function normaliseKey(cell, type = 'text') {
     if (isBlank(cell)) return null;
@@ -67,7 +67,7 @@ function normaliseKey(cell, type = 'text') {
 /**
  * The row id for one key cell, or null when the cell is blank (the row is skipped).
  * @param {unknown} cell
- * @param {'text'|'number'} [type]
+ * @param {string} [type]
  * @returns {string|null}
  */
 function rowIdFromKey(cell, type = 'text') {
@@ -111,7 +111,7 @@ function identityOf(source) {
  *
  * @param {Array<Array>} rows          the data rows (cells)
  * @param {number[]} rowNumbers        the 1-based sheet row of each entry of `rows`
- * @param {{ mode?: 'key'|'row', keyCol?: number, keyType?: 'text'|'number' }} opts `keyCol`: 0-based
+ * @param {{ mode?: 'key'|'row', keyCol?: number, keyType?: string }} opts `keyCol`: 0-based
  *   column of the key (mode 'key'); `keyType`: the key column's declared type (mode 'key')
  * @returns {{ ids:(string|null)[], missing:number, duplicate:number, blank:number }}
  */
@@ -143,7 +143,7 @@ function assignRowIds(rows, rowNumbers, { mode, keyCol = null, keyType = 'text' 
  * rows share one (first duplicate reported so a 422 can name it).
  * @param {Array<Array<any>>} rows
  * @param {number} keyCol
- * @param {'text'|'number'} [keyType]
+ * @param {string} [keyType]
  */
 function checkKeyColumn(rows, keyCol, keyType = 'text') {
     let missing = 0;

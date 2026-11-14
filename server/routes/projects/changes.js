@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What changed in a project, per reader.
  *
@@ -82,7 +83,7 @@ function makeChangesRouter(deps = {}) {
         };
     }
 
-    router.get('/:id/changes', requireRole('viewer'), validate({ query: S.ChangesQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof S.ChangesQuery>>} */ req, res) => {
+    router.get('/:id/changes', requireRole('viewer'), validate({ query: S.ChangesQuery }), async (req, res) => {
         const projectId = req.params.id;
         const userId = userIdOf(req);
         const since = req.query.since || 'visit';
@@ -130,7 +131,7 @@ function makeChangesRouter(deps = {}) {
         return res.json({ groups, truncated, ...base });
     });
 
-    router.get('/:id/changes/log', requireRole('viewer'), validate({ query: S.ChangeLogQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof S.ChangeLogQuery>>} */ req, res) => {
+    router.get('/:id/changes/log', requireRole('viewer'), validate({ query: S.ChangeLogQuery }), async (req, res) => {
         const projectId = req.params.id;
         const limit = req.query.limit || 50;
         const offset = req.query.offset || 0;
@@ -167,7 +168,8 @@ function makeChangesRouter(deps = {}) {
     router.post('/:id/visit', requireRole('viewer'), markLimiter, validate({ body: S.VisitBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof S.VisitBody>, import('qs').ParsedQs>} */ req, res) => {
         const state = await store().recordVisit(req.params.id, userIdOf(req), { gapMs: feed().VISIT_GAP_MS });
         if (!state) throw notFound('not_found', 'Not found');
-        res.json({ prevVisitAt: state.prevVisitAt, visitStartedAt: state.visitStartedAt });
+        const visit = /** @type {{ prevVisitAt?: unknown, visitStartedAt?: unknown }} */ (state);
+        res.json({ prevVisitAt: visit.prevVisitAt, visitStartedAt: visit.visitStartedAt });
     });
 
     router.post('/:id/seen', requireRole('viewer'), markLimiter, validate({ body: S.SeenBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof S.SeenBody>, import('qs').ParsedQs>} */ req, res) => {

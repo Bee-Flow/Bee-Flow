@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { settled } from '@/api/settled';
-import { API_BASE } from '@/utils/helpers';
 import AutoApproveCard from '../orgUsers/AutoApproveCard';
 import OrgHealthBanner from '../OrgHealthBanner';
 import type { AdminOrganization } from './types';
+import { apiUrl } from '@/api/typedRequest';
 
 interface UsersOrgControlsProps {
     /** The organisation the people list shows; null while "All organisations" is chosen. */
@@ -26,7 +26,7 @@ function useAutoApprove(org: AdminOrganization | undefined, onChanged: () => Pro
         setOverride(next);
         setSaving(true);
         try {
-            const res = await settled(`${API_BASE}/auth/organizations/${org.id}`, {
+            const res = await settled(apiUrl('PUT /auth/organizations/{id}', { params: { id: org.id } }), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ autoApproveSSO: next }),

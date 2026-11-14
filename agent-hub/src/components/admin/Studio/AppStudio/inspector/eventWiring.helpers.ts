@@ -1,12 +1,12 @@
 import { describeAction } from './actionLabels';
 import { effectSteps, otherComponentsRunning, screenIdOfNode, stepCount, stepFromAction } from './actionRefs';
-import { API_BASE, authFetch } from '@/utils/helpers';
 import { logger } from '@/utils/logger';
 import { runStartRefusal } from '@/api/queries/automation/runAccess';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type {
     ActionEffect, AppAction, AppDefinition, AppRef, FormFieldRef, InputMapping, ParamMetaByName,
 } from './appDefinition';
+import { apiFetch } from '@/api/typedRequest';
 
 /**
  * The pure decisions behind one event slot's wiring (useEventWiring): the
@@ -232,11 +232,7 @@ type TestRunBody = { error?: string; code?: string; run?: { id?: unknown } } | n
  * mode in the runner to fall back on, so the honest fix is to ask first.
  */
 export async function startTestRun(automationId: string, payload: Record<string, unknown>, t: TranslateFn) {
-    const r = await authFetch(`${API_BASE}/api/automation/${encodeURIComponent(automationId)}/run`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ triggerPayload: payload }),
-    });
+    const r = await apiFetch('POST /api/automation/{id}/run', { params: { id: automationId }, body: { triggerPayload: payload } });
     let body: TestRunBody = null;
     try { body = await r.json(); } catch (err) { logger.debug('empty body', err); }
     if (!r.ok) throw new Error(runStartRefusal(t, body) || body?.error || t('studio_apps_insp.wiring.run_failed', 'Run failed ({status})', { status: r.status }));

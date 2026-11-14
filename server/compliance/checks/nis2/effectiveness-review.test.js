@@ -1,41 +1,38 @@
 // @typecheck
 /**
- * NIS2-Art21(2)(f)-effectiveness-review — audit/management review + sweep freshness.
- * Run: cd server && node --test --test-force-exit compliance/checks/nis2/effectiveness-review.test.js
+ * NIS2-Art21(2)(f)-effectiveness-review — audit/management review + sweep freshness,
+ * on a real Postgres (the boot ladder's schema on PGlite behind db.js's pool).
+ * Run: cd server && node --test compliance/checks/nis2/effectiveness-review.test.js
  */
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { installResolveStub } = require('../../../testUtils/stubRequire');
+const { usePglitePool } = require('../../../testUtils/pglitePool');
+const { ladderPglite } = require('../../../testUtils/pgliteTemplate');
+const { failReads, hideTable } = require('../../../testUtils/pgliteFaults');
+
+// The boot ladder's schema on PGlite (testUtils/pgliteTemplate.js) behind db.js's pool.
+const { pg, close } = usePglitePool(ladderPglite());
+const complianceStore = require('../../../stores/complianceStore');
+const check = require('./effectiveness-review');
+test.after(close);
 
 const ORG = 'org-a';
-const fx = { audit: null, review: null, futureReview: null, sweep: null, settings: {}, missing: new Set(), params: [] };
-const pgError = (code) => Object.assign(new Error(`pg ${code}`), { code, severity: 'ERROR' });
-const fakeDb = {
-    async getOne(sql, params) {
-        fx.params.push(params);
-        assert.match(sql, /organization_id = \$1/);
-        if (/FROM iso_audits/.test(sql)) { if (fx.missing.has('audits')) throw pgError('42P01'); return { last: fx.audit }; }
-        if (/FROM iso_management_reviews/.test(sql)) {
-            if (fx.missing.has('reviews')) throw pgError('42P01');
-            // Emulates MAX(held_at) over a planned (future-dated) row: only a
-            // query that excludes future dates gets the held review back.
-            return { last: fx.futureReview && !/held_at <= NOW\(\)/.test(sql) ? fx.futureReview : fx.review };
-        }
-        if (/FROM compliance_score_history/.test(sql)) { if (fx.missing.has('sweeps')) throw pgError('42703'); return { last: fx.sweep }; }
-        throw new Error(`unexpected sql: ${sql}`);
-    },
-    async getAll() { return []; },
-};
-const restore = installResolveStub({
-    '../../../db': fakeDb,
-    '../../../stores/complianceStore': { getSettings: async (orgId) => ({ organization_id: orgId, ...fx.settings }) },
-});
-const check = require('./effectiveness-review');
-test.after(() => restore());
+const daysAgo = (d) => new Date(Date.now() - d * 86400e3).toISOString();
 
-const daysAgo = (d) => new Date(Date.now() - d * 86400e3);
+test.beforeEach(() => pg.exec('DELETE FROM iso_audits; DELETE FROM iso_management_reviews; DELETE FROM compliance_score_history; DELETE FROM compliance_settings'));
 
-test.beforeEach(() => { fx.audit = null; fx.review = null; fx.futureReview = null; fx.sweep = null; fx.settings = {}; fx.missing = new Set(); fx.params = []; });
+/** A closed audit, a held review and a sweep, `d` days ago, for `org`. */
+const audit = (d, { org = ORG, status = 'closed' } = {}) => pg.query(
+    "INSERT INTO iso_audits (organization_id, title, status, closed_at) VALUES ($1, 'Audit', $2, $3)", [org, status, daysAgo(d)]);
+const review = (d, org = ORG) => pg.query('INSERT INTO iso_management_reviews (organization_id, held_at) VALUES ($1, $2)', [org, daysAgo(d)]);
+const sweep = (d, org = ORG) => pg.query('INSERT INTO compliance_score_history (organization_id, captured_at) VALUES ($1, $2)', [org, daysAgo(d)]);
+
+/** Run `fn` with the named tables gone, then put them back. */
+async function without(tables, fn) {
+    const restores = [];
+    for (const t of tables) restores.push(await hideTable(pg, t));
+    try { return await fn(); } finally { for (const r of restores.reverse()) await r(); }
+}
 
 test('contract shape', () => {
     assert.equal(check.id, 'NIS2-Art21(2)(f)-effectiveness-review');
@@ -44,44 +41,47 @@ test('contract shape', () => {
 });
 
 test('relevance gate', async () => {
-    fx.settings = { framework_relevance: { nis2: 'not_relevant' } };
+    await complianceStore.saveSettings(ORG, { framework_relevance: { nis2: 'not_relevant' } });
     const r = await check.evaluate(ORG);
     assert.equal(r.status, 'not_applicable');
-    assert.equal(fx.params.length, 0);
 });
 
-test('never reviewed → fail; all three queries org-scoped', async () => {
-    fx.sweep = daysAgo(1);
+test('never reviewed → fail; another organisation\'s audits, reviews and sweeps do not count', async () => {
+    await sweep(1);
+    await audit(10, { org: 'org-b' });
+    await review(10, 'org-b');
+    await audit(5, { status: 'planned' });
     const r = await check.evaluate(ORG);
     assert.equal(r.status, 'fail');
     assert.equal(r.evidence.last_effectiveness_review_at, null);
-    assert.equal(fx.params.length, 3);
-    for (const p of fx.params) assert.equal(p[0], ORG);
+    await pg.exec('DELETE FROM compliance_score_history');
+    await sweep(1, 'org-b');
+    assert.equal((await check.evaluate(ORG)).evidence.last_sweep_at, null);
 });
 
 test('a review dated in the future is not a review held', async () => {
-    fx.review = daysAgo(600); fx.futureReview = daysAgo(-30); fx.sweep = daysAgo(1);
+    await review(600); await review(-30); await sweep(1);
     const r = await check.evaluate(ORG);
     assert.equal(r.status, 'fail');
     assert.equal(r.evidence.review_age_days, 600);
 });
 
 test('review 400 days ago (grace window) → warn', async () => {
-    fx.review = daysAgo(400); fx.sweep = daysAgo(1);
+    await review(400); await sweep(1);
     const r = await check.evaluate(ORG);
     assert.equal(r.status, 'warn');
     assert.equal(r.evidence.review_age_days, 400);
 });
 
 test('review older than 540 days → fail', async () => {
-    fx.audit = daysAgo(600); fx.sweep = daysAgo(1);
+    await audit(600); await sweep(1);
     const r = await check.evaluate(ORG);
     assert.equal(r.status, 'fail');
     assert.match(r.details, /600 days old/);
 });
 
 test('recent review but stale sweeps → warn', async () => {
-    fx.audit = daysAgo(30); fx.sweep = daysAgo(10);
+    await audit(30); await sweep(10);
     const r = await check.evaluate(ORG);
     assert.equal(r.status, 'warn');
     assert.equal(r.evidence.sweep_fresh, false);
@@ -89,14 +89,14 @@ test('recent review but stale sweeps → warn', async () => {
 });
 
 test('recent review and no sweep ever → warn (run the checks once)', async () => {
-    fx.review = daysAgo(30);
+    await review(30);
     const r = await check.evaluate(ORG);
     assert.equal(r.status, 'warn');
     assert.match(r.details, /no check sweep/);
 });
 
 test('recent review (the newer of audit/review wins) + fresh sweep → pass', async () => {
-    fx.audit = daysAgo(500); fx.review = daysAgo(20); fx.sweep = daysAgo(2);
+    await audit(500); await review(20); await sweep(2);
     const r = await check.evaluate(ORG);
     assert.equal(r.status, 'pass');
     assert.equal(r.evidence.review_age_days, 20);
@@ -104,22 +104,24 @@ test('recent review (the newer of audit/review wins) + fresh sweep → pass', as
 });
 
 test('both audit and review tables missing → warn not provisioned', async () => {
-    fx.missing = new Set(['audits', 'reviews']); fx.sweep = daysAgo(1);
-    const r = await check.evaluate(ORG);
+    await sweep(1);
+    const r = await without(['iso_audits', 'iso_management_reviews'], () => check.evaluate(ORG));
     assert.equal(r.status, 'warn');
     assert.match(r.details, /not provisioned/);
 });
 
 test('one register missing is tolerated when the other has data', async () => {
-    fx.missing = new Set(['audits']); fx.review = daysAgo(10); fx.sweep = daysAgo(1);
-    const r = await check.evaluate(ORG);
+    await review(10); await sweep(1);
+    const r = await without(['iso_audits'], () => check.evaluate(ORG));
     assert.equal(r.status, 'pass');
     assert.equal(r.evidence.last_audit_at, null);
 });
 
 test('missing score-history column is treated as "no sweep"', async () => {
-    fx.missing = new Set(['sweeps']); fx.review = daysAgo(10);
-    const r = await check.evaluate(ORG);
+    await review(10);
+    const restore = await failReads(pg, 'compliance_score_history', '42703', 'column "captured_at" does not exist');
+    let r;
+    try { r = await check.evaluate(ORG); } finally { await restore(); }
     assert.equal(r.status, 'warn');
     assert.equal(r.evidence.last_sweep_at, null);
 });

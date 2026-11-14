@@ -9,9 +9,9 @@ import useShieldFields, { type ShieldFieldsState } from './useShieldFields';
 import { piiCategoriesLocalized } from '@/config/piiCategories';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { deepEqual } from '@/utils/deepEqual';
-import { API_BASE } from '@/utils/helpers';
 import useConfirm from '@/components/shared/useConfirm';
-import { request, RefusedError, mutate, errorBody } from '@/api/mutate';
+import { RefusedError, errorBody } from '@/api/mutate';
+import { type ApiBody, apiRequest } from '@/api/typedRequest';
 
 type Doc = Record<string, unknown>;
 
@@ -107,7 +107,7 @@ function useFetchShield({ categories, applyFields, t, bump, loadedDocRef, snapsh
         try {
             let res: Response;
             try {
-                res = await request(`${API_BASE}/api/org-privacy-shield/${orgId}`);
+                res = await apiRequest('GET /api/org-privacy-shield/{orgId}', { params: { orgId } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 loadedDocRef.current = null;
@@ -324,11 +324,8 @@ function useOrgShield({ orgId: pinnedOrgId = null, allowOrgPicker = false }: Use
         try {
             let res: Response;
             try {
-                res = await mutate(`${API_BASE}/api/org-privacy-shield/${selectedOrgId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(currentPayload),
-            });
+                res = await apiRequest('PUT /api/org-privacy-shield/{orgId}', { params: { orgId: selectedOrgId }, // The document the server sent, edited in the form: its own shape, sent back whole.
+                    body: currentPayload as ApiBody<'PUT /api/org-privacy-shield/{orgId}'> });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const data = errorBody(err) ?? {};

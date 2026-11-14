@@ -10,7 +10,7 @@
 
 const fsp = require('fs/promises');
 const log = require('../../telemetry/log');
-const { bestEffort } = require('../../utils/bestEffort');
+const { bestEffort, ignoreGone } = require('../../utils/bestEffort');
 
 /** @param {any} deps  handles, localPathFor, dbKey, storage, runQuery, metaTable, entityLabel. */
 function createStorageOps({ handles, localPathFor, dbKey, storage, runQuery, metaTable, entityLabel }) {
@@ -63,10 +63,10 @@ function createStorageOps({ handles, localPathFor, dbKey, storage, runQuery, met
                 throw new Error(`${entityLabel} handle owned by another user — refusing to reset`);
             }
             if (entry.flushTimer) clearTimeout(entry.flushTimer);
-            try { entry.db.close(); } catch (_) { log.debug('database handle already closed', _); }
+            try { entry.db.close(); } catch (_) { ignoreGone('stores/sqliteBlobLifecycle:closeHandle', _); }
             handles.delete(id);
         }
-        try { await fsp.unlink(localPathFor(id)); } catch (_) { log.debug('local file already gone', _); }
+        try { await fsp.unlink(localPathFor(id)); } catch (_) { ignoreGone('stores/sqliteBlobLifecycle:unlinkLocal', _); }
         if (storage.isAvailable()) {
             try { await storage.deleteFile(dbKey(ownerId, id)); } catch (_) { log.warn('blob could not be deleted from object storage', _); }
         }
@@ -122,10 +122,10 @@ function createCloseOps({ handles, localPathFor, flushNow, logPrefix, entityLabe
             if (entry.flushing) {
                 try { await entry.flushing; } catch (_) { bestEffort('stores/lib/sqliteBlobLifecycle:invalidate', _); /* in-flight flush failed, the handle is dropped anyway */ }
             }
-            try { entry.db.close(); } catch (_) { log.debug('database handle already closed', _); }
+            try { entry.db.close(); } catch (_) { ignoreGone('stores/sqliteBlobLifecycle:closeHandle', _); }
             handles.delete(id);
         }
-        try { await fsp.unlink(localPathFor(id)); } catch (_) { log.debug('local file already gone', _); }
+        try { await fsp.unlink(localPathFor(id)); } catch (_) { ignoreGone('stores/sqliteBlobLifecycle:unlinkLocal', _); }
     }
 
     /**
@@ -143,7 +143,7 @@ function createCloseOps({ handles, localPathFor, flushNow, logPrefix, entityLabe
             } catch (e) {
                 log.warn(`[${logPrefix}] Shutdown flush failed for ${id}:`, /** @type {Error} */ (e).message);
             }
-            try { entry.db.close(); } catch (_) { log.debug('database handle already closed', _); }
+            try { entry.db.close(); } catch (_) { ignoreGone('stores/sqliteBlobLifecycle:closeHandle', _); }
             handles.delete(id);
         }
     }

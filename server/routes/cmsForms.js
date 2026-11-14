@@ -65,6 +65,7 @@ const { perUserRateLimit } = require('../utils/perUserRateLimit');
 const { parseAllowedOrigins, isAllowedOrigin } = require('../utils/allowedOrigins');
 const { issueCmsFormToken, verifyCmsFormToken } = require('../auth/publicShareToken');
 const websiteForms = require('../core/cms/websiteForms');
+const { envInt } = require('../utils/envNumber.mts');
 
 const MAX_BODY_BYTES = 32 * 1024;
 const MIN_FORM_AGE_MS = 2000;
@@ -173,17 +174,17 @@ function createPublicRouter(deps) {
     // own: page views must never use up what a real submission needs.
     const tokenIpLimiter = perUserRateLimit({
         windowMs: 60_000, name: 'cms-form-token',
-        max: deps.rpmTokenPerIp || parseInt(process.env.CMS_FORM_TOKEN_RPM_PER_IP || '', 10) || 120,
+        max: deps.rpmTokenPerIp || envInt('CMS_FORM_TOKEN_RPM_PER_IP', 120, { min: 1 }),
         keyFn: (req) => `ip:${req.ip || 'unknown'}`,
     });
     const submitIpLimiter = perUserRateLimit({
         windowMs: 60_000, name: 'cms-form-submit-ip',
-        max: deps.rpmPerIp || parseInt(process.env.CMS_FORM_RPM_PER_IP || '', 10) || 10,
+        max: deps.rpmPerIp || envInt('CMS_FORM_RPM_PER_IP', 10, { min: 1 }),
         keyFn: (req) => `ip:${req.ip || 'unknown'}`,
     });
     const submitFormLimiter = perUserRateLimit({
         windowMs: 60_000, name: 'cms-form-submit-form',
-        max: deps.rpmPerForm || parseInt(process.env.CMS_FORM_RPM_PER_FORM || '', 10) || 60,
+        max: deps.rpmPerForm || envInt('CMS_FORM_RPM_PER_FORM', 60, { min: 1 }),
         keyFn: (/** @type {import('express').Request} */ req) => `blk:${req.params.blockId}`,
     });
 
@@ -221,7 +222,7 @@ function createPublicRouter(deps) {
         res.json({ token: issueCmsFormToken(tokenScope(target.siteId, target.found.block.id, issuedAt)), issuedAt, serverNow: issuedAt });
     });
 
-    router.post('/:blockId', submitIpLimiter, submitFormLimiter, jsonOnly, browserOrigin, sizeGuard, validate({ body: SubmitBody }), async (/** @type {import('express').Request<{ blockId: string }, any, import('zod').infer<typeof SubmitBody>, import('qs').ParsedQs>} */ req, res) => {
+    router.post('/:blockId', submitIpLimiter, submitFormLimiter, jsonOnly, browserOrigin, sizeGuard, validate({ body: SubmitBody }), async (req, res) => {
         res.set('Cache-Control', 'no-store');
         const target = await resolveTarget(/** @type {string} */ (req.params.blockId));
         if (!target) throw UNAVAILABLE();

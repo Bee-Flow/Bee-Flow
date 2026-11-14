@@ -1,9 +1,9 @@
 import React, { type Dispatch, type SetStateAction } from 'react';
 import { Send, Loader, X } from 'lucide-react';
-import { API_BASE, authFetch } from '@/utils/helpers';
 import type { DraftStatusMap } from '@/hooks/useDraftAction';
 import useTranslation from '@/hooks/useTranslation';
 import { errorMessage } from '@/utils/caughtError';
+import { apiFetch } from '@/api/typedRequest';
 
 interface LinkedInDraft {
     text?: string;
@@ -24,11 +24,7 @@ export default function LinkedInDraftCard({ msg, linkedInDraftStatuses, setLinke
     const handlePost = async (draft: LinkedInDraft, index: number) => {
         setLinkedInDraftStatuses((prev: DraftStatusMap) => ({ ...prev, [index]: 'posting' }));
         try {
-            const res = await authFetch(`${API_BASE}/api/integrations/linkedin/post`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: draft.text }),
-            });
+            const res = await apiFetch('POST /api/integrations/linkedin/post', { body: { text: draft.text as string } });
             if (res.ok) {
                 setLinkedInDraftStatuses((prev: DraftStatusMap) => ({ ...prev, [index]: 'posted' }));
             } else {

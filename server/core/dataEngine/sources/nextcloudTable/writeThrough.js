@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * A row changed IN BEE FLOW → Nextcloud first, then the copy.
  *

@@ -76,7 +76,7 @@ const browserProvider = require('../services/browserProvider');
 const { sessionUser } = require('../core/http/sessionUser');
 const { makeResolvedHostScreen, requestAllowed } = require('../core/http/browserRouteGuard');
 
-router.post('/:id/export/pdf', requireAuth, validate({ body: NoBody }), require('../compliance/dataPortability/stampExport')('ai_webpages'), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof NoBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/:id/export/pdf', requireAuth, validate({ body: NoBody }), require('../compliance/dataPortability/stampExport')('ai_webpages'), async (req, res) => {
     const userId = sessionUser(req).id;
     const id = /** @type {string} */ (req.params.id);
 
@@ -88,7 +88,7 @@ router.post('/:id/export/pdf', requireAuth, validate({ body: NoBody }), require(
     // so it would render blank here — refuse with a clear message rather
     // than ship an empty PDF. (Supported once the server-side react bundle
     // path lands — see the refactor plan, WS-C/WS-G.)
-    const { resolveFramework } = require('../integrations/webpageFramework');
+    const { resolveFramework } = require('../core/webpages/frameworkModel.mts');
     if (resolveFramework(wp) === 'react-mui') {
         return res.status(400).json({ error: 'PDF export is not available for React + Material UI pages yet. Use Download ZIP to export the app instead.' });
     }

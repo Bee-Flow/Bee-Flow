@@ -363,3 +363,10 @@ test('disconnect: an anonymous caller is refused', async () => {
     assert.strictEqual(res.statusCode, 401);
     assert.strictEqual(fx.revokes.length, 0);
 });
+
+test('disconnect: a field sent is refused by name, and nothing is revoked', async () => {
+    resetFx();
+    await assert.rejects(dispatch({ method: 'POST', url: '/disconnect', body: { provider: 'other' }, session: makeSession() }),
+        (err) => err.status === 400 && /Disconnecting Withings does not take "provider"/.test(err.message));
+    assert.deepStrictEqual(fx.revokes, []);
+});

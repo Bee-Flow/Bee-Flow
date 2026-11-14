@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Automation runs, in the project feed.
  *
@@ -57,7 +57,7 @@ const _runContext = new Map();
 const MAX_TRACKED_RUNS = 5000;
 
 let _started = false;
-/** @type {() => void | null} */
+/** @type {(() => void) | null} */
 let _detach = null;
 
 /**
@@ -100,7 +100,7 @@ async function _contextFor(type, runId, automationId) {
     if (type !== 'run.started') {
         const remembered = runId ? _runContext.get(runId) : null;
         if (remembered) {
-            _runContext.delete(runId);      // terminal event — stop tracking
+            _runContext.delete(/** @type {string} */ (runId));      // terminal event — stop tracking (remembered means runId was set)
             return remembered;
         }
         return _lookup(automationId);       // restarted mid-run

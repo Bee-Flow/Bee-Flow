@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * LINKING: what can be linked, what a link would look like, and making one.
  *
@@ -269,7 +270,7 @@ async function linkTables({ scope, principal, session, tables, relations = [], s
     // ── create every table, empty ───────────────────────────────────
     const made = await linking.createEmptyMirrors({
         scope, principal, KIND, plans,
-        sourceFor: (p) => ({
+        sourceFor: (/** @type {{ tableId?: any, viewId?: any, ncTitle?: any, ncEmoji?: any }} */ p) => ({
             kind: KIND,
             ncInstanceId,
             ncBaseUrl,

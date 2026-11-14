@@ -1,17 +1,18 @@
 import { useRef, useEffect, useCallback, useState, RefObject } from 'react';
 import RichTextEditor from '../../editor/react/RichTextEditor.jsx';
-import { API_BASE } from '../../utils/helpers';
 import { logger } from '../../utils/logger';
 import { useTranslation } from '../../hooks/useTranslation';
 import { renderMermaidToSVG, svgToPngDataUrl } from '../../pages/documents/notebook/MermaidBlock';
 import type { WorkspaceNotebookProps } from './WorkspaceNotebook.types';
-import { mutate, request, ApiError, errorBody, RefusedError } from '../../api/mutate';
+import { ApiError, errorBody, RefusedError } from '../../api/mutate';
 import { type WorkspaceEditorHandle, embedImagesAsBase64 } from './WorkspaceNotebook.helpers';
 import { WorkspaceNotebookSection } from './WorkspaceNotebookSection';
+import { apiRequest } from '@/api/typedRequest';
+import { useCreateNotebookMutation } from '@/api/queries/chatNotebookCreate';
 
 /** Write the pane's text over the notebook's current version (compare-and-set); a 409 means somebody saved newer. */
 async function syncNotebookText(notebookId: string, md: string) {
-    const cur = await request(`${API_BASE}/api/notebooks/${notebookId}`).catch((err: unknown) => {
+    const cur = await apiRequest('GET /api/notebooks/{id}', { params: { id: notebookId } }).catch((err: unknown) => {
         if (err instanceof RefusedError) return null;
         throw err;
     });
@@ -22,11 +23,7 @@ async function syncNotebookText(notebookId: string, md: string) {
     const body: { documentContent: string; expectedVersion?: number } = { documentContent: md };
     if (Number.isFinite(nb.version)) body.expectedVersion = nb.version;
     try {
-        await mutate(`${API_BASE}/api/notebooks/${notebookId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-        });
+        await apiRequest('PUT /api/notebooks/{id}', { params: { id: notebookId }, body });
     } catch (err) {
         if (!(err instanceof RefusedError)) throw err;
         if (err.status !== 409) console.warn('[WorkspaceNotebook] content sync before opening was refused:', err.status);
@@ -76,15 +73,12 @@ export default function WorkspaceNotebook({
     const exportMenuRef = useRef<HTMLDivElement>(null);
 
     // Lazily create a real notebook when content exists
+    const { mutateAsync: createNotebook } = useCreateNotebookMutation();
     const ensureNotebook = useCallback(async () => {
         if (notebookId || creatingNotebookRef.current) return notebookId;
         creatingNotebookRef.current = true;
         try {
-            const res = await mutate(`${API_BASE}/api/notebooks`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: `Chat Notebook – ${new Date().toLocaleDateString()}` }),
-            }).catch((err: unknown) => {
+            const res = await createNotebook(`Chat Notebook – ${new Date().toLocaleDateString()}`).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });
@@ -105,7 +99,7 @@ export default function WorkspaceNotebook({
             creatingNotebookRef.current = false;
         }
         return null;
-    }, [notebookId, onNotebookIdChange, onSave]);
+    }, [notebookId, onNotebookIdChange, onSave, createNotebook]);
 
     // Auto-create notebook when content first appears
     useEffect(() => {
@@ -264,11 +258,10 @@ export default function WorkspaceNotebook({
 
             let res: Response;
             try {
-                res = await mutate(`${API_BASE}/api/notebooks/${nbId}/export/${format}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: htmlContent, title: 'Notebook' }),
-            });
+                res = await apiRequest(format === 'pdf' ? 'POST /api/notebooks/{id}/export/pdf' : 'POST /api/notebooks/{id}/export/docx', {
+                    params: { id: nbId },
+                    init: { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: htmlContent, title: 'Notebook' }) },
+                });
             } catch (apiErr) {
                 if (!(apiErr instanceof RefusedError)) throw apiErr;
                 const err = errorBody(apiErr) ?? {};

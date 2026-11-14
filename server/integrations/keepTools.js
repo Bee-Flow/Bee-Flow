@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Google Keep Tools — AI tools for managing Google Keep notes
  * 
@@ -127,7 +127,7 @@ async function createKeepClient(session) {
 
 /** @param {KeepNote} note */
 function formatNote(note) {
-    /** @type {{ noteId: string, title: string, createTime: string, updateTime: string, trashed: boolean, type?: string, items?: Array<{ text: string, checked: boolean }>, content?: string }} */
+    /** @type {{ noteId: string | undefined, title: string, createTime: string | undefined, updateTime: string | undefined, trashed: boolean, type?: string, items?: Array<{ text: string, checked: boolean }>, content?: string }} */
     const result = {
         noteId: note.name,
         title: note.title || '(untitled)',

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 // Learning Center server routes — AI coach (grade + hint).
 //
 // Mounted at /ai/learning (see server/routes/ai.js). Authenticated, rate-limited,
@@ -10,7 +10,7 @@
 
 const express = require('express');
 const log = require('../../telemetry/log');
-const { CoachBody, TutorBody, PracticeBody, PracticeGradeBody, QuizGradeBody, CertificateBody, TrainingRulesBody, verdictCacheKey, verdictCacheGet, verdictCacheSet, logCoachUsage, resolveModel, recordExerciseAttempt, parseJsonLoose, TUTOR_SYSTEM, GRADER_SYSTEM, HINT_SYSTEM, PRACTICE_TTL_MS, practiceCachePrune, PRACTICE_SYSTEM } = require('./learningSupport');
+const { CoachBody, TutorBody, PracticeBody, PracticeGradeBody, QuizGradeBody, CertificateBody, TrainingRulesBody, verdictCacheKey, verdictCacheGet, verdictCacheSet, logCoachUsage, resolveModel, recordExerciseAttempt, parseJsonLoose, TUTOR_SYSTEM, GRADER_SYSTEM, HINT_SYSTEM, PRACTICE_TTL_MS, practiceCachePrune, PRACTICE_SYSTEM } = require('../../usecases/ai/learningSupport');
 const router = express.Router();
 const crypto = require('crypto');
 
@@ -28,6 +28,7 @@ const userStore = require('../../stores/userStore');
 const { requirePrimaryOrgAdmin } = require('../../auth/permissions');
 const { getOrgOverview } = require('../../learning/orgOverview');
 const { validate } = require('../../core/http/validate');
+const { sessionUser } = require('../../core/http/sessionUser');
 const { hasCapability } = require('../../core/entitlements/entitlements');
 const learningContentStore = require('../../stores/learningContentStore');
 const { COURSES } = require('../../learning/courseCatalog');
@@ -41,8 +42,8 @@ const { evaluateForRequest } = require('../../learning/requireTraining');
 // Published org-authored courses of `orgId` (default: the caller's org), as completion.js extraCourses
 // + catalog-overlay entries. Empty unless the org has the custom-content beta.
 /** @param {import('express').Request} req @param {string | null} [orgId] */
-async function orgCoursesFor(req, orgId = req.session.user.organizationId || null) {
-    const userId = req.session.user.id;
+async function orgCoursesFor(req, orgId = sessionUser(req).organizationId || null) {
+    const userId = sessionUser(req).id;
     if (!orgId) return [];
     try {
         const entitled = await hasCapability('learning_custom_content', { userId, orgId, session: req.session, req });
@@ -63,9 +64,9 @@ const coachLimiter = perUserRateLimit({ windowMs: 60_000, max: 20 });
 
 const MAX_SUBMISSION_CHARS = 4000;
 
-router.post('/coach', requireAuth, coachLimiter, validate({ body: CoachBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CoachBody>, import('qs').ParsedQs>} */ req, res) => {
-    const userId = req.session.user.id;
-    const userOrgId = req.session.user.organizationId || null;
+router.post('/coach', requireAuth, coachLimiter, validate({ body: CoachBody }), async (req, res) => {
+    const userId = sessionUser(req).id;
+    const userOrgId = sessionUser(req).organizationId || null;
     const { exerciseId, mode = 'grade', modelTier = 'fast' } = req.body || {};
     let submission = typeof req.body?.submission === 'string' ? req.body.submission : '';
     // The learner's UI locale — the coach replies in their language. Shape-
@@ -188,9 +189,9 @@ const MAX_QUESTION_CHARS = 1000;
 const MAX_STEP_CONTEXT_CHARS = 2000;
 const TUTOR_FALLBACK_ANSWER = 'The AI coach is unavailable right now — try again in a moment, or keep going with the lesson.';
 
-router.post('/tutor', requireAuth, coachLimiter, validate({ body: TutorBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof TutorBody>, import('qs').ParsedQs>} */ req, res) => {
-    const userId = req.session.user.id;
-    const userOrgId = req.session.user.organizationId || null;
+router.post('/tutor', requireAuth, coachLimiter, validate({ body: TutorBody }), async (req, res) => {
+    const userId = sessionUser(req).id;
+    const userOrgId = sessionUser(req).organizationId || null;
     const { lessonId = '', stepId = '', modelTier = 'fast' } = req.body || {};
     const question = String(req.body?.question || '').slice(0, MAX_QUESTION_CHARS).trim();
     const stepContext = String(req.body?.stepContext || '').slice(0, MAX_STEP_CONTEXT_CHARS).trim();
@@ -296,9 +297,9 @@ const PRACTICE_TOPIC_CACHE_MAX = 100;
 const practiceGenerateLimiter = perUserRateLimit({ windowMs: 60 * 60_000, max: 10 });
 const practiceGradeLimiter = perUserRateLimit({ windowMs: 60_000, max: 60 });
 
-router.post('/practice/generate', requireAuth, practiceGenerateLimiter, validate({ body: PracticeBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof PracticeBody>, import('qs').ParsedQs>} */ req, res) => {
-    const userId = req.session.user.id;
-    const userOrgId = req.session.user.organizationId || null;
+router.post('/practice/generate', requireAuth, practiceGenerateLimiter, validate({ body: PracticeBody }), async (req, res) => {
+    const userId = sessionUser(req).id;
+    const userOrgId = sessionUser(req).organizationId || null;
     const unavailable = () => res.json({ error: 'practice_unavailable', items: [] });
 
     const requested = Array.isArray(req.body?.lessonIds) ? req.body.lessonIds.map(String).slice(0, 12) : [];
@@ -380,7 +381,7 @@ router.post('/practice/generate', requireAuth, practiceGenerateLimiter, validate
 // Grade one practice answer against the server-held key. Mirrors /quiz/grade:
 // correct ids are revealed only on a pass; an expired/unknown practiceId is a
 // retriable 404 (the client offers a fresh session instead of blocking).
-router.post('/practice/grade', requireAuth, practiceGradeLimiter, validate({ body: PracticeGradeBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof PracticeGradeBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/practice/grade', requireAuth, practiceGradeLimiter, validate({ body: PracticeGradeBody }), async (req, res) => {
     const { practiceId, itemId } = req.body || {};
     const choiceIds = Array.isArray(req.body?.choiceIds) ? req.body.choiceIds.map(String).slice(0, 8) : [];
     let entry = typeof practiceId === 'string' ? practiceKeyCache.get(practiceId) : null;
@@ -449,8 +450,8 @@ router.get('/catalog', requireAuth, async (req, res) => {
 // retried, mirroring the built-in client-side quiz behaviour.
 const quizLimiter = perUserRateLimit({ windowMs: 60_000, max: 60 });
 
-router.post('/quiz/grade', requireAuth, quizLimiter, validate({ body: QuizGradeBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof QuizGradeBody>, import('qs').ParsedQs>} */ req, res) => {
-    const userOrgId = req.session.user.organizationId || null;
+router.post('/quiz/grade', requireAuth, quizLimiter, validate({ body: QuizGradeBody }), async (req, res) => {
+    const userOrgId = sessionUser(req).organizationId || null;
     const { lessonId, stepId } = req.body || {};
     const choiceIds = Array.isArray(req.body?.choiceIds) ? req.body.choiceIds.map(String).slice(0, 12) : [];
     if (!learningContentStore.isOrgLessonId(lessonId) || !stepId) {
@@ -495,8 +496,8 @@ async function orgName(user) {
 // so a permission-gated lesson never blocks a course the UI shows as complete.
 // verifyToken/serial are returned only for the owner's own certs.
 router.get('/achievements', requireAuth, async (req, res) => {
-    const userId = req.session.user.id;
-    const userOrgId = req.session.user.organizationId || null;
+    const userId = sessionUser(req).id;
+    const userOrgId = sessionUser(req).organizationId || null;
     const [progress, { visibleByCourse }, orgPublished] = await Promise.all([
         readServerProgress(userId),
         resolveVisibleByCourse({ userId, orgId: userOrgId, session: req.session, req }),
@@ -533,8 +534,8 @@ router.get('/achievements', requireAuth, async (req, res) => {
 });
 
 // Issue (or update visibility of) a certificate. Server recomputes eligibility.
-router.post('/certificate', requireAuth, validate({ body: CertificateBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CertificateBody>, import('qs').ParsedQs>} */ req, res) => {
-    const user = req.session.user;
+router.post('/certificate', requireAuth, validate({ body: CertificateBody }), async (req, res) => {
+    const user = sessionUser(req);
     const { certificateId, makePublic = false } = req.body || {};
     if (!getCertificate(certificateId)) return res.status(404).json({ error: 'Unknown certificate' });
     // Public verify links are HMAC-derived; without a restart-stable secret they
@@ -545,9 +546,9 @@ router.post('/certificate', requireAuth, validate({ body: CertificateBody }), as
     const { visibleByCourse } = await resolveVisibleByCourse({
         userId: user.id, orgId: user.organizationId || null, session: req.session, req,
     });
-    const result = await issueCertificate(user.id, certificateId, {
-        recipientName: recipientName(user),
-        orgName: await orgName(user),
+    const result = await issueCertificate(user.id, /** @type {string} */ (certificateId), { // a known certificate, checked above
+        recipientName: recipientName(/** @type {CertUser} */ (user)), // the session user carries the profile names
+        orgName: await orgName(/** @type {CertUser} */ (user)),
         makePublic: !!makePublic,
         visibleByCourse,
     });
@@ -566,7 +567,7 @@ router.post('/certificate', requireAuth, validate({ body: CertificateBody }), as
         recipientName: record.recipientName,
         orgName: record.orgName,
         courses: record.courses,
-        ...urls,
+        .../** @type {Partial<typeof urls>} */ (urls), // its serial is the record's, the same value
     });
 });
 
@@ -578,7 +579,7 @@ router.post('/certificate', requireAuth, validate({ body: CertificateBody }), as
  * @param {'png' | 'pdf'} kind
  */
 async function ownerRender(req, res, kind) {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const certId = req.params.certId;
     const record = await certStore.getCertificate(userId, certId);
     if (!record) return res.status(404).json({ error: 'Certificate not issued' });
@@ -657,7 +658,7 @@ router.get('/training-rules', requireAuth, requirePrimaryOrgAdmin(), async (req,
 // because a rule pointing at a course nobody can open would lock the area for
 // good (courseSatisfied would answer null and fail open, but an admin who
 // thinks they gated something and did not is worse than a loud 400).
-router.put('/training-rules', requireAuth, requirePrimaryOrgAdmin(), validate({ body: TrainingRulesBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof TrainingRulesBody>, import('qs').ParsedQs>} */ req, res) => {
+router.put('/training-rules', requireAuth, requirePrimaryOrgAdmin(), validate({ body: TrainingRulesBody }), async (req, res) => {
     const incoming = req.body?.areas;
     if (!incoming || typeof incoming !== 'object' || Array.isArray(incoming)) {
         return res.status(400).json({ error: 'areas must be an object of { areaId: courseId }' });
@@ -673,7 +674,7 @@ router.put('/training-rules', requireAuth, requirePrimaryOrgAdmin(), validate({ 
     if (unknown.length) {
         return res.status(400).json({ error: 'unknown_course', detail: unknown });
     }
-    const saved = await setTrainingSettings(req.primaryOrgId, incoming, req.session.user.id);
+    const saved = await setTrainingSettings(req.primaryOrgId, incoming, sessionUser(req).id);
     res.json({ areas: saved.areas, updatedAt: saved.updatedAt });
 });
 

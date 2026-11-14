@@ -250,9 +250,9 @@ function resolvePublicScreens(pa, renames, screenIds, push) {
  * The public surface of a definition: which screens an anonymous visitor sees
  * and which actions they may run.
  *
- * @returns {{ok:boolean, reason?:string, entryScreenId?:string,
- *            screenIds?:Set<string>, screens?:object[], actionIds?:Set<string>,
- *            roleKey?:string, title?:string}}
+ * @returns {{ ok: false, reason: string } | { ok: true, entryScreenId: string,
+ *            screenIds: Set<string>, screens: Array<Record<string, unknown>>, actionIds: Set<string>,
+ *            roleKey: string, title?: string }}
  */
 function resolvePublicSurface(definition) {
     if (!isObject(definition)) return { ok: false, reason: 'no_definition' };

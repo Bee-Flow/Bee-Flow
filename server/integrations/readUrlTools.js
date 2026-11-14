@@ -16,7 +16,7 @@
 
 const { safeFetch, isPrivateAddressError } = require('../utils/ssrfGuard');
 const { stripHtml, PAGE_FETCH_TIMEOUT_MS, PAGE_BYTE_CAP } = require('./nodeSearchTools');
-const log = require('../telemetry/log');
+const { ignoreGone } = require('../utils/bestEffort');
 
 const MAX_TEXT_CHARS = 60000;
 const PASSAGE_RADIUS = 1000; // ~2000 characters around each hit
@@ -143,7 +143,7 @@ async function readBody(res) {
         out += decoder.decode(value, { stream: true });
         if (bytes >= PAGE_BYTE_CAP) {
             capped = true;
-            try { await reader.cancel(); } catch (err) { log.debug('already closed', err); }
+            try { await reader.cancel(); } catch (err) { ignoreGone('integrations/readUrlTools:cancelReader', err); }
             break;
         }
     }
@@ -152,21 +152,28 @@ async function readBody(res) {
 }
 
 /**
- * @param {string} toolName
- * @param {{url?: string, find?: string}} args
- * @param {{fetchImpl?: Function}} [opts] fetchImpl: test seam, defaults to the SSRF-guarded safeFetch
- * @returns {Promise<string>} JSON string
+ * The URL to read, or the refusal for one that cannot be read.
+ * @param {{url?: string}} args
+ * @returns {{ parsed: URL } | { error: string }}
  */
-async function executeReadUrlTool(toolName, args = {}, opts = {}) {
-    if (!isReadUrlTool(toolName)) return err(`Unknown tool: ${toolName}`);
-    const fetchImpl = opts.fetchImpl || safeFetch;
+function targetOf(args) {
     const rawUrl = typeof args.url === 'string' ? args.url.trim() : '';
-    if (!rawUrl) return err('url is required.');
+    if (!rawUrl) return { error: err('url is required.') };
     let parsed;
-    try { parsed = new URL(rawUrl); } catch (_) { return err('url is not a valid absolute URL.'); }
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return err('Only http and https URLs can be read.');
-    const find = typeof args.find === 'string' ? args.find.trim().slice(0, MAX_FIND_LENGTH) : '';
+    try { parsed = new URL(rawUrl); } catch (_) { return { error: err('url is not a valid absolute URL.') }; }
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return { error: err('Only http and https URLs can be read.') };
+    return { parsed };
+}
 
+/** @typedef {(url: string, init: Record<string, unknown>) => Promise<Response>} PageFetch */
+
+/**
+ * GET the page. Answers the response, or the refusal for a failed fetch.
+ * @param {PageFetch} fetchImpl
+ * @param {URL} parsed
+ * @returns {Promise<{ res: Response } | { error: string }>}
+ */
+async function fetchPage(fetchImpl, parsed) {
     let res;
     try {
         res = await fetchImpl(parsed.href, {
@@ -179,43 +186,46 @@ async function executeReadUrlTool(toolName, args = {}, opts = {}) {
             signal: AbortSignal.timeout(PAGE_FETCH_TIMEOUT_MS),
         });
     } catch (e) {
-        if (isPrivateAddressError(e)) return err('Refused: this address is private or internal and cannot be read.');
-        if (e?.name === 'TimeoutError' || e?.name === 'AbortError') return err(`The page did not respond within ${PAGE_FETCH_TIMEOUT_MS / 1000} seconds.`);
-        return err(`Could not fetch the page: ${e?.cause?.code || e?.message || 'network error'}.`);
+        if (isPrivateAddressError(e)) return { error: err('Refused: this address is private or internal and cannot be read.') };
+        if (e?.name === 'TimeoutError' || e?.name === 'AbortError') return { error: err(`The page did not respond within ${PAGE_FETCH_TIMEOUT_MS / 1000} seconds.`) };
+        return { error: err(`Could not fetch the page: ${e?.cause?.code || e?.message || 'network error'}.`) };
     }
-    if (!res.ok) return err(`The page answered HTTP ${res.status}. If it needs a login or JavaScript, try browse_web.`);
+    if (!res.ok) return { error: err(`The page answered HTTP ${res.status}. If it needs a login or JavaScript, try browse_web.`) };
+    return { res };
+}
 
-    const ct = (res.headers.get('content-type') || '').toLowerCase();
-    const isHtml = ct.includes('html') || ct.includes('xhtml');
-    const isText = ct.startsWith('text/');
-    if (!isHtml && !isText) {
-        return err(`Content type "${ct || 'unknown'}" cannot be read as text by read_url (PDFs and other documents included). Use browse_web for a PDF.`);
+/**
+ * @typedef {{ url: string, title: string, totalChars: number, find?: string, totalMatches?: number,
+ *   matches?: ReturnType<typeof findPassages>['passages'], passagesOmitted?: number, truncated?: boolean,
+ *   note?: string, text?: string }} ReadUrlAnswer
+ */
+
+/**
+ * The passages around `find`, written onto `out`. True when there were hits
+ * (the answer is then complete); false leaves a note and the head follows.
+ * @param {ReadUrlAnswer} out @param {string} text @param {string} find @param {boolean} capped
+ */
+function withPassages(out, text, find, capped) {
+    const { totalMatches, passages, passagesOmitted } = findPassages(text, find);
+    out.find = find;
+    out.totalMatches = totalMatches;
+    if (totalMatches > 0) {
+        out.matches = passages;
+        if (passagesOmitted) out.passagesOmitted = passagesOmitted;
+        out.truncated = capped;
+        if (capped) out.note = 'The page was larger than the 1.5 MB read limit; hits beyond it are not included.';
+        return true;
     }
+    out.note = `No hits for "${find}" in the page text; the start of the page follows instead.`;
+    return false;
+}
 
-    let body;
-    try { body = await readBody(res); } catch (e) { return err(`Reading the page failed: ${e?.message || 'stream error'}.`); }
-    const { html, capped } = body;
-    const title = isHtml ? extractTitle(html) : '';
-    const text = isHtml ? htmlToText(html) : html.trim();
+/**
+ * The head of the text, with a note when it was cut or is suspiciously short.
+ * @param {ReadUrlAnswer} out @param {string} text @param {boolean} capped
+ */
+function withHead(out, text, capped) {
     const totalChars = text.length;
-
-    /** @type {{ url: string, title: string, totalChars: number, find?: string, totalMatches?: number,
-     *   matches?: ReturnType<typeof findPassages>['passages'], passagesOmitted?: number, truncated?: boolean,
-     *   note?: string, text?: string }} */
-    const out = { url: res.url || parsed.href, title, totalChars };
-    if (find) {
-        const { totalMatches, passages, passagesOmitted } = findPassages(text, find);
-        out.find = find;
-        out.totalMatches = totalMatches;
-        if (totalMatches > 0) {
-            out.matches = passages;
-            if (passagesOmitted) out.passagesOmitted = passagesOmitted;
-            out.truncated = capped;
-            if (capped) out.note = 'The page was larger than the 1.5 MB read limit; hits beyond it are not included.';
-            return JSON.stringify(out);
-        }
-        out.note = `No hits for "${find}" in the page text; the start of the page follows instead.`;
-    }
     out.truncated = capped || totalChars > MAX_TEXT_CHARS;
     out.text = text.slice(0, MAX_TEXT_CHARS);
     if (out.truncated) {
@@ -224,6 +234,54 @@ async function executeReadUrlTool(toolName, args = {}, opts = {}) {
     if (totalChars < 200) {
         out.note = (out.note ? out.note + ' ' : '') + 'Very little text: the page may be rendered by JavaScript; try browse_web.';
     }
+}
+
+/**
+ * The page's text body, or the refusal for content that is not text.
+ * @param {Response} res
+ * @returns {Promise<{ html: string, capped: boolean, isHtml: boolean } | { error: string }>}
+ */
+async function readPage(res) {
+    const ct = (res.headers.get('content-type') || '').toLowerCase();
+    const isHtml = ct.includes('html') || ct.includes('xhtml');
+    const isText = ct.startsWith('text/');
+    if (!isHtml && !isText) {
+        return { error: err(`Content type "${ct || 'unknown'}" cannot be read as text by read_url (PDFs and other documents included). Use browse_web for a PDF.`) };
+    }
+
+    let body;
+    try { body = await readBody(res); } catch (e) { return { error: err(`Reading the page failed: ${e?.message || 'stream error'}.`) }; }
+    return { ...body, isHtml };
+}
+
+/**
+ * @param {string} toolName
+ * @param {{url?: string, find?: string}} args
+ * @param {{fetchImpl?: Function}} [opts] fetchImpl: test seam, defaults to the SSRF-guarded safeFetch
+ * @returns {Promise<string>} JSON string
+ */
+async function executeReadUrlTool(toolName, args = {}, opts = {}) {
+    if (!isReadUrlTool(toolName)) return err(`Unknown tool: ${toolName}`);
+    const fetchImpl = /** @type {PageFetch} */ (opts.fetchImpl || safeFetch);
+    const target = targetOf(args);
+    if ('error' in target) return target.error;
+    const { parsed } = target;
+    const find = typeof args.find === 'string' ? args.find.trim().slice(0, MAX_FIND_LENGTH) : '';
+
+    const fetched = await fetchPage(fetchImpl, parsed);
+    if ('error' in fetched) return fetched.error;
+    const { res } = fetched;
+
+    const page = await readPage(res);
+    if ('error' in page) return page.error;
+    const { html, capped, isHtml } = page;
+    const title = isHtml ? extractTitle(html) : '';
+    const text = isHtml ? htmlToText(html) : html.trim();
+
+    /** @type {ReadUrlAnswer} */
+    const out = { url: res.url || parsed.href, title, totalChars: text.length };
+    if (find && withPassages(out, text, find, capped)) return JSON.stringify(out);
+    withHead(out, text, capped);
     return JSON.stringify(out);
 }
 

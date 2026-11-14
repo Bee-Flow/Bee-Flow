@@ -232,34 +232,33 @@ module.exports = {
         },
 
         // ── Agent version history: requireAuth on the router, then the ────
-        // per-agent editor gate in each handler body (U4b closed a pinned
-        // GEPIND_ONGEGATE hole here — before 2026-09-05 these four routes
-        // never read req.session at all). Snapshots are raw agent rows, i.e.
-        // DRAFT content (concept system_prompt + config), which the A1
-        // concept/live split reserves for editors — hence canModifyAgent on
-        // the reads too, not canReadAgent.
+        // tagged per-agent edit gate (auth/agentAccess.mts requireAgentGrade
+        // 'edit', param agentId) in every chain. Snapshots are raw agent rows,
+        // i.e. DRAFT content (concept system_prompt + config), which the A1
+        // concept/live split reserves for editors — hence the edit grade on
+        // the reads too, not the read grade.
         'GET /versions/:agentId': {
-            enforcement: 'handler',
-            note: 'routes/versions.js — requireEditableAgent(req, res): loads the agent, then canModifyAgent (owner / super-admin / manage_agents within the agent\'s org — routes/agents/crud.js), the same one-helper gate routes/agents/publishVersion.js uses. Anonymous is already 401\'d by the router-level requireAuth.',
+            enforcement: 'middleware',
+            note: 'routes/versions.js — requireAgentGrade(\'edit\', { param: \'agentId\' }) (owner / super-admin / manage_agents within the agent\'s org), the gate routes/agents/publishVersion.js uses; an agent the caller may not see is 404, a reader who may not edit 403. Anonymous is already 401\'d by the router-level requireAuth.',
             verifiedBy: 'routes/versions.authz.test.js',
         },
         'POST /versions/:agentId/pre-refine': {
-            enforcement: 'handler',
-            note: 'As the restore route — this WRITES a version row (the undo point the A2 refine rail takes before it applies an AI rewrite), so it is gated by the same requireEditableAgent call and not by the read gate. Takes no body: the snapshot is the server\'s own read of the agent row.',
+            enforcement: 'middleware',
+            note: 'As the restore route — this WRITES a version row (the undo point the A2 refine rail takes before it applies an AI rewrite), so it carries the same edit gate and not the read grade. Takes no body: the snapshot is the server\'s own read of the agent row.',
             verifiedBy: 'routes/versions.authz.test.js',
         },
         'GET /versions/:agentId/:versionId': {
-            enforcement: 'handler',
+            enforcement: 'middleware',
             note: 'As GET /versions/:agentId, plus the version↔agent binding check (a version of another agent 404s).',
             verifiedBy: 'routes/versions.authz.test.js',
         },
         'POST /versions/:agentId/:versionId/restore': {
-            enforcement: 'handler',
+            enforcement: 'middleware',
             note: 'As GET /versions/:agentId/:versionId — a restore is a concept write, gated exactly like the sibling publish-version write.',
             verifiedBy: 'routes/versions.authz.test.js',
         },
         'DELETE /versions/:agentId/:versionId': {
-            enforcement: 'handler',
+            enforcement: 'middleware',
             note: 'As the restore route. The version↔agent binding check here is load-bearing: deleteVersion() takes only the version id, so without it any editor of any agent could delete versions of every other agent.',
             verifiedBy: 'routes/versions.authz.test.js',
         },

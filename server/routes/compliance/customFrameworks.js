@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Compliance — org-defined ("custom") frameworks: a customer questionnaire, a
  * sector code or an internal standard, its items, and the attestations that
@@ -32,7 +33,6 @@
  * "code is immutable — create a new framework instead", which is the message
  * the caller needs.
  */
-
 const express = require('express');
 const { HttpError } = require('../../core/http/errors');
 const router = express.Router();
@@ -53,7 +53,7 @@ const guard = [requireAuth, requirePermission('admin_compliance'), requireCapabi
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_EXPIRES_MONTHS = 120;
 
-/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
+/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. @template {import('zod').ZodRawShape} S @param {S} shape */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 const STATUSES = ['draft', 'active'];
@@ -117,7 +117,7 @@ const rowList = z.array(CheckRow, { error: ROWS_TEXT })
  */
 const ChecksBody = z.preprocess((v) => {
     if (Array.isArray(v)) return v;
-    if (v && typeof v === 'object') return v.checks ?? v.rows ?? v;
+    if (v && typeof v === 'object') return /** @type {{ checks?: unknown, rows?: unknown }} */ (v).checks ?? /** @type {{ rows?: unknown }} */ (v).rows ?? v;
     return v;
 }, rowList);
 
@@ -213,7 +213,7 @@ function _recordAttestationEvidence(orgId, checkId, attestation, actorId) {
 function computeExpiresAt(attestedAt, months) {
     if (months === null) return null;
     const n = Number(months);
-    if (!Number.isInteger(n) || n < 1 || n > MAX_EXPIRES_MONTHS) throw new Error(`expires_in_months must be 1..${MAX_EXPIRES_MONTHS}`);
+    if (!Number.isInteger(n) || n < 1 || n > MAX_EXPIRES_MONTHS) throw new HttpError(400, 'invalid_expires_in_months', EXPIRES_TEXT);
     const d = new Date(attestedAt);
     if (Number.isNaN(d.getTime())) throw new Error('attested_at is not a date');
     const day = d.getUTCDate();
@@ -226,7 +226,7 @@ function computeExpiresAt(attestedAt, months) {
 
 // ───────────────── Frameworks ─────────────────
 
-router.get('/custom/frameworks', ...guard, validate({ query: ListQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof ListQuery>>} */ req, res) => {
+router.get('/custom/frameworks', ...guard, validate({ query: ListQuery }), async (req, res) => {
     const orgId = await resolveOrgId(req);
     const includeArchived = req.query.include_archived === '1' || req.query.include_archived === 'true';
     res.json(await customFrameworkStore.listFrameworks(orgId, { includeArchived }));
@@ -261,7 +261,7 @@ router.get('/custom/frameworks/:id', ...guard, async (req, res) => {
     res.json({ ...fw, checks });
 });
 
-router.put('/custom/frameworks/:id', ...guard, validate({ body: FrameworkPatch }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof FrameworkPatch>, import('qs').ParsedQs>} */ req, res) => {
+router.put('/custom/frameworks/:id', ...guard, validate({ body: FrameworkPatch }), async (req, res) => {
     try {
         const orgId = await resolveOrgId(req);
         if (!_isUuid(req.params.id)) return res.status(404).json({ error: 'not found' });
@@ -293,7 +293,7 @@ router.delete('/custom/frameworks/:id', ...guard, async (req, res) => {
 // ───────────────── Checks ─────────────────
 
 // Bulk upsert by ref. Accepts { checks: [...] } or a bare JSON array.
-router.post('/custom/frameworks/:id/checks', ...guard, validate({ body: ChecksBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof ChecksBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/custom/frameworks/:id/checks', ...guard, validate({ body: ChecksBody }), async (req, res) => {
     try {
         const orgId = await resolveOrgId(req);
         if (!_isUuid(req.params.id)) return res.status(404).json({ error: 'not found' });
@@ -345,7 +345,7 @@ router.post('/custom/checks/:id/attest', ...guard, validate({ body: AttestBody }
             subjectId: body.subject_id || null,
             outcome: body.outcome,
             statement: body.statement,
-            evidenceRefs: body.evidence_refs,
+            evidenceRefs: /** @type {any[]} */ (body.evidence_refs),
             attestedBy: actorId,
             expiresAt,
         });
@@ -357,7 +357,7 @@ router.post('/custom/checks/:id/attest', ...guard, validate({ body: AttestBody }
     }
 });
 
-router.get('/custom/checks/:id/attestations', ...guard, validate({ query: AttestationsQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof AttestationsQuery>>} */ req, res) => {
+router.get('/custom/checks/:id/attestations', ...guard, validate({ query: AttestationsQuery }), async (req, res) => {
     const orgId = await resolveOrgId(req);
     if (!_isUuid(req.params.id)) return res.status(404).json({ error: 'not found' });
     const check = await customFrameworkStore.getCheck(orgId, req.params.id);

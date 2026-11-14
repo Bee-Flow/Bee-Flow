@@ -14,7 +14,7 @@
 // @typecheck
 const { Pool } = require('pg');
 const Redis = /** @type {typeof import('ioredis').default} */ (/** @type {unknown} */ (require('ioredis')));
-const { settleTransaction } = require('./utils/txRollback');
+const { runTransaction } = require('./utils/txRollback');
 const log = require('./telemetry/log');
 
 // The store schema-init memo. It lives in stores/lib/storeInit.js — it is
@@ -83,7 +83,7 @@ setInterval(() => {
 // ── Redis ───────────────────────────────────────────────
 // Wrapped in an object so getRedis() always returns the current state,
 // avoiding the export-by-value staleness bug with `let redis`.
-const _redis = { client: null };
+const _redis = { client: /** @type {import('ioredis').Redis | null} */ (null) };
 
 /**
  * The ioredis options of the shared client.
@@ -146,7 +146,7 @@ if (process.env.REDIS_URL) {
             log.warn('[DB] Redis connection failed:', err.message);
             // Not reachable at boot: run without it (as before), and stop the
             // background reconnects of a client nothing references any more.
-            try { client.disconnect(); } catch (err) { log.debug('already closed', err); }
+            try { client.disconnect(); } catch (err) { ignoreGone('db:redisDisconnect', err); }
             if (_redis.client === client) _redis.client = null;
         });
     } catch (err) {
@@ -176,7 +176,7 @@ async function disconnectRedis() {
 // logs slow queries. We log ONLY a sanitized SQL prefix + the param COUNT —
 // never param values, which can contain PII or secrets.
 const metrics = require('./telemetry/httpMetrics');
-const { bestEffort } = require('./utils/bestEffort');
+const { bestEffort, ignoreGone } = require('./utils/bestEffort');
 const DB_SLOW_MS = metrics.DB_SLOW_MS;
 
 function _sanitizeSql(sql) {
@@ -364,16 +364,7 @@ function _instrumentClient(client) {
  * @param {(client: import('pg').PoolClient) => Promise<any>} fn
  */
 async function _runTransaction(client, fn) {
-    try {
-        await client.query('BEGIN');
-        const result = await fn(client);
-        return await settleTransaction(client, result);
-    } catch (e) {
-        try { await client.query('ROLLBACK'); } catch (err) { bestEffort('db:_runTransaction', err); /* connection may be dead */ }
-        throw e;
-    } finally {
-        client.release();
-    }
+    return runTransaction(client, fn);
 }
 
 /**

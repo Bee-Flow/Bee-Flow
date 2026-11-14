@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The side channels of one tool result, in the order the result loop emits
  * them: document_update for a Studio document a tool wrote, the email /
@@ -60,7 +60,7 @@ function emitSideChannels(rc, deps, { toolName, finalToolResult }) {
         const draftKey = _stableStringify({ to: finalToolResult.draft?.to, subject: finalToolResult.draft?.subject, body: finalToolResult.draft?.body });
         const alreadySent = _emailDrafts.some(d => _stableStringify({ to: d.to, subject: d.subject, body: d.body }) === draftKey);
         if (!alreadySent) {
-            onEvent('email_draft', finalToolResult.draft);
+            onEvent('email_draft', /** @type {Record<string, unknown>} */ (finalToolResult.draft)); // a draft action carries its draft
             _emailDrafts.push({ ...finalToolResult.draft, status: 'pending' });
         }
     }
@@ -69,16 +69,16 @@ function emitSideChannels(rc, deps, { toolName, finalToolResult }) {
     // summary/start/end which made dedup a no-op (BFSF-123).
     if (finalToolResult?._action === 'calendar_draft') {
         const calKey = (/** @type {Record<string, unknown>} */ d) => _stableStringify({ action: d?.action, title: d?.title, startTime: d?.startTime, endTime: d?.endTime, eventId: d?.eventId });
-        const draftKey = calKey(finalToolResult.draft);
+        const draftKey = calKey(/** @type {Record<string, unknown>} */ (finalToolResult.draft));
         const alreadySent = _calendarDrafts.some(d => calKey(d) === draftKey);
         if (!alreadySent) {
-            onEvent('calendar_draft', finalToolResult.draft);
+            onEvent('calendar_draft', /** @type {Record<string, unknown>} */ (finalToolResult.draft));
             _calendarDrafts.push({ ...finalToolResult.draft, status: 'pending' });
         }
     }
     // Emit linkedin_draft SSE event for user approval
     if (finalToolResult?._action === 'linkedin_draft') {
-        onEvent('linkedin_draft', finalToolResult.draft);
+        onEvent('linkedin_draft', /** @type {Record<string, unknown>} */ (finalToolResult.draft));
         _linkedInDrafts.push({ ...finalToolResult.draft, status: 'pending' });
     }
 
@@ -105,11 +105,12 @@ function emitSideChannels(rc, deps, { toolName, finalToolResult }) {
     // Turn-local dedup: if a chunk_id has already been seen in a prior
     // kb_search this turn, drop it from every surface (UI, persistence,
     // AND the tool response the LLM will see).
-    if (finalToolResult?._action === 'kb_sources' && finalToolResult._sources?.length > 0) {
+    if (finalToolResult?._action === 'kb_sources' && (finalToolResult._sources?.length ?? 0) > 0) {
+        const sources = /** @type {NonNullable<SideChannelResult['_sources']>} */ (finalToolResult._sources); // non-empty, checked above
         /** @type {number[]} */
         const keepIdx = [];
         const resultsArr = Array.isArray(finalToolResult.results) ? finalToolResult.results : [];
-        finalToolResult._sources.forEach((src, i) => {
+        sources.forEach((src, i) => {
             // A LIVE table row has no chunk id — it was never
             // ingested — but it has a stable identity of its
             // own, and falling through to the title/content
@@ -126,9 +127,9 @@ function emitSideChannels(rc, deps, { toolName, finalToolResult }) {
                 keepIdx.push(i);
             }
         });
-        const filteredSources = keepIdx.map(i => finalToolResult._sources[i]);
+        const filteredSources = keepIdx.map(i => sources[i]);
         const filteredResults = keepIdx.map(i => resultsArr[i]).filter(Boolean);
-        const dropped = finalToolResult._sources.length - filteredSources.length;
+        const dropped = sources.length - filteredSources.length;
         if (dropped > 0) {
             log.info(`[KBSearch] Turn-local dedup: dropped ${dropped} already-seen chunk(s) from kb_search result`);
         }

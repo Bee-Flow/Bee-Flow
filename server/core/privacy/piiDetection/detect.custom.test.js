@@ -44,7 +44,8 @@ const TYPES = [
     { id: AI, name: 'Codenames', method: 'ai', tokenKey: 'codename', ai: { prompt: 'internal project codename', floor: 0.5 } },
 ];
 
-const guard = { version: '2.3.0', healthStatus: 200, reject422: false, fail: false, bodies: [], healthHits: 0 };
+// `failPlain`: a 500 for a request without custom_labels only; `reply`: fields merged into every answer.
+const guard = { version: '2.3.0', healthStatus: 200, reject422: false, fail: false, failPlain: false, reply: {}, bodies: [], healthHits: 0 };
 let server;
 let url;
 
@@ -68,7 +69,7 @@ test.before(async () => {
         req.on('end', () => {
             const body = JSON.parse(raw);
             guard.bodies.push(body);
-            if (guard.fail) { res.writeHead(500); res.end('boom'); return; }
+            if (guard.fail || (guard.failPlain && !body.custom_labels)) { res.writeHead(500); res.end('boom'); return; }
             if (guard.reject422 && body.custom_labels) {
                 res.writeHead(422, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ detail: [{ type: 'extra_forbidden', loc: ['body', 'custom_labels'], msg: 'Extra inputs are not permitted', input: body.text }] }));
@@ -79,7 +80,8 @@ test.before(async () => {
             const entities = wantsPerson
                 ? find(body.text, 'Jan Jansen').map(o => ({ text: 'Jan Jansen', category: 'Person', label: 'Person Name', confidence: 0.9, offset: o, length: 10 }))
                 : [];
-            const out = { hasPii: entities.length > 0, entities, degraded: false, engine_fingerprint: 'fp1' };
+            /** @type {Record<string, any>} */
+            const out = { hasPii: entities.length > 0, entities, degraded: false, engine_fingerprint: 'fp1', ...guard.reply };
             if (body.custom_labels) {
                 out.custom_entities = body.custom_labels.flatMap(l => find(body.text, 'Blue Heron').map(o => ({
                     text: 'Blue Heron', category: l.id, label: l.id, confidence: 0.8, offset: o, length: 10, source: 'model_custom',
@@ -102,7 +104,7 @@ test.beforeEach(() => {
     registry._resetRegistry();
     _resetPlanCache();
     registry.syncOrg('org1', TYPES);
-    Object.assign(guard, { version: '2.3.0', healthStatus: 200, reject422: false, fail: false, bodies: [], healthHits: 0 });
+    Object.assign(guard, { version: '2.3.0', healthStatus: 200, reject422: false, fail: false, failPlain: false, reply: {}, bodies: [], healthHits: 0 });
 });
 
 const TEXT = 'Jan Jansen leads Falcon, ref KL-12345, codename Blue Heron.';
@@ -253,4 +255,91 @@ test('types passed in directly (the bench) are used instead of the registry', as
         customTypes: [{ ...TYPES[0], name: 'Draft', words: { values: ['Osprey'], caseSensitive: false, wholeWord: true } }],
     });
     assert.deepEqual(r.entities.map(e => [e.text, e.label]), [['Osprey', 'Draft']]);
+});
+
+test('an unreachable guard: degraded with everything it was asked for, Node findings kept, never cached', async () => {
+    guard.fail = true;
+    const r = await pii.detectPii(TEXT, ['Person', WORDS, AI], 0.7);
+    assert.equal(r.degraded, true);
+    assert.match(r.degradedReason, /^guard_unreachable: /);
+    assert.deepEqual(r.degradedCategories, ['Person', AI]);
+    assert.deepEqual(r.entities.map(e => e.text), ['Falcon']);
+    assert.equal(r.engineFingerprint, null);
+    const sent = guard.bodies.length;
+    guard.fail = false;
+    const again = await pii.detectPii(TEXT, ['Person', WORDS, AI], 0.7);
+    assert.ok(guard.bodies.length > sent, 'the degraded answer was not cached');
+    assert.equal(again.degraded, false);
+});
+
+test('a 422 whose retry fails too: the guard\'s reason comes first, the ai ids and the built-ins are named', async () => {
+    guard.reject422 = true;
+    guard.failPlain = true;
+    const r = await pii.detectPii(TEXT, ['Person', WORDS, AI], 0.7);
+    assert.match(r.degradedReason, /^guard_unreachable: /);
+    assert.deepEqual(r.degradedCategories, [AI, 'Person']);
+    assert.deepEqual(r.entities.map(e => e.text), ['Falcon']);
+});
+
+test('a 422 on an ai-only list is not retried: nothing else needed the guard', async () => {
+    guard.reject422 = true;
+    const r = await pii.detectPii(TEXT, [WORDS, AI], 0.7);
+    assert.equal(guard.bodies.length, 1);
+    assert.equal(r.degradedReason, 'custom_labels_rejected');
+    assert.deepEqual(r.degradedCategories, [AI]);
+    assert.deepEqual(r.entities.map(e => e.text), ['Falcon']);
+    assert.equal(circuitIsOpen(), false);
+});
+
+test('an old guard and an ai-only list: no scan request at all, the ai ids degraded', async () => {
+    guard.version = '2.2.0';
+    const r = await pii.detectPii(TEXT, [AI], 0.7);
+    assert.equal(guard.healthHits, 1);
+    assert.equal(guard.bodies.length, 0);
+    assert.equal(r.degradedReason, 'custom_labels_unsupported');
+    assert.deepEqual(r.degradedCategories, [AI]);
+    assert.equal('guardAbsent' in r, false);
+});
+
+test('two ai types with the same prompt: one label is sent, the repeat is degraded', async () => {
+    const twin = 'cdt_00000000d4';
+    const r = await pii.detectPii(TEXT, [AI, twin], 0.7, {
+        customTypes: [TYPES[2], { ...TYPES[2], id: twin, name: 'Twin', tokenKey: 'twin', ai: { prompt: '  Internal Project Codename ', floor: 0.5 } }],
+    });
+    assert.deepEqual(guard.bodies[0].custom_labels.map(l => l.id), [AI]);
+    assert.equal(r.degradedReason, 'custom_labels_duplicate');
+    assert.deepEqual(r.degradedCategories, [twin]);
+    assert.deepEqual(r.entities.map(e => [e.text, e.category]), [['Blue Heron', AI]]);
+});
+
+test('a degraded guard answer: its own reason and categories, a partial scan keeps the scope unknown', async () => {
+    guard.reply = { degraded: true, degraded_reason: 'model_overloaded', degraded_categories: ['Person'], tier_mode: 'fast' };
+    const named = await pii.detectPii(TEXT, ['Person', WORDS, 'cdt_00000000ff'], 0.7);
+    assert.equal(named.degradedReason, 'model_overloaded');
+    assert.deepEqual(named.degradedCategories, ['cdt_00000000ff', 'Person']);
+    assert.equal(named.tierMode, 'fast');
+    assert.equal(named.engineFingerprint, null);
+    assert.equal(named.processedChars, null);
+
+    guard.reply = { degraded: true, degraded_reason: 'oversize', processed_chars: 5, total_chars: 50 };
+    const partial = await pii.detectPii(`${TEXT} 2`, ['Person', WORDS], 0.7);
+    assert.equal(partial.degradedCategories, null);
+    assert.deepEqual([partial.processedChars, partial.totalChars], [5, 50]);
+    assert.equal(partial.degradedReason, 'oversize');
+});
+
+test('a type that does not compile is degraded as invalid', async () => {
+    const broken = 'cdt_00000000e5';
+    const r = await pii.detectPii(TEXT, [WORDS, broken], 0.7, {
+        customTypes: [TYPES[0], { ...TYPES[0], id: broken, name: 'Empty', tokenKey: 'empty', words: { values: [], caseSensitive: false, wholeWord: true } }],
+    });
+    assert.equal(r.degradedReason, 'custom_type_invalid');
+    assert.deepEqual(r.degradedCategories, [broken]);
+    assert.deepEqual(r.entities.map(e => e.text), ['Falcon']);
+});
+
+test('a type that hits its span cap is degraded as partial', async () => {
+    const r = await pii.detectPii('Falcon '.repeat(20_001), [WORDS], 0.7);
+    assert.equal(r.degradedReason, 'custom_scan_partial');
+    assert.deepEqual(r.degradedCategories, [WORDS]);
 });

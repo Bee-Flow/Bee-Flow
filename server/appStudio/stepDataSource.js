@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Read a DATA binding (record / records / aggregate) from inside a server step.
  *
@@ -56,8 +57,17 @@ const { queryWithComputed } = require('../core/dataEngine/computedRead.mts');
 const { relatedForAggregate } = require('../core/dataEngine/aggregateRelated.mts');
 const { relationRead, finishRecords } = require('../core/dataEngine/relationRead.mts');
 
+/**
+ * @typedef {Record<string, unknown> & { kind: string, tableId?: string, filter?: unknown, limit?: number, groupBy?: unknown, search?: unknown, expand?: unknown, fields?: unknown }} DataBinding
+ *   a record / records / aggregate binding
+ */
+
+/**
+ * @param {unknown} binding
+ * @returns {binding is DataBinding}
+ */
 function isDataBinding(binding) {
-    return !!binding && typeof binding === 'object' && DATA_KINDS.has(binding.kind);
+    return !!binding && typeof binding === 'object' && DATA_KINDS.has(/** @type {{ kind?: string }} */ (binding).kind);
 }
 
 function findTable(model, tableId) {
@@ -81,7 +91,7 @@ function resolveFilters(filters, resolveValue) {
     const res = resolveFilterList(filters, (raw) => (
         // A literal (string/number/bool) stays as it is; only a binding object
         // is re-resolved.
-        (raw && typeof raw === 'object' && typeof raw.kind === 'string') ? resolveValue(raw) : raw
+        (raw && typeof raw === 'object' && typeof (/** @type {{ kind?: unknown }} */ (raw)).kind === 'string') ? resolveValue(raw) : raw
     ), {
         isUnset: (v) => v === undefined || v === null || v === '',
         keepMalformed: false,

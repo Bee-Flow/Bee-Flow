@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Lockstep proof for the App Studio definition model: one sample definition and
  * one scenario of op calls, run against the server facade
@@ -112,6 +113,8 @@ export const SAMPLE_DEFINITION = Object.freeze({
  * The scenario: [case name, op name, call]. A case runs only when the facade
  * exports that op (the two sides do not export the same set).
  */
+/** @typedef {(ops: Record<string, (...args: any[]) => any>, def: any) => unknown} CaseCall */
+/** @type {Array<[string, string, CaseCall]>} */
 export const CASES = [
     ['findNode.top', 'findNode', (o, d) => o.findNode(d, 'cmp_title1')],
     ['findNode.nested', 'findNode', (o, d) => o.findNode(d, 'cmp_inner1')],
@@ -274,8 +277,12 @@ function describe(result, input) {
     return { value: result === undefined ? '__undefined__' : result };
 }
 
-/** Run every applicable case against `ops`; returns { [case]: description }. */
+/**
+ * Run every applicable case against `ops`; returns { [case]: description }.
+ * @param {Record<string, (...args: any[]) => any>} ops
+ */
 export function runScenario(ops) {
+    /** @type {Record<string, unknown>} */
     const out = {};
     const realRandom = Math.random;
     try {

@@ -85,7 +85,7 @@ const { resolveModelForTierName } = require('../../../core/llm/modelResolver');
 const llmClient = require('../../../core/llm/llmClient');
 const { requireAuth } = require('../../../auth/permissions');
 const { validate } = require('../../../core/http/validate');
-const { routeRulesRateLimit } = require('./rateLimits');
+const { routeRulesRateLimit } = require('../../../usecases/ai/automationBuilder/rateLimits');
 const { parseExpr, TOPIC_HOST_SPEC, parsePath, formatPath, appendKey } = require('../../../automation/expr');
 const { CONDITION_RULES_HINT } = require('../../../automation/builderTools/ruleExamples');
 const MAX_ROUTE_RULES_DESCRIPTION_CHARS = 500;
@@ -414,7 +414,7 @@ function routeRulesProblem(structured, verified) {
  * from the body is logged (errors log e.message only, like the sibling
  * routes).
  */
-router.post('/route-rules', requireAuth, routeRulesRateLimit, requireAutomationsBeta, validate({ body: RouteRulesBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof RouteRulesBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/route-rules', requireAuth, routeRulesRateLimit, requireAutomationsBeta, validate({ body: RouteRulesBody }), async (req, res) => {
     const userId = req.session.user.id;
 
     const parsed = validateRouteRulesRequest(req.body);

@@ -57,7 +57,7 @@ const { shiftFormula } = require('../../../shared/expr/sheetFill.mjs');
  * Fill `formula`, written as it reads in the range's FIRST cell, over every
  * cell of the range.
  *
- * @param {string} range
+ * @param {string | undefined} range
  * @param {string} formula
  * @returns {Record<string, string> | null} null for a malformed range
  */

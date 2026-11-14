@@ -4,6 +4,7 @@ import { logger } from './utils/logger';
 import { readInlinedCms, resolveInitialLocale, blogQuery } from './App.helpers';
 import ProductWebsite from './marketing/ProductWebsite';
 import { isCmsPathCandidate, hasCmsFallback, parseCmsPath } from './utils/cmsPublicRouting';
+import { matchRoute } from './router/matchRoute';
 import { API_BASE } from './utils/helpers';
 import type { CmsState, CmsSiteResponse } from './App.types';
 
@@ -40,101 +41,102 @@ const PricingPage = lazyWithI18n(() => import('./marketing/PricingPage'));
 // a visitor who never opens a demo downloads none of it.
 const DemoHost = lazyWithI18n(() => import('./demo/DemoHost'));
 
+// The public paths, answered before any auth, licence or CMS handling, in the
+// order they are tried. The pattern grammar is appRoutes.ts's; `where` is the
+// shape a segment must have, so a mangled token does not reach a page.
+type PublicPage = 'embed' | 'cmsPreview' | 'demo' | 'formRedirect' | 'publicApp' | 'dsr';
+interface PublicRoute { pattern: string; page: PublicPage; where?: Record<string, RegExp> }
+// Form and public-app tokens, as the server mints them.
+const TOKEN = /^[a-f0-9]{24,64}$/;
+const PUBLIC_ROUTES: readonly PublicRoute[] = [
+    // The embedded agent chat, often inside a customer's iframe.
+    { pattern: '/chat/:agentId/*', page: 'embed', where: { agentId: /^[a-zA-Z0-9-]+$/ } },
+    // Rendered inside the admin Product Website editor's iframe: always the
+    // marketing site in preview mode, with no auth/enabled/redirect coupling.
+    { pattern: '/__cms_preview__', page: 'cmsPreview' },
+    // Public feature demos, framed by the marketing site, for an anonymous
+    // visitor. DemoHost installs an in-memory transport that authFetch honours
+    // instead of the network, so nothing behind this route can reach the API.
+    { pattern: '/__demo__/:feature', page: 'demo', where: { feature: /^[a-z0-9-]+$/ } },
+    // Hosted form pages (`kind: 'form'` automation trigger) were anonymous; they
+    // are signed-in only for now (PUBLIC_FORMS_ENABLED in the server's
+    // formPublic.js), so the address survives as a hand-over into the workspace.
+    { pattern: '/f/:token', page: 'formRedirect', where: { token: TOKEN } },
+    // The public surface of a Studio app (`publicAccess` on the definition):
+    // the token in the URL IS the credential, so someone without an account can
+    // fill the form in. The page installs a transport that rewrites every
+    // runtime call to the anonymous /api/public-app router and fails closed on
+    // anything else.
+    { pattern: '/p/:token', page: 'publicApp', where: { token: TOKEN } },
+    // The data-subject request form (GDPR Art. 15–22), linked from privacy
+    // notices; the backend is rate-limited per IP and resolves the organisation
+    // from the subject's e-mail. /dsr/verify?id=…&token=… is the identity link
+    // in the acknowledgement e-mail (routes/dsr.js mints it): the same page,
+    // which reads the token, confirms the request and shows its status.
+    { pattern: '/privacy/requests', page: 'dsr' },
+    { pattern: '/dsr', page: 'dsr' },
+    { pattern: '/dsr/verify', page: 'dsr' },
+];
+
+function publicRoute(pathname: string): { page: PublicPage; params: Record<string, string> } | null {
+    const hit = matchRoute(PUBLIC_ROUTES, pathname);
+    if (!hit) return null;
+    const { route, params } = hit;
+    for (const [name, shape] of Object.entries(route.where ?? {})) {
+        if (!shape.test(params[name] ?? '')) return null;
+    }
+    return { page: route.page, params };
+}
+
 export function AppRoutes() {
-    const chatMatch = window.location.pathname.match(/^\/chat\/([a-zA-Z0-9-]+)/);
-    if (chatMatch) {
-        /* The embed is public and often sits in a customer's iframe, so it gets
-           a real fallback rather than null — an earlier pass lazy-loaded this
-           with `fallback={null}` and the iframe showed a blank frame while the
-           chunk arrived. Transparent, because the embedder controls the frame's
-           background and we should not paint over it. */
-        return (
-            <Suspense fallback={<div className="min-h-[100vh]" />}>
-                <EmbedChat agentId={chatMatch[1]} />
-            </Suspense>
-        );
-    }
-    // Dedicated CMS preview route — rendered inside the admin Product Website
-    // editor's iframe. Always shows the marketing site in preview mode, with
-    // no auth/enabled/redirect coupling.
-    if (window.location.pathname === '/__cms_preview__') {
-        return <CmsPreviewHost />;
-    }
-    // Public feature demos, framed by the marketing site. Mounted here — before
-    // any auth, licence or CMS handling — because the whole point is that an
-    // anonymous visitor can use them. DemoHost installs an in-memory transport
-    // that authFetch honours instead of the network, so nothing behind this
-    // route can reach the API (see demo/demoTransport.js).
-    {
-        const demoMatch = window.location.pathname.match(/^\/__demo__\/([a-z0-9-]+)\/?$/);
-        if (demoMatch) {
-            return (
-                <Suspense fallback={null}>
-                    <DemoHost feature={demoMatch[1]} />
-                </Suspense>
-            );
-        }
-    }
-    // Hosted form pages (`kind: 'form'` automation trigger). These WERE
-    // anonymous — the token in the URL was the credential and the point was
-    // that someone without an account could fill the form in. They are
-    // signed-in only for now, so the address survives as a redirect into the
-    // workspace and the page itself renders there (AgentHub, 'formView').
-    {
-        const formMatch = window.location.pathname.match(/^\/f\/([a-f0-9]{24,64})\/?$/);
-        if (formMatch) {
-            // Forms are signed-in only for now (PUBLIC_FORMS_ENABLED in the
-            // server's formPublic.js), so this address no longer serves one —
-            // it hands over to the in-app view, which sends the visitor through
-            // the normal login if they are not signed in. `replace` so Back
-            // does not bounce them straight out again.
-            window.location.replace(`/app/forms/${formMatch[1]}`);
-            return <div className="min-h-[100vh]" />;
-        }
-    }
-    // Public Studio-app pages (`publicAccess` on the app definition). Anonymous
-    // for the same reason as /f above: the token in the URL IS the credential,
-    // and the point is that someone WITHOUT an account can fill the form in.
-    // The page installs a transport that rewrites every runtime call to the
-    // anonymous /api/public-app router and fails closed on anything else.
-    {
-        const publicAppMatch = window.location.pathname.match(/^\/p\/([a-f0-9]{24,64})\/?$/);
-        if (publicAppMatch) {
+    const hit = publicRoute(window.location.pathname);
+    switch (hit?.page) {
+        case 'embed':
+            /* The embed gets a real fallback rather than null — an earlier pass
+               lazy-loaded this with `fallback={null}` and the iframe showed a
+               blank frame while the chunk arrived. Transparent, because the
+               embedder controls the frame's background. */
             return (
                 <Suspense fallback={<div className="min-h-[100vh]" />}>
-                    <PublicAppPage token={publicAppMatch[1]} />
+                    <EmbedChat agentId={hit.params.agentId} />
                 </Suspense>
             );
-        }
+        case 'cmsPreview':
+            return <CmsPreviewHost />;
+        case 'demo':
+            return (
+                <Suspense fallback={null}>
+                    <DemoHost feature={hit.params.feature} />
+                </Suspense>
+            );
+        case 'formRedirect':
+            // The in-app view sends the visitor through the normal login if they
+            // are not signed in. `replace` so Back does not bounce them out again.
+            window.location.replace(`/app/forms/${hit.params.token}`);
+            return <div className="min-h-[100vh]" />;
+        case 'publicApp':
+            return (
+                <Suspense fallback={<div className="min-h-[100vh]" />}>
+                    <PublicAppPage token={hit.params.token} />
+                </Suspense>
+            );
+        case 'dsr':
+            return (
+                <Suspense fallback={<div className="min-h-[100vh]" />}>
+                    <DsrRequestPage />
+                </Suspense>
+            );
+        default:
+            break;
     }
-    // Public data-subject request form (GDPR Art. 15–22). Mounted before any
-    // auth handling — the whole point is that a data subject WITHOUT an
-    // account can reach it. The backend endpoint is rate-limited per IP and
-    // resolves the org from the subject's email. Organisations link this page
-    // from their privacy notice (see Compliance → Settings).
-    // `/dsr/verify?id=…&token=…` is the identity link in the acknowledgement
-    // e-mail (routes/dsr.js mints it). It is the SAME page: it reads the token,
-    // confirms the request and then shows its status. Without this path the
-    // link falls through to the CMS/marketing gate and a data subject who
-    // clicks "confirm it is me" lands on a product page.
-    const DSR_PATHS = ['/privacy/requests', '/privacy/requests/', '/dsr', '/dsr/', '/dsr/verify', '/dsr/verify/'];
-    if (DSR_PATHS.includes(window.location.pathname)) {
-        return (
-            <Suspense fallback={<div className="min-h-[100vh]" />}>
-                <DsrRequestPage />
-            </Suspense>
-        );
-    }
-    // NOTE: /pricing is deliberately NOT intercepted here any more. It used to
-    // return <PricingPage/> unconditionally, which meant a CMS page at that
-    // slug could be authored and edited but never rendered — production had
-    // exactly that, an invisible pricing page nobody could reach. It now falls
-    // through to RootPathGate, which serves the CMS page when one exists and
-    // drops back to <PricingPage/> when it does not (see CMS_FALLBACK_SLUGS).
-    // Path-based marketing-site gate: intercept `/` and any single-segment
-    // path (e.g. `/about`, `/contact`) so they render the public product
-    // website. RootPathGate falls through to <App /> when the CMS is off
-    // OR when the slug doesn't match a real page.
+    // NOTE: /pricing is deliberately NOT intercepted here. It used to return
+    // <PricingPage/> unconditionally, which meant a CMS page at that slug could
+    // be authored and edited but never rendered. It falls through to
+    // RootPathGate, which serves the CMS page when one exists and drops back
+    // to <PricingPage/> when it does not (see CMS_FALLBACK_SLUGS).
+    // Path-based marketing-site gate: `/` and any single-segment path (`/about`,
+    // `/contact`) render the public product website. RootPathGate falls through
+    // to <App /> when the CMS is off OR when the slug doesn't match a real page.
     if (isCmsPathCandidate(window.location.pathname)) {
         return <RootPathGate />;
     }

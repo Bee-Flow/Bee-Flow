@@ -80,6 +80,7 @@ function decrypt(encrypted) {
 // (e.g. SSO email vs Nextcloud uid). `url` is the optional per-user Nextcloud base URL that
 // overrides the org-wide config (null falls back to it). Reads tolerate the legacy
 // plain-password format and the earlier two-field `{username, password}` JSON.
+/** @param {string | null} [nextcloudUrl] */
 async function storeAppPassword(userId, username, appPassword, nextcloudUrl = null) {
     await initDB();
     const user = await getUser(userId);

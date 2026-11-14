@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Free/public email providers.
  *
@@ -80,7 +80,7 @@ function normalizeDomain(value) {
     if (typeof value !== 'string') return null;
     let d = value.trim().toLowerCase();
     if (!d) return null;
-    if (d.includes('@')) d = d.split('@').pop();
+    if (d.includes('@')) d = /** @type {string} */ (d.split('@').pop()); // split always gives one part
     // Strip a leading '@' or protocol-ish noise a paste might carry.
     d = d.replace(/^@+/, '');
     if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(d)) return null;

@@ -29,6 +29,7 @@ const {
 /**
  * Bundle the react-mui project (files map) into one ESM string. Throws an Error
  * whose `.formatted` carries readable esbuild diagnostics on failure.
+ * @param {{ entry?: string, files: Record<string, { isText: boolean, content?: string, dataUrl?: string }> }} project
  */
 function buildReactBundle({ entry = REACT_ENTRY, files }) {
     return bundleReact(esbuild, { entry, files });
@@ -92,6 +93,7 @@ function buildStubBridgeScript(surface = 'headlessRender') {
  *
  * @param {{ files: Record<string, { isText: boolean, content?: string, dataUrl?: string }>, assetMap?: Record<string, string>,
  *   surface?: string, headScripts?: string, build?: typeof buildReactBundle }} opts
+ * @returns {Promise<{ doc: string, buildError?: undefined } | { buildError: string, doc?: undefined }>}
  */
 async function composeReactDoc({ files, assetMap = {}, surface = 'headlessRender', headScripts, build = buildReactBundle }) {
     if (!files[REACT_ENTRY]) {

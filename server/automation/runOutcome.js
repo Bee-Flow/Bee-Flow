@@ -1,5 +1,5 @@
+// @typecheck
 'use strict';
-
 /**
  * The one-sentence outcome of a run (handoff 5, Runs tab).
  *
@@ -113,7 +113,7 @@ function stepLabel(index, stepId, stepType = null) {
 
 /**
  * The last row per step id (the final attempt), in the order steps started.
- * @param {object[]} steps
+ * @param {Array<{ stepId?: string, attempts?: unknown, [k: string]: unknown }>} steps
  */
 function finalRows(steps) {
     const order = [];
@@ -318,15 +318,15 @@ const outcome = (code, params, text) => ({ code, params, text });
 
 /**
  * @param {{
- *   status: string,                       the run's final status
- *   definition?: object|null,             the copy that ran
- *   steps?: Array<object>,                this leg's recorded step rows (rowToRunStep shape)
+ *   status?: string,                      // the run's final status
+ *   definition?: object|null,             // the copy that ran
+ *   steps?: Array<{ stepId?: string, attempts?: unknown, [k: string]: unknown }>, // this leg's recorded step rows (rowToRunStep shape)
  *   error?: { message?: string|null, errorClass?: string|null, ncCode?: string|null } | null,
  *   awaitingStepId?: string|null,
- *   waitingOn?: string[],                 display names of who must decide an approval
- *   cancelReason?: 'already_running'|null,
+ *   waitingOn?: string[],                 // display names of who must decide an approval
+ *   cancelReason?: string|null,           // 'already_running' or none
  *   handledErrorCount?: number,
- * }} input
+ * }} [input]
  * @returns {{ code: string, params: Record<string, any>, text: string }}
  */
 function buildRunOutcome(input = {}) {

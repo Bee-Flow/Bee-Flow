@@ -15,14 +15,15 @@ const {
     deps, _dispatch, _remoteDescriptors, _moduleHealth, _healthOf, _logSystem,
     _ticks, REQUEST_TIMEOUT_MS, CRASH_WINDOW_MS, CRASH_THRESHOLD,
 } = require('./packageState');
-const { versionDir, moduleDataDir, _manifestSummary, _reverifyFromDisk } = require('./packageStaging');
+const { versionDir, moduleDataDir, _reverifyFromDisk } = require('./packageStaging');
 const {
     _projectDescriptors, _pushDescriptors, _stopTick, _purgeRequireCache, _drainAndDispose,
 } = require('./packageRuntime');
+const { resolveEntryPath, modulePermissionsFor, registerDescriptors, gateCapabilityOf, persistActivation } = require('./packageActivationSteps');
 const log = require('../telemetry/log');
-const { bestEffort, fallback } = require('../utils/bestEffort');
+const { bestEffort } = require('../utils/bestEffort');
 
-const { store, packageStore, registry, runtime, moduleAudit, hostApiFactory } = deps;
+const { store, packageStore, runtime, moduleAudit, hostApiFactory } = deps;
 
 const DEFAULT_TICK_MS = 60_000;
 
@@ -174,8 +175,98 @@ async function _readManifest(dir) {
     return JSON.parse(raw);
 }
 
+/** @param {string} moduleId */
+function _dropDescriptors(moduleId) {
+    _remoteDescriptors.delete(moduleId); _pushDescriptors();
+}
+
 /**
- * Activate a verified, staged package into the running process.
+ * Load the module code and create its instance, then run its schema
+ * migrations: on any failure the descriptors registered for it come down
+ * again and activation fails, so no route is ever exposed over a
+ * half-materialised module or schema.
+ * @param {string} moduleId
+ * @param {string} entryAbs
+ * @param {unknown} hostApi
+ * @param {((phase: string, pct: number) => void) | null} onPhase
+ */
+async function _loadInstance(moduleId, entryAbs, hostApi, onPhase) {
+    let mod;
+    try {
+        _purgeRequireCache(moduleId);
+        mod = require(entryAbs);
+    } catch (e) {
+        _dropDescriptors(moduleId);
+        throw new Error(`module require failed: ${/** @type {Error} */ (e).message}`);
+    }
+    if (!mod || typeof mod.createModule !== 'function') {
+        _dropDescriptors(moduleId);
+        throw new Error('module does not export createModule(hostApi)');
+    }
+    let instance;
+    try {
+        instance = await mod.createModule(hostApi);
+    } catch (e) {
+        _dropDescriptors(moduleId);
+        throw new Error(`createModule failed: ${/** @type {Error} */ (e).message}`);
+    }
+    if (!instance || typeof instance.router !== 'function') {
+        _dropDescriptors(moduleId);
+        throw new Error('createModule must return { router }');
+    }
+    if (typeof instance.initDBs === 'function') {
+        if (onPhase) onPhase('migrating', 75);
+        try {
+            await instance.initDBs();
+        } catch (e) {
+            _stopTick(moduleId);
+            _dispatch.delete(moduleId);
+            _dropDescriptors(moduleId);
+            throw new Error(`initDBs failed: ${/** @type {Error} */ (e).message}`);
+        }
+    }
+    return instance;
+}
+
+/**
+ * Route new requests to the new instance and start its tick. Hot-swap: the
+ * Map.set atomically routes NEW requests to the new instance; the replaced
+ * entry drains its in-flight requests and is then disposed (fire-and-forget,
+ * the swap itself never waits).
+ * @param {string} moduleId
+ * @param {string} version
+ * @param {{ instance: any, manifest: any, dir: string }} loaded
+ */
+function _installEntry(moduleId, version, { instance, manifest, dir }) {
+    const gateCapability = gateCapabilityOf(moduleId, manifest);
+    const entry = {
+        moduleId, version, router: instance.router, instance, gateCapability, dir,
+        inflight: 0, draining: false,
+        streamingRoutes: (manifest.server && Array.isArray(manifest.server.streamingRoutes))
+            ? manifest.server.streamingRoutes : [],
+        publicRoutes: Array.isArray(manifest.server?.publicRoutes) ? manifest.server.publicRoutes : [],
+    };
+    entry.handle = _composeHandler(entry);
+    const oldEntry = _dispatch.get(moduleId);
+    _dispatch.set(moduleId, entry);
+    if (oldEntry && oldEntry !== entry) {
+        _drainAndDispose(moduleId, oldEntry).catch((e) => bestEffort('modules/packageActivation:activate#2', e));
+    }
+    _logSystem(moduleId, `activated v${version}`);
+
+    if (typeof instance.tick === 'function') {
+        const intervalMs = Number(instance.tickIntervalMs) > 0 ? Number(instance.tickIntervalMs) : DEFAULT_TICK_MS;
+        _startTick(moduleId, instance.tick, intervalMs);
+    } else {
+        // The replaced instance is disposed: its tick must not keep calling it.
+        _stopTick(moduleId);
+    }
+}
+
+/**
+ * Activate a verified, staged package into the running process. The steps
+ * (packageActivationSteps.js) run in this order; any of them failing fails
+ * the activation with its error.
  * @param {string} moduleId
  * @param {string} version
  * @param {{ actorId?, manifest?, kid?, sha256?, entitlement?, persist?, onPhase?, grantedPermissions?, source? }} [opts]
@@ -187,173 +278,18 @@ async function activate(moduleId, version, {
 } = {}) {
     const dir = versionDir(moduleId, version);
     if (!manifest) manifest = await _readManifest(dir);
-
-    // Resolve + guard the entry path (must live inside the version dir).
-    const entryRel = manifest.server && manifest.server.entry;
-    if (!entryRel) throw new Error('manifest missing server.entry');
-    const entryAbs = path.resolve(dir, entryRel);
-    if (entryAbs !== dir && !entryAbs.startsWith(dir + path.sep)) {
-        throw new Error(`entry escapes module dir: ${entryRel}`);
-    }
-
-    // ── mv2 permission invariant (M2) ───────────────────────────────────────
-    // EVERY activation (boot and reconcile included) re-checks that the SIGNED
-    // manifest's permission list is covered by the operator's persisted grant.
-    // A package updated to demand more than was consented to fails closed.
-    const isMv2 = Number(manifest.manifestVersion || 1) >= 2;
-    const neededPermissions = (isMv2 && Array.isArray(manifest.permissions)) ? manifest.permissions : [];
-    let modulePermissions = null; // null ⇒ legacy mv1 full surface
-    if (isMv2) {
-        if (neededPermissions.length) {
-            let grantedList = (grantedPermissions && grantedPermissions.list) || null;
-            if (!grantedList) {
-                try {
-                    const row = await store().getState(moduleId);
-                    grantedList = (row && row.settings && row.settings.grantedPermissions
-                        && row.settings.grantedPermissions.list) || [];
-                } catch (_) { grantedList = []; }
-            }
-            const missing = neededPermissions.filter(p => !grantedList.includes(p));
-            if (missing.length) {
-                /** @type {Error & { code?: string, missingPermissions?: string[] }} */
-                const e = new Error(`permissions_not_granted: ${missing.join(',')}`);
-                e.code = 'permissions_not_granted';
-                e.missingPermissions = missing;
-                throw e;
-            }
-        }
-        modulePermissions = neededPermissions;
-    }
-
-    // Descriptors first — so capability lookups resolve while createModule runs.
-    // Capability-id CONFLICTS (an id another module or a built-in already owns):
-    // hard-fail new installs; boot re-activation (persist:false) grandfathers
-    // mv1's shadowing semantics — skip the conflicting descriptor, warn, and
-    // surface it in health (review F16).
-    const projected = _projectDescriptors(moduleId, manifest);
-    const conflicts = [];
-    for (const c of projected.capDescriptors) {
-        let existing = null;
-        try { existing = registry().getCapability(c.id); } catch (err) { fallback('modules/packageActivation:activate', err); /* registry not ready */ }
-        if (existing && existing.moduleId !== moduleId) conflicts.push(c.id);
-    }
-    if (conflicts.length) {
-        if (persist) throw new Error(`capability_conflict: ${conflicts.join(',')}`);
-        log.warn(`[Modules] ${moduleId}: skipping conflicting capability ids at boot: ${conflicts.join(', ')}`);
-        _logSystem(moduleId, `capability conflict (grandfathered, descriptors skipped): ${conflicts.join(', ')}`);
-        projected.capDescriptors = projected.capDescriptors.filter(c => !conflicts.includes(c.id));
-        projected.betaDescriptors = projected.betaDescriptors.filter(c => !conflicts.includes(c.id));
-        _healthOf(moduleId).capabilityConflicts = conflicts;
-    }
-    _remoteDescriptors.set(moduleId, projected);
-    _pushDescriptors();
+    const entryAbs = resolveEntryPath(dir, manifest);
+    const modulePermissions = await modulePermissionsFor(moduleId, manifest, grantedPermissions);
+    registerDescriptors(moduleId, manifest, persist);
 
     const dataDir = moduleDataDir(moduleId);
     await fsp.mkdir(dataDir, { recursive: true });
     const hostApi = hostApiFactory().build(moduleId, { dataDir, permissions: modulePermissions });
-
-    let mod;
-    try {
-        _purgeRequireCache(moduleId);
-        mod = require(entryAbs);
-    } catch (e) {
-        _remoteDescriptors.delete(moduleId); _pushDescriptors();
-        throw new Error(`module require failed: ${/** @type {Error} */ (e).message}`);
-    }
-    if (!mod || typeof mod.createModule !== 'function') {
-        _remoteDescriptors.delete(moduleId); _pushDescriptors();
-        throw new Error('module does not export createModule(hostApi)');
-    }
-
-    let instance;
-    try {
-        instance = await mod.createModule(hostApi);
-    } catch (e) {
-        _remoteDescriptors.delete(moduleId); _pushDescriptors();
-        throw new Error(`createModule failed: ${/** @type {Error} */ (e).message}`);
-    }
-    if (!instance || typeof instance.router !== 'function') {
-        _remoteDescriptors.delete(moduleId); _pushDescriptors();
-        throw new Error('createModule must return { router }');
-    }
-
-    // Schema migrations — abort activation on failure so we never expose routes
-    // over a half-materialised schema, and mark the package failed.
-    if (typeof instance.initDBs === 'function') {
-        if (onPhase) onPhase('migrating', 75);
-        try {
-            await instance.initDBs();
-        } catch (e) {
-            _stopTick(moduleId);
-            _dispatch.delete(moduleId);
-            _remoteDescriptors.delete(moduleId); _pushDescriptors();
-            throw new Error(`initDBs failed: ${/** @type {Error} */ (e).message}`);
-        }
-    }
+    const instance = await _loadInstance(moduleId, entryAbs, hostApi, onPhase);
     if (onPhase) onPhase('activating', 90);
+    _installEntry(moduleId, version, { instance, manifest, dir });
 
-    // Gate capability: manifest override → studioApp gate (the SDK's actual
-    // spelling — the old chain read a field the schema never had) → first own
-    // capability. The gate MUST be module-own: an id this module doesn't
-    // declare would let it hide behind (or expose itself via) someone else's
-    // entitlement.
-    const ownCapIds = new Set((Array.isArray(manifest.capabilities) ? manifest.capabilities : [])
-        .map(c => c && c.id).filter(Boolean));
-    let gateCapability = manifest.gateCapability
-        || (manifest.frontend && manifest.frontend.studioApp && manifest.frontend.studioApp.gateCapability)
-        || (manifest.frontend && manifest.frontend.gateCapability)
-        || (Array.isArray(manifest.capabilities) && manifest.capabilities[0] && manifest.capabilities[0].id)
-        || null;
-    if (gateCapability && !ownCapIds.has(gateCapability)) {
-        log.warn(`[Modules] ${moduleId}: gateCapability '${gateCapability}' is not module-own — falling back`);
-        gateCapability = (Array.isArray(manifest.capabilities) && manifest.capabilities[0] && manifest.capabilities[0].id) || null;
-    }
-    const entry = {
-        moduleId, version, router: instance.router, instance, gateCapability, dir,
-        inflight: 0, draining: false,
-        streamingRoutes: (manifest.server && Array.isArray(manifest.server.streamingRoutes))
-            ? manifest.server.streamingRoutes : [],
-        publicRoutes: Array.isArray(manifest.server?.publicRoutes) ? manifest.server.publicRoutes : [],
-    };
-    entry.handle = _composeHandler(entry);
-    // Hot-swap: the Map.set below atomically routes NEW requests to the new
-    // instance; the replaced entry drains its in-flight requests and is then
-    // disposed (fire-and-forget — the swap itself never waits).
-    const oldEntry = _dispatch.get(moduleId);
-    _dispatch.set(moduleId, entry);
-    if (oldEntry && oldEntry !== entry) {
-        _drainAndDispose(moduleId, oldEntry).catch((e) => bestEffort('modules/packageActivation:activate#2', e));
-    }
-    _logSystem(moduleId, `activated v${version}`);
-
-    if (typeof instance.tick === 'function') {
-        const intervalMs = Number(instance.tickIntervalMs) > 0 ? Number(instance.tickIntervalMs) : DEFAULT_TICK_MS;
-        _startTick(moduleId, instance.tick, intervalMs);
-    }
-
-    if (persist) {
-        // Merge with any existing settings so entitlement survives a re-activate.
-        let existing = null;
-        let existingRead = true;
-        try { existing = await store().getState(moduleId); } catch (err) {
-            existingRead = false;
-            log.warn('module state lookup failed, keeping the stored settings as they are', err);
-        }
-        const settings = {
-            remote: true,
-            manifest: _manifestSummary(manifest),
-            entitlement: entitlement || (existing && existing.settings && existing.settings.entitlement) || null,
-            package: { version, sha256, kid },
-            latestVersion: version,
-            grantedPermissions: grantedPermissions
-                || (existing && existing.settings && existing.settings.grantedPermissions) || null,
-        };
-        // Without the stored row, an entitlement or grant not passed in would be written as null: skip that write.
-        const wouldDropStored = !existingRead && (!entitlement || !grantedPermissions);
-        if (!wouldDropStored) await store().setImported(moduleId, { actorId, version, settings });
-        await packageStore().setActive(moduleId, version, { manifest: _manifestSummary(manifest), kid, packageSha256: sha256, actorId, source });
-    }
-
+    if (persist) await persistActivation(moduleId, version, manifest, { actorId, kid, sha256, entitlement, grantedPermissions, source });
     runtime().invalidateCache();
     await runtime().refreshModuleActivations();
     return { ok: true, moduleId, version };

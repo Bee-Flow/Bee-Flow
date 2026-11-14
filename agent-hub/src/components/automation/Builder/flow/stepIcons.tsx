@@ -153,6 +153,7 @@ export function IconPicker({
                             type="button"
                             onClick={() => pick(name)}
                             title={name}
+                            aria-label={name}
                             className={`h-8 w-8 rounded-lg flex items-center justify-center transition ${
                                 value === name
                                     ? 'bg-[var(--accent)]/15 text-[var(--accent)] ring-1 ring-[var(--accent)]/40'

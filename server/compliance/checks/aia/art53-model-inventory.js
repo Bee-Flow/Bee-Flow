@@ -17,7 +17,7 @@ const { LOCAL_PROVIDER_TYPES } = require('../../../core/providers/localModels');
 const complianceStore = require('../../../stores/complianceStore');
 const { canonical } = require('../../lib/observedOperators');
 const pd = require('../../projects/projectData');
-const log = require('../../../telemetry/log');
+const { bestEffort } = require('../../../utils/bestEffort');
 const { isMissingTable } = require('../../../utils/isMissingTable');
 
 // undefined_table / undefined_column: the agent register is not provisioned
@@ -51,7 +51,7 @@ async function _aiActAssessments(orgId, agents) {
             .filter(a => !covered.has(`agent:${a.id}`))
             .slice(0, 50)
             .map(a => ({ target_kind: 'agent', target_id: String(a.id) }));
-    } catch (err) { log.debug('not provisioned yet — nulls say "unknown", never 0', err); }
+    } catch (err) { if (!isMissingTable(err)) bestEffort('compliance/aia/art53:assessments', err); /* nulls say "unknown", never 0 */ }
     return out;
 }
 

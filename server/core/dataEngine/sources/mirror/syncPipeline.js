@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * ONE FULL PASS over a mirror: the source's columns and rows → the copy —
  * the same pass for every kind, with the adapter answering the three
@@ -81,8 +81,9 @@ const DEFAULT_PAGE = 500;
  * @typedef {import('./syncPass').PassAdapter & { KIND: string, TAG?: string, PAGE?: number,
  *             isMirror: (table: object) => boolean }} MirrorAdapter
  */
+/** What syncRows reads off the datatable it is handed. @typedef {{ id: string, source?: object, syncState?: object }} MirrorTable */
 /**
- * @typedef {{ syncRows: (datatable: object, opts?: { reason?: string, force?: boolean }) => Promise<{ ok: boolean, alreadyRunning?: boolean, syncState: object|null, warnings?: string[], error?: { message?: string, code?: string } }>,
+ * @typedef {{ syncRows: (datatable: MirrorTable, opts?: { reason?: string, force?: boolean }) => Promise<{ ok: boolean, alreadyRunning?: boolean, syncState: object|null, warnings?: string[], error?: { message?: string, code?: string } }>,
  *             isStale: typeof import('./staleness').isStale,
  *             kickStale: ReturnType<typeof import('./staleness').makeKickStale>,
  *             nextRunAtFor: typeof import('./staleness').nextRunAtFor,
@@ -105,7 +106,7 @@ function makeSync(adapter) {
     const PAGE = Number(adapter.PAGE) || DEFAULT_PAGE;
 
     /**
-     * @param {{ id: string, source?: object, syncState?: object }} datatable   a datatables row of this adapter's kind
+     * @param {MirrorTable} datatable   a datatables row of this adapter's kind
      * @param {{ reason?: string, force?: boolean }} [opts]
      *   reason  'link'|'view'|'live'|'schedule'|'manual'|'event'|'relations'|'write'
      *   force   re-read the source even if its marker did not move. It never

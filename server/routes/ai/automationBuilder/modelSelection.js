@@ -18,7 +18,7 @@ const { getProviderForModel, getAIConfig } = require('../../../core/aiAgent');
 const { getAdapter } = require('../../../core/providers');
 const { cheapestTier } = require('../../../core/entitlements/tierAccess');
 const { getProfileForModel } = require('../../../core/automationModel/builderModelProfiles');
-const { applyBuilderTierFloor } = require('../builderShared');
+const { applyBuilderTierFloor } = require('../../../usecases/ai/builderShared');
 
 /**
  * Resolve the turn's model. False when the turn ended (no model configured).

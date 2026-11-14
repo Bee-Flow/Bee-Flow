@@ -100,6 +100,7 @@ async function ensureNetwork(docker, name) {
  * it can reach a sidecar by name. Idempotent: a 403 ("already exists in
  * network") counts as success. `onError` sees any other failure.
  * @param {string} network
+ * @param {(err: Error) => void} [onError]
  */
 async function connectSelfToNetwork(docker, network, onError) {
     const hostname = process.env.HOSTNAME;

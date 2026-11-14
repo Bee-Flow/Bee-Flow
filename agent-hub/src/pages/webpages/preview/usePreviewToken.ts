@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
-import { API_BASE } from '@/utils/helpers';
 import { errorMessage, isAbortError, messageOf } from '@/utils/caughtError';
 import { logger } from '@/utils/logger';
-import { mutate, ApiError } from '@/api/mutate';
+import { useMintPreviewTokenMutation } from '@/api/queries/previewToken';
 import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 /** The selection the preview's bridge script posts back. */
@@ -25,17 +24,6 @@ function isFromPreviewIframe(iframeRef: RefObject<HTMLIFrameElement | null>, eve
     return !!iframeRef.current && event?.source === iframeRef.current.contentWindow;
 }
 
-async function mintToken(webpageId: string, signal?: AbortSignal): Promise<{ token: string; expiresAt?: number }> {
-    let res: Response;
-    try {
-        res = await mutate(`${API_BASE}/api/webpages/${webpageId}/preview-token`, { method: 'POST', ...(signal ? { signal } : {}) });
-    } catch (err) {
-        if (!(err instanceof ApiError)) throw err;
-        throw new Error(`token fetch ${err.status}`);
-    }
-    return res.json();
-}
-
 /**
  * The short-lived preview bearer token the iframe's DB shim sends.
  *
@@ -53,6 +41,7 @@ async function mintToken(webpageId: string, signal?: AbortSignal): Promise<{ tok
 export function usePreviewToken(webpageId: string | undefined, refreshKey: number, iframeRef: RefObject<HTMLIFrameElement | null>) {
     const [dbToken, setDbToken] = useState<string | null>(null);
     const [, setDbTokenExpiresAt] = useState(0);
+    const { mutateAsync: mint } = useMintPreviewTokenMutation();
 
     useAdjustOnChange([webpageId, refreshKey], () => { if (!webpageId) { setDbToken(null); setDbTokenExpiresAt(0); } });
     useEffect(() => {
@@ -61,7 +50,7 @@ export function usePreviewToken(webpageId: string | undefined, refreshKey: numbe
         let cancelled = false;
         (async () => {
             try {
-                const data = await mintToken(webpageId, controller.signal);
+                const data = await mint({ webpageId, signal: controller.signal });
                 if (cancelled) return;
                 setDbToken(data.token);
                 setDbTokenExpiresAt(data.expiresAt || 0);
@@ -72,7 +61,7 @@ export function usePreviewToken(webpageId: string | undefined, refreshKey: numbe
             }
         })();
         return () => { cancelled = true; controller.abort(); };
-    }, [webpageId, refreshKey]);
+    }, [webpageId, refreshKey, mint]);
 
     // Keep the latest webpageId in a ref so the token-refresh handler always
     // mints a token for the *currently* selected webpage even if the user has
@@ -101,7 +90,7 @@ export function usePreviewToken(webpageId: string | undefined, refreshKey: numbe
                 } catch (err) { logger.debug('ignore', err); }
             };
             try {
-                const body = await mintToken(currentId);
+                const body = await mint({ webpageId: currentId });
                 // Only update state if the page hasn't been swapped during the fetch.
                 if (webpageIdRef.current === currentId) {
                     setDbToken(body.token);
@@ -114,7 +103,7 @@ export function usePreviewToken(webpageId: string | undefined, refreshKey: numbe
         };
         window.addEventListener('message', handler);
         return () => window.removeEventListener('message', handler);
-    }, [iframeRef]);
+    }, [iframeRef, mint]);
 
     return dbToken;
 }

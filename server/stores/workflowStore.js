@@ -3,7 +3,7 @@
  * Workflow Store - PostgreSQL management for workflows, folders, shares, and execution history
  */
 
-const { run, getOne, getAll, exec } = require('../db');
+const { run, getOne, getAll, exec, withTransaction } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const { randomUUID } = require('crypto');
 const log = require('../telemetry/log');
@@ -115,9 +115,11 @@ async function deleteFolder(id, userId) {
     if (!folder) return { error: 'Folder not found' };
     if (folder.owner_id !== userId) return { error: 'Permission denied' };
 
-    await run('DELETE FROM workflows WHERE folder_id = $1', [id]);
-    await run("DELETE FROM shares WHERE resource_type = 'folder' AND resource_id = $1", [id]);
-    await run('DELETE FROM folders WHERE id = $1', [id]);
+    await withTransaction(async (client) => {
+        await client.query('DELETE FROM workflows WHERE folder_id = $1', [id]);
+        await client.query("DELETE FROM shares WHERE resource_type = 'folder' AND resource_id = $1", [id]);
+        await client.query('DELETE FROM folders WHERE id = $1', [id]);
+    });
     return { success: true };
 }
 
@@ -238,8 +240,10 @@ async function deleteWorkflow(id, userId) {
     const workflow = await getOne('SELECT * FROM workflows WHERE id = $1', [id]);
     if (!workflow) return { error: 'Workflow not found' };
     if (workflow.owner_id !== userId) return { error: 'Permission denied' };
-    await run("DELETE FROM shares WHERE resource_type = 'workflow' AND resource_id = $1", [id]);
-    await run('DELETE FROM workflows WHERE id = $1', [id]);
+    await withTransaction(async (client) => {
+        await client.query("DELETE FROM shares WHERE resource_type = 'workflow' AND resource_id = $1", [id]);
+        await client.query('DELETE FROM workflows WHERE id = $1', [id]);
+    });
     return { success: true };
 }
 

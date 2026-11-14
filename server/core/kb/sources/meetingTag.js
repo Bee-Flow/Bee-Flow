@@ -183,7 +183,7 @@ function isUnchanged(item, stored) {
  * @param {import('./index').SyncCtx} ctx
  * @param {import('./index').SyncDeps} _deps
  */
-async function fetch(item, stored, ctx, _deps) {
+async function fetchItem(item, stored, ctx, _deps) {
     const m = item.meeting;
     if (!m) return null;
     const fields = fieldsOf(ctx.source);
@@ -239,4 +239,4 @@ function textsOf(list) {
         .filter(Boolean);
 }
 
-module.exports = { enumerate, fetch, isUnchanged, supportsModes, defaultMode, maxItems, fieldsOf, textsOf, FIELDS, DEFAULT_FIELDS, MAX_MEETINGS, PAGE_SIZE };
+module.exports = { enumerate, fetch: fetchItem, isUnchanged, supportsModes, defaultMode, maxItems, fieldsOf, textsOf, FIELDS, DEFAULT_FIELDS, MAX_MEETINGS, PAGE_SIZE };

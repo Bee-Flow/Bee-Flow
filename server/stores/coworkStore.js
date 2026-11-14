@@ -387,29 +387,29 @@ async function reapStaleRuns({ olderThanMs = 30 * 60 * 1000 } = {}) {
     const seconds = Math.max(60, Math.round(Number(olderThanMs) / 1000));
     const message = 'This run was interrupted — the server stopped before it finished.';
 
+    // The runs and their schedules in one statement, so a reaped run never leaves its schedule
+    // claiming to run. Only the schedules that still claim it: a manual retry may already have
+    // moved one on, and overwriting that would be worse than the stale row this comes to fix.
     const { rows } = await run(
-        `UPDATE cowork_runs
-            SET status = 'error',
-                error = $2,
-                produced_output = FALSE,
-                finished_at = NOW(),
-                duration_ms = GREATEST(0, EXTRACT(EPOCH FROM (NOW() - started_at)) * 1000)::int
-          WHERE finished_at IS NULL
-            AND started_at < NOW() - ($1 || ' seconds')::interval
-          RETURNING schedule_id`,
+        `WITH r AS (
+            UPDATE cowork_runs
+               SET status = 'error',
+                   error = $2,
+                   produced_output = FALSE,
+                   finished_at = NOW(),
+                   duration_ms = GREATEST(0, EXTRACT(EPOCH FROM (NOW() - started_at)) * 1000)::int
+             WHERE finished_at IS NULL
+               AND started_at < NOW() - ($1 || ' seconds')::interval
+             RETURNING schedule_id
+         ), s AS (
+            UPDATE cowork_schedules
+               SET last_status = 'error', last_result = $2
+             WHERE id IN (SELECT schedule_id FROM r) AND last_status = 'running'
+         )
+         SELECT schedule_id FROM r`,
         [String(seconds), message],
     );
     if (rows.length === 0) return 0;
-
-    // Only the schedules that are still claiming to run — a manual retry may
-    // already have moved one on, and overwriting that would be worse than the
-    // stale row we came to fix.
-    await run(
-        `UPDATE cowork_schedules
-            SET last_status = 'error', last_result = $2
-          WHERE id = ANY($1::text[]) AND last_status = 'running'`,
-        [rows.map(r => r.schedule_id), message],
-    );
     log.warn(`[CoworkStore] Reaped ${rows.length} stale run(s)`);
     return rows.length;
 }

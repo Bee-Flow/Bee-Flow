@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Google Maps Tools — Built-in tools for AI to get directions and search places
  * 
@@ -6,6 +6,7 @@
  * and returns Embed API URLs for rendering interactive maps in chat.
  */
 
+const { fetchFixedEndpoint } = require('../utils/fixedEndpointFetch.mts');
 const configStore = require('../stores/configStore');
 const log = require('../telemetry/log');
 
@@ -85,7 +86,7 @@ async function getMapsApiKey() {
  */
 async function geocode(address, apiKey) {
     const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=${apiKey}`;
-    const res = await fetch(url);
+    const res = await fetchFixedEndpoint(url);
     const data = /** @type {{ status?: string, results?: Array<{ geometry: { location: { lat: number, lng: number } } }> }} */ (await res.json());
     if (data.status !== 'OK' || !data.results?.length) return null;
     return data.results[0].geometry.location; // { lat, lng }
@@ -118,7 +119,7 @@ async function executeMapsTool(toolName, args) {
             url += `&departure_time=now&traffic_model=best_guess`;
         }
 
-        const res = await fetch(url);
+        const res = await fetchFixedEndpoint(url);
         const data = /** @type {{ status?: string, error_message?: string, routes?: Array<{ summary?: string, warnings?: string[], legs: Array<{ start_address: string, end_address: string, distance: { text: string }, duration: { text: string }, duration_in_traffic?: { text: string }, steps: Array<{ html_instructions: string, distance: { text: string }, duration: { text: string }, travel_mode: string }> }> }> }} */ (await res.json());
 
         if (data.status !== 'OK') {
@@ -128,7 +129,8 @@ async function executeMapsTool(toolName, args) {
             };
         }
 
-        const route = data.routes?.[0];
+        // status OK comes with at least one route.
+        const route = /** @type {NonNullable<NonNullable<typeof data.routes>[number]>} */ (data.routes?.[0]);
         const leg = route.legs[0];
 
         // Extract step-by-step directions (strip HTML tags)
@@ -186,7 +188,7 @@ async function executeMapsTool(toolName, args) {
 
         // Text Search (New) API
         const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}${locationParam}&key=${apiKey}`;
-        const res = await fetch(url);
+        const res = await fetchFixedEndpoint(url);
         const data = /** @type {{ status?: string, error_message?: string, results?: Array<{ name?: string, formatted_address?: string, rating?: number, user_ratings_total?: number, price_level?: number, opening_hours?: { open_now?: boolean }, types?: string[], place_id?: string, geometry?: { location?: object } }> }} */ (await res.json());
 
         if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {

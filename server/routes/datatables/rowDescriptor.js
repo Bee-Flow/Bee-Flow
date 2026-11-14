@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The list descriptor — the one place caller-supplied query shape is accepted,
  * and the module that closes it.
@@ -94,13 +94,14 @@ function readFilters(meta, raw) {
     const keys = filterableKeys(meta);
     return parsed.map((/** @type {{ field?: string, op?: string, value?: unknown }} */ f, /** @type {number} */ i) => {
         if (!f || typeof f !== 'object' || Array.isArray(f)) bad(`filters[${i}] must be an object`, 'bad_descriptor');
-        if (!keys.has(f.field)) {
+        // A lookup of an absent key finds nothing, which is the refusal below.
+        if (!keys.has(/** @type {string} */ (f.field))) {
             bad(`"${f.field}" is not a column of this table`, 'unknown_filter_field');
         }
-        if (!dataModel.FILTER_OPS.includes(f.op)) {
+        if (!dataModel.FILTER_OPS.includes(/** @type {string} */ (f.op))) {
             bad(`"${f.op}" is not a test this table understands`, 'unknown_filter_op');
         }
-        assertFilterValue(f.op, f.value, `filters[${i}]`);
+        assertFilterValue(/** @type {string} */ (f.op), f.value, `filters[${i}]`); // a known op, checked above
         return { field: f.field, op: f.op, value: f.value };
     });
 }
@@ -128,7 +129,7 @@ function readSearch(meta, query) {
     const value = typeof query.q === 'string' ? query.q.trim() : '';
     if (!value) return null;
     const fields = (meta.fields || [])
-        .filter((/** @type {{ key?: string, type?: string }} */ f) => f && f.key && SEARCHABLE_TYPES.has(f.type))
+        .filter((/** @type {{ key?: string, type?: string }} */ f) => f && f.key && SEARCHABLE_TYPES.has(/** @type {string} */ (f.type)))
         .map((/** @type {{ key?: string }} */ f) => f.key)
         .slice(0, MAX_LIST_FILTERS);
     // No text column means nothing to search, and an empty search must not

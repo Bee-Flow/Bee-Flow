@@ -208,7 +208,7 @@ const readMessageFields = shapeOf({
     parentId: field.strOrNull,
     error: field.optStr,
     // The server does save a turn that died after a side-effecting tool had
-    // run, marked as such (routes/ai/directChat/interruptedTurn.js).
+    // run, marked as such (usecases/ai/directChat/interruptedTurn.js).
     interrupted: field.optBool,
 });
 

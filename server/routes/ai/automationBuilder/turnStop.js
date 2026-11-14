@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Automation Builder — the turn's iteration ceiling and how a turn the model
  * cannot finish is stopped: the label and position of the step that kept
@@ -42,7 +42,8 @@ const STOP_ERROR_HEAD = 200;
  */
 function rejectedCallLabel(name, args, result) {
     const steps = Array.isArray(args?.steps) ? args.steps : null;
-    const entry = name === 'builder_add_steps' && steps && Number.isInteger(result?.failedIndex) ? steps[result.failedIndex] : null;
+    const failedIndex = result?.failedIndex;
+    const entry = name === 'builder_add_steps' && steps && Number.isInteger(failedIndex) ? steps[/** @type {number} */ (failedIndex)] : null;
     const spec = entry ? (entry.spec && typeof entry.spec === 'object' ? entry.spec : {}) : (args && typeof args === 'object' ? args : {});
     const type = entry ? entry.type : name.replace(/^builder_(add_)?/, '');
     return [spec.label, spec.tool, type].find(v => typeof v === 'string' && v) || name;
@@ -57,7 +58,7 @@ function rejectedCallLabel(name, args, result) {
  * @param {number | undefined} entryIndex
  */
 function rejectedStepPosition(def, args, entryIndex) {
-    if (Number.isInteger(entryIndex)) return entryIndex + 1;
+    if (Number.isInteger(entryIndex)) return /** @type {number} */ (entryIndex) + 1;
     const steps = Array.isArray(def?.steps) ? def.steps : [];
     const stepId = typeof args?.stepId === 'string' ? args.stepId : null;
     const at = stepId ? steps.findIndex(s => s && s.id === stepId) : -1;

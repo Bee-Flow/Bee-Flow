@@ -25,13 +25,13 @@ const assert = require('node:assert');
 
 const { createBuilderStream, call } = require('../../../testUtils/builderStreamHarness');
 
-// Above `./chatTurnLoop`, deliberately: it reaches the builder tools and from
+// Above `../../../usecases/ai/automationBuilder/chatTurnLoop`, deliberately: it reaches the builder tools and from
 // there the draft store, and the harness can only replace a module nothing
 // has loaded yet. It refuses to start if that has already happened.
 const h = createBuilderStream();
 after(() => h.restore());
 
-const TURN_LOOP = require('./chatTurnLoop');
+const TURN_LOOP = require('../../../usecases/ai/automationBuilder/chatTurnLoop');
 const CORE = require('../../../core/llm/leakedToolCalls');
 
 const EMPTY_TURN_SENTENCE = 'The model stopped twice without calling a tool or saying anything — it wrote its next step as text instead of a call. Your draft is saved; send the message again, or switch the builder to another tier.';

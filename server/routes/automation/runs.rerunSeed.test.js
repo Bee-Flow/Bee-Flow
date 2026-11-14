@@ -134,7 +134,7 @@ test('GET rerun-plan: an unknown trigger is a 400, an unknown step a 404', async
     const bad = makeRes();
     await planHandler(getReq({ seedRunId: 'r1', mode: 'only', triggerStepId: 'trig_nope' }), bad);
     assert.strictEqual(bad.statusCode, 400);
-    planImpl = () => { throw new Error('runPartial: step zz not found in definition'); };
+    planImpl = () => { throw new HttpError(404, 'step_not_found', 'Step not found in this automation.'); };
     await assert.rejects(planHandler(getReq({ seedRunId: 'r1', mode: 'only' }), makeRes()), (e) => {
         assert.strictEqual(e.status, 404);
         assert.strictEqual(e.code, 'step_not_found');

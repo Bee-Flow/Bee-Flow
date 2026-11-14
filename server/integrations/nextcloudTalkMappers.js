@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /** Shapes and error text for the Talk tools (kept apart from the executor). */
 
 const { nextcloudHttpError } = require('./nextcloudHttpError');
@@ -14,7 +14,8 @@ const { nextcloudHttpError } = require('./nextcloudHttpError');
  *   callRecording?: number, callStartTime?: number, objectType?: string, objectId?: string }} RawTalkRoom
  * @typedef {{ attendeeId?: number, actorType?: string, actorId?: string, displayName?: string,
  *   participantType?: number, inCall?: number, lastPing?: number }} RawTalkParticipant
- * @typedef {{ id: number, actor: string, actorId: string, actorType: string, timestamp: number, message: string,
+ * The fields are Talk's own, carried over as it sent them (any of them may be absent).
+ * @typedef {{ id: number | undefined, actor: string | undefined, actorId: string | undefined, actorType: string | undefined, timestamp: number | undefined, message: string | undefined,
  *   messageParameters: unknown, systemMessage: string|null, parent: TalkMessage|null,
  *   reactions: Record<string, number> }} TalkMessage
  */

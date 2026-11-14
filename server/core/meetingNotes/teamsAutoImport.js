@@ -70,6 +70,7 @@ const kit = require('./importJobKit');
 // Who an import runs for and with which session (delegated grant first, then option B).
 const access = require('./teamsImportAccess.mts');
 const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
+const { envInt } = require('../../utils/envNumber.mts');
 
 const { codedError, backoffMsFor, meetingEndMs } = kit;
 
@@ -77,7 +78,7 @@ const { codedError, backoffMsFor, meetingEndMs } = kit;
 // nothing 48 h after the end means it was not recorded (the common case).
 // Processing of long meetings can take a day, so 24 h froze jobs too early.
 const NO_RECORDING_DEADLINE_MS = 48 * 3600_000;
-const INGEST_LEASE_MINUTES = Number(process.env.TEAMS_INGEST_LEASE_MINUTES) || 120;
+const INGEST_LEASE_MINUTES = envInt('TEAMS_INGEST_LEASE_MINUTES', 120, { min: 1 });
 const MAX_INGEST_ATTEMPTS = 3;
 const MAX_USERS_PER_TICK = 100;
 const USER_JITTER_MS = 250;

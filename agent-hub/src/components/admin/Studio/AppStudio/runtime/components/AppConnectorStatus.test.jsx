@@ -1,5 +1,6 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { renderWithClient } from '@/test/render';
 import AppConnectorStatus from './AppConnectorStatus';
 import { DataProvider } from '../DataContext';
 import { RuntimeProvider, buildScope, DEFAULT_RUNTIME } from '../RuntimeContext';
@@ -28,7 +29,7 @@ function node(props = {}) {
 
 function renderCard(n = node(), { appId = 'app_1', mode = 'run' } = {}) {
     const value = { ...DEFAULT_RUNTIME, scope: buildScope({ now: '2020-01-01T00:00:00.000Z' }), mode };
-    return render(
+    return renderWithClient(
         <RuntimeProvider value={value}>
             <DataProvider appId={appId}>
                 <AppConnectorStatus node={n} />

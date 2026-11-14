@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Validate an org-scoped custom-integration definition (specVersion 1).
  *
@@ -42,8 +42,8 @@ const { validateRestTool } = require('./validateRestTool');
 /**
  * Validate a definition for an org-scoped custom integration.
  *
- * @param {{ specVersion?: number, meta?: object, api?: object, auth?: object, tools?: object[], mcp?: object }} def  the JSONB definition blob
- * @param {{ kind?: string, strict?: boolean, librarySource?: boolean, slug?: string }} [opts]
+ * @param {{ specVersion?: number, meta?: object, api?: import('./validateShared').RestApiBlock, auth?: import('./validateShared').RestAuthBlock, tools?: object[], mcp?: import('./validateShared').McpDefBlock }} def  the JSONB definition blob
+ * @param {{ kind?: string, strict?: boolean, librarySource?: boolean, slug?: string | null }} [opts]
  *   `kind`: 'rest' | 'mcp_remote'; defaults to 'rest'; `strict`: promote lint findings to errors
  *   (activation); `librarySource`: the MCP library's own install path: `meta.source` must then be
  *   'mcp_library'. Anywhere else `meta.source` is refused, because that marker decides which gate and
@@ -173,7 +173,7 @@ function checkMeta(r, meta, librarySource) {
 /**
  * REST: the `api` block.
  * @param {import('./validateShared').Reporter} r
- * @param {import('./validateShared').RestApiBlock} api
+ * @param {import('./validateShared').RestApiBlock | undefined} api   missing is reported
  */
 function checkRestApi(r, api) {
     if (!isObject(api)) {
@@ -200,7 +200,7 @@ function checkRestApi(r, api) {
 /**
  * REST: the `auth` block.
  * @param {import('./validateShared').Reporter} r
- * @param {import('./validateShared').RestAuthBlock} auth
+ * @param {import('./validateShared').RestAuthBlock | undefined} auth   missing is reported
  */
 function checkRestAuth(r, auth) {
     /** @type {Set<string>} */
@@ -208,7 +208,7 @@ function checkRestAuth(r, auth) {
     if (!isObject(auth)) {
         r.pushE({ code: 'auth.missing', path: 'auth', message: 'Missing or invalid `auth` block.', hint: 'Provide { type, … }; use { "type": "none" } for unauthenticated APIs.' });
     } else {
-        if (!AUTH_TYPES.has(auth.type)) {
+        if (!AUTH_TYPES.has(/** @type {string} */ (auth.type))) {
             r.pushE({ code: 'auth.type_invalid', path: 'auth.type', message: `auth.type must be one of bearer|header|query|basic|none (got ${JSON.stringify(auth.type)}).`, hint: 'Pick the scheme the vendor documents.' });
         }
         declaredCreds = checkCredentialList(r, auth.credentials, 'auth', 'auth');
@@ -274,14 +274,14 @@ function checkRestTools(r, tools, slug) {
 /**
  * mcp_remote: the `mcp` block.
  * @param {import('./validateShared').Reporter} r
- * @param {import('./validateShared').McpDefBlock} mcp
+ * @param {import('./validateShared').McpDefBlock | undefined} mcp   missing is reported
  */
 function checkMcp(r, mcp) {
     if (!isObject(mcp)) {
         r.pushE({ code: 'mcp.missing', path: 'mcp', message: 'Missing or invalid `mcp` block.', hint: 'Provide { url, authStyle, valueTemplate?, credentials?, toolAllowList? }.' });
     } else {
         checkHttpsUrl(r, mcp.url, { path: 'mcp.url', codePrefix: 'mcp.url', allowQuery: true, requiredLabel: 'mcp.url' });
-        if (!MCP_AUTH_STYLES.has(mcp.authStyle)) {
+        if (!MCP_AUTH_STYLES.has(/** @type {string} */ (mcp.authStyle))) {
             r.pushE({ code: 'mcp.auth_style_invalid', path: 'mcp.authStyle', message: `mcp.authStyle must be bearer|header|none (got ${JSON.stringify(mcp.authStyle)}).`, hint: 'Pick the auth scheme the MCP server documents.' });
         }
         const declared = checkCredentialList(r, mcp.credentials, 'mcp', 'mcp');
@@ -335,7 +335,7 @@ function deriveOpenAiTools(def, slug) {
         /** @type {Record<string, import('./validateShared').ParamSchema>} */
         const properties = {};
         if (isObject(src.properties)) {
-            for (const [pname, schema] of Object.entries(src.properties)) {
+            for (const [pname, schema] of Object.entries(/** @type {Record<string, import('./validateShared').ParamSchema>} */ (src.properties))) {
                 if (!isObject(schema)) continue;
                 /** @type {import('./validateShared').ParamSchema} */
                 const prop = { type: schema.type };

@@ -24,185 +24,9 @@
 const ncClient = require('./nextcloudClient');
 const { nextcloudHttpError } = require('./nextcloudHttpError');
 const { columnKind, toWireValue, fromWireValue, mapTable, mapColumn, describeColumn } = require('./nextcloudTablesValues');
+const { NEXTCLOUD_TABLES_TOOLS, MAX_ROWS, DEFAULT_ROWS } = require('./nextcloudTablesToolDefs.mts');
 
 const TABLES_API = '/index.php/apps/tables/api/1';
-// A table with tens of thousands of rows would blow the model's context and
-// the run-log budget. Reads are capped and report whether they truncated.
-const MAX_ROWS = 500;
-const DEFAULT_ROWS = 100;
-
-const NEXTCLOUD_TABLES_TOOLS = [
-    {
-        type: 'function',
-        function: {
-            name: 'nextcloud_tables_list',
-            description: 'List the Nextcloud Tables the user can access, with id, title, emoji, ownership and row/column counts. Call this first to find a table id.',
-            parameters: { type: 'object', properties: {} }
-        }
-    },
-    {
-        type: 'function',
-        function: {
-            name: 'nextcloud_tables_create',
-            description: 'Create a new Nextcloud Table. Returns the new table id.',
-            parameters: {
-                type: 'object',
-                properties: {
-                    title: { type: 'string', description: 'Title of the new table.' },
-                    emoji: { type: 'string', description: 'Optional single emoji used as the table icon.' },
-                    template: { type: 'string', description: 'Optional starter template, e.g. "todo", "members", "weight". Omit for an empty table.' }
-                },
-                required: ['title']
-            }
-        }
-    },
-    {
-        type: 'function',
-        function: {
-            name: 'nextcloud_tables_update',
-            description: 'Rename a table, change its emoji, or archive/unarchive it.',
-            parameters: {
-                type: 'object',
-                properties: {
-                    tableId: { type: ['integer', 'string'], description: 'Table id (from nextcloud_tables_list) — or the exact table title, e.g. "Facturen", when the id is unknown.' },
-                    title: { type: 'string', description: 'New title.' },
-                    emoji: { type: 'string', description: 'New emoji icon.' },
-                    archived: { type: 'boolean', description: 'true archives the table, false restores it.' }
-                },
-                required: ['tableId']
-            }
-        }
-    },
-    {
-        type: 'function',
-        function: {
-            name: 'nextcloud_tables_delete',
-            description: 'Permanently delete a table and every row in it. Destructive — prefer archiving via nextcloud_tables_update.',
-            parameters: {
-                type: 'object',
-                properties: {
-                    tableId: { type: ['integer', 'string'], description: 'Table id (from nextcloud_tables_list) — or the exact table title, e.g. "Facturen", when the id is unknown.' }
-                },
-                required: ['tableId']
-            }
-        }
-    },
-    {
-        type: 'function',
-        function: {
-            name: 'nextcloud_tables_list_columns',
-            description: 'List a table\'s columns with their numeric ids, titles and types. Needed to interpret row values, and to build a filter for nextcloud_tables_list_rows.',
-            parameters: {
-                type: 'object',
-                properties: {
-                    tableId: { type: ['integer', 'string'], description: 'Table id (from nextcloud_tables_list) — or the exact table title, e.g. "Facturen", when the id is unknown.' }
-                },
-                required: ['tableId']
-            }
-        }
-    },
-    {
-        type: 'function',
-        function: {
-            name: 'nextcloud_tables_create_column',
-            description: 'Add a column to a table.',
-            parameters: {
-                type: 'object',
-                properties: {
-                    tableId: { type: ['integer', 'string'], description: 'Table id (from nextcloud_tables_list) — or the exact table title, e.g. "Facturen", when the id is unknown.' },
-                    title: { type: 'string', description: 'Column title.' },
-                    type: { type: 'string', description: 'Column type: "text", "number", "datetime", "selection" or "usergroup". Defaults to "text".' },
-                    subtype: { type: 'string', description: 'Optional subtype, e.g. "line" or "long" for text, "date" for datetime, "check" for selection.' },
-                    mandatory: { type: 'boolean', description: 'Whether the column is required.' },
-                    description: { type: 'string', description: 'Optional column description.' },
-                    selectionOptions: { type: 'array', items: { type: 'string' }, description: 'For "selection" columns: the list of allowed option labels. Rows are then written and read by label.' },
-                    numberDecimals: { type: 'integer', description: 'For "number" columns: how many decimals are kept (default 0, so 3.5 is stored as 3). Set 2 for amounts.' },
-                    numberPrefix: { type: 'string', description: 'For "number" columns: optional prefix such as a currency symbol.' },
-                    numberSuffix: { type: 'string', description: 'For "number" columns: optional suffix such as a unit.' }
-                },
-                required: ['tableId', 'title']
-            }
-        }
-    },
-    {
-        type: 'function',
-        function: {
-            name: 'nextcloud_tables_delete_column',
-            description: 'Delete a column and all of its values.',
-            parameters: {
-                type: 'object',
-                properties: {
-                    columnId: { type: 'integer', description: 'Column id (from nextcloud_tables_list_columns).' }
-                },
-                required: ['columnId']
-            }
-        }
-    },
-    {
-        type: 'function',
-        function: {
-            name: 'nextcloud_tables_list_rows',
-            description: 'Read rows from a table. Values are returned keyed by column TITLE so they are readable and can be bound in an automation. Optionally filter with a simple field/operator/value match.',
-            parameters: {
-                type: 'object',
-                properties: {
-                    tableId: { type: ['integer', 'string'], description: 'Table id (from nextcloud_tables_list) — or the exact table title, e.g. "Facturen", when the id is unknown.' },
-                    limit: { type: 'integer', description: `Max rows (default ${DEFAULT_ROWS}, max ${MAX_ROWS}).` },
-                    offset: { type: 'integer', description: 'Rows to skip, for paging through a large table.' },
-                    filterColumn: { type: 'string', description: 'Optional column title to filter on.' },
-                    filterOperator: { type: 'string', description: 'One of "equals", "not_equals", "contains", "greater_than", "less_than", "is_empty", "is_not_empty". Defaults to "equals".' },
-                    filterValue: { type: 'string', description: 'Value to compare against. Not needed for is_empty / is_not_empty.' }
-                },
-                required: ['tableId']
-            }
-        }
-    },
-    {
-        type: 'function',
-        function: {
-            name: 'nextcloud_tables_create_row',
-            description: 'Append a row to a table — tableId is the table id or its exact title (e.g. "Facturen"). Pass values keyed by column title, e.g. {"Company": "Acme BV", "Status": "new"}.',
-            parameters: {
-                type: 'object',
-                properties: {
-                    tableId: { type: ['integer', 'string'], description: 'Table id (from nextcloud_tables_list) — or the exact table title, e.g. "Facturen", when the id is unknown.' },
-                    values: { type: 'object', description: 'Object mapping column TITLE to value. Unknown titles are reported as an error rather than silently dropped.' }
-                },
-                required: ['tableId', 'values']
-            }
-        }
-    },
-    {
-        type: 'function',
-        function: {
-            name: 'nextcloud_tables_update_row',
-            description: 'Update values on an existing row. Only the columns you pass are changed.',
-            parameters: {
-                type: 'object',
-                properties: {
-                    tableId: { type: ['integer', 'string'], description: 'Table id (from nextcloud_tables_list) — or the exact table title, e.g. "Facturen", when the id is unknown.' },
-                    rowId: { type: 'integer', description: 'Row id (from nextcloud_tables_list_rows).' },
-                    values: { type: 'object', description: 'Object mapping column TITLE to the new value.' }
-                },
-                required: ['tableId', 'rowId', 'values']
-            }
-        }
-    },
-    {
-        type: 'function',
-        function: {
-            name: 'nextcloud_tables_delete_row',
-            description: 'Delete a single row from a table.',
-            parameters: {
-                type: 'object',
-                properties: {
-                    rowId: { type: 'integer', description: 'Row id to delete.' }
-                },
-                required: ['rowId']
-            }
-        }
-    }
-];
 
 const HEADERS = {
     'Accept': 'application/json',
@@ -444,6 +268,231 @@ async function storedRow(api, ncFetch, written, columns, sentPairs) {
     return warnings.length ? { success: true, row: mapped, warnings } : { success: true, row: mapped };
 }
 
+/**
+ * @typedef {{ api: string, ncFetch: import('./nextcloudClient.types').NcAuth['fetch'], authError: string }} TablesCtx
+ * @typedef {(args: Record<string, any>, c: TablesCtx) => Promise<Record<string, any>>} TablesHandler
+ */
+
+/** @type {TablesHandler} */
+async function listTables(_args, { api, ncFetch, authError }) {
+    const res = await ncFetch(`${api}/tables`, { headers: HEADERS });
+    const out = await handle(res, authError, 'table list');
+    if (out.error) return out;
+    const tables = Array.isArray(out.data) ? out.data.map(mapTable) : [];
+    return { count: tables.length, tables };
+}
+
+/** @type {TablesHandler} */
+async function createTable(args, { api, ncFetch, authError }) {
+    if (!args.title) return { error: 'title is required' };
+    /** @type {Record<string, unknown>} */
+    const payload = { title: args.title };
+    if (args.emoji) payload.emoji = args.emoji;
+    if (args.template) payload.template = args.template;
+    const res = await ncFetch(`${api}/tables`, {
+        method: 'POST', headers: HEADERS, body: JSON.stringify(payload),
+    });
+    const out = await handle(res, authError, 'table create');
+    if (out.error) return out;
+    return { success: true, table: mapTable(out.data || {}) };
+}
+
+/** @type {TablesHandler} */
+async function updateTable(args, { api, ncFetch, authError }) {
+    if (!args.tableId) return { error: 'tableId is required' };
+    /** @type {Record<string, unknown>} */
+    const payload = {};
+    if (args.title !== undefined) payload.title = args.title;
+    if (args.emoji !== undefined) payload.emoji = args.emoji;
+    if (args.archived !== undefined) payload.archived = !!args.archived;
+    if (!Object.keys(payload).length) {
+        return { error: 'Nothing to update — pass at least one of title, emoji or archived.' };
+    }
+    const res = await ncFetch(`${api}/tables/${encodeURIComponent(args.tableId)}`, {
+        method: 'PUT', headers: HEADERS, body: JSON.stringify(payload),
+    });
+    const out = await handle(res, authError, 'table update');
+    if (out.error) return out;
+    return { success: true, table: mapTable(out.data || {}) };
+}
+
+/** @type {TablesHandler} */
+async function deleteTable(args, { api, ncFetch, authError }) {
+    if (!args.tableId) return { error: 'tableId is required' };
+    const res = await ncFetch(`${api}/tables/${encodeURIComponent(args.tableId)}`, {
+        method: 'DELETE', headers: HEADERS,
+    });
+    const out = await handle(res, authError, 'table delete');
+    if (out.error) return out;
+    return { success: true, tableId: args.tableId };
+}
+
+/** @type {TablesHandler} */
+async function listColumns(args, { api, ncFetch, authError }) {
+    if (!args.tableId) return { error: 'tableId is required' };
+    const out = await fetchColumns(api, ncFetch, authError, args.tableId);
+    if (out.error) return out;
+    return { tableId: args.tableId, count: out.columns.length, columns: out.columns };
+}
+
+/** The create-column body for the Tables API. @param {Record<string, any>} args */
+function columnPayload(args) {
+    const type = args.type || 'text';
+    /** @type {Record<string, unknown>} */
+    const payload = {
+        title: args.title,
+        type,
+        subtype: args.subtype || (type === 'text' ? 'line' : ''),
+        mandatory: !!args.mandatory,
+        description: args.description || '',
+    };
+    if (type === 'selection' && Array.isArray(args.selectionOptions)) {
+        payload.selectionOptions = JSON.stringify(
+            args.selectionOptions.map((/** @type {unknown} */ label, /** @type {number} */ i) => ({ id: i, label: String(label) }))
+        );
+    }
+    if (type === 'number') {
+        if (Number.isInteger(args.numberDecimals)) payload.numberDecimals = args.numberDecimals;
+        if (args.numberPrefix) payload.numberPrefix = String(args.numberPrefix);
+        if (args.numberSuffix) payload.numberSuffix = String(args.numberSuffix);
+    }
+    return payload;
+}
+
+/** @type {TablesHandler} */
+async function createColumn(args, { api, ncFetch, authError }) {
+    if (!args.tableId) return { error: 'tableId is required' };
+    if (!args.title) return { error: 'title is required' };
+    const res = await ncFetch(`${api}/tables/${encodeURIComponent(args.tableId)}/columns`, {
+        method: 'POST', headers: HEADERS, body: JSON.stringify(columnPayload(args)),
+    });
+    const out = await handle(res, authError, 'column create');
+    if (out.error) return out;
+    return { success: true, column: mapColumn(out.data || {}) };
+}
+
+/** @type {TablesHandler} */
+async function deleteColumn(args, { api, ncFetch, authError }) {
+    if (!args.columnId) return { error: 'columnId is required' };
+    const res = await ncFetch(`${api}/columns/${encodeURIComponent(args.columnId)}`, {
+        method: 'DELETE', headers: HEADERS,
+    });
+    const out = await handle(res, authError, 'column delete', { missing: 'column' });
+    if (out.error) return out;
+    return { success: true, columnId: args.columnId };
+}
+
+/**
+ * The rows that pass list_rows' filter arguments, or the error for a bad one.
+ * @param {ReturnType<typeof mapRow>[]} rows @param {Record<string, any>} args @param {{ title: string }[]} columns
+ */
+function filterRows(rows, args, columns) {
+    if (!args.filterColumn) return { rows };
+    const op = args.filterOperator || 'equals';
+    const fn = /** @type {Record<string, (a: unknown, b: string) => boolean>} */ (FILTER_OPS)[op];
+    if (!fn) {
+        return { error: `Unknown filterOperator "${op}". Use one of: ${Object.keys(FILTER_OPS).join(', ')}.` };
+    }
+    const known = columns.find(c => String(c.title).toLowerCase() === String(args.filterColumn).toLowerCase());
+    if (!known) {
+        return { error: `Unknown filterColumn "${args.filterColumn}". Available: ${columns.map(c => c.title).join(', ') || '(none)'}.` };
+    }
+    return { rows: rows.filter(r => fn(/** @type {Record<string, unknown>} */ (r.values)[known.title], String(args.filterValue ?? ''))) };
+}
+
+/** @type {TablesHandler} */
+async function listRows(args, { api, ncFetch, authError }) {
+    if (!args.tableId) return { error: 'tableId is required' };
+    const cols = await fetchColumns(api, ncFetch, authError, args.tableId);
+    if (cols.error) return cols;
+
+    const limit = Math.min(Math.max(args.limit || DEFAULT_ROWS, 1), MAX_ROWS);
+    // Ask for one row more than we return: that extra row is the proof
+    // there is more, so exactly `limit` rows is not reported as cut off.
+    const params = new URLSearchParams({ limit: String(limit + 1) });
+    if (args.offset) params.set('offset', String(args.offset));
+    const res = await ncFetch(
+        `${api}/tables/${encodeURIComponent(args.tableId)}/rows?${params.toString()}`,
+        { headers: HEADERS },
+    );
+    const out = await handle(res, authError, 'row list');
+    if (out.error) return out;
+
+    const fetched = Array.isArray(out.data) ? out.data : [];
+    const truncated = fetched.length > limit;
+    const filtered = filterRows(fetched.slice(0, limit).map(r => mapRow(r, cols.columns, { fillEmpty: true })), args, cols.columns);
+    if (filtered.error) return { error: filtered.error };
+    const { rows } = filtered;
+
+    return {
+        tableId: args.tableId,
+        count: rows.length,
+        // Say so when the cap bit, rather than letting an automation treat
+        // a truncated page as the whole table.
+        truncated,
+        columns: cols.columns.map(c => c.title),
+        rows,
+    };
+}
+
+/**
+ * Create or update a row from a {title: value} map, then answer the row as stored.
+ * @param {Record<string, any>} args @param {TablesCtx} c
+ * @param {{ url: string, method: string, what: string, opts?: { missing?: string } }} write
+ */
+async function writeRow(args, { api, ncFetch, authError }, write) {
+    if (!args.values || typeof args.values !== 'object') return { error: 'values must be an object mapping column titles to values' };
+    const cols = await fetchColumns(api, ncFetch, authError, args.tableId);
+    if (cols.error) return cols;
+    const resolved = resolveValues(args.values, cols.columns);
+    if (resolved.error) return resolved;
+    const res = await ncFetch(write.url, {
+        method: write.method, headers: HEADERS, body: JSON.stringify({ data: toWireData(resolved.data) }),
+    });
+    const out = await handle(res, authError, write.what, write.opts);
+    if (out.error) return out;
+    return storedRow(api, ncFetch, out.data || {}, cols.columns, resolved.data);
+}
+
+/** @type {TablesHandler} */
+async function createRow(args, c) {
+    if (!args.tableId) return { error: 'tableId is required' };
+    return writeRow(args, c, { url: `${c.api}/tables/${encodeURIComponent(args.tableId)}/rows`, method: 'POST', what: 'row create' });
+}
+
+/** @type {TablesHandler} */
+async function updateRow(args, c) {
+    if (!args.tableId) return { error: 'tableId is required' };
+    if (!args.rowId) return { error: 'rowId is required' };
+    return writeRow(args, c, { url: `${c.api}/rows/${encodeURIComponent(args.rowId)}`, method: 'PUT', what: 'row update', opts: { missing: 'row' } });
+}
+
+/** @type {TablesHandler} */
+async function deleteRow(args, { api, ncFetch, authError }) {
+    if (!args.rowId) return { error: 'rowId is required' };
+    const res = await ncFetch(`${api}/rows/${encodeURIComponent(args.rowId)}`, {
+        method: 'DELETE', headers: HEADERS,
+    });
+    const out = await handle(res, authError, 'row delete', { missing: 'row' });
+    if (out.error) return out;
+    return { success: true, rowId: args.rowId };
+}
+
+/** @type {Record<string, TablesHandler>} */
+const HANDLERS = {
+    nextcloud_tables_list: listTables,
+    nextcloud_tables_create: createTable,
+    nextcloud_tables_update: updateTable,
+    nextcloud_tables_delete: deleteTable,
+    nextcloud_tables_list_columns: listColumns,
+    nextcloud_tables_create_column: createColumn,
+    nextcloud_tables_delete_column: deleteColumn,
+    nextcloud_tables_list_rows: listRows,
+    nextcloud_tables_create_row: createRow,
+    nextcloud_tables_update_row: updateRow,
+    nextcloud_tables_delete_row: deleteRow,
+};
+
 async function executeNextcloudTablesTool(toolName, args, userId, session) {
     const ctx = await ncClient.resolveAuth(session, userId);
     const { baseUrl, fetch: ncFetch, authError } = ctx;
@@ -457,190 +506,9 @@ async function executeNextcloudTablesTool(toolName, args, userId, session) {
         args = { ...args, tableId: table.tableId };
     }
 
-    switch (toolName) {
-        case 'nextcloud_tables_list': {
-            const res = await ncFetch(`${api}/tables`, { headers: HEADERS });
-            const out = await handle(res, authError, 'table list');
-            if (out.error) return out;
-            const tables = Array.isArray(out.data) ? out.data.map(mapTable) : [];
-            return { count: tables.length, tables };
-        }
-
-        case 'nextcloud_tables_create': {
-            if (!args.title) return { error: 'title is required' };
-            const payload = { title: args.title };
-            if (args.emoji) payload.emoji = args.emoji;
-            if (args.template) payload.template = args.template;
-            const res = await ncFetch(`${api}/tables`, {
-                method: 'POST', headers: HEADERS, body: JSON.stringify(payload),
-            });
-            const out = await handle(res, authError, 'table create');
-            if (out.error) return out;
-            return { success: true, table: mapTable(out.data || {}) };
-        }
-
-        case 'nextcloud_tables_update': {
-            if (!args.tableId) return { error: 'tableId is required' };
-            const payload = {};
-            if (args.title !== undefined) payload.title = args.title;
-            if (args.emoji !== undefined) payload.emoji = args.emoji;
-            if (args.archived !== undefined) payload.archived = !!args.archived;
-            if (!Object.keys(payload).length) {
-                return { error: 'Nothing to update — pass at least one of title, emoji or archived.' };
-            }
-            const res = await ncFetch(`${api}/tables/${encodeURIComponent(args.tableId)}`, {
-                method: 'PUT', headers: HEADERS, body: JSON.stringify(payload),
-            });
-            const out = await handle(res, authError, 'table update');
-            if (out.error) return out;
-            return { success: true, table: mapTable(out.data || {}) };
-        }
-
-        case 'nextcloud_tables_delete': {
-            if (!args.tableId) return { error: 'tableId is required' };
-            const res = await ncFetch(`${api}/tables/${encodeURIComponent(args.tableId)}`, {
-                method: 'DELETE', headers: HEADERS,
-            });
-            const out = await handle(res, authError, 'table delete');
-            if (out.error) return out;
-            return { success: true, tableId: args.tableId };
-        }
-
-        case 'nextcloud_tables_list_columns': {
-            if (!args.tableId) return { error: 'tableId is required' };
-            const out = await fetchColumns(api, ncFetch, authError, args.tableId);
-            if (out.error) return out;
-            return { tableId: args.tableId, count: out.columns.length, columns: out.columns };
-        }
-
-        case 'nextcloud_tables_create_column': {
-            if (!args.tableId) return { error: 'tableId is required' };
-            if (!args.title) return { error: 'title is required' };
-            const type = args.type || 'text';
-            const payload = {
-                title: args.title,
-                type,
-                subtype: args.subtype || (type === 'text' ? 'line' : ''),
-                mandatory: !!args.mandatory,
-                description: args.description || '',
-            };
-            if (type === 'selection' && Array.isArray(args.selectionOptions)) {
-                payload.selectionOptions = JSON.stringify(
-                    args.selectionOptions.map((label, i) => ({ id: i, label: String(label) }))
-                );
-            }
-            if (type === 'number') {
-                if (Number.isInteger(args.numberDecimals)) payload.numberDecimals = args.numberDecimals;
-                if (args.numberPrefix) payload.numberPrefix = String(args.numberPrefix);
-                if (args.numberSuffix) payload.numberSuffix = String(args.numberSuffix);
-            }
-            const res = await ncFetch(`${api}/tables/${encodeURIComponent(args.tableId)}/columns`, {
-                method: 'POST', headers: HEADERS, body: JSON.stringify(payload),
-            });
-            const out = await handle(res, authError, 'column create');
-            if (out.error) return out;
-            return { success: true, column: mapColumn(out.data || {}) };
-        }
-
-        case 'nextcloud_tables_delete_column': {
-            if (!args.columnId) return { error: 'columnId is required' };
-            const res = await ncFetch(`${api}/columns/${encodeURIComponent(args.columnId)}`, {
-                method: 'DELETE', headers: HEADERS,
-            });
-            const out = await handle(res, authError, 'column delete', { missing: 'column' });
-            if (out.error) return out;
-            return { success: true, columnId: args.columnId };
-        }
-
-        case 'nextcloud_tables_list_rows': {
-            if (!args.tableId) return { error: 'tableId is required' };
-            const cols = await fetchColumns(api, ncFetch, authError, args.tableId);
-            if (cols.error) return cols;
-
-            const limit = Math.min(Math.max(args.limit || DEFAULT_ROWS, 1), MAX_ROWS);
-            // Ask for one row more than we return: that extra row is the proof
-            // there is more, so exactly `limit` rows is not reported as cut off.
-            const params = new URLSearchParams({ limit: String(limit + 1) });
-            if (args.offset) params.set('offset', String(args.offset));
-            const res = await ncFetch(
-                `${api}/tables/${encodeURIComponent(args.tableId)}/rows?${params.toString()}`,
-                { headers: HEADERS },
-            );
-            const out = await handle(res, authError, 'row list');
-            if (out.error) return out;
-
-            const fetched = Array.isArray(out.data) ? out.data : [];
-            const truncated = fetched.length > limit;
-            let rows = fetched.slice(0, limit).map(r => mapRow(r, cols.columns, { fillEmpty: true }));
-
-            if (args.filterColumn) {
-                const op = args.filterOperator || 'equals';
-                const fn = FILTER_OPS[op];
-                if (!fn) {
-                    return { error: `Unknown filterOperator "${op}". Use one of: ${Object.keys(FILTER_OPS).join(', ')}.` };
-                }
-                const known = cols.columns.find(c => String(c.title).toLowerCase() === String(args.filterColumn).toLowerCase());
-                if (!known) {
-                    return { error: `Unknown filterColumn "${args.filterColumn}". Available: ${cols.columns.map(c => c.title).join(', ') || '(none)'}.` };
-                }
-                rows = rows.filter(r => fn(r.values[known.title], String(args.filterValue ?? '')));
-            }
-
-            return {
-                tableId: args.tableId,
-                count: rows.length,
-                // Say so when the cap bit, rather than letting an automation treat
-                // a truncated page as the whole table.
-                truncated,
-                columns: cols.columns.map(c => c.title),
-                rows,
-            };
-        }
-
-        case 'nextcloud_tables_create_row': {
-            if (!args.tableId) return { error: 'tableId is required' };
-            if (!args.values || typeof args.values !== 'object') return { error: 'values must be an object mapping column titles to values' };
-            const cols = await fetchColumns(api, ncFetch, authError, args.tableId);
-            if (cols.error) return cols;
-            const resolved = resolveValues(args.values, cols.columns);
-            if (resolved.error) return resolved;
-            const res = await ncFetch(`${api}/tables/${encodeURIComponent(args.tableId)}/rows`, {
-                method: 'POST', headers: HEADERS, body: JSON.stringify({ data: toWireData(resolved.data) }),
-            });
-            const out = await handle(res, authError, 'row create');
-            if (out.error) return out;
-            return storedRow(api, ncFetch, out.data || {}, cols.columns, resolved.data);
-        }
-
-        case 'nextcloud_tables_update_row': {
-            if (!args.tableId) return { error: 'tableId is required' };
-            if (!args.rowId) return { error: 'rowId is required' };
-            if (!args.values || typeof args.values !== 'object') return { error: 'values must be an object mapping column titles to values' };
-            const cols = await fetchColumns(api, ncFetch, authError, args.tableId);
-            if (cols.error) return cols;
-            const resolved = resolveValues(args.values, cols.columns);
-            if (resolved.error) return resolved;
-            const res = await ncFetch(`${api}/rows/${encodeURIComponent(args.rowId)}`, {
-                method: 'PUT', headers: HEADERS, body: JSON.stringify({ data: toWireData(resolved.data) }),
-            });
-            const out = await handle(res, authError, 'row update', { missing: 'row' });
-            if (out.error) return out;
-            return storedRow(api, ncFetch, out.data || {}, cols.columns, resolved.data);
-        }
-
-        case 'nextcloud_tables_delete_row': {
-            if (!args.rowId) return { error: 'rowId is required' };
-            const res = await ncFetch(`${api}/rows/${encodeURIComponent(args.rowId)}`, {
-                method: 'DELETE', headers: HEADERS,
-            });
-            const out = await handle(res, authError, 'row delete', { missing: 'row' });
-            if (out.error) return out;
-            return { success: true, rowId: args.rowId };
-        }
-
-        default:
-            return { error: `Unknown Nextcloud Tables tool: ${toolName}` };
-    }
+    const handler = Object.hasOwn(HANDLERS, toolName) ? HANDLERS[toolName] : null;
+    if (!handler) return { error: `Unknown Nextcloud Tables tool: ${toolName}` };
+    return handler(args, { api, ncFetch, authError });
 }
 
 function isNextcloudTablesTool(toolName) {

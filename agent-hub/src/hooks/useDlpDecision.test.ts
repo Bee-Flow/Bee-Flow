@@ -1,4 +1,5 @@
-import { renderHook, act } from '@testing-library/react';
+import { act } from '@testing-library/react';
+import { renderHookWithClient as renderHook } from '@/test/render';
 import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vitest';
 import useDlpDecision, { DLP_TOUCH_INTERVAL_MS, type DlpPending } from './useDlpDecision';
 import { authFetch } from '../utils/helpers';
@@ -92,15 +93,15 @@ describe('useDlpDecision — submit', () => {
 });
 
 describe('useDlpDecision — keep-alive heartbeat', () => {
-    it('heartbeats the decision immediately and on the interval while the review is open', () => {
+    it('heartbeats the decision immediately and on the interval while the review is open', async () => {
         vi.useFakeTimers();
         const { result } = renderHook(() => useDlpDecision());
-        act(() => dispatch('beeflow:dlp_preview', { decisionId: 'd7', reviewText: 'x', findings: [] }));
+        await act(async () => dispatch('beeflow:dlp_preview', { decisionId: 'd7', reviewText: 'x', findings: [] }));
 
         expect(touchCalls().length).toBe(1);
         expect(JSON.parse(touchCalls()[0][1].body)).toEqual({ decisionId: 'd7' });
 
-        act(() => { vi.advanceTimersByTime(DLP_TOUCH_INTERVAL_MS * 3); });
+        await act(async () => { await vi.advanceTimersByTimeAsync(DLP_TOUCH_INTERVAL_MS * 3); });
         expect(touchCalls().length).toBe(4);
         expect(result.current.pending).not.toBeNull();
     });
@@ -123,11 +124,11 @@ describe('useDlpDecision — keep-alive heartbeat', () => {
     it('stops heartbeating once the decision is submitted', async () => {
         vi.useFakeTimers();
         const { result } = renderHook(() => useDlpDecision());
-        act(() => dispatch('beeflow:dlp_preview', { decisionId: 'd9', reviewText: 'x', findings: [] }));
+        await act(async () => dispatch('beeflow:dlp_preview', { decisionId: 'd9', reviewText: 'x', findings: [] }));
         expect(touchCalls().length).toBe(1);
 
         await act(async () => { await result.current.submit('allow'); });
-        act(() => { vi.advanceTimersByTime(DLP_TOUCH_INTERVAL_MS * 5); });
+        await act(async () => { await vi.advanceTimersByTimeAsync(DLP_TOUCH_INTERVAL_MS * 5); });
         expect(touchCalls().length).toBe(1);
     });
     it('a review that opens while the previous decision is still in flight stays open', async () => {

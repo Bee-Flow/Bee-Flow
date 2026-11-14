@@ -124,7 +124,8 @@ function normaliseEntry(entry, at, notes, depth = 0) {
 }
 
 /**
- * @returns {{ args: object, notes: string[], garbled: boolean }}
+ * @typedef {{ [k: string]: unknown, parentId?: unknown, components?: unknown[], index?: unknown }} AddComponentsArgs  the call's arguments, still as the model sent them
+ * @returns {{ args: AddComponentsArgs, notes: string[], garbled: boolean }}
  */
 function normaliseAddComponentsArgs(rawArgs) {
     /** @type {string[]} */

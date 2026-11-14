@@ -57,3 +57,10 @@ test('contacts_search finds a contact by e-mail', async () => {
     assert.equal(out.count, 1);
     assert.equal(out.contacts[0].uid, 'abc');
 });
+
+test('the dispatcher: an unknown name, missing arguments and a delete', async () => {
+    assert.deepEqual(await run('nextcloud_contacts_nope', {}), { error: 'Unknown Nextcloud contacts tool: nextcloud_contacts_nope' });
+    assert.deepEqual(await run('nextcloud_contacts_create', { addressbook: 'contacts' }), { error: 'addressbook and fullName are required' });
+    assert.deepEqual(await run('nextcloud_contacts_search', {}), { error: 'query is required' });
+    assert.deepEqual(await run('nextcloud_contacts_delete', { addressbook: 'contacts', uid: 'abc' }), { success: true, addressbook: 'contacts', uid: 'abc' });
+});

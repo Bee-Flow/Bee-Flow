@@ -40,7 +40,7 @@ const { TransactionRollback } = require('../utils/txRollback');
  * return a result to fully override dispatch for a query.
  *
  * @param {{ tables?: Record<string, Record<string, any>[]>,
- *   matchers?: Record<string, (rows: Record<string, any>[], sql: string, params: any[]) => Record<string, any>[]>,
+ *   matchers?: Record<string, (rows: Record<string, any>[], sql: string, params: any[]) => Record<string, any>[] | undefined>,
  *   onQuery?: (sql: string, params: any[]) => ({rows: Record<string, any>[], rowCount: number}) | undefined }} [opts]
  */
 function createRecordingDb({ tables = {}, matchers = {}, onQuery } = {}) {

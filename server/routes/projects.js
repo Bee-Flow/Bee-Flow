@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Project Routes — REST API for organizing chats into projects.
  *
@@ -121,7 +122,7 @@ const {
 const { recordProjectChange, recordItemMoved } = require('../projects/changeFeed').makeChangeFeed({ store: projectStore });
 
 // Something a project compliance check reads changed (ids only).
-const { signalProjectChanged } = require('./projects/complianceSignal');
+const { signalProjectChanged } = require('../usecases/projects/complianceSignal');
 // What happens to a notebook's or page's co-editing state, comment threads and
 // compliance signal when it leaves a project, or the project is deleted.
 const itemLifecycle = require('../core/projectContent/itemLifecycle');
@@ -189,7 +190,7 @@ const { requireProjectRole: requireRole } = require('../auth/projectAccess');
 
 // GET / — list user's projects (owned + shared). `?kind=` narrows the list to
 // one side of the split; a legacy (unclassified) project is on both sides.
-router.get('/', validate({ query: S.ListQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof S.ListQuery>>} */ req, res) => {
+router.get('/', validate({ query: S.ListQuery }), async (req, res) => {
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ error: 'Not authenticated' });
     const kind = req.query.kind || undefined;
@@ -199,7 +200,7 @@ router.get('/', validate({ query: S.ListQuery }), async (/** @type {import('expr
 });
 
 // POST / — create project
-router.post('/', validate({ body: S.CreateBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof S.CreateBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/', validate({ body: S.CreateBody }), async (req, res) => {
     const userId = getUserId(req);
     if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 
@@ -270,7 +271,7 @@ router.post('/', validate({ body: S.CreateBody }), async (/** @type {import('exp
 const MAX_SUMMARY_PROJECTS = 60;
 const MAX_SUMMARY_SINCE_MS = 7 * 24 * 60 * 60 * 1000;
 
-router.get('/summary', validate({ query: S.SummaryQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof S.SummaryQuery>>} */ req, res) => {
+router.get('/summary', validate({ query: S.SummaryQuery }), async (req, res) => {
     try {
         const userId = getUserId(req);
         if (!userId) return res.status(401).json({ error: 'Not authenticated' });
@@ -363,7 +364,7 @@ router.get('/:id', requireRole('viewer'), async (req, res) => {
 });
 
 // PUT /:id — update project (editor+)
-router.put('/:id', requireRole('editor'), validate({ body: S.UpdateBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof S.UpdateBody>, import('qs').ParsedQs>} */ req, res) => {
+router.put('/:id', requireRole('editor'), validate({ body: S.UpdateBody }), async (req, res) => {
     const userId = getUserId(req);
     const before = await projectStore.getProject(req.params.id);
     if (!before) return res.status(404).json({ error: 'Not found' });
@@ -389,7 +390,7 @@ router.put('/:id', requireRole('editor'), validate({ body: S.UpdateBody }), asyn
         if (!kbCheck.ok) {
             return res.status(400).json({ error: 'Unknown, inaccessible or cross-organisation knowledge bases', invalid: kbCheck.invalid });
         }
-        knowledgeBaseIds = kbCheck.ids;
+        knowledgeBaseIds = /** @type {string[]} */ (kbCheck.ids);
     }
 
     // Optimistic concurrency. The client sends the whole form — including a
@@ -461,7 +462,7 @@ router.use('/', require('./projects/kind').makeKindRouter({
 
 // POST /:id/archive and /:id/restore — the owner closes a project (read-only for everyone, hidden from
 // the default list) and opens it again. Both are idempotent and pass `allowArchived`, as does DELETE.
-router.post('/:id/archive', requireRole('owner', { allowArchived: true }), validate({ body: S.ArchiveBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof S.ArchiveBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/:id/archive', requireRole('owner', { allowArchived: true }), validate({ body: S.ArchiveBody }), async (req, res) => {
     const userId = getUserId(req);
     const project = req.project || await projectStore.getProject(req.params.id);
     if (!project) throw notFound();
@@ -469,10 +470,10 @@ router.post('/:id/archive', requireRole('owner', { allowArchived: true }), valid
     const updated = await projectStore.setArchived(project.id, userId);
     await recordProjectChange(project.id, userId, 'project_archived', {});
     signalProjectChanged(project, 'settings');
-    res.json({ success: true, archivedAt: updated?.archivedAt || null });
+    res.json({ success: true, archivedAt: /** @type {{ archivedAt?: unknown } | null} */ (updated)?.archivedAt || null });
 });
 
-router.post('/:id/restore', requireRole('owner', { allowArchived: true }), validate({ body: S.ArchiveBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof S.ArchiveBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/:id/restore', requireRole('owner', { allowArchived: true }), validate({ body: S.ArchiveBody }), async (req, res) => {
     const userId = getUserId(req);
     const project = req.project || await projectStore.getProject(req.params.id);
     if (!project) throw notFound();
@@ -561,7 +562,6 @@ router.use('/', require('./projects/resources').makeResourcesRouter({
     getUserGroups,
 }));
 
-
 /**
  * The loader itself lives in projects/graphForProject.js (the publish gate in
  * ./projects/packaging.js asks the same question, and a router is not where
@@ -593,7 +593,7 @@ router.use('/', require('./projects/packaging'));
 // ── Conversation assignment ──────────────────────────────
 
 // PUT /:id/conversations — assign/unassign conversations (editor+)
-router.put('/:id/conversations', requireRole('editor'), validate({ body: S.ConversationsBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof S.ConversationsBody>, import('qs').ParsedQs>} */ req, res) => {
+router.put('/:id/conversations', requireRole('editor'), validate({ body: S.ConversationsBody }), async (req, res) => {
     const userId = getUserId(req);
     const { assign, unassign } = req.body;
     // assign: [{ id, type: 'direct'|'agent' }]
@@ -612,7 +612,7 @@ router.put('/:id/conversations', requireRole('editor'), validate({ body: S.Conve
     for (const conv of [...(assign || []).map(c => ({ ...c, into: true })), ...(unassign || [])]) {
         const table = conv.type === 'agent' ? 'agent_conversations' : 'direct_conversations';
         const filing = await projectStore.getOwnConversationFiling(conv.id, userId, table);
-        if (filing?.shared && !(conv.into && filing.projectId === req.params.id)) {
+        if (filing?.shared && !('into' in conv && conv.into && filing.projectId === req.params.id)) {
             return res.status(409).json({
                 error: 'A chat shared with a project cannot be moved or detached. Stop sharing it first.',
                 code: 'CONVERSATION_SHARED', conversationId: conv.id,

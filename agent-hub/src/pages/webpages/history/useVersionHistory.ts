@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { PrimaryContent } from '@/api/webpageEditorTypes';
 import { api } from '@/api/webpagesApi';
+import { useWebpageVersionsRead } from '@/api/queries/webpageVersions';
 import { errorMessage } from '@/utils/caughtError';
 
 /** One row of `GET /:id/versions` (routes/webpages.js + core/webpages/versionFacts.js). */
@@ -33,6 +34,14 @@ export interface VersionCoverage {
 
 const errorText = (err: unknown) => errorMessage(err);
 
+/** One page of GET /:id/versions. */
+interface VersionPage {
+    versions?: VersionRow[];
+    hasMore?: boolean;
+    published?: { seq?: number | null } | null;
+    coverage?: VersionCoverage | null;
+}
+
 /** The version list of one page: load, page on, and the read-only viewer. */
 export function useVersionList(webpageId: string, onLoaded: ((n: number) => void) | undefined) {
     const [versions, setVersions] = useState<VersionRow[]>([]);
@@ -54,10 +63,11 @@ export function useVersionList(webpageId: string, onLoaded: ((n: number) => void
     const onLoadedRef = useRef(onLoaded);
     useEffect(() => { onLoadedRef.current = onLoaded; }, [onLoaded]);
 
+    const readVersions = useWebpageVersionsRead<VersionPage>();
     const load = useCallback(async () => {
         setLoading(true);
         try {
-            const data = await api(`/${webpageId}/versions`);
+            const data = await readVersions(webpageId);
             if (!mountedRef.current) return;
             const rows: VersionRow[] = Array.isArray(data.versions) ? data.versions : [];
             setVersions(rows);
@@ -71,14 +81,14 @@ export function useVersionList(webpageId: string, onLoaded: ((n: number) => void
         } finally {
             if (mountedRef.current) setLoading(false);
         }
-    }, [webpageId]);
+    }, [webpageId, readVersions]);
     useEffect(() => { load(); }, [load]);
 
     const loadMore = useCallback(async () => {
         if (loadingMore) return;
         setLoadingMore(true);
         try {
-            const data = await api(`/${webpageId}/versions?offset=${versions.length}`);
+            const data = await readVersions(webpageId, versions.length);
             if (!mountedRef.current) return;
             const rows: VersionRow[] = Array.isArray(data.versions) ? data.versions : [];
             // The PARENT's counter is NOT called from inside this updater. A
@@ -94,7 +104,7 @@ export function useVersionList(webpageId: string, onLoaded: ((n: number) => void
         } finally {
             if (mountedRef.current) setLoadingMore(false);
         }
-    }, [webpageId, versions.length, loadingMore]);
+    }, [webpageId, versions.length, loadingMore, readVersions]);
 
     return { versions, hasMore, published, coverage, loading, loadingMore, error, setError, load, loadMore, mountedRef };
 }

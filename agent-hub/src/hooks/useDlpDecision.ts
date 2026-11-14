@@ -14,8 +14,9 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { API_BASE } from '../utils/helpers';
-import { mutate, errorBody, RefusedError } from '../api/mutate';
+import { errorBody, RefusedError } from '../api/mutate';
+import { apiRequest } from '@/api/typedRequest';
+import { useDlpDecisionTouchMutation } from '@/api/queries/dlpDecisionTouch';
 
 // The server expires an unanswered decision after ten minutes of silence
 // (decisionQueue.js). While the review is open we heartbeat well under that
@@ -98,22 +99,17 @@ export default function useDlpDecision(): UseDlpDecisionReturn {
     }, []);
 
     const decisionId = pending?.decisionId;
+    const { mutate: touch } = useDlpDecisionTouchMutation();
 
     useEffect(() => {
         if (!decisionId) return undefined;
-        const beat = () => {
-            // Best-effort: a failed beat leaves the modal alone — an expired
-            // decision still reports through submit's own error path.
-            mutate(`${API_BASE}/api/chat/dlp-decision/touch`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ decisionId }),
-            }).catch(() => {});
-        };
+        // Best-effort: a failed beat leaves the modal alone — an expired
+        // decision still reports through submit's own error path.
+        const beat = () => touch(decisionId);
         beat();
         const intervalId = setInterval(beat, DLP_TOUCH_INTERVAL_MS);
         return () => clearInterval(intervalId);
-    }, [decisionId]);
+    }, [decisionId, touch]);
 
     const submit = useCallback(async (
         choice: DlpChoice,
@@ -124,18 +120,16 @@ export default function useDlpDecision(): UseDlpDecisionReturn {
         setError(null);
         try {
             try {
-                await mutate(`${API_BASE}/api/chat/dlp-decision`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+                await apiRequest('POST /api/chat/dlp-decision', {
+                    body: {
                     decisionId: pending.decisionId,
                     choice,
                     rememberForConversation,
                     // Spans the user marked in the review UI — only meaningful
                     // for 'redact', omitted entirely for 'block'/'allow'.
                     ...(Array.isArray(manualAdditions) && manualAdditions.length > 0 ? { manualAdditions } : {}),
-                }),
-            });
+                },
+                });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const data = errorBody(err) ?? {};

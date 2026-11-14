@@ -18,197 +18,164 @@
  *   4. ZERO IS AN ANSWER, "not readable" is not one. Those two may not become the
  *      same on any screen, so they may not have the same value here either.
  *
- * Hermetic: `../db` is stubbed (the pattern of blueprint/releases.test.js),
- * so no Postgres is involved and the SQL is checked on SHAPE —
- * the same choice that blueprint/mappers.test.js makes for `canRead`.
+ * On a real Postgres: the boot ladder's schema on PGlite
+ * (testUtils/pgliteTemplate.js ladderPglite) behind the store's db facade
+ * (testUtils/pgliteDb.js dbFacade). The facade notes the columns each read
+ * got back, which is how "no row comes out" and "the manifest is not
+ * fetched" are read off the database's answer.
  *
  * Run: cd server && node --test stores/blueprint/gallery.test.js
  */
 
 const test = require('node:test');
 const assert = require('node:assert');
-const path = require('node:path');
-const Module = require('module');
 
-// ── De db-stub ──────────────────────────────────────────────────────────────
+const { pgliteDb, dbFacade } = require('../../testUtils/pgliteDb');
+const { ladderPglite } = require('../../testUtils/pgliteTemplate');
+const { makeBlueprintStore } = require('../blueprintStore');
 
-const calls = { getOne: [], getAll: [], run: [], exec: [] };
-// `counts` is what the counting query answers; `countRow` overrides the WHOLE
-// row, so that "the row did not come back" can also be simulated.
-const state = { counts: { here: 0, elsewhere: 0 }, countRow: undefined, row: null };
+const { pg, db } = pgliteDb(ladderPglite());
+const facade = dbFacade(db);
+/** The column names of every row the database answered with, per read. */
+const answered = [];
+const getOne = facade.getOne;
+const getAll = facade.getAll;
+facade.getOne = async (sql, params) => { const r = await getOne(sql, params); answered.push(r ? Object.keys(r) : []); return r; };
+facade.getAll = async (sql, params) => { const rows = await getAll(sql, params); answered.push(rows[0] ? Object.keys(rows[0]) : []); return rows; };
+const store = makeBlueprintStore(facade);
 
-const flat = (s) => String(s).replace(/\s+/g, ' ').trim();
-
-const dbStub = {
-    async exec(sql) { calls.exec.push(sql); return { rowCount: 0 }; },
-    async run(sql, params) { calls.run.push({ sql, params }); return { rowCount: 0 }; },
-    async getOne(sql, params) {
-        calls.getOne.push({ sql, params });
-        if (/COUNT\(\*\)/.test(flat(sql))) {
-            return state.countRow !== undefined ? state.countRow : state.counts;
-        }
-        return state.row;
-    },
-    async getAll(sql, params) { calls.getAll.push({ sql, params }); return []; },
-    isSqlStateError(err) { return typeof err?.code === 'string' && /^[0-9A-Z]{5}$/.test(err.code); },
-    async withTransaction(fn) {
-        return fn({ async query() { return { rows: [], rowCount: 0 }; } });
-    },
-};
-
-const STORES_DIR = path.sep + 'stores' + path.sep;
-const STUB_PATH = path.join(__dirname, '__stub_db_installs__.js');
-const origResolve = Module._resolveFilename;
-Module._resolveFilename = function (request, parent, ...rest) {
-    if (parent && parent.filename && parent.filename.includes(STORES_DIR) && request === '../db') {
-        return STUB_PATH;
-    }
-    return origResolve.call(this, request, parent, ...rest);
-};
-require.cache[STUB_PATH] = { id: STUB_PATH, filename: STUB_PATH, loaded: true, exports: dbStub };
-
-const store = require('../blueprintStore');
+test.after(() => pg.close());
 
 async function reset() {
-    await store.initDB();
-    for (const k of Object.keys(calls)) calls[k].length = 0;
-    state.counts = { here: 0, elsewhere: 0 };
-    state.countRow = undefined;
-    state.row = null;
+    answered.length = 0;
+    await pg.exec('DELETE FROM projects; DELETE FROM project_blueprints');
 }
+let seq = 0;
+/** @param {string} blueprintId @param {string | null} org */
+const install = (blueprintId, org) => pg.query(
+    'INSERT INTO projects (id, name, owner_id, organization_id, installed_from_blueprint_id) VALUES ($1, $1, $2, $3, $4)',
+    [`p${++seq}`, 'someone', org, blueprintId]);
+/** @param {Record<string, unknown>} over */
+const blueprint = (over) => {
+    const r = { solution_key: 'sol_p1', name: 'Orders', manifest: JSON.stringify({ solution: {} }), ...over };
+    const cols = Object.keys(r);
+    return pg.query(`INSERT INTO project_blueprints (${cols.join(', ')}) VALUES (${cols.map((_, i) => `$${i + 1}`).join(', ')})`, Object.values(r));
+};
 
-const countQuery = () => calls.getOne.find(c => /COUNT\(\*\)/.test(flat(c.sql)));
+// ── 1. Across organisations ─────────────────────────────────────────────────
 
-// ── 1. Over organisaties heen ───────────────────────────────────────────────
-
-test('de telling splitst in hier en elders, en kijkt dus over organisaties heen', async () => {
+test('the count splits into here and elsewhere, and so looks across organisations', async () => {
     await reset();
-    state.counts = { here: 2, elsewhere: 5 };
+    for (const org of ['org_source', 'org_source', 'org_b', 'org_b', 'org_c', '', null]) await install('bp_a', org);
+    await install('bp_b', 'org_c');
+    await install('bp_other', 'org_source');          // another Blueprint: not counted
+    await install(null, 'org_source');
     const out = await store.countInstallsFor(['bp_a', 'bp_b'], { organizationId: 'org_source' });
-    assert.deepStrictEqual(out, { here: 2, elsewhere: 5 });
-
-    const q = countQuery();
-    assert.ok(q, 'er is een tellende query gedraaid');
-    const sql = flat(q.sql);
-    // Exactly two parameters: the ids and the organisation of the source. Were the
-    // organisation in the WHERE instead of the FILTER, the function would count
-    // only its own organisation — the answer "0" to the question
-    // it exists for.
-    assert.deepStrictEqual(q.params, [['bp_a', 'bp_b'], 'org_source']);
-    assert.match(sql, /WHERE installed_from_blueprint_id = ANY\(\$1::text\[\]\)/);
-    // The organisation belongs in the FILTER and NOT in the WHERE of the table: if
-    // it already filtered the rows away, "elsewhere" would be zero by definition and the
-    // function would precisely not count what it has to count.
-    const whereClause = sql.split('FROM projects')[1] || '';
-    assert.ok(!whereClause.includes('organization_id'),
-        'de WHERE van de tabel noemt geen organisatie — anders verdwijnt "elders"');
-    assert.match(sql, /FILTER \(WHERE COALESCE\(organization_id, ''\) = COALESCE\(\$2, ''\)\)/);
-    assert.match(sql, /FILTER \(WHERE COALESCE\(organization_id, ''\) <> COALESCE\(\$2, ''\)\)/);
+    // Were the organisation in the WHERE instead of the FILTER, "elsewhere"
+    // would be zero by definition: the answer "0" to the question it exists for.
+    assert.deepStrictEqual(out, { here: 2, elsewhere: 6 });
 });
 
 // ── 2. Empty and NULL are the same "no organisation" ────────────────────────
 
-test('een org-loze bron vergelijkt met de lege string, niet met NULL', async () => {
+test('an org-less source compares with the empty string, not with NULL', async () => {
     // `projects.organization_id` is TEXT DEFAULT '' (createProject writes
     // `organizationId || ''`), while the gallery side may be NULL. Without the
     // COALESCE on BOTH sides an org-less installation never matches and
     // counts as "elsewhere" — exactly the wrong way round.
     await reset();
-    await store.countInstallsFor(['bp_a'], { organizationId: null });
-    assert.deepStrictEqual(countQuery().params[1], '',
-        'null wordt de lege string, zodat de vergelijking klopt met wat er in de kolom staat');
+    await install('bp_a', '');
+    await install('bp_a', null);
+    await install('bp_a', 'org1');
+    assert.deepStrictEqual(await store.countInstallsFor(['bp_a'], { organizationId: null }), { here: 2, elsewhere: 1 });
+    assert.deepStrictEqual(await store.countInstallsFor(['bp_a'], {}), { here: 2, elsewhere: 1 });
 });
 
-// ── 3. Er komt geen rij uit ─────────────────────────────────────────────────
+// ── 3. No row comes out ─────────────────────────────────────────────────────
 
-test('er komen twee getallen uit, nooit een rij', async () => {
+test('two numbers come out, never a row', async () => {
     await reset();
-    state.counts = { here: 1, elsewhere: 0 };
+    await install('bp_a', 'org1');
+    await install('bp_a', 'org2');
     const out = await store.countInstallsFor(['bp_a'], { organizationId: 'org1' });
-    assert.deepStrictEqual(Object.keys(out).sort(), ['elsewhere', 'here']);
-
-    const sql = flat(countQuery().sql);
-    assert.ok(!/SELECT \*/.test(sql), 'geen SELECT * — dan reist elke toekomstige kolom mee');
-    for (const column of ['p.name', 'owner_id', 'icon', 'created_at', 'installed_version']) {
-        assert.ok(!sql.includes(column), `${column} hoort niet in een telling`);
-    }
-    // GROUP BY organization_id would give a breakdown PER organisation, and
-    // with a single installation that is no longer an aggregate but a hint.
-    assert.ok(!/GROUP BY/i.test(sql), 'geen uitsplitsing per organisatie');
+    assert.deepStrictEqual(out, { here: 1, elsewhere: 1 });
+    // One row of two counts: no project column, and no breakdown per organisation.
+    assert.deepStrictEqual(answered, [['here', 'elsewhere']]);
 });
 
-// ── 4. Nul is een antwoord ──────────────────────────────────────────────────
+// ── 4. Zero is an answer ────────────────────────────────────────────────────
 
-test('zonder Blueprint valt er niets te tellen, en dat is nul', async () => {
+test('without a Blueprint there is nothing to count, and that is zero', async () => {
     // From an id that does not exist nobody can have installed anything. Zero is
     // an answer here and not a gap — and it saves a query.
     await reset();
+    await install('bp_a', 'org1');
     for (const ids of [[], null, ['', null, 42]]) {
-        assert.deepStrictEqual(await store.countInstallsFor(ids, { organizationId: 'org1' }),
+        assert.deepStrictEqual(await store.countInstallsFor(/** @type {any} */ (ids), { organizationId: 'org1' }),
             { here: 0, elsewhere: 0 });
     }
-    assert.strictEqual(countQuery(), undefined, 'geen query zonder een enkel bruikbaar id');
+    assert.deepStrictEqual(answered, [], 'no query without a single usable id');
+    assert.deepStrictEqual(await store.countInstallsFor(['bp_nobody'], { organizationId: 'org1' }), { here: 0, elsewhere: 0 });
 });
 
-test('een onleesbare telling is null, nooit 0', async () => {
-    // "Nobody has installed this" and "we could not check" are
-    // two different statements. `Number(null)` is 0, so this is precisely
-    // the place where a bare coercion throws the distinction away.
-    for (const answer of [null, {}, { here: null, elsewhere: 0 }, { here: 0, elsewhere: 'veel' }]) {
-        await reset();
-        state.countRow = answer;
-        assert.strictEqual(await store.countInstallsFor(['bp_a'], {}), null,
-            `${JSON.stringify(answer)} is geen telling en mag niet als 0 lezen`);
+test('an unreadable count is null, never 0', async () => {
+    // "Nobody has installed this" and "we could not check" are two different
+    // statements. `Number(null)` is 0, so this is precisely the place where a
+    // bare coercion throws the distinction away. A database does not answer
+    // like this, so the answer is injected.
+    for (const answer of [null, {}, { here: null, elsewhere: 0 }, { here: 0, elsewhere: 'lots' }]) {
+        const odd = makeBlueprintStore({ ...facade, getOne: async () => answer });
+        assert.strictEqual(await odd.countInstallsFor(['bp_a'], {}), null,
+            `${JSON.stringify(answer)} is not a count and may not read as 0`);
     }
 });
 
-// ── 5. The access question does NOT belong here ─────────────────────────────────
+// ── 5. The access question does NOT belong here ─────────────────────────────
 
-test('de store autoriseert niets — de aanroeper levert de geautoriseerde id\'s', async () => {
+test('the store authorises nothing — the caller supplies the authorised ids', async () => {
     // The same promise as listStamps/listInstalledVersions/listReleases: this
     // function counts what it gets. Who may count is decided by the route, with the
     // owner role on the source project.
     await reset();
-    state.counts = { here: 9, elsewhere: 9 };
-    const out = await store.countInstallsFor(['bp_van_een_ander'], { organizationId: 'org_willekeurig' });
-    assert.deepStrictEqual(out, { here: 9, elsewhere: 9 });
+    await blueprint({ id: 'bp_of_someone_else', created_by: 'mallory', organization_id: 'org_other' });
+    await install('bp_of_someone_else', 'org_random');
+    assert.deepStrictEqual(await store.countInstallsFor(['bp_of_someone_else'], { organizationId: 'org_random' }), { here: 1, elsewhere: 0 });
 });
 
-// ── 6. The meta read does not drag the manifest along ───────────────────────────
+// ── 6. The meta read does not drag the manifest along ───────────────────────
 
-test('een lezing zonder manifest haalt het manifest ook echt niet op', async () => {
+test('a read without the manifest really does not fetch the manifest', async () => {
     await reset();
-    state.row = { id: 'bp_abc', organization_id: 'org1', created_by: 'alice', solution_key: 'sol_p1', version: 2, name: 'Orders' };
+    await blueprint({ id: 'bp_abc', organization_id: 'org1', created_by: 'alice', version: 2 });
     const meta = await store.getBlueprintById('bp_abc', { includeManifest: false });
-    assert.strictEqual(meta.manifest, undefined, 'geen manifest in het antwoord');
+    assert.strictEqual(meta.manifest, undefined, 'no manifest in the answer');
     assert.strictEqual(meta.organizationId, 'org1');
-
-    const read = calls.getOne.find(c => /FROM project_blueprints/.test(flat(c.sql)));
-    assert.ok(!/SELECT \*/.test(flat(read.sql)), 'geen SELECT * op het meta-pad');
-    assert.ok(!/manifest/.test(flat(read.sql)), 'het manifest staat niet in de kolommenlijst');
+    assert.strictEqual(meta.name, 'Orders');
+    assert.ok(!answered.at(-1).includes('manifest'), 'the database did not send the manifest');
 });
 
-test('de gewone lezing draagt het manifest nog steeds', async () => {
+test('the ordinary read still carries the manifest', async () => {
     // The install wizard reads a Blueprint WITH the manifest; that path must not
     // have been quietly narrowed by the option above.
     await reset();
-    state.row = { id: 'bp_abc', organization_id: 'org1', created_by: 'alice', version: 1, manifest: { solution: {} } };
+    await blueprint({ id: 'bp_abc', organization_id: 'org1', created_by: 'alice', version: 1 });
     const full = await store.getBlueprintById('bp_abc');
     assert.deepStrictEqual(full.manifest, { solution: {} });
-    const read = calls.getOne.find(c => /FROM project_blueprints/.test(flat(c.sql)));
-    assert.match(flat(read.sql), /SELECT \* FROM project_blueprints/);
 });
 
-test('de galerijlijst haalt de manifesten óók niet op', async () => {
-    // `mapRow(..., { includeManifest: false })` gooide ze daarna toch weg, dus
-    // de query sleepte tot MAX_BLUEPRINTS_PER_ORG (100) JSONB-blobs van elk
-    // maximaal MAX_BLUEPRINT_BYTES (16 MB) door de pool om er een handvol
-    // strings uit te lezen. Elke lezer betaalde dat: de galerij, de
-    // toegangsvraag én de installatieteller.
+test('the gallery list does not fetch the manifests either, and shows only what the caller may install', async () => {
+    // `mapRow(..., { includeManifest: false })` threw them away afterwards, so the
+    // query dragged up to MAX_BLUEPRINTS_PER_ORG (100) JSONB blobs of at most
+    // MAX_BLUEPRINT_BYTES (16 MB) each through the pool to read a handful of
+    // strings out of them. Every reader paid that: the gallery, the access
+    // question and the install counter.
     await reset();
-    await store.listBlueprintsFor({ userId: 'alice', organizationId: 'org1' });
-    const read = calls.getAll.find(c => /FROM project_blueprints/.test(flat(c.sql)));
-    assert.ok(read, 'de galerijlijst draait een query');
-    assert.ok(!/SELECT \*/.test(flat(read.sql)), 'geen SELECT * op een lijst die het manifest weggooit');
-    assert.ok(!/manifest/.test(flat(read.sql)), 'het manifest staat niet in de kolommenlijst');
+    await blueprint({ id: 'bp_org', organization_id: 'org1', created_by: 'bob' });
+    await blueprint({ id: 'bp_mine', organization_id: null, created_by: 'alice' });
+    await blueprint({ id: 'bp_theirs', organization_id: null, created_by: 'bob' });
+    await blueprint({ id: 'bp_other_org', organization_id: 'org2', created_by: 'alice' });
+    const list = await store.listBlueprintsFor({ userId: 'alice', organizationId: 'org1' });
+    assert.deepStrictEqual(list.map(b => b.id).sort(), ['bp_mine', 'bp_org']);
+    assert.ok(list.every(b => b.manifest === undefined));
+    assert.ok(!answered.at(-1).includes('manifest'), 'the database did not send the manifests');
 });

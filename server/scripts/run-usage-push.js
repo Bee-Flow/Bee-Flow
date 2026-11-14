@@ -18,6 +18,7 @@ require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env'
 const { pool } = require('../db');
 const configStore = require('../stores/configStore');
 const push = require('../jobs/usageOpenObservePush');
+const { ignoreGone } = require('../utils/bestEffort');
 
 const WATERMARK_KEY = 'usage_openobserve_watermark';
 
@@ -40,6 +41,6 @@ const WATERMARK_KEY = 'usage_openobserve_watermark';
         console.error('[run-usage-push] failed:', e.message);
         process.exitCode = 1;
     } finally {
-        await pool.end().catch(() => {});
+        await pool.end().catch((err) => ignoreGone('scripts/run-usage-push:poolEnd', err));
     }
 })();

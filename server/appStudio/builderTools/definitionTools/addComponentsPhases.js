@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio builder tools — the phases of app_add_components that do not
  * depend on the per-entry build loop: argument preparation, the three refusal
@@ -20,7 +21,7 @@ function prepareAddArgs(def, draftWrap, rawArgs) {
     // `{components:[{parentId, children:[…]}]}` — the batch envelope sent as
     // the one entry (measured 15× in one turn, 2026-09-13): lift it.
     if (args && Array.isArray(args.components) && args.components.length === 1) {
-        const only = args.components[0];
+        const only = /** @type {{ type?: unknown, children?: unknown, parentId?: unknown } | null | undefined} */ (args.components[0]);
         if (only && typeof only === 'object' && only.type === undefined && Array.isArray(only.children) && only.children.length && (typeof only.parentId === 'string' || args.parentId === undefined)) {
             if (typeof only.parentId === 'string' && !args.parentId) args.parentId = only.parentId;
             args.components = only.children;

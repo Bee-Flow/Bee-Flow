@@ -8,10 +8,13 @@
  */
 
 const fs = require('fs');
+const { FormData: UndiciFormData } = require('undici');
+const { fetchConfiguredEndpoint } = require('../http/configuredEndpointFetch');
 const { assignSpeakersByOverlap } = require('./transcriptArtifacts');
 const log = require('../../telemetry/log');
 const { buildAudioArgs, runFfmpeg } = require('../media/ffmpeg');
 const { bestEffort } = require('../../utils/bestEffort');
+const { envInt, envNumber } = require('../../utils/envNumber.mts');
 
 // Scaleway's audio endpoint only accepts these container formats; anything else
 // (webm/opus, m4a/aac, mp4) is transcoded to mp3 first.
@@ -143,20 +146,22 @@ async function mapLimit(items, limit, fn) {
  *  honouring Retry-After — this is what paces concurrent chunks under the quota. */
 async function scalewayCallOnce(sendPath, cfg) {
     const path = require('path');
-    const maxRetries = Number(process.env.SCALEWAY_MAX_RETRIES) || 8;
+    const maxRetries = envInt('SCALEWAY_MAX_RETRIES', 8, { min: 0 });
     for (let attempt = 0; ; attempt++) {
-        const form = new FormData();
+        const form = new UndiciFormData(); // the class of the fetch below, which is undici's
         form.append('file', await fs.openAsBlob(sendPath), path.basename(sendPath));
         form.append('model', cfg.model);
         if (cfg.language) form.append('language', cfg.language);
         form.append('response_format', 'verbose_json');
         form.append('timestamp_granularities[]', 'segment');
         if (cfg.contextTerms) form.append('prompt', String(cfg.contextTerms)); // biases glossary spelling
-        const resp = await fetch(`${cfg.baseUrl}/v1/audio/transcriptions`, {
+        // Scaleway's host, or the one an admin set (scaleway_url / SCALEWAY_URL).
+        const resp = await fetchConfiguredEndpoint(`${cfg.baseUrl}/v1/audio/transcriptions`, {
             method: 'POST',
-            body: form,
+            body: /** @type {BodyInit} */ (/** @type {unknown} */ (form)),
             headers: { Authorization: `Bearer ${cfg.apiKey}` },
-            signal: AbortSignal.timeout(Number(process.env.SCALEWAY_TIMEOUT_MS) || 600000),
+            signal: AbortSignal.timeout(envInt('SCALEWAY_TIMEOUT_MS', 600000, { min: 1 })),
+            redirect: 'follow',
         });
         if (resp.ok) {
             const data = /** @type {{ segments?: Array<{ text?: string, start?: number, end?: number }>, text?: string }} */ (await resp.json());
@@ -216,9 +221,9 @@ async function transcribeWithScaleway(filePath, fileName, language, contextTerms
     // transcribe them in parallel, and stitch results back with each chunk's real
     // time offset. Thresholds are env-tunable.
     const fileSize = fs.statSync(filePath).size;
-    const CHUNK_THRESHOLD = Number(process.env.SCALEWAY_CHUNK_THRESHOLD_BYTES) || 20 * 1024 * 1024;
-    const CHUNK_SECONDS = Number(process.env.SCALEWAY_CHUNK_SECONDS) || 600;
-    const CONCURRENCY = Number(process.env.SCALEWAY_CHUNK_CONCURRENCY) || 2;
+    const CHUNK_THRESHOLD = envInt('SCALEWAY_CHUNK_THRESHOLD_BYTES', 20 * 1024 * 1024, { min: 1 });
+    const CHUNK_SECONDS = envNumber('SCALEWAY_CHUNK_SECONDS', 600, { positive: true });
+    const CONCURRENCY = envInt('SCALEWAY_CHUNK_CONCURRENCY', 2, { min: 1 });
 
     /** @type {({ text: string; start: number | undefined; end: number | undefined; gap?: boolean })[]} */
     let rawSegments = [];
@@ -290,7 +295,7 @@ async function transcribeWithScaleway(filePath, fileName, language, contextTerms
     const canDiarize = diarizerUrl && segments.length && segments.some(s => (s.end || 0) > 0);
     if (canDiarize) {
         try {
-            const timeout = Number(process.env.WHISPERX_DIARIZE_TIMEOUT_MS) || 1800000; // 30 min: CPU diarization of long meetings
+            const timeout = envInt('WHISPERX_DIARIZE_TIMEOUT_MS', 1800000, { min: 1 }); // 30 min: CPU diarization of long meetings
             const form = new FormData();
             form.append('file', await fs.openAsBlob(filePath), fileName); // original file; /diarize decodes any format
             const apiSvcKey = process.env.SERVICES_API_KEY;

@@ -40,6 +40,7 @@ const { POLL_FAILURE_THRESHOLD, escalateSubscriptionFailure: escalateWithCtx } =
 const { getPublicBaseUrl, buildClientState, provisionSubscription, revokeSubscription, renewExpiringSubscriptions: renewWithCtx } = require('./triggerBus/msGraphSubscriptions');
 const latestMatch = require('./triggerBus/latestMatch');
 const { fallback } = require('../utils/bestEffort');
+const { integrationClient } = require('../core/integrations/integrationClients');
 
 // Test seam (_setDepsForTests): the credential lookups, the Google client
 // factory and the per-subscription dispatcher the polling pass goes through,
@@ -48,7 +49,7 @@ const { fallback } = require('../utils/bestEffort');
 const DEFAULT_DEPS = {
     userStore: () => require('../stores/userStore'),
     automationAuth: () => require('../auth/automationAuth'),
-    googleClient: () => require('../integrations/googleClient'),
+    googleClient: () => integrationClient('google'),
     dispatchToSubscription: () => dispatchToSubscription,
 };
 let _deps = { ...DEFAULT_DEPS };
@@ -153,7 +154,7 @@ async function runPollingPass() {
 // Ceiling on external calls per pass regardless of how many subscriptions are
 // due. The per-pass cache already collapses siblings that poll the same tool
 // with the same arguments; this is the backstop.
-const MAX_SOURCE_TOOL_CALLS_PER_PASS = parseInt(process.env.AUTOMATION_SOURCE_POLL_MAX_CALLS, 10) || 40;
+const MAX_SOURCE_TOOL_CALLS_PER_PASS = require('../utils/envNumber.mts').envInt('AUTOMATION_SOURCE_POLL_MAX_CALLS', 40, { min: 1 });
 const _noProducerLogged = new Set();
 
 /**
@@ -306,22 +307,21 @@ async function loadSession(userId) {
 }
 
 // What the extracted modules (pollers, escalation, MS Graph renewal, latest
-// match) need from the server's import cycle is handed to them here instead of
-// required there, so they stay leaves (scc-ratchet). Every getter is read at
-// call time: _setDepsForTests swaps automationStore and _deps after load, and
-// the integration modules stay lazily required, as they were inline.
+// match) need is handed to them here, so they stay leaves (scc-ratchet). Every
+// getter is read at call time (_setDepsForTests swaps automationStore and _deps
+// after load); the provider clients come from the registry integrations/ fills.
 const ctx = {
     store: () => automationStore, coworkStore: () => require('../stores/coworkStore'),
     googleClient: () => _deps.googleClient(),
-    gmailTools: () => require('../integrations/gmailTools'),
-    nextcloudActivityTools: () => require('../integrations/nextcloudActivityTools'),
-    nextcloudNotificationsTools: () => require('../integrations/nextcloudNotificationsTools'),
-    nextcloudCalendarTools: () => require('../integrations/nextcloudCalendarTools'),
+    gmailTools: () => integrationClient('gmail'),
+    nextcloudActivityTools: () => integrationClient('nextcloudActivity'),
+    nextcloudNotificationsTools: () => integrationClient('nextcloudNotifications'),
+    nextcloudCalendarTools: () => integrationClient('nextcloudCalendar'),
     ncScopeGuard: () => require('../core/integrations/ncScopeGuard'),
     notificationStore: () => require('../stores/notificationStore'),
     loadSession: (userId) => loadSession(userId),
     microsoftSession: (session, userId, opts) => require('../auth/microsoftSessionHydration').resolveMicrosoftSession(session, userId, opts),
-    msGraphClient: () => require('../core/integrations/integrationClients').integrationClient('msGraph'),
+    msGraphClient: () => integrationClient('msGraph'),
     escalate: (sub, threshold, errorMsg) => escalateSubscriptionFailure(sub, threshold, errorMsg),
 };
 

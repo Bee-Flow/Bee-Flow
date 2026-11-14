@@ -198,3 +198,23 @@ test('a blank entry in the people list is named by index', async () => {
     await refuses({ method: 'PUT', url: '/forms/a1/audience', body: { audience: 'restricted', sharedUserIds: ['pat', ''] } },
         'body.sharedUserIds.1');
 });
+
+// ═══ POST /:id/activate, /:id/deactivate, /:id/restore ══════════════
+
+test('switching an automation on or off, and restoring it, take no fields: one sent is refused by name', async () => {
+    for (const [action, subject] of [['activate', 'Switching an automation on'], ['deactivate', 'Switching an automation off'], ['restore', 'Restoring an automation']]) {
+        touched.length = 0;
+        const res = await dispatch({ method: 'POST', url: `/a1/${action}`, body: { version: 3 } });
+        assert.strictEqual(res.statusCode, 400, action);
+        assert.match(res.body.error, new RegExp(`${subject} does not take "version"`));
+        assert.deepStrictEqual(touched, [], `${action}: nothing was read`);
+    }
+});
+
+test('making the answers table takes no fields: one sent is refused by name', async () => {
+    touched.length = 0;
+    const res = await dispatch({ method: 'POST', url: '/forms/a1/answers-table', body: { title: 'Answers' } });
+    assert.strictEqual(res.statusCode, 400);
+    assert.match(res.body.error, /Making the answers table does not take "title"/);
+    assert.deepStrictEqual(touched, []);
+});

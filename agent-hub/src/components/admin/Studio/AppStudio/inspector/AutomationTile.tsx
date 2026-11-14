@@ -2,12 +2,12 @@ import { useQuery } from '@tanstack/react-query';
 import { ExternalLink, Plus, Repeat, Workflow } from 'lucide-react';
 import React from 'react';
 import useTranslation from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
 import { cardRadius, kindColorVar, kindTileStyle } from '@/components/shared/kindColors';
 import { appRefParam, buildStudioSearch, segmentForSection } from '../../studioRoutes';
 import type { AutomationRow } from '../editor/automationTitles';
 import type { AppRef } from './appDefinition';
-import { request, RefusedError } from '@/api/mutate';
+import { RefusedError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 /**
  * "Which automation" — the run_automation target, as a tile instead of a button.
@@ -99,7 +99,7 @@ const RANGE_HOURS = 24;
 async function fetchFacets(automationId: string | null | undefined): Promise<RunFacets | null> {
     let res: Response;
     try {
-        res = await request(`${API_BASE}/api/automation/_runs/facets?automationId=${(encodeURIComponent as (value: string | null | undefined) => string)(automationId)}&range=${RANGE_HOURS}`);
+        res = await apiRequest('GET /api/automation/_runs/facets', { query: { automationId: String(automationId), range: RANGE_HOURS } });
     } catch (err) {
         if (!(err instanceof RefusedError)) throw err;
         return null;
@@ -111,7 +111,7 @@ async function fetchProjects(): Promise<ProjectRow[]> {
     // Only Solutions bundle automations; collaborative workspaces never hold one.
     let res: Response;
     try {
-        res = await request(`${API_BASE}/api/projects?kind=solution`);
+        res = await apiRequest('GET /api/projects', { query: { kind: 'solution' } });
     } catch (err) {
         if (!(err instanceof RefusedError)) throw err;
         return [];

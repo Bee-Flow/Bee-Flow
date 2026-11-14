@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: give every datatable column a stable id, then build the columns
  * that were never built (2026-09).
@@ -44,6 +44,7 @@
 const { getAll, getOne, withTransaction } = require('../db');
 const { backfillModelFieldIds } = require('../core/dataEngine/dataModel/datatableFields');
 const { migrationPlan } = require('../core/dataEngine/dataModel/migrationPlan');
+const { fallback } = require('../utils/bestEffort');
 
 const PG = { dialect: 'pg' };
 // applyMigration refuses more than 500 statements in one call.
@@ -83,7 +84,7 @@ function reconcileDdl(model) {
 async function up() {
     // Nothing to repair before the datatable tables exist — a fresh install
     // reaches this migration with no models at all.
-    const probe = await getOne(`SELECT to_regclass('datatable_models') AS t`).catch(/** @returns {null} */ () => null);
+    const probe = await getOne(`SELECT to_regclass('datatable_models') AS t`).catch((err) => fallback('migrations/datatable-field-ids:probe', err, null));
     if (!probe?.t) return;
 
     // Scoped, not org-keyed: datatable-scope-2026-09 runs first, so every model

@@ -26,6 +26,7 @@ process.env.NODE_ENV = 'test';
 const { test } = require('node:test');
 const assert = require('node:assert');
 const Module = require('module');
+const { fakeAgentGates } = require('./agentGate.testkit');
 
 const seen = [];
 const pass = (req, res, next) => next();
@@ -71,8 +72,8 @@ const MOCKS = {
         getOrCreateAgentConversation: async () => ({ id: 'c1' }),
         startSseHeartbeat: () => () => {},
     },
-    './crud': { canModifyAgent: async () => true, canReadAgent: async () => true },
 };
+MOCKS['./crud'] = fakeAgentGates({ agentStore: MOCKS['../../stores/agentStore'] });
 
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {

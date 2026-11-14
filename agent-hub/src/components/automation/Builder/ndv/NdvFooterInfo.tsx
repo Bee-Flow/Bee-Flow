@@ -43,6 +43,7 @@ export default function NdvFooterInfo({ quick, inSummary, outSummary, isTrigger,
                 type="button"
                 onClick={onGoFull}
                 title={t('automations.builder.see_data_in_out', 'See the data going in and coming out')}
+                aria-label={t('automations.builder.see_data_in_out', 'See the data going in and coming out')}
                 data-testid="ndv-footer-inout"
                 className={`inline-flex items-center gap-1.5 text-[var(--text-secondary)] hover:text-[var(--text-primary)] ${NARROW_FOLD}`}
             >

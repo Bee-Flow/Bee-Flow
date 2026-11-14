@@ -8,26 +8,30 @@
 
 const { UUID_RE, PROJECT_FILES_KIND, KB_COUNTS_SELECT } = require('./model');
 const log = require('../../telemetry/log');
+const { bestEffort } = require('../../utils/bestEffort');
 
 /**
  * A base that moves to another organisation takes no query log along: the rows belong to the old
  * organisation's key and consent. Logging is switched off and the rows deleted, audited as purged.
- * @param {(sql: string, params?: unknown[]) => Promise<any>} getOne @param {string} id @param {string} fromOrg @param {string} toOrg @param {string} [actorId]
+ * `client` is the caller's transaction, the one that moves the base; the audit row commits with it.
+ * @param {{ query: (sql: string, params?: unknown[]) => Promise<any> }} client
+ * @param {string} id @param {string} fromOrg @param {string} toOrg @param {string} [actorId]
  */
-async function purgeQueryLogOnOrgChange(getOne, id, fromOrg, toOrg, actorId) {
+async function purgeQueryLogOnOrgChange(client, id, fromOrg, toOrg, actorId) {
+    const q = async (/** @type {string} */ sql, /** @type {unknown[]} */ params) => (await client.query(sql, params)).rows[0];
     try {
-        const deleted = await getOne('SELECT COUNT(*)::int AS n FROM kb_query_log WHERE kb_id = $1', [id]);
-        const was = await getOne('SELECT query_log_enabled FROM knowledge_bases WHERE id = $1', [id]);
+        const deleted = await q('SELECT COUNT(*)::int AS n FROM kb_query_log WHERE kb_id = $1', [id]);
+        const was = await q('SELECT query_log_enabled FROM knowledge_bases WHERE id = $1', [id]);
         if (!was?.query_log_enabled && !deleted?.n) return;
-        await getOne('UPDATE knowledge_bases SET query_log_enabled = false WHERE id = $1 RETURNING id', [id]);
+        await q('UPDATE knowledge_bases SET query_log_enabled = false WHERE id = $1 RETURNING id', [id]);
         // The acknowledgements were given for the old organisation's notice.
-        await getOne('WITH d AS (DELETE FROM kb_query_log_ack WHERE kb_id = $1 RETURNING 1) SELECT COUNT(*)::int AS n FROM d', [id]);
-        await getOne('WITH d AS (DELETE FROM kb_query_log WHERE kb_id = $1 RETURNING 1) SELECT COUNT(*)::int AS n FROM d', [id]);
+        await q('WITH d AS (DELETE FROM kb_query_log_ack WHERE kb_id = $1 RETURNING 1) SELECT COUNT(*)::int AS n FROM d', [id]);
+        await q('WITH d AS (DELETE FROM kb_query_log WHERE kb_id = $1 RETURNING 1) SELECT COUNT(*)::int AS n FROM d', [id]);
         await require('./queryLog/audit.mts').recordKbQueryLogAudit({
             action: 'kb.query_log.purged', targetType: 'knowledge_base', targetId: String(id), orgId: fromOrg, actorId: actorId || 'system',
             oldValues: { enabled: !!was?.query_log_enabled, rows: deleted?.n ?? 0 },
             newValues: { enabled: false, reason: 'organization_changed', toOrganizationId: toOrg },
-        });
+        }, client);
     } catch (err) {
         log.error('[KbQueryLog] purge after an organisation change failed:', /** @type {Error} */ (err)?.message || err);
         throw err;
@@ -41,7 +45,7 @@ const { isMissingTable } = require('../../utils/isMissingTable');
  *        so a method swapped on the export is the one the others call)
  */
 function makeCatalogFns(ctx) {
-    const { run, getOne, getAll, initDB, managedParts, assertKbWrite, kbUpdateChanges, stageStore, self: KnowledgeBasesStore } = ctx;
+    const { run, getOne, getAll, withTransaction, initDB, managedParts, assertKbWrite, kbUpdateChanges, stageStore, self: KnowledgeBasesStore } = ctx;
     return {
         // ── KB CRUD ─────────────────────────────────────────────────────────
 
@@ -141,7 +145,10 @@ function makeCatalogFns(ctx) {
             // NULL — COALESCE alone can't express the clear, so a
             // boolean flag drives a CASE for that column.
             const clearCategory = categoryId === null;
-            const updated = await getOne(
+            // A move to another organisation and the purge of the old organisation's query log
+            // commit together: the base is never in the new organisation with the old log.
+            const moves = !!(priorOrg && organizationId && priorOrg !== organizationId);
+            const update = (/** @type {typeof getOne} */ one) => one(
                 `UPDATE knowledge_bases
              SET name = COALESCE($2, name),
                  description = COALESCE($3, description),
@@ -155,8 +162,12 @@ function makeCatalogFns(ctx) {
              RETURNING *`,
                 [id, name, description, categoryId, icon, usageJson, clearCategory, organizationId || null, typeof keepOriginals === 'boolean' ? keepOriginals : null]
             );
-            if (priorOrg && organizationId && priorOrg !== organizationId) await purgeQueryLogOnOrgChange(getOne, id, priorOrg, organizationId, opts.actorId);
-            return updated;
+            if (!moves) return update(getOne);
+            return withTransaction(async (client) => {
+                const updated = await update(async (sql, params) => (await client.query(sql, params)).rows[0]);
+                await purgeQueryLogOnOrgChange(client, id, priorOrg, organizationId, opts.actorId);
+                return updated;
+            });
         },
 
         /**
@@ -217,9 +228,11 @@ function makeCatalogFns(ctx) {
 
         deleteKBCategory: async (id) => {
             await initDB();
-            // Detach any KBs from this category, then remove it
-            await run(`UPDATE knowledge_bases SET category_id = NULL WHERE category_id = $1`, [id]);
-            await run(`DELETE FROM kb_categories WHERE id = $1`, [id]);
+            // Detach any KBs from this category and remove it, together.
+            await withTransaction(async (client) => {
+                await client.query(`UPDATE knowledge_bases SET category_id = NULL WHERE category_id = $1`, [id]);
+                await client.query(`DELETE FROM kb_categories WHERE id = $1`, [id]);
+            });
             return true;
         },
 
@@ -261,7 +274,7 @@ function makeCatalogFns(ctx) {
                  WHERE knowledge_base_ids @> to_jsonb($1::text)`,
                     [id]
                 );
-            } catch (e) { log.debug('projects table may not exist yet on first boot', e); }
+            } catch (e) { if (!isMissingTable(e)) bestEffort('stores/kb/catalog:scrubProjectRefs', e); /* no projects table yet on first boot */ }
             // Rows derived from the base that no foreign key reaches: the local
             // chunks and the pre-delete document snapshots go with it.
             const ifPresent = (/** @type {unknown} */ e) => { if (!isMissingTable(e)) throw e; };

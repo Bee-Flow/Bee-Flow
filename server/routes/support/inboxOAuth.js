@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Tenant Support Inbox: the dedicated per-mailbox OAuth connect (NOT the
  * login OAuth), and the platform Service Email connect that reuses its
@@ -12,8 +12,19 @@ const supportInboxStore = require('../../stores/supportInboxStore');
 const audit = require('../../support/audit');
 const providerClients = require('../../services/email/providerClients');
 const { resolveOrgScope, loadInboxInScope } = require('./inboxScope');
-const { oauthClosePage: _oauthClosePage, serviceEmailClosePage: _serviceEmailClosePage } = require('./oauthClosePage');
+const { oauthClosePage: _oauthClosePage, serviceEmailClosePage: _serviceEmailClosePage } = require('../../usecases/support/oauthClosePage');
 const { fallback } = require('../../utils/bestEffort');
+const { HttpError } = require('../../core/http/errors');
+
+/**
+ * What the popup may say about a connect that failed: the sentence of an error written for the
+ * client (HttpError), else a fixed one. The cause (a provider's token answer, a database error)
+ * goes to the log, not into the page.
+ * @param {unknown} err
+ */
+function failureText(err) {
+    return err instanceof HttpError ? err.message : 'The mailbox could not be connected. Try again; if it keeps failing, the server log has the cause.';
+}
 
 /**
  * Build the OAuth callback URL. Mirrors the login flow (server/auth/oauthRoutes.js):
@@ -30,7 +41,7 @@ function redirectUriFor(req) {
     let host = process.env.SERVER_PUBLIC_HOST;
     let protocol = process.env.SERVER_PROTOCOL || req.protocol || 'https';
     if (!host) {
-        host = req.get('X-Forwarded-Host') || null;
+        host = req.get('X-Forwarded-Host') || undefined;
         if (!host) {
             const ref = req.get('Referer');
             if (ref) { try { const u = new URL(ref); host = u.host; protocol = u.protocol.replace(':', ''); } catch (err) { fallback('routes/support/inboxOAuth:redirectUriFor', err); /* ignore */ } }
@@ -58,7 +69,8 @@ async function _handleServiceEmailCallback(req, res) {
         }
         const emailService = require('../../utils/emailService');
         const { address } = await emailService.completeOAuthConnect({
-            code, redirectUri: sess.redirectUri || redirectUriFor(req),
+            // Passed on as sent: the token exchange refuses a missing code.
+            code: /** @type {string} */ (code), redirectUri: sess.redirectUri || redirectUriFor(req),
         });
         delete req.session.serviceEmailConnect;
         await /** @type {Promise<void>} */ (new Promise((r) => req.session.save(() => r())));
@@ -67,7 +79,7 @@ async function _handleServiceEmailCallback(req, res) {
     } catch (err) {
         log.error('[ServiceEmail] oauth/callback error:', /** @type {Error} */ (err).message);
         delete req.session.serviceEmailConnect;
-        res.status(500).send(_serviceEmailClosePage(false, /** @type {Error} */ (err).message));
+        res.status(500).send(_serviceEmailClosePage(false, failureText(err)));
     }
 }
 
@@ -122,7 +134,7 @@ async function oauthCallback(req, res) {
         res.send(_oauthClosePage(true));
     } catch (err) {
         log.error('[SupportInbox] oauth/callback error:', /** @type {Error} */ (err).message);
-        res.status(500).send(_oauthClosePage(false, /** @type {Error} */ (err).message));
+        res.status(500).send(_oauthClosePage(false, failureText(err)));
     }
 }
 

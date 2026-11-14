@@ -211,3 +211,19 @@ test('a rollback a caller may ask for still runs', async () => {
     assert.strictEqual(opts.version, '0.9.0');
     assert.strictEqual(opts.force, true);
 });
+
+// ═══ The actions that take no fields ════════════════════════════════
+
+test('an action on a module takes no fields: one sent is refused by name, before the loader runs', async () => {
+    for (const url of ['/demo/import', '/demo/remove', '/demo/reactivate', '/disconnect', '/entitlements/refresh']) {
+        const res = await refuses({ method: 'POST', url, body: { force: true } }, 'body');
+        assert.match(res.body.error, /does not take "force"/);
+    }
+});
+
+test('the same actions without a body still run', async () => {
+    for (const url of ['/demo/import', '/demo/remove', '/demo/reactivate', '/disconnect', '/entitlements/refresh']) {
+        const res = await dispatch({ method: 'POST', url });
+        assert.strictEqual(res.statusCode, 200, `${url} -> ${JSON.stringify(res.body)}`);
+    }
+});

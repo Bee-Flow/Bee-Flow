@@ -38,6 +38,7 @@ const {
 } = require('./openaiModelCaps');
 const log = require('../../telemetry/log');
 const { normalizeUsage } = require('./usageNormalizer');
+const { newResponsesStreamState, handleResponsesEvent, finishResponsesStream } = require('./openaiResponsesStream.mts');
 
 class OpenAIProvider extends BaseProvider {
     constructor() {
@@ -670,139 +671,9 @@ class OpenAIProvider extends BaseProvider {
         log.info(`[${this.name}] SDK streaming (responses, store=${this.responsesStore}) for model:`, model, 'reasoning:', JSON.stringify(params.reasoning || null));
         const stream = await client.responses.create(params);
 
-        // Function calls in flight. A single slot loses calls whenever the model
-        // emits parallel tools in one turn, which it does routinely — so they
-        // are keyed.
-        //
-        // The key has to be `output_index`, because it is the ONLY field the
-        // SDK puts on all three events: `response.output_item.added` carries
-        // `item` + `output_index` and NO `item_id`, while the argument
-        // delta/done events carry `item_id` + `output_index`. Keying on
-        // `item_id ?? output_index` looks equivalent and is not: the call gets
-        // stored under `0` and looked up under `fc_abc`, so nothing is ever
-        // found and EVERY tool call is silently dropped. The item id is kept as
-        // a secondary alias in case a future event omits the index.
-        const fnCalls = new Map();
-        const keysFor = (event) => {
-            const keys = [];
-            if (event.output_index !== undefined && event.output_index !== null) keys.push(`idx:${event.output_index}`);
-            const itemId = event.item_id || event.item?.id;
-            if (itemId) keys.push(`id:${itemId}`);
-            if (!keys.length) keys.push('default');
-            return keys;
-        };
-        const findCall = (event) => {
-            for (const k of keysFor(event)) {
-                const call = fnCalls.get(k);
-                if (call) return call;
-            }
-            return null;
-        };
-        const dropCall = (event) => {
-            for (const k of keysFor(event)) fnCalls.delete(k);
-        };
-        /** @type {Record<string, any> | null} */
-        let streamUsage = null;
-        const openThinkingParts = new Set();
-
-        const closeThinking = () => {
-            for (const partId of openThinkingParts) onEvent('thinking_stop', { partId });
-            openThinkingParts.clear();
-        };
-        const captureResponse = (response) => {
-            streamUsage = this._normalizeUsage(response?.usage, { service_tier: response?.service_tier }) || streamUsage || {};
-            this._logUsage(streamUsage, 'Responses');
-            if (response?.id) streamUsage.responseId = response.id;
-            if (response?.status) streamUsage.stop_reason = response.status;
-            // e.g. 'max_output_tokens' — surface this so truncations are visible
-            if (response?.incomplete_details?.reason) {
-                streamUsage.stop_reason = response.incomplete_details.reason;
-            }
-            const items = (response?.output || []).filter(i => i?.type === 'reasoning' && i.encrypted_content);
-            if (items.length) streamUsage.reasoningItems = items;
-        };
-
-        for await (const event of stream) {
-            if (event.type === 'response.output_text.delta') {
-                if (event.delta) onEvent('text', { text: event.delta });
-            } else if (event.type === 'response.reasoning_summary_part.added'
-                    || event.type === 'response.reasoning_summary_text.added') {
-                // The SDK types no longer declare a `…text.added` event; the part
-                // event is the real one. Both are handled, and a stream that
-                // emits neither still opens the part on its first delta below.
-                const partId = `openai-${event.summary_index ?? 0}`;
-                if (!openThinkingParts.has(partId)) {
-                    openThinkingParts.add(partId);
-                    onEvent('thinking_start', { partId });
-                }
-            } else if (event.type === 'response.reasoning_summary_text.delta') {
-                if (event.delta) {
-                    const partId = `openai-${event.summary_index ?? 0}`;
-                    if (!openThinkingParts.has(partId)) {
-                        // Some stream flavours skip the `.added` event — open on first delta.
-                        openThinkingParts.add(partId);
-                        onEvent('thinking_start', { partId });
-                    }
-                    onEvent('thinking', { text: event.delta, partId });
-                }
-            } else if (event.type === 'response.reasoning_summary_text.done') {
-                const partId = `openai-${event.summary_index ?? 0}`;
-                if (openThinkingParts.has(partId)) {
-                    openThinkingParts.delete(partId);
-                    onEvent('thinking_stop', { partId });
-                }
-            } else if (event.type === 'response.output_item.added') {
-                // New output item — could be a function call
-                if (event.item?.type === 'function_call') {
-                    const call = {
-                        id: event.item.call_id || event.item.id,
-                        name: event.item.name || '',
-                        arguments: '',
-                    };
-                    for (const k of keysFor(event)) fnCalls.set(k, call);
-                }
-            } else if (event.type === 'response.function_call_arguments.delta') {
-                const call = findCall(event);
-                if (call && event.delta) {
-                    call.arguments += event.delta;
-                    // Match the Completions path: let callers live-stream a tool
-                    // argument as it generates (the builder UI renders from this).
-                    if (call.name) onEvent('tool_args_delta', { name: call.name, partial: call.arguments });
-                }
-            } else if (event.type === 'response.function_call_arguments.done') {
-                const call = findCall(event);
-                if (call) {
-                    // `event.arguments` is the authoritative final value when present.
-                    if (typeof event.arguments === 'string' && event.arguments) call.arguments = event.arguments;
-                    this._emitToolCall(call, onEvent);
-                    dropCall(event);
-                }
-            } else if (event.type === 'response.completed') {
-                closeThinking();
-                captureResponse(event.response);
-            } else if (event.type === 'response.incomplete') {
-                // Truncated (usually max_output_tokens). Without this the turn
-                // ended in a bare `done` with no usage and no reason.
-                closeThinking();
-                captureResponse(event.response);
-                streamUsage.stop_reason = event.response?.incomplete_details?.reason || 'incomplete';
-                log.warn(`[${this.name}] Responses stream incomplete: ${streamUsage.stop_reason}`);
-            } else if (event.type === 'response.failed' || event.type === 'error') {
-                closeThinking();
-                // Two different shapes: `response.failed` wraps the reason in
-                // `response.error`, while a bare `error` event carries `message`
-                // (and `code`/`param`) at the top level.
-                const err = event.response?.error || event.error || {};
-                const message = err.message || event.message || 'OpenAI Responses stream failed';
-                log.error(`[${this.name}] Responses stream failed:`, message);
-                onEvent('error', { error: message });
-                streamUsage = streamUsage || {};
-                streamUsage.stop_reason = 'error';
-            }
-        }
-
-        closeThinking();
-        onEvent('done', streamUsage || {});
+        const state = newResponsesStreamState(this, onEvent);
+        for await (const event of stream) handleResponsesEvent(state, event);
+        finishResponsesStream(state);
     }
 
     /**

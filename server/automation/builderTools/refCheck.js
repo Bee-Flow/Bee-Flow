@@ -486,7 +486,7 @@ function suggestionsFor(root, tokens, from, r, opts) {
         ? S.findKey(root, key, base, { wild: !!opts.wantList, max: MAX_SUGGESTIONS })
         : [];
     const suggestions = [...new Set([...near, ...deep])].slice(0, MAX_SUGGESTIONS + 1);
-    // The one suggestion a resend may apply (bindings.js → suggestedPatch.js):
+    // The one suggestion a resend may apply (bindings.js → core/llm/suggestedPatch.js):
     // the key the AI named, as named, found in exactly one other place. A
     // near spelling is another word as often as a typo (cc → id, total →
     // totals): it is said, never applied.

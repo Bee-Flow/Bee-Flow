@@ -1994,6 +1994,755 @@
         "oauth": null
       }
     },
+    "forcedOnThinkingDefault": {
+      "params": {
+        "model": "claude-opus-5",
+        "messages": [
+          {
+            "role": "user",
+            "content": "hello"
+          }
+        ],
+        "max_tokens": 8192,
+        "system": [
+          {
+            "type": "text",
+            "text": "sys",
+            "cache_control": {
+              "type": "ephemeral",
+              "ttl": "1h"
+            }
+          }
+        ],
+        "tools": [
+          {
+            "name": "agent_search",
+            "description": "search",
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "q": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "name": "bare_tool",
+            "description": "",
+            "input_schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        ],
+        "tool_choice": {
+          "type": "tool",
+          "name": "agent_search"
+        },
+        "context_management": {
+          "edits": [
+            {
+              "type": "clear_tool_uses_20250919",
+              "trigger": {
+                "type": "input_tokens",
+                "value": 30000
+              },
+              "keep": {
+                "type": "tool_uses",
+                "value": 5
+              },
+              "clear_at_least": {
+                "type": "input_tokens",
+                "value": 5000
+              }
+            }
+          ]
+        },
+        "thinking": {
+          "type": "disabled"
+        }
+      },
+      "requestOptions": {
+        "apiKey": {
+          "headers": {
+            "anthropic-beta": "context-management-2025-06-27"
+          }
+        },
+        "oauth": {
+          "headers": {
+            "anthropic-beta": "oauth-2025-04-20,context-management-2025-06-27"
+          }
+        }
+      }
+    },
+    "forcedOpenAiShape": {
+      "params": {
+        "model": "claude-opus-5",
+        "messages": [
+          {
+            "role": "user",
+            "content": "hello"
+          }
+        ],
+        "max_tokens": 8192,
+        "system": [
+          {
+            "type": "text",
+            "text": "sys",
+            "cache_control": {
+              "type": "ephemeral",
+              "ttl": "1h"
+            }
+          }
+        ],
+        "tools": [
+          {
+            "name": "agent_search",
+            "description": "search",
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "q": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "name": "bare_tool",
+            "description": "",
+            "input_schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        ],
+        "tool_choice": {
+          "type": "tool",
+          "name": "bare_tool"
+        },
+        "context_management": {
+          "edits": [
+            {
+              "type": "clear_tool_uses_20250919",
+              "trigger": {
+                "type": "input_tokens",
+                "value": 30000
+              },
+              "keep": {
+                "type": "tool_uses",
+                "value": 5
+              },
+              "clear_at_least": {
+                "type": "input_tokens",
+                "value": 5000
+              }
+            }
+          ]
+        },
+        "thinking": {
+          "type": "disabled"
+        }
+      },
+      "requestOptions": {
+        "apiKey": {
+          "headers": {
+            "anthropic-beta": "context-management-2025-06-27"
+          }
+        },
+        "oauth": {
+          "headers": {
+            "anthropic-beta": "oauth-2025-04-20,context-management-2025-06-27"
+          }
+        }
+      }
+    },
+    "forcedNoTools": {
+      "params": {
+        "model": "claude-sonnet-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": "hello"
+          }
+        ],
+        "max_tokens": 8192,
+        "system": [
+          {
+            "type": "text",
+            "text": "sys",
+            "cache_control": {
+              "type": "ephemeral",
+              "ttl": "1h"
+            }
+          }
+        ]
+      },
+      "requestOptions": {
+        "apiKey": null,
+        "oauth": null
+      }
+    },
+    "unforcedNoSystem": {
+      "params": {
+        "model": "claude-sonnet-5-5",
+        "messages": [
+          {
+            "role": "user",
+            "content": "x"
+          }
+        ],
+        "max_tokens": 16384,
+        "tools": [
+          {
+            "name": "agent_search",
+            "description": "search",
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "q": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "name": "bare_tool",
+            "description": "",
+            "input_schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        ],
+        "tool_choice": {
+          "type": "auto"
+        },
+        "system": [
+          {
+            "type": "text",
+            "text": "Respond by calling one of the provided tools, with arguments that follow its input schema. Do not answer in plain text."
+          }
+        ],
+        "context_management": {
+          "edits": [
+            {
+              "type": "clear_thinking_20251015",
+              "keep": {
+                "type": "all"
+              }
+            },
+            {
+              "type": "clear_tool_uses_20250919",
+              "trigger": {
+                "type": "input_tokens",
+                "value": 30000
+              },
+              "keep": {
+                "type": "tool_uses",
+                "value": 5
+              },
+              "clear_at_least": {
+                "type": "input_tokens",
+                "value": 5000
+              }
+            }
+          ]
+        },
+        "thinking": {
+          "type": "adaptive",
+          "display": "summarized"
+        },
+        "output_config": {
+          "effort": "medium"
+        }
+      },
+      "requestOptions": {
+        "apiKey": {
+          "headers": {
+            "anthropic-beta": "context-management-2025-06-27"
+          }
+        },
+        "oauth": {
+          "headers": {
+            "anthropic-beta": "oauth-2025-04-20,context-management-2025-06-27"
+          }
+        }
+      }
+    },
+    "unforcedNoTools": {
+      "params": {
+        "model": "claude-sonnet-5-5",
+        "messages": [
+          {
+            "role": "user",
+            "content": "hello"
+          }
+        ],
+        "max_tokens": 16384,
+        "system": [
+          {
+            "type": "text",
+            "text": "sys",
+            "cache_control": {
+              "type": "ephemeral",
+              "ttl": "1h"
+            }
+          }
+        ],
+        "context_management": {
+          "edits": [
+            {
+              "type": "clear_thinking_20251015",
+              "keep": {
+                "type": "all"
+              }
+            }
+          ]
+        },
+        "thinking": {
+          "type": "adaptive",
+          "display": "summarized"
+        },
+        "output_config": {
+          "effort": "medium"
+        }
+      },
+      "requestOptions": {
+        "apiKey": {
+          "headers": {
+            "anthropic-beta": "context-management-2025-06-27"
+          }
+        },
+        "oauth": {
+          "headers": {
+            "anthropic-beta": "oauth-2025-04-20,context-management-2025-06-27"
+          }
+        }
+      }
+    },
+    "emptyTools": {
+      "params": {
+        "model": "claude-sonnet-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": "hello"
+          }
+        ],
+        "max_tokens": 16384,
+        "system": [
+          {
+            "type": "text",
+            "text": "sys",
+            "cache_control": {
+              "type": "ephemeral",
+              "ttl": "1h"
+            }
+          }
+        ],
+        "context_management": {
+          "edits": [
+            {
+              "type": "clear_thinking_20251015",
+              "keep": {
+                "type": "all"
+              }
+            }
+          ]
+        },
+        "thinking": {
+          "type": "adaptive",
+          "display": "summarized"
+        },
+        "temperature": 1,
+        "output_config": {
+          "effort": "medium"
+        }
+      },
+      "requestOptions": {
+        "apiKey": {
+          "headers": {
+            "anthropic-beta": "context-management-2025-06-27"
+          }
+        },
+        "oauth": {
+          "headers": {
+            "anthropic-beta": "oauth-2025-04-20,context-management-2025-06-27"
+          }
+        }
+      }
+    },
+    "budgetBelowMax": {
+      "params": {
+        "model": "claude-opus-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": "hello"
+          }
+        ],
+        "max_tokens": 64000,
+        "system": [
+          {
+            "type": "text",
+            "text": "sys",
+            "cache_control": {
+              "type": "ephemeral",
+              "ttl": "1h"
+            }
+          }
+        ],
+        "context_management": {
+          "edits": [
+            {
+              "type": "clear_thinking_20251015",
+              "keep": {
+                "type": "all"
+              }
+            }
+          ]
+        },
+        "thinking": {
+          "type": "enabled",
+          "budget_tokens": 2000
+        },
+        "temperature": 1
+      },
+      "requestOptions": {
+        "apiKey": {
+          "headers": {
+            "anthropic-beta": "context-management-2025-06-27"
+          }
+        },
+        "oauth": {
+          "headers": {
+            "anthropic-beta": "oauth-2025-04-20,context-management-2025-06-27"
+          }
+        }
+      }
+    },
+    "budgetOnAdaptiveOnly": {
+      "params": {
+        "model": "claude-opus-5",
+        "messages": [
+          {
+            "role": "user",
+            "content": "hello"
+          }
+        ],
+        "max_tokens": 16384,
+        "system": [
+          {
+            "type": "text",
+            "text": "sys",
+            "cache_control": {
+              "type": "ephemeral",
+              "ttl": "1h"
+            }
+          }
+        ],
+        "context_management": {
+          "edits": [
+            {
+              "type": "clear_thinking_20251015",
+              "keep": {
+                "type": "all"
+              }
+            }
+          ]
+        },
+        "thinking": {
+          "type": "adaptive",
+          "display": "summarized"
+        },
+        "output_config": {
+          "effort": "high"
+        }
+      },
+      "requestOptions": {
+        "apiKey": {
+          "headers": {
+            "anthropic-beta": "context-management-2025-06-27"
+          }
+        },
+        "oauth": {
+          "headers": {
+            "anthropic-beta": "oauth-2025-04-20,context-management-2025-06-27"
+          }
+        }
+      }
+    },
+    "adaptiveBigMax": {
+      "params": {
+        "model": "claude-opus-5",
+        "messages": [
+          {
+            "role": "user",
+            "content": "hello"
+          }
+        ],
+        "max_tokens": 50000,
+        "system": [
+          {
+            "type": "text",
+            "text": "sys",
+            "cache_control": {
+              "type": "ephemeral",
+              "ttl": "1h"
+            }
+          }
+        ],
+        "context_management": {
+          "edits": [
+            {
+              "type": "clear_thinking_20251015",
+              "keep": {
+                "type": "all"
+              }
+            }
+          ]
+        },
+        "thinking": {
+          "type": "adaptive",
+          "display": "summarized"
+        },
+        "output_config": {
+          "effort": "high"
+        }
+      },
+      "requestOptions": {
+        "apiKey": {
+          "headers": {
+            "anthropic-beta": "context-management-2025-06-27"
+          }
+        },
+        "oauth": {
+          "headers": {
+            "anthropic-beta": "oauth-2025-04-20,context-management-2025-06-27"
+          }
+        }
+      }
+    },
+    "temperatureNoThinkingModel": {
+      "params": {
+        "model": "claude-haiku-4-5",
+        "messages": [
+          {
+            "role": "user",
+            "content": "hello"
+          }
+        ],
+        "max_tokens": 500,
+        "system": [
+          {
+            "type": "text",
+            "text": "sys",
+            "cache_control": {
+              "type": "ephemeral",
+              "ttl": "1h"
+            }
+          }
+        ],
+        "temperature": 0.4,
+        "tools": [
+          {
+            "name": "agent_search",
+            "description": "search",
+            "input_schema": {
+              "type": "object",
+              "properties": {
+                "q": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          {
+            "name": "bare_tool",
+            "description": "",
+            "input_schema": {
+              "type": "object",
+              "properties": {}
+            }
+          }
+        ],
+        "context_management": {
+          "edits": [
+            {
+              "type": "clear_tool_uses_20250919",
+              "trigger": {
+                "type": "input_tokens",
+                "value": 30000
+              },
+              "keep": {
+                "type": "tool_uses",
+                "value": 5
+              },
+              "clear_at_least": {
+                "type": "input_tokens",
+                "value": 5000
+              }
+            }
+          ]
+        }
+      },
+      "requestOptions": {
+        "apiKey": {
+          "headers": {
+            "anthropic-beta": "context-management-2025-06-27"
+          }
+        },
+        "oauth": {
+          "headers": {
+            "anthropic-beta": "oauth-2025-04-20,context-management-2025-06-27"
+          }
+        }
+      }
+    },
+    "jsonSchemaNoThinking": {
+      "params": {
+        "model": "claude-sonnet-4-6",
+        "messages": [
+          {
+            "role": "user",
+            "content": "hello"
+          }
+        ],
+        "max_tokens": 8192,
+        "system": [
+          {
+            "type": "text",
+            "text": "sys",
+            "cache_control": {
+              "type": "ephemeral",
+              "ttl": "1h"
+            }
+          }
+        ],
+        "output_config": {
+          "format": {
+            "type": "json_schema",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "a": {
+                  "type": "string",
+                  "pattern": "x"
+                }
+              }
+            }
+          }
+        }
+      },
+      "requestOptions": {
+        "apiKey": null,
+        "oauth": null
+      }
+    },
+    "jsonSchemaMissing": {
+      "params": {
+        "model": "claude-opus-5",
+        "messages": [
+          {
+            "role": "user",
+            "content": "hello"
+          }
+        ],
+        "max_tokens": 16384,
+        "system": [
+          {
+            "type": "text",
+            "text": "sys",
+            "cache_control": {
+              "type": "ephemeral",
+              "ttl": "1h"
+            }
+          }
+        ],
+        "context_management": {
+          "edits": [
+            {
+              "type": "clear_thinking_20251015",
+              "keep": {
+                "type": "all"
+              }
+            }
+          ]
+        },
+        "thinking": {
+          "type": "adaptive",
+          "display": "summarized"
+        },
+        "output_config": {
+          "effort": "high"
+        }
+      },
+      "requestOptions": {
+        "apiKey": {
+          "headers": {
+            "anthropic-beta": "context-management-2025-06-27"
+          }
+        },
+        "oauth": {
+          "headers": {
+            "anthropic-beta": "oauth-2025-04-20,context-management-2025-06-27"
+          }
+        }
+      }
+    },
+    "jsonObjectIgnored": {
+      "params": {
+        "model": "claude-opus-5",
+        "messages": [
+          {
+            "role": "user",
+            "content": "hello"
+          }
+        ],
+        "max_tokens": 16384,
+        "system": [
+          {
+            "type": "text",
+            "text": "sys",
+            "cache_control": {
+              "type": "ephemeral",
+              "ttl": "1h"
+            }
+          }
+        ],
+        "context_management": {
+          "edits": [
+            {
+              "type": "clear_thinking_20251015",
+              "keep": {
+                "type": "all"
+              }
+            }
+          ]
+        },
+        "thinking": {
+          "type": "adaptive",
+          "display": "summarized"
+        },
+        "output_config": {
+          "effort": "high"
+        }
+      },
+      "requestOptions": {
+        "apiKey": {
+          "headers": {
+            "anthropic-beta": "context-management-2025-06-27"
+          }
+        },
+        "oauth": {
+          "headers": {
+            "anthropic-beta": "oauth-2025-04-20,context-management-2025-06-27"
+          }
+        }
+      }
+    },
     "jsonSchema": {
       "params": {
         "model": "claude-opus-5",
@@ -5065,6 +5814,587 @@
         ]
       ],
       "error": null
+    },
+    "edges": {
+      "calls": [
+        {
+          "call": "stream",
+          "params": {
+            "model": "claude-sonnet-4-6",
+            "messages": [
+              {
+                "role": "user",
+                "content": "hello"
+              }
+            ],
+            "max_tokens": 16384,
+            "system": [
+              {
+                "type": "text",
+                "text": "sys",
+                "cache_control": {
+                  "type": "ephemeral",
+                  "ttl": "1h"
+                }
+              }
+            ],
+            "context_management": {
+              "edits": [
+                {
+                  "type": "clear_thinking_20251015",
+                  "keep": {
+                    "type": "all"
+                  }
+                }
+              ]
+            },
+            "thinking": {
+              "type": "adaptive",
+              "display": "summarized"
+            },
+            "temperature": 1,
+            "output_config": {
+              "effort": "medium"
+            }
+          },
+          "requestOptions": {
+            "headers": {
+              "anthropic-beta": "context-management-2025-06-27"
+            }
+          }
+        }
+      ],
+      "events": [
+        [
+          "thinking",
+          {
+            "text": "loose thought"
+          }
+        ],
+        [
+          "thinking_start",
+          {
+            "partId": "claude-0"
+          }
+        ],
+        [
+          "tool_args_delta",
+          {
+            "name": "agent_search",
+            "partial": "{}"
+          }
+        ],
+        [
+          "tool_use",
+          {
+            "id": "tu_e",
+            "name": "agent_search",
+            "input": {}
+          }
+        ],
+        [
+          "thinking_stop",
+          {
+            "partId": "claude-0"
+          }
+        ],
+        [
+          "done",
+          {
+            "prompt_tokens": 4,
+            "completion_tokens": 2,
+            "total_tokens": 6,
+            "cached_tokens": 0,
+            "cache_creation_tokens": 0,
+            "cache_creation_5m_tokens": 0,
+            "cache_creation_1h_tokens": 0,
+            "cache_creation_ttl_assumed": false,
+            "reasoning_tokens": 0,
+            "prompt_includes_cache": false,
+            "service_tier": null,
+            "inference_geo": null,
+            "traffic_type": null,
+            "tool_use": {},
+            "modality": {
+              "prompt": {},
+              "completion": {},
+              "cached": {}
+            },
+            "cache_ttl": null,
+            "stop_reason": null,
+            "stopReason": null,
+            "stopDetails": null
+          }
+        ]
+      ],
+      "error": null
+    },
+    "midStreamContextMgmt": {
+      "calls": [
+        {
+          "call": "stream",
+          "params": {
+            "model": "claude-sonnet-4-6",
+            "messages": [
+              {
+                "role": "user",
+                "content": "hello"
+              }
+            ],
+            "max_tokens": 16384,
+            "system": [
+              {
+                "type": "text",
+                "text": "sys",
+                "cache_control": {
+                  "type": "ephemeral",
+                  "ttl": "1h"
+                }
+              }
+            ],
+            "tools": [
+              {
+                "name": "agent_search",
+                "description": "search",
+                "input_schema": {
+                  "type": "object",
+                  "properties": {
+                    "q": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              {
+                "name": "bare_tool",
+                "description": "",
+                "input_schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            ],
+            "context_management": {
+              "edits": [
+                {
+                  "type": "clear_thinking_20251015",
+                  "keep": {
+                    "type": "all"
+                  }
+                },
+                {
+                  "type": "clear_tool_uses_20250919",
+                  "trigger": {
+                    "type": "input_tokens",
+                    "value": 30000
+                  },
+                  "keep": {
+                    "type": "tool_uses",
+                    "value": 5
+                  },
+                  "clear_at_least": {
+                    "type": "input_tokens",
+                    "value": 5000
+                  }
+                }
+              ]
+            },
+            "thinking": {
+              "type": "adaptive",
+              "display": "summarized"
+            },
+            "temperature": 1,
+            "output_config": {
+              "effort": "medium"
+            }
+          },
+          "requestOptions": {
+            "headers": {
+              "anthropic-beta": "context-management-2025-06-27"
+            }
+          }
+        }
+      ],
+      "events": [],
+      "error": {
+        "message": "API error 400: {\"type\":\"error\",\"error\":{\"message\":\"context_management: unknown\"}}",
+        "status": 400
+      }
+    },
+    "errorAlreadyEnriched": {
+      "calls": [
+        {
+          "call": "stream",
+          "params": {
+            "model": "claude-sonnet-4-6",
+            "messages": [
+              {
+                "role": "user",
+                "content": "hello"
+              }
+            ],
+            "max_tokens": 16384,
+            "system": [
+              {
+                "type": "text",
+                "text": "sys",
+                "cache_control": {
+                  "type": "ephemeral",
+                  "ttl": "1h"
+                }
+              }
+            ],
+            "context_management": {
+              "edits": [
+                {
+                  "type": "clear_thinking_20251015",
+                  "keep": {
+                    "type": "all"
+                  }
+                }
+              ]
+            },
+            "thinking": {
+              "type": "adaptive",
+              "display": "summarized"
+            },
+            "temperature": 1,
+            "output_config": {
+              "effort": "medium"
+            }
+          },
+          "requestOptions": {
+            "headers": {
+              "anthropic-beta": "context-management-2025-06-27"
+            }
+          }
+        }
+      ],
+      "events": [],
+      "error": {
+        "message": "API error 503: busy",
+        "status": 503
+      }
+    },
+    "errorStatusNoBody": {
+      "calls": [
+        {
+          "call": "stream",
+          "params": {
+            "model": "claude-sonnet-4-6",
+            "messages": [
+              {
+                "role": "user",
+                "content": "hello"
+              }
+            ],
+            "max_tokens": 16384,
+            "system": [
+              {
+                "type": "text",
+                "text": "sys",
+                "cache_control": {
+                  "type": "ephemeral",
+                  "ttl": "1h"
+                }
+              }
+            ],
+            "context_management": {
+              "edits": [
+                {
+                  "type": "clear_thinking_20251015",
+                  "keep": {
+                    "type": "all"
+                  }
+                }
+              ]
+            },
+            "thinking": {
+              "type": "adaptive",
+              "display": "summarized"
+            },
+            "temperature": 1,
+            "output_config": {
+              "effort": "medium"
+            }
+          },
+          "requestOptions": {
+            "headers": {
+              "anthropic-beta": "context-management-2025-06-27"
+            }
+          }
+        }
+      ],
+      "events": [],
+      "error": {
+        "message": "API error 502: \"gateway\"",
+        "status": 502
+      }
+    },
+    "thinkingRetryOptedOut": {
+      "calls": [
+        {
+          "call": "stream",
+          "params": {
+            "model": "claude-sonnet-4-6",
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "[Conversation Summary] earlier turns folded here",
+                    "cache_control": {
+                      "type": "ephemeral"
+                    }
+                  }
+                ]
+              },
+              {
+                "role": "assistant",
+                "content": "Noted."
+              },
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "look at these"
+                  },
+                  {
+                    "type": "image",
+                    "source": {
+                      "type": "base64",
+                      "media_type": "image/png",
+                      "data": "AAAA"
+                    }
+                  },
+                  {
+                    "type": "image",
+                    "source": {
+                      "type": "url",
+                      "url": "https://example.test/a.png"
+                    },
+                    "cache_control": {
+                      "type": "ephemeral"
+                    }
+                  }
+                ]
+              },
+              {
+                "role": "assistant",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "calling tools"
+                  },
+                  {
+                    "type": "tool_use",
+                    "id": "tu_1",
+                    "name": "agent_search",
+                    "input": {
+                      "q": "a"
+                    }
+                  },
+                  {
+                    "type": "tool_use",
+                    "id": "tu_2",
+                    "name": "agent_search",
+                    "input": {}
+                  }
+                ]
+              },
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "tool_result",
+                    "tool_use_id": "tu_1",
+                    "content": "result one"
+                  },
+                  {
+                    "type": "tool_result",
+                    "tool_use_id": "tu_2",
+                    "content": [
+                      {
+                        "type": "text",
+                        "text": "result two"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "role": "user",
+                "content": "previous question"
+              },
+              {
+                "role": "assistant",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "array answer"
+                  }
+                ]
+              },
+              {
+                "role": "assistant",
+                "content": "   "
+              },
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "current question",
+                    "cache_control": {
+                      "type": "ephemeral"
+                    }
+                  }
+                ]
+              }
+            ],
+            "max_tokens": 16384,
+            "system": [
+              {
+                "type": "text",
+                "text": "You are the stable identity block.",
+                "cache_control": {
+                  "type": "ephemeral",
+                  "ttl": "1h"
+                }
+              },
+              {
+                "type": "text",
+                "text": "{\"volatile\":\"timestamp\"}"
+              }
+            ],
+            "context_management": {
+              "edits": [
+                {
+                  "type": "clear_thinking_20251015",
+                  "keep": {
+                    "type": "all"
+                  }
+                }
+              ]
+            },
+            "thinking": {
+              "type": "adaptive",
+              "display": "summarized"
+            },
+            "temperature": 1,
+            "output_config": {
+              "effort": "medium"
+            }
+          },
+          "requestOptions": {
+            "headers": {
+              "anthropic-beta": "context-management-2025-06-27"
+            }
+          }
+        }
+      ],
+      "events": [],
+      "error": {
+        "message": "API error 400: {\"type\":\"error\",\"error\":{\"message\":\"thinking block signature does not match\"}}",
+        "status": 400
+      }
+    },
+    "forcedRetryAutoChoice": {
+      "calls": [
+        {
+          "call": "stream",
+          "params": {
+            "model": "claude-sonnet-4-6",
+            "messages": [
+              {
+                "role": "user",
+                "content": "hello"
+              }
+            ],
+            "max_tokens": 16384,
+            "system": [
+              {
+                "type": "text",
+                "text": "sys",
+                "cache_control": {
+                  "type": "ephemeral",
+                  "ttl": "1h"
+                }
+              }
+            ],
+            "tools": [
+              {
+                "name": "agent_search",
+                "description": "search",
+                "input_schema": {
+                  "type": "object",
+                  "properties": {
+                    "q": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              {
+                "name": "bare_tool",
+                "description": "",
+                "input_schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            ],
+            "tool_choice": {
+              "type": "auto"
+            },
+            "context_management": {
+              "edits": [
+                {
+                  "type": "clear_thinking_20251015",
+                  "keep": {
+                    "type": "all"
+                  }
+                },
+                {
+                  "type": "clear_tool_uses_20250919",
+                  "trigger": {
+                    "type": "input_tokens",
+                    "value": 30000
+                  },
+                  "keep": {
+                    "type": "tool_uses",
+                    "value": 5
+                  },
+                  "clear_at_least": {
+                    "type": "input_tokens",
+                    "value": 5000
+                  }
+                }
+              ]
+            },
+            "thinking": {
+              "type": "adaptive",
+              "display": "summarized"
+            },
+            "temperature": 1,
+            "output_config": {
+              "effort": "medium"
+            }
+          },
+          "requestOptions": {
+            "headers": {
+              "anthropic-beta": "context-management-2025-06-27"
+            }
+          }
+        }
+      ],
+      "events": [],
+      "error": {
+        "message": "API error 400: {\"type\":\"error\",\"error\":{\"message\":\"tool_choice any is not supported\"}}",
+        "status": 400
+      }
     }
   },
   "listModels": {

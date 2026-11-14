@@ -8,7 +8,7 @@
 const { normalizeBase, sharesNumberFamily } = require('./naming');
 const { sizeOfDescriptor } = require('./attachmentRows');
 const { PAIR_ROLES } = require('./pairing');
-const log = require('../../telemetry/log');
+const { fallback } = require('../../utils/bestEffort');
 
 // How many spreadsheets we OPEN to find out what they are. A package carries
 // one bill of materials and a couple of strays; past this the biggest ones
@@ -83,7 +83,7 @@ async function scanSheets(app, files, pairs, { mailbox }) {
                     ? await mailbox.getStoredAttachmentBuffer(app, f.descriptor.fileId)
                     : null;
                 if (bytes && bytes.length) f.scan = scanSheet(bytes, { partKeys, normalize: normalizeBase });
-            } catch (err) { log.debug('a sheet we cannot open ranks by size, exactly as before', err); }
+            } catch (err) { fallback('appStudio/fileIntake/orderDocuments:scanSheet', err); /* a sheet that cannot be opened ranks by size */ }
         }
         for (const f of sheets) {
             sheetReports.push({

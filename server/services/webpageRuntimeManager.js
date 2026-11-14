@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Webpage FULL-tier runtime manager — per-project Node.js dev container.
  *
@@ -43,7 +44,7 @@ const {
     isServerInContainer, imageExists, pullImage, ensureNetwork: ensureNamedNetwork,
     connectSelfToNetwork: connectSelf, removeContainerIfExists: removeContainer,
 } = require('./docker/dockerKit');
-const { fallback: fallbackSwallowed, bestEffort } = require('../utils/bestEffort');
+const { fallback: fallbackSwallowed, bestEffort, ignoreGone } = require('../utils/bestEffort');
 const { writeInsideWorkdir } = require('./webpageWorkdir.mts');
 
 // ── Gate + tunables ─────────────────────────────────────────────────────────
@@ -132,14 +133,14 @@ async function dockerAvailable() {
 }
 
 /**
- * @param {string | number | boolean} webpageId
+ * @param {string} webpageId
  */
 function containerName(webpageId) {
     return `bf-wp-${String(webpageId).replace(/[^a-zA-Z0-9_.-]/g, '').slice(0, 40)}`;
 }
 
 /**
- * @param {string | number | boolean} webpageId
+ * @param {string} webpageId
  */
 function runtimeLabels(webpageId, orgId) {
     return {
@@ -155,7 +156,7 @@ function runtimeLabels(webpageId, orgId) {
 // (server/routes/webpagesFullTierProxy.js) derive from this SAME function so
 // they can never drift apart into two different strings.
 /**
- * @param {string | number | boolean} webpageId
+ * @param {string} webpageId
  */
 function fullTierBasePath(webpageId) {
     return `/api/webpages-preview/${encodeURIComponent(webpageId)}/full/`;
@@ -165,7 +166,7 @@ function fullTierBasePath(webpageId) {
  * Locked-down HostConfig — copied from pwtRunner.hostConfigCaps and tightened.
  * No process.env spread anywhere; the container only sees the allowlisted env
  * passed at create time.
- * @param {{ NetworkMode: string; Binds: string[]; }} [extra]
+ * @param {Partial<{ NetworkMode: string; Binds: string[]; }>} [extra]
  */
 function hostConfigCaps(extra = {}) {
     return {
@@ -226,7 +227,7 @@ function connectSelfToNetwork(docker) {
  * container's bind-mount sees a real source tree. RustFS stays the source of
  * truth; the container is disposable. Returns the file count written.
  * @param {string} workdir
- * @param {string | number | boolean} webpageId
+ * @param {string} webpageId
  */
 async function hydrateProject(webpageId, userId, workdir) {
     await fsp.mkdir(workdir, { recursive: true });
@@ -241,13 +242,14 @@ async function hydrateProject(webpageId, userId, workdir) {
      * @param {string} rel
      * @param {string | Buffer<ArrayBuffer> | undefined} content
      */
-    const writeFile = async (rel, content) => {
+    const writeFile = async (/** @type {string} */ rel, /** @type {string | Buffer | undefined} */ content) => {
         if (content === undefined) return;
         const outcome = await writeInsideWorkdir(workdir, workdirReal, rel, content);
         if (outcome === 'written') count++;
         else log.warn(`[WebpageRuntime] Refusing to hydrate ${outcome === 'link' ? 'through a link' : 'path outside workdir'}: ${rel}`);
     };
 
+    /** @type {{ html?: string, css?: string, js?: string }} */
     const slots = await webpageStore.readAllSlots(userId, webpageId).catch((e) => fallbackSwallowed('services/webpageRuntimeManager:hydrateProject', e, {}));
     if (slots.html) await writeFile('index.html', slots.html);
     if (slots.css) await writeFile('style.css', slots.css);
@@ -270,7 +272,7 @@ async function hydrateProject(webpageId, userId, workdir) {
 const runtimes = new Map();
 
 /**
- * @param {string | number | boolean} webpageId
+ * @param {string} webpageId
  */
 function touch(webpageId) {
     const e = runtimes.get(webpageId);
@@ -311,7 +313,7 @@ function withOrgLock(orgId, fn) {
     return result;
 }
 
-/** @typedef {{ webpageId: string | number | boolean }} EnsureRuntimeArgs */
+/** @typedef {{ webpageId: string, userId?: string, orgId?: string | null }} EnsureRuntimeArgs */
 /**
  * Ensure a running dev container for this project and return its reachable base
  * { reachableHost, containerId } for the reverse proxy, or null when the full
@@ -333,7 +335,7 @@ async function ensureRuntime({ webpageId, userId, orgId }) {
     return withOrgLock(orgId, () => createRuntime({ webpageId, userId, orgId }));
 }
 
-/** @typedef {{ webpageId: string | number | boolean }} CreateRuntimeArgs */
+/** @typedef {{ webpageId: string, userId?: string, orgId?: string | null }} CreateRuntimeArgs */
 /**
  * @param {CreateRuntimeArgs} param0
  */
@@ -451,7 +453,7 @@ async function getReachableBase(webpageId) {
 }
 
 /**
- * @param {string | number | boolean} webpageId
+ * @param {string} webpageId
  */
 async function stopRuntime(webpageId) {
     const e = runtimes.get(webpageId);
@@ -510,14 +512,14 @@ async function reapIdle() {
             if (shouldReap({ state: c.State, born, entry, now })) {
                 try {
                     const cont = docker.getContainer(c.Id);
-                    try { await cont.stop({ t: 3 }); } catch (_) { log.debug('container already stopped', _); }
+                    try { await cont.stop({ t: 3 }); } catch (_) { ignoreGone('services/webpageRuntimeManager:stopContainer', _, [304, 404]); }
                     await cont.remove({ force: true });
                     if (webpageId) {
                         runtimes.delete(webpageId);
-                        try { await fsp.rm(path.join(WORK_ROOT, String(webpageId)), { recursive: true, force: true }); } catch (_) { log.debug('work directory already removed', _); }
+                        try { await fsp.rm(path.join(WORK_ROOT, String(webpageId)), { recursive: true, force: true }); } catch (_) { ignoreGone('services/webpageRuntimeManager:removeWorkDir', _); }
                     }
                     reaped++;
-                } catch (err) { log.debug('already gone', err); }
+                } catch (err) { ignoreGone('services/webpageRuntimeManager:reapContainer', err, [404, 409]); }
             }
         }
     } catch (e) {

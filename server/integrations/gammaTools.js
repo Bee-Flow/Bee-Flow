@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Gamma Tools - Built-in tools for AI to create Gamma presentations,
  * documents, webpages, and social posts via the Gamma API v1.0.
@@ -37,12 +37,12 @@ const MAX_TIMEOUT_SECONDS = 300;
 
 /**
  * A generation object as the Gamma API returns it.
- * @typedef {{ generationId?: string, status?: string, gammaId?: string, gammaUrl?: string, exportUrl?: string,
+ * @typedef {{ generationId?: string | null, status?: string, gammaId?: string | null, gammaUrl?: string | null, exportUrl?: string,
  *   credits?: unknown, warnings?: unknown, error?: GammaErrorBody, timedOut?: boolean }} GammaGeneration
  */
 
 /**
- * @typedef {{ generationId?: string, note?: string, sourceGammaId?: string | null, sourceGammaUrl?: string | null,
+ * @typedef {{ generationId?: string | null, note?: string, sourceGammaId?: string | null, sourceGammaUrl?: string | null,
  *   templateGammaId?: string, templateUrl?: string | null }} GammaGenerationMeta
  */
 
@@ -692,7 +692,7 @@ async function pollGeneration(apiKey, generationId, timeoutSeconds) {
 /**
  * @param {string} apiKey
  * @param {string} path
- * @param {Record<string, unknown>} body
+ * @param {Record<string, unknown> | undefined} body   compactObject's result (none when every member dropped)
  * @param {GammaArgs} args
  * @param {GammaGenerationMeta} [meta]
  */
@@ -744,7 +744,7 @@ async function executeGammaTool(toolName, args = {}, userId) {
         if (toolName === 'gamma_create_presentation') {
             if (!args.inputText) return { error: 'inputText is required' };
             const body = buildCreateBody(args);
-            log.info(`[Gamma] Starting generation (${body.format || 'presentation'}): ${String(body.inputText || '').length} chars of input`);
+            log.info(`[Gamma] Starting generation (${body?.format || 'presentation'}): ${String(body?.inputText || '').length} chars of input`);
             return await createAndMaybePoll(apiKey, '/generations', body, args);
         }
 

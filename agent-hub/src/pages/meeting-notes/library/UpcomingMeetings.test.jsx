@@ -1,4 +1,4 @@
-import { cleanup, render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { cleanup, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -17,6 +17,7 @@ vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 import { openMicrosoftOAuthPopup } from '@/api/microsoftOAuthPopup';
 import { listTalkMeetings, setMeetingRecord, listGoogleMeetMeetings, setGoogleMeetMeetingRecord, listTeamsMeetings, setTeamsMeetingRecord } from '@/api/transcriptionsApi';
 import { openGoogleOAuthPopup } from '@/lib/googleOAuthPopup';
+import { renderWithClient } from '@/test/render';
 import UpcomingMeetings from './UpcomingMeetings';
 
 const talkMeeting = (over = {}) => ({
@@ -73,7 +74,7 @@ describe('UpcomingMeetings', () => {
             teamsMeeting(),
             teamsMeeting({ eventId: 'tev2', title: 'Their meeting', organizerSelf: false, status: 'organizer_only' }),
         ]));
-        const { container } = render(<UpcomingMeetings />);
+        const { container } = renderWithClient(<UpcomingMeetings />);
         await screen.findByText('Teams review');
         expect(screen.getAllByText('Teams')).toHaveLength(2);
         expect(screen.getByText('Will record')).toBeInTheDocument();
@@ -88,7 +89,7 @@ describe('UpcomingMeetings', () => {
         const user = userEvent.setup();
         listTeamsMeetings.mockResolvedValue(teamsPayload([teamsMeeting({ excluded: true, status: 'excluded' })]));
         setTeamsMeetingRecord.mockResolvedValue({ effectiveRecord: true, overridden: false });
-        const { container } = render(<UpcomingMeetings />);
+        const { container } = renderWithClient(<UpcomingMeetings />);
         await screen.findByText('Teams review');
         await user.click(toggles(container)[0]);
         expect(setTeamsMeetingRecord).toHaveBeenCalledWith('tev1', true, { seriesMasterId: 'sm1' });
@@ -97,7 +98,7 @@ describe('UpcomingMeetings', () => {
         listTeamsMeetings.mockResolvedValue(teamsPayload([], {
             connection: { microsoftConnected: true, teamsScopesGranted: false, hasMeetingWriteScope: false },
         }));
-        render(<UpcomingMeetings />);
+        renderWithClient(<UpcomingMeetings />);
         await user.click(await screen.findByRole('button', { name: 'Reconnect' }));
         expect(openMicrosoftOAuthPopup).toHaveBeenCalled();
     });
@@ -105,7 +106,7 @@ describe('UpcomingMeetings', () => {
     it('merges both providers sorted by start time with provider chips', async () => {
         listTalkMeetings.mockResolvedValue(talkPayload([talkMeeting()]));
         listGoogleMeetMeetings.mockResolvedValue(gmeetPayload([gmeetMeeting()])); // starts before the Talk one
-        const { container } = render(<UpcomingMeetings />);
+        const { container } = renderWithClient(<UpcomingMeetings />);
 
         await screen.findByText('Talk standup');
         await screen.findByText('Meet planning');
@@ -120,7 +121,7 @@ describe('UpcomingMeetings', () => {
     it('shows a Talk error card while still rendering Meet rows when only Talk fails', async () => {
         listTalkMeetings.mockRejectedValue(new Error('talk backend down'));
         listGoogleMeetMeetings.mockResolvedValue(gmeetPayload([gmeetMeeting()]));
-        render(<UpcomingMeetings />);
+        renderWithClient(<UpcomingMeetings />);
 
         await screen.findByText("Couldn't load Nextcloud Talk meetings");
         expect(screen.getByText('talk backend down')).toBeInTheDocument();
@@ -132,7 +133,7 @@ describe('UpcomingMeetings', () => {
         listGoogleMeetMeetings.mockResolvedValue(gmeetPayload([], {
             connection: { googleConfigured: true, googleConnected: false, meetScopesGranted: false, hasSettingsScope: false, needsReauth: false },
         }));
-        render(<UpcomingMeetings />);
+        renderWithClient(<UpcomingMeetings />);
 
         await screen.findByText(/Connect Google Workspace to see your Meet meetings here/);
         expect(screen.getByRole('link', { name: /Settings → Connections/ })).toHaveAttribute('href', '/app/settings/integrations');
@@ -145,7 +146,7 @@ describe('UpcomingMeetings', () => {
         listGoogleMeetMeetings.mockResolvedValue(gmeetPayload([], {
             connection: { googleConnected: true, meetScopesGranted: false, hasSettingsScope: false, needsReauth: false },
         }));
-        render(<UpcomingMeetings />);
+        renderWithClient(<UpcomingMeetings />);
 
         await screen.findByText(/doesn't include Meet permissions yet — reconnect to enable auto-import/);
         expect(screen.queryByText(/Connect Google Workspace to see your Meet meetings/)).not.toBeInTheDocument();
@@ -158,7 +159,7 @@ describe('UpcomingMeetings', () => {
     it('toggles a Meet row optimistically and keeps it on success', async () => {
         const user = userEvent.setup();
         listGoogleMeetMeetings.mockResolvedValue(gmeetPayload([gmeetMeeting({ excluded: true, status: 'excluded' })]));
-        const { container } = render(<UpcomingMeetings />);
+        const { container } = renderWithClient(<UpcomingMeetings />);
         await screen.findByText('Meet planning');
 
         const toggle = toggles(container)[0];
@@ -174,7 +175,7 @@ describe('UpcomingMeetings', () => {
         listGoogleMeetMeetings.mockResolvedValue(gmeetPayload([gmeetMeeting({ excluded: true, status: 'excluded' })]));
         const err = Object.assign(new Error('Meet permissions missing'), { code: 'needs_meet_scopes' });
         setGoogleMeetMeetingRecord.mockRejectedValue(err);
-        const { container } = render(<UpcomingMeetings />);
+        const { container } = renderWithClient(<UpcomingMeetings />);
         await screen.findByText('Meet planning');
 
         // Sync on purpose: awaiting user.click would let the rejection and the reload land before the optimistic state is read.
@@ -190,7 +191,7 @@ describe('UpcomingMeetings', () => {
         listGoogleMeetMeetings.mockResolvedValue(gmeetPayload([gmeetMeeting()], {
             connection: { googleConnected: true, meetScopesGranted: false, hasSettingsScope: false, needsReauth: false },
         }));
-        const { container } = render(<UpcomingMeetings />);
+        const { container } = renderWithClient(<UpcomingMeetings />);
         await screen.findByText('Meet planning');
         expect(toggles(container)[0]).toBeDisabled();
     });
@@ -200,7 +201,7 @@ describe('UpcomingMeetings', () => {
             gmeetMeeting({ eventId: 'ev1', title: 'Hosted elsewhere', organizerSelf: false, recordingControlledByHost: true }),
             gmeetMeeting({ eventId: 'ev2', title: 'Organizer gated', start: '2026-07-18T11:00:00Z', status: 'not_organizer' }),
         ]));
-        render(<UpcomingMeetings />);
+        renderWithClient(<UpcomingMeetings />);
 
         const manual = await screen.findByText('Record in Meet');
         expect(manual).toHaveAttribute('title', 'Start the recording in Google Meet — it will be imported afterwards.');
@@ -211,7 +212,7 @@ describe('UpcomingMeetings', () => {
         const user = userEvent.setup();
         listGoogleMeetMeetings.mockResolvedValue(gmeetPayload([gmeetMeeting({ importedNoteId: 42, status: 'imported' })]));
         const onOpenNote = vi.fn();
-        render(<UpcomingMeetings onOpenNote={onOpenNote} />);
+        renderWithClient(<UpcomingMeetings onOpenNote={onOpenNote} />);
 
         await user.click(await screen.findByRole('button', { name: /Note created/ }));
         expect(onOpenNote).toHaveBeenCalledWith(42);
@@ -220,7 +221,7 @@ describe('UpcomingMeetings', () => {
     it('keeps the Talk toggle flow: optimistic, revert-by-reload, and says why on the row', async () => {
         listTalkMeetings.mockResolvedValue(talkPayload([talkMeeting()]));
         setMeetingRecord.mockRejectedValue(new Error('boom'));
-        const { container } = render(<UpcomingMeetings />);
+        const { container } = renderWithClient(<UpcomingMeetings />);
         await screen.findByText('Talk standup');
 
         const toggle = toggles(container)[0];
@@ -241,7 +242,7 @@ describe('UpcomingMeetings', () => {
         const user = userEvent.setup();
         listGoogleMeetMeetings.mockResolvedValue(gmeetPayload([gmeetMeeting({ excluded: true, status: 'excluded' })]));
         setGoogleMeetMeetingRecord.mockRejectedValue(new TypeError('Failed to fetch'));
-        const { container } = render(<UpcomingMeetings />);
+        const { container } = renderWithClient(<UpcomingMeetings />);
         await screen.findByText('Meet planning');
 
         await user.click(toggles(container)[0]);
@@ -254,7 +255,7 @@ describe('UpcomingMeetings', () => {
         const user = userEvent.setup();
         listTeamsMeetings.mockResolvedValue(teamsPayload([teamsMeeting({ excluded: true, status: 'excluded' })]));
         setTeamsMeetingRecord.mockRejectedValue(Object.assign(new Error('Internal server error'), { status: 500 }));
-        const { container } = render(<UpcomingMeetings />);
+        const { container } = renderWithClient(<UpcomingMeetings />);
         await screen.findByText('Teams review');
 
         await user.click(toggles(container)[0]);
@@ -267,7 +268,7 @@ describe('UpcomingMeetings', () => {
         const user = userEvent.setup();
         listTalkMeetings.mockResolvedValue(talkPayload([talkMeeting()]));
         setMeetingRecord.mockRejectedValueOnce(new Error('boom')).mockResolvedValueOnce({ effectiveRecord: false });
-        const { container } = render(<UpcomingMeetings />);
+        const { container } = renderWithClient(<UpcomingMeetings />);
         await screen.findByText('Talk standup');
 
         await user.click(toggles(container)[0]);
@@ -282,7 +283,7 @@ describe('UpcomingMeetings', () => {
             connection: { googleConfigured: false, googleConnected: false, meetScopesGranted: false, hasSettingsScope: false, needsReauth: false },
         }));
         listTalkMeetings.mockResolvedValue(talkPayload([talkMeeting()]));
-        render(<UpcomingMeetings talkConnected />);
+        renderWithClient(<UpcomingMeetings talkConnected />);
         await screen.findByText('Talk standup');
         expect(screen.queryByText(/Connect Google Workspace to see your Meet meetings/)).not.toBeInTheDocument();
         expect(screen.queryByText(/doesn't include Meet permissions/)).not.toBeInTheDocument();
@@ -293,34 +294,34 @@ describe('UpcomingMeetings', () => {
             connection: { googleConnected: false, meetScopesGranted: false, hasSettingsScope: false, needsReauth: false },
         }));
         listTalkMeetings.mockResolvedValue(talkPayload([talkMeeting()]));
-        render(<UpcomingMeetings talkConnected />);
+        renderWithClient(<UpcomingMeetings talkConnected />);
         await screen.findByText('Talk standup');
         expect(screen.queryByText(/Connect Google Workspace to see your Meet meetings/)).not.toBeInTheDocument();
     });
 
     it('warns about the Talk recording backend when Nextcloud is connected and a Talk meeting is listed', async () => {
         listTalkMeetings.mockResolvedValue(talkPayload([talkMeeting()], { recordingEnabled: false, autoRecord: false }));
-        render(<UpcomingMeetings talkConnected />);
+        renderWithClient(<UpcomingMeetings talkConnected />);
         await screen.findByText(/Nextcloud Talk recording backend isn't configured/);
     });
 
     it('warns about the Talk recording backend when Nextcloud is connected and auto-record is on, even without Talk meetings', async () => {
         listTalkMeetings.mockResolvedValue(talkPayload([], { recordingEnabled: false, autoRecord: true }));
-        render(<UpcomingMeetings talkConnected />);
+        renderWithClient(<UpcomingMeetings talkConnected />);
         await screen.findByText(/Nextcloud Talk recording backend isn't configured/);
     });
 
     it('stays quiet about the Talk recording backend when Nextcloud is connected but no Talk meeting is listed and auto-record is off', async () => {
         listTalkMeetings.mockResolvedValue(talkPayload([], { recordingEnabled: false, autoRecord: false }));
         listGoogleMeetMeetings.mockResolvedValue(gmeetPayload([gmeetMeeting()]));
-        render(<UpcomingMeetings talkConnected />);
+        renderWithClient(<UpcomingMeetings talkConnected />);
         await screen.findByText('Meet planning');
         expect(screen.queryByText(/Nextcloud Talk recording backend isn't configured/)).not.toBeInTheDocument();
     });
 
     it('stays quiet about the Talk recording backend while it is unknown whether Nextcloud is connected', async () => {
         listTalkMeetings.mockResolvedValue(talkPayload([talkMeeting()], { recordingEnabled: false, autoRecord: true }));
-        render(<UpcomingMeetings />);
+        renderWithClient(<UpcomingMeetings />);
         await screen.findByText('Talk standup');
         expect(screen.queryByText(/Nextcloud Talk recording backend isn't configured/)).not.toBeInTheDocument();
     });
@@ -329,7 +330,7 @@ describe('UpcomingMeetings', () => {
         // What the route answers when resolveAuth fails: 200, recordingEnabled false, no meetings.
         listTalkMeetings.mockResolvedValue({ recordingEnabled: false, autoRecord: true, recordingMode: 'audio', count: 0, meetings: [] });
         listGoogleMeetMeetings.mockResolvedValue(gmeetPayload([gmeetMeeting()]));
-        render(<UpcomingMeetings talkConnected={false} />);
+        renderWithClient(<UpcomingMeetings talkConnected={false} />);
         await screen.findByText('Meet planning');
         expect(screen.queryByText(/Nextcloud Talk recording backend isn't configured/)).not.toBeInTheDocument();
     });
@@ -351,7 +352,7 @@ describe('UpcomingMeetings: derived chips, occurrences, expired grants, auto-rec
         listTalkMeetings.mockResolvedValue(talkPayload([talkMeeting()], { autoRecord: true, postSummaryBack: true }));
         let answer;
         setMeetingRecord.mockImplementation(() => new Promise((resolve) => { answer = resolve; }));
-        const { container } = render(<UpcomingMeetings />);
+        const { container } = renderWithClient(<UpcomingMeetings />);
         await screen.findByText('Will record');
         expect(screen.getByTestId('upcoming-notice')).toHaveTextContent(/posted back into the conversation/);
 
@@ -366,14 +367,14 @@ describe('UpcomingMeetings: derived chips, occurrences, expired grants, auto-rec
             talkMeeting({ title: 'Weekly A', start: '2026-07-18T09:00:00Z', recurrenceId: '2026-07-18T09:00:00Z' }),
             talkMeeting({ title: 'Weekly B', start: '2026-07-25T09:00:00Z', recurrenceId: '2026-07-25T09:00:00Z' }),
         ]));
-        render(<UpcomingMeetings />);
+        renderWithClient(<UpcomingMeetings />);
         expect(await screen.findByText('Weekly A')).toBeInTheDocument();
         expect(screen.getByText('Weekly B')).toBeInTheDocument();
     });
 
     it('a Meet row of a colleague under organizer scope cannot be switched', async () => {
         listGoogleMeetMeetings.mockResolvedValue(gmeetPayload([gmeetMeeting({ status: 'not_organizer', organizerSelf: false })]));
-        const { container } = render(<UpcomingMeetings />);
+        const { container } = renderWithClient(<UpcomingMeetings />);
         await screen.findByText('Organizer only');
         expect(toggles(container)[0]).toBeDisabled();
     });
@@ -382,7 +383,7 @@ describe('UpcomingMeetings: derived chips, occurrences, expired grants, auto-rec
         listTeamsMeetings.mockResolvedValue(teamsPayload([], {
             connection: { microsoftConnected: true, teamsScopesGranted: true, hasMeetingWriteScope: true, needsReauth: true },
         }));
-        render(<UpcomingMeetings />);
+        renderWithClient(<UpcomingMeetings />);
         expect(await screen.findByTestId('upcoming-teams-reauth')).toHaveTextContent(/connection has expired/);
     });
 
@@ -391,7 +392,7 @@ describe('UpcomingMeetings: derived chips, occurrences, expired grants, auto-rec
         listGoogleMeetMeetings.mockResolvedValue(gmeetPayload([], {
             connection: { googleConfigured: true, googleConnected: false, meetScopesGranted: true, hasSettingsScope: false, needsReauth: true },
         }));
-        render(<UpcomingMeetings />);
+        renderWithClient(<UpcomingMeetings />);
         expect(await screen.findByTestId('upcoming-gmeet-reauth')).toHaveTextContent(/Google connection has expired/);
         expect(screen.queryByText(/Connect Google Workspace to see your Meet meetings/)).not.toBeInTheDocument();
         expect(screen.queryByText(/doesn't include Meet permissions/)).not.toBeInTheDocument();
@@ -404,7 +405,7 @@ describe('UpcomingMeetings: derived chips, occurrences, expired grants, auto-rec
         const user = userEvent.setup();
         listTeamsMeetings.mockResolvedValue(teamsPayload([teamsMeeting({ excluded: true, status: 'excluded' })]));
         setTeamsMeetingRecord.mockResolvedValue({ effectiveRecord: true, overridden: false, autoRecordingConfig: 'series_only' });
-        const { container } = render(<UpcomingMeetings />);
+        const { container } = renderWithClient(<UpcomingMeetings />);
         await screen.findByText('Teams review');
         await user.click(toggles(container)[0]);
         expect(await screen.findByTestId('upcoming-row-notice')).toHaveTextContent(/Teams records a series as a whole/);

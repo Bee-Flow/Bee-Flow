@@ -21,7 +21,7 @@ const { stripeWebhookKit, STATUS_WRITE } = require('../../testUtils/stripeWebhoo
 const kit = stripeWebhookKit();
 const userStore = require('../../stores/userStore');
 const stripeService = require('../../services/stripeService');
-const { DUNNING_MAX_ATTEMPTS } = require('./paymentEvents');
+const { DUNNING_MAX_ATTEMPTS } = require('../../usecases/stripe/paymentEvents');
 
 const ORG_META = { beeflow_org_id: 'org1' };
 const CONSUMER_META = { beeflow_subscriber_type: 'consumer', beeflow_user_id: 'u1' };

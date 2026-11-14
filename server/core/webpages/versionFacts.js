@@ -150,7 +150,7 @@ function restoreSummary(seq) {
 /**
  * Who made the version, as the history list may show it.
  *
- * @param {string|null} actorUserId  the column value
+ * @param {string|null|undefined} actorUserId  the column value (undefined reads as never recorded)
  * @param {{ viewerId?: string|null, names?: Map<any, any>|Record<string, any>|null }} [opts]
  *   `viewerId`: who is looking (for `isYou`); `names`: id → display name, looked up by the route. An id
  *   that is not in it is an account that can no longer be read

@@ -12,7 +12,7 @@
 
 'use strict';
 
-/** @param {import('../../automation/automationGraph').AutomationDefinition | null | undefined} definition */
+/** @param {import('../../core/automationModel/automationGraph').AutomationDefinition | null | undefined} definition */
 const modeOf = (definition) => (definition && definition.runPolicy && definition.runPolicy.connections === 'caller' ? 'caller' : 'owner');
 
 /**

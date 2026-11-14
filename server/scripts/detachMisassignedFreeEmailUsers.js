@@ -41,7 +41,8 @@ require('../boot/lateBoundPorts');
 const freeEmailDomains = require(path.join(__dirname, '..', 'utils', 'freeEmailDomains'));
 
 const { parseOpsArgsOrExit } = require('./lib/opsArgs');
-const log = require('../telemetry/log');
+const { isMissingTable } = require('../utils/isMissingTable');
+const { ignoreGone, bestEffort } = require('../utils/bestEffort');
 
 const ARGS = parseOpsArgsOrExit({ org: { type: 'string' }, since: { type: 'string' } },
     { usage: 'Usage: node server/scripts/detachMisassignedFreeEmailUsers.js [--apply] [--org <id>] [--since YYYY-MM-DD]' });
@@ -70,7 +71,7 @@ async function countUserRows(userId) {
             const n = rows[0]?.n || 0;
             if (n > 0) counts[table] = n;
             total += n;
-        } catch (err) { log.debug('table may not exist — treat as zero', err); }
+        } catch (err) { if (!isMissingTable(err)) bestEffort('scripts/detachMisassignedFreeEmailUsers:countRows', err); /* a missing table counts as zero */ }
     }
     return { counts, total };
 }
@@ -199,9 +200,9 @@ async function main() {
         try {
             const { syncSeatQuantityForOrg } = require(path.join(__dirname, '..', 'services', 'stripeService'));
             for (const orgId of affectedOrgs) {
-                try { await syncSeatQuantityForOrg(orgId); } catch (err) { log.debug('best-effort', err); }
+                try { await syncSeatQuantityForOrg(orgId); } catch (err) { bestEffort('scripts/detachMisassignedFreeEmailUsers:syncSeats', err); }
             }
-        } catch (err) { log.debug('stripe optional', err); }
+        } catch (err) { bestEffort('scripts/detachMisassignedFreeEmailUsers:loadStripe', err); }
     }
 
     console.log('─'.repeat(78));
@@ -216,6 +217,6 @@ async function main() {
 
 main().catch(err => {
     console.error('detachMisassignedFreeEmailUsers failed:', err);
-    pool.end().catch(() => {});
+    pool.end().catch((err) => ignoreGone('scripts/detachMisassignedFreeEmailUsers:poolEnd', err));
     process.exit(1);
 });

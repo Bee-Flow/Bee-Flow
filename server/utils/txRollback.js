@@ -1,7 +1,17 @@
 // @typecheck strict
 /**
- * The rollback marker of db.withTransaction, in a module of its own so a test
- * fake of db.js can honour `return rollback(v)` without loading the real pool.
+ * The rollback marker and the transaction runner of db.withTransaction, in a
+ * module of its own so a test fake of db.js can honour `return rollback(v)`
+ * without loading the real pool, and so a store that is handed its own
+ * `getClient` (an injected engine, a factory over a facade) runs its
+ * transaction through the same runner as db.withTransaction.
+ */
+
+const { bestEffort } = require('./bestEffort');
+
+/**
+ * The part of a pooled client a transaction uses.
+ * @typedef {{ query: (sql: string, params?: any[]) => Promise<any>, release: () => void }} TxClient
  */
 
 class TransactionRollback {
@@ -25,7 +35,7 @@ function rollback(value) {
 /**
  * COMMIT a finished withTransaction callback, or ROLLBACK when it returned
  * `rollback(value)`; resolves to the callback's value either way.
- * @param {import('pg').PoolClient} client
+ * @param {Pick<TxClient, 'query'>} client
  * @param {any} result
  */
 async function settleTransaction(client, result) {
@@ -37,4 +47,28 @@ async function settleTransaction(client, result) {
     return result;
 }
 
-module.exports = { TransactionRollback, rollback, settleTransaction };
+/**
+ * BEGIN → fn → COMMIT on a client just checked out, ROLLBACK on any throw (or
+ * on `return rollback(v)`), and release in `finally`: the transaction ends
+ * once, the client goes back once, and nothing is sent on it afterwards.
+ * `begin` is the opening statement (`'BEGIN READ ONLY'` for a read).
+ * @template T
+ * @param {TxClient} client
+ * @param {(client: TxClient) => Promise<T>} fn
+ * @param {{ begin?: string }} [opts]
+ * @returns {Promise<T>}
+ */
+async function runTransaction(client, fn, { begin = 'BEGIN' } = {}) {
+    try {
+        await client.query(begin);
+        const result = await fn(client);
+        return await settleTransaction(client, result);
+    } catch (e) {
+        try { await client.query('ROLLBACK'); } catch (err) { bestEffort('txRollback:runTransaction', err); /* connection may be dead */ }
+        throw e;
+    } finally {
+        client.release();
+    }
+}
+
+module.exports = { TransactionRollback, rollback, settleTransaction, runTransaction };

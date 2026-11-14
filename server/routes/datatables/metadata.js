@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * One table's own facts: the label, the Art. 30 purpose, the lawful basis,
  * which column names the data subject, and how long its rows are kept.
@@ -116,7 +116,8 @@ async function managedOf(table) {
 
 /** @param {import('express').Router} router */
 function register(router) {
-    router.get('/:id', requireDatatableGrade('viewer'), async (/** @type {DatatableRequest} */ req, /** @type {import('express').Response} */ res) => {
+    router.get('/:id', requireDatatableGrade('viewer'), async (gatedReq, /** @type {import('express').Response} */ res) => {
+        const req = /** @type {DatatableRequest} */ (gatedReq); // what requireDatatableGrade set
         const managed = await managedOf(req.datatable);
         res.json({ datatable: { ...publicTable(req.datatable, req.datatableGrade), managed } });
     });
@@ -148,7 +149,8 @@ function register(router) {
         requireDatatableGrade('owner'),
         requireManageForOrgScope(),
         validate({ body: PatchBody }),
-        async (/** @type {DatatableRequest} */ req, /** @type {import('express').Response} */ res) => {
+        async (gatedReq, /** @type {import('express').Response} */ res) => {
+            const req = /** @type {DatatableRequest} */ (gatedReq); // what requireDatatableGrade set
             try {
                 const body = req.body;
                 /** @type {Parameters<typeof datatableStore.updateDatatableMeta>[2]} */

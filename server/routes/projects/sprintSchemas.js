@@ -42,4 +42,7 @@ const AssignItemsBody = bodyOf({
     taskIds: z.array(taskId, { error: ITEMS_TEXT }).min(1, ITEMS_TEXT).max(MAX_ITEMS, ITEMS_TEXT),
 }, 'Putting tasks in a sprint');
 
-module.exports = { NAME_MAX, GOAL_MAX, MAX_ITEMS, CreateSprintBody, UpdateSprintBody, AssignItemsBody };
+// Starting and completing act on the sprint in the path and take no fields.
+const NoBody = bodyOf({}, 'Starting or completing a sprint');
+
+module.exports = { NAME_MAX, GOAL_MAX, MAX_ITEMS, CreateSprintBody, UpdateSprintBody, AssignItemsBody, NoBody };

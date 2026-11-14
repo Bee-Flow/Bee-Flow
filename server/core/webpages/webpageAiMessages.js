@@ -43,6 +43,11 @@ async function stripOwnServerCategories(text, ctx) {
  * recorded in the KB query log; the handle comes back as `._queryLog` on the returned array, and the
  * caller finishes it with the answer. `viewerUserId` is the person using the page (null for an
  * anonymous visitor), `surface` says which door the call came through.
+ * @param {{ webpage: { id?: string, name?: string, description?: string | null, instructions?: string | null, knowledgeBaseIds?: unknown },
+ *   authorUserId: string, authorOrgId?: string | null, bridgeGrants: { ai: Record<string, unknown> } }} ctx  what of a BridgeAuthorContext it reads
+ * @param {{ prompt?: unknown, messages?: unknown, groundOnPage?: unknown }} body
+ * @param {{ groundGrantKey?: string, viewerUserId?: string | null, surface?: string,
+ *   carrier?: NonNullable<Parameters<typeof searchWebpageKB>[0]['log']>['carrier'] }} [opts]
  */
 async function buildAiMessages(ctx, body, { groundGrantKey = 'groundOnPage', viewerUserId = null, surface = 'preview', carrier = null } = {}) {
     const { webpage, authorUserId, bridgeGrants } = ctx;

@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { TranslateFn } from '@/hooks/useTranslation';
-import { API_BASE, authFetch } from '@/utils/helpers';
 import { toast } from '@/components/shared/Toast';
 import type { AdminMessage, AdminUser, AskConfirm, UserFormData } from './types';
-import { mutate, ApiError } from '@/api/mutate';
+import { ApiError } from '@/api/mutate';
 import { approvePendingUser } from '../useOrgMemberRoles';
 import { costLimitToInput, parseCostLimitInput } from './costLimitInput';
+import { apiFetch, apiRequest } from '@/api/typedRequest';
 import { EMPTY_IMAGE_LIMITS_INPUT, imageLimitsToInput, parseImageLimitsInput } from '@/utils/imageLimits';
 import type { ImageLimits } from '@/utils/imageLimits';
 
@@ -131,11 +131,7 @@ export default function useUserActions({ loadData, setMessage, askConfirm, t, is
             return;
         }
         try {
-            const res = await authFetch(`${API_BASE}/auth/users`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(withoutLimits(userData)),
-            });
+            const res = await apiFetch('POST /auth/users', { body: withoutLimits(userData) });
             if (res.ok) {
                 setMessage({ type: 'success', text: 'User created successfully' });
                 setShowAddUser(false);
@@ -164,10 +160,9 @@ export default function useUserActions({ loadData, setMessage, askConfirm, t, is
         setPlatformRoleRefusal(null);
         try {
             const rest = withoutLimits(userData);
-            const res = await authFetch(`${API_BASE}/auth/users/${userData.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...rest, ...limits.fields, ...extra }),
+            const res = await apiFetch('PUT /auth/users/{id}', {
+                params: { id: userData.id },
+                body: { ...rest, ...limits.fields, ...extra },
             });
             if (res.ok) {
                 setMessage({ type: 'success', text: 'User updated successfully' });
@@ -215,7 +210,7 @@ export default function useUserActions({ loadData, setMessage, askConfirm, t, is
 
     const doResetMfa = async (user: AdminUser) => {
         try {
-            const res = await authFetch(`${API_BASE}/auth/users/${user.id}/mfa/reset`, { method: 'POST' });
+            const res = await apiFetch('POST /auth/users/{id}/mfa/reset', { params: { id: user.id } });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
                 toast.error(data.error || 'Failed to reset 2FA');
@@ -242,7 +237,7 @@ export default function useUserActions({ loadData, setMessage, askConfirm, t, is
 
     const doDeleteUser = async (userId: string) => {
         try {
-            const res = await authFetch(`${API_BASE}/auth/users/${userId}`, { method: 'DELETE' });
+            const res = await apiFetch('DELETE /auth/users/{id}', { params: { id: userId } });
             if (res.ok) {
                 setMessage({ type: 'success', text: 'User deleted' });
                 loadData();
@@ -278,7 +273,7 @@ export default function useUserActions({ loadData, setMessage, askConfirm, t, is
             const formData = new FormData();
             formData.append('avatar', file);
             try {
-                const res = await mutate(`${API_BASE}/auth/users/${userData.id}/avatar`, { method: 'POST', body: formData }).catch((err: unknown) => {
+                const res = await apiRequest('POST /auth/users/{id}/avatar', { params: { id: userData.id }, init: { body: formData } }).catch((err: unknown) => {
                     if (err instanceof ApiError) return null;
                     throw err;
                 });
@@ -298,7 +293,12 @@ export default function useUserActions({ loadData, setMessage, askConfirm, t, is
 
     const handleAvatarRemove = async () => {
         if (showEditUser && userData.id && userData.avatarType === 'image') {
-            await authFetch(`${API_BASE}/auth/users/${userData.id}/avatar`, { method: 'DELETE' });
+            // A refused removal keeps the avatar the server still holds on screen.
+            const res = await apiFetch('DELETE /auth/users/{id}/avatar', { params: { id: userData.id } });
+            if (!res.ok) {
+                setMessage({ type: 'error', text: 'Remove failed' });
+                return;
+            }
         }
         setUserData(p => ({ ...p, avatar: '', avatarType: '' }));
         setShowEmojiPicker(false);

@@ -32,7 +32,7 @@
 
 'use strict';
 
-const { walkSteps } = require('./automationGraph');
+const { walkSteps } = require('../core/automationModel/automationGraph');
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 const CACHE_MAX_SCOPES = 500;

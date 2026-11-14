@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Streaming agent chat — per-turn tool stack assembly.
  *
@@ -32,7 +32,7 @@ const { withholdIncognitoTools } = require('../conversation/incognito.mts');
 
 /**
  * The agent fields tool assembly reads.
- * @typedef {{ config?: { disableExternalTools?: boolean, attachedSkillIds?: string[], tools?: unknown } | null, model?: string, owner_id?: string | null }} AssemblyAgent
+ * @typedef {{ config?: { disableExternalTools?: boolean, attachedSkillIds?: string[], tools?: unknown } | null, model?: string | null, owner_id?: string | null }} AssemblyAgent
  */
 
 /**
@@ -271,7 +271,7 @@ function narrowToolsForTurn({ tools, agent, agentId, messageMetadata }) {
             });
             if (droppedForUnattended.length > 0) {
                 const drop = new Set(droppedForUnattended);
-                out = out.filter(t => !drop.has(t.function?.name));
+                out = out.filter(t => !drop.has(/** @type {string} */ (t.function?.name)));
                 unattendedWithheld = droppedForUnattended;
                 log.info(`[AgentRuntime] Unattended run for agent ${agentId} — withheld ${droppedForUnattended.length} tool(s) needing confirmation: ${droppedForUnattended.join(', ')}`);
             }

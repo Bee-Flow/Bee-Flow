@@ -28,6 +28,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const Module = require('module');
+const { fakeAgentGates } = require('./agentGate.testkit');
 
 const fx = {
     userId: 'me',
@@ -90,10 +91,7 @@ const MOCKS = {
         }),
         startSseHeartbeat: () => () => {},
     },
-    './crud': {
-        canReadAgent: async () => fx.canRead,
-        canModifyAgent: async () => fx.canModify,
-    },
+    './crud': null,
     '../../core/llm/llmClient': {
         chatForcedTool: async (modelId, messages, toolDef, opts) => {
             fx.gradeCalls.push({ modelId, messages, toolDef, opts });
@@ -120,6 +118,10 @@ const MOCKS = {
         resolveConversationAccess: async () => ({ canRead: true }),
     },
 };
+
+MOCKS['./crud'] = fakeAgentGates({
+    agentStore: MOCKS['../../stores/agentStore'], canRead: () => fx.canRead, canModify: () => fx.canModify, userId: () => fx.userId,
+});
 
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
@@ -197,7 +199,7 @@ test('een agent die niet bestaat is 404 op allebei de nieuwe routes', async () =
 
 test('onleesbaar is 404 en leesbaar-maar-niet-bewerkbaar is 403, in die volgorde', async () => {
     fx.canRead = false;
-    fx.canModify = true;
+    fx.canModify = false;
     for (const call of [{ method: 'GET', url: '/a1/tests/runs' }, suggestCall()]) {
         const res = await dispatch(call);
         assert.strictEqual(res.statusCode, 404, `${call.method} ${call.url}`);

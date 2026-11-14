@@ -86,8 +86,9 @@ function scanSummaryRow(filename, action, summary) {
  * the tokenise/block/pass switch. It returns the text to inline (possibly
  * tokenised) or throws AttachmentPrivacyBlock for the intake to catch. The
  * conversation was created eagerly, so `convId` is non-null and the scanner's
- * internal `dlpRunner.mergeTokenMap(convId, tokenMap)` lands in the right map.
- * @param {{ shield: Shield, config: ProviderConfig, convId: string, userId: string, send: Send, summaries: ScanSummaryRow[] }} p
+ * internal `dlpRunner.mergeTokenMap(convId, tokenMap)` lands in the right map;
+ * only an incognito turn has none, and the scan still runs, merging nothing.
+ * @param {{ shield: Shield, config: ProviderConfig, convId: string | null, userId: string, send: Send, summaries: ScanSummaryRow[] }} p
  */
 function makeAttachmentScanner({ shield, config, convId, userId, send, summaries }) {
     const { scanAttachmentText, AttachmentPrivacyBlock } = require('../../../core/dlp/attachmentScanner');
@@ -218,7 +219,7 @@ async function auditScanSummaries(summaries, auditCtx) {
  * "Show raw payload & token mapping", also push the exact tokenised text the
  * model receives and the merged token map (the "Sent to AI" pane).
  * @param {ScanSummaryRow[]} summaries
- * @param {{ send: Send, shield: Shield, contentParts: Array<Record<string, unknown>>, modelId: string, convId: string }} p
+ * @param {{ send: Send, shield: Shield, contentParts: Array<Record<string, unknown>>, modelId: string, convId: string | null }} p
  */
 function surfaceScanSummaries(summaries, { send, shield, contentParts, modelId, convId }) {
     const aggCount = summaries.reduce((a, s) => a + (s.count || 0), 0);

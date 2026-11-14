@@ -34,6 +34,7 @@
  *     returns there, and one that does not behaves as before.
  */
 
+const { defaultTimeoutSignal } = require('../../utils/fixedEndpointFetch.mts');
 const express = require('express');
 const crypto = require('crypto');
 const log = require('../../telemetry/log');
@@ -142,6 +143,7 @@ router.get('/callback', async (req, res) => {
     try {
         // nosemgrep: semgrep.beeflow-bare-fetch -- the admin-configured OAuth issuer; nextcloudFetch would refuse a private-host Nextcloud without NEXTCLOUD_ALLOW_PRIVATE_HOSTS and break sign-in there
         const tokenResponse = await fetch(nextcloudOAuthUrl(nextcloudUrl, 'token'), {
+            signal: defaultTimeoutSignal(),
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -163,7 +165,9 @@ router.get('/callback', async (req, res) => {
 
         const tokenData = /** @type {{ access_token?: string, refresh_token?: string, expires_in?: number|string, [key: string]: any }} */ (await tokenResponse.json());
 
+        // nosemgrep: semgrep.beeflow-bare-fetch -- the admin-configured OAuth issuer; nextcloudFetch would refuse a private-host Nextcloud without NEXTCLOUD_ALLOW_PRIVATE_HOSTS and break sign-in there
         const userResponse = await fetch(`${nextcloudUrl}/ocs/v2.php/cloud/user?format=json`, {
+            signal: defaultTimeoutSignal(),
             headers: {
                 'Authorization': `Bearer ${tokenData.access_token}`,
                 'OCS-APIRequest': 'true'

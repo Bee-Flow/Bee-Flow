@@ -1,5 +1,5 @@
 /** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Test kit for the co-editing tests: a whole co-editing server over PGlite
  * and in-memory stand-ins, with no module mocking.
@@ -94,7 +94,7 @@ const simpleBundle = {
         return {
             type: 'doc',
             content: fragment.toArray()
-                .filter(/** @param {import('yjs').XmlElement | import('yjs').XmlText} el @returns {el is import('yjs').XmlElement} */ (el) => el instanceof Y.XmlElement && el.nodeName === 'textblock')
+                .filter(/** @param {unknown} el @returns {el is import('yjs').XmlElement} */ (el) => el instanceof Y.XmlElement && el.nodeName === 'textblock')
                 .map((el) => paragraph(ytextString(/** @type {import('yjs').XmlText} */ (el.get(0))))),
         };
     },
@@ -189,7 +189,7 @@ async function collabWorld(opts = {}) {
     /**
      * @param {string} kind
      * @param {string} id
-     * @param {string | ArrayBufferLike | NodeJS.ArrayBufferView<ArrayBufferLike>} html
+     * @param {string | ArrayBufferLike | NodeJS.ArrayBufferView<ArrayBufferLike> | undefined} html
      */
     const overCap = (kind, id, html) => refuse.has(id) || (contentCaps[kind] > 0 && Buffer.byteLength(html || '', 'utf8') > contentCaps[kind]);
 

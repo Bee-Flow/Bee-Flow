@@ -119,10 +119,10 @@ async function setLiveSiteId(siteId) {
         return null;
     }
     if (typeof siteId !== 'string' || !SITE_ID_RE.test(siteId)) {
-        throw new Error('Invalid siteId');
+        throw new HttpError(400, 'cms_invalid_site_id', 'Invalid siteId');
     }
     const project = await cmsStore.getProject(siteId);
-    if (!project) throw new Error('Site not found');
+    if (!project) throw new HttpError(404, 'cms_site_not_found', 'Site not found');
     await configStore.setConfig(KEY_CMS_LIVE_SITE_ID, siteId);
     return siteId;
 }

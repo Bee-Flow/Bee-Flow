@@ -10,7 +10,7 @@
 
 const { COMPONENT_TYPES, EVENT_NAMES, getSpec } = require('../../componentSpecs');
 const ops = require('../../definitionOps');
-const { pickClosestId, levenshtein } = require('../../../automation/validate/helpers');
+const { pickClosestId, levenshtein } = require('../../../utils/closestId.mts');
 const { TEMP_ID_RX } = require('../schemas');
 const { NODE_AUTHORABLE_FIELDS, normalizeNodeField } = require('../shared');
 const { flattenEntries } = require('./componentEntries');

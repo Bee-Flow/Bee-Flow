@@ -1,0 +1,613 @@
+{
+  "textAndReasoning": {
+    "sent": [
+      {
+        "stream": true,
+        "previous_response_id": null
+      }
+    ],
+    "seen": [
+      [
+        "thinking_start",
+        {
+          "partId": "openai-0"
+        }
+      ],
+      [
+        "thinking",
+        {
+          "text": "think ",
+          "partId": "openai-0"
+        }
+      ],
+      [
+        "thinking_stop",
+        {
+          "partId": "openai-0"
+        }
+      ],
+      [
+        "thinking_start",
+        {
+          "partId": "openai-1"
+        }
+      ],
+      [
+        "thinking_start",
+        {
+          "partId": "openai-0"
+        }
+      ],
+      [
+        "thinking",
+        {
+          "text": "no index opens part 0",
+          "partId": "openai-0"
+        }
+      ],
+      [
+        "thinking_start",
+        {
+          "partId": "openai-2"
+        }
+      ],
+      [
+        "thinking",
+        {
+          "text": "opened by delta",
+          "partId": "openai-2"
+        }
+      ],
+      [
+        "text",
+        {
+          "text": "Hello "
+        }
+      ],
+      [
+        "text",
+        {
+          "text": "world"
+        }
+      ],
+      [
+        "thinking_stop",
+        {
+          "partId": "openai-1"
+        }
+      ],
+      [
+        "thinking_stop",
+        {
+          "partId": "openai-0"
+        }
+      ],
+      [
+        "thinking_stop",
+        {
+          "partId": "openai-2"
+        }
+      ],
+      [
+        "done",
+        {
+          "prompt_tokens": 20,
+          "completion_tokens": 8,
+          "total_tokens": 28,
+          "cached_tokens": 4,
+          "cache_creation_tokens": 0,
+          "cache_creation_5m_tokens": 0,
+          "cache_creation_1h_tokens": 0,
+          "cache_creation_ttl_assumed": false,
+          "reasoning_tokens": 3,
+          "prompt_includes_cache": true,
+          "service_tier": "default",
+          "inference_geo": null,
+          "traffic_type": null,
+          "tool_use": {},
+          "modality": {
+            "prompt": {},
+            "completion": {},
+            "cached": {}
+          },
+          "cache_ttl": null,
+          "responseId": "resp_1",
+          "stop_reason": "completed",
+          "reasoningItems": [
+            {
+              "type": "reasoning",
+              "encrypted_content": "enc-1"
+            }
+          ]
+        }
+      ]
+    ],
+    "error": null
+  },
+  "toolCalls": {
+    "sent": [
+      {
+        "stream": true,
+        "previous_response_id": null
+      }
+    ],
+    "seen": [
+      [
+        "tool_args_delta",
+        {
+          "name": "alpha",
+          "partial": "{\"x\":"
+        }
+      ],
+      [
+        "tool_args_delta",
+        {
+          "name": "beta",
+          "partial": "{\"y\":"
+        }
+      ],
+      [
+        "tool_args_delta",
+        {
+          "name": "alpha",
+          "partial": "{\"x\":1}"
+        }
+      ],
+      [
+        "tool_use",
+        {
+          "id": "fc_b",
+          "name": "beta",
+          "input": {
+            "y": "final"
+          }
+        }
+      ],
+      [
+        "tool_use",
+        {
+          "id": "call_a",
+          "name": "alpha",
+          "input": {
+            "x": 1
+          }
+        }
+      ],
+      [
+        "done",
+        {
+          "stop_reason": "completed"
+        }
+      ]
+    ],
+    "error": null
+  },
+  "keyedByItemIdOnly": {
+    "sent": [
+      {
+        "stream": true,
+        "previous_response_id": null
+      }
+    ],
+    "seen": [
+      [
+        "tool_args_delta",
+        {
+          "name": "zed",
+          "partial": "{\"z\":1}"
+        }
+      ],
+      [
+        "tool_use",
+        {
+          "id": "call_z",
+          "name": "zed",
+          "input": {
+            "z": 1
+          }
+        }
+      ],
+      [
+        "done",
+        {}
+      ]
+    ],
+    "error": null
+  },
+  "keyedByNothing": {
+    "sent": [
+      {
+        "stream": true,
+        "previous_response_id": null
+      }
+    ],
+    "seen": [
+      [
+        "tool_args_delta",
+        {
+          "name": "anon",
+          "partial": "{\"a\":"
+        }
+      ],
+      [
+        "tool_args_delta",
+        {
+          "name": "anon",
+          "partial": "{\"a\":2}"
+        }
+      ],
+      [
+        "tool_use",
+        {
+          "name": "anon",
+          "input": {
+            "a": 2
+          }
+        }
+      ],
+      [
+        "done",
+        {}
+      ]
+    ],
+    "error": null
+  },
+  "strayKeys": {
+    "sent": [
+      {
+        "stream": true,
+        "previous_response_id": null
+      }
+    ],
+    "seen": [
+      [
+        "tool_args_delta",
+        {
+          "name": "steady",
+          "partial": "{\"s\":1}"
+        }
+      ],
+      [
+        "tool_use",
+        {
+          "id": "call_s",
+          "name": "steady",
+          "input": {
+            "s": 1
+          }
+        }
+      ],
+      [
+        "done",
+        {}
+      ]
+    ],
+    "error": null
+  },
+  "badArguments": {
+    "sent": [
+      {
+        "stream": true,
+        "previous_response_id": null
+      }
+    ],
+    "seen": [
+      [
+        "tool_args_delta",
+        {
+          "name": "broken",
+          "partial": "{not json"
+        }
+      ],
+      [
+        "done",
+        {}
+      ]
+    ],
+    "error": null
+  },
+  "incomplete": {
+    "sent": [
+      {
+        "stream": true,
+        "previous_response_id": null
+      }
+    ],
+    "seen": [
+      [
+        "thinking_start",
+        {
+          "partId": "openai-0"
+        }
+      ],
+      [
+        "text",
+        {
+          "text": "cut"
+        }
+      ],
+      [
+        "thinking_stop",
+        {
+          "partId": "openai-0"
+        }
+      ],
+      [
+        "done",
+        {
+          "prompt_tokens": 20,
+          "completion_tokens": 8,
+          "total_tokens": 28,
+          "cached_tokens": 4,
+          "cache_creation_tokens": 0,
+          "cache_creation_5m_tokens": 0,
+          "cache_creation_1h_tokens": 0,
+          "cache_creation_ttl_assumed": false,
+          "reasoning_tokens": 3,
+          "prompt_includes_cache": true,
+          "service_tier": null,
+          "inference_geo": null,
+          "traffic_type": null,
+          "tool_use": {},
+          "modality": {
+            "prompt": {},
+            "completion": {},
+            "cached": {}
+          },
+          "cache_ttl": null,
+          "responseId": "resp_i",
+          "stop_reason": "max_output_tokens"
+        }
+      ]
+    ],
+    "error": null
+  },
+  "incompleteNoReason": {
+    "sent": [
+      {
+        "stream": true,
+        "previous_response_id": null
+      }
+    ],
+    "seen": [
+      [
+        "done",
+        {
+          "stop_reason": "incomplete"
+        }
+      ]
+    ],
+    "error": null
+  },
+  "incompleteNoResponse": {
+    "sent": [
+      {
+        "stream": true,
+        "previous_response_id": null
+      }
+    ],
+    "seen": [
+      [
+        "done",
+        {
+          "stop_reason": "incomplete"
+        }
+      ]
+    ],
+    "error": null
+  },
+  "completedWithIncompleteDetails": {
+    "sent": [
+      {
+        "stream": true,
+        "previous_response_id": null
+      }
+    ],
+    "seen": [
+      [
+        "done",
+        {
+          "stop_reason": "content_filter"
+        }
+      ]
+    ],
+    "error": null
+  },
+  "completedTwice": {
+    "sent": [
+      {
+        "stream": true,
+        "previous_response_id": null
+      }
+    ],
+    "seen": [
+      [
+        "done",
+        {
+          "prompt_tokens": 20,
+          "completion_tokens": 8,
+          "total_tokens": 28,
+          "cached_tokens": 4,
+          "cache_creation_tokens": 0,
+          "cache_creation_5m_tokens": 0,
+          "cache_creation_1h_tokens": 0,
+          "cache_creation_ttl_assumed": false,
+          "reasoning_tokens": 3,
+          "prompt_includes_cache": true,
+          "service_tier": null,
+          "inference_geo": null,
+          "traffic_type": null,
+          "tool_use": {},
+          "modality": {
+            "prompt": {},
+            "completion": {},
+            "cached": {}
+          },
+          "cache_ttl": null,
+          "responseId": "r1",
+          "stop_reason": "in_progress"
+        }
+      ]
+    ],
+    "error": null
+  },
+  "failed": {
+    "sent": [
+      {
+        "stream": true,
+        "previous_response_id": null
+      }
+    ],
+    "seen": [
+      [
+        "thinking_start",
+        {
+          "partId": "openai-3"
+        }
+      ],
+      [
+        "thinking_stop",
+        {
+          "partId": "openai-3"
+        }
+      ],
+      [
+        "error",
+        {
+          "error": "server_error happened"
+        }
+      ],
+      [
+        "done",
+        {
+          "stop_reason": "error"
+        }
+      ]
+    ],
+    "error": null
+  },
+  "failedAfterCompleted": {
+    "sent": [
+      {
+        "stream": true,
+        "previous_response_id": null
+      }
+    ],
+    "seen": [
+      [
+        "error",
+        {
+          "error": "late error"
+        }
+      ],
+      [
+        "done",
+        {
+          "prompt_tokens": 20,
+          "completion_tokens": 8,
+          "total_tokens": 28,
+          "cached_tokens": 4,
+          "cache_creation_tokens": 0,
+          "cache_creation_5m_tokens": 0,
+          "cache_creation_1h_tokens": 0,
+          "cache_creation_ttl_assumed": false,
+          "reasoning_tokens": 3,
+          "prompt_includes_cache": true,
+          "service_tier": null,
+          "inference_geo": null,
+          "traffic_type": null,
+          "tool_use": {},
+          "modality": {
+            "prompt": {},
+            "completion": {},
+            "cached": {}
+          },
+          "cache_ttl": null,
+          "responseId": "r2",
+          "stop_reason": "error"
+        }
+      ]
+    ],
+    "error": null
+  },
+  "errorShapes": {
+    "sent": [
+      {
+        "stream": true,
+        "previous_response_id": null
+      }
+    ],
+    "seen": [
+      [
+        "error",
+        {
+          "error": "nested message"
+        }
+      ],
+      [
+        "error",
+        {
+          "error": "top-level message"
+        }
+      ],
+      [
+        "error",
+        {
+          "error": "OpenAI Responses stream failed"
+        }
+      ],
+      [
+        "done",
+        {
+          "stop_reason": "error"
+        }
+      ]
+    ],
+    "error": null
+  },
+  "unknownEventsOnly": {
+    "sent": [
+      {
+        "stream": true,
+        "previous_response_id": null
+      }
+    ],
+    "seen": [
+      [
+        "done",
+        {}
+      ]
+    ],
+    "error": null
+  },
+  "empty": {
+    "sent": [
+      {
+        "stream": true,
+        "previous_response_id": null
+      }
+    ],
+    "seen": [
+      [
+        "done",
+        {}
+      ]
+    ],
+    "error": null
+  },
+  "previousResponseId": {
+    "sent": [
+      {
+        "stream": true,
+        "previous_response_id": "resp_prev"
+      }
+    ],
+    "seen": [
+      [
+        "done",
+        {}
+      ]
+    ],
+    "error": null
+  }
+}

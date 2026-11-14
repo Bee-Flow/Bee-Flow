@@ -210,7 +210,7 @@ function makeBoard(db, ready, endRank) {
      */
     async function listSearchTasks(projectId) {
         await ready();
-        return (await db.query('SELECT * FROM project_tasks WHERE project_id = $1 ORDER BY id', [projectId])).rows.map(rowToTask);
+        return (await db.query('SELECT * FROM project_tasks WHERE project_id = $1 ORDER BY id', [projectId])).rows.map((row) => /** @type {NonNullable<ReturnType<typeof rowToTask>>} */ (rowToTask(row))); // a selected row maps, never to null
     }
 
     /**

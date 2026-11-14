@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * Which organisation a project belongs to, and who belongs to it.
@@ -46,6 +46,9 @@ async function projectOrgOf(project) {
  */
 async function belongsToProjectOrg(userId, projectOrg) {
     const { orgIds } = await orgScope({ session: { user: { id: userId } } }, { strict: true });
+    // orgScope answers null (every organisation) only for a session that carries the platform-admin flag,
+    // which the session built here never does; the branch keeps that meaning should it ever get one.
+    if (!orgIds) return true;
     return projectOrg ? orgIds.has(projectOrg) : orgIds.size === 0;
 }
 

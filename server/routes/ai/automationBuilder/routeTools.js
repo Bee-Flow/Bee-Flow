@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Automation Builder — the tool calls the route answers itself, before the
  * builder dispatch: a call behind a stop, unparseable arguments, the pause
@@ -11,15 +11,15 @@
 const automationStore = require('../../../stores/automationStore');
 const { truncateToolResultJson } = require('../../../automation/builderTools');
 const { persistDraftWrap } = require('./builderDraft');
-const { runDelegationTool } = require('./layerDelegation');
+const { runDelegationTool } = require('../../../usecases/ai/automationBuilder/layerDelegation');
 const { INSPECTION_NAMES, inspect } = require('./inspectionTools');
-const { runWebResearchTool, isWebResearchTool } = require('./webResearch');
-const { MAX_QUESTIONS, isBlankDraft, writeQuestions, toolAllowed, previewRefusal, planCoversRemoval, resolveRemovalTarget, writePlan, markStagedView } = require('./workMode');
+const { runWebResearchTool, isWebResearchTool } = require('../../../usecases/ai/automationBuilder/webResearch');
+const { MAX_QUESTIONS, isBlankDraft, writeQuestions, toolAllowed, previewRefusal, planCoversRemoval, resolveRemovalTarget, writePlan, markStagedView } = require('../../../usecases/ai/automationBuilder/workMode');
 const { proposalPreviewPayload } = require('./datatableTurn');
-const { applyPlanMarkDone, normalizePlanTodos } = require('./chatTurnLoop');
+const { applyPlanMarkDone, normalizePlanTodos } = require('../../../usecases/ai/automationBuilder/chatTurnLoop');
 const { rejectedCallLabel } = require('./turnStop');
-const { askFirstRefusal, questionLimit } = require('./modeRules.mts');
-const { briefGaps, briefText } = require('./briefGaps.mts');
+const { askFirstRefusal, questionLimit } = require('../../../usecases/ai/automationBuilder/modeRules.mts');
+const { briefGaps, briefText } = require('../../../usecases/ai/automationBuilder/briefGaps.mts');
 
 // The turns whose plan on a new automation was already sent back once to ask
 // first: the nudge happens once, the model's second plan stands.
@@ -34,7 +34,7 @@ const askedFirst = new WeakSet();
  * @param {import('./turnSetup').BuilderRound} round
  * @param {import('./turnSetup').BuilderToolCall} tc
  * @param {string} name
- * @param {ReturnType<typeof import('./chatTurnLoop').parseToolArgs>['args']} args
+ * @param {ReturnType<typeof import('../../../usecases/ai/automationBuilder/chatTurnLoop').parseToolArgs>['args']} args
  * @param {boolean} truncated
  */
 async function handleRouteTool(turn, round, tc, name, args, truncated) {
@@ -71,7 +71,7 @@ async function handleRouteTool(turn, round, tc, name, args, truncated) {
         send('tool_call', { name, arguments: {}, result: toolResult });
         messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(toolResult) });
         round.refusedThisIter = true;
-        round.lastRefusal = { tool: name, error: toolResult.error, label: name };
+        round.lastRefusal = { tool: name, error: /** @type {string} */ (toolResult.error), label: name }; // set just above
         return true;
     }
     if (turn.pausedAfterStep || (bufferedBuild && name === 'builder_remove_step') || (approvedPlan && pauseAfterStep && ((name === 'builder_add_steps' && args.steps?.length > 1) || name === 'builder_generate_layer' || name === 'builder_generate_layers' || name === 'builder_request_dry_run'))) {

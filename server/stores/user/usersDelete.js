@@ -156,7 +156,7 @@ function erasureSteps(userId) {
  * @param {string} userId
  * @returns {Promise<boolean>} false when there is no such account
  */
-async function deleteUser(userId) {
+async function deleteUser(userId) { // stepwise: cross-store account erasure; each step is idempotent and reported, and erasing again finishes a failed one
     await initDB();
     // Before anything is dropped: an account that runs a Solution stage stays.
     await assertNotStageRunAs(userId);
@@ -298,7 +298,7 @@ async function deleteUser(userId) {
     // non-existent owner; a future user re-created with the same id would inherit
     // them as ghost agents in the library. Mirror the org-delete
     // cascade: drop each agent's conversations first, then the agents.
-    await step('agents', async () => {
+    await step('agents', async () => { // stepwise: account erasure; each step is idempotent and reported, and erasing again finishes a failed one
         const ownedAgents = await getAll('SELECT id FROM agents WHERE owner_id = $1', [userId]);
         for (const agent of ownedAgents) {
             await run('DELETE FROM conversation_messages WHERE conversation_id IN (SELECT id FROM agent_conversations WHERE agent_id = $1)', [agent.id])

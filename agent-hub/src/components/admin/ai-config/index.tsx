@@ -13,6 +13,7 @@ import StudioShell from '@/components/shared/StudioShell';
 import toast from '@/components/shared/Toast';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { ProviderMessage } from '@/hooks/useProviderConfig';
+import { useShellProps } from '@/authedApp/useShellProps';
 
 interface AIConfigPanelProps {
     /** The section from the URL (admin/ai-config/<section>); the first one when missing or unknown. */
@@ -25,8 +26,11 @@ interface AIConfigPanelProps {
 /** What a pane reports through `onMessage`, as a toast. */
 const notify = ({ type, text }: ProviderMessage) => (type === 'success' ? toast.success(text) : toast.error(text));
 
-const AIConfigPanel = ({ activeSection, activeProvider, onNavigate }: AIConfigPanelProps) => {
+const AIConfigPanel = ({ activeSection, activeProvider, onNavigate: onNavigateProp }: AIConfigPanelProps) => {
     const { t } = useTranslation();
+    // Inside the app shell the navigation comes from context; a host outside
+    // it (a test, a kit) still hands it as a prop.
+    const { onNavigate } = useShellProps({ onNavigate: onNavigateProp });
     const section: AiConfigSectionId = sectionIdOf(activeSection) ?? 'providers';
     const models = useAiProviderModels(MODEL_SECTIONS.has(section));
 

@@ -1,3 +1,5 @@
+// @typecheck
+/** @typedef {import('./stageRows').DeploymentRow} DeploymentRow */
 /** @typedef {import('../../core/dataEngine/dataModel/migrationShape').ModelShape} ModelShape */
 /** @typedef {import('pg').PoolClient} PoolClient */
 /**
@@ -36,19 +38,15 @@
  * `commitSettings` is the commit of a `settings` deployment (D19, 6.8): the
  * CAS on settings_version plus the solution_stages update.
  */
-
 'use strict';
-
 const { HttpError } = require('../../core/http/errors');
 const { stageLockSql } = require('../../stores/solutionStage/stages');
 const { storesOf, makeJournal, WRITE_ACTIONS } = require('./journal');
-
 /**
  * @param {string} name
  */
 const dep = (deps, name, load) => (deps && deps[name] !== undefined ? deps[name] : load());
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
-
 const planStale = (details) => new HttpError(409, 'plan_stale',
     'The stage changed since this deployment was planned. Plan it again.', details);
 
@@ -80,9 +78,11 @@ async function scopeSchema(client, scope) {
  * `checkFingerprints`, an entry that changed since the deployment read it is
  * plan_stale.
  *
- * @returns {Promise<{ model: object, onlyTableIds: string[], retiredFieldIds: Set<string>, retiredMeta: Map<string, object> }>}
- * @param {ModelShape} model
+ * @returns {Promise<{ model: ModelShape, onlyTableIds: string[], retiredFieldIds: Set<string>, retiredMeta: Map<string, object> }>}
  * @param {PoolClient} client
+ * @param {ModelShape} model
+ * @param {Array<Record<string, any>>} tables
+ * @param {{ stage?: StageRow, deps?: Record<string, any>, checkFingerprints?: boolean, referenceIds?: Set<string> }} [opts]
  */
 async function buildStageTables(client, model, tables, { stage, deps = {}, checkFingerprints = true, referenceIds = new Set() } = {}) {
     const { normalizeFields } = dep(deps, 'datatableFields', () => require('../../core/dataEngine/dataModel/datatableFields'));
@@ -104,7 +104,7 @@ async function buildStageTables(client, model, tables, { stage, deps = {}, check
         const norm = normalizeFields(columns, current);
         if (!norm.ok) throw new HttpError(409, 'schema_invalid', `The columns of "${t.ref}" do not validate.`, { ref: t.ref });
         const releaseIds = new Set(norm.fields.map(f => f.id));
-        const kept = (Array.isArray(entry.retired_fields) ? entry.retired_fields : [])
+        const kept = (Array.isArray(/** @type {{ retired_fields?: any[] }} */ (entry).retired_fields) ? /** @type {{ retired_fields?: any[] }} */ (entry).retired_fields : [])
             .filter(r => isObject(r) && !releaseIds.has(r.id));
         const leaving = current.filter(f => !releaseIds.has(f.id));
         for (const field of leaving) {
@@ -116,7 +116,7 @@ async function buildStageTables(client, model, tables, { stage, deps = {}, check
             out.retiredFieldIds.add(field.id);
             kept.push(meta);
         }
-        const next = { ...entry, fields: norm.fields, retired_fields: kept };
+        const next = /** @type {typeof entry & { retired_fields: any[], name?: string, rowsLocked?: boolean }} */ ({ ...entry, fields: norm.fields, retired_fields: kept });
         if (typeof t.entity.name === 'string' && t.entity.name) next.name = t.entity.name;
         if (referenceIds.has(t.id)) next.rowsLocked = true;
         if (!next.retired_fields.length) delete next.retired_fields;
@@ -178,7 +178,7 @@ async function commitTables(client, { stage, prepared, journal }, deps) {
     const key = s.datatableDbStore.scopeKey(scope);
     const referenceIds = new Set(referenceRows.map(r => r.tableId));
     const managedWrite = prepared.managedWrite;
-    /** @type {{ model: object; onlyTableIds: string[]; retiredFieldIds: Set<string>; retiredMeta: Map<string, object>; } | null} */
+    /** @type {{ model: ModelShape; onlyTableIds: string[]; retiredFieldIds: Set<string>; retiredMeta: Map<string, object>; } | null} */
     let built = null;
     const saved = await s.datatableStore.saveModel(scope, null, {
         client, managedWrite,
@@ -240,7 +240,7 @@ async function flipAutomation(client, part, ctx) {
     if (!a) throw planStale({ ref: part.ref, why: 'automation_gone' });
     let columns = {};
     if (part.installKind === 'automation') {
-        const { planGoLive } = dep(deps, 'goLive', () => require('../../automation/goLive'));
+        const { planGoLive } = dep(deps, 'goLive', () => require('../../core/featureModules').featureModule('automation/goLive'));
         const willBeActive = part.newOrRevived ? stage.newPartsActive === true : a.isActive === true;
         const plan = planGoLive(a, a.definition, { willBeActive, verb: 'publish' });
         if (!plan.ok) throw new HttpError(409, plan.code || 'invalid_schedule', plan.message, { ref: part.ref });
@@ -320,7 +320,7 @@ async function toConverging(client, s, deployment) {
 }
 
 /**
- * @param {{ deployment: object, stage: object, prepared: object }} input  `prepared` is prepare's result
+ * @param {{ deployment: DeploymentRow, stage: StageRow, prepared: PreparedDeployment }} input  `prepared` is prepare's result
  * @param {Record<string, unknown>} [deps]  stores (journal.storesOf), `applyKnowledge`, `referenceRowsModule`, `goLive`,
  *   `lifecycleFor(client)`, `beforeTables(client)` (a test's hook into the transaction)
  * @returns {Promise<object>} the deployment row, now `converging`
@@ -411,7 +411,7 @@ module.exports = { commit, commitSettings, buildStageTables, stageMigrationPlan,
 
 /** @typedef {import('pg').PoolClient} Client */
 
-/** @typedef {import('./model').PreparedDeployment} PreparedDeployment */
+/** @typedef {{ parts: Array<{ hash?: string, sourceHash?: string, [k: string]: any }>, release: { id: string, seq: number }, managedWrite?: { deploymentId: string }, knowledge?: any[], skills?: any[], templates?: any[], retire?: any[] }} PreparedDeployment prepare's result */
 
 /** @typedef {import('./model').StageRow & { newPartsActive?: boolean }} StageRow */
 

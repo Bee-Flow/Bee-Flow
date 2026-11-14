@@ -1,9 +1,4 @@
 {
-  "agents/agentAccess.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "agents/memory/extractor.js": {
     "complexity": {
       "count": 1
@@ -81,6 +76,21 @@
       "count": 1
     }
   },
+  "appStudio/actionExecutor/bulkRecords.mts": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "appStudio/actionExecutor/cascadeDelete.mts": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "appStudio/actionExecutor/copyDocumentStep.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
   "appStudio/actionExecutor/dispatch.js": {
     "complexity": {
       "count": 1
@@ -91,6 +101,11 @@
       "count": 1
     },
     "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "appStudio/actionExecutor/emailDraftStep.mts": {
+    "complexity": {
       "count": 1
     }
   },
@@ -110,8 +125,23 @@
       "count": 1
     }
   },
+  "appStudio/actionExecutor/httpRequest/request.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/actionExecutor/linkWrites.mts": {
+    "max-params": {
+      "count": 1
+    }
+  },
   "appStudio/actionExecutor/presentationStep.js": {
     "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/actionExecutor/recordWriteExec.mts": {
+    "max-params": {
       "count": 1
     }
   },
@@ -120,7 +150,45 @@
       "count": 1
     }
   },
+  "appStudio/actionExecutor/replaceRecords.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
   "appStudio/actionExecutor/shared.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/actionExecutor/stepErrors.mts": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "appStudio/actionExecutor/steps/code.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/actionExecutor/steps/http_request.mts": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "appStudio/actionExecutor/transactionStep.mts": {
+    "complexity": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "appStudio/actionExecutor/writeToRows.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/actionTests/mcpActionTests.mts": {
     "complexity": {
       "count": 1
     }
@@ -151,6 +219,11 @@
       "count": 1
     }
   },
+  "appStudio/appDocuments/pool.mts": {
+    "complexity": {
+      "count": 2
+    }
+  },
   "appStudio/appDryRun.js": {
     "complexity": {
       "count": 1
@@ -179,6 +252,36 @@
       "count": 2
     }
   },
+  "appStudio/backgroundRun.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/backgroundRunDurable.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/backgroundRunJob.mts": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "appStudio/backgroundRunParts.mts": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "appStudio/backgroundRunPolicy.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/backgroundRunResume.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
   "appStudio/browseStep.js": {
     "complexity": {
       "count": 1
@@ -203,6 +306,11 @@
       "count": 1
     }
   },
+  "appStudio/builderPrompt/lookReadback.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
   "appStudio/builderRunSummary.js": {
     "complexity": {
       "count": 1
@@ -215,12 +323,14 @@
   },
   "appStudio/builderTools/actionNormalise.js": {
     "complexity": {
-      "count": 7
+      "count": 6
     },
     "max-depth": {
       "count": 1
-    },
-    "max-lines-per-function": {
+    }
+  },
+  "appStudio/builderTools/appEditBlock.mts": {
+    "complexity": {
       "count": 1
     }
   },
@@ -254,9 +364,6 @@
   },
   "appStudio/builderTools/dataToolsTables.js": {
     "complexity": {
-      "count": 2
-    },
-    "max-lines-per-function": {
       "count": 1
     }
   },
@@ -317,11 +424,13 @@
       "count": 1
     }
   },
-  "appStudio/builderTools/findNodesTool.js": {
+  "appStudio/builderTools/extensionHints.mts": {
     "complexity": {
-      "count": 2
-    },
-    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "appStudio/builderTools/getActionTool.mts": {
+    "complexity": {
       "count": 1
     }
   },
@@ -351,12 +460,17 @@
       "count": 1
     }
   },
-  "appStudio/builderTools/queryDataArgs.js": {
+  "appStudio/builderTools/removeDatasetTool.mts": {
     "complexity": {
       "count": 1
     }
   },
   "appStudio/builderTools/schemasCore.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/builderTools/stepPathEdit.mts": {
     "complexity": {
       "count": 1
     }
@@ -367,6 +481,11 @@
     },
     "max-lines-per-function": {
       "count": 2
+    }
+  },
+  "appStudio/builderTools/updateRecordsTool.mts": {
+    "max-params": {
+      "count": 1
     }
   },
   "appStudio/canonicalize/actions.js": {
@@ -422,15 +541,23 @@
       "count": 1
     }
   },
-  "appStudio/canonicalize/steps.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "appStudio/canonicalize/style.js": {
     "complexity": {
       "count": 1
     },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "appStudio/catalogTiers.mts": {
+    "complexity": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "appStudio/compat/readSql.mts": {
     "max-params": {
       "count": 1
     }
@@ -477,6 +604,11 @@
       "count": 1
     }
   },
+  "appStudio/customBlock/blockShape.mts": {
+    "max-params": {
+      "count": 1
+    }
+  },
   "appStudio/dataModel/canonicalize.js": {
     "complexity": {
       "count": 3
@@ -487,12 +619,9 @@
   },
   "appStudio/dataModel/connectorValidate.js": {
     "complexity": {
-      "count": 4
+      "count": 2
     },
     "max-depth": {
-      "count": 7
-    },
-    "max-lines-per-function": {
       "count": 2
     },
     "max-params": {
@@ -538,6 +667,21 @@
       "count": 1
     },
     "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "appStudio/definitionKeyRegistry.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/designTokens.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/emptyAppData.mts": {
+    "complexity": {
       "count": 1
     }
   },
@@ -616,9 +760,54 @@
       "count": 1
     }
   },
+  "appStudio/mailboxLabelColumn.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/mailboxNewRecordHook.mts": {
+    "max-params": {
+      "count": 2
+    }
+  },
+  "appStudio/mailboxThreadLabels.mts": {
+    "complexity": {
+      "count": 2
+    }
+  },
   "appStudio/mcpBuilder.js": {
     "complexity": {
       "count": 3
+    }
+  },
+  "appStudio/mcpRunAction.mts": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "appStudio/mcpRunActionPolicy.mts": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "appStudio/mcpRunLog.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/navShell.mts": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "appStudio/portableAssetStore.mts": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "appStudio/portableAssets.mts": {
+    "max-params": {
+      "count": 1
     }
   },
   "appStudio/publicAccess.js": {
@@ -634,6 +823,52 @@
       "count": 1
     }
   },
+  "appStudio/runLog/clickRuns.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/runLog/readRuns.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/runLog/recorder.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/runLog/runTrace.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/sequenceWalk.mts": {
+    "complexity": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "appStudio/sequenceWalkCall.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/sequenceWalkFlow.mts": {
+    "complexity": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 4
+    }
+  },
+  "appStudio/sequenceWalkParallel.mts": {
+    "max-params": {
+      "count": 1
+    }
+  },
   "appStudio/sheetScan.js": {
     "complexity": {
       "count": 1
@@ -646,9 +881,14 @@
   },
   "appStudio/templateCapture.js": {
     "complexity": {
-      "count": 3
+      "count": 2
+    }
+  },
+  "appStudio/templateCaptureFromApp.mts": {
+    "complexity": {
+      "count": 1
     },
-    "max-lines-per-function": {
+    "max-params": {
       "count": 1
     }
   },
@@ -670,6 +910,45 @@
       "count": 1
     }
   },
+  "appStudio/triggers/kinds/record.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/triggers/recordCapture.mts": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "appStudio/triggers/recordDrain.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/triggers/recordOutbox.mts": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "appStudio/triggers/triggerKinds.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "appStudio/triggers/webhook/webhookReceive.mts": {
+    "complexity": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
   "appStudio/validate.js": {
     "complexity": {
       "count": 1
@@ -680,10 +959,10 @@
   },
   "appStudio/validate/actions.js": {
     "complexity": {
-      "count": 4
+      "count": 3
     },
     "max-lines-per-function": {
-      "count": 2
+      "count": 1
     },
     "max-params": {
       "count": 2
@@ -694,6 +973,14 @@
       "count": 1
     },
     "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "appStudio/validate/columnRightsChecks.mts": {
+    "complexity": {
       "count": 1
     },
     "max-params": {
@@ -720,6 +1007,11 @@
     "complexity": {
       "count": 3
     },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "appStudio/validate/serverScopeChecks.mts": {
     "max-params": {
       "count": 1
     }
@@ -944,6 +1236,11 @@
       "count": 1
     }
   },
+  "auth/permissionGrants.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
   "auth/permissionsCache.js": {
     "max-depth": {
       "count": 2
@@ -962,21 +1259,11 @@
       "count": 1
     }
   },
-  "auth/routeWalk.cli.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "auth/securityKeys/managementRoutes.js": {
     "complexity": {
       "count": 1
     },
     "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "auth/securityKeys/testApp.testkit.js": {
-    "max-params": {
       "count": 1
     }
   },
@@ -1127,6 +1414,11 @@
       "count": 1
     }
   },
+  "automation/builderPrompt/lastRun.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
   "automation/builderPrompt/rankApps.js": {
     "complexity": {
       "count": 1
@@ -1158,14 +1450,6 @@
   },
   "automation/builderTools/aiPaths.js": {
     "complexity": {
-      "count": 1
-    }
-  },
-  "automation/builderTools/approval.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
       "count": 1
     }
   },
@@ -1282,14 +1566,6 @@
       "count": 5
     }
   },
-  "automation/builderTools/stepBuilders/actionStep.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "automation/builderTools/stepBuilders/aiStep.js": {
     "complexity": {
       "count": 2
@@ -1343,14 +1619,6 @@
       "count": 3
     }
   },
-  "automation/builderTools/stepEditing/normalizePatchField.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "automation/builderTools/stepEditing/patchGuards/dataExtraction.js": {
     "complexity": {
       "count": 1
@@ -1400,18 +1668,10 @@
   },
   "automation/builderTools/stepEditing/updateStep.js": {
     "complexity": {
-      "count": 2
-    },
-    "max-lines-per-function": {
       "count": 1
     },
     "max-params": {
       "count": 1
-    }
-  },
-  "automation/builderTools/suggestedPatch.js": {
-    "complexity": {
-      "count": 4
     }
   },
   "automation/builderTools/tempRefs.js": {
@@ -1544,6 +1804,11 @@
       "count": 1
     }
   },
+  "automation/formSubmission.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
   "automation/formTriggerContract.js": {
     "complexity": {
       "count": 4
@@ -1567,6 +1832,14 @@
   "automation/mcpBuilder.js": {
     "complexity": {
       "count": 2
+    }
+  },
+  "automation/mcpFolders.mts": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
     }
   },
   "automation/mcpRunNow.js": {
@@ -1666,6 +1939,11 @@
       "count": 2
     }
   },
+  "automation/pausedRunFacts.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
   "automation/portability.js": {
     "complexity": {
       "count": 4
@@ -1714,9 +1992,6 @@
   },
   "automation/summarise.js": {
     "complexity": {
-      "count": 3
-    },
-    "max-lines-per-function": {
       "count": 1
     }
   },
@@ -1731,6 +2006,11 @@
     }
   },
   "automation/testing/codeTestRun.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "automation/testing/dryRunWarnings.mts": {
     "complexity": {
       "count": 1
     }
@@ -1785,6 +2065,14 @@
       "count": 1
     }
   },
+  "automation/triggerBus/ncVisibility.mts": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
   "automation/triggerBus/pollers/gmail.js": {
     "max-lines-per-function": {
       "count": 1
@@ -1803,12 +2091,22 @@
       "count": 1
     }
   },
+  "automation/triggerBus/pollers/msGraphMail.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
   "automation/triggerBus/pollers/nextcloud.js": {
     "complexity": {
       "count": 2
     },
     "max-lines-per-function": {
       "count": 1
+    }
+  },
+  "automation/triggerBus/pollers/nextcloudActivityKind.mts": {
+    "complexity": {
+      "count": 2
     }
   },
   "automation/triggerSources/autoDerive.js": {
@@ -1888,17 +2186,6 @@
       "count": 1
     }
   },
-  "automation/validate/stepRules/approvalRules.js": {
-    "complexity": {
-      "count": 2
-    },
-    "max-depth": {
-      "count": 2
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "automation/validate/stepRules/branchingRules.js": {
     "complexity": {
       "count": 2
@@ -1940,12 +2227,6 @@
   },
   "automation/validate/stepRules/modelStepRules.js": {
     "complexity": {
-      "count": 2
-    },
-    "max-depth": {
-      "count": 1
-    },
-    "max-lines-per-function": {
       "count": 1
     }
   },
@@ -1965,14 +2246,6 @@
       "count": 1
     }
   },
-  "automation/validate/stepRules/refSurfaces.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "automation/validate/stepRules/referenceScoping.js": {
     "complexity": {
       "count": 2
@@ -1986,6 +2259,11 @@
       "count": 3
     },
     "max-depth": {
+      "count": 1
+    }
+  },
+  "automation/validate/varsWriters.mts": {
+    "complexity": {
       "count": 1
     }
   },
@@ -2428,17 +2706,6 @@
       "count": 2
     }
   },
-  "compliance/connectors/scaleway.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-depth": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "compliance/connectors/youtrack.js": {
     "complexity": {
       "count": 1
@@ -2562,14 +2829,6 @@
       "count": 2
     },
     "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "core/agentRuntime/agentTurn.testkit.js": {
-    "max-lines-per-function": {
-      "count": 1
-    },
-    "max-params": {
       "count": 1
     }
   },
@@ -2840,17 +3099,6 @@
       "count": 1
     }
   },
-  "core/automationModel/codeSafety/detect.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-depth": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 2
-    }
-  },
   "core/automationModel/codeSafety/fold.js": {
     "complexity": {
       "count": 2
@@ -2908,6 +3156,11 @@
       "count": 1
     }
   },
+  "core/automationModel/runProfile.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
   "core/automationModel/stepEffect.js": {
     "complexity": {
       "count": 1
@@ -2926,11 +3179,6 @@
   "core/automationModel/tableOps/rules.js": {
     "complexity": {
       "count": 2
-    }
-  },
-  "core/automationRunner.partial.testkit.js": {
-    "max-lines-per-function": {
-      "count": 1
     }
   },
   "core/automationRunner/aiOutputInference.js": {
@@ -2985,6 +3233,11 @@
       "count": 2
     }
   },
+  "core/automationRunner/approvalRouting.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
   "core/automationRunner/approvalSeats.js": {
     "max-depth": {
       "count": 1
@@ -3016,6 +3269,11 @@
     }
   },
   "core/automationRunner/dateTimeTz.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/automationRunner/dryPause.mts": {
     "complexity": {
       "count": 1
     }
@@ -3394,11 +3652,6 @@
       "count": 1
     }
   },
-  "core/collab/collab.testkit.js": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "core/collab/convert.js": {
     "max-lines-per-function": {
       "count": 1
@@ -3465,6 +3718,14 @@
       "count": 1
     }
   },
+  "core/cowork/mailTriggerRun.mts": {
+    "complexity": {
+      "count": 3
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
   "core/customIntegrations/customMcpClient.js": {
     "complexity": {
       "count": 1
@@ -3509,6 +3770,11 @@
       "count": 2
     }
   },
+  "core/dataEngine/columnRightsSave.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
   "core/dataEngine/createStudioDatatable.js": {
     "complexity": {
       "count": 1
@@ -3516,7 +3782,7 @@
   },
   "core/dataEngine/dataModel/datatableDraft.js": {
     "complexity": {
-      "count": 2
+      "count": 1
     }
   },
   "core/dataEngine/dataModel/datatableFields.js": {
@@ -3544,7 +3810,42 @@
       "count": 2
     }
   },
+  "core/dataEngine/linkedRead.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/queryCompilerAggregate.mts": {
+    "max-params": {
+      "count": 2
+    }
+  },
+  "core/dataEngine/queryCompilerAggregateExt.mts": {
+    "max-params": {
+      "count": 1
+    }
+  },
   "core/dataEngine/queryCompilerBase.js": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/queryCompilerBulk.mts": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/queryCompilerComputed.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/queryCompilerMany.mts": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "core/dataEngine/queryCompilerRelation.mts": {
     "max-params": {
       "count": 1
     }
@@ -3574,14 +3875,6 @@
   },
   "core/dataEngine/sources/mirror/syncPass.js": {
     "complexity": {
-      "count": 1
-    }
-  },
-  "core/dataEngine/sources/nextcloudTable/columns.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
       "count": 1
     }
   },
@@ -3629,14 +3922,6 @@
   "core/dataEngine/sources/spreadsheetFile/cells.js": {
     "complexity": {
       "count": 4
-    }
-  },
-  "core/dataEngine/sources/spreadsheetFile/columns.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
     }
   },
   "core/dataEngine/sources/spreadsheetFile/errors.js": {
@@ -3824,6 +4109,11 @@
       "count": 1
     }
   },
+  "core/dlp/jsonSpans.mts": {
+    "max-params": {
+      "count": 1
+    }
+  },
   "core/dlp/scanLedger.js": {
     "complexity": {
       "count": 1
@@ -3859,6 +4149,11 @@
     }
   },
   "core/documents/azureDocIntelligence.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/documents/compare/deckCompare.mts": {
     "complexity": {
       "count": 1
     }
@@ -4003,14 +4298,6 @@
       "count": 1
     }
   },
-  "core/documents/pdfRedaction/pageModel.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "core/documents/pdfRedaction/pdfFonts.js": {
     "complexity": {
       "count": 1
@@ -4069,10 +4356,10 @@
   },
   "core/documents/sheetAssist/sheetAssistant.js": {
     "complexity": {
-      "count": 2
+      "count": 1
     },
     "max-lines-per-function": {
-      "count": 3
+      "count": 2
     }
   },
   "core/documents/sheetAssist/sheetDigest.js": {
@@ -4169,6 +4456,11 @@
   "core/findings/finding.js": {
     "complexity": {
       "count": 1
+    }
+  },
+  "core/forms/formCss.mts": {
+    "complexity": {
+      "count": 4
     }
   },
   "core/http/cursorStream.js": {
@@ -4284,17 +4576,14 @@
       "count": 1
     }
   },
+  "core/integrations/outlookQuery.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
   "core/integrations/runtimeAppGate.js": {
     "complexity": {
       "count": 2
-    },
-    "max-lines-per-function": {
-      "count": 2
-    }
-  },
-  "core/integrations/toolHint.js": {
-    "complexity": {
-      "count": 1
     },
     "max-lines-per-function": {
       "count": 2
@@ -4453,9 +4742,24 @@
       "count": 1
     }
   },
+  "core/kb/originals.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
   "core/kb/purgeSourceDocuments.js": {
     "complexity": {
       "count": 1
+    }
+  },
+  "core/kb/queryLog/attestation.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/kb/queryLog/recorder.mts": {
+    "complexity": {
+      "count": 2
     }
   },
   "core/kb/relationHop.js": {
@@ -4464,6 +4768,14 @@
     },
     "max-params": {
       "count": 1
+    }
+  },
+  "core/kb/sources/cloudFolderWalk.mts": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 2
     }
   },
   "core/kb/sources/datatable.js": {
@@ -4513,10 +4825,7 @@
   },
   "core/llm/llmClient.js": {
     "complexity": {
-      "count": 3
-    },
-    "max-depth": {
-      "count": 1
+      "count": 2
     },
     "max-lines-per-function": {
       "count": 1
@@ -4535,10 +4844,7 @@
   },
   "core/llm/modelCosts.js": {
     "complexity": {
-      "count": 3
-    },
-    "max-lines-per-function": {
-      "count": 1
+      "count": 2
     },
     "max-params": {
       "count": 3
@@ -4592,6 +4898,11 @@
     },
     "max-depth": {
       "count": 1
+    }
+  },
+  "core/llm/suggestedPatch.js": {
+    "complexity": {
+      "count": 4
     }
   },
   "core/llm/tierClassifierService.js": {
@@ -4720,6 +5031,11 @@
       "count": 1
     }
   },
+  "core/meetingNotes/teamsAppImport/appToken.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
   "core/meetingNotes/teamsArtifacts.js": {
     "complexity": {
       "count": 1
@@ -4835,12 +5151,6 @@
     "complexity": {
       "count": 1
     },
-    "max-depth": {
-      "count": 7
-    },
-    "max-lines-per-function": {
-      "count": 1
-    },
     "max-params": {
       "count": 1
     }
@@ -4855,10 +5165,7 @@
   },
   "core/privacy/customTypes/spec.js": {
     "complexity": {
-      "count": 3
-    },
-    "max-lines-per-function": {
-      "count": 1
+      "count": 2
     }
   },
   "core/privacy/disclosureClassifier.js": {
@@ -4911,12 +5218,6 @@
     }
   },
   "core/privacy/piiDetection/validate.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    },
     "max-params": {
       "count": 1
     }
@@ -4963,24 +5264,13 @@
   },
   "core/providers/claude.js": {
     "complexity": {
-      "count": 3
-    },
-    "max-depth": {
-      "count": 6
-    },
-    "max-lines-per-function": {
-      "count": 1
+      "count": 2
     },
     "max-params": {
       "count": 1
     }
   },
   "core/providers/claude/messageRepair.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "core/providers/claude/params.js": {
     "complexity": {
       "count": 1
     }
@@ -5008,13 +5298,13 @@
   },
   "core/providers/google.js": {
     "complexity": {
-      "count": 5
+      "count": 4
     },
     "max-depth": {
-      "count": 11
+      "count": 4
     },
     "max-lines-per-function": {
-      "count": 3
+      "count": 2
     },
     "max-params": {
       "count": 1
@@ -5056,12 +5346,9 @@
   },
   "core/providers/openai.js": {
     "complexity": {
-      "count": 6
+      "count": 5
     },
     "max-depth": {
-      "count": 1
-    },
-    "max-lines-per-function": {
       "count": 1
     },
     "max-params": {
@@ -5300,17 +5587,6 @@
       "count": 1
     }
   },
-  "core/voice/voiceprintMatching.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-depth": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "core/voice/voxtralStt.js": {
     "complexity": {
       "count": 1
@@ -5447,9 +5723,6 @@
   },
   "integrations/documentBuilderTools.js": {
     "complexity": {
-      "count": 2
-    },
-    "max-lines-per-function": {
       "count": 1
     }
   },
@@ -5471,6 +5744,16 @@
       "count": 1
     },
     "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "integrations/frappeCrmClient.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "integrations/frappeCrmHost.mts": {
+    "complexity": {
       "count": 1
     }
   },
@@ -5623,31 +5906,9 @@
       "count": 1
     }
   },
-  "integrations/nextcloudCalendarTools.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-depth": {
-      "count": 2
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "integrations/nextcloudClient.js": {
     "complexity": {
       "count": 2
-    }
-  },
-  "integrations/nextcloudContactsTools.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-depth": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
     }
   },
   "integrations/nextcloudDeckHandlers.js": {
@@ -5660,39 +5921,12 @@
       "count": 1
     }
   },
-  "integrations/nextcloudFiles/fileOperations.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "integrations/nextcloudFiles/officeDocuments.js": {
     "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
       "count": 1
     }
   },
   "integrations/nextcloudFiles/search.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "integrations/nextcloudFiles/sharing.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "integrations/nextcloudFiles/tags.js": {
     "complexity": {
       "count": 1
     },
@@ -5738,25 +5972,11 @@
   },
   "integrations/nextcloudMailTools.js": {
     "complexity": {
-      "count": 2
-    },
-    "max-lines-per-function": {
       "count": 1
     }
   },
   "integrations/nextcloudNotesAppend.js": {
     "complexity": {
-      "count": 1
-    }
-  },
-  "integrations/nextcloudNotesTools.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-depth": {
-      "count": 1
-    },
-    "max-lines-per-function": {
       "count": 1
     }
   },
@@ -5768,20 +5988,9 @@
       "count": 1
     }
   },
-  "integrations/nextcloudStatusTools.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "integrations/nextcloudTablesTools.js": {
     "complexity": {
-      "count": 3
-    },
-    "max-lines-per-function": {
-      "count": 1
+      "count": 2
     }
   },
   "integrations/nextcloudTablesValues.js": {
@@ -5796,33 +6005,11 @@
   },
   "integrations/nextcloudTalkTools.js": {
     "complexity": {
-      "count": 2
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "integrations/nextcloudTasksTools.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-depth": {
-      "count": 2
-    },
-    "max-lines-per-function": {
       "count": 1
     }
   },
   "integrations/nextcloudTeamsDelete.js": {
     "complexity": {
-      "count": 1
-    }
-  },
-  "integrations/nextcloudTeamsTools.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
       "count": 1
     }
   },
@@ -5872,11 +6059,6 @@
       "count": 1
     }
   },
-  "integrations/readUrlTools.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "integrations/regexGeneratorTools.js": {
     "complexity": {
       "count": 1
@@ -5905,14 +6087,6 @@
       "count": 2
     }
   },
-  "integrations/sheetsTools.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "integrations/signrequestTools.js": {
     "complexity": {
       "count": 1
@@ -5934,12 +6108,9 @@
       "count": 1
     }
   },
-  "integrations/supportTools.js": {
+  "integrations/transcription/audioAttachment.mts": {
     "complexity": {
-      "count": 2
-    },
-    "max-lines-per-function": {
-      "count": 2
+      "count": 1
     }
   },
   "integrations/transcriptionTools.js": {
@@ -5986,24 +6157,8 @@
       "count": 1
     }
   },
-  "integrations/webpageDocTools.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "integrations/webpageGrants.js": {
     "complexity": {
-      "count": 1
-    }
-  },
-  "integrations/webpageMultiFileTools.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
       "count": 1
     }
   },
@@ -6174,76 +6329,6 @@
       "count": 1
     }
   },
-  "migrations/automation-builder-2026-05-init.js": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "migrations/automation-handoff5-2026-09.js": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "migrations/automation-inline-layers-2026-06.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    },
-    "max-params": {
-      "count": 1
-    }
-  },
-  "migrations/drop-retired-features-2026-08.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-depth": {
-      "count": 1
-    }
-  },
-  "migrations/kb-sources-backfill.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "migrations/microsoft-sso-hardening-2026-10.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 2
-    }
-  },
-  "migrations/project-kind-backfill-2026-09.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "migrations/project-org-backfill-2026-09.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "migrations/publish-kbs-linked-to-org-agents.js": {
-    "complexity": {
-      "count": 2
-    }
-  },
-  "migrations/routine-to-automation-2026-10.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "migrations/skills-structured-fields.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "modules/entitlementRefresh.js": {
     "complexity": {
       "count": 2
@@ -6262,14 +6347,6 @@
   "modules/hubClient.js": {
     "complexity": {
       "count": 3
-    }
-  },
-  "modules/packageActivation.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
     }
   },
   "modules/packageEntitlement.js": {
@@ -6318,12 +6395,6 @@
   },
   "playbooks/accessPlan.js": {
     "complexity": {
-      "count": 2
-    },
-    "max-depth": {
-      "count": 1
-    },
-    "max-lines-per-function": {
       "count": 1
     }
   },
@@ -6772,14 +6843,6 @@
       "count": 1
     }
   },
-  "routes/agents/chat.testkit.js": {
-    "max-lines-per-function": {
-      "count": 1
-    },
-    "max-params": {
-      "count": 1
-    }
-  },
   "routes/agents/conversations_meta.js": {
     "complexity": {
       "count": 1
@@ -6787,7 +6850,7 @@
   },
   "routes/agents/crud.js": {
     "complexity": {
-      "count": 2
+      "count": 1
     }
   },
   "routes/agents/persona.js": {
@@ -6857,27 +6920,32 @@
       "count": 1
     }
   },
-  "routes/ai/appStudioBuilder/inboundImages.js": {
+  "usecases/ai/appStudioBuilder/heldChanges.mts": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "usecases/ai/appStudioBuilder/inboundImages.js": {
     "complexity": {
       "count": 1
     }
   },
-  "routes/ai/appStudioBuilder/modelSelection.js": {
+  "usecases/ai/appStudioBuilder/modelSelection.js": {
     "complexity": {
       "count": 1
     }
   },
-  "routes/ai/appStudioBuilder/modelStream.js": {
+  "usecases/ai/appStudioBuilder/modelStream.js": {
     "max-params": {
       "count": 1
     }
   },
-  "routes/ai/appStudioBuilder/planProgress.js": {
+  "usecases/ai/appStudioBuilder/planProgress.js": {
     "complexity": {
       "count": 1
     }
   },
-  "routes/ai/appStudioBuilder/promptAssembly.js": {
+  "usecases/ai/appStudioBuilder/promptAssembly.js": {
     "complexity": {
       "count": 1
     },
@@ -6885,12 +6953,12 @@
       "count": 1
     }
   },
-  "routes/ai/appStudioBuilder/toolCallEvents.js": {
+  "usecases/ai/appStudioBuilder/toolCallEvents.js": {
     "complexity": {
       "count": 2
     }
   },
-  "routes/ai/appStudioBuilder/turnClosing.js": {
+  "usecases/ai/appStudioBuilder/turnClosing.js": {
     "complexity": {
       "count": 2
     }
@@ -6929,12 +6997,12 @@
       "count": 1
     }
   },
-  "routes/ai/automationBuilder/codeAssistPrompt.js": {
+  "usecases/ai/automationBuilder/codeAssistPrompt.js": {
     "complexity": {
       "count": 1
     }
   },
-  "routes/ai/automationBuilder/codeAssistTurn.js": {
+  "usecases/ai/automationBuilder/codeAssistTurn.js": {
     "complexity": {
       "count": 2
     },
@@ -6952,12 +7020,17 @@
       "count": 1
     }
   },
+  "usecases/ai/automationBuilder/lastRunContext.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
   "routes/ai/automationBuilder/layerAgent.js": {
     "complexity": {
       "count": 1
     }
   },
-  "routes/ai/automationBuilder/layerDelegation.js": {
+  "usecases/ai/automationBuilder/layerDelegation.js": {
     "complexity": {
       "count": 1
     }
@@ -6972,12 +7045,12 @@
       "count": 1
     }
   },
-  "routes/ai/automationBuilder/modelStream.js": {
+  "usecases/ai/automationBuilder/modelStream.js": {
     "max-params": {
       "count": 2
     }
   },
-  "routes/ai/automationBuilder/planProgress.js": {
+  "usecases/ai/automationBuilder/planProgress.js": {
     "complexity": {
       "count": 1
     }
@@ -7021,7 +7094,7 @@
       "count": 2
     }
   },
-  "routes/ai/automationBuilder/suggestMappingsVerify.js": {
+  "usecases/ai/automationBuilder/suggestMappingsVerify.js": {
     "complexity": {
       "count": 7
     }
@@ -7034,7 +7107,7 @@
       "count": 2
     }
   },
-  "routes/ai/automationBuilder/thoughtNarrator.js": {
+  "usecases/ai/automationBuilder/thoughtNarrator.js": {
     "max-lines-per-function": {
       "count": 1
     }
@@ -7047,7 +7120,7 @@
       "count": 1
     }
   },
-  "routes/ai/automationBuilder/toolDraft.js": {
+  "usecases/ai/automationBuilder/toolDraft.js": {
     "complexity": {
       "count": 1
     },
@@ -7071,7 +7144,7 @@
       "count": 1
     }
   },
-  "routes/ai/automationBuilder/turnMessages.js": {
+  "usecases/ai/automationBuilder/turnMessages.js": {
     "complexity": {
       "count": 1
     }
@@ -7084,17 +7157,17 @@
       "count": 1
     }
   },
-  "routes/ai/automationBuilder/webResearch.js": {
+  "usecases/ai/automationBuilder/webResearch.js": {
     "complexity": {
       "count": 2
     }
   },
-  "routes/ai/automationBuilder/workMode.js": {
+  "usecases/ai/automationBuilder/workMode.js": {
     "complexity": {
       "count": 3
     }
   },
-  "routes/ai/builderShared.js": {
+  "usecases/ai/builderShared.js": {
     "complexity": {
       "count": 2
     },
@@ -7119,7 +7192,12 @@
       "count": 1
     }
   },
-  "routes/ai/cmsBuilderMessages.js": {
+  "usecases/ai/cmsBuilderMessages.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "routes/ai/config/frappeCrmTestRoute.mts": {
     "complexity": {
       "count": 1
     }
@@ -7188,12 +7266,12 @@
       "count": 1
     }
   },
-  "routes/ai/directChat/inputRegexGate.js": {
+  "usecases/ai/directChat/inputRegexGate.js": {
     "complexity": {
       "count": 1
     }
   },
-  "routes/ai/directChat/memoryProtection.js": {
+  "usecases/ai/directChat/memoryProtection.js": {
     "complexity": {
       "count": 1
     }
@@ -7219,7 +7297,7 @@
       "count": 2
     }
   },
-  "routes/ai/directChat/stageModelSwap.js": {
+  "usecases/ai/directChat/stageModelSwap.js": {
     "complexity": {
       "count": 1
     }
@@ -7375,7 +7453,7 @@
       "count": 1
     }
   },
-  "routes/ai/webpageChat/messages.js": {
+  "usecases/ai/webpageChat/messages.js": {
     "complexity": {
       "count": 1
     },
@@ -7417,7 +7495,7 @@
       "count": 1
     }
   },
-  "routes/automation/agentStepCatalog.js": {
+  "usecases/automation/agentStepCatalog.js": {
     "complexity": {
       "count": 2
     }
@@ -7848,7 +7926,7 @@
       "count": 1
     }
   },
-  "routes/mcpDatatableRows.js": {
+  "usecases/mcpDatatableRows.js": {
     "complexity": {
       "count": 2
     }
@@ -8018,7 +8096,7 @@
       "count": 1
     }
   },
-  "routes/projects/chatsPresent.js": {
+  "usecases/projects/chatsPresent.js": {
     "complexity": {
       "count": 1
     }
@@ -8026,11 +8104,6 @@
   "routes/projects/collab.js": {
     "max-lines-per-function": {
       "count": 1
-    }
-  },
-  "routes/projects/collab.testkit.js": {
-    "max-depth": {
-      "count": 3
     }
   },
   "routes/projects/commentsContext.js": {
@@ -8103,7 +8176,7 @@
       "count": 1
     }
   },
-  "routes/projects/tasksPresent.js": {
+  "usecases/projects/tasksPresent.js": {
     "complexity": {
       "count": 1
     }
@@ -8191,17 +8264,17 @@
       "count": 1
     }
   },
-  "routes/stripe/checkoutEvents.js": {
+  "usecases/stripe/checkoutEvents.js": {
     "complexity": {
       "count": 1
     }
   },
-  "routes/stripe/customerEvents.js": {
+  "usecases/stripe/customerEvents.js": {
     "complexity": {
       "count": 2
     }
   },
-  "routes/stripe/paymentEvents.js": {
+  "usecases/stripe/paymentEvents.js": {
     "complexity": {
       "count": 3
     },
@@ -8214,12 +8287,9 @@
       "count": 1
     }
   },
-  "routes/stripe/subscriptionEvents.js": {
+  "usecases/stripe/subscriptionEvents.js": {
     "complexity": {
-      "count": 3
-    },
-    "max-lines-per-function": {
-      "count": 1
+      "count": 2
     }
   },
   "routes/stripe/webhook.js": {
@@ -8397,7 +8467,7 @@
       "count": 1
     }
   },
-  "routes/templateAi.js": {
+  "usecases/templateAi.js": {
     "complexity": {
       "count": 1
     },
@@ -8408,7 +8478,7 @@
       "count": 1
     }
   },
-  "routes/templateContext.js": {
+  "usecases/templateContext.js": {
     "complexity": {
       "count": 1
     }
@@ -8517,7 +8587,7 @@
       "count": 1
     }
   },
-  "routes/webpages/versionListing.js": {
+  "usecases/webpages/versionListing.js": {
     "complexity": {
       "count": 1
     }
@@ -8536,120 +8606,6 @@
     }
   },
   "routes/webpagesPreview.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "scripts/assistantInstall.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "scripts/build-iata-airports.mjs": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "scripts/cleanup-test-runs.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "scripts/cleanupAzureDuplicates.js": {
-    "complexity": {
-      "count": 2
-    }
-  },
-  "scripts/content/ogCards.js": {
-    "max-params": {
-      "count": 1
-    }
-  },
-  "scripts/deleteOrgs.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "scripts/detachMisassignedFreeEmailUsers.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "scripts/drive-app-builder.js": {
-    "complexity": {
-      "count": 2
-    },
-    "max-depth": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "scripts/drive-builder.js": {
-    "complexity": {
-      "count": 4
-    }
-  },
-  "scripts/drive-playbook.js": {
-    "complexity": {
-      "count": 7
-    }
-  },
-  "scripts/genComplianceDemoCatalog.js": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "scripts/migrateStudioAppsToPg.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-depth": {
-      "count": 2
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "scripts/playbook-compliance-dry-run.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "scripts/print-model-prompt.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "scripts/rotateMasterKey.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "scripts/template-to-file.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "scripts/test-automation-e2e.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "scripts/typecheck.mjs": {
     "complexity": {
       "count": 1
     }
@@ -8698,14 +8654,14 @@
       "count": 2
     }
   },
+  "services/email/draft.mts": {
+    "complexity": {
+      "count": 2
+    }
+  },
   "services/email/fetch.js": {
     "complexity": {
       "count": 4
-    }
-  },
-  "services/email/parse.js": {
-    "complexity": {
-      "count": 2
     }
   },
   "services/email/providerClients.js": {
@@ -8725,6 +8681,16 @@
     }
   },
   "services/guardInstaller.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "services/ncAccountState.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "services/ncStoredUid.mts": {
     "complexity": {
       "count": 1
     }
@@ -8761,17 +8727,6 @@
   },
   "services/pwtRunner.js": {
     "complexity": {
-      "count": 1
-    }
-  },
-  "services/stripe/checkout.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-depth": {
-      "count": 5
-    },
-    "max-lines-per-function": {
       "count": 1
     }
   },
@@ -9063,6 +9018,11 @@
   },
   "stores/automationStore/evolutions.js": {
     "complexity": {
+      "count": 1
+    }
+  },
+  "stores/automationStore/folderStore.mts": {
+    "max-lines-per-function": {
       "count": 1
     }
   },
@@ -9432,6 +9392,14 @@
       "count": 1
     }
   },
+  "stores/kb/queryLog/index.mts": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
   "stores/kb/sourcePlan.js": {
     "complexity": {
       "count": 1
@@ -9514,14 +9482,6 @@
       "count": 2
     },
     "max-depth": {
-      "count": 1
-    }
-  },
-  "stores/lib/priceCatalog.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
       "count": 1
     }
   },
@@ -9762,11 +9722,6 @@
       "count": 1
     }
   },
-  "stores/skillActivations.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "stores/skillStore.js": {
     "complexity": {
       "count": 3
@@ -9833,7 +9788,32 @@
       "count": 1
     }
   },
+  "stores/studioAppData/actionRuns.mts": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
   "stores/studioAppData/dataModel.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/studioAppData/migrationPreview.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/studioAppData/pausedRuns.mts": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/studioAppData/recordEvents.mts": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/studioAppData/runLogStore.mts": {
     "complexity": {
       "count": 1
     },
@@ -9842,6 +9822,16 @@
     }
   },
   "stores/studioAppData/schema.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/studioAppData/triggers.mts": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "stores/studioAppData/webhookTriggers.mts": {
     "max-lines-per-function": {
       "count": 1
     }
@@ -9931,14 +9921,8 @@
     }
   },
   "stores/usage/logUsage.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-depth": {
-      "count": 1
-    },
     "max-lines-per-function": {
-      "count": 2
+      "count": 1
     }
   },
   "stores/usage/payg.js": {
@@ -10003,9 +9987,6 @@
   "stores/user/usersCreate.js": {
     "complexity": {
       "count": 3
-    },
-    "max-depth": {
-      "count": 1
     },
     "max-lines-per-function": {
       "count": 1
@@ -10096,6 +10077,11 @@
     }
   },
   "utils/emailBilling.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "utils/emailParse.js": {
     "complexity": {
       "count": 2
     }

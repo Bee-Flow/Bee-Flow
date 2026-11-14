@@ -34,11 +34,12 @@ const { queryRegion, DatasetQueryError } = require('../core/datasets/query');
 const stepDataSource = require('./stepDataSource');
 const { DATASET_QUERY_OUTPUTS } = require('./validate');
 const { isUploaderOf } = require('./datasetAccess');
+const { envInt } = require('../utils/envNumber.mts');
 
 // Deserialized block indexes are ≤8 MB each and immutable once ready — a tiny
 // LRU (Map insertion order) keyed on datasetId+readyAt keeps repeat queries
 // from re-downloading the index every click.
-const INDEX_CACHE_MAX = parseInt(process.env.DATASET_INDEX_CACHE, 10) || 4;
+const INDEX_CACHE_MAX = envInt('DATASET_INDEX_CACHE', 4, { min: 1 });
 const indexCache = new Map();
 
 async function loadIndexCached(ds) {

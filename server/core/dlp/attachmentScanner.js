@@ -368,7 +368,7 @@ function _finaliseCompleteScan({ text, findings, summary, action, conversationId
  * path `_finaliseCompleteScan`'s tokenize branch uses (resolveSpanOverlaps
  * inside tokenizeText dedupes any overlap between the two for free).
  *
- * @param {{ text: string, findings: Array, conversationId?: string, filename?: string }} params
+ * @param {{ text: string, findings: Array, conversationId?: string | null, filename?: string }} params
  * @returns {Promise<{ action: 'tokenize', text: string, findings: Array, summary: any, tokenMap: any|null }>}
  */
 async function applyAttachmentRedactionChoice({ text, findings, conversationId, filename }) {
@@ -388,7 +388,7 @@ async function applyAttachmentRedactionChoice({ text, findings, conversationId, 
  * @param {Array<{pageNumber:number,text:string}>} [params.pages]  Per-page text (PDF). Optional.
  * @param {string} params.filename
  * @param {any} params.orgShield           Resolved Privacy Shield config.
- * @param {string} [params.conversationId]    Used to merge attachment tokens into the conv map.
+ * @param {string | null} [params.conversationId]    Used to merge attachment tokens into the conv map; none (an incognito chat) merges nothing.
  * @param {number} [params.maxPages]
  * @param {number} [params.concurrency]       pages scanned in parallel
  * @param {number} [params.maxScanMs]         Absolute wall-clock ceiling for the whole scan.

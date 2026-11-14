@@ -43,6 +43,7 @@ const runIfPresent = (sql, params) => run(sql, params).catch((e) => { if (!isMis
  * @param {Step} step
  */
 async function eraseConversations(userId, step) {
+    // stepwise: account erasure; each step is idempotent and reported, and erasing again finishes a failed one
     await step('conversations', async () => {
         await runIfPresent(
             `DELETE FROM conversation_messages WHERE conversation_id IN (

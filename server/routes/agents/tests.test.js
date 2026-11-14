@@ -30,6 +30,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const Module = require('module');
+const { fakeAgentGates } = require('./agentGate.testkit');
 
 const fx = {
     userId: 'me',
@@ -120,10 +121,7 @@ const MOCKS = {
         },
         startSseHeartbeat: () => () => {},
     },
-    './crud': {
-        canReadAgent: async () => fx.canRead,
-        canModifyAgent: async () => fx.canModify,
-    },
+    './crud': null,
     '../../core/agentRuntime': {
         chatWithAgentStream: async (agentId, userId, message, userAuth, onEvent, history, metadata) => {
             fx.metadata.push(metadata);
@@ -170,6 +168,10 @@ const MOCKS = {
         },
     },
 };
+
+MOCKS['./crud'] = fakeAgentGates({
+    agentStore: MOCKS['../../stores/agentStore'], canRead: () => fx.canRead, canModify: () => fx.canModify, userId: () => fx.userId,
+});
 
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
@@ -300,9 +302,9 @@ test('an agent that does not exist is 404 on every route', async () => {
     }
 });
 
-test('an agent the caller may not read is 404, not 403', async () => {
+test('an agent the caller may neither read nor edit is 404, not 403', async () => {
     fx.canRead = false;
-    fx.canModify = true;      // would pass on its own — the read gate comes first
+    fx.canModify = false;
     const res = await dispatch({ method: 'GET', url: '/a1/tests' });
     assert.strictEqual(res.statusCode, 404);
     assert.strictEqual(res.body.error, 'Agent not found');

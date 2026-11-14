@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Knowledge Bases — n8n ingestion.
  *
@@ -10,11 +10,10 @@
 const express = require('express');
 const log = require('../../telemetry/log');
 const router = express.Router();
-const kbStore = require('../../stores/knowledgeBases');
 const configStore = require('../../stores/configStore');
 const { requireAuth, requirePermission } = require('../../auth');
 const { ingestDocument } = require('../../core/kb/kbIngestionHelpers');
-const { getUserId, canManageKB, blockIfSystemKB, ensureKbSource } = require('./shared');
+const { getUserId, requireKbGrade, kbAccessOf, blockIfSystemKB, ensureKbSource } = require('./shared');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 
@@ -52,12 +51,9 @@ router.get('/n8n/ingestible', requireAuth, async (req, res) => {
  * Fetches the workflow from the connected n8n instance, converts it
  * to structured Markdown, and ingests it as a KB document.
  */
-router.post('/:id/ingest/n8n', requireAuth, requirePermission('manage_knowledge'), validate({ body: IngestN8nBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof IngestN8nBody>, import('qs').ParsedQs>} */ req, res, next) => {
+router.post('/:id/ingest/n8n', requireAuth, requirePermission('manage_knowledge'), requireKbGrade('manage'), validate({ body: IngestN8nBody }), async (req, res, next) => {
     try {
-        const kb = await kbStore.getKB(req.params.id);
-        if (!kb) return res.status(404).json({ error: 'KB not found' });
-        // Writing content is managing the base (manage_knowledge in its own organisation).
-        if (!(await canManageKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
+        const { kb } = kbAccessOf(req);
         if (blockIfSystemKB(kb, res)) return;
 
         const { workflowId, mode } = req.body;
@@ -176,8 +172,9 @@ router.post('/:id/ingest/n8n', requireAuth, requirePermission('manage_knowledge'
                     kb.tenant_id, kb.id, doc.markdown,
                     doc.title, 'n8n', doc.sourceUri,
                     {
-                        sourceId: n8nSource ? n8nSource.id : null,
-                        externalId: doc.sourceUri || null,
+                        // undefined reads as null: ingestDocument's defaults
+                        sourceId: n8nSource ? n8nSource.id : undefined,
+                        externalId: doc.sourceUri || undefined,
                         createdBy: getUserId(req),
                     }
                 );

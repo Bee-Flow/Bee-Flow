@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { operatedStagesOf, type OperatedStage, type StageKey } from '@/api/stagesApi';
 import SolutionDetail from './SolutionDetail';
 import type { SolutionProject } from './SolutionDetail';
@@ -6,8 +7,7 @@ import { readSummary } from './solutionOverviewModel';
 import SolutionsOverview from './SolutionsOverview';
 import type { SolutionsSummary, SummaryRow } from './SolutionsOverview';
 import useRemote from './useRemote';
-import { API_BASE } from '@/utils/helpers';
-import { request, errorBody, RefusedError } from '@/api/mutate';
+import { apiRequest, apiUrl } from '@/api/typedRequest';
 
 /**
  * Studio → Solutions: the builder's bundles.
@@ -41,6 +41,19 @@ import { request, errorBody, RefusedError } from '@/api/mutate';
  */
 
 const NOTHING_READ: SolutionsSummary = { status: 'error', rows: [], unavailable: ['all'], hasMore: false };
+const LOADING: SolutionsSummary = { status: 'loading', rows: [], unavailable: [], hasMore: false };
+const SUMMARY_KEY = ['solutions', 'summary'] as const;
+
+/** GET /api/projects/summary as the overview reads it; a refusal or a failure is NOTHING_READ. */
+async function readSolutionsSummary(): Promise<SolutionsSummary> {
+    try {
+        const res = await apiRequest('GET /api/projects/summary');
+        const body = await res.json().catch(() => null);
+        return { status: 'ok', ...readSummary(body), operatedStages: operatedStagesOf(body?.operatedStages) };
+    } catch {
+        return NOTHING_READ;
+    }
+}
 
 /**
  * Which row the detail view renders: the one the overview listed, the one asked
@@ -71,30 +84,24 @@ interface SolutionsStudioProps {
 }
 
 export default function SolutionsStudio({ user, initialSolutionId = null, onNavigate }: SolutionsStudioProps) {
-    const [summary, setSummary] = useState<SolutionsSummary>({ status: 'loading', rows: [], unavailable: [], hasMore: false });
     const [activeId, setActiveId] = useState(idFromRoute(initialSolutionId));
     // The stage a stage-only operator asked for from the overview; a deep link
     // carries its own `?stage=`, which SolutionDetail reads itself.
     const [stageIntent, setStageIntent] = useState<StageKey | null>(null);
 
-    const fetchSummary = useCallback(async () => {
-        try {
-            let res: Response;
-            try {
-                res = await request(`${API_BASE}/api/projects/summary`);
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                const body = errorBody(err) ?? null;
-                setSummary(NOTHING_READ);
-                return;
-            }
-            const body = await res.json().catch(() => null);
-            setSummary({ status: 'ok', ...readSummary(body), operatedStages: operatedStagesOf(body?.operatedStages) });
-        } catch {
-            setSummary(NOTHING_READ);
-        }
-    }, []);
-    useEffect(() => { fetchSummary(); }, [fetchSummary]);
+    const queryClient = useQueryClient();
+    // readSolutionsSummary never rejects: a failed read is `status: 'error'`.
+    const summaryQuery = useQuery<SolutionsSummary>({
+        queryKey: SUMMARY_KEY,
+        staleTime: 0,
+        retry: false,
+        queryFn: readSolutionsSummary,
+    });
+    const summary = summaryQuery.data ?? LOADING;
+    const { refetch: refetchSummary } = summaryQuery;
+    const fetchSummary = useCallback(() => { void refetchSummary(); }, [refetchSummary]);
+    // A retry shows the loading state again; coming back from a Solution reads behind the cards it shows.
+    const retrySummary = () => { void queryClient.resetQueries({ queryKey: SUMMARY_KEY }); };
 
     // A deep link arriving while mounted (sidebar navigation) still lands.
     useEffect(() => { setActiveId(idFromRoute(initialSolutionId)); }, [initialSolutionId]);
@@ -125,7 +132,7 @@ export default function SolutionsStudio({ user, initialSolutionId = null, onNavi
     const listed = activeId ? summary.rows.find(p => p.id === activeId) : null;
     const wanted = activeId && summary.status === 'ok' && !listed ? activeId : null;
     const byId = useRemote<{ projects?: SummaryRow[] }>(
-        wanted ? `${API_BASE}/api/projects/summary?ids=${encodeURIComponent(wanted)}&checks=0` : null,
+        wanted ? apiUrl('GET /api/projects/summary', { query: { ids: wanted, checks: '0' } }) : null,
         !!wanted,
     );
 
@@ -140,7 +147,7 @@ export default function SolutionsStudio({ user, initialSolutionId = null, onNavi
                 onOpenStage={openStage}
                 onCreated={open}
                 onInstalled={(id) => open({ id })}
-                onRetry={() => { setSummary({ status: 'loading', rows: [], unavailable: [], hasMore: false }); fetchSummary(); }}
+                onRetry={retrySummary}
                 focusCreate={initialSolutionId === CREATE_SEGMENT}
             />
         );

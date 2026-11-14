@@ -56,6 +56,8 @@ mockModule(path.join(SERVER, 'db'), {
         }
         return [];
     },
+    // The store destructures these at load: the transaction reaches run through the module.
+    async withTransaction(fn) { return fn({ query: (sql, params) => require(path.join(SERVER, 'db')).run(sql, params) }); },
     async run(sql, params) {
         // The store destructures `run` at module load, so a test cannot swap it
         // out afterwards — the failure has to be injectable from inside.

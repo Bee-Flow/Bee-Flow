@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/auth`
 
-172 routes, 76 with a request schema. Back to the [endpoint reference](../reference.md).
+172 routes, 91 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `admin-login`
 
@@ -106,7 +106,7 @@ No request schema.
 
 **Access:** Signed-in user · Admin of the organisation in `:orgId`
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `GET /auth/admin/:orgId/nc-sync/users`
 
@@ -171,13 +171,13 @@ No request schema.
 
 **Access:** Signed-in user
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `POST /auth/admin/nc-bindings/:id/deny`
 
 **Access:** Signed-in user
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `POST /auth/admin/nc-bindings/generate-pairing-code`
 
@@ -260,13 +260,13 @@ No request schema.
 
 **Access:** Platform admin
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `POST /auth/admin/waitlist/:userId/reject`
 
 **Access:** Platform admin
 
-No request schema.
+**Body:** object (no other keys)
 
 ## `app-password`
 
@@ -343,7 +343,13 @@ No request schema.
 
 **Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
 
-No request schema.
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `themingName` | any |  |  |
+| `version` | any |  |  |
+| `ncAdmins` | any |  |  |
 
 ### `GET /auth/connector/bootstrap/pending/:id`
 
@@ -355,25 +361,39 @@ No request schema.
 
 **Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `POST /auth/connector/bootstrap/pending/:id/retarget`
 
 **Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
 
-No request schema.
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `email` | any |  |  |
+| `uid` | any |  |  |
+| `displayName` | any |  |  |
 
 ### `POST /auth/connector/bootstrap/pending/:id/verify`
 
 **Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
 
-No request schema.
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `code` | any |  |  |
 
 ### `POST /auth/connector/diagnose`
 
 **Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
 
-No request schema.
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `testToken` | any |  |  |
 
 ### `POST /auth/connector/link`
 
@@ -422,7 +442,7 @@ No request schema.
 
 **Access:** Signed-in user · the handler also checks who the caller is
 
-No request schema.
+**Body:** object (no other keys)
 
 ## `default-integrations`
 
@@ -926,7 +946,7 @@ No request schema.
 
 **Access:** Platform admin
 
-No request schema.
+**Body:** object (no other keys)
 
 ## `opaque`
 
@@ -1235,7 +1255,7 @@ No request schema.
 
 **Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
 
-No request schema.
+**Body:** object (no other keys)
 
 ## `pending-signup`
 
@@ -1305,7 +1325,7 @@ No request schema.
 
 **Access:** Platform admin · Capability `sso_saml`
 
-No request schema.
+**Body:** object (no other keys)
 
 ## `redeem-invite`
 
@@ -1587,7 +1607,7 @@ No request schema.
 
 **Access:** Admin of the target user's organisation
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `POST /auth/users/me/leave-org`
 

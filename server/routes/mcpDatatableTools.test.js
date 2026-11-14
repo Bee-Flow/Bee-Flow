@@ -23,6 +23,19 @@ const tools = require('./mcpDatatableTools');
 const mcp = require('./mcpServer');
 const log = require('../telemetry/log');
 const { synthesizeAccess } = require('../auth/datatableAccess');
+const { pgDatatableEngine } = require('../testUtils/pgDatatableEngine.testkit');
+
+// The writes of the insert and update tests land in a real Postgres table: the
+// planner's, on PGlite, behind the datatableDbStore surface
+// (testUtils/pgDatatableEngine.testkit.js).
+/** @type {Awaited<ReturnType<typeof pgDatatableEngine>> | null} */
+let dt = null;
+test.after(async () => { if (dt) await dt.close(); });
+async function realDb() {
+    if (!dt) dt = await pgDatatableEngine([{ id: 'dt_1', key: 'tbl_people', fields: FIELDS.filter((f) => f.type !== 'computed') }]);
+    await dt.pg.exec('TRUNCATE "tbl_people"');
+    return dt;
+}
 
 const SECRET = 'jan.jansen@example.test';
 
@@ -40,7 +53,7 @@ function tableMeta() {
 }
 
 /** A fake environment: what the resolver answers, and a record of everything written. */
-function env({ grade = 'editor', resolveError = null, mirror = false, quotaError = null, chargeOk = true, execFailsFor = null, changes = 1 } = {}) {
+function env({ grade = 'editor', resolveError = null, mirror = false, quotaError = null, chargeOk = true, execFailsFor = null, changes = 1, db = null } = {}) {
     const calls = { exec: [], query: [], bump: [], charge: [], resolve: [] };
     const table = { id: 'dt_1', name: 'People', key: 'people', scope_kind: 'org', scope_id: 'org_a', organizationId: 'org_a' };
     const overrides = {
@@ -55,9 +68,10 @@ function env({ grade = 'editor', resolveError = null, mirror = false, quotaError
         exec: async (key, sql, params) => {
             calls.exec.push({ key, sql, params });
             if (execFailsFor && params.includes(execFailsFor)) throw Object.assign(new Error(`duplicate key value (${SECRET})`), { code: '23505' });
+            if (db) return db.store.exec(key, key, sql, params);
             return { changes };
         },
-        query: async (key, sql, params) => { calls.query.push({ key, sql, params }); return { rows: [] }; },
+        query: async (key, sql, params) => { calls.query.push({ key, sql, params }); return db ? db.store.query(key, key, sql, params) : { rows: [] }; },
         bump: async (id, scope, delta) => { calls.bump.push(delta); },
         charge: async (name, key, cost, max) => { calls.charge.push({ name, key, cost, max }); return chargeOk ? { ok: true } : { ok: false, retryAfter: 30 }; },
     };
@@ -67,7 +81,8 @@ function env({ grade = 'editor', resolveError = null, mirror = false, quotaError
 const ctx = { userId: 'u1', tokenId: 'tok_1' };
 
 test('insert: every row is answered; a bad row never stops the good ones', async () => {
-    const { calls, tools: t } = env();
+    const db = await realDb();
+    const { calls, tools: t } = env({ db });
     const out = await t.call('datatables_insert_rows', {
         datatableId: 'dt_1',
         rows: [
@@ -100,11 +115,15 @@ test('insert: every row is answered; a bad row never stops the good ones', async
     // Only the two good rows reached the database, and the counter moved by what landed.
     assert.equal(calls.exec.length, 2);
     assert.deepEqual(calls.bump, [2]);
+    const rows = await db.rows('tbl_people');
+    assert.deepEqual(rows.map((r) => r.name).sort(), ['Ann', 'Hal']);
+    const ann = rows.find((r) => r.name === 'Ann');
     // The cell was normalised to the type of its column (the string "41" is the number 41).
-    assert.ok(calls.exec[0].params.includes(41));
-    assert.match(calls.exec[0].sql, /INSERT INTO/);
+    assert.equal(Number(ann.age), 41);
+    assert.equal(ann.id, out.results[0].id);
+    assert.equal(rows.find((r) => r.name === 'Hal').status, 'done');
     // created_by is the token's user, never a value from the call.
-    assert.ok(calls.exec[0].params.includes('u1'));
+    assert.ok(rows.every((r) => r.created_by === 'u1'));
 });
 
 test('insert: a row the database refuses is reported with a fixed sentence, never its text', async () => {
@@ -232,7 +251,9 @@ test('rate limit: a refused charge writes nothing', async () => {
 });
 
 test('update: a patch, per-row results, conflicts and unknown rows are told apart', async () => {
-    const { calls, tools: t } = env({ changes: 1 });
+    const db = await realDb();
+    await db.insert('tbl_people', { id: 'rec_1', name: 'Ann', age: 41, org_id: 'org_a', created_by: 'u1' });
+    const { calls, tools: t } = env({ db });
     let out = await t.call('datatables_update_rows', {
         datatableId: 'dt_1',
         updates: [
@@ -251,7 +272,9 @@ test('update: a patch, per-row results, conflicts and unknown rows are told apar
     assert.match(out.results[3].error, /empty/);
     assert.match(out.results[5].error, /set by Bee Flow/);
     assert.equal(calls.exec.length, 1);
-    assert.match(calls.exec[0].sql, /UPDATE/);
+    const [row] = await db.rows('tbl_people');
+    assert.equal(Number(row.age), 7, 'the patch landed');
+    assert.equal(row.name, 'Ann', 'columns the patch did not name keep their value');
     assert.deepEqual(calls.bump, [0]);
 
     // Nothing changed and the row is not visible: "no such row". Nothing changed and it is: a conflict.

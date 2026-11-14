@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * The table operation engine: runs a list of normalised operations over a
@@ -32,7 +32,7 @@ const { tableError, createTicker, iterate } = require('./values');
  *   tick: () => Promise<void>, warn: (message: string, code?: string) => void, stat: OpStat }} OpCtx
  */
 
-/** @type {Record<string, () => { apply: (op: TableOp, input: OpInput, ctx: OpCtx) => OpOutput|Promise<OpOutput> }>} */
+/** A method type: each op module reads its own op shape. @type {Record<string, () => { apply(op: TableOp, input: OpInput, ctx: OpCtx): OpOutput|Promise<OpOutput> }>} */
 const OPS = {
     join: () => require('./join'),
     pseudonymise: () => require('./pseudonymise'),

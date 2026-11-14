@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * THE PHASES THE SERVER RUNS ITSELF — one POST, and the phase's KIND decides
  * which of them owns the request.
@@ -68,7 +69,7 @@ function register(router, ctx) {
             if (!running.ok) return running.conflict ? sendErr(res, 409, 'version_conflict', 'This playbook changed elsewhere.', { currentVersion: running.currentVersion, playbook: running.playbook }) : sendErr(res, 404, 'not_found', 'Not found');
             version = running.version;
         }
-        const result = await runTablePhase({ playbook: pb, principal, recipe, hasManageDatatables }, d);
+        const result = /** @type {Record<string, any>} */ (await runTablePhase({ playbook: pb, principal, recipe, hasManageDatatables }, d));
         if (!result.ok) {
             phases = lifecycle.applyTransition(phases, key, 'failed', { error: result.error }, nowIso);
             const saved = await d.playbookStore.savePhases(pb.id, pb.userId, { phases, currentPhase: key }, { expectedVersion: version });
@@ -112,13 +113,13 @@ function register(router, ctx) {
             if (fresh) { version = fresh.version; phases = fresh.phases; }
             return fresh;
         };
-        const started = await startFillPhase({
+        const started = /** @type {Record<string, any>} */ (await startFillPhase({
             playbook: pb, automationId, tableArtifacts,
             onRunCreated: (run) => {
                 if (!run || !run.id) return;
                 saveNow(phases.map((p) => (p.key === key ? { ...p, artifacts: { ...(p.artifacts || {}), runId: run.id, runStatus: 'running' } } : p))).catch((e) => bestEffort('routes/playbooks/serverPhaseRoutes:onRunCreated', e));
             },
-        }, d);
+        }, d));
         if (!started.ok) {
             const failed = lifecycle.applyTransition(phases, key, 'failed', { error: started.error }, nowIso);
             const saved = await saveNow(failed);

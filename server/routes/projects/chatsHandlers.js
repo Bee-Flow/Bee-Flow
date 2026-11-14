@@ -9,7 +9,7 @@
 'use strict';
 
 const { badRequest, forbidden, notFound, conflict } = require('../../core/http/errors');
-const { DEFAULT_TITLE, titleFromMessage, excerptOf, chatEvent, tryOpen, presentChat } = require('./chatsPresent');
+const { DEFAULT_TITLE, titleFromMessage, excerptOf, chatEvent, tryOpen, presentChat } = require('../../usecases/projects/chatsPresent');
 const { postMessage } = require('./chatsPost');
 
 /**

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Test sets — the Testen tab (A1c).
  *
@@ -116,7 +117,7 @@ const { worded } = require('../../core/http/schemaParts');
 //   - `testIds: 'abc'` (one id, not a list) was read as "no selection" and
 //     RAN EVERY TEST, which is up to 25 agent turns on somebody's plan.
 
-/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
+/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. @template {import('zod').ZodRawShape} S @param {S} shape */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 /**
@@ -193,15 +194,20 @@ const testAsMod = require('../../core/agentRuntime/testAs');
 // itself (./testsRun.js). This file keeps the schemas, the question routes,
 // the suggestion and the route table.
 const {
-    requireEditableAgent, versionInfo, resolveOrgOrRefuse, checkPlanOrRefuse, resolveFastTierOrRefuse,
+    versionInfo, resolveOrgOrRefuse, checkPlanOrRefuse, resolveFastTierOrRefuse,
     SUGGEST_MODEL, logSuggestUsage, suggestMaxTokens,
 } = require('./testsGuards');
+// Every route here is an editor's: the edit grade on the agent, decided in
+// auth/agentAccess.mts, with the views loaded for versionInfo.
+const { requireAgentGrade } = require('./crud');
+const { agentAccessOf } = require('../../auth/agentAccess.mts');
 const { buildTestResultRecord, runOneTest, runTests } = require('./testsRun');
 
 // Editing a test is a form submit; running one is N model calls. The second
 // number is the one that matters — 4 runs a minute is a person pressing Run,
 // not a script grinding through somebody's inference budget.
 const editLimiter = perUserRateLimit({ windowMs: 60_000, max: 60 });
+const editGate = () => requireAgentGrade('edit', { views: true });
 const runLimiter = perUserRateLimit({ windowMs: 60_000, max: 4 });
 // Suggesting is ONE model call, so it sits between the two: more room than a
 // run, far less than a form submit.
@@ -209,9 +215,8 @@ const suggestLimiter = perUserRateLimit({ windowMs: 60_000, max: 12 });
 
 // ── The questions ────────────────────────────────────────────────────
 
-router.get('/:id/tests', requirePermission('manage_agents'), editLimiter, async (req, res) => {
-    const gate = await requireEditableAgent(req, res);
-    if (!gate) return;
+router.get('/:id/tests', requirePermission('manage_agents'), editLimiter, editGate(), async (req, res) => {
+    const gate = agentAccessOf(req);
     // The "Test als · groep …" picker rides along on the tab's own load.
     // It lives here rather than on the admin groups endpoint because that
     // one needs manage_users/org_admin, which an agent editor need not
@@ -253,9 +258,8 @@ router.get('/:id/tests', requirePermission('manage_agents'), editLimiter, async 
  * "I could not read what happened" are different sentences, and only the first
  * one is safe to render as a clean slate.
  */
-router.get('/:id/tests/runs', requirePermission('manage_agents'), editLimiter, validate({ query: RunsQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof RunsQuery>>} */ req, res) => {
-    const gate = await requireEditableAgent(req, res);
-    if (!gate) return;
+router.get('/:id/tests/runs', requirePermission('manage_agents'), editLimiter, editGate(), validate({ query: RunsQuery }), async (req, res) => {
+    const gate = agentAccessOf(req);
     const asked = req.query.limit;
     let runs;
     try {
@@ -275,9 +279,8 @@ router.get('/:id/tests/runs', requirePermission('manage_agents'), editLimiter, v
     });
 });
 
-router.post('/:id/tests', requirePermission('manage_agents'), editLimiter, validate({ body: CreateBody }), async (req, res) => {
-    const gate = await requireEditableAgent(req, res);
-    if (!gate) return;
+router.post('/:id/tests', requirePermission('manage_agents'), editLimiter, editGate(), validate({ body: CreateBody }), async (req, res) => {
+    const gate = agentAccessOf(req);
 
     const { test, error } = sandbox.normaliseTest(req.body);
     if (error) return res.status(400).json({ error: 'Write the question this agent should answer.', code: error });
@@ -324,9 +327,8 @@ router.post('/:id/tests', requirePermission('manage_agents'), editLimiter, valid
     res.status(201).json({ test: created });
 });
 
-router.put('/:id/tests/:testId', requirePermission('manage_agents'), editLimiter, validate({ body: PatchBody }), async (/** @type {import('express').Request<{ id: string, testId: string }, any, import('zod').infer<typeof PatchBody>, import('qs').ParsedQs>} */ req, res) => {
-    const gate = await requireEditableAgent(req, res);
-    if (!gate) return;
+router.put('/:id/tests/:testId', requirePermission('manage_agents'), editLimiter, editGate(), validate({ body: PatchBody }), async (req, res) => {
+    const gate = agentAccessOf(req);
 
     /** @type {{ name?: string; question?: string; expect?: { mustMention: string[]; mustNotMention: string[]; toolsExpected: string[]; rulesExpected: string[]; notes: string; } }} */
     const patch = {};
@@ -343,9 +345,8 @@ router.put('/:id/tests/:testId', requirePermission('manage_agents'), editLimiter
     res.json({ test: updated });
 });
 
-router.delete('/:id/tests/:testId', requirePermission('manage_agents'), editLimiter, async (req, res) => {
-    const gate = await requireEditableAgent(req, res);
-    if (!gate) return;
+router.delete('/:id/tests/:testId', requirePermission('manage_agents'), editLimiter, editGate(), async (req, res) => {
+    const gate = agentAccessOf(req);
     const gone = await agentStore.deleteAgentTest(gate.agent.id, req.params.testId);
     if (!gone) return res.status(404).json({ error: 'Test not found' });
     res.json({ success: true });
@@ -368,9 +369,8 @@ router.delete('/:id/tests/:testId', requirePermission('manage_agents'), editLimi
  * this route grants nothing and stores nothing, so the worst a made-up pair
  * can produce is a suggestion the same person then has to look at.
  */
-router.post('/:id/tests/suggest', requirePermission('manage_agents'), suggestLimiter, validate({ body: SuggestBody }), async (req, res) => {
-    const gate = await requireEditableAgent(req, res);
-    if (!gate) return;
+router.post('/:id/tests/suggest', requirePermission('manage_agents'), suggestLimiter, editGate(), validate({ body: SuggestBody }), async (req, res) => {
+    const gate = agentAccessOf(req);
 
     const question = (req.body.question || '').trim().slice(0, sandbox.LIMITS.question);
     const answer = (req.body.answer || '').trim();
@@ -382,7 +382,8 @@ router.post('/:id/tests/suggest', requirePermission('manage_agents'), suggestLim
             code: 'no_turn',
         });
     }
-    const toolsUsed = req.body.toolsUsed || [];
+    // The schema takes any list here; the suggestion helpers read it as tool names.
+    const toolsUsed = /** @type {any[]} */ (req.body.toolsUsed || []);
 
     const workspace = await resolveOrgOrRefuse(req);
     if (!workspace) return;
@@ -425,14 +426,13 @@ router.post('/:id/tests/suggest', requirePermission('manage_agents'), suggestLim
 
 // ── The run (./testsRun.js) ──────────────────────────────────────────
 
-router.post('/:id/tests/run', requirePermission('manage_agents'), runLimiter, validate({ body: RunBody }), runTests);
+router.post('/:id/tests/run', requirePermission('manage_agents'), runLimiter, editGate(), validate({ body: RunBody }), runTests);
 
 // Exported for the colocated test.
 module.exports = Object.assign(router, {
-    requireEditableAgent,
     versionInfo,
     runOneTest,
     buildTestResultRecord,
 });
 
-/** @typedef {import('express').Router & { requireEditableAgent: typeof requireEditableAgent, versionInfo: typeof versionInfo, runOneTest: typeof runOneTest, buildTestResultRecord: typeof buildTestResultRecord }} TestsRouter */
+/** @typedef {import('express').Router & { versionInfo: typeof versionInfo, runOneTest: typeof runOneTest, buildTestResultRecord: typeof buildTestResultRecord }} TestsRouter */

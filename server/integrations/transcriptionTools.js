@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Transcription Tools — Multi-provider meeting transcription with diarization
  *
@@ -30,8 +31,9 @@ const { runAzureWhisperBatch, formatAzureBatchFailure, computeWhisperBatchTimeou
 const {
     formatTime, maxSegmentEnd, finalizeTranscript,
 } = require('./transcription/finalize');
-const { fallback, bestEffort } = require('../utils/bestEffort');
+const { fallback, bestEffort, ignoreGone } = require('../utils/bestEffort');
 const { resolveAudioAttachment, tempSafeName } = require('./transcription/audioAttachment.mts');
+const { fetchConfiguredEndpoint } = require('../core/http/configuredEndpointFetch');
 
 // ─── Tool Definitions ──────────────────────────────────────────────────────────
 
@@ -262,7 +264,7 @@ async function handleAzureTranscription(args, context) {
         log.error('[Transcription:Azure] Error:', safeMsg);
         return { error: `Azure transcription failed: ${safeMsg}` };
     } finally {
-        try { fs.unlinkSync(inputPath); } catch (_) { log.debug('temp input file already gone', _); }
+        try { fs.unlinkSync(inputPath); } catch (_) { ignoreGone('integrations/transcriptionTools:unlinkAzureInput', _); }
     }
 }
 
@@ -318,7 +320,7 @@ async function handlePyannoteTranscription(args, context) {
         log.error('[Transcription:Pyannote] Error:', safeMsg);
         return { error: `Pyannote transcription failed: ${safeMsg}` };
     } finally {
-        try { fs.unlinkSync(inputPath); } catch (_) { log.debug('temp input file already gone', _); }
+        try { fs.unlinkSync(inputPath); } catch (_) { ignoreGone('integrations/transcriptionTools:unlinkPyannoteInput', _); }
     }
 }
 
@@ -438,7 +440,7 @@ async function handleWhisperXTranscription(args, context) {
         const primaryEndpoint = `${baseUrl}/transcribe`;
         const fallbackEndpoint = `${baseUrl}/v1/audio/transcriptions`;
 
-        /** @type {Response | null} */
+        /** @type {import('undici').Response | null} */
         let resp = null;
         /** @type {{ segments?: Array<any> } | null} */
         let data = null;
@@ -447,22 +449,20 @@ async function handleWhisperXTranscription(args, context) {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000);
 
+        // The admin's own endpoint, often on a private network: the configured-endpoint
+        // fetcher allows that and refuses metadata and link-local addresses. A buffer body:
+        // fetch cannot send a form-data stream, and the 404 fallback resends it.
+        const post = (/** @type {string} */ endpoint) => fetchConfiguredEndpoint(endpoint, {
+            method: 'POST',
+            headers,
+            body: /** @type {BodyInit} */ (/** @type {unknown} */ (form.getBuffer())),
+            signal: controller.signal,
+            redirect: 'follow',
+        });
         try {
-            resp = await fetch(primaryEndpoint, {
-                method: 'POST',
-                headers,
-                body: form.getBuffer(), // a buffer: global fetch cannot send a form-data stream, and the 404 fallback resends it
-                signal: controller.signal,
-            });
-            if (!resp.ok && resp.status === 404) {
-                // Try OpenAI-compat endpoint
-                resp = await fetch(fallbackEndpoint, {
-                    method: 'POST',
-                    headers,
-                    body: form.getBuffer(), // a buffer: global fetch cannot send a form-data stream, and the 404 fallback resends it
-                    signal: controller.signal,
-                });
-            }
+            resp = await post(primaryEndpoint);
+            // Try the OpenAI-compatible endpoint
+            if (!resp.ok && resp.status === 404) resp = await post(fallbackEndpoint);
         } finally {
             clearTimeout(timeoutId);
         }

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Nextcloud Connector — auto-provisioning bootstrap.
  *
@@ -70,8 +70,21 @@ const { resolveConnectorBearer, registerRotateKeyRoute } = require('./connector/
 
 // Per-IP limits of these unauthenticated routes (CONNECTOR_BOOTSTRAP_RATE_LIMIT and the fixed ones).
 const { bootstrapLimiter, pendingPollLimiter, statusReportLimiter, verificationResendLimiter } = require('./connector/bootstrapLimiters.mts');
+const { validate } = require('../core/http/validate');
+const { z, bodyOf } = require('../core/http/schemaParts');
 
-router.post('/connector/bootstrap', bootstrapLimiter, async (req, res) => {
+// The keys the connector sends (nextcloud-connector/src/bootstrap.js and setup.js).
+// Each handler reads and checks the values itself, with the 400 codes the
+// connector branches on, so only a key it does not send is refused here.
+// POST /connector/status keeps its tolerant contract (see there).
+const sent = z.unknown().optional();
+const BootstrapBody = bodyOf({ themingName: sent, version: sent, ncAdmins: sent }, 'A connector bootstrap');
+const VerifyBody = bodyOf({ code: sent }, 'A verification code');
+const ResendBody = bodyOf({}, 'Resending a verification code');
+const RetargetBody = bodyOf({ email: sent, uid: sent, displayName: sent }, 'Re-pointing a verification');
+const DiagnoseBody = bodyOf({ testToken: sent }, 'A connector diagnosis');
+
+router.post('/connector/bootstrap', bootstrapLimiter, validate({ body: BootstrapBody }), async (req, res) => {
     const { ncInstanceId, ncBaseUrl, ncAdminUid, ncAdminEmail, ncAdminDisplayName, connectorCallbackUrl, pairingCode } = readBootstrapHeaders(req);
     if (!ncInstanceId || !ncBaseUrl || !ncAdminUid || !ncAdminEmail) {
         return res.status(400).json({
@@ -191,7 +204,7 @@ router.get('/connector/bootstrap/pending/:id', pendingPollLimiter, async (req, r
 // can cache it without a separate poll. Unauthenticated by design — the
 // connector has no SaaS creds yet — but attempt-capped (in verifyPendingNcCode)
 // and IP-rate-limited.
-router.post('/connector/bootstrap/pending/:id/verify', pendingPollLimiter, async (req, res) => {
+router.post('/connector/bootstrap/pending/:id/verify', pendingPollLimiter, validate({ body: VerifyBody }), async (req, res) => {
     const id = String(req.params.id || '').trim();
     const code = String(req.body?.code || '').trim();
     if (!id) return res.status(400).json({ error: 'Missing id' });
@@ -211,7 +224,8 @@ router.post('/connector/bootstrap/pending/:id/verify', pendingPollLimiter, async
         default: throw new Error(`Unexpected verification status '${result.status}'`);
     }
 
-    const row = result.row;
+    // status 'ok' comes with the matched row.
+    const row = /** @type {NonNullable<typeof result.row>} */ (result.row);
     const org = await userStore.getOrganization(row.orgId);
     if (!org) return res.status(410).json({ status: 'expired', code: 'org_gone' });
     // The emailed code links a Nextcloud to an organisation that has none; the
@@ -276,7 +290,7 @@ const tooManyCodeRequests = (res) => res.status(429).json({
 // extended), capped per pendingId and per organisation per day. Goes to the
 // address on the row, and only when that is the address of an administrator
 // of the row's organisation; the answer is the same either way (sendOrCount).
-router.post('/connector/bootstrap/pending/:id/resend', verificationResendLimiter, async (req, res) => {
+router.post('/connector/bootstrap/pending/:id/resend', verificationResendLimiter, validate({ body: ResendBody }), async (req, res) => {
     const id = String(req.params.id || '').trim();
     if (!id) return res.status(400).json({ error: 'Missing id' });
     const current = await userStore.getPendingNcBinding(id);
@@ -321,7 +335,7 @@ async function sendOrCount(req, res, { id, row, to, send }) {
 // connector supplies the current user's email/uid; the code is sent only when
 // that address is the one of an administrator of the row's organisation, and
 // the answer is the same either way (sendOrCount).
-router.post('/connector/bootstrap/pending/:id/retarget', verificationResendLimiter, async (req, res) => {
+router.post('/connector/bootstrap/pending/:id/retarget', verificationResendLimiter, validate({ body: RetargetBody }), async (req, res) => {
     const id = String(req.params.id || '').trim();
     const email = String(req.body?.email || '').trim().toLowerCase();
     const uid = String(req.body?.uid || '').trim();
@@ -346,7 +360,7 @@ router.post('/connector/bootstrap/pending/:id/retarget', verificationResendLimit
 // possession of a fake header set isn't enough. Returns NO secret material —
 // only fingerprints (first 16 hex chars of sha256) so the caller can compare
 // against its own locally cached key.
-router.post('/connector/diagnose', bootstrapLimiter, async (req, res) => {
+router.post('/connector/diagnose', bootstrapLimiter, validate({ body: DiagnoseBody }), async (req, res) => {
     const h = readBootstrapHeaders(req);
     if (!h.ncInstanceId || !h.ncBaseUrl) {
         return res.status(400).json({

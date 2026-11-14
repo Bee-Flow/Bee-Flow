@@ -10,6 +10,7 @@
  * but uses fetch + Bearer token instead of the Google SDK.
  */
 
+const { fetchFixedEndpoint } = require('../utils/fixedEndpointFetch.mts');
 const { loadConfig, microsoftRefreshScope } = require('../auth/permissions');
 const log = require('../telemetry/log');
 const { parseRetryAfter, backoffDelay, sleep, isReplayableBody } = require('../core/http/retryAfter');
@@ -22,7 +23,7 @@ const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
  * `graphUserPath` (`/users/<object id>`) makes the Teams meeting-notes helpers address that user instead of
  * `/me` (teamsArtifacts graphUserBase); `appOnly` marks an application-token session (no refresh token).
  * The Graph client itself reads neither.
- * @typedef {{ accessToken?: string, refreshToken?: string, oauthScope?: string, oauthConnectionId?: string, save?: () => void, graphUserPath?: string, appOnly?: boolean }} MsSession
+ * @typedef {{ accessToken?: string, refreshToken?: string | null, oauthScope?: string, oauthConnectionId?: string, save?: () => void, graphUserPath?: string, appOnly?: boolean }} MsSession
  * @typedef {Omit<RequestInit, 'headers'> & { headers?: Record<string, string> }} GraphRequestOptions
  */
 
@@ -92,7 +93,7 @@ async function refreshAccessToken(session) {
     const tenantId = providerConfig.tenantId;
     const tokenUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
 
-    const response = await fetch(tokenUrl, {
+    const response = await fetchFixedEndpoint(tokenUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
@@ -159,7 +160,8 @@ async function graphRequest(path, session, options = {}) {
             'Authorization': `Bearer ${token}`,
             ...(options.headers || {}),
         };
-        return fetch(url, { ...options, headers });
+        // Bounds the wait for the answer, not the body: a file download may take longer.
+        return fetchFixedEndpoint(url, { timeoutPhase: 'headers', ...options, headers });
     };
 
     // One refresh-and-retry on 401 per call, wherever the 401 comes.

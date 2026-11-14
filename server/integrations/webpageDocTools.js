@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Webpage Document Tools
  *
@@ -118,172 +118,193 @@ const WEBPAGE_ADD_SOURCE_TOOL = {
 };
 
 /**
- * Execute a webpage document tool call.
- *
- * @param {string} toolName
- * @param {{ file?: string, content?: string, title?: string, find_text?: string, replace_text?: string, replace_all?: boolean, start_line?: number, end_line?: number, expected_text?: string, replacement?: string }} args
- * @param {{html:string, css:string, js:string}} files - in-memory triple kept in sync with the editor.
- * @param {{ readSlots?: Set<string> }} [ctx] - optional per-turn context: `{ readSlots: Set<string> }` for the read-before-edit guard.
- * @returns {{ error?: string, content?: string, message?: string, _action?: string, file?: string, title?: string }}
+ * @typedef {{ file?: string, content?: string, title?: string, find_text?: string, replace_text?: string, replace_all?: boolean, start_line?: number, end_line?: number, expected_text?: string, replacement?: string }} DocToolArgs
+ * @typedef {{ error?: string, content?: string, message?: string, _action?: string, file?: string, title?: string }} DocToolResult
+ * Every handler runs on a file the dispatcher checked is one of VALID_SLOTS.
+ * @typedef {(args: DocToolArgs, files: {html:string, css:string, js:string}, readSlots: Set<string> | null) => DocToolResult} DocToolHandler
  */
-function executeWebpageDocTool(toolName, args, files, ctx = {}) {
-    const readSlots = ctx.readSlots instanceof Set ? ctx.readSlots : null;
 
-    if (toolName === 'webpage_file_read') {
-        const file = args.file;
-        if (!VALID_SLOTS.includes(file)) {
-            return { error: `Invalid file "${file}" — must be one of: ${VALID_SLOTS.join(', ')}.` };
-        }
-        if (readSlots) readSlots.add(file);
-        const content = files?.[/** @type {'html' | 'css' | 'js'} */ (file)] || '';
-        if (!content.trim()) {
-            return { content: '', message: `${slotFilename(file)} is currently empty.` };
-        }
-        return { content };
+/** @param {{html:string, css:string, js:string}} files @param {string | undefined} file */
+const slotText = (files, file) => files?.[/** @type {'html' | 'css' | 'js'} */ (file)] || '';
+
+/** @type {DocToolHandler} */
+function readSlot(args, files, readSlots) {
+    const file = /** @type {string} */ (args.file);
+    if (readSlots) readSlots.add(file);
+    const content = slotText(files, file);
+    if (!content.trim()) {
+        return { content: '', message: `${slotFilename(file)} is currently empty.` };
     }
+    return { content };
+}
 
-    if (toolName === 'webpage_file_write') {
-        const file = args.file;
-        if (!VALID_SLOTS.includes(file)) {
-            return { error: `Invalid file "${file}" — must be one of: ${VALID_SLOTS.join(', ')}.` };
-        }
-        const content = args.content || '';
-        const title = args.title || slotFilename(file);
+/**
+ * Soft warning when overwriting a non-empty file with new content of
+ * similar size. The write still applies, but the AI sees this in the
+ * tool result and learns to prefer partial edits next time.
+ * @param {string} previous @param {string} content
+ */
+function overwriteWarning(previous, content) {
+    if (previous.trim().length === 0) return '';
+    // Heuristic: if both old and new are sizeable (>200 chars) and the
+    // new content shares <40% of its lines with the old, this is
+    // probably a wholesale rewrite that should have been a series of
+    // partial edits. Emit a warning either way for non-empty writes.
+    const overlap = lineOverlapRatio(previous, content);
+    const previewWasFull = previous.length > 200;
+    return previewWasFull && overlap < 0.4
+        ? ` ⚠ webpage_file_write replaced ${previous.length.toLocaleString()} chars of existing content (line overlap with old version: ${(overlap * 100).toFixed(0)}%). For most edits — adding a section, tweaking styles, fixing copy — webpage_file_replace or webpage_file_patch is faster, cheaper, and safer than rewriting the whole file. Only use webpage_file_write for empty files or genuine from-scratch rewrites.`
+        : ` Note: the file already had content — for partial changes, webpage_file_replace or webpage_file_patch are the preferred tools. webpage_file_write is for empty files or full rewrites.`;
+}
 
-        // Soft warning when overwriting a non-empty file with new content of
-        // similar size. The write still applies, but the AI sees this in the
-        // tool result and learns to prefer partial edits next time.
-        const previous = files?.[/** @type {'html' | 'css' | 'js'} */ (file)] || '';
-        let warning = '';
-        if (previous.trim().length > 0) {
-            // Heuristic: if both old and new are sizeable (>200 chars) and the
-            // new content shares <40% of its lines with the old, this is
-            // probably a wholesale rewrite that should have been a series of
-            // partial edits. Emit a warning either way for non-empty writes.
-            const overlap = lineOverlapRatio(previous, content);
-            const previewWasFull = previous.length > 200;
-            warning = previewWasFull && overlap < 0.4
-                ? ` ⚠ webpage_file_write replaced ${previous.length.toLocaleString()} chars of existing content (line overlap with old version: ${(overlap * 100).toFixed(0)}%). For most edits — adding a section, tweaking styles, fixing copy — webpage_file_replace or webpage_file_patch is faster, cheaper, and safer than rewriting the whole file. Only use webpage_file_write for empty files or genuine from-scratch rewrites.`
-                : ` Note: the file already had content — for partial changes, webpage_file_replace or webpage_file_patch are the preferred tools. webpage_file_write is for empty files or full rewrites.`;
-        }
+/** @type {DocToolHandler} */
+function writeSlot(args, files) {
+    const file = args.file;
+    const content = args.content || '';
+    const title = args.title || slotFilename(file);
+    const warning = overwriteWarning(slotText(files, file), content);
+    return {
+        _action: 'webpage_doc_update',
+        file,
+        content,
+        title,
+        message: `${slotFilename(file)} updated: "${title}".${warning}`,
+    };
+}
 
-        return {
-            _action: 'webpage_doc_update',
-            file,
-            content,
-            title,
-            message: `${slotFilename(file)} updated: "${title}".${warning}`,
-        };
-    }
-
-    if (toolName === 'webpage_file_replace') {
-        const file = args.file;
-        const findText = args.find_text;
-        const replaceText = args.replace_text ?? '';
-        const replaceAll = args.replace_all === true;
-
-        if (!VALID_SLOTS.includes(file)) {
-            return { error: `Invalid file "${file}" — must be one of: ${VALID_SLOTS.join(', ')}.` };
-        }
-        if (!findText) {
-            return { error: 'find_text is required for webpage_file_replace.' };
-        }
-
-        const current = files?.[/** @type {'html' | 'css' | 'js'} */ (file)] || '';
-        if (!current) {
-            return { error: `${slotFilename(file)} is empty. Use webpage_file_write to create content first.` };
-        }
-
-        // 1. Verbatim occurrence count
-        const occurrences = findAllOccurrences(current, findText);
-
-        if (occurrences.length === 1) {
-            const newContent = spliceAt(current, occurrences[0].start, occurrences[0].end, replaceText);
-            return wrapEditResult(file, newContent, {
-                message: replaceText
-                    ? `${slotFilename(file)} updated (1 replacement at line ${occurrences[0].line}).`
-                    : `${slotFilename(file)} text removed at line ${occurrences[0].line}.`,
-                readSlots,
-            });
-        }
-
-        if (occurrences.length >= 2) {
-            if (!replaceAll) {
-                const lines = occurrences.map(o => o.line);
-                return {
-                    error: `find_text matches ${occurrences.length} places in ${slotFilename(file)} (lines ${lines.join(', ')}). Either narrow find_text so it matches exactly once, or set replace_all: true to replace every occurrence.`,
-                };
-            }
-            // Replace all — walk back-to-front so byte offsets remain valid.
-            let next = current;
-            for (let i = occurrences.length - 1; i >= 0; i--) {
-                next = spliceAt(next, occurrences[i].start, occurrences[i].end, replaceText);
-            }
-            return wrapEditResult(file, next, {
-                message: `${slotFilename(file)} updated (${occurrences.length} replacements, lines ${occurrences.map(o => o.line).join(', ')}).`,
-                readSlots,
-            });
-        }
-
-        // 0 verbatim matches — try whitespace-normalized fallback
-        const range = locateOriginalRange(current, findText);
-        if (range) {
-            // Whitespace fallback: only single replacement supported (the normalized
-            // mapping is order-dependent; replace_all here would be ambiguous).
-            const newContent = spliceAt(current, range.start, range.end, replaceText);
-            const line = lineNumberForOffset(current, range.start);
-            return wrapEditResult(file, newContent, {
-                message: replaceText
-                    ? `${slotFilename(file)} updated at line ${line} (whitespace-normalized match).`
-                    : `${slotFilename(file)} text removed at line ${line} (whitespace-normalized match).`,
-                readSlots,
-            });
-        }
-
-        // Not found at all — produce a diff-style hint.
+/**
+ * A replace for a find_text with no verbatim match: the whitespace-normalized
+ * match (single replacement only: the normalized mapping is order-dependent,
+ * so replace_all there would be ambiguous), else a diff-style hint.
+ * @param {string | undefined} file @param {string} current @param {string} findText @param {string} replaceText @param {Set<string> | null} readSlots
+ */
+function replaceLoose(file, current, findText, replaceText, readSlots) {
+    const range = locateOriginalRange(current, findText);
+    if (!range) {
         return {
             error: `Could not find the find_text snippet in ${slotFilename(file)}. ${buildNearestMatchHint(current, findText, file)}`,
         };
     }
+    const newContent = spliceAt(current, range.start, range.end, replaceText);
+    const line = lineNumberForOffset(current, range.start);
+    return wrapEditResult(file, newContent, {
+        message: replaceText
+            ? `${slotFilename(file)} updated at line ${line} (whitespace-normalized match).`
+            : `${slotFilename(file)} text removed at line ${line} (whitespace-normalized match).`,
+        readSlots,
+    });
+}
 
-    if (toolName === 'webpage_file_patch') {
-        const file = args.file;
-        const startLine = Number(args.start_line);
-        const endLine = Number(args.end_line);
-        const expected = args.expected_text ?? '';
-        const replacement = args.replacement ?? '';
+/**
+ * Two or more verbatim matches: refused unless replace_all, then every one
+ * is replaced back-to-front so byte offsets remain valid.
+ * @param {string | undefined} file @param {string} current @param {ReturnType<typeof findAllOccurrences>} occurrences
+ * @param {{ replaceText: string, replaceAll: boolean, readSlots: Set<string> | null }} opts
+ */
+function replaceMany(file, current, occurrences, { replaceText, replaceAll, readSlots }) {
+    if (!replaceAll) {
+        const lines = occurrences.map(o => o.line);
+        return {
+            error: `find_text matches ${occurrences.length} places in ${slotFilename(file)} (lines ${lines.join(', ')}). Either narrow find_text so it matches exactly once, or set replace_all: true to replace every occurrence.`,
+        };
+    }
+    let next = current;
+    for (let i = occurrences.length - 1; i >= 0; i--) {
+        next = spliceAt(next, occurrences[i].start, occurrences[i].end, replaceText);
+    }
+    return wrapEditResult(file, next, {
+        message: `${slotFilename(file)} updated (${occurrences.length} replacements, lines ${occurrences.map(o => o.line).join(', ')}).`,
+        readSlots,
+    });
+}
 
-        if (!VALID_SLOTS.includes(file)) {
-            return { error: `Invalid file "${file}" — must be one of: ${VALID_SLOTS.join(', ')}.` };
-        }
-        if (!Number.isInteger(startLine) || !Number.isInteger(endLine) || startLine < 1 || endLine < startLine) {
-            return { error: `start_line and end_line must be 1-indexed integers with start_line ≤ end_line. Got start_line=${args.start_line}, end_line=${args.end_line}.` };
-        }
+/** @type {DocToolHandler} */
+function replaceInSlot(args, files, readSlots) {
+    const file = args.file;
+    const findText = args.find_text;
+    const replaceText = args.replace_text ?? '';
+    const replaceAll = args.replace_all === true;
 
-        const current = files?.[/** @type {'html' | 'css' | 'js'} */ (file)] || '';
-        const lines = current.split('\n');
-        if (endLine > lines.length) {
-            return { error: `end_line (${endLine}) is past end of ${slotFilename(file)} which has ${lines.length} lines. Call webpage_file_read to recount.` };
-        }
-
-        const actual = lines.slice(startLine - 1, endLine).join('\n');
-        if (normalizeWhitespace(actual) !== normalizeWhitespace(expected)) {
-            return {
-                error: `expected_text does not match actual content of lines ${startLine}-${endLine} in ${slotFilename(file)}. The file has likely changed since you last read it. Call webpage_file_read({file:"${file}"}) and retry.\n\nWhat the file actually contains on those lines:\n${truncate(actual, 400)}`,
-            };
-        }
-
-        const replacementLines = replacement === '' ? [] : replacement.split('\n');
-        const newLines = [...lines.slice(0, startLine - 1), ...replacementLines, ...lines.slice(endLine)];
-        const newContent = newLines.join('\n');
-
-        return wrapEditResult(file, newContent, {
-            message: `${slotFilename(file)} patched: replaced lines ${startLine}-${endLine} (${endLine - startLine + 1} → ${replacementLines.length} lines).`,
-            readSlots,
-        });
+    if (!findText) {
+        return { error: 'find_text is required for webpage_file_replace.' };
+    }
+    const current = slotText(files, file);
+    if (!current) {
+        return { error: `${slotFilename(file)} is empty. Use webpage_file_write to create content first.` };
     }
 
-    return { error: `Unknown webpage document tool: ${toolName}` };
+    // 1. Verbatim occurrence count
+    const occurrences = findAllOccurrences(current, findText);
+    if (occurrences.length >= 2) return replaceMany(file, current, occurrences, { replaceText, replaceAll, readSlots });
+    if (occurrences.length === 0) return replaceLoose(file, current, findText, replaceText, readSlots);
+    const newContent = spliceAt(current, occurrences[0].start, occurrences[0].end, replaceText);
+    return wrapEditResult(file, newContent, {
+        message: replaceText
+            ? `${slotFilename(file)} updated (1 replacement at line ${occurrences[0].line}).`
+            : `${slotFilename(file)} text removed at line ${occurrences[0].line}.`,
+        readSlots,
+    });
+}
+
+/** @type {DocToolHandler} */
+function patchSlot(args, files, readSlots) {
+    const file = args.file;
+    const startLine = Number(args.start_line);
+    const endLine = Number(args.end_line);
+    const expected = args.expected_text ?? '';
+    const replacement = args.replacement ?? '';
+
+    if (!Number.isInteger(startLine) || !Number.isInteger(endLine) || startLine < 1 || endLine < startLine) {
+        return { error: `start_line and end_line must be 1-indexed integers with start_line ≤ end_line. Got start_line=${args.start_line}, end_line=${args.end_line}.` };
+    }
+
+    const lines = slotText(files, file).split('\n');
+    if (endLine > lines.length) {
+        return { error: `end_line (${endLine}) is past end of ${slotFilename(file)} which has ${lines.length} lines. Call webpage_file_read to recount.` };
+    }
+
+    const actual = lines.slice(startLine - 1, endLine).join('\n');
+    if (normalizeWhitespace(actual) !== normalizeWhitespace(expected)) {
+        return {
+            error: `expected_text does not match actual content of lines ${startLine}-${endLine} in ${slotFilename(file)}. The file has likely changed since you last read it. Call webpage_file_read({file:"${file}"}) and retry.\n\nWhat the file actually contains on those lines:\n${truncate(actual, 400)}`,
+        };
+    }
+
+    const replacementLines = replacement === '' ? [] : replacement.split('\n');
+    const newLines = [...lines.slice(0, startLine - 1), ...replacementLines, ...lines.slice(endLine)];
+    const newContent = newLines.join('\n');
+
+    return wrapEditResult(file, newContent, {
+        message: `${slotFilename(file)} patched: replaced lines ${startLine}-${endLine} (${endLine - startLine + 1} → ${replacementLines.length} lines).`,
+        readSlots,
+    });
+}
+
+/** @type {Record<string, DocToolHandler>} */
+const HANDLERS = {
+    webpage_file_read: readSlot,
+    webpage_file_write: writeSlot,
+    webpage_file_replace: replaceInSlot,
+    webpage_file_patch: patchSlot,
+};
+
+/**
+ * Execute a webpage document tool call.
+ *
+ * @param {string} toolName
+ * @param {DocToolArgs} args
+ * @param {{html:string, css:string, js:string}} files - in-memory triple kept in sync with the editor.
+ * @param {{ readSlots?: Set<string> | null }} [ctx] - optional per-turn context: `{ readSlots: Set<string> }` for the read-before-edit guard.
+ * @returns {DocToolResult}
+ */
+function executeWebpageDocTool(toolName, args, files, ctx = {}) {
+    const readSlots = ctx.readSlots instanceof Set ? ctx.readSlots : null;
+    const handler = Object.hasOwn(HANDLERS, toolName) ? HANDLERS[toolName] : null;
+    if (!handler) return { error: `Unknown webpage document tool: ${toolName}` };
+    if (!VALID_SLOTS.includes(/** @type {string} */ (args.file))) {
+        return { error: `Invalid file "${args.file}" — must be one of: ${VALID_SLOTS.join(', ')}.` };
+    }
+    return handler(args, files, readSlots);
 }
 
 // ───────────────────────────────────────────────────────────────────
@@ -325,7 +346,7 @@ function lineOverlapRatio(oldText, newText) {
  */
 function wrapEditResult(file, newContent, { message, readSlots }) {
     let finalMessage = message;
-    if (readSlots && !readSlots.has(file)) {
+    if (readSlots && !readSlots.has(/** @type {string} */ (file))) {
         finalMessage += ` Note: you didn't call webpage_file_read({file:"${file}"}) this turn before editing — read first next time so whitespace differences don't cause a retry.`;
     }
     return {
@@ -355,7 +376,4 @@ module.exports = {
     WEBPAGE_ADD_SOURCE_TOOL,
     executeWebpageDocTool,
     VALID_SLOTS,
-    // Exported for tests / reuse by builder tools
-    findAllOccurrences,
-    lineNumberForOffset,
 };

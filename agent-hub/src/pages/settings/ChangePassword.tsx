@@ -2,7 +2,7 @@ import { KeyRound, Loader2, AlertCircle, Check } from 'lucide-react';
 import React, { useId, useState } from 'react';
 import { postForBody } from '../../api/postForBody';
 import { useTranslation } from '../../hooks/useTranslation';
-import { API_BASE } from '../../utils/helpers';
+import { apiUrl } from '@/api/typedRequest';
 
 /** Settings → Security: change the password of an account that has one. */
 export default function ChangePassword() {
@@ -22,7 +22,7 @@ export default function ChangePassword() {
         if (newPassword !== confirm) { setErr(t('login.passwords_no_match', 'Passwords do not match')); return; }
         setBusy(true);
         try {
-            const { ok, body: data } = await postForBody(`${API_BASE}/auth/change-password`, {
+            const { ok, body: data } = await postForBody(apiUrl('POST /auth/change-password'), {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ oldPassword, newPassword }),
             });

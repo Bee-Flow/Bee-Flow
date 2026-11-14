@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Google Workspace connector routes — mounted at
  * /api/integrations/google.
@@ -30,7 +30,10 @@
  * Microsoft/Nextcloud SSO session).
  */
 
+const { fetchFixedEndpoint } = require('../../utils/fixedEndpointFetch.mts');
 const express = require('express');
+const { validate } = require('../../core/http/validate');
+const { bodyOf } = require('../../core/http/schemaParts');
 const crypto = require('crypto');
 const log = require('../../telemetry/log');
 const router = express.Router();
@@ -151,12 +154,12 @@ router.get('/callback', /** @param {import('express').Request<{}, any, any, { co
         const redirectUri = storedRedirectUri || buildRedirectUri(req);
 
         // Exchange code for tokens (PKCE verifier bound to this browser).
-        const tokenRes = await fetch(OAUTH_PROVIDERS.google.tokenUrl, {
+        const tokenRes = await fetchFixedEndpoint(OAUTH_PROVIDERS.google.tokenUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({
                 grant_type: 'authorization_code',
-                code,
+                code: String(code), // what URLSearchParams would make of it
                 redirect_uri: redirectUri,
                 client_id: clientId,
                 client_secret: clientSecret,
@@ -175,7 +178,7 @@ router.get('/callback', /** @param {import('express').Request<{}, any, any, { co
         // the connection is lent to teammates.
         let email = '';
         try {
-            const infoRes = await fetch(OAUTH_PROVIDERS.google.userInfoUrl, {
+            const infoRes = await fetchFixedEndpoint(OAUTH_PROVIDERS.google.userInfoUrl, {
                 headers: { Authorization: `Bearer ${tokenData.access_token}` },
             });
             if (infoRes.ok) {
@@ -269,7 +272,7 @@ router.get('/status', requireAuth, async (req, res) => {
 });
 
 // ─── Disconnect ──────────────────────────────────────────────────
-router.post('/disconnect', requireAuth, async (req, res) => {
+router.post('/disconnect', requireAuth, validate({ body: bodyOf({}, 'Disconnecting Google') }), async (req, res) => {
     const userId = req.session?.user?.id;
     if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 

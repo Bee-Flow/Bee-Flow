@@ -1,144 +1,96 @@
+// @typecheck
 /**
- * Risk store tests — score computation, field whitelisting, acceptance stamps,
- * seed dedupe, stats aggregation.
- * Fake db injected via require.cache (same pattern as soaStore.test.js).
+ * Risk store against a real Postgres (PGlite behind db.js's pool,
+ * testUtils/pglitePool.js, with the store's own schema): the score is computed
+ * in the store, fields are whitelisted, the acceptance stamp comes from the
+ * actor and is never overwritten, seeds dedupe on seed_key, and the stats
+ * count active high risks only.
  *
  * Run: cd server && node --test stores/riskStore.test.js
  */
 
-const { test, beforeEach } = require('node:test');
+'use strict';
+
+const { test, before, after } = require('node:test');
 const assert = require('node:assert');
-const path = require('path');
 
-const calls = { run: [], getOne: [], getAll: [] };
-let oneResult = null;
-let allResult = [];
+const { usePglitePool } = require('../testUtils/pglitePool');
 
-const mockDb = {
-    exec: async () => {},
-    run: async (sql, params) => { calls.run.push({ sql, params }); return { rowCount: 1, rows: [] }; },
-    getOne: async (sql, params) => { calls.getOne.push({ sql, params }); return oneResult; },
-    getAll: async (sql, params) => { calls.getAll.push({ sql, params }); return allResult; },
-};
-const dbResolved = require.resolve(path.join(__dirname, '..', 'db.js'));
-require.cache[dbResolved] = { id: dbResolved, filename: dbResolved, loaded: true, exports: mockDb };
-
+const { pg, close } = usePglitePool();
 const riskStore = require('./riskStore');
 
-beforeEach(() => {
-    calls.run.length = 0;
-    calls.getOne.length = 0;
-    calls.getAll.length = 0;
-    oneResult = null;
-    allResult = [];
-});
+before(() => riskStore.initDB());
+after(close);
 
-test('createRisk computes score = likelihood × impact in the store', async () => {
-    await riskStore.createRisk('orgA', {
-        title: 'Prompt-injection exfiltration',
-        category: 'confidentiality',
-        likelihood: 4,
-        impact: 5,
-    }, 'actor1');
-    const insert = calls.run.find(c => c.sql.includes('INSERT INTO iso_risks'));
-    assert.ok(insert, 'insert issued');
-    // [orgId, title, description, category, likelihood, impact, score, status, owner, source, seed_key, review_due, created_by]
-    assert.strictEqual(insert.params[4], 4, 'likelihood');
-    assert.strictEqual(insert.params[5], 5, 'impact');
-    assert.strictEqual(insert.params[6], 20, 'score is computed 4×5=20');
-    assert.strictEqual(insert.params[7], 'open', 'default status');
-    assert.strictEqual(insert.params[9], 'manual', 'default source');
-    assert.strictEqual(insert.params[12], 'actor1', 'created_by = actor');
+test('createRisk computes score = likelihood × impact in the store, with defaults', async () => {
+    const r = await riskStore.createRisk('orgA', { title: 'Prompt-injection exfiltration', category: 'confidentiality', likelihood: 4, impact: 5 }, 'actor1');
+    assert.deepStrictEqual([r.likelihood, r.impact, r.score, r.status, r.source, r.created_by], [4, 5, 20, 'open', 'manual', 'actor1']);
 });
 
 test('createRisk clamps out-of-range scales and ignores a client-supplied score', async () => {
-    await riskStore.createRisk('orgA', { title: 'X', likelihood: 99, impact: -3, score: 25 }, null);
-    const insert = calls.run.find(c => c.sql.includes('INSERT INTO iso_risks'));
-    assert.strictEqual(insert.params[4], 5, 'likelihood clamped to 5');
-    assert.strictEqual(insert.params[5], 1, 'impact clamped to 1');
-    assert.strictEqual(insert.params[6], 5, 'score recomputed (5×1), client score ignored');
+    const r = await riskStore.createRisk('orgA', /** @type {any} */ ({ title: 'X', likelihood: 99, impact: -3, score: 25 }), null);
+    assert.deepStrictEqual([r.likelihood, r.impact, r.score], [5, 1, 5]);
 });
 
-test('updateRisk whitelists fields, drops unknown ones, recomputes score', async () => {
-    oneResult = {
-        id: 7, organization_id: 'orgA', title: 'Old title', description: 'old', category: 'integrity',
-        likelihood: 2, impact: 2, score: 4, status: 'open',
-        owner_user_id: 'zoe', review_due_at: null, accepted_by: null, accepted_at: null,
-    };
-    await riskStore.updateRisk('orgA', 7, {
-        likelihood: 5,
-        evil_field: 'DROP TABLE iso_risks',
-        accepted_by: 'mallory',
-        accepted_at: '2020-01-01',
-    }, 'actor2');
-    const upd = calls.run.find(c => c.sql.includes('UPDATE iso_risks'));
-    assert.ok(upd, 'update issued');
-    assert.ok(!upd.sql.includes('evil_field'), 'unknown fields never reach SQL');
-    // [orgId, id, title, description, category, likelihood, impact, score, status, owner, review_due, stampAcceptance, actor]
-    assert.strictEqual(upd.params[2], 'Old title', 'omitted fields keep existing values');
-    assert.strictEqual(upd.params[5], 5, 'patched likelihood');
-    assert.strictEqual(upd.params[6], 2, 'existing impact kept');
-    assert.strictEqual(upd.params[7], 10, 'score recomputed 5×2=10');
-    assert.strictEqual(upd.params[11], false, 'no acceptance stamp without status change');
-    assert.ok(!upd.params.includes('mallory'), 'client cannot set accepted_by');
+test('updateRisk whitelists fields, keeps omitted ones, recomputes the score, and never takes acceptance from the client', async () => {
+    const r = await riskStore.createRisk('orgA', { title: 'Old title', description: 'old', category: 'integrity', likelihood: 2, impact: 2 }, 'zoe');
+    await riskStore.updateRisk('orgA', r.id, /** @type {any} */ ({
+        likelihood: 5, evil_field: 'DROP TABLE iso_risks', accepted_by: 'mallory', accepted_at: '2020-01-01',
+    }), 'actor2');
+    const after = await riskStore.getRisk('orgA', r.id);
+    assert.deepStrictEqual([after.title, after.description, after.likelihood, after.impact, after.score], ['Old title', 'old', 5, 2, 10]);
+    assert.strictEqual(after.accepted_by, null, 'client cannot set accepted_by');
+    assert.strictEqual(after.accepted_at, null);
 });
 
-test('updateRisk status→accepted stamps accepted_by/at from the actor', async () => {
-    oneResult = {
-        id: 8, organization_id: 'orgA', title: 'T', description: null, category: null,
-        likelihood: 3, impact: 3, score: 9, status: 'treating',
-        owner_user_id: null, review_due_at: null, accepted_by: null, accepted_at: null,
-    };
-    await riskStore.updateRisk('orgA', 8, { status: 'accepted' }, 'ciso-user');
-    const upd = calls.run.find(c => c.sql.includes('UPDATE iso_risks'));
-    assert.strictEqual(upd.params[8], 'accepted');
-    assert.strictEqual(upd.params[11], true, 'acceptance stamp flag set');
-    assert.strictEqual(upd.params[12], 'ciso-user', 'accepted_by = acting user');
-    assert.ok(upd.sql.includes("CASE WHEN $12 THEN NOW() ELSE accepted_at END"), 'accepted_at stamped server-side');
+test('updateRisk status → accepted stamps accepted_by/at from the actor, and never overwrites an existing stamp', async () => {
+    const r = await riskStore.createRisk('orgA', { title: 'T', likelihood: 3, impact: 3, status: 'treating' }, null);
+    await riskStore.updateRisk('orgA', r.id, { status: 'accepted' }, 'ciso-user');
+    const first = await riskStore.getRisk('orgA', r.id);
+    assert.strictEqual(first.status, 'accepted');
+    assert.strictEqual(first.accepted_by, 'ciso-user');
+    assert.ok(first.accepted_at, 'stamped server-side');
+
+    await riskStore.updateRisk('orgA', r.id, { status: 'accepted' }, 'second-actor');
+    const again = await riskStore.getRisk('orgA', r.id);
+    assert.strictEqual(again.accepted_by, 'ciso-user');
+    assert.strictEqual(new Date(again.accepted_at).getTime(), new Date(first.accepted_at).getTime());
 });
 
-test('updateRisk never overwrites an existing acceptance stamp', async () => {
-    oneResult = {
-        id: 9, organization_id: 'orgA', title: 'T', description: null, category: null,
-        likelihood: 3, impact: 3, score: 9, status: 'accepted',
-        owner_user_id: null, review_due_at: null, accepted_by: 'first-ciso', accepted_at: '2026-01-01T00:00:00Z',
-    };
-    await riskStore.updateRisk('orgA', 9, { status: 'accepted' }, 'second-actor');
-    const upd = calls.run.find(c => c.sql.includes('UPDATE iso_risks'));
-    assert.strictEqual(upd.params[11], false, 'already accepted → stamp flag stays false');
+test('updateRisk never reaches a risk of another organisation', async () => {
+    const theirs = await riskStore.createRisk('orgB', { title: 'Theirs', likelihood: 1, impact: 1 }, null);
+    await riskStore.updateRisk('orgA', theirs.id, { title: 'hijacked', likelihood: 5 }, 'x');
+    const stored = await riskStore.getRisk('orgB', theirs.id);
+    assert.deepStrictEqual([stored.title, stored.likelihood], ['Theirs', 1]);
+    assert.strictEqual(await riskStore.getRisk('orgA', theirs.id), null);
 });
 
-test('seedMissing dedupes on seed_key via ON CONFLICT DO NOTHING and skips invalid seeds', async () => {
+test('seedMissing inserts valid seeds once, never overwrites, and skips seeds without a key or title', async () => {
     const seeds = [
         { seed_key: 'llm_exfil', title: 'LLM data exfiltration', category: 'confidentiality', likelihood: 3, impact: 4 },
         { seed_key: 'backup_fail', title: 'Backup restore fails', category: 'availability' },
-        { title: 'No seed key' },      // skipped — not dedupable
-        { seed_key: 'no_title' },      // skipped — no title
+        { title: 'No seed key' },
+        { seed_key: 'no_title' },
     ];
-    const n = await riskStore.seedMissing('orgA', seeds);
-    assert.strictEqual(n, 2, 'only valid seeds inserted');
-    assert.strictEqual(calls.run.length, 2);
-    for (const c of calls.run) {
-        assert.ok(
-            c.sql.includes('ON CONFLICT (organization_id, seed_key) WHERE seed_key IS NOT NULL DO NOTHING'),
-            'seed insert must dedupe on the partial unique index and never overwrite'
-        );
-    }
-    // [orgId, title, description, category, likelihood, impact, score, seed_key]
-    assert.strictEqual(calls.run[0].params[6], 12, 'seed score computed 3×4');
-    assert.strictEqual(calls.run[0].params[7], 'llm_exfil');
-    assert.strictEqual(calls.run[1].params[6], 9, 'defaults 3×3 when scales omitted');
+    assert.strictEqual(await riskStore.seedMissing('orgSeed', seeds), 2, 'only valid seeds inserted');
+    await pg.query("UPDATE iso_risks SET title = 'Renamed by the org' WHERE organization_id = 'orgSeed' AND seed_key = 'llm_exfil'");
+    assert.strictEqual(await riskStore.seedMissing('orgSeed', seeds), 0, 'a second run adds nothing');
+    const rows = (await pg.query("SELECT seed_key, title, score FROM iso_risks WHERE organization_id = 'orgSeed' ORDER BY seed_key")).rows;
+    assert.deepStrictEqual(rows, [
+        { seed_key: 'backup_fail', title: 'Backup restore fails', score: 9 },
+        { seed_key: 'llm_exfil', title: 'Renamed by the org', score: 12 },
+    ]);
+    assert.strictEqual(await riskStore.seedMissing('orgSeed2', seeds), 2, 'another organisation gets its own seeds');
 });
 
-test('getStats returns the aggregate row and safe zeros when empty', async () => {
-    oneResult = { total: 12, open: 4, treating: 3, accepted: 2, closed: 3, high: 5, overdue_reviews: 1 };
-    const stats = await riskStore.getStats('orgA');
-    assert.deepEqual(stats, { total: 12, open: 4, treating: 3, accepted: 2, closed: 3, high: 5, overdue_reviews: 1 });
-    const q = calls.getOne.find(c => c.sql.includes('FROM iso_risks'));
-    assert.ok(q.sql.includes("score >= $2 AND status <> 'closed'"), 'high band counts active risks only');
-    assert.strictEqual(q.params[1], riskStore.HIGH_SCORE);
-
-    oneResult = null;
-    const empty = await riskStore.getStats('orgB');
-    assert.deepEqual(empty, { total: 0, open: 0, treating: 0, accepted: 0, closed: 0, high: 0, overdue_reviews: 0 });
+test('getStats aggregates per organisation; the high band counts active risks only; zeros when empty', async () => {
+    const org = 'orgStats';
+    await riskStore.createRisk(org, { title: 'a', likelihood: 5, impact: 5 }, null);
+    await riskStore.createRisk(org, { title: 'b', likelihood: 4, impact: 3, status: 'treating' }, null);
+    await riskStore.createRisk(org, { title: 'c', likelihood: 5, impact: 4, status: 'closed' }, null);
+    await riskStore.createRisk(org, { title: 'd', likelihood: 1, impact: 2 }, null);
+    const stats = await riskStore.getStats(org);
+    assert.strictEqual(riskStore.HIGH_SCORE, 10);
+    assert.deepStrictEqual({ ...stats, overdue_reviews: undefined }, { total: 4, open: 2, treating: 1, accepted: 0, closed: 1, high: 2, overdue_reviews: undefined });
+    assert.deepStrictEqual(await riskStore.getStats('orgEmpty'), { total: 0, open: 0, treating: 0, accepted: 0, closed: 0, high: 0, overdue_reviews: 0 });
 });

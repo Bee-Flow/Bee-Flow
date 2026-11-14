@@ -26,14 +26,18 @@ const Module = require('module');
 // Every store call lands in `touched`. A refused request must leave it empty.
 const touched = [];
 
+const { fakeKbGates } = require('./kbGate.testkit');
 const MOCKS = {
     '../../stores/knowledgeBases': {
+        getKB: async (id) => ({ id, tenant_id: 'u1' }),
         listFavorites: async () => ['kb1'],
         addFavorite: async (...a) => { touched.push({ what: 'addFavorite', args: a }); return true; },
         removeFavorite: async (...a) => { touched.push({ what: 'removeFavorite', args: a }); return true; },
     },
     '../../auth': { requireAuth: (req, res, next) => next() },
     './shared': { getUserId: (req) => req.session?.user?.id || null },
+    // Read access to the base is support/kbAccess.js's question; here every base is readable.
+    '../../support/kbAccess': { ...fakeKbGates({ kbStore: { getKB: (id) => MOCKS['../../stores/knowledgeBases'].getKB(id) }, canRead: () => true }) },
 };
 
 const MOCK_IDS = {};
@@ -85,4 +89,11 @@ test('a blank entry is dropped, and the rest of the migration still lands', asyn
     const res = await dispatch({ method: 'POST', url: '/favorites/bulk', body: { kbIds: ['kb1', '', 'kb2'] } });
     assert.strictEqual(res.statusCode, 200);
     assert.deepStrictEqual(touched.map((t) => t.args[1]), ['kb1', 'kb2']);
+});
+
+test('Marking a knowledge base as a favourite takes no fields: one sent is refused by name', async () => {
+    const res = await dispatch({ method: 'PUT', url: '/kb1/favorite', body: { favorite: true } });
+    assert.strictEqual(res.statusCode, 400, JSON.stringify(res.body));
+    assert.strictEqual(res.body.code, 'invalid_request');
+    assert.match(res.body.error, /Marking a favourite does not take "favorite"/);
 });

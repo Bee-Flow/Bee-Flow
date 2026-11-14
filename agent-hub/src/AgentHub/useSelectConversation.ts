@@ -2,10 +2,10 @@ import { useRef, type Dispatch, type SetStateAction } from 'react';
 import { fetchAgentConversation } from '../api/queries/hubDataFetches';
 import { loadWorkspaceNotebook } from '../api/workspaceNotebook';
 import type { ChatMessage } from '../hooks/useChatEngine/types';
-import { API_BASE } from '../utils/helpers';
 import { hasRenderableContent, normalizeLoadedMessages, type ShapedMessage } from '../utils/messageShape';
 import { updateAgentUrl } from './hubUrl';
 import type { IdRef } from './useAgentHubData.types';
+import { apiUrl } from '@/api/typedRequest';
 
 interface SelectConversationArgs {
     setCurrentConversation: Dispatch<SetStateAction<IdRef | null>>;
@@ -55,7 +55,7 @@ export default function useSelectConversation({
                     // loadWorkspaceNotebook applies them itself, so this is the
                     // only place a newer selection can be honoured.
                     await loadWorkspaceNotebook(
-                        `${API_BASE}/agents/${agentId}/conversations/${data.id}/workspace`,
+                        apiUrl('GET /agents/{id}/conversations/{convId}/workspace', { params: { id: agentId, convId: data.id } }),
                         {
                             setNotebookLinkedId: (v) => { if (!isStale()) setNotebookLinkedId(v); },
                             setNotebookContent: (v) => { if (!isStale()) setNotebookContent(v); },

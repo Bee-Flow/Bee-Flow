@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * License Module — Public API
  *
@@ -29,11 +30,10 @@ const { bestEffort, fallback } = require('../utils/bestEffort');
 
 const COMMUNITY_FALLBACK = 'community';
 
-// Lazy-required to avoid circular import (DB init depends on this module being
-// loadable first). Only the subscription queries are needed, so this takes
-// stores/user/subscriptions rather than the userStore facade, which reaches
-// back into the licence module through the plan and trial services.
-let _userStore = null;
+// Lazy-required to avoid circular import (DB init depends on this module being loadable first).
+// Only the subscription queries are needed, so this takes stores/user/subscriptions rather than
+// the userStore facade, which reaches back into the licence module through the plan and trial services.
+/** @type {typeof import('../stores/user/subscriptions') | null} */ let _userStore = null;
 function getUserStore() {
     if (!_userStore) _userStore = require('../stores/user/subscriptions');
     return _userStore;
@@ -49,21 +49,19 @@ function getBetaModule() {
 
 // ── Server-wide licence override ────────────────────────────────────────
 //
-// A super-admin on a self-hosted install can activate ONE licence row
-// with scope='server' and no org/user binding. While such a row is
-// active, every per-org and per-user tier lookup short-circuits to that
-// row's tier — the whole install runs at one tier.
+// A super-admin on a self-hosted install can activate ONE licence row with scope='server' and
+// no org/user binding. While such a row is active, every per-org and per-user tier lookup
+// short-circuits to that row's tier — the whole install runs at one tier.
 //
 // `_serverTierCache` memoises the lookup with a short TTL so the override
 // adds at most one DB hit every N seconds, not one per request.
 //
-// `_serverLicenseVersion` is bumped on every activate/deactivate so the
-// per-request resolution cache key in license/middleware.js can be
-// invalidated install-wide without enumerating sessions. Middleware
-// reads it via getServerLicenseVersion() and weaves it into its cache
-// key — a bump immediately rotates every entry.
+// `_serverLicenseVersion` is bumped on every activate/deactivate so the per-request resolution
+// cache key in license/middleware.js can be invalidated install-wide without enumerating
+// sessions. Middleware reads it via getServerLicenseVersion() and weaves it into its cache key —
+// a bump immediately rotates every entry.
 const SERVER_TIER_CACHE_TTL_MS = parseInt(process.env.LICENSE_SERVER_TIER_CACHE_TTL_MS || '30000', 10);
-let _serverTierCache = { expiresAt: 0, tier: COMMUNITY_FALLBACK, license: null };
+/** @type {{ expiresAt: number, tier: string, license: import('./store').LicenseRecord | null }} */ let _serverTierCache = { expiresAt: 0, tier: COMMUNITY_FALLBACK, license: null };
 let _serverLicenseVersion = 0;
 
 function getServerLicenseVersion() {
@@ -150,7 +148,7 @@ function subscriptionsEnabled() {
  *      license_keys row exists. This bridges the Stripe checkout → tier
  *      flow without requiring a deployed JWT license-server.
  */
-async function getTierForOrg(organizationId) {
+async function getTierForOrg(/** @type {string | null | undefined} */ organizationId) {
     // Server-wide licence overrides per-org rows — but only when it governs
     // billing (self-hosted). On cloud each org pays its own
     // subscription, so we fall through to the per-org licence / Stripe sub.
@@ -166,7 +164,7 @@ async function getTierForOrg(organizationId) {
     return subTier || COMMUNITY_FALLBACK;
 }
 
-async function getTierForUser(userId) {
+async function getTierForUser(/** @type {string | null | undefined} */ userId) {
     // Server-wide licence overrides per-user rows — but only when it governs
     // billing (self-hosted). On cloud the user's own
     // subscription decides their tier.
@@ -191,7 +189,7 @@ async function getTierForUser(userId) {
  *
  * Includes subscription-derived tiers for SaaS orgs without a license_keys row.
  */
-async function getBestTierForOrgs(orgIds = []) {
+async function getBestTierForOrgs(/** @type {Array<string | null | undefined>} */ orgIds = []) {
     // Server-wide licence wins outright when it governs billing (self-hosted);
     // skip the org sweep. On cloud it doesn't override, so we
     // resolve from the orgs' own licences / subscriptions below.
@@ -222,7 +220,7 @@ async function getBestTierForOrgs(orgIds = []) {
  * Active states that grant tier: 'active', 'trialing' (within trial_end_date).
  * Inactive: 'suspended', 'manual_action_required', 'cancelled', 'past_due', expired trial without payment.
  */
-function resolveTierFromSubscription(sub) {
+function resolveTierFromSubscription(/** @type {SubscriptionRow | null | undefined} */ sub) {
     if (!sub) return null;
     const status = sub.status;
     if (status === 'cancelled' || status === 'suspended' || status === 'manual_action_required' || status === 'past_due') return null;
@@ -238,7 +236,7 @@ function resolveTierFromSubscription(sub) {
     return tiers.normalizeTier(tier);
 }
 
-async function resolveTierFromOrgSubscription(organizationId) {
+async function resolveTierFromOrgSubscription(/** @type {string} */ organizationId) {
     try {
         const sub = await getUserStore().getOrgSubscription(organizationId);
         return resolveTierFromSubscription(sub);
@@ -251,7 +249,7 @@ async function resolveTierFromOrgSubscription(organizationId) {
     }
 }
 
-async function resolveTierFromConsumerSubscription(userId) {
+async function resolveTierFromConsumerSubscription(/** @type {string} */ userId) {
     try {
         const sub = await getUserStore().getConsumerSubscription(userId);
         return resolveTierFromSubscription(sub);
@@ -265,7 +263,7 @@ async function resolveTierFromConsumerSubscription(userId) {
  * Resolve the active tier from a license row. Performs a sanity-check on
  * `expires_at` so a stale "active" row doesn't accidentally grant access.
  */
-function resolveTierFromLicense(lic) {
+function resolveTierFromLicense(/** @type {import('./store').LicenseRecord | null | undefined} */ lic) {
     if (!lic) return COMMUNITY_FALLBACK;
     if (lic.refreshStatus === 'expired' || lic.refreshStatus === 'revoked') {
         return COMMUNITY_FALLBACK;
@@ -284,7 +282,7 @@ function resolveTierFromLicense(lic) {
 // "a feature enabled in the subscription works" hold for connector orgs whose
 // tier (Free → community) doesn't natively include the feature. Org-scoped
 // only — plan grants are an organisation concept.
-async function getOrgGrantedFeatures(organizationId) {
+async function getOrgGrantedFeatures(/** @type {string | null | undefined} */ organizationId) {
     if (!organizationId) return [];
     const set = new Set();
     let limits = null;
@@ -324,7 +322,7 @@ async function getOrgGrantedFeatures(organizationId) {
     return [...set];
 }
 
-async function orgGrantsFeature(orgIds, feature) {
+async function orgGrantsFeature(/** @type {string | Array<string | null | undefined> | null | undefined} */ orgIds, /** @type {string} */ feature) {
     const ids = Array.isArray(orgIds) ? orgIds : (orgIds ? [orgIds] : []);
     for (const orgId of ids) {
         if (!orgId) continue;
@@ -340,19 +338,19 @@ async function orgGrantsFeature(orgIds, feature) {
  * `userId` may be passed; the higher of the two tiers wins (covers single-user
  * installs in an org).
  */
-async function hasFeature(scope, feature) {
+async function hasFeature(/** @type {LicenseScope} */ scope, /** @type {string} */ feature) {
     const tier = await resolveTier(scope);
     if (tiers.tierHasFeature(tier, feature)) return true;
     const orgId = typeof scope === 'string' ? scope : scope?.organizationId;
     return orgGrantsFeature(orgId, feature);
 }
 
-async function hasTier(scope, requiredTier) {
+async function hasTier(/** @type {LicenseScope} */ scope, /** @type {string} */ requiredTier) {
     const tier = await resolveTier(scope);
     return tiers.tierAtLeast(tier, requiredTier);
 }
 
-async function resolveTier(scope) {
+async function resolveTier(/** @type {LicenseScope} */ scope) {
     if (typeof scope === 'string') return getTierForOrg(scope);
     if (!scope || typeof scope !== 'object') return COMMUNITY_FALLBACK;
     const orgTier = scope.organizationId ? await getTierForOrg(scope.organizationId) : COMMUNITY_FALLBACK;
@@ -370,7 +368,7 @@ async function resolveTier(scope) {
  *   3. consumer_subscriptions on userId.
  *   4. Community fallback.
  */
-async function getLicenseStatus(/** @type {{ organizationId?: string | null, userId?: string | null, orgIds?: string[] | null, superAdmin?: boolean }} */ { organizationId = null, userId = null, orgIds = null, superAdmin = false } = {}) {
+async function getLicenseStatus(/** @type {{ organizationId?: string | null, userId?: string | null, orgIds?: string[] | Set<string> | null, superAdmin?: boolean }} */ { organizationId = null, userId = null, orgIds = null, superAdmin = false } = {}) {
     // Snapshot the server-wide licence once. `serverLicense` is exposed on
     // every response (mode-independent) so the admin Server-licence panel can
     // always display it. Whether it OVERRIDES per-org billing depends on the
@@ -451,7 +449,7 @@ async function getLicenseStatus(/** @type {{ organizationId?: string | null, use
         let bestSubTier = COMMUNITY_FALLBACK;
         let bestSubRow = null;
         for (const orgId of candidateOrgIds) {
-            const sub = await getUserStore().getOrgSubscription(orgId).catch((e) => fallback('license/index:orgSubscription', e, null));
+            const sub = await getUserStore().getOrgSubscription(orgId).catch((/** @type {unknown} */ e) => fallback('license/index:orgSubscription', e, null));
             const t = resolveTierFromSubscription(sub);
             if (t && tiers.tierRank(t) > tiers.tierRank(bestSubTier)) {
                 bestSubTier = t;
@@ -460,7 +458,7 @@ async function getLicenseStatus(/** @type {{ organizationId?: string | null, use
             }
         }
         if (bestSubTier === COMMUNITY_FALLBACK && userId) {
-            const sub = await getUserStore().getConsumerSubscription(userId).catch((e) => fallback('license/index:consumerSubscription', e, null));
+            const sub = await getUserStore().getConsumerSubscription(userId).catch((/** @type {unknown} */ e) => fallback('license/index:consumerSubscription', e, null));
             const t = resolveTierFromSubscription(sub);
             if (t && tiers.tierRank(t) > tiers.tierRank(bestSubTier)) {
                 bestSubTier = t;
@@ -495,7 +493,7 @@ async function getLicenseStatus(/** @type {{ organizationId?: string | null, use
     // the orgs this user touches, so the SPA's hasLicenseFeature() matches the
     // backend gates (hasFeature / requireFeature) — both now honour plan grants.
     const tierFeatures = tiers.getFeaturesForTier(tier);
-    let grantedFeatures = [];
+    /** @type {string[]} */ let grantedFeatures = [];
     for (const orgId of candidateOrgIds) {
         const g = await getOrgGrantedFeatures(orgId);
         if (g.length) grantedFeatures = grantedFeatures.concat(g);
@@ -519,7 +517,7 @@ async function getLicenseStatus(/** @type {{ organizationId?: string | null, use
     };
 }
 
-function publicSubscriptionShape(sub) {
+function publicSubscriptionShape(/** @type {SubscriptionRow | null | undefined} */ sub) {
     if (!sub) return null;
     const rawTier = sub.plan_tier || tierFromPlanName(sub.plan_name) || null;
     return {
@@ -537,7 +535,7 @@ function publicSubscriptionShape(sub) {
 /**
  * Strip server-internal fields (raw_token) before sending to the client.
  */
-function publicLicenseShape(lic) {
+function publicLicenseShape(/** @type {import('./store').LicenseRecord} */ lic) {
     return {
         id: lic.id,
         tier: tiers.normalizeTier(lic.tier),
@@ -562,7 +560,7 @@ function publicLicenseShape(lic) {
 // (modules/subjects.js) still accepts them, and nudge the entitlement
 // refresher so grants re-verify now instead of on the next hourly tick.
 // Both are best-effort: licensing must never fail on module bookkeeping.
-async function _noteServerLicenseReplaced(newLicenseId) {
+async function _noteServerLicenseReplaced(/** @type {string} */ newLicenseId) {
     try {
         const prev = await store.getActiveLicenseForServer();
         if (prev && prev.id && prev.id !== newLicenseId) await require('../modules/subjects').recordSupersededLicenseId(prev.id);
@@ -571,8 +569,8 @@ async function _noteServerLicenseReplaced(newLicenseId) {
 // Listeners for a changed server licence. modules/entitlementRefresh registers
 // itself (modules sit above the licence module, so it is not required from
 // here); nobody registered yet means nothing booted that cares.
-const _serverLicenseListeners = [];
-function onServerLicenseChanged(listener) {
+/** @type {Array<() => void>} */ const _serverLicenseListeners = [];
+function onServerLicenseChanged(/** @type {() => void} */ listener) {
     if (typeof listener === 'function' && !_serverLicenseListeners.includes(listener)) _serverLicenseListeners.push(listener);
 }
 function _nudgeEntitlementRefresh() {
@@ -650,7 +648,7 @@ async function activateLicense(/** @type {{ token: string, organizationId?: stri
             metadata: decoded.metadata || {},
         });
         if (blobScope === 'server') { bumpServerLicenseVersion(); _nudgeEntitlementRefresh(); }
-        return publicLicenseShape(lic);
+        return publicLicenseShape(/** @type {import('./store').LicenseRecord} */ (lic));
     }
 
     const result = await verify.verifyToken(token);
@@ -659,7 +657,7 @@ async function activateLicense(/** @type {{ token: string, organizationId?: stri
         err.code = result.error;
         throw err;
     }
-    const p = result.payload;
+    const p = /** @type {import('./verify').LicensePayload & { exp: number, license_id: string, tier: string, iss: string }} */ (result.payload);
 
     // Bind scope: prefer explicit args, fall back to claim 'sub'.
     let scope;
@@ -699,7 +697,7 @@ async function activateLicense(/** @type {{ token: string, organizationId?: stri
         },
     });
     if (scope === 'server') { bumpServerLicenseVersion(); _nudgeEntitlementRefresh(); }
-    return publicLicenseShape(lic);
+    return publicLicenseShape(/** @type {import('./store').LicenseRecord} */ (lic));
 }
 
 /**
@@ -759,3 +757,5 @@ module.exports = {
 };
 
 /** @typedef {string | { organizationId?: string | null, userId?: string | null } | null | undefined} LicenseScope */
+/** @typedef {{ status?: string, trial_end_date?: string | Date | null, payment_status?: string | null, plan_id?: string, plan_name?: string | null,
+ *   plan_tier?: string | null, billing_cycle_start?: string | Date | null, stripe_subscription_id?: string | null }} SubscriptionRow */

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Knowledge Bases — creation.
  *
@@ -11,7 +11,7 @@ const log = require('../../telemetry/log');
 const router = express.Router();
 const kbStore = require('../../stores/knowledgeBases');
 const { requireAuth, requirePermission, assertUserCanUseOrg, resolvePermissionsByOrg } = require('../../auth');
-const { getUserId, canAccessKB, sanitizeUsageContexts } = require('./shared');
+const { getUserId, requireKbGrade, kbAccessOf, sanitizeUsageContexts } = require('./shared');
 
 /**
  * Does the caller hold manage_knowledge IN `orgId` (a platform admin: everywhere)?
@@ -55,7 +55,7 @@ const DuplicateQuery = z.object({
 /**
  * Create a new KB (auto-assigns to user's organization)
  */
-router.post('/', requireAuth, requirePermission('manage_knowledge'), validate({ body: CreateKbBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CreateKbBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/', requireAuth, requirePermission('manage_knowledge'), validate({ body: CreateKbBody }), async (req, res) => {
     const userId = getUserId(req);
     const { name, description, organizationId, categoryId, icon, usageContexts } = req.body;
 
@@ -100,11 +100,9 @@ router.post('/', requireAuth, requirePermission('manage_knowledge'), validate({ 
 // `?withSources=1` (K5) also copies the SOURCES, which then fetch their own
 // content on the next refresh — current, rather than a snapshot of somebody
 // else's last run.
-router.post('/:id/duplicate', requireAuth, requirePermission('manage_knowledge'), validate({ query: DuplicateQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof DuplicateQuery>>} */ req, res) => {
+router.post('/:id/duplicate', requireAuth, requirePermission('manage_knowledge'), requireKbGrade('read'), validate({ query: DuplicateQuery }), async (req, res) => {
     const userId = getUserId(req);
-    const source = await kbStore.getKB(req.params.id);
-    if (!source) return res.status(404).json({ error: 'Knowledge base not found' });
-    if (!await canAccessKB(req, source)) return res.status(404).json({ error: 'Knowledge base not found' });
+    const { kb: source } = kbAccessOf(req);
 
     // Personal KBs (organization_id null) copy as personal; org KBs stay in
     // the same org when the requester may use it AND holds manage_knowledge
@@ -157,7 +155,7 @@ router.post('/:id/duplicate', requireAuth, requirePermission('manage_knowledge')
         try {
             const kbSourcesStore = require('../../stores/kbSources');
             const { stripUnauthorizedTranscriptOrigin } = require('../../core/kb/transcriptOrigin');
-            const sources = await kbSourcesStore.listByKb(source.id);
+            const sources = /** @type {Array<NonNullable<Awaited<ReturnType<typeof kbSourcesStore.listByKb>>[number]>>} */ (await kbSourcesStore.listByKb(source.id)); // rows mapped one to one
             for (const src of (sources || [])) {
                 if (src.kind === 'upload') continue;
                 try {

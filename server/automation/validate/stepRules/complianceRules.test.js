@@ -24,7 +24,7 @@ const assert = require('node:assert/strict');
 const { validateDefinition, COMPLETENESS_CODES } = require('../../validate');
 const { SHIELD_TYPES } = require('./complianceRules');
 const dataFlow = require('../../../core/privacy/dataFlow');
-const { AI_STEP_TYPES } = require('../../automationGraph');
+const { AI_STEP_TYPES } = require('../../../core/automationModel/automationGraph');
 const { VALID_STEP_TYPES } = require('../constants');
 
 const trigger = () => ({ id: 'trg', kind: 'manual' });

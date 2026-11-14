@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { ArrowUp, MessageCircle, Calendar, Tag } from 'lucide-react';
-import { API_BASE, authFetch } from '@/utils/helpers';
 import useTranslation from '@/hooks/useTranslation';
 import ModelTierSelector from '../../licensing/ModelTierSelector';
 import beeFlowIcon from '@/assets/BeeFlow-logo-Icon-2026.svg';
@@ -9,6 +8,7 @@ import type { EditorAgent } from './builderSplit/editorTypes';
 import type { ModelTierMap } from '@/hooks/useModelTierSelection';
 import { useConfigTiersForUser } from '@/api/queries/configModels';
 import { isImeEnter } from '@/components/projects/workspace/chat/ime';
+import { apiFetch } from '@/api/typedRequest';
 
 // Landing-only wizard. The legacy "review/plan card" stage has been removed:
 // the landing flow now creates a placeholder agent and hands the first prompt
@@ -51,10 +51,8 @@ export default function AgentWizard({ user, onClose, onPublished, onSwitchToManu
         setBusy(true);
         setError(null);
         try {
-            const res = await authFetch(`${API_BASE}/agents`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+            const res = await apiFetch('POST /agents', {
+                body: {
                     name: t('agent_studio.untitled', 'Untitled'),
                     description: '',
                     systemPrompt: '',
@@ -65,7 +63,7 @@ export default function AgentWizard({ user, onClose, onPublished, onSwitchToManu
                         attachedSkillIds: [],
                         memoryEnabled: false,
                     },
-                }),
+                },
             });
             if (!res.ok) throw new Error(await res.text());
             const newAgent = await res.json();

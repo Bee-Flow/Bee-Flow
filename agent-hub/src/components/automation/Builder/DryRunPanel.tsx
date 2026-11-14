@@ -107,6 +107,7 @@ export default function DryRunPanel({ run, steps, definition = null, collapsed =
                         type="button"
                         onClick={onClose}
                         title={t('automations.dry_run_panel.dismiss_dry_run_preview', 'Dismiss dry-run preview')}
+                        aria-label={t('automations.dry_run_panel.dismiss_dry_run_preview', 'Dismiss dry-run preview')}
                         className="shrink-0 p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
                     >
                         <X size={15} />

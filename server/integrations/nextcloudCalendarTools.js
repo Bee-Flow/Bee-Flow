@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Nextcloud Calendar Tools — CalDAV CRUD over /remote.php/dav/calendars/<uid>/.
  *
@@ -281,13 +281,13 @@ function supportsVEvent(props) {
  * @param {string | undefined} uid
  */
 function parsePropfindCalendars(xml, baseUrl, uid) {
-    const root = `/remote.php/dav/calendars/${decodeURIComponent(uid)}`;
+    const root = `/remote.php/dav/calendars/${decodeURIComponent(String(uid))}`;
     const calendars = [];
     for (const { href, props } of parseMultistatusResponses(xml)) {
         if (!href || !supportsVEvent(props)) continue;
         const decoded = decodeURIComponent(href);
         if (decoded.replace(/\/+$/, '') === root) continue;
-        const slug = decoded.replace(/\/+$/, '').split('/').pop();
+        const slug = /** @type {string} */ (decoded.replace(/\/+$/, '').split('/').pop()); // split yields one part at least
         const displayname = props.displayname || slug;
         calendars.push({
             slug,
@@ -333,207 +333,242 @@ function readOnlyError(calendar) {
 // ─── Tool execution ──────────────────────────────────────────────
 
 /**
+ * @typedef {{ calendar?: string, uid?: string, summary?: string, description?: string, location?: string, start?: string, end?: string, allDay?: boolean, attendees?: string[], query?: string, limit?: number }} CalendarArgs
+ * @typedef {Awaited<ReturnType<typeof ncClient.resolveAuth>> & { calRoot: string }} CalendarCtx
+ * @typedef {(args: CalendarArgs, c: CalendarCtx) => Promise<Record<string, any>>} CalendarHandler
+ */
+
+/** @param {CalendarCtx} c @param {string} slug @param {string | null} start @param {string | null} end */
+function reportEvents(c, slug, start, end) {
+    return c.fetch(`${c.calRoot}/${encodeURIComponent(slug)}/`, {
+        method: 'REPORT',
+        headers: { 'Depth': '1', 'Content-Type': 'application/xml; charset=utf-8' },
+        body: calendarQueryReport(start, end),
+    });
+}
+
+/** @param {CalendarCtx} c */
+function propfindCalendars(c) {
+    return c.fetch(`${c.calRoot}/`, {
+        method: 'PROPFIND',
+        headers: { 'Depth': '1', 'Content-Type': 'application/xml; charset=utf-8' },
+        body: PROPFIND_CALENDARS,
+    });
+}
+
+/** @type {CalendarHandler} */
+async function listCalendars(_args, c) {
+    const res = await propfindCalendars(c);
+    if (res.status === 401) return { error: c.authError };
+    if (!res.ok) return { error: `Nextcloud calendar list failed (${res.status})` };
+    const xml = await res.text();
+    const calendars = parsePropfindCalendars(xml, c.baseUrl, c.uid);
+    return { count: calendars.length, calendars };
+}
+
+/** @type {CalendarHandler} */
+async function listEvents(args, c) {
+    const calendar = args.calendar || 'personal';
+    const limit = Math.min(Math.max(args.limit || 100, 1), 500);
+    const start = args.start ? toICalUtcStamp(args.start) : toICalUtcStamp(new Date().toISOString());
+    const end = args.end
+        ? toICalUtcStamp(args.end)
+        : toICalUtcStamp(new Date(Date.now() + 30 * 86400_000).toISOString());
+
+    const res = await reportEvents(c, calendar, start, end);
+    if (res.status === 401) return { error: c.authError };
+    if (res.status === 404) return { error: `Calendar not found: ${calendar}` };
+    if (!res.ok) return { error: `Nextcloud calendar query failed (${res.status})` };
+    const xml = await res.text();
+    const items = parseMultiStatus(xml);
+    const events = [];
+    for (const item of items) {
+        const parsed = parseICal(item.calendarData);
+        for (const ev of parsed) events.push({ ...ev, etag: item.etag, href: item.href, calendar });
+        if (events.length >= limit) break;
+    }
+    return { calendar, count: events.length, events: events.slice(0, limit) };
+}
+
+/** @param {ReturnType<typeof eventFromIcal>} ev */
+function eventHaystack(ev) {
+    return [ev.summary, ev.description, ev.location, ...ev.attendees.map(a => `${a.cn || ''} ${a.email || ''}`)].join(' ').toLowerCase();
+}
+
+/**
+ * The calendars a search covers: the one asked for, or every calendar.
+ * @param {CalendarArgs} args @param {CalendarCtx} c
+ * @returns {Promise<{ slugs: string[] } | { error: string }>}
+ */
+async function searchTargets(args, c) {
+    const asked = /** @type {string[]} */ ([args.calendar].filter(Boolean));
+    if (asked.length) return { slugs: asked };
+    const listRes = await propfindCalendars(c);
+    if (listRes.status === 401) return { error: c.authError };
+    if (!listRes.ok) return { error: `Failed to enumerate calendars (${listRes.status})` };
+    const listXml = await listRes.text();
+    return { slugs: parsePropfindCalendars(listXml, c.baseUrl, c.uid).map(cal => cal.slug) };
+}
+
+/** @type {CalendarHandler} */
+async function searchEvents(args, c) {
+    const q = String(args.query || '').toLowerCase().trim();
+    if (!q) return { error: 'query is required' };
+    const limit = Math.min(Math.max(args.limit || 50, 1), 200);
+    const targets = await searchTargets(args, c);
+    if ('error' in targets) return targets;
+
+    const start = args.start ? toICalUtcStamp(args.start) : null;
+    const end = args.end ? toICalUtcStamp(args.end) : null;
+    /** @type {Record<string, any>[]} */
+    const matches = [];
+
+    for (const slug of targets.slugs) {
+        const res = await reportEvents(c, slug, start, end);
+        if (!res.ok) continue;
+        const items = parseMultiStatus(await res.text());
+        outer: for (const item of items) {
+            for (const ev of parseICal(item.calendarData)) {
+                if (!eventHaystack(ev).includes(q)) continue;
+                matches.push({ ...ev, etag: item.etag, href: item.href, calendar: slug });
+                if (matches.length >= limit) break outer;
+            }
+        }
+        if (matches.length >= limit) break;
+    }
+    return { query: args.query, count: matches.length, events: matches };
+}
+
+/** @type {CalendarHandler} */
+async function getEvent(args, c) {
+    if (!args.calendar || !args.uid) return { error: 'calendar and uid are required' };
+    const { res } = await fetchEventByUid(c, args.calendar, args.uid, {});
+    if (res.status === 401) return { error: c.authError };
+    if (res.status === 404) return { error: `Event not found: ${args.uid}` };
+    if (!res.ok) return { error: `Nextcloud event fetch failed (${res.status})` };
+    const text = await res.text();
+    const events = parseICal(text);
+    return events[0]
+        ? { ...events[0], etag: res.headers.get('etag'), calendar: args.calendar }
+        : { error: 'No VEVENT found in response' };
+}
+
+/**
+ * The iCalendar text `build` makes, or the input error it refused with.
+ * @param {() => string} build
+ * @returns {{ ical: string } | { error: string }}
+ */
+function icalOrInputError(build) {
+    try {
+        return { ical: build() };
+    } catch (err) {
+        if (err instanceof CalendarInputError) return { error: /** @type {Error} */ (err).message };
+        throw err;
+    }
+}
+
+/** @type {CalendarHandler} */
+async function createEvent(args, { baseUrl, uid, fetch: ncFetch, authError }) {
+    if (!args.calendar || !args.summary || !args.start) {
+        return { error: 'calendar, summary, and start are required' };
+    }
+    const eventUid = `${crypto.randomUUID()}@${new URL(baseUrl).hostname}`;
+    const built = icalOrInputError(() => buildVCalendarEvent({
+        uid: eventUid,
+        summary: args.summary,
+        start: /** @type {string} */ (args.start), // required above
+        end: args.end,
+        description: args.description,
+        location: args.location,
+        attendees: args.attendees,
+        allDay: !!args.allDay,
+    }));
+    if ('error' in built) return built;
+    const res = await ncFetch(eventHref(baseUrl, uid, args.calendar, eventUid), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'text/calendar; charset=utf-8', 'If-None-Match': '*' },
+        body: built.ical,
+    });
+    if (res.status === 401) return { error: authError };
+    if (res.status === 404) return { error: `Calendar not found: ${args.calendar}` };
+    if (res.status === 403) return { error: readOnlyError(args.calendar) };
+    if (!res.ok && res.status !== 201 && res.status !== 204) {
+        const body = await res.text().catch(() => '');
+        return { error: eventWriteError('create', res.status, body) };
+    }
+    return { success: true, calendar: args.calendar, uid: eventUid, etag: res.headers.get('etag') };
+}
+
+/** @type {CalendarHandler} */
+async function updateEvent(args, c) {
+    if (!args.calendar || !args.uid) return { error: 'calendar and uid are required' };
+    // Fetch current to merge fields.
+    const { res: getRes, url: eventUrl } = await fetchEventByUid(c, args.calendar, args.uid, {});
+    if (getRes.status === 401) return { error: c.authError };
+    if (getRes.status === 404) return { error: `Event not found: ${args.uid}` };
+    if (!getRes.ok) return { error: `Could not load event for update (${getRes.status})` };
+    const currentText = await getRes.text();
+    const currentEtag = getRes.headers.get('etag');
+    const built = icalOrInputError(() => updateVCalendarEvent(currentText, {
+        summary: args.summary,
+        description: args.description,
+        location: args.location,
+        start: args.start,
+        end: args.end,
+        attendees: args.attendees,
+        allDay: args.allDay,
+    }));
+    if ('error' in built) return built;
+    const putRes = await c.fetch(eventUrl, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'text/calendar; charset=utf-8',
+            ...(currentEtag ? { 'If-Match': currentEtag } : {}),
+        },
+        body: built.ical,
+    });
+    if (putRes.status === 401) return { error: c.authError };
+    if (putRes.status === 403) return { error: readOnlyError(args.calendar) };
+    if (putRes.status === 412) return { error: 'Event was modified by another client; refetch and retry.' };
+    if (!putRes.ok && putRes.status !== 204) {
+        const body = await putRes.text().catch(() => '');
+        return { error: eventWriteError('update', putRes.status, body) };
+    }
+    return { success: true, calendar: args.calendar, uid: args.uid, etag: putRes.headers.get('etag') };
+}
+
+/** @type {CalendarHandler} */
+async function deleteEvent(args, c) {
+    if (!args.calendar || !args.uid) return { error: 'calendar and uid are required' };
+    const { res } = await fetchEventByUid(c, args.calendar, args.uid, { method: 'DELETE' });
+    if (res.status === 401) return { error: c.authError };
+    if (res.status === 404) return { error: `Event not found: ${args.uid}` };
+    if (!res.ok && res.status !== 204) return { error: `Event delete failed (${res.status})` };
+    return { success: true, calendar: args.calendar, uid: args.uid };
+}
+
+/** @type {Record<string, CalendarHandler>} */
+const HANDLERS = {
+    nextcloud_calendar_list: listCalendars,
+    nextcloud_calendar_list_events: listEvents,
+    nextcloud_calendar_search_events: searchEvents,
+    nextcloud_calendar_get_event: getEvent,
+    nextcloud_calendar_create_event: createEvent,
+    nextcloud_calendar_update_event: updateEvent,
+    nextcloud_calendar_delete_event: deleteEvent,
+};
+
+/**
  * @param {string} toolName
- * @param {{ calendar?: string, uid?: string, summary?: string, description?: string, location?: string, start?: string, end?: string, allDay?: boolean, attendees?: string[], query?: string, limit?: number }} args
+ * @param {CalendarArgs} args
  * @param {string} userId
  * @param {Partial<Express.Session>} session
  */
 async function executeNextcloudCalendarTool(toolName, args, userId, session) {
     const ctx = await ncClient.resolveAuth(session, userId);
-    const { baseUrl, fetch: ncFetch, authError, uid } = ctx;
-    const calRoot = calendarsRoot(baseUrl, uid);
-
-    switch (toolName) {
-        case 'nextcloud_calendar_list': {
-            const res = await ncFetch(`${calRoot}/`, {
-                method: 'PROPFIND',
-                headers: { 'Depth': '1', 'Content-Type': 'application/xml; charset=utf-8' },
-                body: PROPFIND_CALENDARS,
-            });
-            if (res.status === 401) return { error: authError };
-            if (!res.ok) return { error: `Nextcloud calendar list failed (${res.status})` };
-            const xml = await res.text();
-            const calendars = parsePropfindCalendars(xml, baseUrl, uid);
-            return { count: calendars.length, calendars };
-        }
-
-        case 'nextcloud_calendar_list_events': {
-            const calendar = args.calendar || 'personal';
-            const limit = Math.min(Math.max(args.limit || 100, 1), 500);
-            const start = args.start ? toICalUtcStamp(args.start) : toICalUtcStamp(new Date().toISOString());
-            const end = args.end
-                ? toICalUtcStamp(args.end)
-                : toICalUtcStamp(new Date(Date.now() + 30 * 86400_000).toISOString());
-
-            const res = await ncFetch(`${calRoot}/${encodeURIComponent(calendar)}/`, {
-                method: 'REPORT',
-                headers: { 'Depth': '1', 'Content-Type': 'application/xml; charset=utf-8' },
-                body: calendarQueryReport(start, end),
-            });
-            if (res.status === 401) return { error: authError };
-            if (res.status === 404) return { error: `Calendar not found: ${calendar}` };
-            if (!res.ok) return { error: `Nextcloud calendar query failed (${res.status})` };
-            const xml = await res.text();
-            const items = parseMultiStatus(xml);
-            const events = [];
-            for (const item of items) {
-                const parsed = parseICal(item.calendarData);
-                for (const ev of parsed) events.push({ ...ev, etag: item.etag, href: item.href, calendar });
-                if (events.length >= limit) break;
-            }
-            return { calendar, count: events.length, events: events.slice(0, limit) };
-        }
-
-        case 'nextcloud_calendar_search_events': {
-            const q = String(args.query || '').toLowerCase().trim();
-            if (!q) return { error: 'query is required' };
-            const limit = Math.min(Math.max(args.limit || 50, 1), 200);
-
-            // Determine which calendars to search.
-            let targetSlugs = [args.calendar].filter(Boolean);
-            if (!targetSlugs.length) {
-                const listRes = await ncFetch(`${calRoot}/`, {
-                    method: 'PROPFIND',
-                    headers: { 'Depth': '1', 'Content-Type': 'application/xml; charset=utf-8' },
-                    body: PROPFIND_CALENDARS,
-                });
-                if (listRes.status === 401) return { error: authError };
-                if (!listRes.ok) return { error: `Failed to enumerate calendars (${listRes.status})` };
-                const listXml = await listRes.text();
-                targetSlugs = parsePropfindCalendars(listXml, baseUrl, uid).map(c => c.slug);
-            }
-
-            const start = args.start ? toICalUtcStamp(args.start) : null;
-            const end = args.end ? toICalUtcStamp(args.end) : null;
-            const matches = [];
-
-            for (const slug of targetSlugs) {
-                const res = await ncFetch(`${calRoot}/${encodeURIComponent(slug)}/`, {
-                    method: 'REPORT',
-                    headers: { 'Depth': '1', 'Content-Type': 'application/xml; charset=utf-8' },
-                    body: calendarQueryReport(start, end),
-                });
-                if (!res.ok) continue;
-                const xml = await res.text();
-                const items = parseMultiStatus(xml);
-                for (const item of items) {
-                    for (const ev of parseICal(item.calendarData)) {
-                        const haystack = [ev.summary, ev.description, ev.location, ...ev.attendees.map(a => `${a.cn || ''} ${a.email || ''}`)].join(' ').toLowerCase();
-                        if (haystack.includes(q)) {
-                            matches.push({ ...ev, etag: item.etag, href: item.href, calendar: slug });
-                            if (matches.length >= limit) break;
-                        }
-                    }
-                    if (matches.length >= limit) break;
-                }
-                if (matches.length >= limit) break;
-            }
-            return { query: args.query, count: matches.length, events: matches };
-        }
-
-        case 'nextcloud_calendar_get_event': {
-            if (!args.calendar || !args.uid) return { error: 'calendar and uid are required' };
-            const { res } = await fetchEventByUid(ctx, args.calendar, args.uid, {});
-            if (res.status === 401) return { error: authError };
-            if (res.status === 404) return { error: `Event not found: ${args.uid}` };
-            if (!res.ok) return { error: `Nextcloud event fetch failed (${res.status})` };
-            const text = await res.text();
-            const events = parseICal(text);
-            return events[0]
-                ? { ...events[0], etag: res.headers.get('etag'), calendar: args.calendar }
-                : { error: 'No VEVENT found in response' };
-        }
-
-        case 'nextcloud_calendar_create_event': {
-            if (!args.calendar || !args.summary || !args.start) {
-                return { error: 'calendar, summary, and start are required' };
-            }
-            const eventUid = `${crypto.randomUUID()}@${new URL(baseUrl).hostname}`;
-            let ical;
-            try {
-                ical = buildVCalendarEvent({
-                    uid: eventUid,
-                    summary: args.summary,
-                    start: args.start,
-                    end: args.end,
-                    description: args.description,
-                    location: args.location,
-                    attendees: args.attendees,
-                    allDay: !!args.allDay,
-                });
-            } catch (err) {
-                if (err instanceof CalendarInputError) return { error: /** @type {Error} */ (err).message };
-                throw err;
-            }
-            const res = await ncFetch(eventHref(baseUrl, uid, args.calendar, eventUid), {
-                method: 'PUT',
-                headers: { 'Content-Type': 'text/calendar; charset=utf-8', 'If-None-Match': '*' },
-                body: ical,
-            });
-            if (res.status === 401) return { error: authError };
-            if (res.status === 404) return { error: `Calendar not found: ${args.calendar}` };
-            if (res.status === 403) return { error: readOnlyError(args.calendar) };
-            if (!res.ok && res.status !== 201 && res.status !== 204) {
-                const body = await res.text().catch(() => '');
-                return { error: eventWriteError('create', res.status, body) };
-            }
-            return { success: true, calendar: args.calendar, uid: eventUid, etag: res.headers.get('etag') };
-        }
-
-        case 'nextcloud_calendar_update_event': {
-            if (!args.calendar || !args.uid) return { error: 'calendar and uid are required' };
-            // Fetch current to merge fields.
-            const { res: getRes, url: eventUrl } = await fetchEventByUid(ctx, args.calendar, args.uid, {});
-            if (getRes.status === 401) return { error: authError };
-            if (getRes.status === 404) return { error: `Event not found: ${args.uid}` };
-            if (!getRes.ok) return { error: `Could not load event for update (${getRes.status})` };
-            const currentText = await getRes.text();
-            const currentEtag = getRes.headers.get('etag');
-            let ical;
-            try {
-                ical = updateVCalendarEvent(currentText, {
-                    summary: args.summary,
-                    description: args.description,
-                    location: args.location,
-                    start: args.start,
-                    end: args.end,
-                    attendees: args.attendees,
-                    allDay: args.allDay,
-                });
-            } catch (err) {
-                if (err instanceof CalendarInputError) return { error: /** @type {Error} */ (err).message };
-                throw err;
-            }
-            const putRes = await ncFetch(eventUrl, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'text/calendar; charset=utf-8',
-                    ...(currentEtag ? { 'If-Match': currentEtag } : {}),
-                },
-                body: ical,
-            });
-            if (putRes.status === 401) return { error: authError };
-            if (putRes.status === 403) return { error: readOnlyError(args.calendar) };
-            if (putRes.status === 412) return { error: 'Event was modified by another client; refetch and retry.' };
-            if (!putRes.ok && putRes.status !== 204) {
-                const body = await putRes.text().catch(() => '');
-                return { error: eventWriteError('update', putRes.status, body) };
-            }
-            return { success: true, calendar: args.calendar, uid: args.uid, etag: putRes.headers.get('etag') };
-        }
-
-        case 'nextcloud_calendar_delete_event': {
-            if (!args.calendar || !args.uid) return { error: 'calendar and uid are required' };
-            const { res } = await fetchEventByUid(ctx, args.calendar, args.uid, { method: 'DELETE' });
-            if (res.status === 401) return { error: authError };
-            if (res.status === 404) return { error: `Event not found: ${args.uid}` };
-            if (!res.ok && res.status !== 204) return { error: `Event delete failed (${res.status})` };
-            return { success: true, calendar: args.calendar, uid: args.uid };
-        }
-
-        default:
-            return { error: `Unknown Nextcloud calendar tool: ${toolName}` };
-    }
+    const handler = Object.hasOwn(HANDLERS, toolName) ? HANDLERS[toolName] : null;
+    if (!handler) return { error: `Unknown Nextcloud calendar tool: ${toolName}` };
+    return handler(args, { ...ctx, calRoot: calendarsRoot(ctx.baseUrl, ctx.uid) });
 }
 
 /** @param {unknown} toolName */

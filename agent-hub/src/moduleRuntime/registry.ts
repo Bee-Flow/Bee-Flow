@@ -6,9 +6,10 @@ import {
     Cloud, Server, Terminal, Code, Layers, Package, MessageSquare, Workflow,
     type LucideIcon,
 } from 'lucide-react';
-import { API_BASE, authFetch } from '../utils/helpers';
+import { API_BASE } from '../utils/helpers';
 import RemoteStudioApp from './RemoteStudioApp';
 import { logger } from '../utils/logger';
+import { apiFetch } from '@/api/typedRequest';
 
 // Runtime Studio-app registry. After auth, `GET /api/modules/frontend` returns
 // the installed remote modules that ship a frontend; each becomes a descriptor
@@ -136,7 +137,7 @@ export function toDescriptor(m: RemoteModuleEntry | null | undefined) {
 // Fetch + rebuild the runtime descriptors. Never throws.
 export async function loadRemoteModules() {
     try {
-        const res = await authFetch(`${API_BASE}/api/modules/frontend`);
+        const res = await apiFetch('GET /api/modules/frontend');
         // Signed-out / forbidden → no modules for this session.
         if (res.status === 401 || res.status === 403) {
             if (_descriptors.length) setDescriptors([]);

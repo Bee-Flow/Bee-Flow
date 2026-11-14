@@ -1,48 +1,47 @@
 // @typecheck
 /**
  * NIS2-Art21(2)(d)-questionnaire-pack — the supplier evidence pack is ready (never fails).
- * Run: cd server && node --test --test-force-exit compliance/checks/nis2/questionnaire-pack.test.js
+ * Run: cd server && node --test compliance/checks/nis2/questionnaire-pack.test.js
  */
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { installResolveStub } = require('../../../testUtils/stubRequire');
+const { usePglitePool } = require('../../../testUtils/pglitePool');
+const { ladderPglite } = require('../../../testUtils/pgliteTemplate');
+const { hideTable } = require('../../../testUtils/pgliteFaults');
+const { insertRow } = require('../../../testUtils/pgliteSeed');
+
+// The boot ladder's schema on PGlite (testUtils/pgliteTemplate.js) behind db.js's pool.
+const { pg, close } = usePglitePool(ladderPglite());
+const complianceStore = require('../../../stores/complianceStore');
+const check = require('./questionnaire-pack');
+test.after(close);
 
 const ORG = 'org-a';
-const fx = { published: [], facts: null, settings: {}, dbError: null, seen: [] };
-const fakeDb = {
-    async getAll(sql, params) {
-        fx.seen.push({ sql, params });
-        if (fx.dbError) throw fx.dbError;
-        assert.match(sql, /FROM isms_documents/);
-        assert.match(sql, /status = 'published'/);
-        assert.equal(params[0], ORG);
-        return fx.published.filter(s => params[1].includes(s)).map(slug => ({ slug }));
-    },
-    async getOne(sql, params) {
-        fx.seen.push({ sql, params });
-        if (fx.dbError) throw fx.dbError;
-        assert.match(sql, /FROM iso_soa_entries WHERE organization_id = \$1/);
-        assert.match(sql, /FROM compliance_score_history WHERE organization_id = \$1/);
-        assert.match(sql, /payload->>'action' = ANY\(\$2\)/);
-        assert.deepEqual(params[1], check.BUNDLE_ACTIONS);
-        return fx.facts;
-    },
-};
-const restore = installResolveStub({
-    '../../../db': fakeDb,
-    '../../../stores/complianceStore': { getSettings: async (orgId) => ({ organization_id: orgId, ...fx.settings }) },
-});
-const check = require('./questionnaire-pack');
-test.after(() => restore());
+const daysAgo = (d) => new Date(Date.now() - d * 86400e3).toISOString();
 
-const daysAgo = (d) => new Date(Date.now() - d * 86400e3);
-const pgError = (code) => Object.assign(new Error(`pg ${code}`), { code, severity: 'ERROR' });
+/** @param {string[]} slugs @param {string} [org] */
+async function published(slugs, org = ORG) {
+    for (const slug of slugs) await insertRow(pg, 'isms_documents', { organization_id: org, slug, title: slug, status: 'published', current_version: 1 });
+}
+/** @param {number} n @param {string} [org] */
+async function soa(n, org = ORG) {
+    for (let i = 0; i < n; i++) await insertRow(pg, 'iso_soa_entries', { organization_id: org, control_ref: `A.${i}` });
+}
+const sweep = (d, org = ORG) => insertRow(pg, 'compliance_score_history', { organization_id: org, captured_at: daysAgo(d) });
+const exported = (d, action = 'evidence_bundle_exported', org = ORG) => insertRow(pg, 'compliance_evidence', {
+    organization_id: org, payload: { action }, payload_hash: 'h', hash: 'h', captured_at: daysAgo(d) });
 
-test.beforeEach(() => {
-    fx.published = [...check.REQUIRED_SLUGS];
-    fx.facts = { soa_entries: 93, last_sweep_at: daysAgo(1), last_bundle_export_at: null };
-    fx.settings = {}; fx.dbError = null; fx.seen = [];
+test.beforeEach(async () => {
+    await pg.exec(`DELETE FROM isms_documents; DELETE FROM iso_soa_entries; DELETE FROM compliance_score_history;
+        DELETE FROM compliance_evidence; DELETE FROM compliance_settings`);
 });
+
+/** Every ingredient there: the policies, a seeded SoA, a sweep yesterday. */
+async function ready({ slugs = check.REQUIRED_SLUGS, soaEntries = 3, sweepDaysAgo = 1 } = {}) {
+    await published(slugs);
+    await soa(soaEntries);
+    if (sweepDaysAgo != null) await sweep(sweepDaysAgo);
+}
 
 test('contract shape', () => {
     assert.equal(check.id, 'NIS2-Art21(2)(d)-questionnaire-pack');
@@ -53,13 +52,16 @@ test('contract shape', () => {
 });
 
 test('relevance gate', async () => {
-    fx.settings = { framework_relevance: { nis2: 'not_relevant' } };
+    await ready();
+    await complianceStore.saveSettings(ORG, { framework_relevance: { nis2: 'not_relevant' } });
     const r = await check.evaluate(ORG);
     assert.equal(r.status, 'not_applicable');
-    assert.equal(fx.seen.length, 0);
 });
 
-test('every ingredient present → pass (two queries)', async () => {
+test('every ingredient present → pass', async () => {
+    await ready();
+    await exported(1, 'something_else');
+    await exported(1, 'evidence_bundle_exported', 'org-b');
     const r = await check.evaluate(ORG);
     assert.equal(r.status, 'pass');
     assert.deepEqual(r.evidence.policies_missing, []);
@@ -67,11 +69,11 @@ test('every ingredient present → pass (two queries)', async () => {
     assert.equal(r.evidence.sweep_fresh, true);
     assert.equal(r.evidence.last_bundle_export_at, null);
     assert.match(r.details, /not been exported yet/);
-    assert.equal(fx.seen.length, 2);
 });
 
 test('bundle export stamp lands in evidence and details', async () => {
-    fx.facts.last_bundle_export_at = daysAgo(3);
+    await ready();
+    await exported(3);
     const r = await check.evaluate(ORG);
     assert.equal(r.status, 'pass');
     assert.equal(typeof r.evidence.last_bundle_export_at, 'string');
@@ -79,7 +81,8 @@ test('bundle export stamp lands in evidence and details', async () => {
 });
 
 test('missing policy → warn naming it, never fail', async () => {
-    fx.published = check.REQUIRED_SLUGS.filter(s => s !== 'business-continuity');
+    await ready({ slugs: check.REQUIRED_SLUGS.filter(s => s !== 'business-continuity') });
+    await published(['business-continuity'], 'org-b');
     const r = await check.evaluate(ORG);
     assert.equal(r.status, 'warn');
     assert.deepEqual(r.evidence.policies_missing, ['business-continuity']);
@@ -87,39 +90,42 @@ test('missing policy → warn naming it, never fail', async () => {
 });
 
 test('SoA not seeded → warn', async () => {
-    fx.facts.soa_entries = 0;
+    await ready({ soaEntries: 0 });
+    await soa(5, 'org-b');
     const r = await check.evaluate(ORG);
     assert.equal(r.status, 'warn');
     assert.match(r.details, /Statement of Applicability/);
 });
 
 test('stale or absent sweep → warn', async () => {
-    fx.facts.last_sweep_at = daysAgo(12);
+    await ready({ sweepDaysAgo: 12 });
+    await sweep(1, 'org-b');
     let r = await check.evaluate(ORG);
     assert.equal(r.status, 'warn');
     assert.match(r.details, /12 days ago/);
-    fx.facts.last_sweep_at = null;
+    await pg.exec('DELETE FROM compliance_score_history');
     r = await check.evaluate(ORG);
     assert.equal(r.status, 'warn');
     assert.match(r.details, /first check sweep/);
 });
 
 test('everything missing → still only warn (absence of an export is not a control failure)', async () => {
-    fx.published = []; fx.facts = { soa_entries: 0, last_sweep_at: null, last_bundle_export_at: null };
     const r = await check.evaluate(ORG);
     assert.equal(r.status, 'warn');
     assert.equal(r.evidence.ingredients_missing, 3);
 });
 
 test('missing register table → warn not provisioned', async () => {
-    fx.dbError = pgError('42P01');
-    const r = await check.evaluate(ORG);
+    const restore = await hideTable(pg, 'iso_soa_entries');
+    let r;
+    try { r = await check.evaluate(ORG); } finally { await restore(); }
     assert.equal(r.status, 'warn');
     assert.match(r.details, /not provisioned/);
 });
 
 test('evidence carries no personal data', async () => {
-    fx.settings = { dpo_email: 'dpo@example.org' };
+    await ready();
+    await complianceStore.saveSettings(ORG, { dpo_email: 'dpo@example.org' });
     const r = await check.evaluate(ORG);
     assert.doesNotMatch(JSON.stringify(r.evidence) + r.details, /@/);
 });

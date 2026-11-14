@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The `mailbox` connector kind — a Gmail/Outlook mailbox as an app data source.
  *
@@ -39,6 +40,7 @@ const MAX_THREAD_EXPANSIONS = 25;
  * @param {number} status
  * @param {string} message
  * @param {string} code
+ * @returns {MailboxError}
  */
 function mailboxError(status, message, code) {
     const err = new Error(message);
@@ -106,8 +108,8 @@ function classifyMailboxError(err, connector) {
  * Run one mailbox pull.
  *
  * @param {MailboxConnectorConfig} connector  the `mailbox` connector config
- * @param {Omit<import('./connectors/runners').ConnectorCtx, 'deps'> & { deps?: Partial<import('./connectors/session').ConnectorDeps> & { mailboxIdentity?: Partial<import('./mailboxIdentity').Deps> } }} [ctx]
- * @returns {Promise<{rows: object[], grains: Array<{level: unknown, rows}>}>}
+ * @param {Partial<Omit<import('./connectors/runners').ConnectorCtx, 'deps'>> & { deps?: Partial<import('./connectors/session').ConnectorDeps> & { mailboxIdentity?: Partial<import('./mailboxIdentity').Deps> } }} [ctx]
+ * @returns {Promise<{rows: object[], grains: Array<{level: unknown, rows}>, meta?: Record<string, unknown>}>}
  */
 async function runMailboxConnector(connector, ctx = {}) {
     const { app, viewerId = null, systemArgs = {}, deps } = ctx;
@@ -145,10 +147,10 @@ async function runMailboxConnector(connector, ctx = {}) {
     // bounded by maxPerRun, and the upsert makes re-seeing a message free. (Outlook
     // filters this window on lastModifiedDateTime, so a label added later to an older
     // message is found as long as it was modified inside the window.)
-    let since = connector.groupIntoThreads ? lookbackIso : (systemArgs.since || null);
+    let since = connector.groupIntoThreads ? lookbackIso : (/** @type {{ since?: string | null }} */ (systemArgs).since || null);
     if (!since) since = lookbackIso;
 
-    /** @type {{ messages: object[]; nextPageToken: string | null; }} */
+    /** @type {{ messages: MailMessage[]; nextPageToken: string | null; }} */
     let listed;
     try {
         listed = await emailFetch.listMessages({
@@ -245,7 +247,7 @@ async function runMailboxConnector(connector, ctx = {}) {
  * The emitted columns are deliberately only the ones the mailbox owns. An
  * upsert UPDATE writes exactly the columns present in the row, so anything the
  * team owns — status, priority, assignee — survives every re-sync untouched.
- * @param {object[]} messages
+ * @param {MailMessage[]} messages
  */
 function groupIntoThreads(messages, partialThreads = null) {
     const byKey = new Map();

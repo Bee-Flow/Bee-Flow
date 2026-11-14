@@ -185,3 +185,10 @@ test('a logo that is not a small image, a duplicate id and a bad tenant are refu
         assert.deepStrictEqual(touched, [], JSON.stringify(body));
     }
 });
+
+test('the connection tests take no fields: one sent is refused by name, so a test never runs against a sent value', async () => {
+    for (const url of ['/oauth-config/test', '/providers/google/test']) {
+        await refuses({ method: 'POST', url, body: { clientId: 'x.apps.googleusercontent.com' } }, 'body');
+        assert.match((await dispatch({ method: 'POST', url, body: { clientId: 'x' } })).body.error, /does not take "clientId"/);
+    }
+});

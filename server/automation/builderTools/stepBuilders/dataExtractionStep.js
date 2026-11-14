@@ -1,10 +1,10 @@
+// @typecheck
 /**
  * Builder tools — builder_add_data_extraction: the declared fields, the ONE
  * binding it reads its text from, and every foreign vocabulary the step
  * arrives in (inputs-wrapped, ai_step prompt/outputSchema, a source standing
  * in as a placeholder) translated into the one shape the runner reads.
  */
-
 const { newId, appendAfter } = require('../draftGraph');
 const { validateAndFixBindings, sanitizeForEach, unboundLoopVarError } = require('../bindings');
 const { checkLoopRef } = require('../outputFields');
@@ -122,9 +122,9 @@ function normalizePlaceholderPath(path) {
  * (with a note); several are a real ambiguity and are refused with the
  * choice spelled out; none is the caller's plain "source is required".
  *
- * @returns {{source: object, note: string} | {error: string, _fixHint: string} | null}
+ * @returns {{source: object, note: string, error?: undefined} | {error: string, _fixHint: string, source?: undefined, note?: undefined} | null}
  */
-function deriveDataExtractionSource({ promptRefs, forEach } = {}) {
+function deriveDataExtractionSource(/** @type {{ promptRefs?: string[], forEach?: { itemVar?: unknown } | null }} */ { promptRefs, forEach } = {}) {
     const distinct = [];
     for (const raw of Array.isArray(promptRefs) ? promptRefs : []) {
         const p = normalizePlaceholderPath(raw);

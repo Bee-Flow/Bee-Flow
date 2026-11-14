@@ -7,9 +7,9 @@ import type { InstallsBody, ReleasesBody } from './releaseModel';
 import { isBlocking } from './SolutionControlPanel';
 import type { ContentResources, TargetedFinding } from './SolutionContentTable';
 import useProjectStream from '@/hooks/useProjectStream';
-import { API_BASE, authFetch } from '@/utils/helpers';
 import { logger } from '@/utils/logger';
-import { request, RefusedError } from '@/api/mutate';
+import { RefusedError } from '@/api/mutate';
+import { apiFetch, apiRequest } from '@/api/typedRequest';
 
 /**
  * The data side of the Solution detail screen: the fetches, the live feed and
@@ -66,18 +66,20 @@ interface ProjectRead<T> {
     data: T | null;
 }
 
-function useProjectRead<T>(projectId: string, path: string): [ProjectRead<T>, () => Promise<void>] {
+type ProjectReadKey = 'GET /api/projects/{id}/package/releases' | 'GET /api/projects/{id}/package/installs';
+
+function useProjectRead<T>(projectId: string, key: ProjectReadKey): [ProjectRead<T>, () => Promise<void>] {
     const [state, setState] = useState<ProjectRead<T>>({ status: 'loading', data: null });
     const refetch = useCallback(async () => {
         if (!projectId) return;
         try {
-            const res = await authFetch(`${API_BASE}/api/projects/${projectId}${path}`);
+            const res = await apiFetch(key, { params: { id: projectId } });
             const body = await res.json().catch(() => null);
             setState({ status: res.ok ? 'ok' : 'error', data: res.ok ? body : null });
         } catch {
             setState({ status: 'error', data: null });
         }
-    }, [projectId, path]);
+    }, [projectId, key]);
     return [state, refetch];
 }
 
@@ -134,14 +136,14 @@ export function useSolutionData(projectId: string) {
     const [members, setMembers] = useState(null);
     const [blueprints, setBlueprints] = useState<{ id: string; version: number; solutionKey?: string; createdBy?: string }[] | null>(null);
     const [runs, setRuns] = useState<Record<string, ActiveRun>>({});
-    const [releases, fetchReleases] = useProjectRead<ReleasesBody>(projectId, '/package/releases');
-    const [installs, fetchInstalls] = useProjectRead<InstallsBody>(projectId, '/package/installs');
+    const [releases, fetchReleases] = useProjectRead<ReleasesBody>(projectId, 'GET /api/projects/{id}/package/releases');
+    const [installs, fetchInstalls] = useProjectRead<InstallsBody>(projectId, 'GET /api/projects/{id}/package/installs');
 
     const fetchResources = useCallback(async () => {
         if (!projectId) return;
         setResourcesLoading(true);
         try {
-            const res = await request(`${API_BASE}/api/projects/${projectId}/resources`).catch((err: unknown) => {
+            const res = await apiRequest('GET /api/projects/{id}/resources', { params: { id: projectId } }).catch((err: unknown) => {
                 if (err instanceof RefusedError) return null;
                 throw err;
             });
@@ -158,7 +160,7 @@ export function useSolutionData(projectId: string) {
         try {
             let res: Response;
             try {
-                res = await request(`${API_BASE}/api/projects/${projectId}/activity?limit=20`);
+                res = await apiRequest('GET /api/projects/{id}/activity', { params: { id: projectId }, query: { limit: 20 } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 setActivityFailed(true);
@@ -174,7 +176,7 @@ export function useSolutionData(projectId: string) {
         if (!projectId) return;
         setGraphLoading(true);
         try {
-            const res = await request(`${API_BASE}/api/projects/${projectId}/graph`).catch((err: unknown) => {
+            const res = await apiRequest('GET /api/projects/{id}/graph', { params: { id: projectId } }).catch((err: unknown) => {
                 if (err instanceof RefusedError) return null;
                 throw err;
             });
@@ -196,7 +198,7 @@ export function useSolutionData(projectId: string) {
         if (!projectId) return;
         setCompletenessLoading(true);
         try {
-            const res = await authFetch(`${API_BASE}/api/projects/${projectId}/completeness`);
+            const res = await apiFetch('GET /api/projects/{id}/completeness', { params: { id: projectId } });
             const body = await res.json().catch(() => null);
             if (!res.ok || !body || typeof body.blocked !== 'boolean') {
                 setCompleteness(null);
@@ -218,7 +220,7 @@ export function useSolutionData(projectId: string) {
         try {
             let res: Response;
             try {
-                res = await request(`${API_BASE}/api/projects/${projectId}/members`);
+                res = await apiRequest('GET /api/projects/{id}/members', { params: { id: projectId } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 setMembers(null);
@@ -235,7 +237,7 @@ export function useSolutionData(projectId: string) {
         try {
             let res: Response;
             try {
-                res = await request(`${API_BASE}/api/projects/package/blueprints`);
+                res = await apiRequest('GET /api/projects/package/blueprints');
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 setBlueprints(null);

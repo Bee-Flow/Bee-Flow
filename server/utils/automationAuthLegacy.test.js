@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The legacy-fallback switch: the new name wins, the old one still counts.
  *
@@ -18,7 +18,7 @@ function withEnv(/** @type {Record<string, string | undefined>} */ env, /** @typ
         if (v === undefined) delete process.env[k]; else process.env[k] = v;
     }
     try { return fn(); } finally {
-        for (const [k, v] of [['AUTOMATION_AUTH_LEGACY', saved.a], ['ROUTINE_AUTH_LEGACY', saved.r]]) {
+        for (const [k, v] of /** @type {Array<[string, string | undefined]>} */ ([['AUTOMATION_AUTH_LEGACY', saved.a], ['ROUTINE_AUTH_LEGACY', saved.r]])) {
             if (v === undefined) delete process.env[k]; else process.env[k] = v;
         }
     }

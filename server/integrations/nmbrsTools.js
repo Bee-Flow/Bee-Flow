@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * NMBRS Tools — Built-in READ-ONLY tools for AI to read NMBRS (Visma Nmbrs)
  * payroll/HR data: debtors, companies, employees, contracts, salaries, wage
@@ -79,7 +79,7 @@ const xmlParser = new XMLParser({
 function escapeXml(value) {
     return String(value).replace(/[&<>"']/g, (c) => (
         /** @type {Record<string, string>} */
-        { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[c]
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' })[c]
     ));
 }
 

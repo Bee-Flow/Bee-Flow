@@ -10,9 +10,8 @@
  * (GET /agents/:id?draft=1 → canModifyAgent in routes/agents/crud.js), so the
  * history behind it carries the same gate — reads included: someone who may
  * merely chat with a published agent has no business in its edit history.
- * Chain: requireAuth on the router (anonymous → 401), then one
- * canModifyAgent call per route, exactly the routes/agents/publishVersion.js
- * idiom. The only client is the editor UI (agent-hub VersionHistory.jsx).
+ * Chain: requireAuth on the router (anonymous → 401), then the agent's edit
+ * gate per route, exactly the routes/agents/publishVersion.js idiom. The only client is the editor UI (agent-hub VersionHistory.jsx).
  *
  * What a caller may send: nothing. The three writes (pre-refine, restore,
  * delete) act on the agent and version named on the path, so their bodies are
@@ -28,7 +27,8 @@ const versionStore = require('../stores/versionStore');
 const agentStore = require('../stores/agentStore');
 const { requireAuth } = require('../auth');
 const { getEffectiveUserId } = require('../utils/routeHelpers');
-const { canModifyAgent } = require('./agents/crud');
+const { requireAgentGrade } = require('./agents/crud');
+const { agentAccessOf } = require('../auth/agentAccess.mts');
 const { validate } = require('../core/http/validate');
 const { conflict } = require('../core/http/errors');
 const { z } = require('../utils/zod');
@@ -72,34 +72,15 @@ function storedFlag(value, current) {
 // on guessed agent/version ids without any session at all.
 router.use(requireAuth);
 
-/**
- * Loads the agent behind :agentId and applies the per-agent write gate the
- * other agent endpoints use — one canModifyAgent(agent, userId, req) call
- * (owner, super-admin, or manage_agents within the agent's org). Responds
- * 404/403 itself and returns null so handlers can simply bail out; the 403
- * body mirrors sendAgentNotEditable in routes/agents/crud.js so clients can
- * translate it and flip into read-only mode.
- */
-async function requireEditableAgent(req, /** @type {import('express').Response} */ res) {
-    const agent = await agentStore.getAgent(req.params.agentId);
-    if (!agent) {
-        res.status(404).json({ error: 'Agent not found' });
-        return null;
-    }
-    const userId = getEffectiveUserId(req);
-    if (!(await canModifyAgent(agent, userId, req))) {
-        res.status(403).json({
-            error: 'You do not have permission to edit this agent.',
-            code: 'agent_not_editable',
-        });
-        return null;
-    }
-    return agent;
-}
+// The per-agent edit gate the other agent endpoints use (auth/agentAccess.mts
+// through routes/agents/crud.js): the owner, the super admin, or manage_agents
+// within the agent's organisation. An agent the caller may not see is the 404
+// of an unknown id; a reader who may not edit gets the structured 403 the
+// clients translate and flip into read-only mode.
+const editGate = () => requireAgentGrade('edit', { param: 'agentId' });
 
 // GET /versions/:agentId — List all versions for an agent
-router.get('/:agentId', async (req, res) => {
-    if (!(await requireEditableAgent(req, res))) return;
+router.get('/:agentId', editGate(), async (req, res) => {
     const versions = await versionStore.getVersions(req.params.agentId);
     res.json(versions);
 });
@@ -117,9 +98,8 @@ router.get('/:agentId', async (req, res) => {
  * and have its undo button say that there is nothing to restore; a silent "ok" would
  * produce a button that later restores something DIFFERENT.
  */
-router.post('/:agentId/pre-refine', validate({ body: PreRefineBody }), async (/** @type {import('express').Request<{ agentId: string }, any, import('zod').infer<typeof PreRefineBody>, import('qs').ParsedQs>} */ req, res) => {
-    const agent = await requireEditableAgent(req, res);
-    if (!agent) return;
+router.post('/:agentId/pre-refine', editGate(), validate({ body: PreRefineBody }), async (req, res) => {
+    const { agent } = agentAccessOf(req);
     // The snapshot reads the RAW agent row (persona column included) — see
     // stores/agent/agentCrud.snapshotAgent for why that must not be the view of getAgent().
     const created = await agentStore.snapshotAgent(agent.id, getEffectiveUserId(req), {
@@ -130,8 +110,7 @@ router.post('/:agentId/pre-refine', validate({ body: PreRefineBody }), async (/*
 });
 
 // GET /versions/:agentId/:versionId — Get full snapshot of a specific version
-router.get('/:agentId/:versionId', async (req, res) => {
-    if (!(await requireEditableAgent(req, res))) return;
+router.get('/:agentId/:versionId', editGate(), async (req, res) => {
     const version = await versionStore.getVersion(req.params.versionId);
     if (!version) return res.status(404).json({ error: 'Version not found' });
     if (version.agent_id !== req.params.agentId) return res.status(404).json({ error: 'Version not found for this agent' });
@@ -139,9 +118,8 @@ router.get('/:agentId/:versionId', async (req, res) => {
 });
 
 // POST /versions/:agentId/:versionId/restore — Restore agent to a specific version
-router.post('/:agentId/:versionId/restore', validate({ body: RestoreBody }), async (/** @type {import('express').Request<{ agentId: string, versionId: string }, any, import('zod').infer<typeof RestoreBody>, import('qs').ParsedQs>} */ req, res, next) => {
-    const agent = await requireEditableAgent(req, res);
-    if (!agent) return;
+router.post('/:agentId/:versionId/restore', editGate(), validate({ body: RestoreBody }), async (req, res, next) => {
+    const { agent } = agentAccessOf(req);
     const version = await versionStore.getVersion(req.params.versionId);
     if (!version) return res.status(404).json({ error: 'Version not found' });
     if (version.agent_id !== req.params.agentId) return res.status(404).json({ error: 'Version not found for this agent' });
@@ -224,8 +202,7 @@ router.post('/:agentId/:versionId/restore', validate({ body: RestoreBody }), asy
 
 
 // DELETE /versions/:agentId/:versionId — Delete a specific version
-router.delete('/:agentId/:versionId', validate({ body: DeleteBody }), async (/** @type {import('express').Request<{ agentId: string, versionId: string }, any, import('zod').infer<typeof DeleteBody>, import('qs').ParsedQs>} */ req, res) => {
-    if (!(await requireEditableAgent(req, res))) return;
+router.delete('/:agentId/:versionId', editGate(), validate({ body: DeleteBody }), async (req, res) => {
     // Bind the version to :agentId BEFORE deleting (same check as the GET
     // and restore routes). Without it the per-agent gate above is hollow:
     // an editor of agent X could delete any version of agent Y by passing

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Memory Tools — the user's own long-term memory (stores/memoryStore.js) as two
  * tools a chat agent or an automation step can call.
@@ -175,7 +175,7 @@ async function executeMemoryTool(toolName, args = {}, context = {}) {
 
     if (toolName === 'memory_remember') {
         if (!policy.write) return { stored: false, disabled: true, reason: policy.reason, message: `${MEMORY_OFF_MESSAGE}: nothing was saved.` };
-        const type = MEMORY_TYPES.includes(args.type) ? args.type : null;
+        const type = MEMORY_TYPES.includes(/** @type {string} */ (args.type)) ? /** @type {string} */ (args.type) : null;
         const fullContent = String(args.content || '').trim();
         const content = fullContent.slice(0, 200);
         if (!type) return { error: `type must be one of ${MEMORY_TYPES.join(', ')}` };

@@ -54,6 +54,7 @@ const MyAgentsSection = ({
                                             onClick={(e: React.MouseEvent<HTMLButtonElement>) => { e.stopPropagation(); onToggleFavorite?.(agent.id); }}
                                             className="opacity-0 group-hover/a:opacity-100 p-1 text-[var(--text-tertiary)] hover:text-red-500 rounded transition-opacity flex-shrink-0"
                                             title={t('sidebar.remove_from_favorites', 'Remove from favorites')}
+                                            aria-label={t('sidebar.remove_from_favorites', 'Remove from favorites')}
                                         >
                                             <X className="w-3.5 h-3.5" />
                                         </button>

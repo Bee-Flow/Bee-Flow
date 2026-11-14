@@ -46,7 +46,7 @@ test.beforeEach(() => rateLimit.reset());
 
 const sha256 = (s) => crypto.createHash('sha256').update(s).digest('hex');
 
-/** Exactly what the SaaS signer emits (server/integrations/ncSigning.js). */
+/** Exactly what the SaaS signer emits (server/auth/connector/ncSigning.js). */
 function sign(body, { key = 'tenant-key', ts = Math.floor(Date.now() / 1000) } = {}) {
     const message = `${ts}\nPOST\n${menus.PUSH_HOOK_PATH}\n\n${sha256(body)}`;
     return `${ts}.${crypto.createHmac('sha256', key).update(message).digest('hex')}`;

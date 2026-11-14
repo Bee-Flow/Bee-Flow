@@ -1,10 +1,11 @@
 #!/usr/bin/env node
+// @typecheck
 'use strict';
 // Run only on staging with real Azure credentials. Never prints keys, tokens,
 // service responses or documents. A missing capability blocks acceptance.
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const OpenAI = require('openai');
+const OpenAI = /** @type {typeof import('openai').default} */ (/** @type {unknown} */ (require('openai')));
 const { toV1BaseUrl } = require('../utils/azureUrl');
 const REQUIRED = ['STAGING_BASE_URL','RELEASE_COMMIT','AZURE_OPENAI_ENDPOINT','AZURE_OPENAI_KEY','AZURE_RESPONSES_DEPLOYMENT',
     'AZURE_EMBEDDINGS_DEPLOYMENT','AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT','AZURE_DOCUMENT_INTELLIGENCE_KEY','AZURE_SPEECH_KEY','AZURE_SPEECH_REGION'];
@@ -48,18 +49,18 @@ async function main() {
     // PollerLike extends Promise<TResult>: awaiting it would hand back the final response, not the poller.
     const poller = documentSdk.getLongRunningPoller(documents, initial);
     const analyzed = await poller.pollUntilDone({ abortSignal: AbortSignal.timeout(180000) });
-    assert.match(analyzed.body.analyzeResult.content, /Bee Flow/i);
+    assert.match(/** @type {{ body: { analyzeResult: { content: string } } }} */ (analyzed).body.analyzeResult.content, /Bee Flow/i);
     const speech = require('microsoft-cognitiveservices-speech-sdk');
     const speechConfig = speech.SpeechConfig.fromSubscription(process.env.AZURE_SPEECH_KEY, process.env.AZURE_SPEECH_REGION);
     const synthesizer = new speech.SpeechSynthesizer(speechConfig, null);
-    await new Promise((resolve, reject) => {
+    await /** @type {Promise<void>} */ (new Promise((resolve, reject) => {
         const timer = setTimeout(() => { synthesizer.close(); reject(new Error('Azure speech timed out')); }, 45000);
         synthesizer.speakTextAsync('Bee Flow staging validation.', result => {
             clearTimeout(timer); synthesizer.close();
             if (result.reason === speech.ResultReason.SynthesizingAudioCompleted && result.audioData?.byteLength) resolve();
             else reject(new Error('Azure speech synthesis failed'));
         }, () => { clearTimeout(timer); synthesizer.close(); reject(new Error('Azure speech request failed')); });
-    });
+    }));
     const report = { schema: 1, commit: process.env.RELEASE_COMMIT, checkedAt: new Date().toISOString(),
         checks: { responses: true, streaming: true, toolcalls: true, embeddings: true, documentAnalysis: true, speech: true } };
     fs.writeFileSync(process.env.AZURE_SMOKE_REPORT || 'azure-smoke.json', `${JSON.stringify(report, null, 2)}\n`);

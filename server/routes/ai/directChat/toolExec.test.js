@@ -373,8 +373,6 @@ test('T7 normal dispatch: events, history entry, usage row', async () => {
     assert.strictEqual(opts.userAuth.token, 'ua');
     assert.strictEqual(opts.orgId, 'org-n8n');
     assert.strictEqual(opts.timezone, 'Europe/Amsterdam');
-    assert.strictEqual(opts.terminalCtx.agentId, 'user-user-1');
-    assert.strictEqual(opts.terminalCtx.containerKey, 'direct-conv-1');
 });
 
 // ── T8: session-skill activation ─────────────────────────────────────

@@ -15,7 +15,8 @@
  *      and not auth/router.js; `router` is still exported, as a lazy getter;
  *   2. server/index.js is the only module that requires auth/router.js
  *      (besides auth/index.js's own lazy `router` getter, which runs only when
- *      something reads that key).
+ *      something reads that key). The journey test kits (journeys/*.testkit.js),
+ *      which rebuild the composition root for the end-to-end journeys, may too.
  *
  * Run: cd server && node --test auth/router.test.js
  */
@@ -100,7 +101,13 @@ test('only server/index.js requires auth/router.js (plus the lazy getter)', () =
         }
     };
     walk(SERVER);
-    assert.deepStrictEqual([...new Set(importers)].sort(), [path.join('auth', 'index.js'), 'index.js'],
+    // The end-to-end journeys rebuild the composition root (index.js cannot be
+    // required in a test process: it binds a port and starts timers), so their
+    // test kits mount auth/router.js the way index.js does. They are test
+    // tooling, never loaded by the server; only journeys/*.testkit.js qualifies.
+    const isJourneyKit = (rel) => rel.startsWith(`journeys${path.sep}`) && /\.testkit\.(c|m)?js$/.test(rel);
+    const production = [...new Set(importers)].filter((rel) => !isJourneyKit(rel));
+    assert.deepStrictEqual(production.sort(), [path.join('auth', 'index.js'), 'index.js'],
         'auth/router.js is the /auth HTTP surface: only the composition root (server/index.js) mounts it; '
         + 'auth/index.js may reach it only through its lazy `router` getter');
 });

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The OUTLINE of a spreadsheet: what is in it, without the data itself.
  *
@@ -73,7 +73,7 @@ function tabOutline(name, cells, shown) {
         lastRow = Math.max(lastRow, at.row);
         if (at.col > lastCol) lastCol = at.col;
         if (!cols.has(at.col)) cols.set(at.col, { header: '', kinds: {}, filled: 0, values: new Map() });
-        const col = cols.get(at.col);
+        const col = /** @type {NonNullable<ReturnType<typeof cols.get>>} */ (cols.get(at.col)); // set on the line above
         if (at.row === 1) { col.header = clip(String(shown[cell]?.display ?? raw), MAX_HEADER_CHARS); continue; }
         const kind = kindOf(raw, shown[cell]);
         col.kinds[kind] = (col.kinds[kind] || 0) + 1;

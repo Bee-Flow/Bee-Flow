@@ -144,7 +144,7 @@ function makeGoldensRouter(overrides = {}) {
         return describeRun(root, latest);
     }
 
-    router.post('/runs/:runId/golden', validate({ body: MarkBody }), async (/** @type {import('express').Request<{ runId: string }, any, import('zod').infer<typeof MarkBody>, import('qs').ParsedQs>} */ req, res) => {
+    router.post('/runs/:runId/golden', validate({ body: MarkBody }), async (req, res) => {
         const found = await runData.readableRun(req, res, req.params.runId, 'save it as a golden run');
         if (!found) return undefined;
         const a = await store().getAutomation(found.run.automationId);
@@ -198,7 +198,7 @@ function makeGoldensRouter(overrides = {}) {
         return res.json({ goldens, limits: { max: maxGoldens() } });
     });
 
-    router.post('/:id/goldens/replay', limiter, validate({ body: ReplayBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof ReplayBody>, import('qs').ParsedQs>} */ req, res) => {
+    router.post('/:id/goldens/replay', limiter, validate({ body: ReplayBody }), async (req, res) => {
         const a = await guarded(req, res, 'edit');
         if (!a) return undefined;
         await runData.assertTestDataAllowed(a);
@@ -207,7 +207,7 @@ function makeGoldensRouter(overrides = {}) {
         const wanted = req.body.goldenIds;
         let selected = all;
         if (wanted) {
-            selected = wanted.map((/** @type {string} */ id) => all.find((/** @type {ReturnType<typeof import('../../stores/lib/automationTestingGoldens').rowToGolden>} */ g) => g.id === id));
+            selected = /** @type {typeof all} */ (wanted.map((/** @type {string} */ id) => all.find((/** @type {ReturnType<typeof import('../../stores/lib/automationTestingGoldens').rowToGolden>} */ g) => g.id === id)));
             if (selected.some((/** @type {ReturnType<typeof import('../../stores/lib/automationTestingGoldens').rowToGolden> | undefined} */ g) => !g)) throw new HttpError(404, 'golden_not_found', 'Not found');
         }
         selected = [...new Set(selected)];

@@ -92,6 +92,15 @@ and `npm run lint:secrets`.
   `scripts/gen-api-reference.mjs`. A route or schema change makes them stale: run
   `npm run gen:api-reference` and commit. It loads the server app, so it needs `server/node_modules`;
   `check:fast` leaves it out and ci.yml's `server-checks` job runs it. Do not hand-edit those files.
+- `npm run lint:api-types`: `agent-hub/src/api/apiTypes.generated.ts` (request types per operation)
+  is GENERATED from `docs/static/openapi.json` by `scripts/gen-api-types.mjs`; after
+  `gen:api-reference`, run `npm run gen:api-types` and commit both. Call the API from agent-hub
+  through `src/api/typedRequest.ts` (`apiRequest`, `apiFetch`, `apiJson`); `lint:url-outside-api-ratchet`
+  counts files outside `src/api` that still build an API URL by hand.
+- `npm run lint:body-schema-ratchet`: the number of POST/PUT/PATCH routes without a `validate({ body })`
+  schema may only go down (`scripts/body-schema-ratchet.mjs`, counted from `docs/static/openapi.json`,
+  budget in `server/.body-schema-ratchet.json`, `--list`, `--update` only lowers). A handler after
+  `validate()` reads `req.body` / `req.query` typed by the schema: write no `Request<…, z.infer<…>>` cast.
 - `npm run lint:compose-drift`: the same third-party image has the same tag in every
   `docker-compose*.yml`, and the profiles used there match `ALL_PROFILES` in `selfhost.sh`.
 - Local images = CI images: `scripts/stage-server-context.sh` stages the server image's
@@ -155,7 +164,9 @@ and `npm run lint:secrets`.
   `lint:dutch-comment-ratchet` and `lint:import-zones-ratchet` (agent-hub layer direction:
   `api/` and `hooks/` never import from `components/` or `pages/`, `components/` never from
   `pages/`; tests excluded). Also `lint:empty-catch-ratchet`, `lint:rollback-in-store-ratchet`
-  (use `db.withTransaction`), `lint:db-in-routes-ratchet` (routes go through a store) and
+  (use `db.withTransaction`), `lint:store-write-tx-ratchet` (a store function writing two or more
+  tables without a transaction or a caller's client; `// stepwise: <why>` above one that is
+  stepwise on purpose; `node scripts/store-write-tx.mjs` lists them), `lint:db-in-routes-ratchet` (routes go through a store) and
   `lint:long-function-ratchet` (functions over 200 lines, server and agent-hub) and
   `lint:deep-imports-ratchet` (agent-hub imports climbing 3+ `../`: write `@/<path from src>`;
   `node scripts/deep-imports.mjs [files]` rewrites them. Files mobile executes or mirrors keep
@@ -204,6 +215,14 @@ and `npm run lint:secrets`.
   `lint:instance-config-gate-ratchet` (a request-facing file writing instance-wide config without a
   platform-admin gate). The same shapes are semgrep rules in `.semgrep/security-gates.yml`, run by
   `sast.yml` on pull requests (new findings only).
+- **More server ratchets**: `lint:plain-error-in-routes-ratchet` (a plain `throw new Error` in
+  routes/ or usecases/ outside a try: a caller's mistake is an `HttpError` 4xx, an upstream failure
+  502/503), `lint:routes-http-free-ratchet` (files under routes/ that take no req/res and register no
+  route belong in `usecases/`) and `lint:complexity-tail-ratchet` (functions above complexity 40,
+  ESLint API; `scripts/complexity-tail-ratchet.mjs`). Numeric env tunables are read with
+  `envInt` / `envNumber` (`server/utils/envNumber.mts`); outbound calls get a default time-out
+  (`OUTBOUND_HTTP_TIMEOUT_MS`, `server/utils/outboundTimeout.mts`): fixed hosts and sidecars go
+  through `fetchFixedEndpoint`, user-supplied URLs through `safeFetch`.
 - `cd agent-hub && npm run lint:dead`: `knip`, no source file that nothing imports.
 - `/quality-round` (`.claude/skills/quality-round/SKILL.md`): the next round of the quality programme
   (server strictness and loose JSDoc types, agent-hub TypeScript and i18n, the count ratchets) with
@@ -273,6 +292,9 @@ and `npm run lint:secrets`.
 - **MCP**: `server/core/mcpManager.js` (the product talks to MCP servers itself).
 - **Layout of `server/core/`**: see `server/ARCHITECTURE.md`. New code goes in its domain
   folder (`core/llm/`, `core/documents/`, `core/providers/`, ...), not loose in `core/`.
+- **Application layer** (`server/usecases/`): code that composes several features for a route
+  (chat turn engines, builder loops, multi-feature helpers). Only routes/, entry points and tooling
+  require it (`server/layering.test.js`); routes/ itself holds the HTTP adapters.
 - **Licence gating**: premium features sit behind `requireLicenseFeature('...')`. Licence keys
   are signed JWTs issued by Bee Flow's private license server; this repo only verifies them
   (`server/license/verify.js`). See `REPO-STRUCTURE.md`.

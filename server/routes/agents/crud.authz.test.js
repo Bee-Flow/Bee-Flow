@@ -27,6 +27,7 @@ const fx = {
     orgIds: new Set(['orgA']),  // resolveUserOrgIds
     user: { orgRole: 'org_admin' }, // userStore.getUser
     agents: {},                 // agentStore.getAgent fixtures by id
+    canSee: false,              // canSeePublished: is the caller in the agent's published audience
 };
 
 const noop = () => {};
@@ -64,7 +65,7 @@ const MOCKS = {
                 && (fx.manageIn ? fx.manageIn.has(orgId) : fx.orgIds.has(orgId)),
         }),
         resolveUserOrgIds: async () => fx.orgIds,
-        canSeePublished: () => false,
+        canSeePublished: () => fx.canSee,
         resolveUserGroups: async () => [],
         assertUserCanUseOrg: async () => {},
         validateSharedGroupsForOrg: async () => [],
@@ -93,6 +94,7 @@ function resetFx() {
     fx.orgIds = new Set(['orgA']);
     fx.user = { orgRole: 'org_admin' };
     fx.agents = {};
+    fx.canSee = false;
 }
 
 const req = (session = {}) => ({ session: { user: { id: fx.userId }, ...session } });
@@ -157,7 +159,7 @@ test('manage_agents held in the home organisation only: an agent of a group orga
     assert.strictEqual(await canModifyAgent(AGENT({ organization_id: 'orgB', owner_id: 'user1' }), 'user1', req()), true, 'the owner keeps their own agent');
 });
 
-// ═══ Route-level: cross-org PUT/DELETE return the structured 403 ═══
+// ═══ Route-level: cross-org PUT/DELETE answer as an unknown id; a same-org reader gets the structured 403 ═══
 
 function dispatch({ method, url, body = {} }) {
     return new Promise((resolve, reject) => {
@@ -180,22 +182,48 @@ function dispatch({ method, url, body = {} }) {
     });
 }
 
-test('PUT /agents/:id from a cross-org admin → 403 agent_not_editable', async () => {
+test('PUT /agents/:id from a cross-org admin → 404, the answer an unknown id gets', async () => {
     resetFx();
     fx.orgIds = new Set(['orgB']);
     fx.agents.a1 = AGENT({ organization_id: 'orgA' });
     const res = await dispatch({ method: 'PUT', url: '/a1', body: { name: 'hijack' } });
-    assert.strictEqual(res.statusCode, 403);
-    assert.strictEqual(res.body.code, 'agent_not_editable');
+    assert.strictEqual(res.statusCode, 404);
+    assert.deepStrictEqual(res.body, { error: 'Agent not found' });
 });
 
-test('DELETE /agents/:id from a cross-org admin → 403 agent_not_editable', async () => {
+test('DELETE /agents/:id from a cross-org admin → 404, the answer an unknown id gets', async () => {
     resetFx();
     fx.orgIds = new Set(['orgB']);
     fx.agents.a1 = AGENT({ organization_id: 'orgA' });
     const res = await dispatch({ method: 'DELETE', url: '/a1' });
-    assert.strictEqual(res.statusCode, 403);
-    assert.strictEqual(res.body.code, 'agent_not_editable');
+    assert.strictEqual(res.statusCode, 404);
+    assert.deepStrictEqual(res.body, { error: 'Agent not found' });
+});
+
+test('PUT and DELETE /agents/:id from a same-org reader without manage_agents → 403 agent_not_editable', async () => {
+    resetFx();
+    fx.hasManage = false;
+    fx.canSee = true;
+    fx.agents.a1 = AGENT({ organization_id: 'orgA' });
+    for (const call of [{ method: 'PUT', url: '/a1', body: { name: 'hijack' } }, { method: 'DELETE', url: '/a1' }]) {
+        const res = await dispatch(call);
+        assert.strictEqual(res.statusCode, 403, `${call.method} ${call.url}`);
+        assert.strictEqual(res.body.code, 'agent_not_editable');
+    }
+});
+
+test('DELETE /agents/:id of an agent deleted meanwhile → 404 agent_not_found, not a 500', async () => {
+    resetFx();
+    fx.hasManage = false;
+    fx.agents.a1 = AGENT({ owner_id: 'user1' });
+    const store = MOCKS['../../stores/agentStore'];
+    const { forceDeleteAgent } = store;
+    store.forceDeleteAgent = async () => false;
+    try {
+        // This harness hands a thrown error back instead of answering it: the terminal
+        // handler answers an HttpError with its own status and code.
+        await assert.rejects(() => dispatch({ method: 'DELETE', url: '/a1' }), { status: 404, code: 'agent_not_found', expose: true });
+    } finally { store.forceDeleteAgent = forceDeleteAgent; }
 });
 
 test('DELETE /agents/:id by the owner → 200 (owner path unaffected)', async () => {

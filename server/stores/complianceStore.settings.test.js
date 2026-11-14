@@ -1,36 +1,34 @@
+// @typecheck
 /**
- * complianceStore — settings persistence.
+ * complianceStore — settings persistence, against a real Postgres (PGlite
+ * behind db.js's pool, testUtils/pglitePool.js) with the store's own schema.
  *
- * The first block is a CHARACTERISATION test: it pins the merge semantics the
- * hand-written 12-field saveSettings had before it became table-driven, so the
- * refactor can be proven behaviour-preserving rather than argued. The rules it
- * pins, per legacy column:
+ * The first block pins the merge semantics of the legacy columns, read back
+ * from the row:
  *
  *   - a field ABSENT from the patch keeps the stored value;
  *   - an explicit `null` in the patch ALSO keeps the stored value (`??`
  *     fall-through — the legacy UPDATE could never clear a column);
- *   - jsonb columns are serialised with JSON.stringify and cast `::jsonb`;
  *   - `data_residency` falls back to 'eu', the jsonb lists to `[]`, everything
  *     else to null when neither patch nor row carries a value;
  *   - the INSERT path (no row yet) applies exactly the same values;
- *   - unknown keys never reach SQL;
- *   - updated_at is stamped NOW() on every UPDATE.
- *
- * The assertions read the SET / VALUES clause back into a {column: value} map
- * instead of pinning parameter positions, so the same test holds for the
- * hand-written statement and for the generated one.
+ *   - unknown keys never reach the row; updated_at moves on every UPDATE.
  *
  * The later blocks cover what the table-driven store adds: the framework and
  * regulation columns of the redesign, jsonb parsing on read, and the
  * compliance_notify_log tier log.
  *
- * Run: cd server && node --test --test-force-exit stores/complianceStore.settings.test.js
+ * Run: cd server && node --test stores/complianceStore.settings.test.js
  */
+
+'use strict';
 
 const { test, before, beforeEach, after } = require('node:test');
 const assert = require('node:assert');
 
-const { createRecordingDb } = require('../testUtils/mockDb');
+const { usePglitePool } = require('../testUtils/pglitePool');
+const { pinPgliteNow } = require('../testUtils/pgliteClock');
+const { insertRow } = require('../testUtils/pgliteSeed');
 
 // Build spec 2.6: the chat signals settings, in SETTINGS_FIELDS order.
 const CHAT_MONITORING_COLUMNS = [
@@ -43,79 +41,24 @@ const CHAT_MONITORING_COLUMNS = [
     'chat_monitoring_enabled_at', 'chat_monitoring_enabled_by',
 ];
 
-const settingsRows = [];
-const notifyRows = [];
-const mock = createRecordingDb({
-    tables: { compliance_settings: settingsRows, compliance_notify_log: notifyRows },
-    onQuery(sql, params) {
-        // ON CONFLICT DO NOTHING → rowCount 1 on a fresh key, 0 on a repeat.
-        if (/^INSERT INTO compliance_notify_log/i.test(sql)) {
-            const [org, kind, id, offset] = params;
-            const dup = notifyRows.some(r => r.organization_id === org && r.subject_kind === kind
-                && r.subject_id === id && r.offset_key === offset);
-            if (dup) return { rows: [], rowCount: 0 };
-            notifyRows.push({ organization_id: org, subject_kind: kind, subject_id: id, offset_key: offset });
-            return { rows: [], rowCount: 1 };
-        }
-        return undefined;
-    },
-});
-const restore = mock.attachPool();
+const { pg, close } = usePglitePool();
 const store = require('./complianceStore');
 
-// The boot DDL is captured once: beforeEach() resets the recorder.
-let bootDdl = '';
+const NOW = new Date('2026-09-14T12:00:00.000Z');
+/** @type {{ set: (at: Date | string) => Promise<void> }} */
+let clock;
 before(async () => {
     await store.initDB();
-    bootDdl = [...mock.calls.pool.map(c => c.sql), ...mock.calls.client.map(c => c.sql)].join('\n');
+    clock = await pinPgliteNow(pg, NOW);
 });
-after(() => restore());
-beforeEach(() => {
-    settingsRows.length = 0;
-    notifyRows.length = 0;
-    mock.reset();
+after(close);
+beforeEach(async () => {
+    await pg.exec('TRUNCATE compliance_settings, compliance_notify_log');
+    await clock.set(NOW);
 });
 
-// ── SQL → {column: value} readers ────────────────────────────────────────
-// `existing` resolves `COALESCE($n, col)` the way Postgres would.
-function readUpdate(call, existing = {}) {
-    const set = call.sql.match(/\bSET\b([\s\S]*?)\bWHERE\b/i);
-    assert.ok(set, 'UPDATE has a SET … WHERE clause');
-    const out = {};
-    const re = /([a-z0-9_]+)\s*=\s*(?:COALESCE\(\$(\d+),\s*[a-z0-9_]+\)|\$(\d+)(?:::jsonb)?|(NOW\(\)))/gi;
-    for (const m of set[1].matchAll(re)) {
-        const col = m[1];
-        if (m[2]) out[col] = call.params[Number(m[2]) - 1] ?? existing[col] ?? null;
-        else if (m[3]) out[col] = call.params[Number(m[3]) - 1];
-        else out[col] = 'NOW()';
-    }
-    return out;
-}
-
-function readInsert(call) {
-    const m = call.sql.match(/INSERT INTO compliance_settings\s*\(([\s\S]*?)\)\s*VALUES\s*\(([\s\S]*?)\)/i);
-    assert.ok(m, 'INSERT has a column list and a VALUES list');
-    const cols = m[1].split(',').map(s => s.trim());
-    const vals = m[2].split(',').map(s => s.trim());
-    assert.strictEqual(cols.length, vals.length, 'column list and VALUES list have the same arity');
-    const out = {};
-    cols.forEach((col, i) => {
-        const p = vals[i].match(/^\$(\d+)/);
-        out[col] = p ? call.params[Number(p[1]) - 1] : vals[i];
-    });
-    return out;
-}
-
-function lastUpdate() {
-    const c = mock.mutations().filter(q => /^UPDATE compliance_settings/i.test(q.sql.trim())).pop();
-    assert.ok(c, 'an UPDATE compliance_settings was issued');
-    return c;
-}
-function lastInsert() {
-    const c = mock.mutations().filter(q => /^INSERT INTO compliance_settings/i.test(q.sql.trim())).pop();
-    assert.ok(c, 'an INSERT INTO compliance_settings was issued');
-    return c;
-}
+const stored = async (org = 'orgA') => (await pg.query('SELECT * FROM compliance_settings WHERE organization_id = $1', [org])).rows[0];
+const iso = (d) => (d == null ? null : new Date(d).toISOString());
 
 const LEGACY_ROW = {
     organization_id: 'orgA',
@@ -126,102 +69,97 @@ const LEGACY_ROW = {
     onboarded_at: '2026-01-01T00:00:00.000Z',
     ai_literacy_confirmed_at: '2026-02-01T00:00:00.000Z',
     ai_literacy_material_url: 'https://example.test/ai-literacy',
-    scc_confirmed_operators: [], ropa_reviewed_at: null, ropa_reviewed_by: null,
-    last_retention_run_at: null,
 };
+const seedRow = (over = {}) => insertRow(pg, 'compliance_settings', { ...LEGACY_ROW, updated_at: '2026-01-01T00:00:00.000Z', ...over });
 
-// ── Characterisation: the 12 legacy fields ───────────────────────────────
+// ── Characterisation: the legacy fields ──────────────────────────────────
 
 test('legacy: a field absent from the patch keeps the stored value (UPDATE path)', async () => {
-    settingsRows.push({ ...LEGACY_ROW });
+    await seedRow();
     await store.saveSettings('orgA', { dpo_name: 'Nieuw' });
-    const set = readUpdate(lastUpdate(), LEGACY_ROW);
-    assert.strictEqual(set.dpo_name, 'Nieuw');
-    assert.strictEqual(set.dpo_email, LEGACY_ROW.dpo_email);
-    assert.strictEqual(set.dpo_phone, LEGACY_ROW.dpo_phone);
-    assert.strictEqual(set.data_residency, 'hybrid');
-    assert.strictEqual(set.default_retention_days, 365);
-    assert.strictEqual(set.privacy_notice_url, LEGACY_ROW.privacy_notice_url);
-    assert.strictEqual(set.onboarded_at, LEGACY_ROW.onboarded_at, 'onboarded_at survives a patch that omits it');
-    assert.strictEqual(set.ai_literacy_confirmed_at, LEGACY_ROW.ai_literacy_confirmed_at);
-    assert.strictEqual(set.ai_literacy_material_url, LEGACY_ROW.ai_literacy_material_url);
-    assert.deepStrictEqual(JSON.parse(set.legal_bases), ['contract']);
-    assert.deepStrictEqual(JSON.parse(set.breach_recipients), ['sec@example.test']);
-    assert.strictEqual(set.updated_at, 'NOW()');
+    const row = await stored();
+    assert.strictEqual(row.dpo_name, 'Nieuw');
+    assert.strictEqual(row.dpo_email, LEGACY_ROW.dpo_email);
+    assert.strictEqual(row.dpo_phone, LEGACY_ROW.dpo_phone);
+    assert.strictEqual(row.data_residency, 'hybrid');
+    assert.strictEqual(row.default_retention_days, 365);
+    assert.strictEqual(row.privacy_notice_url, LEGACY_ROW.privacy_notice_url);
+    assert.strictEqual(iso(row.onboarded_at), LEGACY_ROW.onboarded_at, 'onboarded_at survives a patch that omits it');
+    assert.strictEqual(iso(row.ai_literacy_confirmed_at), LEGACY_ROW.ai_literacy_confirmed_at);
+    assert.strictEqual(row.ai_literacy_material_url, LEGACY_ROW.ai_literacy_material_url);
+    assert.deepStrictEqual(row.legal_bases, ['contract']);
+    assert.deepStrictEqual(row.breach_recipients, ['sec@example.test']);
+    assert.strictEqual(iso(row.updated_at), NOW.toISOString());
 });
 
 test('legacy: an explicit null in the patch also keeps the stored value (?? fall-through)', async () => {
-    settingsRows.push({ ...LEGACY_ROW });
+    await seedRow();
     await store.saveSettings('orgA', {
         dpo_name: null, dpo_email: null, legal_bases: null, data_residency: null,
         default_retention_days: null, privacy_notice_url: null, onboarded_at: null,
         ai_literacy_confirmed_at: null, ai_literacy_material_url: null,
     });
-    const set = readUpdate(lastUpdate(), LEGACY_ROW);
-    assert.strictEqual(set.dpo_name, 'Dana');
-    assert.strictEqual(set.dpo_email, LEGACY_ROW.dpo_email);
-    assert.deepStrictEqual(JSON.parse(set.legal_bases), ['contract']);
-    assert.strictEqual(set.data_residency, 'hybrid');
-    assert.strictEqual(set.default_retention_days, 365);
-    assert.strictEqual(set.privacy_notice_url, LEGACY_ROW.privacy_notice_url);
-    assert.strictEqual(set.onboarded_at, LEGACY_ROW.onboarded_at);
-    assert.strictEqual(set.ai_literacy_confirmed_at, LEGACY_ROW.ai_literacy_confirmed_at);
-    assert.strictEqual(set.ai_literacy_material_url, LEGACY_ROW.ai_literacy_material_url);
+    const row = await stored();
+    assert.strictEqual(row.dpo_name, 'Dana');
+    assert.strictEqual(row.dpo_email, LEGACY_ROW.dpo_email);
+    assert.deepStrictEqual(row.legal_bases, ['contract']);
+    assert.strictEqual(row.data_residency, 'hybrid');
+    assert.strictEqual(row.default_retention_days, 365);
+    assert.strictEqual(row.privacy_notice_url, LEGACY_ROW.privacy_notice_url);
+    assert.strictEqual(iso(row.onboarded_at), LEGACY_ROW.onboarded_at);
+    assert.strictEqual(iso(row.ai_literacy_confirmed_at), LEGACY_ROW.ai_literacy_confirmed_at);
+    assert.strictEqual(row.ai_literacy_material_url, LEGACY_ROW.ai_literacy_material_url);
 });
 
-test('legacy: a supplied value replaces the stored one, jsonb goes through JSON.stringify + ::jsonb', async () => {
-    settingsRows.push({ ...LEGACY_ROW });
+test('legacy: a supplied value replaces the stored one, jsonb included', async () => {
+    await seedRow();
     await store.saveSettings('orgA', {
         legal_bases: ['consent', 'contract'],
         breach_recipients: [],
         default_retention_days: 30,
         onboarded_at: '2026-03-03T00:00:00.000Z',
     });
-    const call = lastUpdate();
-    const set = readUpdate(call, LEGACY_ROW);
-    assert.strictEqual(set.legal_bases, JSON.stringify(['consent', 'contract']));
-    assert.strictEqual(set.breach_recipients, '[]', 'an empty list is a real value, not a fall-through');
-    assert.strictEqual(set.default_retention_days, 30);
-    assert.strictEqual(set.onboarded_at, '2026-03-03T00:00:00.000Z', 'a supplied onboarded_at overwrites');
-    assert.match(call.sql, /legal_bases\s*=\s*\$\d+::jsonb/i);
-    assert.match(call.sql, /breach_recipients\s*=\s*\$\d+::jsonb/i);
+    const row = await stored();
+    assert.deepStrictEqual(row.legal_bases, ['consent', 'contract']);
+    assert.deepStrictEqual(row.breach_recipients, [], 'an empty list is a real value, not a fall-through');
+    assert.strictEqual(row.default_retention_days, 30);
+    assert.strictEqual(iso(row.onboarded_at), '2026-03-03T00:00:00.000Z', 'a supplied onboarded_at overwrites');
 });
 
 test('legacy: INSERT path applies the same defaults when no row exists', async () => {
     await store.saveSettings('orgB', { dpo_name: 'Eerste' });
-    const ins = readInsert(lastInsert());
-    assert.strictEqual(ins.organization_id, 'orgB');
-    assert.strictEqual(ins.dpo_name, 'Eerste');
-    assert.strictEqual(ins.dpo_email, null);
-    assert.strictEqual(ins.dpo_phone, null);
-    assert.strictEqual(ins.legal_bases, '[]');
-    assert.strictEqual(ins.data_residency, 'eu');
-    assert.strictEqual(ins.breach_recipients, '[]');
-    assert.strictEqual(ins.default_retention_days, null);
-    assert.strictEqual(ins.privacy_notice_url, null);
-    assert.strictEqual(ins.onboarded_at, null);
-    assert.strictEqual(ins.ai_literacy_confirmed_at, null);
-    assert.strictEqual(ins.ai_literacy_material_url, null);
-    assert.ok(!mock.mutations().some(q => /^UPDATE/i.test(q.sql.trim())), 'no UPDATE without a row');
+    const row = await stored('orgB');
+    assert.strictEqual(row.dpo_name, 'Eerste');
+    assert.strictEqual(row.dpo_email, null);
+    assert.strictEqual(row.dpo_phone, null);
+    assert.deepStrictEqual(row.legal_bases, []);
+    assert.strictEqual(row.data_residency, 'eu');
+    assert.deepStrictEqual(row.breach_recipients, []);
+    assert.strictEqual(row.default_retention_days, null);
+    assert.strictEqual(row.privacy_notice_url, null);
+    assert.strictEqual(row.onboarded_at, null);
+    assert.strictEqual(row.ai_literacy_confirmed_at, null);
+    assert.strictEqual(row.ai_literacy_material_url, null);
+    assert.strictEqual(await stored('orgA'), undefined, 'and no other organisation got a row');
 });
 
-test('legacy: unknown keys never reach SQL and every write is org-scoped', async () => {
-    settingsRows.push({ ...LEGACY_ROW });
+test('legacy: unknown keys never reach the row and every write is org-scoped', async () => {
+    await seedRow();
+    await seedRow({ organization_id: 'orgB', dpo_name: 'Bea' });
     await store.saveSettings('orgA', { evil_field: 'DROP TABLE', dpo_name: 'x' });
-    const call = lastUpdate();
-    assert.ok(!call.sql.includes('evil_field'));
-    assert.ok(!call.params.includes('DROP TABLE'));
-    for (const m of mock.mutations()) {
-        assert.match(m.sql, /organization_id/i, `write is org-scoped: ${m.sql.slice(0, 60)}`);
-        assert.strictEqual(m.params[0], 'orgA', 'the org is the first parameter');
-    }
+    const row = await stored();
+    assert.strictEqual(row.dpo_name, 'x');
+    assert.ok(!('evil_field' in row));
+    assert.ok(!Object.values(row).includes('DROP TABLE'));
+    assert.strictEqual((await stored('orgB')).dpo_name, 'Bea', 'another organisation is untouched');
 });
 
 test('legacy: saveSettings returns the re-read settings row', async () => {
-    settingsRows.push({ ...LEGACY_ROW });
+    await seedRow();
     const out = await store.saveSettings('orgA', { dpo_name: 'x' });
     assert.strictEqual(out.organization_id, 'orgA');
-    assert.ok(mock.reads().length >= 2, 'reads the row before the write and once more after it');
+    assert.strictEqual(out.dpo_name, 'x');
+    assert.deepStrictEqual(out.legal_bases, ['contract']);
 });
 
 test('getSettings returns the empty shape for an org without a row', async () => {
@@ -266,24 +204,22 @@ test('every SETTINGS_FIELDS entry has a distinct column and a known kind; new on
     }
 });
 
-test('init issues ADD COLUMN IF NOT EXISTS for every new field and the notify-log table', () => {
-    // initDB ran in before(); the mock records DDL through the transaction client.
-    const ddl = bootDdl;
-    for (const f of store.SETTINGS_FIELDS.filter(f => !f.legacy)) {
-        assert.match(ddl, new RegExp(`ADD COLUMN IF NOT EXISTS ${f.col} `), `DDL for ${f.col}`);
-    }
-    assert.match(ddl, /CREATE TABLE IF NOT EXISTS compliance_notify_log/);
-    assert.match(ddl, /ADD COLUMN IF NOT EXISTS scores JSONB DEFAULT '\{\}'::jsonb/);
-    assert.match(ddl, /ADD COLUMN IF NOT EXISTS framework_code TEXT/);
-    assert.match(ddl, /CREATE UNIQUE INDEX IF NOT EXISTS idx_compliance_evidence_seq ON compliance_evidence\(organization_id, seq\) WHERE seq IS NOT NULL/);
+test('init adds a column for every new field, the notify-log table, and the evidence columns and index', async () => {
+    const cols = async (table) => new Set((await pg.query(`SELECT column_name FROM information_schema.columns WHERE table_name = $1`, [table])).rows.map((r) => r.column_name));
+    const settingsCols = await cols('compliance_settings');
+    for (const f of store.SETTINGS_FIELDS) assert.ok(settingsCols.has(f.col), `a column for ${f.col}`);
+    assert.ok((await cols('compliance_notify_log')).has('offset_key'));
+    const { rows } = await pg.query(`SELECT table_name, column_name, data_type, column_default FROM information_schema.columns
+        WHERE (table_name, column_name) IN (('compliance_score_history', 'scores'), ('compliance_checks', 'framework_code'))
+        ORDER BY table_name`);
+    assert.deepStrictEqual(rows.map((r) => [r.table_name, r.data_type]), [['compliance_checks', 'text'], ['compliance_score_history', 'jsonb']]);
+    assert.match(rows[1].column_default, /'\{\}'::jsonb/);
+    const idx = await pg.query(`SELECT indexdef FROM pg_indexes WHERE indexname = 'idx_compliance_evidence_seq'`);
+    assert.match(idx.rows[0].indexdef, /UNIQUE INDEX .* \(organization_id, seq\) WHERE \(seq IS NOT NULL\)/);
 });
 
-test('new fields persist with the right casts; absent keys keep the stored value', async () => {
-    settingsRows.push({
-        ...LEGACY_ROW,
-        enabled_frameworks: ['nis2'], framework_relevance: { dora: 'not_relevant' },
-        nis2_entity_class: 'important', dora_customer_notice_hours: 4,
-    });
+test('new fields persist with the right types; absent keys keep the stored value', async () => {
+    await seedRow({ enabled_frameworks: ['nis2'], framework_relevance: { dora: 'not_relevant' }, nis2_entity_class: 'important', dora_customer_notice_hours: 4 });
     await store.saveSettings('orgA', {
         enabled_frameworks: ['nis2', 'cra'],
         ai_content_marking_enabled: true,
@@ -292,27 +228,21 @@ test('new fields persist with the right casts; absent keys keep the stored value
         notice_period_days: 60,
         incident_customer_contacts: [{ name: 'Bank X', channel: 'email' }],
     });
-    const call = lastUpdate();
-    const set = readUpdate(call, LEGACY_ROW);
-    assert.strictEqual(set.enabled_frameworks, JSON.stringify(['nis2', 'cra']));
-    assert.match(call.sql, /enabled_frameworks\s*=\s*\$\d+::jsonb/);
-    assert.strictEqual(set.framework_relevance, JSON.stringify({ dora: 'not_relevant' }), 'absent jsonb keeps the stored object');
-    assert.strictEqual(set.nis2_entity_class, 'important', 'absent text keeps the stored value');
-    assert.strictEqual(set.ai_content_marking_enabled, true);
-    assert.strictEqual(set.ai_content_marking_enabled_by, 'u1');
-    assert.strictEqual(set.support_end_date, '2029-12-31');
-    assert.strictEqual(set.notice_period_days, 60);
-    assert.strictEqual(set.dora_customer_notice_hours, 4);
-    assert.strictEqual(set.incident_customer_contacts, JSON.stringify([{ name: 'Bank X', channel: 'email' }]));
-    assert.strictEqual(set.dpo_name, 'Dana', 'legacy fields untouched by a new-field patch');
+    const row = await stored();
+    assert.deepStrictEqual(row.enabled_frameworks, ['nis2', 'cra']);
+    assert.deepStrictEqual(row.framework_relevance, { dora: 'not_relevant' }, 'absent jsonb keeps the stored object');
+    assert.strictEqual(row.nis2_entity_class, 'important', 'absent text keeps the stored value');
+    assert.strictEqual(row.ai_content_marking_enabled, true);
+    assert.strictEqual(row.ai_content_marking_enabled_by, 'u1');
+    assert.strictEqual(iso(row.support_end_date).slice(0, 10), '2029-12-31');
+    assert.strictEqual(row.notice_period_days, 60);
+    assert.strictEqual(row.dora_customer_notice_hours, 4);
+    assert.deepStrictEqual(row.incident_customer_contacts, [{ name: 'Bank X', channel: 'email' }]);
+    assert.strictEqual(row.dpo_name, 'Dana', 'legacy fields untouched by a new-field patch');
 });
 
-test('new fields: an explicit null clears the column (fallback for jsonb/bool), unlike the legacy 12', async () => {
-    settingsRows.push({
-        ...LEGACY_ROW,
-        enabled_frameworks: ['nis2'], nis2_registration_reference: 'REG-1',
-        ai_content_marking_enabled: true, machinery_manual_subjects: ['m1'],
-    });
+test('new fields: an explicit null clears the column (fallback for jsonb/bool), unlike the legacy fields', async () => {
+    await seedRow({ enabled_frameworks: ['nis2'], nis2_registration_reference: 'REG-1', ai_content_marking_enabled: true, machinery_manual_subjects: ['m1'] });
     await store.saveSettings('orgA', {
         nis2_registration_reference: null,
         enabled_frameworks: null,
@@ -320,34 +250,33 @@ test('new fields: an explicit null clears the column (fallback for jsonb/bool), 
         machinery_manual_subjects: null,
         dpo_name: null,
     });
-    const set = readUpdate(lastUpdate(), LEGACY_ROW);
-    assert.strictEqual(set.nis2_registration_reference, null);
-    assert.strictEqual(set.enabled_frameworks, '[]');
-    assert.strictEqual(set.ai_content_marking_enabled, false, 'NOT NULL bool falls back to false');
-    assert.strictEqual(set.machinery_manual_subjects, '[]');
-    assert.strictEqual(set.dpo_name, 'Dana', 'legacy null still falls through');
+    const row = await stored();
+    assert.strictEqual(row.nis2_registration_reference, null);
+    assert.deepStrictEqual(row.enabled_frameworks, []);
+    assert.strictEqual(row.ai_content_marking_enabled, false, 'NOT NULL bool falls back to false');
+    assert.deepStrictEqual(row.machinery_manual_subjects, []);
+    assert.strictEqual(row.dpo_name, 'Dana', 'legacy null still falls through');
 });
 
 test('INSERT path seeds the new fields with their defaults', async () => {
     await store.saveSettings('orgC', { enabled_frameworks: ['dora'] });
-    const ins = readInsert(lastInsert());
-    assert.strictEqual(ins.enabled_frameworks, '["dora"]');
-    assert.strictEqual(ins.framework_relevance, '{}');
-    assert.strictEqual(ins.ai_content_marking_enabled, false);
-    assert.strictEqual(ins.dora_customer_notice_hours, 4);
-    assert.strictEqual(ins.incident_customer_contacts, '[]');
-    assert.strictEqual(ins.machinery_manual_subjects, '[]');
-    assert.strictEqual(ins.nis2_entity_class, null);
-    assert.strictEqual(ins.support_end_date, null);
+    const row = await stored('orgC');
+    assert.deepStrictEqual(row.enabled_frameworks, ['dora']);
+    assert.deepStrictEqual(row.framework_relevance, {});
+    assert.strictEqual(row.ai_content_marking_enabled, false);
+    assert.strictEqual(row.dora_customer_notice_hours, 4);
+    assert.deepStrictEqual(row.incident_customer_contacts, []);
+    assert.deepStrictEqual(row.machinery_manual_subjects, []);
+    assert.strictEqual(row.nis2_entity_class, null);
+    assert.strictEqual(row.support_end_date, null);
 });
 
 test('getSettings parses jsonb columns to arrays/objects with safe defaults', async () => {
-    settingsRows.push({
-        ...LEGACY_ROW,
-        enabled_frameworks: '["nis2","cra"]',          // text-typed driver / legacy import
-        framework_relevance: null,                      // NULL cell
-        incident_customer_contacts: 'not json at all',  // corrupt
-        machinery_manual_subjects: { not: 'an array' }, // wrong shape
+    await seedRow({
+        enabled_frameworks: JSON.stringify('["nis2","cra"]'), // a JSON-encoded string (legacy import)
+        framework_relevance: null,                             // NULL cell
+        incident_customer_contacts: JSON.stringify('not json at all'),
+        machinery_manual_subjects: { not: 'an array' },        // wrong shape
         legal_bases: ['contract'],
     });
     const s = await store.getSettings('orgA');
@@ -379,10 +308,7 @@ test('markNotified inserts once per (org, kind, id, offset) and reports whether 
     assert.strictEqual(await store.markNotified('orgA', 'dsr', 42, '7d'), false, 'repeat is a no-op');
     assert.strictEqual(await store.markNotified('orgA', 'dsr', 42, '1d'), true, 'another tier is a new row');
     assert.strictEqual(await store.markNotified('orgB', 'dsr', 42, '7d'), true, 'another org is a new row');
-    for (const m of mock.mutations()) {
-        assert.match(m.sql, /ON CONFLICT \(organization_id, subject_kind, subject_id, offset_key\) DO NOTHING/);
-        assert.match(m.sql, /organization_id/);
-    }
+    assert.strictEqual((await pg.query('SELECT count(*)::int AS n FROM compliance_notify_log')).rows[0].n, 3);
     assert.strictEqual(await store.wasNotified('orgA', 'dsr', 42, '7d'), true);
     assert.strictEqual(await store.wasNotified('orgA', 'dsr', 42, 'overdue'), false);
     assert.strictEqual(await store.wasNotified('orgC', 'dsr', 42, '7d'), false, 'lookups are org-scoped');
@@ -458,20 +384,13 @@ test('a body cannot write the framework state — that is frameworkPolicy\'s (li
     assert.deepStrictEqual(patch, { cra_role: 'manufacturer' });
 
     // End to end: the stored framework columns survive such a body untouched.
-    settingsRows.push({
-        ...LEGACY_ROW,
-        enabled_frameworks: ['cra'],
-        framework_relevance: { dora: 'not_relevant', meta: { dora: { set_by: 'u9', set_at: '2026-09-01T00:00:00.000Z', note: null } } },
-    });
+    const relevance = { dora: 'not_relevant', meta: { dora: { set_by: 'u9', set_at: '2026-09-01T00:00:00.000Z', note: null } } };
+    await seedRow({ enabled_frameworks: ['cra'], framework_relevance: relevance });
     await store.saveSettings('orgA', patch);
-    const set = readUpdate(lastUpdate(), LEGACY_ROW);
-    assert.strictEqual(set.enabled_frameworks, JSON.stringify(['cra']), 'enabled_frameworks untouched');
-    assert.strictEqual(
-        set.framework_relevance,
-        JSON.stringify({ dora: 'not_relevant', meta: { dora: { set_by: 'u9', set_at: '2026-09-01T00:00:00.000Z', note: null } } }),
-        'the relevance audit trail is not wiped',
-    );
-    assert.strictEqual(set.cra_role, 'manufacturer');
+    const row = await stored();
+    assert.deepStrictEqual(row.enabled_frameworks, ['cra'], 'enabled_frameworks untouched');
+    assert.deepStrictEqual(row.framework_relevance, relevance, 'the relevance audit trail is not wiped');
+    assert.strictEqual(row.cra_role, 'manufacturer');
 });
 
 test('values are coerced to the declared column type; absent stays absent and null still clears', () => {
@@ -663,7 +582,7 @@ test('a jsonb value nested past any real shape is refused, not a stack overflow 
     // "Maximum call stack size exceeded" from ~4 000 levels: a 500 with a raw
     // runtime message and the whole submit gone, the same wound by another
     // route. The walk that catches it must not recurse either.
-    let deep = 'x';
+    let deep = /** @type {any} */ ('x');
     for (let i = 0; i < 5000; i++) deep = [deep];
     let err = null;
     try { store.sanitizeSettingsPatch({ machinery_manual_subjects: [deep] }); } catch (e) { err = e; }

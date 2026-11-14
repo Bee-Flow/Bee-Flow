@@ -30,9 +30,10 @@ const pass = (req, res, next) => next();
 
 const KB = { id: 'kb1', name: 'Handbook', organization_id: 'org1', description: '', usage_contexts: null };
 
+const { fakeKbGates } = require('./kbGate.testkit');
 const MOCKS = {
     '../../stores/knowledgeBases': {
-        getKB: async (id) => { touched.push({ what: 'getKB', args: [id] }); return { ...KB }; },
+        getKB: async () => ({ ...KB }),
         createKB: async (...a) => { touched.push({ what: 'createKB', args: a }); return { id: 'kb9' }; },
     },
     '../../auth': {
@@ -44,7 +45,7 @@ const MOCKS = {
     },
     './shared': {
         getUserId: (req) => req.session?.user?.id || null,
-        canAccessKB: async () => true,
+        ...fakeKbGates({ kbStore: { getKB: (id) => MOCKS['../../stores/knowledgeBases'].getKB(id) }, canRead: () => true }),
         sanitizeUsageContexts: (v) => (Array.isArray(v) && v.length ? v : null),
     },
 };

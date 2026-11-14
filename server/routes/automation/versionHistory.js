@@ -24,15 +24,17 @@
 'use strict';
 
 const { z, typeError } = require('../../utils/zod');
+const { closedObject } = require('../../core/http/schemaParts');
 const { HttpError } = require('../../core/http/errors');
 const { fieldDiff, describeChange, isLayoutOnlyChange, stepIdsOf } = require('../../automation/diffSummary');
 const telemetryLog = require('../../telemetry/log');
 
 const MAX_NAME = 80;
 const NAME_TEXT = `name is the milestone name (at most ${MAX_NAME} characters), or null to clear it.`;
-const NameBody = z.object({
-    name: z.string({ error: typeError({ invalid: NAME_TEXT }) }).trim().max(MAX_NAME, NAME_TEXT).nullable(),
-}).strict();
+// On the route itself (versions.js) and again in rename, which tests mount bare.
+const NameBody = closedObject({
+    name: z.string({ error: typeError({ invalid: NAME_TEXT, required: NAME_TEXT }) }).trim().max(MAX_NAME, NAME_TEXT).nullable(),
+}, 'Naming a version');
 
 /** Agent ids → names, best-effort, for a diff that changed an agent. */
 async function defaultResolveNames({ agent = [] }) {
@@ -210,4 +212,4 @@ function makeVersionHistoryHandlers(deps) {
     return { list, getOne, diff, rename };
 }
 
-module.exports = { makeVersionHistoryHandlers, defaultResolveNames, agentIdsOf, MAX_NAME };
+module.exports = { makeVersionHistoryHandlers, defaultResolveNames, agentIdsOf, MAX_NAME, NameBody };

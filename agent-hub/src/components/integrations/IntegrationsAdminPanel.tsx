@@ -17,14 +17,18 @@ import StudioShell from '../shared/StudioShell';
 import SectionHeader from '@/components/shared/SectionHeader';
 import Spinner from '@/components/shared/Spinner';
 import { useToastOnMessage } from '@/components/admin/ai-config/ui/useToastOnMessage';
+import { useShellProps } from '@/authedApp/useShellProps';
 
 interface IntegrationsAdminPanelProps {
     activeSection?: string;
     onNavigate?: (page: string) => void;
 }
 
-export default function IntegrationsAdminPanel({ activeSection: activeProp = 'features', onNavigate }: IntegrationsAdminPanelProps) {
+export default function IntegrationsAdminPanel({ activeSection: activeProp = 'features', onNavigate: onNavigateProp }: IntegrationsAdminPanelProps) {
     const { t } = useTranslation();
+    // Inside the app shell the navigation comes from context; a host outside
+    // it (a test, a kit) still hands it as a prop.
+    const { onNavigate } = useShellProps({ onNavigate: onNavigateProp });
     const { hasFeature, hasTier } = useLicenseContext();
     const isEnterprise = hasTier('enterprise');
     // Hide enterprise-gated sections on Community. A deep link to a hidden

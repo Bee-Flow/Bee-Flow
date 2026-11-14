@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -16,6 +16,7 @@ vi.mock('@/lib/googleOAuthPopup', () => ({ openGoogleOAuthPopup: vi.fn() }));
 vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
 import { listTalkMeetings, listGoogleMeetMeetings, setMeetingRecord } from '@/api/transcriptionsApi';
+import { renderWithClient } from '@/test/render';
 import UpcomingMeetings from './UpcomingMeetings';
 
 const talkMeeting = (over = {}) => ({
@@ -57,7 +58,7 @@ describe('UpcomingMeetings — datumblok, meta en tags', () => {
 
     it('toont tijd · duur · deelnemers · provider voor een Meet-rij', async () => {
         listGoogleMeetMeetings.mockResolvedValue(gmeetPayload([gmeetMeeting()]));
-        render(<UpcomingMeetings />);
+        renderWithClient(<UpcomingMeetings />);
 
         const meta = await metaOf('Meet planning');
         expect(meta).toContain(`${hhmm('2026-07-18T08:00:00Z')}–${hhmm('2026-07-18T09:30:00Z')}`);
@@ -70,7 +71,7 @@ describe('UpcomingMeetings — datumblok, meta en tags', () => {
         listTalkMeetings.mockResolvedValue(talkPayload([
             talkMeeting({ attendees: [], organizer: null, recordReason: 'unknown_size', excluded: true }),
         ]));
-        render(<UpcomingMeetings />);
+        renderWithClient(<UpcomingMeetings />);
 
         const meta = await metaOf('Talk standup');
         expect(meta).toContain('participants unknown');
@@ -83,7 +84,7 @@ describe('UpcomingMeetings — datumblok, meta en tags', () => {
 
     it('een hele-dag-afspraak zegt "All day" en toont GEEN duur', async () => {
         listTalkMeetings.mockResolvedValue(talkPayload([talkMeeting({ start: '2026-07-18', end: '2026-07-19' })]));
-        render(<UpcomingMeetings />);
+        renderWithClient(<UpcomingMeetings />);
 
         const meta = await metaOf('Talk standup');
         expect(meta).toContain('All day');
@@ -96,7 +97,7 @@ describe('UpcomingMeetings — datumblok, meta en tags', () => {
 
     it('zonder begintijd staat er een agendaglyph met uitleg, geen verzonnen datum', async () => {
         listTalkMeetings.mockResolvedValue(talkPayload([talkMeeting({ start: null, end: null })]));
-        render(<UpcomingMeetings />);
+        renderWithClient(<UpcomingMeetings />);
 
         await screen.findByText('Talk standup');
         const block = screen.getByTestId('upcoming-date');
@@ -107,7 +108,7 @@ describe('UpcomingMeetings — datumblok, meta en tags', () => {
     it('rendert de tags uit meeting_prefs als chips, en geen tagrij als er geen zijn', async () => {
         listTalkMeetings.mockResolvedValue(talkPayload([talkMeeting({ tags: ['dataweging', ' spelersmonitor ', 42, ''] })]));
         listGoogleMeetMeetings.mockResolvedValue(gmeetPayload([gmeetMeeting()]));
-        render(<UpcomingMeetings />);
+        renderWithClient(<UpcomingMeetings />);
 
         await screen.findByText('Talk standup');
         const rows = screen.getAllByTestId('meeting-tags');
@@ -129,7 +130,7 @@ describe('UpcomingMeetings — de voetregel belooft alleen wat de bot echt doet'
 
     it('toont de write-back-zin alleen als de payload zegt dat postSummaryBack aan staat', async () => {
         listTalkMeetings.mockResolvedValue(talkPayload([talkMeeting()], { postSummaryBack: true }));
-        render(<UpcomingMeetings />);
+        renderWithClient(<UpcomingMeetings />);
 
         await screen.findByText('Talk standup');
         const notice = screen.getByTestId('upcoming-notice').textContent;
@@ -140,7 +141,7 @@ describe('UpcomingMeetings — de voetregel belooft alleen wat de bot echt doet'
 
     it('doet geen enkele bewering als de payload postSummaryBack niet meestuurt', async () => {
         listTalkMeetings.mockResolvedValue(talkPayload([talkMeeting()]));
-        render(<UpcomingMeetings />);
+        renderWithClient(<UpcomingMeetings />);
 
         await screen.findByText('Talk standup');
         expect(screen.queryByTestId('upcoming-notice')).not.toBeInTheDocument();
@@ -148,7 +149,7 @@ describe('UpcomingMeetings — de voetregel belooft alleen wat de bot echt doet'
 
     it('ontkent de write-back als de payload zegt dat hij uit staat', async () => {
         listTalkMeetings.mockResolvedValue(talkPayload([talkMeeting()], { postSummaryBack: false }));
-        render(<UpcomingMeetings />);
+        renderWithClient(<UpcomingMeetings />);
 
         await screen.findByText('Talk standup');
         expect(screen.getByTestId('upcoming-notice').textContent).toContain('posts nothing back into the conversation');
@@ -156,7 +157,7 @@ describe('UpcomingMeetings — de voetregel belooft alleen wat de bot echt doet'
 
     it('een Meet-rij voegt de leesrecht-zin toe — over een melding gaat hij niet', async () => {
         listGoogleMeetMeetings.mockResolvedValue(gmeetPayload([gmeetMeeting()]));
-        render(<UpcomingMeetings />);
+        renderWithClient(<UpcomingMeetings />);
 
         await screen.findByText('Meet planning');
         const notice = screen.getByTestId('upcoming-notice').textContent;
@@ -168,7 +169,7 @@ describe('UpcomingMeetings — de voetregel belooft alleen wat de bot echt doet'
 
     it('een uitgezette Meet-rij laat de voetregel leeg — geen notitie, geen gevolg om uit te leggen', async () => {
         listGoogleMeetMeetings.mockResolvedValue(gmeetPayload([gmeetMeeting({ excluded: true, status: 'excluded' })]));
-        render(<UpcomingMeetings />);
+        renderWithClient(<UpcomingMeetings />);
 
         await screen.findByText('Meet planning');
         expect(screen.queryByTestId('upcoming-notice')).not.toBeInTheDocument();
@@ -188,7 +189,7 @@ describe('UpcomingMeetings — het scherm zegt niet het tegenovergestelde van de
         listTalkMeetings.mockResolvedValue(talkPayload([
             talkMeeting({ excluded: true, recordReason: 'unknown_size', recordDecided: false, status: 'decides_at_start' }),
         ]));
-        render(<UpcomingMeetings />);
+        renderWithClient(<UpcomingMeetings />);
 
         await screen.findByText('Talk standup');
         expect(screen.getAllByText('Decides at start').length).toBeGreaterThan(0);
@@ -201,7 +202,7 @@ describe('UpcomingMeetings — het scherm zegt niet het tegenovergestelde van de
         listTalkMeetings.mockResolvedValue(talkPayload([
             talkMeeting({ excluded: true, recordReason: 'small_meeting', recordDecided: true, status: 'upcoming' }),
         ]));
-        render(<UpcomingMeetings />);
+        renderWithClient(<UpcomingMeetings />);
         await screen.findByText('Talk standup');
         expect(screen.getByText('Skip')).toBeInTheDocument();
     });
@@ -212,7 +213,7 @@ describe('UpcomingMeetings — het scherm zegt niet het tegenovergestelde van de
         listTalkMeetings.mockResolvedValue(talkPayload([
             talkMeeting({ attendees: [], organizer: null, recordReason: 'unknown_size', excluded: true }),
         ]));
-        render(<UpcomingMeetings />);
+        renderWithClient(<UpcomingMeetings />);
         await screen.findByText('Talk standup');
         expect(screen.getByText('participants unknown').getAttribute('title'))
             .toContain("doesn't list who is coming");
@@ -226,7 +227,7 @@ describe('UpcomingMeetings — het scherm zegt niet het tegenovergestelde van de
             talkMeeting({ excluded: true, recordReason: 'opted_out', recordDecided: true, status: 'upcoming' }),
         ]));
         setMeetingRecord.mockResolvedValue({ ok: true, record: true, effectiveRecord: false, overridden: true });
-        render(<UpcomingMeetings />);
+        renderWithClient(<UpcomingMeetings />);
 
         await screen.findByText('Talk standup');
         const toggle = screen.getByRole('button', { name: /Record Talk standup/ });
@@ -239,7 +240,7 @@ describe('UpcomingMeetings — het scherm zegt niet het tegenovergestelde van de
 
     it('waarschuwt over Meets eigen opnamemelding zodra deze knop hem kan aanzetten', async () => {
         listGoogleMeetMeetings.mockResolvedValue(gmeetPayload([gmeetMeeting({ organizerSelf: true })], { autoRecordConfig: true }));
-        render(<UpcomingMeetings />);
+        renderWithClient(<UpcomingMeetings />);
 
         await screen.findByText('Meet planning');
         const notice = screen.getByTestId('upcoming-notice').textContent;
@@ -254,7 +255,7 @@ describe('UpcomingMeetings — het scherm zegt niet het tegenovergestelde van de
             [talkMeeting({ excluded: false, status: 'upcoming' })],
             { recordingEnabled: false, postSummaryBack: true },
         ));
-        render(<UpcomingMeetings />);
+        renderWithClient(<UpcomingMeetings />);
         await screen.findByText('Talk standup');
         expect(screen.queryByTestId('upcoming-notice')).not.toBeInTheDocument();
     });
@@ -264,7 +265,7 @@ describe('UpcomingMeetings — het scherm zegt niet het tegenovergestelde van de
         listTalkMeetings.mockRejectedValue(new Error('talk down'));
         listGoogleMeetMeetings.mockRejectedValue(new Error('meet down'));
         const onRowsChange = vi.fn();
-        render(<UpcomingMeetings onRowsChange={onRowsChange} />);
+        renderWithClient(<UpcomingMeetings onRowsChange={onRowsChange} />);
 
         await screen.findByText("Couldn't load Nextcloud Talk meetings");
         expect(onRowsChange).toHaveBeenLastCalledWith(null);

@@ -6,42 +6,44 @@
  * attributed through their owner; and a count that FAILED (not a missing
  * table) warns instead of passing with "not enumerable yet".
  *
- * The check destructures getOne/getAll from db at require time, so both are
- * replaced on the real singleton BEFORE the check is required (the smoke
- * harness does the same). The doubles ignore the parameters on purpose: the
- * check must not depend on SQL alone for scoping a row it was handed.
+ * Against a real Postgres: the boot ladder's schema on PGlite
+ * (testUtils/pgliteTemplate.js ladderPglite) behind db.js's pool. The AI
+ * provider list comes from configStore, replaced on the singleton.
  *
  * Run: cd server && node --test compliance/checks/iso27001/a5-9-asset-inventory.test.js
  */
 
-const { test, beforeEach } = require('node:test');
+const { test, beforeEach, after } = require('node:test');
 const assert = require('node:assert/strict');
 
-const db = require('../../../db');
-const calls = [];
-let agentRows = [];
-let one = async () => ({ c: 0 });
-db.getAll = async (sql, params) => { calls.push({ sql, params }); return agentRows; };
-db.getOne = async (sql, params) => { calls.push({ sql, params }); return one(sql, params); };
+const { usePglitePool } = require('../../../testUtils/pglitePool');
+const { ladderPglite } = require('../../../testUtils/pgliteTemplate');
+const { failReads, hideTable } = require('../../../testUtils/pgliteFaults');
+const { insertRow } = require('../../../testUtils/pgliteSeed');
 
+const { pg, close } = usePglitePool(ladderPglite());
 const configStore = require('../../../stores/configStore');
 configStore.getConfig = async (key) => (key === 'ai' ? { providers: [{ id: 'p1', type: 'anthropic' }] } : null);
 
 const check = require('./a5-9-asset-inventory');
+after(close);
 
-beforeEach(() => {
-    calls.length = 0;
-    agentRows = [{ id: 'g', organization_id: null, model: 'm1' }, { id: 'a', organization_id: 'org-a', model: 'm2' }];
-    one = async () => ({ c: 0 });
+beforeEach(async () => {
+    await pg.exec(`DELETE FROM agents; DELETE FROM knowledge_bases; DELETE FROM users WHERE id LIKE 'ai_%'`);
+    await insertRow(pg, 'agents', { id: 'g', name: 'g', owner_id: 'o', organization_id: null, model: 'm1', is_published: true });
+    await insertRow(pg, 'agents', { id: 'a', name: 'a', owner_id: 'o', organization_id: 'org-a', model: 'm2', is_published: true });
+    await insertRow(pg, 'agents', { id: 'draft', name: 'd', owner_id: 'o', organization_id: 'org-a', model: 'm3', is_published: false });
 });
+
+/** @param {string} id @param {string | null} org */
+const user = (id, org) => insertRow(pg, 'users', { id, username: id, organizationId: org });
+/** @param {string} tenant @param {string | null} org */
+const kb = (tenant, org) => insertRow(pg, 'knowledge_bases', { tenant_id: tenant, name: 'kb', organization_id: org });
 
 test('an org-less published agent is not counted for a tenant', async () => {
     const r = await check.evaluate('org-a');
     assert.equal(r.evidence.published_agents, 1);
     assert.deepEqual(r.evidence.models.map(m => m.model), ['m2']);
-    const agentQuery = calls.find(c => /FROM agents/.test(c.sql));
-    assert.deepEqual(agentQuery.params, ['org-a']);
-    assert.match(agentQuery.sql, /COALESCE\(NULLIF\(organization_id, ''\), 'default'\) = \$1/);
 });
 
 test('the default bucket counts the org-less agent and nothing of a tenant', async () => {
@@ -51,29 +53,30 @@ test('the default bucket counts the org-less agent and nothing of a tenant', asy
 });
 
 test('personal knowledge bases are attributed through their owner', async () => {
-    await check.evaluate('org-a');
-    const kb = calls.find(c => /FROM knowledge_bases/.test(c.sql));
-    assert.match(kb.sql, /LEFT JOIN users u ON u\.id = kb\.tenant_id/);
-    assert.match(kb.sql, /kb\.organization_id IS NULL AND COALESCE\(NULLIF\(u\."organizationId", ''\), 'default'\) = \$1/);
-    assert.doesNotMatch(kb.sql, /OR organization_id IS NULL\s*$/m, 'not every personal KB for every org');
-    assert.deepEqual(kb.params, ['org-a']);
+    await user('ai_a', 'org-a');
+    await user('ai_b', 'org-b');
+    await user('ai_none', null);
+    await kb('ai_a', null);      // personal, owner in org-a
+    await kb('ai_b', null);      // personal, owner in org-b
+    await kb('ai_none', null);   // personal, owner in no org
+    await kb('ai_b', 'org-a');   // an org-a base
+    assert.equal((await check.evaluate('org-a')).evidence.knowledge_bases, 2, 'not every personal KB for every org');
+    assert.equal((await check.evaluate('org-b')).evidence.knowledge_bases, 1);
+    assert.equal((await check.evaluate('default')).evidence.knowledge_bases, 1);
 });
 
 test('a count that fails warns; a table that does not exist is "not enumerable yet"', async () => {
-    one = async (sql) => {
-        if (/knowledge_bases/.test(sql)) throw Object.assign(new Error('canceling statement'), { code: '57014' });
-        return { c: 1 };
-    };
-    const broken = await check.evaluate('org-a');
+    const undo = await failReads(pg, 'knowledge_bases', '57014', 'canceling statement');
+    let broken;
+    try { broken = await check.evaluate('org-a'); } finally { await undo(); }
     assert.equal(broken.status, 'warn');
     assert.deepEqual(broken.evidence.unreadable, [{ asset: 'knowledge_bases', error_code: '57014' }]);
     assert.match(broken.details, /knowledge_bases \(SQL state 57014\)/);
 
-    one = async (sql) => {
-        if (/mcp_servers/.test(sql)) throw Object.assign(new Error('x'), { code: '42P01' });
-        return { c: 1 };
-    };
-    const young = await check.evaluate('org-a');
+    await kb('someone', 'org-a');
+    const show = await hideTable(pg, 'mcp_servers');
+    let young;
+    try { young = await check.evaluate('org-a'); } finally { await show(); }
     assert.equal(young.status, 'pass');
     assert.deepEqual(young.evidence.not_enumerable, ['mcp_servers_enabled']);
 });

@@ -97,6 +97,17 @@ test('a calendar without a component set is treated as supporting tasks (RFC 479
     }
 });
 
+test('the dispatcher: an unknown name, a missing argument, complete and delete', async () => {
+    assert.deepEqual((await run('nextcloud_tasks_nope', {})).out, { error: 'Unknown Nextcloud tasks tool: nextcloud_tasks_nope' });
+    assert.deepEqual((await run('nextcloud_tasks_get', { list: 'x' })).out, { error: 'list and uid are required' });
+    const done = await run('nextcloud_tasks_complete', { list: 'my-tasks', uid: 't1' });
+    assert.deepEqual(done.out, { success: true, list: 'my-tasks', uid: 't1', etag: null, status: 'COMPLETED' });
+    assert.deepEqual(done.calls.map((c) => c.split(' ')[0]), ['GET', 'PUT']);
+    const reopened = await run('nextcloud_tasks_update', { list: 'my-tasks', uid: 't1', summary: 's' });
+    assert.equal(reopened.out.status, 'NEEDS-ACTION');
+    assert.deepEqual((await run('nextcloud_tasks_delete', { list: 'my-tasks', uid: 't1' })).out, { success: true, list: 'my-tasks', uid: 't1' });
+});
+
 test('a 5xx on create does not echo server detail', async () => {
     const { out } = await run('nextcloud_tasks_create', { list: 'my-tasks', summary: 't' }, { putStatus: 500, putBody: '<s:message>SQLSTATE secret_table</s:message>' });
     assert.doesNotMatch(out.error, /SQLSTATE|secret/);

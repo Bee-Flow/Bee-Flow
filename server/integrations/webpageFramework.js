@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Webpage framework + runtime-tier model.
  *
@@ -16,43 +16,15 @@
  * absent/unknown value resolves to 'vanilla' / 'light', so every pre-existing
  * webpage keeps behaving exactly as before.
  *
- * Single source of truth for: the defaults, the prompt blocks that tell the AI
- * how to build for each framework, and the tools that switch a project's mode.
+ * The vocabulary and its defaults live in core/webpages/frameworkModel.mts;
+ * this module holds the prompt blocks that tell the AI how to build for each
+ * framework, and the tools that switch a project's mode.
  * Reused by routes/ai/webpageChat.js (and, later, the compose + runtime layers).
  */
 
 const webpageStore = require('../stores/webpageStore');
 
-/** @type {[string, ...string[]]} */
-const FRAMEWORKS = ['vanilla', 'react-mui'];
-/** @type {[string, ...string[]]} */
-const RUNTIMES = ['light', 'full'];
-
-const DEFAULT_FRAMEWORK = 'vanilla';
-const DEFAULT_RUNTIME = 'light';
-
-// What a brand-NEW project is created as. React + MUI is the product default
-// (the WS-B esbuild-wasm light-tier preview is in place). A brand-new react-mui
-// project has no src/main.jsx yet, so its preview shows a friendly "create
-// src/main.jsx" overlay until the AI scaffolds the app on the first request.
-// To revert to the classic static builder default, set this back to 'vanilla'.
-const DEFAULT_NEW_FRAMEWORK = 'react-mui';
-
-/**
- * @param {{ settings?: { framework?: string, runtime?: string } } | null | undefined} webpage
- */
-function resolveFramework(webpage) {
-    const f = webpage?.settings?.framework;
-    return FRAMEWORKS.includes(f) ? f : DEFAULT_FRAMEWORK;
-}
-
-/**
- * @param {{ settings?: { framework?: string, runtime?: string } } | null | undefined} webpage
- */
-function resolveRuntime(webpage) {
-    const r = webpage?.settings?.runtime;
-    return RUNTIMES.includes(r) ? r : DEFAULT_RUNTIME;
-}
+const { FRAMEWORKS, RUNTIMES } = require('../core/webpages/frameworkModel.mts');
 
 const DIVIDER = '────────────────────────────────────────';
 
@@ -245,7 +217,7 @@ async function executeFrameworkTool(toolName, args, { webpageId, userId }) {
 
     if (toolName === 'webpage_set_framework') {
         const framework = args?.framework;
-        if (!FRAMEWORKS.includes(framework)) return { error: `framework must be one of: ${FRAMEWORKS.join(', ')}.` };
+        if (!FRAMEWORKS.includes(/** @type {string} */ (framework))) return { error: `framework must be one of: ${FRAMEWORKS.join(', ')}.` };
         settings.framework = framework;
         await webpageStore.updateWebpageMetadata(webpageId, userId, { settings });
         return {
@@ -259,7 +231,7 @@ async function executeFrameworkTool(toolName, args, { webpageId, userId }) {
 
     if (toolName === 'webpage_set_runtime') {
         const runtime = args?.runtime;
-        if (!RUNTIMES.includes(runtime)) return { error: `runtime must be one of: ${RUNTIMES.join(', ')}.` };
+        if (!RUNTIMES.includes(/** @type {string} */ (runtime))) return { error: `runtime must be one of: ${RUNTIMES.join(', ')}.` };
         settings.runtime = runtime;
         await webpageStore.updateWebpageMetadata(webpageId, userId, { settings });
         return {
@@ -275,13 +247,6 @@ async function executeFrameworkTool(toolName, args, { webpageId, userId }) {
 }
 
 module.exports = {
-    FRAMEWORKS,
-    RUNTIMES,
-    DEFAULT_FRAMEWORK,
-    DEFAULT_RUNTIME,
-    DEFAULT_NEW_FRAMEWORK,
-    resolveFramework,
-    resolveRuntime,
     sharedImageRule,
     buildRuntimePromptBlock,
     WEBPAGE_SET_FRAMEWORK_TOOL,

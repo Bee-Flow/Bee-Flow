@@ -212,7 +212,7 @@ async function getAddress(webpageId, ownerId) {
  * only the pointer goes away.
  * @param {string} webpageId
  * @param {string} ownerId
- * @param {string} shareId
+ * @param {string | null} shareId  null: not public
  */
 async function setCanonicalShare(webpageId, ownerId, shareId) {
     await initDB();

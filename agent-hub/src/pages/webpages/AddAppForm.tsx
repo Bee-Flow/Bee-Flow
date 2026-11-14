@@ -1,10 +1,9 @@
 import { useMemo, useState } from 'react';
 import { AlertTriangle, HelpCircle, Loader2, Lock, Plus } from 'lucide-react';
 import useTranslation from '../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { apiFetch } from '../../api/typedRequest';
 import type { ConnectLinkProps, AddAppFormProps } from './WebpageAppsPanel.types';
 
-export const GRANTS_BASE = (id: string | number | boolean) => `${API_BASE}/api/webpages/${encodeURIComponent(id)}/grants`;
 
 export async function readJson(res: Response) {
     try { return await res.json(); } catch { return null; }
@@ -67,10 +66,9 @@ export function AddAppForm({ webpageId, catalog, onGranted, onError }: AddAppFor
         }
         setSubmitting(true);
         try {
-            const res = await authFetch(GRANTS_BASE(webpageId) + '/integrations', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tool, ...(fixedArgs ? { fixedArgs } : {}), ...(label.trim() ? { label: label.trim() } : {}) }),
+            const res = await apiFetch('POST /api/webpages/{id}/grants/integrations', {
+                params: { id: webpageId },
+                init: { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tool, ...(fixedArgs ? { fixedArgs } : {}), ...(label.trim() ? { label: label.trim() } : {}) }) },
             });
             const body = await readJson(res);
             if (!res.ok) {

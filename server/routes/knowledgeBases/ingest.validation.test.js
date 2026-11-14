@@ -34,9 +34,10 @@ const touched = [];
 const KB = { id: 'kb1', tenant_id: 'owner1', organization_id: 'org1' };
 const pass = (req, res, next) => next();
 
+const { fakeKbGates } = require('./kbGate.testkit');
 const MOCKS = {
     '../../stores/knowledgeBases': {
-        getKB: async (id) => { touched.push({ what: 'getKB', args: [id] }); return { ...KB }; },
+        getKB: async () => ({ ...KB }),
     },
     '../../auth': { requireAuth: pass, requirePermission: () => pass },
     '../../core/kb/kbIngestionHelpers': {
@@ -46,7 +47,7 @@ const MOCKS = {
     },
     './shared': {
         getUserId: (req) => req.session?.user?.id || null,
-        canManageKB: async () => true,
+        ...fakeKbGates({ kbStore: { getKB: (id) => MOCKS['../../stores/knowledgeBases'].getKB(id) }, canRead: () => true }),
         blockIfSystemKB: () => false,
         ensureKbSource: async (...a) => { touched.push({ what: 'ensureKbSource', args: a }); return { id: 's1' }; },
     },

@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
+import { useSkillsStudioData } from './useSkillsStudioData';
 import useTranslation from '@/hooks/useTranslation';
 import { toast } from '@/components/shared/Toast';
 import SkillDetail from './SkillDetail';
@@ -49,6 +51,21 @@ interface SkillsStudioProps {
     hasPermission?: (permission: string) => boolean;
 }
 
+/**
+ * The open skill: the deep link's, re-adopted whenever the link changes, INCLUDING
+ * to null (the Approvals / Datatables pattern): only adopting truthy ids leaves a
+ * detail open after Back.
+ */
+function useDeepLinkedId(initialSkillId: string | null | undefined) {
+    const [openId, setOpenId] = useState(initialSkillId || null);
+    const [lastInitial, setLastInitial] = useState(initialSkillId);
+    if (initialSkillId !== lastInitial) {
+        setLastInitial(initialSkillId);
+        setOpenId(initialSkillId || null);
+    }
+    return [openId, setOpenId] as const;
+}
+
 export default function SkillsStudio({ user, initialSkillId = null, onNavigate, hasPermission = () => true }: SkillsStudioProps) {
     const { t } = useTranslation();
 
@@ -64,15 +81,8 @@ export default function SkillsStudio({ user, initialSkillId = null, onNavigate, 
         || (['admin', 'org_admin', 'agent_admin', 'agent_editor'] as Array<string | null | undefined>).includes(user?.orgRole)
     );
 
-    const [skills, setSkills] = useState<Skill[]>([]);
-    const [summary, setSummary] = useState<UsageSummaryMap | null>(null);
-    const [loading, setLoading] = useState(true);
-    // A failed list read is its own state, not an empty list. A toast is
-    // gone in five seconds; "No skills yet — create one with the + button"
-    // stays on the screen and is a claim about somebody's organisation.
-    const [listError, setListError] = useState<string | null>(null);
     const [query, setQuery] = useState('');
-    const [openId, setOpenId] = useState(initialSkillId || null);
+    const [openId, setOpenId] = useDeepLinkedId(initialSkillId);
 
     // Resolved during render, not inside `load`: without a TranslationProvider
     // `useTranslation` hands back a fresh `t` every render (embeds, isolated
@@ -82,63 +92,30 @@ export default function SkillsStudio({ user, initialSkillId = null, onNavigate, 
     // stays stable.
     const listErrorText = t('skills_studio.err_list', 'Could not load the skills.');
 
-    const load = useCallback(async () => {
-        setLoading(true);
-        try {
-            const rows = await skillsApi.list();
-            setSkills(Array.isArray(rows) ? rows : []);
-            setListError(null);
-        } catch (e) {
-            setSkills([]);
-            setListError((e as Error)?.message || 'error');
-            toast.error((e as Error).message || listErrorText);
-        } finally {
-            setLoading(false);
-        }
-    }, [listErrorText]);
-
-    const loadSummary = useCallback(async () => {
-        try {
-            const body = await skillsApi.usageSummary();
-            setSummary(body?.summary || {});
-        } catch {
-            // Non-fatal: an unknown count renders as nothing, not as zero.
-            setSummary(null);
-        }
-    }, []);
-
-    useEffect(() => { load(); loadSummary(); }, [load, loadSummary]);
-
-    // Adopt deep-link changes INCLUDING the change to null (the Approvals /
-    // Datatables pattern): only adopting truthy ids leaves a detail open
-    // after Back.
-    const lastInitial = useRef(initialSkillId);
-    useEffect(() => {
-        if (initialSkillId !== lastInitial.current) {
-            lastInitial.current = initialSkillId;
-            setOpenId(initialSkillId || null);
-        }
-    }, [initialSkillId]);
+    const { skills, summary, loading, listError, load, loadSummary, patchSkill, dropSkill } = useSkillsStudioData(listErrorText);
 
     const open = useCallback((id: string | null) => {
         setOpenId(id || null);
         onNavigate?.(id ? `studio/skills/${id}` : 'studio/skills');
-    }, [onNavigate]);
+    }, [setOpenId, onNavigate]);
 
-    const createEmpty = async () => {
-        try {
-            const created = await skillsApi.create({
-                name: t('skills_studio.untitled', 'Untitled skill'),
-                description: '', instructions: '', workflow: '', rules: '', examples: '',
-                icon: '⚡', isShared: false, dynamicActivation: false,
-                sharedGroups: [], enabledIntegrations: [],
-            });
+    const create = useMutation({
+        mutationFn: () => skillsApi.create({
+            name: t('skills_studio.untitled', 'Untitled skill'),
+            description: '', instructions: '', workflow: '', rules: '', examples: '',
+            icon: '⚡', isShared: false, dynamicActivation: false,
+            sharedGroups: [], enabledIntegrations: [],
+        }),
+        onSuccess: async (created) => {
             await load();
             if (created?.id) open(created.id);
-        } catch (e) {
+        },
+        onError: (e) => {
             toast.error((e as Error).message || t('skills_studio.err_create', 'Could not create the skill.'));
-        }
-    };
+        },
+    });
+    // The toast is the mutation's onError; the caller only awaits the outcome.
+    const createEmpty = async () => { await create.mutateAsync().catch(() => undefined); };
 
     const shown = useMemo(() => filterSkills(skills, query), [skills, query]);
     const openSkill = useMemo(() => skills.find(s => s.id === openId) || null, [skills, openId]);
@@ -147,14 +124,14 @@ export default function SkillsStudio({ user, initialSkillId = null, onNavigate, 
     // subline follow the editor without a refetch, and without remounting
     // the detail (which would throw away the caret and any pending save).
     const onSaved = useCallback((patch: { id: string; }) => {
-        setSkills(prev => prev.map(s => (s.id === patch.id ? { ...s, ...patch } : s)));
-    }, []);
+        patchSkill(patch);
+    }, [patchSkill]);
 
     const onDeleted = useCallback((id: string) => {
-        setSkills(prev => prev.filter(s => s.id !== id));
+        dropSkill(id);
         open(null);
         loadSummary();
-    }, [open, loadSummary]);
+    }, [dropSkill, open, loadSummary]);
 
     return (
         <div className="flex h-full min-h-0 bg-[var(--bg-primary)]" data-testid="skills-studio">

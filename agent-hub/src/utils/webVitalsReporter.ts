@@ -25,14 +25,14 @@ import { onCLS, onINP, onLCP, onFCP, onTTFB } from 'web-vitals';
 import type { Metric } from 'web-vitals';
 import { APP_BUILD_SHA } from './appVersion';
 import { isPublicMarketingPath } from './cmsPublicRouting';
-import { API_BASE } from './helpers';
+import { apiUrl } from '../api/typedRequest';
 import { consentAccepted } from '../marketing/components/consent';
 import { logger } from './logger';
 
 // Must be absolute against API_BASE — when the SPA runs inside the
 // Nextcloud iframe, a bare `/api/...` resolves to NC's domain rather
 // than the connector's proxy path and the request 404s on NC.
-const ENDPOINT = `${API_BASE}/api/web-vitals`;
+const ENDPOINT = apiUrl('POST /api/web-vitals');
 
 function send(metric: Metric): void {
     // Public marketing context → only beacon with cookie consent (see header

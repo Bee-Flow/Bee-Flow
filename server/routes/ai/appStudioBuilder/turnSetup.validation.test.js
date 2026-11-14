@@ -29,7 +29,7 @@ const MOCKS = {
     '../../../appStudio/linkedTables': { describeLinkedTables: async () => new Map(), overlayLinkedRowCounts: (c) => c },
     '../../../core/llm/planChecklist': { normalizePlanTodos: (t) => t },
     '../../../core/llm/screenConstraints': { deriveScreenConstraints: () => null },
-    './dataModelEvent': { normalizeRowCounts: () => ({}) },
+    '../../../usecases/ai/appStudioBuilder/dataModelEvent': { normalizeRowCounts: () => ({}) },
 };
 
 const MOCK_IDS = {};

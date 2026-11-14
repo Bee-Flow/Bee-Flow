@@ -98,3 +98,20 @@ test('whisperx: WHISPERX_URL and SERVICES_API_KEY from the deployment are used, 
     assert.strictEqual(res.success, true);
     assert.deepStrictEqual(seen, [{ url: '/transcribe', apiKey: 'svc-key' }]);
 });
+
+test('whisperx: a URL on a link-local address is refused and no request goes out', async (t) => {
+    const original = globalThis.fetch;
+    let fetched = 0;
+    globalThis.fetch = async () => { fetched += 1; return Response.json({ segments: [] }); };
+    const before = baseUrl;
+    baseUrl = 'http://169.254.169.254/whisperx';
+    t.after(() => { globalThis.fetch = original; baseUrl = before; });
+
+    const res = await executeTranscriptionTool(
+        'transcribe_audio',
+        { language: 'en' },
+        { userId: 'u1', attachments: [{ name: 'a.mp3', data: Buffer.from('AUDIO') }] },
+    );
+    assert.strictEqual(fetched, 0);
+    assert.match(res.error, /metadata or link-local address/);
+});

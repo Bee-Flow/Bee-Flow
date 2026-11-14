@@ -10,6 +10,7 @@
  * hook object itself.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { toast } from '@/components/shared/Toast';
 import { API, fetchJson, json, jsonInit, asArray } from '@/api/complianceApi';
@@ -314,10 +315,39 @@ export function useTraining({ enabled = false, onChanged = noop }: UseTrainingAr
 // Filtering and paging go to the SERVER. A client-side filter over one page
 // would answer a different question than the operator typed: "every refused
 // sign-in this month" would silently mean "…on this page".
+/** One action of the filter control: a bare action string (no count) as well as { action, count }. */
+type AccessAuditAction = string | { action: string; count?: number };
+
+// Each filter and page is read when it is shown; the last answer stays on screen until the next one lands.
+const ACCESS_AUDIT_READ = { staleTime: 0, gcTime: 0, retry: false, refetchOnReconnect: false, placeholderData: keepPreviousData } as const;
+
+/** The log page and the actions of the filter control, for one filter and offset. */
+function useAccessAuditReads(enabled: boolean, query: URLSearchParams, offset: number) {
+    const qs = query.toString();
+    const log = useQuery<AccessAuditLog>({
+        ...ACCESS_AUDIT_READ,
+        queryKey: ['compliance', 'accessAudit', 'log', qs, offset],
+        enabled,
+        queryFn: async () => {
+            const q = new URLSearchParams(qs);
+            q.set('offset', String(offset));
+            try { return await fetchJson(`${API}/access-audit?${q.toString()}`); } catch (e) { return { error: (e as Error).message }; }
+        },
+    });
+    const actions = useQuery<AccessAuditAction[]>({
+        ...ACCESS_AUDIT_READ,
+        queryKey: ['compliance', 'accessAudit', 'actions', qs],
+        enabled,
+        // The filter control is a convenience; losing it must not blank the log.
+        queryFn: async () => {
+            try { return (await fetchJson(`${API}/access-audit/actions?${qs}`))?.actions || []; } catch { return []; }
+        },
+    });
+    return { data: log.data ?? null, actions: actions.data ?? NO_ACTIONS };
+}
+const NO_ACTIONS: AccessAuditAction[] = [];
+
 export function useAccessAudit({ enabled = false }: UseAccessAuditArgs = {}) {
-    const [data, setData] = useState<AccessAuditLog | null>(null);
-    // An entry may be a bare action string (no count) as well as { action, count }.
-    const [actions, setActions] = useState<Array<string | { action: string; count?: number }>>([]);
     const [filter, setFilter] = useState<AccessAuditFilter>({});
     const [offset, setOffset] = useState(0);
     const [exportError, setExportError] = useState<string | null>(null);
@@ -338,20 +368,7 @@ export function useAccessAudit({ enabled = false }: UseAccessAuditArgs = {}) {
         if (action) setFilter({ action });
     });
     useEffect(() => { if (!enabled) presetAccessAuditActions(null); }, [enabled]);
-    useEffect(() => {
-        if (!enabled) return undefined;
-        let cancelled = false;
-        const q = new URLSearchParams(query);
-        q.set('offset', String(offset));
-        fetchJson(`${API}/access-audit?${q.toString()}`)
-            .then((d) => { if (!cancelled) setData(d); })
-            .catch((e) => { if (!cancelled) setData({ error: e.message }); });
-        fetchJson(`${API}/access-audit/actions?${query.toString()}`)
-            .then((d) => { if (!cancelled) setActions(d?.actions || []); })
-            // The filter control is a convenience; losing it must not blank the log.
-            .catch(() => { if (!cancelled) setActions([]); });
-        return () => { cancelled = true; };
-    }, [enabled, query, offset]);
+    const { data, actions } = useAccessAuditReads(enabled, query, offset);
     return {
         data, actions, filter, offset, exportError,
         setFilter: (f: AccessAuditFilter | ((prev: AccessAuditFilter) => AccessAuditFilter)) => { setFilter(f); setOffset(0); }, setOffset,

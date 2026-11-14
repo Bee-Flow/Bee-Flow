@@ -244,7 +244,7 @@ router.get('/effective', requireAuth, async (req, res) => {
     res.json(data);
 });
 
-router.put('/user', requireAuth, validate({ body: UserBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof UserBody>, import('qs').ParsedQs>} */ req, res) => {
+router.put('/user', requireAuth, validate({ body: UserBody }), async (req, res) => {
     const userId = req.session?.user?.id;
     if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 
@@ -317,7 +317,7 @@ router.get('/admin', requireAdmin, async (req, res) => {
     });
 });
 
-router.put('/admin', requireAdmin, validate({ body: AdminBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof AdminBody>, import('qs').ParsedQs>} */ req, res) => {
+router.put('/admin', requireAdmin, validate({ body: AdminBody }), async (req, res) => {
     const next = await brandingStore.setOrgDefault(req.body);
     const wallpaperFilename = await brandingStore.getWallpaperFilename();
     res.json({

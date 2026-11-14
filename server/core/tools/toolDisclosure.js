@@ -245,7 +245,7 @@ function resolveGroupKey(requested, lazyByGroup) {
 /**
  * Given the groups the model asked to load, return the new tool defs to inject.
  *
- * @param {string[]} groupNames
+ * @param {string[] | undefined} groupNames  anything but a list reads as none
  * @param {{ lazyByGroup: Map, loadedNames: Set<string>, currentToolCount: number, maxTools?: number }} ctx
  *   `loadedNames`: tool names already present in the live list; `currentToolCount`: current size of the
  *   live tool list

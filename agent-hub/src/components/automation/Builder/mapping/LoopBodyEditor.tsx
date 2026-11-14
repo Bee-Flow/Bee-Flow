@@ -164,13 +164,13 @@ export default function LoopBodyEditor({
                                     <Icon size={13} className="shrink-0 text-[var(--text-secondary)]" />
                                     <span className="truncate text-xs font-medium text-[var(--text-primary)]">{i + 1}. {rowLabel(step)}</span>
                                 </button>
-                                <button type="button" onClick={() => moveStep(i, -1)} disabled={i === 0} title={t('automations.loop_body_editor.move_up', 'Move up')} className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-30 disabled:pointer-events-none">
+                                <button type="button" onClick={() => moveStep(i, -1)} disabled={i === 0} title={t('automations.loop_body_editor.move_up', 'Move up')} aria-label={t('automations.loop_body_editor.move_up', 'Move up')} className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-30 disabled:pointer-events-none">
                                     <ChevronUp size={12} />
                                 </button>
-                                <button type="button" onClick={() => moveStep(i, 1)} disabled={i === body.length - 1} title={t('automations.loop_body_editor.move_down', 'Move down')} className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-30 disabled:pointer-events-none">
+                                <button type="button" onClick={() => moveStep(i, 1)} disabled={i === body.length - 1} title={t('automations.loop_body_editor.move_down', 'Move down')} aria-label={t('automations.loop_body_editor.move_down', 'Move down')} className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-30 disabled:pointer-events-none">
                                     <ChevronDown size={12} />
                                 </button>
-                                <button type="button" onClick={() => removeStep(step.id)} title={t('automations.loop_body_editor.remove_step', 'Remove step')} className="p-1 rounded text-[var(--text-tertiary)] hover:text-red-500 hover:bg-red-500/10">
+                                <button type="button" onClick={() => removeStep(step.id)} title={t('automations.loop_body_editor.remove_step', 'Remove step')} aria-label={t('automations.loop_body_editor.remove_step', 'Remove step')} className="p-1 rounded text-[var(--text-tertiary)] hover:text-red-500 hover:bg-red-500/10">
                                     <Trash2 size={12} />
                                 </button>
                             </div>

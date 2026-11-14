@@ -3,25 +3,29 @@
 /**
  * Data bindings resolved for a server walk. The read seam (`readData`) here compiles with the
  * REAL query compiler and access filter, exactly as stepDataSource does before it queries, and
- * records the SQL instead of running it: what the walk asks for is what a SELECT would get,
- * without mocking a store through the module system.
+ * runs the SELECT on the app's real engine: better-sqlite3 with the table laid down by the real
+ * migration planner (testUtils/linkedEngines.testkit.js, which boots PGlite beside it). What the
+ * walk asks for is what the rows show, without mocking a store through the module system.
  *
  * Run: cd server && node --test appStudio/runBindings.test.js
  */
 
-const { test, beforeEach } = require('node:test');
+const { test, before, beforeEach, after } = require('node:test');
 const assert = require('node:assert/strict');
 
+const { bootLinkedEngines } = require('../testUtils/linkedEngines.testkit');
 const queryCompiler = require('./queryCompiler');
 const rlsGateway = require('./rlsGateway');
 const stepDataSource = require('./stepDataSource');
 
 const queryCalls = [];
-let queryRows = [];
+/** @type {{ sqlite: any }} */
+let engines;
+const closers = [];
 
 const tableOf = (model, id) => model.tables.find((t) => t.id === id) || null;
 
-/** stepDataSource.resolveDataBinding's compile half, with the query recorded instead of run. */
+/** stepDataSource.resolveDataBinding's compile half, run on the app engine. */
 async function compilingRead(app, model, binding, { viewer, role, resolveValue, maxRows }) {
     const table = tableOf(model, binding.tableId);
     if (!table) return null;
@@ -32,9 +36,10 @@ async function compilingRead(app, model, binding, { viewer, role, resolveValue, 
     const compiled = binding.kind === 'aggregate'
         ? queryCompiler.compileAggregate(table, { filters, groupBy: binding.groupBy, aggregates: binding.aggregates, sort: binding.sort, limit }, accessFilter)
         : queryCompiler.compileRecordList(table, { filters, sort: binding.sort, limit: binding.kind === 'record' ? 1 : limit }, accessFilter);
-    queryCalls.push({ ownerId: app.userId, sql: compiled.sql, params: compiled.params, maxRows });
-    if (binding.kind === 'record') return queryRows[0] ?? null;
-    return queryRows.slice(0, maxRows);
+    queryCalls.push({ ownerId: app.userId, maxRows });
+    const rows = await engines.sqlite.all(compiled.sql, compiled.params);
+    if (binding.kind === 'record') return rows[0] ?? null;
+    return rows;
 }
 
 const { resolveRunBinding, applyPick, DEFAULT_LIMIT } = require('./runBindings.mts');
@@ -61,30 +66,38 @@ function env(vars = {}, over = {}) {
     return { app, model, ctx, scope: buildServerScope(ctx), maxRows: 200, readData: compilingRead, ...over };
 }
 
-beforeEach(() => { queryCalls.length = 0; queryRows = []; });
+before(async () => { engines = await bootLinkedEngines(model, closers); });
+after(() => { for (const close of closers) close(); });
+beforeEach(async () => {
+    queryCalls.length = 0;
+    await engines.sqlite.run('DELETE FROM tickets', []);
+});
 
-/** The LIMIT the compiled SELECT asks for (a literal, or the last placeholder). */
-function limitOf(call) {
-    const m = /LIMIT\s+(\d+|\?|\$(\d+))\s*$/i.exec(call.sql);
-    assert.ok(m, `no LIMIT in ${call.sql}`);
-    if (m[2]) return call.params[Number(m[2]) - 1];
-    return m[1] === '?' ? call.params[call.params.length - 1] : Number(m[1]);
+let seq = 0;
+/** Ticket rows of the app. */
+async function tickets(rows) {
+    for (const r of rows) {
+        await engines.sqlite.run('INSERT INTO tickets (id, status, customer, amount) VALUES (?, ?, ?, ?)',
+            [r.id || `r${++seq}`, r.status ?? null, r.customer ?? null, r.amount ?? null]);
+    }
 }
+const pickRows = (rows, keys) => rows.map((r) => Object.fromEntries(keys.map((k) => [k, r[k]])));
 
-test('a records binding without a limit reads what a screen gets: LIMIT 51 (the probe row past 50)', async () => {
-    queryRows = [{ id: 'r1', status: 'open' }];
+test('a records binding without a limit reads what a screen gets: 51 rows (the probe row past 50)', async () => {
+    await tickets(Array.from({ length: 60 }, (_, i) => ({ id: `o${String(i).padStart(2, '0')}`, status: 'open' })));
+    await tickets([{ id: 'closed-1', status: 'closed' }]);
     const rows = await resolveRunBinding({ kind: 'records', tableId: 'tbl_t', filter: [{ field: 'status', op: 'eq', value: { kind: 'formula', expr: 'vars.status' } }] }, env({ status: 'open' }));
-    assert.deepEqual(rows, [{ id: 'r1', status: 'open' }]);
-    assert.equal(queryCalls.length, 1);
     assert.equal(DEFAULT_LIMIT, 50);
-    assert.equal(limitOf(queryCalls[0]), 51);
-    assert.ok(queryCalls[0].params.includes('open'), 'the formula-valued filter reached the query as a literal');
+    assert.equal(rows.length, 51);
+    assert.ok(rows.every((r) => r.status === 'open'), 'the formula-valued filter reached the query as a literal');
+    assert.equal(queryCalls.length, 1);
     assert.equal(queryCalls[0].ownerId, OWNER);
 });
 
-test('a limit above maxRows is capped at maxRows', async () => {
-    await resolveRunBinding({ kind: 'records', tableId: 'tbl_t', limit: 5000 }, env({}, { maxRows: 200 }));
-    assert.equal(limitOf(queryCalls[0]), 201);
+test('a limit above maxRows is capped at maxRows (plus the probe row)', async () => {
+    await tickets(Array.from({ length: 250 }, () => ({ status: 'open' })));
+    const rows = await resolveRunBinding({ kind: 'records', tableId: 'tbl_t', limit: 5000 }, env({}, { maxRows: 200 }));
+    assert.equal(rows.length, 201);
 });
 
 test('a required filter without a value reads no rows and sends no query', async () => {
@@ -101,23 +114,21 @@ test('a required filter without a value reads no rows and sends no query', async
 });
 
 test('an aggregate binding resolves a formula-valued groupBy before it compiles', async () => {
-    queryRows = [{ status: 'open', n: 3 }];
+    await tickets([{ status: 'open' }, { status: 'open' }, { status: 'open' }, { status: 'closed' }]);
     const out = await resolveRunBinding({
         kind: 'aggregate', tableId: 'tbl_t',
         groupBy: { kind: 'formula', expr: 'vars.dimension' },
         aggregates: [{ fn: 'count', as: 'n' }],
     }, env({ dimension: [{ field: 'status' }] }));
-    assert.deepEqual(out, [{ status: 'open', n: 3 }]);
+    assert.deepEqual(pickRows(out, ['status', 'n']).sort((a, b) => a.status.localeCompare(b.status)), [{ status: 'closed', n: 1 }, { status: 'open', n: 3 }]);
     assert.equal(queryCalls.length, 1);
-    assert.match(queryCalls[0].sql, /GROUP BY/i);
-    assert.match(queryCalls[0].sql, /status/);
 });
 
 test('pick narrows the rows to one value; a record binding applies its path', async () => {
-    queryRows = [{ id: 'r1', customer: 'Ada', amount: 4 }, { id: 'r2', customer: 'Bo', amount: 9 }];
-    assert.equal(await resolveRunBinding({ kind: 'records', tableId: 'tbl_t', pick: { row: 'last', column: 'amount' } }, env()), 9);
-    queryRows = [{ id: 'r1', customer: 'Ada' }];
-    assert.equal(await resolveRunBinding({ kind: 'record', tableId: 'tbl_t', path: 'customer' }, env()), 'Ada');
+    await tickets([{ id: 'r1', customer: 'Ada', amount: 4 }, { id: 'r2', customer: 'Bo', amount: 9 }]);
+    const sort = [{ field: 'amount', dir: 'asc' }];
+    assert.equal(await resolveRunBinding({ kind: 'records', tableId: 'tbl_t', sort, pick: { row: 'last', column: 'amount' } }, env()), 9);
+    assert.equal(await resolveRunBinding({ kind: 'record', tableId: 'tbl_t', sort, path: 'customer' }, env()), 'Ada');
     assert.equal(applyPick([], { column: 'x' }), undefined);
     assert.deepEqual(applyPick([{ a: 1 }], { row: 'first' }), { a: 1 });
 });

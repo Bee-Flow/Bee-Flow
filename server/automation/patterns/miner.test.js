@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * Miner tests, including the golden gate over __fixtures__/streams.js:
@@ -77,11 +77,11 @@ test('golden: cold-start streams are early, the rest are not', () => {
 test('rejections are named: bulk mail, bare meetings, auto-sync, unknown sources', () => {
     /** @param {string} n */
     const byName = (n) => fixtures.find((f) => f.name === n);
-    assert.ok(minePatterns(byName('newsletter_weekly_bulk').events, { now: B.NOW }).rejected.bulk_no_action >= 1);
-    assert.ok(minePatterns(byName('bare_daily_standup').events, { now: B.NOW }).rejected.bare_meeting >= 1);
-    assert.ok(minePatterns(byName('standup_with_everyday_tool_use').events, { now: B.NOW }).rejected.bare_meeting >= 1);
-    assert.ok(minePatterns(byName('auto_synced_camera_folder').events, { now: B.NOW }).rejected.autosync >= 1);
-    const unknown = minePatterns(byName('unknown_source_lookalike').events, { now: B.NOW });
+    assert.ok(minePatterns(/** @type {any} */ (byName('newsletter_weekly_bulk')).events, { now: B.NOW }).rejected.bulk_no_action >= 1);
+    assert.ok(minePatterns(/** @type {any} */ (byName('bare_daily_standup')).events, { now: B.NOW }).rejected.bare_meeting >= 1);
+    assert.ok(minePatterns(/** @type {any} */ (byName('standup_with_everyday_tool_use')).events, { now: B.NOW }).rejected.bare_meeting >= 1);
+    assert.ok(minePatterns(/** @type {any} */ (byName('auto_synced_camera_folder')).events, { now: B.NOW }).rejected.autosync >= 1);
+    const unknown = minePatterns(/** @type {any} */ (byName('unknown_source_lookalike')).events, { now: B.NOW });
     assert.ok(unknown.rejected.unknown_source > 0);
     assert.strictEqual(unknown.candidates.length, 0);
 });
@@ -98,13 +98,13 @@ test('a bulk mail the user DOES act on every time can still be a pattern', () =>
 
 test('reasons: empty input and a quiet history', () => {
     assert.strictEqual(minePatterns([], { now: B.NOW }).reason, 'not_enough_history');
-    assert.strictEqual(minePatterns(fixtures.find((f) => f.name === 'short_history_noise').events, { now: B.NOW }).reason, 'not_enough_history');
-    assert.strictEqual(minePatterns(fixtures.find((f) => f.name === 'random_one_offs').events, { now: B.NOW }).reason, 'no_patterns');
+    assert.strictEqual(minePatterns(/** @type {any} */ (fixtures.find((f) => f.name === 'short_history_noise')).events, { now: B.NOW }).reason, 'not_enough_history');
+    assert.strictEqual(minePatterns(/** @type {any} */ (fixtures.find((f) => f.name === 'random_one_offs')).events, { now: B.NOW }).reason, 'no_patterns');
     assert.strictEqual(minePatterns(fixtures[0].events, { now: B.NOW }).reason, null);
 });
 
 test('one habit, one card: the follow-up sequence folds into the mail pattern', () => {
-    const { candidates } = minePatterns(fixtures.find((f) => f.name === 'invoice_gmail_to_sheet_monday').events, { now: B.NOW });
+    const { candidates } = minePatterns(/** @type {any} */ (fixtures.find((f) => f.name === 'invoice_gmail_to_sheet_monday')).events, { now: B.NOW });
     assert.strictEqual(candidates.length, 1);
     assert.deepStrictEqual(candidates[0].verbs, ['mail.received', 'gmail_search', 'gmail_get_attachment', 'sheets_append_rows']);
     assert.deepStrictEqual(candidates[0].templateIds.length, 1);
@@ -155,7 +155,7 @@ test('a daily habit that stopped weeks ago is not repeating work any more', () =
 
 test('meetings without a series key never form a series', () => {
     const events = B.daysOn([2]).flatMap((d) => [
-        B.meeting(B.at(d, 10), 'teams', null),
+        B.meeting(B.at(d, 10), 'teams', /** @type {any} */ (null)),
         ...B.session(B.at(d, 11), `ms-${d}`, [['planner_create_task', 'planner']]),
     ]);
     const res = minePatterns(events, { now: B.NOW });

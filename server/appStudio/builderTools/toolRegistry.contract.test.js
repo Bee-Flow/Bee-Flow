@@ -26,7 +26,7 @@ const fixtures = registry.loadRegistryTools(path.join(__dirname, '__tests__', 'r
 
 /** Every tool name some other surface already answers to. */
 async function reservedNames() {
-    const { ASK_QUESTIONS_TOOL } = await import('../../routes/ai/appStudioBuilder/workMode.mts');
+    const { ASK_QUESTIONS_TOOL } = await import('../../usecases/ai/appStudioBuilder/workMode.mts');
     const own = new Set(shipped.map((t) => t.name));
     return new Set([
         ...TOOL_SCHEMAS.map((t) => t.function.name).filter((n) => !own.has(n)),

@@ -134,3 +134,11 @@ test('a session from before the uid was kept still falls back to the account id'
     const stored = await createWith({ user: { id: 'alice' }, oauthProvider: 'nextcloud', accessToken: 'tok' });
     assert.deepStrictEqual(stored, [['alice', 'alice']]);
 });
+
+test('creating an app password takes no fields: one sent is refused by name and nothing is minted', async () => {
+    const res = await dispatch({ method: 'POST', url: '/create-app-password', body: { password: 'mine' } });
+    assert.strictEqual(res.statusCode, 400);
+    assert.strictEqual(res.body.code, 'invalid_request');
+    assert.match(res.body.error, /does not take "password"/);
+    assert.deepStrictEqual(touched, []);
+});

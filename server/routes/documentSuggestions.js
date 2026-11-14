@@ -17,6 +17,11 @@
 
 const { HttpError, notFound } = require('../core/http/errors');
 const { lazyGate } = require('../auth/gateMeta');
+const { validate } = require('../core/http/validate');
+const { bodyOf } = require('../core/http/schemaParts');
+
+// Accepting or rejecting acts on the suggestion (or batch) in the path and takes no fields.
+const NoBody = bodyOf({}, 'Accepting or rejecting a suggestion');
 
 const ACTIONS = /** @type {ReadonlyArray<'accept'|'reject'>} */ (Object.freeze(['accept', 'reject']));
 
@@ -97,8 +102,8 @@ function makeDocumentSuggestionsRouter(deps = {}) {
         (await store().listBatch('document', doc.id, req.params.batchId)).filter((/** @type {SuggestionView} */ s) => s.status === 'open' || s.status === 'stale').map((/** @type {SuggestionView} */ s) => s.id);
 
     for (const action of ACTIONS) {
-        router.post(`/:id/suggestions/batch/:batchId/${action}`, auth, resolveRoute(action, batch));
-        router.post(`/:id/suggestions/:sid/${action}`, auth, resolveRoute(action, single));
+        router.post(`/:id/suggestions/batch/:batchId/${action}`, auth, validate({ body: NoBody }), resolveRoute(action, batch));
+        router.post(`/:id/suggestions/:sid/${action}`, auth, validate({ body: NoBody }), resolveRoute(action, single));
     }
     return router;
 }

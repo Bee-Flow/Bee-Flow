@@ -9,11 +9,10 @@
  * exactly like the inline `require('../stores/userStore')` it replaces.
  */
 
+// Typed as filled: stripeService.js sets both when it loads, before any Stripe module is called.
 const deps = {
-    /** @type {typeof import('../../stores/configStore') | null} */
-    configStore: null,
-    /** @type {(() => typeof import('../../stores/userStore')) | null} */
-    userStore: null,
+    configStore: /** @type {typeof import('../../stores/configStore')} */ (/** @type {unknown} */ (null)),
+    userStore: /** @type {() => typeof import('../../stores/userStore')} */ (/** @type {unknown} */ (null)),
 };
 
 module.exports = deps;

@@ -107,6 +107,50 @@ function fallback(label, err, value) {
     return /** @type {T} */ (value);
 }
 
+/**
+ * What a cleanup meets when its target is already gone: a file already
+ * deleted (ENOENT), a socket or stream already closed or destroyed, a web
+ * stream reader already released or closed (ERR_INVALID_STATE), an operation
+ * already aborted. Matched against `err.code` and `err.name`.
+ */
+const GONE = new Set([
+    'ENOENT', 'EPIPE', 'ECONNRESET',
+    'ERR_STREAM_DESTROYED', 'ERR_STREAM_PREMATURE_CLOSE', 'ERR_STREAM_WRITE_AFTER_END', 'ERR_STREAM_ALREADY_FINISHED',
+    'ERR_INVALID_STATE', 'AbortError',
+]);
+
+/**
+ * Is `err` the "already gone" answer of a cleanup? A string in `also` matches
+ * `err.code` or `err.name`, a number `err.statusCode` (a Docker 304 "already
+ * stopped" or 404 "no such container").
+ * @param {unknown} err
+ * @param {ReadonlyArray<string | number>} [also]
+ */
+function isGone(err, also = []) {
+    if (!err || typeof err !== 'object') return false;
+    const { code, name, statusCode } = /** @type {{ code?: unknown, name?: unknown, statusCode?: unknown }} */ (err);
+    for (const v of [code, name]) {
+        if (typeof v === 'string' && (GONE.has(v) || also.includes(v))) return true;
+    }
+    return typeof statusCode === 'number' && also.includes(statusCode);
+}
+
+/**
+ * A cleanup failed. Its target being already gone (`isGone`) is the expected
+ * answer and leaves no trace; any other failure goes through `bestEffort`.
+ *
+ *     try { fs.unlinkSync(tmp); } catch (e) { ignoreGone('voice/stt:unlinkTemp', e); }
+ *
+ * @param {string} label static `<module>:<what>`
+ * @param {unknown} err
+ * @param {ReadonlyArray<string | number>} [also] extra codes, names or status codes that mean "gone" here
+ * @returns {undefined}
+ */
+function ignoreGone(label, err, also) {
+    if (isGone(err, also)) return undefined;
+    return bestEffort(label, err);
+}
+
 /** @returns {Record<string, { count: number, kind: string }>} failures per label since the process started */
 function bestEffortCounts() {
     /** @type {Record<string, { count: number, kind: string }>} */
@@ -120,4 +164,4 @@ function resetBestEffort() {
     labels.clear();
 }
 
-module.exports = { bestEffort, fallback, bestEffortCounts, resetBestEffort, LOG_INTERVAL_MS };
+module.exports = { bestEffort, fallback, ignoreGone, isGone, bestEffortCounts, resetBestEffort, LOG_INTERVAL_MS };

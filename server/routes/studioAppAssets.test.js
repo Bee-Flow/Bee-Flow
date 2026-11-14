@@ -187,7 +187,7 @@ test('the list says where the draft and the published app use an asset; delete r
 });
 
 test('the save-time data references carry the asset ids, so a missing asset is a validator warning', async () => {
-    const { loadDataRefs } = require('./studioApps/appHelpers');
+    const { loadDataRefs } = require('../usecases/studioApps/appHelpers');
     const { validateAppDefinition } = require('../appStudio/validate');
     const { canonicalizeAppDefinition } = require('../appStudio/canonicalize');
     const refs = await loadDataRefs(appId, OWNER.id);

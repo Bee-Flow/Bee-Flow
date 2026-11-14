@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { TranslateFn } from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
 import { settled } from '@/api/settled';
 import type { AdminMessage, AdminOrganization, AskConfirm, OrgFormData } from './types';
-import { mutate, ApiError } from '@/api/mutate';
+import { ApiError } from '@/api/mutate';
+import { apiRequest, apiUrl } from '@/api/typedRequest';
 
 const EMPTY_ORG: OrgFormData = {
     id: '', name: '', description: '', tagline: '', address: '', email: '', phone: '', website: '',
@@ -97,7 +97,7 @@ export default function useOrgActions({ loadData, setMessage, askConfirm, t, act
             // POST /auth/organizations refuses unknown keys: the id is minted from
             // the name on the server and the integrations come from the global default.
             const { id: _id, enabledIntegrations: _integrations, ...body } = orgData;
-            const res = await settled(`${API_BASE}/auth/organizations`, {
+            const res = await settled(apiUrl('POST /auth/organizations'), {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body),
             });
@@ -116,7 +116,7 @@ export default function useOrgActions({ loadData, setMessage, askConfirm, t, act
         try {
             // The id travels in the URL; the update route refuses it as a body key.
             const { id, ...body } = orgData;
-            const res = await settled(`${API_BASE}/auth/organizations/${id}`, {
+            const res = await settled(apiUrl('PUT /auth/organizations/{id}', { params: { id } }), {
                 method: 'PUT', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body),
             });
@@ -143,7 +143,7 @@ export default function useOrgActions({ loadData, setMessage, askConfirm, t, act
 
     const doDeleteOrg = async (orgId: string) => {
         try {
-            const res = await settled(`${API_BASE}/auth/organizations/${orgId}`, { method: 'DELETE' });
+            const res = await settled(apiUrl('DELETE /auth/organizations/{id}', { params: { id: orgId } }), { method: 'DELETE' });
             if (res.ok) { setMessage({ type: 'success', text: 'Organization deleted' }); loadData(); }
             else { const d = res.body; setMessage({ type: 'error', text: d.error || 'Failed' }); }
         } catch (err) { setMessage({ type: 'error', text: 'Connection error' }); }
@@ -161,7 +161,7 @@ export default function useOrgActions({ loadData, setMessage, askConfirm, t, act
 
     const doRemoveNcBinding = async (org: AdminOrganization) => {
         try {
-            const res = await settled(`${API_BASE}/auth/admin/nc-bindings/org/${org.id}`, { method: 'DELETE' });
+            const res = await settled(apiUrl('DELETE /auth/admin/nc-bindings/org/{orgId}', { params: { orgId: org.id } }), { method: 'DELETE' });
             if (res.ok) { setMessage({ type: 'success', text: t('admin.org_nc_remove_success') }); loadData(); }
             else { const d = res.body; setMessage({ type: 'error', text: d.error || t('admin.org_nc_remove_error') }); }
         } catch (err) { setMessage({ type: 'error', text: 'Connection error' }); }
@@ -178,7 +178,7 @@ export default function useOrgActions({ loadData, setMessage, askConfirm, t, act
         const formData = new FormData();
         formData.append('logo', file);
         try {
-            const res = await mutate(`${API_BASE}/auth/organizations/${orgData.id}/logo`, { method: 'POST', body: formData }).catch((err: unknown) => {
+            const res = await apiRequest('POST /auth/organizations/{id}/logo', { params: { id: orgData.id }, init: { body: formData } }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });
@@ -192,7 +192,7 @@ export default function useOrgActions({ loadData, setMessage, askConfirm, t, act
 
     const handleOrgLogoRemove = async () => {
         if (orgData.id) {
-            await settled(`${API_BASE}/auth/organizations/${orgData.id}/logo`, { method: 'DELETE' }, 'empty');
+            await settled(apiUrl('DELETE /auth/organizations/{id}/logo', { params: { id: orgData.id } }), { method: 'DELETE' }, 'empty');
         }
         setOrgData(p => ({ ...p, logo: '', _logoFile: null }));
     };
@@ -202,7 +202,7 @@ export default function useOrgActions({ loadData, setMessage, askConfirm, t, act
         const formData = new FormData();
         formData.append('logo', file);
         try {
-            const res = await mutate(`${API_BASE}/auth/organizations/${orgData.id}/logo`, { method: 'POST', body: formData }).catch((err: unknown) => {
+            const res = await apiRequest('POST /auth/organizations/{id}/logo', { params: { id: orgData.id }, init: { body: formData } }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });
@@ -216,7 +216,7 @@ export default function useOrgActions({ loadData, setMessage, askConfirm, t, act
 
     const handleMyOrgLogoRemove = async () => {
         if (orgData.id) {
-            await settled(`${API_BASE}/auth/organizations/${orgData.id}/logo`, { method: 'DELETE' }, 'empty');
+            await settled(apiUrl('DELETE /auth/organizations/{id}/logo', { params: { id: orgData.id } }), { method: 'DELETE' }, 'empty');
         }
         setOrgData(p => ({ ...p, logo: '' }));
     };

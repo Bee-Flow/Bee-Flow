@@ -179,3 +179,17 @@ test('items in the stored shape still save', async () => {
     assert.strictEqual(res.statusCode, 200);
     assert.deepStrictEqual(touched.find((t) => t.what === 'updateEntry').args[1].items, items);
 });
+
+test('Publishing a release note takes no fields: one sent is refused by name', async () => {
+    const res = await dispatch({ method: 'POST', url: '/admin/n1/publish', body: { notify: true } });
+    assert.strictEqual(res.statusCode, 400, JSON.stringify(res.body));
+    assert.strictEqual(res.body.code, 'invalid_request');
+    assert.match(res.body.error, /Publishing a release note does not take "notify"/);
+});
+
+test('Unpublishing a release note takes no fields: one sent is refused by name', async () => {
+    const res = await dispatch({ method: 'POST', url: '/admin/n1/unpublish', body: { notify: true } });
+    assert.strictEqual(res.statusCode, 400, JSON.stringify(res.body));
+    assert.strictEqual(res.body.code, 'invalid_request');
+    assert.match(res.body.error, /Unpublishing a release note does not take "notify"/);
+});

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Value paths — the ONE grammar for addressing a value inside a step's
  * output, shared by the automation runtime (server/automation/bind.js), the
@@ -34,7 +35,6 @@
  * Dependency-free and isomorphic: the server requires it (require(esm)),
  * agent-hub imports the mirror, mobile vendors it byte for byte.
  */
-
 // ── Segments ─────────────────────────────────────────────────────────────
 
 // What a key may look like WITHOUT brackets when we WRITE a path: an ASCII
@@ -171,7 +171,7 @@ function readLiteral(src, i) {
     }
     const num = /^-?[0-9]+(?:\.[0-9]+)?/.exec(src.slice(i));
     if (num) return { value: Number(num[0]), end: i + num[0].length };
-    for (const [word, value] of [['true', true], ['false', false], ['null', null]]) {
+    for (const [word, value] of /** @type {Array<[string, boolean | null]>} */ ([['true', true], ['false', false], ['null', null]])) {
         // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- NAME_CHAR_RE is a single character class, tested on one character: linear
         if (src.startsWith(word, i) && !NAME_CHAR_RE.test(src[i + word.length] || '')) return { value, end: i + word.length };
     }

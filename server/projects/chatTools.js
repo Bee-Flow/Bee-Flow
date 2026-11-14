@@ -41,6 +41,7 @@
 'use strict';
 
 const log = require('../telemetry/log');
+const { featureModule } = require('../core/featureModules');
 
 const MAX_ITEMS_PER_ANSWER = 3;
 // Room for a lookup, a read, an edit and the answer, with a retry to spare.
@@ -140,8 +141,9 @@ function makeProjectChatTools(deps = {}) {
     const membership = () => deps.membership || require('./membership');
     const recordCreated = deps.recordCreated || ((e) => require('./changeFeed').recordItemCreated(e));
     const markdownToHtml = deps.markdownToHtml || ((md) => require('../core/markdown').markdownToHtml(md));
-    const searchDefinition = deps.searchDefinition || (() => require('../integrations/agentSearchTools').AGENT_SEARCH_TOOLS[0]);
-    const runSearch = deps.runSearch || ((name, args) => require('../integrations/agentSearchTools').executeWebSearch(name, args));
+    // The web search is integrations/' (a feature), looked up through core's feature-module registry.
+    const searchDefinition = deps.searchDefinition || (() => featureModule('integrations/agentSearchTools').AGENT_SEARCH_TOOLS[0]);
+    const runSearch = deps.runSearch || ((name, args) => featureModule('integrations/agentSearchTools').executeWebSearch(name, args));
     // A search is offered only where the administrator set one up: the service, the Serper key, or a provider.
     const searchAvailable = deps.searchAvailable || (async () => {
         const configStore = require('../stores/configStore');

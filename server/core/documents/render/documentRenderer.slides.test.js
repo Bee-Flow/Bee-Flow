@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The slides layout — a markdown memorandum rendered as a landscape deck.
  *

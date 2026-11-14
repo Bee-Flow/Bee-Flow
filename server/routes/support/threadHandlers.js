@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Company inbox: the handler bodies of the staff ticket routes (inbox, patch,
  * audit log, bulk action) and the reply past its access check. The routes,
@@ -87,7 +88,7 @@ async function afterStaffReply(thread, { userId, authorDisplay, body, msg }) {
 /** Re-run the AI on a requester follow-up; failure goes via the responder's escalate-on-error path. */
 function rerunAiOnFollowUp(thread) {
     Promise.resolve().then(() => runAiAutoResponder(thread.id))
-        .then(result => {
+        .then((/** @type {{ message?: { body?: string, id?: string }, escalated?: boolean } | null} */ result) => {
             if (!(result && result.message)) return;
             sendOrNotifyStaff(
                 sendAiReplyEmail,

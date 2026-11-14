@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * n8n Workflow Management Tools — Static AI tools for managing n8n workflows
  *
@@ -20,7 +20,7 @@ const log = require('../telemetry/log');
  * @typedef {{ id?: string, name?: string, active?: boolean, tags?: Array<string | { name?: string }>, createdAt?: string,
  *   updatedAt?: string, settings?: Record<string, unknown>, nodes?: N8nNode[], connections?: import('./n8nWorkflowHelpers').N8nConnections, executionId?: string,
  *   finished?: boolean, status?: string, mode?: string, startedAt?: string, stoppedAt?: string, workflowId?: string, retryOf?: string | null,
- *   data?: N8nJson & { executionId?: string, resultData?: N8nExecution['data']['resultData'] } }} N8nJsonObject
+ *   data?: N8nJson & { executionId?: string, resultData?: NonNullable<N8nExecution['data']>['resultData'] } }} N8nJsonObject
  * @typedef {N8nJsonObject & Array<N8nJsonObject>} N8nJson  an object, or the array the list endpoints answer with
  */
 
@@ -468,7 +468,7 @@ async function workflowCreate(args, { orgId, toolName }) {
     // Activation is a separate endpoint on the public API.
     if (active) {
         try {
-            await n8nApiFetch(orgId, `/workflows/${encodeURIComponent(created.id)}/activate`, { method: 'POST' });
+            await n8nApiFetch(orgId, `/workflows/${encodeURIComponent(String(created.id))}/activate`, { method: 'POST' });
             created.active = true;
         } catch (e) {
             return {
@@ -566,7 +566,7 @@ async function workflowPatch(args, { orgId, toolName }) {
     // Post-condition: refuse to save an internally inconsistent workflow.
     assertConnectionsIntegrity(mergedNodes, mergedConnections);
 
-    /** @type {{ name: string, nodes: N8nNode[], connections: import('./n8nWorkflowHelpers').N8nConnections, settings: Record<string, unknown>, active?: boolean }} */
+    /** @type {{ name: string | undefined, nodes: N8nNode[], connections: import('./n8nWorkflowHelpers').N8nConnections, settings: Record<string, unknown>, active?: boolean }} */
     const body = {
         name: mergedName,
         nodes: mergedNodes,

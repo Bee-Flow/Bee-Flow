@@ -10,13 +10,10 @@
  * them, so the effects fire in the same order.
  */
 import { useCallback, useEffect, useRef, useState, useEffectEvent } from 'react';
-import { API_BASE } from '@/utils/helpers';
-import { saveAgent, adoptedPromptAfterSave } from '@/api/agentSaveApi';
+import { saveAgent, saveAgentOnUnload, adoptedPromptAfterSave } from '@/api/agentSaveApi';
 import useAgentAutosave from '../state/useAgentAutosave';
 import { conflictHandlers, usePublishVersion, useSaveDraft } from './agentSaveFlows';
 import type { AgentSaveDeps, Conflict, EditorSnapshot, LimitWarning, Loose, Ref, SentRefs, Setter } from '@/api/agentSaveTypes';
-import { logger } from '@/utils/logger';
-
 export type { AgentSaveDeps, EditorSnapshot } from '@/api/agentSaveTypes';
 
 /** The autosave hook's callbacks: what happens after a save lands, conflicts or is refused. */
@@ -105,36 +102,35 @@ function useSnapshot(stateRef: Ref<EditorSnapshot>, { sentPersonaRef, sentSystem
 }
 
 /**
- * Best-effort flush of any pending auto-save when the tab is being closed.
+ * Best-effort flush of any pending auto-save when the tab is being closed
+ * (`saveAgentOnUnload`: the autosave's PUT, kept alive past the page).
  * We deliberately don't preventDefault / set returnValue here: the unsaved
  * changes UX is handled in-app via the parent's confirmation modal, not the
- * browser's native "Leave site?" dialog.
+ * browser's native "Leave site?" dialog. While a 409 waits in the conflict
+ * dialog nothing is sent: that save goes without a version check and would
+ * overwrite the other edit the user has not chosen against.
+ *
+ * The save is an Effect Event, the listener the effect only registers: the
+ * request belongs to the browser's unload event, not to the effect's run, and
+ * the event reads the latest conflict state without re-registering.
  */
-function useUnloadBeacon({ roRef, agentIdRef, dirtyRef, stateRef }: AgentSaveDeps) {
+function useUnloadBeacon({ roRef, agentIdRef, dirtyRef, stateRef }: AgentSaveDeps, conflict: Conflict | null) {
+    const onBeforeUnload = useEffectEvent(() => {
+        if (roRef.current) return; // read-only sessions never save
+        if (conflict) return;
+        if (agentIdRef.current && dirtyRef.current) {
+            saveAgentOnUnload(agentIdRef.current, {
+                name: stateRef.current.name,
+                description: stateRef.current.description,
+                systemPrompt: stateRef.current.systemPrompt,
+                config: stateRef.current.config,
+            });
+        }
+    });
     useEffect(() => {
-        const onBeforeUnload = () => {
-            if (roRef.current) return; // read-only sessions never save
-            if (agentIdRef.current && dirtyRef.current) {
-                // Best-effort last save on tab close. Deliberately WITHOUT a
-                // baseVersion so it lands unguarded (a 409 has no UI to reconcile
-                // against during unload).
-                const snapshot = {
-                    name: stateRef.current.name,
-                    description: stateRef.current.description,
-                    systemPrompt: stateRef.current.systemPrompt,
-                    config: stateRef.current.config,
-                };
-                try {
-                    navigator.sendBeacon(
-                        `${API_BASE}/agents/${agentIdRef.current}`,
-                        new Blob([JSON.stringify(snapshot)], { type: 'application/json' })
-                    );
-                } catch (err) { logger.debug('ignore', err); }
-            }
-        };
         window.addEventListener('beforeunload', onBeforeUnload);
         return () => window.removeEventListener('beforeunload', onBeforeUnload);
-    }, [agentIdRef, dirtyRef, roRef, stateRef]);
+    }, []);
 }
 
 /** Autosave wired to the editor, its status mirrored into the save pill, and the public save helpers. */
@@ -198,7 +194,7 @@ export default function useAgentSave(d: AgentSaveDeps) {
     useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
 
     const saveDraft = useSaveDraft(d, hookMarkSaved);
-    useUnloadBeacon(d);
+    useUnloadBeacon(d, conflict);
 
     return {
         getSnapshot, queueSave, flush, hookMarkSaved, publishVersion, saveDraft,

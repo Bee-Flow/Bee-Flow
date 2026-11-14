@@ -186,7 +186,7 @@ describe('getConversation', () => {
     });
 
     it('keeps the interrupted mark the server saves on a turn that died mid-way', async () => {
-        // routes/ai/directChat/interruptedTurn.js
+        // usecases/ai/directChat/interruptedTurn.js
         get.mockResolvedValueOnce({
             id: 'c1',
             created_at: 'a',

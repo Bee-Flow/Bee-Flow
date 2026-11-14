@@ -40,7 +40,7 @@
 
 'use strict';
 
-const { run, getAll, exec } = require('../db');
+const { getAll, exec, withTransaction } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const log = require('../telemetry/log');
 
@@ -106,24 +106,28 @@ async function recordActivations({ skillIds, agentId = null, conversationId = nu
     if (ids.length === 0) return 0;
     try {
         await initDB();
-        let written = 0;
-        for (const skillId of ids) {
-            // Upsert on the natural key: one row per use, `at` always current.
-            const r = await run(
-                `INSERT INTO skill_activations (skill_id, agent_id, conversation_id, user_id, source)
-                 VALUES ($1, $2, $3, $4, $5)
-                 ON CONFLICT (skill_id, conversation_id, agent_id, source)
-                 DO UPDATE SET at = NOW(), user_id = COALESCE(EXCLUDED.user_id, skill_activations.user_id)`,
-                [skillId, agent, conversation, userId || null, src],
+        // The rows, the skills' last_used_at and the prune in one transaction:
+        // a skill is never stamped as used without the row that says where.
+        return await withTransaction(async (client) => {
+            let written = 0;
+            for (const skillId of ids) {
+                // Upsert on the natural key: one row per use, `at` always current.
+                const r = await client.query(
+                    `INSERT INTO skill_activations (skill_id, agent_id, conversation_id, user_id, source)
+                     VALUES ($1, $2, $3, $4, $5)
+                     ON CONFLICT (skill_id, conversation_id, agent_id, source)
+                     DO UPDATE SET at = NOW(), user_id = COALESCE(EXCLUDED.user_id, skill_activations.user_id)`,
+                    [skillId, agent, conversation, userId || null, src],
+                );
+                written += r?.rowCount ?? 0;
+            }
+            await client.query(`UPDATE skills SET last_used_at = NOW() WHERE id = ANY($1::text[])`, [ids]);
+            await client.query(
+                `DELETE FROM skill_activations WHERE skill_id = ANY($1::text[]) AND at < NOW() - ($2 || ' days')::interval`,
+                [ids, String(RETENTION_DAYS)],
             );
-            written += r?.rowCount ?? 0;
-        }
-        await run(`UPDATE skills SET last_used_at = NOW() WHERE id = ANY($1::text[])`, [ids]);
-        await run(
-            `DELETE FROM skill_activations WHERE skill_id = ANY($1::text[]) AND at < NOW() - ($2 || ' days')::interval`,
-            [ids, String(RETENTION_DAYS)],
-        );
-        return written;
+            return written;
+        });
     } catch (err) {
         // A failed write must not be remembered as done.
         for (const id of ids) _recent.delete(`${id}|${conversation}|${agent}|${src}`);

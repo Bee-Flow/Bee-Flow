@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * App Studio data routes: reading in bulk. The owner's streamed export,
  * a read descriptor (POST /data/query) and a batch of them. The route
@@ -93,7 +93,7 @@ async function exportData(req, res) {
 
         res.write(`{"app":${JSON.stringify({ id: app.id, name: app.name })},`
             + `"exportedAt":${JSON.stringify(stamp)},`
-            + `"modelVersion":${JSON.stringify(meta.modelVersion ?? null)},`
+            + `"modelVersion":${JSON.stringify(/** @type {NonNullable<typeof meta>} */ (meta).modelVersion ?? null)},` // there is a model, so there is its row
             + `"model":${JSON.stringify(model)},`
             + `"linkedTables":${JSON.stringify(linkedTables)},"tables":{`);
 
@@ -106,7 +106,7 @@ async function exportData(req, res) {
             const plan = plans.get(table.key);
             const accessFilter = rlsGateway.compileAccessFilter(
                 plan.tableMeta, plan.role, plan.viewer, 'read', { dialect: plan.dialect });
-            /** @type {string | null} */
+            /** @type {string | null | undefined} */
             let cursor;
             let firstRow = true;
             // Keyset pages, not OFFSET: the compiler's own pagination, so a
@@ -239,7 +239,10 @@ async function batchRead(req, res) {
         // same table three times must not start three syncs.
         const touched = new Map();
         const results = await dataReadRunner.runBatch(ctx, reads, {
-            onTable: /** @param {{ id?: unknown }} t */ (t) => { if (!touched.has(t.id)) touched.set(t.id, t); },
+            onTable: (table) => {
+                const t = /** @type {{ id?: unknown }} */ (table); // the runner hands over the table row it read
+                if (!touched.has(t.id)) touched.set(t.id, t);
+            },
         });
 
         res.json({ results, appVersion: ctx.app.publishedVersion ?? null });

@@ -50,8 +50,8 @@
 
 const express = require('express');
 const agentStore = require('../../stores/agentStore');
-const { getEffectiveUserId } = require('../../utils/routeHelpers');
-const { canReadAgent, canModifyAgent } = require('./crud');
+const { requireAgentGrade } = require('./crud');
+const { agentAccessOf } = require('../../auth/agentAccess.mts');
 const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
@@ -135,22 +135,10 @@ async function lendableAppsFor(agent) {
 // A failed read is a 500 from the terminal handler, never an empty answer with
 // `readable: true`: the card reads a failure as "cannot be checked" and then
 // offers no lending choice.
-router.get('/:id/tool-lending', validate({ query: NoQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof NoQuery>>} */ req, res) => {
-    const userId = getEffectiveUserId(req);
-    const agent = await agentStore.getAgent(req.params.id);
-    if (!agent) return res.status(404).json({ error: 'Agent not found' });
-    // Same 404 as GET /:id for whoever may not see the agent — "you may not"
-    // and "it does not exist" should not be distinguishable.
-    if (!(await canReadAgent(agent, userId, req))) {
-        return res.status(404).json({ error: 'Agent not found' });
-    }
-    if (!(await canModifyAgent(agent, userId, req))) {
-        return res.status(403).json({
-            error: 'You do not have permission to edit this agent.',
-            code: 'agent_not_editable',
-        });
-    }
-
+// The edit grade (auth/agentAccess.mts): whoever may not see the agent gets the
+// same 404 as GET /:id, a reader who may not edit it the editor's 403.
+router.get('/:id/tool-lending', requireAgentGrade('edit'), validate({ query: NoQuery }), async (req, res) => {
+    const { agent } = agentAccessOf(req);
     const [lending, runtimeCurated] = await Promise.all([
         lendableAppsFor(agent),
         runtimeCuratedOf(agent.id),

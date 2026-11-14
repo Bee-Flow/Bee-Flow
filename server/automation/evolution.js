@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Automation evolution — an automation proposes changes to its OWN definition, a human
  * approves, the change lands as a new version, the next runs are watched, and

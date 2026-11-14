@@ -18,6 +18,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const Module = require('module');
+const { fakeAgentGates } = require('./agentGate.testkit');
 
 const mw = () => (req, res, next) => next();
 
@@ -61,9 +62,11 @@ const MOCKS = {
     },
     '../../utils/routeHelpers': { getEffectiveUserId: () => fx.userId },
     '../../utils/perUserRateLimit': { perUserRateLimit: mw },
-    './crud': { canModifyAgent: async () => fx.canModify },
+    './crud': null,
     '../../core/llm/surfaceUsage': { logSurfaceUsage: (call) => { fx.usageCalls.push(call); } },
 };
+MOCKS['./crud'] = fakeAgentGates({ agentStore: MOCKS['../../stores/agentStore'], canModify: () => fx.canModify, userId: () => fx.userId });
+
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
     const mockId = `mock:agent-persona-route:${request}`;

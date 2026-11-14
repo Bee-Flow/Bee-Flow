@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { API_BASE, authFetch } from '@/utils/helpers';
 import { deepEqual } from '@/utils/deepEqual';
 import { toast } from '../../shared/Toast';
 import { hasPendingDatatableRefs } from './chat/pendingTables';
@@ -8,6 +7,7 @@ import { isBlankDefinition } from './flow/normalizeDefinition';
 import type useAutomationBuilderStream from '@/hooks/useAutomationBuilderStream';
 import type useBuilderHydration from './useBuilderHydration';
 import type { FlowDefinition } from './flow/types';
+import { type ApiBody, apiFetch } from '@/api/typedRequest';
 
 
 export interface UseBuilderReviewOptions {
@@ -43,9 +43,7 @@ export default function useBuilderReview({
         const aid = state.automationId || serverAutomation?.id;
         let body: { ok?: boolean; message?: string; error?: string; definition?: FlowDefinition; createdDatatables?: { name: string }[]; keptDatatables?: { name: string }[] } = { ok: true };
         if (aid && revisionId) {
-            const response = await authFetch(`${API_BASE}/api/automation/builder/session/${encodeURIComponent(aid)}/review`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, revisionId }),
-            });
+            const response = await apiFetch('POST /api/automation/builder/session/{automationId}/review', { params: { automationId: aid }, body: { action: action as ApiBody<'POST /api/automation/builder/session/{automationId}/review'>['action'], revisionId } });
             body = await response.json().catch(() => ({}));
             if (!response.ok) { toast.error(body?.message || body?.error || t('automations.assistant.review_changed', 'The saved review has changed. Reload the latest revision.')); return null; }
         }

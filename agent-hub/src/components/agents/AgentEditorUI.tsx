@@ -1,4 +1,4 @@
-import { useState, useEffect, useEffectEvent } from 'react';
+import { useState } from 'react';
 import KnowledgePanel from '../knowledge/KnowledgePanel';
 import VersionHistory from './VersionHistory';
 import ModelTierSelector from '../licensing/ModelTierSelector';
@@ -10,9 +10,10 @@ import type { ModelTierMap } from '../../api/queries/modelTiers';
 import type { ModelEntry } from '../../api/modelMeta';
 import type { AppUserLike } from '../projects/workspace/types';
 import type { ToolParamConfig, AgentFormData, AgentEditorData, EditorOrganization, EditorGroup, EditorCategory, AgentEditorUIProps } from './AgentEditorUI.types';
-import { logger } from '../../utils/logger';
-import { request, RefusedError } from '../../api/mutate';
+import { useConfigTiersForUser } from '../../api/queries/configModels';
 export type { ToolParamConfig, AgentFormData,  EditorOrganization, EditorGroup, EditorCategory } from './AgentEditorUI.types';
+
+const EMPTY_TIERS: ModelTierMap = {};
 
 const AgentEditorUI = ({
     data,
@@ -44,27 +45,10 @@ const AgentEditorUI = ({
     const VALID_TABS: (string | null)[] = ['general', ...(hasKnowledge ? ['knowledge'] : []), ...(hasSkills ? ['skills'] : [])];
     const [urlTab, setUrlTab] = useUrlQueryParam(urlSyncKey || '__noop_editor_tab__');
     const [localTab, setLocalTab] = useState('general');
-    const [fetchedTiers, setFetchedTiers] = useState<ModelTierMap>({});
-    const modelTiers = modelTiersProp || fetchedTiers;
-    const runAPIBASEEffect = useEffectEvent(() => {
-        if (modelTiersProp) return;
-        let cancelled = false;
-        (async () => {
-            try {
-                let res: Response;
-                try {
-                    res = await request(`${API_BASE}/ai/config/tiers-for-user?taskType=direct_chat`);
-                } catch (err) {
-                    if (!(err instanceof RefusedError)) throw err;
-                    return;
-                }
-                const data = await res.json();
-                if (!cancelled) setFetchedTiers(data || {});
-            } catch (err) { logger.debug('keep empty — selector still shows standard tiers', err); }
-        })();
-        return () => { cancelled = true; };
-    });
-    useEffect(() => { return runAPIBASEEffect(); }, [modelTiersProp]);
+    // Without tiers from the caller, read them; a refusal or a failure keeps them empty
+    // (the selector still shows the standard tiers).
+    const tiersQuery = useConfigTiersForUser(!modelTiersProp);
+    const modelTiers: ModelTierMap = modelTiersProp || (tiersQuery.data ?? EMPTY_TIERS);
     const activeTab = urlSyncKey
         ? (VALID_TABS.includes(urlTab) ? urlTab : 'general')
         : localTab;

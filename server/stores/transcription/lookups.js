@@ -145,6 +145,7 @@ async function openSummary(r) {
  * The most recent earlier note in the same recurring series (same Google Meet
  * code or Talk room), under the caller's normal read ACL — powers the
  * "previously in this series" card. Light shape: no segments/transcript.
+ * @param {{ meetMeetingCode?: string | null, talkRoomToken?: string | null, beforeCreatedAt: unknown, excludeId: string, userId: string, orgIds?: string[] | null, userGroupIds?: string[], isSuperAdmin?: boolean }} q
  */
 async function getSeriesPrevious({ meetMeetingCode = null, talkRoomToken = null, beforeCreatedAt, excludeId, userId, orgIds = [], userGroupIds = [], isSuperAdmin = false }) {
     await initDB();

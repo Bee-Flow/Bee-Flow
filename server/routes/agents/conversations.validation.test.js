@@ -22,6 +22,7 @@ process.env.NODE_ENV = 'test';
 const test = require('node:test');
 const assert = require('node:assert');
 const Module = require('module');
+const { fakeAgentGates } = require('./agentGate.testkit');
 
 // ── Fixtures ────────────────────────────────────────────────────────
 // Every store call lands in `touched`. A refused request must leave it empty.
@@ -54,7 +55,7 @@ const MOCKS = {
     '../../stores/usageStore': {},
     '../../core/entitlements/limits': {},
     '../../core/http/sseHelpers': {},
-    './crud': { canReadAgent: async () => true },
+    './crud': null,
     '../../integrations/workspaceTools': {
         notebookLinkRefusal: async (id, userId) => {
             touched.push({ what: 'notebookLinkRefusal', args: [id, userId] });
@@ -62,6 +63,8 @@ const MOCKS = {
         },
     },
 };
+
+MOCKS['./crud'] = fakeAgentGates({ agentStore: MOCKS['../../stores/agentStore'] });
 
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
@@ -87,7 +90,7 @@ const dispatch = dispatcher(router);
 
 test.beforeEach(() => { touched.length = 0; });
 
-/** Assert: refused with 400, the named field is in `details`, nothing touched. */
+/** Assert: refused with 400, the named field is in `details`, nothing touched past the access gate's agent read. */
 async function refuses(request, field) {
     const res = await dispatch(request);
     const what = `${request.method} ${request.url} ${JSON.stringify(request.body)}`;
@@ -95,7 +98,7 @@ async function refuses(request, field) {
     assert.strictEqual(res.body.code, 'invalid_request', what);
     assert.ok(res.body.details.some((d) => d.path === field),
         `the 400 must name ${field}; it said ${JSON.stringify(res.body.details)}`);
-    assert.deepStrictEqual(touched, [], 'a refused request must not reach the store');
+    assert.deepStrictEqual(touched.filter((t) => t.what !== 'getAgent'), [], 'a refused request reaches nothing past the access gate');
 }
 
 // ═══ POST /:id/conversations ════════════════════════════════════════

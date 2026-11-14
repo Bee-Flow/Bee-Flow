@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * House Style Extractor
  *
@@ -85,16 +85,16 @@ function pickFirst(node, ...names) {
 
 // styles.xml stores sizes as half-points (sz value 22 = 11pt).
 /**
- * @param {string | number} v
+ * @param {string | number | undefined} v
  */
 function halfPointToPt(v) {
-    const n = parseInt(v, 10);
+    const n = parseInt(String(v), 10);
     if (!Number.isFinite(n)) return undefined;
     return Math.round(n / 2);
 }
 
 /**
- * @param {string} c
+ * @param {string | undefined} c
  */
 function parseColor(c) {
     if (!c || typeof c !== 'string') return undefined;
@@ -239,13 +239,13 @@ function extractTextFromPart(xml) {
                 // w:t holds text, a text node, or a list of those.
                 const v = /** @type {string | { '#text'?: string } | Array<string | { '#text'?: string }>} */ (node[k]);
                 if (typeof v === 'string') texts.push(v);
-                else if (v && typeof v === 'object' && /** @type {{ '#text'?: string }} */ (v)['#text']) texts.push(/** @type {{ '#text'?: string }} */ (v)['#text']);
+                else if (v && typeof v === 'object' && /** @type {{ '#text'?: string }} */ (v)['#text']) texts.push(/** @type {string} */ (/** @type {{ '#text'?: string }} */ (v)['#text']));
                 else asArray(v).forEach(item => {
                     if (typeof item === 'string') texts.push(item);
                     else if (item?.['#text']) texts.push(item['#text']);
                 });
             } else if (typeof node[k] === 'object') {
-                if (Array.isArray(node[k])) node[k].forEach(walk);
+                if (Array.isArray(node[k])) node[k].forEach((child) => walk(/** @type {XmlNode | string} */ (child))); // a nested list walks as an object (its keys are indices)
                 else walk(node[k]);
             }
         }

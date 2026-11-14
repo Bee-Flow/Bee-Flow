@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * What a streaming turn RUNS ON: which agent row, which model and provider,
  * which tools, which conversation — and the shared-thread turn lock.
@@ -89,7 +89,7 @@ async function setupTurn({ agentId, userId, userMessage, userAuth, onEvent, mess
             // not consulted.
             const _aud = _sim && _sim.groupId
                 ? audienceForTestAs(agent, messageMetadata.testAs, {
-                    orgIds: new Set([messageMetadata.orgId].filter(Boolean)),
+                    orgIds: new Set(/** @type {string[]} */ ([messageMetadata.orgId].filter(Boolean))),
                 })
                 : null;
             onEvent?.('test_as', _sim && _sim.groupId

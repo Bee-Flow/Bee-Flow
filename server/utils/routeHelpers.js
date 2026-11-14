@@ -34,7 +34,7 @@ function requireSession(req, res, next) {
  * Why a cookie token, not hash(IP+UA): on a shared corporate proxy, every
  * employee on the same browser version hashes to the same id, exposing each
  * other's guest conversations to GET/DELETE /:id/history.
- * @param {import('express').Request} req
+ * @param {import('express').Request<any, any, any, any>} req
  * @returns {string} User ID (never null)
  */
 function getEffectiveUserId(req) {
@@ -57,7 +57,8 @@ function getEffectiveUserId(req) {
  * Get user authentication credentials for component execution.
  * Extracts OAuth tokens, Nextcloud app passwords, and encryption keys.
  * @param {import('express').Request} req
- * @returns {Promise<object>} { accessToken, nextcloudUrl, appPasswordUsername, appPassword, encryptionKey }
+ * @returns {Promise<{ accessToken: string | null, nextcloudUrl: string | null, appPasswordUsername: string | null, appPassword: string | null,
+ *   encryptionKey: string | null, userId: string | null, session: Express.Session | null, userOrgId: string | null, userOrgUnknown: boolean }>}
  */
 async function getUserAuth(req) {
     const { resolveUserOrgIds } = require('../auth/permissions');

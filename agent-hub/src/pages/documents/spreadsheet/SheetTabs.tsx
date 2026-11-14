@@ -81,6 +81,7 @@ export default function SheetTabs({
                                         type="button"
                                         className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]"
                                         title={t('spreadsheet.tab.delete', 'Delete tab')}
+                                        aria-label={t('spreadsheet.tab.delete', 'Delete tab')}
                                         onClick={(e) => { e.stopPropagation(); onDelete(tab.id); }}
                                     >
                                         <X size={12} aria-hidden="true" />
@@ -96,6 +97,7 @@ export default function SheetTabs({
                     type="button"
                     className="flex items-center gap-1 px-2 py-1.5 text-[13px] text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] rounded"
                     title={t('spreadsheet.tab.add', 'Add tab')}
+                    aria-label={t('spreadsheet.tab.add', 'Add tab')}
                     onClick={onAdd}
                 >
                     <Plus size={14} aria-hidden="true" />

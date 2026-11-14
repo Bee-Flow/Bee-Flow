@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Small, safe spreadsheet formula evaluator (A1-style cells) - SHARED between
  * the server and the browser (the agent-hub copy is GENERATED, see
@@ -63,7 +64,6 @@ const E_ERROR = '#ERROR!';
 const E_CIRC = '#CIRC!';
 const E_NUM = '#NUM!';
 const E_NA = '#N/A';
-
 
 /** A spreadsheet error travelling up the evaluator (plain class: no stack capture, they are automation). */
 class SheetError {
@@ -356,7 +356,7 @@ function parseFormula(src) {
     function parseComparison() {
         enter();
         let left = parseConcat();
-        while (pos < toks.length && toks[pos].t === 'op' && COMPARE_OPS.has(toks[pos].v)) {
+        while (pos < toks.length && toks[pos].t === 'op' && COMPARE_OPS.has(/** @type {string} */ (toks[pos].v))) {
             const op = toks[pos++].v;
             left = { type: 'bin', op, l: left, r: parseConcat() };
         }
@@ -419,7 +419,7 @@ function parseFormula(src) {
         }
         // word
         if (tok.call) {
-            if (!/^[A-Za-z_][A-Za-z0-9_.]*$/.test(tok.v)) throw fail(E_ERROR);
+            if (!/^[A-Za-z_][A-Za-z0-9_.]*$/.test(/** @type {string} */ (tok.v))) throw fail(E_ERROR);
             pos++; // '('
             const args = [];
             if (isOp(')')) pos++;
@@ -431,7 +431,7 @@ function parseFormula(src) {
                     throw fail(E_ERROR);
                 }
             }
-            return { type: 'call', name: tok.v.toUpperCase(), args };
+            return { type: 'call', name: /** @type {string} */ (tok.v).toUpperCase(), args };
         }
         // Cross-sheet reference: Sheet2!A1 or Sheet2!A1:B2.
         if (isOp('!')) {
@@ -457,7 +457,7 @@ function parseFormula(src) {
             if (!b) throw fail(E_ERROR);
             return { type: 'range', a, b };
         }
-        const up = tok.v.toUpperCase();
+        const up = /** @type {string} */ (tok.v).toUpperCase();
         if (up === 'TRUE') return { type: 'bool', v: true };
         if (up === 'FALSE') return { type: 'bool', v: false };
         return { type: 'name', name: tok.v }; // evaluates to #NAME?

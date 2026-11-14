@@ -9,7 +9,7 @@
 const { TOOL_SCHEMAS } = require('../../../automation/builderTools');
 const { CORE_TOOL_NAMES } = require('../../../core/automationModel/builderModelProfiles');
 const { projectToolSchemas } = require('../../../automation/builderTools/schemaProjection');
-const { PLAN_TOOL, QUESTIONS_TOOL, toolAllowed } = require('./workMode');
+const { PLAN_TOOL, QUESTIONS_TOOL, toolAllowed } = require('../../../usecases/ai/automationBuilder/workMode');
 const { INSPECTION_TOOLS } = require('./inspectionTools');
 const { fallback } = require('../../../utils/bestEffort');
 

@@ -5,8 +5,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { AuthFetchOptions } from '@/utils/helpers';
-import { API_BASE, authFetch } from '@/utils/helpers';
+import { apiFetch } from '@/api/typedRequest';
 import type {
     Memory, MemorySort, MemoryScope, MemoryStats, MemoryType, MemoryView,
 } from './memoryTypes';
@@ -40,10 +39,9 @@ const failure = (err: unknown): WriteResult => (err instanceof MemoryHttpError
     ? { ok: false, status: err.status, code: err.code }
     : { ok: false, status: null, code: null });
 
-const BASE = `${API_BASE}/agents/memory`;
-
-async function request(path: string, init?: AuthFetchOptions): Promise<Response> {
-    const res = await authFetch(`${BASE}${path}`, init);
+/** The Response of a 2xx; anything else is a MemoryHttpError with the server's code. */
+async function request(pending: Promise<Response>): Promise<Response> {
+    const res = await pending;
     if (!res.ok) {
         const body = (await res.json?.().catch(() => null)) as { code?: unknown } | null;
         throw new MemoryHttpError(res.status, typeof body?.code === 'string' ? body.code : null);
@@ -51,24 +49,24 @@ async function request(path: string, init?: AuthFetchOptions): Promise<Response>
     return res;
 }
 
-const jsonInit = (method: string, body?: unknown): AuthFetchOptions => ({
-    method,
+/** A JSON body as the panel builds it (wider than the routes' schema types). */
+const jsonInit = (body: unknown) => ({
     headers: { 'Content-Type': 'application/json' },
-    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    body: JSON.stringify(body),
 });
 
-function buildListPath(q: MemoryQuery, offset: number): string {
+function fetchList(q: MemoryQuery, offset: number): Promise<Response> {
     const params = new URLSearchParams();
     params.set('limit', String(PAGE_SIZE));
     params.set('offset', String(offset));
-    if (q.view === 'review') return `/review?${params.toString()}`;
+    if (q.view === 'review') return apiFetch('GET /agents/memory/review', { query: params });
     params.set('scope', q.scope);
     if (q.projectId && (q.scope === 'project' || q.scope === 'all')) params.set('projectId', q.projectId);
     if (q.search) params.set('search', q.search);
     if (q.type !== 'all') params.set('type', q.type);
     params.set('status', q.view === 'archived' ? 'archived' : 'active');
     params.set('sort', q.sort);
-    return `?${params.toString()}`;
+    return apiFetch('GET /agents/memory', { query: params });
 }
 
 function loadErrorKind(status: number | null): 'forbidden' | 'failed' {
@@ -124,7 +122,7 @@ export function useMemories(query: MemoryQuery, onChanged?: () => void): Memorie
         setError(null);
         try {
             const offset = append ? itemsRef.current.length : 0;
-            const res = await request(buildListPath({ view, scope, projectId, search, type, sort }, offset));
+            const res = await request(fetchList({ view, scope, projectId, search, type, sort }, offset));
             const data = (await res.json()) as ListResponse;
             if (mine !== seq.current) return;
             const page = data.items ?? data.memories ?? [];
@@ -178,7 +176,7 @@ export function useMemories(query: MemoryQuery, onChanged?: () => void): Memorie
         let failed: WriteResult = { ok: false, status: null, code: null };
         const ok = await optimistic(
             (list) => list.map((m) => (m.id === id ? { ...m, ...patch } : m)),
-            () => request(`/${encodeURIComponent(id)}`, jsonInit('PUT', patch)),
+            () => request(apiFetch('PUT /agents/memory/{id}', { params: { id }, init: jsonInit(patch) })),
             { keepServerRow: true },
             (err) => { failed = failure(err); },
         );
@@ -187,7 +185,7 @@ export function useMemories(query: MemoryQuery, onChanged?: () => void): Memorie
 
     const remove: MemoriesState['remove'] = useCallback((id) => optimistic(
         (list) => list.filter((m) => m.id !== id),
-        () => request(`/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+        () => request(apiFetch('DELETE /agents/memory/{id}', { params: { id } })),
         { totalDelta: -1 },
     ), [optimistic]);
 
@@ -195,7 +193,7 @@ export function useMemories(query: MemoryQuery, onChanged?: () => void): Memorie
         const gone = new Set(ids);
         return optimistic(
             (list) => list.filter((m) => !gone.has(m.id)),
-            () => request('/bulk-delete', jsonInit('POST', { ids })),
+            () => request(apiFetch('POST /agents/memory/bulk-delete', { init: jsonInit({ ids }) })),
             { totalDelta: -ids.length },
         );
     }, [optimistic]);
@@ -204,24 +202,24 @@ export function useMemories(query: MemoryQuery, onChanged?: () => void): Memorie
         const picked = new Set(ids);
         return optimistic(
             (list) => list.map((m) => (picked.has(m.id) ? { ...m, type: nextType } : m)),
-            () => request('/bulk-update', jsonInit('POST', { ids, type: nextType })),
+            () => request(apiFetch('POST /agents/memory/bulk-update', { init: jsonInit({ ids, type: nextType }) })),
         );
     }, [optimistic]);
 
     // Restore / approve / reject take the row out of the current view.
-    const leaveView = useCallback((id: string, path: string) => optimistic(
+    const leaveView = useCallback((id: string, call: () => Promise<Response>) => optimistic(
         (list) => list.filter((m) => m.id !== id),
-        () => request(path, { method: 'POST' }),
+        () => request(call()),
         { totalDelta: -1 },
     ), [optimistic]);
 
-    const restore: MemoriesState['restore'] = useCallback((id) => leaveView(id, `/${encodeURIComponent(id)}/restore`), [leaveView]);
-    const approve: MemoriesState['approve'] = useCallback((id) => leaveView(id, `/review/${encodeURIComponent(id)}/approve`), [leaveView]);
-    const reject: MemoriesState['reject'] = useCallback((id) => leaveView(id, `/review/${encodeURIComponent(id)}/reject`), [leaveView]);
+    const restore: MemoriesState['restore'] = useCallback((id) => leaveView(id, () => apiFetch('POST /agents/memory/{id}/restore', { params: { id } })), [leaveView]);
+    const approve: MemoriesState['approve'] = useCallback((id) => leaveView(id, () => apiFetch('POST /agents/memory/review/{id}/approve', { params: { id } })), [leaveView]);
+    const reject: MemoriesState['reject'] = useCallback((id) => leaveView(id, () => apiFetch('POST /agents/memory/review/{id}/reject', { params: { id } })), [leaveView]);
 
     const create: MemoriesState['create'] = useCallback(async (input) => {
         try {
-            const res = await request('', jsonInit('POST', input));
+            const res = await request(apiFetch('POST /agents/memory', { init: jsonInit(input) }));
             const data = (await res.json().catch(() => null)) as { id?: string } | null;
             if (!data?.id) return { ok: false, status: null, code: null };
             onChangedRef.current?.();
@@ -235,7 +233,7 @@ export function useMemories(query: MemoryQuery, onChanged?: () => void): Memorie
     // Without a body /clear is the PERSONAL clear; a project names itself.
     const clearAll: MemoriesState['clearAll'] = useCallback(async (clearProjectId) => {
         try {
-            await request('/clear', clearProjectId ? jsonInit('POST', { projectId: clearProjectId }) : { method: 'POST' });
+            await request(apiFetch('POST /agents/memory/clear', clearProjectId ? { init: jsonInit({ projectId: clearProjectId }) } : undefined));
             commit([], 0);
             onChangedRef.current?.();
             return true;
@@ -256,7 +254,7 @@ export function useMemoryStats(enabled: boolean): { stats: MemoryStats | null; r
     const [stats, setStats] = useState<MemoryStats | null>(null);
     const refresh = useCallback(() => {
         if (!enabled) return;
-        request('/stats')
+        request(apiFetch('GET /agents/memory/stats'))
             .then((res) => res.json() as Promise<MemoryStats>)
             .then(setStats)
             .catch(() => { /* non-fatal: pills fall back to no counts */ });
@@ -266,7 +264,7 @@ export function useMemoryStats(enabled: boolean): { stats: MemoryStats | null; r
 }
 
 export async function exportMemories(): Promise<void> {
-    const res = await request('/export/all');
+    const res = await request(apiFetch('GET /agents/memory/export/all'));
     const data = await res.json();
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);

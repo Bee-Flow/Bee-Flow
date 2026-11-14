@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Webpage chat: the tools of one turn (routes/ai/webpageChat.js). The one
  * executor every tool call goes through (slot and extra-file edits, the
@@ -102,8 +103,9 @@ function compactWebpageToolResult(toolResult) {
 }
 
 /**
- * @typedef {{ planToolAvailable?: boolean,
- *   kbIds: string[], queryLogs?: object | null }} CreateToolDispatcherArgs
+ * @typedef {{ send: (event: string, data?: unknown) => void, req: import('express').Request, shieldGate: any, planToolAvailable?: boolean,
+ *   webpageId: string, userId: string, userOrgForTiers: string | null, kbIds: string[], sources: any[], modelSupportsVision: boolean,
+ *   _dlpConvId: string | null, queryLogs?: object | null }} CreateToolDispatcherArgs
  */
 /**
  * The executor of one turn. `turn` is the turn's shared state (./toolLoop.js):

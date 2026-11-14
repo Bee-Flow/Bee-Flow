@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 // Org-authored Academy content over configStore (pattern: cmsStore — no new
 // DB table, draft vs published snapshots).
 //
@@ -57,10 +57,11 @@ const LIMITS = {
 function mintCourseId() { return ORG_COURSE_PREFIX + crypto.randomBytes(6).toString('hex'); }
 function mintLessonId() { return ORG_LESSON_PREFIX + crypto.randomBytes(6).toString('hex'); }
 /**
- * @param {string | string[]} id
+ * @param {unknown} id
+ * @returns {id is string}
  */
 function isOrgCourseId(id) { return typeof id === 'string' && id.startsWith(ORG_COURSE_PREFIX); }
-/** @param {string | string[]} id */
+/** @param {unknown} id @returns {id is string} */
 function isOrgLessonId(id) { return typeof id === 'string' && id.startsWith(ORG_LESSON_PREFIX); }
 
 /* ── Validation (used by the admin routes before any write) ──────────────── */
@@ -139,7 +140,7 @@ function validateLessonDoc(input) {
             title,
             desc: trimTo(input.desc, LIMITS.maxDescChars),
             icon: trimTo(input.icon, 8) || '📘',
-            estMinutes: Number.isFinite(+input.estMinutes) ? Math.max(1, Math.min(120, Math.round(+input.estMinutes))) : 5,
+            estMinutes: Number.isFinite(+(/** @type {number} */ (input.estMinutes))) ? Math.max(1, Math.min(120, Math.round(+(/** @type {number} */ (input.estMinutes))))) : 5,
             steps,
             updatedAt: new Date().toISOString(),
         },
@@ -161,7 +162,7 @@ function validateCourseDoc(input) {
             title,
             desc: trimTo(input.desc, LIMITS.maxDescChars),
             icon: trimTo(input.icon, 8) || '📘',
-            level: ['beginner', 'intermediate', 'advanced'].includes(input.level) ? input.level : 'beginner',
+            level: ['beginner', 'intermediate', 'advanced'].includes(/** @type {string} */ (input.level)) ? /** @type {string} */ (input.level) : 'beginner',
             lessonIds,
             badge: {
                 id: `badge-${id.replace(ORG_COURSE_PREFIX, 'org-')}`,
@@ -338,7 +339,7 @@ async function getPublishedCourses(orgId) {
 // — always from the PUBLISHED snapshot (drafts are never gradeable).
 /**
  * @param {string} orgId
- * @param {string} exerciseId
+ * @param {string | undefined} exerciseId
  */
 async function findRubric(orgId, exerciseId) {
     const [lessonId, stepId] = String(exerciseId || '').split(':');

@@ -5,11 +5,11 @@ import useDraftOverServer from '@/hooks/useDraftOverServer';
 import type { SupportInbox, SupportKb } from './supportStudio.types';
 import { INPUT_FIELD, PRIMARY_BTN, PRIMARY_BTN_STYLE, GHOST_BTN } from './supportStyles';
 import useTranslation from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
 import ConfigToggle from '@/components/shared/ConfigToggle';
 import FormField from '@/components/shared/FormField';
 import Section from '@/components/shared/Section';
-import { mutate, errorBody, RefusedError, request } from '@/api/mutate';
+import { errorBody, RefusedError } from '@/api/mutate';
+import { type ApiBody, apiRequest } from '@/api/typedRequest';
 
 const PRIORITIES = ['low', 'normal', 'high', 'urgent'];
 const SLA_DEFAULTS: Record<string, number[]> = { low: [480, 2880], normal: [240, 1440], high: [60, 480], urgent: [30, 240] };
@@ -62,10 +62,7 @@ function KnowledgeIngestion({ inbox, kbs, onChanged }: KnowledgeIngestionProps) 
         try {
             let kb: { id?: string; error?: string };
             try {
-                const res = await mutate(`${API_BASE}/api/kb`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, organizationId: inbox.organization_id }),
-                });
+                const res = await apiRequest('POST /api/kb', { body: { name, organizationId: inbox.organization_id } });
                 kb = await res.json().catch(() => ({}));
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
@@ -83,10 +80,7 @@ function KnowledgeIngestion({ inbox, kbs, onChanged }: KnowledgeIngestionProps) 
         try {
             let res: Response;
             try {
-                res = await mutate(`${API_BASE}/api/support-inbox/inboxes/${inbox.id}/kb-automation`, {
-                method: 'PUT', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ enabled, knowledgeBaseId: enabled ? kbId : null }),
-            });
+                res = await apiRequest('PUT /api/support-inbox/inboxes/{id}/kb-automation', { params: { id: inbox.id }, body: { enabled, knowledgeBaseId: enabled ? kbId : null } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const d = errorBody(err) ?? {};
@@ -173,14 +167,13 @@ function SlaPolicies() {
         setSavingP(prio);
         try {
             try {
-                await mutate(`${API_BASE}/api/support-inbox/sla-policies`, {
-                    method: 'PUT', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        priority: prio,
+                await apiRequest('PUT /api/support-inbox/sla-policies', {
+                    body: {
+                        priority: prio as ApiBody<'PUT /api/support-inbox/sla-policies'>['priority'],
                         firstResponseMinutes: Number(valueFor(prio, 'first')),
                         resolutionMinutes: Number(valueFor(prio, 'resolution')),
                         enabled: byPriority[prio]?.enabled !== false,
-                    }),
+                    },
                 });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err; // a refused save is re-read below, as before

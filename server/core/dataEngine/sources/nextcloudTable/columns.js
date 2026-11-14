@@ -82,6 +82,200 @@ function matchFieldIdFor(targetDatatableId, localFieldId, targetFieldId) {
     return matchFieldIdWith(targetDatatableId, localFieldId, targetFieldId, 'fld_ncrel');
 }
 
+/** A mirror field id of one Nextcloud column: `fld_nc<columnId><type code>`. */
+const NC_FIELD_ID_RE = /^fld_nc(\d+)[a-z]{3}$/;
+
+/**
+ * @typedef {{ fields: MirrorField[], columnMap: Record<string, ColumnEntry>, relations: MirrorRelation[], warnings: string[], changes: string[] }} NcFieldsOut
+ * @typedef {{ linkedTargets: Map<number, string>, linkedViews: Map<number, string> }} Linked
+ * @typedef {ReturnType<typeof relationTargetFor>} RelationTarget
+ */
+
+/**
+ * The mirror's prior fields by id, and each Nextcloud column's prior field
+ * under its PREVIOUS type code: a retype drops the old field and adds a new
+ * one, but the key (what automations name) carries over, because to a person
+ * it is still the same column.
+ * @param {unknown} existingFields
+ */
+function priorFields(existingFields) {
+    /** @type {Map<string, MirrorField>} */
+    const prior = new Map((Array.isArray(existingFields) ? existingFields : [])
+        .filter(f => f && typeof f.id === 'string').map(f => [f.id, f]));
+    /** @type {Map<number, MirrorField>} */
+    const priorByColumn = new Map();
+    for (const f of prior.values()) {
+        const m = NC_FIELD_ID_RE.exec(f.id);
+        if (m && f.id !== labelFieldIdFor(m[1])) priorByColumn.set(Number(m[1]), f);
+    }
+    return { prior, priorByColumn };
+}
+
+/**
+ * Keys already owned by columns and declared relations that STAY, reserved
+ * first, so a new column titled like an old one does not steal its key.
+ * @param {NcColumn[]} kept
+ * @param {DeclaredRelation[]} declaredRelations
+ * @param {Map<string, MirrorField>} prior
+ * @param {Set<string>} reservedKeys
+ * @param {Linked} linked
+ */
+function keysInUse(kept, declaredRelations, prior, reservedKeys, linked) {
+    const used = new Set(reservedKeys);
+    const ids = kept.map(c => fieldIdFor(c.id, relationNarrowed(c, mirrorTypeFor(c.type, c.subtype), linked.linkedTargets, linked.linkedViews)));
+    for (const rel of declaredRelations) ids.push(matchFieldIdFor(rel.targetDatatableId, rel.localFieldId, rel.targetFieldId));
+    for (const id of ids) {
+        const k = prior.get(id);
+        if (k && k.key) used.add(k.key);
+    }
+    return used;
+}
+
+/**
+ * A column's mirror type; an nc relation whose target is not linked here
+ * arrives as a plain number, with a warning.
+ * @param {NcColumn} c
+ * @param {Linked} linked
+ * @param {string[]} warnings
+ * @returns {{ type: string, relationTarget: RelationTarget }}
+ */
+function columnType(c, linked, warnings) {
+    const type = mirrorTypeFor(c.type, c.subtype);
+    if (type !== 'relation') return { type, relationTarget: null };
+    const relationTarget = relationTargetFor(c, linked.linkedTargets, linked.linkedViews);
+    if (relationTarget) return { type, relationTarget };
+    warnings.push(`"${c.title}" links to a Nextcloud table that is not linked here, so it arrives as a plain number (the row id).`);
+    return { type: 'number', relationTarget: null };
+}
+
+/**
+ * A column's key: the kept one, else the key of the same column under its old
+ * type when still free, else one minted from the title.
+ * @param {NcColumn} c
+ * @param {MirrorField | undefined} kept
+ * @param {Map<number, MirrorField>} priorByColumn
+ * @param {Set<string>} used
+ */
+function columnKey(c, kept, priorByColumn, used) {
+    if (kept && kept.key) return kept.key;
+    const retypedFrom = !kept ? priorByColumn.get(Number(c.id)) : null;
+    if (retypedFrom && retypedFrom.key && !used.has(retypedFrom.key)) return retypedFrom.key;
+    return keyFromTitle(c.title, c.id, used);
+}
+
+/**
+ * One column's mirror field and column-map entry; a list column carries its
+ * options, a relation its target (and its line in `relations`).
+ * @param {NcColumn} c
+ * @param {{ id: string, key: string, type: string, relationTarget: RelationTarget }} col
+ * @param {NcFieldsOut} out
+ */
+function columnFieldAndEntry(c, { id, key, type, relationTarget }, out) {
+    /** @type {MirrorField} */
+    const field = { id, key, name: String(c.title || key).trim().slice(0, DATA_LIMITS.MAX_NAME_LEN) || key, type };
+    /** @type {ColumnEntry} */
+    const entry = { ncColumnId: c.id, ncType: c.type, ncSubtype: c.subtype || '', title: c.title };
+    if (type === 'select' || type === 'multiselect') {
+        const options = optionLabels(c.selectionOptions);
+        if (!options.length) {
+            // A list column with no options cannot be a select here (the
+            // normaliser refuses one with none); its ids arrive as text.
+            field.type = 'text';
+            out.warnings.push(`"${c.title}" is a list column with no options in Nextcloud, so its values arrive as text.`);
+        } else {
+            field.options = options.map(o => o.label);
+            entry.options = options;
+        }
+    }
+    if (type === 'relation' && relationTarget) {
+        field.relation = { table: relationTarget.datatableId, fk: false };
+        entry.relation = { relationType: relationTarget.relationType, targetId: relationTarget.targetId, labelColumn: relationTarget.labelColumn };
+        out.relations.push({
+            fieldId: id, kind: 'nc',
+            targetDatatableId: relationTarget.datatableId,
+            labelFieldId: labelFieldIdFor(c.id),
+            labelNcColumnId: relationTarget.labelColumn,
+        });
+    }
+    if (c.mandatory) field.required = true;
+    return { field, entry };
+}
+
+/**
+ * The derived label column beside an nc relation.
+ * @param {NcColumn} c
+ * @param {MirrorField} field   the relation field it labels
+ * @param {Map<string, MirrorField>} prior
+ * @param {Set<string>} used
+ * @param {NcFieldsOut} out
+ */
+function addLabelField(c, field, prior, used, out) {
+    const lid = labelFieldIdFor(c.id);
+    const lkept = prior.get(lid);
+    const lkey = lkept && lkept.key ? lkept.key : keyFromTitle(`${c.title} label`, c.id, used);
+    used.add(lkey);
+    out.fields.push({ id: lid, key: lkey, name: `${field.name} (label)`, type: 'text', derived: true });
+    out.columnMap[lid] = { derived: 'label', forFieldId: field.id };
+    if (!lkept) out.changes.push(`added:${lkey}`);
+    return lid;
+}
+
+/** @param {DeclaredRelation | null | undefined} rel */
+const isDeclaredRelation = rel => Boolean(rel && rel.targetDatatableId && rel.localFieldId && rel.targetFieldId);
+
+/**
+ * Declared relations, after the source's columns so their keys never shadow one.
+ * @param {DeclaredRelation[]} declaredRelations
+ * @param {Map<string, MirrorField>} prior
+ * @param {Set<string>} used
+ * @param {Set<string>} seenIds
+ * @param {NcFieldsOut} out
+ */
+function addDeclaredRelations(declaredRelations, prior, used, seenIds, out) {
+    for (const rel of declaredRelations) {
+        if (!isDeclaredRelation(rel)) continue;
+        if (!seenIds.has(rel.localFieldId) && !prior.has(rel.localFieldId)) {
+            out.warnings.push(`A declared relation names a column this table no longer has (${rel.localFieldId}); it is skipped.`);
+            continue;
+        }
+        const id = matchFieldIdFor(rel.targetDatatableId, rel.localFieldId, rel.targetFieldId);
+        const kept = prior.get(id);
+        const key = kept && kept.key ? kept.key : keyFromTitle(`${rel.targetKey || 'related'}_ref`, 0, used);
+        used.add(key);
+        seenIds.add(id);
+        out.fields.push({
+            id, key,
+            name: kept && kept.name ? kept.name : `${rel.targetName || rel.targetKey || 'Related'} row`,
+            type: 'relation', derived: true,
+            relation: { table: rel.targetDatatableId, fk: false },
+        });
+        out.columnMap[id] = { derived: 'match', localFieldId: rel.localFieldId, targetFieldId: rel.targetFieldId };
+        out.relations.push({ fieldId: id, kind: 'match', targetDatatableId: rel.targetDatatableId, localFieldId: rel.localFieldId, targetFieldId: rel.targetFieldId });
+        if (!kept) out.changes.push(`added:${key}`);
+    }
+}
+
+/**
+ * What the previous shape had and this one does not — a column Nextcloud
+ * dropped, or one it retyped (same column id, new type code, new field id).
+ * Returns the retyped fields.
+ * @param {Map<string, MirrorField>} prior
+ * @param {Set<string>} seenIds
+ * @param {NcColumn[]} cols
+ * @param {string[]} changes
+ */
+function droppedFields(prior, seenIds, cols, changes) {
+    const retyped = [];
+    for (const old of prior.values()) {
+        if (seenIds.has(old.id)) continue;
+        const m = NC_FIELD_ID_RE.exec(old.id);
+        const sameColumnStillThere = m && cols.some(c => Number(c.id) === Number(m[1]));
+        if (sameColumnStillThere) { retyped.push(old); changes.push(`retyped:${old.key}`); }
+        else changes.push(`removed:${old.key}`);
+    }
+    return retyped;
+}
+
 /**
  * @param {Array} ncColumns   describeColumn() objects, in table order
  * @param {{ existingFields?: Array, linkedTargets?: Map<number,string>, linkedViews?: Map<number,string>,
@@ -96,154 +290,37 @@ function fieldsFromNcColumns(ncColumns, {
     existingFields = [], linkedTargets = new Map(), linkedViews = new Map(),
     declaredRelations = [], reservedKeys = new Set(),
 } = {}) {
-    const prior = new Map((Array.isArray(existingFields) ? existingFields : [])
-        .filter(f => f && typeof f.id === 'string').map(f => [f.id, f]));
-    // The same Nextcloud column under its PREVIOUS type code: a retype drops
-    // the old field and adds a new one, but the key — what automations name —
-    // carries over, because to a person it is still the same column.
-    const priorByColumn = new Map();
-    for (const f of prior.values()) {
-        const m = /^fld_nc(\d+)[a-z]{3}$/.exec(f.id);
-        if (m && f.id !== labelFieldIdFor(m[1])) priorByColumn.set(Number(m[1]), f);
-    }
-    const used = new Set(reservedKeys);
-    const fields = [];
-    const columnMap = {};
-    const relations = [];
-    const warnings = [];
-    const changes = [];
+    const linked = { linkedTargets, linkedViews };
+    const { prior, priorByColumn } = priorFields(existingFields);
+    /** @type {NcFieldsOut} */
+    const out = { fields: [], columnMap: {}, relations: [], warnings: [], changes: [] };
     const seenIds = new Set();
 
     const cols = (Array.isArray(ncColumns) ? ncColumns : []).filter(c => c && Number.isInteger(Number(c.id)));
     if (cols.length > DATA_LIMITS.MAX_FIELDS_PER_TABLE) {
-        warnings.push(`Only the first ${DATA_LIMITS.MAX_FIELDS_PER_TABLE} of ${cols.length} columns are mirrored.`);
+        out.warnings.push(`Only the first ${DATA_LIMITS.MAX_FIELDS_PER_TABLE} of ${cols.length} columns are mirrored.`);
     }
+    const kept = cols.slice(0, DATA_LIMITS.MAX_FIELDS_PER_TABLE);
+    const used = keysInUse(kept, declaredRelations, prior, reservedKeys, linked);
 
-    // Keys already owned by columns that STAY are reserved first, so a new
-    // column titled like an old one does not steal its key.
-    for (const c of cols.slice(0, DATA_LIMITS.MAX_FIELDS_PER_TABLE)) {
-        const type0 = mirrorTypeFor(c.type, c.subtype);
-        const id = fieldIdFor(c.id, relationNarrowed(c, type0, linkedTargets, linkedViews));
-        const kept = prior.get(id);
-        if (kept && kept.key) used.add(kept.key);
-    }
-    for (const rel of declaredRelations) {
-        const id = matchFieldIdFor(rel.targetDatatableId, rel.localFieldId, rel.targetFieldId);
-        const kept = prior.get(id);
-        if (kept && kept.key) used.add(kept.key);
-    }
-
-    for (const c of cols.slice(0, DATA_LIMITS.MAX_FIELDS_PER_TABLE)) {
-        let type = mirrorTypeFor(c.type, c.subtype);
-        let relationTarget = null;
-        if (type === 'relation') {
-            relationTarget = relationTargetFor(c, linkedTargets, linkedViews);
-            if (!relationTarget) {
-                type = 'number';
-                warnings.push(`"${c.title}" links to a Nextcloud table that is not linked here, so it arrives as a plain number (the row id).`);
-            }
-        }
+    for (const c of kept) {
+        const { type, relationTarget } = columnType(c, linked, out.warnings);
         const id = fieldIdFor(c.id, type);
-        const kept = prior.get(id);
-        const retypedFrom = !kept ? priorByColumn.get(Number(c.id)) : null;
-        const key = kept && kept.key ? kept.key
-            : (retypedFrom && retypedFrom.key && !used.has(retypedFrom.key)) ? retypedFrom.key
-                : keyFromTitle(c.title, c.id, used);
+        const keptField = prior.get(id);
+        const key = columnKey(c, keptField, priorByColumn, used);
         used.add(key);
         seenIds.add(id);
-
-        const field = {
-            id, key,
-            name: String(c.title || key).trim().slice(0, DATA_LIMITS.MAX_NAME_LEN) || key,
-            type,
-        };
-        const entry = { ncColumnId: c.id, ncType: c.type, ncSubtype: c.subtype || '', title: c.title };
-        if (type === 'select' || type === 'multiselect') {
-            const options = optionLabels(c.selectionOptions);
-            if (!options.length) {
-                // A list column with no options cannot be a select here (the
-                // normaliser refuses one with none); its ids arrive as text.
-                field.type = 'text';
-                warnings.push(`"${c.title}" is a list column with no options in Nextcloud, so its values arrive as text.`);
-            } else {
-                field.options = options.map(o => o.label);
-                entry.options = options;
-            }
-        }
-        if (type === 'relation') {
-            field.relation = { table: relationTarget.datatableId, fk: false };
-            entry.relation = {
-                relationType: relationTarget.relationType,
-                targetId: relationTarget.targetId,
-                labelColumn: relationTarget.labelColumn,
-            };
-            relations.push({
-                fieldId: id, kind: 'nc',
-                targetDatatableId: relationTarget.datatableId,
-                labelFieldId: labelFieldIdFor(c.id),
-                labelNcColumnId: relationTarget.labelColumn,
-            });
-        }
-        if (c.mandatory) field.required = true;
-        fields.push(field);
-        columnMap[id] = entry;
-        if (!kept) changes.push(`added:${key}`);
-        else if (kept.name !== field.name) changes.push(`renamed:${key}`);
-
-        // The label column beside an nc relation.
-        if (type === 'relation') {
-            const lid = labelFieldIdFor(c.id);
-            const lkept = prior.get(lid);
-            const lkey = lkept && lkept.key ? lkept.key : keyFromTitle(`${c.title} label`, c.id, used);
-            used.add(lkey);
-            seenIds.add(lid);
-            fields.push({ id: lid, key: lkey, name: `${field.name} (label)`, type: 'text', derived: true });
-            columnMap[lid] = { derived: 'label', forFieldId: id };
-            if (!lkept) changes.push(`added:${lkey}`);
-        }
+        const { field, entry } = columnFieldAndEntry(c, { id, key, type, relationTarget }, out);
+        out.fields.push(field);
+        out.columnMap[id] = entry;
+        if (!keptField) out.changes.push(`added:${key}`);
+        else if (keptField.name !== field.name) out.changes.push(`renamed:${key}`);
+        if (type === 'relation') seenIds.add(addLabelField(c, field, prior, used, out));
     }
 
-    // Declared relations, after the source's columns so their keys never
-    // shadow one.
-    for (const rel of declaredRelations) {
-        if (!rel || !rel.targetDatatableId || !rel.localFieldId || !rel.targetFieldId) continue;
-        if (!seenIds.has(rel.localFieldId) && !prior.has(rel.localFieldId)) {
-            warnings.push(`A declared relation names a column this table no longer has (${rel.localFieldId}); it is skipped.`);
-            continue;
-        }
-        const id = matchFieldIdFor(rel.targetDatatableId, rel.localFieldId, rel.targetFieldId);
-        const kept = prior.get(id);
-        const key = kept && kept.key ? kept.key : keyFromTitle(`${rel.targetKey || 'related'}_ref`, 0, used);
-        used.add(key);
-        seenIds.add(id);
-        fields.push({
-            id, key,
-            name: kept && kept.name ? kept.name : `${rel.targetName || rel.targetKey || 'Related'} row`,
-            type: 'relation', derived: true,
-            relation: { table: rel.targetDatatableId, fk: false },
-        });
-        columnMap[id] = { derived: 'match', localFieldId: rel.localFieldId, targetFieldId: rel.targetFieldId };
-        relations.push({
-            fieldId: id, kind: 'match',
-            targetDatatableId: rel.targetDatatableId,
-            localFieldId: rel.localFieldId,
-            targetFieldId: rel.targetFieldId,
-        });
-        if (!kept) changes.push(`added:${key}`);
-    }
-
-    // What the previous shape had and this one does not — a column Nextcloud
-    // dropped, or one it retyped (same column id, new type code, new field id).
-    const retyped = [];
-    for (const old of prior.values()) {
-        if (seenIds.has(old.id)) continue;
-        const m = /^fld_nc(\d+)[a-z]{3}$/.exec(old.id);
-        const sameColumnStillThere = m && cols.some(c => Number(c.id) === Number(m[1]));
-        if (sameColumnStillThere) { retyped.push(old); changes.push(`retyped:${old.key}`); }
-        else changes.push(`removed:${old.key}`);
-    }
-
-    return { fields, columnMap, relations, warnings, changes, retyped };
+    addDeclaredRelations(declaredRelations, prior, used, seenIds, out);
+    const retyped = droppedFields(prior, seenIds, cols, out.changes);
+    return { ...out, retyped };
 }
 
 /** For an nc relation: the linked mirror it points at, or null. */

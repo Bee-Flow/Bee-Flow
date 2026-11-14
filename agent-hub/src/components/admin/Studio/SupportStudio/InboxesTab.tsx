@@ -3,7 +3,7 @@ import React, { useState, useCallback } from 'react';
 import { INPUT_FIELD, PRIMARY_BTN, PRIMARY_BTN_STYLE, GHOST_BTN } from './supportStyles';
 import useTranslation from '@/hooks/useTranslation';
 import { isTrustedOAuthOrigin } from '@/lib/oauthMessageOrigin';
-import { API_BASE, authFetch } from '@/utils/helpers';
+import { API_BASE } from '@/utils/helpers';
 import EmptyState from '@/components/shared/EmptyState';
 import FormField from '@/components/shared/FormField';
 import IconButton from '@/components/shared/IconButton';
@@ -12,7 +12,8 @@ import { toast } from '@/components/shared/Toast';
 import useConfirm from '@/components/shared/useConfirm';
 import type { SupportAgent, SupportInbox, SupportKb } from './supportStudio.types';
 import { logger } from '@/utils/logger';
-import { mutate, ApiError, errorBody, RefusedError } from '@/api/mutate';
+import { ApiError, errorBody, RefusedError } from '@/api/mutate';
+import { type ApiBody, apiFetch, apiRequest } from '@/api/typedRequest';
 
 interface InboxesTabProps {
     inboxes?: SupportInbox[];
@@ -53,10 +54,7 @@ export default function InboxesTab({ inboxes = [], agents = [], kbs = [], select
     const createInbox = async () => {
         let res: Response | undefined;
         try {
-            res = await mutate(`${API_BASE}/api/support-inbox/inboxes`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ provider: newProvider, displayName: newName || `${newProvider} inbox` }),
-        });
+            res = await apiRequest('POST /api/support-inbox/inboxes', { body: { provider: newProvider as ApiBody<'POST /api/support-inbox/inboxes'>['provider'], displayName: newName || `${newProvider} inbox` } });
         } catch (err) {
             if (!(err instanceof RefusedError)) throw err;
             const d = errorBody(err) ?? {};
@@ -118,7 +116,7 @@ function InboxCard({ inbox, agents, kbs, selected, onSelect, onChanged }: InboxC
     const toggleKb = (id: string) => set('kb_ids', form.kb_ids.includes(id) ? form.kb_ids.filter(x => x !== id) : [...form.kb_ids, id]);
 
     const connect = useCallback(async () => {
-        const res = await authFetch(`${API_BASE}/api/support-inbox/inboxes/${inbox.id}/oauth/start`);
+        const res = await apiFetch('GET /api/support-inbox/inboxes/{id}/oauth/start', { params: { id: inbox.id } });
         const d = await res.json().catch(() => ({}));
         if (!res.ok || !d.url) { toast.error(d.error || t('support.settings.connect_failed', 'Could not connect')); return; }
         const popup = window.open(d.url, 'support-mailbox-oauth', 'width=520,height=680');
@@ -136,9 +134,9 @@ function InboxCard({ inbox, agents, kbs, selected, onSelect, onChanged }: InboxC
     const save = async () => {
         setSaving(true);
         try {
-            const res = await authFetch(`${API_BASE}/api/support-inbox/inboxes/${inbox.id}`, {
-                method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ display_name: form.display_name, default_agent_id: form.default_agent_id || null, kb_ids: form.kb_ids }),
+            const res = await apiFetch('PATCH /api/support-inbox/inboxes/{id}', {
+                params: { id: inbox.id },
+                body: { display_name: form.display_name, default_agent_id: form.default_agent_id || null, kb_ids: form.kb_ids },
             });
             if (!res.ok) { const d = await res.json().catch(() => ({})); toast.error(d.error || t('support.common.save_failed', 'Save failed')); }
             else onChanged?.();
@@ -160,7 +158,7 @@ function InboxCard({ inbox, agents, kbs, selected, onSelect, onChanged }: InboxC
         try {
             let res: Response;
             try {
-                res = await mutate(`${API_BASE}/api/support-inbox/inboxes/${inbox.id}/disconnect`, { method: 'POST' });
+                res = await apiRequest('POST /api/support-inbox/inboxes/{id}/disconnect', { params: { id: inbox.id } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const d = errorBody(err) ?? {};
@@ -181,7 +179,7 @@ function InboxCard({ inbox, agents, kbs, selected, onSelect, onChanged }: InboxC
             destructive: true,
         });
         if (!ok) return;
-        const res = await mutate(`${API_BASE}/api/support-inbox/inboxes/${inbox.id}`, { method: 'DELETE' }).catch((err: unknown) => {
+        const res = await apiRequest('DELETE /api/support-inbox/inboxes/{id}', { params: { id: inbox.id } }).catch((err: unknown) => {
             if (err instanceof ApiError) return null;
             throw err;
         });

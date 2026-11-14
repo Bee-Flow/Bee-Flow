@@ -74,6 +74,11 @@ const MOCKS = {
         _riskStore: () => riskStore,
         _auditStore: () => auditStore,
         _obligationStore: () => obligationStore,
+        // The real helper's contract: a row the store did not find is the 404 of an unknown id.
+        orNotFound: (row) => {
+            if (row == null) throw new (require('../../core/http/errors').HttpError)(404, 'not_found', 'There is no such record in your organisation.');
+            return row;
+        },
     },
 };
 
@@ -276,7 +281,7 @@ test('accepting a risk that does not exist here writes nothing to the evidence c
     riskStore.updateRisk = async () => null;   // unknown id, or another organisation's
     try {
         const res = await dispatch({ method: 'PUT', url: '/iso/risks/999', body: { status: 'accepted' } });
-        assert.strictEqual(res.statusCode, 200);
+        assert.strictEqual(res.statusCode, 404);
         assert.deepStrictEqual(touched.filter((t) => t.what === 'addEvidence'), []);
     } finally { riskStore.updateRisk = real; }
     // An existing risk still chains its acceptance.

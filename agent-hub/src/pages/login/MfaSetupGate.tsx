@@ -1,5 +1,7 @@
 import { ShieldCheck, Loader2, AlertCircle, Usb } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { postMfa, useMfaSetupQuery } from '../../api/queries/mfaSetup';
+import useAdjustOnChange from '../../hooks/useAdjustOnChange';
 import { securityKeysSupported } from '../../api/queries/securityKeys';
 import beeFlowLogo from '../../assets/bee-flow-logo.svg';
 import AuthenticatorAppSetup from '../../components/mfa/AuthenticatorAppSetup';
@@ -8,9 +10,7 @@ import RecoveryCodes from '../../components/mfa/RecoveryCodes';
 import ReauthNotice, { isReauthRequired } from '../../components/mfa/ReauthNotice';
 import SecurityKeyEnrolment from '../../components/mfa/SecurityKeyEnrolment';
 import { useTranslation } from '../../hooks/useTranslation';
-import { API_BASE } from '../../utils/helpers';
 import { errorMessage } from '../../utils/caughtError';
-import { mutate, errorBody, RefusedError } from '../../api/mutate';
 
 /** POST /auth/mfa/setup: the enrollment secret and how to hand it to an app. */
 interface MfaSetupData {
@@ -24,13 +24,6 @@ interface MfaSetupGateProps {
     onLogout: () => void;
 }
 
-// Module-level in-flight dedupe for the mount-effect POST /auth/mfa/setup.
-// A remount (or React StrictMode's dev double-invoke) would otherwise fire
-// two concurrent /setup calls racing on session.save — the QR on screen could
-// then belong to a DIFFERENT secret than the session holds, making every
-// entered code "Invalid" (BFSF-274). The server-side /setup is now idempotent
-// too; this is belt-and-braces so only one request exists at a time.
-let _setupInFlight: Promise<MfaSetupData> | null = null;
 
 /**
  * Full-screen forced MFA-enrollment gate. Shown (by App.jsx) when the server
@@ -44,56 +37,24 @@ let _setupInFlight: Promise<MfaSetupData> | null = null;
  */
 export default function MfaSetupGate({ onDone, onLogout }: MfaSetupGateProps) {
     const { t } = useTranslation();
-    const [setupData, setSetupData] = useState<MfaSetupData | null>(null); // { otpauthUrl, qr, secret }
+    // { otpauthUrl, qr, secret }, asked once when the gate opens.
+    const setup = useMfaSetupQuery<MfaSetupData>();
+    const setupData = setup.data ?? null;
     const [code, setCode] = useState('');
     const [newCodes, setNewCodes] = useState<string[] | null>(null);   // recovery codes shown once
-    const [busy, setBusy] = useState(false);
+    const [enabling, setBusy] = useState(false);
+    const busy = enabling || setup.isFetching;
     const [error, setError] = useState<string | undefined>('');
+    useAdjustOnChange([setup.errorUpdatedAt], () => { if (setup.error) setError(errorMessage(setup.error)); });
     // The enable was refused for want of a recent sign-in: offer the sign-in.
     const [reauth, setReauth] = useState(false);
     // A security key instead of the app: either one satisfies the duty.
     const [withKey, setWithKey] = useState(false);
 
-    const post = async (path: string, body?: Record<string, unknown>) => {
-        let res: Response;
-        try {
-            res = await mutate(`${API_BASE}/auth/mfa/${path}`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body || {}),
-        });
-        } catch (err) {
-            if (!(err instanceof RefusedError)) throw err;
-            const data = errorBody(err) ?? {};
-            throw Object.assign(new Error(data.error || 'Request failed'), { code: data.code });
-        }
-        const data = await res.json().catch(() => ({}));
-        return data;
-    };
-
-    // Kick off enrollment immediately so the QR is on screen without an extra click.
-    useEffect(() => {
-        let alive = true;
-        (async () => {
-            setBusy(true);
-            try {
-                if (!_setupInFlight) {
-                    _setupInFlight = post('setup').finally(() => { _setupInFlight = null; });
-                }
-                const data = await _setupInFlight;
-                if (alive) setSetupData(data);
-            } catch (e) {
-                if (alive) setError(errorMessage(e));
-            } finally {
-                if (alive) setBusy(false);
-            }
-        })();
-        return () => { alive = false; };
-    }, []);
-
     const confirmEnable = async () => {
         setError(''); setReauth(false); setBusy(true);
         try {
-            const data = await post('enable', { code: code.trim() });
+            const data = await postMfa<{ recoveryCodes?: string[] }>('enable', { code: code.trim() });
             setNewCodes(data.recoveryCodes || []);
             setCode('');
         } catch (e) {

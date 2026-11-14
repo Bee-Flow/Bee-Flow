@@ -5,9 +5,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
 import { messageOf } from '@/utils/caughtError';
-import { mutate, ApiError, request, RefusedError } from '@/api/mutate';
+import { ApiError } from '@/api/mutate';
+import { apiRequest, apiUrl } from '@/api/typedRequest';
+import { useAccessRead } from '@/api/queries/accessEditorRead';
 import type { AccessCapability, AccessData, AccessMessage } from './accessTypes';
 
 const SAVE_DEBOUNCE_MS = 450;
@@ -15,10 +16,23 @@ const SAVE_DEBOUNCE_MS = 450;
 /** The scope id of "All members"; every other scope is a group id. */
 export const EVERYONE = '__everyone__';
 
+function groupGrantsOf(data: AccessData): Record<string, Set<string>> {
+    const gg: Record<string, Set<string>> = {};
+    for (const g of (data.groups || [])) gg[g.id] = new Set(g.granted || []);
+    return gg;
+}
+
+/** The PUT of one scope's grants: All members to the organisation, a group to that group. */
+function putGrants(orgId: string | null, scope: string, granted: string[]): Promise<Response> {
+    const body = { granted };
+    if (scope !== EVERYONE) return apiRequest('PUT /auth/groups/{id}/access', { params: { id: scope }, body });
+    return orgId
+        ? apiRequest('PUT /auth/organizations/{orgId}/org-access', { params: { orgId }, body })
+        : apiRequest('PUT /auth/me/org-access', { body });
+}
+
 export function useGroupAccess(orgIdProp: string | null) {
     const { t } = useTranslation();
-    const [loading, setLoading] = useState(true);
-    const [data, setData] = useState<AccessData | null>(null);
     const [message, setMessage] = useState<AccessMessage | null>(null);
 
     const [everyone, setEveryone] = useState<Set<string>>(() => new Set());
@@ -28,36 +42,20 @@ export function useGroupAccess(orgIdProp: string | null) {
     const timers = useRef<Record<string, ReturnType<typeof setTimeout> | undefined>>({});
 
     const readPath = orgIdProp
-        ? `${API_BASE}/auth/organizations/${encodeURIComponent(orgIdProp)}/group-access`
-        : `${API_BASE}/auth/me/group-access`;
-    const orgWritePath = orgIdProp
-        ? `${API_BASE}/auth/organizations/${encodeURIComponent(orgIdProp)}/org-access`
-        : `${API_BASE}/auth/me/org-access`;
+        ? apiUrl('GET /auth/organizations/{orgId}/group-access', { params: { orgId: orgIdProp } })
+        : apiUrl('GET /auth/me/group-access');
 
-    const load = useCallback(async () => {
-        setLoading(true);
-        try {
-            let res: Response;
-            try {
-                res = await request(readPath);
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                setMessage({ type: 'error', text: t('admin_org.access_matrix_failed_load_status', 'Failed to load ({status})', { status: err.status }) });
-                setLoading(false);
-                return;
-            }
-            const j = await res.json();
-            setData(j);
-            setEveryone(new Set(j.everyone || []));
-            const gg: Record<string, Set<string>> = {};
-            for (const g of (j.groups || [])) gg[g.id] = new Set(g.granted || []);
-            setGroupGrants(gg);
-        } catch (e) {
-            setMessage({ type: 'error', text: messageOf(e, t('admin_org.access_matrix_failed_load', 'Failed to load')) });
-        } finally { setLoading(false); }
-    }, [readPath, t]);
+    const { data = null, isFetching: loading, refetch } = useAccessRead<AccessData>('groupAccessMatrix', readPath, setMessage);
+    const load = useCallback(() => { void refetch(); }, [refetch]);
 
-    useEffect(() => { load(); }, [load]);
+    // Every answer seeds the toggles; a toggle then edits them until the next answer.
+    const [seeded, setSeeded] = useState<AccessData | null>(null);
+    if (data && data !== seeded) {
+        setSeeded(data);
+        setEveryone(new Set(data.everyone || []));
+        setGroupGrants(groupGrantsOf(data));
+    }
+
     useEffect(() => { if (!message) return; const timer = setTimeout(() => setMessage(null), 3500); return () => clearTimeout(timer); }, [message]);
     useEffect(() => () => { Object.values(timers.current).forEach(timer => timer && clearTimeout(timer)); }, []);
 
@@ -66,12 +64,11 @@ export function useGroupAccess(orgIdProp: string | null) {
 
     // Debounced PUT of one scope's grants: All members to the org, a group to that group.
     const save = (scope: string, nextSet: Set<string>) => {
-        const url = scope === EVERYONE ? orgWritePath : `${API_BASE}/auth/groups/${encodeURIComponent(scope)}/access`;
         if (timers.current[scope]) clearTimeout(timers.current[scope]);
         timers.current[scope] = setTimeout(async () => {
             try {
                 try {
-                    await mutate(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ granted: [...nextSet] }) });
+                    await putGrants(orgIdProp, scope, [...nextSet]);
                 } catch (err) {
                     if (!(err instanceof ApiError)) throw err;
                     throw new Error(t('admin_org.access_matrix_save_failed', 'Save failed'));

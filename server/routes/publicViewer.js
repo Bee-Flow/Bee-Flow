@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Public Webpage Viewer — unauthenticated, mounted at TWO addresses:
  *
@@ -63,7 +64,7 @@
 const express = require('express');
 const log = require('../telemetry/log');
 const router = express.Router();
-const rateLimit = require('express-rate-limit');
+const rateLimit = /** @type {typeof import('express-rate-limit').rateLimit} */ (/** @type {unknown} */ (require('express-rate-limit')));
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
@@ -77,7 +78,7 @@ const { buildPublicBridgeScript } = require('../services/publicBridgeScript');
 const userStore = require('../stores/userStore');
 const { sendServiceEmail } = require('../utils/emailService');
 const { mailedShareBaseUrl } = require('../utils/appPaths');
-const { CONTENT_SANDBOX, extraResponseHeaders } = require('./publicViewerSandbox.mts');
+const { CONTENT_SANDBOX, extraResponseHeaders } = require('../usecases/publicViewerSandbox.mts');
 
 // ── Rate limits ─────────────────────────────────────────────────────
 //
@@ -210,8 +211,8 @@ function viewTokenOf(req) {
 }
 
 /**
- * @typedef {{ addr: string | number | boolean,
- *   viewToken?: string }} ComposeViewerChromeArgs
+ * @typedef {{ share: PublicShare, publisher: { name?: string, displayName?: string, orgName?: string } | null, nonce: string,
+ *   base: string, addr: string | number | boolean, viewToken?: string }} ComposeViewerChromeArgs
  */
 /**
  * @param {ComposeViewerChromeArgs} param0
@@ -334,10 +335,7 @@ ${bodyHtml}
 }
 
 /**
- * @typedef {{ csrf: string,
- *   error?: string,
- *   mode: string,
- *   nonce: string,
+ * @typedef {{ share?: PublicShare, csrf: string, error?: string, mode: string, nonce: string, base: string,
  *   addr: string | number | boolean }} ComposeGateArgs
  */
 /**
@@ -462,7 +460,7 @@ const formParser = express.urlencoded({ extended: false, limit: '4kb' });
  *                   shows nothing — precisely the intention: making something non-public may not
  *                   mean that the address later accidentally serves something else.
  *
- * @returns {{share, addr, base}|null}
+ * @returns {Promise<{ share: PublicShare, addr: string, base: string } | null>}
  */
 async function resolveShareOr404(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     const base = mountBase(req);

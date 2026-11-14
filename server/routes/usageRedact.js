@@ -49,7 +49,7 @@ async function isAdminCaller(req) {
 
 // The customer view of a row (allow-list, see usageCustomerView.js): usage*
 // markup is the only AI figure customers see.
-const { redactRow, redactRows } = require('./usageCustomerView');
+const { redactRow, redactRows } = require('../usecases/usageCustomerView');
 
 // Apply customer redaction unless the caller is an admin. Use as the last
 // step before res.json — returns the redacted payload (or the original).

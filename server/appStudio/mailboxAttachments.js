@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio — turning a mail attachment into a real, readable file.
  *
@@ -25,11 +26,8 @@
  * cannot read the ticket, a type we will not accept, a size over the limit or a
  * blown quota must all fail without ever touching Gmail or Graph.
  */
-
 'use strict';
-
 const crypto = require('crypto');
-
 const studioAppDataStore = require('../stores/studioAppDataStore');
 const studioAppDbStore = require('../stores/studioAppDbStore');
 const storageStore = require('../stores/storageStore');
@@ -49,6 +47,7 @@ const { bestEffort } = require('../utils/bestEffort');
 const { providerFailure, materializeErrorBody } = require('./mailboxProviderFailure.mts');
 const { proposeMimeFromName } = require('./attachmentSniff.mts');
 const { textOnlyKind, inlineTextDescriptor } = require('./mailTextAttachment.mts');
+const { envInt } = require('../utils/envNumber.mts');
 
 // The formats an LLM or a browser can actually do something with. Everything else is refused rather than stored.
 // CAD (STEP/DXF/DWG/IGES) is included because the mailbox is THE ingestion
@@ -128,7 +127,7 @@ const MAX_ARCHIVE_BYTES = DATA_LIMITS.MAX_ATTACHMENT_BYTES;
  * @param {string} mime
  */
 function ceilingFor(mime) {
-    return ARCHIVE_MIMES.has(mime) ? MAX_ARCHIVE_BYTES : MAX_ATTACHMENT_BYTES;
+    return /** @type {ReadonlySet<string>} */ (ARCHIVE_MIMES).has(mime) ? MAX_ARCHIVE_BYTES : MAX_ATTACHMENT_BYTES;
 }
 
 /**
@@ -161,6 +160,7 @@ function parseDescriptor(value) {
     return Array.isArray(v) ? v[0] || null : v;
 }
 
+/** @param {{ id?: string, mimeType?: string | null, size?: number }} att  the ledger row @param {{ name?: string, mime?: string | null, from?: { attachmentId?: string, messageId?: string } | null }} meta */
 function studioDescriptor(att, { name, mime, from }) {
     return {
         kind: 'studio_attachment',
@@ -234,13 +234,13 @@ async function locateDescriptor(app, model, { attachmentId, tableId, recordId, v
  * was already redeemed. Idempotent: the second viewer of the same attachment
  * costs zero provider calls.
  *
- * @param {{ userId: unknown; id: unknown; }} app    - studio app row (userId = owner)
+ * @param {{ userId: string, id: string, organizationId?: string | null }} app    - studio app row (userId = owner)
  * @param {MailboxModel} model  - the canonical data model
- * @param {{ attachmentId: string, tableId?: string, recordId?: string, inline?: boolean, viewer: { id: string, role?: string, organizationId?: string | null },
+ * @param {Partial<{ attachmentId: string, tableId?: string, recordId?: string, inline?: boolean, asText?: boolean, viewer: { id: string, role?: string, organizationId?: string | null },
  *   deps?: { getAttachmentBytes?: typeof emailFetch.getAttachmentBytes, resolveMailboxIdentity?: typeof resolveMailboxIdentity,
- *   scanBuffer?: typeof scanBuffer } }} [opts]  `attachmentId` is the provider attachment id (or a fileId); `tableId`
+ *   scanBuffer?: typeof scanBuffer } }>} [opts]  `attachmentId` is the provider attachment id (or a fileId); `tableId`
  *   and `recordId` narrow the probe when the caller knows them; `deps` is the injection seam for tests
- * @returns {Promise<object>} a studio_attachment descriptor
+ * @returns {Promise<Record<string, unknown>>} a studio_attachment descriptor
  */
 async function materializeAttachment(app, model, {
     attachmentId, tableId, recordId, viewer, inline = false, asText = false, deps = {},
@@ -409,8 +409,7 @@ const FAMILY_BY_MIME = Object.freeze({
     ...CAD_MIME_FAMILIES,
 });
 
-const MAX_ATTACHMENT_TOTAL_BYTES = parseInt(process.env.STUDIO_APP_ATTACHMENT_TOTAL_BYTES, 10)
-    || 1024 * 1024 * 1024;
+const MAX_ATTACHMENT_TOTAL_BYTES = envInt('STUDIO_APP_ATTACHMENT_TOTAL_BYTES', 1024 * 1024 * 1024, { min: 1 });
 
 /**
  * Sum the owner-scoped ledger against the app's total-bytes ceiling. Same frozen
@@ -476,6 +475,7 @@ async function getStoredAttachmentBuffer(app, fileId) {
  * ledger row only ever describes clean bytes. recordId/fieldKey hang the
  * ledger row off the record the source attachment lives on, so the derived
  * file is readable by exactly whoever may read that record.
+ * @param {{ userId: string, id: string }} app @param {{ buffer?: Buffer, name?: string, recordId?: string | null, fieldKey?: string | null, allowArchive?: boolean, deps?: { scanBuffer?: typeof scanBuffer } }} [opts]
  */
 async function storeDerivedFile(app, { buffer, name, recordId, fieldKey, allowArchive = false, deps = {} } = {}) {
     const scan = deps.scanBuffer || scanBuffer;

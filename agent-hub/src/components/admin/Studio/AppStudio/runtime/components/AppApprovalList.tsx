@@ -1,7 +1,6 @@
 import { ChevronDown, ChevronRight, Clock, Download, FileText, Loader2, LogIn, ShieldCheck } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import useTranslation from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
 import { FormRichText } from '@/components/forms/PublicFormRenderer';
 import ApprovalDecisionControls, { type ApprovalField } from '@/components/admin/Studio/Approvals/ApprovalDecisionControls';
 import { approvalStatusChip, formatWhen, stageChainInfo, type ApprovalRowLike, type ApprovalStageInfo } from '@/components/admin/Studio/Approvals/approvalDisplay';
@@ -11,7 +10,9 @@ import { useRuntime } from '../RuntimeContext';
 import type { TranslateParams } from '@/hooks/useTranslation';
 import type React from 'react';
 import type { NodeProps } from './appNode.types';
-import { mutate, request, errorBody, RefusedError } from '@/api/mutate';
+import { errorBody, RefusedError } from '@/api/mutate';
+import { apiRequest, apiUrl } from '@/api/typedRequest';
+import type { ApiBody } from '@/api/typedRequest';
 
 /**
  * App Studio runtime — 'approval_list'. Spec: server/appStudio/componentSpecs.js.
@@ -124,7 +125,7 @@ export default function AppApprovalList({ node }: NodeProps<ApprovalListProps>) 
             if (scope === 'app' && appId) q.set('appId', appId);
             let res: Response;
             try {
-                res = await request(`${API_BASE}/api/automation/approvals?${q}`);
+                res = await apiRequest('GET /api/automation/approvals', { query: q });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 if (g === gen.current) setError(errorBody(err)?.error || tr('studio_apps_runtime.approvals.load_failed', 'Could not load approvals'));
@@ -159,7 +160,7 @@ export default function AppApprovalList({ node }: NodeProps<ApprovalListProps>) 
         try {
             let res: Response;
             try {
-                res = await request(`${API_BASE}/api/automation/approvals/${encodeURIComponent(row.id)}`);
+                res = await apiRequest('GET /api/automation/approvals/{id}', { params: { id: row.id } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 setDetail({ error: errorBody(err)?.error || tr('studio_apps_runtime.approvals.open_failed', 'Could not open this approval') });
@@ -174,11 +175,8 @@ export default function AppApprovalList({ node }: NodeProps<ApprovalListProps>) 
     const decide = useCallback(async (approval: ApprovalRow, decision: string, reason: string | undefined, answers: unknown) => {
         let res: Response;
         try {
-            res = await mutate(`${API_BASE}/api/automation/approvals/${encodeURIComponent(approval.id)}/decide`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ decision, reason, answers }),
-        });
+            const body = { decision, reason, answers } as ApiBody<'POST /api/automation/approvals/{id}/decide'>;
+            res = await apiRequest('POST /api/automation/approvals/{id}/decide', { params: { id: approval.id }, body });
         } catch (err) {
             if (!(err instanceof RefusedError)) throw err;
             const body = errorBody(err) ?? null;
@@ -362,7 +360,7 @@ function DetailPanel({ detail, onDecide }: DetailPanelProps) {
                     {approval.attachments.map((att: ApprovalAttachment) => (
                         <a
                             key={att.fileId}
-                            href={`${API_BASE}/api/automation/approvals/${encodeURIComponent(approval.id)}/files/${encodeURIComponent(att.fileId)}`}
+                            href={apiUrl('GET /api/automation/approvals/{id}/files/{fileId}', { params: { id: approval.id, fileId: att.fileId } })}
                             className="flex items-center gap-2 text-[13px] hover:underline text-[var(--text-primary)]"
                         >
                             <FileText size={13} className="shrink-0 text-[var(--text-tertiary)]" />

@@ -142,6 +142,7 @@ async function updateGroup(groupId, updates) {
     } catch (e) { log.error(e); return false; }
 }
 
+// stepwise: every step is idempotent and the group row goes last, so deleting again finishes a failed delete; revokeGroupShares writes through its own store
 async function deleteGroup(groupId) {
     await initDB();
 

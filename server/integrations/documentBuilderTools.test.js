@@ -103,6 +103,11 @@ test('the tool surface is exactly the document tools', () => {
     assert.ok(!isDocumentTool('create_webpage'), 'webpage tools are somebody else\'s');
 });
 
+test('the dispatcher answers an unknown name and a missing user', async () => {
+    assert.deepStrictEqual(await executeDocumentTool('document_nope', {}, CTX), { error: 'Unknown document tool: document_nope' });
+    assert.deepStrictEqual(await executeDocumentTool('document_read', { documentId: 'x' }, {}), { error: 'No user context for document tools.' });
+});
+
 test('document_download: scope first, unknown ids, and spreadsheets only', async () => {
     const { documentId } = await executeDocumentTool('create_document', { name: 'Letter', docType: 'letter' }, CTX);
     const closed = { has: (id) => id === documentId };

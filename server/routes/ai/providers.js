@@ -4,7 +4,7 @@ const { getAdapter, baseAdapter } = require('../../core/providers');
 
 const router = require('express').Router();
 const { z, typeError } = require('../../utils/zod');
-const { orEmpty: bodyOf } = require('../../core/http/schemaParts');
+const { orEmpty: bodyOf, closedObject } = require('../../core/http/schemaParts');
 const { validate } = require('../../core/http/validate');
 
 // Middleware
@@ -121,7 +121,7 @@ router.get('/providers', requireAuth, async (req, res) => {
 
 // POST /ai/providers
 router.post('/providers', requireAuth, requireAdmin, validate({ body: CreateProviderBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CreateProviderBody>, import('qs').ParsedQs>} */ req, res) => {
-    const { name, type, url, model, apiKey, project, location, serviceAccountKey } = req.body;
+    const { name, type, url, model, apiKey, project, location, serviceAccountKey } = /** @type {Record<string, any>} */ (req.body);
     if (!url && type !== 'google-vertex' && type !== 'azure') {
         return res.status(400).json({ error: NAME_TEXT });
     }
@@ -199,7 +199,7 @@ router.delete('/providers/:id', requireAuth, requireAdmin, async (/** @type {imp
 });
 
 // PUT /ai/providers/:id/default
-router.put('/providers/:id/default', requireAuth, requireAdmin, async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
+router.put('/providers/:id/default', requireAuth, requireAdmin, validate({ body: bodyOf(closedObject({}, 'Making a provider the default')) }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     const success = await setDefaultProvider(req.params.id);
     if (success) {
         res.json({ success: true });
@@ -209,7 +209,7 @@ router.put('/providers/:id/default', requireAuth, requireAdmin, async (/** @type
 });
 
 // GET /ai/providers/:id/models — uses cached getModelsForProvider (60s TTL)
-router.get('/providers/:id/models', requireAuth, validate({ query: ModelsQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof ModelsQuery>>} */ req, res) => {
+router.get('/providers/:id/models', requireAuth, validate({ query: ModelsQuery }), async (req, res) => {
     const providerData = await getProviders();
     const provider = providerData.providers.find(p => p.id === req.params.id);
 

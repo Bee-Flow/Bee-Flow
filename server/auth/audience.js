@@ -35,7 +35,7 @@ function _parseSharedGroups(value) {
  *
  * @param {{ owner_id?: string | null, tenant_id?: string | null, organization_id?: string | null,
  *   is_published?: boolean | null, shared_groups?: unknown } | null | undefined} entity
- * @param {{ userId: string | null, orgIds: Set<string> | null, userGroups: string[] }} ctx
+ * @param {{ userId: string | symbol | null, orgIds: Set<string> | null, userGroups: string[] }} ctx  a symbol userId owns nothing
  * @returns {boolean}
  */
 function canSeePublished(entity, { userId, orgIds, userGroups }) {

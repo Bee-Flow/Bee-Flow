@@ -1,3 +1,4 @@
+// @typecheck
 /** @typedef {import('zod').ZodString} ZodString */
 /**
  * Cowork Routes — REST API for scheduled cowork and its execution history.
@@ -206,7 +207,7 @@ router.get('/', async (req, res) => {
 
 // POST / — create. `startNow` fires the first run immediately instead of
 // waiting for the next 60s tick.
-router.post('/', validate({ body: CreateBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CreateBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/', validate({ body: CreateBody }), async (req, res) => {
     try {
         const userId = req.session.user.id;
         const { agentId, startNow } = req.body;
@@ -235,7 +236,7 @@ router.post('/', validate({ body: CreateBody }), async (/** @type {import('expre
 });
 
 // PUT /:id — update
-router.put('/:id', validate({ body: UpdateBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof UpdateBody>, import('qs').ParsedQs>} */ req, res) => {
+router.put('/:id', validate({ body: UpdateBody }), async (req, res) => {
     try {
         const userId = req.session.user.id;
         const existing = await loadOwned(req.params.id, userId);
@@ -293,7 +294,7 @@ router.delete('/:id', async (req, res) => {
 });
 
 // POST /:id/toggle — pause / resume
-router.post('/:id/toggle', validate({ body: NoBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof NoBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/:id/toggle', validate({ body: NoBody }), async (req, res) => {
     try {
         const userId = req.session.user.id;
         const existing = await loadOwned(req.params.id, userId);
@@ -311,7 +312,7 @@ router.post('/:id/toggle', validate({ body: NoBody }), async (/** @type {import(
 });
 
 // POST /:id/run-now — force an immediate run
-router.post('/:id/run-now', validate({ body: NoBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof NoBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/:id/run-now', validate({ body: NoBody }), async (req, res) => {
     try {
         const userId = req.session.user.id;
         const existing = await loadOwned(req.params.id, userId);
@@ -343,7 +344,7 @@ router.post('/:id/run-now', validate({ body: NoBody }), async (/** @type {import
 // before the user commits. The agent list comes from the server, never the
 // client, and is only offered when the beta that allows agent-linked cowork is
 // on — otherwise the model could pick an agent the create call would 403 on.
-router.post('/compose', validate({ body: ComposeBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof ComposeBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/compose', validate({ body: ComposeBody }), async (req, res) => {
     try {
         const userId = req.session.user.id;
         const { brief } = req.body;
@@ -380,7 +381,7 @@ router.post('/compose', validate({ body: ComposeBody }), async (/** @type {impor
 });
 
 // GET /:id/runs — execution history, newest first
-router.get('/:id/runs', validate({ query: RunsQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof RunsQuery>>} */ req, res) => {
+router.get('/:id/runs', validate({ query: RunsQuery }), async (req, res) => {
     try {
         const userId = req.session.user.id;
         await loadOwned(req.params.id, userId);

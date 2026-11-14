@@ -13,7 +13,7 @@
  * of the turn's last dry run are merged into the builder session snapshot as
  * `lastDryRunHints: { [stepId]: DryRunHint }`; the next turn renders them as
  * the "## Last test run" block of the late dynamic message
- * (routes/ai/automationBuilder/turnMessages.js), never into the cached
+ * (usecases/ai/automationBuilder/turnMessages.js), never into the cached
  * system prompt.
  *
  * Bounded: each field is cut to a fixed length, steps that are no longer in

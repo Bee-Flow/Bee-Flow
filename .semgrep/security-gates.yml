@@ -17,6 +17,7 @@ rules:
       exclude:
         - server/utils/ssrfGuard.js
         - server/utils/nextcloudTarget.js
+        - server/utils/fixedEndpointFetch.mts
         - server/core/http/
         - server/core/providers/
         - server/telemetry/
@@ -67,8 +68,9 @@ rules:
     languages: [javascript, typescript]
     severity: WARNING
     message: >-
-      parseInt(process.env.X) || n turns a configured 0 into n. Parse with
-      Number(...) and Number.isFinite, and refuse to boot on a non-numeric value.
+      parseInt(process.env.X) || n turns a configured 0 into n and ignores a bad
+      value without a word. Read it with envInt / envNumber from
+      server/utils/envNumber.mts.
     paths:
       include: [server/]
       exclude: ['*.test.js']

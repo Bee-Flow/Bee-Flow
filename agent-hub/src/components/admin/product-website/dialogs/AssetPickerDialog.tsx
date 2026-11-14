@@ -1,14 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import { useCmsAssetLibrary, type CmsAsset } from '@/api/queries/cmsAssets';
 import ModalShell from './ModalShell';
 import { useTranslation } from '@/hooks/useTranslation';
 import { messageOf } from '@/utils/caughtError';
-import { API_BASE } from '@/utils/helpers';
-import { settled } from '@/api/settled';
 
-interface CmsAsset {
-    key: string;
-    url: string;
-}
+const NO_ASSETS: CmsAsset[] = [];
 
 interface AssetLibraryState {
     loading: boolean;
@@ -38,28 +34,11 @@ interface AssetPickerDialogProps {
  */
 export default function AssetPickerDialog({ onPick, onClose, accept = 'image' }: AssetPickerDialogProps) {
     const { t } = useTranslation();
-    const [state, setState] = useState<AssetLibraryState>({ loading: true, error: null, assets: [], unavailable: false });
+    const library = useCmsAssetLibrary();
+    const state: AssetLibraryState = library.error
+        ? { loading: false, error: messageOf(library.error, ''), assets: [], unavailable: false }
+        : { loading: library.isPending, error: null, assets: library.data?.assets ?? NO_ASSETS, unavailable: library.data?.unavailable ?? false };
     const [query, setQuery] = useState('');
-
-    useEffect(() => {
-        let cancelled = false;
-        settled(`${API_BASE}/api/cms/admin/assets`, undefined, 'empty')
-            .then(r => (r.ok ? r.res.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
-            .then(data => {
-                if (cancelled) return;
-                setState({
-                    loading: false,
-                    error: null,
-                    assets: Array.isArray(data?.assets) ? data.assets : [],
-                    unavailable: data?.unavailable === true,
-                });
-            })
-            .catch(err => {
-                if (cancelled) return;
-                setState({ loading: false, error: messageOf(err, ''), assets: [], unavailable: false });
-            });
-        return () => { cancelled = true; };
-    }, []);
 
     // Filename search — keys are `cms/<timestamp>-<original name>.<ext>`,
     // so matching the whole key lets users find by name or by date.

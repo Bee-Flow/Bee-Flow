@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Which agents may call an `agent_call` automation, and who may say so.
  *
@@ -38,9 +39,7 @@
  * required lazily, so a test hands in its own and the module loads without a
  * database.
  */
-
 'use strict';
-
 const log = require('../telemetry/log');
 const { HttpError } = require('../core/http/errors');
 const { roleSatisfies, groupsOf } = require('./access');
@@ -50,7 +49,6 @@ const { mayAutomationUseAgent } = require('../core/automationModel/agentCatalog'
 const MAX_BINDINGS = 50;
 /** The picker never needs more rows than this. */
 const MAX_CANDIDATES = 200;
-
 const NOT_LINKABLE = 'You cannot link this automation to that agent.';
 
 /** The code a refused call carries; the model reads it, so it names no agent. */
@@ -77,6 +75,7 @@ function realDeps(deps = {}) {
  * the AI step make). Null when it cannot be read.
  *
  * @returns {Promise<{ userId: string, orgId: string|null, groups: string[] }|null>}
+ * @param {BindingDeps} [deps]
  */
 async function ownerIdentityOf(ownerId, deps = {}) {
     if (!ownerId) return null;
@@ -100,7 +99,7 @@ async function ownerIdentityOf(ownerId, deps = {}) {
  * `identity` is a prefetched ownerIdentityOf result, so a list of agents costs
  * one owner read.
  */
-async function ownerMayUseAgent(ownerId, agentId, { deps = {}, identity, agent } = {}) {
+async function ownerMayUseAgent(ownerId, agentId, /** @type {{ deps?: BindingDeps, identity?: Awaited<ReturnType<typeof ownerIdentityOf>>, agent?: AgentRow | null }} */ { deps = {}, identity, agent } = {}) {
     if (!ownerId || !agentId) return false;
     try {
         const agentStore = deps.agentStore || require('../stores/agentStore');
@@ -177,7 +176,7 @@ async function toolNameTaken({ automation, agentId, store }) {
  * touched by this call: taking an agent's access away, like handing it out,
  * needs edit rights on that agent as well as on the automation.
  *
- * @param {{ automation: AutomationRow, agentIds: string[], actorId: string, session?: object|null, deps?: object }} p
+ * @param {{ automation: AutomationRow, agentIds: string[], actorId: string, session?: object|null, deps?: BindingDeps }} p
  *   automation: a store row (rowToAutomation shape); actorId: the person (or builder session) asking
  * @returns {Promise<{ bindings: Array, added: string[], removed: string[], kept: number }>}
  * @throws {HttpError}
@@ -313,9 +312,9 @@ function notGrantedBy(agent, automationId, deps) {
  * may edit the agent; anyone else, and an agent that does not exist, get the
  * same null, so this is no oracle for agents in other workspaces.
  *
- * @returns {Promise<string[]|null>}
+ * @param {{ agentId: string, viewerId: string, session?: Parameters<typeof setAgentBindings>[0]['session'], deps?: BindingDeps }} p @returns {Promise<string[]|null>}
  */
-async function linkedAutomationIds({ agentId, viewerId, session = null, deps = {} }) {
+async function linkedAutomationIds({ agentId, viewerId, session = null, deps = /** @type {BindingDeps} */ ({}) }) {
     const d = realDeps(deps);
     if (!agentId || !viewerId) return null;
     const agent = await d.agentStore.getForRuntime(agentId);
@@ -336,9 +335,9 @@ async function linkedAutomationIds({ agentId, viewerId, session = null, deps = {
  *   canManage   the viewer may edit the automation at all
  *
  * @returns {Promise<{ bindings: Array, candidates: Array|null, candidatesError: string|null,
- *   canManage: boolean, isAgentCall: boolean, toolName: string|null }>}
+ *   canManage: boolean, isAgentCall: boolean, toolName: string|null }>} @param {{ automation: AutomationRow, viewerId: string, session?: Parameters<typeof setAgentBindings>[0]['session'], deps?: BindingDeps }} p
  */
-async function describeBindings({ automation, viewerId, session = null, deps = {} }) {
+async function describeBindings({ automation, viewerId, session = null, deps = /** @type {BindingDeps} */ ({}) }) {
     const d = realDeps(deps);
     const { role } = await d.access.roleFor(automation, viewerId, { session });
     const canManage = roleSatisfies(role, 'edit');
@@ -400,7 +399,7 @@ async function describeBindings({ automation, viewerId, session = null, deps = {
  *
  * @returns {Promise<{ ok: true } | { ok: false, reason: 'no_agent'|'not_bound'|'owner_cannot_use' }>}
  */
-async function agentMayCall({ automation, agentId, deps = {} }) {
+async function agentMayCall({ automation, agentId, deps = /** @type {BindingDeps} */ ({}) }) {
     if (!agentId) return { ok: false, reason: 'no_agent' };
     const store = deps.store || require('../stores/automationStore');
     try {
@@ -420,6 +419,7 @@ async function agentMayCall({ automation, agentId, deps = {} }) {
  * Throws when the policy module cannot read it; callers decide what that means.
  *
  * @returns {{ curated: boolean, grants: object|null }}
+ * @param {BindingDeps} [deps]
  */
 function curationOf(config, deps = {}) {
     const tools = config && typeof config === 'object' && config.tools && typeof config.tools === 'object' && !Array.isArray(config.tools)
@@ -454,7 +454,7 @@ function curationOf(config, deps = {}) {
  *
  * @returns {Promise<{ ok: true } | { ok: false, reason: 'agent_unreadable'|'not_granted'|'needs_confirmation'|'visitor_not_allowed' }>}
  */
-async function agentGrantVerdict({ automation, agentId, confirmed = false, guest = false, deps = {} }) {
+async function agentGrantVerdict({ automation, agentId, confirmed = false, guest = false, deps = /** @type {BindingDeps} */ ({}) }) {
     if (!agentId) return { ok: false, reason: 'agent_unreadable' };
     let curated;
     let grants;
@@ -482,7 +482,7 @@ async function agentGrantVerdict({ automation, agentId, confirmed = false, guest
  *
  * @returns {Promise<string[]>} the agent ids that were unbound
  */
-async function pruneBindingsForOwner({ automation, actorId = null, deps = {} }) {
+async function pruneBindingsForOwner({ automation, actorId = null, deps = /** @type {BindingDeps} */ ({}) }) {
     const d = realDeps(deps);
     try {
         const current = await d.store.listBindingsForAutomation(automation.id);
@@ -521,17 +521,18 @@ module.exports = {
 
 /**
  * @typedef BindingDeps  injectable collaborators (tests pass fakes)
- * @property {typeof import('../stores/automationStore')} [store]
- * @property {typeof import('../stores/automationStore')} [automationStore]
- * @property {typeof import('../stores/agentStore')} [agentStore]
- * @property {typeof import('../stores/userStore')} [userStore]
+ * @property {BindingStore} [store]
+ * @property {BindingStore} [automationStore]
+ * @property {Pick<typeof import('../stores/agentStore'), 'getForRuntime' | 'getAgents' | 'getPublishedAgents' | 'getPublishedAgentsForUser'>} [agentStore]
+ * @property {Pick<typeof import('../stores/userStore'), 'getUser'>} [userStore]
  * @property {Pick<ReturnType<typeof import('./access').makeAutomationAccess>, 'roleFor'>} [access]  the module itself or a makeAutomationAccess() instance; only roleFor is read
- * @property {ReturnType<typeof import('../agents/agentAccess').defaultAgentAccess>} [agentAccess]
+ * @property {Pick<ReturnType<typeof import('../agents/agentAccess').defaultAgentAccess>, 'buildCanModifyContext' | 'canModifyAgent'>} [agentAccess]
  * @property {typeof import('../core/agentRuntime/toolPolicy')} [toolPolicy]
  */
 
 /**
  * @typedef {NonNullable<Awaited<ReturnType<typeof import('../stores/automationStore').listBindingsForAutomation>>[number]>} Binding
+ * @typedef {Pick<typeof import('../stores/automationStore'), 'listBindingsForAutomation' | 'applyAgentBindings' | 'listAutomationsBoundToAgent' | 'hasAgentBinding'>} BindingStore
  * @typedef {{ agentId: string | null, name: string | null, canEdit: boolean, missing: boolean, usable: boolean | null, notGranted: boolean | null }} BindingView
  * @typedef {{ id: string, name: string, description: string | null }} Candidate
  * @typedef {{ id?: string, name?: string, description?: unknown, config?: Record<string, unknown> | null, owner_id?: string, organization_id?: string, is_published?: boolean }} AgentRow  the parts of an agents row this module reads

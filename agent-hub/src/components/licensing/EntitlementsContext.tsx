@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useCallback, useEffect, useMemo, useState } from 'react';
-import { API_BASE } from '../../utils/helpers';
+import React, { createContext, useContext, useCallback, useEffect, useMemo } from 'react';
 import { errorMessage } from '../../utils/caughtError';
-import { request, RefusedError } from '../../api/mutate';
+import { RefusedError } from '../../api/mutate';
+import { useMyEntitlementsQuery } from '@/api/queries/myEntitlements';
 
 interface CapabilitySets {
     core: string[];
@@ -80,60 +80,67 @@ interface EntitlementsProviderProps {
     children?: React.ReactNode;
 }
 
-export function EntitlementsProvider({ children }: EntitlementsProviderProps) {
-    const [state, setState] = useState<EntitlementsState>({
-        loading: true,
-        degraded: false,
-        tier: 'community',
-        mode: 'cloud',
-        superAdmin: false,
-        effective: EMPTY,
-        ceiling: EMPTY,
-        reasons: {},
-        registry: [],
+/** The snapshot as the server sends it. */
+interface EntitlementsAnswer {
+    degraded?: boolean;
+    tier: string;
+    mode?: string;
+    superAdmin?: boolean;
+    effective?: CapabilitySets;
+    ceiling?: CapabilitySets;
+    reasons?: Record<string, string>;
+    registry?: unknown;
+}
+
+const INITIAL: EntitlementsState = {
+    loading: true,
+    degraded: false,
+    tier: 'community',
+    mode: 'cloud',
+    superAdmin: false,
+    effective: EMPTY,
+    ceiling: EMPTY,
+    reasons: {},
+    registry: [],
+    error: null,
+};
+
+/** The provider's state: the last snapshot, loading until the first answer, the last read's error. */
+function stateOf(j: EntitlementsAnswer | undefined, error: Error | null, answered: boolean): EntitlementsState {
+    const base: EntitlementsState = j ? {
+        loading: false,
+        degraded: !!j.degraded,
+        tier: normalizeTier(j.tier),
+        mode: j.mode === 'self-hosted' ? 'self-hosted' : 'cloud',
+        superAdmin: !!j.superAdmin,
+        effective: j.effective || EMPTY,
+        ceiling: j.ceiling || EMPTY,
+        reasons: j.reasons || {},
+        registry: Array.isArray(j.registry) ? j.registry as CapabilityRegistryEntry[] : [],
         error: null,
-    });
+    } : INITIAL;
+    if (!error) return answered ? { ...base, loading: false } : base;
+    return { ...base, loading: false, error: error instanceof RefusedError ? `HTTP ${error.status}` : errorMessage(error) };
+}
 
-    const reload = useCallback(async () => {
-        try {
-            let res: Response;
-            try {
-                res = await request(`${API_BASE}/auth/my-entitlements`);
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                setState((s: EntitlementsState) => ({ ...s, loading: false, error: `HTTP ${err.status}` }));
-                return;
-            }
-            const j = await res.json();
-            setState({
-                loading: false,
-                degraded: !!j.degraded,
-                tier: normalizeTier(j.tier),
-                mode: j.mode === 'self-hosted' ? 'self-hosted' : 'cloud',
-                superAdmin: !!j.superAdmin,
-                effective: j.effective || EMPTY,
-                ceiling: j.ceiling || EMPTY,
-                reasons: j.reasons || {},
-                registry: Array.isArray(j.registry) ? j.registry : [],
-                error: null,
-            });
-        } catch (e) {
-            setState((s: EntitlementsState) => ({ ...s, loading: false, error: errorMessage(e) }));
-        }
-    }, []);
+export function EntitlementsProvider({ children }: EntitlementsProviderProps) {
+    const query = useMyEntitlementsQuery<EntitlementsAnswer>();
+    const { refetch } = query;
+    const answered = query.isSuccess || query.isError;
+    const state = useMemo(() => stateOf(query.data, query.error, answered), [query.data, query.error, answered]);
+    const reload = useCallback(async () => { await refetch(); }, [refetch]);
 
-    // Fetch on mount, and REFETCH whenever auth state flips. This provider is
+    // Read on mount, and AGAIN whenever auth state flips. This provider is
     // mounted above the auth boundary (so LicenseContext.hasFeature can delegate
-    // to it), so its first fetch can run pre-login (401 → empty effective). App
+    // to it), so its first read can run pre-login (401 → empty effective). App
     // dispatches `beeflow:auth-changed` on login/logout/bootstrap so we re-resolve
     // with the real session — otherwise the empty pre-login snapshot would persist
     // and hide every capability-gated surface after login.
     useEffect(() => {
-        reload();
-        const onAuthChanged = () => reload();
+        const onAuthChanged = () => { void refetch(); };
         window.addEventListener('beeflow:auth-changed', onAuthChanged);
         return () => window.removeEventListener('beeflow:auth-changed', onAuthChanged);
-    }, [reload]);
+    }, [refetch]);
 
     const value = useMemo(() => {
         // Defensive: fold any legacy `mcp` bucket (older backend payload) into

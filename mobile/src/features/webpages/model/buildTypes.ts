@@ -4,7 +4,7 @@
  *
  *   WebpageSource   server/stores/webpage/sources.js      → mapSourceRow
  *   WebpageVersion  server/stores/webpage/versions.js     → getVersions,
- *                   decorated by routes/webpages/versionListing.js
+ *                   decorated by usecases/webpages/versionListing.js
  *   VersionPage     routes/webpages/versions.js           GET /:id/versions
  *   DraftDocument   routes/webpages/draftDocument.js      GET /:id/draft-document
  */

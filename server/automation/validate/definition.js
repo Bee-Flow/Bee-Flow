@@ -260,7 +260,8 @@ function coerceDraftShape(def) {
  *
  * The default is 'activate', so every pre-existing caller is unchanged.
  *
- * @returns {{ok: boolean, errors: object[], warnings: object[]}}
+ * @returns {{ok: boolean, errors: ValidationRecord[], warnings: ValidationRecord[]}}
+ * @typedef {{ code: string; severity: string; path: string; message: string; hint?: string; blockedAt?: string }} ValidationRecord
  */
 function validateDefinition(def, opts = {}) {
     const stage = opts.stage || 'activate';

@@ -1,14 +1,14 @@
 import EmojiPicker from 'emoji-picker-react';
 import { Camera, Upload, X, Loader2, Image as ImageIcon, Smile } from 'lucide-react';
 import React, { useId, useState, useRef } from 'react';
-import { API_BASE } from '../../utils/helpers';
 import Modal from '../shared/Modal';
 import { toast } from '../shared/Toast';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { EmojiClickData } from 'emoji-picker-react';
 import type { CustomIcon } from '../../hooks/useIconPack';
 import { errorMessage } from '../../utils/caughtError';
-import { mutate, ApiError, errorBody, RefusedError } from '../../api/mutate';
+import { ApiError, errorBody, RefusedError } from '../../api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 interface IconPickerModalProps {
     isOpen: boolean;
@@ -52,10 +52,7 @@ function IconPickerModal({ isOpen, onClose, iconKey, iconLabel, defaultEmoji, cu
         formData.append('icon', file);
 
         try {
-            const res = await mutate(`${API_BASE}/api/icons/upload`, {
-                method: 'POST',
-                body: formData
-            }).catch((err: unknown) => {
+            const res = await apiRequest('POST /api/icons/upload', { init: { body: formData } }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });
@@ -77,17 +74,15 @@ function IconPickerModal({ isOpen, onClose, iconKey, iconLabel, defaultEmoji, cu
         try {
             let res: Response | undefined;
             try {
-                res = await mutate(`${API_BASE}/api/icons/generate`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+                res = await apiRequest('POST /api/icons/generate', {
+                    body: {
                     prompt,
                     // The icon route takes only a Gemini model id; any other choice (an Azure
                     // deployment) is left out and the server picks its default image model.
                     model: nanoBananaSettings?.image?.model?.startsWith('gemini-') ? nanoBananaSettings.image.model : undefined,
                     aspectRatio: '1:1',
-                }),
-            });
+                },
+                });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const data = errorBody(err) ?? {};

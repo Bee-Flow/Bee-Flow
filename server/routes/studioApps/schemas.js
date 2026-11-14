@@ -95,10 +95,13 @@ const TriggerParams = closedObject({
 const TriggerSwitchBody = bodyOf({
     enabled: z.boolean({ error: 'enabled is true or false.' }),
 }, 'Switching a trigger');
+// An action on the app (or its trigger, version or job) in the path, which takes no fields.
+const NoBody = bodyOf({}, 'This action');
 
 module.exports = {
     TriggerParams,
     TriggerSwitchBody,
+    NoBody,
     CreateAppBody,
     UpdateAppBody,
     DefinitionBody,

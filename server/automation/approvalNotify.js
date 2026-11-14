@@ -1,3 +1,4 @@
+// @typecheck strict
 /** @typedef {import('./approvalDelivery').ApprovalAutomation} ApprovalAutomation */
 /**
  * approvalNotify — one place every "an approval needs you" announcement goes.
@@ -51,14 +52,14 @@ const CARD_CHANNELS = ['talk', 'nc_talk'];
  */
 function approvalPolicy(automation) {
     if (!automation) {
-        const { NOTIFICATION_DEFAULTS } = require('./notificationDefaults');
+        const { NOTIFICATION_DEFAULTS } = /** @type {typeof import('./notificationDefaults')} */ (require('./notificationDefaults'));
         return { ...NOTIFICATION_DEFAULTS.onApproval, channels: ['bell'] };
     }
     try {
         const { resolveNotificationPolicy } = require('../core/automationRunner/runNotifications');
         return resolveNotificationPolicy(automation || {}, 'onApproval');
     } catch {
-        const { NOTIFICATION_DEFAULTS } = require('./notificationDefaults');
+        const { NOTIFICATION_DEFAULTS } = /** @type {typeof import('./notificationDefaults')} */ (require('./notificationDefaults'));
         return { ...NOTIFICATION_DEFAULTS.onApproval, channels: ['bell'] };
     }
 }

@@ -330,7 +330,7 @@ function buildCompleteness({
     // assumes canonical input and an app stored before the v1→v2 migration
     // would otherwise report `shape.schema_version` — an ERROR, and therefore a
     // publish block, invented by this module rather than found by it.
-    const { canonicalizeAndValidate } = require('../appStudio/definitionGate.mts');
+    const { canonicalizeAndValidate } = require('../core/featureModules').featureModule('appStudio/definitionGate');
     for (const app of apps.filter(Boolean)) {
         let result;
         let canonical;
@@ -351,7 +351,7 @@ function buildCompleteness({
     }
 
     // ── 2. Automations, on their own stage ─────────────────────────────────
-    const { validateDefinition } = require('../automation/validate');
+    const { validateDefinition } = require('../core/featureModules').featureModule('automation/validate');
     for (const a of automations.filter(Boolean)) {
         // Same rule as the catch below it, which was already right: an automation
         // that could not be validated is not an automation without problems.
@@ -420,6 +420,7 @@ function buildCompleteness({
  * The async wrapper: read what a definition cannot answer, then aggregate.
  *
  * Stores are required INSIDE the call on purpose — see the module header.
+ * @param {Omit<NonNullable<Parameters<typeof buildCompleteness>[0]>, 'kbDocumentCounts'>} [input]
  */
 async function collectCompleteness({
     graph = null, apps = [], automations = [], knowledgeBases = [], unavailable = [],

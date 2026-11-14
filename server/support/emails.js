@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Support email templates — branded shell mirroring `_renderEmailShell` from
  * emailService.js (which is private). All actual sending goes through
@@ -85,7 +86,7 @@ function _bodyAsHtml(body) {
         .split(/\n{2,}/).map(p => `<p style="margin:0 0 12px;">${p.replace(/\n/g, '<br/>')}</p>`).join('');
 }
 
-/** @typedef {{ to: string | string[], requesterName: unknown, subject: unknown, threadUrl: unknown }} SendThreadCreatedEmailArgs */
+/** @typedef {{ to: string | string[], requesterName?: string | null, subject: string, threadUrl: string }} SendThreadCreatedEmailArgs */
 /**
  * Confirmation to the requester right after a thread is created.
  * @param {SendThreadCreatedEmailArgs} param0
@@ -106,7 +107,7 @@ async function sendThreadCreatedEmail({ to, requesterName, subject, threadUrl })
     });
 }
 
-/** @typedef {{ to: string | string[], escalated?: boolean, requesterName: unknown, subject: unknown, replyBody: unknown, threadUrl: unknown }} SendAiReplyEmailArgs */
+/** @typedef {{ to: string | string[], escalated?: boolean, requesterName?: string | null, subject: string, replyBody: string, threadUrl: string }} SendAiReplyEmailArgs */
 /**
  * Posted by the AI auto-responder.
  * @param {SendAiReplyEmailArgs} param0
@@ -131,7 +132,7 @@ async function sendAiReplyEmail({ to, requesterName, subject, replyBody, threadU
     });
 }
 
-/** @typedef {{ to: string | string[], requesterName: unknown, subject: unknown, staffName: unknown, replyBody: unknown, threadUrl: unknown }} SendStaffReplyEmailArgs */
+/** @typedef {{ to: string | string[], requesterName?: string | null, subject: string, staffName?: string | null, replyBody: string, threadUrl: string }} SendStaffReplyEmailArgs */
 /**
  * Reply posted by Bee Flow staff.
  * @param {SendStaffReplyEmailArgs} param0
@@ -169,7 +170,7 @@ function _csatBlock(csatLinks) {
     `;
 }
 
-/** @typedef {{ to: string | string[], requesterName: unknown, subject: unknown, threadUrl: unknown, csatLinks?: unknown }} SendThreadResolvedEmailArgs */
+/** @typedef {{ to: string | string[], requesterName?: string | null, subject: string, threadUrl: string, csatLinks?: unknown }} SendThreadResolvedEmailArgs */
 /**
  * Resolution notice. When `csatLinks` is supplied, embeds a 1-5 rating row and
  * a "not resolved" dispute link (both HMAC-token URLs built by the route).
@@ -234,7 +235,7 @@ async function _markMessageEmailStatus({ messageId, status }) {
     }
 }
 
-/** @typedef {{ kind: string, threadId: string, errorMsg: unknown }} _notifyStaffOfFailureArgs */
+/** @typedef {{ kind: string, threadId: string, errorMsg: string }} _notifyStaffOfFailureArgs */
 /**
  * @param {_notifyStaffOfFailureArgs} param0
  */
@@ -258,7 +259,7 @@ async function _notifyStaffOfFailure({ kind, threadId, errorMsg }) {
     }
 }
 
-/** @typedef {{ threadId: string, kind: string, errorMsg: unknown }} _recordAuditEventArgs */
+/** @typedef {{ threadId: string, kind: string, errorMsg: string }} _recordAuditEventArgs */
 /**
  * @param {_recordAuditEventArgs} param0
  */
@@ -280,9 +281,10 @@ async function _recordAuditEvent({ threadId, kind, errorMsg }) {
 /**
  * Wraps a single send-call with surfacing logic.
  *
- * @param {(args: { to: unknown }) => Promise<{ success?: boolean, error?: string } | void | null | undefined>} sendFn
+ * @template {{ to: unknown }} A
+ * @param {(args: A) => Promise<{ success?: boolean, error?: string } | void | null | undefined>} sendFn
  *   one of sendThreadCreatedEmail / sendAiReplyEmail / …
- * @param {{ to: unknown; }}   sendArgs  passed to `sendFn` verbatim
+ * @param {A} sendArgs  passed to `sendFn` verbatim
  * @param {{ kind: string, threadId: string, messageId?: string }} ctx  `kind` is 'thread_created' | 'ai_reply' |
  *   'staff_reply' | 'resolved'; `threadId` is for notification + audit; `messageId` the
  *   support_messages.id to annotate with email_send_status

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import type { DryRun } from '../builderStream';
 import type { AutomationBuilderState } from './types';
-import { API_BASE, RefusedError, request } from '../../api/mutate';
+import { RefusedError } from '../../api/mutate';
 import { logger } from '../../utils/logger';
+import { apiRequest } from '@/api/typedRequest';
 
 /**
  * The builder's run tracker, and the only writer of `state.dryRun`.
@@ -224,7 +225,7 @@ function mergeRows(prev: StepRows, next: StepRows): StepRows {
 
 async function readRun(id: string): Promise<RunRead> {
     try {
-        const r = await request(`${API_BASE}/api/automation/runs/${encodeURIComponent(id)}`);
+        const r = await apiRequest('GET /api/automation/runs/{id}', { params: { id } });
         const j = await r.json().catch(() => null);
         const run = j && typeof j === 'object' ? (j as { run?: unknown }).run : null;
         return run && typeof run === 'object' ? { kind: 'ok', run: run as DryRun } : { kind: 'failed' };

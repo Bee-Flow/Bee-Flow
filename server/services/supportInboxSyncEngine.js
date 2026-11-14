@@ -20,7 +20,7 @@
 const supportInboxStore = require('../stores/supportInboxStore');
 const supportStore = require('../stores/supportStore');
 const { gmailClientFromTokens, graphFetchFromTokens } = require('./email/providerClients');
-const parse = require('./email/parse');
+const parse = require('../utils/emailParse');
 const supportMailer = require('./supportMailer');
 const { runAiAutoResponder } = require('./supportAiResponder');
 const log = require('../telemetry/log');

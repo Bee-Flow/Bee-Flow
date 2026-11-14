@@ -1,4 +1,4 @@
-import { render, waitFor, within } from '@testing-library/react';
+import { waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 
@@ -11,6 +11,7 @@ import SolutionContentTable, { BANDS, worstByEntity } from './SolutionContentTab
 import { SECTIONS } from './solutionSections';
 import type { ComponentProps } from 'react';
 import { omitted, stub } from '@/test/mocks';
+import { renderWithClient } from '@/test/render';
 
 /**
  * The grouped Content table.
@@ -37,7 +38,7 @@ const GRAPH = {
     externals: [], problems: [],
 };
 
-const renderTable = (props = {}) => render(
+const renderTable = (props = {}) => renderWithClient(
     <SolutionContentTable {...omitted<ComponentProps<typeof SolutionContentTable>>()}
         projectId="p1"
         resources={stub<ComponentProps<typeof SolutionContentTable>['resources']>(RESOURCES)}

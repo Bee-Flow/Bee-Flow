@@ -82,7 +82,7 @@ const H = require('./commentsHandlers');
  *   participationStore?: Pick<typeof import('../../stores/projectAiParticipationStore'), 'recordFeedback'|'feedbackFor'>,
  *   policy?: Pick<ReturnType<typeof import('../../projects/participation/policy').defaultPolicy>, 'resolveOrgPolicy'>,
  *   collabNotifier?: Pick<ReturnType<typeof import('../../projects/collabNotify').makeCollabNotifier>, 'commentMentioned'>, // the bell for someone mentioned on a document or notebook
- *   signalProjectChanged?: typeof import('./complianceSignal').signalProjectChanged,
+ *   signalProjectChanged?: typeof import('../../usecases/projects/complianceSignal').signalProjectChanged,
  *   now?: () => number,
  *   newId?: () => string }} [deps]
  */
@@ -100,8 +100,8 @@ function makeProjectCommentsRouter(deps = {}) {
     router.get('/:id/comments/:threadId', requireRole('viewer'), validate({ query: S.ThreadQuery }), h(H.getThread));
     router.patch('/:id/comments/:threadId', requireRole('editor'), validate({ body: S.UpdateThreadBody }), h(H.updateThread));
     router.delete('/:id/comments/:threadId', requireRole('editor'), h(H.deleteThread));
-    router.post('/:id/comments/:threadId/resolve', requireRole('editor'), (/** @type {import('express').Request<{ id: string, threadId: string }>} */ req, /** @type {import('express').Response} */ res) => H.changeStatus(ctx, req, res, 'resolved'));
-    router.post('/:id/comments/:threadId/reopen', requireRole('editor'), (/** @type {import('express').Request<{ id: string, threadId: string }>} */ req, /** @type {import('express').Response} */ res) => H.changeStatus(ctx, req, res, 'open'));
+    router.post('/:id/comments/:threadId/resolve', requireRole('editor'), validate({ body: S.StatusBody }), (/** @type {import('express').Request<{ id: string, threadId: string }>} */ req, /** @type {import('express').Response} */ res) => H.changeStatus(ctx, req, res, 'resolved'));
+    router.post('/:id/comments/:threadId/reopen', requireRole('editor'), validate({ body: S.StatusBody }), (/** @type {import('express').Request<{ id: string, threadId: string }>} */ req, /** @type {import('express').Response} */ res) => H.changeStatus(ctx, req, res, 'open'));
 
     // ── Comments ──────────────────────────────────────────────────────────
 

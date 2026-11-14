@@ -13,8 +13,16 @@
  * `noImplicitAnyFiles` (that level or strict) and `strictFiles`. A file that moves
  * down a level fails the floor of the level it left.
  *
+ * A `.mts` file needs no marker: typecheck.mjs always checks it, strictly, so it
+ * counts at all three levels here. Renaming one back to `.js` without a marker
+ * therefore fails the floors, like dropping the marker does.
+ *
  * Mirror image of the count ratchets: the budget is a floor, `--update` only
  * raises it.
+ *
+ * A generated file (its first line a comment saying GENERATED ... do not edit, the banner
+ * the bundle and catalogue generators write) is not counted at all: its source is checked
+ * where it is written, and a marker in the output would be overwritten by the next build.
  *
  * Usage:
  *   node scripts/checkjs-ratchet.mjs <package>            gate
@@ -31,6 +39,10 @@ const SKIP_DIRS = new Set(['node_modules', 'coverage', 'dist', 'build']);
 const TS_CHECK = /^\s*\/\/\s*@typecheck\b/m;
 const LEVEL = /^\s*\/\/\s*@typecheck[ \t]+(noImplicitAny|strict)\b/m;
 const TEST_FILE = /\.test\.[cm]?[jt]s$/;
+/** TypeScript source: always checked at the strict level, marker or not. */
+const ALWAYS_STRICT = /\.mts$/;
+/** The banner of a generated file, on its first line. */
+const GENERATED = /^\s*(?:\/\/|\/\*).*\bGENERATED\b.*\bdo not edit\b/i;
 
 const args = process.argv.slice(2);
 const pkg = args.find((a) => !a.startsWith('--'));
@@ -61,10 +73,22 @@ function collect(from, into) {
 let checked = 0;
 let noImplicitAny = 0;
 let strict = 0;
+let generated = 0;
 const unchecked = new Map();
 const files = collect(dir, []);
 for (const file of files) {
-    const head = fs.readFileSync(file, 'utf8').split('\n').slice(0, 30).join('\n');
+    if (ALWAYS_STRICT.test(file)) {
+        checked++;
+        noImplicitAny++;
+        strict++;
+        continue;
+    }
+    const lines = fs.readFileSync(file, 'utf8').split('\n', 30);
+    if (GENERATED.test(lines[0])) {
+        generated++;
+        continue;
+    }
+    const head = lines.join('\n');
     if (TS_CHECK.test(head)) {
         checked++;
         const level = LEVEL.exec(head)?.[1];
@@ -83,7 +107,8 @@ if (list) {
 
 const budgetFile = path.join(dir, '.checkjs-ratchet.json');
 const existing = fs.existsSync(budgetFile) ? JSON.parse(fs.readFileSync(budgetFile, 'utf8')) : null;
-const share = files.length ? ((checked / files.length) * 100).toFixed(1) : '0.0';
+const counted = files.length - generated;
+const share = counted ? ((checked / counted) * 100).toFixed(1) : '0.0';
 const measured = { checkedFiles: checked, noImplicitAnyFiles: noImplicitAny, strictFiles: strict };
 const floorOf = (key) => existing?.[key] ?? 0;
 
@@ -96,7 +121,7 @@ if (update || !existing) {
         strictFiles: Math.max(strict, floorOf('strictFiles')),
     };
     fs.writeFileSync(budgetFile, `${JSON.stringify(next, null, 2)}\n`);
-    console.log(`Floors written to ${path.relative(ROOT, budgetFile)}: ${next.checkedFiles} checked, ${next.noImplicitAnyFiles} noImplicitAny, ${next.strictFiles} strict (measured ${checked} of ${files.length}, ${share}%)`);
+    console.log(`Floors written to ${path.relative(ROOT, budgetFile)}: ${next.checkedFiles} checked, ${next.noImplicitAnyFiles} noImplicitAny, ${next.strictFiles} strict (measured ${checked} of ${counted}, ${share}%)`);
     process.exit(0);
 }
 
@@ -115,7 +140,7 @@ if (strict < floorOf('strictFiles')) {
 }
 if (failed) process.exit(1);
 const over = Object.keys(measured).some((k) => measured[k] > floorOf(k));
-const line = `${checked} of ${files.length} files checked (${share}%), ${noImplicitAny} at noImplicitAny, ${strict} strict`;
+const line = `${checked} of ${counted} files checked (${share}%), ${noImplicitAny} at noImplicitAny, ${strict} strict`;
 if (over) {
     console.log(`✅ ${pkg}: ${line}, over the floors. Run \`node scripts/checkjs-ratchet.mjs ${pkg} --update\` to raise them.`);
 } else {

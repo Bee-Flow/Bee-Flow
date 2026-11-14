@@ -314,7 +314,10 @@ function planMigration(oldModel, newModel, opts = {}) {
     return { statements: p.plan, ops: p.ops, probes: p.probes };
 }
 
-/** The ordered DDL of planMigration (the ~15 callers that only run the plan). */
+/**
+ * The ordered DDL of planMigration (the ~15 callers that only run the plan).
+ * @returns {string[]}
+ */
 function migrationPlan(oldModel, newModel, opts = {}) {
     return planMigration(oldModel, newModel, opts).statements;
 }

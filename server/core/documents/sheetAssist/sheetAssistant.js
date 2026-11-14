@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The spreadsheet assistant: a request in plain language ("add a VAT column
  * at 21%", "which customer spent the most?", "fix the #REF! in column E")
@@ -38,7 +38,8 @@
 
 const { featureModule } = require('../../featureModules');
 const { HttpError } = require('../../http/errors');
-const { parseRange, cellsIn, fillRange, colName } = require('./sheetRefs');
+const { parseRange, cellsIn, fillRange } = require('./sheetRefs');
+const { pivotWrites } = require('./sheetPivot');
 const { sheetDigest, rowsBlock, errorList, RANGE_CELL_CHARS } = require('./sheetDigest');
 const { sheetTabsOf } = require('../../../stores/lib/sheetDocument');
 const { chartProblem, chartFieldsOf, sizeInPx, CHART_STYLE_PROPERTIES, CHART_TYPES, CHART_TYPES_TEXT } = require('../sheetChartFields');
@@ -113,6 +114,10 @@ const READ_TOOLS = Object.freeze(TOOLS.filter((t) => READ_TOOL_NAMES.includes(t.
 const MAX_EVALUATE = 20;
 /** A cell holding exactly a number, typed rather than computed. */
 /** @typedef {ReturnType<typeof sheetTabsOf>[number]} SheetTab */
+/**
+ * A tool call's arguments as the model sent them (the TOOLS schemas say what each tool takes).
+ * @typedef {{ sheet?: string, range?: string, text?: unknown, formulas?: unknown, cells?: unknown, formula?: unknown, sourceRange?: string, targetCell?: string, rowField?: unknown, valuesField?: unknown, aggregation?: unknown, [k: string]: unknown } | undefined} ToolArgs
+ */
 
 const PLAIN_NUMBER_RE = /^\s*[-+]?(\d+\.?\d*|\.\d+)(e[-+]?\d+)?\s*%?\s*$/i;
 
@@ -276,20 +281,29 @@ function makeSheetAssistant(deps = {}) {
             return { writes: out };
         }
 
-        async function executeTool(/** @type {string} */ name, /** @type {any} */ args) {
-            if (readOnly && !READ_TOOL_NAMES.includes(name)) return 'Error: this sheet is read-only for the user.';
-            if (name === 'read_range') {
-                const entry = await resolveEntry(args?.sheet);
-                if (!entry) return 'Error: sheet not found; use a tab id or name.';
+        /**
+         * A tool that works on one tab (`args.sheet`, the active one by
+         * default); a writing tool names its refusal for any other tab.
+         * @param {string | null} otherTabRefusal
+         * @param {(entry: SheetEntry, args: ToolArgs) => Promise<string> | string} run
+         */
+        const onTab = (otherTabRefusal, run) => async (/** @type {ToolArgs} */ args) => {
+            const entry = await resolveEntry(args?.sheet);
+            if (!entry) return 'Error: sheet not found; use a tab id or name.';
+            if (otherTabRefusal && entry !== activeEntry) return otherTabRefusal;
+            return run(entry, args);
+        };
+
+        /** @type {Record<string, (args: ToolArgs) => Promise<string> | string>} */
+        const toolHandlers = {
+            read_range: onTab(null, (entry, args) => {
                 const r = parseRange(args?.range);
                 if (!r) return 'Error: give a range like "A1:D20" inside A1:Z2000.';
                 const count = (r.c1 - r.c0 + 1) * (r.r1 - r.r0 + 1);
                 if (count > MAX_READ_CELLS) return `Error: that is ${count} cells; read at most ${MAX_READ_CELLS} at a time.`;
                 return outbound(rowsBlock(entry.staged, entry.shown, { r0: r.r0 + 1, r1: r.r1 + 1, c0: r.c0, c1: r.c1, max: RANGE_CELL_CHARS }));
-            }
-            if (name === 'find') {
-                const entry = await resolveEntry(args?.sheet);
-                if (!entry) return 'Error: sheet not found; use a tab id or name.';
+            }),
+            find: onTab(null, (entry, args) => {
                 const needle = restore(String(args?.text || '')).toLowerCase();
                 if (!needle) return 'Error: say what text to find.';
                 const hits = Object.entries(entry.staged)
@@ -297,10 +311,8 @@ function makeSheetAssistant(deps = {}) {
                     .slice(0, MAX_FIND)
                     .map(([n, raw]) => `${n}: ${String(raw).slice(0, 80)}`);
                 return outbound(hits.length ? hits.join('\n') : 'No cell contains that text.');
-            }
-            if (name === 'evaluate') {
-                const entry = await resolveEntry(args?.sheet);
-                if (!entry) return 'Error: sheet not found; use a tab id or name.';
+            }),
+            evaluate: onTab(null, (entry, args) => {
                 const list = Array.isArray(args?.formulas) ? args.formulas.slice(0, MAX_EVALUATE) : [];
                 if (!list.length) return 'Error: give formulas, e.g. ["=COUNTA(A2:A100)"].';
                 // Each formula in a scratch cell outside the sheet's columns
@@ -316,32 +328,20 @@ function makeSheetAssistant(deps = {}) {
                 wb[entry.name] = scratch;
                 const out = evaluate(scratch, { workbook: wb, activeSheet: entry.name });
                 return outbound(names.map((/** @type {string} */ cell) => `${scratch[cell]} → ${out[cell]?.display ?? ''}`).join('\n'));
-            }
-            if (name === 'set_cells') {
-                const entry = await resolveEntry(args?.sheet);
-                if (!entry) return 'Error: sheet not found; use a tab id or name.';
-                if (entry !== activeEntry) return 'Error: cells can only be written on the active sheet.';
+            }),
+            set_cells: onTab('Error: cells can only be written on the active sheet.', (_entry, args) => {
                 const { writes, error } = cleanWrites(args?.cells);
                 return error ? `Error: ${error}` : stage(activeEntry, /** @type {Record<string, string>} */ (writes));
-            }
-            if (name === 'fill_formula') {
-                const entry = await resolveEntry(args?.sheet);
-                if (!entry) return 'Error: sheet not found; use a tab id or name.';
-                if (entry !== activeEntry) return 'Error: formulas can only be written on the active sheet.';
-                const formula = restore(String(args?.formula || ''));
-                const filled = fillRange(args?.range, formula);
-                if (!filled) return 'Error: give a range like "D2:D200" inside A1:Z2000.';
-                return stage(activeEntry, filled);
-            }
-            if (name === 'clear_range') {
-                const entry = await resolveEntry(args?.sheet);
-                if (!entry) return 'Error: sheet not found; use a tab id or name.';
-                if (entry !== activeEntry) return 'Error: ranges can only be cleared on the active sheet.';
+            }),
+            fill_formula: onTab('Error: formulas can only be written on the active sheet.', (_entry, args) => {
+                const filled = fillRange(args?.range, restore(String(args?.formula || '')));
+                return filled ? stage(activeEntry, filled) : 'Error: give a range like "D2:D200" inside A1:Z2000.';
+            }),
+            clear_range: onTab('Error: ranges can only be cleared on the active sheet.', (_entry, args) => {
                 const r = parseRange(args?.range);
-                if (!r) return 'Error: give a range like "F1:F50" inside A1:Z2000.';
-                return stage(activeEntry, Object.fromEntries(cellsIn(r).map((n) => [n, ''])));
-            }
-            if (name === 'add_chart') {
+                return r ? stage(activeEntry, Object.fromEntries(cellsIn(r).map((n) => [n, '']))) : 'Error: give a range like "F1:F50" inside A1:Z2000.';
+            }),
+            add_chart: (args) => {
                 const fields = chartFieldsOf(args || {});
                 const problem = chartProblem(fields);
                 if (problem) return `Error: ${problem}`;
@@ -354,64 +354,17 @@ function makeSheetAssistant(deps = {}) {
                 };
                 newCharts.push(chart);
                 return `Added ${chart.type} chart anchored at ${chart.anchor} using ${chart.dataRange}.`;
-            }
-            if (name === 'create_pivot') {
-                const src = parseRange(args?.sourceRange);
-                if (!src) return 'Error: sourceRange must be a range like "A1:C20".';
-                const target = parseRange(args?.targetCell);
-                if (!target || target.c0 !== target.c1 || target.r0 !== target.r1) return 'Error: targetCell must be a single cell.';
-                const rowField = String(args?.rowField || '').trim();
-                const valuesField = String(args?.valuesField || '').trim();
-                const aggregation = String(args?.aggregation || 'SUM').toUpperCase();
-                if (!['SUM', 'COUNT', 'AVERAGE'].includes(aggregation)) return 'Error: aggregation must be SUM, COUNT or AVERAGE.';
-                /** @type {Record<string, number>} */
-                const byLabel = {};
-                /** @type {Record<string, number>} */
-                const counts = {};
-                /** @type {Record<number, string>} */
-                const headers = {};
-                for (let c = src.c0; c <= src.c1; c++) {
-                    const name = `${colName(c)}${src.r0 + 1}`;
-                    headers[c] = String(activeEntry.staged[name] ?? activeEntry.shown[name]?.display ?? '');
-                }
-                let rowCol = -1;
-                let valCol = -1;
-                for (let c = src.c0; c <= src.c1; c++) {
-                    if (headers[c].toLowerCase() === rowField.toLowerCase()) rowCol = c;
-                    if (headers[c].toLowerCase() === valuesField.toLowerCase()) valCol = c;
-                }
-                if (rowCol === -1) return `Error: rowField "${rowField}" not found in header row.`;
-                if (valCol === -1) return `Error: valuesField "${valuesField}" not found in header row.`;
-                for (let r = src.r0 + 1; r <= src.r1; r++) {
-                    const label = String(activeEntry.staged[`${colName(rowCol)}${r + 1}`] ?? activeEntry.shown[`${colName(rowCol)}${r + 1}`]?.display ?? '');
-                    if (label === '') continue;
-                    if (aggregation === 'COUNT') {
-                        byLabel[label] = (byLabel[label] || 0) + 1;
-                        continue;
-                    }
-                    const v = activeEntry.shown[`${colName(valCol)}${r + 1}`]?.value;
-                    const n = typeof v === 'number' ? v : Number.NaN;
-                    if (Number.isNaN(n)) continue;
-                    byLabel[label] = (byLabel[label] || 0) + n;
-                    counts[label] = (counts[label] || 0) + 1;
-                }
-                const labels = Object.keys(byLabel).sort();
-                if (!labels.length) return 'Error: no rows to aggregate.';
-                /** @type {Record<string, string>} */
-                const writes = {};
-                const t = { c: target.c0, r: target.r0 };
-                writes[`${colName(t.c)}${t.r + 1}`] = rowField;
-                writes[`${colName(t.c + 1)}${t.r + 1}`] = `${aggregation} ${valuesField}`;
-                labels.forEach((label, i) => {
-                    const row = t.r + 1 + i;
-                    let value = byLabel[label];
-                    if (aggregation === 'AVERAGE') value = value / (counts[label] || 1);
-                    writes[`${colName(t.c)}${row + 1}`] = label;
-                    writes[`${colName(t.c + 1)}${row + 1}`] = String(value);
-                });
-                return stage(activeEntry, writes);
-            }
-            return `Error: unknown tool ${name}.`;
+            },
+            create_pivot: (args) => {
+                const pivot = pivotWrites(activeEntry, args);
+                return 'error' in pivot ? `Error: ${pivot.error}` : stage(activeEntry, pivot.writes);
+            },
+        };
+
+        async function executeTool(/** @type {string} */ name, /** @type {any} */ args) {
+            if (readOnly && !READ_TOOL_NAMES.includes(name)) return 'Error: this sheet is read-only for the user.';
+            const handler = Object.hasOwn(toolHandlers, name) ? toolHandlers[name] : null;
+            return handler ? handler(args) : `Error: unknown tool ${name}.`;
         }
 
         const start = Date.now();

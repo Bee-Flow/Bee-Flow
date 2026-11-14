@@ -86,7 +86,7 @@ test('a stored value that cannot be read verifies nothing', async () => {
     const broken = JSON.stringify({ ...JSON.parse(await stored(wh.id)), data: '00' });
     await pg.query('UPDATE automation_webhooks SET secret = $1 WHERE id = $2', [broken, wh.id]);
     assert.strictEqual((await getWebhook(wh.id)).secret, null);
-    const { checkWebhookSignature } = require('../../routes/automation/webhookSignature');
+    const { checkWebhookSignature } = require('../../usecases/automation/webhookSignature');
     const crypto = require('crypto');
     const sig = 'sha256=' + crypto.createHmac('sha256', '').update('n\n{}').digest('hex');
     assert.deepStrictEqual(checkWebhookSignature({ secret: null, sigHeader: sig, nonce: 'n', body: {} }), { ok: false, reason: 'bad_signature' });

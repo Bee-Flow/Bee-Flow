@@ -1,3 +1,4 @@
+// @typecheck
 const { bestEffort } = require('../../utils/bestEffort');
 
 /**
@@ -59,7 +60,7 @@ function isPlainObject(v) {
 }
 
 /**
- * @param {object|null} schedule  `{ cron?, tz?, everyMinutes? }`
+ * @param {{ cron?: string | null, tz?: string | null, everyMinutes?: number } | null} schedule
  * @param {number} [fromTs]
  * @param {{ consecutiveErrors?: number | null, retryAfterMs?: number | null, defaultMinutes?: number,
  *   floorMinutes?: number }} [opts]

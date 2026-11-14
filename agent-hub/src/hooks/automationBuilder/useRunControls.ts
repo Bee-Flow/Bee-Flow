@@ -1,12 +1,12 @@
 import { useCallback, useLayoutEffect, useRef, type Dispatch, type SetStateAction } from 'react';
 import type { DryRun } from '../builderStream';
-import { API_BASE, authFetch } from '../../utils/helpers';
 import type { AutomationBuilderState } from './types';
 import { GATEWAY_DROP, awaitRunAfterDrop, markStepFailed, stepRowUnchanged } from '../../api/dryRun';
-import { request, errorBody, RefusedError } from '../../api/mutate';
+import { errorBody, RefusedError } from '../../api/mutate';
 import useAutomationApi from '../useAutomationApi';
 import type { AutomationApiError, PartialRunBody } from '../useAutomationApi';
 import useFollowedRun, { type PhaseOf, type SettledRun } from './useFollowedRun';
+import { apiFetch, apiRequest } from '@/api/typedRequest';
 
 type StepRows = AutomationBuilderState['steps'];
 
@@ -145,7 +145,7 @@ export default function useRunControls(
         try {
             let r: Response;
             try {
-                r = await request(`${API_BASE}/api/automation/runs/${encodeURIComponent(runId)}/steps`);
+                r = await apiRequest('GET /api/automation/runs/{id}/steps', { params: { id: runId } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const j = errorBody(err) ?? {};
@@ -274,7 +274,7 @@ export default function useRunControls(
     const stopRun = useCallback(async (runId?: string | null) => {
         if (!runId) return false;
         try {
-            const r = await authFetch(`${API_BASE}/api/automation/runs/${encodeURIComponent(runId)}/cancel`, { method: 'POST' });
+            const r = await apiFetch('POST /api/automation/runs/{runId}/cancel', { params: { runId } });
             return r.ok;
         } catch {
             return false;
@@ -303,11 +303,11 @@ export default function useRunControls(
             return !(s.steps.length || s.running || s.executingStepId || s.dryRun || runs.current());
         };
         try {
-            const r = await authFetch(`${API_BASE}/api/automation/${encodeURIComponent(aid)}/runs?limit=1&startedBy=me`);
+            const r = await apiFetch('GET /api/automation/{id}/runs', { params: { id: aid }, query: { limit: 1, startedBy: 'me' } });
             const j = await r.json().catch(() => ({}));
             const run: DryRun | null = Array.isArray(j.runs) ? j.runs[0] : null;
             if (!r.ok || !run?.id || !idle()) return null;
-            const rs = await authFetch(`${API_BASE}/api/automation/runs/${encodeURIComponent(run.id)}/steps`);
+            const rs = await apiFetch('GET /api/automation/runs/{id}/steps', { params: { id: run.id } });
             const js = await rs.json().catch(() => ({}));
             const steps = rs.ok && Array.isArray(js.steps) ? js.steps : [];
             const going = !phaseOf(run).terminal;

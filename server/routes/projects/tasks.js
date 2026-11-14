@@ -99,8 +99,8 @@ function makeProjectTasksRouter(deps = {}) {
     router.post('/:id/tasks/batch', requireRole('editor'), validate({ body: S.BatchTasksBody }), h(T.createBatch));
     router.get('/:id/meetings/:meetingId/task-suggestions', requireRole('viewer'), h(T.meetingSuggestions));
     // The AI reads the notes as the asker and only suggests: nothing is made here.
-    router.post('/:id/meetings/:meetingId/task-suggestions/improve', requireRole('editor'), improveLimiter, h(T.improveMeetingSuggestions));
-    router.post('/:id/tasks/:taskId/improve', requireRole('editor'), improveLimiter, h(T.improveTask));
+    router.post('/:id/meetings/:meetingId/task-suggestions/improve', requireRole('editor'), improveLimiter, validate({ body: S.ImproveBody }), h(T.improveMeetingSuggestions));
+    router.post('/:id/tasks/:taskId/improve', requireRole('editor'), improveLimiter, validate({ body: S.ImproveBody }), h(T.improveTask));
     router.patch('/:id/tasks/:taskId', requireRole('editor'), validate({ body: S.UpdateTaskBody }), h(T.updateTask));
     router.delete('/:id/tasks/:taskId', requireRole('editor'), h(T.deleteTask));
 

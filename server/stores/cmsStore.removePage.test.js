@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Deleting a page: links to it elsewhere on the site are neutralised, the
  * outcome says what happened, and nothing of it is left behind.
@@ -41,6 +41,7 @@ async function buildSite() {
 test('removePage neutralises links to the page inside other pages and reports the count', async () => {
     const { siteId, homeId, aboutId, contactId } = await buildSite();
     const outcome = await cmsStore.removePage(siteId, aboutId);
+    assert.ok(outcome);
 
     assert.deepStrictEqual(outcome.removed, { id: aboutId, slug: 'about' });
     assert.strictEqual(outcome.neutralisedLinks, 2);
@@ -63,6 +64,7 @@ test('removePage prunes the deleted page from the site-level page titles', async
 test('removePage names the page that became the homepage', async () => {
     const { siteId, homeId, aboutId } = await buildSite();
     const outcome = await cmsStore.removePage(siteId, homeId);
+    assert.ok(outcome);
     assert.deepStrictEqual(outcome.newHomepage, { id: aboutId, slug: 'about' });
 });
 
@@ -85,6 +87,7 @@ test('removePage also neutralises links inside translations (page and site overr
     });
 
     const outcome = await cmsStore.removePage(siteId, aboutId);
+    assert.ok(outcome);
     assert.strictEqual(outcome.neutralisedLinks, 4);
 
     const siteOv = await cmsStore.getSiteLocaleOverride(siteId, 'nl');

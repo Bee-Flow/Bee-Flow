@@ -79,10 +79,12 @@ async function deleteDataset(id, appId, ownerId) {
         [id, appId, ownerId]
     );
     if (!r) return false;
-    // Cache rows FK-cascade on dataset delete, but clear explicitly too so the
-    // behaviour holds even where the FK isn't enforced.
-    await run(`DELETE FROM studio_app_dataset_cache WHERE dataset_id = $1`, [id]);
-    await run(`DELETE FROM studio_app_datasets WHERE id = $1 AND app_id = $2 AND owner_user_id = $3`, [id, appId, ownerId]);
+    // Cache rows FK-cascade on dataset delete, but are cleared explicitly too (in
+    // the same transaction) so the behaviour holds even where the FK isn't enforced.
+    await withTransaction(async (client) => {
+        await client.query(`DELETE FROM studio_app_dataset_cache WHERE dataset_id = $1`, [id]);
+        await client.query(`DELETE FROM studio_app_datasets WHERE id = $1 AND app_id = $2 AND owner_user_id = $3`, [id, appId, ownerId]);
+    });
     return true;
 }
 

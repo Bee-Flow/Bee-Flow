@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * A datatable as a knowledge source ("live").
  *
@@ -366,8 +366,8 @@ function titleFor(row, config, columns) {
  */
 function relationColumns(tableMeta, columns) {
     return (tableMeta?.fields || [])
-        .filter((/** @type {ModelField} */ f) => f && f.type === 'relation' && f.relation && f.relation.table && columns.includes(f.key))
-        .map((/** @type {ModelField} */ f) => ({ column: f.key, table: String(f.relation.table) }));
+        .filter((/** @type {ModelField} */ f) => f && f.type === 'relation' && f.relation && f.relation.table && columns.includes(/** @type {string} */ (f.key)))
+        .map((/** @type {ModelField} */ f) => ({ column: f.key, table: String(f.relation?.table) }));
 }
 
 /**
@@ -554,7 +554,7 @@ function isUnchanged(item, stored) {
  * says a column exists and is empty is noise in every chunk it appears in.
  * @param {DatatableItem} item
  */
-async function fetch(item) {
+async function fetchItem(item) {
     const rows = item.rows || (item.row ? [item.row] : []);
     if (rows.length === 0) return null;
 
@@ -604,7 +604,7 @@ function renderRow(row, columns, opts = {}) {
             // A relation cell reads as the row it points at. An id nobody can
             // name is left out: "supplier: 7f3a…" retrieves for nothing and a
             // line that says nothing is noise in every chunk it appears in.
-            const map = opts.labels?.get(byColumn.get(key));
+            const map = opts.labels?.get(/** @type {string} */ (byColumn.get(key))); // has() above
             const named = cellIds(v).map(id => map?.get(id)).filter(Boolean);
             if (named.length) lines.push(`${key}: ${named.join(', ')}`);
             continue;
@@ -673,7 +673,7 @@ async function reconcileUsage(kbId, scope, deps = {}) {
 }
 
 module.exports = {
-    enumerate, fetch, isUnchanged, supportsModes, defaultMode, dedupe, reconcileUsage,
+    enumerate, fetch: fetchItem, isUnchanged, supportsModes, defaultMode, dedupe, reconcileUsage,
     pickColumns, titleFor, renderRow, formatCell,
     relationColumns, labelFieldFor, resolveRelationLabels, rowRelations, relationSignature, cellIds,
     MAX_ROWS, MAX_ROWS_GROUPED, CHUNK_ABOVE_ROWS, DEFAULT_CHUNK_ROWS, SKIP_COLUMNS,

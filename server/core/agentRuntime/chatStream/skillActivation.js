@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Mid-loop tool refresh — what happens when the model activates a skill.
  *
@@ -93,8 +93,9 @@ function createSkillActivationHandler({
             }
             for (const t of kept.tools) {
                 tools.push(t);
-                baseIntegrationToolNames.add(t.function.name);
-                result.addedTools.push(t.function.name);
+                const name = /** @type {string} */ (/** @type {NonNullable<typeof t.function>} */ (t.function).name); // an integration tool is a function tool
+                baseIntegrationToolNames.add(name);
+                result.addedTools.push(name);
             }
             if (result.addedTools.length > 0) {
                 log.info(`[AgentRuntime] Skill activation added ${result.addedTools.length} integration tool(s): ${result.addedTools.join(', ')}`);

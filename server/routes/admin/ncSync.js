@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Org-admin endpoints for Nextcloud user/group sync configuration.
  *
@@ -19,7 +19,7 @@ const orgHealth = require('../../services/orgHealth'); // fire-and-forget health
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
 const { z, typeError } = require('../../utils/zod');
-const { worded } = require('../../core/http/schemaParts');
+const { worded, bodyOf: closedBodyOf } = require('../../core/http/schemaParts');
 const { bestEffort } = require('../../utils/bestEffort');
 
 /** @typedef {import('express').Request<{ orgId: string }> & { org: Awaited<ReturnType<typeof import('../../stores/userStore').getOrganization>> }} OrgReq */
@@ -30,10 +30,7 @@ const { bestEffort } = require('../../utils/bestEffort');
 // not recognise, then answered 200 `{ ok: true }`. The panel says "Settings
 // saved" to that — for a setting that decides who gets an account at all.
 
-/**
- * A body that also accepts no body at all: Express 5 leaves `req.body` undefined then.
- * @param {import('zod').ZodRawShape} shape
- */
+/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. @template {import('zod').ZodRawShape} S @param {S} shape */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 /**
@@ -137,7 +134,8 @@ const checkOrgAdmin = tagGate(_checkOrgAdmin, {
     note: 'Local re-implementation. Direct organizationId only — does NOT honour group-transitive org membership, unlike permissions.js requireOrgAdmin. Also 400s if the org has no Nextcloud binding.',
 });
 
-router.get('/admin/:orgId/nc-sync', requireAuth, checkOrgAdmin, /** @param {OrgReq} req */ async (req, res) => {
+router.get('/admin/:orgId/nc-sync', requireAuth, checkOrgAdmin, async (gatedReq, res) => {
+    const req = /** @type {OrgReq} */ (gatedReq); // checkOrgAdmin set req.org
     const o = req.org;
     res.json({
         organizationId: o.id,
@@ -162,12 +160,14 @@ router.put('/admin/:orgId/nc-sync', requireAuth, checkOrgAdmin, express.json(), 
     res.json({ ok: true });
 });
 
-router.post('/admin/:orgId/nc-sync/run', requireAuth, checkOrgAdmin, /** @param {OrgReq} req */ async (req, res) => {
+router.post('/admin/:orgId/nc-sync/run', requireAuth, checkOrgAdmin, validate({ body: closedBodyOf({}, 'A sync run') }), async (gatedReq, res) => {
+    const req = /** @type {OrgReq} */ (gatedReq); // checkOrgAdmin set req.org
     const result = await sync.runFullSync(req.org);
     res.json(result);
 });
 
-router.get('/admin/:orgId/nc-sync/groups', requireAuth, checkOrgAdmin, /** @param {OrgReq} req */ async (req, res) => {
+router.get('/admin/:orgId/nc-sync/groups', requireAuth, checkOrgAdmin, async (gatedReq, res) => {
+    const req = /** @type {OrgReq} */ (gatedReq); // checkOrgAdmin set req.org
     try {
         const groups = await sync.listNcGroups(req.org);
         res.json({ groups });

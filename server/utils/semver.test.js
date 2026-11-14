@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Unit tests for utils/semver.js — the dependency-free module compat gate.
  *
@@ -95,5 +95,5 @@ test('satisfiesMax: null/empty max always passes', () => {
 
 test('satisfiesMin/Max never throw on junk versions', () => {
     assert.doesNotThrow(() => semver.satisfiesMin('junk', 'also-junk'));
-    assert.doesNotThrow(() => semver.satisfiesMax(null, undefined));
+    assert.doesNotThrow(() => semver.satisfiesMax(/** @type {any} */ (null), undefined));
 });

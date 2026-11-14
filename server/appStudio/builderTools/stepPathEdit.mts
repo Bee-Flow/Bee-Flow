@@ -16,9 +16,9 @@
 import { createRequire } from 'node:module';
 import { childStepSlots } from '../../shared/appDefinition/stepFlow.mjs';
 import { stepPaths, topOf } from '../sequencePaths.mts';
+import { pickClosestId } from '../../utils/closestId.mts';
 
 const nodeRequire = createRequire(import.meta.url);
-const { pickClosestId } = nodeRequire('../../automation/validate/helpers') as { pickClosestId: (t: unknown, c: string[]) => string | null };
 
 type Obj = Record<string, unknown>;
 type Draft = { def: { actions?: Record<string, unknown> } & Obj } & Obj;

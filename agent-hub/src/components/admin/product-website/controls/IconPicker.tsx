@@ -27,6 +27,7 @@ function IconTile({ name, selected, onSelect }: { name: string; selected: boolea
         <button
             type="button"
             title={name}
+            aria-label={name}
             onClick={() => onSelect(name)}
             className={`w-10 h-10 rounded-md flex items-center justify-center border transition-colors
                 ${selected

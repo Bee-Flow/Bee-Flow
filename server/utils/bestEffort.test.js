@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const log = require('../telemetry/log');
-const { bestEffort, fallback, bestEffortCounts, resetBestEffort, LOG_INTERVAL_MS } = require('./bestEffort');
+const { bestEffort, fallback, ignoreGone, isGone, bestEffortCounts, resetBestEffort, LOG_INTERVAL_MS } = require('./bestEffort');
 
 function capture(t) {
     const calls = [];
@@ -58,4 +58,38 @@ test('works as a promise catch handler', async (t) => {
     capture(t);
     assert.strictEqual(await Promise.reject(new Error('x')).catch((e) => bestEffort('p:q', e)), undefined);
     assert.strictEqual(await Promise.reject(new Error('x')).catch((e) => fallback('p:r', e, null)), null);
+});
+
+const coded = (code) => Object.assign(new Error('x'), { code });
+
+test('ignoreGone: an already-gone target leaves no trace', (t) => {
+    resetBestEffort();
+    const calls = capture(t);
+    ignoreGone('tmp:unlink', coded('ENOENT'));
+    ignoreGone('sock:end', coded('ERR_STREAM_DESTROYED'));
+    ignoreGone('abort', Object.assign(new Error('x'), { name: 'AbortError' }));
+    const fs = require('node:fs');
+    try { fs.unlinkSync(require('node:path').join(require('node:os').tmpdir(), `bf-gone-${process.pid}-${Date.now()}`)); } catch (e) { ignoreGone('tmp:real', e); }
+    assert.strictEqual(calls.length, 0);
+    assert.deepStrictEqual(bestEffortCounts(), {});
+});
+
+test('ignoreGone: any other failure is reported through bestEffort', (t) => {
+    resetBestEffort();
+    const calls = capture(t);
+    assert.strictEqual(ignoreGone('tmp:unlink', coded('EACCES')), undefined);
+    ignoreGone('docker:stop', Object.assign(new Error('x'), { statusCode: 500 }), [304, 404]);
+    ignoreGone('odd', 'a string');
+    assert.strictEqual(calls.length, 3);
+    assert.match(calls[0][0], /^\[best-effort\] tmp:unlink failed, carrying on$/);
+    assert.strictEqual(bestEffortCounts()['docker:stop'].count, 1);
+});
+
+test('isGone: extra codes, names and status codes per call site', () => {
+    assert.strictEqual(isGone(Object.assign(new Error('x'), { statusCode: 304 })), false);
+    assert.strictEqual(isGone(Object.assign(new Error('x'), { statusCode: 304 }), [304, 404]), true);
+    assert.strictEqual(isGone(Object.assign(new Error('x'), { name: 'TargetClosedError' }), ['TargetClosedError']), true);
+    assert.strictEqual(isGone(coded('EBUSY'), ['ENOTEMPTY']), false);
+    assert.strictEqual(isGone(null), false);
+    assert.strictEqual(isGone(undefined), false);
 });

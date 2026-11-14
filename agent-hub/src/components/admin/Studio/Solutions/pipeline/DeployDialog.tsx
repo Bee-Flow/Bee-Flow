@@ -1,5 +1,5 @@
 import { Check, Loader2 } from 'lucide-react';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import Modal from '@/components/shared/Modal';
 import { PlanView, ROW } from './DeployPlanView';
@@ -8,8 +8,10 @@ import {
 } from './pipelineModel';
 import { DeploymentProgress, ackText, blockTexts, errorText, footerLabels, outcomeText } from './StageStatus';
 import { useStageLabel } from './StageSwitcher';
+import { useDeploymentProgressRead, usePlanDeploymentMutation } from '@/api/queries/solutionDeployments';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 import {
-    deploy, getDeployment, isTerminal, missingFromError, newRequestKey, planDeployment, planFromError,
+    deploy, isTerminal, missingFromError, newRequestKey, planFromError,
     type DeploymentKind, type DeploymentSummary, type Plan, type PlanAck, type StageKey,
 } from '@/api/stagesApi';
 
@@ -53,7 +55,11 @@ export interface DeployDialogProps {
 
 function useDeployFlow({ open, solutionId, request, pollMs }: { open: boolean; solutionId: string; request: DeployRequest; pollMs: number }) {
     const { stage, kind, releaseId } = request;
-    const requestKey = useRef<string>(newRequestKey());
+    // Made ONCE per opening of the dialog and reused for every retry from it.
+    const [requestKey, setRequestKey] = useState(newRequestKey);
+    useAdjustOnChange([open], () => { if (open) setRequestKey(newRequestKey()); });
+    const { mutateAsync: requestPlan } = usePlanDeploymentMutation();
+    const readProgress = useDeploymentProgressRead();
     const [plan, setPlan] = useState<Plan | null>(null);
     const [loading, setLoading] = useState(true);
     const [problem, setProblem] = useState<ErrorKind | null>(null);
@@ -65,34 +71,34 @@ function useDeployFlow({ open, solutionId, request, pollMs }: { open: boolean; s
 
     const loadPlan = useCallback(async () => {
         setLoading(true);
-        const res = await planDeployment(solutionId, stage, releaseId, kind);
+        const res = await requestPlan({ solutionId, stage, releaseId, kind });
         setLoading(false);
         setPlan(res.ok ? res.data : null);
         setProblem(res.ok ? null : errorKind(res));
-    }, [solutionId, stage, releaseId, kind]);
+    }, [solutionId, stage, releaseId, kind, requestPlan]);
 
     useEffect(() => {
         if (!open) return;
-        requestKey.current = newRequestKey();
         setDeployment(null); setAcked(new Set()); setMissing(new Set()); setReplanned(false);
         loadPlan();
     }, [open, loadPlan]);
 
     // Progress: ask the deployment again until it has an end.
+    const runningId = deployment && !isTerminal(deployment.status) ? deployment.id : null;
     useEffect(() => {
-        if (!deployment || isTerminal(deployment.status)) return undefined;
+        if (!runningId) return undefined;
         let stopped = false;
         let inFlight = false;
         const tick = async () => {
             if (inFlight) return;
             inFlight = true;
-            const res = await getDeployment(solutionId, deployment.id);
+            const res = await readProgress(solutionId, runningId);
             inFlight = false;
             if (!stopped && res.ok && res.data?.deployment) setDeployment(res.data.deployment);
         };
         const id = setInterval(tick, pollMs);
         return () => { stopped = true; clearInterval(id); };
-    }, [deployment, solutionId, pollMs]);
+    }, [runningId, solutionId, pollMs, readProgress]);
 
     const toggle = (a: PlanAck) => setAcked(prev => {
         const next = new Set(prev);
@@ -112,7 +118,7 @@ function useDeployFlow({ open, solutionId, request, pollMs }: { open: boolean; s
         setProblem(null);
         const res = await deploy(solutionId, stage, {
             releaseId: plan.release?.id ?? releaseId, kind, planHash: plan.planHash,
-            requestKey: requestKey.current, acknowledgements: acksOf(plan),
+            requestKey, acknowledgements: acksOf(plan),
         });
         setSubmitting(false);
         if (res.ok) { setDeployment(res.data.deployment); return; }

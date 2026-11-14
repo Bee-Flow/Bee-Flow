@@ -1,13 +1,12 @@
 import { useCallback, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
-import { API_BASE } from '@/utils/helpers';
 import { integrationsAdminKeys, useNcScopeQuery } from '@/api/queries/integrationsAdmin';
-import { mutate } from '@/api/mutate';
 import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
 import type { DesignElement } from '../../admin/Studio/Playbooks/phaseMachine';
 import type { ScopeMap, ScopeBody } from './NcScopeSection.types';
 import { MODE_ALL, MODE_SELECTED, MODE_OFF, ScopeRow } from './ScopeRow';
+import { apiRequest } from '@/api/typedRequest';
 
 // ── Folder tree (lazy, one PROPFIND level per expansion) ────────────────────
 
@@ -33,11 +32,7 @@ const NcScopeSection = () => {
     const persist = useCallback(async (body: ScopeBody) => {
         setSaveState('saving');
         try {
-            const res = await mutate(`${API_BASE}/api/nc-scope`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-            });
+            const res = await apiRequest('PUT /api/nc-scope', { body });
             const data = await res.json().catch(() => ({}));
             queryClient.setQueryData<ScopeMap | null>(integrationsAdminKeys.ncScope, data.integrations ?? null);
             setSaveState('saved');
@@ -62,7 +57,7 @@ const NcScopeSection = () => {
         setConfirmRevoke(false);
         setSaveState('saving');
         try {
-            const res = await mutate(`${API_BASE}/api/nc-scope/revoke-all`, { method: 'POST' });
+            const res = await apiRequest('POST /api/nc-scope/revoke-all');
             const data = await res.json().catch(() => ({}));
             setIntegrations(data.integrations ?? null);
             setSaveState('saved');
@@ -72,7 +67,7 @@ const NcScopeSection = () => {
     const reset = async () => {
         setSaveState('saving');
         try {
-            const res = await mutate(`${API_BASE}/api/nc-scope/reset`, { method: 'POST' });
+            const res = await apiRequest('POST /api/nc-scope/reset');
             const data = await res.json().catch(() => ({}));
             setIntegrations(data.integrations ?? null);
             setSaveState('saved');

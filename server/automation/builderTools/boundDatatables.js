@@ -18,7 +18,7 @@ const isPendingDatatableId = (id) => typeof id === 'string' && PENDING_DATATABLE
  * container added next year is covered too. `visit(obj, scope)` gets the name
  * of the layer the object sits in (null for the root graph).
  * @param {WeakKey} def
- * @param {(node: { datatableId: string }, scope: string | null) => void} visit
+ * @param {(node: { datatableId: string, datatableKey?: unknown, id?: unknown, type?: unknown, [k: string]: unknown }, scope: string | null) => void} visit
  */
 function walkDatatableRefs(def, visit) {
     const seen = new WeakSet();

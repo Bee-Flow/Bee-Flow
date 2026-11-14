@@ -43,6 +43,7 @@
 
 const { getAll, getOne, withTransaction } = require('../db');
 const { schemaNameFor, LEGACY_ORG_PREFIX } = require('../stores/datatableDbStore');
+const { fallback } = require('../utils/bestEffort');
 
 // Postgres SQLSTATEs that mean another replica finished the rename first.
 const ALREADY_DONE = new Set(['42P06', '3F000']);
@@ -57,7 +58,7 @@ function quoted(name) {
 
 async function up() {
     // A fresh install reaches this migration with no datatable tables at all.
-    const probe = await getOne(`SELECT to_regclass('datatable_models') AS t`).catch(/** @returns {null} */ () => null);
+    const probe = await getOne(`SELECT to_regclass('datatable_models') AS t`).catch((err) => fallback('migrations/datatable-schema-rename:probe', err, null));
     if (!probe?.t) return;
 
     const rows = await getAll(`SELECT organization_id FROM datatable_models`);

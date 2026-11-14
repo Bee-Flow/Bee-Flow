@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -11,6 +11,7 @@ vi.mock('@/api/transcriptionsApi', () => ({
 }));
 
 import * as api from '@/api/transcriptionsApi';
+import { renderWithClient } from '@/test/render';
 import TemplateEditor from './TemplateEditor';
 
 describe('TemplateEditor', () => {
@@ -23,14 +24,14 @@ describe('TemplateEditor', () => {
     });
 
     it('hides organization/group scope for non-admins', () => {
-        render(<TemplateEditor open onClose={() => {}} canManageOrg={false} builtins={[]} />);
+        renderWithClient(<TemplateEditor open onClose={() => {}} canManageOrg={false} builtins={[]} />);
         expect(screen.getByText('Just me')).toBeTruthy();
         expect(screen.queryByText('Whole organization')).toBeNull();
         expect(screen.queryByText('Specific group')).toBeNull();
     });
 
     it('shows all three scopes for org admins', () => {
-        render(<TemplateEditor open onClose={() => {}} canManageOrg builtins={[]} />);
+        renderWithClient(<TemplateEditor open onClose={() => {}} canManageOrg builtins={[]} />);
         expect(screen.getByText('Just me')).toBeTruthy();
         expect(screen.getByText('Whole organization')).toBeTruthy();
         expect(screen.getByText('Specific group')).toBeTruthy();
@@ -38,7 +39,7 @@ describe('TemplateEditor', () => {
 
     it('disables Save until a name and prompt are provided', async () => {
         const user = userEvent.setup();
-        render(<TemplateEditor open onClose={() => {}} canManageOrg={false} builtins={[]} />);
+        renderWithClient(<TemplateEditor open onClose={() => {}} canManageOrg={false} builtins={[]} />);
         const save = screen.getByRole('button', { name: /Save template/i });
         expect(save.disabled).toBe(true);
         await user.clear(screen.getByPlaceholderText(/Board summary/i));
@@ -52,7 +53,7 @@ describe('TemplateEditor', () => {
         const user = userEvent.setup();
         const onSaved = vi.fn();
         const onClose = vi.fn();
-        render(<TemplateEditor open onClose={onClose} canManageOrg={false} builtins={[]} onSaved={onSaved} />);
+        renderWithClient(<TemplateEditor open onClose={onClose} canManageOrg={false} builtins={[]} onSaved={onSaved} />);
         await user.clear(screen.getByPlaceholderText(/Board summary/i));
         await user.type(screen.getByPlaceholderText(/Board summary/i), 'My style');
         await user.clear(screen.getByPlaceholderText(/Describe the summary/i));
@@ -66,7 +67,7 @@ describe('TemplateEditor', () => {
     it('editing an existing template PATCHes and locks the scope', async () => {
         const user = userEvent.setup();
         const initial = { id: 'tpl-1', scope: 'org', name: 'Org tmpl', prompt: 'Body', organizationId: 'o1', isDefault: false };
-        render(<TemplateEditor open onClose={() => {}} canManageOrg initial={initial} builtins={[]} onSaved={() => {}} />);
+        renderWithClient(<TemplateEditor open onClose={() => {}} canManageOrg initial={initial} builtins={[]} onSaved={() => {}} />);
         // Scope buttons are disabled when editing.
         expect(screen.getByText('Whole organization').closest('button').disabled).toBe(true);
         await user.clear(screen.getByPlaceholderText(/Board summary/i));

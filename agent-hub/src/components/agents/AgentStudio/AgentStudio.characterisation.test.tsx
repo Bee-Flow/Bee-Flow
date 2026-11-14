@@ -81,6 +81,8 @@ beforeEach(() => {
 
 interface MountOptions { initialAgentId?: string; systemMode?: boolean; startInWizard?: boolean; hasPermission?: () => boolean }
 function mount({ hasPermission = () => true, systemMode = false, startInWizard = false, initialAgentId }: MountOptions = {}) {
+    // The editor writes the address only while it is at one of its own.
+    window.history.replaceState({}, '', '/app/studio/agents');
     const onNavigate = vi.fn();
     const onEditingChange = vi.fn();
     // AgentStudio.jsx infers `initialAgentId?: null` from its `= null` default; its contract is a string id.

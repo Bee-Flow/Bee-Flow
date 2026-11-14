@@ -58,7 +58,7 @@
  * ── "ALL FILES" IS NOT "THE THREE SLOTS" ───────────────────────────
  *
  * The three slots (`index.html` / `style.css` / `script.js`) are NOT the whole project, and for most
- * pages they are not even the main part. A react-mui project — and that is, since `integrations/webpageFramework.js`
+ * pages they are not even the main part. A react-mui project — and that is, since `core/webpages/frameworkModel.mts`
  * (`DEFAULT_NEW_FRAMEWORK`), what EVERY NEW page becomes — writes its whole app as
  * EXTRA files under `src/` (`src/main.jsx`, `src/App.jsx`, …); the
  * html is generated at render time and the js slot stays empty. A vanilla project may

@@ -1,5 +1,5 @@
 /**
- * The usage row of a signed-in App Studio action (routes/studioAppsRunUsage.js):
+ * The usage row of a signed-in App Studio action (usecases/studioAppsRunUsage.js):
  * the row is the OWNER's (the real work happens under the owner), the viewer
  * who clicked is the actor, and the AI calls inside a step are attributed to
  * that viewer. The real router behind its real gates, the real stores on one
@@ -21,7 +21,7 @@ const { usePglitePool } = require('../testUtils/pglitePool');
 const { query, close: closePg } = usePglitePool();
 
 const h = require('../testUtils/routeHarness');
-const { actionUsageRow } = require('./studioAppsRunUsage');
+const { actionUsageRow } = require('../usecases/studioAppsRunUsage');
 const { usageAttributionFields } = require('../appStudio/usageAttribution');
 
 const ORG = 'org-usage';
@@ -151,7 +151,7 @@ test('ai chat: a colleague\'s chat turn is the owner\'s row with the colleague a
 });
 
 test('a public visitor\'s step row is the owner\'s, with no actor', () => {
-    const { publicStepUsageRow } = require('./studioAppPublicParts');
+    const { publicStepUsageRow } = require('../usecases/studioAppPublicParts');
     const row = publicStepUsageRow({ id: 'app-3', userId: OWNER.id, organizationId: ORG }, Date.now());
     assert.equal(row.user_id, OWNER.id);
     assert.equal(row.source, 'studio_app_public');

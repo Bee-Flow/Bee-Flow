@@ -3,13 +3,13 @@
 // name and a test send. The bindings are threaded in as props from the panel.
 import { Mail, Send } from 'lucide-react';
 import type React from 'react';
-import { API_BASE, authFetch } from '@/utils/helpers';
 import { useTranslation } from '@/hooks/useTranslation';
 import { DANGER_BTN, SECONDARY_BTN } from '@/components/mcpLibrary/ui';
 import SectionHeader from '@/components/shared/SectionHeader';
 import { FIELD_INPUT, SettingRow, SettingsGroup, SettingsList } from '@/components/shared/SettingsList';
 import type { EmailSectionProps } from './adminPanel.types';
 import { Hint, SaveButton, StatusChip } from './ui';
+import { apiFetch } from '@/api/typedRequest';
 
 type TestSendProps = Pick<EmailSectionProps, 'testEmailRecipient' | 'setTestEmailRecipient' | 'testingServiceEmail' | 'setTestingServiceEmail' | 'setShowTestEmail' | 'setMessage'>;
 
@@ -20,11 +20,7 @@ function TestSend({ testEmailRecipient, setTestEmailRecipient, testingServiceEma
         if (!testEmailRecipient.trim()) return;
         setTestingServiceEmail(true);
         try {
-            const res = await authFetch(`${API_BASE}/ai/config/test-service-email`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ testRecipient: testEmailRecipient }),
-            });
+            const res = await apiFetch('POST /ai/config/test-service-email', { body: { testRecipient: testEmailRecipient } });
             const data = await res.json();
             if (res.ok && data.success) {
                 setMessage({ type: 'success', text: `Test email sent to ${testEmailRecipient}` });

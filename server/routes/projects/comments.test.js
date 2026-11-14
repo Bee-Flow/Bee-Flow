@@ -34,7 +34,7 @@
 const { test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert');
 const crypto = require('node:crypto');
-const { serve } = require('../../testUtils/routeHarness');
+const { serve, assertRefused } = require('../../testUtils/routeHarness');
 const { pgliteDb } = require('../../testUtils/pgliteDb');
 const { makeProjectCommentStore, DDL } = require('../../stores/projectCommentStore');
 const { makeCommentCrypto } = require('../../projects/comments/commentCrypto');
@@ -645,4 +645,14 @@ test('a change of AI mode tells the compliance checks (ids only)', async () => {
     assert.deepStrictEqual(signals, [{ projectId: 'p1', reason: 'ai_mode' }]);
     await call('DELETE', `/api/projects/p1/comments/${thread.id}`);
     assert.strictEqual(signals.length, 2, 'deleting a thread the AI could join by itself is a change too');
+});
+
+test('resolving and reopening take no fields: one sent is refused by name and the status stays', async () => {
+    const { thread } = await startThread();
+    for (const action of ['resolve', 'reopen']) {
+        const res = await call('POST', `/api/projects/p1/comments/${thread.id}/${action}`, { body: { status: 'resolved' } });
+        assertRefused(assert, res, undefined, /does not take "status"/);
+    }
+    assert.strictEqual((await call('GET', `/api/projects/p1/comments/${thread.id}`)).body.thread.status, 'open');
+    assert.strictEqual((await call('POST', `/api/projects/p1/comments/${thread.id}/resolve`, { body: {} })).body.thread.status, 'resolved');
 });

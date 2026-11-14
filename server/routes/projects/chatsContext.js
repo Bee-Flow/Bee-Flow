@@ -15,7 +15,7 @@ const crypto = require('crypto');
 const log = require('../../telemetry/log');
 const { projectAccessDeps } = require('./roleGate');
 const { badRequest, forbidden, notFound } = require('../../core/http/errors');
-const { chatEvent } = require('./chatsPresent');
+const { chatEvent } = require('../../usecases/projects/chatsPresent');
 const { fallback } = require('../../utils/bestEffort');
 
 /** The dependencies, each defaulting to the real module, required on first use. */
@@ -30,7 +30,7 @@ function resolveChatsDeps(deps) {
     return {
         requireRole, getProjectRole, getProject,
         // A chat's AI mode is something the project compliance checks read.
-        aiModeChanged: (project) => (deps.signalProjectChanged || require('./complianceSignal').signalProjectChanged)(project, 'ai_mode'),
+        aiModeChanged: (project) => (deps.signalProjectChanged || require('../../usecases/projects/complianceSignal').signalProjectChanged)(project, 'ai_mode'),
         store: () => deps.store || require('../../stores/projectChatStore'),
         taskStore: () => deps.taskStore || require('../../stores/projectTaskStore'),
         collabNotifier: () => deps.collabNotifier
@@ -209,7 +209,7 @@ module.exports = { makeChatsContext };
 /**
  * @typedef {typeof import('../../projects/chatAssistant')} ChatAssistantModule
  * @typedef {Parameters<typeof projectAccessDeps>[0] & {
- *   signalProjectChanged?: typeof import('./complianceSignal').signalProjectChanged,
+ *   signalProjectChanged?: typeof import('../../usecases/projects/complianceSignal').signalProjectChanged,
  *   store?: typeof import('../../stores/projectChatStore'),
  *   taskStore?: typeof import('../../stores/projectTaskStore'),
  *   collabNotifier?: ReturnType<typeof import('../../projects/collabNotify').makeCollabNotifier>,
@@ -231,5 +231,5 @@ module.exports = { makeChatsContext };
  * }} ChatsDeps
  * @typedef {NonNullable<Awaited<ReturnType<typeof import('../../stores/projectStore').getProject>>>} ProjectRow
  * @typedef {NonNullable<Awaited<ReturnType<typeof import('../../stores/projectChatStore').getChat>>>} ChatRow
- * @typedef {Exclude<Awaited<ReturnType<typeof import('../../stores/projectChatStore').appendMessage>>, { stale: true }>} StoredPost
+ * @typedef {import('../../stores/lib/projectChatMessages').AppendedMessage} StoredPost
  */

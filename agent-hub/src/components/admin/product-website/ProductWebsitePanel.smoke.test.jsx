@@ -2,10 +2,11 @@
 // redesign. Pins the load → edit → debounced-save → publish pipeline at the
 // network boundary (mocked authFetch), driving the edit through the real
 // cms-edit postMessage protocol rather than editor internals.
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { renderWithClient } from '@/test/render';
 
 vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
@@ -104,7 +105,7 @@ function callsMatching(pathPart, method) {
 
 async function renderLoadedPanel() {
     // The app-level Toaster is what shows the panel's refusals, so it renders alongside.
-    render(<><ProductWebsitePanel /><Toaster /></>);
+    renderWithClient(<><ProductWebsitePanel /><Toaster /></>);
     // Loaded = the TopBar publish control + the site trigger are on screen.
     await screen.findByText('Publish');
     await screen.findByText('Test Site');

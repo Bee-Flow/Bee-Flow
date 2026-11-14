@@ -19,7 +19,7 @@ const path = require('path');
 const log = require('../telemetry/log');
 const { s3ClientConfig } = require('./storageClientConfig');
 const { createUploadFileFromPath } = require('./storageUploadFromPath');
-const { bestEffort, fallback } = require('../utils/bestEffort');
+const { bestEffort, fallback, ignoreGone } = require('../utils/bestEffort');
 
 const BUCKET = process.env.S3_BUCKET || 'beeflow-media';
 const DEFAULT_EXPIRY = 3600; // 1 hour
@@ -568,7 +568,7 @@ async function abortMultipartUpload(key, uploadId) {
         try {
             const filePath = localPathFor(key);
             fs.rmSync(MPU_PART_DIR(filePath, uploadId), { recursive: true, force: true });
-        } catch (err) { log.debug('already gone', err); }
+        } catch (err) { ignoreGone('stores/storageStore:removeMultipartParts', err); }
         return;
     }
     if (!s3) throw new Error('StorageStore not initialized');
@@ -627,10 +627,10 @@ async function deleteFile(key) {
 /**
  * Stream a file from RustFS.
  * @param {string} key - S3 object key
+ * @param {{ range?: { start: number, end: number } | null, signal?: AbortSignal }} [opts]
  * @returns {Promise<{ stream: import('stream').Readable, contentType: string, contentLength: number, totalLength: number, contentRange: string|null, metadata: Object }>}
- *   `metadata` is the same flat string map passed to uploadFile (read back
- *   from S3 user-metadata or the .tags sidecar). Always an object — empty
- *   when nothing was stored.
+ *   `metadata` is the same flat string map passed to uploadFile (read back from S3
+ *   user-metadata or the .tags sidecar). Always an object, empty when nothing was stored.
  */
 async function streamFile(key, { range = null, signal = undefined } = {}) {
     if (mode === 'local') {

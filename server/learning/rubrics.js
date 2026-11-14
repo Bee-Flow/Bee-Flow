@@ -122,9 +122,9 @@ const LEGACY_RUBRICS = {
 
 const RUBRICS = { ...LEGACY_RUBRICS, ...GEN.RUBRICS };
 
-/** @param {string} exerciseId */
+/** @param {string | undefined} exerciseId  none finds nothing */
 function getRubric(exerciseId) {
-    return /** @type {Record<string, typeof RUBRICS[keyof typeof RUBRICS]>} */ (RUBRICS)[exerciseId] || null;
+    return /** @type {Record<string, typeof RUBRICS[keyof typeof RUBRICS]>} */ (RUBRICS)[/** @type {string} */ (exerciseId)] || null;
 }
 
 module.exports = { RUBRICS, getRubric };

@@ -7,7 +7,7 @@
 
 'use strict';
 
-const { liftEntryPatch } = require('./suggestedPatch');
+const { liftEntryPatch } = require('../../core/llm/suggestedPatch');
 const { TEMP_ID_RX, resolveHandlesForResend, resolveAnchor } = require('./tempRefs');
 const { findStepAnywhere, isKnownNodeId } = require('./draftGraph');
 const { looksGarbled } = require('../../core/llm/partialJsonScan');

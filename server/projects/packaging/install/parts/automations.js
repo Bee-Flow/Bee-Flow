@@ -7,6 +7,10 @@
 
 'use strict';
 
+// What this needs of automation/ and appStudio/ (features) is looked up by name
+// (core/featureModules.js, registered in boot/featureModules.js).
+const { featureModule } = require('../../../../core/featureModules');
+
 const { clone, resolveKnownRefs, applyResolutionsTo } = require('../refs');
 const { writeOpts } = require('../context');
 
@@ -15,7 +19,7 @@ const { writeOpts } = require('../context');
 const KIND_ORDER = { block: 0, layer: 0, automation: 1 };
 
 async function installAutomations(entities, ctx, report) {
-    const { EXPORT_FORMAT, EXPORT_SCHEMA_VERSION, sanitizeImport, rekeyDefinition } = require('../../../../automation/portability');
+    const { EXPORT_FORMAT, EXPORT_SCHEMA_VERSION, sanitizeImport, rekeyDefinition } = featureModule('automation/portability');
     const automationStore = require('../../../../stores/automationStore');
 
     const ordered = [...entities].sort(

@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * A real router behind a real express app, for the `*.validation.test.js`
@@ -51,32 +52,46 @@ const BOOTSTRAP = /^\s*(CREATE|ALTER|DROP|COMMENT|BEGIN|COMMIT|ROLLBACK|SAVEPOIN
  * holds the ones that read or write data, `calls` the same with their params,
  * `all` every statement.
  *
+ * With `pg` (a PGlite, e.g. testUtils/pgliteTemplate.js ladderPglite()) every
+ * statement is still recorded, and then RUN on that database instead of
+ * answered by `answer`: a request that reaches the store reads and writes real
+ * rows.
+ *
  * @param {(sql: string, params?: any) => any} [answer]
+ * @param {{ pg?: import('@electric-sql/pglite').PGlite }} [options]
  */
-function recordDb(answer = () => undefined) {
+function recordDb(answer = () => undefined, { pg } = {}) {
     const db = require('../db');
     const queries = [];
     const all = [];
     const calls = [];
+    const run = pg ? require('./pglitePool').pgliteQuery(pg) : null;
+    let pending = 0;
     const query = async (sql, params) => {
         const text = typeof sql === 'string' ? sql : sql?.text || '';
         all.push(text);
         if (!BOOTSTRAP.test(text)) { queries.push(text); calls.push({ sql: text, params }); }
+        if (run) {
+            pending++;
+            try { return await run(sql, params); } finally { pending--; }
+        }
         const out = answer(text, params);
         return out ? { rowCount: (out.rows || []).length, ...out } : { rows: [], rowCount: 0 };
     };
     db.pool.query = query;
-    db.pool.connect = async () => ({ query, release() {} });
+    db.pool.connect = /** @type {typeof db.pool.connect} */ (/** @type {unknown} */ (async () => ({ query, release() {} })));
     const reset = () => { queries.length = 0; all.length = 0; calls.length = 0; };
     /**
      * Stores that initialise when they are loaded keep querying for a while
      * after the router is required (schema, backfills). Wait until the
-     * database has been quiet for `quietMs`, then forget what was recorded.
+     * database has been quiet for `quietMs` with no statement still running
+     * (on a loaded machine a slow statement outlasts any fixed window), then
+     * forget what was recorded.
      */
     async function settle(quietMs = 150, maxMs = 10_000) {
         const start = Date.now();
         let seen = -1;
-        while (seen !== all.length && Date.now() - start < maxMs) {
+        while ((seen !== all.length || pending > 0) && Date.now() - start < maxMs) {
             seen = all.length;
             await new Promise((r) => setTimeout(r, quietMs));
         }
@@ -144,22 +159,22 @@ function openGates(overrides = {}) {
  * injected (`serve('/', makeSharingRouter({ ... }))`, or an array of routers):
  * no gates or database to replace, a session user per call.
  */
-function serve(path, router, { user = USER, session = {} } = {}) {
+function serve(path, router, /** @type {{ user?: Record<string, unknown> | null, session?: Record<string, unknown> }} */ { user = USER, session = {} } = {}) {
     const { terminalErrorHandler } = require('../core/http/terminalErrorHandler');
     const app = express();
     app.use(express.json({ limit: '20mb' }));
     app.use((req, _res, next) => {
         const who = req.headers['x-test-user'];
-        const u = who === 'none' ? null : (who ? JSON.parse(who) : user);
-        req.session = u
+        const u = who === 'none' ? null : (who ? JSON.parse(/** @type {string} */ (who)) : user);
+        req.session = /** @type {typeof req.session} */ (/** @type {unknown} */ (u
             ? { isAuthenticated: true, user: u, ...session, save: (cb) => cb && cb(), destroy: (cb) => cb && cb() }
-            : { save: (cb) => cb && cb(), destroy: (cb) => cb && cb() };
+            : { save: (cb) => cb && cb(), destroy: (cb) => cb && cb() }));
         next();
     });
     app.use(path, router);
     app.use(terminalErrorHandler);
     const server = http.createServer(app);
-    const ready = new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const ready = /** @type {Promise<void>} */ (new Promise((resolve) => server.listen(0, '127.0.0.1', resolve)));
 
     /**
      * @param {string} method
@@ -172,11 +187,14 @@ function serve(path, router, { user = USER, session = {} } = {}) {
         const h = { ...headers };
         if (as !== undefined) h['x-test-user'] = as === null ? 'none' : JSON.stringify(as);
         let payload;
-        if (body !== undefined) {
+        // A FormData goes as multipart (fetch writes its boundary), for routes whose upload guard reads the file first.
+        if (body instanceof FormData) {
+            payload = body;
+        } else if (body !== undefined) {
             h['content-type'] = 'application/json';
             payload = JSON.stringify(body);
         }
-        const res = await fetch(`http://127.0.0.1:${server.address().port}${url}`, { method, headers: h, body: payload });
+        const res = await fetch(`http://127.0.0.1:${/** @type {import('net').AddressInfo} */ (server.address()).port}${url}`, { method, headers: h, body: payload });
         const text = await res.text();
         let json = null;
         try { json = JSON.parse(text); } catch (err) { log.debug('response body is not JSON, kept as text', err); }
@@ -239,14 +257,17 @@ function assertGeneric500(assert, res, leaks) {
  *   gates?: Record<string, unknown> | false,
  *   user?: Record<string, unknown> | null,
  *   session?: Record<string, unknown>,
- * }} [options]  `answer` for recordDb, `gates` for openGates, the rest for serve
+ *   pg?: import('@electric-sql/pglite').PGlite,
+ * }} [options]  `answer` or `pg` for recordDb, `gates` for openGates, the rest for serve
  */
-function routeUnderTest(test, path, load, { answer, gates = {}, ...serveOptions } = {}) {
-    const db = recordDb(answer);
+function routeUnderTest(test, path, load, { answer, pg, gates = {}, ...serveOptions } = {}) {
+    const db = recordDb(answer, { pg });
     if (gates !== false) openGates(gates);
     const api = serve(path, load(), serveOptions);
-    test.before(() => db.settle());
-    test.after(api.close);
+    // A real database is slower than the recording one: a store's boot work can
+    // pause longer between two statements, so it gets a longer quiet window.
+    test.before(() => db.settle(pg ? 600 : 150));
+    test.after(async () => { await api.close(); if (pg) await pg.close(); });
     test.beforeEach(() => db.reset());
     return { db, api };
 }
@@ -272,10 +293,10 @@ function dispatcher(router, { session: makeSession = () => ({ user: { id: 'u1' }
             const [pathname, search = ''] = String(url).split('?');
             const query = {};
             for (const [k, v] of new URLSearchParams(search)) query[k] = v;
-            const req = {
+            const req = /** @type {import('express').Request} */ (/** @type {unknown} */ ({
                 method, url, originalUrl: url, path: pathname, query, body, headers: {},
                 session: session || makeSession(), get() { return undefined; },
-            };
+            }));
             const res = {
                 statusCode: 200, headersSent: false,
                 set() { return this; }, setHeader() {}, cookie() { return this; },
@@ -284,9 +305,9 @@ function dispatcher(router, { session: makeSession = () => ({ user: { id: 'u1' }
                 send(b) { this.body = b; this.headersSent = true; resolve(this); return this; },
                 end() { this.headersSent = true; resolve(this); return this; },
             };
-            router(req, res, (err) => {
+            router(req, /** @type {import('express').Response} */ (/** @type {unknown} */ (res)), (err) => {
                 if (!err) return reject(new Error(`fell through: ${method} ${url}`));
-                terminalErrorHandler(err, req, res, (e) => reject(e));
+                terminalErrorHandler(err, req, /** @type {import('express').Response} */ (/** @type {unknown} */ (res)), (e) => reject(e));
             });
         });
     };

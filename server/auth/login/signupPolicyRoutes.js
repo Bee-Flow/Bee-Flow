@@ -17,6 +17,10 @@ const { getSignupAccessConfig } = require('../signupGuards');
 const isOrgDirectoryPublic = require('./signupIntakeRoutes').isOrgDirectoryPublic;
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
+const { bodyOf } = require('../../core/http/schemaParts');
+
+// Approving or rejecting acts on the person in the path and takes no fields.
+const WaitlistBody = bodyOf({}, 'A waitlist decision');
 
 const LOGIN_METHODS = ['password', 'google', 'microsoft'];
 const GEO_MODES = ['off', 'allowlist', 'blocklist'];
@@ -201,7 +205,7 @@ router.get('/admin/waitlist', requireSuperAdmin, async (/** @type {import('expre
     res.json(waitlisted);
 });
 
-router.post('/admin/waitlist/:userId/approve', requireSuperAdmin, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
+router.post('/admin/waitlist/:userId/approve', requireSuperAdmin, validate({ body: WaitlistBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const user = await userStore.getUser(/** @type {string} */ (req.params.userId));
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.status !== 'waitlist') return res.status(400).json({ error: 'User is not on the waitlist' });
@@ -222,7 +226,7 @@ router.post('/admin/waitlist/:userId/approve', requireSuperAdmin, async (/** @ty
     res.json({ success: true });
 });
 
-router.post('/admin/waitlist/:userId/reject', requireSuperAdmin, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
+router.post('/admin/waitlist/:userId/reject', requireSuperAdmin, validate({ body: WaitlistBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const user = await userStore.getUser(/** @type {string} */ (req.params.userId));
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.status !== 'waitlist') return res.status(400).json({ error: 'User is not on the waitlist' });

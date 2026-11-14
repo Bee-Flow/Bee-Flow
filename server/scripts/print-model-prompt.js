@@ -175,7 +175,7 @@ function composeAutomation(brief) {
     const { getProfile, effortForIteration, CORE_TOOL_NAMES } = req('automation/builderModelProfiles');
     const { TOOL_SCHEMAS } = req('automation/builderTools');
     const { projectToolSchemas } = req('automation/builderTools/schemaProjection');
-    const { composeTurnMessages } = req('routes/ai/automationBuilder/turnMessages');
+    const { composeTurnMessages } = req('usecases/ai/automationBuilder/turnMessages');
     const { renderAgentDraftState } = req('automation/summarise');
     const { systemPrefixFingerprint, toolSetFingerprint, toolBytesFingerprint } = req('core/llm/promptCacheStability');
 
@@ -232,8 +232,8 @@ function composeApp(brief) {
     const { getProfile, effortForIteration, selectToolMenu } = req('appStudio/builderModelProfiles');
     const { TOOL_SCHEMAS } = req('appStudio/builderTools');
     const { buildSystemPrompt, renderOwnerContextNote, renderDraftState } = req('appStudio/builderPrompt');
-    const { composeAppTurnMessages } = req('routes/ai/appStudioBuilder/turnMessages');
-    const { DRAFT_STATE_PREFIX } = req('routes/ai/appStudioBuilder/turnLoop');
+    const { composeAppTurnMessages } = req('usecases/ai/appStudioBuilder/turnMessages');
+    const { DRAFT_STATE_PREFIX } = req('usecases/ai/appStudioBuilder/turnLoop');
     const { emptyDefinition } = req('appStudio/componentSpecs');
     const { systemPrefixFingerprint, toolSetFingerprint, toolBytesFingerprint } = req('core/llm/promptCacheStability');
 

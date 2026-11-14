@@ -16,13 +16,13 @@ const log = require('../../../telemetry/log');
 /**
  * What an entity looked like the moment it was installed.
  *
- * hashDefinition is App Studio's, reused rather than rewritten: jsonb does not
+ * hashDefinition is the one App Studio stamps with, reused rather than rewritten: jsonb does not
  * preserve key order, so a second hasher would disagree with the first on
  * documents that are identical, and upgrade would then call a pristine entity
  * dirty. One hasher.
  */
 function installHashOf(payload) {
-    const { hashDefinition } = require('../../../appStudio/templateUpgrade');
+    const { hashDefinition } = require('../../../core/packaging/definitionHash.mts');
     return hashDefinition(payload);
 }
 

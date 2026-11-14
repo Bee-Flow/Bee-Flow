@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Direct Chat — the two ways the live tool list grows mid-turn.
  *
@@ -56,6 +56,8 @@ async function onSkillsActivated(turn, justActivatedIds) {
     const result = { addedTools: /** @type {string[]} */ ([]), unavailableApps: /** @type {string[]} */ ([]) };
     /** @type {string[]} */
     const newApps = [];
+    // The allowlist holds app ids; its literal start ([]) leaves the type empty.
+    const allowedApps = /** @type {string[]} */ (skillApps.allowedApps);
     let activationChanged = false;
     for (const sid of justActivatedIds || []) {
         const apps = skillApps.dynamicSkillApps.get(sid);
@@ -65,7 +67,7 @@ async function onSkillsActivated(turn, justActivatedIds) {
             activationChanged = true;
         }
         for (const a of apps) {
-            if (!skillApps.allowedApps.includes(a) && !newApps.includes(a)) newApps.push(a);
+            if (!allowedApps.includes(a) && !newApps.includes(a)) newApps.push(a);
         }
     }
     if (activationChanged && convId) {
@@ -75,7 +77,7 @@ async function onSkillsActivated(turn, justActivatedIds) {
     }
     if (newApps.length === 0) return result;
 
-    skillApps.allowedApps.push(...newApps);
+    allowedApps.push(...newApps);
     try {
         const { getIntegrationTools } = require('../../../core/integrations/integrationTools');
         const fresh = await getIntegrationTools({

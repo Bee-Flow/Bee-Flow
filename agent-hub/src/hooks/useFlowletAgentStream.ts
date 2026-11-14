@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { readEventStream } from '../api/readEventStream';
-import { API_BASE, authFetch } from '../utils/helpers';
 import { logger } from '../utils/logger';
+import { apiFetch } from '@/api/typedRequest';
 
 /**
  * SSE hook for the standalone "build / refine a layer with AI" agent
@@ -107,12 +107,7 @@ export default function useFlowletAgentStream(): UseFlowletAgentStreamReturn {
         let finalKey: string | null = layerKey || null;
         let errMsg: string | null = null;
         try {
-            const resp = await authFetch(`${API_BASE}/api/automation/builder/layer-agent`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ automationId, instruction, mode, layerKey, title }),
-                signal: ac.signal,
-            });
+            const resp = await apiFetch('POST /api/automation/builder/layer-agent', { body: { automationId, instruction, mode, layerKey, title }, init: { signal: ac.signal } });
             if (!resp.ok || !resp.body) {
                 errMsg = (await safeText(resp)) || `HTTP ${resp.status}`;
                 setState(s => ({ ...s, running: false, error: errMsg }));

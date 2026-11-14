@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Direct Chat — chat-local session-skill state for the Flow (standard) tier:
  * conversation-meta load (compaction summary, OpenAI response chaining id,
@@ -72,7 +72,7 @@ async function setupSessionSkills({ req, send, userId, convId, config, clientHis
                     }
                     // Check DB messages for past file uploads (disableSearchOnUpload policy)
                     if (disableSearchOnUpload && existingConv.messages?.some((/** @type {{ attachments?: unknown[] }} */ m) => m.attachments && m.attachments.length > 0)) {
-                        directChatTools = directChatTools.filter(t => t.function.name !== 'agent_search' && t.function.name !== 'read_url');
+                        directChatTools = directChatTools.filter(t => !['agent_search', 'read_url'].includes(/** @type {{ name: string }} */ (t.function).name)); // every chat tool is a function tool
                         log.info('[DirectChat] Web search disabled — files found in conversation history DB (org policy)');
                     }
                     if (Array.isArray(existingConv.sessionSkills)) {

@@ -288,6 +288,20 @@ function invalidateCacheForOrg(_orgId) {
     // which deletes the session entirely (PR 2.A).
 }
 
+/**
+ * Forget the tier this session resolved, so the next gated request resolves it
+ * again: called by the request that just activated or removed a licence, whose
+ * own session would otherwise keep the old tier for up to the cache TTL.
+ * @param {{ session?: Record<string, any> & { user?: { id?: string } } }} req
+ */
+function forgetTierResolution(req) {
+    const userId = req.session?.user?.id;
+    if (!req.session || !userId) return;
+    for (const key of Object.keys(req.session)) {
+        if (key.includes(`_lic:${userId}:`)) delete req.session[key];
+    }
+}
+
 function invalidateCacheForUser(_userId) {
     // Same comment as invalidateCacheForOrg — session bust is the
     // authoritative path; per-session resolution decays via TTL.
@@ -301,4 +315,5 @@ module.exports = {
     resolveBestTierForRequest,
     invalidateCacheForOrg,
     invalidateCacheForUser,
+    forgetTierResolution,
 };

@@ -14,6 +14,7 @@
  */
 import { CalendarClock, Plus, RefreshCw, X } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import useModelTierSelection from '../../hooks/useModelTierSelection';
 import useTranslation from '../../hooks/useTranslation';
 import Modal from '../shared/Modal';
@@ -21,19 +22,18 @@ import CoworkComposer from './CoworkComposer';
 import CoworkDetail from './CoworkDetail';
 import CoworkRow from './CoworkRow';
 import { CoworkWelcomeHeader, COWORK_STARTER_ITEMS } from './CoworkWelcome';
-import { deleteCowork, listCowork, listCoworkAgents, runCoworkNow, toggleCowork, updateCowork } from '../../api/coworkApi';
+import { deleteCowork, listCowork, runCoworkNow, toggleCowork, updateCowork } from '../../api/coworkApi';
+import { useCoworkAgents } from '../../api/queries/coworkReads';
 import { isInFlight } from './coworkStatus';
 import useCoworkComposer from './useCoworkComposer';
 import type { CoworkAgent, CoworkItem, CoworkPageProps, CoworkUpdate } from '../../api/cowork.types';
 import { errorMessage } from '../../utils/caughtError';
 import { createdFlash, saveErrorMessage } from './mailTrigger';
 
+const NO_ITEMS: CoworkItem[] = [];
+
 export default function CoworkPage({ user = null, isMobile = false, initialCoworkId = null, onNavigate }: CoworkPageProps) {
     const { t } = useTranslation();
-    const [items, setItems] = useState<CoworkItem[]>([]);
-    const [maxItems, setMaxItems] = useState(10);
-    const [loading, setLoading] = useState(true);
-    const [loadError, setLoadError] = useState<string | null | undefined>(null);
     const [actionError, setActionError] = useState<string | null | undefined>(null);
     const [brief, setBrief] = useState('');
     const [busy, setBusy] = useState(false);
@@ -43,33 +43,30 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
     const [flash, setFlash] = useState<string | null>(null);
     // Bumped after any mutation so an open history refetches without a reload.
     const [reloadKey, setReloadKey] = useState(0);
-    const [agents, setAgents] = useState<CoworkAgent[]>([]);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-    const refresh = useCallback(async () => {
-        try {
-            const { items: list, maxItems: max } = await listCowork();
-            setItems(list);
-            setMaxItems(max);
-            setLoadError(null);
-        } catch (err) {
-            setLoadError(errorMessage(err));
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => { refresh(); }, [refresh]);
+    // Results arrive asynchronously (the runner reports into notifications), so
+    // the list is read again every 10 s while something is mid-run rather than
+    // showing "Starting…" until the user reloads; it stops as soon as it settles.
+    // A failed read keeps the list and says so.
+    const listQuery = useQuery<{ items: CoworkItem[]; maxItems: number }>({
+        queryKey: ['cowork', 'list'],
+        staleTime: 0,
+        retry: false,
+        refetchInterval: (q) => ((q.state.data as { items: CoworkItem[] } | undefined)?.items.some(isInFlight) ? 10_000 : false),
+        refetchIntervalInBackground: true,
+        queryFn: listCowork,
+    });
+    const items = listQuery.data?.items ?? NO_ITEMS;
+    const maxItems = listQuery.data?.maxItems ?? 10;
+    const loading = listQuery.isPending;
+    const loadError = listQuery.error ? errorMessage(listQuery.error) : null;
+    const { refetch } = listQuery;
+    const refresh = useCallback(async () => { await refetch(); }, [refetch]);
 
     // Only the edit form's "Run as" picker needs these; an empty list simply
     // hides the field, which is the right outcome outside the agent beta.
-    useEffect(() => {
-        let cancelled = false;
-        listCoworkAgents()
-            .then(list => { if (!cancelled) setAgents(list); })
-            .catch(() => { if (!cancelled) setAgents([]); });
-        return () => { cancelled = true; };
-    }, []);
+    const agents = useCoworkAgents();
 
     // A deep link wins on arrival; after that the user's clicks decide.
     useEffect(() => {
@@ -113,15 +110,6 @@ export default function CoworkPage({ user = null, isMobile = false, initialCowor
     // running showed a 5 (CW-02/CW-18).
     const inFlightCount = useMemo(() => items.filter(isInFlight).length, [items]);
 
-    // Results arrive asynchronously (the runner reports into notifications),
-    // so poll gently while something is mid-run rather than leaving the page
-    // showing "Starting…" until the user reloads. Stops as soon as it settles.
-    const anyInFlight = inFlightCount > 0;
-    useEffect(() => {
-        if (!anyInFlight) return undefined;
-        const t = setInterval(refresh, 10_000);
-        return () => clearInterval(t);
-    }, [anyInFlight, refresh]);
 
     const selected = useMemo(
         () => items.find(i => i.id === selectedId) || null,

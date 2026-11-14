@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What Bee can work out about the AI Act on its own, per question, with how
  * sure it is (Studio → Automations handoff 5, "the check should be automatic").
@@ -31,14 +32,11 @@
  *
  * Pure: the model verdict and the reusable Steps' definitions are handed in.
  */
-
 'use strict';
-
 const crypto = require('node:crypto');
-const graph = require('./automationGraph');
-const annexIii = require('../compliance/aiAct/annexIii');
-const { ART5_PRACTICES } = require('../compliance/aiAct/assess');
-
+const graph = require('../core/automationModel/automationGraph');
+const annexIii = require('../core/aiAct/annexIii');
+const { ART5_PRACTICES } = require('../core/aiAct/assess');
 const QUESTION_IDS = Object.freeze(['usesAi', 'externalOutput', 'sensitiveUse', 'prohibitedUse']);
 const CONFIDENCES = Object.freeze(['certain', 'likely', 'unknown']);
 
@@ -50,6 +48,7 @@ function labelOf(step) {
 function stepRef(step) { return { stepId: step.id ?? null, label: labelOf(step), type: step.type || null }; }
 /**
  * @param {string} code
+ * @param {Record<string, unknown>} [params]
  */
 function ev(code, params) { return { code, params: params || {} }; }
 
@@ -81,7 +80,7 @@ function ownText(step) {
  * (automationGraph.AI_STEP_TYPES) plus the steps that call a model on the
  * side: an AI-mode parse_json, a knowledge_write that merges near duplicates,
  * an AI-backed integration action and an "is about" rule (the topic
- * classifier). `summarize` is arithmetic (automationGraph.js).
+ * classifier). `summarize` is arithmetic (core/automationModel/automationGraph.js).
  */
 function aiKind(step) {
     if (!isObject(step)) return null;
@@ -348,6 +347,7 @@ function signatureOf(q) {
 
 /**
  * @typedef HintTextArgs
+ * @property {unknown} [definition]
  * @property {string} [title]
  * @property {string} [description]
  */
@@ -369,7 +369,7 @@ function hintText({ definition, title = '', description = '' }) {
  *
  * @param {{ definition: object, title?: string, description?: string, internalDomains?: string[],
  *           blocks?: Record<string, object|null>|null, verdict?: object|null }} input
- * @returns {{ applicable: boolean|null, ai: object, questions: Record<string, object> }}
+ * @returns {{ applicable: boolean|null, ai: object, questions: Record<string, Question> }}
  *   applicable: true (AI found), false (certainly none), null (Bee could not tell)
  */
 function detectQuestions({ definition, title = '', description = '', internalDomains = [], blocks = null, verdict = null }) {
@@ -416,11 +416,11 @@ module.exports = {
     detectQuestions,
 };
 
-/** @typedef {import('./automationGraph').AutomationStep} AutomationStep */
+/** @typedef {import('../core/automationModel/automationGraph').AutomationStep} AutomationStep */
 
-/** @typedef {import('./automationGraph').AutomationGraph} AutomationGraph */
+/** @typedef {import('../core/automationModel/automationGraph').AutomationGraph} AutomationGraph */
 
-/** @typedef {import('./automationGraph').AutomationDefinition} AutomationDefinition */
+/** @typedef {import('../core/automationModel/automationGraph').AutomationDefinition} AutomationDefinition */
 
 /** @typedef {{ stepId: string|null, label: string, type: string|null, tool?: string }} StepRef  where a finding sits */
 

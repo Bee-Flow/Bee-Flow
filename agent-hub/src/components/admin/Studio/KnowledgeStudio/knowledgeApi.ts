@@ -28,12 +28,12 @@
  */
 
 import { createJsonResource } from '@/api/client';
-import { API_BASE, authFetch } from '@/utils/helpers';
+import { authFetch } from '@/utils/helpers';
+import { apiUrl } from '@/api/typedRequest';
 import type { SourceConfig } from './sourceKinds';
 import type { QueryLogAttestation } from '@/api/queries/kbQueryLog';
 import { logger } from '@/utils/logger';
 
-const base = `${API_BASE}/api/kb`;
 const enc = encodeURIComponent;
 
 /** A source of a knowledge base, as `/sources` lists it (counters already Numbers). */
@@ -246,11 +246,11 @@ export const knowledgeApi = {
      * do (`agent`, `direct_chat`, `ai_step`) — the Studio overview passes
      * none, because Studio is where a KB with no context at all is managed.
      */
-    list: (context: string | null = null) => request(`${base}${qs({ context })}`),
-    get: (id: Id) => request(`${base}/${enc(id)}`),
-    create: (body: Body) => request(base, { method: 'POST', body: JSON.stringify(body) }),
+    list: (context: string | null = null) => request(`${apiUrl('GET /api/kb')}${qs({ context })}`),
+    get: (id: Id) => request(apiUrl('GET /api/kb/{id}', { params: { id: String(id) } })),
+    create: (body: Body) => request(apiUrl('POST /api/kb'), { method: 'POST', body: JSON.stringify(body) }),
     /** body: `{ name?, description?, categoryId?, icon?, usageContexts? }` — PATCH, not PUT. */
-    update: (id: Id, body: Body) => request(`${base}/${enc(id)}`, { method: 'PATCH', body: JSON.stringify(body) }),
+    update: (id: Id, body: Body) => request(apiUrl('PATCH /api/kb/{id}', { params: { id: String(id) } }), { method: 'PATCH', body: JSON.stringify(body) }),
     /**
      * Audience, on its own route: `{ isPublished, sharedGroups? }`. Separate
      * from `update` because it is the control that widens who can read the
@@ -258,20 +258,20 @@ export const knowledgeApi = {
      * publish; anyone else needs same-org manage_knowledge).
      * `sharedGroups: undefined` means "leave as-is", not "clear".
      */
-    setPublished: (id: Id, body: Body) => request(`${base}/${enc(id)}/publish`, { method: 'PATCH', body: JSON.stringify(body) }),
+    setPublished: (id: Id, body: Body) => request(apiUrl('PATCH /api/kb/{id}/publish', { params: { id: String(id) } }), { method: 'PATCH', body: JSON.stringify(body) }),
     /**
      * `confirm` is K5's "yes, break the things that use this" flag: until
      * then the server has no 409 to answer with and the flag is inert.
      */
-    remove: (id: Id, opts: { confirm?: boolean } = {}) => request(`${base}/${enc(id)}${qs({ confirm: opts.confirm ? '1' : null })}`, { method: 'DELETE' }),
-    categories: () => request(`${base}/categories`),
+    remove: (id: Id, opts: { confirm?: boolean } = {}) => request(`${apiUrl('DELETE /api/kb/{id}', { params: { id: String(id) } })}${qs({ confirm: opts.confirm ? '1' : null })}`, { method: 'DELETE' }),
+    categories: () => request(apiUrl('GET /api/kb/categories')),
 
     // ── Cloud folders (cloud_folder sources) ─────────────────────────
     /** `{ providers: [{ provider, connected, reason }] }` */
-    cloudProviders: (): Promise<{ providers?: CloudProvider[] }> => request(`${base}/cloud/providers`),
+    cloudProviders: (): Promise<{ providers?: CloudProvider[] }> => request(apiUrl('GET /api/kb/cloud/providers')),
     /** `{ items: CloudItem[], nextPageToken }` — one folder of one cloud. */
     cloudBrowse: (params: CloudBrowseParams): Promise<{ items?: CloudItem[]; nextPageToken?: string | null }> =>
-        request(`${base}/cloud/browse${qs({ ...params })}`),
+        request(`${apiUrl('GET /api/kb/cloud/browse')}${qs({ ...params })}`),
 
     // ── The test question (K6) ───────────────────────────────────────
     /**
@@ -287,7 +287,7 @@ export const knowledgeApi = {
      * previous answer streams is the normal case, not an edge one.
      */
     ask: async (id: Id, question: string, { signal, onEvent }: { signal?: AbortSignal; onEvent?: SseHandler } = {}) => {
-        const res = await authFetch(`${base}/${enc(id)}/ask`, {
+        const res = await authFetch(apiUrl('POST /api/kb/{id}/ask', { params: { id: String(id) } }), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ question }),
@@ -313,7 +313,7 @@ export const knowledgeApi = {
      * search service, and they are about to be replaced anyway).
      */
     duplicate: (id: Id, { withSources = false }: { withSources?: boolean } = {}) =>
-        request(`${base}/${enc(id)}/duplicate${qs({ withSources: withSources ? '1' : null })}`, { method: 'POST' }),
+        request(`${apiUrl('POST /api/kb/{id}/duplicate', { params: { id: String(id) } })}${qs({ withSources: withSources ? '1' : null })}`, { method: 'POST' }),
 
     // ── Usage (K5) ───────────────────────────────────────────────────
     /**
@@ -322,9 +322,9 @@ export const knowledgeApi = {
      * consumer table means "I do not know", and a client that renders it as
      * "nothing uses this" is the reason the delete dialog would be lying.
      */
-    usage: (id: Id) => request(`${base}/${enc(id)}/usage`),
+    usage: (id: Id) => request(apiUrl('GET /api/kb/{id}/usage', { params: { id: String(id) } })),
     /** `{ summary: { <kbId>: { counts: {kind:n}, partial: [] } } }` — the overview's pills. */
-    usageSummary: () => request(`${base}/usage-summary`),
+    usageSummary: () => request(apiUrl('GET /api/kb/usage-summary')),
     /**
      * `{ suggestions: [{ kbId, kbName, agentId, agentName, score }] }`.
      * Deterministic word overlap on the server, no model call: this sits on
@@ -332,17 +332,17 @@ export const knowledgeApi = {
      * and a suggestion that changes between two page loads reads as a system
      * that is guessing.
      */
-    suggestions: () => request(`${base}/suggestions`),
+    suggestions: () => request(apiUrl('GET /api/kb/suggestions')),
 
     // ── Sources (K1b) ────────────────────────────────────────────────
     /** `{ sources:[…], totals:{…} }` — every counter already a Number. */
-    listSources: (kbId: Id) => request(`${base}/${enc(kbId)}/sources`),
+    listSources: (kbId: Id) => request(apiUrl('GET /api/kb/{id}/sources', { params: { id: String(kbId) } })),
     /** body: `{ kind, name?, config, refresh? }`. */
-    createSource: (kbId: Id, body: Body) => request(`${base}/${enc(kbId)}/sources`, { method: 'POST', body: JSON.stringify(body) }),
-    updateSource: (kbId: Id, sid: Id, body: Body) => request(`${base}/${enc(kbId)}/sources/${enc(sid)}`, { method: 'PATCH', body: JSON.stringify(body) }),
-    removeSource: (kbId: Id, sid: Id) => request(`${base}/${enc(kbId)}/sources/${enc(sid)}`, { method: 'DELETE' }),
+    createSource: (kbId: Id, body: Body) => request(apiUrl('POST /api/kb/{id}/sources', { params: { id: String(kbId) } }), { method: 'POST', body: JSON.stringify(body) }),
+    updateSource: (kbId: Id, sid: Id, body: Body) => request(apiUrl('PATCH /api/kb/{id}/sources/{sid}', { params: { id: String(kbId), sid: String(sid) } }), { method: 'PATCH', body: JSON.stringify(body) }),
+    removeSource: (kbId: Id, sid: Id) => request(apiUrl('DELETE /api/kb/{id}/sources/{sid}', { params: { id: String(kbId), sid: String(sid) } }), { method: 'DELETE' }),
     /** 202 `{ queued:true, source }` — sets next_refresh_at=now(); K3 does the work. */
-    refreshSource: (kbId: Id, sid: Id) => request(`${base}/${enc(kbId)}/sources/${enc(sid)}/refresh`, { method: 'POST' }),
+    refreshSource: (kbId: Id, sid: Id) => request(apiUrl('POST /api/kb/{id}/sources/{sid}/refresh', { params: { id: String(kbId), sid: String(sid) } }), { method: 'POST' }),
 
     /**
      * 202 `{ accepted, documents:[{id,name,status:'processing'}] }`. The ids
@@ -352,19 +352,19 @@ export const knowledgeApi = {
     uploadFiles: (kbId: Id, sid: Id, files: Iterable<File>) => {
         const form = new FormData();
         for (const f of files) form.append('files', f);
-        return request(`${base}/${enc(kbId)}/sources/${enc(sid)}/files`, { method: 'POST', body: form });
+        return request(apiUrl('POST /api/kb/{id}/sources/{sid}/files', { params: { id: String(kbId), sid: String(sid) } }), { method: 'POST', body: form });
     },
 
     /** `{ documents, total, limit, offset }` — projected, no bodies. */
     listSourceDocuments: (kbId: Id, sid: Id, params: Record<string, unknown> = {}) =>
-        request(`${base}/${enc(kbId)}/sources/${enc(sid)}/documents${qs(params)}`),
+        request(`${apiUrl('GET /api/kb/{id}/sources/{sid}/documents', { params: { id: String(kbId), sid: String(sid) } })}${qs(params)}`),
     getSourceDocument: (kbId: Id, sid: Id, docId: Id) =>
-        request(`${base}/${enc(kbId)}/sources/${enc(sid)}/documents/${enc(docId)}`),
+        request(apiUrl('GET /api/kb/{id}/sources/{sid}/documents/{docId}', { params: { id: String(kbId), sid: String(sid), docId: String(docId) } })),
 
     // ── Documents ────────────────────────────────────────────────────
     /** The ONE route that returns a body: `{ document, content, remote_only }`. */
-    documentContent: (kbId: Id, docId: Id) => request(`${base}/${enc(kbId)}/documents/${enc(docId)}/content`),
-    removeDocument: (kbId: Id, docId: Id) => request(`${base}/${enc(kbId)}/documents/${enc(docId)}`, { method: 'DELETE' }),
+    documentContent: (kbId: Id, docId: Id) => request(apiUrl('GET /api/kb/{id}/documents/{docId}/content', { params: { id: String(kbId), docId: String(docId) } })),
+    removeDocument: (kbId: Id, docId: Id) => request(apiUrl('DELETE /api/kb/{id}/documents/{docId}', { params: { id: String(kbId), docId: String(docId) } }), { method: 'DELETE' }),
 };
 
 export default knowledgeApi;

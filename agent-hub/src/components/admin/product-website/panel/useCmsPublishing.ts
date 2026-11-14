@@ -7,9 +7,9 @@ import type useCmsAutosave from './useCmsAutosave';
 import type useCmsHistory from './useCmsHistory';
 import type useCmsPanelState from './useCmsPanelState';
 import { messageOf, errorMessage } from '@/utils/caughtError';
-import { mutate, ApiError, errorBody, RefusedError } from '@/api/mutate';
+import { ApiError, errorBody, RefusedError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 import { toast } from '@/components/shared/Toast';
-import { cmsApi } from '../cmsApi';
 import { useTranslation } from '@/hooks/useTranslation';
 import { AI_LOCK_MSG } from './helpers';
 import { confirmPublishDespiteBrokenLinks } from './publishLinkCheck';
@@ -87,11 +87,7 @@ export default function useCmsPublishing({
             setLiveSiteId(activeSiteId);
             try {
                 try {
-                    await mutate(cmsApi.siteLive(activeSiteId), {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ live: true }),
-                });
+                    await apiRequest('PUT /api/cms/sites/{siteId}/live', { params: { siteId: activeSiteId }, body: { live: true } });
                 } catch (err) {
                     if (!(err instanceof ApiError)) throw err;
                     throw new Error(`Failed to set live (${err.status})`);
@@ -104,11 +100,7 @@ export default function useCmsPublishing({
             setLiveSiteId(null);
             try {
                 try {
-                    await mutate(cmsApi.siteLive(activeSiteId), {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ live: false }),
-                });
+                    await apiRequest('PUT /api/cms/sites/{siteId}/live', { params: { siteId: activeSiteId }, body: { live: false } });
                 } catch (err) {
                     if (!(err instanceof ApiError)) throw err;
                     throw new Error(`Failed to take site offline (${err.status})`);
@@ -152,7 +144,7 @@ export default function useCmsPublishing({
         try {
             let res: Response;
             try {
-                res = await mutate(cmsApi.sitePublish(siteId), { method: 'POST' });
+                res = await apiRequest('POST /api/cms/sites/{siteId}/publish', { params: { siteId } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const data = errorBody(err) ?? {};
@@ -184,11 +176,7 @@ export default function useCmsPublishing({
     const persistDefaultLocale = async (next: string) => {
         setDefaultLocale(next);
         try {
-            await mutate(cmsApi.defaultLocale(), {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ locale: next }),
-            });
+            await apiRequest('PUT /api/cms/admin/default-locale', { body: { locale: next } });
         } catch (err) { toast.error(`Failed to set default locale: ${errorMessage(err)}`); }
     };
 

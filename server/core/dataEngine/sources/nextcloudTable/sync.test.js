@@ -9,6 +9,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const { installResolveStub } = require('../../../../testUtils/stubRequire');
+const { pgDatatableEngine } = require('../../../../testUtils/pgDatatableEngine.testkit');
 
 // ── the world ──────────────────────────────────────────────────────────────
 const SCOPE = { kind: 'org', id: 'org_1' };
@@ -41,13 +42,21 @@ const NC_COLUMNS = [
 function ncRow(id, lev, tot) { return { id, tableId: 4, data: [{ columnId: 2, value: lev }, { columnId: 6, value: tot }] }; }
 
 const world = {
-    existingIds: [], ncRows: [], listRowsCalls: [], batches: [], queries: [], claimed: true,
-    finished: [], rowCounts: [], sources: [], columns: NC_COLUMNS, snapshotTruncated: false,
+    ncRows: [], listRowsCalls: [], claimed: true,
+    finished: [], rowCounts: [], sources: [], columns: NC_COLUMNS,
 };
-function reset() {
+/** @type {Awaited<ReturnType<typeof pgDatatableEngine>>} */
+let dt;
+async function reset() {
     world.claimRow = mirror();
-    Object.assign(world, { existingIds: [], ncRows: [], listRowsCalls: [], batches: [], queries: [], claimed: true, finished: [], rowCounts: [], sources: [], columns: NC_COLUMNS, snapshotTruncated: false });
+    Object.assign(world, { ncRows: [], listRowsCalls: [], claimed: true, finished: [], rowCounts: [], sources: [], columns: NC_COLUMNS });
+    await dt.pg.exec('TRUNCATE "facturen"');
+    dt.calls.length = 0;
 }
+/** Rows the copy already holds. */
+const existing = async (rows) => { for (const r of rows) await dt.insert('facturen', { org_id: 'org_1', ...r }); };
+const copyIds = async () => (await dt.rows('facturen')).map((r) => r.id).sort((a, b) => Number(a) - Number(b));
+const batchSizes = () => dt.calls.filter((c) => c.fn === 'batch').map((c) => c.statements);
 
 const datatableStore = {
     // The claim hands back the ROW, as the store does: what the test passed in.
@@ -60,14 +69,11 @@ const datatableStore = {
     getDatatable: async () => world.claimRow,
     markSourceStale: async () => {},
 };
+// The copy: the planner's table on PGlite (testUtils/pgDatatableEngine.testkit.js).
 const datatableDbStore = {
     scopeKey: () => 'org:org_1',
-    query: async (a, b, sql) => {
-        world.queries.push(sql);
-        if (/^SELECT "id" FROM/.test(sql)) return { rows: world.existingIds.map(id => ({ id })), truncated: world.snapshotTruncated };
-        return { rows: [] };
-    },
-    batch: async (a, b, stmts) => { world.batches.push(stmts); return stmts.map(s => ({ changes: /^DELETE/.test(s.sql) ? 1 : 1 })); },
+    query: (o, a, sql, params) => dt.store.query(o, a, sql, params),
+    batch: (o, a, stmts) => dt.store.batch(o, a, stmts),
 };
 const restore = installResolveStub({
     '../../../../stores/datatableStore': datatableStore,
@@ -86,48 +92,40 @@ const restore = installResolveStub({
     './relations': { buildRelationIndexes: async () => ({ relationIndexes: new Map(), labelIndexes: new Map(), warnings: [] }) },
 });
 const sync = require('./sync');
-test.after(() => restore());
+test.before(async () => { dt = await pgDatatableEngine([META]); });
+test.after(async () => { restore(); await dt.close(); });
 test.beforeEach(reset);
 /** Run a pass on `m`, with the claim answering that same row. */
 function run(m, opts) { world.claimRow = m; return sync.syncRows(m, opts); }
 
 test('a pass snapshots first, upserts every fetched row, deletes what Nextcloud no longer has, and records the state', async () => {
-    world.existingIds = ['1', '2', '3'];
+    await existing([{ id: '1', leverancier: 'Old', totaal: 1 }, { id: '2', leverancier: 'Bee', totaal: 20 }, { id: '3', leverancier: 'Gone', totaal: 3 }]);
     world.ncRows = [ncRow(1, 'Acme', 10), ncRow(2, 'Bee', 20), ncRow(4, 'New', 40)];
     const out = await run(mirror(), { reason: 'manual' });
     assert.equal(out.ok, true, out.error && out.error.message);
-    // snapshot before any row was fetched
-    const snapAt = world.queries.findIndex(q => /^SELECT "id" FROM/.test(q));
-    assert.ok(snapAt >= 0);
+    // the snapshot is read before any row was fetched or written
+    assert.equal(dt.calls[0].fn, 'query');
     assert.deepEqual(world.listRowsCalls, [{ limit: 500, offset: 0 }]);
-    const upserts = world.batches[0];
-    assert.equal(upserts.length, 3);
-    assert.match(upserts[0].sql, /ON CONFLICT \("id"\) DO UPDATE/);
-    assert.equal(upserts[0].params[0], '1');
-    assert.deepEqual(upserts[2].params.slice(5, 7), ['New', 40]);
-    const deletes = world.batches[1];
-    assert.equal(deletes.length, 1);
-    assert.match(deletes[0].sql, /^DELETE FROM "facturen"/);
-    assert.equal(deletes[0].params[0], '3');
+    const rows = await dt.rows('facturen');
+    assert.deepEqual(rows.map((r) => [r.id, r.leverancier, Number(r.totaal)]).sort(), [['1', 'Acme', 10], ['2', 'Bee', 20], ['4', 'New', 40]]);
+    assert.deepEqual(batchSizes(), [3, 1], 'one batch of upserts, one of deletes');
     assert.deepEqual(world.rowCounts, [3]);
     const state = world.finished[0];
     assert.equal(state.status, 'ok');
-    assert.equal(state.written, 3);
     assert.equal(state.deleted, 1);
     assert.equal(state.truncated, false);
     assert.equal(state.consecutiveErrors, 0);
     assert.ok(state.nextRunAt);
 });
 
-test('when nothing moved the counter and the version stay where they were', async () => {
-    world.existingIds = ['1'];
+test('when nothing moved the counter stays where it was', async () => {
     world.ncRows = [ncRow(1, 'Acme', 10)];
-    datatableDbStore.batch = async (a, b, stmts) => { world.batches.push(stmts); return stmts.map(() => ({ changes: 0 })); };
+    await run(mirror());
+    world.rowCounts.length = 0; world.finished.length = 0;
     const out = await run(mirror({ rowCount: 1 }));
     assert.equal(out.ok, true);
     assert.deepEqual(world.rowCounts, []);
-    assert.equal(world.finished[0].written, 0);
-    datatableDbStore.batch = async (a, b, stmts) => { world.batches.push(stmts); return stmts.map(() => ({ changes: 1 })); };
+    assert.equal(world.finished[0].deleted, 0);
 });
 
 test('pages through Nextcloud and chunks the upserts at 500', async () => {
@@ -135,17 +133,19 @@ test('pages through Nextcloud and chunks the upserts at 500', async () => {
     const out = await run(mirror());
     assert.equal(out.ok, true);
     assert.deepEqual(world.listRowsCalls.map(c => c.offset), [0, 500, 1000]);
-    assert.deepEqual(world.batches.map(b => b.length), [500, 500, 200]);
+    assert.deepEqual(batchSizes(), [500, 500, 200]);
     assert.equal(world.finished[0].rowCount, 1200);
+    assert.equal((await dt.rows('facturen')).length, 1200);
 });
 
 test('the row cap truncates the fetch and SKIPS deletions', async () => {
-    world.existingIds = ['999'];
+    await existing([{ id: '999', leverancier: 'kept' }]);
     world.ncRows = Array.from({ length: 30 }, (_, i) => ncRow(i + 1, 'x', i));
     const out = await run(mirror({ source: { ...mirror().source, rowCap: 20 } }));
     assert.equal(out.ok, true);
     assert.equal(out.truncated, true);
-    assert.equal(world.batches.some(b => /^DELETE/.test(b[0].sql)), false, 'no deletes under the cap');
+    assert.ok((await copyIds()).includes('999'), 'no deletes under the cap');
+    assert.equal((await copyIds()).length, 21);
     assert.equal(world.finished[0].truncated, true);
     assert.equal(world.finished[0].rowCount, 21);   // the 20 fetched + the one the snapshot still holds
 });

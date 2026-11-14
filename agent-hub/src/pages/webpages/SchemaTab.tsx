@@ -112,7 +112,7 @@ export function SchemaTab({ webpageId, schema, onRefresh, busy, onError, unreada
                                     <label className="flex items-center gap-1 text-[11px] text-[var(--vsc-fg-muted)]">
                                         <input type="checkbox" checked={!!c.notnull} onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateCol(i, { notnull: e.target.checked })} /> {t('webpages.db.not_null', 'NOT NULL')}
                                     </label>
-                                    <button onClick={() => removeCol(i)} className="p-1 rounded hover:bg-[var(--vsc-hover-bg)]" title={t('common.remove', 'Remove')}><Trash2 size={12} /></button>
+                                    <button onClick={() => removeCol(i)} className="p-1 rounded hover:bg-[var(--vsc-hover-bg)]" title={t('common.remove', 'Remove')} aria-label={t('common.remove', 'Remove')}><Trash2 size={12} /></button>
                                 </div>
                             ))}
                         </div>
@@ -191,6 +191,7 @@ function SchemaTabSection({ unreadable, tables, t, setCreating, busy, setSelecte
             <button
                 onClick={() => setCreating((c: boolean) => !c)}
                 title={t('webpages.db.new_table', 'New table')}
+                aria-label={t('webpages.db.new_table', 'New table')}
                 className="p-1 rounded hover:bg-[var(--vsc-hover-bg)]"
             >
                 <Plus size={14} />

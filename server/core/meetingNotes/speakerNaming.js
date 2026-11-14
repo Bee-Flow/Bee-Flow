@@ -198,8 +198,8 @@ function sanitizeMapping(mapping, ruledOutNames) {
  * `opts.userId` is the meeting's owner: both naming calls write a
  * meeting_summary usage row under them and `userOrgId`.
  *
- * @param {{lockedNames?: Object<string,string>,
- *          ruledOutNames?: Object<string,string[]>,
+ * @param {{lockedNames?: Object<string,string> | null,
+ *          ruledOutNames?: Object<string,string[]> | null,
  *          knownNames?: string[],
  *          expectedSpeakers?: number|null,
  *          userId?: string|null}} [opts]

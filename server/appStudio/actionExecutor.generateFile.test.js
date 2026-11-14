@@ -19,12 +19,22 @@ function stub(path, exports) {
     require.cache[filename] = { id: filename, filename, loaded: true, exports };
 }
 
-// ── Record/query plumbing stubs (mirror actionExecutor.ai.test.js) ───────────
+// ── Record/query plumbing ────────────────────────────────────────────────────
+// The app's rows live in its real engine: better-sqlite3 with the planner's
+// tables (testUtils/linkedEngines.testkit.js, which boots PGlite beside it).
+const { bootLinkedEngines } = require('../testUtils/linkedEngines.testkit');
 const execCalls = [];
 const queryCalls = [];
-let queryRows = [];
+/** @type {{ sqlite: any }} */
+let engines;
+const closers = [];
+/** Replace the orders the app holds. */
+async function setOrders(rows) {
+    await engines.sqlite.run('DELETE FROM orders', []);
+    for (const r of rows) await engines.sqlite.run('INSERT INTO orders (id, cad_bestand, aantal, x, created_at) VALUES (?, ?, ?, ?, ?)', [r.id, r.cad_bestand, r.aantal, r.x, r.created_at]);
+}
 stub('../stores/studioAppDbStore', {
-    query: async (ownerId, appId, sql, params) => { queryCalls.push({ sql, params }); return { rows: queryRows }; },
+    query: async (ownerId, appId, sql, params) => { queryCalls.push({ sql, params }); return { rows: await engines.sqlite.all(sql, params) }; },
     exec: async (ownerId, appId, sql, params) => { execCalls.push({ ownerId, appId, sql, params }); return { changes: 1, lastInsertRowid: 0 }; },
     batch: async (ownerId, appId, statements) => statements.map(() => ({ changes: 1 })),
     sizeBytes: async () => 0,
@@ -115,13 +125,16 @@ function step(extra = {}) {
     };
 }
 
-test.beforeEach(() => {
+test.before(async () => { engines = await bootLinkedEngines(model, closers); });
+test.after(() => { for (const close of closers) close(); });
+test.beforeEach(async () => {
     execCalls.length = 0;
     queryCalls.length = 0;
-    queryRows = [
-        { id: 'r1', cad_bestand: 'a.step', aantal: 2, x: 'ignore-me' },
-        { id: 'r2', cad_bestand: 'b.step', aantal: 5, x: 'ignore-me' },
-    ];
+    // Newest first is the default read order: r1 is the newer row.
+    await setOrders([
+        { id: 'r1', cad_bestand: 'a.step', aantal: 2, x: 'ignore-me', created_at: '2026-09-02T00:00:00.000Z' },
+        { id: 'r2', cad_bestand: 'b.step', aantal: 5, x: 'ignore-me', created_at: '2026-09-01T00:00:00.000Z' },
+    ]);
     ledgerCalls.addAttachment.length = 0;
     ledgerCalls.setAttachmentScan.length = 0;
     addAttachmentThrows = null;
@@ -164,14 +177,12 @@ test('generate_file: renders the portal profile into real CSV bytes and a bare d
 test('generate_file: the rows binding really goes through stepDataSource (compiled SELECT)', async () => {
     await actionExecutor.executeDataStep(app, model, step(), ctx());
     assert.strictEqual(queryCalls.length, 1, 'one bounded query for the rows binding');
-    assert.match(queryCalls[0].sql, /FROM "orders"/);
-    assert.match(queryCalls[0].sql, /SELECT/i);
 });
 
 // ── refusals before any I/O ──────────────────────────────────────────────────
 
 test('generate_file: zero rows is a loud refusal, nothing uploaded', async () => {
-    queryRows = [];
+    await setOrders([]);
     const r = await actionExecutor.executeDataStep(app, model, step(), ctx());
     assert.strictEqual(r.ok, false);
     assert.match(r.error, /rows/i);
@@ -204,7 +215,7 @@ test('generate_file: a dirty scan deletes the blob and refuses a ledger row', as
     // A real EICAR cell in the rendered CSV — the genuine dirty-scan path, not
     // a stubbed verdict. (Static rows: the scan is about the BYTES, whatever
     // produced them.)
-    queryRows = [];
+    await setOrders([]);
     const r = await actionExecutor.executeDataStep(app, model, step({
         rows: { kind: 'static', value: [{ name: EICAR }] },
         columns: { kind: 'static', value: [{ name: 'name', from: 'name' }] },

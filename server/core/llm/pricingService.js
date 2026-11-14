@@ -4,6 +4,7 @@
  * open-source pricing database (2000+ models from all providers).
  * Cached in memory with a 24-hour TTL.
  */
+const { fetchFixedEndpoint } = require('../../utils/fixedEndpointFetch.mts');
 const log = require('../../telemetry/log');
 
 const PRICING_URL =
@@ -28,7 +29,7 @@ async function fetchAllPricing(forceRefresh = false) {
 
     try {
         log.info('[PricingService] Fetching pricing data...');
-        const res = await fetch(PRICING_URL);
+        const res = await fetchFixedEndpoint(PRICING_URL);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
         const data = await res.json();

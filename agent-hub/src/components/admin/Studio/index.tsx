@@ -7,6 +7,7 @@ import useTranslation from '@/hooks/useTranslation';
 import { useRuntimeStudioApps } from '@/moduleRuntime/registry';
 import { useEntitlements } from '../../licensing/EntitlementsContext';
 import { useLicenseContext } from '../../licensing/LicenseContext';
+import { useShellProps } from '@/authedApp/useShellProps';
 
 // Unified Studio: a single shell hosting Agents, Skills, Knowledge Bases, and
 // AI Tasks. All sections share a sidebar-list + editor-right split layout.
@@ -47,7 +48,7 @@ function StudioNoAccess() {
 }
 
 interface StudioProps {
-    user: StudioNavUser | null;
+    user?: StudioNavUser | null;
     section?: string;
     initialPlaybookId?: string | null;
     initialAgentId?: string | null;
@@ -80,7 +81,7 @@ interface StudioProps {
 }
 
 export default function Studio({
-    user,
+    user: userProp,
     section = 'agents',     // 'agents' | 'skills' | 'knowledge' | 'aiTasks' | 'webpages'
     initialAgentId = null,
     initialSkillId = null,
@@ -109,11 +110,14 @@ export default function Studio({
     initialRunStepId = null,
     initialFrom = null,
     onClose,
-    onNavigate,
+    onNavigate: onNavigateProp,
     hasPermission = () => true,
     modelTiers = {},
     onEditingChange,
 }: StudioProps) {
+    // Inside the app shell the signed-in person and the navigation come from
+    // context; a host outside it (a test) still hands them as props.
+    const { user, onNavigate } = useShellProps({ user: userProp, onNavigate: onNavigateProp });
     // Runtime (remotely-installed) modules contribute extra Studio apps. They
     // merge AFTER the build-time apps; their gating renders in the sidebar
     // (server is authoritative — display-only either way).

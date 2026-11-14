@@ -14,10 +14,7 @@ const DAY_NAMES = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'frid
 
 // ── Request schemas (see the header) ────────────────────────────────
 
-/**
- * A body that also accepts no body at all: Express 5 leaves `req.body` undefined then.
- * @param {Record<string, import('zod').ZodType>} shape
- */
+/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. @template {import('zod').ZodRawShape} S @param {S} shape */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 /**

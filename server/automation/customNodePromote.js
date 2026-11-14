@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * "Make this reusable" — one code step, promoted to a custom node.
  *
@@ -78,6 +79,7 @@ const OUTPUT_ID = 'out';
 // same string or the node returns undefined for every field it declares.
 const BODY_RESULT_PATH = `steps.${BODY_ID}.output.result`;
 
+/** @param {unknown} v @returns {v is Record<string, unknown>} */
 function isObject(v) { return v && typeof v === 'object' && !Array.isArray(v); }
 
 /**
@@ -129,6 +131,7 @@ function issue(code, path, message, hint) { return { code, path, message, hint }
 
 /**
  * @param {{ code: string; path: string; message: string; hint: string; }[]} issues
+ * @returns {{ ok: false, reason: string, issues: typeof issues }}
  */
 function refuse(issues) {
     return { ok: false, reason: issues[0].code, issues };
@@ -137,7 +140,7 @@ function refuse(issues) {
 /**
  * Promote one code step to a custom-node definition.
  *
- * @param {{ step: CodeStep, outputs?: string[] | null, label?: string | null }} [p]
+ * @param {Partial<{ step: CodeStep, outputs?: string[] | null, label?: string | null }>} [p]
  *   step: the `code` step, as it is stored in the automation.
  *   outputs: the names the body returns, when the author named them. Without it
  *            the step's own `outputSchema` is read, and without that the

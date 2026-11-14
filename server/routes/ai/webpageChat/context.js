@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Webpage chat: what one turn tells the model before the first round
  * (routes/ai/webpageChat.js). The knowledge-base grounding (stripped against
@@ -11,7 +11,8 @@
 
 const log = require('../../../telemetry/log');
 const configStore = require('../../../stores/configStore');
-const { resolveFramework, resolveRuntime, buildRuntimePromptBlock } = require('../../../integrations/webpageFramework');
+const { buildRuntimePromptBlock } = require('../../../integrations/webpageFramework');
+const { resolveFramework, resolveRuntime } = require('../../../core/webpages/frameworkModel.mts');
 const { searchWebpageKB } = require('../../../core/webpages/webpageKnowledgeSearch');
 const { emitPhase, emitPhaseEnd } = require('../../../core/agentRuntime/phaseEvents');
 const { planningRuleFor, webpageSystemPrompt } = require('./systemPrompt');
@@ -20,7 +21,7 @@ const { slotFilename } = require('./tools');
 /**
  * Emits the kb_search / kb_sources / building_prompt events. Returns the
  * system prompt and what the tool loop needs of the same facts.
- * @param {{ send: import('./toolLoop').Send, webpage: import('./toolLoop').Webpage, message: string, userId: string,
+ * @param {{ send: import('./toolLoop').Send, webpage: NonNullable<import('./toolLoop').Webpage>, message: string, userId: string,
  *   readySources: import('./toolLoop').WebpageSources, timezone: string, chatMode: string,
  *   htmlContent: string | null | undefined, cssContent: string | null | undefined, jsContent: string | null | undefined,
  *   webpageSelection: { text?: unknown, file?: string, action?: string } | null | undefined,
@@ -98,7 +99,7 @@ async function buildTurnContext({
     let selectionContext = '';
     if (webpageSelection && typeof webpageSelection.text === 'string' && webpageSelection.text.trim()) {
         const MAX_SEL_CHARS = 8000;
-        const selFile = ['html', 'css', 'js'].includes(webpageSelection.file) ? webpageSelection.file : 'html';
+        const selFile = webpageSelection.file && ['html', 'css', 'js'].includes(webpageSelection.file) ? webpageSelection.file : 'html';
         const selText = webpageSelection.text.length > MAX_SEL_CHARS
             ? webpageSelection.text.slice(0, MAX_SEL_CHARS) + '…[truncated]'
             : webpageSelection.text;

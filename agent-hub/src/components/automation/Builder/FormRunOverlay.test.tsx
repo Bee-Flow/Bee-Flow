@@ -15,7 +15,11 @@ import { describe, it, expect, vi, beforeEach, afterEach, type Mock } from 'vite
 
 const get = vi.fn();
 const post = vi.fn();
-vi.mock('@/api/client', () => ({ default: { get: (...a: unknown[]) => get(...a), post: (...a: unknown[]) => post(...a) } }));
+// The real module for everything but the default client: api/mutate reads ApiError from it.
+vi.mock('@/api/client', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/api/client')>()),
+    default: { get: (...a: unknown[]) => get(...a), post: (...a: unknown[]) => post(...a) },
+}));
 
 import { withQueryClient } from '@/test/queryWrapper';
 import FormRunOverlay from './FormRunOverlay';

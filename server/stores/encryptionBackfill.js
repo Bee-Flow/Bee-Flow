@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Retroactive encryption of rows written before a tier / surface was switched on.
  *
@@ -86,7 +86,7 @@ const TRANSCRIPT_BATCH = 50; // rows carry whole transcripts
  * @typedef {Awaited<ReturnType<typeof import('./agent/messageCrypto').resolveCrypto>>} CryptoCtx
  * @typedef {{ ctx?: CryptoCtx | null, error?: Error }} CtxEntry
  * @typedef {{
- *   orgId: string, surface: string, stats: BackfillStats, deps: BackfillOverrides,
+ *   orgId: string, surface: string, stats: BackfillStats, deps: BackfillOverrides & BackfillDependencies,
  *   policy: ReturnType<typeof policyFromRow>, dryRun: boolean, limit: number, batch: number, seen: number,
  *   progress: () => void,
  *   ctxFor: (row: Row, scoped: boolean) => Promise<CtxEntry>
@@ -113,7 +113,7 @@ function newStats() {
  * }} BackfillOverrides
  */
 
-/** @param {BackfillOverrides} [deps] */
+/** @param {BackfillOverrides} [deps] @returns {BackfillOverrides & BackfillDependencies} */
 function lazyDeps(deps = {}) {
     const d = { ...deps };
     if (!d.getAll || !d.getOne || !d.run) {
@@ -124,7 +124,7 @@ function lazyDeps(deps = {}) {
     }
     if (!d.resolveCrypto) d.resolveCrypto = require('./agent/messageCrypto').resolveCrypto;
     if (!d.resolveTranscriptCrypto) d.resolveTranscriptCrypto = require('./transcriptCrypto').resolveTranscriptCrypto;
-    return d;
+    return /** @type {BackfillOverrides & BackfillDependencies} */ (d); // every dependency is filled in above
 }
 
 /**
@@ -152,7 +152,7 @@ function matched(res) {
  * @param {string} orgId
  * @param {string} surface
  * @param {{ dryRun?: boolean, limit?: number, onProgress?: ((surface: string, stats: object) => void) | null }} opts
- * @param {BackfillOverrides} deps
+ * @param {BackfillOverrides & BackfillDependencies} deps
  * @param {ReturnType<typeof policyFromRow>} policy
  * @returns {BackfillEnv}
  */
@@ -195,23 +195,23 @@ function makeEnv(orgId, surface, opts, deps, policy) {
                 }
                 ctxCache.set(k, entry);
             }
-            return ctxCache.get(k);
+            return /** @type {CtxEntry} */ (ctxCache.get(k)); // set just above when missing
         },
     };
     return env;
 }
 
 /**
- * Keyset-paged loop with per-row isolation. `fetch(cursor, batch)` returns rows
+ * Keyset-paged loop with per-row isolation. `fetchPage(cursor, batch)` returns rows
  * ordered by id; `handle(row)` does the work. Returns false when --limit hit.
  * @param {BackfillEnv} env
- * @param {(cursor: string, batch: number) => Promise<Row[]>} fetch
+ * @param {(cursor: string, batch: number) => Promise<Row[]>} fetchPage
  * @param {(row: Row) => Promise<void>} handle
  */
-async function paged(env, fetch, handle) {
+async function paged(env, fetchPage, handle) {
     let cursor = '';
     for (;;) {
-        const rows = await fetch(cursor, env.batch);
+        const rows = await fetchPage(cursor, env.batch);
         if (!rows || rows.length === 0) return true;
         cursor = rows[rows.length - 1].id;
         for (const row of rows) {
@@ -536,7 +536,7 @@ async function backfillLegacyBlobs(env) {
     /** @param {string} reason */
     const cannot = (reason) => {
         env.stats.skipped++;
-        env.stats.reasons[reason] = (env.stats.reasons[reason] || 0) + 1;
+        /** @type {Record<string, number>} */ (env.stats.reasons)[reason] = (/** @type {Record<string, number>} */ (env.stats.reasons)[reason] || 0) + 1; // makeEnv gives this surface a reasons map
     };
     /** @param {string} raw */
     const readBlob = (raw) => {
@@ -566,12 +566,12 @@ async function backfillLegacyBlobs(env) {
             let info = readBlob(blob);
             if (info.encrypted) { env.stats.noKey++; return; }
             if (info.reason) { cannot(info.reason); return; }
-            if (info.messages.length === 0) { cannot('blob_empty'); return; }
+            if (/** @type {unknown[]} */ (info.messages).length === 0) { cannot('blob_empty'); return; }
 
             if (!row.messages_migrated) {
-                if (env.dryRun) { env.stats.migrated++; env.stats.encrypted++; return; } // would migrate, then blank
+                if (env.dryRun) { env.stats.migrated = /** @type {number} */ (env.stats.migrated) + 1; env.stats.encrypted++; return; } // would migrate, then blank
                 const did = await cm.migrateConversationIfNeeded(row.id, type, info.messages, ctx);
-                if (did) env.stats.migrated++;
+                if (did) env.stats.migrated = /** @type {number} */ (env.stats.migrated) + 1; // makeEnv starts it at 0
                 const fresh = await env.deps.getOne(`SELECT messages_migrated, messages_json FROM ${table} WHERE id = $1`, [row.id]);
                 if (!fresh || !fresh.messages_migrated) { cannot('migration_incomplete'); return; }
                 blob = fresh.messages_json;
@@ -585,7 +585,7 @@ async function backfillLegacyBlobs(env) {
             // throws and is counted as failed; the blob stays.
             const msgs = await cm.getMessages(row.id, ctx);
             if (!Array.isArray(msgs) || msgs.length === 0) { cannot('table_empty'); return; }
-            if (msgs.length < info.messages.length) { cannot('table_shorter_than_blob'); return; }
+            if (msgs.length < /** @type {unknown[]} */ (info.messages).length) { cannot('table_shorter_than_blob'); return; }
 
             await commit(env,
                 `UPDATE ${table} SET messages_json = '[]'

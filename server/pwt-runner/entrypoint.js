@@ -64,7 +64,8 @@ async function runServe() {
     process.stdout.write(`PWT_WS_ENDPOINT=${endpoint}\n`);
 
     const shutdown = async () => {
-        try { await server.close(); } catch (_) { /* ignore */ }
+        // The container is going away either way; the reason goes to its log.
+        try { await server.close(); } catch (err) { process.stderr.write(`browser server close failed: ${err instanceof Error ? err.message : String(err)}\n`); }
         process.exit(0);
     };
     process.on('SIGTERM', shutdown);

@@ -3,8 +3,7 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import CeilingSection from './access/CeilingSection';
 import GroupAccessMatrix from './GroupAccessMatrix';
 import { useTranslation } from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
-import { mutate, RefusedError } from '@/api/mutate';
+import { RefusedError } from '@/api/mutate';
 import { useEntitlements } from '../../licensing/EntitlementsContext';
 import SectionNav from '@/components/shared/SectionNav';
 import StudioShell from '@/components/shared/StudioShell';
@@ -14,6 +13,8 @@ import type { AdminCurrentUser } from './userManagement/types';
 import { logger } from '@/utils/logger';
 import { isPlatformAdmin } from '@/utils/adminAccess';
 import { useAdminOrgChoice } from '@/components/admin/dashboard/useAdminOrg';
+import { useSelectAdminOrgMutation } from '@/api/queries/adminSelectedOrg';
+import { useShellProps } from '@/authedApp/useShellProps';
 
 /**
  * AccessPermissionsPanel — the hub for configuring beta / integration / core
@@ -49,27 +50,27 @@ interface AccessPermissionsPanelProps {
  */
 function useSelectedOrgOnChange(orgId: string | null, enabled: boolean, reloadEntitlements: (() => void) | undefined) {
     const previous = useRef(orgId);
+    const { mutate: selectOrg } = useSelectAdminOrgMutation();
     useEffect(() => {
         if (previous.current === orgId) return;
         previous.current = orgId;
         if (!enabled || !orgId) return;
-        (async () => {
-            try {
-                await mutate(`${API_BASE}/auth/admin/selected-org`, {
-                    method: 'PUT', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ orgId }),
-                });
-            } catch (err) {
+        selectOrg(orgId, {
+            onSuccess: () => reloadEntitlements?.(),
+            onError: (err) => {
                 // A refusal still reloads the snapshot, as the unchecked call did.
-                if (!(err instanceof RefusedError)) { logger.debug('the panel still works for viewing the organisation', err); return; }
-            }
-            reloadEntitlements?.();
-        })();
-    }, [orgId, enabled, reloadEntitlements]);
+                if (err instanceof RefusedError) reloadEntitlements?.();
+                else logger.debug('the panel still works for viewing the organisation', err);
+            },
+        });
+    }, [orgId, enabled, reloadEntitlements, selectOrg]);
 }
 
-export default function AccessPermissionsPanel({ user, activeSection = 'grants', onNavigate }: AccessPermissionsPanelProps) {
+export default function AccessPermissionsPanel({ user: userProp, activeSection = 'grants', onNavigate }: AccessPermissionsPanelProps) {
     const { t } = useTranslation();
+    // Inside the app shell the signed-in person and the navigation come from
+    // context; a host outside it (a test, a kit) still hands them as props.
+    const { user, onNavigate: go } = useShellProps({ user: userProp, onNavigate });
     const isSuperAdmin = isPlatformAdmin(user);
     const { mode, reload: reloadEntitlements } = useEntitlements();
     const choice = useAdminOrgChoice();
@@ -85,7 +86,7 @@ export default function AccessPermissionsPanel({ user, activeSection = 'grants',
     const validIds = sections.map(s => s.id);
     const active = validIds.includes(activeSection) ? activeSection : 'grants';
 
-    const handleSectionClick = (id: string) => { if (onNavigate) onNavigate(`admin/access/${id}`); };
+    const handleSectionClick = (id: string) => { if (go) go(`admin/access/${id}`); };
 
     if (isSuperAdmin && !(choice?.organizationsLoaded ?? true)) {
         return <div className="p-6"><Spinner size="sm" /></div>;

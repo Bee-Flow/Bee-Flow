@@ -7,54 +7,84 @@
  * which is every routine, because neither create route ever passed one.
  *
  * So the backfill is only safe if it writes exactly what that fallback already
- * derives. These tests pin the SQL that guarantees it, and the two properties
- * that make it re-runnable on a live install.
+ * derives. The migration runs on a real Postgres (PGlite behind db.js's pool,
+ * testUtils/pglitePool.js) over the columns it reads; the route checks below
+ * read the create routes' source.
  */
 
 const { test } = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
+const { usePglitePool } = require('../testUtils/pglitePool');
+const { insertRows } = require('../testUtils/pgliteSeed');
 
 const SRC = fs.readFileSync(path.join(__dirname, 'automation-org-backfill-2026-09.js'), 'utf8');
 
-test('the UPDATE joins users and copies the owner\'s organisation — the same value runOrgFor derives', () => {
-    // Normalise whitespace so the assertion is about the SQL, not its layout.
-    const sql = SRC.replace(/\s+/g, ' ');
-    assert.match(sql, /UPDATE automations a/);
-    assert.match(sql, /SET organization_id = u\."organizationId"/);
-    assert.match(sql, /FROM users u/);
-    assert.match(sql, /WHERE a\.user_id = u\.id/,
-        'the org must come from the routine\'s OWNER, which is what runOrgFor uses');
+const { pg, close } = usePglitePool();
+const { up } = require('./automation-org-backfill-2026-09');
+test.after(close);
+test.beforeEach(async () => {
+    await pg.exec(`DROP TABLE IF EXISTS automations; DROP TABLE IF EXISTS users;
+        CREATE TABLE users (id TEXT PRIMARY KEY, "organizationId" TEXT);
+        CREATE TABLE automations (id TEXT PRIMARY KEY, user_id TEXT, organization_id TEXT);`);
+    await insertRows(pg, 'users', [
+        { id: 'alice', organizationId: 'org-a' },
+        { id: 'bob', organizationId: 'org-b' },
+        { id: 'solo-null', organizationId: null },
+        { id: 'solo-empty', organizationId: '' },
+    ]);
 });
 
-test('it only touches rows that are still NULL, so re-running is a no-op', () => {
-    const sql = SRC.replace(/\s+/g, ' ');
-    assert.match(sql, /AND a\.organization_id IS NULL/,
-        'without this the migration would overwrite an explicitly-set org on every boot');
+const orgs = async () => Object.fromEntries((await pg.query('SELECT id, organization_id FROM automations ORDER BY id')).rows.map(r => [r.id, r.organization_id]));
+
+test('the UPDATE copies the OWNER\'s organisation — the same value runOrgFor derives', async () => {
+    await insertRows(pg, 'automations', [
+        { id: 'r-alice', user_id: 'alice', organization_id: null },
+        { id: 'r-bob', user_id: 'bob', organization_id: null },
+        { id: 'r-orphan', user_id: 'gone', organization_id: null },
+    ]);
+    await up();
+    assert.deepStrictEqual(await orgs(), { 'r-alice': 'org-a', 'r-bob': 'org-b', 'r-orphan': null });
 });
 
-test('a routine whose owner has no organisation is left NULL, never invented', () => {
-    const sql = SRC.replace(/\s+/g, ' ');
-    // TRUTHINESS, not IS NOT NULL. createUser writes `organizationId || ''`, so
-    // an org-less account holds the empty string; a null check copied that ''
-    // into automations as a tenant key and made the partial index cover every
-    // row it exists to skip.
-    assert.match(sql, /AND COALESCE\(u\."organizationId", ''\) <> ''/,
+test('it only touches rows that are still NULL, so re-running is a no-op', async () => {
+    await insertRows(pg, 'automations', [{ id: 'r-set', user_id: 'alice', organization_id: 'org-explicit' }]);
+    await up();
+    await up();
+    assert.deepStrictEqual(await orgs(), { 'r-set': 'org-explicit' },
+        'without the NULL guard the migration would overwrite an explicitly-set org on every boot');
+});
+
+test('a routine whose owner has no organisation is left NULL, never invented', async () => {
+    // createUser writes `organizationId || ''`, so an org-less account holds the
+    // empty string; a plain null check would copy that '' into automations as a
+    // tenant key and make the partial index cover every row it exists to skip.
+    await insertRows(pg, 'automations', [
+        { id: 'r-null-owner', user_id: 'solo-null', organization_id: null },
+        { id: 'r-empty-owner', user_id: 'solo-empty', organization_id: null },
+    ]);
+    await up();
+    assert.deepStrictEqual(await orgs(), { 'r-empty-owner': null, 'r-null-owner': null },
         'personal installs must stay NULL; the datatable step refuses rather than guessing');
-    assert.doesNotMatch(sql, /AND u\."organizationId" IS NOT NULL/);
 });
 
-test("it normalises an already-written '' to NULL, before the backfill", () => {
-    const sql = SRC.replace(/\s+/g, ' ');
-    assert.match(sql, /UPDATE automations SET organization_id = NULL WHERE organization_id = ''/);
-    assert.ok(sql.indexOf("organization_id = NULL WHERE organization_id = ''") < sql.indexOf('UPDATE automations a'),
-        "a row stamped '' must be cleared first, so the same pass can give it the owner's real org");
+test("it normalises an already-written '' to NULL, before the backfill", async () => {
+    await insertRows(pg, 'automations', [
+        { id: 'r-blank', user_id: 'alice', organization_id: '' },
+        { id: 'r-blank-solo', user_id: 'solo-empty', organization_id: '' },
+    ]);
+    await up();
+    assert.deepStrictEqual(await orgs(), { 'r-blank': 'org-a', 'r-blank-solo': null },
+        "a row stamped '' is cleared first, so the same pass gives it the owner's real org");
 });
 
-test('the index is created IF NOT EXISTS and is partial', () => {
-    assert.match(SRC, /CREATE INDEX IF NOT EXISTS idx_automations_org/);
-    assert.match(SRC, /WHERE organization_id IS NOT NULL/);
+test('the index is created idempotently and is partial', async () => {
+    await up();
+    await up();
+    const { rows } = await pg.query("SELECT indexdef FROM pg_indexes WHERE indexname = 'idx_automations_org'");
+    assert.strictEqual(rows.length, 1);
+    assert.ok(rows[0].indexdef.includes('(organization_id) WHERE (organization_id IS NOT NULL)'), rows[0].indexdef);
 });
 
 test('it exports up() and follows the repo migration shape', () => {

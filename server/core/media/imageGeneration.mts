@@ -104,6 +104,40 @@ async function logImageUsage(who: ImageUsageFields, backend: Backend, prompt: st
     }
 }
 
+type ImageOut = { imageBase64: string; mimeType: string; text: string | null };
+type Generated = { image: ImageOut; usage: { inputTokens: number; outputTokens: number } | null };
+
+/** One image from an Azure deployment; its failures as ImageGenerationError (502). */
+async function generateOnAzure(backend: Extract<Backend, { provider: 'azure' }>, prompt: string, aspectRatio: string): Promise<Generated> {
+    let result;
+    try {
+        result = await seams.azureImages().generateAzureImage({
+            endpoint: backend.endpoint, apiKey: backend.apiKey, deployment: backend.deployment,
+            model: backend.model, prompt, aspectRatio,
+        });
+    } catch (e) {
+        const known = e instanceof Error && e.name === 'AzureImageError';
+        if (!known) log().warn('[ImageGen] Azure image generation failed:', e instanceof Error ? e.message : String(e));
+        throw new ImageGenerationError(
+            known && (e as { code?: string }).code === 'no_image' ? 'no_image' : 'provider_error',
+            known ? (e as Error).message : 'Image generation failed. Try again.',
+            502,
+        );
+    }
+    return { image: { imageBase64: result.imageBase64, mimeType: result.mimeType, text: null }, usage: result.usage };
+}
+
+/** One image from Google; no image in the answer is an ImageGenerationError (502). */
+async function generateOnGoogle(backend: Extract<Backend, { provider: 'google' }>, prompt: string, aspectRatio: string, thinkingLevel?: string): Promise<Generated> {
+    const result = await seams.providers().googleAdapter.generateImage(backend.apiKey, prompt, {
+        aspectRatio, model: backend.model, ...(thinkingLevel ? { thinkingLevel } : {}),
+    });
+    if (!result?.imageBase64) {
+        throw new ImageGenerationError('no_image', 'No image was generated. Try a different prompt.', 502);
+    }
+    return { image: { imageBase64: result.imageBase64, mimeType: result.mimeType || 'image/png', text: result.text ?? null }, usage: null };
+}
+
 /**
  * Generate one image for a user.
  * Throws ImageGenerationError: nothing configured (503), the user's image
@@ -127,35 +161,9 @@ export async function generateImage(input: {
     const aspectRatio = input.aspectRatio || '1:1';
     log().info(`[ImageGen] ${backend.provider} ${backend.model} (${aspectRatio}): "${log().textForLog(input.prompt)}"`);
 
-    let image: { imageBase64: string; mimeType: string; text: string | null };
-    let usage: { inputTokens: number; outputTokens: number } | null = null;
-    if (backend.provider === 'azure') {
-        let result;
-        try {
-            result = await seams.azureImages().generateAzureImage({
-                endpoint: backend.endpoint, apiKey: backend.apiKey, deployment: backend.deployment,
-                model: backend.model, prompt: input.prompt, aspectRatio,
-            });
-        } catch (e) {
-            const known = e instanceof Error && e.name === 'AzureImageError';
-            if (!known) log().warn('[ImageGen] Azure image generation failed:', e instanceof Error ? e.message : String(e));
-            throw new ImageGenerationError(
-                known && (e as { code?: string }).code === 'no_image' ? 'no_image' : 'provider_error',
-                known ? (e as Error).message : 'Image generation failed. Try again.',
-                502,
-            );
-        }
-        image = { imageBase64: result.imageBase64, mimeType: result.mimeType, text: null };
-        usage = result.usage;
-    } else {
-        const result = await seams.providers().googleAdapter.generateImage(backend.apiKey, input.prompt, {
-            aspectRatio, model: backend.model, ...(input.thinkingLevel ? { thinkingLevel: input.thinkingLevel } : {}),
-        });
-        if (!result?.imageBase64) {
-            throw new ImageGenerationError('no_image', 'No image was generated. Try a different prompt.', 502);
-        }
-        image = { imageBase64: result.imageBase64, mimeType: result.mimeType || 'image/png', text: result.text ?? null };
-    }
+    const { image, usage } = backend.provider === 'azure'
+        ? await generateOnAzure(backend, input.prompt, aspectRatio)
+        : await generateOnGoogle(backend, input.prompt, aspectRatio, input.thinkingLevel);
 
     await logImageUsage(input.who, backend, input.prompt, usage);
     return { ...image, model: backend.model, provider: backend.provider };

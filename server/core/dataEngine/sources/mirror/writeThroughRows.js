@@ -29,19 +29,20 @@ const UNAVAILABLE = 'datatable_source_unavailable';
  *             grade?: string | null, viewerId?: string | null }} WriteCtx
  */
 /**
- * The adapter a kind hands to makeWriteThrough (see ./writeThrough.js "THE ADAPTER").
- * @typedef {{ KIND: string, isMirror: (table: unknown) => boolean,
+ * The adapter a kind hands to makeWriteThrough (see ./writeThrough.js "THE ADAPTER"). Method signatures,
+ * so each kind names its own api, wire and row shapes: the write-through only carries them.
+ * @typedef {{ KIND: string, isMirror(table: unknown): boolean,
  *             Err: new (status: number, code: string, message: string, opts?: { errorClass?: string }) => Error,
  *             forbiddenCode: string, notFoundCodes?: Iterable<string>,
- *             toWire: (ctx: WriteCtx, values: unknown) => unknown,
- *             apiFor: (ctx: WriteCtx) => Promise<unknown>,
- *             sourceInsert: (api: unknown, ctx: WriteCtx, wire: unknown) => Promise<unknown>,
- *             sourceUpdate: (api: unknown, ctx: WriteCtx, rowId: string, wire: unknown) => Promise<unknown>,
- *             sourceDelete: (api: unknown, ctx: WriteCtx, rowId: string) => Promise<unknown>,
- *             sourceInsertMany?: (api: unknown, ctx: WriteCtx, wires: unknown[]) => Promise<unknown[]>,
- *             sourceUpdateMany?: (api: unknown, ctx: WriteCtx, items: Array<{ rowId: string, wire: unknown }>) => Promise<unknown[]>,
- *             sourceDeleteMany?: (api: unknown, ctx: WriteCtx, rowIds: string[]) => Promise<unknown>,
- *             localValuesFor: (ctx: WriteCtx, raw: unknown, opts: { rowId?: string }) => Promise<{ id: string, values: object }> }} WriteAdapter
+ *             toWire(ctx: WriteCtx, values: unknown): unknown,
+ *             apiFor(ctx: WriteCtx): Promise<unknown>,
+ *             sourceInsert(api: unknown, ctx: WriteCtx, wire: unknown): Promise<unknown>,
+ *             sourceUpdate(api: unknown, ctx: WriteCtx, rowId: string, wire: unknown): Promise<unknown>,
+ *             sourceDelete(api: unknown, ctx: WriteCtx, rowId: string): Promise<unknown>,
+ *             sourceInsertMany?(api: unknown, ctx: WriteCtx, wires: unknown[]): Promise<unknown[]>,
+ *             sourceUpdateMany?(api: unknown, ctx: WriteCtx, items: Array<{ rowId: string, wire: unknown }>): Promise<unknown[]>,
+ *             sourceDeleteMany?(api: unknown, ctx: WriteCtx, rowIds: string[]): Promise<unknown>,
+ *             localValuesFor(ctx: WriteCtx, raw: unknown, opts: { rowId?: string }): Promise<{ id: string, values: object }> }} WriteAdapter
  */
 /**
  * The write-through `w` makeWriteThrough builds; the row methods are set right after.

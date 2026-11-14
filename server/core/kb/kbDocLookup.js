@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 const kbStore = require('../../stores/knowledgeBases');
 
 function docColumns() {
@@ -11,7 +11,7 @@ function docColumns() {
  *
  * @param {string} kbId     — knowledge base ID
  * @param {string} sourceId — notebook source ID
- * @returns {Promise<object|null>} document row (projected) or null
+ * @returns {Promise<{ id: string, [k: string]: any } | null>} document row (projected) or null
  */
 async function findDocumentBySourceUri(kbId, sourceId) {
     const { getOne } = require('../../db');
@@ -37,7 +37,7 @@ async function findDocumentBySourceUri(kbId, sourceId) {
  *
  * @param {string} kbId
  * @param {string|null} sourceUri
- * @param {{ sourceId?: string, externalId?: string }} [opts]
+ * @param {{ sourceId?: string | null, externalId?: string | null }} [opts]
  */
 async function findDocumentsBySourceUri(kbId, sourceUri, { sourceId = null, externalId = null } = {}) {
     const { getAll } = require('../../db');

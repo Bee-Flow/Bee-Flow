@@ -1,3 +1,4 @@
+// @typecheck
 /** @typedef {import('qs').ParsedQs} ParsedQs */
 /**
  * Integration Activity Store — the ledger of outbound tool/integration calls,
@@ -15,7 +16,6 @@
  *   integrationLocationSql.js     the SQL every location reader shares
  *   integrationOverview.js        the consolidated Activity overview
  */
-
 const { run, getOne, getAll, exec } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const { locateCall, loadGeoDb } = require('./serverGeoResolver');
@@ -203,7 +203,7 @@ function _legacySource(primary, state) {
 
 /**
  * Column → value, in INSERT order. Built as pairs so the two can never drift apart.
- * @param {{ row: PeerLocation; primary: PeerLocation | null; peers: PeerLocation[]; }} loc
+ * @param {ReturnType<typeof locateCall>} loc
  */
 function _insertRow(event, loc, probe) {
     const row = loc.row;
@@ -326,7 +326,7 @@ const LOCATION_COLUMNS = `${LOC_STATE} AS location_state, ${LOC_BASIS} AS locati
 function buildFilters(filters, startIdx = 1) {
     /** @type {string[]} */
     const conditions = [];
-    /** @type {(string | string[])[]} */
+    /** @type {(string | string[] | Date)[]} */
     const params = [];
     let idx = startIdx;
     if (filters?.startDate) { conditions.push(`timestamp >= $${idx++}`); params.push(filters.startDate); }
@@ -767,7 +767,7 @@ async function getOperatorSummary(filters = {}) {
  *
  * @param {ActivityFilters} [filters]
  * @param {'day'|'hour'} [interval]
- * @param {{ normalizeCategory?: Function }} [opts]  the PII category normaliser
+ * @param {{ normalizeCategory?: (category: string) => string }} [opts]  the PII category normaliser
  *   (core/privacy/piiCategories), passed in by the route: this store is
  *   platform code and does not reach up into core for it.
  */

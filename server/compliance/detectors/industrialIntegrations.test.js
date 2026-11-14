@@ -4,37 +4,60 @@
  * bodies/branches), every source with org-scoped SQL, graceful skipping of
  * unprovisioned tables, and evidence free of credentials/e-mail.
  *
- * Run: cd server && node --test --test-force-exit compliance/detectors/industrialIntegrations.test.js
+ * The sources are real tables (the boot ladder's schema on PGlite behind db.js's
+ * pool), seeded per case.
+ *
+ * Run: cd server && node --test compliance/detectors/industrialIntegrations.test.js
  */
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { recordDb } = require('../../testUtils/routeHarness');
+const { usePglitePool } = require('../../testUtils/pglitePool');
+const { ladderPglite } = require('../../testUtils/pgliteTemplate');
+const { insertRow } = require('../../testUtils/pgliteSeed');
+const { failReads, hideTable } = require('../../testUtils/pgliteFaults');
 
-const state = {
-    rows: {},            // table → rows (or an Error to throw)
-    queries: [],         // { sql, params }
+const { pg, close } = usePglitePool(ladderPglite());
+const det = require('./industrialIntegrations');
+test.after(close);
+
+const SOURCE_TABLES = ['org_custom_integrations', 'automations', 'integration_connections', 'integration_activity_log', 'mcp_servers'];
+test.before(async () => {
+    await insertRow(pg, 'users', { id: 'ind-u1', username: 'ind-u1', organizationId: 'org1' });
+    await insertRow(pg, 'users', { id: 'ind-u2', username: 'ind-u2', organizationId: 'org2' });
+});
+test.beforeEach(async () => { await pg.exec(`TRUNCATE ${SOURCE_TABLES.join(', ')} CASCADE`); });
+
+let seq = 0;
+/** The uuid tables get a uuid per fixture id; `back` reads it back as the fixture id. */
+const UUIDS = new Map();
+const uid = (/** @type {string} */ id) => {
+    if (!UUIDS.has(id)) UUIDS.set(id, `00000000-0000-4000-8000-${String(UUIDS.size + 1).padStart(12, '0')}`);
+    return UUIDS.get(id);
 };
-
-function tableOf(sql) {
-    const m = String(sql).match(/FROM\s+([a-z_]+)/i);
-    return m ? m[1] : null;
+const back = (/** @type {string} */ id) => [...UUIDS].find(([, u]) => u === id)?.[0] ?? id;
+/**
+ * Seed the sources of a case, in the shapes the detector reads; an activity
+ * row of `calls` n is n ledger rows.
+ * @param {Record<string, Array<Record<string, any>>>} rows
+ * @param {string} [org]
+ */
+async function setRows(rows, org = 'org1') {
+    for (const r of rows.org_custom_integrations || []) {
+        await insertRow(pg, 'org_custom_integrations', { org_id: org, slug: `s-${++seq}`, created_by: 'ind-u1', ...r, ...(r.id ? { id: uid(r.id) } : {}) });
+    }
+    for (const r of rows.automations || []) {
+        await insertRow(pg, 'automations', { user_id: org === 'org1' ? 'ind-u1' : 'ind-u2', ...r });
+    }
+    for (const r of rows.integration_connections || []) {
+        await insertRow(pg, 'integration_connections', { owner_user_id: 'ind-u1', org_id: org, ...r, ...(r.id ? { id: uid(r.id) } : {}) });
+    }
+    for (const { host, endpoint, calls = 1 } of rows.integration_activity_log || []) {
+        for (let i = 0; i < calls; i++) await insertRow(pg, 'integration_activity_log', { tool_name: 't', organization_id: org, dest_host: host, server_endpoint: endpoint });
+    }
+    for (const r of rows.mcp_servers || []) await insertRow(pg, 'mcp_servers', r);
 }
 
-// The real db.js over a recording pool: a SELECT answers the rows of its table (or throws the Error).
-recordDb((sql, params) => {
-    if (!/^\s*SELECT/i.test(sql)) return undefined;
-    const flat = String(sql).replace(/\s+/g, ' ').trim();
-    state.queries.push({ sql: flat, params: params || [] });
-    const v = state.rows[tableOf(flat)];
-    if (v instanceof Error) throw v;
-    return { rows: Array.isArray(v) ? v : [] };
-});
-const det = require('./industrialIntegrations');
-
-test.beforeEach(() => { state.rows = {}; state.queries = []; });
-
-function pgError(code) { const e = new Error(`pg ${code}`); e.code = code; return e; }
 function kinds(signals) { return signals.map(s => s.kind).sort(); }
 
 // ── scanText ────────────────────────────────────────────────────────────────
@@ -162,25 +185,34 @@ test('an ordinary business automation produces no match', () => {
 
 // ── detect(orgId) ───────────────────────────────────────────────────────────
 
-test('empty org: every source is scanned with an org-scoped WHERE, counts are zero, no matches', async () => {
+test('empty org: every source is scanned, org-scoped, counts are zero, no matches', async () => {
+    // Another organisation's industrial sources are never this one's.
+    await setRows({
+        org_custom_integrations: [{ name: 'Their OPC gateway', kind: 'rest', status: 'active', definition: { baseUrl: 'opc.tcp://gw.plant.local:4840' } }],
+        automations: [{ id: 'theirs', title: 'Their line monitor', definition_json: { steps: [{ type: 'http_request', url: 'opc.tcp://10.0.0.2:4840/' }] }, is_active: true }],
+        integration_connections: [{ provider: 'kepware', label: 'Default', kind: 'api_key', status: 'active' }],
+        integration_activity_log: [{ host: 'acme.eu1.mindsphere.io', endpoint: 'https://acme.eu1.mindsphere.io/api', calls: 2 }],
+    }, 'org2');
     const r = await det.detect('org1');
     assert.deepEqual(r.scanned, { custom_integrations: 0, automations: 0, connections: 0, activity_hosts: 0, mcp_servers: 0 });
     assert.deepEqual(r.matches, []);
     assert.deepEqual(r.skipped, []);
     assert.equal(r.heuristics_version, det.HEURISTICS_VERSION);
-    const byTable = Object.fromEntries(state.queries.map(q => [tableOf(q.sql), q]));
-    assert.match(byTable.org_custom_integrations.sql, /WHERE org_id = \$1/);
-    assert.deepEqual(byTable.org_custom_integrations.params, ['org1']);
-    assert.match(byTable.automations.sql, /a\.organization_id = \$1/);
-    assert.match(byTable.automations.sql, /u\."organizationId" = \$1/);
-    assert.match(byTable.integration_connections.sql, /WHERE org_id = \$1/);
-    assert.match(byTable.integration_activity_log.sql, /WHERE organization_id = \$1/);
-    assert.match(byTable.integration_activity_log.sql, /INTERVAL '90 days'/);
-    assert.ok(byTable.mcp_servers, 'mcp_servers is scanned (platform table)');
+    assert.equal((await det.detect('org2')).scanned.automations, 1, 'the owner org finds them');
+});
+
+test('automations resolve their org through the owner; old ledger rows are outside the 90-day window', async () => {
+    await setRows({
+        automations: [{ id: 'au-owner', title: 'Unstamped line monitor', definition_json: { steps: [{ type: 'http_request', url: 'opc.tcp://10.0.0.2:4840/' }] }, is_active: true }],
+    });
+    await insertRow(pg, 'integration_activity_log', { tool_name: 't', organization_id: 'org1', dest_host: 'old.mindsphere.io', timestamp: new Date(Date.now() - 120 * 86400e3).toISOString() });
+    const r = await det.detect('org1');
+    assert.equal(r.scanned.automations, 1);
+    assert.equal(r.scanned.activity_hosts, 0);
 });
 
 test('matches from every source, with confidence, labels and the platform scope on mcp_servers', async () => {
-    state.rows = {
+    await setRows({
         org_custom_integrations: [
             { id: 'ci1', name: 'Plant OPC gateway', description: '', kind: 'rest', status: 'active', definition: { baseUrl: 'opc.tcp://gw.plant.local:4840' }, activated_definition: null },
             { id: 'ci2', name: 'CRM sync', description: 'HubSpot to sheet', kind: 'rest', status: 'active', definition: { baseUrl: 'https://api.hubapi.com' }, activated_definition: null },
@@ -202,10 +234,10 @@ test('matches from every source, with confidence, labels and the platform scope 
             { id: 'm1', name: 'Modbus MCP', url: 'modbus://172.16.0.5', command: null, args: [], description: 'Reads PLC registers' },
             { id: 'm2', name: 'Filesystem', url: null, command: 'npx', args: ['@modelcontextprotocol/server-filesystem'], description: '' },
         ],
-    };
+    });
     const r = await det.detect('org1');
     assert.deepEqual(r.scanned, { custom_integrations: 2, automations: 2, connections: 2, activity_hosts: 3, mcp_servers: 2 });
-    const byId = Object.fromEntries(r.matches.map(m => [m.id, m]));
+    const byId = Object.fromEntries(r.matches.map(m => [back(m.id), m]));
     assert.equal(byId.ci1.confidence, 'high');
     assert.equal(byId.ci1.source, 'custom_integration');
     assert.equal(byId.ci1.label, 'Plant OPC gateway');
@@ -230,18 +262,20 @@ test('matches from every source, with confidence, labels and the platform scope 
 });
 
 test('activity hosts are matched on scheme/port/host only — a keyword in a hostname is not a signal', async () => {
-    state.rows = { integration_activity_log: [{ host: 'plc-docs.example.com', endpoint: 'https://plc-docs.example.com/', calls: 1 }] };
+    await setRows({ integration_activity_log: [{ host: 'plc-docs.example.com', endpoint: 'https://plc-docs.example.com/', calls: 1 }] });
     const r = await det.detect('org1');
     assert.deepEqual(r.matches, []);
 });
 
 test('unprovisioned tables are skipped, never thrown; other sources still run', async () => {
-    state.rows = {
-        org_custom_integrations: pgError('42P01'),
-        integration_activity_log: pgError('42703'),
-        mcp_servers: [{ id: 'm1', name: 'S7 bridge', url: 's7://10.0.0.7', command: null, args: [], description: '' }],
-    };
-    const r = await det.detect('org1');
+    await setRows({ mcp_servers: [{ id: 'm1', name: 'S7 bridge', url: 's7://10.0.0.7', command: null, args: [], description: '' }] });
+    const show = await hideTable(pg, 'org_custom_integrations');
+    await pg.exec('ALTER TABLE integration_activity_log RENAME COLUMN dest_host TO dest_host_hidden');
+    let r;
+    try { r = await det.detect('org1'); } finally {
+        await show();
+        await pg.exec('ALTER TABLE integration_activity_log RENAME COLUMN dest_host_hidden TO dest_host');
+    }
     assert.deepEqual(r.skipped.map(s => s.source).sort(), ['activity_log', 'custom_integrations']);
     assert.ok(r.skipped.every(s => s.reason === 'not provisioned'));
     assert.equal(r.scanned.mcp_servers, 1);
@@ -249,17 +283,18 @@ test('unprovisioned tables are skipped, never thrown; other sources still run', 
 });
 
 test('an unexpected query error is recorded as a skip with its class and code, never its message', async () => {
-    state.rows = { automations: Object.assign(new Error('invalid input syntax for type uuid: "jan@example.com"'), { code: '22P02' }) };
-    const r = await det.detect('org1');
+    const undo = await failReads(pg, 'automations', '22P02', 'invalid input syntax for type uuid: "jan@example.com"');
+    let r;
+    try { r = await det.detect('org1'); } finally { await undo(); }
     const s = r.skipped.find(x => x.source === 'automations');
-    assert.strictEqual(s.reason, 'query failed: Error (code 22P02)');
+    assert.match(s.reason, /^query failed: \w+ \(code 22P02\)$/);
     assert.ok(!JSON.stringify(r).includes('jan@example.com'), 'the driver message reaches no part of the detector output');
 });
 
 test('detector output carries no e-mail addresses or credentials', async () => {
-    state.rows = {
+    await setRows({
         org_custom_integrations: [{ id: 'ci1', name: 'Gateway', description: 'contact ops@example.org', kind: 'rest', status: 'active', definition: { url: 'opc.tcp://svc:pw@gw.local:4840', owner: 'jan@example.org' }, activated_definition: null }],
-    };
+    });
     const r = await det.detect('org1');
     const blob = JSON.stringify(r);
     assert.ok(!/@/.test(blob), blob);

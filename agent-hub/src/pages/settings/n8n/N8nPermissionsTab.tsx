@@ -47,7 +47,7 @@ function CreateGroupRow({ onCreate, onCancel }: { onCreate: (name: string) => Pr
             >
                 {creating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : t('settings.n8n.create_grant', 'Create & grant')}
             </button>
-            <button onClick={close} disabled={creating} className="p-1 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)]" title={t('settings.n8n.cancel', 'Cancel')}>
+            <button onClick={close} disabled={creating} className="p-1 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)]" title={t('settings.n8n.cancel', 'Cancel')} aria-label={t('settings.n8n.cancel', 'Cancel')}>
                 <X className="w-3.5 h-3.5" />
             </button>
         </div>
@@ -73,7 +73,7 @@ function GroupPicker({ addable, onPick, onCancel }: { addable: N8nGroup[]; onPic
                     </option>
                 ))}
             </select>
-            <button onClick={onCancel} className="p-1 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)]" title={t('settings.n8n.cancel', 'Cancel')}>
+            <button onClick={onCancel} className="p-1 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)]" title={t('settings.n8n.cancel', 'Cancel')} aria-label={t('settings.n8n.cancel', 'Cancel')}>
                 <X className="w-3.5 h-3.5" />
             </button>
         </div>

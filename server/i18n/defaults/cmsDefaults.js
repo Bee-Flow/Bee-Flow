@@ -881,7 +881,7 @@ const BLOCK_TYPE_IDS = BLOCK_TYPES.map(t => t.type);
 // real React component behind lazy() — which is exactly why this list has to
 // be duplicated here: the AI builder and validate.js run server-side and
 // cannot import that module. The frontend half is pinned by
-// agent-hub/src/demo/DemoHost.test.jsx; keep the two in sync.
+// agent-hub/src/demo/DemoHost.test.tsx; keep the two in sync.
 //
 // An unknown id is not dangerous — the renderer builds the iframe src itself
 // and shows a placeholder for anything it does not recognise, so this can

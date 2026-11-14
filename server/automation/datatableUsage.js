@@ -50,7 +50,7 @@ function columnsOf(step) {
 }
 
 /**
- * @param {import('./automationGraph').AutomationDefinition} definition an automation definition
+ * @param {import('../core/automationModel/automationGraph').AutomationDefinition} definition an automation definition
  * @returns {Array<{datatableId, stepId, mode, columns}>}
  */
 function collectDatatableUsage(definition) {
@@ -198,7 +198,7 @@ function stepPositions(definition) {
 module.exports = { collectDatatableUsage, datatableIdsUsed, columnsOf, flowOrder, stepPositions };
 
 /**
- * @typedef {import('./automationGraph').AutomationDefinition} AutomationDefinition
- * @typedef {import('./automationGraph').AutomationStep} AutomationStep
+ * @typedef {import('../core/automationModel/automationGraph').AutomationDefinition} AutomationDefinition
+ * @typedef {import('../core/automationModel/automationGraph').AutomationStep} AutomationStep
  * @typedef {{ datatableId: string, stepId: string, mode: 'read' | 'write', columns: string[] }} DatatableUsage
  */

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * "As whom does this mirror talk to Google or Microsoft?"
  *
@@ -224,7 +224,7 @@ async function resolveProviderCredential(userId, provider, { session = null, org
     }
     _memo.set(memoKey, { at: Date.now(), value, error });
     if (error) throw error;
-    return value;
+    return /** @type {NonNullable<typeof value>} */ (value); // set whenever nothing was thrown
 }
 
 /**

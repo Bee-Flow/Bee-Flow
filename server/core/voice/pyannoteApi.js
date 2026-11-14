@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * pyannoteAI (api.pyannote.ai) — low-level HTTP primitives.
  *
@@ -23,13 +24,16 @@
 
 'use strict';
 
+const { fetchFixedEndpoint } = require('../../utils/fixedEndpointFetch.mts');
+const ssrfGuard = require('../../utils/ssrfGuard');
 const crypto = require('crypto');
 const configStore = require('../../stores/configStore');
 const log = require('../../telemetry/log');
+const { envInt } = require('../../utils/envNumber.mts');
 
 const DEFAULT_API_URL = 'https://api.pyannote.ai/v1';
 // Overridable so tests don't sleep 5s between polls.
-const POLL_INTERVAL_MS = Number(process.env.PYANNOTE_POLL_INTERVAL_MS) || 5000;
+const POLL_INTERVAL_MS = envInt('PYANNOTE_POLL_INTERVAL_MS', 5000, { min: 1 });
 
 /** @type {Record<string, string>} */
 const MIME_BY_EXT = {
@@ -53,7 +57,7 @@ function redact(message) {
  * transcription runs a good bit slower than real-time). Clamped to [15min, 2h];
  * 30min when the duration is unknown. Env override: PYANNOTE_POLL_TIMEOUT_MS.
  *
- * @param {{durationSeconds?: number, env?: object}} [opts]
+ * @param {{durationSeconds?: number, env?: { PYANNOTE_POLL_TIMEOUT_MS?: any }}} [opts]
  * @returns {{pollCapMs: number}}
  */
 function computePyannoteTimeouts({ durationSeconds = 0, env = process.env } = {}) {
@@ -79,7 +83,7 @@ function wavlikeDurationSeconds(bytes, ext) {
  * Resolve the API key + base URL. Env wins over the encrypted config store so
  * a deployment can pin a key without touching the DB.
  *
- * @returns {Promise<{apiKey: string, base: string, headers: object}>}
+ * @returns {Promise<{apiKey: string, base: string, headers: Record<string, string>}>}
  * @throws when no key is configured (message is user-facing).
  */
 async function resolvePyannoteAuth() {
@@ -110,14 +114,14 @@ async function hasPyannoteKey() {
  *
  * @param {Buffer} bytes
  * @param {string} ext  lower-case extension, for the content type
- * @param {{base: string, headers: object}} auth
+ * @param {{base: string, headers: Record<string, string>}} auth
  * @returns {Promise<string>} the `media://…` URL
  */
 async function uploadMedia(bytes, ext, auth) {
     const objectKey = `beeflow/${Date.now()}-${crypto.randomUUID()}`;
     const mediaUrl = `media://${objectKey}`;
 
-    const inputResp = await fetch(`${auth.base}/media/input`, {
+    const inputResp = await fetchFixedEndpoint(`${auth.base}/media/input`, {
         method: 'POST',
         headers: { ...auth.headers, 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: mediaUrl }),
@@ -129,10 +133,14 @@ async function uploadMedia(bytes, ext, auth) {
     const { url: presignedPut } = await inputResp.json();
     if (!presignedPut) throw new Error('pyannote media/input returned no upload URL.');
 
-    const putResp = await fetch(presignedPut, {
+    // The upload address comes out of an answer, so it goes through the guard for
+    // addresses the server did not choose. No time-out of its own: the upload
+    // takes as long as the recording is large.
+    const putResp = await ssrfGuard.safeFetch(presignedPut, {
         method: 'PUT',
         headers: { 'Content-Type': MIME_BY_EXT[ext] || 'application/octet-stream' },
         body: bytes,
+        timeoutMs: 0,
     });
     if (!putResp.ok) {
         const t = await putResp.text().catch(() => '');
@@ -149,11 +157,11 @@ async function uploadMedia(bytes, ext, auth) {
  *
  * @param {string} pathname  '/diarize' | '/identify' | '/voiceprint'
  * @param {unknown} body
- * @param {{base: string, headers: object}} auth
+ * @param {{base: string, headers: Record<string, string>}} auth
  * @returns {Promise<string>} jobId
  */
 async function submitJob(pathname, body, auth) {
-    const resp = await fetch(`${auth.base}${pathname}`, {
+    const resp = await fetchFixedEndpoint(`${auth.base}${pathname}`, {
         method: 'POST',
         headers: { ...auth.headers, 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -182,9 +190,9 @@ const MAX_CONSECUTIVE_POLL_FAILURES = 5;
  * only an answer that will not change (401/403/404) is terminal.
  *
  * @param {string} jobId
- * @param {{base: string, headers: object}} auth
- * @param {{pollCapMs: number, label?: string}} opts
- * @returns {Promise<object>} the succeeded job
+ * @param {{base: string, headers: Record<string, string>}} auth
+ * @param {Partial<{pollCapMs: number, label?: string}>} opts
+ * @returns {Promise<PyannoteJob>} the succeeded job
  * @throws on timeout, repeated transport failure, or a failed/canceled job.
  */
 async function pollJob(jobId, auth, { pollCapMs, label = 'job' } = {}) {
@@ -203,7 +211,7 @@ async function pollJob(jobId, auth, { pollCapMs, label = 'job' } = {}) {
 
         let job;
         try {
-            const jobResp = await fetch(`${auth.base}/jobs/${jobId}`, { headers: auth.headers });
+            const jobResp = await fetchFixedEndpoint(`${auth.base}/jobs/${jobId}`, { headers: auth.headers });
             if (!jobResp.ok) {
                 if (!RETRIABLE_STATUSES.has(jobResp.status)) {
                     // 401/403/404 — the answer will not change by asking again.

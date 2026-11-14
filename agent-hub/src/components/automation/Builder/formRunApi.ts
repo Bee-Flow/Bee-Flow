@@ -13,12 +13,12 @@
  */
 
 import apiClient, { createJsonResource } from '@/api/client';
-import { API_BASE } from '@/utils/helpers';
 import { errorBodyRecord } from '@/utils/caughtError';
 import { runPhase, type RunPhaseInput } from './runs/runPhase';
 import type { FormDef } from '../../forms/PublicFormRenderer.types';
 import type { ApprovalField } from '../../admin/Studio/Approvals/ApprovalDecisionControls';
 import type { FormRunKind } from './formRunContract';
+import { apiUrl } from '@/api/typedRequest';
 
 /** The approval a journey waits on, as GET /runs/:id/form describes it (the approval row's snapshot). */
 export interface PendingApproval {
@@ -97,6 +97,6 @@ export async function uploadFormTestFile(automationId: string, file: File, field
     body.append('field', field);
     if (triggerStepId) body.append('triggerStepId', triggerStepId);
     body.append('file', file);
-    const send = createJsonResource(`${API_BASE}/api/automation`);
+    const send = createJsonResource(apiUrl('GET /api/automation'));
     return send<UploadedFile>(`/${encodeURIComponent(automationId)}/form-test/upload`, { method: 'POST', body });
 }

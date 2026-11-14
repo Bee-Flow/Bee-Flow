@@ -11,13 +11,14 @@
 const runner = require('./manualImportRunner');
 const { isIngestInFlight } = require('./importJobKit');
 const { lazyDeps } = require('./lazyDeps');
+const { envInt } = require('../../utils/envNumber.mts');
 
 /** The job store, loaded on first use; tests swap it through `init()`. */
 const { deps: d, init } = lazyDeps({
     store: () => require('../../stores/gmeetImportStore'),
 });
 
-const INGEST_LEASE_MINUTES = Number(process.env.GMEET_INGEST_LEASE_MINUTES) || 120;
+const INGEST_LEASE_MINUTES = envInt('GMEET_INGEST_LEASE_MINUTES', 120, { min: 1 });
 
 /**
  * @param {string} jobId

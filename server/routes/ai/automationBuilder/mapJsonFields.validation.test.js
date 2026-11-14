@@ -31,7 +31,7 @@ const MOCKS = {
         },
     },
     '../../../auth/permissions': { requireAuth: pass },
-    './rateLimits': { mapJsonFieldsRateLimit: pass },
+    '../../../usecases/ai/automationBuilder/rateLimits': { mapJsonFieldsRateLimit: pass },
     '../../../core/entitlements/betaFeatures': { userHasBetaFeature: async () => true },
 };
 

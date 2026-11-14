@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The AI Act check that does itself (Studio → Automations handoff 5, owner:
  * "it should detect automatically, and only where it can't, ask").
@@ -31,14 +32,13 @@
  *
  * All IO is injected (`makeAiActAuto`); `defaultAiActAuto` wires the real one.
  */
-
 'use strict';
 
 const aiActCheck = require('./aiActCheck');
 const detect = require('./aiActDetect');
 const { classificationInput } = require('./aiActClassify');
-const assess = require('../compliance/aiAct/assess');
-const annexIii = require('../compliance/aiAct/annexIii');
+const assess = require('../core/aiAct/assess');
+const annexIii = require('../core/aiAct/annexIii');
 const texts = require('./aiActTexts');
 const { fallback } = require('../utils/bestEffort');
 
@@ -64,8 +64,8 @@ function hasEvidence(row) { return !!row && isObject(row.evidence) && isObject(r
 
 /**
  * Bee's answers merged with the recorded ones. Pure.
- * @returns {{ final: Record<string, object>, pending: string[] }}
- * @param {{ applicable: boolean | null; ai: object; questions: Record<string, object>; }} detection
+ * @returns {{ final: Record<string, AnswerRecord>, pending: string[] }}
+ * @param {Detection} detection
  */
 function mergeAnswers(detection, row, { now = Date.now() } = {}) {
     const prev = priorQuestions(row, now);
@@ -89,7 +89,7 @@ function mergeAnswers(detection, row, { now = Date.now() } = {}) {
 
 /**
  * Without AI the other questions do not change anything: drop them.
- * @param {{ [x: string]: object; }} final
+ * @param {Record<string, AnswerRecord>} final
  * @param {string[]} pending
  */
 function settleNoAi(final, pending) {
@@ -104,8 +104,8 @@ function settleNoAi(final, pending) {
  * A person's answers laid over the merge. A "no" to "uses AI" where Bee is
  * certain there is AI does not narrow it (the register's rule: widen, never
  * narrow). Answers `{ final, pending }`.
- * @param {{ applicable: boolean | null; ai: object; questions: Record<string, object>; }} detection
- * @param {{ final: Record<string, object>; pending: string[]; }} merged
+ * @param {Detection} detection
+ * @param {{ final: Record<string, AnswerRecord>; pending: string[]; }} merged
  */
 function applyPersonAnswers(detection, merged, answers) {
     const final = { ...merged.final };
@@ -136,7 +136,7 @@ function applyPersonAnswers(detection, merged, answers) {
 
 /**
  * The register answers for the final answers, over the previous row's (Art. 50 details from the hub survive).
- * @param {Record<string, object>} final
+ * @param {Record<string, AnswerRecord>} final
  */
 function registerAnswers(final, previousAnswers) {
     const answers = aiActCheck.answersFromWizard({
@@ -165,8 +165,8 @@ function stripEvidence(list) {
 
 /**
  * What is stored beside the register answers. Allow-listed: no model prose, no addresses.
- * @param {{ applicable: boolean | null; ai: object; questions: Record<string, object>; }} detection
- * @param {Record<string, object>} final
+ * @param {Detection} detection
+ * @param {Record<string, AnswerRecord>} final
  */
 function evidenceRecord(detection, final) {
     const questions = {};
@@ -205,7 +205,7 @@ function publicFinding(id, q) {
 /**
  * One open question: Bee's suggestion (preselected only when 'likely'), its evidence and, for Annex III, all ten areas.
  * @param {string} id
- * @param {{ applicable: boolean | null; ai: object; questions: Record<string, object>; }} detection
+ * @param {Detection} detection
  */
 function publicQuestion(id, d, detection) {
     const suggested = d.confidence === 'likely' ? d.answer : (d.lean || null);
@@ -220,11 +220,11 @@ function publicQuestion(id, d, detection) {
 
 /**
  * @param {{
- *   aiActState: (automation: object, definition: object) => Promise<object>,   aiActCheck.makeAiActState
- *   attest: (input: object) => Promise<object>,                                compliance/aiAct/attest.attest
- *   classify: (input: { text, hash, orgId, userId }) => Promise<object>,       aiActClassify.makeClassifier
- *   signalsFor: (automation: object, orgId: string, definition: object) => Promise<object>,
- *   internalDomainsOf?: (automation: object) => Promise<string[]>,
+ *   aiActState: ReturnType<typeof import('./aiActCheck').makeAiActState>,   // aiActCheck.makeAiActState
+ *   attest: (input: Parameters<typeof import('../compliance/aiAct/attest').attest>[0]) => Promise<object>,                                // compliance/aiAct/attest.attest
+ *   classify: (input: { text, hash, orgId, userId }) => Promise<object>,       // aiActClassify.makeClassifier
+ *   signalsFor: (automation: AutomationLike, orgId: string, definition: object) => Promise<object>,
+ *   internalDomainsOf?: (automation: AutomationLike) => Promise<string[]>,
  *   loadBlocks?: (definition: object) => Promise<Record<string, object|null>>,
  *   now?: () => number,
  * }} deps
@@ -250,7 +250,7 @@ function makeAiActAuto(deps) {
             }
         }
         const internalDomains = deps.internalDomainsOf ? await deps.internalDomainsOf(automation).catch((e) => fallback('automation/aiActAuto:detectFor#2', e, [])) : [];
-        const detection = detect.detectQuestions({ definition, title, description, internalDomains, blocks, verdict });
+        const detection = /** @type {Detection} */ (detect.detectQuestions({ definition, title, description, internalDomains, blocks, verdict }));
         detection.verdict = verdict;
         detection.hintText = detect.hintText({ definition, title, description });
         return detection;
@@ -259,7 +259,7 @@ function makeAiActAuto(deps) {
     /**
      * @param {AutomationLike} automation
      * @param {AutomationDefinition | null} definition  the copy that is checked (the one about to run for the gate)
-     * @param {{ record?: boolean, actorId?: string|null, answers?: object|null, manual?: boolean }} [opts]
+     * @param {{ record?: boolean, actorId?: string|null, answers?: { usesAi?: any }|null, manual?: boolean }} [opts]
      *   answers: a person's answers (PUT), laid over Bee's; manual: from the full editor
      */
     async function check(automation, definition, { record = true, actorId = null, answers = null, manual = false } = {}) {
@@ -379,7 +379,7 @@ function defaultLoadBlocks(definition) {
 /** Same, from any store with getAutomation(id). */
 async function loadBlocksWith(store, definition) {
     const ids = new Set();
-    for (const { step } of require('./automationGraph').listSteps(isObject(definition) ? definition : {})) {
+    for (const { step } of require('../core/automationModel/automationGraph').listSteps(isObject(definition) ? definition : {})) {
         if (step.type === 'call_block' && typeof step.blockId === 'string') ids.add(step.blockId);
     }
     if (!ids.size) return null;
@@ -405,7 +405,7 @@ module.exports = {
 };
 
 /**
- * @typedef {import('./automationGraph').AutomationDefinition} AutomationDefinition
+ * @typedef {import('../core/automationModel/automationGraph').AutomationDefinition} AutomationDefinition
  * @typedef {import('./aiActCheck').AiActRow} AiActRow
  * @typedef {ReturnType<typeof detect.detectQuestions> & { verdict?: (import('./aiActDetect').Verdict & { hash?: string, modelId?: string|null })|null, hintText?: string }} Detection
  */
@@ -428,13 +428,7 @@ module.exports = {
  * @property {boolean|null} applicable
  */
 
-/**
- * @typedef AiActStateResult  what aiActCheck.makeAiActState returns
- * @property {boolean} required
- * @property {string} status
- * @property {string|null} [orgId]
- * @property {import('./aiActCheck').AiActRow|null} [row]
- */
+/** @typedef {Awaited<ReturnType<ReturnType<typeof import('./aiActCheck').makeAiActState>>>} AiActStateResult  what aiActCheck.makeAiActState returns */
 
 /**
  * @typedef AnswerRecord  one question's answer in the per-question record

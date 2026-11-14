@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Notebook Export Routes — server-side PDF (Playwright) & DOCX generation.
  *
@@ -44,7 +45,6 @@ router.use(require('../stores/lib/documentCrypto').withDocumentEncryptionSession
 const { validate } = require('../core/http/validate');
 const { buildExportHTML, cleanContentForExport } = require('../templates/exportTemplate');
 const { resolveHouseStyle, buildDocxStylingFromHouseStyle, applyInlineStyles, NO_SUCH_STYLE } = require('../core/documents/docxHouseStyle');
-const notebookStore = require('../stores/notebookStore');
 const userStore = require('../stores/userStore');
 const browserProvider = require('../services/browserProvider');
 const { HttpError } = require('../core/http/errors');
@@ -53,29 +53,17 @@ const NOTEBOOK_TEXT = require('../i18n/defaults/en/notebooks');
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth } = require('../auth/permissions');
+const { requireNotebookRole } = require('../auth/notebookAccess.mts');
 const { bestEffort } = require('../utils/bestEffort');
 
 /**
- * Every export route must own the notebook in `:id`.
- *
- * These routes previously used `:id` only in a log line — the HTML came from
- * the request body — so any authenticated user could drive a server-side
- * Chromium render, a DOCX build, a SignRequest send or a Nextcloud upload
- * against an arbitrary id. The content is still supplied by the client (it
- * pre-renders mermaid to PNG and inlines images before sending), so this check
- * is what ties an export to a real, owned document.
+ * Every export route needs a role on the notebook in `:id` (auth/notebookAccess.mts:
+ * exporting is reading, so a viewer's). The HTML comes from the request body
+ * (the client pre-renders mermaid to PNG and inlines images before sending),
+ * so this gate is what ties a server-side Chromium render, a DOCX build, a
+ * SignRequest send or a Nextcloud upload to a real notebook the caller may read.
  */
-async function requireNotebookOwner(req, res, next) {
-    const userId = req.session?.user?.id;
-    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
-    const nb = await notebookStore.getNotebook(req.params.id, userId);
-    if (!nb) {
-        log.warn('[Export] refused export for a notebook the caller does not own:', { notebookId: req.params.id, userId });
-        return res.status(404).json({ error: 'Notebook not found' });
-    }
-    req.notebook = nb;
-    next();
-}
+const requireNotebookViewer = requireNotebookRole('viewer');
 
 // ── Request schemas (see the header) ────────────────────────────────
 
@@ -190,7 +178,7 @@ async function renderNotebookPdf(exportHTML, { title = 'Notebook' } = {}) {
     });
 }
 
-router.post('/:id/export/pdf', requireAuth, requireNotebookOwner, validate({ body: PdfBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof PdfBody>, import('qs').ParsedQs>} */ req, res, next) => {
+router.post('/:id/export/pdf', requireAuth, requireNotebookViewer, validate({ body: PdfBody }), async (req, res, next) => {
     const { content, title } = req.body;
 
     const author = req.session.user.name || req.session.user.email || '';
@@ -222,7 +210,7 @@ router.post('/:id/export/pdf', requireAuth, requireNotebookOwner, validate({ bod
 
 // ── DOCX Export (html-to-docx) ──────────────────────────────────────────────
 
-router.post('/:id/export/docx', requireAuth, requireNotebookOwner, validate({ body: DocxBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof DocxBody>, import('qs').ParsedQs>} */ req, res, next) => {
+router.post('/:id/export/docx', requireAuth, requireNotebookViewer, validate({ body: DocxBody }), async (req, res, next) => {
     const { content, title, houseStyleId } = req.body;
 
     try {
@@ -304,7 +292,7 @@ router.post('/:id/export/docx', requireAuth, requireNotebookOwner, validate({ bo
 
 // ── SignRequest Export (PDF → e-Signature) ──────────────────────────────────
 
-router.post('/:id/export/signrequest', requireAuth, requireNotebookOwner, validate({ body: SignRequestBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof SignRequestBody>, import('qs').ParsedQs>} */ req, res, next) => {
+router.post('/:id/export/signrequest', requireAuth, requireNotebookViewer, validate({ body: SignRequestBody }), async (req, res, next) => {
     const { content, title, signers, subject, message } = req.body;
 
     const userId = req.session.user.id;
@@ -362,7 +350,7 @@ router.post('/:id/export/signrequest', requireAuth, requireNotebookOwner, valida
 
 // ── Nextcloud Export (PDF → WebDAV upload) ──────────────────────────────────
 
-router.post('/:id/export/nextcloud', requireAuth, requireNotebookOwner, validate({ body: NextcloudBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof NextcloudBody>, import('qs').ParsedQs>} */ req, res, next) => {
+router.post('/:id/export/nextcloud', requireAuth, requireNotebookViewer, validate({ body: NextcloudBody }), async (req, res, next) => {
     const { content, title, folder } = req.body;
 
     const userId = req.session.user.id;

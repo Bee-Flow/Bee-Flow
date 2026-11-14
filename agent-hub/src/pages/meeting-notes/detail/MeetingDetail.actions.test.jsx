@@ -10,7 +10,7 @@
  * in between has to send the WHOLE list, because the PATCH replaces the
  * column.
  */
-import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -111,6 +111,7 @@ vi.mock('./SummaryActionsLayout', () => ({
     ),
 }));
 
+import { renderWithClient } from '@/test/render';
 import MeetingDetail from './MeetingDetail';
 import makeMeetingEdits from './useMeetingEdits';
 
@@ -169,7 +170,7 @@ describe('MeetingDetail — "Opnieuw" keeps what the person wrote', () => {
                 { id: 'ai-0', text: 'Opnieuw geëxtraheerd', done: false, source: 'ai' },
             ],
         });
-        render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
+        renderWithClient(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
         expect(texts()).toEqual(['Filter inbouwen', 'Morgen contact opnemen → Backlog']);
 
         await user.click(screen.getByText('harness-regenerate'));
@@ -198,7 +199,7 @@ describe('MeetingDetail — "Opnieuw" keeps what the person wrote', () => {
             actionItems: [AI_ITEM, USER_ITEM],
             artifactsRegenerated: false,
         });
-        render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
+        renderWithClient(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
         await user.click(screen.getByText('harness-regenerate'));
         await waitFor(() => expect(screen.getByTestId('summary').textContent).toBe('Fresh'));
 
@@ -216,7 +217,7 @@ describe('MeetingDetail — "Opnieuw" keeps what the person wrote', () => {
         H.regenerateSummary.mockResolvedValue({
             summary: 'Fresh', actionItems: [AI_ITEM], artifactsRegenerated: true,
         });
-        render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
+        renderWithClient(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
         await user.click(screen.getByText('harness-regenerate'));
         await waitFor(() => expect(screen.getByTestId('summary').textContent).toBe('Fresh'));
         expect(toast.info).not.toHaveBeenCalled();
@@ -225,7 +226,7 @@ describe('MeetingDetail — "Opnieuw" keeps what the person wrote', () => {
     it('leaves the list alone when the answer is not a list, rather than emptying the card', async () => {
         const user = userEvent.setup();
         H.regenerateSummary.mockResolvedValue({ summary: 'Fresh' });
-        render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
+        renderWithClient(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
         await user.click(screen.getByText('harness-regenerate'));
         // The summary DID land, so this is the state after the answer was
         // applied — not a list that has simply not been touched yet.
@@ -243,7 +244,7 @@ describe('MeetingDetail — writing a destination', () => {
      */
     it('sends the WHOLE list, not just the item that changed', async () => {
         const user = userEvent.setup();
-        render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
+        renderWithClient(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
         await user.click(screen.getByText('harness-set-destination'));
         await waitFor(() => expect(H.patchTranscription).toHaveBeenCalled());
 
@@ -271,7 +272,7 @@ describe('MeetingDetail — writing a destination', () => {
                 { ...USER_ITEM, text: 'Morgen contact opnemen', destination: { kind: 'automation', ref: 'a-1', label: 'Weging (server)', at: '2026-07-27T10:00:00.000Z' } },
             ],
         });
-        render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
+        renderWithClient(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
         await user.click(screen.getByText('harness-set-destination'));
         await waitFor(() => expect(texts()).toContain('Morgen contact opnemen → Weging (server)'));
     });
@@ -279,7 +280,7 @@ describe('MeetingDetail — writing a destination', () => {
     it('keeps the rail’s open-action count in step with a checkbox', async () => {
         const user = userEvent.setup();
         const onChanged = vi.fn();
-        render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" onChanged={onChanged} />);
+        renderWithClient(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" onChanged={onChanged} />);
         await user.click(screen.getByText('harness-toggle'));
         await waitFor(() => expect(H.patchTranscription).toHaveBeenCalled());
         expect(onChanged).toHaveBeenCalledWith('m-1', { actionsTotal: 2, actionsOpen: 1 });
@@ -289,7 +290,7 @@ describe('MeetingDetail — writing a destination', () => {
         const user = userEvent.setup();
         const { toast } = await import('@/components/shared/Toast');
         H.patchTranscription.mockRejectedValue(new Error('offline'));
-        render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
+        renderWithClient(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
         await user.click(screen.getByText('harness-set-destination'));
         await waitFor(() => expect(toast.error).toHaveBeenCalled());
         expect(String(toast.error.mock.calls.at(-1)[0])).toMatch(/could not be updated/i);
@@ -312,7 +313,7 @@ describe('MeetingDetail — de sjabloonstempel volgt de nieuwe tekst', () => {
             summary: 'Fresh', actionItems: [AI_ITEM],
             summaryTemplateId: 'tpl-9', summaryTemplateVersion: 4,
         });
-        render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
+        renderWithClient(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
         await user.click(screen.getByText('harness-regenerate'));
         await waitFor(() => expect(screen.getByTestId('stamp').textContent).toBe('tpl-9|4'));
     });
@@ -323,7 +324,7 @@ describe('MeetingDetail — de sjabloonstempel volgt de nieuwe tekst', () => {
         // template never wrote.
         H.state.meeting = { ...note([AI_ITEM]), summaryTemplateId: 'tpl-9', summaryTemplateVersion: 4 };
         H.regenerateSummary.mockResolvedValue({ summary: 'Fresh', actionItems: [AI_ITEM], summaryTemplateId: null, summaryTemplateVersion: null });
-        render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
+        renderWithClient(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
         expect(screen.getByTestId('stamp').textContent).toBe('tpl-9|4');
         await user.click(screen.getByText('harness-regenerate'));
         await waitFor(() => expect(screen.getByTestId('summary').textContent).toBe('Fresh'));
@@ -353,7 +354,7 @@ describe('MeetingDetail — bewaarde actiepunten worden benoemd', () => {
             ],
             artifactsRegenerated: true,
         });
-        render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
+        renderWithClient(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
         await user.click(screen.getByText('harness-regenerate'));
         await waitFor(() => expect(screen.getByTestId('summary').textContent).toBe('Fresh'));
 
@@ -382,7 +383,7 @@ describe('MeetingDetail — bewaarde actiepunten worden benoemd', () => {
             ],
             artifactsRegenerated: true,
         });
-        render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
+        renderWithClient(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
         await user.click(screen.getByText('harness-regenerate'));
         await waitFor(() => expect(screen.getByTestId('summary').textContent).toBe('Fresh'));
 
@@ -400,7 +401,7 @@ describe('MeetingDetail — bewaarde actiepunten worden benoemd', () => {
         H.regenerateSummary.mockResolvedValue({
             summary: 'Fresh', actionItems: [AI_ITEM], artifactsRegenerated: true,
         });
-        render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
+        renderWithClient(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
         await user.click(screen.getByText('harness-regenerate'));
         await waitFor(() => expect(screen.getByTestId('summary').textContent).toBe('Fresh'));
         expect(toast.info).not.toHaveBeenCalled();
@@ -416,7 +417,7 @@ describe('MeetingDetail — the rename banner regenerates with the note’s own 
         H.state.meeting = { ...note([AI_ITEM]), ...stamp };
         H.updateSpeakers.mockResolvedValue({ ...H.state.meeting, speakers: [{ id: 'Anna' }] });
         H.regenerateSummary.mockResolvedValue({ summary: 'Fresh', actionItems: [AI_ITEM], ...stamp });
-        render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
+        renderWithClient(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
         await user.click(screen.getByText('harness-save-speakers'));
         await user.click(await screen.findByRole('button', { name: 'Regenerate' }));
         await waitFor(() => expect(H.regenerateSummary).toHaveBeenCalled());
@@ -438,14 +439,14 @@ describe('MeetingDetail — the rename banner regenerates with the note’s own 
 describe('MeetingDetail — a reader of a shared note', () => {
     it('gets no action-item checkbox handler', () => {
         H.state.meeting = { ...note([AI_ITEM]), isOwner: false };
-        render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
+        renderWithClient(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
         expect(screen.queryByText('harness-toggle')).toBeNull();
     });
 
     it('is not offered Re-transcribe, which the server refuses with a 403', async () => {
         const user = userEvent.setup();
         H.state.meeting = { ...note([AI_ITEM]), isOwner: false };
-        render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
+        renderWithClient(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
         await user.click(screen.getByTestId('meeting-more'));
         expect(screen.queryByText('Re-transcribe')).toBeNull();
         expect(screen.getByText('Copy transcript')).toBeTruthy();
@@ -453,7 +454,7 @@ describe('MeetingDetail — a reader of a shared note', () => {
 
     it('is not offered Re-transcribe on a failed note either', () => {
         H.state.meeting = { ...note([]), isOwner: false, status: 'failed', failureReason: 'boom' };
-        render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
+        renderWithClient(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
         expect(screen.queryByTestId('meeting-more')).toBeNull();
     });
 });
@@ -465,7 +466,7 @@ describe('MeetingDetail — a checkbox the server refused (MN-117)', () => {
         toast.error.mockClear();
         const onChanged = vi.fn();
         H.patchTranscription.mockRejectedValue(new Error('Not found'));
-        render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" onChanged={onChanged} />);
+        renderWithClient(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" onChanged={onChanged} />);
         await user.click(screen.getByText('harness-toggle'));
         await waitFor(() => expect(toast.error).toHaveBeenCalled());
         expect(onChanged).toHaveBeenLastCalledWith('m-1', { actionsTotal: 2, actionsOpen: 2 });
@@ -481,7 +482,7 @@ describe('MeetingDetail — re-transcribe keeps the library row current (MN-116)
         const user = userEvent.setup();
         const onChanged = vi.fn();
         H.state.meeting = { ...note([AI_ITEM]), status: 'failed', failureReason: 'boom' };
-        render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" onChanged={onChanged} />);
+        renderWithClient(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" onChanged={onChanged} />);
         await user.click(screen.getByTestId('meeting-more'));
         await user.click(screen.getByText('Re-transcribe'));
         const dialog = await screen.findByRole('dialog');
@@ -501,7 +502,7 @@ describe('MeetingDetail — what uses this meeting is re-read after a tag change
     it('after a tag is removed', async () => {
         const user = userEvent.setup();
         H.state.meeting = { ...note([AI_ITEM]), tags: ['sales'] };
-        render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
+        renderWithClient(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
         await user.click(screen.getByLabelText('Remove tag sales'));
         await waitFor(() => expect(H.refetchUsage).toHaveBeenCalledTimes(1));
     });
@@ -514,7 +515,7 @@ describe('MeetingDetail — tags a regenerate wrote (MN-124)', () => {
         H.state.meeting = note([AI_ITEM]);
         H.regenerateSummary.mockResolvedValue({ summary: 'Fresh', actionItems: [AI_ITEM], artifactsRegenerated: true });
         H.getTranscription.mockResolvedValue({ ...note([AI_ITEM]), tags: ['budget', 'q3'] });
-        render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" onChanged={onChanged} />);
+        renderWithClient(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" onChanged={onChanged} />);
         await user.click(screen.getByText('harness-regenerate'));
         await waitFor(() => expect(within(screen.getByTestId('meeting-tags')).getByText('budget')).toBeTruthy());
         expect(onChanged).toHaveBeenCalledWith('m-1', { tags: ['budget', 'q3'] });
@@ -525,7 +526,7 @@ describe('MeetingDetail — tags a regenerate wrote (MN-124)', () => {
         const user = userEvent.setup();
         H.state.meeting = note([AI_ITEM]);
         H.regenerateSummary.mockResolvedValue({ summary: 'Fresh', actionItems: [AI_ITEM], tags: ['planning'] });
-        render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
+        renderWithClient(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
         await user.click(screen.getByText('harness-regenerate'));
         await waitFor(() => expect(within(screen.getByTestId('meeting-tags')).getByText('planning')).toBeTruthy());
         expect(H.getTranscription).not.toHaveBeenCalled();

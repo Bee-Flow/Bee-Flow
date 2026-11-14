@@ -196,6 +196,17 @@ test('no scope and no mode is still a web search, answered as one', async () => 
     assert.strictEqual(res.body.mode_used, 'web');
 });
 
+test('Serper answering an error is a 502 search_failed without its body, not a 500', async () => {
+    const stub = globalThis.fetch;
+    globalThis.fetch = async () => ({ ok: false, status: 429, json: async () => ({}), text: async () => 'quota for query weather exceeded' });
+    try {
+        const res = await dispatch({ method: 'POST', url: '/tools/search', body: { query: 'weather' } });
+        assert.strictEqual(res.statusCode, 502);
+        assert.strictEqual(res.body.code, 'search_failed');
+        assert.doesNotMatch(res.body.error, /quota|weather/);
+    } finally { globalThis.fetch = stub; }
+});
+
 test('a misspelled option block is refused, not ignored', async () => {
     await refuses({ method: 'POST', url: '/tools/search', body: { query: 'q', mode: 'web', wbe: { max_results: 5 } } }, 'body');
 });

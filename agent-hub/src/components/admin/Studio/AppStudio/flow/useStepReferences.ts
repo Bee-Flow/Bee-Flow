@@ -9,12 +9,12 @@ import { collectNodes } from './nodeRefOptions';
 import useAutomationApi from '@/hooks/useAutomationApi';
 import useTranslation from '@/hooks/useTranslation';
 import { listTemplates } from '@/pages/documents/documentsApi';
-import { API_BASE } from '@/utils/helpers';
 import useAppTables, { fieldsForTable } from '../bi/useAppTables';
 import useConnectors from '../bi/useConnectors';
 import { useEditorChrome } from '../editor/EditorChromeContext';
 import type { AppDefinition } from '../inspector/appDefinition';
-import { request, RefusedError } from '@/api/mutate';
+import { RefusedError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 type DatasetSource = NonNullable<Parameters<typeof datasetOptions>[0]>;
 type AutomationSource = NonNullable<Parameters<typeof automationOptions>[0]>;
@@ -37,7 +37,7 @@ type AutomationSource = NonNullable<Parameters<typeof automationOptions>[0]>;
 async function fetchDatasets(appId: string | null): Promise<DatasetSource> {
     let res: Response;
     try {
-        res = await request(`${API_BASE}/api/studio-apps/${(encodeURIComponent as (value: string | null | undefined) => string)(appId)}/datasets`);
+        res = await apiRequest('GET /api/studio-apps/{id}/datasets', { params: { id: String(appId) } });
     } catch (err) {
         if (!(err instanceof RefusedError)) throw err;
         return [];

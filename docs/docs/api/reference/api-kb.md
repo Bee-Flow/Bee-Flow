@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/kb`
 
-56 routes, 39 with a request schema. Back to the [endpoint reference](../reference.md).
+56 routes, 40 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -43,13 +43,13 @@ toc_max_heading_level: 2
 
 ### `GET /api/kb/:id`
 
-**Access:** Signed-in user · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Resource role `read` or higher · middleware `trainingGate` · the handler also checks who the caller is
 
 **Query:** object (no other keys)
 
 ### `PATCH /api/kb/:id`
 
-**Access:** Signed-in user · Permission `manage_knowledge` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `manage_knowledge` · Resource role `manage` or higher · middleware `trainingGate` · the handler also checks who the caller is
 
 **Body**
 
@@ -65,7 +65,7 @@ toc_max_heading_level: 2
 
 ### `DELETE /api/kb/:id`
 
-**Access:** Signed-in user · Permission `manage_knowledge` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `manage_knowledge` · Resource role `manage` or higher · middleware `trainingGate`
 
 **Query**
 
@@ -77,7 +77,7 @@ toc_max_heading_level: 2
 
 ### `POST /api/kb/:id/ask`
 
-**Access:** Signed-in user · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Resource role `read` or higher · middleware `trainingGate`
 
 **Body**
 
@@ -87,7 +87,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/kb/:id/documents`
 
-**Access:** Signed-in user · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Resource role `read` or higher · middleware `trainingGate`
 
 **Query**
 
@@ -108,7 +108,7 @@ toc_max_heading_level: 2
 
 ### `DELETE /api/kb/:id/documents/:docId`
 
-**Access:** Signed-in user · Permission `manage_knowledge` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `manage_knowledge` · Resource role `manage` or higher · middleware `trainingGate`
 
 **Query:** object (no other keys)
 
@@ -116,7 +116,7 @@ toc_max_heading_level: 2
 
 ### `GET /api/kb/:id/documents/:docId/chunks`
 
-**Access:** Signed-in user · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Resource role `read` or higher · middleware `trainingGate`
 
 **Query**
 
@@ -126,19 +126,19 @@ toc_max_heading_level: 2
 
 ### `GET /api/kb/:id/documents/:docId/content`
 
-**Access:** Signed-in user · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Resource role `read` or higher · middleware `trainingGate`
 
 **Query:** object (no other keys)
 
 ### `GET /api/kb/:id/documents/:docId/original`
 
-**Access:** Signed-in user · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Resource role `read` or higher · middleware `trainingGate`
 
 **Query:** object (no other keys)
 
 ### `POST /api/kb/:id/documents/bulk-delete`
 
-**Access:** Signed-in user · Permission `manage_knowledge` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `manage_knowledge` · Resource role `manage` or higher · middleware `trainingGate`
 
 **Body**
 
@@ -148,7 +148,7 @@ toc_max_heading_level: 2
 
 ### `POST /api/kb/:id/duplicate`
 
-**Access:** Signed-in user · Permission `manage_knowledge` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `manage_knowledge` · Resource role `read` or higher · middleware `trainingGate` · the handler also checks who the caller is
 
 **Query**
 
@@ -158,9 +158,9 @@ toc_max_heading_level: 2
 
 ### `PUT /api/kb/:id/favorite`
 
-**Access:** Signed-in user · middleware `trainingGate`
+**Access:** Signed-in user · Resource role `read` or higher · middleware `trainingGate`
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `DELETE /api/kb/:id/favorite`
 
@@ -170,13 +170,13 @@ No request schema.
 
 ### `POST /api/kb/:id/ingest/file`
 
-**Access:** Signed-in user · Permission `manage_knowledge` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `manage_knowledge` · Resource role `manage` or higher · middleware `trainingGate`
 
 No request schema.
 
 ### `POST /api/kb/:id/ingest/n8n`
 
-**Access:** Signed-in user · Permission `manage_knowledge` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `manage_knowledge` · Resource role `manage` or higher · middleware `trainingGate`
 
 **Body**
 
@@ -187,7 +187,7 @@ No request schema.
 
 ### `POST /api/kb/:id/ingest/sitemap`
 
-**Access:** Signed-in user · Permission `manage_knowledge` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `manage_knowledge` · Resource role `manage` or higher · middleware `trainingGate`
 
 **Body**
 
@@ -198,7 +198,7 @@ No request schema.
 
 ### `POST /api/kb/:id/ingest/text`
 
-**Access:** Signed-in user · Permission `manage_knowledge` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `manage_knowledge` · Resource role `manage` or higher · middleware `trainingGate`
 
 **Body**
 
@@ -209,7 +209,7 @@ No request schema.
 
 ### `POST /api/kb/:id/ingest/url`
 
-**Access:** Signed-in user · Permission `manage_knowledge` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `manage_knowledge` · Resource role `manage` or higher · middleware `trainingGate`
 
 **Body**
 
@@ -219,7 +219,7 @@ No request schema.
 
 ### `PATCH /api/kb/:id/publish`
 
-**Access:** Signed-in user · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Resource role `manage` or higher · middleware `trainingGate`
 
 **Body**
 
@@ -230,7 +230,7 @@ No request schema.
 
 ### `GET /api/kb/:id/query-log`
 
-**Access:** Signed-in user · Scope `kbManager` · Licence feature `kb_query_log` · middleware `trainingGate`
+**Access:** Signed-in user · Resource role `manage` or higher · Licence feature `kb_query_log` · middleware `trainingGate`
 
 **Query**
 
@@ -248,19 +248,19 @@ No request schema.
 
 ### `DELETE /api/kb/:id/query-log`
 
-**Access:** Signed-in user · Scope `kbManager` · middleware `trainingGate`
+**Access:** Signed-in user · Resource role `manage` or higher · middleware `trainingGate`
 
 **Query:** object (no other keys)
 
 ### `GET /api/kb/:id/query-log/:entryId`
 
-**Access:** Signed-in user · Scope `kbManager` · Licence feature `kb_query_log` · middleware `trainingGate`
+**Access:** Signed-in user · Resource role `manage` or higher · Licence feature `kb_query_log` · middleware `trainingGate`
 
 **Query:** object (no other keys)
 
 ### `PATCH /api/kb/:id/query-log/:entryId/review`
 
-**Access:** Signed-in user · Scope `kbManager` · Licence feature `kb_query_log` · middleware `trainingGate`
+**Access:** Signed-in user · Resource role `manage` or higher · Licence feature `kb_query_log` · middleware `trainingGate`
 
 **Body**
 
@@ -271,7 +271,7 @@ No request schema.
 
 ### `GET /api/kb/:id/query-log/export.csv`
 
-**Access:** Signed-in user · Scope `kbManager` · Licence feature `kb_query_log` · middleware `trainingGate`
+**Access:** Signed-in user · Resource role `manage` or higher · Licence feature `kb_query_log` · middleware `trainingGate`
 
 **Query**
 
@@ -287,13 +287,13 @@ No request schema.
 
 ### `GET /api/kb/:id/query-log/settings`
 
-**Access:** Signed-in user · Scope `kbManager` · Licence feature `kb_query_log` · middleware `trainingGate`
+**Access:** Signed-in user · Resource role `manage` or higher · Licence feature `kb_query_log` · middleware `trainingGate`
 
 **Query:** object (no other keys)
 
 ### `PUT /api/kb/:id/query-log/settings`
 
-**Access:** Signed-in user · Scope `kbManager` · Licence feature `kb_query_log` · middleware `trainingGate`
+**Access:** Signed-in user · Resource role `manage` or higher · Licence feature `kb_query_log` · middleware `trainingGate`
 
 **Body**
 
@@ -308,19 +308,19 @@ No request schema.
 
 ### `POST /api/kb/:id/reindex`
 
-**Access:** Signed-in user · Permission `manage_knowledge` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `manage_knowledge` · Resource role `manage` or higher · middleware `trainingGate`
 
 **Body:** object (no other keys)
 
 ### `GET /api/kb/:id/sources`
 
-**Access:** Signed-in user · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Resource role `read` or higher · middleware `trainingGate`
 
 No request schema.
 
 ### `POST /api/kb/:id/sources`
 
-**Access:** Signed-in user · Permission `manage_knowledge` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `manage_knowledge` · Resource role `manage` or higher · middleware `trainingGate`
 
 **Body**
 
@@ -336,7 +336,7 @@ No request schema.
 
 ### `PATCH /api/kb/:id/sources/:sid`
 
-**Access:** Signed-in user · Permission `manage_knowledge` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `manage_knowledge` · Resource role `manage` or higher · middleware `trainingGate`
 
 **Body**
 
@@ -350,13 +350,13 @@ No request schema.
 
 ### `DELETE /api/kb/:id/sources/:sid`
 
-**Access:** Signed-in user · Permission `manage_knowledge` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `manage_knowledge` · Resource role `manage` or higher · middleware `trainingGate`
 
 No request schema.
 
 ### `GET /api/kb/:id/sources/:sid/documents`
 
-**Access:** Signed-in user · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Resource role `read` or higher · middleware `trainingGate`
 
 **Query**
 
@@ -370,25 +370,25 @@ No request schema.
 
 ### `GET /api/kb/:id/sources/:sid/documents/:docId`
 
-**Access:** Signed-in user · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Resource role `read` or higher · middleware `trainingGate`
 
 No request schema.
 
 ### `POST /api/kb/:id/sources/:sid/files`
 
-**Access:** Signed-in user · Permission `manage_knowledge` · middleware `trainingGate`, `acceptUploads` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `manage_knowledge` · Resource role `manage` or higher · middleware `trainingGate`, `acceptUploads` · the handler also checks who the caller is
 
 No request schema.
 
 ### `POST /api/kb/:id/sources/:sid/refresh`
 
-**Access:** Signed-in user · Permission `manage_knowledge` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `manage_knowledge` · Resource role `manage` or higher · middleware `trainingGate`
 
 No request schema.
 
 ### `GET /api/kb/:id/threads`
 
-**Access:** Signed-in user · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Resource role `read` or higher · middleware `trainingGate`
 
 **Query**
 
@@ -398,13 +398,13 @@ No request schema.
 
 ### `GET /api/kb/:id/threads/:threadId/documents`
 
-**Access:** Signed-in user · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Resource role `read` or higher · middleware `trainingGate`
 
 **Query:** object (no other keys)
 
 ### `GET /api/kb/:id/usage`
 
-**Access:** Signed-in user · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Resource role `read` or higher · middleware `trainingGate`
 
 No request schema.
 
@@ -430,7 +430,7 @@ No request schema.
 
 ### `DELETE /api/kb/categories/:id`
 
-**Access:** Signed-in user · Permission `manage_knowledge` · middleware `trainingGate`
+**Access:** Signed-in user · Permission `manage_knowledge` · middleware `trainingGate` · the handler also checks who the caller is
 
 No request schema.
 
@@ -467,7 +467,7 @@ No request schema.
 
 ### `POST /api/kb/favorites/bulk`
 
-**Access:** Signed-in user · middleware `trainingGate`
+**Access:** Signed-in user · middleware `trainingGate` · the handler also checks who the caller is
 
 **Body**
 

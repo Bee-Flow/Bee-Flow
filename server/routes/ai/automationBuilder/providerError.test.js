@@ -6,7 +6,7 @@
  */
 const { test } = require('node:test');
 const assert = require('node:assert');
-const { providerErrorExcerpt } = require('./chatTurnLoop');
+const { providerErrorExcerpt } = require('../../../usecases/ai/automationBuilder/chatTurnLoop');
 
 test('a llama-server 400 body yields the template\'s own message, not the JSON envelope', () => {
     const msg = 'openai-compatible API error 400: {"error":{"code":400,"message":"Unable to generate parser for this template. Automatic parser generation failed: \\n------------\\nWhile executing CallExpression at line 110\\nError: Jinja Exception: System message must be at the beginning.","type":"invalid_request_error"}}';

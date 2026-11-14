@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * App Studio data routes: the tables and their records (list, read, create,
  * update, delete), every statement through the viewer's access filter.
@@ -34,7 +34,7 @@ async function listTables(req, res) {
         // how many others there are.
         const counts = ctx.role === 'owner' ? ((await studioAppDataStore.getRowCounts(ctx.app.id, ctx.app.userId)) || {}) : null;
         const tables = [];
-        for (const t of ctx.model.tables) {
+        for (const t of /** @type {NonNullable<typeof ctx.model.tables>} */ (ctx.model.tables)) { // resolveDataContext answered 404 without a table list
             if (!rlsGateway.canRead(t, ctx.role)) continue;
             const flags = await linkedTableFlags(ctx, t);
             if (flags === LINK_REFUSED) continue;
@@ -47,7 +47,7 @@ async function listTables(req, res) {
 
 // GET /:id/data/tables/:tableId/records — list.
 /**
- * @param {import('express').Request<{ id: string, tableId: string }, any, any, import('qs').ParsedQs & { cursor?: string, limit?: number, total?: string }>} req  query as validated by RecordsQuery
+ * @param {import('express').Request<{ id: string, tableId: string }, any, any, import('zod').infer<typeof import('./appRuntimeSchemas').RecordsQuery>>} req  query as validated by RecordsQuery
  * @param {import('express').Response} res
  */
 async function listRecords(req, res) {
@@ -89,7 +89,7 @@ async function createRecord(req, res) {
         // byte quotas (409), compileInsert, exec acts-as-owner, version/row-count
         // bumps. created_by is the SESSION user; org_id is the app's org — any
         // such keys in `values` are dropped by the compiler.
-        const { id } = await actionExecutor.writeRecord(ctx.app, ctx.model, ctx.table, values, { viewer: ctx.viewer, source: USER_WRITE });
+        const { id } = await actionExecutor.writeRecord(ctx.app, ctx.model, /** @type {NonNullable<typeof ctx.table>} */ (ctx.table), values, { viewer: ctx.viewer, source: USER_WRITE }); // resolved with a tableId
 
         const record = await readOne(ctx, id).catch((e) => fallback('routes/studio/appDataRecords:createRecord', e, null));
         res.json({ success: true, id, record });
@@ -140,7 +140,7 @@ async function updateRecord(req, res) {
         // Same choke point, update path: RLS (403), byte quota only (409), the
         // viewer's access filter ANDed into the WHERE — 0 rows = missing OR
         // out-of-scope, answered as a uniform 404.
-        const { changes } = await actionExecutor.writeRecord(ctx.app, ctx.model, ctx.table, values, {
+        const { changes } = await actionExecutor.writeRecord(ctx.app, ctx.model, /** @type {NonNullable<typeof ctx.table>} */ (ctx.table), values, { // resolved with a tableId
             viewer: ctx.viewer,
             recordId: req.params.recordId,
             expectedUpdatedAt,
@@ -187,7 +187,7 @@ async function deleteRecord(req, res) {
         // row that sits right there in the datatable, and on a table that once
         // HAD its own storage the silent wipe of the old shadow rows.
         const { changes } = await actionExecutor.eraseRecord(
-            ctx.app, ctx.model, ctx.table, req.params.recordId, { viewer: ctx.viewer, source: USER_WRITE });
+            ctx.app, ctx.model, /** @type {NonNullable<typeof ctx.table>} */ (ctx.table), req.params.recordId, { viewer: ctx.viewer, source: USER_WRITE }); // resolved with a tableId
         if (!changes) return res.status(404).json({ error: 'Record not found' });
         res.json({ success: true });
     } catch (err) { handleErr(res, err, 'records.delete'); }

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Put a turn's attachments onto its user message. Each kind is handled in
  * ./attachmentKinds; extracted text passes the Privacy Shield gate in
@@ -67,9 +67,10 @@ async function processAttachments(attachments = [], lastMsg, userId = null, opts
     };
 
     for (const att of attachments) {
-        if (att.type.includes('pdf')) {
+        // Every attachment that reaches here carries its MIME type (the upload sets it).
+        if (/** @type {string} */ (att.type).includes('pdf')) {
             await appendPdf(att, /** @type {import('./attachmentKinds').LastMsg} */ (lastMsg), ctx);
-        } else if (att.type.startsWith('image/')) {
+        } else if (/** @type {string} */ (att.type).startsWith('image/')) {
             await appendImage(att, /** @type {import('./attachmentKinds').LastMsg} */ (lastMsg), ctx);
         } else if ((att.source === 'gmail' || (att.type && att.type.startsWith('text/'))) && typeof att.content === 'string' && !att.content.startsWith('data:')) {
             await appendInlineText(att, /** @type {import('./attachmentKinds').LastMsg} */ (lastMsg), ctx);

@@ -223,6 +223,7 @@ export default function CmsAssistantPane({
                         onClick={onClose}
                         className="ml-auto p-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
                         title={t('cms_site.site.assistant.close', 'Close assistant')}
+                        aria-label={t('cms_site.site.assistant.close', 'Close assistant')}
                     >
                         <AppIcon name="X" className="w-3.5 h-3.5" />
                     </button>

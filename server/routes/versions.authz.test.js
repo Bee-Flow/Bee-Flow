@@ -22,6 +22,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const Module = require('module');
+const { fakeAgentGates } = require('./agents/agentGate.testkit');
 
 // ── Mutable fixtures ─────────────────────────────────────────────────
 const fx = {
@@ -64,13 +65,16 @@ const MOCKS = {
     '../utils/routeHelpers': {
         getEffectiveUserId: (req) => req.session?.user?.id || 'guest',
     },
-    './agents/crud': {
-        canModifyAgent: async (agent, userId, req) => {
-            fx.canModifyCalls.push({ agentId: agent?.id, userId, hasReq: !!req });
-            return fx.canModify;
-        },
-    },
 };
+// The real edit gate over the fixture's verdict: a reader who may not edit gets the 403.
+MOCKS['./agents/crud'] = fakeAgentGates({
+    agentStore: MOCKS['../stores/agentStore'],
+    canModify: (agent, req) => {
+        fx.canModifyCalls.push({ agentId: agent?.id, userId: req.session?.user?.id, hasReq: !!req });
+        return fx.canModify;
+    },
+    userId: (req) => req.session?.user?.id || 'guest',
+});
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
     const mockId = `mock:versions-authz:${request}`;

@@ -385,10 +385,12 @@ test('POST /checks/:id/run: the happy path returns the runner result as-is', asy
 // ── POST /checks/:id/auto-fix ──────────────────────────────────────────────
 
 test('POST /checks/:id/auto-fix runs the fix with the actor, re-runs the check, and reports 400 on refusal', async () => {
-    const ok = await getJson('/checks/GDPR-Art32-dlp-enabled/auto-fix', { method: 'POST', body: JSON.stringify({ mode: 'redact' }) });
-    assert.equal(ok.status, 200);
-    assert.deepEqual(ok.body, { ok: true, result: { fixed: true } });
-    assert.deepEqual(calls.autoFix, [{ orgId: 'orgA', id: 'GDPR-Art32-dlp-enabled', opts: { mode: 'redact', actorId: 'u1' } }]);
+    const ok = await getJson('/checks/GDPR-Art32-dlp-enabled/auto-fix', { method: 'POST', body: JSON.stringify({ subjectId: 'p1', actorId: 'forged' }) });
+    assert.equal(ok.status, 400, 'the actor is the session, never the body');
+    const fixed = await getJson('/checks/GDPR-Art32-dlp-enabled/auto-fix', { method: 'POST', body: JSON.stringify({ subjectId: 'p1' }) });
+    assert.equal(fixed.status, 200);
+    assert.deepEqual(fixed.body, { ok: true, result: { fixed: true } });
+    assert.deepEqual(calls.autoFix, [{ orgId: 'orgA', id: 'GDPR-Art32-dlp-enabled', opts: { subjectId: 'p1', actorId: 'u1' } }]);
     assert.deepEqual(calls.runOne, [{ orgId: 'orgA', id: 'GDPR-Art32-dlp-enabled' }], 'the UI gets a fresh result');
 
     autoFixImpl = async () => { throw new Error('no auto-fix for this check'); };
@@ -403,6 +405,16 @@ test('POST /checks/:id/auto-fix: a failed re-run never turns a successful fix in
     const { status, body } = await getJson('/checks/GDPR-Art32-dlp-enabled/auto-fix', { method: 'POST' });
     assert.equal(status, 200);
     assert.equal(body.ok, true);
+});
+
+test('the run and auto-fix bodies are closed: an unknown field is refused by name and nothing runs', async () => {
+    for (const [p, field] of [['/checks/run', 'force'], ['/checks/GDPR-Art32-dlp-enabled/run', 'force'], ['/checks/GDPR-Art32-dlp-enabled/auto-fix', 'mode']]) {
+        const res = await getJson(p, { method: 'POST', body: JSON.stringify({ [field]: 'x' }) });
+        assert.equal(res.status, 400, p);
+        assert.equal(res.body.code, 'invalid_request');
+        assert.match(res.body.error, new RegExp(`does not take "${field}"`));
+    }
+    assert.deepEqual([calls.runAll, calls.runOne, calls.autoFix], [[], [], []]);
 });
 
 // ── The gate ───────────────────────────────────────────────────────────────

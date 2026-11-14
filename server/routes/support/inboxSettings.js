@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Tenant Support Inbox: what the settings UI reads, and the live feed.
  * The org-scoped canned replies, tags and insights, the teammates and the
@@ -15,8 +15,7 @@ const access = require('../../support/access');
 const audit = require('../../support/audit');
 const { supportEvents } = require('../support');
 const { getUserId, resolveOrgScope, loadInboxInScope } = require('./inboxScope');
-const log = require('../../telemetry/log');
-const { fallback, bestEffort } = require('../../utils/bestEffort');
+const { fallback, bestEffort, ignoreGone } = require('../../utils/bestEffort');
 
 /**
  * @param {import('express').Request} req
@@ -79,7 +78,7 @@ async function teammates(req, res) {
     const seen = new Set();
     const out = [];
     for (const orgId of scope) {
-        const ids = await _eligibleStaffForOrg(orgId, { tenantInbox: true }).catch((e) => fallback('routes/support/inboxSettings:teammates', e, []));
+        const ids = await _eligibleStaffForOrg(orgId, { tenantInbox: true }).catch((e) => fallback('routes/support/inboxSettings:teammates', e, /** @type {string[]} */ ([])));
         for (const id of ids) {
             if (seen.has(id)) continue;
             seen.add(id);
@@ -111,7 +110,7 @@ async function availableIntegrations(req, res) {
 
     const userStore = require('../../stores/userStore');
     const { _eligibleStaffForOrg } = require('../../services/supportAutoAssigner');
-    const eligible = await _eligibleStaffForOrg(inbox.organization_id, { tenantInbox: true }).catch((e) => fallback('routes/support/inboxSettings:availableIntegrations', e, []));
+    const eligible = await _eligibleStaffForOrg(inbox.organization_id, { tenantInbox: true }).catch((e) => fallback('routes/support/inboxSettings:availableIntegrations', e, /** @type {string[]} */ ([])));
     if (!Array.isArray(eligible) || !eligible.includes(operatorUserId)) {
         return res.status(400).json({ error: "Operator must be a member of this inbox's organisation." });
     }
@@ -177,8 +176,8 @@ async function stream(req, res) {
     let cleaned = false;
     const cleanup = () => {
         if (cleaned) return; cleaned = true;
-        try { if (heartbeat) heartbeat(); } catch (err) { log.debug('heartbeat already stopped', err); }
-        try { if (listener) supportEvents.off('event', listener); } catch (err) { log.debug('listener already removed', err); }
+        try { if (heartbeat) heartbeat(); } catch (err) { ignoreGone('routes/support/inboxSettings:stopHeartbeat', err); }
+        try { if (listener) supportEvents.off('event', listener); } catch (err) { ignoreGone('routes/support/inboxSettings:removeListener', err); }
         try { markEnded(); } catch (err) { bestEffort('routes/support/inboxSettings:cleanup', err); /* stream already marked ended */ }
     };
     try {
@@ -251,7 +250,7 @@ async function _resolveAccessMembers(inbox, sharedGroups) {
     try {
         const userStore = require('../../stores/userStore');
         const { _eligibleStaffForOrg } = require('../../services/supportAutoAssigner');
-        const eligible = await _eligibleStaffForOrg(inbox.organization_id, { tenantInbox: true }).catch((e) => fallback('routes/support/inboxSettings:_resolveAccessMembers', e, []));
+        const eligible = await _eligibleStaffForOrg(inbox.organization_id, { tenantInbox: true }).catch((e) => fallback('routes/support/inboxSettings:_resolveAccessMembers', e, /** @type {string[]} */ ([])));
         let memberIds = Array.isArray(eligible) ? eligible : [];
         if (Array.isArray(sharedGroups) && sharedGroups.length) {
             const filtered = [];
@@ -307,10 +306,10 @@ async function getAccess(req, res) {
 async function putAccess(req, res) {
     const inbox = await loadInboxInScope(req, res, req.params.id);
     if (!inbox) return;
-    // Only org admins (or super admins / the inbox owner) may change access —
-    // org admins always pass loadInboxInScope, so an inbox can't be locked
-    // away from its own org's admins.
-    const isOrgAdmin = await access.resolveIsOrgAdmin(req);
+    // Only the inbox organisation's admins (or super admins / the inbox owner)
+    // may change access; they always pass loadInboxInScope, so an inbox can't
+    // be locked away from its own org's admins.
+    const { isOrgAdmin } = await access.inboxRightsIn(req, inbox.organization_id);
     const { orgIds } = await access.resolveOrgScope(req);
     const isOwner = inbox.created_by && inbox.created_by === getUserId(req);
     if (!(isOrgAdmin || orgIds === null || isOwner)) {
@@ -328,7 +327,7 @@ async function putAccess(req, res) {
 }
 
 /**
- * @param {import('express').Request<{ id: string }, any, any, { inbox?: string, actor?: string, action?: string, from?: string, to?: string, cursor?: string, limit?: string }>} req
+ * @param {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof import('./inboxSchemas').InboxAuditQuery>>} req
  * @param {import('express').Response} res
  */
 async function inboxAudit(req, res) {
@@ -348,7 +347,7 @@ async function inboxAudit(req, res) {
 // config events (inbox_id IS NULL) within their org scope — a forbidden inbox's
 // events can never leak here.
 /**
- * @param {import('express').Request<{}, any, any, { inbox?: string, actor?: string, action?: string, from?: string, to?: string, cursor?: string, limit?: string }>} req
+ * @param {import('express').Request<{}, any, any, import('zod').infer<typeof import('./inboxSchemas').AuditQuery>>} req
  * @param {import('express').Response} res
  */
 async function orgAudit(req, res) {

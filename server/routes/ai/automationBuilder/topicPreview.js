@@ -21,7 +21,7 @@ const { z, typeError } = require('../../../utils/zod');
 const { requireAuth } = require('../../../auth/permissions');
 const { validate } = require('../../../core/http/validate');
 const { HttpError } = require('../../../core/http/errors');
-const { topicPreviewRateLimit } = require('./rateLimits');
+const { topicPreviewRateLimit } = require('../../../usecases/ai/automationBuilder/rateLimits');
 const { requireAutomationsBeta } = require('./routeRules');
 const {
     MAX_TOPIC_LABELS, MAX_TOPIC_LABEL_CHARS, MAX_TOPIC_TEXT_CHARS, normalizeTopicText, topicLabel,
@@ -71,7 +71,7 @@ async function previewTopics(body, { classify } = {}) {
     return { texts, labels, scores: result.scores, defaultThreshold: result.defaultThreshold };
 }
 
-router.post('/topic-preview', requireAuth, topicPreviewRateLimit, requireAutomationsBeta, validate({ body: TopicPreviewBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof TopicPreviewBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/topic-preview', requireAuth, topicPreviewRateLimit, requireAutomationsBeta, validate({ body: TopicPreviewBody }), async (req, res) => {
     res.json(await previewTopics(req.body));
 });
 

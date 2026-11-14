@@ -1,3 +1,4 @@
+// @typecheck strict
 /** @typedef {import('zod').ZodString} ZodString */
 /**
  * POST /agents/:id/persona/parse — "back to fields" (A1c).
@@ -54,11 +55,11 @@ const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {
 
 const ParseBody = bodyOf({ text: worded('text is the instruction to read.').nullish() });
 
-const agentStore = require('../../stores/agentStore');
 const llmClient = require('../../core/llm/llmClient');
 const { resolveModelForTierName } = require('../../core/llm/modelResolver');
 const { requirePermission, resolveUserOrgIds } = require('../../auth');
-const { getEffectiveUserId } = require('../../utils/routeHelpers');
+const { requireAgentGrade } = require('./crud');
+const { agentAccessOf } = require('../../auth/agentAccess.mts');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const personaPrompt = require('../../core/agentRuntime/personaPrompt');
 const { logSurfaceUsage } = require('../../core/llm/surfaceUsage');
@@ -106,25 +107,15 @@ const SYSTEM = [
     'Bullets are short: one instruction each, no numbering, no trailing punctuation.',
 ].join(' ');
 
-router.post('/:id/persona/parse', requirePermission('manage_agents'), parseLimiter, validate({ body: ParseBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof ParseBody>, import('qs').ParsedQs>} */ req, res) => {
-    const userId = getEffectiveUserId(req);
-    const agent = await agentStore.getAgent(req.params.id);
-    if (!agent) return res.status(404).json({ error: 'Agent not found' });
-
-    const { canModifyAgent } = require('./crud');
-    if (!(await canModifyAgent(agent, userId, req))) {
-        return res.status(403).json({
-            error: 'You do not have permission to edit this agent.',
-            code: 'agent_not_editable',
-        });
-    }
+router.post('/:id/persona/parse', requirePermission('manage_agents'), parseLimiter, requireAgentGrade('edit'), validate({ body: ParseBody }), async (req, res) => {
+    const { agent, userId } = agentAccessOf(req);
 
     // The text to parse: what the editor has on screen, or — when it sends
     // nothing — the agent's own free text / prompt. Both are the concept,
     // which is what this caller is allowed to read (the gate above is the
     // editor gate, not the chat gate).
     const supplied = typeof req.body?.text === 'string' ? req.body.text : null;
-    const stored = (agent.persona && agent.persona.freeText) || agent.system_prompt || '';
+    const stored = String((agent.persona && /** @type {{ freeText?: string }} */ (agent.persona).freeText) || agent.system_prompt || '');
     const text = (supplied !== null ? supplied : stored).slice(0, personaPrompt.LIMITS.freeText);
     if (!text.trim()) {
         return res.status(400).json({ error: 'There is no instruction text to read.', code: 'persona_empty' });

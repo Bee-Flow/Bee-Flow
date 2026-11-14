@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Umami analytics client — thin wrapper over a self-hosted Umami instance.
  *
@@ -90,6 +90,7 @@ async function isConfigured() {
  * Mint (or reuse) an auth token. Returns the header object to merge into a
  * request. Prefers a configured api token; otherwise logs in with user/pass.
  * @param {boolean} [forceRefresh]
+ * @returns {Promise<Record<string, string>>}
  */
 async function getAuthHeaders(forceRefresh = false) {
     const e = await getEndpoint();
@@ -261,7 +262,7 @@ async function getMetrics(websiteId, { type, startAt, endAt, limit = 10, filters
     const call = (t) => api('GET', `/api/websites/${websiteId}/metrics`, {
         query: { type: t, startAt, endAt, limit, ...filters },
     });
-    const legacy = LEGACY_METRIC_TYPES[type];
+    const legacy = LEGACY_METRIC_TYPES[/** @type {string} */ (type)]; // an unknown or missing type has no legacy name
     if (!legacy) return call(type);
     if (_legacyMetricNames === true) return call(legacy);
     try {

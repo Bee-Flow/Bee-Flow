@@ -27,16 +27,17 @@ const Module = require('module');
 const touched = [];
 const pass = (req, res, next) => next();
 
+const { fakeKbGates } = require('./kbGate.testkit');
 const MOCKS = {
-    // No base by that id: a request the schema lets through ends at the 404,
-    // before anything is fetched.
-    '../../stores/knowledgeBases': { getKB: async (id) => { touched.push({ what: 'getKB', args: [id] }); return null; } },
+    // The gate loads the base before the schema; a request the schema lets
+    // through ends at the fetch, which this test stops.
+    '../../stores/knowledgeBases': { getKB: async (id) => ({ id, name: 'Handboek', organization_id: 'org1' }) },
     '../../auth': { requireAuth: pass, requirePermission: () => pass },
     '../../core/kb/kbIngestionHelpers': { ingestDocument: async () => { throw new Error('not reached'); } },
     './shared': {
         getUserId: () => 'u1',
-        guardedFetch: async () => { throw new Error('not reached'); },
-        canManageKB: async () => true,
+        guardedFetch: async (u) => { touched.push({ what: 'guardedFetch', args: [String(u)] }); throw new Error('stopped at the fetch'); },
+        ...fakeKbGates({ kbStore: { getKB: (id) => MOCKS['../../stores/knowledgeBases'].getKB(id) }, canRead: () => true }),
         blockIfSystemKB: () => false,
         ensureKbSource: async () => null,
     },
@@ -116,6 +117,6 @@ test('a fractional page count is refused, not truncated', async () => {
 
 test('a page count sent as digits still passes, as Number() let it', async () => {
     const res = await dispatch({ body: { url: 'https://example.com', maxPages: '10' } });
-    assert.strictEqual(res.statusCode, 404, 'past the schema, to the (stubbed) missing base');
-    assert.deepStrictEqual(touched, [{ what: 'getKB', args: ['kb1'] }]);
+    assert.notStrictEqual(res.statusCode, 400, 'past the schema');
+    assert.ok(touched.length > 0 && touched.every((t) => t.what === 'guardedFetch'), 'to the fetch');
 });

@@ -16,6 +16,9 @@
  *     and "not allowed" remain different answers;
  *   • a table without `source` behaves exactly as it always has.
  *
+ * The datatable's rows live in a real Postgres: the planner's table on PGlite
+ * behind the datatableDbStore surface (testUtils/pgDatatableEngine.testkit.js).
+ *
  * Run: cd server && node --test --test-reporter=tap appStudio/stepDataSource.datatable.test.js
  */
 
@@ -23,6 +26,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
+const { pgDatatableEngine } = require('../testUtils/pgDatatableEngine.testkit');
 
 const ORG = 'org-a';
 const OWNER = 'u-owner';
@@ -50,14 +54,21 @@ stub('../stores/datatableStore', {
     }),
 });
 
-const dtQueries = [];
+/** @type {Awaited<ReturnType<typeof pgDatatableEngine>>} */
+let dt;
+const DT_META = { id: DT_ID, key: 'dt_klanten', fields: [{ id: 'f1', key: 'naam', type: 'text' }] };
+// Handed out before the engine boots; the methods reach it at call time.
 stub('../stores/datatableDbStore', {
     scopeKey: (scope) => `${scope.kind}:${scope.id}`,
-    query: async (ownerId, entityId, sql, params) => {
-        dtQueries.push({ ownerId, entityId, sql, params });
-        return { rows: [{ id: 'rec_1', naam: 'Acme' }] };
-    },
+    query: (ownerId, entityId, sql, params) => dt.store.query(ownerId, entityId, sql, params),
 });
+const dtCalls = () => dt.calls.filter((c) => c.fn === 'query');
+test.before(async () => {
+    dt = await pgDatatableEngine([DT_META]);
+    await dt.insert('dt_klanten', { id: 'rec_1', naam: 'Acme', created_by: MEMBER, org_id: ORG });
+    await dt.insert('dt_klanten', { id: 'rec_2', naam: 'Bee', created_by: OWNER, org_id: ORG });
+});
+test.after(() => dt.close());
 
 const appQueries = [];
 stub('../stores/studioAppDbStore', {
@@ -121,7 +132,7 @@ const EDITOR_GRANT = [{ grantee_type: 'user', grantee_id: MEMBER, grade: 'editor
 function reset({ table = datatable(), granted = [] } = {}) {
     dtRow = table;
     grants = granted;
-    dtQueries.length = 0;
+    if (dt) dt.calls.length = 0;
     appQueries.length = 0;
 }
 
@@ -145,13 +156,12 @@ async function refusal(promise) {
 test('de rijen komen uit de DATATABEL, op de scope-sleutel, niet uit de app-opslag', async () => {
     reset({ granted: EDITOR_GRANT });
     const rows = await stepDataSource.resolveDataBinding(app, model(), RECORDS, opts());
-    assert.deepStrictEqual(rows, [{ id: 'rec_1', naam: 'Acme' }]);
+    // The datatable's PHYSICAL table, not the model table's empty shadow.
+    assert.deepStrictEqual(rows.map((r) => [r.id, r.naam]).sort(), [['rec_1', 'Acme'], ['rec_2', 'Bee']]);
     assert.strictEqual(appQueries.length, 0, 'studioAppDbStore mag hier nooit geraakt worden');
-    assert.strictEqual(dtQueries.length, 1);
-    assert.strictEqual(dtQueries[0].ownerId, `org:${ORG}`);
-    assert.strictEqual(dtQueries[0].entityId, `org:${ORG}`);
-    // De FYSIEKE naam van de datatabel, niet die van de modeltabel.
-    assert.match(dtQueries[0].sql, /FROM "dt_klanten"/);
+    assert.strictEqual(dtCalls().length, 1);
+    assert.strictEqual(dtCalls()[0].ownerId, `org:${ORG}`);
+    assert.strictEqual(dtCalls()[0].entityId, `org:${ORG}`);
 });
 
 test('kind:record levert één rij en houdt dezelfde opslag aan', async () => {
@@ -159,16 +169,14 @@ test('kind:record levert één rij en houdt dezelfde opslag aan', async () => {
     const row = await stepDataSource.resolveDataBinding(
         app, model(), { kind: 'record', tableId: 'tbl_model01' }, opts(),
     );
-    assert.deepStrictEqual(row, { id: 'rec_1', naam: 'Acme' });
+    assert.ok(row && ['rec_1', 'rec_2'].includes(row.id), 'one row of the datatable');
     assert.strictEqual(appQueries.length, 0);
 });
 
 test('row_scope:own bindt de filter aan de KIJKER, niet aan de app-eigenaar', async () => {
     reset({ table: datatable({ rowScope: 'own' }), granted: EDITOR_GRANT });
-    await stepDataSource.resolveDataBinding(app, model(), RECORDS, opts());
-    assert.match(dtQueries[0].sql, /"created_by" = \?/);
-    assert.ok(dtQueries[0].params.includes(MEMBER), 'de rijfilter bindt de kijker');
-    assert.strictEqual(dtQueries[0].params.includes(OWNER), false);
+    const rows = await stepDataSource.resolveDataBinding(app, model(), RECORDS, opts());
+    assert.deepStrictEqual(rows.map((r) => r.id), ['rec_1'], 'the row filter binds the viewer, not the app owner');
 });
 
 test('een kijker zonder graad krijgt een WEIGERING, geen lege context', async () => {
@@ -179,7 +187,7 @@ test('een kijker zonder graad krijgt een WEIGERING, geen lege context', async ()
     assert.strictEqual(err.status, 403);
     assert.strictEqual(err.safe, true);
     assert.match(err.message, /do not have access/i);
-    assert.strictEqual(dtQueries.length, 0);
+    assert.strictEqual(dtCalls().length, 0);
     assert.strictEqual(appQueries.length, 0);
 });
 
@@ -210,7 +218,7 @@ test('een tabel ZONDER source leest nog precies zoals altijd', async () => {
     assert.strictEqual(appQueries.length, 1);
     assert.strictEqual(appQueries[0].ownerId, OWNER);
     assert.strictEqual(appQueries[0].appId, 'app-1');
-    assert.strictEqual(dtQueries.length, 0);
+    assert.strictEqual(dtCalls().length, 0);
 });
 
 test('een tabel die niet in het model staat blijft null — dat is geen weigering', async () => {
@@ -219,6 +227,6 @@ test('een tabel die niet in het model staat blijft null — dat is geen weigerin
         app, model(), { kind: 'records', tableId: 'tbl_weg' }, opts(),
     );
     assert.strictEqual(out, null);
-    assert.strictEqual(dtQueries.length, 0);
+    assert.strictEqual(dtCalls().length, 0);
     assert.strictEqual(appQueries.length, 0);
 });

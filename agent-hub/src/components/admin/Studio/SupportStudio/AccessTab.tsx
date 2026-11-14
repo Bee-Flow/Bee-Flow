@@ -1,11 +1,11 @@
 import React, { useEffect, useEffectEvent, useState, useCallback, useRef } from 'react';
 import { Users, ShieldCheck, ChevronDown } from 'lucide-react';
 import useTranslation from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
 import { useInboxAccess } from '@/api/queries/studioSupport';
 import Section from '@/components/shared/Section';
 import type { SupportInbox, SupportTeammate, SupportUser } from './supportStudio.types';
-import { mutate, errorBody, RefusedError } from '@/api/mutate';
+import { errorBody, RefusedError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 interface AccessGroup {
     id: string;
@@ -74,9 +74,7 @@ export default function AccessTab({ inbox, user, onChanged }: AccessTabProps) {
         try {
             let res: Response;
             try {
-                res = await mutate(`${API_BASE}/api/support-inbox/inboxes/${inboxId}/access`, {
-                method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sharedGroups: nextGroups }),
-            });
+                res = await apiRequest('PUT /api/support-inbox/inboxes/{id}/access', { params: { id: inboxId }, body: { sharedGroups: nextGroups } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const d = errorBody(err) ?? {};

@@ -21,7 +21,7 @@ const { resolveModelForTierName } = require('../../../core/llm/modelResolver');
 const llmClient = require('../../../core/llm/llmClient');
 const { summariseDefinition } = require('../../../automation/summarise');
 const { requireAuth } = require('../../../auth/permissions');
-const { summariseLayerRateLimit } = require('./rateLimits');
+const { summariseLayerRateLimit } = require('../../../usecases/ai/automationBuilder/rateLimits');
 
 const MAX_LAYER_STEPS_FOR_SUMMARY = 200;
 
@@ -80,7 +80,8 @@ router.post('/summarise-layer', requireAuth, summariseLayerRateLimit, validate({
 
     // Bounded by the schema — a real flowlet is a handful of steps, and an
     // obviously malformed/oversized payload never reaches the model.
-    const { layer } = req.body;
+    // validateLayerForSummary (the schema's refinement) has checked the shape.
+    const layer = /** @type {Record<string, any>} */ (req.body.layer);
 
     // Reuse the deterministic, side-effect-aware renderer the builder
     // already uses everywhere else; the model just makes it friendly.

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Direct Chat — the two adapter stream callbacks of a turn.
  *
@@ -13,7 +13,7 @@
 /** @typedef {ReturnType<typeof import('./turnState').createTurnState>} Turn */
 /** @typedef {import('./toolExec').StreamEventData} StreamEventData */
 const { makeStreamCallback } = require('./toolExec');
-const { createDisplaySegments } = require('./displaySegments');
+const { createDisplaySegments } = require('../../../usecases/ai/directChat/displaySegments');
 const { extractPartialJsonString } = require('./shared');
 const log = require('../../../telemetry/log');
 const { fallback } = require('../../../utils/bestEffort');
@@ -25,14 +25,16 @@ const { fallback } = require('../../../utils/bestEffort');
  * as raw placeholders until the end-of-stream `content_replace` swaps them.
  * Each chunk now passes through a buffered un-tokeniser that holds a `[…`
  * tail until the closing `]` arrives, then replaces in place. The map is read
- * through a LIVE getter so tokens added mid-turn are picked up.
+ * through a LIVE getter so tokens added mid-turn are picked up. A turn without
+ * a conversation (incognito) reads the map its input gates minted, held on the
+ * turn state for this turn only.
  * @param {Turn} turn
  */
 function createUntokeniserSink(turn) {
     const { send } = turn;
     const { createUntokeniser: _createUntok } = require('../../../core/dlp/untokeniseStream');
     const _dlpRunnerForStream = require('../../../core/dlp/dlpRunner');
-    turn._streamUntok = _createUntok(() => _dlpRunnerForStream.getConversationTokenMap(turn.convId));
+    turn._streamUntok = _createUntok(() => _dlpRunnerForStream.getTurnTokenMap(turn.convId, turn.piiTokenMap));
     /** @param {string} text */
     turn.streamContent = (text) => {
         if (!text) return;
@@ -118,7 +120,7 @@ function maybeStreamNotebook(turn, toolName, partialArgs) {
 function persistStreamedImage(turn, data) {
     const { send, userId } = turn;
     /** @type {{ data: string, mimeType: string, url?: string, storageKey?: string }} */
-    const imgEntry = { data: data.data, mimeType: data.mimeType };
+    const imgEntry = { data: /** @type {string} */ (data.data), mimeType: /** @type {string} */ (data.mimeType) }; // an image event carries both
     turn.generatedImages.push(imgEntry);
     send('image', { data: data.data, mimeType: data.mimeType });
     // Incognito: shown inline once, never stored (there is no reload to render it for).

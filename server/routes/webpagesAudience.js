@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * "Who sees the page, and the address" — the owner-only REST side of the
  * fourth row (Public) and of the Address card.
@@ -58,6 +58,7 @@ const audience = require('../core/webpages/webpagePublicAudience');
 const webpageUsageSync = require('../core/webpages/webpageUsageSync');
 const { requireAuth } = require('../auth/permissions');
 const { validate } = require('../core/http/validate');
+const { sessionUser } = require('../core/http/sessionUser');
 const { HttpError } = require('../core/http/errors');
 const { z, onUnknownKeys, typeError } = require('../utils/zod');
 const { worded, bodyOf, choice } = require('./webpages/schemas');
@@ -129,7 +130,7 @@ function publicBaseUrl(req) {
  * @param {import('express').Response} res
  */
 async function ownedWebpage(req, res) {
-    const wp = await webpageStore.getWebpage(req.params.id, req.session.user.id);
+    const wp = await webpageStore.getWebpage(req.params.id, sessionUser(req).id);
     if (!wp) {
         res.status(404).json({ error: 'Webpage not found' });
         return null;
@@ -172,7 +173,7 @@ async function liveCanonicalShare(webpage) {
  */
 async function countLiveShares(webpageId, ownerId) {
     try {
-        const list = await publicShareStore.listSharesForWebpage(webpageId, ownerId);
+        const list = /** @type {Array<NonNullable<Awaited<ReturnType<typeof publicShareStore.listSharesForWebpage>>[number]>>} */ (await publicShareStore.listSharesForWebpage(webpageId, ownerId)); // rows mapped one to one
         const now = Date.now();
         return (list || []).filter(s => !s.revokedAt
             && !(s.expiresAt && new Date(s.expiresAt).getTime() < now)).length;
@@ -319,7 +320,7 @@ router.get('/:id/audience', requireAuth, validate({ query: NO_QUERY }), /** @par
 router.put('/:id/audience/public', requireAuth, validate({ body: PublicBody }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
     const wp = await ownedWebpage(req, res);
     if (!wp) return;
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const body = req.body || {};
 
     if (body.on === false) {

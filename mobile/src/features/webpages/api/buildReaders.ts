@@ -1,7 +1,7 @@
 /**
  * Contract readers for building a page: its sources (stores/webpage/sources.js
  * mapSourceRow), its versions (stores/webpage/versions.js getVersions, as
- * routes/webpages/versionListing.js decorates them), its file bodies (GET
+ * usecases/webpages/versionListing.js decorates them), its file bodies (GET
  * /:id `files`) and the draft document (routes/webpages/draftDocument.js).
  */
 

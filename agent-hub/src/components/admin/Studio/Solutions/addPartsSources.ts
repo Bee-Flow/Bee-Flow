@@ -1,6 +1,7 @@
-import { API_BASE, authFetch } from '@/utils/helpers';
+import { authFetch } from '@/utils/helpers';
 import { SECTIONS, itemLabel, type SolutionSection } from './solutionSections';
 import { logger } from '@/utils/logger';
+import { apiFetch, apiUrl } from '@/api/typedRequest';
 
 /**
  * Where "Add to this Solution" gets its candidates, and how a candidate becomes
@@ -31,15 +32,15 @@ import { logger } from '@/utils/logger';
  */
 
 export const SOURCE: Record<string, string> = {
-    notebook: `${API_BASE}/api/notebooks`,
-    app: `${API_BASE}/api/studio-apps`,
-    automation: `${API_BASE}/api/automation`,
-    webpage: `${API_BASE}/api/webpages`,
-    datatable: `${API_BASE}/api/datatables`,
-    agent: `${API_BASE}/agents`,
-    skill: `${API_BASE}/api/skills`,
-    document_template: `${API_BASE}/api/studio-documents?kind=template&limit=200`,
-    knowledge_base: `${API_BASE}/api/kb`,
+    notebook: apiUrl('GET /api/notebooks'),
+    app: apiUrl('GET /api/studio-apps'),
+    automation: apiUrl('GET /api/automation'),
+    webpage: apiUrl('GET /api/webpages'),
+    datatable: apiUrl('GET /api/datatables'),
+    agent: apiUrl('GET /agents'),
+    skill: apiUrl('GET /api/skills'),
+    document_template: apiUrl('GET /api/studio-documents', { query: { kind: 'template', limit: 200 } }),
+    knowledge_base: apiUrl('GET /api/kb'),
 };
 
 /** The kinds that can be added from here, in the order the registry lists them. */
@@ -121,7 +122,7 @@ export async function loadKind(kind: string, ctx: { projectId: string; alreadyIn
 export async function loadSolutionNames(): Promise<Map<string, string>> {
     const names = new Map<string, string>();
     try {
-        const res = await authFetch(`${API_BASE}/api/projects/summary?checks=0`);
+        const res = await apiFetch('GET /api/projects/summary', { query: { checks: '0' } });
         const body: unknown = res.ok ? await res.json().catch(() => null) : null;
         const list = body && typeof body === 'object' ? (body as { projects?: unknown }).projects : null;
         for (const p of Array.isArray(list) ? list : []) {
@@ -136,11 +137,7 @@ export type AttachResult = { ok: true } | { ok: false; body: unknown };
 /** File one item into the Solution. The server decides; its refusal comes back as `body`. */
 export async function attachItem(projectId: string, kind: string, id: string): Promise<AttachResult> {
     try {
-        const res = await authFetch(`${API_BASE}/api/projects/${encodeURIComponent(projectId)}/resources`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ kind, id, attach: true }),
-        });
+        const res = await apiFetch('PUT /api/projects/{id}/resources', { params: { id: projectId }, body: { kind, id, attach: true } });
         if (res.ok) return { ok: true };
         return { ok: false, body: await res.json().catch(() => ({})) };
     } catch {

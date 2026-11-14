@@ -1,16 +1,24 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle, Newspaper, RefreshCw } from 'lucide-react';
-import { API_BASE } from '@/utils/helpers';
 import { settled } from '@/api/settled';
 import { useTranslation } from '@/hooks/useTranslation';
 import { messageOf } from '@/utils/caughtError';
-import { request, RefusedError } from '@/api/mutate';
+import { RefusedError } from '@/api/mutate';
 import ReleaseNoteCard from './ReleaseNoteCard';
 import type { ReleaseNoteEntry } from './ReleaseNoteCard';
 import EmptyState from '@/components/shared/EmptyState';
 import SectionHeader from '@/components/shared/SectionHeader';
 import Spinner from '@/components/shared/Spinner';
 import { ALERT_ERROR, SECONDARY_BTN } from '@/components/mcpLibrary/ui';
+import { apiRequest, apiUrl } from '@/api/typedRequest';
+
+/** The operation of a card's action: the entry itself (PUT, DELETE) or its publish switch. */
+function noteActionKey(path: string, method: string) {
+    if (path === '/publish') return 'POST /api/release-notes/admin/{id}/publish' as const;
+    if (path === '/unpublish') return 'POST /api/release-notes/admin/{id}/unpublish' as const;
+    return method === 'DELETE' ? 'DELETE /api/release-notes/admin/{id}' as const : 'PUT /api/release-notes/admin/{id}' as const;
+}
 
 /**
  * Release notes review queue — the human gate.
@@ -26,54 +34,57 @@ import { ALERT_ERROR, SECONDARY_BTN } from '@/components/mcpLibrary/ui';
  * The panel says so rather than letting someone lose work silently.
  */
 
+const RELEASE_NOTES_KEY = ['cms', 'releaseNotes', 'admin'] as const;
+const NO_ENTRIES: ReleaseNoteEntry[] = [];
+
+async function readReleaseNotes(): Promise<ReleaseNoteEntry[]> {
+    let res: Response;
+    try {
+        res = await apiRequest('GET /api/release-notes/admin');
+    } catch (err) {
+        if (!(err instanceof RefusedError)) throw err;
+        throw new Error(`Request failed (${err.status})`, { cause: err });
+    }
+    const data = await res.json();
+    return Array.isArray(data.entries) ? data.entries : [];
+}
+
 export default function ReleaseNotesPanel() {
     const { t } = useTranslation();
-    const [entries, setEntries] = useState<ReleaseNoteEntry[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [busyId, setBusyId] = useState<string | null>(null);
-    const [error, setError] = useState('');
+    const queryClient = useQueryClient();
+    const query = useQuery<ReleaseNoteEntry[]>({
+        queryKey: RELEASE_NOTES_KEY,
+        staleTime: 0,
+        retry: false,
+        queryFn: readReleaseNotes,
+    });
+    const entries = query.data ?? NO_ENTRIES;
+    const loading = query.isFetching;
+    // An action's failure; a failed read is the query's own error.
+    const [actError, setActError] = useState('');
+    const error = actError || (query.error ? messageOf(query.error, 'Could not load release notes') : '');
+    const { refetch } = query;
+    const load = () => { setActError(''); void refetch(); };
 
-    const load = useCallback(async () => {
-        setLoading(true);
-        setError('');
-        try {
-            let res: Response;
-            try {
-                res = await request(`${API_BASE}/api/release-notes/admin`);
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                throw new Error(`Request failed (${err.status})`);
-            }
-            const data = await res.json();
-            setEntries(Array.isArray(data.entries) ? data.entries : []);
-        } catch (e) {
-            setError(messageOf(e, 'Could not load release notes'));
-        }
-        setLoading(false);
-    }, []);
-
-    useEffect(() => { load(); }, [load]);
-
-    const act = async (id: string, path: string, method = 'POST', body?: Record<string, string>) => {
-        setBusyId(id);
-        setError('');
-        try {
-            const res = await settled(`${API_BASE}/api/release-notes/admin/${id}${path}`, {
+    const action = useMutation({
+        mutationFn: async ({ id, path, method, body }: { id: string; path: string; method: string; body?: Record<string, string> }) => {
+            const res = await settled(apiUrl(noteActionKey(path, method), { params: { id } }), {
                 method,
                 ...(body ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {}),
             }, 'empty');
             if (!res.ok) throw new Error(`Request failed (${res.status})`);
-            await load();
-        } catch (e) {
-            setError(messageOf(e, 'Action failed'));
-        }
-        setBusyId(null);
-    };
+        },
+        onMutate: () => setActError(''),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: RELEASE_NOTES_KEY }),
+        onError: (e) => setActError(messageOf(e, 'Action failed')),
+    });
+    const busyId = action.isPending ? action.variables?.id ?? null : null;
+    const act = (id: string, path: string, method = 'POST', body?: Record<string, string>) => action.mutate({ id, path, method, body });
 
     const patch = (id: string, fields: Record<string, string>) => act(id, '', 'PUT', fields);
 
     const edit = (id: string, fields: Partial<Pick<ReleaseNoteEntry, 'title' | 'lead'>>) =>
-        setEntries(prev => prev.map(x => x.id === id ? { ...x, ...fields } : x));
+        queryClient.setQueryData<ReleaseNoteEntry[]>(RELEASE_NOTES_KEY, prev => (prev ?? NO_ENTRIES).map(x => x.id === id ? { ...x, ...fields } : x));
 
     if (loading) {
         return (

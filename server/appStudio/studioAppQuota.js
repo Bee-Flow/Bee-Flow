@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio v2 — QUOTA enforcement over dataModel.DATA_LIMITS.
  *
@@ -42,9 +43,10 @@ const db = require('../db');
 
 /**
  * @param {string} code
+ * @param {{ limit?: number, used?: number, message?: string }} [detail]
  */
 function quotaError(code, { limit, used, message } = {}) {
-    const err = new Error(message || 'Storage quota exceeded');
+    const err = /** @type {Error & { limit?: unknown, used?: unknown }} */ (new Error(message || 'Storage quota exceeded'));
     err.status = 409;
     err.code = code || 'quota_exceeded';
     if (limit !== undefined) err.limit = limit;

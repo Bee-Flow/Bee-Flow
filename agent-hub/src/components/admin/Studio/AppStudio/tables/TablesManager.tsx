@@ -20,7 +20,7 @@ import toast from '@/components/shared/Toast';
 import ConnectorsManagerJs from '../bi/ConnectorsManager';
 import useAppTables from '../bi/useAppTables';
 import type { HookAction } from '../bi/connectors/mailboxHook';
-import type { AppAction, AppDefinition } from '../inspector/appDefinition';
+import type { AppAction, AppDefinition, AppNode } from '../inspector/appDefinition';
 import type { AppEditorAction } from '../state/appEditorState';
 import { collectIds, findScreen, insertNode } from '../state/definitionOps';
 import { buildFormForTable as buildFormJs, buildGridForTable as buildGridJs } from '../state/generators';
@@ -49,7 +49,7 @@ const RelationshipsTab = lazy(() => import('./RelationshipsTab'));
 
 // Typed views of .js siblings whose branch-shaped returns would otherwise
 // mistype what this module passes.
-type Generated = { node: unknown; actions?: Record<string, AppAction> };
+type Generated = { node: AppNode | null; actions?: Record<string, AppAction> };
 const buildFormForTable = buildFormJs as unknown as (table: ModelTable, opts: { taken: unknown }) => Generated;
 const buildGridForTable = buildGridJs as unknown as (table: ModelTable, opts: { taken: unknown }) => Generated;
 const ConnectorsManager = ConnectorsManagerJs;

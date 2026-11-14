@@ -3,7 +3,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
-const { checkStoredLiveSite, canAdminCms, requireAdmin } = require('./cmsShared');
+const { checkStoredLiveSite, canAdminCms, requireAdmin, setLiveSiteId } = require('./cmsShared');
 const { readGate } = require('../auth/gateMeta');
 
 /** @param {(id: string) => Promise<{ id: string } | null>} getProject */
@@ -49,6 +49,11 @@ function gate(session) {
     requireAdmin(/** @type {any} */ ({ session }), /** @type {any} */ (res), () => { out.passed = true; });
     return out;
 }
+
+test('setLiveSiteId refuses a malformed site id with a 400 the caller can read', async () => {
+    // Checked before any store is asked, so no database is needed here.
+    await assert.rejects(() => setLiveSiteId('../not-a-site'), { status: 400, code: 'cms_invalid_site_id' });
+});
 
 test('the admin gate refuses a session that holds only the all permission', () => {
     const onlyAll = { user: { id: 'u1', role: 'user', permissions: ['all'] }, isAdmin: false };

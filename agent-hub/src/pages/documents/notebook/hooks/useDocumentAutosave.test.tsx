@@ -1,4 +1,5 @@
-import { renderHook, act, render } from '@testing-library/react';
+import { act } from '@testing-library/react';
+import { renderHookWithClient as renderHook, renderWithClient as render } from '@/test/render';
 import { forwardRef, useImperativeHandle } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

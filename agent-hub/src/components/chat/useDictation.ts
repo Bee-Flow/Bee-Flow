@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { API_BASE } from '../../utils/helpers';
 import { errorName, messageOf } from '../../utils/caughtError';
 import { logger } from '../../utils/logger';
-import { mutate, errorBody, RefusedError } from '../../api/mutate';
+import { errorBody, RefusedError } from '../../api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 /**
  * Press-to-talk dictation for a composer.
@@ -83,7 +83,7 @@ export default function useDictation({ onText, language = 'nl' }: UseDictationOp
 
             let res: Response;
             try {
-                res = await mutate(`${API_BASE}/api/dictate`, { method: 'POST', body: form });
+                res = await apiRequest('POST /api/dictate', { init: { body: form } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const data = errorBody(err) ?? {};

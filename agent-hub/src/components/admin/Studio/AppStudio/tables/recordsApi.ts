@@ -1,6 +1,6 @@
 import { createJsonResource } from '@/api/client';
 import type { JsonResourceError, JsonResourceInit } from '@/api/client';
-import { API_BASE } from '@/utils/helpers';
+import { apiUrl } from '@/api/typedRequest';
 
 /**
  * App Studio — record CRUD for the owner's row editor.
@@ -27,16 +27,11 @@ export interface RowRecord {
     [key: string]: unknown;
 }
 
-const enc = encodeURIComponent;
 const JSON_HEADERS = { 'Content-Type': 'application/json' };
 
 // The server caps a list at 1000 rows (queryCompiler.MAX_RESULT_ROWS) and pages
 // the rest behind nextCursor.
 export const PAGE_SIZE = 100;
-
-function recordsUrl(appId: string, tableId: string) {
-    return `${API_BASE}/api/studio-apps/${enc(appId)}/data/tables/${enc(tableId)}/records`;
-}
 
 // The caller sets its own headers. A 429 carries Retry-After (seconds) as
 // `err.retryAfter`; an empty 2xx body reads as {}.
@@ -53,7 +48,7 @@ const request = async (url: string, options: JsonResourceInit = {}) => (await re
 export async function listRecords(appId: string, tableId: string, { limit = PAGE_SIZE, cursor = null }: { limit?: number; cursor?: string | null } = {}) {
     const params = new URLSearchParams({ limit: String(limit) });
     if (cursor) params.set('cursor', cursor);
-    const body = await request(`${recordsUrl(appId, tableId)}?${params.toString()}`);
+    const body = await request(apiUrl('GET /api/studio-apps/{id}/data/tables/{tableId}/records', { params: { id: appId, tableId }, query: params }));
     return {
         records: Array.isArray(body.records) ? body.records : [],
         nextCursor: body.nextCursor || null,
@@ -62,7 +57,7 @@ export async function listRecords(appId: string, tableId: string, { limit = PAGE
 
 /** Returns the created row as the server stored it ({ id, record }). */
 export function createRecord(appId: string, tableId: string, values: Record<string, unknown>) {
-    return request(recordsUrl(appId, tableId), {
+    return request(apiUrl('POST /api/studio-apps/{id}/data/tables/{tableId}/records', { params: { id: appId, tableId } }), {
         method: 'POST',
         headers: JSON_HEADERS,
         body: JSON.stringify({ values }),
@@ -80,7 +75,7 @@ export function createRecord(appId: string, tableId: string, values: Record<stri
  */
 export function updateRecord(appId: string, tableId: string, recordId: string, values: Record<string, unknown>, { expectedUpdatedAt = null }: { expectedUpdatedAt?: string | null } = {}) {
     const payload = expectedUpdatedAt ? { values, expectedUpdatedAt } : { values };
-    return request(`${recordsUrl(appId, tableId)}/${enc(recordId)}`, {
+    return request(apiUrl('PATCH /api/studio-apps/{id}/data/tables/{tableId}/records/{recordId}', { params: { id: appId, tableId, recordId } }), {
         method: 'PATCH',
         headers: JSON_HEADERS,
         body: JSON.stringify(payload),
@@ -88,7 +83,7 @@ export function updateRecord(appId: string, tableId: string, recordId: string, v
 }
 
 export function deleteRecord(appId: string, tableId: string, recordId: string) {
-    return request(`${recordsUrl(appId, tableId)}/${enc(recordId)}`, { method: 'DELETE' });
+    return request(apiUrl('DELETE /api/studio-apps/{id}/data/tables/{tableId}/records/{recordId}', { params: { id: appId, tableId, recordId } }), { method: 'DELETE' });
 }
 
 
@@ -107,7 +102,7 @@ export interface EmptyTablesResult {
  * `err.body.tables = [{ tableId, key, referencedBy: [tableKey] }]`.
  */
 export function emptyAppTables(appId: string, tableIds?: string[]): Promise<EmptyTablesResult> {
-    return request(`${API_BASE}/api/studio-apps/${enc(appId)}/data/empty`, {
+    return request(apiUrl('POST /api/studio-apps/{id}/data/empty', { params: { id: appId } }), {
         method: 'POST',
         headers: JSON_HEADERS,
         body: JSON.stringify(tableIds ? { tableIds } : {}),

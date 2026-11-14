@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * App Studio — action-run bridge.
  *
@@ -35,7 +35,7 @@ const router = express.Router();
 
 require('../stores/studioAppStore');
 const automationStore = require('../stores/automationStore');
-const { logActionUsage } = require('./studioAppsRunUsage');
+const { logActionUsage } = require('../usecases/studioAppsRunUsage');
 const studioAppDataStore = require('../stores/studioAppDataStore');
 const rlsGateway = require('../appStudio/rlsGateway');
 const actionExecutor = require('../appStudio/actionExecutor');
@@ -53,7 +53,7 @@ const { resolveInputs, deriveRunOutcome } = actionExecutor;
  * the instructions in there would change what those bindings resolve to. It is
  * omitted entirely when the automation left none, so a run that ends without a
  * return_to_app step answers byte-identically to before.
- * @param {{ id?: string, status?: string, output?: unknown, error?: string, awaitingStepId?: string } | null} run
+ * @param {{ id?: string, status?: string, output?: unknown, error?: string, awaitingStepId?: string }} run
  */
 async function runBody(run) {
     // Final output only — never the step list (intermediate steps can carry
@@ -87,6 +87,7 @@ const runEventBus = require('../core/runEventBus');
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth } = require('../auth/permissions');
+const { envInt } = require('../utils/envNumber.mts');
 
 // ── Body budget ─────────────────────────────────────────────────────
 // Form values ride in the JSON body; 64KB is far above any real form and far
@@ -115,7 +116,7 @@ function bodySizeGuard(req, res, next) {
 
 // Sync-wait cap (see routes/automation/runs.js) — long runs still complete
 // server-side; the app polls the run by id after a 202. Env knob for tests.
-const ACTION_WAIT_MS = parseInt(process.env.STUDIO_APP_ACTION_WAIT_MS, 10) || 60_000;
+const ACTION_WAIT_MS = envInt('STUDIO_APP_ACTION_WAIT_MS', 60_000, { min: 0 });
 
 // ── App visibility + role gates ─────────────────────────────────────
 // Extracted to routes/studioAppRunGate.js so the streaming browse bridge shares
@@ -136,6 +137,7 @@ const findNodeById = (/** @type {Parameters<typeof locateNode>[0]} */ def, /** @
 // for one index to mean two different steps. See that module's header.
 const { resolveRequestedStep, STEP_MISMATCH, sanitizeBag, sanitizeErrorScope, stepNotes, stepFailureExtras } = require('../appStudio/actionSequence');
 const { validate } = require('../core/http/validate');
+const { sessionUser } = require('../core/http/sessionUser');
 const { openSse } = require('../core/http/sseHelpers');
 // The request shapes an app's runtime sends — shared with the public app
 // routes, which carry the same bodies (routes/studio/appRuntimeSchemas.js).
@@ -180,7 +182,7 @@ const { withUsageAttribution } = require('../appStudio/usageAttribution');
 // kind (client steps run in the browser and never reach here), and executes
 // acts-as-owner. Uniform 404 on an invisible app; generic errors otherwise.
 router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, bodySizeGuard, validate({ query: R.DraftQuery, body: R.StepBody }), /** @param {import('express').Request<{ id: string, actionId: string }>} req */ async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const actionId = req.params.actionId;
     const app = await loadVisibleApp(req, res);
     if (!app) return;
@@ -273,8 +275,8 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
         // every activity/audit row an action wrote recorded an empty "Who" —
         // the editor offered the attribute, the browser resolved it, and the
         // server had only an id.
-        viewerName: req.session.user.name || null,
-        viewerEmail: req.session.user.email || null,
+        viewerName: sessionUser(req).name || null,
+        viewerEmail: sessionUser(req).email || null,
         role, ...stepDocumentContext(step, def, role), // copy_document: the app's document pool for this role
         orgId: app.organizationId || null,
         formValues,
@@ -294,7 +296,7 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
         // The FULL viewer the row filters see (viewer.<attr> params) —
         // same shape buildViewer produces on the data route; a partial one
         // silently matches nothing.
-        viewer: { id: userId, role: role || null, organizationId: req.session.user.organizationId || null },
+        viewer: { id: userId, role: role || null, organizationId: sessionUser(req).organizationId || null },
         writeSource: { kind: 'user' }, // a click: its record write may start a record trigger (triggers/recordTriggerRule.mts)
     }))));
 
@@ -325,7 +327,7 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
 // run of that key changes. No key: nothing to end (recorded: false). Public pages have no
 // twin: their runs close by the idle rule.
 router.post('/:id/actions/:actionId/runs/end', requireAuth, stepLimiter, jsonBody, bodySizeGuard, validate({ query: R.DraftQuery, body: R.RunEndBody }), /** @param {import('express').Request<{ id: string, actionId: string }>} req */ async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const app = await loadVisibleApp(req, res);
     if (!app) return;
     const isOwner = app.userId === userId;
@@ -346,7 +348,7 @@ mountBackgroundRoutes(router, { requireAuth, actionRunLimiter, jobStatusLimiter,
 
 // ── POST /:id/actions/:actionId/run ─────────────────────────────────
 router.post('/:id/actions/:actionId/run', requireAuth, actionRunLimiter, jsonBody, bodySizeGuard, validate({ query: R.DraftQuery, body: R.RunBody }), /** @param {import('express').Request<{ id: string, actionId: string }>} req */ async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const actionId = req.params.actionId;
     const app = await loadVisibleApp(req, res);
     if (!app) return;
@@ -420,6 +422,7 @@ router.post('/:id/actions/:actionId/run', requireAuth, actionRunLimiter, jsonBod
     // beat the cap, it would hold this request's closure for the rest of
     // the wait.
     /** @type {NodeJS.Timeout} */
+    /** @type {ReturnType<typeof setTimeout> | undefined} */
     let guardTimer;
     const guard = new Promise((resolve) => { guardTimer = setTimeout(() => { timedOut = true; resolve(null); }, waitMs); });
     // Collected so a timeout can still answer with a pollable run id.
@@ -479,7 +482,7 @@ router.get('/:id/actions/runs/:runId', requireAuth, /** @param {import('express'
     // Defense-in-depth beyond the webpages precedent: only runs THIS app
     // started are pollable — not every run the owner has (the bridge
     // stamps _studioAppId into every trigger payload it sends).
-    if (run.triggerPayload?._studioAppId !== app.id || !require('../core/automationModel/callerRunVisibility').canReadRunData(run, req.session.user.id)) {
+    if (run.triggerPayload?._studioAppId !== app.id || !require('../core/automationModel/callerRunVisibility').canReadRunData(run, sessionUser(req).id)) {
         return res.status(403).json({ error: 'Forbidden' });
     }
     res.json(await runBody(run));
@@ -523,7 +526,7 @@ function sanitizeChatMessages(raw) {
 }
 
 router.post('/:id/ai/chat', requireAuth, stepLimiter, jsonBody, bodySizeGuard, validate({ query: R.DraftQuery, body: R.ChatBody }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const app = await loadVisibleApp(req, res);
     if (!app) return;
 

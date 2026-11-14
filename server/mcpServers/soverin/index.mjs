@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// @typecheck
 /** @typedef {import('imapflow').ImapFlow} ImapFlow */
 /**
  * Soverin MCP server (first-party, bundled).
@@ -27,7 +28,6 @@
  * that could chatter (ImapFlow's pino logger, nodemailer) is muted below, and
  * our own diagnostics go to stderr.
  */
-
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { ListToolsRequestSchema, CallToolRequestSchema } from '@modelcontextprotocol/sdk/types.js';
@@ -206,7 +206,7 @@ function getSmtp() {
 
 /**
  * Run `fn` with an exclusive lock on `mailbox`, always releasing it.
- * @param {{ readOnly: boolean; }} options
+ * @param {{ readOnly?: boolean; }} options
  * @param {string | string[]} mailbox
  */
 async function withMailbox(mailbox, options, fn) {
@@ -250,7 +250,7 @@ const handlers = {
             };
             // Counts are a per-mailbox round trip — best effort, never fatal.
             try {
-                const status = await client.status(box.path, { messages: true, unseen: true });
+                const status = /** @type {import('imapflow').StatusObject} */ (await client.status(box.path, { messages: true, unseen: true }));
                 entry.messages = status.messages ?? null;
                 entry.unread = status.unseen ?? null;
             } catch (_) { /* \Noselect folders and the like */ }

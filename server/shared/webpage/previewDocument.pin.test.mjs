@@ -140,9 +140,9 @@ const PINNED = {
     server: {
         bridges: '88f4546293795ba4',
         bridgesOther: 'ccb7a4c53c53a4f8',
-        stub: '3ad39bea7c56dd59',
-        stubShare: 'df641a728461e9b9',
-        reactStub: '31e77e388446adc5',
+        stub: '0ccee79e3b007f4b',
+        stubShare: 'fc045049636dac46',
+        reactStub: '79c4796d1b2fc216',
         reactLive: '6502850119702001',
         reactBroken: 'f2ea34cc5c718d3a',
         reactNoEntry: '6f571ad5152bc258',

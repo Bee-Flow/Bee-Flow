@@ -11,6 +11,7 @@ import type { RecentItem } from '@/utils/studioRecentSources.types';
 import type { PublishedApp, PublishedForm } from './sidebarNav';
 import { logger } from '@/utils/logger';
 import { request, RefusedError } from '@/api/mutate';
+import { usePublishedFormsRead } from '@/api/queries/automationForms';
 
 type Check = (id: string) => boolean;
 
@@ -113,6 +114,7 @@ export function useStudioSectionData({ currentPage, canUseCapability, hasLicense
     // the current page before this one runs, so sharing it would compare
     // currentPage against itself and never see "came back from Studio".
     const prevPageForFormsRef = useRef<string | undefined>(undefined);
+    const readForms = usePublishedFormsRead<PublishedForm>();
     useEffect(() => {
         const prev = prevPageForFormsRef.current;
         prevPageForFormsRef.current = currentPage;
@@ -121,16 +123,8 @@ export function useStudioSectionData({ currentPage, canUseCapability, hasLicense
         let cancelled = false;
         (async () => {
             try {
-                let res: Response;
-                try {
-                    res = await request(`${API_BASE}/api/automation/forms`);
-                } catch (err) {
-                    if (!(err instanceof RefusedError)) throw err;
-                    return;
-                }
-                if (cancelled) return;
-                const data = await res.json();
-                const forms = Array.isArray(data?.forms) ? data.forms : [];
+                const forms = await readForms();
+                if (cancelled || !forms) return;
                 setPublishedForms(forms);
                 setHasForms(forms.length > 0);
                 writeNavHas('forms', forms.length > 0);
@@ -138,7 +132,7 @@ export function useStudioSectionData({ currentPage, canUseCapability, hasLicense
             } catch (err) { logger.debug('the row still opens the directory', err); }
         })();
         return () => { cancelled = true; };
-    }, [currentPage, canSeeForms]);
+    }, [currentPage, canSeeForms, readForms]);
 
     /* ─── Recent items per Studio section ───
        Eight sections, so NOT eight eager loaders: a section is fetched the

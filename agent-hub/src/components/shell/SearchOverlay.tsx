@@ -1,11 +1,10 @@
 import { Search, X, Clock, type LucideIcon } from 'lucide-react';
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { loadRecent, saveRecent } from './searchRecents';
-import { API_BASE } from '../../utils/helpers';
 import useTranslation, { TranslateParams } from '../../hooks/useTranslation';
 import type { SearchMessage, SearchConversation, SearchResult, SearchOverlayProps, EmptyStateProps } from './SearchOverlay.types';
 import { logger } from '../../utils/logger';
-import { request, RefusedError } from '../../api/mutate';
+import { useConversationSearchRead } from '../../api/queries/conversationSearch';
 import { SearchOverlaySection } from './SearchOverlaySection';
 import { ResultRow } from './ResultRow';
 
@@ -88,6 +87,7 @@ const SearchOverlay = ({ isOpen, onClose, onSelectResult, agents = [] }: SearchO
         return processed;
     }, []);
 
+    const searchConversations = useConversationSearchRead<SearchConversation[]>();
     const handleSearch = useCallback(async (searchTerm: string) => {
         if (!searchTerm || searchTerm.length < 2) {
             setResults([]);
@@ -98,23 +98,17 @@ const SearchOverlay = ({ isOpen, onClose, onSelectResult, agents = [] }: SearchO
         try {
             const filters = buildFilters();
             const queryParams = new URLSearchParams({ q: searchTerm, ...filters });
-            const res = await request(`${API_BASE}/agents/conversations/search?${queryParams.toString()}`).catch((err: unknown) => {
-                if (err instanceof RefusedError) return null;
-                throw err;
-            });
-            if (res) {
-                const data = await res.json();
-                if (lastSearchedRef.current === searchTerm) {
-                    setResults(processResults(data, searchTerm));
-                    setSelectedIdx(0);
-                }
+            const data = await searchConversations(queryParams);
+            if (data && lastSearchedRef.current === searchTerm) {
+                setResults(processResults(data, searchTerm));
+                setSelectedIdx(0);
             }
         } catch (error) {
             console.error('Search failed:', error);
         } finally {
             setIsLoading(false);
         }
-    }, [buildFilters, processResults]);
+    }, [buildFilters, processResults, searchConversations]);
 
     useEffect(() => {
         if (query.length >= 2) handleSearch(query);

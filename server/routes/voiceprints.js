@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Voiceprints API — self-enrollment for pyannoteAI speaker identification.
  *
@@ -124,8 +124,11 @@ function receiveRecording(req, res, next) {
     });
 }
 
-/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
-const bodyOf = (/** @type {Parameters<typeof z.object>[0]} */ shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
+/**
+ * A body that also accepts no body at all: Express 5 leaves `req.body` undefined then.
+ * Generic, so the fields' types reach the handler. @template {import('zod').ZodRawShape} S @param {S} shape
+ */
+const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 // The multipart text fields of POST /me (see the header).
 const EnrollFields = bodyOf({
@@ -290,12 +293,12 @@ router.post('/me', requireAuth, enrollLimiter, receiveRecording, validate({ body
     } finally {
         // Unconditional: the enrollment recording must not survive the request.
         if (tempPath) { try { await fs.promises.unlink(tempPath); } catch (_) { log.warn('enrollment recording could not be removed', _); } }
-        if (req.file) req.file.buffer = null;
+        if (req.file) /** @type {{ buffer: Buffer | null }} */ (req.file).buffer = null; // the bytes go with the request
     }
 });
 
 /** Delete the caller's own voice profile. Also withdraws the recorded consent. */
-router.delete('/me', requireAuth, validate({ body: NoBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof NoBody>, import('qs').ParsedQs>} */ req, res) => {
+router.delete('/me', requireAuth, validate({ body: NoBody }), async (req, res) => {
     const userId = sessionUser(req).id;
     const removed = await voiceprintStore.deleteVoiceprintForUser(userId);
     if (removed) await recordConsentWithdrawal(req, userId);

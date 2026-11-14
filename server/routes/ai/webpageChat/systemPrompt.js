@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Webpage chat: the builder's system prompt (routes/ai/webpageChat.js).
  *
@@ -46,7 +46,7 @@ For very large changes you can still narrate your approach in a sentence or two 
  * The system prompt of one turn. `runtimeBlock` comes from
  * integrations/webpageFramework (it carries the three slot files), the rest
  * from ./context.js.
- * @param {{ webpage: import('./toolLoop').Webpage, today: string, runtimeBlock: string, planningRule: string,
+ * @param {{ webpage: NonNullable<import('./toolLoop').Webpage>, today: string, runtimeBlock: string, planningRule: string,
  *   sourceSummary: string, searchAvailable: boolean, kbContext: string, selectionContext: string, timezone: string }} args
  */
 function webpageSystemPrompt({

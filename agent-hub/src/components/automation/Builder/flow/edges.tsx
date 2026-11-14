@@ -461,7 +461,7 @@ export function LabelledEdge({ id, source, target, sourceX, sourceY, targetX, ta
                                     all. The other two appear on hover. */}
                                 <button
                                     type="button"
-                                    title={t('automations.edges.insert_a_step_here', 'Insert a step here')}
+                                    title={t('automations.edges.insert_a_step_here', 'Insert a step here')} aria-label={t('automations.edges.insert_a_step_here', 'Insert a step here')}
                                     onClick={(e) => { e.stopPropagation(); data?.onInsert?.(identity()); }}
                                     style={{ opacity: active ? 1 : (compactChip ? 0 : 0.35), transition: 'opacity 120ms ease' }}
                                     className="flex items-center justify-center w-5 h-5 rounded-full bg-[var(--accent)] text-white shadow-sm hover:opacity-90"
@@ -491,7 +491,7 @@ export function LabelledEdge({ id, source, target, sourceX, sourceY, targetX, ta
                                 {data?.onDelete && (
                                     <button
                                         type="button"
-                                        title={t('automations.edges.remove_this_connection', 'Remove this connection')}
+                                        title={t('automations.edges.remove_this_connection', 'Remove this connection')} aria-label={t('automations.edges.remove_this_connection', 'Remove this connection')}
                                         onClick={(e) => { e.stopPropagation(); (data.onDelete as (identity: EdgeIdentity) => void)(identity()); }}
                                         style={{ opacity: active ? 1 : 0, pointerEvents: active ? 'all' : 'none', transition: 'opacity 120ms ease' }}
                                         className="flex items-center justify-center w-5 h-5 rounded-full bg-[var(--bg-primary)] border border-[var(--border-default)] text-[var(--text-secondary)] shadow-sm hover:text-red-500 hover:border-red-400"

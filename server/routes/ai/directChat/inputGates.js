@@ -18,8 +18,12 @@ const {
     stripUnicodeSmuggling, logUnicodeSmuggling, resolveTurnOrgId, resolveTurnShield, applyModerationViolation,
 } = require('./inputShield');
 const { runPiiGate, runDlpGate } = require('./inputPrivacyGates');
-const { resolveRegexConfig, applyInputRegex } = require('./inputRegexGate');
+const { resolveRegexConfig, applyInputRegex } = require('../../../usecases/ai/directChat/inputRegexGate');
 
+/**
+ * @param {Pick<import('./inputPrivacyGates').GateCtx, 'req' | 'res' | 'send' | 'userId' | 'convId' | 'messages' | 'modelId' | 'config' | 'hasAttachments' | 'chatSignal'>
+ *   & { message?: string | null, volatileMessage?: { role: string, content: string } | null }} p
+ */
 async function runInputGates({ req, res, send, userId, convId, message, messages, modelId, config, hasAttachments = false, volatileMessage = null, chatSignal = null }) {
     // Per-turn addenda go on the VOLATILE system block, never on messages[0].
     // The stable block is the provider-cached prefix: one appended byte there

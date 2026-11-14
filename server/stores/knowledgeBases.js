@@ -19,7 +19,8 @@
  * or caller swaps on the export is the one the others reach.
  */
 
-const { run, getOne, getAll, exec } = require('../db');
+const { run, getOne, getAll, exec, getClient } = require('../db');
+const { runTransaction } = require('../utils/txRollback');
 const { makeStoreInit } = require('./lib/storeInit');
 const { runDdl, CODES } = require('./lib/_ddl');
 const log = require('../telemetry/log');
@@ -47,6 +48,7 @@ const { assertKbWrite, kbUpdateChanges } = makeKbWriteGuard(managedParts);
 const KnowledgeBasesStore = {};
 const ctx = {
     run, getOne, getAll, initDB, log, managedParts, assertKbWrite, kbUpdateChanges,
+    withTransaction: async (/** @type {(client: import('../utils/txRollback').TxClient) => Promise<any>} */ fn) => runTransaction(await getClient(), fn),
     // Lazy: solutionStageStore sits in the stores' stage knot.
     stageStore: () => require('./solutionStageStore'),
     self: KnowledgeBasesStore,

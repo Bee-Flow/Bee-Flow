@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Whole-automation actions and the Builder header's tab counts (Studio →
  * Automations handoff 5, artboards 5a/5b/5e).
@@ -94,13 +95,14 @@ function realSteps(def) {
 
 /**
  * @param {{
- *   store?: object, access?: { guard: Function }, orgOf?: (req) => Promise<string|null>,
+ *   store?: typeof import('../../stores/automationStore'), access?: ReturnType<typeof import('../../automation/access').makeAutomationAccess>,
+ *   orgOf?: (req) => Promise<string|null>,
  *   provisionForm?: (a, def) => Promise<{ answers: any, usage: any[] }>,
  *   syncDatatableUsage?: Function, syncKbSources?: Function,
  *   validateApprovalAssignees?: (def, ownerId) => Promise<any[]>,
  *   chat?: (modelId, messages, opts) => Promise<{ content: string }>,
  *   resolveModel?: (tier, opts) => Promise<string>,
- *   limiter?: Function, log?: { warn: Function, error: Function },
+ *   limiter?: import('express').RequestHandler, log?: { warn: Function, error: Function },
  * }} [overrides]
  */
 function makeActionsRouter(overrides = {}) {
@@ -125,7 +127,7 @@ function makeActionsRouter(overrides = {}) {
 
     const load = makeGuardedLoad(store, access);
 
-    router.post('/:id/duplicate', validate({ body: NoBody, query: NoQuery }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof NoBody>, import('zod').infer<typeof NoQuery>>} */ req, res) => {
+    router.post('/:id/duplicate', validate({ body: NoBody, query: NoQuery }), async (req, res) => {
         const loaded = await load(req, res, 'view');
         if (!loaded) return;
         const { a } = loaded;
@@ -173,7 +175,7 @@ function makeActionsRouter(overrides = {}) {
         });
     });
 
-    router.post('/:id/save-as-template', validate({ body: SaveAsTemplateBody, query: NoQuery }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof SaveAsTemplateBody>, import('zod').infer<typeof NoQuery>>} */ req, res) => {
+    router.post('/:id/save-as-template', validate({ body: SaveAsTemplateBody, query: NoQuery }), async (req, res) => {
         const loaded = await load(req, res, 'edit');
         if (!loaded) return;
         const { a } = loaded;
@@ -225,7 +227,7 @@ function makeActionsRouter(overrides = {}) {
         res.json({ description });
     });
 
-    router.get('/:id/counts', validate({ query: NoQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof NoQuery>>} */ req, res) => {
+    router.get('/:id/counts', validate({ query: NoQuery }), async (req, res) => {
         const loaded = await load(req, res, 'run');
         if (!loaded) return;
         const { a, acc } = loaded;

@@ -1,5 +1,5 @@
 /** @typedef {import('./decisionQueue').Decision} Decision */
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Resolves a single attachment's `action:'ask'` outcome from
  * scanAttachmentText — pauses the turn (one `dlp_attachment_preview` SSE
@@ -36,7 +36,7 @@ const dlpRunner = require('./dlpRunner');
  * @param {string} p.filename
  * @param {any} [p.provider]      Provider classification, for the modal's "sent to X" line.
  * @param {any} p.orgShield
- * @param {string} [p.conversationId]
+ * @param {string | null} [p.conversationId]  none: nothing is remembered for the conversation
  * @param {string} [p.userId]
  * @param {(type: string, data: unknown) => void} [p.emit]        (type, data) => void — the chat stream's onEvent/send.
  * @param {typeof register} [p.registerDecision]  decisionQueue.register (injected for tests).

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * DSR API — Data Subject Request endpoints (GDPR Art. 12, 15–22).
  *
@@ -326,7 +326,7 @@ async function sendAck(orgId, created, email, requestType) {
 
 router.post('/requests', publicSubmitLimiter, validate({ body: PublicIntakeBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof PublicIntakeBody>, import('qs').ParsedQs>} */ req, res) => {
     try {
-        const body = req.body || {};
+        const body = req.body;
         if (!body.subject_email || typeof body.subject_email !== 'string') {
             return res.status(400).json({ error: 'subject_email is required' });
         }
@@ -476,7 +476,7 @@ async function requireVerifyToken(req, res, next) {
  */
 /** @param {VerifyRequest} req @param {import('express').Response} res */
 async function stampVerifiedIdentity(req, res) {
-    const { id, row } = req.dsrVerified;
+    const { id, row } = /** @type {NonNullable<VerifyRequest['dsrVerified']>} */ (req.dsrVerified); // set by the verify gate
     try {
         if (row.identity_status === 'unverified') {
             await dsrStore.verifyIdentity(row.organization_id, id, { method: 'email_link', by: null });
@@ -508,11 +508,11 @@ router.post('/requests/:id/verify', publicReadLimiter, requireVerifyToken, stamp
 // deliberately ungated: the intake must reach a data subject without an
 // account, GDPR Art. 12.)
 
-router.post('/requests/manual', requireAuth, requirePermission('admin_compliance'), validate({ body: ManualIntakeBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof ManualIntakeBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/requests/manual', requireAuth, requirePermission('admin_compliance'), validate({ body: ManualIntakeBody }), async (req, res) => {
     const orgId = await resolveAdminOrgId(req);
     try {
         const actorId = req.session?.user?.id || null;
-        const body = req.body || {};
+        const body = req.body;
         const email = typeof body.subject_email === 'string' ? body.subject_email.trim().toLowerCase() : '';
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
             return res.status(400).json({ error: 'subject_email is not a valid email address' });
@@ -526,7 +526,7 @@ router.post('/requests/manual', requireAuth, requirePermission('admin_compliance
             created_by: actorId,
         });
         complianceEvents.emit(complianceEvents.EVENTS.DSR_SUBMITTED, { orgId, requestType: created.request_type || body.request_type || 'access' });
-        const row = await dsrStore.getRequest(orgId, created.id);
+        const row = /** @type {DsrRow} */ (await dsrStore.getRequest(orgId, created.id)); // the row it just wrote
         res.status(201).json(listRow(row));
     } catch (e) {
         throw requestError(e);
@@ -535,7 +535,7 @@ router.post('/requests/manual', requireAuth, requirePermission('admin_compliance
 
 router.get('/requests', requireAuth, requirePermission('admin_compliance'), validate({ query: ListQuery }), /** @param {import('express').Request<{}, any, any, { status?: string }>} req */ async (req, res) => {
     const orgId = await resolveAdminOrgId(req);
-    const rows = await dsrStore.listRequests(orgId, { status: req.query.status });
+    const rows = /** @type {DsrRow[]} */ (await dsrStore.listRequests(orgId, { status: req.query.status })); // rows mapped one to one
     const now = Date.now();
     res.json(rows.map(r => listRow(r, now)));
 });
@@ -567,20 +567,20 @@ router.get('/requests/:id', requireAuth, requirePermission('admin_compliance'), 
     res.json({ ...row, days_left: clock.days_left, state: clock.state, subject_email_masked: maskEmail(row.subject_email) });
 });
 
-router.post('/requests/:id/start', requireAuth, requirePermission('admin_compliance'), async (req, res) => {
+router.post('/requests/:id/start', requireAuth, requirePermission('admin_compliance'), validate({ body: bodyOf({}, 'Starting a request') }), async (req, res) => {
     try {
         const ctx = await loadOrgRow(req, res);
         if (!ctx) return;
         const { orgId, id, row, actorId } = ctx;
         if (!OPEN.has(row.status)) return res.status(409).json({ error: 'not_open' });
-        const updated = await dsrStore.start(orgId, id, actorId);
+        const updated = /** @type {DsrRow} */ (await dsrStore.start(orgId, id, actorId)); // the request found above
         res.json(listRow(updated));
     } catch (e) {
         throw requestError(e);
     }
 });
 
-router.post('/requests/:id/extend', requireAuth, requirePermission('admin_compliance'), validate({ body: ExtendBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof ExtendBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/requests/:id/extend', requireAuth, requirePermission('admin_compliance'), validate({ body: ExtendBody }), async (req, res) => {
     try {
         const ctx = await loadOrgRow(req, res);
         if (!ctx) return;
@@ -591,7 +591,7 @@ router.post('/requests/:id/extend', requireAuth, requirePermission('admin_compli
         if (!OPEN.has(row.status)) return res.status(409).json({ error: 'not_open' });
         if (row.extended_at) return res.status(409).json({ error: 'already_extended' });
 
-        /** @type {DsrRow | null} */
+        /** @type {DsrRow | null | undefined} */
         let updated;
         try {
             updated = await dsrStore.extend(orgId, id, { reason, by: actorId });
@@ -599,7 +599,8 @@ router.post('/requests/:id/extend', requireAuth, requirePermission('admin_compli
             if (e?.code === 'dsr_already_extended' || e instanceof dsrStore.AlreadyExtendedError) {
                 return res.status(409).json({ error: 'already_extended' });
             }
-            if (/cannot extend a/.test(e.message)) return res.status(409).json({ error: 'not_open' });
+            // The store's own code for a closed request (not the 400 of an input error).
+            if (e?.code === 'dsr_not_open') return res.status(409).json({ error: 'not_open' });
             throw e;
         }
         if (!updated) return res.status(404).json({ error: 'not found' });
@@ -618,10 +619,10 @@ router.post('/requests/:id/extend', requireAuth, requirePermission('admin_compli
                 dpoEmail: letter.dpoEmail,
                 locale: letter.locale,
             });
-            updated = await dsrStore.appendTimeline(orgId, id, { kind: 'extension_emailed', by: actorId });
+            updated = /** @type {DsrRow} */ (await dsrStore.appendTimeline(orgId, id, { kind: 'extension_emailed', by: actorId })); // the request found above
         } catch (e) {
             log.warn(`[DSR] extension e-mail for #${id} failed:`, e.message);
-            updated = await dsrStore.appendTimeline(orgId, id, { kind: 'email_failed', by: actorId, text: String(e.message || 'send failed').slice(0, 200) }).catch(() => updated);
+            updated = /** @type {DsrRow} */ (await dsrStore.appendTimeline(orgId, id, { kind: 'email_failed', by: actorId, text: String(e.message || 'send failed').slice(0, 200) }).catch(() => updated));
         }
 
         await writeEvidence(orgId, updated, 'dsr_extended', actorId, {
@@ -635,16 +636,16 @@ router.post('/requests/:id/extend', requireAuth, requirePermission('admin_compli
     }
 });
 
-router.post('/requests/:id/verify-identity', requireAuth, requirePermission('admin_compliance'), validate({ body: VerifyIdentityBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof VerifyIdentityBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/requests/:id/verify-identity', requireAuth, requirePermission('admin_compliance'), validate({ body: VerifyIdentityBody }), async (req, res) => {
     try {
         const ctx = await loadOrgRow(req, res);
         if (!ctx) return;
         const { orgId, id, actorId } = ctx;
         const method = req.body?.method || 'manual';
         if (method !== 'manual') return res.status(400).json({ error: 'method must be "manual"' });
-        let updated = await dsrStore.verifyIdentity(orgId, id, { method: 'manual', by: actorId });
+        let updated = /** @type {DsrRow} */ (await dsrStore.verifyIdentity(orgId, id, { method: 'manual', by: actorId })); // the request found above
         const note = typeof req.body?.note === 'string' ? req.body.note.trim().slice(0, MAX_NOTE) : '';
-        if (note) updated = await dsrStore.appendTimeline(orgId, id, { kind: 'note', by: actorId, text: note });
+        if (note) updated = /** @type {DsrRow} */ (await dsrStore.appendTimeline(orgId, id, { kind: 'note', by: actorId, text: note }));
         res.json(listRow(updated));
     } catch (e) {
         throw requestError(e);
@@ -657,7 +658,7 @@ router.get('/requests/:id/timeline', requireAuth, requirePermission('admin_compl
     res.json({ id: ctx.row.id, timeline: maskTimeline(ctx.row.timeline) });
 });
 
-router.get('/requests/:id/discovery', requireAuth, requirePermission('admin_compliance'), validate({ query: DiscoveryQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof DiscoveryQuery>>} */ req, res) => {
+router.get('/requests/:id/discovery', requireAuth, requirePermission('admin_compliance'), validate({ query: DiscoveryQuery }), async (req, res) => {
     const userId = req.session?.user?.id;
     if (!userId) return res.status(403).json({ error: 'forbidden' });
     const ctx = await loadOrgRow(req, res);
@@ -667,12 +668,12 @@ router.get('/requests/:id/discovery', requireAuth, requirePermission('admin_comp
     res.json(result);
 });
 
-router.post('/requests/:id/fulfil', requireAuth, requirePermission('admin_compliance'), validate({ body: FulfilBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof FulfilBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/requests/:id/fulfil', requireAuth, requirePermission('admin_compliance'), validate({ body: FulfilBody }), async (req, res) => {
     try {
         const ctx = await loadOrgRow(req, res);
         if (!ctx) return;
         const { orgId, id, row, actorId } = ctx;
-        const body = req.body || {};
+        const body = req.body;
         const status = body.status || 'fulfilled';
         if (status !== 'fulfilled' && status !== 'rejected') {
             return res.status(400).json({ error: 'status must be "fulfilled" or "rejected"' });
@@ -683,11 +684,11 @@ router.post('/requests/:id/fulfil', requireAuth, requirePermission('admin_compli
         if (!OPEN.has(row.status)) return res.status(409).json({ error: 'not_open' });
         const notify = body.notify_subject !== false;
 
-        let updated = await dsrStore.updateStatus(orgId, id, status, {
+        let updated = /** @type {DsrRow} */ (await dsrStore.updateStatus(orgId, id, status, { // the request found above
             fulfilledBy: actorId,
             resultSummary: summary || null,
             resultPayload: body.result_payload,
-        });
+        }));
 
         // Discovery counts for the evidence row — from the memo when the admin
         // ran the scan from the drawer, never a fresh tenant scan on fulfil.
@@ -717,10 +718,10 @@ router.post('/requests/:id/fulfil', requireAuth, requirePermission('admin_compli
                     dpoEmail: letter.dpoEmail,
                     locale: letter.locale,
                 });
-                updated = await dsrStore.appendTimeline(orgId, id, { kind: 'result_emailed', by: actorId });
+                updated = /** @type {DsrRow} */ (await dsrStore.appendTimeline(orgId, id, { kind: 'result_emailed', by: actorId }));
             } catch (e) {
                 log.warn(`[DSR] result e-mail for #${id} failed:`, e.message);
-                updated = await dsrStore.appendTimeline(orgId, id, { kind: 'email_failed', by: actorId, text: String(e.message || 'send failed').slice(0, 200) }).catch(() => updated);
+                updated = /** @type {DsrRow} */ (await dsrStore.appendTimeline(orgId, id, { kind: 'email_failed', by: actorId, text: String(e.message || 'send failed').slice(0, 200) }).catch(() => updated));
             }
         }
 

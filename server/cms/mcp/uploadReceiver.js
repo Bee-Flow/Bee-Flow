@@ -1,5 +1,5 @@
 /** @typedef {import('stream').Readable} Readable */
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * `PUT /mcp/cms/upload/<ticketId>` (secret in the `X-Upload-Ticket` header) — receive a file for a CMS asset.
  *
@@ -126,7 +126,7 @@ function receiveToFile(readable, filePath, maxBytes, idleMs = IDLE_MS, totalMs =
         let idle = null;
         const total = setTimeout(() => fail(new StalledError('upload took too long')), totalMs);
         const arm = () => {
-            clearTimeout(idle);
+            clearTimeout(idle ?? undefined);
             idle = setTimeout(() => fail(new StalledError('no data received')), idleMs);
         };
         /**
@@ -135,7 +135,7 @@ function receiveToFile(readable, filePath, maxBytes, idleMs = IDLE_MS, totalMs =
         const fail = (err) => {
             if (settled) return;
             settled = true;
-            clearTimeout(idle);
+            clearTimeout(idle ?? undefined);
             clearTimeout(total);
             readable.unpipe(out);
             readable.pause();
@@ -154,7 +154,7 @@ function receiveToFile(readable, filePath, maxBytes, idleMs = IDLE_MS, totalMs =
         out.on('finish', () => {
             if (settled) return;
             settled = true;
-            clearTimeout(idle);
+            clearTimeout(idle ?? undefined);
             clearTimeout(total);
             resolve(bytes);
         });
@@ -229,7 +229,7 @@ function createUploadReceiver(deps) {
         if (!burned.ok) {
             return { status: 403, body: { error: INVALID_TICKET }, closeConnection: true };
         }
-        const { id } = burned;
+        const id = /** @type {string} */ (burned.id); // a burned ticket names itself
         const type = String(bound.contentType).toLowerCase();
 
         // 4. Receive, validate, store.

@@ -7,10 +7,9 @@ import { useModelTiersQuery } from '@/api/queries/modelTiers';
 import Modal from '@/components/shared/Modal';
 import {
     ApproverField, DESCRIBE_ID, DescribeSection, NameField, NewPlaybookFooter, RecipeInputFields, RecipePicker, TableModeField,
-    TierField, composeErrorMessage, createPayloadFor, type PickableTable,
+    TierField, composeErrorMessage, createPayloadFor,
 } from './NewPlaybookDialogParts';
 import { depthTierKeys, useApproverGroups, useExistingTables, useGrowDescribe } from './useNewPlaybookData';
-import type { OrgGroup } from '@/api/queries/orgGroups';
 import type { RecipeDoc, StaticRecipe, ApiError, NewPlaybookDialogProps } from './NewPlaybookDialog.types';
 
 /** The static fallback list, as documents, until the server answers. */
@@ -65,8 +64,6 @@ export default function NewPlaybookDialog({ user = null, onClose, onCreated, has
     const [inputs, setInputs] = useState(() => initialInputValues(recipes[0]));
     const [tier, setTier] = useState('fast');
     const [approverGroupId, setApproverGroupId] = useState('');
-    const [tables, setTables] = useState<PickableTable[] | null>(null);
-    const [groups, setGroups] = useState<OrgGroup[] | null>(null);
     const [approvalsAllowed, setApprovalsAllowed] = useState<boolean | null>(null);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -107,10 +104,10 @@ export default function NewPlaybookDialog({ user = null, onClose, onCreated, has
     }, [tierKeys, tier]);
 
     const hasTable = !!(recipe && recipe.table && Array.isArray(recipe.table.fields));
-    useExistingTables(hasTable, tableMode, tables, setTables);
+    const tables = useExistingTables(hasTable, tableMode);
 
     const wantsApprover = needsApprover(recipe);
-    useApproverGroups(approvalsAllowed, wantsApprover, groups, setGroups);
+    const groups = useApproverGroups(approvalsAllowed, wantsApprover);
 
     const pickRecipe = (id: string) => {
         setRecipeId(id);

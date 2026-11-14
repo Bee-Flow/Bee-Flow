@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * How a value reads inside human text: the `{{path}}` of a template binding
  * (notification, e-mail and chat bodies, document fills).
@@ -64,7 +65,7 @@ export function templateText(v, { lists = 'join' } = {}) {
     if (lists === 'json') {
         try { return JSON.stringify(v) ?? ''; } catch { return String(v); }
     }
-    if (isScalarList(v)) return v.filter((x) => x != null).map(String).join(', ');
+    if (isScalarList(v)) return /** @type {unknown[]} */ (v).filter((x) => x != null).map(String).join(', ');
     if (Array.isArray(v)) {
         // A table: one row per line. A mixed list reads each entry inline.
         return v.filter((x) => x != null)

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Route probe — "would a request for METHOD path reach a handler?"
  *
@@ -28,7 +28,7 @@ const MAX_DEPTH = 16;
 /**
  * The layer stack behind an app, a Router, or nothing. Express's router
  * internals (stack, layers) are not part of its public types.
- * @param {Record<string, any> | null | undefined} target
+ * @param {{ stack?: unknown, router?: { stack?: unknown }, _router?: { stack?: unknown } } | null | undefined} target
  */
 function stackOf(target) {
     if (!target || (typeof target !== 'function' && typeof target !== 'object')) return null;

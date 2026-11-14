@@ -125,3 +125,16 @@ test('public latest posts: an empty list when no site is live, never an error', 
     assert.strictEqual(res.status, 200);
     assert.deepStrictEqual(res.body.posts, []);
 });
+
+test('the actions on a site or page take no fields, and a field sent to one is refused by name', async () => {
+    const call = (method, path, body) => api.call(method, `/api/cms/sites/${SITE}${path}`, { body });
+    h.assertRefused(assert, await call('POST', '/publish', { force: true }), 'body', /Publishing a site does not take "force"/);
+    h.assertRefused(assert, await call('POST', '/duplicate', { name: 'Copy' }), 'body', /Duplicating a site does not take "name"/);
+    h.assertRefused(assert, await call('PUT', '/pages/pg1/homepage', { pageId: 'pg1' }), 'body', /Setting the homepage does not take "pageId"/);
+    assert.deepStrictEqual(writes(), []);
+});
+
+test('an action without a body still reaches its handler', async () => {
+    const res = await api.call('PUT', `/api/cms/sites/${SITE}/pages/pg1/homepage`);
+    assert.notStrictEqual(res.status, 400, res.text);
+});

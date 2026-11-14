@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * What ONE round of the agentic loop sends, and down which branch.
  *
@@ -157,7 +157,7 @@ async function buildRoundRequest({
     // EU GPT has no /chat/completions at all, so the raw path cannot reach it.
     const NATIVE_TYPES = ['google', 'openai', 'claude', 'mistral', 'azure', 'google-vertex', 'eugpt'];
     const _adapterIsLocal = isLocalProviderType(config.providerType) || providerAdapter instanceof LocalProvider;
-    const useNativeAdapter = (NATIVE_TYPES.includes(config.providerType) || _adapterIsLocal) && typeof providerAdapter?.stream === 'function';
+    const useNativeAdapter = (NATIVE_TYPES.includes(/** @type {string} */ (config.providerType)) || _adapterIsLocal) && typeof providerAdapter?.stream === 'function';
 
     return {
         headers, apiUrl, processedMessages, finalMessages,

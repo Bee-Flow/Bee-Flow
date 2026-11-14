@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Agentic AI bridge — POST /:id/ai/ask
  *
@@ -23,7 +23,6 @@
  * routes/webpagesPreview.js. Split out of it; behaviour unchanged.
  */
 
-const log = require('../telemetry/log');
 const { usageLogFields, createUsageAccumulator } = require('../core/providers/usageNormalizer');
 const automationStore = require('../stores/automationStore');
 const { searchWebpageKB } = require('../core/webpages/webpageKnowledgeSearch');
@@ -35,8 +34,8 @@ const { getProviderForModel } = require('../core/aiAgent');
 const { getAdapter } = require('../core/providers');
 const { openSse } = require('../core/http/sseHelpers');
 const { resolveBridgeModel, loadAiContext, writeBridgeUsage } = require('./webpagesPreviewAi');
-const { compactToolResultForLLM, buildAskToolSurface, automationToolName } = require('./webpagesPreviewAskTools');
-const { fallback } = require('../utils/bestEffort');
+const { compactToolResultForLLM, buildAskToolSurface, automationToolName } = require('../usecases/webpagesPreviewAskTools');
+const { fallback, ignoreGone } = require('../utils/bestEffort');
 
 /** @typedef {NonNullable<Awaited<ReturnType<typeof loadAiContext>>>} AiCtx */
 /** @typedef {ReturnType<typeof buildAskToolSurface>} AskSurface */
@@ -51,8 +50,8 @@ const { fallback } = require('../utils/bestEffort');
  *   viewerUserId: string | null | undefined, webpageId: string, queryLogs?: object | null }} AskState
  */
 /**
- * @typedef {{ tierName: string, modelId: string | null, adapter?: ReturnType<typeof getAdapter>, apiKey?: string,
- *   apiUrl?: string, maxTokens?: number, maxRounds?: number, temperature?: number, tools?: AskSurface['tools'] }} AskLlm
+ * @typedef {{ tierName: string, modelId: string, adapter: ReturnType<typeof getAdapter>, apiKey: string,
+ *   apiUrl: string, maxTokens: number, maxRounds: number, temperature: number, tools: AskSurface['tools'] }} AskLlm  tools: set once the surface is built
  */
 
 const MAX_ASK_ROUNDS_DEFAULT = 6;
@@ -94,7 +93,7 @@ async function searchPageKnowledge(ask, toolArgs) {
         userId: ask.ctx.authorUserId,
         kbIds: ask.surface.kbIds,
         query,
-        options: { topK: Math.min(parseInt(toolArgs.topK, 10) || 6, 20), rerank: true, minScore: 0.2 },
+        options: { topK: Math.min(parseInt(String(toolArgs.topK), 10) || 6, 20), rerank: true, minScore: 0.2 },
         log: ask.queryLogs ? { channel: 'webpage', channelRef: { webpageId: ask.webpageId, surface: 'ask' }, orgId: ask.ctx.authorOrgId || null, userId: ask.viewerUserId || null, carrier: ask.queryLogs } : null,
     });
     return { chunks: r?.chunks || [], contextPrompt: r?.contextPrompt || '' };
@@ -179,7 +178,7 @@ async function runAskTool(ask, toolName, toolArgs) {
  */
 async function dispatchAskTool(ask, toolCall) {
     const { send, shieldGate } = ask;
-    const toolName = toolCall.function?.name || toolCall.name;
+    const toolName = /** @type {string} */ (toolCall.function?.name || toolCall.name); // a streamed tool call names its tool
     /** @type {AskToolArgs} */
     let toolArgs = {};
     try { toolArgs = JSON.parse(toolCall.function?.arguments || '{}'); } catch (_) { fallback('routes/webpagesPreviewAsk:dispatchAskTool', _); /* tool arguments are not valid JSON, call the tool with none */ }
@@ -238,7 +237,7 @@ function makeRoundState(ask) {
             ask.send('error', { error: data?.error || 'stream error' });
         }
     };
-    return state;
+    return /** @type {Required<typeof state>} */ (state); // the callback is set above
 }
 
 /**
@@ -298,7 +297,7 @@ async function runAskRounds(ask, llm, messages) {
  * Adapter, credentials and the clamps for this ask, or null without a model.
  * @param {AiCtx} ctx
  * @param {{ tier?: unknown, maxTokens?: string, maxRounds?: string } | null | undefined} body
- * @returns {Promise<AskLlm>}
+ * @returns {Promise<(Omit<AskLlm, 'tools'> & { tools?: AskLlm['tools'] }) | { tierName: string, modelId: null }>}
  */
 async function resolveAskLlm(ctx, body) {
     const { tierName, modelId, tierDefaults, maxTokens } = await resolveBridgeModel(ctx, body);
@@ -309,7 +308,7 @@ async function resolveAskLlm(ctx, body) {
     const apiKey = config.apiKey;
     const apiUrl = (config.url || '').replace(/\/+$/, '');
 
-    const maxRoundsRequested = parseInt(body?.maxRounds, 10);
+    const maxRoundsRequested = parseInt(String(body?.maxRounds), 10);
     const maxRounds = Math.min(
         Number.isFinite(maxRoundsRequested) && maxRoundsRequested > 0 ? maxRoundsRequested : MAX_ASK_ROUNDS_DEFAULT,
         MAX_ASK_ROUNDS_HARD_CAP
@@ -343,7 +342,7 @@ async function ask(req, res) {
     // automation, even when a logged-in reader clicked a <bf-button> — and
     // since W4 this is the path reachable without a single line of JavaScript.
     // No fallback to `userId`: an unknown visitor is `null`, and `null` is honest.
-    const { viewerUserId, webpageId } = req.previewClaims;
+    const { viewerUserId, webpageId } = /** @type {NonNullable<typeof req.previewClaims>} */ (req.previewClaims); // set by the preview-token gate
     const ctx = await loadAiContext(webpageId, res);
     if (!ctx) return;
 
@@ -381,7 +380,7 @@ async function ask(req, res) {
         const shieldGate = await buildShieldGate(ctx, llm.tools, llm.modelId);
         const askState = { ctx, surface, shieldGate, send, isGone, usageAcc, viewerUserId, webpageId, queryLogs };
 
-        const { rounds, truncated } = await trackTurn(queryLogs, { model: llm.modelId, answerOf: (r) => r.answer }, () => runAskRounds(askState, llm, messages));
+        const { rounds, truncated } = await trackTurn(queryLogs, { model: llm.modelId, answerOf: (r) => r.answer }, () => runAskRounds(askState, /** @type {AskLlm} */ (llm), messages)); // its tools are set above
 
         // Logged regardless of client disconnect — real tokens were spent
         // either way, so the usage record should reflect that.
@@ -389,11 +388,11 @@ async function ask(req, res) {
 
         send('done', { rounds, truncated, prompt_tokens: usageAcc.total().prompt_tokens, completion_tokens: usageAcc.total().completion_tokens });
         stopHeartbeat();
-        try { res.end(); } catch (err) { log.debug('already closed', err); }
+        try { res.end(); } catch (err) { ignoreGone('routes/webpagesPreviewAsk:endDone', err); }
     } catch (err) {
         send('error', require('../core/http/sseError.mts').sseErrorPayload(err, { tag: '[WebpagesPreview/ai/ask]', req }));
         stopHeartbeat();
-        try { res.end(); } catch (err) { log.debug('already closed', err); }
+        try { res.end(); } catch (err) { ignoreGone('routes/webpagesPreviewAsk:endAfterError', err); }
     }
 }
 

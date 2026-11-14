@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import useTranslation from '@/hooks/useTranslation';
 import type { TranslateFn } from '@/hooks/useTranslation';
-import { API_BASE, authFetch } from '@/utils/helpers';
 import type { Connector, ConnectorParam } from './connectors/connectorModel';
+import { apiFetch } from '@/api/typedRequest';
 
 /**
  * App Studio BI — the connector catalogue hook (safe projection).
@@ -30,7 +30,7 @@ interface ConnectorsBody {
 }
 
 async function fetchConnectors(appId: string | null | undefined, t: TranslateFn): Promise<ConnectorSummary[]> {
-    const res = await authFetch(`${API_BASE}/api/studio-apps/${(encodeURIComponent as (value: string | null | undefined) => string)(appId)}/data/connectors`);
+    const res = await apiFetch('GET /api/studio-apps/{id}/data/connectors', { params: { id: String(appId) } });
     if (res.status === 404) return [];
     let body: ConnectorsBody | null = null;
     try { body = await res.json(); } catch { body = null; }

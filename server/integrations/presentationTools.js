@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Presentation Tools — the chat's way to hand the user a real .pptx.
  *
@@ -26,6 +26,8 @@
  * tool schema, the storage key and the message back to the model.
  */
 
+// Another feature's module, looked up by name (core/featureModules.js).
+const { featureModule } = require('../core/featureModules');
 const crypto = require('crypto');
 const { DECK_INPUT_PROPERTIES } = require('../core/documents/deckModel');
 const { DECK_THEME_INPUT_SCHEMA } = require('../core/documents/deckThemeOptions');
@@ -91,7 +93,7 @@ function safePresentationFileName(raw, fallback = 'presentation') {
  * With `oneDrivePath`, the built deck into the user's OneDrive; null without one.
  * @param {{ oneDrivePath?: string }} args
  * @param {{ userId?: string; orgId?: string | null; session?: Express.Session; provider?: string; }} ctx
- * @param {{ buffer: Buffer<ArrayBufferLike> | undefined; contentType: string; }} built
+ * @param {{ buffer: Buffer<ArrayBufferLike>; contentType: string; }} built
  * @param {string} filename
  */
 async function saveToOneDrive(args, ctx, built, filename) {
@@ -137,7 +139,7 @@ async function executePresentationTool(args = {}, ctx = {}) {
         log.warn(`[PresentationTools] marking unavailable, rendering unmarked: ${/** @type {Error} */ (e).message}`);
     }
 
-    const { renderPresentation, makeUserImageResolver } = require('../services/presentationRenderer');
+    const { renderPresentation, makeUserImageResolver } = featureModule('services/presentationRenderer');
     let out;
     try {
         out = await renderPresentation({

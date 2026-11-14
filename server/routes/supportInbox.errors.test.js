@@ -23,16 +23,19 @@ const h = require('../testUtils/routeHarness');
 
 /** @type {null | ((sql: string) => Error | null)} */
 let failWith = null;
+/** The organisation holds the tag the DELETE names (one row deleted). */
+let tagExists = false;
 const { api } = h.routeUnderTest(test, '/api/support-inbox', () => require('./supportInbox'), {
     gates: { resolveUserOrgIds: async () => new Set(['org1']) },
     answer: (sql) => {
         // Only the reads and writes a request makes; the stores' schema set-up is left alone.
         const err = failWith && /^\s*(INSERT|UPDATE|DELETE|SELECT)\b/i.test(sql) && failWith(sql);
         if (err) throw err;
+        if (tagExists && /^\s*DELETE FROM support_tag_taxonomy/i.test(sql)) return { rowCount: 1 };
         return undefined;
     },
 });
-test.afterEach(() => { failWith = null; });
+test.afterEach(() => { failWith = null; tagExists = false; });
 
 const pgError = (code, message) => Object.assign(new Error(message), { code, severity: 'ERROR' });
 const DOWN = () => pgError('57P01', 'terminating connection due to administrator command on db-primary.internal:5432');
@@ -85,7 +88,13 @@ test('an id that is not a uuid keeps its 400, without echoing the query error', 
 });
 
 test('a write that works answers as before', async () => {
+    tagExists = true;
     const res = await api.call('DELETE', '/api/support-inbox/tags/5b0a7c1e-0000-4000-8000-000000000001');
     assert.strictEqual(res.status, 200, res.text);
     assert.deepStrictEqual(res.body, { ok: true });
+});
+
+test('a tag the organisation does not hold is the 404 of an unknown id', async () => {
+    const res = await api.call('DELETE', '/api/support-inbox/tags/5b0a7c1e-0000-4000-8000-000000000001');
+    assert.strictEqual(res.status, 404, res.text);
 });

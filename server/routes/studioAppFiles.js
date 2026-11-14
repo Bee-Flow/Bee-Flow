@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * App Studio v2 — ATTACHMENT upload/stream router.
  *
@@ -52,6 +52,7 @@ const { worded } = require('../core/http/schemaParts');
 const log = require('../telemetry/log');
 const { HttpError } = require('../core/http/errors');
 const { validate } = require('../core/http/validate');
+const { sessionUser } = require('../core/http/sessionUser');
 const router = express.Router();
 
 const studioAppStore = require('../stores/studioAppStore');
@@ -68,7 +69,7 @@ const { uploadGuard, scanBuffer } = require('../middleware/uploadGuard');
 const { DATA_LIMITS } = require('../appStudio/dataModel');
 const { resolveAudienceContext } = require('../auth/audience');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
-const { attachmentResponseHeaders } = require('./studioAppAttachmentHeaders.mts');
+const { attachmentResponseHeaders } = require('../usecases/studioAppAttachmentHeaders.mts');
 const { withViewerAttributes } = require('../appStudio/viewerAttributes.mts');
 
 // ── Auth ────────────────────────────────────────────────────────────
@@ -76,10 +77,11 @@ const { withViewerAttributes } = require('../appStudio/viewerAttributes.mts');
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth } = require('../auth/permissions');
 const { bestEffort } = require('../utils/bestEffort');
+const { envInt } = require('../utils/envNumber.mts');
 
 // ── Rate limits (per viewer + app) ──────────────────────────────────
-const FILE_UPLOAD_RPM = parseInt(process.env.STUDIO_APP_FILE_UPLOAD_RPM, 10) || 20;
-const FILE_READ_RPM = parseInt(process.env.STUDIO_APP_FILE_READ_RPM, 10) || 120;
+const FILE_UPLOAD_RPM = envInt('STUDIO_APP_FILE_UPLOAD_RPM', 20, { min: 1 });
+const FILE_READ_RPM = envInt('STUDIO_APP_FILE_READ_RPM', 120, { min: 1 });
 /** @param {import('express').Request<{ id: string }>} req */
 function fileKey(req) {
     return `${req.session?.user?.id || 'anon'}:${req.params?.id || 'unknown'}`;
@@ -92,10 +94,7 @@ const readLimiter = perUserRateLimit({ windowMs: 60_000, max: FILE_READ_RPM, key
 const guard = uploadGuard({ maxBytes: DATA_LIMITS.MAX_ATTACHMENT_BYTES });
 
 // ── What a caller may send ──────────────────────────────────────────
-/**
- * An object that also accepts nothing at all: no body, or a test's bare req, reads as {}.
- * @param {Parameters<typeof z.object>[0]} shape
- */
+/** An object that also accepts nothing at all: no body, or a test's bare req, reads as {}. @template {import('zod').ZodRawShape} S @param {S} shape */
 const partOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 const APP_ID_TEXT = 'The app id is the id in the app\'s address.';
@@ -146,7 +145,7 @@ async function audienceFor(req) {
  * @param {import('express').Response} res
  */
 async function loadVisibleApp(req, res) {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const app = await studioAppStore.getStudioApp(req.params.id);
     if (!app) { res.status(404).json({ error: 'App not found' }); return null; }
     if (app.userId !== userId) {
@@ -170,7 +169,7 @@ async function viewerRoleFor(req, app) {
     const model = meta && meta.model && typeof meta.model === 'object' ? meta.model : null;
     if (!model || !Array.isArray(model.tables)) return { model: null, role: null };
     const { userGroups } = await audienceFor(req);
-    const role = await rlsGateway.resolveViewerRole(app, req.session.user.id, model, { userGroups });
+    const role = await rlsGateway.resolveViewerRole(app, sessionUser(req).id, model, { userGroups });
     return { model, role: role || null };
 }
 
@@ -184,7 +183,7 @@ async function viewerRoleFor(req, app) {
  * @param {StudioApp} app
  */
 async function viewerMayUpload(req, app) {
-    if (app.userId === req.session.user.id) return true;
+    if (app.userId === sessionUser(req).id) return true;
     const { model, role } = await viewerRoleFor(req, app);
     if (!model) return false;
     return attachmentAccess.roleMayWriteSomewhere(model, role);
@@ -284,11 +283,11 @@ router.post('/:id/data/attachments', requireAuth, uploadLimiter, validate({ para
  * @param {Attachment} attachment
  */
 async function viewerMayReadAttachment(req, app, attachment) {
-    const viewerId = req.session.user.id;
+    const viewerId = sessionUser(req).id;
     if (app.userId === viewerId) return true;
     const { model, role } = await viewerRoleFor(req, app);
     return attachmentAccess.viewerMayReadAttachment(app, attachment, {
-        ...await withViewerAttributes({ id: viewerId, role, organizationId: req.session.user.organizationId || null }, model),
+        ...await withViewerAttributes({ id: viewerId, role, organizationId: sessionUser(req).organizationId || null }, model),
         model,
     });
 }
@@ -518,11 +517,11 @@ router.post('/:id/data/attachments/materialize', requireAuth, uploadLimiter,
             tableId: tableId ?? undefined,
             recordId: recordId ?? undefined, inline: inline === true,
             viewer: await withViewerAttributes({
-                id: req.session.user.id,
+                id: sessionUser(req).id,
                 // The owner writes as the owner; anyone else keeps their role so
                 // the RLS read is real.
-                role: app.userId === req.session.user.id ? 'owner' : role,
-                organizationId: req.session.user.organizationId || null,
+                role: app.userId === sessionUser(req).id ? 'owner' : role,
+                organizationId: sessionUser(req).organizationId || null,
             }, model),
         });
 

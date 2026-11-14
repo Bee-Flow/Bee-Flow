@@ -433,7 +433,7 @@ function orgConfigKeys(orgId) {
     ];
 }
 
-async function deleteOrganization(orgId) {
+async function deleteOrganization(orgId) { // stepwise: cross-store erasure; every step is idempotent and the organisation row goes last, so deleting again finishes a failed delete
     await initDB();
     const org = await getOne('SELECT id, nc_instance_id FROM organizations WHERE id = $1', [orgId]);
     if (!org) return false;

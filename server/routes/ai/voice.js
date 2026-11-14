@@ -74,14 +74,14 @@ const voxtralStt = require('../../core/voice/voxtralStt');
 const voxtralTts = require('../../core/voice/voxtralTts');
 const { getIntegrationTools, buildToolHint } = require('../../core/integrations/integrationTools');
 const { executeTool: dispatchTool } = require('../../core/tools/toolDispatcher');
-const { filterVoiceTools, unofferedToolError } = require('./voiceTools.mts');
+const { filterVoiceTools, unofferedToolError } = require('../../usecases/ai/voiceTools.mts');
 const agentStore = require('../../stores/agentStore');
 
 // ─── Auth & gating ───────────────────────────────────────────────
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth } = require('../../auth/permissions');
-const { bestEffort } = require('../../utils/bestEffort');
+const { bestEffort, ignoreGone } = require('../../utils/bestEffort');
 const { createUsageAccumulator } = require('../../core/providers/usageNormalizer');
 // One usage row per voice turn (voiceUsage.js), re-exported on the router.
 const { meterVoiceTurn } = require('./voiceUsage');
@@ -325,7 +325,7 @@ router.get('/availability', requireAuth, async (req, res) => {
 // Resolves the agent (if any) once so the client has the right system
 // prompt and label up-front. The same `agentId` is echoed back on every
 // turn so the server can apply the matching tool restrictions.
-router.post('/session', requireAuth, requireMistralConfigured, validate({ body: SessionBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof SessionBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/session', requireAuth, requireMistralConfigured, validate({ body: SessionBody }), async (req, res) => {
     const crypto = require('crypto');
     const sessionId = crypto.randomBytes(16).toString('hex');
     const { agentId = null, voice = null, language = null } = req.body;
@@ -365,7 +365,7 @@ router.post(
     requireMistralConfigured,
     receiveTurnAudio,
     validate({ body: TurnFields }),
-    async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof TurnFields>, import('qs').ParsedQs>} */ req, res) => {
+    async (req, res) => {
         // Everything that can refuse the turn answers before the stream opens.
         if (!req.file) {
             return res.status(400).json({ error: 'Missing audio blob', code: 'no_audio' });
@@ -670,7 +670,7 @@ router.post(
         } catch (err) {
             log.error('[Voice turn] error:', err);
             send('error', { message: /** @type {Error} */ (err).message || 'Voice turn failed' });
-            try { res.end(); } catch (_) { log.debug('response already closed', _); }
+            try { res.end(); } catch (_) { ignoreGone('routes/ai/voice:endAfterError', _); }
         }
     }
 );

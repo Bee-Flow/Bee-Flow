@@ -37,40 +37,25 @@
  * gets the same rule at its own cap.
  *
  * The router that mounts this (routes/datatables/index.js) calls `draft(req,
- * res)` without a `next`, so the schema is applied here, through the same
- * validate() every other route uses, and answered in its envelope. DraftBody
- * is exported so the mount can put it in front, the way automation/crud.js
- * does for the forms twin; applying it twice is harmless.
+ * res)` without a `next`, so the schema is applied here too, through the same
+ * validate() every other route uses, and answered in its envelope. The mount
+ * puts DraftBody (datatableDraftBody.mts) in front as well, where the API
+ * reference reads it; applying it twice is harmless.
  */
 
 'use strict';
 
-const { z, typeError } = require('../utils/zod');
 const { usageLogFields } = require('../core/providers/usageNormalizer');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 const { DRAFT_TOOL, MAX_BRIEF_CHARS, MAX_NOTE_CHARS, buildDraftMessages, parseDatatableDraft } = require('../core/dataEngine/dataModel/datatableDraft');
 const { isSchemaLockedKind } = require('../core/dataEngine/dataModel/managedTables');
 const { validate } = require('../core/http/validate');
-const { choice } = require('./datatables/schemas');
 const log = require('../telemetry/log');
 const { HttpError } = require('../core/http/errors');
 const { bestEffort } = require('../utils/bestEffort');
 const { sessionUser } = require('../core/http/sessionUser');
 
-const NOTE_TEXT = `A change request is at most ${MAX_NOTE_CHARS} characters — shorten it, or split it into two.`;
-const BRIEF_TEXT = `A table description is at most ${MAX_BRIEF_CHARS} characters — shorten it, or leave out what the columns do not need.`;
-
-const DraftBody = z.preprocess(
-    (v) => (v === undefined || v === null ? {} : v),
-    z.object({
-        mode: choice(['create', 'revise'], 'mode is "create" or "revise".').prefault('create'),
-        // Capped, not cut: the model is only ever sent this much of either.
-        brief: z.string({ error: typeError({ invalid: 'brief must be text.' }) }).trim().max(MAX_BRIEF_CHARS, BRIEF_TEXT).nullish(),
-        note: z.string({ error: typeError({ invalid: 'note must be text.' }) }).trim().max(MAX_NOTE_CHARS, NOTE_TEXT).nullish(),
-        current: z.record(z.string(), z.unknown(), { error: typeError({ invalid: 'current is the table as the designer holds it.' }) }).nullish(),
-        allowDestructive: z.boolean({ error: typeError({ invalid: 'allowDestructive is true or false.' }) }).optional(),
-    }).strict(),
-);
+const { DraftBody } = require('./datatableDraftBody.mts');
 const validateDraft = validate({ body: DraftBody });
 
 /**

@@ -16,6 +16,7 @@ import { homeOrgIdOf, isHomeOrgAdmin, isPlatformAdmin } from '@/utils/adminAcces
 import { useAdminOrgChoice } from '@/components/admin/dashboard/useAdminOrg';
 import { useAdminScopeOverride } from '@/components/admin/dashboard/useAdminScopeOverride';
 import { ServerWideMark, serverWideLast } from '@/components/admin/dashboard/serverWideNav';
+import { useShellProps } from '@/authedApp/useShellProps';
 
 /**
  * SecurityHub — Unified security configuration page
@@ -55,8 +56,11 @@ interface SecurityHubProps {
     user?: AdminCurrentUser | null;
 }
 
-const SecurityHub = ({ activeSection: activeProp = 'users', userSection = '', onNavigate, user }: SecurityHubProps) => {
+const SecurityHub = ({ activeSection: activeProp = 'users', userSection = '', onNavigate, user: userProp }: SecurityHubProps) => {
     const { t } = useTranslation();
+    // Inside the app shell the signed-in person and the navigation come from
+    // context; a host outside it (a test, a kit) still hands them as props.
+    const { user, onNavigate: go } = useShellProps({ user: userProp, onNavigate });
     const { hasTier } = useLicenseContext();
     const isEnterprise = hasTier('enterprise');
     // The sections about the whole server (SSO, e-mail domains, connector
@@ -91,14 +95,14 @@ const SecurityHub = ({ activeSection: activeProp = 'users', userSection = '', on
                         ...(sec.serverWide ? { group: t('admin.scope_instance', 'Whole server'), groupDivider: true, mark: <ServerWideMark /> } : {}),
                     }))}
                     activeId={active}
-                    onSelect={(id) => { if (onNavigate) onNavigate(`admin/security/${id}`); }}
+                    onSelect={(id) => { if (go) go(`admin/security/${id}`); }}
                 />
             )}
         >
             {active === 'users' && (
                 <div className="relative h-full">
                     <div className="absolute inset-0">
-                        <UserManagement activeSection={userSection} onNavigate={onNavigate} user={user} />
+                        <UserManagement activeSection={userSection} onNavigate={go} user={user} />
                     </div>
                 </div>
             )}
@@ -109,7 +113,7 @@ const SecurityHub = ({ activeSection: activeProp = 'users', userSection = '', on
                         /app/admin/security/guardrails/<section> a real, bookmarkable
                         URL without touching App.jsx's router. */}
                     {platformAdmin && isEnterprise
-                        ? <GuardrailsHub section={userSection} onNavigate={onNavigate} />
+                        ? <GuardrailsHub section={userSection} onNavigate={go} />
                         : <OrgGuardrails orgId={shieldOrgId} activityOrgId={platformAdmin ? shieldOrgId : null} allowOrgPicker={platformAdmin} />}
                 </div>
             )}
@@ -125,7 +129,7 @@ const SecurityHub = ({ activeSection: activeProp = 'users', userSection = '', on
             )}
             {active === 'connector-health' && (
                 <div className="p-6 md:p-8">
-                    <ConnectorHealthPanel initialOrgId={userSection} onNavigate={onNavigate} />
+                    <ConnectorHealthPanel initialOrgId={userSection} onNavigate={go} />
                 </div>
             )}
         </StudioShell>

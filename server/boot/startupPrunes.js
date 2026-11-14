@@ -8,6 +8,7 @@
 
 const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
+const { envInt } = require('../utils/envNumber.mts');
 
 /** Org-health and integration-cache prunes, and the delayed orphan-chunk purge. */
 function startPruneSchedulers() {
@@ -19,8 +20,8 @@ function startPruneSchedulers() {
         const runOrgHealthPrune = async () => {
             try {
                 const r = await orgHealthStore.pruneOld({
-                    eventRetentionDays: parseInt(process.env.ORG_HEALTH_EVENT_RETENTION_DAYS ?? '', 10) || 90,
-                    resolvedProblemRetentionDays: parseInt(process.env.ORG_HEALTH_RESOLVED_RETENTION_DAYS ?? '', 10) || 30,
+                    eventRetentionDays: envInt('ORG_HEALTH_EVENT_RETENTION_DAYS', 90, { min: 1 }),
+                    resolvedProblemRetentionDays: envInt('ORG_HEALTH_RESOLVED_RETENTION_DAYS', 30, { min: 1 }),
                 });
                 if (r && (r.events || r.resolvedProblems || r.unattributed)) {
                     log.info(`[OrgHealth] pruned events=${r.events} resolvedProblems=${r.resolvedProblems} unattributed=${r.unattributed}`);

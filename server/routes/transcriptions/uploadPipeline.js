@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Transcriptions: the background pipeline of POST / (upload).
  *
@@ -14,9 +14,10 @@ const configStore = require('../../stores/configStore');
 const transcriptionStore = require('../../stores/transcriptionStore');
 const { asM4aIfAdts } = require('../../core/voice/audioPreprocess');
 const { resolveDefaultTemplateForReq, VOXTRAL_TIMEOUT_MS } = require('./shared');
-const { nameSpeakers, buildTranscriptOrThrow } = require('./speakerNaming');
+const { nameSpeakers, buildTranscriptOrThrow } = require('../../usecases/transcriptions/speakerNaming');
 const { stampForTemplate } = require('../../core/meetingNotes/summaryStamp');
-const { fallback } = require('../../utils/bestEffort');
+const { fallback, ignoreGone } = require('../../utils/bestEffort');
+const { HttpError } = require('../../core/http/errors');
 
 /**
  * Tell the stuck-note reaper this run is alive (transcriptionStore.heartbeatProcessing):
@@ -56,7 +57,7 @@ const {
  * key is present), WhisperX is the self-hosted alternative, then Azure.
  * @returns {Promise<{ response: { text: string, segments: Array<{ speakerId: string, start: number, end: number, text: string }> }|null, provider: string, providerFallback: ProviderFallback|null }>}
  *   `response` is null when the caller must continue with the returned cloud `provider`.
- * @param {{ filePath: string, language?: string | null }} input
+ * @param {{ filePath: string, language: string }} input
  */
 async function transcribeOnDevice({ filePath, language }) {
     const { transcribeLocally } = require('../../core/voice/localWhisper');
@@ -64,7 +65,7 @@ async function transcribeOnDevice({ filePath, language }) {
         const local = await transcribeLocally(filePath, { language });
         if (!local) {
             // Post-202: fail the note (the catch handles it), never res.* again.
-            throw new Error('Local transcription model is not available. Try again, or pick a cloud provider.');
+            throw new HttpError(503, 'local_model_unavailable', 'Local transcription model is not available. Try again, or pick a cloud provider.');
         }
         return { response: { text: local.text, segments: local.segments }, provider: 'local', providerFallback: null };
     } catch (err) {
@@ -83,7 +84,7 @@ async function transcribeOnDevice({ filePath, language }) {
         if (azureKey && azureRegion) configured.push('azure');
 
         if (!configured.length) {
-            throw new Error(/** @type {Error} */ (err).message + '. No cloud provider is configured — ask an admin to enable Voxtral, WhisperX or Azure, or split the recording.');
+            throw new HttpError(503, 'no_cloud_engine', /** @type {Error} */ (err).message + '. No cloud provider is configured — ask an admin to enable Voxtral, WhisperX or Azure, or split the recording.');
         }
         // The fallback decides which third party the WHOLE recording goes to,
         // so it answers to the same allow-list as an engine the user picks.
@@ -94,7 +95,7 @@ async function transcribeOnDevice({ filePath, language }) {
         const allowed = await resolveAllowedProviders(true);
         const cloud = configured.find((p) => p !== 'local' && allowed.includes(p)) || null;
         if (!cloud) {
-            throw new Error(/** @type {Error} */ (err).message + '. No cloud engine is enabled for this workspace — split the recording, or ask an admin.');
+            throw new HttpError(503, 'no_cloud_engine', /** @type {Error} */ (err).message + '. No cloud engine is enabled for this workspace — split the recording, or ask an admin.');
         }
         log.info(`[Transcriptions] Local cap exceeded — falling back to ${cloud}`);
         return {
@@ -107,13 +108,13 @@ async function transcribeOnDevice({ filePath, language }) {
 
 /**
  * Voxtral (cloud, default). The only engine that needs the bytes in memory.
- * @param {{ filePath: string, fileName: string, language?: string | null, contextTerms?: string }} input
+ * @param {{ filePath: string, fileName: string, language: string, contextTerms?: string }} input
  */
 async function transcribeWithVoxtral({ filePath, fileName, language, contextTerms }) {
     const apiKey = await configStore.getSecret('mistral_api_key');
     if (!apiKey) {
-        try { fs.unlinkSync(filePath); } catch (_) { log.debug('temp upload already gone', _); }
-        throw new Error('Mistral API key not configured. Go to Admin → AI Config → API Keys.');
+        try { fs.unlinkSync(filePath); } catch (_) { ignoreGone('routes/transcriptions/uploadPipeline:unlinkUpload', _); }
+        throw new HttpError(503, 'engine_not_configured', 'Mistral API key not configured. Go to Admin → AI Config → API Keys.');
     }
 
     const { createVoxtralClient } = require('../../core/meetingNotes/voxtralClient');
@@ -147,7 +148,7 @@ async function transcribeWithVoxtral({ filePath, fileName, language, contextTerm
  * The cloud and self-hosted engines. @returns the response plus engine extras.
  *
  * @param {string} provider
- * @param {{ filePath: string, fileName: string, language?: string|null, contextTerms?: string, numSpeakers?: number|null, userOrgId?: string|null, userId?: string, attendees?: string[] }} input
+ * @param {{ filePath: string, fileName: string, language: string, contextTerms?: string, numSpeakers?: number|null, userOrgId?: string|null, userId?: string, attendees?: string[] }} input
  */
 async function transcribeWithEngine(provider, { filePath, fileName, language, contextTerms, numSpeakers, userOrgId, userId, attendees }) {
     /** @type {{ truncationNotice: {reason: string, atSeconds: number}|null, voiceprintMapping: Record<string, string>|null, voiceprintRoster: string[], voiceprintRuledOut: Record<string, string[]>|null, voiceprintInfo: VoiceprintInfo|null }} */
@@ -200,7 +201,7 @@ async function transcribeWithEngine(provider, { filePath, fileName, language, co
  * `providerFallback` tracks an automatic engine switch (local to cloud). The 202
  * is long gone by then, so it is surfaced as a notice line on the note's summary.
  *
- * @param {{ provider: string } & { filePath: string, fileName: string, language?: string|null, contextTerms?: string, numSpeakers?: number|null, userOrgId?: string|null, userId?: string, attendees?: string[] }} args
+ * @param {{ provider: string } & { filePath: string, fileName: string, language: string, contextTerms?: string, numSpeakers?: number|null, userOrgId?: string|null, userId?: string, attendees?: string[] }} args
  */
 async function transcribeUpload({ provider, ...input }) {
     /** @type {ProviderFallback|null} */

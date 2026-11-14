@@ -8,9 +8,9 @@ import useRemote, { readJson } from './useRemote';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import type { Catalog } from '@/components/automation/Builder/mapping/upstream/upstream.types';
 import type { WaitlistUser } from '../../subscriptions/access/useSignupSettings';
-import { API_BASE } from '@/utils/helpers';
-import { mutate, errorBody, RefusedError } from '@/api/mutate';
+import { errorBody, RefusedError } from '@/api/mutate';
 import Modal from '@/components/shared/Modal';
+import { type ApiBody, apiRequest, apiUrl } from '@/api/typedRequest';
 
 /**
  * Installing a Blueprint, as three questions instead of one button.
@@ -60,8 +60,6 @@ import Modal from '@/components/shared/Modal';
  * that will not load blocks the wizard rather than installing something nobody
  * could see.
  */
-
-const INSTALL_URL = `${API_BASE}/api/projects/package/install`;
 
 // ── The wizard ─────────────────────────────────────────────────────
 
@@ -148,6 +146,7 @@ interface InstallBlueprintModalProps {
 }
 
 type AccessEntry = { type: string; id: string; permission: string };
+type ShareBody = ApiBody<'POST /api/projects/{id}/share'>;
 
 /** What happens after the Solution exists: the ticked tool grants, then the shares. Each returns its failures as sentences. */
 function useInstallFollowUps(grants: InstallChoices['grants'], access: AccessEntry[], t: TranslateFn) {
@@ -174,11 +173,7 @@ function useInstallFollowUps(grants: InstallChoices['grants'], access: AccessEnt
                 continue;
             }
             try {
-                await mutate(`${API_BASE}/api/webpages/${encodeURIComponent(webpageId)}/grants/integrations`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ tool: row.tool }),
-                });
+                await apiRequest('POST /api/webpages/{id}/grants/integrations', { params: { id: webpageId }, body: { tool: row.tool as string } });
             } catch (err) {
                 if (err instanceof RefusedError) {
                     problems.push(t('solutions.install_grant_failed', '{tool} could not be granted: {why}',
@@ -196,10 +191,13 @@ function useInstallFollowUps(grants: InstallChoices['grants'], access: AccessEnt
         const problems = [];
         for (const entry of access) {
             try {
-                await mutate(`${API_BASE}/api/projects/${encodeURIComponent(String(projectId))}/share`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sharedWithType: entry.type, sharedWithId: entry.id, permission: entry.permission }),
+                await apiRequest('POST /api/projects/{id}/share', {
+                    params: { id: String(projectId) },
+                    body: {
+                        sharedWithType: entry.type as ShareBody['sharedWithType'],
+                        sharedWithId: entry.id,
+                        permission: entry.permission as ShareBody['permission'],
+                    },
                 });
             } catch (err) {
                 if (err instanceof RefusedError) {
@@ -230,7 +228,7 @@ export default function InstallBlueprintModal({ open, source, onClose, onInstall
     // A gallery Blueprint arrives as an id; the manifest has to be fetched
     // before there is anything to describe. A file already carries it.
     const fetched = useRemote<{ blueprint?: { manifest?: unknown } }>(
-        source?.blueprintId ? `${API_BASE}/api/projects/package/blueprints/${encodeURIComponent(source.blueprintId)}` : null,
+        source?.blueprintId ? apiUrl('GET /api/projects/package/blueprints/{blueprintId}', { params: { blueprintId: source.blueprintId } }) : null,
         open && !!source?.blueprintId,
     );
     const manifest = source?.manifest || fetched.data?.blueprint?.manifest || null;
@@ -252,10 +250,10 @@ export default function InstallBlueprintModal({ open, source, onClose, onInstall
 
     // Loaded per step: most installs never open step 3, and four requests for a
     // dialog somebody may close again is four requests too many.
-    const catalog = useRemote<Catalog>(`${API_BASE}/api/automation/catalog`, open && step === 2);
-    const connections = useRemote<{ connections?: Array<{ id: string; label?: string; name?: string }> }>(`${API_BASE}/api/integrations/connections`, open && step === 2);
-    const people = useRemote<WaitlistUser[]>(`${API_BASE}/auth/users`, open && (step === 2 || step === 3));
-    const groups = useRemote<{ id: string; name: string }[]>(`${API_BASE}/auth/groups`, open && (step === 2 || step === 3));
+    const catalog = useRemote<Catalog>(apiUrl('GET /api/automation/catalog'), open && step === 2);
+    const connections = useRemote<{ connections?: Array<{ id: string; label?: string; name?: string }> }>(apiUrl('GET /api/integrations/connections'), open && step === 2);
+    const people = useRemote<WaitlistUser[]>(apiUrl('GET /auth/users'), open && (step === 2 || step === 3));
+    const groups = useRemote<{ id: string; name: string }[]>(apiUrl('GET /auth/groups'), open && (step === 2 || step === 3));
 
     const { grantTicked, shareWith } = useInstallFollowUps(choices.grants, access, t);
 
@@ -265,15 +263,12 @@ export default function InstallBlueprintModal({ open, source, onClose, onInstall
         try {
             let payload: InstallPayload | null;
             try {
-                const res = await mutate(INSTALL_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        ...(source?.blueprintId ? { blueprintId: source.blueprintId } : { manifest }),
-                        ...(name.trim() ? { name: name.trim() } : {}),
-                        resolutions: buildResolutions(read.requires, choices),
-                    }),
-                });
+                const body = {
+                    ...(source?.blueprintId ? { blueprintId: source.blueprintId } : { manifest }),
+                    ...(name.trim() ? { name: name.trim() } : {}),
+                    resolutions: buildResolutions(read.requires, choices),
+                } as ApiBody<'POST /api/projects/package/install'>;
+                const res = await apiRequest('POST /api/projects/package/install', { body });
                 payload = await readJson<InstallPayload>(res);
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;

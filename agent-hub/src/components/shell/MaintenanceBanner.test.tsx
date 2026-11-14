@@ -10,7 +10,8 @@
  * is the exit: a fresh mount baselines against the new build and shows nothing.
  */
 
-import { render, screen, act } from '@testing-library/react';
+import { screen, act } from '@testing-library/react';
+import { renderWithClient } from '@/test/render';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
@@ -64,14 +65,14 @@ afterEach(() => {
 
 describe('MaintenanceBanner', () => {
     it('renders nothing while nothing is announced', async () => {
-        render(<MaintenanceBanner />);
+        renderWithClient(<MaintenanceBanner />);
         await advance();
         expect(screen.queryByRole('status')).toBeNull();
     });
 
     it('shows the pending warning, with a coarse translated ETA', async () => {
         api.payload = { maintenance: openWindow(120), appVersion: 'sha-old' };
-        render(<MaintenanceBanner />);
+        renderWithClient(<MaintenanceBanner />);
         await advance();
         const strip = screen.getByRole('status');
         expect(strip).toHaveTextContent('Update being installed');
@@ -82,7 +83,7 @@ describe('MaintenanceBanner', () => {
 
     it('goes overdue when the ETA runs out while the server is unreachable', async () => {
         api.payload = { maintenance: openWindow(30), appVersion: 'sha-old' };
-        render(<MaintenanceBanner />);
+        renderWithClient(<MaintenanceBanner />);
         await advance();
         // The rollout takes the pod down: every poll now fails. The hook holds
         // the last known window (a banner that flickers off at the exact moment
@@ -95,7 +96,7 @@ describe('MaintenanceBanner', () => {
 
     it('the recovered reload prompt PERSISTS until the user reloads', async () => {
         api.payload = { maintenance: openWindow(60), appVersion: 'sha-old' };
-        render(<MaintenanceBanner />);
+        renderWithClient(<MaintenanceBanner />);
         await advance();
         expect(screen.getByRole('status')).toHaveTextContent('Update being installed');
 
@@ -119,7 +120,7 @@ describe('MaintenanceBanner', () => {
         // loaded tab. Its first poll IS its baseline, so there is no skew and
         // no banner. This is the designed exit from the persistent prompt.
         api.payload = { maintenance: null, appVersion: 'sha-new' };
-        render(<MaintenanceBanner />);
+        renderWithClient(<MaintenanceBanner />);
         await advance();
         await advance(2 * 60_000);
         expect(screen.queryByRole('status')).toBeNull();
@@ -128,7 +129,7 @@ describe('MaintenanceBanner', () => {
     it('does not poll at all when disabled', async () => {
         const { authFetch } = await import('../../utils/helpers');
         asMock(authFetch).mockClear();
-        render(<MaintenanceBanner enabled={false} />);
+        renderWithClient(<MaintenanceBanner enabled={false} />);
         await advance(60_000);
         expect(authFetch).not.toHaveBeenCalled();
     });

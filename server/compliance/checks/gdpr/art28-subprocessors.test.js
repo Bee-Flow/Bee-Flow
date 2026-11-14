@@ -1,51 +1,51 @@
 // @typecheck
 /**
- * GDPR Art. 28 after the move onto lib/observedOperators: the SQL the ledger
- * query runs is byte-for-byte the query this check has always run, and the
- * status ladder is unchanged — no ledger → n/a, quiet ledger → n/a, an
+ * GDPR Art. 28 on lib/observedOperators: the ledger query reads what it
+ * always read (on a real Postgres), and the status ladder is unchanged — no ledger → n/a, quiet ledger → n/a, an
  * unattested operator → warn, all attested → pass. Plus the cross-framework
  * tags the SoA / NIS2 / DORA joins rely on.
  *
- * Run: cd server && node --test --test-force-exit compliance/checks/gdpr/art28-subprocessors.test.js
+ * Run: cd server && node --test compliance/checks/gdpr/art28-subprocessors.test.js
  */
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { installResolveStub } = require('../../../testUtils/stubRequire');
+const { usePglitePool } = require('../../../testUtils/pglitePool');
+const { ladderPglite } = require('../../../testUtils/pgliteTemplate');
+const { failReads, hideTable } = require('../../../testUtils/pgliteFaults');
+const { insertRow } = require('../../../testUtils/pgliteSeed');
 
-const state = { rows: [], queryError: null, settings: {}, lastSql: null, lastParams: null };
-const flat = (s) => String(s).replace(/\s+/g, ' ').trim();
+const state = { settings: {} };
 
-const fakeDb = {
-    async getAll(sql, params) {
-        state.lastSql = flat(sql);
-        state.lastParams = params;
-        if (state.queryError) throw state.queryError;
-        return state.rows;
-    },
-    async getOne() { return null; },
-    async run() { return { rowCount: 0 }; },
-    async exec() {},
-};
-const fakeComplianceStore = { async getSettings() { return state.settings; } };
-const fakeConfigStore = { async getConfig() { return null; } };
-
-// observedOperators requires '../../db' and '../../stores/configStore'; the
-// check requires '../../../stores/complianceStore'.
+// The ledger runs on the boot ladder's schema on PGlite
+// (testUtils/pgliteTemplate.js) behind db.js's pool; no AI providers are
+// configured (configStore replaced on the singleton). The settings are
+// stubbed: the attestation lists under test include malformed ones the
+// settings store would not save.
+const { pg, close } = usePglitePool(ladderPglite());
+const configStore = require('../../../stores/configStore');
+configStore.getConfig = async () => null;
 const restore = installResolveStub({
-    '../../db': fakeDb,
-    '../../stores/configStore': fakeConfigStore,
-    '../../../stores/complianceStore': fakeComplianceStore,
+    '../../../stores/complianceStore': { async getSettings() { return state.settings; } },
 });
 const check = require('./art28-subprocessors');
-test.after(() => restore());
+test.after(async () => { restore(); await close(); });
 
-test.beforeEach(() => {
-    state.rows = [];
-    state.queryError = null;
+test.beforeEach(async () => {
     state.settings = { scc_confirmed_operators: [] };
-    state.lastSql = null;
+    await pg.exec('DELETE FROM integration_activity_log');
 });
+
+/**
+ * `n` calls to `operator`, by org-1 unless the row says otherwise.
+ * @param {string | null} operator @param {number} [n] @param {Record<string, unknown>} [over]
+ */
+async function calls(operator, n = 1, over = {}) {
+    for (let i = 0; i < n; i++) {
+        await insertRow(pg, 'integration_activity_log', { tool_name: 'llm', organization_id: 'org-1', operator, is_eu: false, ...over });
+    }
+}
 
 test('module shape and cross-framework tags', () => {
     assert.equal(check.id, 'GDPR-Art28-subprocessors');
@@ -60,20 +60,24 @@ test('module shape and cross-framework tags', () => {
     ]);
 });
 
-test('the ledger query is unchanged: 30-day window, org-scoped, local and dry-run calls excluded', async () => {
-    await check.evaluate('org-1');
-    assert.deepEqual(state.lastParams, ['org-1']);
-    assert.match(state.lastSql, /FROM integration_activity_log WHERE \(organization_id = \$1 OR \(\$1::text = 'default' AND \(organization_id IS NULL OR organization_id = ''\)\)\)/);
-    assert.match(state.lastSql, /INTERVAL '30 days'/);
-    assert.match(state.lastSql, /COALESCE\(is_local, false\) = false/);
-    assert.match(state.lastSql, /COALESCE\(is_dry_run, false\) = false/);
-    assert.match(state.lastSql, /GROUP BY COALESCE\(operator, 'unknown'\)/);
-    assert.doesNotMatch(state.lastSql, /country_code/, 'Art. 28 does not ask for the country column');
+test('the ledger: 30-day window, org-scoped, local and dry-run calls excluded, one row per operator', async () => {
+    await calls('Old Host', 1, { timestamp: new Date(Date.now() - 40 * 86400e3).toISOString() });
+    await calls('Other Tenant Host', 1, { organization_id: 'org-2' });
+    await calls('Local Box', 1, { is_local: true });
+    await calls('Dry Run Host', 1, { is_dry_run: true });
+    assert.equal((await check.evaluate('org-1')).status, 'not_applicable', 'none of those is an observed processor of org-1');
+    await calls('OpenAI', 3);
+    await calls(null, 2, { location_state: 'outside' });   // located, operator unknown
+    await calls(null, 4);                                    // neither operator nor location: names nobody
+    const r = await check.evaluate('org-1');
+    const observed = Object.fromEntries(r.evidence.operators_observed.map((o) => [o.operator, o.calls]));
+    assert.deepEqual(observed, { OpenAI: 3, unknown: 2 });
 });
 
 test('no ledger table → not_applicable with the historical reason', async () => {
-    state.queryError = Object.assign(new Error('relation "integration_activity_log" does not exist'), { code: '42P01' });
-    const r = await check.evaluate('org-1');
+    const show = await hideTable(pg, 'integration_activity_log');
+    let r;
+    try { r = await check.evaluate('org-1'); } finally { await show(); }
     assert.equal(r.status, 'not_applicable');
     assert.deepEqual(r.evidence, { reason: 'activity ledger not available' });
 });
@@ -82,16 +86,19 @@ test('a single-tenant install: the default bucket reads the ledger rows written 
     // logToolEgress writes organization_id NULL for a user with no org, while
     // the scheduler sweeps that install as 'default'. The parameter stays the
     // org id; the predicate maps NULL/'' onto 'default' only.
-    await check.evaluate('default');
-    assert.deepEqual(state.lastParams, ['default']);
-    assert.match(state.lastSql, /organization_id IS NULL OR organization_id = ''/);
+    await calls('OpenAI', 1, { organization_id: null });
+    await calls('Mistral', 1, { organization_id: '' });
+    const r = await check.evaluate('default');
+    assert.deepEqual(r.evidence.uncovered.sort(), ['Mistral', 'OpenAI']);
+    assert.equal((await check.evaluate('org-1')).status, 'not_applicable', 'never a tenant\'s');
 });
 
 test('a ledger that cannot be read → warn with the SQLSTATE, not "no ledger yet"', async () => {
     // not_applicable leaves the score, so a timeout used to look like a fresh
     // install. Only 42P01/42703 mean "not provisioned".
-    state.queryError = Object.assign(new Error('canceling statement due to statement timeout'), { code: '57014' });
-    const r = await check.evaluate('org-1');
+    const undo = await failReads(pg, 'integration_activity_log', '57014', 'canceling statement due to statement timeout');
+    let r;
+    try { r = await check.evaluate('org-1'); } finally { await undo(); }
     assert.equal(r.status, 'warn');
     assert.equal(r.evidence.sqlstate, '57014');
     assert.ok(!JSON.stringify(r).includes('canceling statement'), 'the raw error message stays out of the evidence');
@@ -104,10 +111,8 @@ test('a quiet ledger → not_applicable', async () => {
 });
 
 test('an observed operator without an attestation → warn, named in evidence and details', async () => {
-    state.rows = [
-        { operator: 'OpenAI', is_eu: false, calls: 12 },
-        { operator: 'Scaleway', is_eu: true, calls: 3 },
-    ];
+    await calls('OpenAI', 12);
+    await calls('Scaleway', 3, { is_eu: true });
     state.settings = { scc_confirmed_operators: [{ operator: 'openai', attested_by: 'u1', attested_at: '2026-01-01T00:00:00Z' }] };
     const r = await check.evaluate('org-1');
     assert.equal(r.status, 'warn');
@@ -120,7 +125,8 @@ test('an observed operator without an attestation → warn, named in evidence an
 });
 
 test('every observed operator attested (case-insensitive) → pass', async () => {
-    state.rows = [{ operator: 'OpenAI', is_eu: false, calls: 12 }, { operator: 'unknown', is_eu: false, calls: 1 }];
+    await calls('OpenAI', 12);
+    await calls(null, 1, { location_state: 'outside' });
     state.settings = { scc_confirmed_operators: [{ operator: 'OPENAI' }, { operator: 'Unknown' }, { operator: '' }, null] };
     const r = await check.evaluate('org-1');
     assert.equal(r.status, 'pass');
@@ -129,7 +135,7 @@ test('every observed operator attested (case-insensitive) → pass', async () =>
 });
 
 test('a malformed attestation list is treated as empty', async () => {
-    state.rows = [{ operator: 'OpenAI', is_eu: false, calls: 1 }];
+    await calls('OpenAI', 1);
     state.settings = { scc_confirmed_operators: 'not-an-array' };
     const r = await check.evaluate('org-1');
     assert.equal(r.status, 'warn');

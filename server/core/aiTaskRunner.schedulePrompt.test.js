@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Scheduled runs must not lecture the user about scheduling.
  *
@@ -133,7 +133,7 @@ test('scheduled agent runs pass the schedule through to the context builder', as
         tools: [],
         userId: 'u_schedule_test',
         messageMetadata: { scheduleText: describeTaskSchedule({ ...BASE, repeatInterval: 'daily' }) },
-        memoryContext: null,
+        memoryContext: /** @type {any} */ (null),
         isStrictKnowledge: false,
     });
     assert.match(stable, /every day/, 'contextBuilder must read messageMetadata.scheduleText');

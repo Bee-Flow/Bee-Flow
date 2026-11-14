@@ -95,6 +95,7 @@ export default function ChartView({ node, view, editable }: { node: DocNode; vie
         <button
           type="button"
           title={t('editor.chart_delete', 'Delete chart')}
+          aria-label={t('editor.chart_delete', 'Delete chart')}
           onMouseDown={(e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); view.deleteAtom(node); }}
           className="absolute top-2 right-2 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity text-red-400 hover:bg-red-500/10">
           <Trash2 className="w-3.5 h-3.5" />

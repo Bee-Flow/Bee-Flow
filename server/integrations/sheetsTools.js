@@ -145,145 +145,167 @@ async function createSheetsClient(session) {
 
 // ─── Tool Execution ────────────────────────────────────────────
 
+/** @typedef {(args: SheetsArgs, c: { sheets: SheetsClient, drive: import('./driveHelpers').DriveClient }) => Promise<Record<string, unknown>>} SheetsHandler */
+
+/** @type {SheetsHandler} */
+async function listSheets(args, { drive }) {
+    const { query, pageSize } = args || {};
+    const baseQ = "mimeType='application/vnd.google-apps.spreadsheet' and trashed=false";
+    const q = query ? `${baseQ} and (${query})` : baseQ;
+    const res = await drive.files.list({
+        q,
+        pageSize: Math.min(Math.max(Number(pageSize) || 25, 1), 100),
+        fields: 'files(id,name,modifiedTime,webViewLink)',
+        orderBy: 'modifiedTime desc',
+        supportsAllDrives: true,
+        includeItemsFromAllDrives: true,
+    });
+    const results = (res.data.files || []).map(f => ({
+        id: f.id,
+        name: f.name,
+        url: f.webViewLink || `https://docs.google.com/spreadsheets/d/${f.id}/edit`,
+        modifiedTime: f.modifiedTime,
+    }));
+    return { results, total: results.length };
+}
+
+/** @type {SheetsHandler} */
+async function listTabs(args, { sheets }) {
+    const { spreadsheetId } = args || {};
+    if (!spreadsheetId) throw new Error('spreadsheetId required');
+    const meta = await sheets.spreadsheets.get({ spreadsheetId, includeGridData: false });
+    const tabs = (meta.data.sheets || []).map(s => ({
+        title: s.properties?.title,
+        sheetId: s.properties?.sheetId,
+        index: s.properties?.index,
+        rows: s.properties?.gridProperties?.rowCount || null,
+        cols: s.properties?.gridProperties?.columnCount || null,
+    }));
+    return { spreadsheetId, title: meta.data.properties?.title || null, tabs, tabCount: tabs.length };
+}
+
+/** @type {SheetsHandler} */
+async function getValues(args, { sheets }) {
+    const { spreadsheetId, range } = args || {};
+    if (!spreadsheetId) throw new Error('spreadsheetId required');
+    // Always fetch tab metadata so the model can see every tab (not just
+    // the first) and target another by name next (BFSF-160).
+    const meta = await sheets.spreadsheets.get({ spreadsheetId, includeGridData: false });
+    const tabTitles = (meta.data.sheets || []).map(s => s.properties?.title).filter(Boolean);
+    const effectiveRange = range || tabTitles[0] || 'Sheet1';
+    const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: effectiveRange });
+    const values = res.data.values || [];
+    return {
+        spreadsheetId,
+        range: res.data.range || effectiveRange,
+        values,
+        rowCount: values.length,
+        colCount: values.reduce((m, r) => Math.max(m, r.length), 0),
+        availableTabs: tabTitles,
+        ...(!range && tabTitles.length > 1
+            ? { note: `Read the first tab "${tabTitles[0]}". This file has ${tabTitles.length} tabs (${tabTitles.join(', ')}) — set range to "TabName!A:Z" to read another.` }
+            : {}),
+    };
+}
+
+/** @type {SheetsHandler} */
+async function appendRows(args, { sheets }) {
+    const { spreadsheetId, range, values, valueInputOption } = args || {};
+    if (!spreadsheetId || !range) throw new Error('spreadsheetId and range required');
+    if (!Array.isArray(values) || values.length === 0) throw new Error('values must be a non-empty 2D array');
+    const res = await sheets.spreadsheets.values.append({
+        spreadsheetId,
+        range,
+        valueInputOption: valueInputOption || 'USER_ENTERED',
+        insertDataOption: 'INSERT_ROWS',
+        requestBody: { values },
+    });
+    return {
+        spreadsheetId,
+        updatedRange: res.data.updates?.updatedRange || null,
+        rowsAppended: res.data.updates?.updatedRows || 0,
+        cellsAppended: res.data.updates?.updatedCells || 0,
+    };
+}
+
+/** @type {SheetsHandler} */
+async function updateRange(args, { sheets }) {
+    const { spreadsheetId, range, values, valueInputOption } = args || {};
+    if (!spreadsheetId || !range) throw new Error('spreadsheetId and range required');
+    if (!Array.isArray(values)) throw new Error('values must be a 2D array');
+    const res = await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range,
+        valueInputOption: valueInputOption || 'USER_ENTERED',
+        requestBody: { values },
+    });
+    return {
+        spreadsheetId,
+        updatedRange: res.data.updatedRange,
+        rowsUpdated: res.data.updatedRows || 0,
+        cellsUpdated: res.data.updatedCells || 0,
+    };
+}
+
+/**
+ * Move a new spreadsheet into a folder. Same pattern as docs_create; a
+ * failure is logged and the spreadsheet stays where it was made.
+ * @param {import('./driveHelpers').DriveClient} drive @param {string | undefined} spreadsheetId @param {string} folderId
+ */
+async function moveToFolder(drive, spreadsheetId, folderId) {
+    try {
+        const file = await drive.files.get({ fileId: spreadsheetId, fields: 'parents', supportsAllDrives: true });
+        const prevParents = (file.data.parents || []).join(',');
+        await drive.files.update({
+            fileId: spreadsheetId,
+            addParents: folderId,
+            removeParents: prevParents,
+            supportsAllDrives: true,
+        });
+    } catch (e) {
+        log.warn(`[Sheets] Could not move to folder ${folderId}: ${/** @type {Error} */ (e).message}`);
+    }
+}
+
+/** @type {SheetsHandler} */
+async function createSheet(args, { sheets, drive }) {
+    const { title, tabs, folderId } = args || {};
+    if (!title) throw new Error('title required');
+    const tabList = Array.isArray(tabs) && tabs.length
+        ? tabs.map((name, i) => ({ properties: { title: String(name), index: i } }))
+        : undefined;
+    const res = await sheets.spreadsheets.create({
+        requestBody: { properties: { title }, sheets: tabList },
+    });
+    const spreadsheetId = res.data.spreadsheetId;
+    if (folderId) await moveToFolder(drive, spreadsheetId, folderId);
+    return {
+        spreadsheetId,
+        url: `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`,
+        title,
+    };
+}
+
+/** @type {Record<string, SheetsHandler>} */
+const HANDLERS = {
+    sheets_list: listSheets,
+    sheets_list_tabs: listTabs,
+    sheets_get_values: getValues,
+    sheets_append_rows: appendRows,
+    sheets_update_range: updateRange,
+    sheets_create: createSheet,
+};
+
 /**
  * @param {string} toolName
  * @param {SheetsArgs} args
  * @param {import('./googleClient').GoogleSession} session
  */
 async function executeSheetsTool(toolName, args, session) {
-    const { sheets, drive } = await createSheetsClient(session);
-
-    switch (toolName) {
-        case 'sheets_list': {
-            const { query, pageSize } = args || {};
-            const baseQ = "mimeType='application/vnd.google-apps.spreadsheet' and trashed=false";
-            const q = query ? `${baseQ} and (${query})` : baseQ;
-            const res = await drive.files.list({
-                q,
-                pageSize: Math.min(Math.max(Number(pageSize) || 25, 1), 100),
-                fields: 'files(id,name,modifiedTime,webViewLink)',
-                orderBy: 'modifiedTime desc',
-                supportsAllDrives: true,
-                includeItemsFromAllDrives: true,
-            });
-            const results = (res.data.files || []).map(f => ({
-                id: f.id,
-                name: f.name,
-                url: f.webViewLink || `https://docs.google.com/spreadsheets/d/${f.id}/edit`,
-                modifiedTime: f.modifiedTime,
-            }));
-            return { results, total: results.length };
-        }
-
-        case 'sheets_list_tabs': {
-            const { spreadsheetId } = args || {};
-            if (!spreadsheetId) throw new Error('spreadsheetId required');
-            const meta = await sheets.spreadsheets.get({ spreadsheetId, includeGridData: false });
-            const tabs = (meta.data.sheets || []).map(s => ({
-                title: s.properties?.title,
-                sheetId: s.properties?.sheetId,
-                index: s.properties?.index,
-                rows: s.properties?.gridProperties?.rowCount || null,
-                cols: s.properties?.gridProperties?.columnCount || null,
-            }));
-            return { spreadsheetId, title: meta.data.properties?.title || null, tabs, tabCount: tabs.length };
-        }
-
-        case 'sheets_get_values': {
-            const { spreadsheetId, range } = args || {};
-            if (!spreadsheetId) throw new Error('spreadsheetId required');
-            // Always fetch tab metadata so the model can see every tab (not just
-            // the first) and target another by name next (BFSF-160).
-            const meta = await sheets.spreadsheets.get({ spreadsheetId, includeGridData: false });
-            const tabTitles = (meta.data.sheets || []).map(s => s.properties?.title).filter(Boolean);
-            const effectiveRange = range || tabTitles[0] || 'Sheet1';
-            const res = await sheets.spreadsheets.values.get({ spreadsheetId, range: effectiveRange });
-            const values = res.data.values || [];
-            return {
-                spreadsheetId,
-                range: res.data.range || effectiveRange,
-                values,
-                rowCount: values.length,
-                colCount: values.reduce((m, r) => Math.max(m, r.length), 0),
-                availableTabs: tabTitles,
-                ...(!range && tabTitles.length > 1
-                    ? { note: `Read the first tab "${tabTitles[0]}". This file has ${tabTitles.length} tabs (${tabTitles.join(', ')}) — set range to "TabName!A:Z" to read another.` }
-                    : {}),
-            };
-        }
-
-        case 'sheets_append_rows': {
-            const { spreadsheetId, range, values, valueInputOption } = args || {};
-            if (!spreadsheetId || !range) throw new Error('spreadsheetId and range required');
-            if (!Array.isArray(values) || values.length === 0) throw new Error('values must be a non-empty 2D array');
-            const res = await sheets.spreadsheets.values.append({
-                spreadsheetId,
-                range,
-                valueInputOption: valueInputOption || 'USER_ENTERED',
-                insertDataOption: 'INSERT_ROWS',
-                requestBody: { values },
-            });
-            return {
-                spreadsheetId,
-                updatedRange: res.data.updates?.updatedRange || null,
-                rowsAppended: res.data.updates?.updatedRows || 0,
-                cellsAppended: res.data.updates?.updatedCells || 0,
-            };
-        }
-
-        case 'sheets_update_range': {
-            const { spreadsheetId, range, values, valueInputOption } = args || {};
-            if (!spreadsheetId || !range) throw new Error('spreadsheetId and range required');
-            if (!Array.isArray(values)) throw new Error('values must be a 2D array');
-            const res = await sheets.spreadsheets.values.update({
-                spreadsheetId,
-                range,
-                valueInputOption: valueInputOption || 'USER_ENTERED',
-                requestBody: { values },
-            });
-            return {
-                spreadsheetId,
-                updatedRange: res.data.updatedRange,
-                rowsUpdated: res.data.updatedRows || 0,
-                cellsUpdated: res.data.updatedCells || 0,
-            };
-        }
-
-        case 'sheets_create': {
-            const { title, tabs, folderId } = args || {};
-            if (!title) throw new Error('title required');
-            const tabList = Array.isArray(tabs) && tabs.length
-                ? tabs.map((name, i) => ({ properties: { title: String(name), index: i } }))
-                : undefined;
-            const res = await sheets.spreadsheets.create({
-                requestBody: { properties: { title }, sheets: tabList },
-            });
-            const spreadsheetId = res.data.spreadsheetId;
-            // Optional: move to folder. Same pattern as docs_create.
-            if (folderId) {
-                try {
-                    const file = await drive.files.get({ fileId: spreadsheetId, fields: 'parents', supportsAllDrives: true });
-                    const prevParents = (file.data.parents || []).join(',');
-                    await drive.files.update({
-                        fileId: spreadsheetId,
-                        addParents: folderId,
-                        removeParents: prevParents,
-                        supportsAllDrives: true,
-                    });
-                } catch (e) {
-                    log.warn(`[Sheets] Could not move to folder ${folderId}: ${/** @type {Error} */ (e).message}`);
-                }
-            }
-            return {
-                spreadsheetId,
-                url: `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`,
-                title,
-            };
-        }
-
-        default:
-            throw new Error(`Unknown sheets tool: ${toolName}`);
-    }
+    const clients = await createSheetsClient(session);
+    const handler = Object.hasOwn(HANDLERS, toolName) ? HANDLERS[toolName] : null;
+    if (!handler) throw new Error(`Unknown sheets tool: ${toolName}`);
+    return handler(args, clients);
 }
 
 /**

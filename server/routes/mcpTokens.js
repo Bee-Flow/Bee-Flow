@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Named MCP access tokens: the caller's own, over the session.
  *
@@ -91,7 +92,7 @@ const callerOf = (req) => {
 };
 
 /** The caller's tokens, and whether they also hold the legacy one. Never a secret. */
-router.get('/', validate({ query: NO_QUERY }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
+router.get('/', validate({ query: NO_QUERY }), async (req, res) => {
     const user = callerOf(req);
     const tokens = (await listTokens(user.id)).map(({ id, name, scopes, ipAllowlist, expiresAt, lastUsedAt, createdAt, revokedAt, disabledAt, enabled }) => ({
         id, name, scopes, ipAllowlist, expiresAt, lastUsedAt, createdAt, revokedAt, disabledAt, enabled,
@@ -109,7 +110,7 @@ router.get('/', validate({ query: NO_QUERY }), async (/** @type {import('express
     });
 });
 
-router.post('/', validate({ body: CreateBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CreateBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/', validate({ body: CreateBody }), async (req, res) => {
     const user = callerOf(req);
     // A token outlives the session by years: minting one takes a recent proof
     // of who is asking, the same as replacing a credential (auth/recentAuth.js).
@@ -135,14 +136,14 @@ router.post('/', validate({ body: CreateBody }), async (/** @type {import('expre
                 ? `You cannot publish ${refused.label} yourself, so a token cannot either.`
                 : `You do not have access to ${refused.label} yourself, so a token cannot include it.`);
     }
-    const { token, record } = await createToken({
+    const { token, record } = /** @type {{ token: string, record: { id: string, name: string, scopes: string[], ipAllowlist: unknown, expiresAt: unknown } }} */ (await createToken({
         userId: user.id,
         orgId,
         name: req.body.name,
         scopes,
         ipAllowlist: req.body.ipAllowlist,
         expiresAt: req.body.expiresAt,
-    });
+    }));
     await userStore.logAccessAudit(
         'mcp.token.create', 'mcp_token', record.id, user.id,
         null,

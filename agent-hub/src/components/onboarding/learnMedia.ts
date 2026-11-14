@@ -31,10 +31,10 @@
  * a slow network — collapses to "unavailable", and the player drops the video
  * step before the learner ever sees it. Nothing throws.
  */
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useOptionalQueryClient } from '@/api/queries/optionalQueryClient';
 import { API_BASE } from '../../utils/helpers';
 import { STEP_TYPES, stepType } from './stepTypes';
-import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 export interface LearnVideoVariant {
     file: string;
@@ -239,10 +239,16 @@ export function loadLearnManifest(
     return inflight;
 }
 
+// Part of the query key, so a reset cache is a new query too.
+let generation = 0;
+const UNAVAILABLE: LearnManifestState = { status: 'unavailable' };
+const LOADING: LearnManifestState = { status: 'loading' };
+
 /** Tests only: forget the cached manifest. */
 export function resetLearnManifestCache(): void {
     settled = null;
     inflight = null;
+    generation += 1;
 }
 
 /**
@@ -252,15 +258,22 @@ export function resetLearnManifestCache(): void {
  * loading frame.
  */
 export function useLearnManifest(enabled: boolean): LearnManifestState {
-    const [state, setState] = useState<LearnManifestState>(() => (enabled ? (settled || { status: 'loading' }) : { status: 'unavailable' }));
-    useAdjustOnChange([enabled], () => setState(enabled ? (settled || { status: 'loading' }) : { status: 'unavailable' }));
-    useEffect(() => {
-        if (!enabled || settled) return undefined;
-        let alive = true;
-        loadLearnManifest().then((s) => { if (alive) setState(s); });
-        return () => { alive = false; };
-    }, [enabled]);
-    return state;
+    // loadLearnManifest keeps the answer for the page itself and never rejects:
+    // the query only hands it to React, once, without a loading frame when it is already there.
+    // Also outside a QueryClientProvider (a lesson player drawn on its own).
+    const { client } = useOptionalQueryClient();
+    const query = useQuery<LearnManifestState, Error>({
+        queryKey: ['learn', 'manifest', generation],
+        enabled,
+        queryFn: () => loadLearnManifest(),
+        initialData: () => settled ?? undefined,
+        staleTime: Infinity,
+        retry: false,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+    }, client);
+    if (!enabled) return UNAVAILABLE;
+    return query.data ?? LOADING;
 }
 
 /** The manifest entry for a video step, or null when the pack lacks it. */

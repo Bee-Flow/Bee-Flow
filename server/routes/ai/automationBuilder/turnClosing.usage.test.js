@@ -43,7 +43,7 @@ test('the turn is billed to the person and the org, under the automation and the
 test('a Claude turn keeps the uncached prompt flag and the 1h cache-write split of its rounds', () => {
     rows.length = 0;
     const { normalizeUsage } = require('../../../core/providers/usageNormalizer');
-    const { accumulateUsage } = require('./chatTurnLoop');
+    const { accumulateUsage } = require('../../../usecases/ai/automationBuilder/chatTurnLoop');
     // Two rounds as the Claude adapter reports them: input_tokens is the
     // uncached remainder, the cache writes carry no TTL breakdown (1h).
     const round = () => normalizeUsage('claude', { input_tokens: 100, output_tokens: 50, cache_read_input_tokens: 10000, cache_creation_input_tokens: 2000 });

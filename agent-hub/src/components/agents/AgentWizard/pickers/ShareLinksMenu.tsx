@@ -37,6 +37,7 @@ export default function ShareLinksMenu({ webpageId, webpageName }: { webpageId?:
                 onClick={() => setOpen(v => !v)}
                 className="p-1 rounded hover:bg-[var(--bg-secondary)]"
                 title={t('agent_wizard.share_links_menu_share_links', 'Share links')}
+                aria-label={t('agent_wizard.share_links_menu_share_links', 'Share links')}
             >
                 <Link2 className="w-4 h-4 text-[var(--text-secondary)]" />
             </button>

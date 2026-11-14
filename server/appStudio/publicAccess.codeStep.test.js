@@ -12,7 +12,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const publicAccess = require('./publicAccess');
-const { publicStepRefusal } = require('../routes/studioAppPublicStepGate.mts');
+const { publicStepRefusal } = require('../usecases/studioAppPublicStepGate.mts');
 
 const corpus = JSON.parse(fs.readFileSync(path.join(__dirname, 'compat/corpus/v3-code-step-quote.json'), 'utf8'));
 

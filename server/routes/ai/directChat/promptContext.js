@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct Chat prompt assembly: the context blocks the system prompt is built
  * from. Project instructions and project KB retrieval, the attached KBs, the
@@ -85,7 +86,7 @@ async function projectContextFor({ req, userId, projectId, message, kbPassagesTe
     const { resolveRequestedProject } = require('../../../auth/projectAccess');
     const resolved = await resolveRequestedProject(userId, projectId);
     if (!resolved) return out;
-    const project = resolved.project;
+    const project = /** @type {{ extractMemories?: boolean, customInstructions?: string, name?: string, knowledgeBaseIds?: string[] }} */ (resolved.project);
     out.validProjectId = resolved.projectId;
     out.extractMemoriesEnabled = project.extractMemories === true;
     // Inject custom instructions

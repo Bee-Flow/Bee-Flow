@@ -236,7 +236,7 @@ test('"a model reads this" is automationGraph\'s list, not a fourth copy of it',
     // `summarize` is a sum over a collection (execSummarize.js) and calls no
     // model at all, while `ai_tool` — which does — was missing, so an automation
     // whose only model call was an ai_tool read as having no model in it.
-    const { AI_STEP_TYPES } = require('../../automation/automationGraph');
+    const { AI_STEP_TYPES } = require('../automationModel/automationGraph');
     assert.deepStrictEqual([...F.MODEL_TYPES].sort(), [...AI_STEP_TYPES].sort());
     assert.ok(!F.MODEL_TYPES.has('summarize'), 'counting rows is not handing data to a model');
     assert.ok(!F.MODEL_TYPES.has('fill_document'), 'filling a template reads nothing to a model');

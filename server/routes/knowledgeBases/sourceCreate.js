@@ -14,7 +14,7 @@ const kbSourcesStore = require('../../stores/kbSources');
 const { getUserId, guardedFetch } = require('./shared');
 const { DEFAULT_FIELDS: MEETING_DEFAULT_FIELDS } = require('../../core/kb/sources/meetingTag');
 const {
-    CREATABLE_KINDS, MAX_TEXT_CHARS, shapeTextOrigin, helpers, resolveKb, resolveCreators, mapSourceForApi,
+    CREATABLE_KINDS, MAX_TEXT_CHARS, shapeTextOrigin, helpers, writableKb, resolveCreators, mapSourceForApi,
     sourceForApi, maxSourcesFor, refreshPatchFor,
 } = require('./sourcePolicy');
 const { fallback } = require('../../utils/bestEffort');
@@ -345,7 +345,7 @@ async function assertUnderSourceLimit(/** @type {import('express').Response} */ 
 /** POST /:id/sources — create one (text | upload | webpage | meeting_tag | datatable | cloud_folder). */
 async function createSource(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
     try {
-        const kb = await resolveKb(req, res, { manage: true });
+        const kb = writableKb(req, res);
         if (!kb) return;
         const { kind, name, config, refresh } = req.body;
         if (!CREATABLE_KINDS.includes(kind)) {

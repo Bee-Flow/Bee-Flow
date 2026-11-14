@@ -157,3 +157,19 @@ test('a conversation without a separate prompt still gets its answer', async () 
     assert.strictEqual(res.statusCode, 200);
     assert.strictEqual(calls.filter((c) => c.modelId).length, 1);
 });
+
+test('a failed spend-cap lookup is warned, and the call is refused without reaching the model', async (t) => {
+    const log = require('../telemetry/log');
+    require('../utils/bestEffort').resetBestEffort();
+    const warns = [];
+    t.mock.method(log, 'warn', (...args) => { warns.push(String(args[0])); });
+    const grants = MOCKS['../stores/webpageStore'];
+    const usage = MOCKS['../stores/usageStore'];
+    t.mock.method(grants, 'getBridgeGrants', async () => ({ ai: { publicEnabled: true, publicDefaultTier: 'fast', publicSpendCapUsd: 1 } }));
+    t.mock.method(usage, 'getUsageSummary', async () => { throw new Error('db down'); });
+    const before = calls.filter((c) => c.modelId).length;
+    const res = await chat({ prompt: 'hi', schema: { type: 'object' } });
+    assert.strictEqual(res.statusCode, 503);
+    assert.strictEqual(calls.filter((c) => c.modelId).length, before, 'no model call without a readable cap');
+    assert.ok(warns.some((w) => w.includes('routes/publicShareBridge:spendCapLookup')), warns.join('\n'));
+});

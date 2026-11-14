@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The dispatch of one tool call that every gate let through: connection
  * lending, the probed dispatch through the unified tool dispatcher, the
@@ -137,7 +137,7 @@ async function resolveLending(rc, deps, { toolCall, toolName }) {
                 ownerUserId: agent.owner_id || null,
                 resourceType: 'agent', resourceId: agent.id,
             });
-            if (ov) { effUserId = ov.integrationUserId; lentConnection = ov; _lentByToolCall.set(toolCall.id, ov); }
+            if (ov) { effUserId = ov.integrationUserId; lentConnection = ov; _lentByToolCall.set(/** @type {string} */ (toolCall.id), ov); } // a dispatched call has its id
         }
     } catch (err) { fallback('core/agentRuntime/toolRound/dispatch:resolveLending', err); /* fail closed to bring-your-own */ }
     return { effUserId, lentConnection };
@@ -235,7 +235,7 @@ function logFailedEgress(rc, deps, { toolCall, toolName, toolArgs, toolErr, outb
     const { userAuth, userId, agent, agentId, conversation, modelToUse, messageMetadata, _lentByToolCall } = rc;
     try {
         const { logToolEgress } = deps.integrationLogging();
-        const _lentErr = _lentByToolCall.get(toolCall.id) || null;
+        const _lentErr = _lentByToolCall.get(/** @type {string} */ (toolCall.id)) || null; // a dispatched call has its id
         logToolEgress({
             toolName,
             toolArgs,

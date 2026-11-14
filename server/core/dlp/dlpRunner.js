@@ -98,8 +98,8 @@ function preWarmPiiScan({ messages, orgShieldConfig, providerConfig }) {
  * @param {object} params
  * @param {Array}  params.messages            Full messages array (we scan the last user message)
  * @param {any} params.orgShieldConfig     Resolved config from `resolveOrgShield`
- * @param {string} [params.orgId]             Org ID (unused since custom terms moved into detectPii; callers still pass it)
- * @param {string} params.conversationId      Scope for the per-conversation remembered choice + tokenMap
+ * @param {string | null} [params.orgId]             Org ID (unused since custom terms moved into detectPii; callers still pass it)
+ * @param {string | null} params.conversationId Scope for the per-conversation remembered choice + tokenMap
  * @param {Parameters<typeof classifyProvider>[0]} params.providerConfig      { providerType, url, displayName } for classification
  * @param {function} [params.onProgress]      Called per scanned window of a big paste
  *                                            ({ done, total, ... }); the caller renders it.
@@ -293,7 +293,7 @@ async function applyRedactionChoice({ conversationId, text, findings, ephemeral 
  * both of which produce their own tokenMap but historically dropped it after
  * rewriting the user message — which meant tokens leaked through to the user
  * when DLP itself was disabled.
- * @param {string} conversationId
+ * @param {string | null | undefined} conversationId  none (an incognito chat): nothing is merged
  * @param {Record<string, string>} tokenMap
  */
 function mergeTokenMap(conversationId, tokenMap) {
@@ -322,11 +322,28 @@ function mergeTokenMap(conversationId, tokenMap) {
     _writeMapToDb(conversationId).catch((e) => bestEffort('core/dlp/dlpRunner:mergeTokenMap', e));
 }
 
+/**
+ * The token map in scope for one turn. With a conversation it is the
+ * conversation's map (which already holds this turn's tokens, merged above).
+ * Without one (an incognito chat) nothing is merged, so the map the turn
+ * minted itself is the scope: the caller holds it on its turn state for the
+ * length of the turn only, and nothing here keeps it.
+ * @param {string | null | undefined} conversationId
+ * @param {Record<string, string> | Map<string, string> | null | undefined} turnTokenMap
+ * @returns {Record<string, string>}
+ */
+function getTurnTokenMap(conversationId, turnTokenMap) {
+    if (conversationId) return getConversationTokenMap(conversationId);
+    if (!turnTokenMap) return {};
+    return turnTokenMap instanceof Map ? Object.fromEntries(turnTokenMap) : { ...turnTokenMap };
+}
+
 module.exports = {
     scan,
     preWarmPiiScan,
     applyRedactionChoice,
     mergeTokenMap,
+    getTurnTokenMap,
     getConversationTokenMap,
     getConversationTokenMapAsync,
     clearConversationState,

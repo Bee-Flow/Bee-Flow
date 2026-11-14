@@ -56,7 +56,7 @@ function register(router) {
         res.json({ responses });
     });
 
-    router.post('/canned', requireStaffSupport, validate({ body: CreateCanned }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CreateCanned>, import('qs').ParsedQs>} */ req, res) => {
+    router.post('/canned', requireStaffSupport, validate({ body: CreateCanned }), async (req, res) => {
         try {
             const { title, body, shortcut } = req.body;
             const orgId = await _actingOrgId(req);
@@ -79,7 +79,7 @@ function register(router) {
         /** @type {{ title?: string, body?: string, shortcut?: string | null }} */
         const patch = {};
         for (const key of /** @type {const} */ (['title', 'body', 'shortcut'])) {
-            if (req.body[key] !== undefined) patch[key] = req.body[key];
+            if (req.body[key] !== undefined) patch[key] = /** @type {string | undefined} */ (req.body[key]);
         }
         const updated = await supportStore.updateCannedResponse(req.params.id, patch, orgId);
         if (!updated) return res.status(404).json({ error: 'not found' });
@@ -95,7 +95,7 @@ function register(router) {
 
     // POST /canned/:id/render — substitute thread variables server-side.
     // One-pass, plaintext, known keys only — no nested templates, no eval.
-    router.post('/canned/:id/render', requireStaffSupport, validate({ body: RenderBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof RenderBody>, import('qs').ParsedQs>} */ req, res) => {
+    router.post('/canned/:id/render', requireStaffSupport, validate({ body: RenderBody }), async (req, res) => {
         const canned = await supportStore.getCannedResponse(req.params.id);
         if (!canned) return res.status(404).json({ error: 'not found' });
         const thread = req.body.threadId ? await supportStore.getThread(req.body.threadId) : null;

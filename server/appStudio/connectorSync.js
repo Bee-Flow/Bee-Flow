@@ -133,7 +133,7 @@ function stalenessMs(sync, kind = null) {
     return intervalMinutes(sync, kind) * 60_000;
 }
 
-/** Is this table's data old enough that opening the app should refresh it? */
+/** Is this table's data old enough that opening the app should refresh it? @param {string | null} [kind] */
 function isStale(state, sync, now = Date.now(), kind = null) {
     if (!sync || sync.refreshOnView === false) return false;
     if (!state || !state.lastRunAt) return true;              // never synced
@@ -399,7 +399,7 @@ async function purgePastRetention(app, model, connector, deps) {
  * @param {{ tables?: SyncTable[], connectors?: SyncConnector[] }} model  the app's data model (source of tables + connectors)
  * @param {SyncConnector} connector  the connector, from model.connectors
  * @param {{ reason?: string, force?: boolean, _deps?: Partial<SyncDeps> }} [opts]
- * @returns {Promise<{ inserted, updated, skipped, rows, watermark, nextRunAt, partial }>}
+ * @returns {Promise<{ inserted, updated, skipped, rows, watermark?, nextRunAt?, partial?, alreadyRunning?: boolean, reason?: string, rowsWritten?: number, error?: unknown }>}
  */
 async function syncConnector(app, model, connector, { reason = 'manual', force = false, _deps } = {}) {
     const deps = { ...defaultDeps(), ...(_deps || {}) };

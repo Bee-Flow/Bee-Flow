@@ -66,7 +66,11 @@ const MOCKS = {
         getDefaultForOrg: async () => { touched.push({ what: 'defaultStyle' }); return null; },
     },
     '../stores/notebookStore': {
-        getNotebook: async (id, userId) => (id === 'nb-1' && userId === 'u1' ? { id: 'nb-1' } : null),
+        getNotebook: async (id, userId) => (id === 'nb-1' && userId === 'u1' ? { id: 'nb-1', userId: 'u1', role: 'owner' } : null),
+    },
+    // The role gate (auth/notebookAccess.mts) over the store above: the real gate, this test's notebook.
+    '../auth/notebookAccess.mts': {
+        requireNotebookRole: (min) => require('../auth/notebookAccess.mts').requireNotebookRole(min, { store: MOCKS['../stores/notebookStore'] }),
     },
     '../stores/userStore': {
         getUser: async () => ({ id: 'u1', organizationId: 'org-1' }),

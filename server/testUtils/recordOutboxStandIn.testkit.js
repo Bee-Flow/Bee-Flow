@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 /**
@@ -23,12 +24,13 @@ function standInOutbox(armed) {
         install(over = {}) {
             Object.assign(outbox, { recorded: [], notes: [], reads: 0, limits: recordTriggerLimits({}) });
             _setOutboxDeps({
-                store: () => ({
+                // Only what the write side calls; the rest of the store is not reached.
+                store: () => /** @type {ReturnType<NonNullable<Parameters<typeof _setOutboxDeps>[0]['store']>>} */ (/** @type {unknown} */ ({
                     armedRecordTriggers: async () => { outbox.reads += 1; return armed(); },
                     add: async (list) => { outbox.recorded.push(...list); return { written: list.length, dropped: [] }; },
                     noteSkip: async (_appId, triggerId, _status, reason) => { outbox.notes.push([triggerId, reason]); },
                     ...over,
-                }),
+                })),
                 now: () => 1_000_000,
                 limits: () => outbox.limits,
                 log: { warn() {} },

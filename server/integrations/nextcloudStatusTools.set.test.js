@@ -75,3 +75,14 @@ test('a 404 on the status read means no status yet and the update goes ahead', a
     await executeNextcloudStatusTool('nextcloud_status_set', { message: 'hi' }, 'u', {});
     assert.equal(puts(calls)[0].body.message, 'hi');
 });
+
+test('the dispatcher: an unknown name, no fields, clear, and availability with a message in that order', async () => {
+    const calls = install();
+    assert.deepEqual(await executeNextcloudStatusTool('nextcloud_status_nope', {}, 'u', {}), { error: 'Unknown Nextcloud status tool: nextcloud_status_nope' });
+    assert.deepEqual(await executeNextcloudStatusTool('nextcloud_status_set', {}, 'u', {}), { error: 'no fields provided (availability, message, emoji, or clearAt required)' });
+    assert.deepEqual(await executeNextcloudStatusTool('nextcloud_status_clear', {}, 'u', {}), { success: true });
+    const out = await executeNextcloudStatusTool('nextcloud_status_set', { availability: 'dnd', message: 'm' }, 'u', {});
+    assert.equal(out.success, true);
+    assert.deepEqual(calls.map((c) => `${c.method} ${c.url.split('/user_status/api/v1/user_status')[1].split('?')[0]}`),
+        ['DELETE /message', 'GET ', 'PUT /status', 'PUT /message/custom', 'GET ']);
+});

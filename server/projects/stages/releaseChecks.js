@@ -33,7 +33,7 @@
 
 const { isRef } = require('../../core/packaging/pointers');
 
-const walkAllSteps = (definition, fn) => require('../../automation/portability').walkAllSteps(definition, fn);
+const { walkAllSteps } = require('../../core/packaging/walkers');
 
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
 const blocking = (code, extra = {}) => ({ code, severity: 'blocking', ...extra });

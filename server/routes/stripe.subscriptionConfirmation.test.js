@@ -41,7 +41,7 @@ stub('../utils/emailService', {
     sendSubscriptionConfirmationEmail: async (opts) => { sent.push(opts); return { success: true }; },
 });
 
-const { handleInvoicePaid } = require('./stripe/paymentEvents');
+const { handleInvoicePaid } = require('../usecases/stripe/paymentEvents');
 
 const invoice = (over = {}) => ({
     id: 'in_1',

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Fireflies.ai Tools — Built-in tools for AI to search and read meeting transcripts
  * 
@@ -343,7 +343,7 @@ async function runFirefliesTool(toolName, args, userId) {
 
         // Mapped record list, exact matches first.
         let results = [...exact, ...transcripts.filter(t => !exact.includes(t))].map(mapTranscript);
-        /** @type {string[] | undefined} */
+        /** @type {Array<string | undefined> | undefined} */
         let scannedTitles;
         if (usedFallback && matchQuality !== 'exact') {
             // Keep the payload compact: the 10 best partial matches plus a
@@ -364,7 +364,7 @@ async function runFirefliesTool(toolName, args, userId) {
             message = `No transcript titled "${args.title}" found among the ${transcripts.length} most recent meetings (titles scanned are included). The meeting may be older — retry once with fromDate/toDate, or tell the user it was not found. Do not guess transcript ids.`;
         }
 
-        /** @type {{ results: typeof results, count: number, message: string, matchQuality: string, exactMatches: typeof exactMatches, scannedTitles?: string[] }} */
+        /** @type {{ results: typeof results, count: number, message: string, matchQuality: string, exactMatches: typeof exactMatches, scannedTitles?: Array<string | undefined> }} */
         const result = {
             results,
             count: results.length,

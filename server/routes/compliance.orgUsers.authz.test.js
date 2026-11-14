@@ -21,6 +21,24 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const Module = require('module');
+const { usePglitePool } = require('../testUtils/pglitePool');
+const { ladderPglite } = require('../testUtils/pgliteTemplate');
+const { insertRow } = require('../testUtils/pgliteSeed');
+
+// The org-users SELECT runs on a real users table (the boot ladder's schema
+// on PGlite behind db.js's pool); each request first writes `fx.users` there.
+const { pg, close } = usePglitePool(ladderPglite());
+const db = require('../db');
+const realQuery = db.pool.query;
+db.pool.query = /** @type {any} */ ((/** @type {any} */ sql, /** @type {any} */ params) => {
+    if (/FROM users/.test(String(sql))) fx.sqlSeen.push({ sql: String(sql), params });
+    return realQuery(sql, params);
+});
+test.after(async () => { db.pool.query = realQuery; await close(); });
+async function syncUsers() {
+    await pg.exec("DELETE FROM users WHERE id IN ('jan', 'zoe', 'ano', 'nomail', 'admin', 'bob')");
+    for (const u of fx.users) await insertRow(pg, 'users', u);
+}
 
 // ── Mutable fixtures ─────────────────────────────────────────────────
 const fx = {
@@ -57,21 +75,6 @@ const MOCKS = {
     // resolveOrgId reads the org there, and a stub keyed on one spelling lets
     // the real store load for the other.
     '../stores/userStore': userStoreDouble,
-    '../../db': {
-        // Emulates the org-users SELECT: org filter, email present, no system
-        // admin row, ordered by lower(displayName → username).
-        getAll: async (sql, params) => {
-            fx.sqlSeen.push({ sql, params });
-            const orgId = params[0];
-            return fx.users
-                .filter((u) => u.organizationId === orgId)
-                .filter((u) => u.email && u.email !== '')
-                .filter((u) => u.id !== 'admin')
-                .sort((a, b) => String(a.displayName || a.username || '').toLowerCase()
-                    .localeCompare(String(b.displayName || b.username || '').toLowerCase()))
-                .map((u) => ({ ...u }));
-        },
-    },
     '../../auth/permissions': {
         requireAuth: (req, res, next) => (req.session?.isAuthenticated ? next() : res.status(401).json({ error: 'unauthenticated' })),
         requirePermission: (perm) => (req, res, next) =>
@@ -105,7 +108,8 @@ try {
 }
 Module._resolveFilename = originalResolve;
 
-function dispatch({ method, url, body = {}, session }) {
+async function dispatch({ method, url, body = {}, session }) {
+    await syncUsers();
     return new Promise((resolve, reject) => {
         const request = {
             method,
@@ -196,16 +200,11 @@ test('the query is scoped to the caller\'s own org', async () => {
     assert.ok(!res.body.some((u) => u.id === 'bob'), 'orgB members must not appear');
 });
 
-test('the SQL itself carries the hygiene constraints', async () => {
+test('the SELECT never projects key material', async () => {
     resetFx();
     fx.perms = ['admin_compliance'];
     await dispatch({ method: 'GET', url: '/org-users', session: JAN });
     const { sql } = fx.sqlSeen[0];
-    assert.match(sql, /"organizationId" = \$1/);
-    assert.match(sql, /email IS NOT NULL AND email <> ''/);
-    assert.match(sql, /id <> 'admin'/);
-    assert.match(sql, /ORDER BY LOWER\(COALESCE\(NULLIF\("displayName", ''\), username\)\)/);
-    // The projection never touches key material.
     for (const field of KEY_FIELDS) {
         assert.ok(!sql.includes(field), `the SELECT must not project ${field}`);
     }

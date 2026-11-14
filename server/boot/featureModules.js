@@ -1,10 +1,11 @@
 // @typecheck strict
 /**
  * The feature side of core/featureModules.js: every feature module core code
- * calls by name, registered as a getter (nothing below loads until first use).
+ * (or another feature) calls by name, registered as a getter (nothing below
+ * loads until first use).
  * Loaded by boot/featureRegistrations.js. The name is the path relative to
- * server/; add a line here when core needs another feature module, and use
- * featureModule(name) there, never a require.
+ * server/; add a line here when core, or a feature, needs another feature's module,
+ * and use featureModule(name) there, never a require.
  */
 
 'use strict';
@@ -30,6 +31,21 @@ registerFeatureModules({
     'automation/agentCallableTools': () => require('../automation/agentCallableTools'),
     'automation/datatableUsageSync': () => require('../automation/datatableUsageSync'),
     'automation/formTriggerContract': () => require('../automation/formTriggerContract'),
+    // what projects/ (Blueprints, Solution stages, completeness) needs of
+    // automation/ and appStudio/: features may not require each other either
+    'automation/goLive': () => require('../automation/goLive'),
+    'automation/aiActCheck': () => require('../automation/aiActCheck'),
+    'automation/subscriptionSync': () => require('../automation/subscriptionSync'),
+    'automation/approvalEvents': () => require('../automation/approvalEvents'),
+    'automation/approvalNotify': () => require('../automation/approvalNotify'),
+    'automation/portability': () => require('../automation/portability'),
+    'automation/datatableUsage': () => require('../automation/datatableUsage'),
+    'automation/validate': () => require('../automation/validate'),
+    'appStudio/definitionGate': () => require('../appStudio/definitionGate.mts'),
+    'appStudio/appAssets': () => require('../appStudio/appAssets.mts'),
+    'appStudio/portabilityReport': () => require('../appStudio/portabilityReport.mts'),
+    'appStudio/automationUsageSync': () => require('../appStudio/automationUsageSync'),
+    'appStudio/triggers/deploySync': () => require('../appStudio/triggers/deploySync.mts'),
     // agents, projects
     'agents/memory/extractor': () => require('../agents/memory/extractor'),
     'projects/chatModel': () => require('../projects/chatModel'),

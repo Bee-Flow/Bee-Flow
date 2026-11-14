@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/projects`
 
-143 routes, 97 with a request schema. Back to the [endpoint reference](../reference.md).
+143 routes, 103 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -348,7 +348,7 @@ No request schema.
 
 **Access:** Signed-in user · Capability `projects` · middleware `gate`, `requireProjectRoleMw`
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `POST /api/projects/:id/comments/:threadId/replies`
 
@@ -395,7 +395,7 @@ No request schema.
 
 **Access:** Signed-in user · Capability `projects` · middleware `gate`, `requireProjectRoleMw`
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `GET /api/projects/:id/completeness`
 
@@ -648,7 +648,7 @@ No request schema.
 
 **Access:** Signed-in user · Capability `projects` · middleware `gate`, `requireProjectRoleMw`
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `GET /api/projects/:id/members`
 
@@ -992,7 +992,7 @@ No request schema.
 
 **Access:** Signed-in user · Capability `projects` · middleware `gate`, `requireProjectRoleMw`
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `POST /api/projects/:id/sprints/:sprintId/items`
 
@@ -1014,7 +1014,7 @@ No request schema.
 
 **Access:** Signed-in user · Capability `projects` · middleware `gate`, `requireProjectRoleMw`
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `POST /api/projects/:id/stages`
 
@@ -1245,7 +1245,7 @@ No request schema.
 
 **Access:** Signed-in user · Capability `projects` · middleware `gate`, `requireProjectRoleMw`
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `POST /api/projects/:id/tasks/batch`
 

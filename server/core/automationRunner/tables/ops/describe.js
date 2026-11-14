@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * describe: what each column holds, so a later step (or a person, or a
@@ -119,10 +119,10 @@ function finish(acc, col, op) {
         out.options = [...acc.distinct.values()].sort(byCount).slice(0, op.maxOptions).map((o) => ({ value: o.value, count: o.count }));
         optionCount = acc.distinct.size;
     } else if (kind === 'scale') {
-        out.options = [...acc.distinct.values()].sort((a, b) => toNumber(a.value) - toNumber(b.value)).map((o) => ({ value: o.value, count: o.count }));
+        out.options = [...acc.distinct.values()].sort((a, b) => /** @type {number} */ (toNumber(a.value)) - /** @type {number} */ (toNumber(b.value))) // a scale column holds numbers only.map((o) => ({ value: o.value, count: o.count }));
         optionCount = acc.distinct.size;
     } else if (kind === 'multi') {
-        const items = [...acc.sep[separator].items.values()];
+        const items = [...acc.sep[/** @type {string} */ (separator)].items.values()]; // kind 'multi' is chosen only with a separator
         out.distinct = items.length;
         out.separator = separator;
         out.options = items.sort(byCount).slice(0, op.maxOptions).map((o) => ({ value: o.value, count: o.count }));

@@ -72,7 +72,8 @@ describe('AgentHub main content — which slot wins', () => {
         renderHub({ showSettings: true, showStudio: true, showSkillsPanel: true, currentPage: 'cowork' });
         expect(await screen.findByTestId('slot-settings', {}, ARRIVES)).toBeInTheDocument();
         expect(seen.settings.onBack).toBeNull();
-        expect(seen.settings.user).toEqual(ADMIN);
+        // The person comes from the shell's SessionContext now, not from a prop.
+        expect(seen.settings.user).toBeUndefined();
         expect(screen.queryByTestId('slot-studio')).toBeNull();
     });
 

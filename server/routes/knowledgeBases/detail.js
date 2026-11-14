@@ -36,8 +36,9 @@ const { kbQueryLogFields, withoutRawAttestation } = require('../../stores/kb/mod
 const { requireAuth, requirePermission, validateSharedGroupsForOrg, assertUserCanUseOrg } = require('../../auth');
 const {
     getUserId,
-    canAccessKB,
     canManageKB,
+    requireKbGrade,
+    kbAccessOf,
     blockIfSystemKB,
     sanitizeUsageContexts,
     VALID_USAGE_CONTEXTS,
@@ -115,10 +116,8 @@ const assertKbDeletable = (/** @type {string} */ kbId) => (typeof kbStore.assert
 /**
  * Get a single KB with documents
  */
-router.get('/:id', requireAuth, validate({ query: NoQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof NoQuery>>} */ req, res) => {
-    const kb = await kbStore.getKB(req.params.id);
-    if (!kb) return res.status(404).json({ error: 'KB not found' });
-    if (!(await canAccessKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
+router.get('/:id', requireAuth, requireKbGrade('read'), validate({ query: NoQuery }), async (req, res) => {
+    const { kb } = kbAccessOf(req);
 
     // Documents come back PROJECTED (stores/knowledgeBases DOCUMENT_COLUMNS):
     // the list never carries `original_content`. Nothing that renders a
@@ -161,10 +160,8 @@ router.get('/:id', requireAuth, validate({ query: NoQuery }), async (/** @type {
 /**
  * Update KB metadata
  */
-router.patch('/:id', requireAuth, requirePermission('manage_knowledge'), validate({ body: UpdateKbBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof UpdateKbBody>, import('qs').ParsedQs>} */ req, res) => {
-    const kb = await kbStore.getKB(req.params.id);
-    if (!kb) return res.status(404).json({ error: 'KB not found' });
-    if (!(await canManageKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
+router.patch('/:id', requireAuth, requirePermission('manage_knowledge'), requireKbGrade('manage'), validate({ body: UpdateKbBody }), async (req, res) => {
+    const { kb } = kbAccessOf(req);
     if (blockIfSystemKB(kb, res)) return;
 
     const { name, description, categoryId, icon, usageContexts, organizationId, keepOriginals } = req.body;
@@ -232,15 +229,10 @@ router.patch('/:id', requireAuth, requirePermission('manage_knowledge'), validat
  * Owner can always publish/unpublish; non-owners need same-org
  * manage_knowledge (canManageKB, BFSF-214).
  */
-router.patch('/:id/publish', requireAuth, validate({ body: PublishBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof PublishBody>, import('qs').ParsedQs>} */ req, res) => {
+router.patch('/:id/publish', requireAuth, requireKbGrade('manage'), validate({ body: PublishBody }), async (req, res) => {
     const userId = getUserId(req);
-    const kb = await kbStore.getKB(req.params.id);
-    if (!kb) return res.status(404).json({ error: 'KB not found' });
+    const { kb } = kbAccessOf(req);
     if (blockIfSystemKB(kb, res)) return;
-
-    if (!(await canManageKB(req, kb))) {
-        return res.status(403).json({ error: 'Permission denied' });
-    }
 
     const { isPublished, sharedGroups } = req.body;
 
@@ -264,19 +256,9 @@ router.patch('/:id/publish', requireAuth, validate({ body: PublishBody }), async
 /**
  * Delete a KB (cascades documents, chunks via search-service)
  */
-router.delete('/:id', requireAuth, requirePermission('manage_knowledge'), validate({ query: DeleteQuery, body: NoBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof NoBody>, import('zod').infer<typeof DeleteQuery>>} */ req, res) => {
-    const kb = await kbStore.getKB(req.params.id);
-    if (!kb) return res.status(404).json({ error: 'KB not found' });
-    /**
-     * canMANAGE, not canACCESS.
-     *
-     * Reading a knowledge base and destroying it are different rights, and
-     * this route asked for the reading one. Anyone in the org who could
-     * see a published base — which is everyone it was published to —
-     * could delete it, along with every document in it, as long as their
-     * role happened to carry `manage_knowledge`.
-     */
-    if (!(await canManageKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
+router.delete('/:id', requireAuth, requirePermission('manage_knowledge'), requireKbGrade('manage'), validate({ query: DeleteQuery, body: NoBody }), async (req, res) => {
+    // The manage grade, not the reading one: reading a base and destroying it are different rights.
+    const { kb } = kbAccessOf(req);
     if (blockIfSystemKB(kb, res)) return;
 
     /**

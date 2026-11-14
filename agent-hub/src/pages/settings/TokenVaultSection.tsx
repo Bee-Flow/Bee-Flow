@@ -3,8 +3,9 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import useConfirm from '../../components/shared/useConfirm';
 
 import { TranslateParams, useTranslation } from '../../hooks/useTranslation';
-import { API_BASE } from '../../utils/helpers';
-import { mutate, ApiError, request, RefusedError } from '../../api/mutate';
+import { ApiError, RefusedError } from '../../api/mutate';
+import { apiRequest } from '@/api/typedRequest';
+import { useTokenVaultPageRead } from '@/api/queries/tokenVault';
 
 /** One entry of GET /api/privacy/token-vault (server/stores/piiVaultStore.js). */
 interface VaultEntry {
@@ -48,20 +49,14 @@ function useVaultEntries(t: ReturnType<typeof useTranslation>['t']) {
     const [state, setState] = useState<VaultState>({ entries: [], total: 0, loading: true, error: '' });
 
     const latestLoad = useRef(0);
+    const readPage = useTokenVaultPageRead<{ entries?: VaultEntry[]; total?: number }>();
     const load = useCallback(async (nextOffset = 0, nextSearch = '') => {
         const loadId = ++latestLoad.current;
         setState((s: VaultState) => ({ ...s, loading: true, error: '' }));
         try {
             const qs = new URLSearchParams({ limit: String(PAGE_SIZE), offset: String(nextOffset) });
             if (nextSearch) qs.set('search', nextSearch);
-            let res: Response;
-            try {
-                res = await request(`${API_BASE}/api/privacy/token-vault?${qs}`);
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                throw new Error(String(err.status));
-            }
-            const data = await res.json();
+            const data = await readPage(qs);
             if (latestLoad.current !== loadId) return;
             const page: VaultEntry[] = data.entries || [];
             setState((s: VaultState) => ({
@@ -75,7 +70,7 @@ function useVaultEntries(t: ReturnType<typeof useTranslation>['t']) {
                 error: t('vault.load_failed', 'Could not load your vault. Please try again.'),
             }));
         }
-    }, [t]);
+    }, [t, readPage]);
     return { state, setState, load };
 }
 
@@ -108,7 +103,7 @@ const TokenVaultSection = () => {
         if (!ok) return;
         setBusyId(entry.id);
         try {
-            const res = await mutate(`${API_BASE}/api/privacy/token-vault/${entry.id}`, { method: 'DELETE' }).catch((err: unknown) => {
+            const res = await apiRequest('DELETE /api/privacy/token-vault/{id}', { params: { id: entry.id } }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });
@@ -135,7 +130,7 @@ const TokenVaultSection = () => {
         if (!ok) return;
         setBusyId('__all__');
         try {
-            const res = await mutate(`${API_BASE}/api/privacy/token-vault`, { method: 'DELETE' }).catch((err: unknown) => {
+            const res = await apiRequest('DELETE /api/privacy/token-vault').catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });

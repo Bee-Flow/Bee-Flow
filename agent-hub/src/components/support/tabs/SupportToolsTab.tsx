@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { Save } from 'lucide-react';
-import { API_BASE } from '@/utils/helpers';
 import { useSupportConfigQuery } from '@/api/queries/supportPanels';
 import { useTranslation } from '@/hooks/useTranslation';
 import { errorMessage } from '@/utils/caughtError';
-import { mutate, errorBody, RefusedError } from '@/api/mutate';
+import { errorBody, RefusedError } from '@/api/mutate';
 import SectionHeader from '@/components/shared/SectionHeader';
 import { SAVE_BUTTON, SettingRow, SettingsList } from '@/components/shared/SettingsList';
 import Toggle from '@/components/shared/Toggle';
 import { ALERT_ERROR } from '@/components/mcpLibrary/ui';
+import { apiRequest } from '@/api/typedRequest';
 
 export default function SupportToolsTab() {
     const { t } = useTranslation();
@@ -29,10 +29,7 @@ export default function SupportToolsTab() {
         setBusy(true); setError(null); setAttempted(true); setSaved(false);
         try {
             try {
-                await mutate(`${API_BASE}/api/support/config`, {
-                method: 'PUT', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ v2Enabled, autoResolveThreshold: Number(threshold) }),
-            });
+                await apiRequest('PUT /api/support/config', { body: { v2Enabled, autoResolveThreshold: Number(threshold) } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const e = errorBody(err) ?? {};

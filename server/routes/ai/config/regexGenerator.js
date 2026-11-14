@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * AI Config — the AI regex generator: an admin-only tool loop that drafts
  * regex guardrail rules through the Regex Generator agent.
@@ -55,7 +55,7 @@ router.post('/generate-regex', requireAuth, requireAdmin, validate({ body: Gener
     const { REGEX_GENERATOR_TOOLS, executeRegexGeneratorTool, deduplicateCollections } = require('../../../integrations/regexGeneratorTools');
 
     const agent = await agentStore.getAgent(REGEX_GENERATOR_AGENT_ID);
-    if (!agent) throw new Error('Regex Generator agent not found');
+    if (!agent) throw new HttpError(503, 'regex_generator_unavailable', 'The regex generator is not available on this server. Ask an admin to check the server log.');
 
     const resolvedTier = modelTier || 'fast';
     const tier = tiers[resolvedTier] || {};
@@ -97,15 +97,16 @@ router.post('/generate-regex', requireAuth, requireAdmin, validate({ body: Gener
         });
 
         if (!response.ok) {
-            const error = await response.text();
-            throw new Error(`AI API error: ${response.status} - ${error}`);
+            // The status only: the provider's body can repeat the prompt.
+            log.warn(`[RegexGenerator] model endpoint answered HTTP ${response.status}`);
+            throw new HttpError(502, 'ai_request_failed', 'The AI model did not answer. Try again, or pick another model tier.');
         }
 
         const data = /** @type {{ choices?: Array<{ message?: { role: string, content?: unknown, thinking?: object[], tool_calls?: Array<{ id: string, type?: string, function: { name: string, arguments?: string } }>, tool_call_id?: string } }> }} */ (await response.json());
         const choice = data.choices?.[0];
-        if (!choice) throw new Error('No response from AI');
+        if (!choice) throw new HttpError(502, 'ai_empty_response', 'The AI model returned no answer. Try again.');
 
-        const assistantMsg = choice.message;
+        const assistantMsg = /** @type {NonNullable<typeof choice.message>} */ (choice.message); // an OpenAI-shaped choice carries its message
         messages.push(assistantMsg);
 
         // If no tool calls, we're done

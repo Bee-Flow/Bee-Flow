@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 // Titles are resolved under the reader's existing project access. No plaintext index.
 const TYPES = Object.freeze(['chat', 'task', 'document', 'notebook', 'meeting', 'file']);

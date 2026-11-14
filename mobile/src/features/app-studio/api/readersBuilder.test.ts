@@ -10,13 +10,14 @@ import path from 'node:path';
 
 import { BUILDER_EVENT_TYPES, readBuilderEvent, readBuilderSession } from './readersBuilder';
 
-const BUILDER_DIR = path.resolve(__dirname, '../../../../../server/routes/ai/appStudioBuilder');
+// The route and the use case it hands the turn to (server/usecases/ai/appStudioBuilder).
+const BUILDER_DIRS = ['routes', 'usecases'].map((layer) => path.resolve(__dirname, `../../../../../server/${layer}/ai/appStudioBuilder`));
 
 function serverEventNames(): string[] {
     const names = new Set<string>();
-    for (const file of fs.readdirSync(BUILDER_DIR)) {
+    for (const [dir, file] of BUILDER_DIRS.flatMap((dir) => fs.readdirSync(dir).map((f) => [dir, f] as const))) {
         if (!file.endsWith('.js') || file.includes('.test.')) continue;
-        const source = fs.readFileSync(path.join(BUILDER_DIR, file), 'utf8');
+        const source = fs.readFileSync(path.join(dir, file), 'utf8');
         for (const m of source.matchAll(/\bsend\(\s*'([a-z_]+)'/g)) names.add(m[1] as string);
     }
     return [...names].sort();

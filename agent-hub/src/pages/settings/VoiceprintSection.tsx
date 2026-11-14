@@ -3,9 +3,9 @@ import React, { useState } from 'react';
 import { Row } from '@/components/settings/shared/settingsPrimitives';
 import VoiceprintEnrollModal from './VoiceprintEnrollModal';
 import { useTranslation } from '../../hooks/useTranslation';
-import { API_BASE } from '../../utils/helpers';
-import { mutate, RefusedError } from '../../api/mutate';
+import { RefusedError } from '../../api/mutate';
 import { useVoiceprintAvailability } from '../../api/queries/settingsOptionalRead';
+import { apiRequest } from '@/api/typedRequest';
 
 interface Voiceprint {
     status?: string;
@@ -49,7 +49,7 @@ export default function VoiceprintSection() {
         setBusy(true);
         try {
             // A refusal was never surfaced here (the list below re-reads the truth either way).
-            try { await mutate(`${API_BASE}/api/voiceprints/me`, { method: 'DELETE' }); } catch (err) { if (!(err instanceof RefusedError)) throw err; }
+            try { await apiRequest('DELETE /api/voiceprints/me'); } catch (err) { if (!(err instanceof RefusedError)) throw err; }
             setConfirmDelete(false);
             await load();
         } finally {

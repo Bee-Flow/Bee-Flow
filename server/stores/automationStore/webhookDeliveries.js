@@ -2,7 +2,7 @@
 /**
  * webhookDeliveries.js: the delivery log of automation webhooks
  * (automation_webhook_deliveries, migrations/automation-webhook-deliveries-2026-11.js).
- * The rules of what is written are in routes/automation/webhookReceive.mts; this
+ * The rules of what is written are in usecases/automation/webhookReceive.mts; this
  * file only reads and writes.
  *
  *   logWebhookDelivery        one delivery: what became of it, the size of its body and

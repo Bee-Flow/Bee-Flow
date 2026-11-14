@@ -315,7 +315,7 @@ function MessageBubble({ p, isUser, isTool, reasoningVisible, simpleMode, render
                 ref={contentRef}
                 className={`prose prose-sm dark:prose-invert max-w-none break-words ${!isUser ? '' : 'bubble-user-prose'}`}
             >
-                {!isUser && <AssistantAttachments msg={msg} allMessages={allMessages} />}
+                {!isUser && <AssistantAttachments msg={msg} />}
                 {isTool ? renderToolOutput() : (
                     <MessageContentBody msg={msg} reasoningVisible={reasoningVisible} sessionSkills={sessionSkills} />
                 )}

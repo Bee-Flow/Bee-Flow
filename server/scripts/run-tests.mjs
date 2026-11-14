@@ -109,6 +109,7 @@ function collectTestFiles(dir, prefix = '') {
         const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
         if (entry.isDirectory()) {
             if (rel === 'node_modules') continue; // top-level only, matching the old find(1) invocation
+            if (rel === 'journeys') continue; // scripts/run-journeys.mjs runs them, in a CI job of their own
             out.push(...collectTestFiles(path.join(dir, entry.name), rel));
         } else if (entry.isFile() && (entry.name.endsWith('.test.js') || entry.name.endsWith('.test.mjs'))) {
             out.push(rel);

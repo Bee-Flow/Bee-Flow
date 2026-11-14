@@ -27,7 +27,9 @@ const KBS = {
 
 // The caller's organisations and the ones they administer, per test.
 const fx = { orgIds: new Set(['org-1']), adminOrgIds: new Set(), adminThrows: false };
-test.beforeEach(() => { fx.orgIds = new Set(['org-1']); fx.adminOrgIds = new Set(); fx.adminThrows = false; });
+// A fresh request per test: the resolver memoises the caller's organisations and groups on the request.
+let req;
+test.beforeEach(() => { fx.orgIds = new Set(['org-1']); fx.adminOrgIds = new Set(); fx.adminThrows = false; req = { session: { user: { id: 'alice', organizationId: 'org-1' } } }; });
 
 // ── Stub the modules kbAccess pulls in ────────────────────────────
 const kbStorePath = require.resolve('../stores/knowledgeBases');
@@ -74,8 +76,6 @@ require.cache[audiencePath] = {
 };
 
 const { partitionAccessibleKBIds, canAccessKB } = require('./kbAccess');
-
-const req = { session: { user: { id: 'alice', organizationId: 'org-1' } } };
 
 test('own KB is allowed', async () => {
     const { allowed, denied } = await partitionAccessibleKBIds(req, ['kb-mine']);

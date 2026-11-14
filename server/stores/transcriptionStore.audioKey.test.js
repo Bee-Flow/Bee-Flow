@@ -1,119 +1,85 @@
+// @typecheck
 /**
- * Transcription Store — the durable-audio key must be writable AFTER insert.
+ * Transcription Store — the durable-audio key is writable AFTER insert,
+ * against a real Postgres (PGlite behind db.js's pool, testUtils/pglitePool.js,
+ * with the store's own schema).
  *
- * `audio_storage_key` used to be settable only by the INSERT. On a deployment
- * with no persistent volume (ours: the server Deployment declares no volumes and
- * is HPA-scaled), the local `audio_path` dies with its pod, so a note created
- * while object storage happened to be unreachable was permanently unrecoverable
- * — there was no SQL anywhere that could fill the column in later.
- *
- * Also covers the disk-first lookup the repair sweep runs.
- *
- * The real db.js runs over a recording pool — no Postgres needed.
+ * On a deployment with no persistent volume the local `audio_path` dies with
+ * its pod, so a note created while object storage happened to be unreachable
+ * needs the key filled in later. Two replicas can spot the same unstored file,
+ * so the repair only fills a NULL key, and it stays owner-scoped. Also covers
+ * the disk-first lookup the repair sweep runs.
  *
  * Run: cd server && node --test stores/transcriptionStore.audioKey.test.js
  */
 
+'use strict';
+
 const test = require('node:test');
 const assert = require('node:assert');
 
-const runCalls = [];
-const execCalls = [];
-let getAllResult = [];
-const getAllCalls = [];
+const { usePglitePool } = require('../testUtils/pglitePool');
 
-// The real db.js over a recording pool: schema statements land in `execCalls`,
-// writes in `runCalls`, reads in `getAllCalls` and answer `getAllResult`.
-require('../testUtils/routeHarness').recordDb((sql, params) => {
-    if (/^\s*(CREATE|ALTER)/i.test(sql)) { execCalls.push(sql); return undefined; }
-    if (/^\s*SELECT/i.test(sql)) { getAllCalls.push({ sql, params }); return { rows: getAllResult }; }
-    if (/^\s*(INSERT|UPDATE|DELETE)/i.test(sql)) { runCalls.push({ sql, params }); return { rows: [], rowCount: 1 }; }
-    return undefined;
-});
-
+const { pg, close } = usePglitePool();
 const store = require('./transcriptionStore');
 
-const norm = (sql) => String(sql).replace(/\s+/g, ' ').trim();
-const lastRun = () => runCalls[runCalls.length - 1];
+const A = '/app/data/uploads/saved-recordings/a.webm';
+const B = '/app/data/uploads/saved-recordings/b.mp3';
 
-/** The value bound to the $n referenced by a SET clause. */
-function paramFor(call, clauseRe) {
-    const m = clauseRe.exec(norm(call.sql));
-    assert.ok(m, `clause not found: ${clauseRe} in ${norm(call.sql)}`);
-    return call.params[Number(m[1]) - 1];
+test.before(() => store.initDB());
+test.after(close);
+
+let seq = 0;
+async function note(userId = 'u1', audioPath = null, key = null) {
+    seq += 1;
+    const id = `n${seq}`;
+    await pg.query('INSERT INTO transcriptions (id, user_id, title, audio_path, audio_storage_key) VALUES ($1, $2, $3, $4, $5)',
+        [id, userId, 'Note', audioPath, key]);
+    return id;
 }
+const keyOf = async (id) => (await pg.query('SELECT audio_storage_key FROM transcriptions WHERE id = $1', [id])).rows[0].audio_storage_key;
 
-test.beforeEach(() => { runCalls.length = 0; getAllCalls.length = 0; getAllResult = []; });
-
-// ── updateTranscription: audioStorageKey ─────────────────────────────────────
-
-test('audioStorageKey writes the column', async () => {
-    await store.updateTranscription('n1', 'u1', { audioStorageKey: 'saved-recordings/a.webm' });
-    const call = lastRun();
-    assert.match(norm(call.sql), /audio_storage_key = \$\d+/);
-    assert.strictEqual(paramFor(call, /audio_storage_key = \$(\d+)/), 'saved-recordings/a.webm');
-});
-
-test('audioStorageKey: null writes SQL NULL, never the empty string', async () => {
-    // '' would be truthy-adjacent downstream: `if (audioStorageKey)` guards in
-    // savedAudioStore/resolveSavedAudio would take the storage branch and then
-    // fetch the key '' — a 404 dressed up as a real durable copy.
-    await store.updateTranscription('n1', 'u1', { audioStorageKey: null });
-    assert.strictEqual(paramFor(lastRun(), /audio_storage_key = \$(\d+)/), null);
+test('audioStorageKey writes the column; null writes SQL NULL, never the empty string', async () => {
+    const id = await note();
+    await store.updateTranscription(id, 'u1', { audioStorageKey: 'saved-recordings/a.webm' });
+    assert.strictEqual(await keyOf(id), 'saved-recordings/a.webm');
+    // '' would take the storage branch downstream and fetch the key '': a 404 dressed up as a durable copy.
+    await store.updateTranscription(id, 'u1', { audioStorageKey: null });
+    assert.strictEqual(await keyOf(id), null);
 });
 
 test('audioStorageKeyIfMissing only fills a NULL column', async () => {
-    // Two replicas can both spot the same unstored file. Whoever lands second
-    // must not clobber a key that is already good.
-    await store.updateTranscription('n1', 'u1', { audioStorageKeyIfMissing: 'saved-recordings/a.webm' });
-    const sql = norm(lastRun().sql);
-    assert.match(sql, /audio_storage_key = CASE WHEN audio_storage_key IS NULL THEN \$\d+::text ELSE audio_storage_key END/);
+    const empty = await note();
+    const stored = await note('u1', null, 'saved-recordings/good.webm');
+    await store.updateTranscription(empty, 'u1', { audioStorageKeyIfMissing: 'saved-recordings/a.webm' });
+    await store.updateTranscription(stored, 'u1', { audioStorageKeyIfMissing: 'saved-recordings/late.webm' });
+    assert.strictEqual(await keyOf(empty), 'saved-recordings/a.webm');
+    assert.strictEqual(await keyOf(stored), 'saved-recordings/good.webm', 'whoever lands second must not clobber a good key');
 });
 
 test('the repair update stays owner-scoped', async () => {
-    // The sweep passes the row's own user_id; the owner predicate must survive,
-    // or a repair would be able to touch another tenant's note.
-    await store.updateTranscription('n1', 'u1', { audioStorageKeyIfMissing: 'k' });
-    const call = lastRun();
-    assert.match(norm(call.sql), /WHERE id = \$\d+ AND user_id = \$\d+/);
-    assert.deepStrictEqual(call.params.slice(-2), ['n1', 'u1']);
+    const id = await note('u1');
+    await store.updateTranscription(id, 'u2', { audioStorageKeyIfMissing: 'k' });
+    assert.strictEqual(await keyOf(id), null, "a repair cannot touch another tenant's note");
 });
 
 test('an unrelated update does not touch audio_storage_key', async () => {
-    await store.updateTranscription('n1', 'u1', { title: 'Nieuwe titel' });
-    assert.ok(!/audio_storage_key/.test(norm(lastRun().sql)));
+    const id = await note('u1', null, 'keep');
+    await store.updateTranscription(id, 'u1', { title: 'Nieuwe titel' });
+    assert.strictEqual(await keyOf(id), 'keep');
 });
 
-// ── getTranscriptionsByAudioPaths ────────────────────────────────────────────
-
-test('getTranscriptionsByAudioPaths queries by exact path array', async () => {
-    getAllResult = [{ id: 'n1', user_id: 'u1', audio_path: '/app/data/uploads/saved-recordings/a.webm', audio_storage_key: null }];
-    const rows = await store.getTranscriptionsByAudioPaths([
-        '/app/data/uploads/saved-recordings/a.webm',
-        '/app/data/uploads/saved-recordings/b.mp3',
-    ]);
-    const call = getAllCalls[getAllCalls.length - 1];
-    assert.match(norm(call.sql), /WHERE audio_path = ANY\(\$1::text\[\]\)/);
-    assert.strictEqual(call.params[0].length, 2);
-    assert.strictEqual(rows[0].id, 'n1');
+test('getTranscriptionsByAudioPaths finds notes by exact path, ignoring non-strings and an empty list', async () => {
+    const a = await note('u1', A);
+    await note('u1', B + '.old');
+    const rows = await store.getTranscriptionsByAudioPaths([A, B]);
+    assert.deepStrictEqual(rows.map((r) => r.id), [a]);
+    assert.deepStrictEqual((await store.getTranscriptionsByAudioPaths([/** @type {any} */ (null), '', A, /** @type {any} */ (42)])).map((r) => r.id), [a]);
+    assert.deepStrictEqual(await store.getTranscriptionsByAudioPaths([]), []);
 });
 
-test('getTranscriptionsByAudioPaths short-circuits on an empty list', async () => {
-    // An empty saved-recordings dir must not issue `= ANY('{}')` every tick.
-    const rows = await store.getTranscriptionsByAudioPaths([]);
-    assert.deepStrictEqual(rows, []);
-    assert.strictEqual(getAllCalls.length, 0, 'no query issued');
-});
-
-test('getTranscriptionsByAudioPaths ignores non-string entries', async () => {
-    await store.getTranscriptionsByAudioPaths([null, '', '/app/data/uploads/saved-recordings/a.webm', 42]);
-    assert.deepStrictEqual(getAllCalls[getAllCalls.length - 1].params[0], ['/app/data/uploads/saved-recordings/a.webm']);
-});
-
-// ── migration ────────────────────────────────────────────────────────────────
-
-test('init creates the partial index the repair sweep relies on', () => {
-    const sql = execCalls.map(norm).join('\n');
-    assert.match(sql, /CREATE INDEX IF NOT EXISTS idx_transcriptions_audio_path_unstored/);
-    assert.match(sql, /WHERE audio_storage_key IS NULL/);
+test('init creates the partial index the repair sweep relies on', async () => {
+    const { rows } = await pg.query("SELECT indexdef FROM pg_indexes WHERE indexname = 'idx_transcriptions_audio_path_unstored'");
+    assert.strictEqual(rows.length, 1);
+    assert.match(rows[0].indexdef, /WHERE \(audio_storage_key IS NULL\)/);
 });

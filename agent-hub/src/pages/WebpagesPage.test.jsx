@@ -217,10 +217,13 @@ function jsonBody(call) {
 }
 
 /** Drain microtasks (and optionally the fake clock) inside act(). */
+// The list and the bundle are queries: react-query hands an answer to the page on a
+// zero-delay timer, so a flush runs those too.
 async function flush(ms = 0) {
     await act(async () => {
-        if (ms > 0) await vi.advanceTimersByTimeAsync(ms);
+        await vi.advanceTimersByTimeAsync(ms);
         for (let i = 0; i < 25; i++) await Promise.resolve();
+        await vi.advanceTimersByTimeAsync(0);
     });
 }
 

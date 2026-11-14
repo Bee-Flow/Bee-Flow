@@ -43,3 +43,15 @@ test('an unknown token is 410', async () => {
     const res = await get('/invite/nope');
     assert.equal(res.statusCode, 410);
 });
+
+test('clearing a pending invitation takes no fields: one sent is refused by name and the token stays', async () => {
+    const { dispatcher } = require('../../testUtils/routeHarness');
+    const session = { pendingInviteToken: 'tok', save(cb) { cb(); } };
+    const res = await dispatcher(router, { session: () => session })({ method: 'POST', url: '/pending-invite/clear', body: { token: 'tok' } });
+    assert.equal(res.statusCode, 400);
+    assert.match(res.body.error, /does not take "token"/);
+    assert.equal(session.pendingInviteToken, 'tok');
+    const cleared = await dispatcher(router, { session: () => session })({ method: 'POST', url: '/pending-invite/clear' });
+    assert.equal(cleared.statusCode, 200);
+    assert.equal(session.pendingInviteToken, undefined);
+});

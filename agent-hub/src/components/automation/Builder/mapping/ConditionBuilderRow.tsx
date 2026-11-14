@@ -189,6 +189,7 @@ export default function ConditionBuilderRow(props: Props) {
                         onClick={onRemove}
                         className="mt-1.5 p-1 rounded text-[var(--text-tertiary)] hover:text-red-500 hover:bg-red-500/10"
                         title={t('automations.condition_builder_row.remove_condition', 'Remove condition')}
+                        aria-label={t('automations.condition_builder_row.remove_condition', 'Remove condition')}
                     >
                         <Trash2 size={12} />
                     </button>

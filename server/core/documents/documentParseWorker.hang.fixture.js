@@ -1,3 +1,4 @@
+// @typecheck strict
 'use strict';
 /**
  * Test fixture for documentParser.test.js: a parse worker that takes every job and never

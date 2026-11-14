@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { API_BASE } from '../../utils/helpers';
 import { useHasGoogleMapsKey } from '../../api/queries/settingsConsumer';
 import { useTranslation } from '../../hooks/useTranslation';
-import { mutate, ApiError } from '../../api/mutate';
+import { ApiError } from '../../api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 /* ── Google Maps integration card ────────────────────────────────────────── */
 /** The Google Maps key: instance-wide (POST /ai/config takes a platform admin). `mark` follows the name, e.g. the server-wide mark. */
@@ -19,11 +19,7 @@ const GoogleMapsRow = ({ mark = null }: { mark?: React.ReactNode }) => {
         if (!key.trim()) return;
         setSaving(true);
         try { // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- an ApiError is shown by mutate(); anything else is logged to the browser console of the person who clicked, nothing is sent to a client
-            const res = await mutate(`${API_BASE}/ai/config`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ googleMapsApiKey: key }),
-            }).catch((err: unknown) => {
+            const res = await apiRequest('POST /ai/config', { body: { googleMapsApiKey: key } }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });

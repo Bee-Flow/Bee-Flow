@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Transcriptions — Nextcloud ingest & Talk meetings.
  *
@@ -70,6 +70,7 @@ async function resolveEffectiveRecordingFolder(session, userId, configuredFolder
 }
 
 const { validate } = require('../../core/http/validate');
+const { sessionUser } = require('../../core/http/sessionUser');
 const { z } = require('../../utils/zod');
 const { worded, bodyOf, bool, NO_QUERY } = require('./schemas');
 const { bestEffort, fallback: fallbackSwallowed } = require('../../utils/bestEffort');
@@ -103,8 +104,8 @@ const TalkPrefBody = bodyOf({
     eventUid: worded('eventUid is het id van een agendapunt.').trim().min(1).nullish(),
 });
 
-router.get('/nextcloud-audio-files', requireAuth, validate({ query: FolderQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof FolderQuery>>} */ req, res, next) => {
-    const userId = req.session.user.id;
+router.get('/nextcloud-audio-files', requireAuth, validate({ query: FolderQuery }), async (req, res, next) => {
+    const userId = sessionUser(req).id;
     const folder = /** @type {{folder?: string}} */ (/** @type {unknown} */ (req.query)).folder || '/Recordings';
     try {
         const ctx = await ncClient.resolveAuth(req.session, userId);
@@ -127,7 +128,7 @@ router.get('/nextcloud-audio-files', requireAuth, validate({ query: FolderQuery 
 
         const folderPath = '/' + folder.split('/').filter(Boolean).join('/');
         const items = [];
-        for (const entry of parsePropfind(await r.text(), ctx.baseUrl, ctx.uid)) {
+        for (const entry of parsePropfind(await r.text(), ctx.baseUrl, /** @type {string} */ (ctx.uid))) { // resolveAuth named the user
             // Depth 1 includes the folder itself; subfolders are not listed.
             if (entry.type !== 'file' || entry.path === folderPath) continue;
             if (!AUDIO_EXTS.includes(path.extname(entry.name).toLowerCase())) continue;
@@ -189,7 +190,7 @@ async function propfindChildren(ctx, folderPath) {
 
     const selfPath = '/' + folderPath.split('/').filter(Boolean).join('/');
     const entries = [];
-    for (const entry of parsePropfind(await r.text(), ctx.baseUrl, ctx.uid)) {
+    for (const entry of parsePropfind(await r.text(), ctx.baseUrl, /** @type {string} */ (ctx.uid))) { // resolveAuth named the user
         const entryPath = '/' + entry.path.split('/').filter(Boolean).join('/');
         // Depth 1 includes the folder itself.
         if (entryPath.toLowerCase() === selfPath.toLowerCase()) continue;
@@ -245,8 +246,8 @@ async function mapCapped(items, limit, fn) {
 // Talk stores each call's recording at <recordingFolder>/<roomToken>/<file>
 // (default `/Talk/Recording/<token>/<file>`), so this walks two levels: the
 // recordings root for its per-room folders, then each room folder for files.
-router.get('/nextcloud-talk-recordings', requireAuth, validate({ query: FolderQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof FolderQuery>>} */ req, res, next) => {
-    const userId = req.session.user.id;
+router.get('/nextcloud-talk-recordings', requireAuth, validate({ query: FolderQuery }), async (req, res, next) => {
+    const userId = sessionUser(req).id;
     try {
         const userOrgId = await resolveUserOrgFromReq(req);
         const configured = req.query.folder || await resolveRecordingFolder(userOrgId, userId);
@@ -374,8 +375,8 @@ async function decorateRoomNames(rooms, session, userId) {
     } catch (err) { bestEffort('routes/transcriptions/nextcloud:decorateRoomNames', err); /* names are a nicety, the paths are the payload */ }
 }
 
-router.post('/from-nextcloud', requireAuth, validate({ body: FromNextcloudBody, query: NO_QUERY }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof FromNextcloudBody>, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
-    const userId = req.session.user.id;
+router.post('/from-nextcloud', requireAuth, validate({ body: FromNextcloudBody, query: NO_QUERY }), async (req, res) => {
+    const userId = sessionUser(req).id;
     const userOrgId = await resolveUserOrgFromReq(req);
     const { nextcloud_path, language = 'nl', provider: requestedProvider, title: titleHint, context_terms } = req.body;
 
@@ -426,8 +427,8 @@ router.post('/from-nextcloud', requireAuth, validate({ body: FromNextcloudBody, 
 // each enriched with whether they moderate it, live call/recording state, the
 // per-meeting record toggle (exclusion), and a status chip.
 
-router.get('/talk-meetings', requireAuth, validate({ query: NO_QUERY }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof NO_QUERY>>} */ req, res, next) => {
-    const userId = req.session.user.id;
+router.get('/talk-meetings', requireAuth, validate({ query: NO_QUERY }), async (req, res, next) => {
+    const userId = sessionUser(req).id;
     try {
         const userOrgId = await resolveUserOrgFromReq(req);
         const talk = require('../../integrations/nextcloudTalkTools');
@@ -471,7 +472,7 @@ router.get('/talk-meetings', requireAuth, validate({ query: NO_QUERY }), async (
         const out = [];
         for (const m of meetings) {
             const room = roomsByToken[m.talkToken] || null;
-            const isModerator = room ? [1, 2].includes(room.participantType) : null;
+            const isModerator = room ? /** @type {Array<number | undefined>} */ ([1, 2]).includes(room.participantType) : null;
             const recordingNow = !!(room && room.callRecording && room.callRecording !== 0);
             const ids = meetingPrefs.talkIds({ eventUid: m.uid, roomToken: m.talkToken });
             const decision = prefs.decide({
@@ -535,7 +536,7 @@ router.get('/talk-meetings', requireAuth, validate({ query: NO_QUERY }), async (
 
 // Toggle a single meeting's auto-record on/off (writes the user's exclusions).
 router.patch('/talk-meetings/:token', requireAuth, validate({ body: TalkPrefBody, query: NO_QUERY }), async (/** @type {import('express').Request<{ token: string }>} */ req, /** @type {import('express').Response} */ res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const token = req.params.token;
     const { record, eventUid } = req.body;
     // Writes the preference of THIS user (meeting_prefs), not that of the org: a

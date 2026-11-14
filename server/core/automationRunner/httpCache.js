@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * "Ask this web service only once" — the whole policy for reusing an
  * http_request answer, kept out of execOutbound so that step keeps one job.
@@ -95,7 +96,6 @@
  * and the code step's `executeTool` bridge — both can reuse the identical
  * `isMemoisable` gate.
  */
-
 'use strict';
 
 const safety = require('./safety');
@@ -401,7 +401,7 @@ async function readInto(into, key) {
  * @param {HttpOut} out           the PRE-guard response — what decides eligibility
  * @param {unknown} storedValue   the POST-guard response — what is actually written
  * @param {{ secretValues?: string[] }} [opts]  `secretValues`: every secret this run can see
- * @returns {Promise<{stored: boolean, reason?: string, errorClass?: string, message?: string}|null>}
+ * @returns {Promise<{stored: boolean, refreshed?: boolean, reason?: string, errorClass?: string, message?: string}|null>}
  *
  * A refusal here is NEVER a failed step. The call succeeded and the answer is
  * in hand; a full table or an over-large body means the next run asks again,
@@ -421,7 +421,7 @@ async function storeInto(plan, out, storedValue, { secretValues = [] } = {}) {
     const { tier } = storability(out);
     if (tier !== 'both') return { stored: false, reason: 'not_cacheable' };
 
-    const value = (storedValue && typeof storedValue === 'object') ? storedValue : out;
+    const value = /** @type {{ body?: unknown, status?: unknown, headers?: Record<string, string> }} */ ((storedValue && typeof storedValue === 'object') ? storedValue : out);
     const body = String(value.body ?? '');
     // Refused, never truncated: a clipped body replayed as a whole one is the
     // BFSF-360 failure, where the next collection step reports "arrayRef did

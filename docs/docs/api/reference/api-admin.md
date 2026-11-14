@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/admin`
 
-34 routes, 18 with a request schema. Back to the [endpoint reference](../reference.md).
+34 routes, 23 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `guard`
 
@@ -145,7 +145,7 @@ No request schema.
 
 **Access:** Platform admin
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `POST /api/admin/modules/:id/install`
 
@@ -198,13 +198,13 @@ No request schema.
 
 **Access:** Platform admin
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `POST /api/admin/modules/:id/remove`
 
 **Access:** Platform admin
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `POST /api/admin/modules/:id/rollback`
 
@@ -269,13 +269,13 @@ No request schema.
 
 **Access:** Platform admin
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `POST /api/admin/modules/entitlements/refresh`
 
 **Access:** Platform admin
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `GET /api/admin/modules/health`
 

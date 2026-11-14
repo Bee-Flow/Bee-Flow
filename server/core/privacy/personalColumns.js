@@ -390,7 +390,7 @@ function confidenceOf({ anchored, matched, sampled }) {
  * guard really read — the list that lets the caller tell "clean" from
  * "never looked at" per column instead of per table.
  */
-async function byValue({ fields = [], rows = [] } = {}, { scan = null, sampleRows = SAMPLE_ROWS, sampleChars = SAMPLE_CHARS, maxCellChars = MAX_CELL_CHARS } = {}) {
+async function byValue({ fields = /** @type {Array<{ key?: string, type?: string, name?: string } | null>} */ ([]), rows = /** @type {unknown[]} */ ([]) } = {}, { scan = /** @type {((text: string) => Promise<{ degraded?: boolean, entities?: unknown } | null>) | null} */ (null), sampleRows = SAMPLE_ROWS, sampleChars = SAMPLE_CHARS, maxCellChars = MAX_CELL_CHARS } = {}) {
     const textFields = arr(fields).filter((f) => f && f.key && SCANNABLE_TYPES.includes(f.type));
     if (!textFields.length || !arr(rows).length || typeof scan !== 'function') return null;
     const columns = [];

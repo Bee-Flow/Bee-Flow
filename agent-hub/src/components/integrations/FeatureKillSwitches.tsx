@@ -1,15 +1,15 @@
 import { useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { API_BASE } from '../../utils/helpers';
 import { integrationsAdminKeys, useFeatureFlagsQuery } from '../../api/queries/integrationsAdmin';
 import { BookOpen, FolderKanban, Sparkles, FileDown, Maximize2, LayoutList } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { LucideIcon } from 'lucide-react';
-import { mutate, ApiError } from '../../api/mutate';
+import { ApiError } from '../../api/mutate';
 import { useToastOnMessage } from '@/components/admin/ai-config/ui/useToastOnMessage';
 import { SettingRow, SettingsGroup, SettingsList } from '@/components/shared/SettingsList';
 import Spinner from '@/components/shared/Spinner';
 import Toggle from '@/components/shared/Toggle';
+import { apiRequest } from '@/api/typedRequest';
 
 interface FlagDef {
     key: string;
@@ -65,11 +65,7 @@ export default function FeatureKillSwitches() {
         const newVal = !flags[key];
         setSaving(s => ({ ...s, [key]: true }));
         try {
-            const res = await mutate(`${API_BASE}/ai/config`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ [key]: newVal }),
-            }).catch((err: unknown) => {
+            const res = await apiRequest('POST /ai/config', { body: { [key]: newVal } }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });

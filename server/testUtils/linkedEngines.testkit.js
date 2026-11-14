@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 /**
@@ -28,7 +29,7 @@ function sqliteEngine(closers) {
     return {
         dialect: 'sqlite',
         // As the app engine applies a plan: an ADD COLUMN that is already there is skipped.
-        ddl: async (sql) => applyPlanTolerantly(db, [sql], { log: { warn: () => {}, info: () => {}, log: () => {} } }),
+        ddl: async (sql) => applyPlanTolerantly(db, [sql], { log: /** @type {{ warn: Function }} */ ({ warn: () => {}, info: () => {}, log: () => {} }) }),
         run: async (sql, params) => run(sql, params),
         all: async (sql, params) => all(sql, params),
         batch: async (statements) => db.transaction(() => statements.map((s, i) => {

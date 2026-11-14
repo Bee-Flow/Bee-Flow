@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * ONE FULL PASS over a spreadsheet mirror — the shared pipeline
  * (../mirror/syncPipeline explains the eleven steps and why their order is

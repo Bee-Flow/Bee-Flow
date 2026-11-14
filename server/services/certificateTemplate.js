@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 // Self-contained HTML for a Bee Flow AI certificate. All CSS inline, no external
 // fetches — rendered to PNG/PDF by certificateRenderer.js via Playwright.
 //
@@ -20,7 +20,7 @@ function esc(s) {
  */
 function fmtDate(iso) {
     try {
-        const d = new Date(iso);
+        const d = new Date(/** @type {string | number | Date} */ (iso)); // an invalid date throws below and is caught
         return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
     } catch (_) { return ''; }
 }

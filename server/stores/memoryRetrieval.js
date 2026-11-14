@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * memoryRetrieval — hybrid candidate selection for `findRelevantMemories`.
  *
@@ -145,8 +145,8 @@ function scopePredicate({ userId, agentId = null, projectId = null, includeGener
  * dimension.
  *
  * @param {{
- *   userId?: string, agentId?: string, projectId?: string, includeGeneral?: boolean, includeSensitive?: boolean,
- *   dim?: number, queryVector?: number[], queryText?: string, legLimit?: number,
+ *   userId?: string, agentId?: string | null, projectId?: string | null, includeGeneral?: boolean, includeSensitive?: boolean,
+ *   dim?: number | null, queryVector?: number[] | null, queryText?: string, legLimit?: number,
  * }} [opts]
  *   includeSensitive: read sensitivity='art9' rows too (default false)
  *   dim: active embedding dimension, if any; queryVector: the embedded user message, if any; queryText: raw user
@@ -196,7 +196,7 @@ function buildCandidateQuery({
     // vector dimensions" at query time — an exception on the chat hot path
     // rather than a degraded ranking. Belt and braces: the caller derives both
     // from the same embedding, so a mismatch here means a caller bug.
-    const dimMatches = col && literal && queryVector.length === dim;
+    const dimMatches = col && literal && /** @type {number[]} */ (queryVector).length === dim; // a literal means a vector
     if (dimMatches) {
         // Bound as text and cast, never interpolated. The COLUMN name has to be
         // interpolated — Postgres has no parameter form for an identifier —

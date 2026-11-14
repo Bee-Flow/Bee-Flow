@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Link check of a site draft, mounted by routes/cms.js under
  * /sites/:siteId/link-check behind requireAdmin + attachSiteIdFromParam:
@@ -36,10 +36,11 @@ function createLinkCheckRouter() {
         if (external && !takeExternalRun(String(req.session?.user?.id))) {
             throw new HttpError(429, 'link_check_limit', 'External link checks are limited to a few per ten minutes. Try again later, or check internal links only.');
         }
-        const report = await runLinkCheck(req.siteId, { external }, { cmsStore });
+        const siteId = /** @type {string} */ (req.siteId); // set by the :siteId gate this router is mounted behind
+        const report = await runLinkCheck(siteId, { external }, { cmsStore });
         const user = req.session?.user;
         await require('../stores/userStore').logAccessAudit(
-            'cms.links.check', 'cms_site', req.siteId, user?.id || null, null,
+            'cms.links.check', 'cms_site', siteId, user?.id || null, null,
             { external, urls: report.external.checked, errors: report.summary.errors, warnings: report.summary.warnings },
             user?.organizationId || null,
         );

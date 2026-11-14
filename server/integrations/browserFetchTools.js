@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Browse Web Tool — an interactive headless browser the model can drive to
  * read/interact with live web pages (JS-rendered SPAs, dashboards, multi-page
@@ -27,6 +28,7 @@ function queuePosition() {
     return _queue.length;
 }
 
+/** @returns {Promise<void>} */
 function acquireBrowserSlot() {
     return new Promise((resolve, reject) => {
         if (_active < MAX_CONCURRENT) {
@@ -34,8 +36,7 @@ function acquireBrowserSlot() {
             resolve();
             return;
         }
-        /** @type {{ settle?: () => void; timer?: NodeJS.Timeout }} */
-        const entry = {};
+        const entry = /** @type {{ settle: () => void; timer: NodeJS.Timeout }} */ ({});
         entry.settle = () => {
             clearTimeout(entry.timer);
             _active++;

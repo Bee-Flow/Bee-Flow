@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Reports API Routes
  * Generates JSON-structured reports for the frontend PageRenderer
@@ -50,7 +50,7 @@ const ReportQuery = z.object({ startDate: when('startDate'), endDate: when('endD
 
 /**
  * " (2026-01-01 - 2026-01-31)", " (from …)", " (until …)" or "" — the period a title covers.
- * @param {{ startDate?: string, endDate?: string }} period
+ * @param {{ startDate?: string | null, endDate?: string | null }} period
  */
 function periodLabel({ startDate, endDate }) {
     /** @param {string} v */
@@ -148,7 +148,7 @@ async function generateSystemOverview(userId, filters = {}, orgIds = null) {
     // Fetch names for top agents
     for (const [agentId, count] of topAgents) {
         const agent = await agentStore.getAgent(agentId);
-        messageChartData.labels.push(agent ? agent.name : 'Unknown Agent');
+        messageChartData.labels.push(agent ? /** @type {string} */ (agent.name) : 'Unknown Agent'); // as stored
         messageChartData.datasets[0].data.push(count);
     }
 

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * ONE round through the provider ADAPTER — every SDK provider and every
  * self-hosted runtime (Ollama, vLLM, llama.cpp, LM Studio, …).
@@ -128,7 +128,7 @@ async function streamNativeAdapterRound({
             currentToolCalls.push({
                 id: data.id || `call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                 function: {
-                    name: data.name,
+                    name: /** @type {string} */ (data.name), // a tool_use event names its tool
                     arguments: JSON.stringify(data.input || {}),
                 },
                 _thought_signature: data.thought_signature || undefined,
@@ -181,7 +181,8 @@ async function streamNativeAdapterRound({
         // retry's reasoning would be skipped when it is attached to
         // the assistant tool-call message.
         if (_thinkingSnapshotFrom > _thinkingParts.length) _thinkingSnapshotFrom = _thinkingParts.length;
-        return providerAdapter.stream(config.apiKey, config.url, modelToUse, adapterMessages, adapterOptions, onAdapterEvent);
+        // A keyless (local) provider passes the empty key it has; the adapter reads it as absent.
+        return providerAdapter.stream(/** @type {string} */ (config.apiKey), config.url, modelToUse, adapterMessages, adapterOptions, onAdapterEvent);
     }, 3, signal);
 
     await logAdapterUsage({ agent, agentId, userId, modelToUse, messageMetadata, conversation, _adapterStreamUsage, _streamCallStart }, SETUP_DEPS);

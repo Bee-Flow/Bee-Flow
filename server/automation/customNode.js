@@ -262,6 +262,6 @@ module.exports = {
     validateCustomNode,
 };
 
-/** @typedef {import('./automationGraph').AutomationStep} AutomationStep */
+/** @typedef {import('../core/automationModel/automationGraph').AutomationStep} AutomationStep */
 
 /** @typedef {{ kind: string, tool: string | null }} Capability */

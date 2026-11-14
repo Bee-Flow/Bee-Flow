@@ -27,7 +27,7 @@
 const log = require('../../telemetry/log');
 
 /**
- * @param {string} projectId
+ * @param {string | null} projectId  none: nothing is emitted
  * @param {{ kind?: string, actorId?: string | null, targetType?: string | null, targetId?: string | null,
  *   payload?: object }} event  as projectStore.appendProjectEvent takes it
  * @param {{ label?: string }} [opts]

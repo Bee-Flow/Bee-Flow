@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The Privacy Shield's tool block lists (`toolPiiPolicy`), for the paths
  * outside the streaming agent tool loop (BFSF-354).
@@ -112,7 +113,7 @@ async function checkToolArgs({ toolName, args, shield }) {
     if (!shield?.enabled) return { verdict: 'allow', toolClass: null, labels: [], logLabels: [] };
     const { classifyToolClass, isBlockedForTool } = _deps.orgShield();
     const toolClass = classifyToolClass(toolName, args || {});
-    const allow = { verdict: 'allow', toolClass, labels: [], logLabels: [] };
+    const allow = { verdict: /** @type {'allow'} */ ('allow'), toolClass, labels: [], logLabels: [] };
     const blockList = blockListFor(shield, toolClass);
     if (blockList.length === 0) return allow;
 
@@ -202,7 +203,7 @@ async function stripBlockedFromText(text, { toolName = null, toolClass = null, s
  * for the citation the user opens.
  *
  * @param {Array<object>} chunks
- * @param {object|null} shield  a resolved shield (resolveShieldFor)
+ * @param {{ enabled?: boolean, toolPiiPolicy?: Record<string, { blockCategories?: string[] }> } | null} shield  a resolved shield (resolveShieldFor)
  * @param {{ fields?: string[], labelOf?: (chunk: object) => string }} [opts]
  * @returns {Promise<{ blockedCount: number, redactedLabels: string[], redactedLogLabels: string[], sourceLabels: string[] }>}
  */
@@ -266,7 +267,7 @@ function refusalFor(gate, toolName) {
  * (violation type, categories, direction, action); the caller adds its own
  * attribution (org, user, agent, conversation, source, model) and writes the
  * row, so every loop audits into its own store without this module holding one.
- */
+ * @param {{ toolName: string, args: unknown, shield: ToolShield | null, logEvent?: LogEvent | null, tag?: string }} opts */
 async function refuseToolCall({ toolName, args, shield, logEvent = null, tag = 'ToolPiiGate' }) {
     const gate = await checkToolArgs({ toolName, args, shield });
     const refusal = refusalFor(gate, toolName);
@@ -287,7 +288,7 @@ async function refuseToolCall({ toolName, args, shield, logEvent = null, tag = '
 /**
  * The result half for a tool loop: what the MODEL reads, with the categories
  * this tool's class forbids stripped out. Fails open; `logEvent` as above.
- */
+ * @param {string} content @param {{ toolName: string, shield: ToolShield | null, logEvent?: LogEvent | null, tag?: string }} opts */
 async function stripToolResultForModel(content, { toolName, shield, logEvent = null, tag = 'ToolPiiGate' }) {
     if (typeof content !== 'string') return content;
     const r = await stripBlockedFromText(content, { toolName, shield });

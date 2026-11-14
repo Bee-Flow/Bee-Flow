@@ -5,6 +5,7 @@ import Modal from '@/components/shared/Modal';
 import useConfirm from '@/components/shared/useConfirm';
 import useTranslation from '@/hooks/useTranslation';
 import * as api from '@/api/transcriptionsApi';
+import { useOrgGroupsQuery } from '@/api/queries/orgGroups';
 import type { BuiltinTemplate, CustomTemplate, OrgGroup } from './summaryTemplates.types';
 import { errorMessage } from '@/utils/caughtError';
 
@@ -34,6 +35,8 @@ interface TemplateEditorProps {
  * Org/group options only render when `canManageOrg` is true. Scope is immutable
  * once created (matches the backend), so editing an existing template locks it.
  */
+const NO_GROUPS: OrgGroup[] = [];
+
 export default function TemplateEditor({
     open,
     onClose,
@@ -54,7 +57,6 @@ export default function TemplateEditor({
     const [groupId, setGroupId] = useState<string>('');
     const [isDefault, setIsDefault] = useState<boolean>(false);
     const [seedId, setSeedId] = useState<string>('');
-    const [groups, setGroups] = useState<OrgGroup[]>([]);
     const [saving, setSaving] = useState<boolean>(false);
     const [deleting, setDeleting] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
@@ -81,12 +83,7 @@ export default function TemplateEditor({
 
     // Groups are only needed for the "Specific group" scope, and only admins
     // see that option — fetch lazily when the editor opens for an admin.
-    useEffect(() => {
-        if (!open || !canManageOrg) return undefined;
-        let mounted = true;
-        api.listOrgGroups().then((g: OrgGroup[]) => { if (mounted) setGroups(Array.isArray(g) ? g : []); }).catch(() => {});
-        return () => { mounted = false; };
-    }, [open, canManageOrg]);
+    const groups = (useOrgGroupsQuery(open && canManageOrg).data ?? NO_GROUPS) as OrgGroup[];
 
     const scopeOptions = useMemo(() => {
         const opts = [{ id: 'user', label: t('meeting_notes.template_scope_user', 'Just me'), icon: User }];

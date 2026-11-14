@@ -8,7 +8,7 @@ custom_edit_url: null
 
 # Endpoint reference
 
-Every route the server mounts, 1914 in all, read from the running app rather than written by hand. 1083 of them declare a request schema (body, query or path parameters), shown below as fields; the other 831 say "No request schema". The same data as an OpenAPI 3.1 document: [openapi.json](pathname:///openapi.json).
+Every route the server mounts, 1918 in all, read from the running app rather than written by hand. 1189 of them declare a request schema (body, query or path parameters), shown below as fields; the other 729 say "No request schema". The same data as an OpenAPI 3.1 document: [openapi.json](pathname:///openapi.json).
 
 ## How to read it
 
@@ -22,38 +22,38 @@ Every route the server mounts, 1914 in all, read from the running app rather tha
 
 | Area | Routes | With a request schema |
 |------|-------:|----------------------:|
-| [`/agents`](./reference/agents.md) | 76 | 56 |
-| [`/ai`](./reference/ai.md) | 130 | 59 |
-| [`/api/admin`](./reference/api-admin.md) | 34 | 18 |
-| [`/api/automation`](./reference/api-automation.md) | 158 | 74 |
+| [`/agents`](./reference/agents.md) | 76 | 57 |
+| [`/ai`](./reference/ai.md) | 130 | 71 |
+| [`/api/admin`](./reference/api-admin.md) | 34 | 23 |
+| [`/api/automation`](./reference/api-automation.md) | 162 | 95 |
 | [`/api/branding`](./reference/api-branding.md) | 10 | 2 |
-| [`/api/cms`](./reference/api-cms.md) | 81 | 37 |
-| [`/api/compliance`](./reference/api-compliance.md) | 121 | 72 |
+| [`/api/cms`](./reference/api-cms.md) | 81 | 42 |
+| [`/api/compliance`](./reference/api-compliance.md) | 121 | 77 |
 | [`/api/cowork`](./reference/api-cowork.md) | 11 | 6 |
-| [`/api/datatables`](./reference/api-datatables.md) | 47 | 33 |
-| [`/api/dsr`](./reference/api-dsr.md) | 14 | 8 |
+| [`/api/datatables`](./reference/api-datatables.md) | 47 | 37 |
+| [`/api/dsr`](./reference/api-dsr.md) | 14 | 9 |
 | [`/api/icons`](./reference/api-icons.md) | 12 | 7 |
-| [`/api/integrations`](./reference/api-integrations.md) | 58 | 26 |
-| [`/api/kb`](./reference/api-kb.md) | 56 | 39 |
-| [`/api/languages`](./reference/api-languages.md) | 27 | 11 |
+| [`/api/integrations`](./reference/api-integrations.md) | 58 | 34 |
+| [`/api/kb`](./reference/api-kb.md) | 56 | 40 |
+| [`/api/languages`](./reference/api-languages.md) | 27 | 12 |
 | [`/api/mcp-library`](./reference/api-mcp-library.md) | 13 | 8 |
 | [`/api/notebooks`](./reference/api-notebooks.md) | 35 | 21 |
 | [`/api/org-privacy-shield`](./reference/api-org-privacy-shield.md) | 10 | 6 |
 | [`/api/organizations`](./reference/api-organizations.md) | 12 | 8 |
 | [`/api/playbooks`](./reference/api-playbooks.md) | 14 | 0 |
-| [`/api/projects`](./reference/api-projects.md) | 143 | 97 |
+| [`/api/projects`](./reference/api-projects.md) | 143 | 103 |
 | [`/api/skills`](./reference/api-skills.md) | 15 | 15 |
-| [`/api/step`](./reference/api-step.md) | 11 | 5 |
-| [`/api/stripe`](./reference/api-stripe.md) | 12 | 5 |
-| [`/api/studio-apps`](./reference/api-studio-apps.md) | 93 | 56 |
-| [`/api/studio-documents`](./reference/api-studio-documents.md) | 58 | 29 |
-| [`/api/subscriptions`](./reference/api-subscriptions.md) | 31 | 20 |
+| [`/api/step`](./reference/api-step.md) | 11 | 6 |
+| [`/api/stripe`](./reference/api-stripe.md) | 12 | 7 |
+| [`/api/studio-apps`](./reference/api-studio-apps.md) | 93 | 62 |
+| [`/api/studio-documents`](./reference/api-studio-documents.md) | 58 | 35 |
+| [`/api/subscriptions`](./reference/api-subscriptions.md) | 31 | 21 |
 | [`/api/support`](./reference/api-support.md) | 44 | 25 |
-| [`/api/support-inbox`](./reference/api-support-inbox.md) | 35 | 16 |
+| [`/api/support-inbox`](./reference/api-support-inbox.md) | 35 | 18 |
 | [`/api/transcriptions`](./reference/api-transcriptions.md) | 32 | 32 |
 | [`/api/usage`](./reference/api-usage.md) | 51 | 51 |
 | [`/api/webpages`](./reference/api-webpages.md) | 51 | 46 |
 | [`/api/webpages-preview`](./reference/api-webpages-preview.md) | 18 | 3 |
-| [`/auth`](./reference/auth.md) | 172 | 76 |
-| [Other endpoints](./reference/other.md) | 229 | 116 |
-| **Total** | **1914** | **1083** |
+| [`/auth`](./reference/auth.md) | 172 | 91 |
+| [Other endpoints](./reference/other.md) | 229 | 119 |
+| **Total** | **1918** | **1189** |

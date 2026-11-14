@@ -105,7 +105,7 @@ const { getOrgMemorySettings, setOrgMemorySettings } = createOrgMemorySettings(c
 
 /**
  * Fail open on a config outage, like the per-user switch.
- * @param {string | undefined} orgId
+ * @param {string | null | undefined} orgId
  */
 async function isMemoryEnabledForOrg(orgId) {
     if (!orgId) return true;
@@ -174,7 +174,7 @@ async function isSensitiveOptInForUser(userId, orgId) {
 /**
  * Resolve read/write for one turn.
  *
- * @param {{ userId?: string, orgId?: string, perChatReadEnabled?: boolean,
+ * @param {{ userId?: string, orgId?: string | null, perChatReadEnabled?: boolean,
  *   perChatWriteEnabled?: boolean, agent?: Record<string, any>, blocked?: boolean }} [opts]
  *   `orgId`: org of the user, for the org-level switch; `perChatReadEnabled`: per-chat memory off; only
  *   `false` blocks read and write; `perChatWriteEnabled`: the composer Brain toggle; only `false` means

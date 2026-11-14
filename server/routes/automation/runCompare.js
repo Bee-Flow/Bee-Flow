@@ -69,10 +69,10 @@ function makeRunCompareRouter(overrides = {}) {
     const limiter = overrides.limiter
         || (rpm > 0 ? perUserRateLimit({ windowMs: 60_000, max: rpm }) : (_req, _res, next) => next());
 
-    router.get('/runs/:runId/compare/:otherRunId', limiter, validate({ query: CompareQuery }), async (/** @type {import('express').Request<{ runId: string, otherRunId: string }, any, any, import('zod').infer<typeof CompareQuery>>} */ req, res) => {
-        const first = await runData.readableRun(req, res, req.params.runId, 'compare it');
+    router.get('/runs/:runId/compare/:otherRunId', limiter, validate({ query: CompareQuery }), async (req, res) => {
+        const first = await runData.readableRun(req, res, String(req.params.runId), 'compare it');
         if (!first) return undefined;
-        const second = await runData.readableRun(req, res, req.params.otherRunId, 'compare it');
+        const second = await runData.readableRun(req, res, String(req.params.otherRunId), 'compare it');
         if (!second) return undefined;
         if (first.run.automationId !== second.run.automationId) {
             throw new HttpError(400, 'runs_not_comparable', 'Only runs of the same automation can be compared.');

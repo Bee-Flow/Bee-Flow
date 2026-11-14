@@ -1,12 +1,12 @@
 import { AlertTriangle, Search, ShieldAlert } from 'lucide-react';
 import { SetStateAction, Dispatch, useCallback, useState } from 'react';
 import StateChip from './IssueStateChip';
-import { authFetch, API_BASE } from '../../utils/helpers';
 import { useTranslation } from '../../hooks/useTranslation';
 import { FIELD_INPUT } from '@/components/shared/SettingsList';
 import { ALERT_ERROR, PRIMARY_BTN, QUIET_BTN, SECONDARY_BTN } from '@/components/mcpLibrary/ui';
 import { errorMessage } from '../../utils/caughtError';
-import { request, errorBody, RefusedError, mutate } from '../../api/mutate';
+import { errorBody, RefusedError } from '../../api/mutate';
+import { apiFetch, apiRequest } from '@/api/typedRequest';
 
 interface IssueSearchResult {
     id: string;
@@ -65,7 +65,7 @@ export default function AttachIssuePanel({ threadId, ticketRef, onAttached }: At
             const params = new URLSearchParams({ q, threadId: threadId || '' });
             let res: Response;
             try {
-                res = await request(`${API_BASE}/api/support/youtrack/search?${params}`);
+                res = await apiRequest('GET /api/support/youtrack/search', { query: params });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const d = errorBody(err) ?? {};
@@ -96,11 +96,7 @@ export default function AttachIssuePanel({ threadId, ticketRef, onAttached }: At
         try {
             let res: Response;
             try {
-                res = await mutate(`${API_BASE}/api/support/threads/${threadId}/issues`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ issueIds }),
-            });
+                res = await apiRequest('POST /api/support/threads/{id}/issues', { params: { id: String(threadId) }, body: { issueIds } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const d = errorBody(err) ?? {};
@@ -124,11 +120,7 @@ export default function AttachIssuePanel({ threadId, ticketRef, onAttached }: At
         setBlocked(null);
         setError(null);
         try {
-            const res = await authFetch(`${API_BASE}/api/support/threads/${threadId}/issues/create`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ summary, description }),
-            });
+            const res = await apiFetch('POST /api/support/threads/{id}/issues/create', { params: { id: String(threadId) }, body: { summary, description } });
             const d = await res.json().catch(() => ({}));
             // 422 is the egress refusal — not an error to apologise for, a list
             // of things to take out. Show it verbatim beside the field.

@@ -174,3 +174,12 @@ test('an empty name on update is refused, as it was before', async () => {
     assert.strictEqual(res.body.error, 'A plan name cannot be empty.');
     assert.deepStrictEqual(touched, []);
 });
+
+test('syncing a plan to Stripe takes no fields: one sent is refused by name', async () => {
+    const res = await dispatch({ method: 'POST', url: '/plans/p1/sync-stripe', body: { price: 0 } });
+    assert.strictEqual(res.statusCode, 400);
+    assert.strictEqual(res.body.code, 'invalid_request');
+    assert.match(res.body.error, /does not take "price"/);
+    const plain = await dispatch({ method: 'POST', url: '/plans/p1/sync-stripe', body: undefined });
+    assert.match(plain.body.error, /Stripe is not enabled/, 'without a body the route answers as before');
+});

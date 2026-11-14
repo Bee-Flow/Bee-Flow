@@ -78,10 +78,7 @@ const EVENT_MAP = {
     browser_session_end: 'end',
 };
 
-/**
- * An object that also accepts nothing at all — an absent part reads as `{}`.
- * @param {Parameters<typeof z.object>[0]} shape
- */
+/** An object that also accepts nothing at all — an absent part reads as `{}`. @template {import('zod').ZodRawShape} S @param {S} shape */
 const partOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object(shape).strict(),

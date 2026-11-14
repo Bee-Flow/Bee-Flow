@@ -423,7 +423,7 @@ function makeJournal(db, ready) {
      * @param {{ phase: 'prepare'|'commit'|'converge'|'compensate', action: string, ref?: string|null, kind?: string|null,
      *           status?: 'pending'|'done'|'skipped'|'failed', entityId?: string|null, before?: any, afterHash?: string|null, detail?: any }} step
      */
-    async function appendStep(deploymentId, step, { client = null } = {}) {
+    async function appendStep(deploymentId, step, { client = /** @type {import('pg').PoolClient | null | undefined} */ (null) } = {}) {
         await ready();
         const r = await (client || db).query(
             `INSERT INTO solution_deployment_steps (deployment_id, seq, phase, ref, kind, action, status, entity_id,
@@ -438,7 +438,7 @@ function makeJournal(db, ready) {
     }
 
     /** Update one step's status / entity / before / hash / detail. */
-    async function updateStep(deploymentId, seq, patch = {}, { client = null } = {}) {
+    async function updateStep(deploymentId, seq, patch = {}, { client = /** @type {import('pg').PoolClient | null | undefined} */ (null) } = {}) {
         await ready();
         const params = [deploymentId, Number(seq)];
         const set = ['updated_at = NOW()'];

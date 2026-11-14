@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * template-to-file — the bridge from a template MODULE to an importable file.
  *
@@ -51,6 +51,7 @@ test('what the converter writes is what the import gate accepts', () => {
     // than a fixture: convert it the way the script does, then read it back the
     // way the route does.
     const template = getTemplate('app-quote-intake') || getTemplate('app-request-form');
+    assert.ok(template);
     const { envelope } = buildExport(template, { exportedAt: new Date().toISOString() });
 
     const verdict = sanitizeImport(JSON.parse(JSON.stringify(envelope)));
@@ -66,7 +67,7 @@ test('every shipped template converts to a file this installation would import',
     const { listTemplates } = require('../appStudio/templates');
     const broken = [];
     for (const row of listTemplates()) {
-        const { envelope } = buildExport(getTemplate(row.id), { exportedAt: '2026-01-01T00:00:00.000Z' });
+        const { envelope } = buildExport(/** @type {any} */ (getTemplate(row.id)), { exportedAt: '2026-01-01T00:00:00.000Z' });
         const verdict = sanitizeImport(JSON.parse(JSON.stringify(envelope)));
         if (!verdict.template) broken.push(`${row.id}: ${verdict.errors.join('; ')}`);
     }

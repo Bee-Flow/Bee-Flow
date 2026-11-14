@@ -12,7 +12,7 @@ const { relationQueryOf } = require('./appRuntimeSchemas');
 
 // Parse list filters/sort from the query string (JSON-encoded). Bad JSON is
 // ignored rather than 400 — the compiler validates the resulting shapes.
-/** @param {import('express').Request} req */
+/** @param {import('express').Request<any, any, any, any>} req */
 function parseListQuery(req) {
     const q = req.query || {};
     let filters;

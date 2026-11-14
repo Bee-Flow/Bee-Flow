@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The in-process DOWNLOAD CACHE — one copy of a file's bytes, and of what was
  * parsed from them, per version marker; shared by describe, sync and (later)
@@ -140,7 +140,7 @@ function grow(e, delta) {
 async function bytes(key, load) {
     const hit = live(key);
     if (hit && hit.buffer) return hit.buffer;
-    if (inFlight.has(key)) return inFlight.get(key);
+    if (inFlight.has(key)) return /** @type {Promise<Buffer>} */ (inFlight.get(key));
     const p = Promise.resolve().then(load).then((buffer) => {
         if (!Buffer.isBuffer(buffer)) throw new TypeError('spreadsheetFile/cache: the loader must answer a Buffer');
         const e = ensure(key);
@@ -166,11 +166,11 @@ async function bytes(key, load) {
  */
 async function parsed(key, subKey, compute, { size = null } = {}) {
     const hit = live(key);
-    if (hit && hit.parsed.has(subKey)) return hit.parsed.get(subKey).value;
+    if (hit && hit.parsed.has(subKey)) return /** @type {{ value: unknown }} */ (hit.parsed.get(subKey)).value;
     const value = await compute();
     const e = ensure(key);
     if (!e.parsed.has(subKey)) {
-        const weight = Number.isFinite(size) ? size : estimate(value);
+        const weight = Number.isFinite(size) ? /** @type {number} */ (size) : estimate(value);
         e.parsed.set(subKey, { size: weight, value });
         grow(e, weight);
         sweep();
@@ -232,7 +232,7 @@ function lockKeyOf(provider, fileId) {
 async function withLock(key, fn) {
     const previous = locks.get(key) || Promise.resolve();
     /** @type {(value?: unknown) => void} */
-    let release;
+    let release = () => {};
     const mine = new Promise((resolve) => { release = resolve; });
     const turn = previous.then(() => mine);
     locks.set(key, turn);

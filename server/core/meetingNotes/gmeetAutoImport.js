@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Google Meet auto-import engine.
  *
@@ -34,6 +34,7 @@ const {
 const log = require('../../telemetry/log');
 const kit = require('./importJobKit');
 const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
+const { envInt } = require('../../utils/envNumber.mts');
 
 const { codedError, backoffMsFor, meetingEndMs } = kit;
 
@@ -54,7 +55,7 @@ const REAUTH_PARK_MS = 6 * 3600_000;
 // worst realistic meeting rather than the average: expiring early costs a full
 // duplicate ingest, expiring late only delays recovery of a genuinely dead
 // worker. See the heartbeat call in processJobInline.
-const INGEST_LEASE_MINUTES = Number(process.env.GMEET_INGEST_LEASE_MINUTES) || 120;
+const INGEST_LEASE_MINUTES = envInt('GMEET_INGEST_LEASE_MINUTES', 120, { min: 1 });
 
 const MAX_INGEST_ATTEMPTS = 3;
 const MAX_USERS_PER_TICK = 100;
@@ -137,7 +138,8 @@ async function discoverUser(userId) {
 
     // The credential works again — release any jobs parked on needs_reauth.
     try {
-        const parked = (await gmeetImportStore.listRecentJobsForUser(userId))
+        // Rows read from the table map to jobs, never to null.
+        const parked = /** @type {NonNullable<Awaited<ReturnType<typeof gmeetImportStore.listRecentJobsForUser>>[number]>[]} */ (await gmeetImportStore.listRecentJobsForUser(userId))
             .filter((j) => j.status === 'needs_reauth');
         for (const j of parked) {
             await gmeetImportStore.updateJob(j.id, {

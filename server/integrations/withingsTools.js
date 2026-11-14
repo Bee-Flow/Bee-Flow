@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Withings Tools — read a user's health measurements, sleep and activity from
  * the Withings Health Mate API (https://wbsapi.withings.net).
@@ -332,7 +332,7 @@ function normalizeSleepSeries(series, limit) {
         // absent so the column is never half-populated across a history.
         if (row.total_sleep_minutes === undefined) {
             const parts = [row.light_sleep_minutes, row.deep_sleep_minutes, row.rem_sleep_minutes]
-                .filter((v) => Number.isFinite(v));
+                .filter(/** @param {number | undefined} v @returns {v is number} */ (v) => Number.isFinite(v));
             if (parts.length) row.total_sleep_minutes = parts.reduce((/** @type {number} */ a, /** @type {number} */ b) => a + b, 0);
         }
         rows.push(row);

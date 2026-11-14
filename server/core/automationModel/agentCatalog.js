@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * "This automation calls an agent — may that run here?" — the SAVE side of R2.
  *
@@ -124,6 +125,7 @@ function mayAutomationUseAgent(agent, { userId = null, orgId = null, groups = []
  * @returns {Promise<Set<string>|null>} `null` = not checkable (no catalogue, so no rule; the run checks
  *   again). Never a half Set: one failed lookup switches the whole pass off.
  */
+/** @param {unknown} definition @param {{ userId?: string | null, orgId?: string | null, groups?: string[], deps?: { agentStore?: any } }} [opts] */
 async function agentCatalogFor(definition, { userId = null, orgId = null, groups = [], deps = {} } = {}) {
     const ids = collectAgentIds(definition);
     // No agent step ⇒ an empty catalogue, not `null`: there is nothing to check, and `null` would mean
@@ -168,6 +170,7 @@ async function agentCatalogFor(definition, { userId = null, orgId = null, groups
  * @param {string} ownerId     the OWNER of the automation (not the person pressing the button)
  * @returns {Promise<Set<string>|null>}
  */
+/** @param {unknown} definition @param {string | null} ownerId @param {{ deps?: { userStore?: any, audience?: any, agentStore?: any } }} [opts] */
 async function agentCatalogForOwner(definition, ownerId, { deps = {} } = {}) {
     // No agent step ⇒ no lookup at all. An empty Set, not `null`: there is nothing to check, and `null` would
     // mean "the check could not run".

@@ -158,8 +158,11 @@ const SlaBody = bodyOf({
     enabled: bool('enabled').optional(),
 }, 'An SLA policy');
 
+// Disconnecting a mailbox and drafting a reply act on what the path names and take no fields.
+const NoBody = bodyOf({}, 'This action');
+
 module.exports = {
-    CreateInboxBody, PatchInboxBody, KbAutomationBody, ScanBody, AccessBody, ThreadsQuery, ReplyBody,
+    NoBody, CreateInboxBody, PatchInboxBody, KbAutomationBody, ScanBody, AccessBody, ThreadsQuery, ReplyBody,
     PatchThreadBody, InboxQuery, OperatorQuery, InboxAuditQuery, AuditQuery, SlaBody,
     TagBody: orEmpty(TagBody), CreateCanned: orEmpty(CreateCanned), UpdateCanned: orEmpty(UpdateCanned),
 };

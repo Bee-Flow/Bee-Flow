@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * License JWT Verification
  *
@@ -40,10 +41,9 @@ if (JWKS_URL && !/^https:\/\//i.test(JWKS_URL)) {
 }
 const JWKS_CACHE_MS = parseInt(process.env.LICENSE_JWKS_CACHE_SECONDS || '300', 10) * 1000;
 
-/** @type {string | null} */
-let _cachedKey = null;
-/** @type {string | null} */
-let _cachedKeySource = null;
+/** @type {string | null} */ let _cachedKey = null;
+/** @type {string | null} */ let _cachedKeySource = null;
+/** @type {{ fetchedAt: number, keysByKid: Map<string | number, crypto.KeyObject>, revokedKids: Array<string | number> }} */
 let _jwksCache = { fetchedAt: 0, keysByKid: new Map(), revokedKids: [] };
 
 // ── Known-kid cache (key-rotation resilience) ──────────────────────────────
@@ -56,19 +56,19 @@ const KNOWN_KEYS_CONFIG_KEY = 'beeflow_hub_known_signing_keys';
 const KNOWN_KEYS_MAX = 16;
 const KNOWN_KEYS_STALE_MS = 90 * 24 * 60 * 60 * 1000;
 
-/**
- * @type {typeof import("../stores/configStore")}
- */
+/** @type {typeof import("../stores/configStore")} */
 let _configStore;
 function configStore() { return _configStore || (_configStore = require('../stores/configStore')); }
 
-function _pemOf(key) {
+function _pemOf(/** @type {string | crypto.KeyObject} */ key) {
     try {
         if (typeof key === 'string') return key;
         return key.export({ type: 'spki', format: 'pem' }).toString();
     } catch (_) { return null; }
 }
 
+/** @typedef {{ pem: string, firstSeenAt?: string, lastUsedAt?: string }} KnownKey */
+/** @returns {Promise<Record<string, KnownKey>>} */
 async function _readKnownKeys() {
     try {
         const stored = await configStore().getConfig(KNOWN_KEYS_CONFIG_KEY);
@@ -76,8 +76,8 @@ async function _readKnownKeys() {
     } catch (_) { return {}; }
 }
 
-const ts = (s) => (s ? Date.parse(s) || 0 : 0); // epoch ms; missing or unparsable = 0, the oldest
-async function _writeKnownKeys(map) {
+const ts = (/** @type {string | null | undefined} */ s) => (s ? Date.parse(s) || 0 : 0); // epoch ms; missing or unparsable = 0, the oldest
+async function _writeKnownKeys(/** @type {Record<string, KnownKey>} */ map) {
     try {
         const now = Date.now();
         const entries = Object.entries(map)
@@ -89,7 +89,7 @@ async function _writeKnownKeys(map) {
 }
 
 /** Persist freshly-seen JWKS keys + apply the hub's revocation list. */
-async function _persistKnownKeys(keysByKid, revokedKids) {
+async function _persistKnownKeys(/** @type {Map<string | number, crypto.KeyObject | string>} */ keysByKid, /** @type {Array<string | number> | null | undefined} */ revokedKids) {
     try {
         const map = await _readKnownKeys();
         const nowIso = new Date().toISOString();
@@ -168,7 +168,7 @@ function base64UrlDecode(str) {
 }
 
 /**
- * @param {string} token
+ * @param {unknown} token
  */
 function decodeJwtUnverified(token) {
     if (typeof token !== 'string') throw new Error('Token must be a string');
@@ -222,7 +222,7 @@ async function getJwksKeys() {
 }
 
 /**
- * @param {crypto.BinaryLike} pem
+ * @param {crypto.BinaryLike | null | undefined} pem
  */
 function kidForPem(pem) {
     if (!pem) return null;
@@ -237,6 +237,7 @@ function kidForPem(pem) {
  * from the configured JWKS endpoint, then fall back to the bundled key when
  * its kid matches (or when no kid is present at all).
  * @param {string | undefined} token
+ * @param {{ now?: number, publicKeyOverride?: string | crypto.KeyObject | null }} [opts]
  */
 async function verifyToken(token, { now = Math.floor(Date.now() / 1000), publicKeyOverride = null } = {}) {
     let decoded;
@@ -264,7 +265,7 @@ async function verifyToken(token, { now = Math.floor(Date.now() / 1000), publicK
         if (header.kid) {
             // Try JWKS first, then bundled if it happens to match the kid.
             const jwks = await getJwksKeys();
-            if (jwks.has(header.kid)) publicKey = jwks.get(header.kid);
+            if (jwks.has(header.kid)) publicKey = /** @type {crypto.KeyObject} */ (jwks.get(header.kid));
             else if (bundled && bundledKid === header.kid) publicKey = bundled;
             else if (bundled) publicKey = bundled; // best effort — verify will fail if the key doesn't match
         } else {
@@ -282,7 +283,7 @@ async function verifyToken(token, { now = Math.floor(Date.now() / 1000), publicK
         sigOk = crypto.verify(
             'RSA-SHA256',
             Buffer.from(signingInput),
-            { key: publicKey, padding: crypto.constants.RSA_PKCS1_PADDING },
+            /** @type {crypto.VerifyKeyObjectInput | crypto.VerifyPublicKeyInput} */ ({ key: publicKey, padding: crypto.constants.RSA_PKCS1_PADDING }),
             signature
         );
     } catch (e) {
@@ -339,7 +340,6 @@ function _setPublicKeyForTesting(pem) {
 // ── Reusable primitives for other RS256-signed token schemes ─────────────
 // These are ADDITIVE exports so sibling verifiers (e.g. the module-grant
 // verifier in ../modules/entitlements.js) don't fork this file's crypto.
-// verifyToken above is intentionally left untouched.
 
 /**
  * Resolve a public key by `kid`: the configured JWKS endpoint first, then the
@@ -354,7 +354,7 @@ async function resolvePublicKeyByKid(kid) {
     const bundled = loadPublicKey().key;
     if (kid) {
         const jwks = await getJwksKeys();
-        if (jwks.has(kid)) return jwks.get(kid);
+        if (jwks.has(kid)) return /** @type {crypto.KeyObject} */ (jwks.get(kid));
         try {
             if (!(_jwksCache.revokedKids || []).includes(kid)) {
                 const known = await _readKnownKeys();
@@ -387,7 +387,7 @@ function verifyCompactRs256(signingInput, signatureB64url, publicKey) {
         return crypto.verify(
             'RSA-SHA256',
             Buffer.from(signingInput),
-            { key: publicKey, padding: crypto.constants.RSA_PKCS1_PADDING },
+            /** @type {crypto.VerifyKeyObjectInput | crypto.VerifyPublicKeyInput} */ ({ key: publicKey, padding: crypto.constants.RSA_PKCS1_PADDING }),
             base64UrlDecode(signatureB64url)
         );
     } catch (e) {

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Playbook harness — drives ONE playbook end to end through the real API
  * and the two real builder streams, and judges it against a case file.
@@ -28,10 +29,9 @@
  * The report (phases, timings, calls, verdict, every stream's events) is
  * written to --out whatever the verdict.
  */
-
 const http = require('http');
 const fs = require('fs');
-const log = require('../telemetry/log');
+const { ignoreGone } = require('../utils/bestEffort');
 
 const APP = process.env.BEEFLOW_APP_DIR || '/app';
 const ORG = process.env.HARNESS_ORG || 'nc-nextcloud-nc-host-bee';
@@ -115,7 +115,7 @@ class Harness {
     async patch(body) {
         const r = await this.api('PATCH', `/api/playbooks/${this.pb.id}`, { expectedVersion: this.pb.version, ...body });
         if (r.status === 409 && r.body && r.body.code === 'version_conflict') { this.pb = r.body.playbook; this.note(`version conflict — reloaded to v${this.pb.version}, retrying once`); return this.patch(body); }
-        if (r.status !== 200 || !r.body.playbook) { const e = new Error(`PATCH ${JSON.stringify(body).slice(0, 120)} → ${r.status} ${r.body && (r.body.code || r.body.error)}`); e.response = r; throw e; }
+        if (r.status !== 200 || !r.body.playbook) { const e = /** @type {Error & { response?: unknown }} */ (new Error(`PATCH ${JSON.stringify(body).slice(0, 120)} → ${r.status} ${r.body && (r.body.code || r.body.error)}`)); e.response = r; throw e; }
         this.pb = r.body.playbook; return r;
     }
 
@@ -173,7 +173,7 @@ class Harness {
         const o = { ...(this.c.options || {}) };
         if (o.datatableName) { o.datatableId = await this.resolveDatatable(o.datatableName); o.tableMode = 'existing'; delete o.datatableName; delete o.datatableManagedKind; }
         const r = await this.api('POST', '/api/playbooks', { ...recipeBody, title: this.c.title, options: o });
-        if (r.status !== 201) { const e = new Error(`create → ${r.status} ${r.body && (r.body.code || r.body.error)} ${JSON.stringify(r.body && r.body.errors)}`); e.response = r; throw e; }
+        if (r.status !== 201) { const e = /** @type {Error & { response?: unknown }} */ (new Error(`create → ${r.status} ${r.body && (r.body.code || r.body.error)} ${JSON.stringify(r.body && r.body.errors)}`)); e.response = r; throw e; }
         this.pb = r.body.playbook;
         this.report.playbookId = this.pb.id;
         this.note(`playbook ${this.pb.id}: ${this.pb.phases.map((p) => `${p.key}(${kindOf(p)})`).join(' → ')}`);
@@ -411,8 +411,8 @@ async function main() {
     const token = jwt.sign({ sub: NC_UID, email: EMAIL, name: NC_UID, nc_admin: true }, key, { algorithm: 'HS256', issuer: 'nextcloud-connector', audience: 'beeflow.nl', expiresIn: 4 * 3600 });
     const headers = { Authorization: `Bearer ${token}`, 'X-Beeflow-Source': 'nextcloud-connector', 'X-Beeflow-NC-Uid': NC_UID, 'Content-Type': 'application/json' };
     const drivers = {};
-    try { drivers.automation = require('/tmp/drive-builder.js'); } catch (err) { log.debug('judged without the automation matcher', err); }
-    try { drivers.app = require('/tmp/drive-app-builder.js'); } catch (err) { log.debug('judged without the app matcher', err); }
+    try { drivers.automation = require(/** @type {string} */ ('/tmp/drive-builder.js')); } catch (err) { ignoreGone('scripts/drive-playbook:automationMatcher', err, ['MODULE_NOT_FOUND']); /* judged without it */ }
+    try { drivers.app = require(/** @type {string} */ ('/tmp/drive-app-builder.js')); } catch (err) { ignoreGone('scripts/drive-playbook:appMatcher', err, ['MODULE_NOT_FOUND']); /* judged without it */ }
 
     console.log(`\n=== ${caseFile.id}: ${caseFile.title} ===`);
     const h = new Harness(headers, caseFile, flag('print-calls'));

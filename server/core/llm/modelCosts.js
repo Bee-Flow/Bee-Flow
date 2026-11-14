@@ -49,7 +49,6 @@ const {
     getRegionalUplift,
     billingTier: _billingTier,
     billingGeo: _billingGeo,
-    DEFAULT_TIER_MULTIPLIER,
 } = require('./rateRules');
 const { azureModelFor } = require('../providers/azureDeployments');
 const {
@@ -64,6 +63,10 @@ const {
     getMistralListPrice,
 } = require('../providers/mistralModels');
 const log = require('../../telemetry/log');
+const {
+    cacheWriteSplit, inputTokens, listRates, longContextRates, tierFactors,
+    geoFactor, regionalFactor, tieredRates, costOf, costBasis,
+} = require('./rateUsageSteps.mts');
 
 // Self-hosted inference has no per-token price. The rates below are the
 // canonical "free" answer for a model the customer runs on their own hardware.
@@ -168,7 +171,7 @@ function _catalogProviders(model, hint) {
         // when it has no card of its own; the card is then a list price.
         if (h === 'azure' || h === 'google-vertex') {
             const family = inferProviderType(model);
-            if (family && family !== h) out.push(family);
+            if (family && /** @type {string} */ (family) !== h) out.push(family);
         }
         return out;
     }
@@ -367,8 +370,6 @@ function getModelCost(modelName, facts = {}) {
 
 
 /** Cards that carry no tier or geo structure of their own: a flat rate. */
-const FLAT_CARDS = ['override', 'local', 'estimate'];
-
 const _clampTokens = (v) => {
     const n = Number(v);
     return Number.isFinite(n) && n > 0 ? n : 0;
@@ -408,22 +409,14 @@ function rateUsage(entry = {}) {
     const providerHint = entry.provider_type || entry.provider;
     const { tier, unrecognised: tierUnrecognised } = _billingTier(entry.service_tier, entry.traffic_type);
     const geo = _billingGeo(entry.inference_geo);
+    /** @type {string[]} */
     const notes = [];
 
     const prompt = _clampTokens(entry.prompt_tokens);
     const completion = _clampTokens(entry.completion_tokens);
     const cached = _clampTokens(entry.cached_tokens);
-    let creation = _clampTokens(entry.cache_creation_tokens);
-    let n5 = _clampTokens(entry.cache_creation_5m_tokens);
-    let n1 = _clampTokens(entry.cache_creation_1h_tokens);
-    if (n5 + n1 > 0) {
-        // A split wins. A write total that exceeds it keeps its remainder at the
-        // legacy TTL; a split that exceeds the total raises the total.
-        if (creation > n5 + n1) { if (entry.cache_ttl === '1h') n1 += creation - n5 - n1; else n5 += creation - n5 - n1; }
-        creation = n5 + n1;
-    } else if (creation > 0) {
-        if (entry.cache_ttl === '1h') n1 = creation; else n5 = creation;
-    }
+    const { creation, n5, n1 } = cacheWriteSplit(_clampTokens(entry.cache_creation_tokens),
+        _clampTokens(entry.cache_creation_5m_tokens), _clampTokens(entry.cache_creation_1h_tokens), entry.cache_ttl);
 
     const base = {
         model: model || '',
@@ -433,164 +426,19 @@ function rateUsage(entry = {}) {
         inference_geo: geo,
     };
 
-    let card = _resolveCard(model, { provider: providerHint, at: atMs, tier });
-    // A card with a non-finite or negative rate (a corrupt override, a garbled
-    // community entry) must not turn into a NaN or negative cost on an invoice:
-    // it is treated like an unknown model.
-    if (card && !(Number.isFinite(card.input) && Number.isFinite(card.output) && card.input >= 0 && card.output >= 0)) {
-        log.warn(`[ModelCosts] ignoring an invalid price for '${model}' (source ${card.source})`);
-        notes.push('invalid_rates_ignored');
-        card = null;
-    }
-    if (!card) {
-        // Unknown model. Never the most expensive model of all: the nearest
-        // same-family / same-provider model is the estimate (cost_basis stays
-        // 'unknown', the source and notes say how the rate came about), and the
-        // registry keeps count so an admin can fix the mapping or add the price.
-        // A self-hosted model cannot get here (it was priced at zero above).
-        const resolvedModel = azureModelFor(model);
-        const vendor = base.provider || inferProviderType(resolvedModel);
-        const unmapped = vendor === 'azure' && resolvedModel === model;
-        const est = _estimateUnknown(resolvedModel, vendor, atMs);
-        notes.push('unknown_model');
-        if (unmapped) notes.push('unmapped_azure_deployment');
-        recordUnknownModel({
-            model: resolvedModel,
-            provider: vendor,
-            reason: unmapped ? 'unmapped_deployment' : 'unknown_model',
-            deployment: resolvedModel !== model ? model : null,
-            estimate: est,
-        });
-        if (!est) {
-            // Nothing to borrow from. No number is invented: the row is flagged
-            // and costs 0 until the model is priced or mapped.
-            notes.push('no_price_data');
-            return {
-                ...base, cost: 0, input_cost: 0, output_cost: 0, currency: 'USD', long_context: false,
-                source: 'none', catalog_version: null, valid_from: null, cost_basis: 'unknown',
-                rates: { input: 0, output: 0, cache_read: 0, cache_write_5m: 0, cache_write_1h: 0 },
-                multiplier: { tier_input: 1, tier_output: 1, geo: 1, regional: 1, total: 1 },
-                price_input: 0, price_output: 0, price_cache_read: 0, price_cache_write: 0,
-                notes,
-            };
-        }
-        notes.push(est.level === 'family' ? 'estimate_family' : 'estimate_provider');
-        card = _simpleCard('estimate', est.source, est.currency, 'unknown', est);
-    }
-    let basis = card.basis;
+    const card = _usableCard(_resolveCard(model, { provider: providerHint, at: atMs, tier }), model, notes)
+        || _estimatedCard(model, base, atMs, notes);
+    if (!card) return { ...base, ..._noPriceRow(notes) };
 
-    // ── token accounting ────────────────────────────────────────────────────
-    // The two provider families report input usage differently:
-    //  - Anthropic: `usage.input_tokens` (our prompt_tokens) is ALREADY the
-    //    uncached remainder — cache read and write are reported next to it and
-    //    are NOT included. Subtracting them again zeroed the uncached input and
-    //    billed it at nothing on every cache hit.
-    //  - OpenAI / Gemini / Mistral / Scaleway: prompt_tokens is the FULL input
-    //    and the cached count is a subset of it, so the cache pieces are
-    //    subtracted (Math.max guards a provider that reports a cached count
-    //    above the total: never a negative, cost-reducing input component).
-    // The normalised usage says which it is (`prompt_includes_cache`); a legacy
-    // caller without the flag is told apart by model name, as before.
-    const includesCache = typeof entry.prompt_includes_cache === 'boolean'
-        ? entry.prompt_includes_cache
-        : !/claude/.test(String(model || '').toLowerCase());
-    const uncachedInput = includesCache ? Math.max(0, prompt - cached - creation) : Math.max(0, prompt);
-    const totalInput = includesCache ? prompt : prompt + cached + creation;
-
-    // ── list rates of the card (standard tier), cache rates resolved ────────
-    const input = card.input;
-    const output = card.output;
-    let rates = {
-        input,
-        output,
-        cacheRead: Number.isFinite(card.cacheRead) && card.cacheRead > 0 ? card.cacheRead : input * getCacheDiscount(model),
-        w5: Number.isFinite(card.cacheWrite5m) ? card.cacheWrite5m : input * getCacheWriteMultiplier(model, '5m'),
-        w1: Number.isFinite(card.cacheWrite1h) ? card.cacheWrite1h : input * getCacheWriteMultiplier(model, '1h'),
-    };
-
-    // ── long-context tier: the whole request above the threshold ────────────
-    let longContext = false;
-    if (card.longCtx && totalInput > card.longCtx.threshold) {
-        const L = card.longCtx.rates || {};
-        const lin = Number.isFinite(L.input) ? L.input : rates.input;
-        const ratio = rates.input > 0 ? lin / rates.input : 1;
-        rates = {
-            input: lin,
-            output: Number.isFinite(L.output) ? L.output : rates.output,
-            cacheRead: Number.isFinite(L.cache_read) ? L.cache_read : rates.cacheRead * ratio,
-            w5: Number.isFinite(L.cache_write_5m) ? L.cache_write_5m : rates.w5 * ratio,
-            w1: Number.isFinite(L.cache_write_1h) ? L.cache_write_1h : rates.w1 * ratio,
-        };
-        longContext = true;
-    }
-
-    // ── service tier ────────────────────────────────────────────────────────
-    // A catalogue card of the tier itself is already priced; an admin override
-    // and a local/estimate card are flat. Otherwise: the source's own tier
-    // rate, then the card's multiplier, then the documented default.
-    let tierIn = 1;
-    let tierOut = 1;
-    if (tierUnrecognised) { notes.push('tier_unrecognised'); }
-    if (tier !== 'standard' && !card.tierPriced && !FLAT_CARDS.includes(card.kind)) {
-        const abs = card.tierRates && card.tierRates[tier];
-        const mult = card.multipliers && card.multipliers[tier];
-        if (abs && input > 0) {
-            tierIn = abs.input / input;
-            tierOut = output > 0 ? abs.output / output : tierIn;
-        } else if (Number.isFinite(mult)) {
-            tierIn = mult; tierOut = mult;
-        } else if (Object.prototype.hasOwnProperty.call(DEFAULT_TIER_MULTIPLIER, tier)) {
-            tierIn = DEFAULT_TIER_MULTIPLIER[tier]; tierOut = tierIn;
-            notes.push(`tier_${tier}_default_multiplier`);
-        } else {
-            notes.push(`tier_${tier}_multiplier_unknown`);
-        }
-    }
-
-    // ── geo and regional ────────────────────────────────────────────────────
-    let geoMult = 1;
-    if (geo && !FLAT_CARDS.includes(card.kind)) {
-        const g = card.multipliers && card.multipliers.geo && card.multipliers.geo[geo];
-        if (Number.isFinite(g)) geoMult = g;
-        else notes.push(`geo_${geo}_multiplier_unknown`);
-    }
-    // The registry says whether the call went to a regional endpoint; a catalogue
-    // card may carry the factor, the built-in 1.1 remains the fallback.
-    const legacyUplift = getRegionalUplift(model);
-    const regional = legacyUplift !== 1 && card.multipliers && Number.isFinite(card.multipliers.regional)
-        ? card.multipliers.regional
-        : legacyUplift;
+    const { uncachedInput, totalInput } = inputTokens(entry, model, prompt, cached, creation);
+    const { rates, longContext } = longContextRates(card, listRates(card, model), totalInput);
+    const factors = tierFactors(card, tier, tierUnrecognised, notes);
+    const geoMult = geoFactor(card, geo, notes);
+    const regional = regionalFactor(card, model);
     const total = geoMult * regional;
-
-    const r = {
-        input: rates.input * tierIn,
-        output: rates.output * tierOut,
-        cacheRead: rates.cacheRead * tierIn,
-        w5: rates.w5 * tierIn,
-        w1: rates.w1 * tierIn,
-    };
-    // A source that gives the tier's own cached-read rate (flex/priority) is exact.
-    if (tier !== 'standard' && !longContext && card.tierRates && card.tierRates[tier] && Number.isFinite(card.tierRates[tier].cacheRead)) {
-        r.cacheRead = card.tierRates[tier].cacheRead;
-    }
-
-    // ── cost (same order as the pre-catalogue formula, so unchanged inputs give unchanged numbers) ──
-    const inputCost = (((uncachedInput / 1_000_000) * r.input)
-        + ((cached / 1_000_000) * r.cacheRead)
-        + ((n5 / 1_000_000) * r.w5)
-        + ((n1 / 1_000_000) * r.w1)) * total;
-    const outputCost = ((completion / 1_000_000) * r.output) * total;
-    const cost = (((uncachedInput / 1_000_000) * r.input)
-        + ((cached / 1_000_000) * r.cacheRead)
-        + ((n5 / 1_000_000) * r.w5)
-        + ((n1 / 1_000_000) * r.w1)
-        + ((completion / 1_000_000) * r.output)) * total;
-
-    // ── cost basis ──────────────────────────────────────────────────────────
-    if (creation > 0 && entry.cache_creation_ttl_assumed && r.w5 !== r.w1) notes.push('cache_ttl_assumed');
-    if ((basis === 'exact' || basis === 'list') && notes.some((n) => n === 'tier_unrecognised' || n.endsWith('_default_multiplier') || n.endsWith('_multiplier_unknown') || n === 'cache_ttl_assumed')) {
-        basis = 'estimated';
-    }
+    const r = tieredRates(rates, factors, card, tier, longContext);
+    const { cost, inputCost, outputCost } = costOf({ uncachedInput, cached, n5, n1, completion }, r, total);
+    const basis = costBasis(card.basis, notes, creation, entry, r);
 
     // The cache-write rate that was charged: the TTL part used, or the token-weighted mean of a mixed write.
     const writeRate = creation > 0 ? ((n5 * r.w5) + (n1 * r.w1)) / creation : r.w5;
@@ -604,11 +452,70 @@ function rateUsage(entry = {}) {
         valid_from: card.validFrom,
         cost_basis: basis,
         rates: { input: rates.input, output: rates.output, cache_read: rates.cacheRead, cache_write_5m: rates.w5, cache_write_1h: rates.w1 },
-        multiplier: { tier_input: tierIn, tier_output: tierOut, geo: geoMult, regional, total },
+        multiplier: { tier_input: factors.tierIn, tier_output: factors.tierOut, geo: geoMult, regional, total },
         price_input: r.input * total,
         price_output: r.output * total,
         price_cache_read: r.cacheRead * total,
         price_cache_write: writeRate * total,
+        notes,
+    };
+}
+
+/**
+ * The card, or null when a rate is non-finite or negative (a corrupt
+ * override, a garbled community entry): that must not turn into a NaN or
+ * negative cost on an invoice, so it is treated like an unknown model.
+ * @param {RateCard | null} card @param {string | undefined} model @param {string[]} notes
+ */
+function _usableCard(card, model, notes) {
+    if (!card || (Number.isFinite(card.input) && Number.isFinite(card.output) && card.input >= 0 && card.output >= 0)) return card;
+    log.warn(`[ModelCosts] ignoring an invalid price for '${model}' (source ${card.source})`);
+    notes.push('invalid_rates_ignored');
+    return null;
+}
+
+/**
+ * The estimate card of an unknown model, or null when there is nothing to
+ * borrow from. Never the most expensive model of all: the nearest
+ * same-family / same-provider model is the estimate (cost_basis stays
+ * 'unknown', the source and notes say how the rate came about), and the
+ * registry keeps count so an admin can fix the mapping or add the price.
+ * A self-hosted model cannot get here (it is priced at zero before).
+ * @param {string | undefined} model @param {{ provider: string | null }} base @param {number} atMs @param {string[]} notes
+ */
+function _estimatedCard(model, base, atMs, notes) {
+    const resolvedModel = azureModelFor(model);
+    const vendor = base.provider || inferProviderType(resolvedModel);
+    const unmapped = vendor === 'azure' && resolvedModel === model;
+    const est = _estimateUnknown(resolvedModel, vendor, atMs);
+    notes.push('unknown_model');
+    if (unmapped) notes.push('unmapped_azure_deployment');
+    recordUnknownModel({
+        model: resolvedModel,
+        provider: vendor,
+        reason: unmapped ? 'unmapped_deployment' : 'unknown_model',
+        deployment: resolvedModel !== model ? model : null,
+        estimate: est,
+    });
+    if (!est) return null;
+    notes.push(est.level === 'family' ? 'estimate_family' : 'estimate_provider');
+    return _simpleCard('estimate', est.source, est.currency, 'unknown', est);
+}
+
+/**
+ * The row of a model nothing prices and nothing can be borrowed for. No
+ * number is invented: the row is flagged and costs 0 until the model is
+ * priced or mapped.
+ * @param {string[]} notes
+ */
+function _noPriceRow(notes) {
+    notes.push('no_price_data');
+    return {
+        cost: 0, input_cost: 0, output_cost: 0, currency: 'USD', long_context: false,
+        source: 'none', catalog_version: null, valid_from: null, cost_basis: /** @type {'unknown'} */ ('unknown'),
+        rates: { input: 0, output: 0, cache_read: 0, cache_write_5m: 0, cache_write_1h: 0 },
+        multiplier: { tier_input: 1, tier_output: 1, geo: 1, regional: 1, total: 1 },
+        price_input: 0, price_output: 0, price_cache_read: 0, price_cache_write: 0,
         notes,
     };
 }
@@ -703,7 +610,7 @@ function getAllModelCosts() {
 /**
  * Get structured cost data for the config UI.
  * Only returns models that have been used or have custom overrides.
- * @param {Array<{id: string, providerName?: string, providerType?: string}>|string[]} modelEntries
+ * @param {Array<{id: string, providerName?: string | null, providerType?: string}>|string[]} modelEntries
  * @returns {Array<{ model, input, output, isCustom, defaultInput, defaultOutput, provider }>}
  */
 function getModelCostsForConfig(modelEntries = []) {

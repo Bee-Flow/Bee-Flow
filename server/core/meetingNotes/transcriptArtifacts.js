@@ -25,7 +25,7 @@ function formatTime(s) {
  * AudioTranscriptionRequest in @mistralai/mistralai). Terms are entered
  * comma/semicolon/newline separated, matching the Azure phrase-list path.
  *
- * @param {string} contextTerms
+ * @param {string | null | undefined} contextTerms
  * @returns {string[]} At most 100 non-empty terms.
  */
 function toContextBias(contextTerms) {
@@ -385,8 +385,9 @@ const ARTIFACTS_FAILED = Object.freeze({ ok: false });
  *
  * UNKNOWN NARROWS. Not `ok !== false` — that let through everything the flag did not set, including an answer without lists, and the merge made "the meeting was empty" out of that. Only what looks like a completed pass is usable: the three lists are there, and the flag does not say no.
  *
- * @param {{ ok?: boolean, actionItems?: unknown, decisions?: unknown, questions?: unknown } | null | undefined} artifacts what extractMeetingArtifacts returned
- * @returns {boolean} true = this outcome may replace existing artifacts
+ * @template {{ ok?: boolean, actionItems?: unknown, decisions?: unknown, questions?: unknown } | null | undefined} T
+ * @param {T} artifacts what extractMeetingArtifacts returned
+ * @returns {artifacts is Exclude<T, { ok: false } | null | undefined>} true = this outcome may replace existing artifacts
  */
 function artifactsUsable(artifacts) {
     if (!artifacts || typeof artifacts !== 'object' || artifacts.ok === false) return false;

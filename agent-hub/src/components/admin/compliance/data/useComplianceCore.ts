@@ -4,13 +4,15 @@
  * setup path. Lifted verbatim from the pre-redesign index.jsx so every toast
  * key keeps the one English sentence index.test.jsx pins.
  *
- * `refresh()` re-reads the three core endpoints and, when the org has not
+ * `refresh()` re-reads the three core endpoints (one query) and, when the org has not
  * finished setup, flips `setupOpen` — the Overview page renders the inline
  * setup card from it (the redesign has ONE setup path: no banner, no modal).
  * `onChanged` is called after every mutation so the hub can bump the counts.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react';
 import { API, fetchJson, json, jsonInit } from '@/api/complianceApi';
+import { useComplianceCoreQuery } from '@/api/queries/complianceCore';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 import { useTranslation } from '@/hooks/useTranslation';
 import { toast } from '@/components/shared/Toast';
 import type { CheckRecord } from '../pages/framework/checkSort';
@@ -42,7 +44,7 @@ interface VerificationSummary {
 }
 
 /** GET /api/compliance/overview, as far as the hub's pages read it. */
-export interface ComplianceOverview {
+interface ComplianceOverview {
     onboarded?: boolean;
     first_scan_ran?: boolean;
     settings?: (SetupSettings & { org_name?: string | null }) | null;
@@ -61,43 +63,54 @@ interface UseComplianceCoreArgs {
     onChanged?: (() => void) | null;
 }
 
+const NO_CHECKS: CheckRecord[] = [];
+const NO_HISTORY: ScoreHistoryRow[] = [];
+
+/**
+ * The three core reads (one query), the setup card's open state and what each
+ * answer sets off: a setup still to finish opens the card, a first scan says
+ * so, and the hub's counts are bumped after every read, failed ones too.
+ */
+function useCoreRead(t: ReturnType<typeof useTranslation>['t'], bump: () => void) {
+    const [setupOpen, setSetupOpen] = useState(false);
+    const core = useComplianceCoreQuery<ComplianceOverview | null, CheckRecord, ScoreHistoryRow>();
+    const overview = core.data?.overview ?? null;
+    const checks = core.data?.checks ?? NO_CHECKS;
+    const scoreHistory = core.data?.scoreHistory ?? NO_HISTORY;
+    const loading = core.isPending;
+    useAdjustOnChange([core.dataUpdatedAt], () => {
+        if (core.data?.overview?.onboarded === false) setSetupOpen(true);
+    });
+    const onAnswer = useEffectEvent(() => {
+        if (core.data?.overview?.first_scan_ran) {
+            toast.success(t('compliance.toast_first_scan', 'First compliance scan complete — review the score and open items below.'));
+        }
+        bump();
+    });
+    const onFailure = useEffectEvent(() => {
+        console.error('[ComplianceHub] refresh error:', core.error?.message);
+        bump();
+    });
+    // Answers read since this mount only: a cached one from an earlier visit has had its toast.
+    const [cachedAt] = useState(() => ({ data: core.dataUpdatedAt, error: core.errorUpdatedAt }));
+    useEffect(() => { if (core.dataUpdatedAt > cachedAt.data) onAnswer(); }, [core.dataUpdatedAt, cachedAt]);
+    useEffect(() => { if (core.errorUpdatedAt > cachedAt.error) onFailure(); }, [core.errorUpdatedAt, cachedAt]);
+    const refetchCore = core.refetch;
+    const refresh = useCallback(async () => { await refetchCore(); }, [refetchCore]);
+
+    return { overview, checks, scoreHistory, loading, setupOpen, setSetupOpen, refresh };
+}
+
 export default function useComplianceCore({ onChanged = null }: UseComplianceCoreArgs = {}) {
     const { t } = useTranslation();
-    const [overview, setOverview] = useState<ComplianceOverview | null>(null);
-    const [checks, setChecks] = useState<CheckRecord[]>([]);
-    const [scoreHistory, setScoreHistory] = useState<ScoreHistoryRow[]>([]);
-    const [loading, setLoading] = useState(true);
     const [running, setRunning] = useState(false);
     const [rerunningId, setRerunningId] = useState<string | null>(null);
     const [autoFixingId, setAutoFixingId] = useState<string | null | undefined>(null);
-    const [setupOpen, setSetupOpen] = useState(false);
     const changed = useRef(onChanged);
     useEffect(() => { changed.current = onChanged; });
     const bump = () => { try { changed.current?.(); } catch (err) { logger.debug('counts are best-effort', err); } };
 
-    const refresh = useCallback(async () => {
-        try {
-            const [o, c, hist] = await Promise.all([
-                fetchJson(`${API}/overview`),
-                fetchJson(`${API}/checks`),
-                fetchJson(`${API}/score-history?days=90`).catch(() => []),
-            ]);
-            setOverview(o);
-            setChecks(Array.isArray(c) ? c : []);
-            setScoreHistory(Array.isArray(hist) ? hist : []);
-            if (o && o.onboarded === false) setSetupOpen(true);
-            if (o?.first_scan_ran) {
-                toast.success(t('compliance.toast_first_scan', 'First compliance scan complete — review the score and open items below.'));
-            }
-        } catch (e) {
-            console.error('[ComplianceHub] refresh error:', (e as Error).message);
-        } finally {
-            setLoading(false);
-        }
-        bump();
-    }, [t]);
-
-    useEffect(() => { refresh(); }, [refresh]);
+    const { overview, checks, scoreHistory, loading, setupOpen, setSetupOpen, refresh } = useCoreRead(t, bump);
 
     const runNow = async () => {
         setRunning(true);

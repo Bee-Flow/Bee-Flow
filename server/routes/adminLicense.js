@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Admin License Routes — direct license issuance from the admin console.
  *
@@ -51,10 +51,7 @@ const { requireSuperAdmin } = require('../auth/permissions');
 const userStore = require('../stores/userStore');
 const { sendServiceEmail, getServiceEmailConfig } = require('../utils/emailService');
 
-/**
- * A body that also accepts no body at all: Express 5 leaves `req.body` undefined then.
- * @param {import('zod').ZodRawShape} shape
- */
+/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. @template {import('zod').ZodRawShape} S @param {S} shape */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 const ORG_TEXT = 'organizationId is the id of an organisation.';
@@ -152,10 +149,10 @@ router.get('/capabilities', (_req, res) => {
 // ── GET / ──────────────────────────────────────────────────────────────
 router.get('/', validate({ query: ListQuery }), async (/** @type {import('express').Request<{}, any, any, { organizationId?: string, includeInactive?: string }>} */ req, res) => {
     const { organizationId, includeInactive } = req.query;
-    const list = await store.getAdminIssuedLicenses({
+    const list = /** @type {Array<NonNullable<Awaited<ReturnType<typeof store.getAdminIssuedLicenses>>[number]>>} */ (await store.getAdminIssuedLicenses({
         organizationId: organizationId || null,
         includeInactive: includeInactive !== 'false',
-    });
+    })); // rows mapped one to one
     // Decorate with org name for UI display.
     const orgs = await userStore.getAllOrganizations();
     const orgsById = new Map((orgs || []).map(o => [o.id, o]));
@@ -169,7 +166,7 @@ router.get('/', validate({ query: ListQuery }), async (/** @type {import('expres
 });
 
 // ── POST /grant ────────────────────────────────────────────────────────
-router.post('/grant', validate({ body: GrantBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof GrantBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/grant', validate({ body: GrantBody }), async (req, res) => {
     try {
         const {
             scope, organizationId, tier, expiresAt,
@@ -193,10 +190,11 @@ router.post('/grant', validate({ body: GrantBody }), async (/** @type {import('e
         // is non-fatal — the admin still gets the blob in the response and
         // can deliver it manually.
         if (deliverEmail) {
+            const license = /** @type {NonNullable<typeof result.license>} */ (result.license); // the row it just wrote
             const delivery = await deliverBlobByEmail({
                 to: deliverEmail,
                 tier,
-                expiresAt: result.license.expiresAt,
+                expiresAt: license.expiresAt,
                 organizationId,
                 blob: result.blob,
             }).catch(e => ({ success: false, error: e.message }));
@@ -205,7 +203,7 @@ router.post('/grant', validate({ body: GrantBody }), async (/** @type {import('e
                 log.warn(`[Admin License] email.delivery_failed to=${log.textForLog(deliverEmail)} reason=${delivery?.error || 'unknown'}`);
                 try {
                     const userStore = require('../stores/userStore');
-                    await userStore.logSubscriptionAudit('email_send_failed', 'license', result.license.id, actorId(req), null, { to: deliverEmail, reason: delivery?.error || 'unknown' });
+                    await userStore.logSubscriptionAudit('email_send_failed', 'license', license.id, actorId(req), null, { to: deliverEmail, reason: delivery?.error || 'unknown' });
                 } catch (err) { bestEffort('routes/adminLicense:emailFailedAudit', err); }
             }
         }
@@ -218,7 +216,7 @@ router.post('/grant', validate({ body: GrantBody }), async (/** @type {import('e
 });
 
 /**
- * @param {{ to: string, tier: string, expiresAt: string|Date, organizationId: string|null, blob: string }} p
+ * @param {{ to: string, tier: string, expiresAt: string|Date|null, organizationId?: string|null, blob: string }} p
  */
 async function deliverBlobByEmail({ to, tier, expiresAt, organizationId, blob }) {
     const cfg = await getServiceEmailConfig();
@@ -282,7 +280,7 @@ router.post('/:id/extend', validate({ body: ExtendBody }), async (/** @type {imp
 });
 
 // ── POST /import ───────────────────────────────────────────────────────
-router.post('/import', validate({ body: ImportBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof ImportBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/import', validate({ body: ImportBody }), async (req, res) => {
     try {
         const { blob, organizationId } = req.body;
         const result = await adminIssuance.importAdminLicense(blob, {

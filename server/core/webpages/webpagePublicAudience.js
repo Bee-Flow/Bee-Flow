@@ -179,6 +179,13 @@ function normalizeEmails(raw) {
  * `canonicalShare` is the LIVE share that `public_share_id` points to, or
  * null. A pointer to a revoked share should arrive here as null — "public" is then off, not
  * "public with a broken link".
+ * @param {{ webpage?: { slug?: string | null, isPublished?: boolean, sharedGroups?: string[] | null, organizationId?: string | null } | null,
+ *   canonicalShare?: { id?: string, accessMode?: string, hasPassword?: boolean, allowedEmails?: string[] | null, expiresAt?: string | null,
+ *     viewCount?: number, lastViewedAt?: string | null } | null,
+ *   canonicalShareKnown?: boolean, shareCount?: number | null,
+ *   tables?: import('../../stores/webpage/bridgeGrantsShape').TableGrant[],
+ *   ai?: { publicEnabled?: unknown, publicGroundOnPage?: unknown, [key: string]: unknown } | string | null,
+ *   solution?: { id: string, name?: string } | null, baseUrl?: string }} p  `ai` is bridge_grants.ai, read only when it is an object
  */
 function buildAudienceModel({
     webpage,

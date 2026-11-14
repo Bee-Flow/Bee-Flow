@@ -41,7 +41,7 @@ function makeChatSignalObjectionStore(db, { ready = async () => {}, now = Date.n
     /**
      * Has this person objected? Never throws; memoised for 30 s. A read error
      * (or a missing id) reads as true and is not memoised.
-     * @param {string} userId
+     * @param {string | null | undefined} userId
      * @returns {Promise<boolean>}
      */
     async function isObjecting(userId) {

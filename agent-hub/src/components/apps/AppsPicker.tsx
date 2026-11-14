@@ -122,6 +122,7 @@ export default function AppsPicker({
                 onClick={() => { setOpen((v: boolean) => !v); setSearch(''); }}
                 className={`p-2 rounded-lg transition-colors flex items-center gap-1 ${open ? 'bg-[var(--accent-primary)]/10 text-[var(--accent-primary)]' : 'text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'}`}
                 title={t('apps.title', 'Apps')}
+                aria-label={t('apps.title', 'Apps')}
                 data-testid="apps-picker-button"
             >
                 <LayoutGrid className="w-5 h-5" />

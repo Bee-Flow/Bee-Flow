@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Route walker — prints the app's real (method, path, gate-chain) table as JSON.
  *
@@ -191,7 +191,7 @@ const appUse = express.application.use;
 express.application.use = function patchedUse(...args) {
     if (!rootApp) rootApp = this;
     record(this, args);
-    return appUse.apply(this, args);
+    return appUse.apply(this, /** @type {Parameters<typeof appUse>} */ (/** @type {unknown} */ (args)));
 };
 
 const routerUse = express.Router.prototype.use;
@@ -259,7 +259,7 @@ function walk(router, basePath, inheritedGates, isRoot) {
     for (const layer of stack) {
         if (!layer.route) continue;
         const methods = Object.keys(layer.route.methods || {})
-            .filter((m) => layer.route.methods[m])
+            .filter((m) => /** @type {Record<string, boolean>} */ (/** @type {NonNullable<typeof layer.route>} */ (layer.route).methods)[m])
             .map((m) => m.toUpperCase())
             .sort();
         // slice(0, -1) drops the terminal handler: it is the route body, not a

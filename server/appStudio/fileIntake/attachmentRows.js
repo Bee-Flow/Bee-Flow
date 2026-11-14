@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * file_intake — the mailbox's attachments table: finding it, reading a row's
  * descriptor id, and filing an archive entry as a row of its own.
@@ -83,12 +84,18 @@ function sizeOfDescriptor(file) {
  * displayed filename stays the bare name; only the identity carries the path.
  *
  * Returns the saved row, or null when the table cannot describe a file at all.
+ * @param {IntakeApp} app
+ * @param {DataModel} model
+ * @param {DataTable | null | undefined} attTable
+ * @param {{ entryName?: string, entryPath?: string, descriptor?: FileDescriptor | null, bytes?: number, sourceRow?: AttachmentRow | null,
+ *   fileField?: { key: string } | null, writeRecord?: WriteRecord, writeViewer?: WriteViewerOf, ctx?: ExecCtx }} [opts]
  */
 async function fileEntryAsAttachment(app, model, attTable, {
     entryName, entryPath, descriptor, bytes, sourceRow, fileField, writeRecord, writeViewer, ctx,
 } = {}) {
     if (!attTable || !fileField || !fileField.key) return null;
     const src = sourceRow || {};
+    /** @type {Record<string, unknown>} */
     const values = { [fileField.key]: descriptor };
 
     if (hasField(attTable, 'filename')) values.filename = entryName;

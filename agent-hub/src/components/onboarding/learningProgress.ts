@@ -10,11 +10,11 @@
 // never blocks the UI.
 
 import scopedStorage from '../../utils/scopedStorage';
-import { API_BASE, authFetch } from '../../utils/helpers';
 import { isEphemeralLessonId } from './lessons';
 import type { LessonProgressEntry, LessonUser, ProgressMap, StepOrigin, StepState } from '../../api/lessons.types';
 import { logger } from '../../utils/logger';
-import { request, RefusedError } from '../../api/mutate';
+import { RefusedError } from '../../api/mutate';
+import { apiFetch, apiRequest } from '@/api/typedRequest';
 
 const LEARNING_PROGRESS_KEY = 'learningProgress';
 
@@ -96,11 +96,7 @@ function writeLocal(user: LessonUser | null | undefined, map: ProgressMap): void
 
 async function syncProgress(merged: ProgressMap): Promise<void> {
     try {
-        await authFetch(`${API_BASE}/ai/user-settings`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ [LEARNING_PROGRESS_KEY]: merged }),
-        });
+        await apiFetch('POST /ai/user-settings', { body: { [LEARNING_PROGRESS_KEY]: merged } });
     } catch (err) { logger.debug('local mirror already written', err); }
 }
 
@@ -158,7 +154,7 @@ export async function saveStepState(user: LessonUser | null | undefined, lessonI
 // browser shows cross-device completion. Returns the map (falls back to local).
 async function fetchLearningProgress(user: LessonUser | null | undefined): Promise<ProgressMap> {
     try {
-        const res = await request(`${API_BASE}/ai/user-settings`).catch((err: unknown) => {
+        const res = await apiRequest('GET /ai/user-settings').catch((err: unknown) => {
             if (err instanceof RefusedError) return null;
             throw err;
         });
@@ -181,11 +177,7 @@ async function fetchLearningProgress(user: LessonUser | null | undefined): Promi
 export async function resetLearningProgress(user: LessonUser | null | undefined): Promise<ProgressMap> {
     writeLocal(user, {});
     try {
-        await authFetch(`${API_BASE}/ai/user-settings`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ learningProgressReset: true }),
-        });
+        await apiFetch('POST /ai/user-settings', { body: { learningProgressReset: true } });
     } catch (err) { logger.debug('local already cleared', err); }
     return {};
 }

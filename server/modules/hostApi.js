@@ -386,16 +386,16 @@ function build(moduleId, { dataDir = null, permissions = null } = {}) {
     }
 
     if (legacy) {
-        // SSRF-guarded fetch (blocks private-network targets) plus the raw
-        // guard for modules building their own validating dispatcher.
-        api.fetch = (url, options) => ssrfGuard.safeFetch(url, options);
+        // SSRF-guarded fetch (no private targets; the default time-out bounds the wait for
+        // the answer, not a module's streamed body) plus the raw guard for own dispatchers.
+        api.fetch = (url, options) => ssrfGuard.safeFetch(url, { timeoutPhase: 'headers', ...options });
         api.ssrfGuard = ssrfGuard;
     } else if (httpPatterns.length) {
         api.fetch = (url, options) => {
             if (!hostAllowed(url, httpPatterns)) {
                 return Promise.reject(new Error(`host not in this module's http allowlist: ${url}`));
             }
-            return ssrfGuard.safeFetch(url, options); // private targets still blocked
+            return ssrfGuard.safeFetch(url, { timeoutPhase: 'headers', ...options }); // private targets still blocked
         };
         api.ssrfGuard = ssrfGuard;
     }

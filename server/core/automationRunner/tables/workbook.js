@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The workbook reader: an uploaded spreadsheet (xlsx, xlsm, xls, ods) or CSV
  * into one table per sheet, with the caps of core/automationRunner/tables/limits.js.
@@ -88,9 +88,9 @@ async function detectFormat(buffer, requested, limits) {
     } else {
         detected = 'csv';
     }
-    const asked = FORMATS.includes(requested) ? requested : 'auto';
+    const asked = FORMATS.includes(/** @type {string} */ (requested)) ? /** @type {string} */ (requested) : 'auto';
     if (asked === 'auto' || asked === detected) return detected;
-    if (ZIP_FAMILY.has(asked) && ZIP_FAMILY.has(detected)) return detected;
+    if (ZIP_FAMILY.has(/** @type {string} */ (asked)) && ZIP_FAMILY.has(detected)) return detected;
     throw unsupported(`The step is set to read a .${asked} file, but the file is a ${detected === 'csv' ? 'text (CSV)' : `.${detected}`} file. `
         + 'Set the format to "auto" or to the real type.');
 }

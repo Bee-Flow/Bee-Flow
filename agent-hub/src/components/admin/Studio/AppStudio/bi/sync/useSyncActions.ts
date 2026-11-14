@@ -2,7 +2,8 @@
  * The sync panel's server side: the last run's status, /inspect, a manual
  * refresh, and turning a mailbox or an accepted proposal into tables.
  */
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { mailboxSyncPlan, proposalSyncPlan } from './syncModel';
 import type { SyncBlock, SyncPlan, SyncProposal, SyncTableDraft } from './syncModel';
 import type { TranslateFn } from '@/hooks/useTranslation';
@@ -57,23 +58,25 @@ export function useSyncActions({ connector, appId, tables, t, onCreateTable, onC
     const [proposal, setProposal] = useState<SyncProposal | null>(null);   // /inspect result
     const [busy, setBusy] = useState<'inspect' | 'sync' | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [status, setStatus] = useState<SyncStatus | null>(null);       // last run state
     const [runResult, setRunResult] = useState<RunResult | null>(null);
 
     // Last run / next run / last error, so a silently failing schedule is visible
-    // rather than something the owner discovers from stale data.
-    useEffect(() => {
-        if (!appId || !sync) return undefined;
-        let alive = true;
-        getSyncStatus(appId)
-            .then((r: Response) => (r.ok ? r.json() : null))
-            .then((b: { syncs?: SyncStatus[] } | null) => {
-                if (!alive || !b) return;
-                setStatus((b.syncs || []).find((s) => s.connectorId === connector.id) || null);
-            })
-            .catch(() => { /* status is advisory */ });
-        return () => { alive = false; };
-    }, [appId, connector.id, sync, runResult]);
+    // rather than something the owner discovers from stale data. Advisory: a
+    // failed read keeps what was shown.
+    const queryClient = useQueryClient();
+    const statusKey = ['studioApps', 'syncStatus', appId] as const;
+    const statusQuery = useQuery<{ syncs?: SyncStatus[] }>({
+        queryKey: statusKey,
+        enabled: !!appId && !!sync,
+        staleTime: 0,
+        retry: false,
+        queryFn: async () => {
+            const r = await getSyncStatus(appId as string);
+            if (!r.ok) throw new Error(`sync status ${r.status}`);
+            return r.json();
+        },
+    });
+    const status = (statusQuery.data?.syncs || []).find((s) => s.connectorId === connector.id) || null;
 
     const call = async (path: string, label: 'inspect' | 'sync') => {
         setBusy(label);
@@ -133,7 +136,10 @@ export function useSyncActions({ connector, appId, tables, t, onCreateTable, onC
 
     const refreshNow = async () => {
         const body = await call('sync', 'sync');
-        if (body) setRunResult(body);
+        if (body) {
+            setRunResult(body);
+            void queryClient.invalidateQueries({ queryKey: statusKey });
+        }
     };
 
     const accept = () => {

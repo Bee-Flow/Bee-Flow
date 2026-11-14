@@ -9,18 +9,21 @@
  * shipped Nextcloud client calls. The kind's own adapter comes from the
  * registry in core/dataEngine/sources; nothing here compares a kind string.
  *
- * ── NO REQUEST SCHEMA HERE, ON PURPOSE ──────────────────────────────
- * The three writing routes — settings, relations, relink — carry a body whose
- * SHAPE IS THE KIND'S, not this router's. `applySettings`, `setRelations` and
- * `relink` are adapter methods: a spreadsheet mirror takes a header row, a key
- * column and a column re-map, a Nextcloud mirror takes a schedule and a view,
- * and a kind added next year takes whatever it takes. Each adapter validates
+ * ── OPEN SETTINGS AND RELINK BODIES, ON PURPOSE ─────────────────────
+ * Two writing routes — settings and relink — carry a body whose SHAPE IS THE
+ * KIND'S, not this router's. `applySettings` and `relink` are adapter
+ * methods: a spreadsheet mirror takes a header row, a key column and a column
+ * re-map, a Nextcloud mirror takes a schedule and a view, and a kind added next
+ * year takes whatever it takes. Each adapter validates
  * its own block against the source it actually reads and throws a 400 by name.
  *
  * A `.strict()` schema at this level could only be the UNION of every kind's
  * keys, which refuses nothing a caller would get wrong and has to be edited
  * every time a kind is added — the second copy would be the one that drifts.
- * This is the same reason the aggregate body in answers.js stays open.
+ * This is the same reason the aggregate body in answers.js stays open. The
+ * relations route reads one key, `relations`, whatever the kind: its envelope
+ * is closed and the list inside stays the adapter's to check. A refresh takes
+ * no body at all.
  *
  * The four READING routes take nothing at all, and say so with an empty
  * strict query: `?refresh=1` on a pulse was silently ignored, and a client
@@ -36,6 +39,7 @@ const { answerDatatableError } = require('./refusals');
 const { publicTable, publicSource } = require('./projection');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
+const { bodyOf } = require('../../core/http/schemaParts');
 const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
 
@@ -43,6 +47,8 @@ const { HttpError } = require('../../core/http/errors');
 
 /** The reading routes take nothing but the table in the path. */
 const NO_QUERY = validate({ query: z.object({}).strict() });
+const NO_BODY = validate({ body: bodyOf({}, 'Refreshing a mirrored table') });
+const RELATIONS_BODY = validate({ body: bodyOf({ relations: z.unknown().optional() }, 'Saving the relations') });
 
 /**
  * The context the mirror engine's write-through takes, from what the grade
@@ -134,7 +140,7 @@ async function saveSettings(req, res) {
 /** @param {DatatableRequest} req @param {import('express').Response} res */
 async function saveRelations(req, res) {
     try {
-        const t = await adapterOf(req).link.setRelations(req.datatable, req.body && req.body.relations);
+        const t = await adapterOf(req).link.setRelations(req.datatable, req.body.relations);
         if (!t) return res.status(404).json({ error: 'Not found' });
         sources.kickStale(t, { reason: 'relations', delayMs: 0 });
         res.json({ datatable: publicTable(t, req.datatableGrade) });
@@ -176,7 +182,7 @@ function register(router) {
         res.json({ dataVersion: req.datatable.dataVersion, rowCount: req.datatable.rowCount, sync: req.datatable.syncState || null });
         sources.kickStale(req.datatable, { reason: 'live', delayMs: 0 });
     });
-    router.post('/:id/source/refresh', requireDatatableGrade('editor'), requireMirror, NO_QUERY, refreshNow);
+    router.post('/:id/source/refresh', requireDatatableGrade('editor'), requireMirror, NO_QUERY, NO_BODY, refreshNow);
     router.put('/:id/source',
         requireDatatableGrade('owner'),
         requireManageForOrgScope(),
@@ -186,6 +192,7 @@ function register(router) {
         requireDatatableGrade('owner'),
         requireManageForOrgScope(),
         requireMirror,
+        RELATIONS_BODY,
         saveRelations);
     router.post('/:id/source/relink',
         requireDatatableGrade('owner'),
@@ -201,7 +208,7 @@ function register(router) {
         sources.kickStale(req.datatable, { reason: 'live', delayMs: 0 });
     });
 
-    router.post('/:id/nextcloud/refresh', requireDatatableGrade('editor'), requireMirror, NO_QUERY, refreshNow);
+    router.post('/:id/nextcloud/refresh', requireDatatableGrade('editor'), requireMirror, NO_QUERY, NO_BODY, refreshNow);
 
     router.put('/:id/nextcloud',
         requireDatatableGrade('owner'),
@@ -213,6 +220,7 @@ function register(router) {
         requireDatatableGrade('owner'),
         requireManageForOrgScope(),
         requireMirror,
+        RELATIONS_BODY,
         saveRelations);
 
     router.post('/:id/nextcloud/relink',

@@ -58,6 +58,7 @@ export function StructuredOutputFields({ fields, onChange }: { fields: OutputFie
                             onClick={() => remove(i)}
                             className="p-1 rounded text-[var(--text-tertiary)] hover:text-red-500 hover:bg-red-500/10"
                             title={t('automations.structured_output_fields.remove_field', 'Remove field')}
+                            aria-label={t('automations.structured_output_fields.remove_field', 'Remove field')}
                         >
                             <Trash2 size={12} />
                         </button>
@@ -173,6 +174,7 @@ function ColumnsEditor({ columns, onChange }: { columns: ColumnRow[]; onChange: 
                         onClick={() => remove(i)}
                         className="p-1 rounded text-[var(--text-tertiary)] hover:text-red-500 hover:bg-red-500/10"
                         title={t('automations.structured_output_fields.remove_column', 'Remove column')}
+                        aria-label={t('automations.structured_output_fields.remove_column', 'Remove column')}
                     >
                         <Trash2 size={12} />
                     </button>

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Outlook steps on a SHARED mailbox: every tool takes `mailbox` ("me" by
  * default), goes to /users/{address}/... instead of /me/..., checks the
@@ -47,7 +47,7 @@ test('every Outlook tool declares the optional mailbox field', () => {
         if (tool.function.name === 'outlook_reply_in_thread') continue;
         const props = tool.function.parameters.properties;
         assert.strictEqual(/** @type {any} */ (props).mailbox?.type, 'string', `${tool.function.name} has no mailbox`);
-        assert.ok(!tool.function.parameters.required.includes('mailbox'), `${tool.function.name}: mailbox stays optional`);
+        assert.ok(!/** @type {string[]} */ (tool.function.parameters.required).includes('mailbox'), `${tool.function.name}: mailbox stays optional`);
     }
 });
 
@@ -78,7 +78,7 @@ test('search, list, read and read_many go to /users/{address}/ for a shared mail
     assert.ok(calls[3].body.requests[0].url.startsWith('/users/team%40contoso.com/messages/M1?'), calls[3].body.requests[0].url);
     assert.strictEqual(search.mailbox, SHARED, 'the result names the mailbox it came from');
     assert.strictEqual(recent.mailbox, SHARED);
-    assert.strictEqual(many.messages.length, 1);
+    assert.strictEqual(many.messages?.length, 1);
 });
 
 test('send goes out AS the shared mailbox, a reply answers in it', async () => {
@@ -99,9 +99,9 @@ test('compose: an unattended run sends from the shared mailbox; a chat draft car
 
     const draft = await executeOutlookTool('outlook_compose', { to: 'a@example.com', subject: 'S', body: 'B', mailbox: SHARED }, SESSION);
     assert.strictEqual(draft._action, 'email_draft');
-    assert.strictEqual(draft.draft.mailbox, SHARED);
+    assert.strictEqual(draft.draft?.mailbox, SHARED);
     const own = await executeOutlookTool('outlook_compose', { to: 'a@example.com', subject: 'S', body: 'B' }, SESSION);
-    assert.ok(!('mailbox' in own.draft), 'the own mailbox stays implicit, as before');
+    assert.ok(!('mailbox' in /** @type {Record<string, unknown>} */ (own.draft)), 'the own mailbox stays implicit, as before');
 });
 
 test('an invalid address is refused before anything reaches Graph', async () => {

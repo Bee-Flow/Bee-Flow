@@ -1,61 +1,107 @@
 import { Plus, Settings, Inbox, LifeBuoy, RefreshCw, Search, BarChart3, Flag, AlertTriangle } from 'lucide-react';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
+import useDebouncedValue from '@/hooks/useDebouncedValue';
 import InsightsPanel from './InsightsPanel';
 import SupportSettings from './SupportSettings';
 import useSupportInboxEvents from './useSupportInboxEvents';
 import useTranslation from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
 import StudioShell from '@/components/shared/StudioShell';
 import type { SupportInbox, SupportUser } from './supportStudio.types';
 import type { SupportThread, DotProps, SupportStudioProps, EmptyStateProps } from './index.types';
 import { logger } from '@/utils/logger';
-import { request, RefusedError } from '@/api/mutate';
+import { RefusedError } from '@/api/mutate';
 import { NOT_SUPPORT_TAG, STATUS_COLORS, FILTER_IDS, AUTO_REFRESH_STORAGE_KEY, AUTO_REFRESH_OPTIONS, autoRefreshLabel, readStoredAutoRefreshMs, statusLabel, slaBreached } from './SupportStudio.helpers';
 import { TicketDetail } from './TicketDetail';
+import { apiRequest } from '@/api/typedRequest';
 
 function Dot({ status }: DotProps) {
     return <span className={`inline-block w-2 h-2 rounded-full ${STATUS_COLORS[status] || 'text-[var(--text-tertiary)]'} [background-color:currentColor]`} />;
 }
 
+interface ThreadsAnswer { threads: SupportThread[]; counts: Record<string, number> }
+const NO_THREADS: ThreadsAnswer = { threads: [], counts: {} };
+const NO_INBOXES: SupportInbox[] = [];
+
+/** The connected inboxes; a refusal or a failure keeps what is shown. */
+function useStudioInboxes() {
+    const queryClient = useQueryClient();
+    const key = ['supportStudio', 'inboxes'] as const;
+    const query = useQuery<SupportInbox[]>({
+        queryKey: key,
+        staleTime: 0,
+        retry: false,
+        queryFn: async () => {
+            const kept = queryClient.getQueryData<SupportInbox[]>(key) ?? NO_INBOXES;
+            try {
+                const res = await apiRequest('GET /api/support-inbox/inboxes').catch((err: unknown) => {
+                    if (err instanceof RefusedError) return null;
+                    throw err;
+                });
+                return res ? ((await res.json()).inboxes || []) : kept;
+            } catch (err) {
+                logger.warn('support inboxes load failed', err);
+                return kept;
+            }
+        },
+    });
+    const { refetch } = query;
+    return { inboxes: query.data ?? NO_INBOXES, fetchInboxes: useCallback(() => { void refetch(); }, [refetch]) };
+}
+
+/**
+ * The ticket list for the filter, read again on the chosen interval (the
+ * reliable fallback when the SSE stream is idle-dropped, e.g. behind an embed
+ * gateway). Typing in the search waits for a pause. A refusal or a failure keeps
+ * the list that is shown.
+ */
+function useStudioThreads(activeInbox: string, statusFilter: string, search: string, limit: number, autoRefreshMs: number) {
+    const settledSearch = useDebouncedValue(search, 250);
+    const params = new URLSearchParams();
+    if (activeInbox && activeInbox !== 'all') params.set('inbox', activeInbox);
+    if (statusFilter === 'not_support') params.set('tag', NOT_SUPPORT_TAG);
+    else if (statusFilter) params.set('status', statusFilter);
+    if (settledSearch.trim()) params.set('q', settledSearch.trim());
+    params.set('limit', String(limit));
+    const qs = params.toString();
+    const shown = useRef<ThreadsAnswer>(NO_THREADS);
+    const query = useQuery<ThreadsAnswer>({
+        queryKey: ['supportStudio', 'threads', qs],
+        staleTime: 0,
+        retry: false,
+        placeholderData: keepPreviousData,
+        refetchInterval: autoRefreshMs || false,
+        refetchIntervalInBackground: true,
+        queryFn: async () => {
+            try {
+                const res = await apiRequest('GET /api/support-inbox/threads', { query: params }).catch((err: unknown) => {
+                    if (err instanceof RefusedError) return null;
+                    throw err;
+                });
+                if (res) { const d = await res.json(); shown.current = { threads: d.threads || [], counts: d.counts || {} }; }
+            } catch (err) { logger.warn('support threads load failed', err); }
+            return shown.current;
+        },
+    });
+    const { refetch } = query;
+    const fetchThreads = useCallback(async () => { await refetch(); }, [refetch]);
+    const answer = query.data ?? NO_THREADS;
+    return { threads: answer.threads, counts: answer.counts, fetchThreads };
+}
+
 export default function SupportStudio({ user, initialTicketId = null }: SupportStudioProps) {
     const { t } = useTranslation();
-    const [inboxes, setInboxes] = useState<SupportInbox[]>([]);
     const [activeInbox, setActiveInbox] = useState('all');
     const [statusFilter, setStatusFilter] = useState('awaiting_agent');
     const [search, setSearch] = useState('');
-    const [threads, setThreads] = useState<SupportThread[]>([]);
-    const [counts, setCounts] = useState<Record<string, number>>({});
     const [activeThreadId, setActiveThreadId] = useState<string | null>(initialTicketId);
     const [view, setView] = useState('inbox'); // 'inbox' | 'settings' | 'insights'
     const [limit, setLimit] = useState(100);
     const [refreshing, setRefreshing] = useState(false);
     const [autoRefreshMs, setAutoRefreshMs] = useState(readStoredAutoRefreshMs);
 
-    const fetchInboxes = useCallback(async () => {
-        try {
-            const res = await request(`${API_BASE}/api/support-inbox/inboxes`).catch((err: unknown) => {
-                if (err instanceof RefusedError) return null;
-                throw err;
-            });
-            if (res) { const d = await res.json(); setInboxes(d.inboxes || []); }
-        } catch (err) { logger.warn('support inboxes load failed', err); }
-    }, []);
-
-    const fetchThreads = useCallback(async () => {
-        try {
-            const params = new URLSearchParams();
-            if (activeInbox && activeInbox !== 'all') params.set('inbox', activeInbox);
-            if (statusFilter === 'not_support') params.set('tag', NOT_SUPPORT_TAG);
-            else if (statusFilter) params.set('status', statusFilter);
-            if (search.trim()) params.set('q', search.trim());
-            params.set('limit', String(limit));
-            const res = await request(`${API_BASE}/api/support-inbox/threads?${params.toString()}`).catch((err: unknown) => {
-                if (err instanceof RefusedError) return null;
-                throw err;
-            });
-            if (res) { const d = await res.json(); setThreads(d.threads || []); setCounts(d.counts || {}); }
-        } catch (err) { logger.warn('support threads load failed', err); }
-    }, [activeInbox, statusFilter, search, limit]);
+    const { inboxes, fetchInboxes } = useStudioInboxes();
+    const { threads, counts, fetchThreads } = useStudioThreads(activeInbox, statusFilter, search, limit, autoRefreshMs);
 
     // Manual refresh — same fetch, but with a spinning indicator so the click
     // gives visible feedback even when the list comes back unchanged.
@@ -64,25 +110,10 @@ export default function SupportStudio({ user, initialTicketId = null }: SupportS
         try { await fetchThreads(); } finally { setRefreshing(false); }
     }, [fetchThreads]);
 
-    useEffect(() => { fetchInboxes(); }, [fetchInboxes]);
-    useEffect(() => {
-        const id = setTimeout(fetchThreads, search ? 250 : 0); // debounce search typing
-        return () => clearTimeout(id);
-    }, [fetchThreads, search]);
-
     // Persist the chosen interval so it sticks across reloads.
     useEffect(() => {
         try { window.localStorage.setItem(AUTO_REFRESH_STORAGE_KEY, String(autoRefreshMs)); } catch (err) { logger.debug('storage unavailable', err); }
     }, [autoRefreshMs]);
-
-    // Poll the ticket list on the chosen interval. This is the reliable fallback
-    // when the SSE stream is idle-dropped (e.g. behind an embed gateway), so the
-    // list stays fresh without a manual refresh.
-    useEffect(() => {
-        if (!autoRefreshMs) return undefined;
-        const id = setInterval(() => { fetchThreads(); }, autoRefreshMs);
-        return () => clearInterval(id);
-    }, [autoRefreshMs, fetchThreads]);
 
     // Live updates: refresh the ticket list on any inbox event. The open ticket
     // refreshes via its own Refresh control / re-open.
@@ -104,12 +135,14 @@ export default function SupportStudio({ user, initialTicketId = null }: SupportS
                 <span className="flex items-center gap-1">
                     <button onClick={() => setView(v => v === 'insights' ? 'inbox' : 'insights')}
                         className={`p-1 rounded hover:bg-[var(--bg-secondary)] ${view === 'insights' ? 'text-[var(--accent-primary)]' : ''}`}
-                        title={t('support.nav.insights', 'Insights')}>
+                        title={t('support.nav.insights', 'Insights')}
+                        aria-label={t('support.nav.insights', 'Insights')}>
                         <BarChart3 size={14} />
                     </button>
                     <button onClick={() => setView(v => v === 'settings' ? 'inbox' : 'settings')}
                         className={`p-1 rounded hover:bg-[var(--bg-secondary)] ${view === 'settings' ? 'text-[var(--accent-primary)]' : ''}`}
-                        title={t('support.nav.settings', 'Settings')}>
+                        title={t('support.nav.settings', 'Settings')}
+                        aria-label={t('support.nav.settings', 'Settings')}>
                         <Settings size={14} />
                     </button>
                 </span>
@@ -152,7 +185,8 @@ export default function SupportStudio({ user, initialTicketId = null }: SupportS
                             </select>
                             <button onClick={manualRefresh} disabled={refreshing}
                                 className="p-0.5 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-tertiary)] disabled:opacity-60"
-                                title={t('support.common.refresh', 'Refresh')}>
+                                title={t('support.common.refresh', 'Refresh')}
+                                aria-label={t('support.common.refresh', 'Refresh')}>
                                 <RefreshCw size={11} className={refreshing ? 'animate-spin' : ''} />
                             </button>
                         </div>

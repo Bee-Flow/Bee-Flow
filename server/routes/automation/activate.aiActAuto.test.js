@@ -22,7 +22,7 @@ const assert = require('node:assert');
 const { publishAutomation, activateAutomation } = require('./activate');
 const { makeAiActState } = require('../../automation/aiActCheck');
 const { makeAiActAuto } = require('../../automation/aiActAuto');
-const assess = require('../../compliance/aiAct/assess');
+const assess = require('../../core/aiAct/assess');
 const signalsLib = require('../../compliance/aiAct/signals');
 const { HttpError } = require('../../core/http/errors');
 

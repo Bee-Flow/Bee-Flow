@@ -205,170 +205,178 @@ function summariseAttachment(a) {
 
 // ─── Tool execution ──────────────────────────────────────────────
 
+async function listAccounts(_args, { baseUrl, fetch: ncFetch, authError }) {
+    const res = await ncFetch(api(baseUrl, '/accounts'), { headers: baseHeaders });
+    if (!res.ok) return mailError(res, authError, 'account list');
+    const data = await readJsonSafe(res);
+    const accounts = Array.isArray(data) ? data : [];
+    return {
+        count: accounts.length,
+        accounts: accounts.map(a => ({
+            id: a.accountId ?? a.id,
+            email: a.emailAddress || a.email || null,
+            displayName: a.name || a.displayName || a.emailAddress || null,
+            provisioned: !!a.provisioned,
+        })),
+    };
+}
+
+async function listMailboxes(args, { baseUrl, fetch: ncFetch, authError }) {
+    if (args.accountId == null) return { error: 'accountId is required' };
+    const url = api(baseUrl, `/mailboxes?accountId=${encodeURIComponent(args.accountId)}`);
+    const res = await ncFetch(url, { headers: baseHeaders });
+    if (!res.ok) return mailError(res, authError, 'mailbox list');
+    const data = await readJsonSafe(res);
+    const mailboxes = Array.isArray(data) ? data : (data?.mailboxes || []);
+    return {
+        count: mailboxes.length,
+        mailboxes: mailboxes.map(m => ({
+            id: m.databaseId ?? m.id,
+            name: m.name || null,
+            displayName: m.displayName || m.name,
+            unreadMessages: m.unread ?? m.unreadMessages ?? 0,
+            specialRole: normaliseRole(m),
+        })),
+    };
+}
+
+async function searchMail(args, { baseUrl, fetch: ncFetch, authError }) {
+    if (args.mailboxId == null) return { error: 'mailboxId is required' };
+    const limit = Math.min(Math.max(parseInt(args.limit) || 25, 1), 100);
+    // The /sync endpoint with init:true returns the most recent N messages
+    // and accepts a `query` param that the Mail app delegates to its own
+    // search backend (subject, from, body, attachments).
+    const body = {
+        ids: [],
+        lastMessageTimestamp: null,
+        init: true,
+        sortOrder: 'newest',
+    };
+    if (args.query) body.query = String(args.query);
+
+    let res;
+    try {
+        res = await ncFetch(api(baseUrl, `/mailboxes/${encodeURIComponent(args.mailboxId)}/sync`), {
+            method: 'POST',
+            headers: { ...baseHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+    } catch (e) {
+        if (/** @type {Error} */ (e)?.name === 'TimeoutError' || /** @type {Error} */ (e)?.name === 'AbortError') {
+            return { error: 'Mail search timed out: the mailbox is large. Narrow it with a query (for example from:, subject: or has:attachment) and a smaller limit.' };
+        }
+        throw e;
+    }
+    if (!res.ok) return mailError(res, authError, 'search');
+    const data = await readJsonSafe(res);
+    const newMessages = data?.newMessages || data?.messages || (Array.isArray(data) ? data : []);
+    const messages = newMessages.slice(0, limit).map(summariseMessage);
+    return { mailboxId: args.mailboxId, count: messages.length, messages };
+}
+
+/** What nextcloud_mail_read answers for a message body `m`. */
+function readAnswer(m, messageId) {
+    const attachments = Array.isArray(m.attachments) ? m.attachments.map(summariseAttachment) : [];
+    const bodyText = mailBodyText(m);
+    const truncated = (bodyText || '').length > MAX_BODY_BYTES;
+    return {
+        id: m.databaseId ?? messageId,
+        messageIdHeader: typeof m.messageId === 'string' ? m.messageId : null,
+        from: m.from || null,
+        to: m.to || null,
+        cc: m.cc || null,
+        subject: m.subject || '',
+        dateInt: m.dateInt ?? null,
+        hasHtmlBody: !!m.hasHtmlBody,
+        truncated,
+        body: trimBody(bodyText),
+        attachments,
+    };
+}
+
+async function readMail(args, { baseUrl, fetch: ncFetch, authError }) {
+    if (args.messageId == null) return { error: 'messageId is required' };
+    const res = await ncFetch(api(baseUrl, `/messages/${encodeURIComponent(args.messageId)}/body`), {
+        headers: baseHeaders,
+    });
+    if (!res.ok) return mailError(res, authError, 'read');
+    const m = await readJsonSafe(res);
+    if (!m || typeof m !== 'object') return { error: 'Unexpected Mail response' };
+    return readAnswer(m, args.messageId);
+}
+
+async function saveAttachment(args, { baseUrl, fetch: ncFetch, authError }) {
+    if (args.messageId == null || !args.attachmentId || !args.targetPath) {
+        return { error: 'messageId, attachmentId, and targetPath are required' };
+    }
+    const url = api(baseUrl, `/messages/${encodeURIComponent(args.messageId)}/attachment/${encodeURIComponent(args.attachmentId)}`);
+    const res = await ncFetch(url, {
+        method: 'POST',
+        headers: { ...baseHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetPath: args.targetPath }),
+    });
+    if (res.status === 409) return { error: `Target folder doesn't exist: ${args.targetPath}. Create it first with nextcloud_create_folder.` };
+    if (!res.ok) return mailError(res, authError, 'attachment save');
+    return {
+        success: true,
+        messageId: args.messageId,
+        attachmentId: args.attachmentId,
+        savedTo: args.targetPath,
+    };
+}
+
+async function setFlags(args, { baseUrl, fetch: ncFetch, authError }) {
+    if (args.messageId == null) return { error: 'messageId is required' };
+    /** @type {{ seen?: boolean; flagged?: boolean; junk?: boolean }} */
+    const flags = {};
+    if (args.seen !== undefined) flags.seen = !!args.seen;
+    if (args.flagged !== undefined) flags.flagged = !!args.flagged;
+    if (args.junk !== undefined) flags.junk = !!args.junk;
+    if (Object.keys(flags).length === 0) return { error: 'at least one flag (seen/flagged/junk) must be provided' };
+
+    const res = await ncFetch(api(baseUrl, `/messages/${encodeURIComponent(args.messageId)}/flags`), {
+        method: 'PUT',
+        headers: { ...baseHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ flags }),
+    });
+    if (!res.ok) return mailError(res, authError, 'set flags');
+    return { success: true, messageId: args.messageId, flags };
+}
+
+async function moveMail(args, { baseUrl, fetch: ncFetch, authError }) {
+    if (args.messageId == null || args.destMailboxId == null) {
+        return { error: 'messageId and destMailboxId are required' };
+    }
+    const res = await ncFetch(api(baseUrl, `/messages/${encodeURIComponent(args.messageId)}/move`), {
+        method: 'POST',
+        headers: { ...baseHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ destMailboxId: args.destMailboxId }),
+    });
+    if (!res.ok) return mailError(res, authError, 'move');
+    return { success: true, messageId: args.messageId, destMailboxId: args.destMailboxId };
+}
+
+const HANDLERS = {
+    nextcloud_mail_list_accounts: listAccounts,
+    nextcloud_mail_list_mailboxes: listMailboxes,
+    nextcloud_mail_search: searchMail,
+    nextcloud_mail_read: readMail,
+    nextcloud_mail_read_attachment: readMailAttachment,
+    nextcloud_mail_save_attachment: saveAttachment,
+    nextcloud_mail_send: sendMail,
+    nextcloud_mail_set_flags: setFlags,
+    nextcloud_mail_move: moveMail,
+};
+
 /**
  * @param {string} toolName
  * @param {string} userId
  */
 async function executeNextcloudMailTool(toolName, args, userId, session) {
     const ctx = await ncClient.resolveAuth(session, userId);
-    const { baseUrl, fetch: ncFetch, authError } = ctx;
-
-    switch (toolName) {
-        case 'nextcloud_mail_list_accounts': {
-            const res = await ncFetch(api(baseUrl, '/accounts'), { headers: baseHeaders });
-            if (!res.ok) return mailError(res, authError, 'account list');
-            const data = await readJsonSafe(res);
-            const accounts = Array.isArray(data) ? data : [];
-            return {
-                count: accounts.length,
-                accounts: accounts.map(a => ({
-                    id: a.accountId ?? a.id,
-                    email: a.emailAddress || a.email || null,
-                    displayName: a.name || a.displayName || a.emailAddress || null,
-                    provisioned: !!a.provisioned,
-                })),
-            };
-        }
-
-        case 'nextcloud_mail_list_mailboxes': {
-            if (args.accountId == null) return { error: 'accountId is required' };
-            const url = api(baseUrl, `/mailboxes?accountId=${encodeURIComponent(args.accountId)}`);
-            const res = await ncFetch(url, { headers: baseHeaders });
-            if (!res.ok) return mailError(res, authError, 'mailbox list');
-            const data = await readJsonSafe(res);
-            const mailboxes = Array.isArray(data) ? data : (data?.mailboxes || []);
-            return {
-                count: mailboxes.length,
-                mailboxes: mailboxes.map(m => ({
-                    id: m.databaseId ?? m.id,
-                    name: m.name || null,
-                    displayName: m.displayName || m.name,
-                    unreadMessages: m.unread ?? m.unreadMessages ?? 0,
-                    specialRole: normaliseRole(m),
-                })),
-            };
-        }
-
-        case 'nextcloud_mail_search': {
-            if (args.mailboxId == null) return { error: 'mailboxId is required' };
-            const limit = Math.min(Math.max(parseInt(args.limit) || 25, 1), 100);
-            // The /sync endpoint with init:true returns the most recent N messages
-            // and accepts a `query` param that the Mail app delegates to its own
-            // search backend (subject, from, body, attachments).
-            const body = {
-                ids: [],
-                lastMessageTimestamp: null,
-                init: true,
-                sortOrder: 'newest',
-            };
-            if (args.query) body.query = String(args.query);
-
-            let res;
-            try {
-                res = await ncFetch(api(baseUrl, `/mailboxes/${encodeURIComponent(args.mailboxId)}/sync`), {
-                    method: 'POST',
-                    headers: { ...baseHeaders, 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body),
-                });
-            } catch (e) {
-                if (/** @type {Error} */ (e)?.name === 'TimeoutError' || /** @type {Error} */ (e)?.name === 'AbortError') {
-                    return { error: 'Mail search timed out: the mailbox is large. Narrow it with a query (for example from:, subject: or has:attachment) and a smaller limit.' };
-                }
-                throw e;
-            }
-            if (!res.ok) return mailError(res, authError, 'search');
-            const data = await readJsonSafe(res);
-            const newMessages = data?.newMessages || data?.messages || (Array.isArray(data) ? data : []);
-            const messages = newMessages.slice(0, limit).map(summariseMessage);
-            return { mailboxId: args.mailboxId, count: messages.length, messages };
-        }
-
-        case 'nextcloud_mail_read': {
-            if (args.messageId == null) return { error: 'messageId is required' };
-            const res = await ncFetch(api(baseUrl, `/messages/${encodeURIComponent(args.messageId)}/body`), {
-                headers: baseHeaders,
-            });
-            if (!res.ok) return mailError(res, authError, 'read');
-            const m = await readJsonSafe(res);
-            if (!m || typeof m !== 'object') return { error: 'Unexpected Mail response' };
-            const attachments = Array.isArray(m.attachments) ? m.attachments.map(summariseAttachment) : [];
-            const bodyText = mailBodyText(m);
-            const truncated = (bodyText || '').length > MAX_BODY_BYTES;
-            return {
-                id: m.databaseId ?? args.messageId,
-                messageIdHeader: typeof m.messageId === 'string' ? m.messageId : null,
-                from: m.from || null,
-                to: m.to || null,
-                cc: m.cc || null,
-                subject: m.subject || '',
-                dateInt: m.dateInt ?? null,
-                hasHtmlBody: !!m.hasHtmlBody,
-                truncated,
-                body: trimBody(bodyText),
-                attachments,
-            };
-        }
-
-        case 'nextcloud_mail_read_attachment':
-            return readMailAttachment(args, ctx);
-
-        case 'nextcloud_mail_save_attachment': {
-            if (args.messageId == null || !args.attachmentId || !args.targetPath) {
-                return { error: 'messageId, attachmentId, and targetPath are required' };
-            }
-            const url = api(baseUrl, `/messages/${encodeURIComponent(args.messageId)}/attachment/${encodeURIComponent(args.attachmentId)}`);
-            const res = await ncFetch(url, {
-                method: 'POST',
-                headers: { ...baseHeaders, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ targetPath: args.targetPath }),
-            });
-            if (res.status === 409) return { error: `Target folder doesn't exist: ${args.targetPath}. Create it first with nextcloud_create_folder.` };
-            if (!res.ok) return mailError(res, authError, 'attachment save');
-            return {
-                success: true,
-                messageId: args.messageId,
-                attachmentId: args.attachmentId,
-                savedTo: args.targetPath,
-            };
-        }
-
-        case 'nextcloud_mail_send':
-            return sendMail(args, ctx);
-
-        case 'nextcloud_mail_set_flags': {
-            if (args.messageId == null) return { error: 'messageId is required' };
-            /** @type {{ seen?: boolean; flagged?: boolean; junk?: boolean }} */
-            const flags = {};
-            if (args.seen !== undefined) flags.seen = !!args.seen;
-            if (args.flagged !== undefined) flags.flagged = !!args.flagged;
-            if (args.junk !== undefined) flags.junk = !!args.junk;
-            if (Object.keys(flags).length === 0) return { error: 'at least one flag (seen/flagged/junk) must be provided' };
-
-            const res = await ncFetch(api(baseUrl, `/messages/${encodeURIComponent(args.messageId)}/flags`), {
-                method: 'PUT',
-                headers: { ...baseHeaders, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ flags }),
-            });
-            if (!res.ok) return mailError(res, authError, 'set flags');
-            return { success: true, messageId: args.messageId, flags };
-        }
-
-        case 'nextcloud_mail_move': {
-            if (args.messageId == null || args.destMailboxId == null) {
-                return { error: 'messageId and destMailboxId are required' };
-            }
-            const res = await ncFetch(api(baseUrl, `/messages/${encodeURIComponent(args.messageId)}/move`), {
-                method: 'POST',
-                headers: { ...baseHeaders, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ destMailboxId: args.destMailboxId }),
-            });
-            if (!res.ok) return mailError(res, authError, 'move');
-            return { success: true, messageId: args.messageId, destMailboxId: args.destMailboxId };
-        }
-
-        default:
-            return { error: `Unknown Nextcloud Mail tool: ${toolName}` };
-    }
+    const handler = Object.hasOwn(HANDLERS, toolName) ? HANDLERS[toolName] : null;
+    if (!handler) return { error: `Unknown Nextcloud Mail tool: ${toolName}` };
+    return handler(args, ctx);
 }
 
 /**

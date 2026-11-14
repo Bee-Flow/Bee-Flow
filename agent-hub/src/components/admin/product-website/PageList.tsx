@@ -98,6 +98,7 @@ function PageListHeader({ templateCount, canImport, onOpenManager, onImportClick
                             onClick={onImportClick}
                             className={ICON_BTN_CLS}
                             title={t('cms_site.site.pagelist.import_title', 'Import page from JSON file')}
+                            aria-label={t('cms_site.site.pagelist.import_title', 'Import page from JSON file')}
                         >
                             <AppIcon name="Upload" className="w-4 h-4" />
                         </button>
@@ -106,6 +107,7 @@ function PageListHeader({ templateCount, canImport, onOpenManager, onImportClick
                             onClick={downloadExamplePage}
                             className={ICON_BTN_CLS}
                             title={t('cms_site.site.pagelist.example_title', 'Download an example page JSON (import template)')}
+                            aria-label={t('cms_site.site.pagelist.example_title', 'Download an example page JSON (import template)')}
                         >
                             <AppIcon name="FileDown" className="w-4 h-4" />
                         </button>
@@ -116,6 +118,7 @@ function PageListHeader({ templateCount, canImport, onOpenManager, onImportClick
                     onClick={onToggleAdd}
                     className={ICON_BTN_CLS}
                     title={t('cms_site.site.pagelist.add_page', 'Add page')}
+                    aria-label={t('cms_site.site.pagelist.add_page', 'Add page')}
                 >
                     <AppIcon name="Plus" className="w-4 h-4" />
                 </button>

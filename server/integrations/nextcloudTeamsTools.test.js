@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Nextcloud Teams (Circles) tools.
  *
@@ -86,5 +86,5 @@ test('the remove tool names the id it actually needs', () => {
     // The description is load-bearing: an agent handed "ralph" instead of the
     // member id gets a confusing 404 from Nextcloud.
     const tool = NEXTCLOUD_TEAMS_TOOLS.find(t => t.function.name === 'nextcloud_teams_remove_member');
-    assert.match(tool?.function.parameters.properties.memberId?.description, /NOT the Nextcloud user id/i);
+    assert.match(/** @type {any} */ (tool?.function.parameters.properties.memberId?.description), /NOT the Nextcloud user id/i);
 });

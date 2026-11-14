@@ -24,8 +24,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { aiConfigKey, useAiConfigQuery, type AiConfigRead } from '../api/queries/aiConfigRead';
-import { API_BASE } from '../utils/helpers';
-import { mutate, ApiError } from '../api/mutate';
+import { ApiError } from '../api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 /** The raw GET /ai/config body: per-provider has-flags and plain settings.
  *  Each card reads its own keys, so the shape stays open. */
@@ -111,11 +111,7 @@ export default function useProviderConfig(
     const save = useCallback(async (body: unknown, { success, error }: MutationMessages = {}) => {
         setSaving(true);
         try {
-            const res = await mutate(`${API_BASE}/ai/config`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
-            }).catch((err: unknown) => {
+            const res = await apiRequest('POST /ai/config', { init: { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });
@@ -140,7 +136,7 @@ export default function useProviderConfig(
         { success, error }: MutationMessages = {},
     ) => {
         try {
-            const res = await mutate(`${API_BASE}/ai/config/${kind}/${slug}`, { method: 'DELETE' }).catch((err: unknown) => {
+            const res = await apiRequest(kind === 'key' ? 'DELETE /ai/config/key/{keyName}' : 'DELETE /ai/config/setting/{keyName}', { params: { keyName: slug } }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });

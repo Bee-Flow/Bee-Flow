@@ -1,5 +1,7 @@
 import { AlertCircle, Check, Languages, RotateCcw, Send } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import useDebouncedValue from '@/hooks/useDebouncedValue';
 import AiTranslateControl, { AiTranslateResult } from './AiTranslateControl';
 import useAiTranslate, { translateRequest } from '@/hooks/useAiTranslate';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -42,10 +44,9 @@ const getFieldMeta = (t: TranslateFn): Record<string, { label: string; type: 'in
  * preview of the current (unsaved) edits.
  */
 function useEmailTemplates(locale: string) {
-    const [data, setData] = useState<EmailTemplatesData | null>(null);
+    const queryClient = useQueryClient();
     const [selected, setSelected] = useState('verification');
     const [fields, setFields] = useState<Fields>({});
-    const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
     const [previewHtml, setPreviewHtml] = useState('');
 
@@ -53,44 +54,57 @@ function useEmailTemplates(locale: string) {
     // that is selected at call time rather than being rebuilt per selection.
     const selectedRef = useRef(selected);
     useEffect(() => { selectedRef.current = selected; }, [selected]);
-    const fetchData = useCallback(() => {
-        getLanguages(`${locale}/email-templates`)
-            .then((r: Response) => r.json())
-            .then((d: EmailTemplatesData) => {
-                setData(d);
-                // Prefill with this locale's raw overrides; empty = use default (shown as placeholder).
-                setFields({ ...(d.templates?.[selectedRef.current] || {}) });
-            })
-            .catch(() => { });
-    }, [locale]);
+    const key = ['languages', locale, 'email-templates'] as const;
+    const query = useQuery<EmailTemplatesData>({
+        queryKey: key,
+        staleTime: 0,
+        retry: false,
+        queryFn: async () => {
+            const d: EmailTemplatesData = await (await getLanguages(`${locale}/email-templates`)).json();
+            // Prefill with this locale's raw overrides; empty = use default (shown as placeholder).
+            setFields({ ...(d.templates?.[selectedRef.current] || {}) });
+            return d;
+        },
+    });
+    const data = query.data ?? null;
+    const { refetch } = query;
+    const fetchData = useCallback(() => { void refetch(); }, [refetch]);
 
-    useEffect(() => { fetchData(); }, [fetchData]);
-
-    // Debounced live preview reflecting current (unsaved) edits.
-    useEffect(() => {
-        if (!data) return;
-        const timer = setTimeout(() => {
-            sendLanguagesJson('POST', `${locale}/email-templates/${selected}/preview`, { fields })
-                .then((r: Response) => r.json())
-                .then((d: { html?: string }) => { if (d.html) setPreviewHtml(d.html); })
-                .catch(() => { });
-        }, 400);
-        return () => clearTimeout(timer);
-    }, [fields, selected, locale, data]);
-
-    const handleSave = async () => {
-        setSaving(true);
-        try {
-            const res = await sendLanguagesJson('PUT', `${locale}/email-templates`, { templateId: selected, fields });
-            if (res.ok) {
-                const d = await res.json();
-                setData(prev => ({ ...prev, templates: d.templates }));
-                setSaved(true);
-                setTimeout(() => setSaved(false), 2000);
+    // Debounced live preview reflecting current (unsaved) edits; a failed or empty answer keeps the last preview.
+    const previewOf = useDebouncedValue(JSON.stringify({ selected, fields }), 400);
+    useQuery<string | null>({
+        queryKey: ['languages', locale, 'emailPreview', previewOf],
+        enabled: !!data,
+        staleTime: 0,
+        gcTime: 0,
+        retry: false,
+        queryFn: async () => {
+            const { selected: id, fields: shown } = JSON.parse(previewOf) as { selected: string; fields: Fields };
+            try {
+                const d: { html?: string } = await (await sendLanguagesJson('POST', `${locale}/email-templates/${id}/preview`, { fields: shown })).json();
+                if (d.html) setPreviewHtml(d.html);
+                return d.html || null;
+            } catch {
+                return null;
             }
-        } catch (err) { logger.debug('ignore', err); }
-        setSaving(false);
-    };
+        },
+    });
+
+    const save = useMutation({
+        mutationFn: async () => {
+            const res = await sendLanguagesJson('PUT', `${locale}/email-templates`, { templateId: selected, fields });
+            return res.ok ? res.json() : null;
+        },
+        onSuccess: (d: { templates?: EmailTemplatesData['templates'] } | null) => {
+            if (!d) return;
+            queryClient.setQueryData<EmailTemplatesData>(key, (prev) => ({ ...prev, templates: d.templates }));
+            setSaved(true);
+            setTimeout(() => setSaved(false), 2000);
+        },
+        onError: (err) => logger.debug('ignore', err),
+    });
+    const saving = save.isPending;
+    const handleSave = () => save.mutate();
 
     return { data, selected, setSelected, fields, setFields, saving, saved, setSaved, previewHtml, fetchData, handleSave };
 }

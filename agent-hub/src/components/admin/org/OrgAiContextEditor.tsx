@@ -12,14 +12,16 @@
  * context window either way (server/core/llm/contextPolicy.js).
  */
 import { Brain, AlertTriangle, Loader2 } from 'lucide-react';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
+import { useOrgSettingRead } from './useOrgSettingRead';
 
-import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
-import { errorMessage, messageOf } from '@/utils/caughtError';
+import { TranslateParams, useTranslation, type TranslateFn } from '@/hooks/useTranslation';
+import { messageOf } from '@/utils/caughtError';
 import ChoiceCards from '../../shared/ChoiceCards';
 import { toast } from '../../shared/Toast';
-import { request, errorBody, RefusedError, mutate } from '@/api/mutate';
+import { errorBody, RefusedError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 // "750,000" reads better than "750000" and than "0.75M" at these magnitudes.
 const formatTokens = (n: number) => Math.round(n).toLocaleString();
@@ -34,80 +36,60 @@ interface AiContextSettings {
     contextWindowExamples?: Array<{ label: string; contextWindow: number }>;
 }
 
-export default function OrgAiContextEditor({ orgId }: { orgId?: string | null }) {
-    const { t } = useTranslation();
-    const [loading, setLoading] = useState(true);
-    const [loadError, setLoadError] = useState<string | null | undefined>(null);
-    const [server, setServer] = useState<AiContextSettings | null>(null);    // last loaded server state
+/** The loaded settings, the selection seeded from them, and the save. */
+function useAiContextForm(orgId: string | null | undefined, t: TranslateFn) {
     const [enabled, setEnabled] = useState(false); // current selection
     const [budgetPercent, setBudgetPercent] = useState(75);
-    const [saving, setSaving] = useState(false);
 
-    const load = useCallback(async () => {
-        if (!orgId) return;
-        setLoading(true);
-        setLoadError(null);
-        try {
-            let res: Response;
-            try {
-                res = await request(`${API_BASE}/api/org-ai-context/${orgId}`);
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                const body = errorBody(err) ?? {};
-                throw new Error(body.error || `HTTP ${err.status}`);
-            }
-            const data = await res.json();
-            setServer(data);
-            setEnabled(!!data.compactionEnabled);
-            setBudgetPercent(data.contextBudgetPercent ?? 75);
-        } catch (err) {
-            // Null the loaded state so Save stays disabled — saving on top of a
-            // failed load would write a guess.
-            setServer(null);
-            setLoadError(errorMessage(err));
-        } finally {
-            setLoading(false);
-        }
-    }, [orgId]);
-
-    useEffect(() => { load(); }, [load]);
+    const { server, loading, loadError, refetch } = useOrgSettingRead<AiContextSettings>('GET /api/org-ai-context/{orgId}', orgId);
+    const [seeded, setSeeded] = useState<AiContextSettings | null>(null);
+    if (server && server !== seeded) {
+        setSeeded(server);
+        setEnabled(!!server.compactionEnabled);
+        setBudgetPercent(server.contextBudgetPercent ?? 75);
+    }
 
     const isDirty = !!server && (
         enabled !== !!server.compactionEnabled
         || budgetPercent !== server.contextBudgetPercent
     );
 
-    const handleSave = useCallback(async () => {
-        if (!server || !isDirty) return;
-        setSaving(true);
-        try {
-            let res: Response;
+    const save = useMutation({
+        mutationFn: async (settings: AiContextSettings) => {
             try {
-                res = await mutate(`${API_BASE}/api/org-ai-context/${orgId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    compactionEnabled: enabled,
-                    compactionThreshold: server.compactionThreshold,
-                    recentWindow: server.recentWindow,
-                    contextBudgetPercent: budgetPercent,
-                }),
-            });
+                await apiRequest('PUT /api/org-ai-context/{orgId}', {
+                    params: { orgId: String(orgId) },
+                    body: {
+                        compactionEnabled: enabled,
+                        compactionThreshold: settings.compactionThreshold,
+                        recentWindow: settings.recentWindow,
+                        contextBudgetPercent: budgetPercent,
+                    },
+                });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const body = errorBody(err) ?? {};
-                toast.error(body.error || t('admin.ai_context.save_failed', 'Could not save conversation memory settings'));
-                return;
+                throw new Error(body.error || t('admin.ai_context.save_failed', 'Could not save conversation memory settings'), { cause: err });
             }
-            const body = await res.json().catch(() => ({}));
+        },
+        onSuccess: async () => {
             toast.success(t('admin.ai_context.saved', 'Conversation memory settings saved'));
-            await load();
-        } catch (err) {
-            toast.error(messageOf(err, t('admin.ai_context.save_failed', 'Could not save conversation memory settings')));
-        } finally {
-            setSaving(false);
-        }
-    }, [server, isDirty, orgId, enabled, budgetPercent, t, load]);
+            await refetch();
+        },
+        onError: (err) => toast.error(messageOf(err, t('admin.ai_context.save_failed', 'Could not save conversation memory settings'))),
+    });
+    const saving = save.isPending;
+    const handleSave = () => {
+        if (!server || !isDirty) return;
+        save.mutate(server);
+    };
+
+    return { enabled, setEnabled, budgetPercent, setBudgetPercent, server, loading, loadError, isDirty, saving, handleSave };
+}
+
+export default function OrgAiContextEditor({ orgId }: { orgId?: string | null }) {
+    const { t } = useTranslation();
+    const { enabled, setEnabled, budgetPercent, setBudgetPercent, server, loading, loadError, isDirty, saving, handleSave } = useAiContextForm(orgId, t);
 
     if (!orgId) return null;
 
@@ -195,7 +177,7 @@ export default function OrgAiContextEditor({ orgId }: { orgId?: string | null })
                 >
                     {saving ? t('common.saving', 'Saving...') : t('common.save', 'Save')}
                 </button>
-                {isDirty && (
+                {isDirty && server && (
                     <button
                         type="button"
                         onClick={() => {

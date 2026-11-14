@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio action executor — NATIVE AI STEPS (extracted verbatim from
  * actionExecutor.js): ai_extract / ai_generate / kb_query, together with the
@@ -137,7 +138,7 @@ async function redeemPendingDescriptors(app, model, descriptors, ctx, report = n
     // `asText`: an xml file or a forwarded mail is handed over as text, never stored.
     return redeemEach(descriptors, async (d) => ((d.kind !== 'mailbox_attachment' || d.fileId)
         ? d
-        : materializeAttachment(app, model, { attachmentId: d.attachmentId, viewer, asText: !report.strict })), report);
+        : materializeAttachment(app, model, { attachmentId: /** @type {string} */ (d.attachmentId), viewer, asText: !report.strict })), report);
 }
 
 /**
@@ -324,7 +325,7 @@ async function aiExtractStep(app, model, step, ctx) {
     // temperature / checks / repairRounds (aiReliability.mts): absent, the model and the call are as before.
     const rel = readAppReliability(step);
     const base = { system, user, parameters, toolName: 'record_output', toolDescription: 'Return the extracted records as rows.' };
-    const call = { rt: aiRuntime, app, model: withStepTemperature(aiModel, rel), rel, scope };
+    const call = { rt: /** @type {import('./aiChecks.mts').Runtime} */ (/** @type {unknown} */ (aiRuntime)), app, model: withStepTemperature(aiModel, rel), rel, scope };
     const run = () => aiRuntime.runStructuredWithTools(app, call.model, { ...base, tools: datasetTools.tools });
 
     // A model that answers without `rows` must not look like a
@@ -523,7 +524,7 @@ async function aiGenerateStep(app, model, step, ctx) {
     // temperature / checks / repairRounds (aiReliability.mts, aiChecks.mts): absent, the one call the
     // step always made, with the same model and arguments, and its output.
     const rel = readAppReliability(step);
-    const call = { rt: aiRuntime, app, model: withStepTemperature(aiModel, rel), rel, scope };
+    const call = { rt: /** @type {import('./aiChecks.mts').Runtime} */ (/** @type {unknown} */ (aiRuntime)), app, model: withStepTemperature(aiModel, rel), rel, scope };
     const tracked = { model: aiModel.modelId, citationsOf: () => ground.chunks };
     if (step.output === 'structured') {
         const fields = aiRuntime.normalizeSchemaFields(step.schema);

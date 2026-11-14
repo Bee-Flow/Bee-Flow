@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder tool — `builder_create_datatable`: create a Studio datatable at
  * DESIGN time, so an automation can be built onto a table that did not exist
@@ -132,7 +133,7 @@ async function applyCreateDatatable(draftWrap, args, deps = defaultDeps()) {
     if (same) {
         const approved = draftWrap._approvedDatatableIds;
         if (approved instanceof Set && !approved.has(same.id) && !same.pending) {
-            return choiceRequiredError(same, draftWrap, { op: 'add_row', sameName: true });
+            return choiceRequiredError(/** @type {{ id: string, name?: string }} */ (same), /** @type {Parameters<typeof choiceRequiredError>[1]} */ (draftWrap), { op: 'add_row', sameName: true });
         }
         return {
             datatableId: same.id, datatableKey: same.key, name: same.name,
@@ -144,7 +145,7 @@ async function applyCreateDatatable(draftWrap, args, deps = defaultDeps()) {
 
     // The same gate POST /api/datatables applies: scope, manage_datatables,
     // the organisation match and the training rule.
-    const access = await checkDatatableCreate(
+    const access = /** @type {Record<string, any>} */ (await checkDatatableCreate(
         { userId: ownerId, req: draftWrap._req || null, automationOrgId: draftWrap.orgId || null },
         {
             resolveDatatablePrincipalForUser: deps.resolvePrincipal,
@@ -153,7 +154,7 @@ async function applyCreateDatatable(draftWrap, args, deps = defaultDeps()) {
             manageDatatablesPermission: () => 'manage_datatables',
             evaluateForRequest: deps.evaluateForRequest,
         },
-    );
+    ));
     if (!access.ok) {
         /** @type {Record<string, string>} */
         const hints = {
@@ -183,7 +184,7 @@ async function applyCreateDatatable(draftWrap, args, deps = defaultDeps()) {
     const { table } = result;
     // The catalog the prompt and builder_add_datatable read — refreshed in
     // place so the next call this turn sees the new table.
-    const entry = { id: table.id, name: table.name, key: table.key, description: a.description || '', rowCount: 0, canWrite: true, managedKind: null, scope: table.scope.kind === 'org' ? 'org' : 'personal', columns: table.fields.map((f) => ({ key: f.key, name: f.name, type: f.type, unique: false })) };
+    const entry = { id: table.id, name: table.name, key: table.key, description: /** @type {string} */ (a.description) || '', rowCount: 0, canWrite: true, managedKind: null, scope: table.scope.kind === 'org' ? 'org' : 'personal', columns: table.fields.map((f) => ({ key: f.key, name: f.name, type: f.type, unique: false })) };
     if (Array.isArray(draftWrap._datatables)) draftWrap._datatables.push(entry); else draftWrap._datatables = [entry];
     try {
         const fresh = await deps.catalogFor(ownerId);

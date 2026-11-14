@@ -88,7 +88,7 @@ async function openRows(tableId, rows) {
     return Promise.all(rows.map((row) => openRow(tableId, row, keys)));
 }
 
-async function sealValues(resolved, values, rowId = null) {
+async function sealValues(resolved, values, rowId = /** @type {string | null} */ (null)) {
     if (!isSheet(resolved)) return values;
     const document = await documentFor(resolved.table.id);
     const resource = document ? resourceFor(document, resolved.table.id) : {

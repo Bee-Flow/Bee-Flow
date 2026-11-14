@@ -8,6 +8,26 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const CHK = require('./art30-datatable-registrations');
+const { pgliteDb, dbFacade } = require('../../../testUtils/pgliteDb');
+const { ladderPglite } = require('../../../testUtils/pgliteTemplate');
+const { insertRow } = require('../../../testUtils/pgliteSeed');
+
+// The two table queries run on the boot ladder's schema on PGlite.
+const { pg, db: rawDb } = pgliteDb(ladderPglite());
+const facade = dbFacade(rawDb);
+test.after(() => pg.close());
+let tablesSeeded = null;
+/** orgA: a table with a basis, one with only a retention, one with neither; orgB: a registered one. */
+const seedTables = () => (tablesSeeded ||= (async () => {
+    const t = (/** @type {string} */ id, /** @type {string} */ org, /** @type {Record<string, unknown>} */ over, /** @type {number} */ min) => insertRow(pg, 'datatables', {
+        id, key: id, name: id, scope_kind: 'org', scope_id: org, owner_user_id: 'u1', organization_id: org,
+        created_at: new Date(Date.UTC(2026, 0, 1, 0, min)).toISOString(), ...over,
+    });
+    await t('reg-basis', 'orgA', { lawful_basis: 'contract' }, 1);
+    await t('reg-retention', 'orgA', { retention_days: 90 }, 2);
+    await t('unregistered', 'orgA', {}, 3);
+    await t('theirs', 'orgB', { lawful_basis: 'contract' }, 4);
+})());
 
 const NOW = Date.parse('2026-09-16T12:00:00Z');
 const FIELDS = [{ key: 'created_at', name: 'Created At' }, { key: 'supplier', name: 'Supplier' }];
@@ -162,18 +182,17 @@ test('"registered" is the RoPA\'s definition, not a second one invented here', a
     assert.equal(CHK.isRegistered({ lawful_basis: null, retention_days: null }), false);
     assert.equal(CHK.isRegistered({}), false);
 
-    // …and the SQL half of the same sentence still says it.
-    let sql = '';
-    await CHK._registeredTables('orgA', { getAll: async (q) => { sql = q; return []; } });
-    assert.match(sql, /lawful_basis IS NOT NULL OR retention_days IS NOT NULL/);
+    // …and the SQL half of the same sentence agrees, on real rows.
+    await seedTables();
+    const rows = await CHK._registeredTables('orgA', facade);
+    assert.deepEqual(rows.map((/** @type {any} */ r) => r.id), ['reg-basis', 'reg-retention']);
 });
 
 test('the coverage query is not filtered — that is the whole point of it', async () => {
-    let sql = '';
-    await CHK._allTables('orgA', { getAll: async (q) => { sql = q; return []; } });
-    assert.ok(!/lawful_basis IS NOT NULL/.test(sql), 'filtering here would hide exactly the tables being counted');
-    assert.match(sql, /FROM datatables/);
-    assert.match(sql, /organization_id = \$1/);
+    await seedTables();
+    const rows = await CHK._allTables('orgA', facade);
+    assert.deepEqual(rows.map((/** @type {any} */ r) => r.id), ['reg-basis', 'reg-retention', 'unregistered'],
+        'filtering here would hide exactly the tables being counted; another org\'s stay out');
 });
 
 test('a table list that cannot be read is never reported as "no tables"', async () => {

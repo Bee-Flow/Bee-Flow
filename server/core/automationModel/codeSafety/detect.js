@@ -18,26 +18,13 @@
 'use strict';
 
 const { forEachNode } = require('./parse');
-const { makeFolder, literalPieces } = require('./fold');
-const { hostOfUrlPrefix, mentionsMining, mentionsCollection } = require('./hosts');
+const { makeFolder } = require('./fold');
 const { makeFinding } = require('./rules');
-const { SECRET_PATTERNS } = require('../runLogRedaction');
+const { VISITORS } = require('./detectVisitors');
+const { FUNCTIONS, propName } = require('./detectShapes');
 
-const INTERNAL_NAMES = new Set(['ivm', 'Reference', 'ExternalCopy']);
-const INTERNAL_PROPS = new Set(['derefInto', 'applySync', 'applyIgnored', 'applySyncPromise', 'getSync', 'setSync', 'transferList', 'cachedData']);
-const NODE_GLOBALS = new Set(['require', 'process', 'module', 'exports', '__dirname', '__filename']);
-const LOW_LEVEL = new Set(['WebAssembly', 'SharedArrayBuffer', 'Atomics']);
-const GLOBAL_OBJECTS = new Set(['globalThis', 'global', 'self', 'window']);
-const BUILTINS = new Set(['Object', 'Array', 'Function', 'String', 'Number', 'Boolean', 'Promise', 'RegExp', 'Date', 'Error', 'Map', 'Set', 'JSON', 'Math', 'Symbol', 'BigInt', 'Reflect']);
 const ITERATING_METHODS = new Set(['map', 'forEach', 'filter', 'reduce', 'reduceRight', 'flatMap', 'some', 'every', 'find', 'findIndex']);
 const LOOPS = new Set(['ForStatement', 'ForInStatement', 'ForOfStatement', 'WhileStatement', 'DoWhileStatement']);
-const FUNCTIONS = new Set(['FunctionDeclaration', 'FunctionExpression', 'ArrowFunctionExpression']);
-const SECRET_RES = SECRET_PATTERNS.map(({ re }) => new RegExp(re.source, re.flags.replace('g', '')));
-
-/**
- * @param {string} n
- */
-const isInternalName = (n) => typeof n === 'string' && (n.startsWith('__host') || n.startsWith('__bf') || INTERNAL_NAMES.has(n));
 
 /**
  * Every name the code binds anywhere (variables, functions, params, classes, catch).
@@ -76,59 +63,6 @@ function constBindings(ast) {
     });
     return consts;
 }
-
-/**
- * A static or foldable property name of a MemberExpression, else undefined.
- * @param {import('acorn').MemberExpression} member
- * @param {ReturnType<typeof makeFolder>} fold
- */
-function propName(member, fold) {
-    if (!member.computed) return member.property.type === 'Identifier' ? member.property.name : undefined;
-    const v = fold(member.property);
-    return typeof v === 'string' ? v : undefined;
-}
-
-/** @param {string} s */
-function entropy(s) {
-    /** @type {Map<string, number>} */
-    const counts = new Map();
-    for (const ch of s) counts.set(ch, (counts.get(ch) || 0) + 1);
-    let h = 0;
-    for (const c of counts.values()) { const p = c / s.length; h -= p * Math.log2(p); }
-    return h;
-}
-
-/**
- * Does `body` (not counting nested functions) contain a way out of a loop?
- * @param {import('acorn').AnyNode} body
- */
-function hasExit(body) {
-    let exit = false;
-    /** @param {import('acorn').AnyNode} node */
-    const walk = (node) => {
-        if (!node || exit || typeof node.type !== 'string') return;
-        if (['BreakStatement', 'ReturnStatement', 'ThrowStatement', 'AwaitExpression', 'YieldExpression'].includes(node.type)) { exit = true; return; }
-        if (FUNCTIONS.has(node.type)) return;
-        for (const k of Object.keys(node)) {
-            if (k === 'loc') continue;
-            const v = node[k];
-            if (Array.isArray(v)) v.forEach(walk); else if (v && typeof v.type === 'string') walk(v);
-        }
-    };
-    walk(body);
-    return exit;
-}
-
-/** @param {import('acorn').AnyNode} node */
-const mentionsClock = (node) => {
-    let clock = false;
-    forEachNode(node, (n) => {
-        if (n.type === 'MemberExpression' && !n.computed && (/** @type {import('acorn').Identifier | import('acorn').PrivateIdentifier} */ (n.property)).name === 'now'
-            && n.object.type === 'Identifier' && (n.object.name === 'Date' || n.object.name === 'performance')) clock = true;
-        if (n.type === 'NewExpression' && n.callee.type === 'Identifier' && n.callee.name === 'Date') clock = true;
-    });
-    return clock;
-};
 
 /**
  * @param {import('acorn').Program} ast        acorn Program
@@ -187,129 +121,11 @@ function detect(ast, src, { inputsName = 'inputs', ctxName = 'ctx', allowedTools
     const facts = { hosts: new Set(), dynamicHosts: false, tools: new Set(), inputsRead: new Set(), usesHttp: false, usesDb: false, httpInLoop: false };
     const allowedToolSet = new Set(allowedTools || []);
 
+    /** @type {import('./detectVisitors').DetectEnv} */
+    const env = { fold, isFree, raise, insideLoop, isReference, isCtx, facts, allowedToolSet, allowedHosts, inputsName };
     forEachNode(ast, (n, parent) => {
-        switch (n.type) {
-            case 'Identifier': {
-                if (!isReference(n, parent) || !isFree(n.name)) break;
-                if (isInternalName(n.name)) raise('host-internals', n);
-                else if (NODE_GLOBALS.has(n.name)) raise('node-access', n);
-                else if (LOW_LEVEL.has(n.name)) raise('low-level', n);
-                else if (n.name === 'eval') raise('dynamic-code', n);
-                break;
-            }
-            case 'ImportExpression':
-            case 'MetaProperty':
-                raise('node-access', n);
-                break;
-            case 'WithStatement':
-                raise('dynamic-code', n);
-                break;
-            case 'NewExpression':
-            case 'CallExpression': {
-                const c = n.callee;
-                if (c.type === 'Identifier' && c.name === 'Function' && isFree('Function')) raise('dynamic-code', n);
-                if (c.type === 'Identifier' && (c.name === 'setTimeout' || c.name === 'setInterval') && n.arguments[0]
-                    && typeof fold(n.arguments[0]) === 'string') raise('dynamic-code', n);
-                if (c.type === 'MemberExpression') {
-                    const name = propName(c, fold);
-                    // x.constructor('code'), x['const' + 'ructor'](...), new y.constructor(...)
-                    const spelled = name === undefined && c.computed ? literalPieces(c.property, forEachNode) : name;
-                    if (spelled === 'constructor' && n.arguments.length > 0) raise('dynamic-code', n);
-                    if (c.object.type === 'Identifier' && c.object.name === 'String' && name === 'fromCharCode'
-                        && (n.arguments.length >= 20 || insideLoop(n))) raise('obfuscation', n);
-                    if (c.object.type === 'Identifier' && (c.object.name === 'Object' || c.object.name === 'Reflect')
-                        && (name === 'setPrototypeOf' || name === '__defineGetter__')) raise('builtin-tampering', n);
-                    if (c.object.type === 'Identifier' && (c.object.name === 'Object' || c.object.name === 'Reflect')
-                        && ['getOwnPropertyNames', 'keys', 'ownKeys', 'getOwnPropertyDescriptors', 'entries', 'defineProperty', 'defineProperties'].includes(name)
-                        && n.arguments[0] && ((n.arguments[0].type === 'Identifier' && GLOBAL_OBJECTS.has(n.arguments[0].name) && isFree(n.arguments[0].name))
-                            || (n.arguments[0].type === 'MemberExpression' && propName(n.arguments[0], fold) === 'prototype'
-                                && n.arguments[0].object.type === 'Identifier' && BUILTINS.has(n.arguments[0].object.name)))) raise('builtin-tampering', n);
-                    // ctx.http / ctx.integrations.<tool> / ctx.db
-                    if (isCtx(c.object) && name === 'http') {
-                        facts.usesHttp = true;
-                        if (insideLoop(n)) { facts.httpInLoop = true; raise('http-in-loop', n); }
-                        const host = hostOfCall(n.arguments[0], fold);
-                        if (host) facts.hosts.add(host);
-                        else { facts.dynamicHosts = true; if (!allowedHosts.length) raise('dynamic-host', n); }
-                    }
-                    if (c.object.type === 'MemberExpression' && isCtx(c.object.object) && propName(c.object, fold) === 'integrations') {
-                        if (name === undefined) break;
-                        facts.tools.add(name);
-                        if (!allowedToolSet.has(name)) raise('tool-not-allowed', n);
-                    }
-                    if (c.object.type === 'MemberExpression' && isCtx(c.object.object) && propName(c.object, fold) === 'db') facts.usesDb = true;
-                }
-                break;
-            }
-            case 'MemberExpression': {
-                const name = propName(n, fold);
-                if (name !== undefined && INTERNAL_PROPS.has(name)) raise('host-internals', n);
-                if (name !== undefined && isInternalName(name) && n.computed) raise('host-internals', n);
-                // x.constructor.constructor: the classic way back to Function
-                if (name === 'constructor' && n.object.type === 'MemberExpression' && propName(n.object, fold) === 'constructor') raise('dynamic-code', n);
-                if (n.object.type === 'Identifier' && n.object.name === 'Function' && isFree('Function') && name === 'prototype') raise('dynamic-code', n);
-                if (n.object.type === 'Identifier' && GLOBAL_OBJECTS.has(n.object.name) && isFree(n.object.name) && n.computed) {
-                    const spelled = name !== undefined ? name : literalPieces(n.property, forEachNode);
-                    if (/^(eval|Function)$/.test(spelled) || /constructor/.test(spelled)) raise('dynamic-code', n);
-                    else if (name === undefined) raise('builtin-tampering', n);
-                }
-                if (name === '__proto__') raise('builtin-tampering', n);
-                if (n.object.type === 'Identifier' && n.object.name === 'Error' && (name === 'prepareStackTrace' || name === 'captureStackTrace')) raise('builtin-tampering', n);
-                if (n.object.type === 'Identifier' && n.object.name === 'arguments' && (name === 'callee' || name === 'caller')) raise('builtin-tampering', n);
-                // inputs.x reads
-                if (n.object.type === 'Identifier' && n.object.name === inputsName && name !== undefined) facts.inputsRead.add(name);
-                break;
-            }
-            case 'VariableDeclarator': {
-                // const { a, b: c } = inputs
-                if (n.id.type === 'ObjectPattern' && n.init && n.init.type === 'Identifier' && n.init.name === inputsName) {
-                    for (const p of n.id.properties) if (p.type === 'Property' && !p.computed && p.key.type === 'Identifier') facts.inputsRead.add(p.key.name);
-                }
-                break;
-            }
-            case 'AssignmentExpression': {
-                const t = n.left;
-                if (t.type !== 'MemberExpression') break;
-                // Builtin.prototype.x = ..., Builtin.prototype = ...
-                /** @type {import('acorn').Expression | import('acorn').Super} */
-                let base = t;
-                while (base.type === 'MemberExpression') {
-                    if (propName(base, fold) === 'prototype' && base.object.type === 'Identifier' && BUILTINS.has(base.object.name) && isFree(base.object.name)) { raise('builtin-tampering', n); break; }
-                    base = base.object;
-                }
-                if (t.object.type === 'Identifier' && BUILTINS.has(t.object.name) && isFree(t.object.name) && t.object.name !== 'JSON') raise('builtin-tampering', n);
-                if (t.object.type === 'Identifier' && GLOBAL_OBJECTS.has(t.object.name) && isFree(t.object.name)) raise('builtin-tampering', n);
-                break;
-            }
-            case 'ForInStatement':
-                if (n.right.type === 'Identifier' && GLOBAL_OBJECTS.has(n.right.name) && isFree(n.right.name)) raise('builtin-tampering', n);
-                break;
-            case 'WhileStatement':
-            case 'DoWhileStatement':
-            case 'ForStatement': {
-                const test = n.test;
-                const forever = !test || (test.type === 'Literal' && test.value === true);
-                if ((forever && !hasExit(n.body)) || (test && mentionsClock(test) && !hasExit(n.body))) raise('busy-wait', n);
-                break;
-            }
-            case 'Literal':
-            case 'TemplateElement': {
-                // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- fixed secret shapes from runLogRedaction and fixed host lists, on literals of at most 200 KB
-                const text = n.type === 'Literal' ? (typeof n.value === 'string' ? n.value : null) : n.value.cooked;
-                if (!text) break;
-                if (mentionsMining(text)) raise('mining', n);
-                else if (mentionsCollection(text)) raise('collection-host', n);
-                if (SECRET_RES.some((re) => re.test(text))) raise('hardcoded-secret', n);
-                if (text.length > 10 * 1024) raise('obfuscation', n);
-                else if (text.length > 1024) {
-                    const compact = text.replace(/\s+/g, '');
-                    if ((/^[A-Za-z0-9+/=_-]+$/.test(compact) && entropy(compact) > 4.5) || (/^[0-9a-fA-F]+$/.test(compact) && compact.length > 2048)) raise('obfuscation', n);
-                }
-                break;
-            }
-            default:
-                break;
-        }
+        const visit = VISITORS.get(n.type);
+        if (visit) visit(n, parent, env);
     });
 
     // Line-level signals: packed code and escaped identifiers.
@@ -332,26 +148,6 @@ function detect(ast, src, { inputsName = 'inputs', ctxName = 'ctx', allowedTools
             httpInLoop: facts.httpInLoop,
         },
     };
-}
-
-/**
- * The host a ctx.http(url, ...) call reaches, when the code decides it.
- * @param {import('acorn').Expression | import('acorn').SpreadElement} arg
- * @param {ReturnType<typeof makeFolder>} fold
- */
-function hostOfCall(arg, fold) {
-    if (!arg) return null;
-    const whole = fold(arg);
-    if (typeof whole === 'string') return hostOfUrlPrefix(whole, true);
-    // `https://api.x.com/items/${id}` or 'https://api.x.com/' + id: the known prefix.
-    /** @type {import('acorn').AnyNode} */
-    let head = arg;
-    while (head.type === 'BinaryExpression' && head.operator === '+') head = head.left;
-    /** @type {string | undefined} */
-    let prefix;
-    if (head.type === 'TemplateLiteral') prefix = head.quasis[0].value.cooked;
-    else { const v = fold(head); prefix = typeof v === 'string' ? v : undefined; }
-    return typeof prefix === 'string' ? hostOfUrlPrefix(prefix, false) : null;
 }
 
 /** @param {import('./rules').CodeSafetyFinding[]} findings */

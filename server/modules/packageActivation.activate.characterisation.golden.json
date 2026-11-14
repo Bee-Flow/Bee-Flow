@@ -1,0 +1,5395 @@
+{
+  "plainMv1": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_plainMv1",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_plainMv1:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_plainMv1",
+        {
+          "dataDir": "<root>/char_plainMv1/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_plainMv1"
+      ],
+      [
+        "hostApi.requireCapability",
+        "m_cap"
+      ],
+      [
+        "log",
+        "char_plainMv1",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "store.getState",
+        "char_plainMv1"
+      ],
+      [
+        "store.setImported",
+        "char_plainMv1",
+        {
+          "actorId": "a1",
+          "version": "1.0.0",
+          "settings": {
+            "remote": true,
+            "manifest": {
+              "id": "char_plainMv1",
+              "name": "Mod",
+              "version": "1.0.0",
+              "manifestVersion": 1,
+              "permissions": [],
+              "schemaVersion": null,
+              "description": "",
+              "category": "Modules",
+              "icon": "box",
+              "capabilities": [
+                {
+                  "id": "m_cap",
+                  "kind": "integration",
+                  "name": "m_cap",
+                  "description": "",
+                  "category": null,
+                  "licenseFeature": null,
+                  "lifecycle": "stable"
+                }
+              ],
+              "frontend": null,
+              "requirements": {}
+            },
+            "entitlement": {
+              "plan": "pro"
+            },
+            "package": {
+              "version": "1.0.0",
+              "sha256": "abc",
+              "kid": "k1"
+            },
+            "latestVersion": "1.0.0",
+            "grantedPermissions": null
+          }
+        }
+      ],
+      [
+        "packageStore.setActive",
+        "char_plainMv1",
+        "1.0.0",
+        {
+          "manifest": {
+            "id": "char_plainMv1",
+            "name": "Mod",
+            "version": "1.0.0",
+            "manifestVersion": 1,
+            "permissions": [],
+            "schemaVersion": null,
+            "description": "",
+            "category": "Modules",
+            "icon": "box",
+            "capabilities": [
+              {
+                "id": "m_cap",
+                "kind": "integration",
+                "name": "m_cap",
+                "description": "",
+                "category": null,
+                "licenseFeature": null,
+                "lifecycle": "stable"
+              }
+            ],
+            "frontend": null,
+            "requirements": {}
+          },
+          "kid": "k1",
+          "packageSha256": "abc",
+          "actorId": "a1",
+          "source": "hub"
+        }
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_plainMv1",
+      "version": "1.0.0",
+      "gateCapability": "m_cap",
+      "dir": "<root>/char_plainMv1/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "router"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [
+        {
+          "id": "m_cap",
+          "kind": "integration",
+          "name": "m_cap",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_plainMv1",
+          "_remoteModule": true
+        }
+      ],
+      "betaDescriptors": []
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "manifestFromDisk": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_manifestFromDisk",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_manifestFromDisk:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_manifestFromDisk",
+        {
+          "dataDir": "<root>/char_manifestFromDisk/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_manifestFromDisk"
+      ],
+      [
+        "hostApi.requireCapability",
+        "m_cap"
+      ],
+      [
+        "log",
+        "char_manifestFromDisk",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_manifestFromDisk",
+      "version": "1.0.0",
+      "gateCapability": "m_cap",
+      "dir": "<root>/char_manifestFromDisk/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "router"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [
+        {
+          "id": "m_cap",
+          "kind": "integration",
+          "name": "m_cap",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_manifestFromDisk",
+          "_remoteModule": true
+        }
+      ],
+      "betaDescriptors": []
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "noEntry": {
+    "error": {
+      "message": "manifest missing server.entry",
+      "code": null,
+      "missingPermissions": null
+    },
+    "calls": [],
+    "dispatch": null,
+    "descriptors": null,
+    "health": null,
+    "dataDir": false,
+    "tick": false,
+    "tickMs": null
+  },
+  "noServer": {
+    "error": {
+      "message": "manifest missing server.entry",
+      "code": null,
+      "missingPermissions": null
+    },
+    "calls": [],
+    "dispatch": null,
+    "descriptors": null,
+    "health": null,
+    "dataDir": false,
+    "tick": false,
+    "tickMs": null
+  },
+  "entryEscapes": {
+    "error": {
+      "message": "entry escapes module dir: ../../evil.js",
+      "code": null,
+      "missingPermissions": null
+    },
+    "calls": [],
+    "dispatch": null,
+    "descriptors": null,
+    "health": null,
+    "dataDir": false,
+    "tick": false,
+    "tickMs": null
+  },
+  "entryIsDir": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_entryIsDir",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_entryIsDir:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_entryIsDir",
+        {
+          "dataDir": "<root>/char_entryIsDir/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_entryIsDir"
+      ],
+      [
+        "hostApi.requireCapability",
+        "m_cap"
+      ],
+      [
+        "log",
+        "char_entryIsDir",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "store.getState",
+        "char_entryIsDir"
+      ],
+      [
+        "store.setImported",
+        "char_entryIsDir",
+        {
+          "actorId": null,
+          "version": "1.0.0",
+          "settings": {
+            "remote": true,
+            "manifest": {
+              "id": "char_entryIsDir",
+              "name": "Mod",
+              "version": "1.0.0",
+              "manifestVersion": 1,
+              "permissions": [],
+              "schemaVersion": null,
+              "description": "",
+              "category": "Modules",
+              "icon": "box",
+              "capabilities": [
+                {
+                  "id": "m_cap",
+                  "kind": "integration",
+                  "name": "m_cap",
+                  "description": "",
+                  "category": null,
+                  "licenseFeature": null,
+                  "lifecycle": "stable"
+                }
+              ],
+              "frontend": null,
+              "requirements": {}
+            },
+            "entitlement": null,
+            "package": {
+              "version": "1.0.0",
+              "sha256": null,
+              "kid": null
+            },
+            "latestVersion": "1.0.0",
+            "grantedPermissions": null
+          }
+        }
+      ],
+      [
+        "packageStore.setActive",
+        "char_entryIsDir",
+        "1.0.0",
+        {
+          "manifest": {
+            "id": "char_entryIsDir",
+            "name": "Mod",
+            "version": "1.0.0",
+            "manifestVersion": 1,
+            "permissions": [],
+            "schemaVersion": null,
+            "description": "",
+            "category": "Modules",
+            "icon": "box",
+            "capabilities": [
+              {
+                "id": "m_cap",
+                "kind": "integration",
+                "name": "m_cap",
+                "description": "",
+                "category": null,
+                "licenseFeature": null,
+                "lifecycle": "stable"
+              }
+            ],
+            "frontend": null,
+            "requirements": {}
+          },
+          "kid": null,
+          "packageSha256": null,
+          "actorId": null,
+          "source": null
+        }
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_entryIsDir",
+      "version": "1.0.0",
+      "gateCapability": "m_cap",
+      "dir": "<root>/char_entryIsDir/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "router"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [
+        {
+          "id": "m_cap",
+          "kind": "integration",
+          "name": "m_cap",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_entryIsDir",
+          "_remoteModule": true
+        }
+      ],
+      "betaDescriptors": []
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "mv2GrantedInCall": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_mv2GrantedInCall",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_mv2GrantedInCall:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_mv2GrantedInCall",
+        {
+          "dataDir": "<root>/char_mv2GrantedInCall/data",
+          "permissions": [
+            "kb.read",
+            "mail.send"
+          ]
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_mv2GrantedInCall"
+      ],
+      [
+        "hostApi.requireCapability",
+        "m_cap"
+      ],
+      [
+        "log",
+        "char_mv2GrantedInCall",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "store.getState",
+        "char_mv2GrantedInCall"
+      ],
+      [
+        "store.setImported",
+        "char_mv2GrantedInCall",
+        {
+          "actorId": null,
+          "version": "1.0.0",
+          "settings": {
+            "remote": true,
+            "manifest": {
+              "id": "char_mv2GrantedInCall",
+              "name": "Mod",
+              "version": "1.0.0",
+              "manifestVersion": 2,
+              "permissions": [
+                "kb.read",
+                "mail.send"
+              ],
+              "schemaVersion": null,
+              "description": "",
+              "category": "Modules",
+              "icon": "box",
+              "capabilities": [
+                {
+                  "id": "m_cap",
+                  "kind": "integration",
+                  "name": "m_cap",
+                  "description": "",
+                  "category": null,
+                  "licenseFeature": null,
+                  "lifecycle": "stable"
+                }
+              ],
+              "frontend": null,
+              "requirements": {}
+            },
+            "entitlement": null,
+            "package": {
+              "version": "1.0.0",
+              "sha256": null,
+              "kid": null
+            },
+            "latestVersion": "1.0.0",
+            "grantedPermissions": {
+              "list": [
+                "kb.read",
+                "mail.send",
+                "extra"
+              ]
+            }
+          }
+        }
+      ],
+      [
+        "packageStore.setActive",
+        "char_mv2GrantedInCall",
+        "1.0.0",
+        {
+          "manifest": {
+            "id": "char_mv2GrantedInCall",
+            "name": "Mod",
+            "version": "1.0.0",
+            "manifestVersion": 2,
+            "permissions": [
+              "kb.read",
+              "mail.send"
+            ],
+            "schemaVersion": null,
+            "description": "",
+            "category": "Modules",
+            "icon": "box",
+            "capabilities": [
+              {
+                "id": "m_cap",
+                "kind": "integration",
+                "name": "m_cap",
+                "description": "",
+                "category": null,
+                "licenseFeature": null,
+                "lifecycle": "stable"
+              }
+            ],
+            "frontend": null,
+            "requirements": {}
+          },
+          "kid": null,
+          "packageSha256": null,
+          "actorId": null,
+          "source": null
+        }
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_mv2GrantedInCall",
+      "version": "1.0.0",
+      "gateCapability": "m_cap",
+      "dir": "<root>/char_mv2GrantedInCall/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "router"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [
+        {
+          "id": "m_cap",
+          "kind": "integration",
+          "name": "m_cap",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_mv2GrantedInCall",
+          "_remoteModule": true
+        }
+      ],
+      "betaDescriptors": []
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "mv2GrantedInStore": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_mv2GrantedInStore",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "store.getState",
+        "char_mv2GrantedInStore"
+      ],
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_mv2GrantedInStore:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_mv2GrantedInStore",
+        {
+          "dataDir": "<root>/char_mv2GrantedInStore/data",
+          "permissions": [
+            "kb.read",
+            "mail.send"
+          ]
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_mv2GrantedInStore"
+      ],
+      [
+        "hostApi.requireCapability",
+        "m_cap"
+      ],
+      [
+        "log",
+        "char_mv2GrantedInStore",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "store.getState",
+        "char_mv2GrantedInStore"
+      ],
+      [
+        "store.setImported",
+        "char_mv2GrantedInStore",
+        {
+          "actorId": null,
+          "version": "1.0.0",
+          "settings": {
+            "remote": true,
+            "manifest": {
+              "id": "char_mv2GrantedInStore",
+              "name": "Mod",
+              "version": "1.0.0",
+              "manifestVersion": 2,
+              "permissions": [
+                "kb.read",
+                "mail.send"
+              ],
+              "schemaVersion": null,
+              "description": "",
+              "category": "Modules",
+              "icon": "box",
+              "capabilities": [
+                {
+                  "id": "m_cap",
+                  "kind": "integration",
+                  "name": "m_cap",
+                  "description": "",
+                  "category": null,
+                  "licenseFeature": null,
+                  "lifecycle": "stable"
+                }
+              ],
+              "frontend": null,
+              "requirements": {}
+            },
+            "entitlement": null,
+            "package": {
+              "version": "1.0.0",
+              "sha256": null,
+              "kid": null
+            },
+            "latestVersion": "1.0.0",
+            "grantedPermissions": {
+              "list": [
+                "kb.read",
+                "mail.send"
+              ]
+            }
+          }
+        }
+      ],
+      [
+        "packageStore.setActive",
+        "char_mv2GrantedInStore",
+        "1.0.0",
+        {
+          "manifest": {
+            "id": "char_mv2GrantedInStore",
+            "name": "Mod",
+            "version": "1.0.0",
+            "manifestVersion": 2,
+            "permissions": [
+              "kb.read",
+              "mail.send"
+            ],
+            "schemaVersion": null,
+            "description": "",
+            "category": "Modules",
+            "icon": "box",
+            "capabilities": [
+              {
+                "id": "m_cap",
+                "kind": "integration",
+                "name": "m_cap",
+                "description": "",
+                "category": null,
+                "licenseFeature": null,
+                "lifecycle": "stable"
+              }
+            ],
+            "frontend": null,
+            "requirements": {}
+          },
+          "kid": null,
+          "packageSha256": null,
+          "actorId": null,
+          "source": null
+        }
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_mv2GrantedInStore",
+      "version": "1.0.0",
+      "gateCapability": "m_cap",
+      "dir": "<root>/char_mv2GrantedInStore/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "router"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [
+        {
+          "id": "m_cap",
+          "kind": "integration",
+          "name": "m_cap",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_mv2GrantedInStore",
+          "_remoteModule": true
+        }
+      ],
+      "betaDescriptors": []
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "mv2MissingSome": {
+    "error": {
+      "message": "permissions_not_granted: mail.send",
+      "code": "permissions_not_granted",
+      "missingPermissions": [
+        "mail.send"
+      ]
+    },
+    "calls": [],
+    "dispatch": null,
+    "descriptors": null,
+    "health": null,
+    "dataDir": false,
+    "tick": false,
+    "tickMs": null
+  },
+  "mv2EmptyGrantObject": {
+    "error": {
+      "message": "permissions_not_granted: kb.read,mail.send",
+      "code": "permissions_not_granted",
+      "missingPermissions": [
+        "kb.read",
+        "mail.send"
+      ]
+    },
+    "calls": [],
+    "dispatch": null,
+    "descriptors": null,
+    "health": null,
+    "dataDir": false,
+    "tick": false,
+    "tickMs": null
+  },
+  "mv2StoreThrows": {
+    "error": {
+      "message": "permissions_not_granted: kb.read,mail.send",
+      "code": "permissions_not_granted",
+      "missingPermissions": [
+        "kb.read",
+        "mail.send"
+      ]
+    },
+    "calls": [
+      [
+        "store.getState",
+        "char_mv2StoreThrows"
+      ]
+    ],
+    "dispatch": null,
+    "descriptors": null,
+    "health": null,
+    "dataDir": false,
+    "tick": false,
+    "tickMs": null
+  },
+  "mv2StoreRowNoSettings": {
+    "error": {
+      "message": "permissions_not_granted: kb.read,mail.send",
+      "code": "permissions_not_granted",
+      "missingPermissions": [
+        "kb.read",
+        "mail.send"
+      ]
+    },
+    "calls": [
+      [
+        "store.getState",
+        "char_mv2StoreRowNoSettings"
+      ]
+    ],
+    "dispatch": null,
+    "descriptors": null,
+    "health": null,
+    "dataDir": false,
+    "tick": false,
+    "tickMs": null
+  },
+  "mv2NoPermissions": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_mv2NoPermissions",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_mv2NoPermissions:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_mv2NoPermissions",
+        {
+          "dataDir": "<root>/char_mv2NoPermissions/data",
+          "permissions": []
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_mv2NoPermissions"
+      ],
+      [
+        "hostApi.requireCapability",
+        "m_cap"
+      ],
+      [
+        "log",
+        "char_mv2NoPermissions",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "store.getState",
+        "char_mv2NoPermissions"
+      ],
+      [
+        "store.setImported",
+        "char_mv2NoPermissions",
+        {
+          "actorId": null,
+          "version": "1.0.0",
+          "settings": {
+            "remote": true,
+            "manifest": {
+              "id": "char_mv2NoPermissions",
+              "name": "Mod",
+              "version": "1.0.0",
+              "manifestVersion": 2,
+              "permissions": [],
+              "schemaVersion": null,
+              "description": "",
+              "category": "Modules",
+              "icon": "box",
+              "capabilities": [
+                {
+                  "id": "m_cap",
+                  "kind": "integration",
+                  "name": "m_cap",
+                  "description": "",
+                  "category": null,
+                  "licenseFeature": null,
+                  "lifecycle": "stable"
+                }
+              ],
+              "frontend": null,
+              "requirements": {}
+            },
+            "entitlement": null,
+            "package": {
+              "version": "1.0.0",
+              "sha256": null,
+              "kid": null
+            },
+            "latestVersion": "1.0.0",
+            "grantedPermissions": null
+          }
+        }
+      ],
+      [
+        "packageStore.setActive",
+        "char_mv2NoPermissions",
+        "1.0.0",
+        {
+          "manifest": {
+            "id": "char_mv2NoPermissions",
+            "name": "Mod",
+            "version": "1.0.0",
+            "manifestVersion": 2,
+            "permissions": [],
+            "schemaVersion": null,
+            "description": "",
+            "category": "Modules",
+            "icon": "box",
+            "capabilities": [
+              {
+                "id": "m_cap",
+                "kind": "integration",
+                "name": "m_cap",
+                "description": "",
+                "category": null,
+                "licenseFeature": null,
+                "lifecycle": "stable"
+              }
+            ],
+            "frontend": null,
+            "requirements": {}
+          },
+          "kid": null,
+          "packageSha256": null,
+          "actorId": null,
+          "source": null
+        }
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_mv2NoPermissions",
+      "version": "1.0.0",
+      "gateCapability": "m_cap",
+      "dir": "<root>/char_mv2NoPermissions/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "router"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [
+        {
+          "id": "m_cap",
+          "kind": "integration",
+          "name": "m_cap",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_mv2NoPermissions",
+          "_remoteModule": true
+        }
+      ],
+      "betaDescriptors": []
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "mv2PermissionsNotList": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_mv2PermissionsNotList",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_mv2PermissionsNotList:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_mv2PermissionsNotList",
+        {
+          "dataDir": "<root>/char_mv2PermissionsNotList/data",
+          "permissions": []
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_mv2PermissionsNotList"
+      ],
+      [
+        "hostApi.requireCapability",
+        "m_cap"
+      ],
+      [
+        "log",
+        "char_mv2PermissionsNotList",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "store.getState",
+        "char_mv2PermissionsNotList"
+      ],
+      [
+        "store.setImported",
+        "char_mv2PermissionsNotList",
+        {
+          "actorId": null,
+          "version": "1.0.0",
+          "settings": {
+            "remote": true,
+            "manifest": {
+              "id": "char_mv2PermissionsNotList",
+              "name": "Mod",
+              "version": "1.0.0",
+              "manifestVersion": 2,
+              "permissions": [],
+              "schemaVersion": null,
+              "description": "",
+              "category": "Modules",
+              "icon": "box",
+              "capabilities": [
+                {
+                  "id": "m_cap",
+                  "kind": "integration",
+                  "name": "m_cap",
+                  "description": "",
+                  "category": null,
+                  "licenseFeature": null,
+                  "lifecycle": "stable"
+                }
+              ],
+              "frontend": null,
+              "requirements": {}
+            },
+            "entitlement": null,
+            "package": {
+              "version": "1.0.0",
+              "sha256": null,
+              "kid": null
+            },
+            "latestVersion": "1.0.0",
+            "grantedPermissions": null
+          }
+        }
+      ],
+      [
+        "packageStore.setActive",
+        "char_mv2PermissionsNotList",
+        "1.0.0",
+        {
+          "manifest": {
+            "id": "char_mv2PermissionsNotList",
+            "name": "Mod",
+            "version": "1.0.0",
+            "manifestVersion": 2,
+            "permissions": [],
+            "schemaVersion": null,
+            "description": "",
+            "category": "Modules",
+            "icon": "box",
+            "capabilities": [
+              {
+                "id": "m_cap",
+                "kind": "integration",
+                "name": "m_cap",
+                "description": "",
+                "category": null,
+                "licenseFeature": null,
+                "lifecycle": "stable"
+              }
+            ],
+            "frontend": null,
+            "requirements": {}
+          },
+          "kid": null,
+          "packageSha256": null,
+          "actorId": null,
+          "source": null
+        }
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_mv2PermissionsNotList",
+      "version": "1.0.0",
+      "gateCapability": "m_cap",
+      "dir": "<root>/char_mv2PermissionsNotList/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "router"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [
+        {
+          "id": "m_cap",
+          "kind": "integration",
+          "name": "m_cap",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_mv2PermissionsNotList",
+          "_remoteModule": true
+        }
+      ],
+      "betaDescriptors": []
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "mv3": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_mv3",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_mv3:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_mv3",
+        {
+          "dataDir": "<root>/char_mv3/data",
+          "permissions": [
+            "kb.read",
+            "mail.send"
+          ]
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_mv3"
+      ],
+      [
+        "hostApi.requireCapability",
+        "m_cap"
+      ],
+      [
+        "log",
+        "char_mv3",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_mv3",
+      "version": "1.0.0",
+      "gateCapability": "m_cap",
+      "dir": "<root>/char_mv3/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "router"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [
+        {
+          "id": "m_cap",
+          "kind": "integration",
+          "name": "m_cap",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_mv3",
+          "_remoteModule": true
+        }
+      ],
+      "betaDescriptors": []
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "conflictAtInstall": {
+    "error": {
+      "message": "capability_conflict: taken",
+      "code": null,
+      "missingPermissions": null
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.getCapability",
+        "taken"
+      ]
+    ],
+    "dispatch": null,
+    "descriptors": null,
+    "health": null,
+    "dataDir": false,
+    "tick": false,
+    "tickMs": null
+  },
+  "conflictAtBoot": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_conflictAtBoot",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.getCapability",
+        "taken"
+      ],
+      [
+        "registry.getCapability",
+        "own"
+      ],
+      [
+        "log",
+        "char_conflictAtBoot",
+        "system",
+        [
+          "capability conflict (grandfathered, descriptors skipped): taken"
+        ]
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_conflictAtBoot:m_cap:beta",
+          "char_conflictAtBoot:own:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        [
+          "m_cap"
+        ]
+      ],
+      [
+        "hostApi.build",
+        "char_conflictAtBoot",
+        {
+          "dataDir": "<root>/char_conflictAtBoot/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_conflictAtBoot"
+      ],
+      [
+        "hostApi.requireCapability",
+        "m_cap"
+      ],
+      [
+        "log",
+        "char_conflictAtBoot",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_conflictAtBoot",
+      "version": "1.0.0",
+      "gateCapability": "m_cap",
+      "dir": "<root>/char_conflictAtBoot/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "router"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [
+        {
+          "id": "m_cap",
+          "kind": "beta",
+          "name": "m_cap",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "on",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_conflictAtBoot",
+          "_remoteModule": true
+        },
+        {
+          "id": "own",
+          "kind": "integration",
+          "name": "own",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_conflictAtBoot",
+          "_remoteModule": true
+        }
+      ],
+      "betaDescriptors": [
+        {
+          "id": "m_cap",
+          "name": "m_cap",
+          "description": "",
+          "lifecycle": "beta",
+          "licenseFeature": null
+        }
+      ]
+    },
+    "health": {
+      "crashes": [],
+      "lastActivationError": null,
+      "disposeTimeouts": 0,
+      "capabilityConflicts": [
+        "taken"
+      ],
+      "healTerminal": null
+    },
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "registryThrows": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_registryThrows",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_registryThrows:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_registryThrows",
+        {
+          "dataDir": "<root>/char_registryThrows/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_registryThrows"
+      ],
+      [
+        "hostApi.requireCapability",
+        "m_cap"
+      ],
+      [
+        "log",
+        "char_registryThrows",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_registryThrows",
+      "version": "1.0.0",
+      "gateCapability": "m_cap",
+      "dir": "<root>/char_registryThrows/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "router"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [
+        {
+          "id": "m_cap",
+          "kind": "integration",
+          "name": "m_cap",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_registryThrows",
+          "_remoteModule": true
+        }
+      ],
+      "betaDescriptors": []
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "coreKindCap": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_coreKindCap",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "c1"
+      ],
+      [
+        "registry.getCapability",
+        "b1"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_coreKindCap:c1:integration",
+          "char_coreKindCap:b1:beta"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        [
+          "b1"
+        ]
+      ],
+      [
+        "hostApi.build",
+        "char_coreKindCap",
+        {
+          "dataDir": "<root>/char_coreKindCap/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_coreKindCap"
+      ],
+      [
+        "hostApi.requireCapability",
+        "c1"
+      ],
+      [
+        "log",
+        "char_coreKindCap",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_coreKindCap",
+      "version": "1.0.0",
+      "gateCapability": "c1",
+      "dir": "<root>/char_coreKindCap/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "router"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [
+        {
+          "id": "c1",
+          "kind": "integration",
+          "name": "c1",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_coreKindCap",
+          "_remoteModule": true
+        },
+        {
+          "id": "b1",
+          "kind": "beta",
+          "name": "b1",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "preview",
+          "defaultState": "on",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_coreKindCap",
+          "_remoteModule": true
+        }
+      ],
+      "betaDescriptors": [
+        {
+          "id": "b1",
+          "name": "b1",
+          "description": "",
+          "lifecycle": "preview",
+          "licenseFeature": null
+        }
+      ]
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "requireFails": {
+    "error": {
+      "message": "module require failed: Cannot find module '<root>/char_requireFails/versions/1.0.0/index.js'\nRequire stack:\n- <server>/modules/packageActivation.js\n- <server>/modules/packageActivation.activate.characterisation.test.js",
+      "code": null,
+      "missingPermissions": null
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_requireFails:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_requireFails",
+        {
+          "dataDir": "<root>/char_requireFails/data",
+          "permissions": null
+        }
+      ],
+      [
+        "registry.setRemote",
+        []
+      ],
+      [
+        "beta.setRemote",
+        []
+      ]
+    ],
+    "dispatch": null,
+    "descriptors": null,
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "requireThrows": {
+    "error": {
+      "message": "module require failed: syntax-ish failure at load",
+      "code": null,
+      "missingPermissions": null
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_requireThrows:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_requireThrows",
+        {
+          "dataDir": "<root>/char_requireThrows/data",
+          "permissions": null
+        }
+      ],
+      [
+        "registry.setRemote",
+        []
+      ],
+      [
+        "beta.setRemote",
+        []
+      ]
+    ],
+    "dispatch": null,
+    "descriptors": null,
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "nullExport": {
+    "error": {
+      "message": "module does not export createModule(hostApi)",
+      "code": null,
+      "missingPermissions": null
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_nullExport:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_nullExport",
+        {
+          "dataDir": "<root>/char_nullExport/data",
+          "permissions": null
+        }
+      ],
+      [
+        "registry.setRemote",
+        []
+      ],
+      [
+        "beta.setRemote",
+        []
+      ]
+    ],
+    "dispatch": null,
+    "descriptors": null,
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "noCreateModule": {
+    "error": {
+      "message": "module does not export createModule(hostApi)",
+      "code": null,
+      "missingPermissions": null
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_noCreateModule:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_noCreateModule",
+        {
+          "dataDir": "<root>/char_noCreateModule/data",
+          "permissions": null
+        }
+      ],
+      [
+        "registry.setRemote",
+        []
+      ],
+      [
+        "beta.setRemote",
+        []
+      ]
+    ],
+    "dispatch": null,
+    "descriptors": null,
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "createThrows": {
+    "error": {
+      "message": "createModule failed: create blew up",
+      "code": null,
+      "missingPermissions": null
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_createThrows:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_createThrows",
+        {
+          "dataDir": "<root>/char_createThrows/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_createThrows"
+      ],
+      [
+        "registry.setRemote",
+        []
+      ],
+      [
+        "beta.setRemote",
+        []
+      ]
+    ],
+    "dispatch": null,
+    "descriptors": null,
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "createNull": {
+    "error": {
+      "message": "createModule must return { router }",
+      "code": null,
+      "missingPermissions": null
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_createNull:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_createNull",
+        {
+          "dataDir": "<root>/char_createNull/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_createNull"
+      ],
+      [
+        "registry.setRemote",
+        []
+      ],
+      [
+        "beta.setRemote",
+        []
+      ]
+    ],
+    "dispatch": null,
+    "descriptors": null,
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "noRouter": {
+    "error": {
+      "message": "createModule must return { router }",
+      "code": null,
+      "missingPermissions": null
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_noRouter:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_noRouter",
+        {
+          "dataDir": "<root>/char_noRouter/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_noRouter"
+      ],
+      [
+        "registry.setRemote",
+        []
+      ],
+      [
+        "beta.setRemote",
+        []
+      ]
+    ],
+    "dispatch": null,
+    "descriptors": null,
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "initDBsOk": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_initDBsOk",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_initDBsOk:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_initDBsOk",
+        {
+          "dataDir": "<root>/char_initDBsOk/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_initDBsOk"
+      ],
+      [
+        "onPhase",
+        "migrating",
+        75
+      ],
+      [
+        "initDBs"
+      ],
+      [
+        "onPhase",
+        "activating",
+        90
+      ],
+      [
+        "hostApi.requireCapability",
+        "m_cap"
+      ],
+      [
+        "log",
+        "char_initDBsOk",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "store.getState",
+        "char_initDBsOk"
+      ],
+      [
+        "store.setImported",
+        "char_initDBsOk",
+        {
+          "actorId": null,
+          "version": "1.0.0",
+          "settings": {
+            "remote": true,
+            "manifest": {
+              "id": "char_initDBsOk",
+              "name": "Mod",
+              "version": "1.0.0",
+              "manifestVersion": 1,
+              "permissions": [],
+              "schemaVersion": null,
+              "description": "",
+              "category": "Modules",
+              "icon": "box",
+              "capabilities": [
+                {
+                  "id": "m_cap",
+                  "kind": "integration",
+                  "name": "m_cap",
+                  "description": "",
+                  "category": null,
+                  "licenseFeature": null,
+                  "lifecycle": "stable"
+                }
+              ],
+              "frontend": null,
+              "requirements": {}
+            },
+            "entitlement": null,
+            "package": {
+              "version": "1.0.0",
+              "sha256": null,
+              "kid": null
+            },
+            "latestVersion": "1.0.0",
+            "grantedPermissions": null
+          }
+        }
+      ],
+      [
+        "packageStore.setActive",
+        "char_initDBsOk",
+        "1.0.0",
+        {
+          "manifest": {
+            "id": "char_initDBsOk",
+            "name": "Mod",
+            "version": "1.0.0",
+            "manifestVersion": 1,
+            "permissions": [],
+            "schemaVersion": null,
+            "description": "",
+            "category": "Modules",
+            "icon": "box",
+            "capabilities": [
+              {
+                "id": "m_cap",
+                "kind": "integration",
+                "name": "m_cap",
+                "description": "",
+                "category": null,
+                "licenseFeature": null,
+                "lifecycle": "stable"
+              }
+            ],
+            "frontend": null,
+            "requirements": {}
+          },
+          "kid": null,
+          "packageSha256": null,
+          "actorId": null,
+          "source": null
+        }
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_initDBsOk",
+      "version": "1.0.0",
+      "gateCapability": "m_cap",
+      "dir": "<root>/char_initDBsOk/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "initDBs",
+        "router"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [
+        {
+          "id": "m_cap",
+          "kind": "integration",
+          "name": "m_cap",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_initDBsOk",
+          "_remoteModule": true
+        }
+      ],
+      "betaDescriptors": []
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "initDBsThrows": {
+    "error": {
+      "message": "initDBs failed: migration 3 failed",
+      "code": null,
+      "missingPermissions": null
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_initDBsThrows:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_initDBsThrows",
+        {
+          "dataDir": "<root>/char_initDBsThrows/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_initDBsThrows"
+      ],
+      [
+        "onPhase",
+        "migrating",
+        75
+      ],
+      [
+        "initDBs"
+      ],
+      [
+        "registry.setRemote",
+        []
+      ],
+      [
+        "beta.setRemote",
+        []
+      ]
+    ],
+    "dispatch": null,
+    "descriptors": null,
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "onPhaseNoInit": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_onPhaseNoInit",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_onPhaseNoInit:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_onPhaseNoInit",
+        {
+          "dataDir": "<root>/char_onPhaseNoInit/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_onPhaseNoInit"
+      ],
+      [
+        "onPhase",
+        "activating",
+        90
+      ],
+      [
+        "hostApi.requireCapability",
+        "m_cap"
+      ],
+      [
+        "log",
+        "char_onPhaseNoInit",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_onPhaseNoInit",
+      "version": "1.0.0",
+      "gateCapability": "m_cap",
+      "dir": "<root>/char_onPhaseNoInit/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "router"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [
+        {
+          "id": "m_cap",
+          "kind": "integration",
+          "name": "m_cap",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_onPhaseNoInit",
+          "_remoteModule": true
+        }
+      ],
+      "betaDescriptors": []
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "gateOverride": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_gateOverride",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "x"
+      ],
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_gateOverride:x:integration",
+          "char_gateOverride:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_gateOverride",
+        {
+          "dataDir": "<root>/char_gateOverride/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_gateOverride"
+      ],
+      [
+        "hostApi.requireCapability",
+        "m_cap"
+      ],
+      [
+        "log",
+        "char_gateOverride",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_gateOverride",
+      "version": "1.0.0",
+      "gateCapability": "m_cap",
+      "dir": "<root>/char_gateOverride/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "router"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [
+        {
+          "id": "x",
+          "kind": "integration",
+          "name": "x",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_gateOverride",
+          "_remoteModule": true
+        },
+        {
+          "id": "m_cap",
+          "kind": "integration",
+          "name": "m_cap",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_gateOverride",
+          "_remoteModule": true
+        }
+      ],
+      "betaDescriptors": []
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "gateStudioApp": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_gateStudioApp",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "x"
+      ],
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_gateStudioApp:x:integration",
+          "char_gateStudioApp:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_gateStudioApp",
+        {
+          "dataDir": "<root>/char_gateStudioApp/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_gateStudioApp"
+      ],
+      [
+        "hostApi.requireCapability",
+        "m_cap"
+      ],
+      [
+        "log",
+        "char_gateStudioApp",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_gateStudioApp",
+      "version": "1.0.0",
+      "gateCapability": "m_cap",
+      "dir": "<root>/char_gateStudioApp/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "router"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [
+        {
+          "id": "x",
+          "kind": "integration",
+          "name": "x",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_gateStudioApp",
+          "_remoteModule": true
+        },
+        {
+          "id": "m_cap",
+          "kind": "integration",
+          "name": "m_cap",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_gateStudioApp",
+          "_remoteModule": true
+        }
+      ],
+      "betaDescriptors": []
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "gateFrontend": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_gateFrontend",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "x"
+      ],
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_gateFrontend:x:integration",
+          "char_gateFrontend:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_gateFrontend",
+        {
+          "dataDir": "<root>/char_gateFrontend/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_gateFrontend"
+      ],
+      [
+        "hostApi.requireCapability",
+        "m_cap"
+      ],
+      [
+        "log",
+        "char_gateFrontend",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_gateFrontend",
+      "version": "1.0.0",
+      "gateCapability": "m_cap",
+      "dir": "<root>/char_gateFrontend/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "router"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [
+        {
+          "id": "x",
+          "kind": "integration",
+          "name": "x",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_gateFrontend",
+          "_remoteModule": true
+        },
+        {
+          "id": "m_cap",
+          "kind": "integration",
+          "name": "m_cap",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_gateFrontend",
+          "_remoteModule": true
+        }
+      ],
+      "betaDescriptors": []
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "gateFirstCap": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_gateFirstCap",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "first"
+      ],
+      [
+        "registry.getCapability",
+        "second"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_gateFirstCap:first:integration",
+          "char_gateFirstCap:second:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_gateFirstCap",
+        {
+          "dataDir": "<root>/char_gateFirstCap/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_gateFirstCap"
+      ],
+      [
+        "hostApi.requireCapability",
+        "first"
+      ],
+      [
+        "log",
+        "char_gateFirstCap",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_gateFirstCap",
+      "version": "1.0.0",
+      "gateCapability": "first",
+      "dir": "<root>/char_gateFirstCap/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "router"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [
+        {
+          "id": "first",
+          "kind": "integration",
+          "name": "first",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_gateFirstCap",
+          "_remoteModule": true
+        },
+        {
+          "id": "second",
+          "kind": "integration",
+          "name": "second",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_gateFirstCap",
+          "_remoteModule": true
+        }
+      ],
+      "betaDescriptors": []
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "gateNotOwn": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_gateNotOwn",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "mine"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_gateNotOwn:mine:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_gateNotOwn",
+        {
+          "dataDir": "<root>/char_gateNotOwn/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_gateNotOwn"
+      ],
+      [
+        "hostApi.requireCapability",
+        "mine"
+      ],
+      [
+        "log",
+        "char_gateNotOwn",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_gateNotOwn",
+      "version": "1.0.0",
+      "gateCapability": "mine",
+      "dir": "<root>/char_gateNotOwn/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "router"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [
+        {
+          "id": "mine",
+          "kind": "integration",
+          "name": "mine",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_gateNotOwn",
+          "_remoteModule": true
+        }
+      ],
+      "betaDescriptors": []
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "gateNotOwnNoCaps": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_gateNotOwnNoCaps",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.setRemote",
+        []
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_gateNotOwnNoCaps",
+        {
+          "dataDir": "<root>/char_gateNotOwnNoCaps/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_gateNotOwnNoCaps"
+      ],
+      [
+        "log",
+        "char_gateNotOwnNoCaps",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_gateNotOwnNoCaps",
+      "version": "1.0.0",
+      "gateCapability": null,
+      "dir": "<root>/char_gateNotOwnNoCaps/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "router"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [],
+      "betaDescriptors": []
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "gateNone": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_gateNone",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.setRemote",
+        []
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_gateNone",
+        {
+          "dataDir": "<root>/char_gateNone/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_gateNone"
+      ],
+      [
+        "log",
+        "char_gateNone",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_gateNone",
+      "version": "1.0.0",
+      "gateCapability": null,
+      "dir": "<root>/char_gateNone/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "router"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [],
+      "betaDescriptors": []
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "gateFirstCapNoId": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_gateFirstCapNoId",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "y"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_gateFirstCapNoId:y:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_gateFirstCapNoId",
+        {
+          "dataDir": "<root>/char_gateFirstCapNoId/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_gateFirstCapNoId"
+      ],
+      [
+        "log",
+        "char_gateFirstCapNoId",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_gateFirstCapNoId",
+      "version": "1.0.0",
+      "gateCapability": null,
+      "dir": "<root>/char_gateFirstCapNoId/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "router"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [
+        {
+          "id": "y",
+          "kind": "integration",
+          "name": "y",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_gateFirstCapNoId",
+          "_remoteModule": true
+        }
+      ],
+      "betaDescriptors": []
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "routes": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_routes",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_routes:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_routes",
+        {
+          "dataDir": "<root>/char_routes/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_routes"
+      ],
+      [
+        "hostApi.requireCapability",
+        "m_cap"
+      ],
+      [
+        "log",
+        "char_routes",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_routes",
+      "version": "1.0.0",
+      "gateCapability": "m_cap",
+      "dir": "<root>/char_routes/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [
+        "/sse"
+      ],
+      "publicRoutes": [
+        "/hook"
+      ],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "router"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [
+        {
+          "id": "m_cap",
+          "kind": "integration",
+          "name": "m_cap",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_routes",
+          "_remoteModule": true
+        }
+      ],
+      "betaDescriptors": []
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "routesNotLists": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_routesNotLists",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_routesNotLists:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_routesNotLists",
+        {
+          "dataDir": "<root>/char_routesNotLists/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_routesNotLists"
+      ],
+      [
+        "hostApi.requireCapability",
+        "m_cap"
+      ],
+      [
+        "log",
+        "char_routesNotLists",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_routesNotLists",
+      "version": "1.0.0",
+      "gateCapability": "m_cap",
+      "dir": "<root>/char_routesNotLists/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "router"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [
+        {
+          "id": "m_cap",
+          "kind": "integration",
+          "name": "m_cap",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_routesNotLists",
+          "_remoteModule": true
+        }
+      ],
+      "betaDescriptors": []
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "hotSwap": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_hotSwap",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_hotSwap:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_hotSwap",
+        {
+          "dataDir": "<root>/char_hotSwap/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_hotSwap"
+      ],
+      [
+        "hostApi.requireCapability",
+        "m_cap"
+      ],
+      [
+        "log",
+        "char_hotSwap",
+        "system",
+        [
+          "old v0.9.0 drained (0 in-flight at timeout) + disposed"
+        ]
+      ],
+      [
+        "log",
+        "char_hotSwap",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_hotSwap",
+      "version": "1.0.0",
+      "gateCapability": "m_cap",
+      "dir": "<root>/char_hotSwap/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "router"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [
+        {
+          "id": "m_cap",
+          "kind": "integration",
+          "name": "m_cap",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_hotSwap",
+          "_remoteModule": true
+        }
+      ],
+      "betaDescriptors": []
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "tickDefault": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_tickDefault",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_tickDefault:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_tickDefault",
+        {
+          "dataDir": "<root>/char_tickDefault/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_tickDefault"
+      ],
+      [
+        "hostApi.requireCapability",
+        "m_cap"
+      ],
+      [
+        "log",
+        "char_tickDefault",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_tickDefault",
+      "version": "1.0.0",
+      "gateCapability": "m_cap",
+      "dir": "<root>/char_tickDefault/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "router",
+        "tick"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [
+        {
+          "id": "m_cap",
+          "kind": "integration",
+          "name": "m_cap",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_tickDefault",
+          "_remoteModule": true
+        }
+      ],
+      "betaDescriptors": []
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": true,
+    "tickMs": 60000
+  },
+  "tickCustom": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_tickCustom",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_tickCustom:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_tickCustom",
+        {
+          "dataDir": "<root>/char_tickCustom/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_tickCustom"
+      ],
+      [
+        "hostApi.requireCapability",
+        "m_cap"
+      ],
+      [
+        "log",
+        "char_tickCustom",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_tickCustom",
+      "version": "1.0.0",
+      "gateCapability": "m_cap",
+      "dir": "<root>/char_tickCustom/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "router",
+        "tick",
+        "tickIntervalMs"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [
+        {
+          "id": "m_cap",
+          "kind": "integration",
+          "name": "m_cap",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_tickCustom",
+          "_remoteModule": true
+        }
+      ],
+      "betaDescriptors": []
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": true,
+    "tickMs": 5000
+  },
+  "tickBadInterval": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_tickBadInterval",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_tickBadInterval:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_tickBadInterval",
+        {
+          "dataDir": "<root>/char_tickBadInterval/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_tickBadInterval"
+      ],
+      [
+        "hostApi.requireCapability",
+        "m_cap"
+      ],
+      [
+        "log",
+        "char_tickBadInterval",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_tickBadInterval",
+      "version": "1.0.0",
+      "gateCapability": "m_cap",
+      "dir": "<root>/char_tickBadInterval/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "router",
+        "tick",
+        "tickIntervalMs"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [
+        {
+          "id": "m_cap",
+          "kind": "integration",
+          "name": "m_cap",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_tickBadInterval",
+          "_remoteModule": true
+        }
+      ],
+      "betaDescriptors": []
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": true,
+    "tickMs": 60000
+  },
+  "intervalWithoutTick": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_intervalWithoutTick",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_intervalWithoutTick:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_intervalWithoutTick",
+        {
+          "dataDir": "<root>/char_intervalWithoutTick/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_intervalWithoutTick"
+      ],
+      [
+        "hostApi.requireCapability",
+        "m_cap"
+      ],
+      [
+        "log",
+        "char_intervalWithoutTick",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_intervalWithoutTick",
+      "version": "1.0.0",
+      "gateCapability": "m_cap",
+      "dir": "<root>/char_intervalWithoutTick/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "router",
+        "tickIntervalMs"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [
+        {
+          "id": "m_cap",
+          "kind": "integration",
+          "name": "m_cap",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_intervalWithoutTick",
+          "_remoteModule": true
+        }
+      ],
+      "betaDescriptors": []
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "persistKeepsStored": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_persistKeepsStored",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_persistKeepsStored:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_persistKeepsStored",
+        {
+          "dataDir": "<root>/char_persistKeepsStored/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_persistKeepsStored"
+      ],
+      [
+        "hostApi.requireCapability",
+        "m_cap"
+      ],
+      [
+        "log",
+        "char_persistKeepsStored",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "store.getState",
+        "char_persistKeepsStored"
+      ],
+      [
+        "store.setImported",
+        "char_persistKeepsStored",
+        {
+          "actorId": "a2",
+          "version": "1.0.0",
+          "settings": {
+            "remote": true,
+            "manifest": {
+              "id": "char_persistKeepsStored",
+              "name": "Mod",
+              "version": "1.0.0",
+              "manifestVersion": 1,
+              "permissions": [],
+              "schemaVersion": null,
+              "description": "",
+              "category": "Modules",
+              "icon": "box",
+              "capabilities": [
+                {
+                  "id": "m_cap",
+                  "kind": "integration",
+                  "name": "m_cap",
+                  "description": "",
+                  "category": null,
+                  "licenseFeature": null,
+                  "lifecycle": "stable"
+                }
+              ],
+              "frontend": null,
+              "requirements": {}
+            },
+            "entitlement": {
+              "plan": "stored"
+            },
+            "package": {
+              "version": "1.0.0",
+              "sha256": null,
+              "kid": null
+            },
+            "latestVersion": "1.0.0",
+            "grantedPermissions": {
+              "list": [
+                "x"
+              ]
+            }
+          }
+        }
+      ],
+      [
+        "packageStore.setActive",
+        "char_persistKeepsStored",
+        "1.0.0",
+        {
+          "manifest": {
+            "id": "char_persistKeepsStored",
+            "name": "Mod",
+            "version": "1.0.0",
+            "manifestVersion": 1,
+            "permissions": [],
+            "schemaVersion": null,
+            "description": "",
+            "category": "Modules",
+            "icon": "box",
+            "capabilities": [
+              {
+                "id": "m_cap",
+                "kind": "integration",
+                "name": "m_cap",
+                "description": "",
+                "category": null,
+                "licenseFeature": null,
+                "lifecycle": "stable"
+              }
+            ],
+            "frontend": null,
+            "requirements": {}
+          },
+          "kid": null,
+          "packageSha256": null,
+          "actorId": "a2",
+          "source": null
+        }
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_persistKeepsStored",
+      "version": "1.0.0",
+      "gateCapability": "m_cap",
+      "dir": "<root>/char_persistKeepsStored/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "router"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [
+        {
+          "id": "m_cap",
+          "kind": "integration",
+          "name": "m_cap",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_persistKeepsStored",
+          "_remoteModule": true
+        }
+      ],
+      "betaDescriptors": []
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "persistCallWins": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_persistCallWins",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_persistCallWins:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_persistCallWins",
+        {
+          "dataDir": "<root>/char_persistCallWins/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_persistCallWins"
+      ],
+      [
+        "hostApi.requireCapability",
+        "m_cap"
+      ],
+      [
+        "log",
+        "char_persistCallWins",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "store.getState",
+        "char_persistCallWins"
+      ],
+      [
+        "store.setImported",
+        "char_persistCallWins",
+        {
+          "actorId": null,
+          "version": "1.0.0",
+          "settings": {
+            "remote": true,
+            "manifest": {
+              "id": "char_persistCallWins",
+              "name": "Mod",
+              "version": "1.0.0",
+              "manifestVersion": 1,
+              "permissions": [],
+              "schemaVersion": null,
+              "description": "",
+              "category": "Modules",
+              "icon": "box",
+              "capabilities": [
+                {
+                  "id": "m_cap",
+                  "kind": "integration",
+                  "name": "m_cap",
+                  "description": "",
+                  "category": null,
+                  "licenseFeature": null,
+                  "lifecycle": "stable"
+                }
+              ],
+              "frontend": null,
+              "requirements": {}
+            },
+            "entitlement": {
+              "plan": "call"
+            },
+            "package": {
+              "version": "1.0.0",
+              "sha256": null,
+              "kid": null
+            },
+            "latestVersion": "1.0.0",
+            "grantedPermissions": {
+              "list": [
+                "y"
+              ]
+            }
+          }
+        }
+      ],
+      [
+        "packageStore.setActive",
+        "char_persistCallWins",
+        "1.0.0",
+        {
+          "manifest": {
+            "id": "char_persistCallWins",
+            "name": "Mod",
+            "version": "1.0.0",
+            "manifestVersion": 1,
+            "permissions": [],
+            "schemaVersion": null,
+            "description": "",
+            "category": "Modules",
+            "icon": "box",
+            "capabilities": [
+              {
+                "id": "m_cap",
+                "kind": "integration",
+                "name": "m_cap",
+                "description": "",
+                "category": null,
+                "licenseFeature": null,
+                "lifecycle": "stable"
+              }
+            ],
+            "frontend": null,
+            "requirements": {}
+          },
+          "kid": null,
+          "packageSha256": null,
+          "actorId": null,
+          "source": null
+        }
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_persistCallWins",
+      "version": "1.0.0",
+      "gateCapability": "m_cap",
+      "dir": "<root>/char_persistCallWins/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "router"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [
+        {
+          "id": "m_cap",
+          "kind": "integration",
+          "name": "m_cap",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_persistCallWins",
+          "_remoteModule": true
+        }
+      ],
+      "betaDescriptors": []
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "persistStoreThrowsNothingPassed": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_persistStoreThrowsNothingPassed",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_persistStoreThrowsNothingPassed:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_persistStoreThrowsNothingPassed",
+        {
+          "dataDir": "<root>/char_persistStoreThrowsNothingPassed/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_persistStoreThrowsNothingPassed"
+      ],
+      [
+        "hostApi.requireCapability",
+        "m_cap"
+      ],
+      [
+        "log",
+        "char_persistStoreThrowsNothingPassed",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "store.getState",
+        "char_persistStoreThrowsNothingPassed"
+      ],
+      [
+        "packageStore.setActive",
+        "char_persistStoreThrowsNothingPassed",
+        "1.0.0",
+        {
+          "manifest": {
+            "id": "char_persistStoreThrowsNothingPassed",
+            "name": "Mod",
+            "version": "1.0.0",
+            "manifestVersion": 1,
+            "permissions": [],
+            "schemaVersion": null,
+            "description": "",
+            "category": "Modules",
+            "icon": "box",
+            "capabilities": [
+              {
+                "id": "m_cap",
+                "kind": "integration",
+                "name": "m_cap",
+                "description": "",
+                "category": null,
+                "licenseFeature": null,
+                "lifecycle": "stable"
+              }
+            ],
+            "frontend": null,
+            "requirements": {}
+          },
+          "kid": null,
+          "packageSha256": null,
+          "actorId": null,
+          "source": null
+        }
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_persistStoreThrowsNothingPassed",
+      "version": "1.0.0",
+      "gateCapability": "m_cap",
+      "dir": "<root>/char_persistStoreThrowsNothingPassed/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "router"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [
+        {
+          "id": "m_cap",
+          "kind": "integration",
+          "name": "m_cap",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_persistStoreThrowsNothingPassed",
+          "_remoteModule": true
+        }
+      ],
+      "betaDescriptors": []
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "persistStoreThrowsOnlyEntitlement": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_persistStoreThrowsOnlyEntitlement",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_persistStoreThrowsOnlyEntitlement:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_persistStoreThrowsOnlyEntitlement",
+        {
+          "dataDir": "<root>/char_persistStoreThrowsOnlyEntitlement/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_persistStoreThrowsOnlyEntitlement"
+      ],
+      [
+        "hostApi.requireCapability",
+        "m_cap"
+      ],
+      [
+        "log",
+        "char_persistStoreThrowsOnlyEntitlement",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "store.getState",
+        "char_persistStoreThrowsOnlyEntitlement"
+      ],
+      [
+        "packageStore.setActive",
+        "char_persistStoreThrowsOnlyEntitlement",
+        "1.0.0",
+        {
+          "manifest": {
+            "id": "char_persistStoreThrowsOnlyEntitlement",
+            "name": "Mod",
+            "version": "1.0.0",
+            "manifestVersion": 1,
+            "permissions": [],
+            "schemaVersion": null,
+            "description": "",
+            "category": "Modules",
+            "icon": "box",
+            "capabilities": [
+              {
+                "id": "m_cap",
+                "kind": "integration",
+                "name": "m_cap",
+                "description": "",
+                "category": null,
+                "licenseFeature": null,
+                "lifecycle": "stable"
+              }
+            ],
+            "frontend": null,
+            "requirements": {}
+          },
+          "kid": null,
+          "packageSha256": null,
+          "actorId": null,
+          "source": null
+        }
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_persistStoreThrowsOnlyEntitlement",
+      "version": "1.0.0",
+      "gateCapability": "m_cap",
+      "dir": "<root>/char_persistStoreThrowsOnlyEntitlement/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "router"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [
+        {
+          "id": "m_cap",
+          "kind": "integration",
+          "name": "m_cap",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_persistStoreThrowsOnlyEntitlement",
+          "_remoteModule": true
+        }
+      ],
+      "betaDescriptors": []
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "persistStoreThrowsBothPassed": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_persistStoreThrowsBothPassed",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_persistStoreThrowsBothPassed:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_persistStoreThrowsBothPassed",
+        {
+          "dataDir": "<root>/char_persistStoreThrowsBothPassed/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_persistStoreThrowsBothPassed"
+      ],
+      [
+        "hostApi.requireCapability",
+        "m_cap"
+      ],
+      [
+        "log",
+        "char_persistStoreThrowsBothPassed",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "store.getState",
+        "char_persistStoreThrowsBothPassed"
+      ],
+      [
+        "store.setImported",
+        "char_persistStoreThrowsBothPassed",
+        {
+          "actorId": null,
+          "version": "1.0.0",
+          "settings": {
+            "remote": true,
+            "manifest": {
+              "id": "char_persistStoreThrowsBothPassed",
+              "name": "Mod",
+              "version": "1.0.0",
+              "manifestVersion": 1,
+              "permissions": [],
+              "schemaVersion": null,
+              "description": "",
+              "category": "Modules",
+              "icon": "box",
+              "capabilities": [
+                {
+                  "id": "m_cap",
+                  "kind": "integration",
+                  "name": "m_cap",
+                  "description": "",
+                  "category": null,
+                  "licenseFeature": null,
+                  "lifecycle": "stable"
+                }
+              ],
+              "frontend": null,
+              "requirements": {}
+            },
+            "entitlement": {
+              "plan": "call"
+            },
+            "package": {
+              "version": "1.0.0",
+              "sha256": null,
+              "kid": null
+            },
+            "latestVersion": "1.0.0",
+            "grantedPermissions": {
+              "list": []
+            }
+          }
+        }
+      ],
+      [
+        "packageStore.setActive",
+        "char_persistStoreThrowsBothPassed",
+        "1.0.0",
+        {
+          "manifest": {
+            "id": "char_persistStoreThrowsBothPassed",
+            "name": "Mod",
+            "version": "1.0.0",
+            "manifestVersion": 1,
+            "permissions": [],
+            "schemaVersion": null,
+            "description": "",
+            "category": "Modules",
+            "icon": "box",
+            "capabilities": [
+              {
+                "id": "m_cap",
+                "kind": "integration",
+                "name": "m_cap",
+                "description": "",
+                "category": null,
+                "licenseFeature": null,
+                "lifecycle": "stable"
+              }
+            ],
+            "frontend": null,
+            "requirements": {}
+          },
+          "kid": null,
+          "packageSha256": null,
+          "actorId": null,
+          "source": null
+        }
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_persistStoreThrowsBothPassed",
+      "version": "1.0.0",
+      "gateCapability": "m_cap",
+      "dir": "<root>/char_persistStoreThrowsBothPassed/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "router"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [
+        {
+          "id": "m_cap",
+          "kind": "integration",
+          "name": "m_cap",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_persistStoreThrowsBothPassed",
+          "_remoteModule": true
+        }
+      ],
+      "betaDescriptors": []
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "persistNoRow": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_persistNoRow",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_persistNoRow:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_persistNoRow",
+        {
+          "dataDir": "<root>/char_persistNoRow/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_persistNoRow"
+      ],
+      [
+        "hostApi.requireCapability",
+        "m_cap"
+      ],
+      [
+        "log",
+        "char_persistNoRow",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "store.getState",
+        "char_persistNoRow"
+      ],
+      [
+        "store.setImported",
+        "char_persistNoRow",
+        {
+          "actorId": null,
+          "version": "1.0.0",
+          "settings": {
+            "remote": true,
+            "manifest": {
+              "id": "char_persistNoRow",
+              "name": "Mod",
+              "version": "1.0.0",
+              "manifestVersion": 1,
+              "permissions": [],
+              "schemaVersion": null,
+              "description": "",
+              "category": "Modules",
+              "icon": "box",
+              "capabilities": [
+                {
+                  "id": "m_cap",
+                  "kind": "integration",
+                  "name": "m_cap",
+                  "description": "",
+                  "category": null,
+                  "licenseFeature": null,
+                  "lifecycle": "stable"
+                }
+              ],
+              "frontend": null,
+              "requirements": {}
+            },
+            "entitlement": null,
+            "package": {
+              "version": "1.0.0",
+              "sha256": null,
+              "kid": null
+            },
+            "latestVersion": "1.0.0",
+            "grantedPermissions": null
+          }
+        }
+      ],
+      [
+        "packageStore.setActive",
+        "char_persistNoRow",
+        "1.0.0",
+        {
+          "manifest": {
+            "id": "char_persistNoRow",
+            "name": "Mod",
+            "version": "1.0.0",
+            "manifestVersion": 1,
+            "permissions": [],
+            "schemaVersion": null,
+            "description": "",
+            "category": "Modules",
+            "icon": "box",
+            "capabilities": [
+              {
+                "id": "m_cap",
+                "kind": "integration",
+                "name": "m_cap",
+                "description": "",
+                "category": null,
+                "licenseFeature": null,
+                "lifecycle": "stable"
+              }
+            ],
+            "frontend": null,
+            "requirements": {}
+          },
+          "kid": null,
+          "packageSha256": null,
+          "actorId": null,
+          "source": null
+        }
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_persistNoRow",
+      "version": "1.0.0",
+      "gateCapability": "m_cap",
+      "dir": "<root>/char_persistNoRow/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "router"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [
+        {
+          "id": "m_cap",
+          "kind": "integration",
+          "name": "m_cap",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_persistNoRow",
+          "_remoteModule": true
+        }
+      ],
+      "betaDescriptors": []
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  },
+  "reloadsChangedCode": {
+    "result": {
+      "ok": true,
+      "moduleId": "char_reloadsChangedCode",
+      "version": "1.0.0"
+    },
+    "calls": [
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_reloadsChangedCode:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_reloadsChangedCode",
+        {
+          "dataDir": "<root>/char_reloadsChangedCode/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_reloadsChangedCode"
+      ],
+      [
+        "hostApi.requireCapability",
+        "m_cap"
+      ],
+      [
+        "log",
+        "char_reloadsChangedCode",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ],
+      [
+        "registry.getCapability",
+        "m_cap"
+      ],
+      [
+        "registry.setRemote",
+        [
+          "char_reloadsChangedCode:m_cap:integration"
+        ]
+      ],
+      [
+        "beta.setRemote",
+        []
+      ],
+      [
+        "hostApi.build",
+        "char_reloadsChangedCode",
+        {
+          "dataDir": "<root>/char_reloadsChangedCode/data",
+          "permissions": null
+        }
+      ],
+      [
+        "createModule",
+        "hostApi of char_reloadsChangedCode"
+      ],
+      [
+        "initDBs"
+      ],
+      [
+        "hostApi.requireCapability",
+        "m_cap"
+      ],
+      [
+        "log",
+        "char_reloadsChangedCode",
+        "system",
+        [
+          "old v1.0.0 drained (0 in-flight at timeout) + disposed"
+        ]
+      ],
+      [
+        "log",
+        "char_reloadsChangedCode",
+        "system",
+        [
+          "activated v1.0.0"
+        ]
+      ],
+      [
+        "runtime.invalidateCache"
+      ],
+      [
+        "runtime.refreshModuleActivations"
+      ]
+    ],
+    "dispatch": {
+      "moduleId": "char_reloadsChangedCode",
+      "version": "1.0.0",
+      "gateCapability": "m_cap",
+      "dir": "<root>/char_reloadsChangedCode/versions/1.0.0",
+      "inflight": 0,
+      "draining": false,
+      "streamingRoutes": [],
+      "publicRoutes": [],
+      "handle": "function",
+      "router": "function",
+      "instanceKeys": [
+        "initDBs",
+        "router"
+      ],
+      "keys": [
+        "moduleId",
+        "version",
+        "router",
+        "instance",
+        "gateCapability",
+        "dir",
+        "inflight",
+        "draining",
+        "streamingRoutes",
+        "publicRoutes",
+        "handle"
+      ]
+    },
+    "descriptors": {
+      "capDescriptors": [
+        {
+          "id": "m_cap",
+          "kind": "integration",
+          "name": "m_cap",
+          "description": "",
+          "category": "Mod",
+          "licenseFeature": null,
+          "lifecycle": "stable",
+          "defaultState": "off",
+          "userFacing": true,
+          "groupTogglable": true,
+          "moduleId": "char_reloadsChangedCode",
+          "_remoteModule": true
+        }
+      ],
+      "betaDescriptors": []
+    },
+    "health": null,
+    "dataDir": true,
+    "tick": false,
+    "tickMs": null
+  }
+}

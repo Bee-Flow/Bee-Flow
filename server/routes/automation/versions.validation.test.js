@@ -317,3 +317,12 @@ test('a restore without a form provisions nothing and answers as before', async 
     assert.deepStrictEqual(Object.keys(res.body).sort(), ['automation', 'restoredFromVersion']);
     assert.deepStrictEqual(usageSynced()[3].extraEntries, []);
 });
+
+test('naming a version refuses a misspelled key by name, before the automation is read', async () => {
+    touched.length = 0;
+    const res = await dispatch({ method: 'PUT', url: '/a1/versions/1/name', body: { name: 'Go-live', nmae: 'Go-live' } });
+    assert.strictEqual(res.statusCode, 400, JSON.stringify(res.body));
+    assert.strictEqual(res.body.code, 'invalid_request');
+    assert.match(res.body.error, /Naming a version does not take "nmae"/);
+    assert.deepStrictEqual(touched, []);
+});

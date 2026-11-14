@@ -43,6 +43,12 @@ test('tables.row: null / empty value filters are unset; changedOnly without prev
     assert.strictEqual(matchNextcloudTablesRowFilter({ tableId: 1 }, { changedOnly: true }), true);
 });
 
+test('tables.row: a missing payload does not match a table or actor filter', () => {
+    assert.strictEqual(matchNextcloudTablesRowFilter(null, { tableId: 1 }), false);
+    assert.strictEqual(matchNextcloudTablesRowFilter(undefined, { actorEquals: 'alice' }), false);
+    assert.strictEqual(matchNextcloudTablesRowFilter(null, { valueEquals: 'open' }), false);
+});
+
 // ── #193: every filter, fed by each producer's canonical payload ─────────
 const { matchNextcloudFileFilter, matchNextcloudTagFilter, tagFilterNeedsNames } = require('./filters');
 const { normaliseNextcloudPayload } = require('./ncPayload.mts');

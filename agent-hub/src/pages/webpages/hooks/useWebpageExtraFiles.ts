@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
-import { API_BASE } from '@/utils/helpers';
-import { mutate, RefusedError, errorBody } from '@/api/mutate';
-import type { AuthFetchOptions } from '@/utils/helpers';
+import { RefusedError, errorBody } from '@/api/mutate';
 import { resizeImageForUpload } from '@/utils/imageResize';
 import { uniqueAssetPath } from '../webpageAssetPath';
 import type { ExtraContent, ExtraContents, ExtraFileMeta } from '@/api/webpageEditorTypes';
 import { api, fetchExtraContent } from '@/api/webpagesApi';
 import type { PageGuards } from './usePageGuards';
 import { logger } from '@/utils/logger';
+import { apiRequest } from '@/api/typedRequest';
 
 function upsertMeta(prev: ExtraFileMeta[], meta: ExtraFileMeta): ExtraFileMeta[] {
     const idx = prev.findIndex(f => f.path === meta.path);
@@ -93,9 +92,9 @@ export function useWebpageExtraFiles(
 export type WebpageExtraFiles = ReturnType<typeof useWebpageExtraFiles>;
 
 /** A checked request whose failure reads as the server's `error`, or `<label> <status>`. */
-async function checked(url: string, init: AuthFetchOptions, label: string): Promise<Response> {
+async function checked(pending: Promise<Response>, label: string): Promise<Response> {
     try {
-        return await mutate(url, init);
+        return await pending;
     } catch (err) {
         if (!(err instanceof RefusedError)) throw err;
         throw new Error((errorBody(err) as { error?: string } | null)?.error || `${label} ${err.status}`);
@@ -142,9 +141,10 @@ export function useWebpageFileActions({ pageId, extras, guards }: FileActionDeps
         if (!oldPath || !newPath || oldPath === newPath) return;
         const targetId = pageId;
         try {
-            const res = await checked(`${API_BASE}/api/webpages/${targetId}/assets/move`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ from: oldPath, to: newPath }), signal: inflightAbortRef.current?.signal,
-            }, 'Rename');
+            const res = await checked(apiRequest('POST /api/webpages/{id}/assets/move', {
+                params: { id: targetId },
+                init: { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ from: oldPath, to: newPath }), signal: inflightAbortRef.current?.signal },
+            }), 'Rename');
             const { file: meta } = await res.json() as { file: ExtraFileMeta };
             if (!isStillCurrent(targetId)) return;
             setExtraFiles(prev => prev.filter(f => f.path !== oldPath).concat(meta));
@@ -166,7 +166,7 @@ export function useWebpageFileActions({ pageId, extras, guards }: FileActionDeps
             const form = new FormData();
             form.append('file', blob, path.split('/').pop());
             form.append('path', path);
-            const res = await checked(`${API_BASE}/api/webpages/${targetId}/assets`, { method: 'POST', body: form, signal: inflightAbortRef.current?.signal }, 'Upload');
+            const res = await checked(apiRequest('POST /api/webpages/{id}/assets', { params: { id: targetId }, init: { body: form, signal: inflightAbortRef.current?.signal } }), 'Upload');
             const { file: meta, contentBase64 } = await res.json() as { file: ExtraFileMeta; contentBase64: string };
             if (!isStillCurrent(targetId)) return undefined;
             mergeExtra(meta, { mimeType: meta.mimeType, isText: false, dataUrl: `data:${meta.mimeType};base64,${contentBase64}` });

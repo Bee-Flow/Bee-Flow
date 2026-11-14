@@ -154,6 +154,11 @@ async function getSettings(orgId) {
     return value;
 }
 
+/**
+ * @param {string | undefined} orgId
+ * @param {Record<string, unknown>} areas
+ * @param {string | null} [actorId]
+ */
 async function setSettings(orgId, areas, actorId = null) {
     if (!orgId) throw new Error('orgId is required');
     const value = normalizeSettings({ areas });

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * `POST /api/kb/:id/ask` — the Studio's test question.
  *
@@ -48,9 +49,8 @@ const express = require('express');
 const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
 const router = express.Router();
-const kbStore = require('../../stores/knowledgeBases');
 const { requireAuth } = require('../../auth');
-const { canAccessKB, getUserId } = require('./shared');
+const { requireKbGrade, kbAccessOf, getUserId } = require('./shared');
 const { validate } = require('../../core/http/validate');
 const { openSse } = require('../../core/http/sseHelpers');
 const { z } = require('../../utils/zod');
@@ -95,7 +95,7 @@ const AskBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.
  * @param {{ id: string, organization_id?: string | null }} kb
  * @param {string} question
  * @param {string} userId
- * @returns {Promise<{ title: string; content: string; score: number; }[]>}
+ * @returns {Promise<{ title: string; content: string; score: number; document_id?: string }[]>}
  */
 async function searchForAsk(req, kb, question, userId) {
     const { quickKBSearch } = require('../../core/agentRuntime/knowledgeSearch');
@@ -110,7 +110,7 @@ async function searchForAsk(req, kb, question, userId) {
     }
 }
 
-router.post('/:id/ask', requireAuth, validate({ body: AskBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof AskBody>, import('qs').ParsedQs>} */ req, res, next) => {
+router.post('/:id/ask', requireAuth, requireKbGrade('read'), validate({ body: AskBody }), async (req, res, next) => {
     // Null until the stream is open: before that, an error is still a status.
     let sse = null;
     /**
@@ -124,11 +124,9 @@ router.post('/:id/ask', requireAuth, validate({ body: AskBody }), async (/** @ty
     try {
         const { question } = req.body;
 
-        const kb = await kbStore.getKB(req.params.id);
-        if (!kb) return res.status(404).json({ error: 'KB not found' });
-        // The id came off the URL. quickKBSearch will search whatever it is
-        // handed, so this is the boundary.
-        if (!(await canAccessKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
+        // The id came off the URL: the gate is the boundary, quickKBSearch
+        // searches whatever it is handed.
+        const { kb } = kbAccessOf(req);
 
         const userId = getUserId(req);
 
@@ -203,7 +201,7 @@ ${fenced}`;
         let answerText = '';
         // Query log: the first finish wins, so a stream error event is not overwritten by the 'answered' that follows.
         await trackAnswer(queryLogHandle, { model: modelId, answerOf: () => answerText, citationsOf: () => citedSources(answerText, citations) }, () => adapter.stream(
-            config.apiKey, apiUrl, config.modelId || modelId, messages,
+            config.apiKey, apiUrl, /** @type {{ modelId?: string }} */ (/** @type {unknown} */ (config)).modelId || modelId, messages,
             { maxTokens: Math.min(tier.maxTokens || 2048, 2048), temperature: 0.2 },
             (streamType, data) => {
                 if (streamType === 'text' && data?.text) { answerText += data.text; send('text', { text: data.text }); }

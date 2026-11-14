@@ -84,6 +84,13 @@ test.beforeEach(() => {
 });
 test.afterEach(() => { global.fetch = realFetch; });
 
+// The presigned PUT goes through the guard for addresses the server did not
+// choose; its network half is this file's scripted fetch.
+const ssrfGuard = require('../../utils/ssrfGuard');
+const realSafeFetch = ssrfGuard.safeFetch;
+ssrfGuard.safeFetch = (url, opts) => global.fetch(String(url), opts);
+test.after(() => { ssrfGuard.safeFetch = realSafeFetch; });
+
 function installFetch({ voiceprint = 'VGhpcy1pcy1hLXZvaWNlcHJpbnQ=', jobStatus = 'succeeded', jobError } = {}) {
     const calls = [];
     global.fetch = async (url, opts = {}) => {

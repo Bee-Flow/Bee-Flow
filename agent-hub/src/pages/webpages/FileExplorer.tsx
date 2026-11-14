@@ -303,6 +303,7 @@ function ActionIconStatic({ Icon, title, onClick }: ActionIconStaticProps) {
         <button
             type="button"
             title={title}
+            aria-label={title}
             onClick={onClick}
             className="p-1 rounded transition-colors [color:var(--vsc-fg-muted)]"
             onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--vsc-fg)'; e.currentTarget.style.background = 'var(--vsc-hover-bg)'; }}

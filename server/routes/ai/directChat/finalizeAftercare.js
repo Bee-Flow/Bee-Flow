@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Direct Chat end-of-turn: what happens after the turn is saved. The
  * conversation title (generated in the background) and the memory
@@ -24,11 +25,14 @@ const { bestEffort, fallback } = require('../../../utils/bestEffort');
 
 /**
  * @typedef {{ modelId?: string,
- *   titleAgent: unknown,
- *   tiers: unknown,
- *   adapter: unknown,
- *   apiKey: unknown,
- *   apiUrl: unknown }} ResolveTitleModelArgs
+ *   titleAgent: { model?: string } | null,
+ *   tiers: Record<string, { modelId?: string } | undefined>,
+ *   adapter: import('../../../core/providers/base'),
+ *   apiKey: string,
+ *   apiUrl: string }} ResolveTitleModelArgs
+ * @typedef {{ convId: string, userId: string, userOrgId?: string | null, savedMessages: Array<{ role?: string, content?: unknown }>,
+ *   send: (event: string, data: unknown) => void, tiers: ResolveTitleModelArgs['tiers'], modelId?: string,
+ *   adapter: ResolveTitleModelArgs['adapter'], apiKey: string, apiUrl: string }} TitleTurn
  */
 /**
  * The title model is the dedicated admin model if set, else the system title
@@ -62,6 +66,7 @@ async function resolveTitleModel({ titleAgent, tiers, modelId, adapter, apiKey, 
 
 /**
  * Generate and store the title; on failure fall back to "New Chat" so the sidebar isn't blank.
+ * @param {TitleTurn} turn
  * @param {TitleDeps} [deps]
  */
 async function generateTitle({ convId, userId, userOrgId, savedMessages, send, ...modelCtx }, deps = {}) {
@@ -109,6 +114,7 @@ async function generateTitle({ convId, userId, userOrgId, savedMessages, send, .
  * bounded, after `done`. Resolves to `{ pendingTitle }`: the (unawaited)
  * generation promise, or null. Wrapped in an object so awaiting this
  * function never waits for the title itself.
+ * @param {TitleTurn & { conv: { title?: string } | null, moderationViolation?: unknown }} turn
  * @param {TitleDeps} [deps] the stores and the ledger sink (default: the real ones)
  */
 async function scheduleTitle({ conv, savedMessages, moderationViolation, convId, userId, userOrgId, send, tiers, modelId, adapter, apiKey, apiUrl }, deps = {}) {

@@ -25,6 +25,7 @@ const Module = require('module');
 const touched = [];
 const pass = (req, res, next) => next();
 
+const { fakeKbGates } = require('./kbGate.testkit');
 const MOCKS = {
     '../../telemetry/log': { info() {}, warn() {}, error() {}, debug() {} },
     '../../stores/knowledgeBases': {
@@ -35,7 +36,7 @@ const MOCKS = {
         listByKb: async () => [{ id: 's1', name: 'Website' }, { id: 's2', name: 'Uploads' }],
     },
     '../../auth': { requireAuth: pass, requirePermission: () => pass },
-    './shared': { canManageKB: async () => true, blockIfSystemKB: () => false },
+    './shared': { ...fakeKbGates({ kbStore: { getKB: (id) => MOCKS['../../stores/knowledgeBases'].getKB(id) }, canRead: () => true }), blockIfSystemKB: () => false },
     '../../core/kb/sources': {
         syncSource: async (source, opts) => { touched.push({ what: 'syncSource', args: [source.id, opts.reason] }); return { updated: 1 }; },
     },

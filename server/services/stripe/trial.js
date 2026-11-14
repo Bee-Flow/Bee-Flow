@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Trials without Checkout, and the automatic_tax backfill for existing
  * subscriptions when the tax toggle is switched on.
@@ -24,7 +25,7 @@ const { buildStripeAddress } = require('./customer');
  *
  * @param {{ plan: DbRow.SubscriptionPlans, subscriberType: 'organization'|'consumer', subscriberId: string, orgName?: string,
  *   userEmail?: string, stripeCustomerId?: string, trialDays: number }} options
- * @returns {{ stripeCustomerId: string, stripeSubscriptionId: string, trialEnd: string|null, status: string }}
+ * @returns {Promise<{ stripeCustomerId: string, stripeSubscriptionId: string, trialEnd: string|null, status: string }>}
  */
 async function createTrialSubscription({ plan, subscriberType, subscriberId, orgName, userEmail, stripeCustomerId, trialDays }) {
     const stripe = await getClient();
@@ -36,10 +37,10 @@ async function createTrialSubscription({ plan, subscriberType, subscriberId, org
         throw new Error('Plan has no trial_days configured.');
     }
 
-    const metadata = {
+    const metadata = /** @type {Record<string, string>} */ ({
         beeflow_plan_id: plan.id,
         beeflow_subscriber_type: subscriberType,
-    };
+    });
     if (subscriberType === 'consumer') metadata.beeflow_user_id = subscriberId;
     else metadata.beeflow_org_id = subscriberId;
 
@@ -124,7 +125,7 @@ async function createTrialSubscription({ plan, subscriberType, subscriberId, org
     }
 
     return {
-        stripeCustomerId: customerId,
+        stripeCustomerId: /** @type {string} */ (customerId), // created above when none was given
         stripeSubscriptionId: subscription.id,
         trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000).toISOString() : null,
         status: subscription.status,

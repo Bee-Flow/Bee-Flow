@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * A stand-in for core/privacy/customTypes with the pinned interface
@@ -20,13 +20,13 @@ const escapeRx = (/** @type {string} */ s) => s.replace(/[.*+?^${}()|[\]\\/]/g, 
  */
 function matcherFor(type) {
     if (type.method === 'words') {
-        const w = type.words || /** @type {Partial<CustomDataType['words']>} */ ({});
+        const w = type.words || /** @type {Partial<NonNullable<CustomDataType['words']>>} */ ({});
         const alt = (w.values || []).filter(Boolean).map(escapeRx).join('|');
         if (!alt) return null;
         const body = w.wholeWord ? `(?<![\\p{L}\\p{N}])(?:${alt})(?![\\p{L}\\p{N}])` : `(?:${alt})`;
         return new RegExp(body, `gu${w.caseSensitive ? '' : 'i'}`);
     }
-    if (type.method === 'pattern') return new RegExp(type.pattern.source, `g${type.pattern.caseSensitive ? '' : 'i'}`);
+    if (type.method === 'pattern') return new RegExp(/** @type {NonNullable<CustomDataType['pattern']>} */ (type.pattern).source, `g${/** @type {NonNullable<CustomDataType['pattern']>} */ (type.pattern).caseSensitive ? '' : 'i'}`);
     return null;
 }
 
@@ -55,7 +55,7 @@ function createFakeEngine({ probe = () => [], rejectPattern = (src) => src.inclu
             if (type.method === 'pattern' && rejectPattern(type.pattern?.source || '')) {
                 errors.push({ id: type.id, field: 'pattern.source', code: 're2_unsupported', message: 'Lookaround is not supported.' });
             }
-            if (type.method === 'ai' && !(type.ai?.prompt?.length >= 2)) errors.push({ id: type.id, field: 'ai.prompt', code: 'too_short', message: 'Too short.' });
+            if (type.method === 'ai' && !(/** @type {number} */ (type.ai?.prompt?.length) >= 2)) errors.push({ id: type.id, field: 'ai.prompt', code: 'too_short', message: 'Too short.' });
             const normalized = { ...type };
             for (const m of /** @type {Array<'words' | 'pattern' | 'ai'>} */ (['words', 'pattern', 'ai'])) if (m !== type.method) delete normalized[m];
             return errors.length ? { ok: false, errors } : { ok: true, normalized, errors: /** @type {import('../customTypes/spec').CustomTypeError[]} */ ([]) };

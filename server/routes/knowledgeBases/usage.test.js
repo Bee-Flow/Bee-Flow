@@ -44,6 +44,7 @@ function resetFx() {
 }
 resetFx();
 
+const { fakeKbGates } = require('./kbGate.testkit');
 const MOCKS = {
     '../stores/knowledgeBases': {
         getKB: async (id) => (fx.kb && fx.kb.id === id ? fx.kb : null),
@@ -60,8 +61,7 @@ const MOCKS = {
         resolveUserGroups: async () => [],
         validateSharedGroupsForOrg: async () => {},
     },
-    '../support/kbAccess': {
-        canAccessKB: async () => fx.canAccess,
+    '../support/kbAccess': { ...fakeKbGates({ kbStore: { getKB: (id) => MOCKS['../stores/knowledgeBases'].getKB(id) }, canRead: () => fx.canAccess, canManage: () => fx.canAccess }),
         resolveAdminOrgIds: async () => new Set(),
     },
     '../core/kb/kbUsage': {
@@ -163,10 +163,10 @@ test("somebody else's thing is counted but not named", async () => {
     assert.ok(!JSON.stringify(res.body).includes('Payroll questions'));
 });
 
-test('a base the asker may not read answers 403, not a usage list', async () => {
+test('a base the asker may not read answers 404, not a usage list', async () => {
     fx.canAccess = false;
     const res = await dispatch({ url: '/kb1/usage' });
-    assert.strictEqual(res.statusCode, 403);
+    assert.strictEqual(res.statusCode, 404);
 });
 
 test('a base that does not exist answers 404', async () => {

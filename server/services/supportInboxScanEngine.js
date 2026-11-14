@@ -16,7 +16,7 @@
 
 const supportInboxStore = require('../stores/supportInboxStore');
 const { gmailClientFromTokens, graphFetchFromTokens } = require('./email/providerClients');
-const parse = require('./email/parse');
+const parse = require('../utils/emailParse');
 const log = require('../telemetry/log');
 const { fallback, bestEffort } = require('../utils/bestEffort');
 

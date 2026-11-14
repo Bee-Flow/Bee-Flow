@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Notebooks and the co-editing engine, in one place.
  *
@@ -40,7 +40,7 @@ const MAX_REBASE_ATTEMPTS = 3;
  *   read?: (kind: string, resourceId: string) => Promise<{ html: string, markdown: string, seq?: number }|null>,
  *   readHtml?: (kind: string, resourceId: string) => Promise<string|null>,
  *   readMarkdown?: (kind: string, resourceId: string) => Promise<string|null>,
- *   applyServerEdit?: (kind: string, resourceId: string, who: object, edit: object) => Promise<{applied: boolean, seq?: number, stale?: boolean}>,
+ *   applyServerEdit?(kind: string, resourceId: string, who: object, edit: object): Promise<{applied: boolean, seq?: number, stale?: boolean}>,
  * }} CollabFacade
  */
 
@@ -145,7 +145,7 @@ const actorOf = (who) => ({
 });
 
 /** @param {{ seq?: unknown } | null | undefined} r */
-const seqOf = (r) => (Number.isFinite(r?.seq) ? { seq: /** @type {number} */ (r.seq) } : {});
+const seqOf = (r) => (Number.isFinite(r?.seq) ? { seq: /** @type {number} */ (r?.seq) } : {});
 
 /**
  * Apply a server-side edit through the co-editing engine.
@@ -205,10 +205,11 @@ async function applyRebased(notebookId, who, content, collab) {
     for (let attempt = 0; attempt < MAX_REBASE_ATTEMPTS; attempt++) {
         const current = await readLive(notebookId, collab);
         if (!current) return { applied: false };
-        const r = rebaseEdit(content.base, next, current.html);
+        const r = rebaseEdit(/** @type {NonNullable<typeof content.base>} */ (content.base), next, current.html); // applyEdit sends only a based edit here
         if (r.conflict || r.html == null) return { applied: false, conflict: true };
         if (!r.changed) return { applied: true, html: current.html, ...seqOf(current) };
-        const res = await collab.applyServerEdit(KIND, notebookId, actorOf(who), {
+        // applyEdit checked that the facade can apply a server edit before it came here.
+        const res = await /** @type {NonNullable<CollabFacade['applyServerEdit']>} */ (collab.applyServerEdit).call(collab, KIND, notebookId, actorOf(who), {
             replaceWith: { html: r.html },
             ...(current.seq != null ? { expectSeq: current.seq } : {}),
         });

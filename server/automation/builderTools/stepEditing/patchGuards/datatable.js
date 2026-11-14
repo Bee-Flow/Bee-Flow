@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * builder_update_step on a datatable step: the add path's foreign vocabulary
  * translated before the allow-list, the fill-only table link, and the
@@ -140,7 +141,7 @@ function patchDatatableBody(graph, step, patch, next, { filledTable, draftWrap, 
             // values", and the model re-sent the same patch (measured, four
             // rounds running, 2026-09-16).
             if ('where' in patch) merged.where = patch.where;
-            const bound = sanitizeDatatableBindings(merged, graph, draftWrap);
+            const bound = /** @type {ReturnType<typeof sanitizeDatatableBindings> & { error?: string }} */ (sanitizeDatatableBindings(merged, graph, draftWrap));
             if (bound.error) return { error: bound.error };
             patchNotes.push(...bound.repairs);
             if (patchValues) {
@@ -157,12 +158,12 @@ function patchDatatableBody(graph, step, patch, next, { filledTable, draftWrap, 
             // Only what the patch touched: a stale column on a field the patch
             // leaves alone is the validator's report, not a reason to refuse a
             // label change.
-            const cols = resolveDatatableColumns({
+            const cols = /** @type {{ error?: string, _fixHint?: string, where?: unknown, sort?: unknown, matchColumn?: unknown, notes?: string[] }} */ (resolveDatatableColumns({
                 op: opAfter,
                 where: ('where' in patch) ? next.where : undefined,
                 sort: ('sort' in patch) ? patch.sort : undefined,
                 matchColumn: ('matchColumn' in patch) ? patch.matchColumn : undefined,
-            }, table);
+            }, table));
             if (cols.error) return cols;
             patchNotes.push(...cols.notes);
             if ('where' in patch) next.where = cols.where;
@@ -177,7 +178,7 @@ function patchDatatableBody(graph, step, patch, next, { filledTable, draftWrap, 
                 ? (patch.forEach === null ? undefined : sanitizeForEach(patch.forEach, graph, draftWrap).forEach)
                 : step.forEach;
             if (fe) {
-                const ex = checkExtractionFieldRefs(graph, next.values, fe, draftWrap);
+                const ex = /** @type {{ error?: string, _fixHint?: string, values?: object, notes?: string[] }} */ (checkExtractionFieldRefs(graph, next.values, fe, draftWrap));
                 if (ex.error) return ex;
                 next.values = ex.values;
                 patchNotes.push(...ex.notes);

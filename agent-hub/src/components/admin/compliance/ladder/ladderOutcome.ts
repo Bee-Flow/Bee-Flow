@@ -2,7 +2,7 @@
  * ladderOutcome — the pure verdict of the AI Act three-step ladder
  * (Compliance Center redesign, Sep 2026; artboard frame 1f).
  *
- * The client copy of `server/compliance/aiAct/assess.outcome` (PLAN-BACKEND
+ * The client copy of `server/core/aiAct/assess.outcome` (PLAN-BACKEND
  * §2.11): the modal shows the verdict live while the user ticks chips, the
  * server recomputes it on PUT and stores its own word. Both must agree, so
  * the rules are stated once here in the same order as the server:
@@ -65,7 +65,7 @@ export const BASE_ARTICLES = Object.freeze(['4', '50']);
 
 /**
  * Art. 5 practices the negation chips deny — the SERVER's vocabulary
- * (compliance/aiAct/assess.ART5_PRACTICES), all eight of them.
+ * (core/aiAct/assess.ART5_PRACTICES), all eight of them.
  *
  * It used to be three, spelled differently from the server's
  * ('emotion_recognition_at_work' against 'emotion_recognition_work_education'),
@@ -82,7 +82,7 @@ export const ART5_PRACTICES = Object.freeze([
 
 /**
  * The ten Annex III domains — the server's vocabulary again
- * (compliance/aiAct/annexIii.ANNEX_III_IDS), and the same story: four chips
+ * (core/aiAct/annexIii.ANNEX_III_IDS), and the same story: four chips
  * here, ten domains there, spelled 'recruitment'/'credit_scoring' against
  * 'employment'/'credit'. Ticking everything on screen recorded "not
  * high-risk" on behalf of someone never asked about biometrics, critical
@@ -93,7 +93,7 @@ export const ANNEX_III_CATEGORIES = Object.freeze([
     'credit', 'insurance', 'law_enforcement', 'migration', 'justice',
 ]);
 
-/** The point of Annex III each domain cites — mirrors compliance/aiAct/annexIii.js. */
+/** The point of Annex III each domain cites — mirrors core/aiAct/annexIii.js. */
 export const ANNEX_III_ARTICLES: Readonly<Record<string, string>> = Object.freeze({
     biometrics: 'Annex III(1)',
     critical_infrastructure: 'Annex III(2)',
@@ -125,7 +125,7 @@ export function legacyAnnexAnswers(annexIii: AnnexAnswer | null | undefined): Do
 
 /**
  * The single Annex III answer a per-domain map adds up to — the client copy of
- * `compliance/aiAct/annexIii.answerFromDomains`, and the one rule that makes
+ * `core/aiAct/annexIii.answerFromDomains`, and the one rule that makes
  * four answers unable to masquerade as a declaration:
  *
  *   'yes'   any one domain answered yes

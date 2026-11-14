@@ -73,6 +73,7 @@ before(async () => {
         '../../db': {
             getOne: async () => null, // nothing exists yet -> every registry entry takes the insert path
             run: async (sql, params) => { seedInserts.push({ sql, params }); },
+            withTransaction: async (fn) => fn({ query: async (sql, params) => { seedInserts.push({ sql, params }); return { rows: [] }; } }),
         },
         './initSchema': { initDB: async () => {} },
     });

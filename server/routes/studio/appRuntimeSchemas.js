@@ -209,4 +209,7 @@ function relationQueryOf(query) {
     return out;
 }
 
-module.exports = { listQueryOf, relationQueryOf, DraftQuery, StepBody, RunBody, RunEndBody, BackgroundBody, JobParams, JobsQuery, ResumeBody, ChatBody, RecordsQuery, ErrorScope };
+// Cancelling a job acts on the job in the path and takes no fields.
+const NoBody = bodyOf({}, 'Cancelling a job');
+
+module.exports = { NoBody, listQueryOf, relationQueryOf, DraftQuery, StepBody, RunBody, RunEndBody, BackgroundBody, JobParams, JobsQuery, ResumeBody, ChatBody, RecordsQuery, ErrorScope };

@@ -3,6 +3,7 @@
  * Invoices (in-app list, PDF with ownership guard) and promotion codes.
  */
 
+const { fetchFixedEndpoint } = require('../../utils/fixedEndpointFetch.mts');
 const { getClient } = require('./client');
 
 /**
@@ -59,7 +60,7 @@ async function getInvoicePdf(invoiceId, { customerId } = {}) {
         throw err;
     }
     if (!invoice.invoice_pdf) return null;
-    const resp = await fetch(invoice.invoice_pdf);
+    const resp = await fetchFixedEndpoint(invoice.invoice_pdf, { timeoutPhase: 'headers' });
     if (!resp.ok) throw new Error(`Failed to fetch invoice PDF from Stripe (${resp.status})`);
     const buffer = Buffer.from(await resp.arrayBuffer());
     const number = invoice.number || invoiceId;

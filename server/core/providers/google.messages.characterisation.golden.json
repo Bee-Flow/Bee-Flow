@@ -1,0 +1,372 @@
+{
+  "systemFolding": {
+    "contents": [
+      {
+        "role": "user",
+        "parts": [
+          {
+            "text": "hi"
+          }
+        ]
+      }
+    ],
+    "systemInstruction": "first\n\na\n\nb\n\n{\"rule\":1}"
+  },
+  "systemNullContent": {
+    "contents": [
+      {
+        "role": "user",
+        "parts": [
+          {
+            "text": "hi"
+          }
+        ]
+      }
+    ],
+    "systemInstruction": "null"
+  },
+  "toolNames": {
+    "contents": [
+      {
+        "role": "user",
+        "parts": [
+          {
+            "text": "go"
+          }
+        ]
+      },
+      {
+        "role": "model",
+        "parts": [
+          {
+            "text": "first try"
+          },
+          {
+            "functionCall": {
+              "name": "oldest",
+              "args": {}
+            }
+          },
+          {
+            "functionCall": {
+              "name": "second_in_same",
+              "args": {}
+            }
+          }
+        ]
+      },
+      {
+        "role": "user",
+        "parts": [
+          {
+            "functionResponse": {
+              "name": "oldest",
+              "response": {
+                "ok": true
+              }
+            }
+          }
+        ]
+      },
+      {
+        "role": "model",
+        "parts": [
+          {
+            "functionCall": {
+              "name": "newest",
+              "args": {}
+            }
+          },
+          {
+            "functionCall": {
+              "name": "solo_fn",
+              "args": {
+                "x": 1
+              }
+            }
+          }
+        ]
+      },
+      {
+        "role": "user",
+        "parts": [
+          {
+            "functionResponse": {
+              "name": "oldest",
+              "response": {
+                "result": "text result"
+              }
+            }
+          },
+          {
+            "functionResponse": {
+              "name": "solo_fn",
+              "response": {
+                "result": [
+                  1,
+                  2
+                ]
+              }
+            }
+          },
+          {
+            "functionResponse": {
+              "name": "given_name",
+              "response": {
+                "result": 7
+              }
+            }
+          },
+          {
+            "functionResponse": {
+              "name": "unknown",
+              "response": {
+                "result": {
+                  "not": "a string"
+                }
+              }
+            }
+          },
+          {
+            "functionResponse": {
+              "name": "no_content",
+              "response": {}
+            }
+          },
+          {
+            "functionResponse": {
+              "name": "unknown",
+              "response": {
+                "result": null
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "systemInstruction": null
+  },
+  "toolBeforeAnyCall": {
+    "contents": [
+      {
+        "role": "user",
+        "parts": [
+          {
+            "functionResponse": {
+              "name": "unknown",
+              "response": {}
+            }
+          },
+          {
+            "text": "then"
+          }
+        ]
+      }
+    ],
+    "systemInstruction": null
+  },
+  "assistantShapes": {
+    "contents": [
+      {
+        "role": "user",
+        "parts": [
+          {
+            "text": "q"
+          }
+        ]
+      },
+      {
+        "role": "model",
+        "parts": [
+          {
+            "text": "answer"
+          },
+          {
+            "functionCall": {
+              "name": "bad_args",
+              "args": {}
+            }
+          },
+          {
+            "functionCall": {
+              "name": "bare_name",
+              "args": {}
+            },
+            "thoughtSignature": "sig-b2"
+          },
+          {
+            "functionCall": {
+              "name": "no_args",
+              "args": {}
+            }
+          },
+          {
+            "functionCall": {
+              "name": "with_sig",
+              "args": {
+                "k": "v"
+              }
+            },
+            "thoughtSignature": "sig-b4"
+          }
+        ]
+      },
+      {
+        "role": "user",
+        "parts": [
+          {
+            "functionResponse": {
+              "name": "bare_name",
+              "response": {
+                "result": "r2"
+              }
+            }
+          },
+          {
+            "functionResponse": {
+              "name": "with_sig",
+              "response": {
+                "result": "r4"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "systemInstruction": null
+  },
+  "rawReplay": {
+    "contents": [
+      {
+        "role": "user",
+        "parts": [
+          {
+            "text": "q"
+          }
+        ]
+      },
+      {
+        "role": "model",
+        "parts": [
+          {
+            "thought": true,
+            "text": "thinking",
+            "thoughtSignature": "ts"
+          },
+          {
+            "functionCall": {
+              "name": "raw_one",
+              "args": {}
+            },
+            "thoughtSignature": "ts1"
+          },
+          "a string part",
+          {
+            "functionCall": {
+              "name": "raw_two",
+              "args": {
+                "a": 1
+              }
+            }
+          },
+          {
+            "functionCall": {
+              "name": "raw_three",
+              "args": {}
+            }
+          }
+        ]
+      },
+      {
+        "role": "user",
+        "parts": [
+          {
+            "functionResponse": {
+              "name": "raw_two",
+              "response": {
+                "two": 2
+              }
+            }
+          },
+          {
+            "functionResponse": {
+              "name": "raw_one",
+              "response": {
+                "one": 1
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "systemInstruction": null
+  },
+  "rawReplayEmptyFallsBack": {
+    "contents": [
+      {
+        "role": "user",
+        "parts": [
+          {
+            "text": "q"
+          }
+        ]
+      },
+      {
+        "role": "model",
+        "parts": [
+          {
+            "text": "plain"
+          },
+          {
+            "functionCall": {
+              "name": "empty_raw",
+              "args": {}
+            }
+          }
+        ]
+      }
+    ],
+    "systemInstruction": null
+  },
+  "userShapes": {
+    "contents": [
+      {
+        "role": "user",
+        "parts": [
+          {
+            "text": "look"
+          },
+          {
+            "inlineData": {
+              "mimeType": "image/jpeg",
+              "data": "QUJD"
+            }
+          },
+          {
+            "fileData": {
+              "fileUri": "https://example.test/a.png",
+              "mimeType": "image/png"
+            }
+          },
+          {
+            "fileData": {
+              "fileUri": "http://example.test/b.webp",
+              "mimeType": "image/webp"
+            }
+          },
+          {
+            "text": "no role is a user turn"
+          },
+          {
+            "text": "unknown roles are user turns"
+          }
+        ]
+      }
+    ],
+    "systemInstruction": null
+  },
+  "rawReplayNullPart": {
+    "error": "Cannot convert undefined or null to object"
+  },
+  "inputUntouched": true
+}

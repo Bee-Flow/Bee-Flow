@@ -100,7 +100,7 @@ function isPrivateHost(url, allowlistedHosts = []) {
 /**
  * Classify a chat-provider config.
  *
- * @param {{ providerType?: string, url?: string, type?: string, displayName?: string }} config
+ * @param {{ providerType?: string | null, url?: string | null, type?: string, displayName?: string }} config
  *   `providerType`: e.g. 'openai', 'ollama', 'azure'; `url`: Endpoint URL (may be absent for some
  *   types); `type`: Legacy spelling of providerType; `displayName`: Admin-chosen label, preferred over
  *   the type

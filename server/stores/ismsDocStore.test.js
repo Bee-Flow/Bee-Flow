@@ -1,13 +1,12 @@
 /**
- * ISMS document store tests — version freeze semantics, edited-flag nudge,
- * seed-never-overwrites, idempotent acknowledgements.
+ * ISMS document store tests — edited-flag nudge, seed-never-overwrites,
+ * idempotent acknowledgements.
  *
  * Run: cd server && node --test stores/ismsDocStore.test.js
  */
 
 const { test, beforeEach } = require('node:test');
 const assert = require('node:assert');
-const crypto = require('crypto');
 const path = require('path');
 
 const calls = { run: [], getOne: [], getAll: [] };
@@ -31,28 +30,7 @@ beforeEach(() => {
     oneQueue = [];
 });
 
-test('publish freezes the draft as version+1 with a sha256 over the body', async () => {
-    const body = '# Access Control Policy\nrules here';
-    oneQueue = [
-        { organization_id: 'o', slug: 'access-control', title: 'Access Control', draft_body: body, current_version: 2, edited: true }, // publish() lookup
-        { organization_id: 'o', slug: 'access-control', title: 'Access Control', current_version: 3, status: 'published' },            // getDoc doc row
-        { version: 3, body, sha256: 'x' },                                                                                             // getDoc version row
-    ];
-    const doc = await store.publish('o', 'access-control', 'actor');
-    const insert = calls.run.find(c => c.sql.includes('INSERT INTO isms_document_versions'));
-    assert.ok(insert, 'version row inserted');
-    assert.strictEqual(insert.params[2], 3, 'version increments');
-    const expectedHash = crypto.createHash('sha256').update(body, 'utf8').digest('hex');
-    assert.strictEqual(insert.params[5], expectedHash, 'sha256 computed over the exact body');
-    assert.strictEqual(doc.published_hash, expectedHash);
-    const bump = calls.run.find(c => c.sql.includes("status = 'published'"));
-    assert.strictEqual(bump.params[2], 3);
-});
-
-test('publish refuses an empty draft', async () => {
-    oneQueue = [{ organization_id: 'o', slug: 's', title: 'T', draft_body: '   ', current_version: 0 }];
-    await assert.rejects(() => store.publish('o', 's', 'a'), /empty/);
-});
+// publish runs in a transaction: ismsDocStore.publish.pg.test.js proves it on PGlite.
 
 test('saveDraft flips edited only when the body diverges from the seed', async () => {
     const seed = 'seed body';

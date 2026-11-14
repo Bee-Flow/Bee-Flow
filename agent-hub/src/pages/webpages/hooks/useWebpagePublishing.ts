@@ -1,7 +1,8 @@
 import { useCallback, useState, type Dispatch, type RefObject, type SetStateAction } from 'react';
-import { API_BASE, ApiError, mutate } from '@/api/mutate';
+import { ApiError } from '@/api/mutate';
 import type { WebpagePatch, WebpageRow } from '@/api/webpageEditorTypes';
 import { errorMessage } from '@/utils/caughtError';
+import { apiRequest } from '@/api/typedRequest';
 
 interface PublishingDeps {
     pageId: string;
@@ -27,14 +28,13 @@ export default function useWebpagePublishing({ pageId, page, setPage, onMetaChan
 
     const callPublish = useCallback(async (nextPublished: boolean, nextSharedGroups?: string[], { republish = false } = {}) => {
         try {
-            const res = await mutate(`${API_BASE}/api/webpages/${pageId}/publish`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+            const res = await apiRequest('PATCH /api/webpages/{id}/publish', {
+                params: { id: pageId },
+                body: {
                     isPublished: nextPublished,
                     ...(nextSharedGroups !== undefined ? { sharedGroups: nextSharedGroups } : {}),
                     ...(republish ? { republish: true } : {}),
-                }),
+                },
             }).catch((err: unknown) => {
                 if (!(err instanceof ApiError)) throw err;
                 // Keep this hook's own fallback text when the body names no error.

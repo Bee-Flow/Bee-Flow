@@ -1,3 +1,4 @@
+// @typecheck
 /** @typedef {import('./automationRefs').DefObject} DefObject */
 /** @typedef {Awaited<ReturnType<typeof import('../stores/studioAppStore').getStudioApp>>} StudioAppRow */
 /**
@@ -191,7 +192,7 @@ function appRefOwnerVerdict({ app = null, actorUserId = null } = {}) {
     /**
      * @param {string} code
      */
-    const refuse = (code) => ({ ok: false, code, message: OWNER_REFUSALS[code] });
+    const refuse = (code) => ({ ok: /** @type {false} */ (false), code, message: OWNER_REFUSALS[code] });
     if (!actorUserId || typeof actorUserId !== 'string') return refuse('actor_unknown');
     if (!app) return refuse('app_unknown');
     if (!app.userId || typeof app.userId !== 'string') return refuse('owner_unknown');

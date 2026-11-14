@@ -361,13 +361,13 @@ router.post('/assist', requireAuth, MFA_ASSIST_LIMITER, validate({ body: AssistB
 
     // Short rolling context so follow-ups work. Client history is untrusted
     // input — same redaction, hard caps on turns and length.
-    const history = (req.body.history || []).slice(-6);
+    const history = /** @type {any[]} */ (req.body.history || []).slice(-6);
     const conversationHistory = history
         .filter(/** @param {{ role?: string, content?: unknown }} m */ m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
         .map(/** @param {{ role?: string, content?: unknown }} m */ m => ({ role: m.role, content: redactMfaMaterial(m.content) }));
     conversationHistory.push({ role: 'user', content: question });
 
-    const answer = await askAssistant(conversationHistory);
+    const answer = await askAssistant(/** @type {any[]} */ (conversationHistory));
     if (!answer) throw new HttpError(503, 'assist_unavailable', 'Assistant unavailable');
     res.json({ answer });
 });

@@ -1,3 +1,4 @@
+// @typecheck strict
 /** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
 /**
  * Promo Code Admin Routes — list, create, deactivate and re-activate the
@@ -14,7 +15,7 @@ const userStore = require('../../stores/userStore');
 const { requireCloud, stripeIpLimiter, stripeUserLimiter } = require('./shared');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
-const { worded } = require('../../core/http/schemaParts');
+const { worded, bodyOf } = require('../../core/http/schemaParts');
 const log = require('../../telemetry/log');
 
 const router = express.Router();
@@ -151,7 +152,7 @@ router.post('/promo-codes', requireCloud, stripeIpLimiter, requireAdmin, stripeU
 });
 
 // PUT /api/stripe/promo-codes/:id/deactivate — Deactivate a promo code
-router.put('/promo-codes/:id/deactivate', requireCloud, requireAdmin, async (req, res) => {
+router.put('/promo-codes/:id/deactivate', requireCloud, requireAdmin, validate({ body: bodyOf({}, 'Deactivating a promo code') }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     const enabled = await stripeService.isEnabled();
     if (!enabled) return res.status(400).json({ error: 'Stripe is not enabled' });
 
@@ -161,7 +162,7 @@ router.put('/promo-codes/:id/deactivate', requireCloud, requireAdmin, async (req
 });
 
 // PUT /api/stripe/promo-codes/:id/activate — Re-activate a promo code
-router.put('/promo-codes/:id/activate', requireCloud, requireAdmin, async (req, res) => {
+router.put('/promo-codes/:id/activate', requireCloud, requireAdmin, validate({ body: bodyOf({}, 'Activating a promo code') }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     const enabled = await stripeService.isEnabled();
     if (!enabled) return res.status(400).json({ error: 'Stripe is not enabled' });
 

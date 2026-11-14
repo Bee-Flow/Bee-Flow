@@ -100,6 +100,12 @@ const HASH_SITES = new Map([
         why: 'MFA recovery codes. A second factor is not a password, and burning one '
             + 'must not read as "you changed your password".',
     }],
+    ['journeys/journeyWorld.testkit.js', {
+        count: 1, kind: 'not-a-credential',
+        why: 'test fixture users: the end-to-end journeys seed their first actors with a '
+            + 'known password in a throwaway PGlite. Test tooling, never loaded by the server, '
+            + 'so no real account gets a credential here.',
+    }],
 ]);
 
 /**

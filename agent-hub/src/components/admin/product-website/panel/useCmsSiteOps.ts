@@ -13,7 +13,8 @@ import { toast } from '@/components/shared/Toast';
 import { cmsApi } from '../cmsApi';
 import { ACTIVE_SITE_LS_KEY } from './helpers';
 import { logger } from '@/utils/logger';
-import { mutate, ApiError, errorBody, RefusedError } from '@/api/mutate';
+import { ApiError, errorBody, RefusedError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 type PanelState = ReturnType<typeof useCmsPanelState>;
 
@@ -225,11 +226,7 @@ export default function useCmsSiteOps({
     const handleRenameSite = useCallback(async (siteId: string, name: string) => {
         try {
             try {
-                await mutate(cmsApi.site(siteId), {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name }),
-            });
+                await apiRequest('PATCH /api/cms/sites/{siteId}', { params: { siteId }, body: { name } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const d = errorBody(err) ?? {};
@@ -259,7 +256,7 @@ export default function useCmsSiteOps({
         if (!ok) return;
         try {
             try {
-                await mutate(cmsApi.site(siteId), { method: 'DELETE' });
+                await apiRequest('DELETE /api/cms/sites/{siteId}', { params: { siteId } });
             } catch (apiErr) {
                 if (!(apiErr instanceof RefusedError)) throw apiErr;
                 const d = errorBody(apiErr) ?? {};
@@ -306,7 +303,7 @@ export default function useCmsSiteOps({
         try {
             let res: Response;
             try {
-                res = await mutate(cmsApi.siteDuplicate(siteId), { method: 'POST' });
+                res = await apiRequest('POST /api/cms/sites/{siteId}/duplicate', { params: { siteId } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const data = errorBody(err) ?? {};
@@ -339,11 +336,7 @@ export default function useCmsSiteOps({
         setLiveSiteId(siteId);
         try {
             try {
-                await mutate(cmsApi.siteLive(siteId), {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ live: true }),
-            });
+                await apiRequest('PUT /api/cms/sites/{siteId}/live', { params: { siteId }, body: { live: true } });
             } catch (err) {
                 if (!(err instanceof ApiError)) throw err;
                 throw new Error(`Failed to set version live (${err.status})`);

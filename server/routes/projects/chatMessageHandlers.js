@@ -12,7 +12,7 @@ const log = require('../../telemetry/log');
 const { forbidden, notFound, conflict } = require('../../core/http/errors');
 const {
     DEFAULT_TITLE, AUTO_TRIGGERS, BACKOFF_DISMISSALS, PAUSE_MS, titleFromMessage, chatEvent, tryOpen, presentMessage,
-} = require('./chatsPresent');
+} = require('../../usecases/projects/chatsPresent');
 const { postMessage } = require('./chatsPost');
 
 /**

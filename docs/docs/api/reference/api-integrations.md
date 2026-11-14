@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/integrations`
 
-58 routes, 26 with a request schema. Back to the [endpoint reference](../reference.md).
+58 routes, 34 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `calendar`
 
@@ -231,13 +231,13 @@ No request schema.
 
 **Access:** Permission `manage_agents` · the handler also checks who the caller is
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `POST /api/integrations/github-sync/push-pending`
 
 **Access:** Permission `manage_agents` · the handler also checks who the caller is
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `GET /api/integrations/github-sync/status`
 
@@ -261,7 +261,7 @@ No request schema.
 
 **Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `GET /api/integrations/github/status`
 
@@ -354,7 +354,7 @@ No request schema.
 
 **Access:** Signed-in user
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `GET /api/integrations/google/status`
 
@@ -397,7 +397,7 @@ No request schema.
 
 **Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `POST /api/integrations/linkedin/post`
 
@@ -433,7 +433,7 @@ No request schema.
 
 **Access:** Signed-in user
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `GET /api/integrations/microsoft/status`
 
@@ -459,7 +459,7 @@ No request schema.
 
 **Access:** Signed-in user
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `GET /api/integrations/nmbrs/status`
 
@@ -581,7 +581,7 @@ No request schema.
 
 **Access:** Signed-in user
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `GET /api/integrations/withings/status`
 

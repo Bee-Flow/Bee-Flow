@@ -52,7 +52,10 @@ mockModule(path.join(SERVER, 'db'), {
         return r ? { ...r } : null;
     },
     async getAll() { return []; },
+    // The store destructures these at load: the transaction reaches run through the module.
+    async withTransaction(fn) { return fn({ query: (sql, params) => require(path.join(SERVER, 'db')).run(sql, params) }); },
     async run(sql, params) {
+        if (/to_regclass/.test(sql)) return { rows: [{ present: true }] };
         if (failMessageWipe && /DELETE FROM conversation_messages/.test(sql)) throw new Error('connection reset');
         if (/SET meta_json = \$1 WHERE id = \$2/.test(sql)) { rows[params[1]].meta_json = params[0]; return { rowCount: 1 }; }
         if (/SET title = \$1 WHERE id = \$2/.test(sql)) { rows[params[1]].title = params[0]; return { rowCount: 1 }; }

@@ -18,7 +18,7 @@ declare global {
             isAuthenticated?: boolean;
             oauthProvider?: string;
             accessToken?: string;
-            refreshToken?: string;
+            refreshToken?: string | null;
             save(callback?: (err?: Error) => void): this;
             destroy(callback: (err?: Error) => void): this;
             regenerate(callback: (err?: Error) => void): this;
@@ -51,9 +51,15 @@ declare global {
             shareBridgeClaims?: { shareId: string; webpageId: string };
             /** The organisation row whose connector signature verified (routes/nextcloudTaskProcessing.js). */
             connectorOrg?: { id?: string; [key: string]: unknown };
-            /** Set by requireNotebookRole (routes/notebooksAccess.js): the notebook with the caller's role. */
+            /** Set by requireNotebookRole (auth/notebookAccess.mts): the notebook with the caller's role. */
             notebook?: { id: string; userId?: string; role?: string; projectId?: string | null; [key: string]: unknown };
             notebookRole?: string;
+            /** Set by the shares preflight (routes/automation/sharing.js): what the PUT may change. */
+            automationShares?: { a: Record<string, any>; acc: Record<string, any>; orgId: string | null; wanted: Array<{ principalType: 'group' | 'user'; principalId: string; role: 'edit' | 'run' | 'view' }>; widens: boolean };
+            /** Set by the `:id` loader (routes/orgIntegrations/builder.js): the custom integration row. */
+            customIntegration?: NonNullable<Awaited<ReturnType<typeof import('../stores/orgCustomIntegrationStore').getById>>>;
+            /** Set by requireRole (auth/projectAccess.js): the project it loaded. */
+            project?: Awaited<ReturnType<typeof import('../stores/projectStore').getProject>>;
             /** Set by the library `:id` param loader (routes/mcpLibrary.js). */
             libraryRow?: object;
             /** The organisation an admin request is scoped to (routes/feedback.js). */

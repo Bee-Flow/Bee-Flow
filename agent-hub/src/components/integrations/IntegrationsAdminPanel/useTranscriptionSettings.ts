@@ -1,9 +1,9 @@
 // Meeting-transcription settings writers of the IntegrationsAdminPanel —
 // the pyannoteAI speech-model and voiceprint persistence, moved verbatim
 // from IntegrationsAdminPanel.jsx.
-import { API_BASE, authFetch } from '@/utils/helpers';
 import type { AdminMessage, VoiceprintPatch } from './IntegrationsAdminPanel.types';
-import { mutate, errorBody, RefusedError } from '@/api/mutate';
+import { errorBody, RefusedError } from '@/api/mutate';
+import { apiFetch, apiRequest } from '@/api/typedRequest';
 
 interface UseTranscriptionSettingsParams {
     pyannoteTranscriptionModel: string;
@@ -31,11 +31,7 @@ export default function useTranscriptionSettings({
         try {
             let res: Response | undefined;
             try {
-                res = await mutate(`${API_BASE}/ai/config`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ pyannoteTranscriptionModel: model }),
-            });
+                res = await apiRequest('POST /ai/config', { body: { pyannoteTranscriptionModel: model } });
             } catch (apiErr) {
                 if (!(apiErr instanceof RefusedError)) throw apiErr;
                 const err = errorBody(apiErr) ?? {};
@@ -62,11 +58,7 @@ export default function useTranscriptionSettings({
         if (patch.pyannoteIdentifyThreshold !== undefined) setPyannoteIdentifyThreshold(patch.pyannoteIdentifyThreshold);
         setSavingVoiceprint(true);
         try {
-            const res = await authFetch(`${API_BASE}/ai/config`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(patch),
-            });
+            const res = await apiFetch('POST /ai/config', { body: patch });
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
                 setVoiceprintMatchingEnabled(prev.voiceprintMatchingEnabled);

@@ -2,32 +2,30 @@
 'use strict';
 
 /**
- * isoEvidenceStore — the snapshot hash leaves out the elapsed-time fields
- * (days_remaining, oldest_open_days, …), so a day passing is not drift; and
- * an unchanged snapshot still gets the fresh payload, so a check never judges
- * a stored first-day age.
- *
- * The store destructures run/getOne from db at require time, so they are
- * replaced on the real db singleton BEFORE the store is required, and
- * db.makeStoreInit (the documented seam, stores/lib/storeInit.js) turns schema
- * creation into a no-op.
+ * isoEvidenceStore against a real Postgres (PGlite behind db.js's pool,
+ * testUtils/pglitePool.js): the snapshot hash leaves out the elapsed-time
+ * fields (days_remaining, oldest_open_days, …), so a day passing is not drift;
+ * an unchanged snapshot refreshes the latest row with the fresh payload, so a
+ * check never judges a stored first-day age; a real change appends a row.
  *
  * Run: cd server && node --test stores/isoEvidenceStore.test.js
  */
 
-const { test, beforeEach } = require('node:test');
+const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 
-const db = require('../db');
-const runs = [];
-let prev = null;
-db.makeStoreInit = () => async () => {};
-db.run = async (sql, params) => { runs.push({ sql, params }); return { rowCount: 1, rows: [] }; };
-db.getOne = async () => prev;
+const { usePglitePool } = require('../testUtils/pglitePool');
 
+const { pg, close } = usePglitePool();
 const store = require('./isoEvidenceStore');
 
-beforeEach(() => { runs.length = 0; prev = null; });
+before(() => store.initDB());
+after(close);
+
+const snapshots = async (subject) => (await pg.query(
+    `SELECT payload, fetched_at FROM iso_evidence_snapshots
+      WHERE organization_id = 'org1' AND connector_id = 'tls-endpoints' AND subject_id = $1 ORDER BY id`, [subject],
+)).rows;
 
 test('a payload that differs only in an elapsed-time field hashes the same', () => {
     const { hashPayload } = store;
@@ -39,20 +37,29 @@ test('a payload that differs only in an elapsed-time field hashes the same', () 
     assert.notEqual(hashPayload({ host: 'a', days_remaining: 40 }), hashPayload({ host: 'b', days_remaining: 40 }));
 });
 
-test('an unchanged snapshot refreshes the stored payload, so the ages stay current', async () => {
-    const p1 = { host: 'a', days_remaining: 40 };
-    const p2 = { host: 'a', days_remaining: 39 };
-    prev = { hash: store.hashPayload(p1) };
-    const r = await store.saveSnapshot('org1', 'tls-endpoints', 'a', p2);
-    assert.equal(r.changed, false);
-    assert.equal(runs.length, 1);
-    assert.match(runs[0].sql, /^\s*UPDATE iso_evidence_snapshots SET fetched_at = NOW\(\), payload = \$4::jsonb/);
-    assert.deepEqual(runs[0].params, ['org1', 'tls-endpoints', 'a', JSON.stringify(p2)]);
+test('the first snapshot is stored and reported as a change', async () => {
+    const r = await store.saveSnapshot('org1', 'tls-endpoints', 'first', { host: 'first', days_remaining: 40 });
+    assert.equal(r.changed, true);
+    assert.equal((await snapshots('first')).length, 1);
 });
 
-test('a real change inserts a new snapshot and reports drift', async () => {
-    prev = { hash: store.hashPayload({ host: 'a', protocol: 'TLSv1.3' }) };
-    const r = await store.saveSnapshot('org1', 'tls-endpoints', 'a', { host: 'a', protocol: 'TLSv1.1' });
+test('an unchanged snapshot refreshes the stored payload in place, so the ages stay current', async () => {
+    await store.saveSnapshot('org1', 'tls-endpoints', 'a', { host: 'a', days_remaining: 40 });
+    await pg.query("UPDATE iso_evidence_snapshots SET fetched_at = NOW() - INTERVAL '1 day' WHERE subject_id = 'a'");
+    const before = await snapshots('a');
+    const r = await store.saveSnapshot('org1', 'tls-endpoints', 'a', { host: 'a', days_remaining: 39 });
+    assert.equal(r.changed, false);
+    const after = await snapshots('a');
+    assert.equal(after.length, 1, 'no identical-row time series');
+    assert.deepEqual(after[0].payload, { host: 'a', days_remaining: 39 });
+    assert.ok(new Date(after[0].fetched_at) > new Date(before[0].fetched_at));
+});
+
+test('a real change appends a new snapshot and reports drift; another subject is untouched', async () => {
+    await store.saveSnapshot('org1', 'tls-endpoints', 'b', { host: 'b', protocol: 'TLSv1.3' });
+    await store.saveSnapshot('org1', 'tls-endpoints', 'c', { host: 'c', protocol: 'TLSv1.3' });
+    const r = await store.saveSnapshot('org1', 'tls-endpoints', 'b', { host: 'b', protocol: 'TLSv1.1' });
     assert.equal(r.changed, true);
-    assert.match(runs[0].sql, /INSERT INTO iso_evidence_snapshots/);
+    assert.deepEqual((await snapshots('b')).map((s) => s.payload.protocol), ['TLSv1.3', 'TLSv1.1']);
+    assert.equal((await snapshots('c')).length, 1);
 });

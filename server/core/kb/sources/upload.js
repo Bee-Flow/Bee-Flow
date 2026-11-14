@@ -78,7 +78,7 @@ function isUnchanged() {
  * @param {import('./index').SyncCtx} ctx
  * @param {import('./index').SyncDeps} deps
  */
-async function fetch(item, stored, ctx, deps) {
+async function fetchItem(item, stored, ctx, deps) {
     const doc = await deps.kbStore.getDocument(item.docId);
     if (!doc) throw new Error('Document no longer exists');
     const content = doc.original_content || '';
@@ -98,4 +98,4 @@ async function fetch(item, stored, ctx, deps) {
     };
 }
 
-module.exports = { enumerate, fetch, isUnchanged, supportsModes, defaultMode, RETRYABLE };
+module.exports = { enumerate, fetch: fetchItem, isUnchanged, supportsModes, defaultMode, RETRYABLE };

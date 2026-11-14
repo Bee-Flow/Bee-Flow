@@ -1,0 +1,1116 @@
+{
+  "nullAnswer": {
+    "note": "",
+    "audience": null,
+    "roles": [],
+    "tableRules": [],
+    "defaultRole": null,
+    "byGroup": {},
+    "byGroupNames": {},
+    "members": [],
+    "unresolved": [],
+    "empty": true
+  },
+  "stringAnswer": {
+    "note": "",
+    "audience": null,
+    "roles": [],
+    "tableRules": [],
+    "defaultRole": null,
+    "byGroup": {},
+    "byGroupNames": {},
+    "members": [],
+    "unresolved": [],
+    "empty": true
+  },
+  "emptyObject": {
+    "note": "",
+    "audience": null,
+    "roles": [],
+    "tableRules": [],
+    "defaultRole": null,
+    "byGroup": {},
+    "byGroupNames": {},
+    "members": [],
+    "unresolved": [],
+    "empty": true
+  },
+  "noContext": {
+    "note": "",
+    "audience": null,
+    "roles": [
+      {
+        "key": "a",
+        "label": "A"
+      }
+    ],
+    "tableRules": [],
+    "defaultRole": "a",
+    "byGroup": {},
+    "byGroupNames": {},
+    "members": [],
+    "unresolved": [],
+    "empty": false
+  },
+  "roleKeys": {
+    "note": "",
+    "audience": null,
+    "roles": [
+      {
+        "key": "approver",
+        "label": "Fiatteur"
+      },
+      {
+        "key": "fin_ops_lead",
+        "label": "fin_ops_lead"
+      },
+      {
+        "key": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "label": "Long"
+      },
+      {
+        "key": "caf_",
+        "label": "é"
+      }
+    ],
+    "tableRules": [],
+    "defaultRole": null,
+    "byGroup": {},
+    "byGroupNames": {},
+    "members": [],
+    "unresolved": [],
+    "empty": false
+  },
+  "roleCap": {
+    "note": "",
+    "audience": null,
+    "roles": [
+      {
+        "key": "r0",
+        "label": "R 0"
+      },
+      {
+        "key": "r1",
+        "label": "R 1"
+      },
+      {
+        "key": "r2",
+        "label": "R 2"
+      },
+      {
+        "key": "r3",
+        "label": "R 3"
+      },
+      {
+        "key": "r4",
+        "label": "R 4"
+      },
+      {
+        "key": "r5",
+        "label": "R 5"
+      },
+      {
+        "key": "r6",
+        "label": "R 6"
+      },
+      {
+        "key": "r7",
+        "label": "R 7"
+      },
+      {
+        "key": "r8",
+        "label": "R 8"
+      },
+      {
+        "key": "r9",
+        "label": "R 9"
+      },
+      {
+        "key": "r10",
+        "label": "R 10"
+      },
+      {
+        "key": "r11",
+        "label": "R 11"
+      },
+      {
+        "key": "r12",
+        "label": "R 12"
+      },
+      {
+        "key": "r13",
+        "label": "R 13"
+      },
+      {
+        "key": "r14",
+        "label": "R 14"
+      },
+      {
+        "key": "r15",
+        "label": "R 15"
+      },
+      {
+        "key": "r16",
+        "label": "R 16"
+      },
+      {
+        "key": "r17",
+        "label": "R 17"
+      },
+      {
+        "key": "r18",
+        "label": "R 18"
+      },
+      {
+        "key": "r19",
+        "label": "R 19"
+      },
+      {
+        "key": "r20",
+        "label": "R 20"
+      },
+      {
+        "key": "r21",
+        "label": "R 21"
+      },
+      {
+        "key": "r22",
+        "label": "R 22"
+      },
+      {
+        "key": "r23",
+        "label": "R 23"
+      },
+      {
+        "key": "r24",
+        "label": "R 24"
+      },
+      {
+        "key": "r25",
+        "label": "R 25"
+      },
+      {
+        "key": "r26",
+        "label": "R 26"
+      },
+      {
+        "key": "r27",
+        "label": "R 27"
+      },
+      {
+        "key": "r28",
+        "label": "R 28"
+      },
+      {
+        "key": "r29",
+        "label": "R 29"
+      },
+      {
+        "key": "r30",
+        "label": "R 30"
+      },
+      {
+        "key": "r31",
+        "label": "R 31"
+      },
+      {
+        "key": "r32",
+        "label": "R 32"
+      },
+      {
+        "key": "r33",
+        "label": "R 33"
+      },
+      {
+        "key": "r34",
+        "label": "R 34"
+      },
+      {
+        "key": "r35",
+        "label": "R 35"
+      },
+      {
+        "key": "r36",
+        "label": "R 36"
+      },
+      {
+        "key": "r37",
+        "label": "R 37"
+      },
+      {
+        "key": "r38",
+        "label": "R 38"
+      },
+      {
+        "key": "r39",
+        "label": "R 39"
+      }
+    ],
+    "tableRules": [],
+    "defaultRole": null,
+    "byGroup": {},
+    "byGroupNames": {},
+    "members": [],
+    "unresolved": [],
+    "empty": false
+  },
+  "scopes": {
+    "note": "",
+    "audience": null,
+    "roles": [
+      {
+        "key": "acme",
+        "label": "Acme",
+        "scope": {
+          "column": "supplier",
+          "value": "Acme"
+        }
+      },
+      {
+        "key": "numeric",
+        "label": "Numeric",
+        "scope": {
+          "column": "supplier",
+          "value": "42"
+        }
+      },
+      {
+        "key": "scope_junk",
+        "label": "Junk"
+      },
+      {
+        "key": "scope_null",
+        "label": "Null"
+      }
+    ],
+    "tableRules": [
+      {
+        "tableId": "tbl_1",
+        "roleKey": "acme",
+        "expr": "record.supplier == \"Acme\""
+      },
+      {
+        "tableId": "tbl_1",
+        "roleKey": "numeric",
+        "expr": "record.supplier == \"42\""
+      }
+    ],
+    "defaultRole": null,
+    "byGroup": {},
+    "byGroupNames": {},
+    "members": [],
+    "unresolved": [
+      {
+        "kind": "rule",
+        "name": "supplier = Globex",
+        "what": "globex"
+      },
+      {
+        "kind": "column",
+        "name": "country",
+        "what": "ghost_col"
+      },
+      {
+        "kind": "value",
+        "name": "Initech",
+        "what": "supplier"
+      },
+      {
+        "kind": "rule",
+        "name": "bad-col = x",
+        "what": "bad_col"
+      },
+      {
+        "kind": "value",
+        "name": "padded",
+        "what": "status"
+      },
+      {
+        "kind": "value",
+        "name": "padded",
+        "what": "status"
+      },
+      {
+        "kind": "value",
+        "name": "",
+        "what": "empty"
+      }
+    ],
+    "empty": false
+  },
+  "scopesNoValidator": {
+    "note": "",
+    "audience": null,
+    "roles": [
+      {
+        "key": "globex",
+        "label": "Globex",
+        "scope": {
+          "column": "supplier",
+          "value": "Globex"
+        }
+      }
+    ],
+    "tableRules": [
+      {
+        "tableId": "tbl_1",
+        "roleKey": "globex",
+        "expr": "record.supplier == \"Globex\""
+      }
+    ],
+    "defaultRole": null,
+    "byGroup": {},
+    "byGroupNames": {},
+    "members": [],
+    "unresolved": [],
+    "empty": false
+  },
+  "scopesValidatorSaysNothing": {
+    "note": "",
+    "audience": null,
+    "roles": [
+      {
+        "key": "globex",
+        "label": "Globex",
+        "scope": {
+          "column": "supplier",
+          "value": "Globex"
+        }
+      }
+    ],
+    "tableRules": [
+      {
+        "tableId": "tbl_1",
+        "roleKey": "globex",
+        "expr": "record.supplier == \"Globex\""
+      }
+    ],
+    "defaultRole": null,
+    "byGroup": {},
+    "byGroupNames": {},
+    "members": [],
+    "unresolved": [],
+    "empty": false
+  },
+  "scopesNoTable": {
+    "note": "",
+    "audience": null,
+    "roles": [
+      {
+        "key": "acme",
+        "label": "Acme",
+        "scope": {
+          "column": "supplier",
+          "value": "Acme"
+        }
+      }
+    ],
+    "tableRules": [],
+    "defaultRole": null,
+    "byGroup": {},
+    "byGroupNames": {},
+    "members": [],
+    "unresolved": [],
+    "empty": false
+  },
+  "scopesNoDigest": {
+    "note": "",
+    "audience": null,
+    "roles": [],
+    "tableRules": [],
+    "defaultRole": null,
+    "byGroup": {},
+    "byGroupNames": {},
+    "members": [],
+    "unresolved": [
+      {
+        "kind": "column",
+        "name": "supplier",
+        "what": "acme"
+      }
+    ],
+    "empty": true
+  },
+  "groupRoles": {
+    "note": "",
+    "audience": null,
+    "roles": [
+      {
+        "key": "approver",
+        "label": "A"
+      }
+    ],
+    "tableRules": [],
+    "defaultRole": null,
+    "byGroup": {
+      "g_fin": "approver",
+      "g_fin2": "approver",
+      "g_ops": "viewer"
+    },
+    "byGroupNames": {
+      "Finance": "approver",
+      "Finance Team": "approver",
+      "Operations": "viewer"
+    },
+    "members": [],
+    "unresolved": [
+      {
+        "kind": "group",
+        "name": "ops"
+      },
+      {
+        "kind": "group",
+        "name": "Legal"
+      },
+      {
+        "kind": "role",
+        "name": "nope",
+        "what": "Legal"
+      },
+      {
+        "kind": "group",
+        "name": "Legal"
+      },
+      {
+        "kind": "role",
+        "name": "Nope Either",
+        "what": "Operations"
+      },
+      {
+        "kind": "group",
+        "name": ""
+      },
+      {
+        "kind": "role",
+        "name": "",
+        "what": ""
+      },
+      {
+        "kind": "group",
+        "name": ""
+      },
+      {
+        "kind": "group",
+        "name": ""
+      }
+    ],
+    "empty": false
+  },
+  "groupRolesCap": {
+    "note": "",
+    "audience": null,
+    "roles": [],
+    "tableRules": [],
+    "defaultRole": null,
+    "byGroup": {
+      "g_fin": "viewer"
+    },
+    "byGroupNames": {
+      "Finance": "viewer"
+    },
+    "members": [],
+    "unresolved": [
+      {
+        "kind": "group",
+        "name": "G0"
+      },
+      {
+        "kind": "group",
+        "name": "G2"
+      },
+      {
+        "kind": "group",
+        "name": "G4"
+      },
+      {
+        "kind": "group",
+        "name": "G6"
+      },
+      {
+        "kind": "group",
+        "name": "G8"
+      },
+      {
+        "kind": "group",
+        "name": "G10"
+      },
+      {
+        "kind": "group",
+        "name": "G12"
+      },
+      {
+        "kind": "group",
+        "name": "G14"
+      },
+      {
+        "kind": "group",
+        "name": "G16"
+      },
+      {
+        "kind": "group",
+        "name": "G18"
+      },
+      {
+        "kind": "group",
+        "name": "G20"
+      },
+      {
+        "kind": "group",
+        "name": "G22"
+      },
+      {
+        "kind": "group",
+        "name": "G24"
+      }
+    ],
+    "empty": false
+  },
+  "people": {
+    "note": "",
+    "audience": null,
+    "roles": [],
+    "tableRules": [],
+    "defaultRole": null,
+    "byGroup": {},
+    "byGroupNames": {},
+    "members": [
+      {
+        "userId": "u_jan",
+        "roleKey": "viewer",
+        "name": "Jan de Vries"
+      },
+      {
+        "userId": "u_jan2",
+        "roleKey": "viewer",
+        "name": "Jan"
+      },
+      {
+        "userId": "u_ann",
+        "roleKey": "viewer",
+        "name": "Ann Blok"
+      },
+      {
+        "userId": "u_mail",
+        "roleKey": "viewer",
+        "name": "only@example.com"
+      }
+    ],
+    "unresolved": [
+      {
+        "kind": "person",
+        "name": "Somebody"
+      },
+      {
+        "kind": "role",
+        "name": "nope",
+        "what": "Ann Blok"
+      },
+      {
+        "kind": "person",
+        "name": ""
+      },
+      {
+        "kind": "role",
+        "name": "",
+        "what": ""
+      },
+      {
+        "kind": "person",
+        "name": ""
+      },
+      {
+        "kind": "person",
+        "name": ""
+      }
+    ],
+    "empty": false
+  },
+  "peopleCap": {
+    "note": "",
+    "audience": null,
+    "roles": [],
+    "tableRules": [],
+    "defaultRole": null,
+    "byGroup": {},
+    "byGroupNames": {},
+    "members": [
+      {
+        "userId": "u_ann",
+        "roleKey": "viewer",
+        "name": "Ann Blok"
+      }
+    ],
+    "unresolved": [
+      {
+        "kind": "person",
+        "name": "P0"
+      },
+      {
+        "kind": "person",
+        "name": "P3"
+      },
+      {
+        "kind": "person",
+        "name": "P6"
+      },
+      {
+        "kind": "person",
+        "name": "P9"
+      },
+      {
+        "kind": "person",
+        "name": "P12"
+      },
+      {
+        "kind": "person",
+        "name": "P15"
+      },
+      {
+        "kind": "person",
+        "name": "P18"
+      },
+      {
+        "kind": "person",
+        "name": "P21"
+      },
+      {
+        "kind": "person",
+        "name": "P24"
+      }
+    ],
+    "empty": false
+  },
+  "audiencePrivate": {
+    "note": "",
+    "audience": {
+      "kind": "private"
+    },
+    "roles": [],
+    "tableRules": [],
+    "defaultRole": null,
+    "byGroup": {},
+    "byGroupNames": {},
+    "members": [],
+    "unresolved": [],
+    "empty": false
+  },
+  "audienceOrg": {
+    "note": "",
+    "audience": {
+      "kind": "organisation"
+    },
+    "roles": [],
+    "tableRules": [],
+    "defaultRole": null,
+    "byGroup": {},
+    "byGroupNames": {},
+    "members": [],
+    "unresolved": [],
+    "empty": false
+  },
+  "audienceUnchanged": {
+    "note": "",
+    "audience": null,
+    "roles": [],
+    "tableRules": [],
+    "defaultRole": null,
+    "byGroup": {},
+    "byGroupNames": {},
+    "members": [],
+    "unresolved": [],
+    "empty": true
+  },
+  "audienceUnknownKind": {
+    "note": "",
+    "audience": null,
+    "roles": [],
+    "tableRules": [],
+    "defaultRole": null,
+    "byGroup": {},
+    "byGroupNames": {},
+    "members": [],
+    "unresolved": [],
+    "empty": true
+  },
+  "audienceNotObject": {
+    "note": "",
+    "audience": null,
+    "roles": [],
+    "tableRules": [],
+    "defaultRole": null,
+    "byGroup": {},
+    "byGroupNames": {},
+    "members": [],
+    "unresolved": [],
+    "empty": true
+  },
+  "audienceGroups": {
+    "note": "",
+    "audience": {
+      "kind": "groups",
+      "groupIds": [
+        "g_fin",
+        "g_fin2",
+        "g_ops"
+      ],
+      "groupNames": [
+        "Finance",
+        "Finance Team",
+        "Operations"
+      ]
+    },
+    "roles": [],
+    "tableRules": [],
+    "defaultRole": null,
+    "byGroup": {},
+    "byGroupNames": {},
+    "members": [],
+    "unresolved": [
+      {
+        "kind": "group",
+        "name": "Legal"
+      },
+      {
+        "kind": "group",
+        "name": ""
+      },
+      {
+        "kind": "group",
+        "name": ""
+      }
+    ],
+    "empty": false
+  },
+  "audienceGroupsNone": {
+    "note": "",
+    "audience": null,
+    "roles": [],
+    "tableRules": [],
+    "defaultRole": null,
+    "byGroup": {},
+    "byGroupNames": {},
+    "members": [],
+    "unresolved": [
+      {
+        "kind": "group",
+        "name": "Legal"
+      }
+    ],
+    "empty": true
+  },
+  "audienceGroupsNotList": {
+    "note": "",
+    "audience": null,
+    "roles": [],
+    "tableRules": [],
+    "defaultRole": null,
+    "byGroup": {},
+    "byGroupNames": {},
+    "members": [],
+    "unresolved": [],
+    "empty": true
+  },
+  "audienceGroupsCap": {
+    "note": "",
+    "audience": null,
+    "roles": [],
+    "tableRules": [],
+    "defaultRole": null,
+    "byGroup": {},
+    "byGroupNames": {},
+    "members": [],
+    "unresolved": [
+      {
+        "kind": "group",
+        "name": "G0"
+      },
+      {
+        "kind": "group",
+        "name": "G1"
+      },
+      {
+        "kind": "group",
+        "name": "G2"
+      },
+      {
+        "kind": "group",
+        "name": "G3"
+      },
+      {
+        "kind": "group",
+        "name": "G4"
+      },
+      {
+        "kind": "group",
+        "name": "G5"
+      },
+      {
+        "kind": "group",
+        "name": "G6"
+      },
+      {
+        "kind": "group",
+        "name": "G7"
+      },
+      {
+        "kind": "group",
+        "name": "G8"
+      },
+      {
+        "kind": "group",
+        "name": "G9"
+      },
+      {
+        "kind": "group",
+        "name": "G10"
+      },
+      {
+        "kind": "group",
+        "name": "G11"
+      },
+      {
+        "kind": "group",
+        "name": "G12"
+      },
+      {
+        "kind": "group",
+        "name": "G13"
+      },
+      {
+        "kind": "group",
+        "name": "G14"
+      },
+      {
+        "kind": "group",
+        "name": "G15"
+      },
+      {
+        "kind": "group",
+        "name": "G16"
+      },
+      {
+        "kind": "group",
+        "name": "G17"
+      },
+      {
+        "kind": "group",
+        "name": "G18"
+      },
+      {
+        "kind": "group",
+        "name": "G19"
+      },
+      {
+        "kind": "group",
+        "name": "G20"
+      },
+      {
+        "kind": "group",
+        "name": "G21"
+      },
+      {
+        "kind": "group",
+        "name": "G22"
+      },
+      {
+        "kind": "group",
+        "name": "G23"
+      },
+      {
+        "kind": "group",
+        "name": "G24"
+      }
+    ],
+    "empty": true
+  },
+  "defaultRoleKnown": {
+    "note": "",
+    "audience": null,
+    "roles": [],
+    "tableRules": [],
+    "defaultRole": "viewer",
+    "byGroup": {},
+    "byGroupNames": {},
+    "members": [],
+    "unresolved": [],
+    "empty": false
+  },
+  "defaultRoleNew": {
+    "note": "",
+    "audience": null,
+    "roles": [
+      {
+        "key": "reader",
+        "label": "R"
+      }
+    ],
+    "tableRules": [],
+    "defaultRole": "reader",
+    "byGroup": {},
+    "byGroupNames": {},
+    "members": [],
+    "unresolved": [],
+    "empty": false
+  },
+  "defaultRoleUnknown": {
+    "note": "",
+    "audience": null,
+    "roles": [],
+    "tableRules": [],
+    "defaultRole": null,
+    "byGroup": {},
+    "byGroupNames": {},
+    "members": [],
+    "unresolved": [
+      {
+        "kind": "role",
+        "name": "boss",
+        "what": "default"
+      }
+    ],
+    "empty": true
+  },
+  "defaultRoleEmpty": {
+    "note": "",
+    "audience": null,
+    "roles": [],
+    "tableRules": [],
+    "defaultRole": null,
+    "byGroup": {},
+    "byGroupNames": {},
+    "members": [],
+    "unresolved": [],
+    "empty": true
+  },
+  "defaultRoleNumber": {
+    "note": "",
+    "audience": null,
+    "roles": [],
+    "tableRules": [],
+    "defaultRole": null,
+    "byGroup": {},
+    "byGroupNames": {},
+    "members": [],
+    "unresolved": [
+      {
+        "kind": "role",
+        "name": "",
+        "what": "default"
+      }
+    ],
+    "empty": true
+  },
+  "note": {
+    "note": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn",
+    "audience": null,
+    "roles": [],
+    "tableRules": [],
+    "defaultRole": null,
+    "byGroup": {},
+    "byGroupNames": {},
+    "members": [],
+    "unresolved": [],
+    "empty": true
+  },
+  "noteNotString": {
+    "note": "",
+    "audience": null,
+    "roles": [],
+    "tableRules": [],
+    "defaultRole": null,
+    "byGroup": {},
+    "byGroupNames": {},
+    "members": [],
+    "unresolved": [],
+    "empty": true
+  },
+  "unresolvedOrder": {
+    "note": "",
+    "audience": null,
+    "roles": [],
+    "tableRules": [],
+    "defaultRole": null,
+    "byGroup": {},
+    "byGroupNames": {},
+    "members": [],
+    "unresolved": [
+      {
+        "kind": "column",
+        "name": "nope",
+        "what": "ghost"
+      },
+      {
+        "kind": "group",
+        "name": "Sales"
+      },
+      {
+        "kind": "role",
+        "name": "boss",
+        "what": "Nobody"
+      },
+      {
+        "kind": "person",
+        "name": "Nobody"
+      },
+      {
+        "kind": "group",
+        "name": "Legal"
+      },
+      {
+        "kind": "role",
+        "name": "chief",
+        "what": "default"
+      }
+    ],
+    "empty": true
+  },
+  "everything": {
+    "note": "All of it.",
+    "audience": {
+      "kind": "groups",
+      "groupIds": [
+        "g_ops"
+      ],
+      "groupNames": [
+        "Operations"
+      ]
+    },
+    "roles": [
+      {
+        "key": "acme",
+        "label": "Acme",
+        "scope": {
+          "column": "supplier",
+          "value": "Acme"
+        }
+      },
+      {
+        "key": "lead",
+        "label": "Lead"
+      }
+    ],
+    "tableRules": [
+      {
+        "tableId": "tbl_1",
+        "roleKey": "acme",
+        "expr": "record.supplier == \"Acme\""
+      }
+    ],
+    "defaultRole": "viewer",
+    "byGroup": {
+      "g_ops": "lead"
+    },
+    "byGroupNames": {
+      "Operations": "lead"
+    },
+    "members": [
+      {
+        "userId": "u_ann",
+        "roleKey": "acme",
+        "name": "Ann Blok"
+      }
+    ],
+    "unresolved": [],
+    "empty": false
+  }
+}

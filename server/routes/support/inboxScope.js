@@ -45,7 +45,7 @@ async function _hasSupportInbox(req) {
 
 /**
  * Org ids the caller may act within (super-admins fall back to their own org).
- * @param {import('express').Request} req
+ * @param {import('express').Request<any, any, any, any>} req
  */
 async function resolveOrgScope(req) {
     const ids = await resolveUserOrgIds(req);
@@ -80,7 +80,8 @@ function inboxToReplyConfig(inbox) {
 }
 
 /**
- * Per-inbox access gate (org scope AND group ACL). The single source of truth
+ * Per-inbox access gate (org scope, `support_inbox` held in the inbox's
+ * organisation, AND group ACL). The single source of truth
  * every inbox/thread-reaching route funnels through, so a group-restricted inbox
  * can never be opened by a non-member — not via the inbox list, nor by reaching
  * one of its tickets directly.
@@ -93,16 +94,16 @@ async function userCanAccessInbox(req, inbox) {
     // Super admins are limited to their own org's inboxes (resolveOrgScope falls
     // back to their org); everyone else to their member orgs.
     if (!scope.includes(inbox.organization_id)) return false;
-    const { orgIds } = await access.resolveOrgScope(req);
-    const [userGroups, isOrgAdmin] = await Promise.all([
-        access.resolveUserGroups(req), access.resolveIsOrgAdmin(req),
+    const [{ orgIds }, userGroups, { works, isOrgAdmin }] = await Promise.all([
+        access.resolveOrgScope(req), access.resolveUserGroups(req), access.inboxRightsIn(req, inbox.organization_id),
     ]);
+    if (!works) return false;
     return access.canUserAccessInbox(inbox, getUserId(req), orgIds, userGroups, { isOrgAdmin });
 }
 
 // Resolve + scope/ACL-check an inbox; returns the public row or sends 403/404.
 /**
- * @param {import('express').Request} req
+ * @param {import('express').Request<any, any, any, any>} req
  * @param {import('express').Response} res
  * @param {string} id
  * @param {{ withTokens?: boolean }} [opts]

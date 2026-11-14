@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useEffectEvent, useRef } from 'react';
 import { API_BASE } from '../../utils/helpers';
 import { postForBody } from '../../api/postForBody';
+import { useRequestVerificationCodeMutation } from '../../api/queries/connectorVerification';
 import beeFlowIcon from '../../assets/bee-flow-logo.svg';
 
 interface EmailVerificationScreenProps {
@@ -47,13 +48,21 @@ const EmailVerificationScreen = ({ verification, t: tProp }: EmailVerificationSc
     const inputRef = useRef<HTMLInputElement>(null);
     const sentOnce = useRef(false);
 
+    // Both calls below go to the Nextcloud connector's own routes
+    // (nextcloud-connector/src/setup.js), not to the Bee Flow server, which has
+    // no /setup/* routes. That holds because this screen only renders after the
+    // connector's GET /setup/diagnostics answered `awaiting_email_verification`
+    // (authedApp/signedOutScreen.ts): standalone that request 404s and the
+    // screen never shows, and inside the embed API_BASE is the connector behind
+    // Nextcloud's proxy.
+    const { mutateAsync: sendCode } = useRequestVerificationCodeMutation();
     const requestCode = async ({ isResend = false }: { isResend?: boolean } = {}) => {
         if (isResend) setResending(true); else setPhase('sending');
         setError(null);
         setInfo(null);
         setAttemptsLeft(null);
         try {
-            const { ok, body } = await postForBody(`${API_BASE}/setup/request-verification-code`, { method: 'POST' });
+            const { ok, body } = await sendCode();
             if (ok && body.ok) {
                 setMaskedEmail(body.maskedEmail || null);
                 setExpiresAt(body.expiresAt || null);

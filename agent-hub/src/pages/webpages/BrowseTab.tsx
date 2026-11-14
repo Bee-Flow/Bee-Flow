@@ -5,9 +5,17 @@ import { nOf } from '../../components/admin/Studio/KnowledgeStudio/plural';
 import useConfirm from '../../components/shared/useConfirm';
 import useTranslation, { TranslateParams } from '../../hooks/useTranslation';
 import { webpageRequest as api } from '../../api/webpagesRequest';
+import { useWebpageDbRead } from '../../api/queries/webpageDbRead';
 import { errorMessage } from '../../utils/caughtError';
 
 const PAGE_SIZE = 50;
+
+/** What POST /db/query answers: rows and columns, or the error. */
+interface DbAnswer {
+    rows?: DbRow[];
+    columns?: string[];
+    error?: string;
+}
 
 export function quoteIdent(name: unknown): string {
     // SQLite identifier — double-quotes; embedded quotes become two double-quotes.
@@ -45,22 +53,21 @@ export function BrowseTab({ webpageId, schema, onError }: BrowseTabProps) {
 
     const tableMeta = tables.find((tbl: DbTable) => tbl.name === tableName);
 
+    const readDb = useWebpageDbRead<DbAnswer>();
     const load = useCallback(async () => {
         if (!tableName) return;
         setLoading(true);
         try {
             const offset = page * PAGE_SIZE;
             const sql = `SELECT rowid, * FROM ${quoteIdent(tableName)} LIMIT ? OFFSET ?`;
-            const r = await api(webpageId, '/db/query', { method: 'POST', body: JSON.stringify({ sql, params: [PAGE_SIZE, offset] }) });
-            const data = await r.json();
-            if (!r.ok) { onError(data.error || tRef.current('webpages.db.err_query', 'Query failed')); setRows([]); setColumns([]); setLoading(false); return; }
+            const { ok, body: data } = await readDb(webpageId, sql, [PAGE_SIZE, offset]);
+            if (!ok) { onError(data.error || tRef.current('webpages.db.err_query', 'Query failed')); setRows([]); setColumns([]); setLoading(false); return; }
             setRows(data.rows || []);
             setColumns(data.columns || []);
 
-            const cnt = await api(webpageId, '/db/query', { method: 'POST', body: JSON.stringify({ sql: `SELECT COUNT(*) AS n FROM ${quoteIdent(tableName)}` }) });
-            const cdata = await cnt.json();
-            if (cnt.ok) {
-                setTotal(cdata.rows?.[0]?.n ?? 0);
+            const { ok: countOk, body: cdata } = await readDb(webpageId, `SELECT COUNT(*) AS n FROM ${quoteIdent(tableName)}`);
+            if (countOk) {
+                setTotal((cdata.rows?.[0]?.n as number | undefined) ?? 0);
             } else {
                 // Pagination math runs against `total`; if the count query
                 // fails, surface it instead of leaving the controls anchored
@@ -75,7 +82,7 @@ export function BrowseTab({ webpageId, schema, onError }: BrowseTabProps) {
         } finally {
             setLoading(false);
         }
-    }, [webpageId, tableName, page, onError]);
+    }, [webpageId, tableName, page, onError, readDb]);
 
     useEffect(() => { load(); }, [load]);
     useEffect(() => { setPage(0); }, [tableName]);
@@ -208,7 +215,7 @@ function BrowseTabSection2({ tableName, setTableName, tables, t, load, total, se
             {tables.length === 0 && <option value="">{t('webpages.db.no_tables_option', '— no tables —')}</option>}
             {tables.map((tbl: DbTable) => <option key={tbl.name} value={tbl.name}>{tbl.name}</option>)}
         </select>
-        <button onClick={load} className="p-1 rounded hover:bg-[var(--vsc-hover-bg)]" title={t('webpages.refresh', 'Refresh')}>
+        <button onClick={load} className="p-1 rounded hover:bg-[var(--vsc-hover-bg)]" title={t('webpages.refresh', 'Refresh')} aria-label={t('webpages.refresh', 'Refresh')}>
             <RefreshCw size={13} />
         </button>
         <div className="flex-1" />
@@ -220,6 +227,7 @@ function BrowseTabSection2({ tableName, setTableName, tables, t, load, total, se
             disabled={page === 0}
             className="p-1 rounded hover:bg-[var(--vsc-hover-bg)] disabled:opacity-40"
             title={t('webpages.db.prev_page', 'Previous page')}
+            aria-label={t('webpages.db.prev_page', 'Previous page')}
         >
             <ChevronLeft size={14} />
         </button>
@@ -231,6 +239,7 @@ function BrowseTabSection2({ tableName, setTableName, tables, t, load, total, se
             disabled={page + 1 >= totalPages}
             className="p-1 rounded hover:bg-[var(--vsc-hover-bg)] disabled:opacity-40"
             title={t('webpages.db.next_page', 'Next page')}
+            aria-label={t('webpages.db.next_page', 'Next page')}
         >
             <ChevronRight size={14} />
         </button>
@@ -296,6 +305,7 @@ function BrowseTabSection({ loading, tableName, t, rows, dataColumns, editing, s
                                     onClick={() => deleteRow(rowidx)}
                                     className="p-1 rounded hover:bg-[var(--vsc-hover-bg)]"
                                     title={t('webpages.db.delete_row', 'Delete row')}
+                                    aria-label={t('webpages.db.delete_row', 'Delete row')}
                                 >
                                     <Trash2 size={12} className="[color:#ef4444]" />
                                 </button>

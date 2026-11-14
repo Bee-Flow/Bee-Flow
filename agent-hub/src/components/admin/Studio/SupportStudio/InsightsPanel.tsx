@@ -1,14 +1,15 @@
 import { BarChart3, History, Loader2 } from 'lucide-react';
-import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
+import React, { useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import useTranslation from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
 import { toast } from '@/components/shared/Toast';
 import { SvgAreaChart, type ChartPoint } from '../../monitoring/shared';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { SupportInbox, SupportTeammate } from './supportStudio.types';
 import { logger } from '@/utils/logger';
 import { useSupportTeammates } from '@/api/queries/studioSupport';
-import { mutate, request, RefusedError, errorBody } from '@/api/mutate';
+import { RefusedError, errorBody } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 // Explicit, non-purple chart color (the strict UI ban rules out the default indigo).
 const CHART_COLOR = '#10b981';
@@ -104,40 +105,46 @@ interface ScanSectionProps {
     t: TranslateFn;
 }
 
+/** The inbox's historical scan. */
+function useScan(inboxId: string) {
+    const queryClient = useQueryClient();
+    const scanKey = ['supportStudio', 'scan', inboxId] as const;
+    // Asked again every 3 s while a scan is queued or running (SSE also fires,
+    // but polling keeps this panel self-contained). A refusal or a failure keeps
+    // what is shown; the next poll retries.
+    const scanQuery = useQuery<Scan | null>({
+        queryKey: scanKey,
+        staleTime: 0,
+        retry: false,
+        refetchInterval: (query) => (['queued', 'running'].includes((query.state.data as Scan | null | undefined)?.scan_status || '') ? 3000 : false),
+        refetchIntervalInBackground: true,
+        queryFn: async () => {
+            const kept = queryClient.getQueryData<Scan | null>(scanKey) ?? null;
+            try {
+                const res = await apiRequest('GET /api/support-inbox/inboxes/{id}/scan', { params: { id: inboxId } }).catch((err: unknown) => {
+                    if (err instanceof RefusedError) return null;
+                    throw err;
+                });
+                return res ? await res.json() : kept;
+            } catch (err) {
+                logger.debug('scan poll failed, next poll retries', err);
+                return kept;
+            }
+        },
+    });
+    const scan = scanQuery.data ?? null;
+    const setScan = (edit: (s: Scan | null) => Scan | null) => queryClient.setQueryData<Scan | null>(scanKey, (prev) => edit(prev ?? null));
+    return { scan, setScan };
+}
+
 function ScanSection({ inboxId, t }: ScanSectionProps) {
-    const [scan, setScan] = useState<Scan | null>(null);
     const [busy, setBusy] = useState(false);
-    const pollRef = useRef<NodeJS.Timeout>(null);
-
-    const fetchScan = useCallback(async () => {
-        try {
-            const res = await request(`${API_BASE}/api/support-inbox/inboxes/${inboxId}/scan`).catch((err: unknown) => {
-                if (err instanceof RefusedError) return null;
-                throw err;
-            });
-            if (res) setScan(await res.json());
-        } catch (err) { logger.debug('scan poll failed, next poll retries', err); }
-    }, [inboxId]);
-
-    useEffect(() => { fetchScan(); }, [fetchScan]);
-
-    // Poll while a scan is queued/running (SSE also fires, but polling keeps this
-    // panel self-contained).
-    useEffect(() => {
-        const status = scan?.scan_status;
-        if (status === 'queued' || status === 'running') {
-            pollRef.current = setTimeout(fetchScan, 3000);
-            return () => clearTimeout(pollRef.current ?? undefined);
-        }
-        return undefined;
-    }, [scan, fetchScan]);
+    const { scan, setScan } = useScan(inboxId);
 
     const run = async () => {
         setBusy(true);
         try {
-            const res = await mutate(`${API_BASE}/api/support-inbox/inboxes/${inboxId}/scan`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}),
-            });
+            const res = await apiRequest('POST /api/support-inbox/inboxes/{id}/scan', { params: { id: inboxId }, body: {} });
             const d = await res.json().catch(() => ({}));
             setScan(s => ({ ...(s || {}), scan_status: d.inbox?.scan_status || 'queued' }));
         } catch (err) {
@@ -202,10 +209,31 @@ interface InsightsPanelProps {
     onChanged?: () => void;
 }
 
+/** The support figures for one inbox (or all); a failure says so in place of them. */
+function useInsights(activeInbox: string) {
+    const insights = useQuery<Insights>({
+        queryKey: ['supportStudio', 'insights', activeInbox],
+        staleTime: 0,
+        retry: false,
+        queryFn: async () => {
+            const params = new URLSearchParams();
+            if (activeInbox && activeInbox !== 'all') params.set('inbox', activeInbox);
+            try {
+                return await (await apiRequest('GET /api/support-inbox/insights', { query: params })).json();
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                const e = errorBody(err) ?? {};
+                throw new Error(e.error || 'Failed', { cause: err });
+            }
+        },
+    });
+    const data = insights.data ?? null;
+    const error = insights.error && !insights.isFetching ? insights.error.message : null;
+    return { data, error };
+}
+
 export default function InsightsPanel({ inboxes = [], activeInbox }: InsightsPanelProps) {
     const { t } = useTranslation();
-    const [data, setData] = useState<Insights | null>(null);
-    const [error, setError] = useState<string | null>(null);
     const teammates = useSupportTeammates<SupportTeammate>();
     const names = useMemo(() => {
         const m: Record<string, string> = {};
@@ -217,24 +245,7 @@ export default function InsightsPanel({ inboxes = [], activeInbox }: InsightsPan
         ? activeInbox
         : (inboxes.length === 1 ? inboxes[0].id : null);
 
-    const fetchInsights = useCallback(async () => {
-        try {
-            setError(null);
-            const params = new URLSearchParams();
-            if (activeInbox && activeInbox !== 'all') params.set('inbox', activeInbox);
-            let res: Response;
-            try {
-                res = await request(`${API_BASE}/api/support-inbox/insights?${params.toString()}`);
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                const e = errorBody(err) ?? {};
-                throw new Error(e.error || 'Failed');
-            }
-            setData(await res.json());
-        } catch (e) { setError((e as Error).message); }
-    }, [activeInbox]);
-
-    useEffect(() => { fetchInsights(); }, [fetchInsights]);
+    const { data, error } = useInsights(activeInbox);
 
     if (error) return <div className="p-6 text-sm [color:#dc2626]!">{error}</div>;
     if (!data || !data.handling) {

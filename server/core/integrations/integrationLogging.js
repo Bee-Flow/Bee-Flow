@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Shared egress logger — the ONE write path for integration activity rows.
  *
@@ -109,7 +110,7 @@ async function _orgForUser(userId) {
 }
 
 /**
- * @typedef {{ toolName?: string | null, userId: unknown, orgId: unknown, session: unknown }} _resolveIntegrationCtxArgs
+ * @typedef {{ toolName?: string | null, userId: unknown, orgId: unknown, session: { connectorNcBaseUrl?: string, nextcloudUrl?: string, [k: string]: unknown } | null }} _resolveIntegrationCtxArgs
  */
 /**
  * @param {_resolveIntegrationCtxArgs} param0
@@ -193,7 +194,7 @@ function _stringifyPayload(toolArgs, result) {
  * @param {{ toolName: string, toolArgs?: unknown, result?: unknown, error?: Error|string, blocked?: boolean,
  *   probe?: unknown, source: string, model?: string | null, durationMs?: number,
  *   ids: Record<string, unknown>, isDryRun?: boolean, servedFromCache?: boolean,
- *   shield?: { monitorIntegrations?: boolean, piiDetectionConfidenceThreshold?: number }, session?: Express.Session,
+ *   shield?: { monitorIntegrations?: boolean, piiDetectionConfidenceThreshold?: number }, session?: Express.Session | null,
  *   fullScan?: (text: string, threshold?: number) => Promise<{ hasPii?: boolean, entities?: unknown[] } | null>,
  *   preResolvedMeta?: Record<string, unknown> | null }} o
  *   `result`: Tool result (scanned when monitoring is on); `error`: Marks the row status 'error';
@@ -303,7 +304,7 @@ function logToolEgress(o) {
                 // A shield refusal arrives WITH the error it threw; it is
                 // still a block, not a failed call.
                 status: o.blocked ? 'blocked' : (o.error ? 'error' : 'success'),
-                error_message: o.error ? (o.error.message || String(o.error)) : null,
+                error_message: o.error ? (/** @type {Error} */ (o.error).message || String(o.error)) : null,
                 duration_ms: o.durationMs,
                 automation_id: ids.automation_id || null,
                 run_id: ids.run_id || null,

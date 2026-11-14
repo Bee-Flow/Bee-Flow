@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/ai`
 
-130 routes, 59 with a request schema. Back to the [endpoint reference](../reference.md).
+130 routes, 71 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `agent-search`
 
@@ -314,7 +314,17 @@ No request schema.
 
 **Access:** Signed-in user · Platform admin
 
-No request schema.
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `fast` | object or null |  |  |
+| `standard` | object or null |  |  |
+| `swarm` | object or null |  |  |
+| `thinking` | object or null |  |  |
+| `writer` | object or null |  |  |
+| `pro` | object or null |  |  |
+| `smart` | any |  |  |
 
 ### `GET /ai/config/chat-models-eu`
 
@@ -326,7 +336,17 @@ No request schema.
 
 **Access:** Signed-in user · Platform admin
 
-No request schema.
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `fast` | object or null |  |  |
+| `standard` | object or null |  |  |
+| `swarm` | object or null |  |  |
+| `thinking` | object or null |  |  |
+| `writer` | object or null |  |  |
+| `pro` | object or null |  |  |
+| `smart` | any |  |  |
 
 ### `GET /ai/config/claude-settings`
 
@@ -354,7 +374,11 @@ No request schema.
 
 **Access:** Signed-in user · Platform admin
 
-No request schema.
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `tiers` | array of any | yes |  |
 
 ### `GET /ai/config/custom-tiers-list`
 
@@ -466,13 +490,18 @@ No request schema.
 
 **Access:** Signed-in user · the handler also checks who the caller is
 
-No request schema.
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `tiers` | array of any | yes |  |
+| `orgId` | string |  | max length 200 |
 
 ### `POST /ai/config/service-email/disconnect`
 
 **Access:** Signed-in user · Platform admin
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `GET /ai/config/service-email/oauth/start`
 
@@ -490,7 +519,7 @@ No request schema.
 
 **Access:** Signed-in user · Platform admin
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `POST /ai/config/test-service-email`
 
@@ -782,13 +811,13 @@ No request schema.
 
 **Access:** Signed-in user · Admin of their own organisation · Capability `learning_custom_content` · middleware `notebookChatGate`, `webpageChatGate`
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `POST /ai/learning/admin/courses/:courseId/unpublish`
 
 **Access:** Signed-in user · Admin of their own organisation · Capability `learning_custom_content` · middleware `notebookChatGate`, `webpageChatGate`
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `PUT /ai/learning/admin/lessons/:lessonId`
 
@@ -950,7 +979,7 @@ No request schema.
 
 **Access:** Signed-in user · Platform admin
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `GET /ai/local-runtimes/models`
 
@@ -1040,7 +1069,7 @@ No request schema.
 
 **Access:** Signed-in user · Platform admin · Licence feature `mcp_marketplace`
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `POST /ai/mcp-servers/test`
 
@@ -1132,7 +1161,7 @@ No request schema.
 
 **Access:** middleware `requireOrgAdminForN8n`
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `GET /ai/n8n/permissions`
 
@@ -1239,7 +1268,7 @@ No request schema.
 
 **Access:** Signed-in user · Platform admin
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `GET /ai/providers/:id/models`
 

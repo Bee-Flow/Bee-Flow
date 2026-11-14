@@ -3,6 +3,7 @@ import { API_BASE, setSessionToken } from '../../utils/helpers';
 import { getAuthUser } from '../../api/loginRequests';
 import type { OnLogin } from './loginShared';
 import { logger } from '../../utils/logger';
+import { apiUrl } from '../../api/typedRequest';
 
 // Detect if we're running inside an iframe (embedded in Nextcloud, etc.)
 const isEmbedded = (() => {
@@ -131,7 +132,7 @@ export function useOAuthPopup(onLogin: OnLogin, serverUrl: string) {
             try {
                 // Try the pickup channel first (works even when 3rd-party
                 // cookies are blocked).
-                const pickRes = await fetch(`${API_BASE}/auth/login-pickup?id=${encodeURIComponent(pickupId)}`, {
+                const pickRes = await fetch(apiUrl('GET /auth/login-pickup', { query: { id: pickupId } }), {
                     credentials: 'include',
                     ...(claim ? { headers: { 'X-Pickup-Secret': claim.secret } } : {}),
                 });

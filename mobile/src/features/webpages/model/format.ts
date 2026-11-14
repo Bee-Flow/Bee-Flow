@@ -20,7 +20,7 @@ export interface StatusToken {
 /**
  * A share is usable only while it is neither revoked nor past its expiry.
  *
- * Mirrors isShareLinkable in server/routes/webpageShareUrls.js, including its
+ * Mirrors isShareLinkable in server/usecases/webpageShareUrls.js, including its
  * fail-closed handling of an unparseable expiry: a date we cannot reason about
  * is treated as gone, because the viewer route will reject it anyway and an
  * optimistic "still live" here would just be a lie with a copy button.

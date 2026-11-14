@@ -17,7 +17,7 @@ const { buildMcpChildEnv } = require('./mcpChildEnv');
 const mcpStore = require('../stores/mcpStore');
 const configStore = require('../stores/configStore');
 const log = require('../telemetry/log');
-const { bestEffort } = require('../utils/bestEffort');
+const { bestEffort, ignoreGone } = require('../utils/bestEffort');
 const { urlWithoutQuery } = require('../utils/logUrl.mts');
 
 /** Repo root of this service — `/app` in the Docker image. */
@@ -339,7 +339,7 @@ async function testCommand(command, args = [], envVars = {}, transportType = 'st
         return { success: false, tools: [], error: /** @type {Error} */ (err).message };
     } finally {
         if (client) {
-            try { await client.close(); } catch (_) { log.debug('MCP client already closed', _); }
+            try { await client.close(); } catch (_) { ignoreGone('core/mcpManager:closeTestClient', _); }
         }
     }
 }

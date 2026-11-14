@@ -65,6 +65,7 @@ function pushCreatedCursor(after, params, where) {
  * @param {{ transcriptCrypto: any, shapeRow: Function, mapRow: Function, readableThroughProject: Function }} deps
  */
 function createReads({ transcriptCrypto, shapeRow, mapRow, readableThroughProject }) {
+    /** @param {string} userId @param {{ limit?: number, offset?: number, orgIds?: string[] | null, userGroupIds?: string[], isSuperAdmin?: boolean }} [opts] */
     async function getTranscriptions(userId, { limit = 50, offset = 0, orgIds = [], userGroupIds = [], isSuperAdmin = false } = {}) {
         await initDB();
         // Super admins (resolveUserOrgIds === null) see every transcription
@@ -91,6 +92,7 @@ function createReads({ transcriptCrypto, shapeRow, mapRow, readableThroughProjec
         // We build the WHERE clause incrementally so an empty orgIds / userGroupIds
         // never reaches Postgres as ANY('{}'::text[]) / ?| ARRAY[]::text[] — both
         // of which the `pg` driver mishandles in some versions.
+        /** @type {unknown[]} */
         const params = [userId, limit, offset, JSON.stringify([userId])];
         const clauses = [`user_id = $1`, `shared_with @> $4::jsonb`];
         if (Array.isArray(orgIds) && orgIds.length > 0) {

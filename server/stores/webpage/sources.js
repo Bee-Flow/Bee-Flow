@@ -10,16 +10,21 @@ const { buildUpdate } = require('../lib/sqlBuilder');
 
 // ── Source CRUD (mirrors notebookStore) ────────────────────────────
 
+/** @param {{ webpageId: string, type: string, name: string, storageKey?: string | null, fileName?: string | null, metadata?: Record<string, unknown>, wordCount?: number }} source */
 async function addSource({ webpageId, type, name, storageKey, fileName, metadata, wordCount }) {
     await initDB();
     const id = crypto.randomUUID();
+    // The source row and the page's updated_at in one statement.
     await run(
-        `INSERT INTO webpage_sources (id, webpage_id, type, name, storage_key, file_name, metadata, status, word_count)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, 'processing', $8)`,
+        `WITH s AS (
+            INSERT INTO webpage_sources (id, webpage_id, type, name, storage_key, file_name, metadata, status, word_count)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, 'processing', $8)
+            RETURNING webpage_id
+         )
+         UPDATE webpages SET updated_at = NOW() WHERE id IN (SELECT webpage_id FROM s)`,
         [id, webpageId, type, name || 'Untitled', storageKey || null, fileName || null,
          JSON.stringify(metadata || {}), wordCount || 0]
     );
-    await run('UPDATE webpages SET updated_at = NOW() WHERE id = $1', [webpageId]);
     return { id, webpageId, type, name, storageKey, fileName, metadata: metadata || {}, status: 'processing', wordCount: wordCount || 0 };
 }
 

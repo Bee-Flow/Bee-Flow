@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Organization Privacy Shield API
  *
@@ -284,7 +284,7 @@ function _applyTierClamps(config, { hasWebSearchGuard }) {
         // External-tool PII blocking shares the Web-Search-Guard licence gate
         // (it's the generalization). Internal-tool blocking is left untouched
         // on every tier (the data never leaves the box).
-        if (config.toolPiiPolicy?.external?.blockCategories?.length > 0) {
+        if ((config.toolPiiPolicy?.external?.blockCategories?.length ?? 0) > 0) { // undefined > 0 is false too
             config.toolPiiPolicy = {
                 ...config.toolPiiPolicy,
                 external: { blockCategories: [] },
@@ -401,7 +401,7 @@ router.get('/:orgId', requireAuth, async (/** @type {import('express').Request<{
 });
 
 // PUT /:orgId — save shield config (org admin or super admin only)
-router.put('/:orgId', requireAuth, validate({ body: OrgShieldBody }), async (/** @type {import('express').Request<{ orgId: string }, any, import('zod').infer<typeof OrgShieldBody>>} */ req, /** @type {import('express').Response} */ res) => {
+router.put('/:orgId', requireAuth, validate({ body: OrgShieldBody }), async (req, /** @type {import('express').Response} */ res) => {
     const { orgId } = req.params;
     if (!(await isOrgAdmin(req, orgId))) {
         return res.status(403).json({ error: 'Only organization admins can manage the privacy shield' });
@@ -479,7 +479,7 @@ router.put('/:orgId', requireAuth, validate({ body: OrgShieldBody }), async (/**
         disableSearchOnUpload: !!disableSearchOnUpload,
         piiDetectionCategories: [..._builtInPart(piiDetectionCategories), ...custom.lists.pii],
         piiDetectionConfidenceThreshold: typeof piiDetectionConfidenceThreshold === 'number' ? piiDetectionConfidenceThreshold : 0.7,
-        piiDetectionAction: ['block', 'tokenize', 'warn'].includes(piiDetectionAction) ? piiDetectionAction : 'block',
+        piiDetectionAction: piiDetectionAction && ['block', 'tokenize', 'warn'].includes(piiDetectionAction) ? piiDetectionAction : 'block',
         // Policy when detection can't fully run (guard unreachable / GLiNER
         // model not ready). Default fail_closed so we never silently send
         // unmasked text to the LLM.
@@ -501,7 +501,7 @@ router.put('/:orgId', requireAuth, validate({ body: OrgShieldBody }), async (/**
         // DLP fields
         dlpEnabled: !!dlpEnabled,
         dlpScope: dlpScope === 'all' ? 'all' : 'external',
-        dlpMode: ['ask', 'auto_redact', 'block'].includes(dlpMode) ? dlpMode : 'ask',
+        dlpMode: dlpMode && ['ask', 'auto_redact', 'block'].includes(dlpMode) ? dlpMode : 'ask',
         // Pause for review even on a clean scan (0 findings) — the only
         // way to catch a false negative. Default off, opt-in per org.
         dlpAlwaysReview: !!dlpAlwaysReview,
@@ -703,7 +703,7 @@ router.get('/user/me', requireAuth, async (req, res) => {
 });
 
 // PUT /user/me — save user-level shield config (consumer accounts)
-router.put('/user/me', requireAuth, validate({ body: UserShieldBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof UserShieldBody>, import('qs').ParsedQs>} */ req, res) => {
+router.put('/user/me', requireAuth, validate({ body: UserShieldBody }), async (req, res) => {
     const userId = sessionUser(req).id;
     refuseStrangers(req.body, await configStore.getConfig(`user_privacy_shield_${userId}`), USER_SHAPE);
     const {
@@ -725,7 +725,7 @@ router.put('/user/me', requireAuth, validate({ body: UserShieldBody }), async (/
         piiDetectionEnabled: !!piiDetectionEnabled,
         piiDetectionCategories: Array.isArray(piiDetectionCategories) ? piiDetectionCategories : [],
         piiDetectionConfidenceThreshold: threshold,
-        piiDetectionAction: ['block', 'tokenize'].includes(piiDetectionAction) ? piiDetectionAction : 'tokenize',
+        piiDetectionAction: piiDetectionAction && ['block', 'tokenize'].includes(piiDetectionAction) ? piiDetectionAction : 'tokenize',
         piiFailureMode: piiFailureMode === 'fail_open' ? 'fail_open' : 'fail_closed',
         showRawPayload: !!showRawPayload,
         updatedAt: new Date().toISOString(),

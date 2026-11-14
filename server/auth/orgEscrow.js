@@ -8,10 +8,10 @@
  * server never sees. That is the strongest posture, and it has two costs the
  * product cannot actually pay everywhere:
  *
- *   1. An admin cannot reset a password without destroying the user's data.
- *      Today /auth/reset-password does not even try — it rewrites the password
- *      hash and leaves the DEK wrapped under the old one, so the user resets
- *      their password and is then locked out of their own history.
+ *   1. A password reset without the old password cannot keep the user's data:
+ *      an admin reset drops the password-wrapped DEK, and the e-mailed reset
+ *      (auth/login/passwordResetKey.mts) can only re-wrap a DEK the server can
+ *      open, which on zk it cannot.
  *   2. Background work has no user present. Automations, scheduled agents and
  *      compaction run at 3am with no session, so they either scrape a stored
  *      session for a key or silently write plaintext.

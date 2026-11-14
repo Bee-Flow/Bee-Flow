@@ -9,8 +9,8 @@ import { toast } from '../../components/shared/Toast';
 import useConfirm from '../../components/shared/useConfirm';
 import { TranslateParams, useTranslation } from '../../hooks/useTranslation';
 import { formatRelativeTime } from '../../utils/dateFormatters';
-import { API_BASE } from '../../utils/helpers';
-import { mutate, ApiError } from '../../api/mutate';
+import { ApiError } from '../../api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 /**
  * Settings → Memory.
@@ -57,11 +57,7 @@ const ROW_BUTTON = 'flex w-full items-center gap-3 px-5 py-3.5 text-left transit
 
 async function saveUserSettings(patch: Record<string, boolean>): Promise<void> {
     try {
-        await mutate(`${API_BASE}/ai/user-settings`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(patch),
-    });
+        await apiRequest('POST /ai/user-settings', { body: patch });
     } catch (err) {
         if (!(err instanceof ApiError)) throw err;
         throw new Error(`HTTP ${err.status}`);
@@ -200,7 +196,7 @@ export default function MemorySection({
         if (!ok) return;
         try {
             try {
-                await mutate(`${API_BASE}/agents/memory/clear`, { method: 'POST' });
+                await apiRequest('POST /agents/memory/clear');
             } catch (err) {
                 if (!(err instanceof ApiError)) throw err;
                 throw new Error(`HTTP ${err.status}`);

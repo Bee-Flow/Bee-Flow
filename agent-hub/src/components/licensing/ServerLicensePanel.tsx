@@ -3,14 +3,14 @@ import React, { useState, useCallback } from 'react';
 import { useLicenseContext } from './LicenseContext';
 import { ServerLicenseFacts, ServerLicenseToken, ServerLicenseWarning } from './ServerLicenseParts';
 import { useTranslation } from '../../hooks/useTranslation';
-import { API_BASE } from '../../utils/helpers';
 import { useLicenseStatus } from '../../api/queries/serverLicense';
 import useConfirm from '../shared/useConfirm';
 import { messageOf } from '../../utils/caughtError';
-import { mutate, errorBody, RefusedError } from '../../api/mutate';
+import { errorBody, RefusedError } from '../../api/mutate';
 import SectionHeader from '../shared/SectionHeader';
 import { SettingRow, SettingsList } from '../shared/SettingsList';
 import { ALERT_ERROR, ALERT_INFO, CHIP, CHIP_SUCCESS, CHIP_WARNING, DANGER_BTN, PRIMARY_BTN, SECONDARY_BTN } from '../mcpLibrary/ui';
+import { apiRequest } from '@/api/typedRequest';
 
 interface ServerLicenseRecord {
     tier?: string;
@@ -97,11 +97,7 @@ export default function ServerLicensePanel() {
         setActionError(null);
         try {
             try {
-                await mutate(`${API_BASE}/api/license/activate`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token, scope: 'server' }),
-                });
+                await apiRequest('POST /api/license/activate', { body: { token, scope: 'server' } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const data = (errorBody(err) ?? {}) as LicenseActionResponse;
@@ -133,7 +129,7 @@ export default function ServerLicensePanel() {
         setActionError(null);
         try {
             try {
-                await mutate(`${API_BASE}/api/license/deactivate?scope=server`, { method: 'DELETE' });
+                await apiRequest('DELETE /api/license/deactivate', { query: { scope: 'server' } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 if (err.status !== 404) {

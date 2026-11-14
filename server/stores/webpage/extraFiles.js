@@ -9,6 +9,10 @@ const storageStore = require('../storageStore');
 const { initDB } = require('./schema');
 const { sha256 } = require('./shared');
 const { bestEffort } = require('../../utils/bestEffort');
+const { storeError } = require('../lib/storeError');
+
+// The routes and the AI tools both write here; without storage nothing can be kept.
+const storageGone = () => storeError(503, 'storage_unavailable', 'File storage is not available, so the file cannot be saved. Try again later.');
 
 // ── Extra-files (multi-file) RustFS helpers ────────────────────────
 //
@@ -131,9 +135,7 @@ async function readExtra(userId, webpageId, path) {
  * @param {string} webpageId
  */
 async function writeExtra(userId, webpageId, path, content, mimeType) {
-    if (!storageStore.isAvailable()) {
-        throw new Error('RustFS not configured — cannot persist extra files');
-    }
+    if (!storageStore.isAvailable()) throw storageGone();
     const buf = Buffer.isBuffer(content) ? content : Buffer.from(String(content), 'utf8');
     await storageStore.uploadFile(extraKey(userId, webpageId, path), buf, mimeType);
     return { sha: sha256(buf.toString('utf8')), size: buf.length };
@@ -168,35 +170,55 @@ async function getExtraFile(webpageId, path) {
 }
 
 /**
+ * @param {Record<string, unknown>} existing
+ * @param {{ webpageId: string, path: string, mime: string, isText: boolean, sha: string, size: number }} f
+ */
+async function updateExtraFileRow(existing, { webpageId, path, mime, isText, sha, size }) {
+    await run(
+        `UPDATE webpage_extra_files SET mime_type = $1, is_text = $2, sha256 = $3, size = $4, updated_at = NOW()
+         WHERE webpage_id = $5 AND path = $6`,
+        [mime, isText, sha, size, webpageId, path]
+    );
+    return { ...existing, mimeType: mime, isText, sha256: sha, size, updatedAt: new Date().toISOString() };
+}
+
+/**
+ * The metadata row of an extra file whose bytes are stored: an update of the
+ * existing row, or a new row together with the page's updated_at in one
+ * statement, so a new file never exists on a page whose timestamp missed it.
+ * @param {{ webpageId: string, path: string, mime: string, isText: boolean, sha: string, size: number }} f
+ */
+async function saveExtraFileRow({ webpageId, path, mime, isText, sha, size }) {
+    const existing = await getExtraFile(webpageId, path);
+    if (existing) return updateExtraFileRow(existing, { webpageId, path, mime, isText, sha, size });
+
+    const id = crypto.randomUUID();
+    await run(
+        `WITH f AS (
+            INSERT INTO webpage_extra_files (id, webpage_id, path, mime_type, is_text, sha256, size)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            RETURNING webpage_id
+         )
+         UPDATE webpages SET updated_at = NOW() WHERE id IN (SELECT webpage_id FROM f)`,
+        [id, webpageId, path, mime, isText, sha, size]
+    );
+    return { id, webpageId, path, mimeType: mime, isText, sha256: sha, size };
+}
+
+/**
  * Upsert a single extra file. Writes bytes to RustFS and metadata to DB.
  */
 async function upsertExtraFile({ webpageId, userId, path, content }) {
-    await initDB();
+    // Refused before the database is touched: the path is the caller's input.
     const validation = validateExtraPath(path);
-    if (validation) throw new Error(validation);
+    if (validation) throw storeError(400, 'invalid_path', validation);
+    await initDB();
 
     const { mime, ext } = guessMime(path);
     const isText = isTextFile(mime, ext);
     const { sha, size } = await writeExtra(userId, webpageId, path, content, mime);
 
-    const existing = await getExtraFile(webpageId, path);
-    if (existing) {
-        await run(
-            `UPDATE webpage_extra_files SET mime_type = $1, is_text = $2, sha256 = $3, size = $4, updated_at = NOW()
-             WHERE webpage_id = $5 AND path = $6`,
-            [mime, isText, sha, size, webpageId, path]
-        );
-        return { ...existing, mimeType: mime, isText, sha256: sha, size, updatedAt: new Date().toISOString() };
-    }
-
-    const id = crypto.randomUUID();
-    await run(
-        `INSERT INTO webpage_extra_files (id, webpage_id, path, mime_type, is_text, sha256, size)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [id, webpageId, path, mime, isText, sha, size]
-    );
-    await run('UPDATE webpages SET updated_at = NOW() WHERE id = $1', [webpageId]);
-    return { id, webpageId, path, mimeType: mime, isText, sha256: sha, size };
+    return saveExtraFileRow({ webpageId, path, mime, isText, sha, size });
 }
 
 /**
@@ -208,11 +230,11 @@ async function upsertExtraFile({ webpageId, userId, path, content }) {
  * Used by the asset-upload route (POST /api/webpages/:id/assets).
  */
 async function upsertBinaryExtraFile({ webpageId, userId, path, buffer, mimeType }) {
-    await initDB();
     const validation = validateExtraPath(path);
-    if (validation) throw new Error(validation);
+    if (validation) throw storeError(400, 'invalid_path', validation);
+    await initDB();
     if (!Buffer.isBuffer(buffer)) throw new Error('buffer is required');
-    if (!storageStore.isAvailable()) throw new Error('RustFS not configured — cannot persist assets');
+    if (!storageStore.isAvailable()) throw storageGone();
 
     const guessed = guessMime(path);
     const mime = mimeType || guessed.mime;
@@ -222,33 +244,20 @@ async function upsertBinaryExtraFile({ webpageId, userId, path, buffer, mimeType
     const sha = crypto.createHash('sha256').update(buffer).digest('hex');
     const size = buffer.length;
 
-    const existing = await getExtraFile(webpageId, path);
-    if (existing) {
-        await run(
-            `UPDATE webpage_extra_files SET mime_type = $1, is_text = $2, sha256 = $3, size = $4, updated_at = NOW()
-             WHERE webpage_id = $5 AND path = $6`,
-            [mime, isText, sha, size, webpageId, path]
-        );
-        return { ...existing, mimeType: mime, isText, sha256: sha, size, updatedAt: new Date().toISOString() };
-    }
-
-    const id = crypto.randomUUID();
-    await run(
-        `INSERT INTO webpage_extra_files (id, webpage_id, path, mime_type, is_text, sha256, size)
-         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [id, webpageId, path, mime, isText, sha, size]
-    );
-    await run('UPDATE webpages SET updated_at = NOW() WHERE id = $1', [webpageId]);
-    return { id, webpageId, path, mimeType: mime, isText, sha256: sha, size };
+    return saveExtraFileRow({ webpageId, path, mime, isText, sha, size });
 }
 
 async function deleteExtraFile({ webpageId, userId, path }) {
     await initDB();
     const existing = await getExtraFile(webpageId, path);
     if (!existing) return false;
-    await run('DELETE FROM webpage_extra_files WHERE webpage_id = $1 AND path = $2', [webpageId, path]);
+    // The row and the page's timestamp in one statement; the bytes after them.
+    await run(
+        `WITH f AS (DELETE FROM webpage_extra_files WHERE webpage_id = $1 AND path = $2 RETURNING webpage_id)
+         UPDATE webpages SET updated_at = NOW() WHERE id IN (SELECT webpage_id FROM f)`,
+        [webpageId, path]
+    );
     await deleteExtra(userId, webpageId, path);
-    await run('UPDATE webpages SET updated_at = NOW() WHERE id = $1', [webpageId]);
     return true;
 }
 

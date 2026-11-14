@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -18,6 +18,7 @@ import { authFetch } from '@/utils/helpers';
 import AdvancedDrawer from '@/components/agents/AgentWizard/pickers/AdvancedDrawer';
 import { asMock, omitted, stub } from '@/test/mocks';
 import type { ComponentProps } from 'react';
+import { renderWithClient } from '@/test/render';
 
 const NOW = new Date(2026, 8, 14, 15, 30).getTime();
 
@@ -55,7 +56,7 @@ describe('chipState', () => {
 describe('ComplianceBlock', () => {
     it('route absent (404): "Not assessed" chip and the signals line from the definition — summarize not counted', async () => {
         asMock(authFetch).mockResolvedValue(notFound);
-        render(<ComplianceBlock {...omitted<ComponentProps<typeof ComplianceBlock>>()} kind="automation" target={stub<ComponentProps<typeof ComplianceBlock>['target']>(quote)} now={NOW} />);
+        renderWithClient(<ComplianceBlock {...omitted<ComponentProps<typeof ComplianceBlock>>()} kind="automation" target={stub<ComponentProps<typeof ComplianceBlock>['target']>(quote)} now={NOW} />);
         await waitFor(() => expect(authFetch).toHaveBeenCalledWith(`${API}/ai-act/assessments/automation/a1`, expect.anything()));
         const chip = screen.getByTestId('compliance-block-chip');
         expect(chip.textContent).toBe('Not assessed');
@@ -74,7 +75,7 @@ describe('ComplianceBlock', () => {
             answers: { art5: { answer: 'no', practices: [] }, annex_iii: { answer: 'no', category: null } },
             outcome: 'transparency', attested_by: 'u1', attested_at: '2026-09-01T09:00:00Z', expires_at: '2027-09-01T09:00:00Z', current: true,
         }));
-        render(<ComplianceBlock {...omitted<ComponentProps<typeof ComplianceBlock>>()} kind="automation" target={stub<ComponentProps<typeof ComplianceBlock>['target']>(quote)} now={NOW} />);
+        renderWithClient(<ComplianceBlock {...omitted<ComponentProps<typeof ComplianceBlock>>()} kind="automation" target={stub<ComponentProps<typeof ComplianceBlock>['target']>(quote)} now={NOW} />);
         const chip = await screen.findByText('Self-declared 1 Sep 2026');
         expect(chip.getAttribute('data-tone')).toBe('success');
         expect(chip.getAttribute('title')).toBe('Art. 4 + Art. 50');
@@ -88,14 +89,14 @@ describe('ComplianceBlock', () => {
             signals: { contains_ai: true }, answers: {}, outcome: 'minimal',
             attested_by: 'u1', attested_at: '2025-06-01T09:00:00Z', expires_at: '2026-06-01T09:00:00Z', current: false,
         }));
-        render(<ComplianceBlock {...omitted<ComponentProps<typeof ComplianceBlock>>()} kind="automation" target={stub<ComponentProps<typeof ComplianceBlock>['target']>(quote)} now={NOW} />);
+        renderWithClient(<ComplianceBlock {...omitted<ComponentProps<typeof ComplianceBlock>>()} kind="automation" target={stub<ComponentProps<typeof ComplianceBlock>['target']>(quote)} now={NOW} />);
         const chip = await screen.findByText('Expired');
         expect(chip.getAttribute('data-tone')).toBe('warning');
     });
 
     it('a failed read (500) is its own state — not "Not assessed" pretending', async () => {
         asMock(authFetch).mockResolvedValue({ ok: false, status: 500, statusText: 'Internal Server Error', json: async () => ({}) });
-        render(<ComplianceBlock {...omitted<ComponentProps<typeof ComplianceBlock>>()} kind="automation" target={stub<ComponentProps<typeof ComplianceBlock>['target']>(quote)} now={NOW} />);
+        renderWithClient(<ComplianceBlock {...omitted<ComponentProps<typeof ComplianceBlock>>()} kind="automation" target={stub<ComponentProps<typeof ComplianceBlock>['target']>(quote)} now={NOW} />);
         await screen.findByTestId('compliance-block-error');
         // The chip still says nothing is recorded (we do not know), and the definition's signals still show.
         expect(screen.getByTestId('compliance-block-signals').getAttribute('data-source')).toBe('client');
@@ -104,7 +105,7 @@ describe('ComplianceBlock', () => {
     it('"Assess…" opens the ladder modal with the block\'s own hook data', async () => {
         const user = userEvent.setup();
         asMock(authFetch).mockResolvedValue(notFound);
-        render(<ComplianceBlock {...omitted<ComponentProps<typeof ComplianceBlock>>()} kind="automation" target={stub<ComponentProps<typeof ComplianceBlock>['target']>(quote)} now={NOW} />);
+        renderWithClient(<ComplianceBlock {...omitted<ComponentProps<typeof ComplianceBlock>>()} kind="automation" target={stub<ComponentProps<typeof ComplianceBlock>['target']>(quote)} now={NOW} />);
         await screen.findByTestId('compliance-block-signals');
         expect(screen.queryByTestId('ai-act-ladder')).toBeNull();
         await user.click(screen.getByTestId('compliance-block-assess'));
@@ -116,13 +117,13 @@ describe('ComplianceBlock', () => {
 
     it('agent kind: "An agent is an AI system", customer-facing when published', async () => {
         asMock(authFetch).mockResolvedValue(notFound);
-        render(<ComplianceBlock {...omitted<ComponentProps<typeof ComplianceBlock>>()} kind="agent" target={{ id: 'g1', name: 'Helpdesk', is_published: true }} now={NOW} />);
+        renderWithClient(<ComplianceBlock {...omitted<ComponentProps<typeof ComplianceBlock>>()} kind="agent" target={{ id: 'g1', name: 'Helpdesk', is_published: true }} now={NOW} />);
         const line = await screen.findByTestId('compliance-block-signals');
         expect(line.textContent).toContain('An agent is an AI system · customer-facing · generates content');
     });
 
     it('renders nothing without a target id (an automation that is not saved yet)', () => {
-        const { container } = render(<ComplianceBlock {...omitted<ComponentProps<typeof ComplianceBlock>>()} kind="automation" target={{ name: 'draft' }} />);
+        const { container } = renderWithClient(<ComplianceBlock {...omitted<ComponentProps<typeof ComplianceBlock>>()} kind="automation" target={{ name: 'draft' }} />);
         expect(container.innerHTML).toBe('');
         expect(authFetch).not.toHaveBeenCalled();
     });
@@ -136,7 +137,7 @@ describe('hook points (light smoke)', () => {
         const user = userEvent.setup();
         asMock(authFetch).mockResolvedValue(notFound);
         const t = (k: string, fb: string) => fb ?? k;
-        render(<AdvancedDrawer {...omitted<ComponentProps<typeof AdvancedDrawer>>()} open onClose={vi.fn()} t={stub<ComponentProps<typeof AdvancedDrawer>['t']>(t)} agent={{ id: 'g1', name: 'Helpdesk', is_published: false }} />);
+        renderWithClient(<AdvancedDrawer {...omitted<ComponentProps<typeof AdvancedDrawer>>()} open onClose={vi.fn()} t={stub<ComponentProps<typeof AdvancedDrawer>['t']>(t)} agent={{ id: 'g1', name: 'Helpdesk', is_published: false }} />);
         const heading = screen.getByText('Compliance');
         expect(heading).toBeTruthy();
         // Collapsed by default (Behavior is the open section) — expand it.

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Tables the builder PROPOSES but has not created yet.
  *
@@ -122,7 +123,7 @@ function usedDatatables(baseDef, def, catalog, pending = []) {
  * The validator always flags a pending id (datatable.table_pending); a table
  * this proposal STAGED is legitimately pending, so its flags are dropped here.
  * Any other pending ref stays an error.
- * @param {{ ok: boolean; errors: object[]; warnings: object[]; }} validation
+ * @param {{ ok: boolean; errors: Array<import('../validate/definition').ValidationRecord & { ref?: string }>; warnings: import('../validate/definition').ValidationRecord[]; }} validation
  * @param {Set<string>} refs
  */
 function withoutStagedTableIssues(validation, refs) {
@@ -141,7 +142,8 @@ const strip = (s) => String(s || '').trim();
  * @param {DraftWrap} draftWrap  uses _datatables (catalog; null = unreadable), _pendingDatatables,
  *        _datatableCreate (access check made at turn start), _approvedDatatableIds
  * @param {Builder.Args} args       { name, fields, description?, key? }
- * @param {object} deps       { normaliseFieldArgs, normalizeFields, keyFromTitle, normaliseKey }
+ * @param {{ normaliseFieldArgs: (raw: unknown, notes: string[]) => Array<Record<string, unknown>>, normalizeFields: typeof import('../../core/dataEngine/dataModel/datatableFields').normalizeFields,
+ *   keyFromTitle: typeof import('../../core/dataEngine/sources/mirror/keys').keyFromTitle, normaliseKey: typeof import('./datatableRefs').normaliseKey }} deps
  */
 function stagePendingDatatable(draftWrap, args, deps) {
     const { normaliseFieldArgs, normalizeFields, keyFromTitle, normaliseKey } = deps;
@@ -183,7 +185,7 @@ function stagePendingDatatable(draftWrap, args, deps) {
         }
         // Lazy: datatableApproval imports this module's walker.
         const { choiceRequiredError } = require('./choiceRequired');
-        return choiceRequiredError(same, draftWrap, { op: 'add_row', sameName: true });
+        return choiceRequiredError(/** @type {{ id: string, name?: string }} */ (same), /** @type {Parameters<typeof choiceRequiredError>[1]} */ (draftWrap), { op: 'add_row', sameName: true });
     }
 
     const norm = normalizeFields(rawFields.map((f) => ({ ...f })), []);

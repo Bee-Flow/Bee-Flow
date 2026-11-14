@@ -40,6 +40,7 @@ const { isAzureOid } = require(path.join(__dirname, '..', 'auth', 'ssoUserResolv
 const { discoverUserTables, userDataFootprint, isSafeToDelete } = require('./lib/userDataFootprint');
 
 const { parseOpsArgsOrExit } = require('./lib/opsArgs');
+const { ignoreGone } = require('../utils/bestEffort');
 
 const ARGS = parseOpsArgsOrExit({ force: { type: 'boolean', default: false } },
     { usage: 'Usage: node server/scripts/cleanupAzureDuplicates.js [--apply [--force]]' });
@@ -216,6 +217,6 @@ async function main() {
 
 main().catch(err => {
     console.error('cleanupAzureDuplicates failed:', err);
-    pool.end().catch(() => {});
+    pool.end().catch((err) => ignoreGone('scripts/cleanupAzureDuplicates:poolEnd', err));
     process.exit(1);
 });

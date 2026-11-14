@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { takePendingPlan } from '@/components/billing/pendingPlan';
 import type { TranslateFn } from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
 import { useConsumerBillingData } from '@/api/queries/settingsConsumer';
 import { isPaidPlan, type CheckoutMessage, type ConsumerPlan, type ConsumerUsageData } from './consumerBilling';
-import { mutate, errorBody, RefusedError } from '@/api/mutate';
+import { errorBody, RefusedError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 /** The checkout result Stripe sends back on the URL, read once and cleaned off. */
 function readCheckoutResult(): CheckoutMessage | null {
@@ -44,13 +44,9 @@ function usePreselectedPlan(plans: ConsumerPlan[]) {
 const NO_PLANS: ConsumerPlan[] = [];
 
 /** POST to a Stripe redirect endpoint and follow the URL it answers with. */
-async function redirectVia(path: string, body: Record<string, unknown>, fallbackError: string): Promise<CheckoutMessage | null> {
+async function redirectVia(key: 'POST /api/stripe/checkout' | 'POST /api/stripe/portal', body: Record<string, unknown>, fallbackError: string): Promise<CheckoutMessage | null> {
     try {
-        const res = await mutate(`${API_BASE}${path}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-        });
+        const res = await apiRequest(key, { init: { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } });
         const result = await res.json();
         if (result.url) {
             window.location.href = result.url;
@@ -89,7 +85,7 @@ export default function useConsumerBilling(t: TranslateFn) {
             return;
         }
         setCheckoutLoading(planId);
-        const message = await redirectVia('/api/stripe/checkout', {
+        const message = await redirectVia('POST /api/stripe/checkout', {
             planId,
             origin: window.location.origin,
             ...(isPaid ? { withdrawalWaiver: { accepted: true } } : {}),
@@ -100,7 +96,7 @@ export default function useConsumerBilling(t: TranslateFn) {
 
     const handlePortal = async () => {
         setPortalLoading(true);
-        const message = await redirectVia('/api/stripe/portal', { origin: window.location.origin }, 'Failed to open billing portal');
+        const message = await redirectVia('POST /api/stripe/portal', { origin: window.location.origin }, 'Failed to open billing portal');
         if (message) setCheckoutMessage(message);
         setPortalLoading(false);
     };

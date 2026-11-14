@@ -4,7 +4,7 @@ import type { ReactElement, ReactNode } from 'react';
 import { NOT_BATCHED, queueRead, unwrapReadResult } from '@/api/dataBatchClient';
 import { dataErrorFromResponse, type DataError } from '@/api/dataErrors';
 import { studioAppFetch } from '@/api/queries/studioApps';
-import { API_BASE } from '@/utils/helpers';
+import { apiUrl } from '@/api/typedRequest';
 import { reportAppVersion } from './appVersionSignal';
 import { useHasQueryClient } from './components/comboBox';
 import PagerBar from './components/PagerBar';
@@ -94,9 +94,8 @@ async function fetchRecordsPage(
         reportAppVersion(id, answer.appVersion as string | number | null | undefined);
         return pageOf(body);
     }
-    const table = encodeURIComponent(binding.tableId ?? '');
     const query = qs({ filter: binding.filter, sort: binding.sort, limit, sample: sample ? 1 : undefined, cursor: cursor ?? undefined, total: 1 });
-    const res = await studioAppFetch(`${API_BASE}/api/studio-apps/${id}/data/tables/${table}/records${query}`);
+    const res = await studioAppFetch(`${apiUrl('GET /api/studio-apps/{id}/data/tables/{tableId}/records', { params: { id: appId, tableId: binding.tableId ?? '' } })}${query}`);
     if (res.status === 404) return EMPTY_PAGE;
     let body = null;
     try { body = await res.json(); } catch { body = null; }

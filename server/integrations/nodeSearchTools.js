@@ -20,7 +20,7 @@ const { getAdapter } = require('../core/providers');
 // and never hard-fails (CPU fallback) when no embedding model is configured.
 const { dispatchEmbedTexts } = require('../core/embed/dispatch');
 const log = require('../telemetry/log');
-const { fallback } = require('../utils/bestEffort');
+const { fallback, ignoreGone } = require('../utils/bestEffort');
 const { safeFetch } = require('../utils/ssrfGuard');
 
 const SERPER_URL = 'https://google.serper.dev/search';
@@ -75,7 +75,7 @@ function stripHtml(html) {
 // ─── Page fetch ───────────────────────────────────────────────────
 
 /**
- * @param {string | URL | Request} url
+ * @param {string | URL} url
  */
 async function fetchPage(url) {
     try {
@@ -104,7 +104,7 @@ async function fetchPage(url) {
             bytes += value.byteLength;
             html += decoder.decode(value, { stream: true });
             if (bytes >= PAGE_BYTE_CAP) {
-                try { await reader.cancel(); } catch (_) { log.debug('reader already closed', _); }
+                try { await reader.cancel(); } catch (_) { ignoreGone('integrations/nodeSearchTools:cancelReader', _); }
                 break;
             }
         }

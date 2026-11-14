@@ -296,11 +296,13 @@ export function makeKbQueryLogStore(db: Db, crypto: CryptoApi = realCrypto, cloc
 
     async function deleteForKb(kbId: string): Promise<number> {
         if (!UUID_RE.test(kbId)) return 0;
-        await db.query(`DELETE FROM kb_query_log_ack WHERE kb_id = $1::uuid`, [kbId]);
-        return (await db.query(`DELETE FROM kb_query_log WHERE kb_id = $1::uuid`, [kbId])).rowCount || 0;
+        // The acknowledgements and the rows in one statement.
+        return (await db.query(
+            `WITH a AS (DELETE FROM kb_query_log_ack WHERE kb_id = $1::uuid) DELETE FROM kb_query_log WHERE kb_id = $1::uuid`, [kbId])).rowCount || 0;
     }
 
     /** Erase a person's rows, and clear their name from rows they reviewed. A null `orgId` means every organisation. */
+    // stepwise: account erasure; each statement is idempotent and reported, and erasing again finishes a failed one
     async function deleteForUser(orgId: string | null | undefined, userId: string): Promise<number> {
         if (!userId) return 0;
         const org = orgId ?? null;

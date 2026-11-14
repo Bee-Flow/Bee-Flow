@@ -1,6 +1,5 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import { isAbortError, messageOf } from '@/utils/caughtError';
-import { API_BASE, authFetch } from '@/utils/helpers';
 import { VOICE_STATES } from './voiceSessionAudio';
 import type {
     ConnectOptions,
@@ -13,7 +12,8 @@ import type {
     VoiceTool,
 } from './useVoiceSession.types';
 import { logger } from '@/utils/logger';
-import { mutate, errorBody, RefusedError } from '@/api/mutate';
+import { errorBody, RefusedError } from '@/api/mutate';
+import { apiFetch, apiRequest } from '@/api/typedRequest';
 
 /** What one voice turn reads and writes: the hook's refs, setters and TTS player. */
 export interface VoiceTurnCtx {
@@ -210,11 +210,7 @@ export async function streamVoiceTurn(ctx: VoiceTurnCtx, blob: Blob, mimeType: s
 
     let resp;
     try {
-        resp = await authFetch(`${API_BASE}/ai/voice/turn`, {
-            method: 'POST',
-            body: form,
-            signal: controller.signal,
-        });
+        resp = await apiFetch('POST /ai/voice/turn', { init: { signal: controller.signal, body: form } });
     } catch (err) {
         if (isAbortError(err)) {
             if (ctx.voiceActiveRef.current) ctx.setStateSync(VOICE_STATES.IDLE);
@@ -247,15 +243,13 @@ export async function streamVoiceTurn(ctx: VoiceTurnCtx, blob: Blob, mimeType: s
 export async function fetchVoiceSession(opts: ConnectOptions): Promise<VoiceSessionInfo> {
     let resp: Response;
     try {
-        resp = await mutate(`${API_BASE}/ai/voice/session`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        resp = await apiRequest('POST /ai/voice/session', {
+            body: {
             agentId: opts.agentId || null,
             voice: opts.voice || null,
             language: opts.language || null,
-        }),
-    });
+        },
+        });
     } catch (err) {
         if (!(err instanceof RefusedError)) throw err;
         const j = errorBody(err) ?? {};

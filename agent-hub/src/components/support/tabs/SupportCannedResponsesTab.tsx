@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { useSupportCannedResponsesQuery } from '@/api/queries/supportPanels';
 import { Plus, Trash2, Save } from 'lucide-react';
-import { API_BASE } from '@/utils/helpers';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { CannedResponse } from '../SupportInboxPanel.types';
 import { errorMessage } from '@/utils/caughtError';
-import { mutate, ApiError, RefusedError, errorBody } from '@/api/mutate';
+import { ApiError, RefusedError, errorBody } from '@/api/mutate';
 import SectionHeader from '@/components/shared/SectionHeader';
 import { FIELD_INPUT, SettingsList } from '@/components/shared/SettingsList';
 import { ALERT_ERROR, CARD, CHIP, PRIMARY_BTN, QUIET_BTN } from '@/components/mcpLibrary/ui';
+import { apiRequest } from '@/api/typedRequest';
 
 const VARS = ['{{requester_name}}', '{{requester_email}}', '{{org_name}}', '{{thread_subject}}', '{{staff_first_name}}'];
 
@@ -30,10 +30,7 @@ export default function SupportCannedResponsesTab() {
         setBusy(true); setError(null);
         try {
             try {
-                await mutate(`${API_BASE}/api/support/canned`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(draft),
-            });
+                await apiRequest('POST /api/support/canned', { body: draft });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const e = errorBody(err) ?? {};
@@ -46,7 +43,7 @@ export default function SupportCannedResponsesTab() {
     };
 
     const remove = async (id: string) => {
-        const res = await mutate(`${API_BASE}/api/support/canned/${id}`, { method: 'DELETE' }).catch((err: unknown) => {
+        const res = await apiRequest('DELETE /api/support/canned/{id}', { params: { id } }).catch((err: unknown) => {
             if (err instanceof ApiError) return null;
             throw err;
         });

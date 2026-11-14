@@ -109,6 +109,7 @@ export default function PublishMenu({
                             type="button"
                             className="h-full px-1.5 bg-[var(--accent-primary)]/90 text-white hover:bg-[var(--accent-primary)] border-l border-white/20 flex items-center"
                             title={t('cms_site.site.shell.pub_menu_title', 'Publishing & live status')}
+                            aria-label={t('cms_site.site.shell.pub_menu_title', 'Publishing & live status')}
                         >
                             <AppIcon name={open ? 'ChevronUp' : 'ChevronDown'} className="w-3.5 h-3.5" />
                         </button>

@@ -8,7 +8,7 @@
 import { createJsonResource } from '@/api/client';
 import type { JsonResourceError } from '@/api/client';
 import { errorBodyRecord, errorMessage, errorStatus } from '@/utils/caughtError';
-import { API_BASE } from '@/utils/helpers';
+import { apiUrl } from '@/api/typedRequest';
 import { managedRefusalOf } from '@/utils/managedPart';
 import { fromError } from '@/components/shared/managedPart';
 import type { AppDefinition } from './inspector/appDefinition';
@@ -22,7 +22,6 @@ interface NewAppBody {
     templateId?: string;
 }
 
-const base = `${API_BASE}/api/studio-apps`;
 // Some callers still hold an id that may be undefined (it then reads "undefined",
 // as it always did), so the encoder is typed to take one.
 const enc = encodeURIComponent as (part: string | number | boolean | null | undefined) => string;
@@ -52,15 +51,15 @@ function managedResult(err: unknown) {
 
 export const studioAppsApi = {
     // Catalog / templates
-    getCatalog: () => request(`${base}/catalog`),
-    listTemplates: () => request(`${base}/templates`),
-    getTemplate: (templateId: string) => request(`${base}/templates/${enc(templateId)}`),
+    getCatalog: () => request(apiUrl('GET /api/studio-apps/catalog')),
+    listTemplates: () => request(apiUrl('GET /api/studio-apps/templates')),
+    getTemplate: (templateId: string) => request(apiUrl('GET /api/studio-apps/templates/{templateId}', { params: { templateId } })),
     /**
      * Remove a template this organisation CAPTURED from one of its own apps
      * (source:'captured', id `utpl_…`). Built-in templates are code and 404
      * here — a gallery you can only ever add to is a gallery that fills up.
      */
-    deleteTemplate: (templateId: string) => request(`${base}/templates/${enc(templateId)}`, { method: 'DELETE' }),
+    deleteTemplate: (templateId: string) => request(apiUrl('DELETE /api/studio-apps/templates/{templateId}', { params: { templateId } }), { method: 'DELETE' }),
 
     /**
      * One template written down as a portable file → { envelope, warnings,
@@ -69,7 +68,7 @@ export const studioAppsApi = {
      * object URL) and wants the warnings alongside — a download tells you
      * nothing about the three automation references it just cleared.
      */
-    exportTemplate: (templateId: string) => request(`${base}/templates/${enc(templateId)}/export`),
+    exportTemplate: (templateId: string) => request(apiUrl('GET /api/studio-apps/templates/{templateId}/export', { params: { templateId } })),
 
     /**
      * A template file → this organisation's gallery, as a captured template.
@@ -77,7 +76,7 @@ export const studioAppsApi = {
      * back 400 with .body.details naming each reason.
      */
     importTemplate: (envelope: unknown, { title }: { title?: string } = {}) =>
-        request(`${base}/templates/import`, {
+        request(apiUrl('POST /api/studio-apps/templates/import'), {
             method: 'POST',
             body: JSON.stringify({ envelope, ...(title ? { title } : {}) }),
         }),
@@ -98,28 +97,28 @@ export const studioAppsApi = {
      * server/appStudio/appPortability.js.
      */
     importApp: (envelope: unknown, { name }: { name?: string } = {}) =>
-        request(`${base}/import`, {
+        request(apiUrl('POST /api/studio-apps/import'), {
             method: 'POST',
             body: JSON.stringify({ envelope, ...(name ? { name } : {}) }),
         }),
 
     // Apps
-    listAccessible: () => request(base),
-    listMine: () => request(`${base}/mine`),
+    listAccessible: () => request(apiUrl('GET /api/studio-apps')),
+    listMine: () => request(apiUrl('GET /api/studio-apps/mine')),
     /** body: { name?, description?, icon?, accentColor?, templateId? } */
-    createApp: (body: NewAppBody = {}) => request(base, { method: 'POST', body: JSON.stringify(body) }),
+    createApp: (body: NewAppBody = {}) => request(apiUrl('POST /api/studio-apps'), { method: 'POST', body: JSON.stringify(body) }),
     /**
      * The row, with the `managed` the route sends BESIDE it ({ app, readOnly,
      * managed }) carried onto it, so every holder of the row (the shell, the
      * header, the publish modal) can tell a Solution stage's app from its own.
      */
     getApp: async (id: string) => {
-        const res = await request(`${base}/${enc(id)}`);
+        const res = await request(apiUrl('GET /api/studio-apps/{id}', { params: { id } }));
         if (res && res.app && res.managed !== undefined) res.app = { ...res.app, managed: res.managed };
         return res;
     },
-    updateApp: (id: string, meta: Record<string, unknown>) => request(`${base}/${enc(id)}`, { method: 'PUT', body: JSON.stringify(meta) }),
-    deleteApp: (id: string) => request(`${base}/${enc(id)}`, { method: 'DELETE' }),
+    updateApp: (id: string, meta: Record<string, unknown>) => request(apiUrl('PUT /api/studio-apps/{id}', { params: { id } }), { method: 'PUT', body: JSON.stringify(meta) }),
+    deleteApp: (id: string) => request(apiUrl('DELETE /api/studio-apps/{id}', { params: { id } }), { method: 'DELETE' }),
 
     /**
      * Autosave the working draft. Returns (never throws for these flows):
@@ -131,7 +130,7 @@ export const studioAppsApi = {
      */
     saveDefinition: async (id: string | undefined, definition: AppDefinition | null, baseVersion: number | string | null | undefined) => {
         try {
-            const body = await request(`${base}/${enc(id)}/definition`, {
+            const body = await request(apiUrl('PUT /api/studio-apps/{id}/definition', { params: { id: String(id) } }), {
                 method: 'PUT',
                 body: JSON.stringify({ definition, baseVersion }),
             });
@@ -146,7 +145,7 @@ export const studioAppsApi = {
     },
 
     /** body: { isPublished, sharedGroups? } */
-    publish: (id: string, body: { isPublished: boolean; sharedGroups?: string[] }) => request(`${base}/${enc(id)}/publish`, { method: 'PATCH', body: JSON.stringify(body) }),
+    publish: (id: string, body: { isPublished: boolean; sharedGroups?: string[] }) => request(apiUrl('PATCH /api/studio-apps/{id}/publish', { params: { id } }), { method: 'PATCH', body: JSON.stringify(body) }),
 
     /**
      * Upgrade a pristine created-from-template app to the registry template's
@@ -154,7 +153,7 @@ export const studioAppsApi = {
      * 409s (not_pristine / no_newer_version / not_from_template) throw with
      * .status/.code like every other wrapper here.
      */
-    templateUpgrade: (id: string) => request(`${base}/${enc(id)}/template-upgrade`, { method: 'POST' }),
+    templateUpgrade: (id: string) => request(apiUrl('POST /api/studio-apps/{id}/template-upgrade', { params: { id } }), { method: 'POST' }),
 
     /**
      * Toggle the app's entry in the organisation's Nextcloud app menu.
@@ -165,7 +164,7 @@ export const studioAppsApi = {
      * connector's periodic check will pick it up.
      */
     setNextcloudMenu: (id: string, enabled: boolean) =>
-        request(`${base}/${enc(id)}/nextcloud-menu`, { method: 'PATCH', body: JSON.stringify({ enabled }) }),
+        request(apiUrl('PATCH /api/studio-apps/{id}/nextcloud-menu', { params: { id } }), { method: 'PATCH', body: JSON.stringify({ enabled }) }),
 
     /**
      * Pre-flight the saved draft, read-only (server: appDryRun). Owner-only.
@@ -174,7 +173,7 @@ export const studioAppsApi = {
      * opts: { screenId?, asRole? } — omit both to check the whole app.
      */
     checkApp: (id: string, opts: { screenId?: string; asRole?: string } = {}) =>
-        request(`${base}/${enc(id)}/check`, { method: 'POST', body: JSON.stringify(opts) }),
+        request(apiUrl('POST /api/studio-apps/{id}/check', { params: { id } }), { method: 'POST', body: JSON.stringify(opts) }),
 
     /**
      * Public pages (server: routes/studioApps/publicPages.js). Owner-only, all
@@ -182,32 +181,32 @@ export const studioAppsApi = {
      * list → { pages: [{ token, url, createdAt, lastSeenAt, visits }], publicAccess, blockers }
      * create → 201 { page, blockers }; 409 once the app has its maximum of URLs.
      */
-    listPublicPages: (id: string) => request(`${base}/${enc(id)}/public-pages`),
-    createPublicPage: (id: string) => request(`${base}/${enc(id)}/public-pages`, { method: 'POST' }),
-    revokePublicPage: (id: string, token: string) => request(`${base}/${enc(id)}/public-pages/${enc(token)}`, { method: 'DELETE' }),
+    listPublicPages: (id: string) => request(apiUrl('GET /api/studio-apps/{id}/public-pages', { params: { id } })),
+    createPublicPage: (id: string) => request(apiUrl('POST /api/studio-apps/{id}/public-pages', { params: { id } }), { method: 'POST' }),
+    revokePublicPage: (id: string, token: string) => request(apiUrl('DELETE /api/studio-apps/{id}/public-pages/{token}', { params: { id, token } }), { method: 'DELETE' }),
 
     // Versions
-    listVersions: (id: string) => request(`${base}/${enc(id)}/versions`),
+    listVersions: (id: string) => request(apiUrl('GET /api/studio-apps/{id}/versions', { params: { id } })),
     restoreVersion: (id: string, versionId: string | number | undefined) =>
-        request(`${base}/${enc(id)}/versions/${enc(versionId)}/restore`, { method: 'POST' }),
+        request(apiUrl('POST /api/studio-apps/{id}/versions/{versionId}/restore', { params: { id: String(id), versionId: String(versionId) } }), { method: 'POST' }),
 
     // Run view payload ({ id, name, icon, accentColor, definition, draft? })
     getRuntime: (id: string | null, { draft = false }: { draft?: boolean } = {}) =>
-        request(`${base}/${enc(id)}/runtime${draft ? '?draft=1' : ''}`),
+        request(`${apiUrl('GET /api/studio-apps/{id}/runtime', { params: { id: String(id) } })}${draft ? '?draft=1' : ''}`),
 
     // Actions (the run bridge; useActionRunner drives these in run mode)
     runAction: (appId: string, actionId: string, { formValues = {}, draft = false }: { formValues?: Record<string, unknown>; draft?: boolean } = {}) =>
-        request(`${base}/${enc(appId)}/actions/${enc(actionId)}/run${draft ? '?draft=1' : ''}`, {
+        request(`${apiUrl('POST /api/studio-apps/{id}/actions/{actionId}/run', { params: { id: appId, actionId } })}${draft ? '?draft=1' : ''}`, {
             method: 'POST',
             body: JSON.stringify({ formValues, wait: true }),
         }),
-    getActionRun: (appId: string, runId: string) => request(`${base}/${enc(appId)}/actions/runs/${enc(runId)}`),
+    getActionRun: (appId: string, runId: string) => request(apiUrl('GET /api/studio-apps/{id}/actions/runs/{runId}', { params: { id: appId, runId } })),
 
     // AI builder — rehydrates the persisted chat session after a refresh.
-    getBuilderSession: (appId: string) => request(`${base}/builder/session/${enc(appId)}`),
+    getBuilderSession: (appId: string) => request(apiUrl('GET /api/studio-apps/builder/session/{appId}', { params: { appId } })),
 
     // Data model (owner-only). getSchema → { model, modelVersion }.
-    getSchema: (id: string) => request(`${base}/${enc(id)}/schema`),
+    getSchema: (id: string) => request(apiUrl('GET /api/studio-apps/{id}/schema', { params: { id } })),
     /**
      * Persist the data model. Returns (never throws for these flows):
      *   { ok:true, version }
@@ -221,7 +220,7 @@ export const studioAppsApi = {
      */
     saveSchema: async (id: string, model: Record<string, unknown>, expectedVersion: number | string | null | undefined, opts: { onUnconvertible?: 'refuse' | 'clear' } = {}) => {
         try {
-            const body = await request(`${base}/${enc(id)}/schema`, {
+            const body = await request(apiUrl('PUT /api/studio-apps/{id}/schema', { params: { id } }), {
                 method: 'PUT',
                 body: JSON.stringify({ model, expectedVersion, ...(opts.onUnconvertible ? { onUnconvertible: opts.onUnconvertible } : {}) }),
             });
@@ -240,7 +239,7 @@ export const studioAppsApi = {
         }
     },
     /** Dry run of saveSchema: { dryRun, currentVersion, report } — nothing is saved. */
-    previewSchema: (id: string, model: Record<string, unknown>, opts: { onUnconvertible?: 'refuse' | 'clear' } = {}) => request(`${base}/${enc(id)}/schema`, {
+    previewSchema: (id: string, model: Record<string, unknown>, opts: { onUnconvertible?: 'refuse' | 'clear' } = {}) => request(apiUrl('PUT /api/studio-apps/{id}/schema', { params: { id } }), {
         method: 'PUT',
         body: JSON.stringify({ model, dryRun: true, ...(opts.onUnconvertible ? { onUnconvertible: opts.onUnconvertible } : {}) }),
     }),

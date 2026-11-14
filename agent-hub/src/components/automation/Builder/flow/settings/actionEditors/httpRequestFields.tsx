@@ -104,6 +104,7 @@ function HttpHeadersSection({ headers, set, onFocusField, previewSample, errorSe
                             type="button"
                             onClick={() => removeHeader(key)}
                             title={t('automations.http_request_fields.remove_header', 'Remove header')}
+                            aria-label={t('automations.http_request_fields.remove_header', 'Remove header')}
                             className="p-1.5 rounded text-[var(--text-tertiary)] hover:text-red-500 hover:bg-[var(--bg-tertiary)] transition"
                         >
                             <X size={14} />

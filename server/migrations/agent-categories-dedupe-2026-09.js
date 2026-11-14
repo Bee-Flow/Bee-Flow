@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: merge case-insensitive duplicate agent categories, then build the
  * unique index that could not be built over them.
@@ -120,7 +120,7 @@ async function hasSchema(db) {
 }
 
 /**
- * @param {{ dryRun?: boolean, db?: Pick<typeof import('../db'), 'getOne' | 'getAll' | 'run' | 'withTransaction'>, initSchema?: () => Promise<unknown> }} [opts]
+ * @param {{ dryRun?: boolean, db?: Pick<typeof import('../db'), 'getOne' | 'getAll' | 'run' | 'withTransaction'> | null, initSchema?: (() => Promise<unknown>) | null }} [opts]
  *        `db` and `initSchema` are injection seams for the integration test;
  *        the boot ladder calls up() without arguments and gets the real ones.
  * @returns {Promise<{ groups: number, removed: number, agentsMoved: number, dryRun: boolean, skipped?: string }>}

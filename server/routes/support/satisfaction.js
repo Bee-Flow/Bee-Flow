@@ -1,3 +1,4 @@
+// @typecheck strict
 /** @typedef {import('express-serve-static-core').Router} Router */
 /**
  * Customer satisfaction: the staff-facing CSAT + SLA dashboard aggregates and
@@ -57,7 +58,7 @@ function register(router) {
             const thread = await supportStore.getThread(req.params.threadId); // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- same-origin path built server-side, id URI-encoded
             if (!thread) return res.status(404).send(_csatHtml({ error: 'Thread not found.' }));
 
-            const numScore = dispute ? 0 : parseInt(score, 10);
+            const numScore = dispute ? 0 : parseInt(/** @type {string} */ (score), 10);
             // A vote is 1 to 5. Zero is the dispute link's own score: without
             // `dispute`, that link's token would otherwise record a rating of 0
             // and CONFIRM the resolution the customer was disputing.

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The skill-test SANDBOX — which tools a Test-tab run may call.
  * (Bee Flow Builder redesign, Sep 2026, Track S3.)
@@ -84,7 +84,8 @@ async function runKbSearch(args, ctx) {
     const query = typeof args?.query === 'string' ? args.query.trim().slice(0, MAX_QUERY_CHARS) : '';
     if (!query) return 'No query given, so nothing was searched.';
     const kbIds = Array.isArray(ctx?.kbIds) ? ctx.kbIds.filter(Boolean) : [];
-    const declared = Number.isInteger(ctx?.kbDeclared) ? ctx.kbDeclared : kbIds.length;
+    // An integer kbDeclared came on a context.
+    const declared = Number.isInteger(ctx?.kbDeclared) ? /** @type {number} */ (/** @type {NonNullable<typeof ctx>} */ (ctx).kbDeclared) : kbIds.length;
     const dropped = Math.max(0, declared - kbIds.length);
     if (kbIds.length === 0) {
         if (declared === 0) {
@@ -100,14 +101,16 @@ async function runKbSearch(args, ctx) {
     let chunks = [];
     try {
         const { quickKBSearch } = require('../agentRuntime/knowledgeSearch');
-        // ctx.session is only an `object` here; it is passed along unchanged.
-        const found = await quickKBSearch(ctx.userId, kbIds, query, /** @type {Parameters<typeof quickKBSearch>[3]} */ ({
+        // Linked bases came from the test's context, so it is here, with the person running it.
+        const run = /** @type {NonNullable<typeof ctx>} */ (ctx);
+        // run.session is only an `object` here; it is passed along unchanged.
+        const found = await quickKBSearch(/** @type {string} */ (run.userId), kbIds, query, /** @type {Parameters<typeof quickKBSearch>[3]} */ ({
             topK: SANDBOX_KB_TOPK,
-            session: ctx.session || null,
+            session: run.session || null,
             // KB query log: the handle is registered on the test turn's carrier; the route finishes it.
-            log: skillQueryLog(ctx),
+            log: skillQueryLog(run),
         }));
-        registerHandle(ctx.queryLogCarrier, handleOf(found));
+        registerHandle(run.queryLogCarrier, handleOf(found));
         chunks = found || [];
     } catch (err) {
         // A failed search is a failed search — never "nothing was found",
@@ -193,14 +196,14 @@ function buildSandboxTools() {
  *
  * @param {string} name
  * @param {Record<string, unknown>} args   the model's arguments — untrusted
- * @param {{ userId?:string, kbIds?:string[], session?:object }} [ctx]
+ * @param {{ userId?:string, orgId?: string | null, skillId?: string, kbIds?:string[], kbDeclared?: number, session?:object, queryLogCarrier?: object }} [ctx]
  * @returns {Promise<string>}
  */
 async function executeSandboxTool(name, args, ctx = {}) {
     if (!isSandboxTool(name)) {
         return `The tool "${String(name).slice(0, 80)}" is not available while testing a skill. A test runs read-only: no messages, no writes, no external calls. Answer with what you have.`;
     }
-    return SANDBOX_TOOLS.get(name).run(args || {}, ctx);
+    return /** @type {NonNullable<ReturnType<typeof SANDBOX_TOOLS.get>>} */ (SANDBOX_TOOLS.get(name)).run(args || {}, ctx); // isSandboxTool above
 }
 
 module.exports = {

@@ -7,7 +7,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { CatalogModel } from '../chatModelTiers/tierTypes';
 import { aiProvidersKey, useAiProvidersQuery } from '@/api/queries/adminConfigReads';
 import { readOrNull } from '@/api/queries/refusableRead';
-import { API_BASE } from '@/utils/helpers';
+import { apiUrl } from '@/api/typedRequest';
 
 /** A provider as GET /ai/providers lists it. */
 export interface ProviderRow {
@@ -38,7 +38,7 @@ const NO_MODELS: ModelRow[] = [];
  */
 async function readAllModels(providers: ProviderRow[], signal: AbortSignal): Promise<ModelRow[]> {
     const answers = await Promise.all(
-        providers.map(p => readOrNull<ModelsAnswer>(`${API_BASE}/ai/providers/${p.id}/models`, signal).catch(() => null)),
+        providers.map(p => readOrNull<ModelsAnswer>(apiUrl('GET /ai/providers/{id}/models', { params: { id: p.id } }), signal).catch(() => null)),
     );
     return providers.flatMap((provider, i) => (answers[i]?.models || []).map(m => ({
         ...m,

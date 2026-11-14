@@ -43,6 +43,6 @@ const LEGACY_SLUGS = {
  * page that is merely unpublished for a while is not dropped from search as
  * "removed for good". Add a slug here when a page is deleted for good.
  */
-const GONE_SLUGS = new Set([]);
+const GONE_SLUGS = /** @type {Set<string>} */ (new Set([])); // typed, so a lookup reads while it is empty
 
 module.exports = { LEGACY_SLUGS, GONE_SLUGS };

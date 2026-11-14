@@ -43,7 +43,7 @@ type QueryCompiler = {
     compileDelete: (t: Table, id: string, f: AccessFilter) => Compiled;
 };
 const queryCompiler = nodeRequire('./queryCompiler') as QueryCompiler;
-const { normalizeSubject } = nodeRequire('../services/email/parse') as { normalizeSubject: (s: unknown) => string };
+const { normalizeSubject } = nodeRequire('../utils/emailParse') as { normalizeSubject: (s: unknown) => string };
 
 export type ReplyDeps = {
     query: (ownerId: string, appId: string, sql: string, params: unknown[]) => Promise<QueryResult>;

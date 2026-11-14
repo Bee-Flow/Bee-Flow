@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The parts a Solution part needs in order to work, and whether they can come
  * along when it is added.
@@ -60,7 +60,6 @@
 'use strict';
 
 const { visitPointers } = require('../core/packaging/pointers');
-const { collectDatatableUsage } = require('../automation/datatableUsage');
 const membership = require('./membership');
 const { fallback } = require('../utils/bestEffort');
 
@@ -156,7 +155,7 @@ function relationOf(holder, ptr, tableMode) {
  * @returns {Array<{kind: string, id: string, relation: string}>} deduped on kind + id
  */
 function edgesOf(kind, payload) {
-    const usage = kind === 'automation' ? collectDatatableUsage(payload?.definition) : [];
+    const usage = /** @type {ReturnType<typeof import('../automation/datatableUsage').collectDatatableUsage>} */ (kind === 'automation' ? require('../core/featureModules').featureModule('automation/datatableUsage').collectDatatableUsage(payload?.definition) : []);
     const modeByStep = new Map(usage.map(u => [u.stepId, u.mode]));
     const tableMode = (/** @type {string|null|undefined} */ stepId) => modeByStep.get(stepId) || 'read';
     /** @type {Array<{kind: string, id: string, relation: string}>} */
@@ -171,7 +170,7 @@ function edgesOf(kind, payload) {
             const key = keyOf(targetKind, id);
             if (seen.has(key)) continue;
             seen.add(key);
-            out.push({ kind: targetKind, id, relation: relationOf(kind, ptr, tableMode) });
+            out.push({ kind: targetKind, id, relation: /** @type {string} */ (relationOf(kind, ptr, tableMode)) }); // named for every MEMBER_KIND
         }
     });
     return out;
@@ -334,7 +333,7 @@ async function standing(kind, id, { project, userId, req }, d) {
     if (!read) return { status: STATUS.NOT_FOUND, name: null, payload: null };
     /** @type {Standing} */
     const out = { status, name: read.name, payload: status === STATUS.ADDABLE ? read.payload : null };
-    if (status === STATUS.IN_OTHER_SOLUTION) out.solutionName = await d.visibleProjectName(userId, projectIn);
+    if (status === STATUS.IN_OTHER_SOLUTION) out.solutionName = await d.visibleProjectName(userId, /** @type {string} */ (projectIn)); // set for this status
     return out;
 }
 
@@ -407,7 +406,7 @@ async function findRelatedParts({ project, userId, req = null, items }, d = seam
     const visit = (/** @type {WalkNode} */ node) => {
         if (visited.has(node.key)) return;
         visited.add(node.key);
-        for (const childKey of node.children) visit(nodes.get(childKey));
+        for (const childKey of node.children) visit(/** @type {WalkNode} */ (nodes.get(childKey))); // pushed once its node is set
         if (!node.root) ordered.push(node);
     };
     roots.forEach(visit);

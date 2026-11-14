@@ -1,0 +1,2108 @@
+{
+  "hostInternalName/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "host-internals|block||1:8-1:19|code_step.rule.host_internals|code_step.rule.host_internals_fix",
+      "host-internals|block||2:8-2:15|code_step.rule.host_internals|code_step.rule.host_internals_fix",
+      "host-internals|block||3:8-3:11|code_step.rule.host_internals|code_step.rule.host_internals_fix",
+      "host-internals|block||4:1-4:10|code_step.rule.host_internals|code_step.rule.host_internals_fix",
+      "host-internals|block||5:1-5:13|code_step.rule.host_internals|code_step.rule.host_internals_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "hostInternalName/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "host-internals|block||1:8-1:19|code_step.rule.host_internals|code_step.rule.host_internals_fix",
+      "host-internals|block||2:8-2:15|code_step.rule.host_internals|code_step.rule.host_internals_fix",
+      "host-internals|block||3:8-3:11|code_step.rule.host_internals|code_step.rule.host_internals_fix",
+      "host-internals|block||4:1-4:10|code_step.rule.host_internals|code_step.rule.host_internals_fix",
+      "host-internals|block||5:1-5:13|code_step.rule.host_internals|code_step.rule.host_internals_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "nodeGlobals/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "node-access|block||1:1-1:8|code_step.rule.node_access|code_step.rule.node_access_fix",
+      "node-access|block||2:1-2:7|code_step.rule.node_access|code_step.rule.node_access_fix",
+      "node-access|block||3:1-3:8|code_step.rule.node_access|code_step.rule.node_access_fix",
+      "node-access|block||4:1-4:10|code_step.rule.node_access|code_step.rule.node_access_fix",
+      "node-access|block||5:1-5:11|code_step.rule.node_access|code_step.rule.node_access_fix",
+      "node-access|block||6:1-6:8|code_step.rule.node_access|code_step.rule.node_access_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "nodeGlobals/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "node-access|block||1:1-1:8|code_step.rule.node_access|code_step.rule.node_access_fix",
+      "node-access|block||2:1-2:7|code_step.rule.node_access|code_step.rule.node_access_fix",
+      "node-access|block||3:1-3:8|code_step.rule.node_access|code_step.rule.node_access_fix",
+      "node-access|block||4:1-4:10|code_step.rule.node_access|code_step.rule.node_access_fix",
+      "node-access|block||5:1-5:11|code_step.rule.node_access|code_step.rule.node_access_fix",
+      "node-access|block||6:1-6:8|code_step.rule.node_access|code_step.rule.node_access_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "processShadowed/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [
+        "v"
+      ],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "v"
+      ]
+    }
+  },
+  "processShadowed/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [
+        "v"
+      ],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "v"
+      ]
+    }
+  },
+  "requireShadowedByParam/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [
+        "a"
+      ],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "a"
+      ]
+    }
+  },
+  "requireShadowedByParam/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [
+        "a"
+      ],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "a"
+      ]
+    }
+  },
+  "catchShadow/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "catchShadow/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "patternShadow/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "node-access|block||1:24-1:31|code_step.rule.node_access|code_step.rule.node_access_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [
+        "a",
+        "b"
+      ],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "a",
+        "b"
+      ]
+    }
+  },
+  "patternShadow/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "node-access|block||1:24-1:31|code_step.rule.node_access|code_step.rule.node_access_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [
+        "a",
+        "b"
+      ],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "a",
+        "b"
+      ]
+    }
+  },
+  "classShadow/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "classShadow/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "lowLevel/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "low-level|block||1:1-1:12|code_step.rule.low_level|code_step.rule.low_level_fix",
+      "low-level|block||2:1-2:18|code_step.rule.low_level|code_step.rule.low_level_fix",
+      "low-level|block||3:1-3:8|code_step.rule.low_level|code_step.rule.low_level_fix",
+      "dynamic-code|block||4:1-4:5|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "lowLevel/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "low-level|block||1:1-1:12|code_step.rule.low_level|code_step.rule.low_level_fix",
+      "low-level|block||2:1-2:18|code_step.rule.low_level|code_step.rule.low_level_fix",
+      "low-level|block||3:1-3:8|code_step.rule.low_level|code_step.rule.low_level_fix",
+      "dynamic-code|block||4:1-4:5|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "evalShadowed/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "evalShadowed/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "keyPositions/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "node-access|block||2:5-2:11|code_step.rule.node_access|code_step.rule.node_access_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "keyPositions/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "node-access|block||2:5-2:11|code_step.rule.node_access|code_step.rule.node_access_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "shorthandKey/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "node-access|block||1:13-1:20|code_step.rule.node_access|code_step.rule.node_access_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "shorthandKey/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "node-access|block||1:13-1:20|code_step.rule.node_access|code_step.rule.node_access_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "classMembers/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "node-access|block||2:19-2:25|code_step.rule.node_access|code_step.rule.node_access_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "classMembers/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "node-access|block||2:19-2:25|code_step.rule.node_access|code_step.rule.node_access_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "labels/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [
+        "xs"
+      ],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "xs"
+      ]
+    }
+  },
+  "labels/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [
+        "xs"
+      ],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "xs"
+      ]
+    }
+  },
+  "importAndMeta/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "node-access|block||1:7-1:24|code_step.rule.node_access|code_step.rule.node_access_fix",
+      "node-access|block||2:23-2:33|code_step.rule.node_access|code_step.rule.node_access_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "importAndMeta/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "node-access|block||1:7-1:24|code_step.rule.node_access|code_step.rule.node_access_fix",
+      "node-access|block||2:23-2:33|code_step.rule.node_access|code_step.rule.node_access_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "withStmt/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "dynamic-code|block||1:1-1:32|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "withStmt/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "dynamic-code|block||1:1-1:32|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "functionCall/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "dynamic-code|block||1:1-1:21|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix",
+      "dynamic-code|block||2:1-2:30|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "functionCall/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "dynamic-code|block||1:1-1:21|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix",
+      "dynamic-code|block||2:1-2:30|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "functionShadowed/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "functionShadowed/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "timers/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "dynamic-code|block||1:1-1:23|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix",
+      "dynamic-code|block||2:1-2:25|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix",
+      "dynamic-code|block||4:1-4:20|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [
+        "fn"
+      ],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "fn"
+      ]
+    }
+  },
+  "timers/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "dynamic-code|block||1:1-1:23|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix",
+      "dynamic-code|block||2:1-2:25|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix",
+      "dynamic-code|block||4:1-4:20|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [
+        "fn"
+      ],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "fn"
+      ]
+    }
+  },
+  "constructorCalls/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "dynamic-code|block||1:1-1:19|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix",
+      "dynamic-code|block||3:1-3:21|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix",
+      "dynamic-code|block||5:1-5:8|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix",
+      "dynamic-code|block||6:1-6:25|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix",
+      "dynamic-code|block||7:1-7:20|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [
+        "k"
+      ],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "k"
+      ]
+    }
+  },
+  "constructorCalls/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "dynamic-code|block||1:1-1:19|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix",
+      "dynamic-code|block||3:1-3:21|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix",
+      "dynamic-code|block||5:1-5:8|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix",
+      "dynamic-code|block||6:1-6:25|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix",
+      "dynamic-code|block||7:1-7:20|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [
+        "k"
+      ],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "k"
+      ]
+    }
+  },
+  "constructorChain/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "dynamic-code|block||1:1-1:27|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix",
+      "dynamic-code|block||2:1-2:35|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix",
+      "dynamic-code|block||4:1-4:19|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "constructorChain/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "dynamic-code|block||1:1-1:27|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix",
+      "dynamic-code|block||2:1-2:35|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix",
+      "dynamic-code|block||4:1-4:19|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "fromCharCode/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "obfuscation|warn|admin|1:1-1:81|code_step.rule.obfuscation|code_step.rule.obfuscation_fix",
+      "obfuscation|warn|admin|4:3-4:25|code_step.rule.obfuscation|code_step.rule.obfuscation_fix",
+      "obfuscation|warn|admin|6:25-6:47|code_step.rule.obfuscation|code_step.rule.obfuscation_fix",
+      "obfuscation|warn|admin|7:38-7:60|code_step.rule.obfuscation|code_step.rule.obfuscation_fix",
+      "obfuscation|warn|admin|9:10-9:35|code_step.rule.obfuscation|code_step.rule.obfuscation_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [
+        "codes",
+        "n"
+      ],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "codes",
+        "n"
+      ]
+    }
+  },
+  "fromCharCode/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "obfuscation|warn|admin|1:1-1:81|code_step.rule.obfuscation|code_step.rule.obfuscation_fix",
+      "obfuscation|warn|admin|4:3-4:25|code_step.rule.obfuscation|code_step.rule.obfuscation_fix",
+      "obfuscation|warn|admin|6:25-6:47|code_step.rule.obfuscation|code_step.rule.obfuscation_fix",
+      "obfuscation|warn|admin|7:38-7:60|code_step.rule.obfuscation|code_step.rule.obfuscation_fix",
+      "obfuscation|warn|admin|9:10-9:35|code_step.rule.obfuscation|code_step.rule.obfuscation_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [
+        "codes",
+        "n"
+      ],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "codes",
+        "n"
+      ]
+    }
+  },
+  "tampering/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "builtin-tampering|warn|admin|1:1-1:31|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|2:1-2:32|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|3:1-3:33|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|5:1-5:24|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|6:1-6:22|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|7:1-7:23|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|8:1-8:41|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|9:1-9:39|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|13:1-13:48|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|14:1-14:49|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "tampering/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "builtin-tampering|warn|admin|1:1-1:31|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|2:1-2:32|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|3:1-3:33|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|5:1-5:24|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|6:1-6:22|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|7:1-7:23|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|8:1-8:41|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|9:1-9:39|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|13:1-13:48|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|14:1-14:49|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "globalEnumerationShadowed/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "globalEnumerationShadowed/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "http/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "dynamic-host|warn|author|7:1-7:21|code_step.rule.dynamic_host|code_step.rule.dynamic_host_fix",
+      "dynamic-host|warn|author|8:1-8:11|code_step.rule.dynamic_host|code_step.rule.dynamic_host_fix",
+      "dynamic-host|warn|author|9:1-9:45|code_step.rule.dynamic_host|code_step.rule.dynamic_host_fix"
+    ],
+    "capabilities": {
+      "hosts": [
+        "api.example.com",
+        "api.other.org",
+        "comp.example.com",
+        "svc.example.net",
+        "whole.example.com"
+      ],
+      "dynamicHosts": true,
+      "tools": [],
+      "inputsRead": [
+        "id",
+        "url",
+        "scheme"
+      ],
+      "usesHttp": true,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "id",
+        "url",
+        "scheme"
+      ]
+    }
+  },
+  "http/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [
+        "api.example.com",
+        "api.other.org",
+        "comp.example.com",
+        "svc.example.net",
+        "whole.example.com"
+      ],
+      "dynamicHosts": true,
+      "tools": [],
+      "inputsRead": [
+        "id",
+        "url",
+        "scheme"
+      ],
+      "usesHttp": true,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "id",
+        "url",
+        "scheme"
+      ]
+    }
+  },
+  "httpInLoops/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "http-in-loop|info||2:9-2:51|code_step.rule.http_in_loop|code_step.rule.http_in_loop_fix",
+      "http-in-loop|info||4:28-4:69|code_step.rule.http_in_loop|code_step.rule.http_in_loop_fix",
+      "dynamic-host|warn|author|5:26-5:44|code_step.rule.dynamic_host|code_step.rule.dynamic_host_fix"
+    ],
+    "capabilities": {
+      "hosts": [
+        "api.example.com"
+      ],
+      "dynamicHosts": true,
+      "tools": [],
+      "inputsRead": [
+        "ids",
+        "u"
+      ],
+      "usesHttp": true,
+      "usesDb": false,
+      "httpInLoop": true,
+      "undeclaredInputs": [
+        "ids",
+        "u"
+      ]
+    }
+  },
+  "httpInLoops/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "http-in-loop|info||2:9-2:51|code_step.rule.http_in_loop|code_step.rule.http_in_loop_fix",
+      "http-in-loop|info||4:28-4:69|code_step.rule.http_in_loop|code_step.rule.http_in_loop_fix"
+    ],
+    "capabilities": {
+      "hosts": [
+        "api.example.com"
+      ],
+      "dynamicHosts": true,
+      "tools": [],
+      "inputsRead": [
+        "ids",
+        "u"
+      ],
+      "usesHttp": true,
+      "usesDb": false,
+      "httpInLoop": true,
+      "undeclaredInputs": [
+        "ids",
+        "u"
+      ]
+    }
+  },
+  "httpCustomCtx/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "dynamic-host|warn|author|2:3-2:18|code_step.rule.dynamic_host|code_step.rule.dynamic_host_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": true,
+      "tools": [],
+      "inputsRead": [
+        "url"
+      ],
+      "usesHttp": true,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "url"
+      ]
+    }
+  },
+  "httpCustomCtx/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": true,
+      "tools": [],
+      "inputsRead": [
+        "url"
+      ],
+      "usesHttp": true,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "url"
+      ]
+    }
+  },
+  "integrations/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "tool-not-allowed|warn|author|1:7-1:38|code_step.rule.tool_not_allowed|code_step.rule.tool_not_allowed_fix",
+      "tool-not-allowed|warn|author|2:7-2:41|code_step.rule.tool_not_allowed|code_step.rule.tool_not_allowed_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [
+        "gmail_send",
+        "slack_post"
+      ],
+      "inputsRead": [
+        "t",
+        "k"
+      ],
+      "usesHttp": false,
+      "usesDb": true,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "t",
+        "k"
+      ]
+    }
+  },
+  "integrations/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "tool-not-allowed|warn|author|2:7-2:41|code_step.rule.tool_not_allowed|code_step.rule.tool_not_allowed_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [
+        "gmail_send",
+        "slack_post"
+      ],
+      "inputsRead": [
+        "t",
+        "k"
+      ],
+      "usesHttp": false,
+      "usesDb": true,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "t",
+        "k"
+      ]
+    }
+  },
+  "internalProps/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "host-internals|block||1:1-1:12|code_step.rule.host_internals|code_step.rule.host_internals_fix",
+      "host-internals|block||2:1-2:15|code_step.rule.host_internals|code_step.rule.host_internals_fix",
+      "host-internals|block||3:1-3:10|code_step.rule.host_internals|code_step.rule.host_internals_fix",
+      "host-internals|block||4:1-4:10|code_step.rule.host_internals|code_step.rule.host_internals_fix",
+      "host-internals|block||5:1-5:15|code_step.rule.host_internals|code_step.rule.host_internals_fix",
+      "host-internals|block||6:1-6:13|code_step.rule.host_internals|code_step.rule.host_internals_fix",
+      "host-internals|block||7:1-7:15|code_step.rule.host_internals|code_step.rule.host_internals_fix",
+      "host-internals|block||8:1-8:19|code_step.rule.host_internals|code_step.rule.host_internals_fix",
+      "host-internals|block||10:1-10:13|code_step.rule.host_internals|code_step.rule.host_internals_fix",
+      "host-internals|block||11:1-11:11|code_step.rule.host_internals|code_step.rule.host_internals_fix",
+      "host-internals|block||12:1-12:9|code_step.rule.host_internals|code_step.rule.host_internals_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "internalProps/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "host-internals|block||1:1-1:12|code_step.rule.host_internals|code_step.rule.host_internals_fix",
+      "host-internals|block||2:1-2:15|code_step.rule.host_internals|code_step.rule.host_internals_fix",
+      "host-internals|block||3:1-3:10|code_step.rule.host_internals|code_step.rule.host_internals_fix",
+      "host-internals|block||4:1-4:10|code_step.rule.host_internals|code_step.rule.host_internals_fix",
+      "host-internals|block||5:1-5:15|code_step.rule.host_internals|code_step.rule.host_internals_fix",
+      "host-internals|block||6:1-6:13|code_step.rule.host_internals|code_step.rule.host_internals_fix",
+      "host-internals|block||7:1-7:15|code_step.rule.host_internals|code_step.rule.host_internals_fix",
+      "host-internals|block||8:1-8:19|code_step.rule.host_internals|code_step.rule.host_internals_fix",
+      "host-internals|block||10:1-10:13|code_step.rule.host_internals|code_step.rule.host_internals_fix",
+      "host-internals|block||11:1-11:11|code_step.rule.host_internals|code_step.rule.host_internals_fix",
+      "host-internals|block||12:1-12:9|code_step.rule.host_internals|code_step.rule.host_internals_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "globalComputed/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "dynamic-code|block||1:1-1:19|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix",
+      "dynamic-code|block||2:1-2:17|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix",
+      "dynamic-code|block||3:1-3:25|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix",
+      "builtin-tampering|warn|admin|4:1-4:17|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "dynamic-code|block||7:1-7:24|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [
+        "k"
+      ],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "k"
+      ]
+    }
+  },
+  "globalComputed/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "dynamic-code|block||1:1-1:19|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix",
+      "dynamic-code|block||2:1-2:17|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix",
+      "dynamic-code|block||3:1-3:25|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix",
+      "builtin-tampering|warn|admin|4:1-4:17|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "dynamic-code|block||7:1-7:24|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [
+        "k"
+      ],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "k"
+      ]
+    }
+  },
+  "globalComputedShadowed/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [
+        "k"
+      ],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "k"
+      ]
+    }
+  },
+  "globalComputedShadowed/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [
+        "k"
+      ],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "k"
+      ]
+    }
+  },
+  "protoAndErrors/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "builtin-tampering|warn|admin|1:1-1:12|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|2:1-2:15|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|3:1-3:31|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|4:1-4:24|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|7:3-7:19|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|8:3-8:19|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "protoAndErrors/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "builtin-tampering|warn|admin|1:1-1:12|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|2:1-2:15|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|3:1-3:31|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|4:1-4:24|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|7:3-7:19|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|8:3-8:19|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "inputsReads/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [
+        "a",
+        "b",
+        "c"
+      ],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "a",
+        "b",
+        "c"
+      ]
+    }
+  },
+  "inputsReads/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [
+        "a",
+        "b",
+        "c"
+      ],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "a",
+        "b",
+        "c"
+      ]
+    }
+  },
+  "inputsDestructured/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [
+        "a",
+        "b"
+      ],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "a",
+        "b"
+      ]
+    }
+  },
+  "inputsDestructured/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [
+        "a",
+        "b"
+      ],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "a",
+        "b"
+      ]
+    }
+  },
+  "inputsCustomName/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [
+        "x",
+        "y"
+      ],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "x",
+        "y"
+      ]
+    }
+  },
+  "inputsCustomName/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [
+        "x",
+        "y"
+      ],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "x",
+        "y"
+      ]
+    }
+  },
+  "assignments/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "builtin-tampering|warn|admin|1:1-1:30|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|2:1-2:21|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|3:1-3:25|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|5:1-5:19|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|7:1-7:19|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|8:1-8:17|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|9:1-9:11|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|14:1-14:29|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "assignments/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "builtin-tampering|warn|admin|1:1-1:30|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|2:1-2:21|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|3:1-3:25|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|5:1-5:19|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|7:1-7:19|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|8:1-8:17|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|9:1-9:11|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix",
+      "builtin-tampering|warn|admin|14:1-14:29|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "assignBuiltinShadowed/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "assignBuiltinShadowed/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "forIn/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "builtin-tampering|warn|admin|1:1-1:40|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "forIn/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "builtin-tampering|warn|admin|1:1-1:40|code_step.rule.builtin_tampering|code_step.rule.builtin_tampering_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "forInShadowedGlobal/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "forInShadowedGlobal/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "loops/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "busy-wait|warn|author|1:1-1:29|code_step.rule.busy_wait|code_step.rule.busy_wait_fix",
+      "busy-wait|warn|author|2:1-2:25|code_step.rule.busy_wait|code_step.rule.busy_wait_fix",
+      "busy-wait|warn|author|3:1-3:33|code_step.rule.busy_wait|code_step.rule.busy_wait_fix",
+      "http-in-loop|info||7:22-7:58|code_step.rule.http_in_loop|code_step.rule.http_in_loop_fix",
+      "busy-wait|warn|author|8:1-8:53|code_step.rule.busy_wait|code_step.rule.busy_wait_fix",
+      "busy-wait|warn|author|9:1-9:44|code_step.rule.busy_wait|code_step.rule.busy_wait_fix",
+      "busy-wait|warn|author|11:1-11:28|code_step.rule.busy_wait|code_step.rule.busy_wait_fix",
+      "busy-wait|warn|author|12:1-12:48|code_step.rule.busy_wait|code_step.rule.busy_wait_fix",
+      "busy-wait|warn|author|13:1-13:29|code_step.rule.busy_wait|code_step.rule.busy_wait_fix"
+    ],
+    "capabilities": {
+      "hosts": [
+        "api.example.com"
+      ],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [
+        "n",
+        "m",
+        "o",
+        "done",
+        "x",
+        "go"
+      ],
+      "usesHttp": true,
+      "usesDb": false,
+      "httpInLoop": true,
+      "undeclaredInputs": [
+        "n",
+        "m",
+        "o",
+        "done",
+        "x",
+        "go"
+      ]
+    }
+  },
+  "loops/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "busy-wait|warn|author|1:1-1:29|code_step.rule.busy_wait|code_step.rule.busy_wait_fix",
+      "busy-wait|warn|author|2:1-2:25|code_step.rule.busy_wait|code_step.rule.busy_wait_fix",
+      "busy-wait|warn|author|3:1-3:33|code_step.rule.busy_wait|code_step.rule.busy_wait_fix",
+      "http-in-loop|info||7:22-7:58|code_step.rule.http_in_loop|code_step.rule.http_in_loop_fix",
+      "busy-wait|warn|author|8:1-8:53|code_step.rule.busy_wait|code_step.rule.busy_wait_fix",
+      "busy-wait|warn|author|9:1-9:44|code_step.rule.busy_wait|code_step.rule.busy_wait_fix",
+      "busy-wait|warn|author|11:1-11:28|code_step.rule.busy_wait|code_step.rule.busy_wait_fix",
+      "busy-wait|warn|author|12:1-12:48|code_step.rule.busy_wait|code_step.rule.busy_wait_fix",
+      "busy-wait|warn|author|13:1-13:29|code_step.rule.busy_wait|code_step.rule.busy_wait_fix"
+    ],
+    "capabilities": {
+      "hosts": [
+        "api.example.com"
+      ],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [
+        "n",
+        "m",
+        "o",
+        "done",
+        "x",
+        "go"
+      ],
+      "usesHttp": true,
+      "usesDb": false,
+      "httpInLoop": true,
+      "undeclaredInputs": [
+        "n",
+        "m",
+        "o",
+        "done",
+        "x",
+        "go"
+      ]
+    }
+  },
+  "literals/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "mining|block||1:1-1:34|code_step.rule.mining|code_step.rule.mining_fix",
+      "mining|block||2:1-2:29|code_step.rule.mining|code_step.rule.mining_fix",
+      "collection-host|warn|author|3:1-3:27|code_step.rule.collection_host|code_step.rule.collection_host_fix",
+      "collection-host|warn|author|4:2-4:37|code_step.rule.collection_host|code_step.rule.collection_host_fix",
+      "hardcoded-secret|warn|author|5:1-5:26|code_step.rule.hardcoded_secret|code_step.rule.hardcoded_secret_fix",
+      "hardcoded-secret|warn|author|6:2-6:36|code_step.rule.hardcoded_secret|code_step.rule.hardcoded_secret_fix",
+      "mining|block||9:1-9:36|code_step.rule.mining|code_step.rule.mining_fix",
+      "mining|block||10:1-10:43|code_step.rule.mining|code_step.rule.mining_fix",
+      "hardcoded-secret|warn|author|10:1-10:43|code_step.rule.hardcoded_secret|code_step.rule.hardcoded_secret_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [
+        "t"
+      ],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "t"
+      ]
+    }
+  },
+  "literals/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "mining|block||1:1-1:34|code_step.rule.mining|code_step.rule.mining_fix",
+      "mining|block||2:1-2:29|code_step.rule.mining|code_step.rule.mining_fix",
+      "collection-host|warn|author|3:1-3:27|code_step.rule.collection_host|code_step.rule.collection_host_fix",
+      "collection-host|warn|author|4:2-4:37|code_step.rule.collection_host|code_step.rule.collection_host_fix",
+      "hardcoded-secret|warn|author|5:1-5:26|code_step.rule.hardcoded_secret|code_step.rule.hardcoded_secret_fix",
+      "hardcoded-secret|warn|author|6:2-6:36|code_step.rule.hardcoded_secret|code_step.rule.hardcoded_secret_fix",
+      "mining|block||9:1-9:36|code_step.rule.mining|code_step.rule.mining_fix",
+      "mining|block||10:1-10:43|code_step.rule.mining|code_step.rule.mining_fix",
+      "hardcoded-secret|warn|author|10:1-10:43|code_step.rule.hardcoded_secret|code_step.rule.hardcoded_secret_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [
+        "t"
+      ],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "t"
+      ]
+    }
+  },
+  "packedBase64/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "obfuscation|warn|admin|1:9-18:41|code_step.rule.obfuscation|code_step.rule.obfuscation_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "packedBase64/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "obfuscation|warn|admin|1:9-18:41|code_step.rule.obfuscation|code_step.rule.obfuscation_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "packedHexLong/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "obfuscation|warn|admin|1:9-28:81|code_step.rule.obfuscation|code_step.rule.obfuscation_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "packedHexLong/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "obfuscation|warn|admin|1:9-28:81|code_step.rule.obfuscation|code_step.rule.obfuscation_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "hexNotLongEnough/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "hexNotLongEnough/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "plainLongText/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "plainLongText/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "hugeLiteral/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "obfuscation|warn|admin|1:9-132:21|code_step.rule.obfuscation|code_step.rule.obfuscation_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "hugeLiteral/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "obfuscation|warn|admin|1:9-132:21|code_step.rule.obfuscation|code_step.rule.obfuscation_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "longLine/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "obfuscation|warn|admin|1:1-undefined:undefined|code_step.rule.obfuscation|code_step.rule.obfuscation_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "longLine/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "obfuscation|warn|admin|1:1-undefined:undefined|code_step.rule.obfuscation|code_step.rule.obfuscation_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "longLiteralLine/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "obfuscation|warn|admin|1:8-1:1410|code_step.rule.obfuscation|code_step.rule.obfuscation_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "longLiteralLine/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "obfuscation|warn|admin|1:8-1:1410|code_step.rule.obfuscation|code_step.rule.obfuscation_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "escapedIdentifier/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "obfuscation|warn|admin|1:7-1:14|code_step.rule.obfuscation|code_step.rule.obfuscation_fix",
+      "obfuscation|warn|admin|2:8-2:15|code_step.rule.obfuscation|code_step.rule.obfuscation_fix",
+      "dynamic-code|block||2:18-2:27|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "escapedIdentifier/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "obfuscation|warn|admin|1:7-1:14|code_step.rule.obfuscation|code_step.rule.obfuscation_fix",
+      "obfuscation|warn|admin|2:8-2:15|code_step.rule.obfuscation|code_step.rule.obfuscation_fix",
+      "dynamic-code|block||2:18-2:27|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "sameRuleSameLine/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "node-access|block||1:9-1:16|code_step.rule.node_access|code_step.rule.node_access_fix",
+      "node-access|block||2:9-2:15|code_step.rule.node_access|code_step.rule.node_access_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "sameRuleSameLine/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "node-access|block||1:9-1:16|code_step.rule.node_access|code_step.rule.node_access_fix",
+      "node-access|block||2:9-2:15|code_step.rule.node_access|code_step.rule.node_access_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "multiLine/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "dynamic-code|block||3:8-3:12|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix",
+      "node-access|block||5:5-5:12|code_step.rule.node_access|code_step.rule.node_access_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "multiLine/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [
+      "dynamic-code|block||3:8-3:12|code_step.rule.dynamic_code|code_step.rule.dynamic_code_fix",
+      "node-access|block||5:5-5:12|code_step.rule.node_access|code_step.rule.node_access_fix"
+    ],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": []
+    }
+  },
+  "benignMix/none": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [
+        "rows"
+      ],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "rows"
+      ]
+    }
+  },
+  "benignMix/allowed": {
+    "ok": true,
+    "syntaxError": null,
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [
+        "rows"
+      ],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false,
+      "undeclaredInputs": [
+        "rows"
+      ]
+    }
+  },
+  "syntaxError/none": {
+    "ok": false,
+    "syntaxError": {
+      "message": "Unexpected token",
+      "line": 1,
+      "column": 9
+    },
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "undeclaredInputs": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false
+    }
+  },
+  "syntaxError/allowed": {
+    "ok": false,
+    "syntaxError": {
+      "message": "Unexpected token",
+      "line": 1,
+      "column": 9
+    },
+    "findings": [],
+    "capabilities": {
+      "hosts": [],
+      "dynamicHosts": false,
+      "tools": [],
+      "inputsRead": [],
+      "undeclaredInputs": [],
+      "usesHttp": false,
+      "usesDb": false,
+      "httpInLoop": false
+    }
+  }
+}

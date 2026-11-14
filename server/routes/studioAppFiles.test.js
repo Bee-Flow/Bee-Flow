@@ -309,7 +309,7 @@ test('stream: the owner gets the bytes with a nosniff header', async () => {
 });
 
 test('stream: the same disposition and policy as the public route, per type', async () => {
-    const { attachmentResponseHeaders } = require('./studioAppAttachmentHeaders.mts');
+    const { attachmentResponseHeaders } = require('../usecases/studioAppAttachmentHeaders.mts');
     const app = makeApp();
     const cases = [
         { mime: 'image/png', disposition: 'inline', csp: true },

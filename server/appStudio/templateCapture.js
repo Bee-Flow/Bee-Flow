@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio — capture a LIVE app as a reusable template.
  *
@@ -79,6 +80,7 @@ const { canonicalizeAppDefinition } = require('./canonicalize');
 const { validateAppDefinition } = require('./validate');
 const { canonicalizeDataModel, SYSTEM_COLUMNS } = require('./dataModel');
 const { cleanStr, cleanTags } = require('./templateCaptureText.mts');
+const { requiresOf, captureWarnings } = require('./templateCaptureReport');
 
 // Mirrors templateInstall.MAX_SEED_ROWS_PER_TABLE. Kept as a default rather
 // than a require so the pure half of this module loads without the store graph;
@@ -417,6 +419,111 @@ function normalizeSeedPeople(spec, model) {
 }
 
 /**
+ * Read every reference the capture reports BEFORE scrubbing (it has to be
+ * read while it is still in the definition), then scrub. One sweep, shared
+ * with automation export and with Blueprint packaging: it nulls automation
+ * references, and removes the approver seats and knowledge-base references —
+ * one organisation's user, group and KB ids. Uploaded files (`asset:<id>`):
+ * the ones handed in as entries come along, every other reference is cut and
+ * said in the report (templateCaptureAssets.mts).
+ * @param {Record<string, any>} def  the cloned definition, scrubbed in place
+ * @param {unknown} assets
+ */
+function scrubForCapture(def, assets) {
+    const connectorIds = collectConnectorIds(def);
+    const knowledgeBaseIds = collectKnowledgeBaseIds(def);
+    const { scrubAppDefinition, RULES } = require('../core/packaging/scrub');
+    const scrubbed = scrubAppDefinition(def);
+    const automationIds = scrubbed.filter(r => r.rule === RULES.APP_AUTOMATION_REFERENCE).map(r => r.automationId);
+    const approverSeatsRemoved = scrubbed.filter(r => r.rule === RULES.APP_APPROVER_IDENTITY).length;
+    const stagesEmptied = scrubbed.filter(r => r.rule === RULES.APP_APPROVER_IDENTITY
+        && typeof r.field === 'string' && r.field.startsWith('stages.')).length;
+    const parts = require('./templateCaptureAssets.mts');
+    const files = parts.captureAssets(def, assets);
+    return { connectorIds, knowledgeBaseIds, automationIds, approverSeatsRemoved, stagesEmptied, parts, files };
+}
+
+/**
+ * The template's own meta drives the app card of anything installed from it,
+ * so it carries the template's name rather than the source app's.
+ * @param {Record<string, any>} def
+ * @param {CaptureMeta} meta
+ * @param {string} title
+ */
+function applyTemplateMeta(def, meta, title) {
+    def.meta = { ...(isObject(def.meta) ? def.meta : {}) , name: title };
+    const description = cleanStr(meta.description, 400);
+    if (description) def.meta.description = description;
+    const icon = cleanStr(meta.icon, 40);
+    if (icon) def.meta.icon = icon;
+    return { description, icon };
+}
+
+/**
+ * The data the template carries: the canonical data model (when there are
+ * tables), the seed built from live rows or normalised from a file's seed,
+ * the demo people, and the dataset descriptors. Rows with no tables to put
+ * them in can only come from a file, and are counted so the report says so.
+ * @param {{ dataModel: Record<string, any> | null | undefined, presetSeed: SeedBlock | null, rowsByTable: SeedBlock, maxSeedRows: number,
+ *   seedPeople: Record<string, unknown> | null, datasets: unknown }} input
+ */
+function captureData({ dataModel, presetSeed, rowsByTable, maxSeedRows, seedPeople, datasets }) {
+    let model = null;
+    if (isObject(dataModel) && Array.isArray(dataModel.tables) && dataModel.tables.length) {
+        model = canonicalizeDataModel(deepClone(dataModel)).model;
+    }
+    const seedCeiling = Math.max(0, Math.min(DEFAULT_MAX_SEED_ROWS, maxSeedRows));
+    const { seed, counts: seedCounts, dropped: seedDropped } = model
+        ? (presetSeed
+            ? normalizeSeed(model, presetSeed, seedCeiling)
+            : { ...buildSeed(model, rowsByTable, seedCeiling), dropped: null })
+        : { seed: {}, counts: {}, dropped: null };
+    const orphanSeedRows = (!model && isObject(presetSeed))
+        ? Object.values(presetSeed).reduce((n, rows) => n + (Array.isArray(rows) ? rows.length : 0), 0)
+        : 0;
+    const { seedPeople: people, dropped: peopleDropped } = model
+        ? normalizeSeedPeople(seedPeople, model)
+        : { seedPeople: null, dropped: [] };
+    const datasetDescriptors = (Array.isArray(datasets) ? datasets : []).map((d) => ({
+        id: d.id,
+        name: d.name,
+        tableId: d.tableId ?? null,
+        source: d.source ?? {},
+        descriptor: d.descriptor ?? {},
+        cacheTtlSeconds: d.cacheTtlSeconds,
+    })).filter((d) => d.name);
+    // The same gate templates.test.js applies to every built-in template.
+    const validateOpts = model
+        ? { dataModel: model, datasets: datasetDescriptors.map((d) => d.id).filter(Boolean) }
+        : {};
+    return { model, seed, seedCounts, seedDropped, seedCeiling, orphanSeedRows, people, peopleDropped, datasetDescriptors, validateOpts };
+}
+
+/**
+ * The template row as the store keeps it.
+ * @param {{ meta: CaptureMeta, title: string, look: { description: string, icon: string }, canonicalDef: Record<string, any>,
+ *   data: ReturnType<typeof captureData>, files: { carried: unknown[] } }} input
+ */
+function templateRecord({ meta, title, look: { description, icon }, canonicalDef, data, files }) {
+    const { model, seed, people, datasetDescriptors } = data;
+    return {
+        id: meta.id || null,               // the store mints this when absent
+        version: Number.isInteger(meta.version) && /** @type {number} */ (meta.version) > 0 ? meta.version : 1,
+        title,
+        description: description || '',
+        category: cleanStr(meta.category, 40) || 'Van je team',
+        icon: icon || canonicalDef.meta?.icon || 'LayoutGrid',
+        tags: cleanTags(meta.tags),
+        definition: canonicalDef,
+        ...(model ? { dataModel: model } : {}),
+        ...(Object.keys(seed).length ? { seed } : {}),
+        ...(people ? { seedPeople: people } : {}),
+        ...(datasetDescriptors.length ? { datasets: datasetDescriptors } : {}),
+        ...(files.carried.length ? { assets: files.carried } : {}),
+    };
+}
+
+/**
  * captureTemplate — the pure half. Everything it needs is passed in; it does no
  * I/O, so the interesting rules are testable without a database.
  *
@@ -436,9 +543,9 @@ function normalizeSeedPeople(spec, model) {
  * declaration (checked against the model), `datasets` the dataset rows to carry
  * as descriptors, `maxSeedRows` the per-table seed ceiling.
  *
- * @param {{ definition: unknown, dataModel?: Record<string, unknown> | null, rowsByTable?: SeedBlock,
+ * @param {Partial<{ definition: unknown, dataModel?: Record<string, unknown> | null, rowsByTable?: SeedBlock,
  *   seed?: SeedBlock | null, seedPeople?: Record<string, unknown> | null, datasets?: CaptureDataset[],
- *   meta?: CaptureMeta, maxSeedRows?: number, assets?: unknown }} [opts]
+ *   meta?: CaptureMeta, maxSeedRows?: number, assets?: unknown }>} [opts]
  * @returns {{ok:true, template, report}|{ok:false, errors:string[]}}
  */
 function captureTemplate({
@@ -459,75 +566,14 @@ function captureTemplate({
     // Clone FIRST: everything below mutates, and the caller handed us the live
     // draft object the rest of the request is still using.
     const def = deepClone(definition);
-
-    // Collect BEFORE scrubbing: everything reported in `requires` below has to
-    // be read while it is still in the definition.
-    const connectorIds = collectConnectorIds(def);
-    const knowledgeBaseIds = collectKnowledgeBaseIds(def);
-
-    // One sweep, shared with automation export and with Blueprint packaging.
-    // It nulls automation references as this module always did, and additionally
-    // removes the approver seats and knowledge-base references that NEITHER
-    // export path would otherwise remove — one organisation's user, group and KB ids
-    const { scrubAppDefinition, RULES } = require('../core/packaging/scrub');
-    const scrubbed = scrubAppDefinition(def);
-    const automationIds = scrubbed
-        .filter(r => r.rule === RULES.APP_AUTOMATION_REFERENCE)
-        .map(r => r.automationId);
-    const approverSeatsRemoved = scrubbed.filter(r => r.rule === RULES.APP_APPROVER_IDENTITY).length;
-    // Uploaded files (`asset:<id>`): the ones handed in as entries come along, every other
-    // reference is cut and said in the report (templateCaptureAssets.mts).
-    const parts = require('./templateCaptureAssets.mts');
-    const files = parts.captureAssets(def, assets);
-
-    // The template's own meta drives the app card of anything installed from
-    // it, so it carries the template's name rather than the source app's.
-    def.meta = { ...(isObject(def.meta) ? def.meta : {}) , name: title };
-    const description = cleanStr(meta.description, 400);
-    if (description) def.meta.description = description;
-    const icon = cleanStr(meta.icon, 40);
-    if (icon) def.meta.icon = icon;
+    const refs = scrubForCapture(def, assets);
+    const look = applyTemplateMeta(def, meta, title);
 
     const { def: canonicalDef, refused } = canonicalizeAppDefinition(def);
     if (refused) return { ok: false, errors: [require('./schemaSince.mts').schemaNewerMessage(def)] };
 
-    let model = null;
-    if (isObject(dataModel) && Array.isArray(dataModel.tables) && dataModel.tables.length) {
-        model = canonicalizeDataModel(deepClone(dataModel)).model;
-    }
-
-    const seedCeiling = Math.max(0, Math.min(DEFAULT_MAX_SEED_ROWS, maxSeedRows));
-    const { seed, counts: seedCounts, dropped: seedDropped } = model
-        ? (presetSeed
-            ? normalizeSeed(model, presetSeed, seedCeiling)
-            : { ...buildSeed(model, rowsByTable, seedCeiling), dropped: null })
-        : { seed: {}, counts: {}, dropped: null };
-
-    // Rows with no tables to put them in. Only a file can be in this state, and
-    // dropping them without a word is how a template arrives looking like it
-    // never had examples rather than like it lost its data model on the way.
-    const orphanSeedRows = (!model && isObject(presetSeed))
-        ? Object.values(presetSeed).reduce((n, rows) => n + (Array.isArray(rows) ? rows.length : 0), 0)
-        : 0;
-
-    const { seedPeople: people, dropped: peopleDropped } = model
-        ? normalizeSeedPeople(seedPeople, model)
-        : { seedPeople: null, dropped: [] };
-
-    const datasetDescriptors = (Array.isArray(datasets) ? datasets : []).map((d) => ({
-        id: d.id,
-        name: d.name,
-        tableId: d.tableId ?? null,
-        source: d.source ?? {},
-        descriptor: d.descriptor ?? {},
-        cacheTtlSeconds: d.cacheTtlSeconds,
-    })).filter((d) => d.name);
-
-    // The same gate templates.test.js applies to every built-in template.
-    const validateOpts = model
-        ? { dataModel: model, datasets: datasetDescriptors.map((d) => d.id).filter(Boolean) }
-        : {};
-    const result = validateAppDefinition(canonicalDef, validateOpts);
+    const data = captureData({ dataModel, presetSeed, rowsByTable, maxSeedRows, seedPeople, datasets });
+    const result = validateAppDefinition(canonicalDef, data.validateOpts);
     if (result.errors.length) {
         return {
             ok: false,
@@ -535,22 +581,7 @@ function captureTemplate({
         };
     }
 
-    const template = {
-        id: meta.id || null,               // the store mints this when absent
-        version: Number.isInteger(meta.version) && meta.version > 0 ? meta.version : 1,
-        title,
-        description: description || '',
-        category: cleanStr(meta.category, 40) || 'Van je team',
-        icon: icon || canonicalDef.meta?.icon || 'LayoutGrid',
-        tags: cleanTags(meta.tags),
-        definition: canonicalDef,
-        ...(model ? { dataModel: model } : {}),
-        ...(Object.keys(seed).length ? { seed } : {}),
-        ...(people ? { seedPeople: people } : {}),
-        ...(datasetDescriptors.length ? { datasets: datasetDescriptors } : {}),
-        ...(files.carried.length ? { assets: files.carried } : {}),
-    };
-
+    const template = templateRecord({ meta, title, look, canonicalDef, data, files: refs.files });
     // The files have a budget of their own (portableAssets.mts); the ceiling is the rest.
     const bytes = Buffer.byteLength(JSON.stringify({ ...template, assets: undefined }), 'utf8');
     if (bytes > MAX_TEMPLATE_BYTES) {
@@ -560,87 +591,39 @@ function captureTemplate({
         };
     }
 
-    // Everything the installer has to supply by hand. Reported, never guessed.
-    const requires = [];
-    if (connectorIds.length) requires.push({ kind: 'connector', ids: connectorIds });
-    if (automationIds.length) requires.push({ kind: 'automation', count: automationIds.length });
-    // A COUNT, not the ids. The connector entry above carries names on purpose
-    // (they are stable, and the installer supplies credentials for them); a KB
-    // id is an opaque identifier of a resource in the source organisation, so
-    // reporting it to the recipient would leak by the back door what the
-    // definition no longer carries. The automation entry made the same call.
-    if (knowledgeBaseIds.length) requires.push({ kind: 'knowledge_base', count: knowledgeBaseIds.length });
-    if (approverSeatsRemoved) requires.push({ kind: 'approver', count: approverSeatsRemoved });
+    const portable = refs.parts.captureReport(refs.files, canonicalDef, data.model);
+    const carriedDatasets = new Set(data.datasetDescriptors.map((d) => d.id));
+    const warnings = captureWarnings({
+        stagesEmptied: refs.stagesEmptied,
+        orphanSeedRows: data.orphanSeedRows,
+        seedDropped: data.seedDropped,
+        seedCeiling: data.seedCeiling,
+        portableWarnings: portable.warnings,
+        peopleDropped: data.peopleDropped,
+        danglingDatasets: collectDatasetBindingIds(canonicalDef).filter((id) => !carriedDatasets.has(id)).length,
+        validationWarnings: result.warnings,
+    });
 
-    /** @type {string[]} */
-    const warnings = [];
-    // The canonicaliser drops a stage with no approvers, so a staged approval
-    // does not survive the seat scrub on this path (unlike a Blueprint or an
-    // automation export, which keep the emptied stage). Say so rather than let
-    // the chain vanish behind the generic "seats removed" count.
-    const stagesEmptied = scrubbed.filter(r => r.rule === RULES.APP_APPROVER_IDENTITY
-        && typeof r.field === 'string' && r.field.startsWith('stages.')).length;
-    if (stagesEmptied) {
-        warnings.push(`${stagesEmptied} approval stage(s) removed together with their approvers: a stage cannot exist without somebody to decide it. Rebuild the approval chain after installing.`);
-    }
-    // Only the file path can drop anything here (buildSeed reads rows this
-    // installation just handed it). Silence would read as "the template had no
-    // rows", which is a different and much more confusing thing than "nine rows
-    // in it did not belong to any column this template has".
-    if (orphanSeedRows) {
-        warnings.push(`${orphanSeedRows} example row(s) dropped: the file carries rows but no data model to put them in.`);
-    }
-    if (seedDropped) {
-        if (seedDropped.tables.length) {
-            warnings.push(`${seedDropped.tables.length} seed table(s) dropped: the file seeds tables this template's data model does not contain.`);
-        }
-        if (seedDropped.fields.length) {
-            const shown = [...new Set(seedDropped.fields)].slice(0, 5).join(', ');
-            warnings.push(`${seedDropped.fields.length} seed value(s) dropped — no such column, or a type that never travels (file/computed): ${shown}.`);
-        }
-        if (seedDropped.rows) warnings.push(`${seedDropped.rows} seed row(s) dropped (not an object, or over the ${seedCeiling}-row per-table ceiling).`);
-        if (seedDropped.refs) warnings.push(`${seedDropped.refs} relation value(s) emptied: they pointed at rows this file does not carry.`);
-        if (seedDropped.duplicateAliases) warnings.push(`${seedDropped.duplicateAliases} seed row(s) reuse an alias another row already claimed; a reference to it resolves to the last one seeded.`);
-    }
-    const portable = parts.captureReport(files, canonicalDef, model);
-    warnings.push(...portable.warnings);
-    for (const what of peopleDropped) {
-        warnings.push(`The demo-people declaration was dropped (${what}) — seeded rows keep the names the file carries.`);
-    }
-    // A binding to a dataset the template carries is pointed at the dataset the
-    // install creates (templateDatasetRefs.mts); one to any other id dangles.
-    const carriedDatasets = new Set(datasetDescriptors.map((d) => d.id));
-    const danglingDatasets = collectDatasetBindingIds(canonicalDef).filter((id) => !carriedDatasets.has(id));
-    if (danglingDatasets.length) {
-        warnings.push(
-            `${danglingDatasets.length} dataset binding(s) will not survive install: they point at datasets this template does not carry. Re-point them after installing.`,
-        );
-    }
-    // Every OTHER validation warning is worth repeating to the author: the
-    // template installs, but something in it is worth a second look.
-    // `action.automation_unset` is excluded — it is the DESIRED state of a
-    // captured template (automations are wired by the installer) and is already
-    // reported once, as a count, under `requires`.
-    for (const w of result.warnings) {
-        if (w.code === 'action.automation_unset') continue;
-        warnings.push(`${w.code} @ ${w.path}`);
-        if (warnings.length >= 12) break;
-    }
+    return { ok: true, template, report: captureReportOf({ canonicalDef, data, bytes, requires: requiresOf(refs), warnings, portable }) };
+}
 
+/**
+ * The report a capture answers with: what the template holds and what the
+ * author is told.
+ * @param {{ canonicalDef: Record<string, any>, data: ReturnType<typeof captureData>, bytes: number,
+ *   requires: Array<Record<string, unknown>>, warnings: string[], portable: { summary?: unknown } }} input
+ */
+function captureReportOf({ canonicalDef, data, bytes, requires, warnings, portable }) {
     return {
-        ok: true,
-        template,
-        report: {
-            screens: Array.isArray(canonicalDef.screens) ? canonicalDef.screens.length : 0,
-            actions: isObject(canonicalDef.actions) ? Object.keys(canonicalDef.actions).length : 0,
-            tables: model ? model.tables.length : 0,
-            seededTables: seedCounts,
-            seededRows: Object.values(seedCounts).reduce((a, b) => a + b, 0),
-            bytes,
-            requires,
-            warnings,
-            ...(portable.summary ? { portable: portable.summary } : {}),
-        },
+        screens: Array.isArray(canonicalDef.screens) ? canonicalDef.screens.length : 0,
+        actions: isObject(canonicalDef.actions) ? Object.keys(canonicalDef.actions).length : 0,
+        tables: data.model ? data.model.tables.length : 0,
+        seededTables: data.seedCounts,
+        seededRows: Object.values(data.seedCounts).reduce((a, b) => a + b, 0),
+        bytes,
+        requires,
+        warnings,
+        ...(portable.summary ? { portable: portable.summary } : {}),
     };
 }
 

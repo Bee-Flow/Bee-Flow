@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/subscriptions`
 
-31 routes, 20 with a request schema. Back to the [endpoint reference](../reference.md).
+31 routes, 21 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `audit`
 
@@ -326,7 +326,7 @@ No request schema.
 
 **Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
 
-No request schema.
+**Body:** object (no other keys)
 
 ## `registries`
 

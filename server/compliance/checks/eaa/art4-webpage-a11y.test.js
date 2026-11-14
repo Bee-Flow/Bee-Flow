@@ -1,19 +1,24 @@
 // @typecheck
 /**
- * EAA-Art4-webpage-a11y — per-source static lint of published pages.
- * Run: cd server && node --test --test-force-exit compliance/checks/eaa/art4-webpage-a11y.test.js
+ * EAA-Art4-webpage-a11y — per-source static lint of published pages. The page
+ * list is a real webpages table (the boot ladder's schema on PGlite behind
+ * db.js's pool); storage, CMS, licence and shell are stubbed.
+ * Run: cd server && node --test compliance/checks/eaa/art4-webpage-a11y.test.js
  */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { installResolveStub } = require('../../../testUtils/stubRequire');
+const { usePglitePool } = require('../../../testUtils/pglitePool');
+const { ladderPglite } = require('../../../testUtils/pgliteTemplate');
+const { insertRow } = require('../../../testUtils/pgliteSeed');
+const { hideTable } = require('../../../testUtils/pgliteFaults');
+
+const { pg, close } = usePglitePool(ladderPglite());
 
 const ORG = 'org-a';
 const fx = {
     settings: {},
-    webpages: [],
     slots: {},          // `${owner}/${id}/${version}` → html
-    queries: [],
-    dbError: null,
     mode: 'self-hosted',
     cmsProjects: [],
     cmsSnapshot: null,
@@ -22,14 +27,6 @@ const fx = {
 };
 
 const restore = installResolveStub({
-    '../../../db': {
-        getAll: async (sql, params) => {
-            fx.queries.push({ sql, params });
-            if (fx.dbError) { const e = new Error('boom'); e.code = fx.dbError; throw e; }
-            assert.match(sql, /organization_id = \$1/, 'every query is org-scoped');
-            return fx.webpages.slice(0, params[1]);
-        },
-    },
     '../../../stores/complianceStore': { getSettings: async (orgId) => ({ organization_id: orgId, ...fx.settings }) },
     '../../../stores/webpage/storage': {
         readSlot: async (owner, id, slot, version) => {
@@ -47,14 +44,12 @@ const restore = installResolveStub({
     '../../../core/seo/shell': { getShell: async () => fx.shell },
 });
 const check = require('./art4-webpage-a11y');
-test.after(() => restore());
+test.after(async () => { restore(); await close(); });
 
-test.beforeEach(() => {
+test.beforeEach(async () => {
+    await pg.exec('DELETE FROM webpages');
     fx.settings = {};
-    fx.webpages = [];
     fx.slots = {};
-    fx.queries = [];
-    fx.dbError = null;
     fx.mode = 'self-hosted';
     fx.cmsProjects = [];
     fx.cmsSnapshot = null;
@@ -67,7 +62,16 @@ const BAD = '<!DOCTYPE html><html><head></head><body><img src="a.png"><button></
 const WARNY = '<!DOCTYPE html><html lang="en"><head><title>T</title></head><body><h1>A</h1><h3>skip</h3><a href="/x">click here</a></body></html>';
 
 function page(id, extra = {}) {
-    return { id, name: `Page ${id}`, user_id: 'owner-1', published_version_id: `v-${id}`, settings: {}, updated_at: '2026-09-01', ...extra };
+    return { id, name: `Page ${id}`, user_id: 'owner-1', published_version_id: `v-${id}`, settings: {}, ...extra };
+}
+/** The org's published pages, newest first in the order given; plus a draft and another org's page that never count. */
+async function setPages(/** @type {Array<Record<string, unknown>>} */ list) {
+    const t0 = Date.UTC(2026, 8, 1);
+    for (const [i, p] of list.entries()) {
+        await insertRow(pg, 'webpages', { organization_id: ORG, is_published: true, updated_at: new Date(t0 - i * 60e3).toISOString(), ...p });
+    }
+    await insertRow(pg, 'webpages', { ...page('draft'), organization_id: ORG, is_published: false });
+    await insertRow(pg, 'webpages', { ...page('theirs'), organization_id: 'org-b', is_published: true });
 }
 
 test('contract shape', () => {
@@ -82,7 +86,7 @@ test('contract shape', () => {
 
 test('relevance gate — no subjects and not_applicable', async () => {
     fx.settings = { framework_relevance: { eaa: 'not_relevant' } };
-    fx.webpages = [page('w1')];
+    await setPages([page('w1')]);
     assert.deepEqual(await check.listSubjects(ORG), []);
     const r = await check.evaluate(ORG, { id: 'webpage:w1' });
     assert.equal(r.status, 'not_applicable');
@@ -90,7 +94,7 @@ test('relevance gate — no subjects and not_applicable', async () => {
 });
 
 test('listSubjects: published webpages of the org, capped at 200, with CMS pages on self-host', async () => {
-    fx.webpages = [page('w1'), page('w2', { settings: JSON.stringify({ framework: 'react-mui' }) })];
+    await setPages([page('w1'), page('w2', { settings: JSON.stringify({ framework: 'react-mui' }) })]);
     fx.cmsProjects = [{ id: 'site1', name: 'Site' }];
     fx.cmsSnapshot = { site: { pages: [{ id: 'p1', title: 'Home', slug: 'home', isHomepage: true }, { id: 'p2', title: 'Pricing', slug: 'pricing' }] } };
     const subjects = await check.listSubjects(ORG);
@@ -99,14 +103,12 @@ test('listSubjects: published webpages of the org, capped at 200, with CMS pages
     assert.equal(subjects[1].framework, 'react-mui');
     assert.equal(subjects[2].slug, '');
     assert.equal(subjects[3].slug, 'pricing');
-    assert.equal(fx.queries[0].params[0], ORG);
-    assert.equal(fx.queries[0].params[1], check.SUBJECT_CAP + 1);
     assert.ok(subjects.every(s => s.label && s.name));
 });
 
 test('listSubjects: on cloud the CMS is platform-owned and excluded', async () => {
     fx.mode = 'cloud';
-    fx.webpages = [page('w1')];
+    await setPages([page('w1')]);
     fx.cmsProjects = [{ id: 'site1' }];
     fx.cmsSnapshot = { site: { pages: [{ id: 'p1', title: 'Home' }] } };
     const subjects = await check.listSubjects(ORG);
@@ -114,7 +116,7 @@ test('listSubjects: on cloud the CMS is platform-owned and excluded', async () =
 });
 
 test('listSubjects: the cap marks every subject when more pages exist', async () => {
-    fx.webpages = Array.from({ length: 201 }, (_, i) => page(`w${i}`));
+    await setPages(Array.from({ length: 201 }, (_, i) => page(`w${i}`)));
     const subjects = await check.listSubjects(ORG);
     assert.equal(subjects.length, 200);
     assert.equal(subjects[0].capped, true);
@@ -122,8 +124,8 @@ test('listSubjects: the cap marks every subject when more pages exist', async ()
 });
 
 test('listSubjects: missing webpages table → no subjects, no throw', async () => {
-    fx.dbError = '42P01';
-    assert.deepEqual(await check.listSubjects(ORG), []);
+    const show = await hideTable(pg, 'webpages');
+    try { assert.deepEqual(await check.listSubjects(ORG), []); } finally { await show(); }
 });
 
 test('good page → pass with html_sha256 and rules_checked', async () => {

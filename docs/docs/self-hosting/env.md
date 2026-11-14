@@ -107,6 +107,7 @@ Optional; empty means the default.
 | `OFFICE_PACKAGE_MAX_ENTRIES` | `10000` | Files inside one office package (.docx) before a parser opens it. `0` = unlimited. |
 | `OFFICE_PACKAGE_MAX_INFLATED_BYTES` | `268435456` (256 MB) | All parts of one office package together, unpacked. `0` = unlimited. |
 | `OFFICE_PACKAGE_MAX_PART_BYTES` | `67108864` (64 MB) | One part of an office package, unpacked. `0` = unlimited. |
+| `OUTBOUND_HTTP_TIMEOUT_MS` | `30000` (30 s) | How long an outbound HTTP call of the server (an integration, an OAuth token exchange, a sidecar such as the guard or search service) may take when the code sets no time-out of its own. Streams and downloads count only the wait for the answer, not the body. `0` = no time-out. |
 | `LEGACY_MCP_TOKEN_MAX_AGE_DAYS` | `365` | MCP access tokens that carry no expiry of their own stop working this many days after they were created. `0` = no limit. |
 
 ## Datatable storage limits

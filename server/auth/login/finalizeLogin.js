@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Login Routes — the shared tail of a password login: the unverified/waitlist
  * gates, DEK derivation and session establishment. Split out of
@@ -84,8 +84,9 @@ async function finalizeLogin(req, res, { user, isAdmin, storedUser, password, de
         // refusal cannot be told apart by how long it took. A suspended account
         // still being signed into is the row an auditor looks for by name.
         await auditLoginBlocked(req, {
-            userId: storedUser.id, organizationId: storedUser.organizationId || null,
-            method: 'password', reason: `account_${storedUser.status}`,
+            // isLoginBlockedAccount is true only for a stored row.
+            userId: /** @type {Record<string, any>} */ (storedUser).id, organizationId: /** @type {Record<string, any>} */ (storedUser).organizationId || null,
+            method: 'password', reason: `account_${/** @type {Record<string, any>} */ (storedUser).status}`,
         });
         await padFailureResponse(startedAt);
         return res.status(REFUSAL.status).json(REFUSAL.body);
@@ -105,7 +106,7 @@ async function finalizeLogin(req, res, { user, isAdmin, storedUser, password, de
     if (storedUser && storedUser.status === 'unverified' && !canSkipEmailVerification(storedUser, isAdmin)) {
         req.session.isAuthenticated = false;
         req.session.isAdmin = false;
-        req.session.user = null;
+        req.session.user = /** @type {Express.Session['user']} */ (/** @type {unknown} */ (null)); // cleared for the next sign-in
         return req.session.save(/** @param {Error | undefined} err */ (err) => {
             if (err) log.error('Session save error:', err);
             res.json({ success: false, emailVerificationRequired: true });

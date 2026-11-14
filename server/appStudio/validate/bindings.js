@@ -7,7 +7,7 @@
 'use strict';
 
 const { BINDING_KINDS, FORMULA_SCOPE_ROOTS } = require('../componentSpecs');
-const { pickClosestId } = require('../../automation/validate/helpers');
+const { pickClosestId } = require('../../utils/closestId.mts');
 const { relativePathTokens, suggestRelativeSpelling } = require('../../core/automationModel/refPaths');
 const { isObject } = require('./shared');
 const { MAX_ORDER_BY } = require('../componentSpecs');

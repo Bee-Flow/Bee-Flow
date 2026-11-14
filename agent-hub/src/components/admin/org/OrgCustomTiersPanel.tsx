@@ -1,29 +1,11 @@
-import React, { useState, useEffect, useEffectEvent } from 'react';
+import React, { useState } from 'react';
 import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
 import useConfirm from '../../shared/useConfirm';
-import { request, RefusedError, mutate, errorBody } from '@/api/mutate';
+import { RefusedError, errorBody } from '@/api/mutate';
 import { useAdminOrgScope, withOrgIdParam } from '@/api/adminOrgScope';
 import OrgGlobalTiersList from './OrgGlobalTiersList';
-
-interface OrgTier {
-    id: string;
-    label?: string;
-    icon?: string;
-    description?: string;
-    modelId?: string;
-    euModelId?: string;
-    maxTokens?: number;
-    temperature?: number;
-    allowedTaskTypes?: string[];
-}
-
-interface AvailableModel {
-    id: string;
-    name?: string;
-    providerName?: string;
-    providerType?: string;
-}
+import { apiRequest } from '@/api/typedRequest';
+import { useCustomTiersRead, type AvailableModel, type OrgTier } from './useCustomTiersRead';
 
 interface PanelMessage {
     type: 'success' | 'warning' | 'error';
@@ -61,59 +43,18 @@ const OrgCustomTiersPanel = () => {
     const [orgTiers, setOrgTiers] = useState<OrgTier[]>([]);
     const [globalTiers, setGlobalTiers] = useState<OrgTier[]>([]);
     const [availableModels, setAvailableModels] = useState<AvailableModel[]>([]);
-    const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<PanelMessage | null>(null);
     const [expandedId, setExpandedId] = useState<string | null>(null);
 
-    const loadAll = async () => {
-        setLoading(true);
-        try {
-            // A refusal is an answer here (the 403 text, "no providers"), not a failure.
-            const refusal = (err: unknown) => {
-                if (err instanceof RefusedError) return err;
-                throw err;
-            };
-            const [tiersRes, providersRes] = await Promise.all([
-                request(withOrgIdParam(`${API_BASE}/ai/config/org-custom-chat-models`, scopeOrgId)).catch(refusal),
-                request(`${API_BASE}/ai/providers`).catch(refusal),
-            ]);
-            if (!(tiersRes instanceof RefusedError)) {
-                const data = await tiersRes.json();
-                setOrgTiers(Array.isArray(data.orgTiers) ? data.orgTiers : []);
-                setGlobalTiers(Array.isArray(data.globalTiers) ? data.globalTiers : []);
-            } else if (tiersRes.status === 403) {
-                setMessage({ type: 'error', text: 'You do not have permission to manage custom tiers for your organisation.' });
-            }
-            if (!(providersRes instanceof RefusedError)) {
-                const { providers } = await providersRes.json();
-                const results = await Promise.all(
-                    (providers || []).map(async (p: { id: string; name?: string; type?: string }) => {
-                        try {
-                            const r = await request(`${API_BASE}/ai/providers/${p.id}/models`).catch((err: unknown) => {
-                                if (err instanceof RefusedError) return null;
-                                throw err;
-                            });
-                            if (r) {
-                                const { models } = await r.json();
-                                return (models || []).map((m: AvailableModel) => ({ ...m, providerName: p.name, providerType: p.type }));
-                            }
-                            return [];
-                        } catch (_) { return []; }
-                    })
-                );
-                setAvailableModels(results.flat());
-            }
-        } catch (e) {
-            console.error('Failed to load org custom tiers:', e);
-            setMessage({ type: 'error', text: t('admin_org.custom_tiers_load_failed', 'Failed to load custom tiers.') });
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const loadAllOnMount = useEffectEvent(() => { loadAll(); });
-    useEffect(() => { loadAllOnMount(); }, []);
+    // Each answer seeds the working copy; the editor then changes it until it is saved.
+    const loading = useCustomTiersRead(scopeOrgId, (d) => {
+        if (d.orgTiers) setOrgTiers(d.orgTiers);
+        if (d.globalTiers) setGlobalTiers(d.globalTiers);
+        if (d.models) setAvailableModels(d.models);
+        if (d.forbidden) setMessage({ type: 'error', text: 'You do not have permission to manage custom tiers for your organisation.' });
+        if (d.failed) setMessage({ type: 'error', text: t('admin_org.custom_tiers_load_failed', 'Failed to load custom tiers.') });
+    });
 
     const addTier = () => {
         let n = orgTiers.length + 1;
@@ -173,11 +114,7 @@ const OrgCustomTiersPanel = () => {
         try {
             let res: Response | undefined;
             try {
-                res = await mutate(`${API_BASE}/ai/config/org-custom-chat-models`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(scopeOrgId ? { tiers: orgTiers, orgId: scopeOrgId } : { tiers: orgTiers }),
-            });
+                res = await apiRequest('POST /ai/config/org-custom-chat-models', { body: scopeOrgId ? { tiers: orgTiers, orgId: scopeOrgId } : { tiers: orgTiers } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const body = errorBody(err) ?? {};

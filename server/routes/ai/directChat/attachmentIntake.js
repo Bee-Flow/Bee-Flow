@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Direct Chat — attachment intake for the streaming turn: eager conversation
  * creation (the scanner needs a real convId for its token-map merge), per-
@@ -77,7 +77,7 @@ function markCacheBreakpoint(contentParts) {
  * Extract, scan and inline every attachment. Returns the content parts and
  * the per-file scan summaries, or `{ blocked: true }` after the Privacy
  * Shield blocked one (the SSE stream is then already ended).
- * @param {IntakeInput & { convId: string, attachments: import('./attachmentFormats').ChatAttachment[], persistedAttachments: AttachmentCtx['persistedAttachments'] }} p
+ * @param {IntakeInput & { convId: string | null, attachments: import('./attachmentFormats').ChatAttachment[], persistedAttachments: AttachmentCtx['persistedAttachments'] }} p
  */
 async function intakeAttachments({ req, res, send, userId, convId, conversationId, message, attachments, adapter, modelId, config, persistedAttachments, documentScope }) {
     /** @type {Array<Record<string, unknown>>} */
@@ -152,11 +152,11 @@ async function processAttachmentsAndUserMessage({ req, res, send, userId, convId
     const _attT = hasAttachments ? Date.now() : null;
     if (hasAttachments) {
         const intake = await intakeAttachments({ req, res, send, userId, convId, conversationId, message, attachments, adapter, modelId, config, persistedAttachments, documentScope });
-        if (intake.blocked) return undefined;
+        if ('blocked' in intake) return undefined;
         if (intake.summaries.length > 0) _turnAttachmentSummaries = intake.summaries;
         messages.push({ role: 'user', content: intake.contentParts });
     } else {
-        messages.push({ role: 'user', content: message });
+        messages.push({ role: 'user', content: /** @type {string} */ (message) }); // the route refuses a turn with neither
     }
     if (_attT !== null) {
         emitPhaseEnd(send, 'processing_attachments', Date.now() - _attT);

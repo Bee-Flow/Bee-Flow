@@ -18,7 +18,7 @@
 
 const supportInboxStore = require('../stores/supportInboxStore');
 const userStore = require('../stores/userStore');
-const { resolveUserOrgIds, isOrgAdminRole } = require('../auth/permissions');
+const { resolveUserOrgIds, resolvePermissionsByOrg, isOrgAdminForOrg } = require('../auth/permissions');
 const { bestEffort } = require('../utils/bestEffort');
 
 /** @param {import('express').Request} req */
@@ -43,23 +43,31 @@ async function resolveUserGroups(req) {
 }
 
 /**
- * True when the caller is an organisation admin (org_admin / legacy admin).
- * @param {import('express').Request} req
+ * What the caller may do with the inboxes of one organisation: work them
+ * (`support_inbox` held IN that organisation) and see every one of them as
+ * its organisation admin. Both are per organisation: the right or the admin
+ * role held in one organisation does not open the inboxes of another that the
+ * caller only belongs to through a plain group.
+ * @param {import('express').Request<any, any, any, any>} req
+ * @param {string | null | undefined} orgId
+ * @param {import('../auth/permissionsResolve').OrgPermissions} [perms] one resolvePermissionsByOrg read, for a caller that asks about several organisations
+ * @returns {Promise<{ works: boolean, isOrgAdmin: boolean }>}
  */
-async function resolveIsOrgAdmin(req) {
+async function inboxRightsIn(req, orgId, perms) {
     const userId = getUserId(req);
-    if (!userId) return false;
-    try {
-        const user = await userStore.getUser(userId);
-        return !!(user && isOrgAdminRole(user.orgRole));
-    } catch (_) { return false; }
+    if (!userId || !orgId) return { works: false, isOrgAdmin: false };
+    const [byOrg, isOrgAdmin] = await Promise.all([
+        perms || resolvePermissionsByOrg(userId, req.session),
+        isOrgAdminForOrg(req, orgId),
+    ]);
+    return { works: byOrg.holds('support_inbox', orgId), isOrgAdmin };
 }
 
 /**
  * Org ids the caller may act within. Mirrors supportInbox route's resolveOrgScope:
  * super admins (resolveUserOrgIds === null) fall back to their own org so they
  * see their own org's inboxes (not every tenant's).
- * @param {import('express').Request} req
+ * @param {import('express').Request<any, any, any, any>} req
  * @returns {Promise<{ orgIds: Set<string>|null, scope: string[] }>}
  */
 async function resolveOrgScope(req) {
@@ -108,16 +116,18 @@ function canUserAccessInbox(inbox, userId, orgIds = undefined, userGroups = [], 
  * All inboxes (full public rows) the caller may work, across their in-scope
  * orgs. The list/threads/insights/stream routes build their inbox set from this
  * so a group-restricted inbox is never surfaced to a non-member.
- * @param {import('express').Request} req
+ * @param {import('express').Request<any, any, any, any>} req
  */
 async function accessibleInboxes(req) {
     const userId = getUserId(req);
     if (!userId) return [];
     const { orgIds, scope } = await resolveOrgScope(req);
     if (!scope.length) return [];
-    const [userGroups, isOrgAdmin] = await Promise.all([resolveUserGroups(req), resolveIsOrgAdmin(req)]);
+    const [userGroups, perms] = await Promise.all([resolveUserGroups(req), resolvePermissionsByOrg(userId, req.session)]);
     const out = [];
     for (const orgId of scope) {
+        const { works, isOrgAdmin } = await inboxRightsIn(req, orgId, perms);
+        if (!works) continue;
         const inboxes = await supportInboxStore.listInboxes(orgId);
         for (const inbox of inboxes) {
             if (canUserAccessInbox(inbox, userId, orgIds, userGroups, { isOrgAdmin })) out.push(inbox);
@@ -128,7 +138,7 @@ async function accessibleInboxes(req) {
 
 /**
  * Convenience: just the ids.
- * @param {import('express').Request} req
+ * @param {import('express').Request<any, any, any, any>} req
  */
 async function accessibleInboxIds(req) {
     return (await accessibleInboxes(req)).map(i => i.id);
@@ -154,7 +164,7 @@ module.exports = {
     accessibleInboxes,
     accessibleInboxIds,
     resolveUserGroups,
-    resolveIsOrgAdmin,
+    inboxRightsIn,
     resolveOrgScope,
     userGroupsFor,
 };

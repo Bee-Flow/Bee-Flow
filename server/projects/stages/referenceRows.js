@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Reference rows: the rows of a Dev `is_reference` table that a pipeline
  * release carries into every stage (design section 2, D20, 3.2).
@@ -42,9 +43,7 @@
  * `referenceApplyOrder` (upserts parent first, deletes child first), and a
  * violation that still happens surfaces as a typed 409.
  */
-
 'use strict';
-
 const crypto = require('crypto');
 const stableJson = require('../../utils/stableJson');
 const queryCompiler = require('../../core/dataEngine/queryCompiler');
@@ -104,7 +103,7 @@ function dateOnly(v) {
 
 /**
  * One cell, in the form the compiler writes back unchanged.
- * @param {string} v
+ * @param {unknown} v
  */
 function canonicalValue(v, field) {
     if (v === null || v === undefined) return undefined;
@@ -330,7 +329,8 @@ function defaultCaptureDeps() {
  * carrying both is accepted too. `options` maps a ref to its part option
  * `{reference: boolean}`. `deps.query` answers rows or `{rows}`.
  *
- * @param {{ tables?: Array<{ref: string, meta?: object, descriptor?: object, table?: object, scope?: object}>,
+ * @typedef {{ id?: string, organizationId?: string | null, organization_id?: string | null, scope?: { kind?: string, id?: string } | null, scopeKind?: string, scope_id?: string, scope_kind?: string, [k: string]: unknown }} RefMeta
+ * @param {{ tables?: Array<RefMeta & {ref: string, meta?: RefMeta, descriptor?: { id?: string, [k: string]: unknown }, table?: RefMeta}>,
  *           options?: Map<string, { reference?: boolean }>|Record<string, { reference?: boolean }>|null }} [input]
  * @param {{ query?: (scope: object, q: { sql: string, params: unknown[] }) => Promise<unknown>, scan?: (text: string) => Promise<unknown>, limits?: Partial<typeof LIMITS> }} [deps]
  * @returns {Promise<{payloads: object[], findings: object[]}>}
@@ -447,7 +447,7 @@ async function resolveScopeSchema(client, scope) {
     const row = (r.rows && r.rows[0]) || {};
     if (row.has_hashed) return hashed;
     if (row.has_legacy && legacy) return legacy;
-    const e = new HttpError(409, 'reference_table_missing', 'The stage table for these reference rows does not exist');
+    const e = /** @type {InstanceType<typeof HttpError> & { errorClass?: string }} */ (new HttpError(409, 'reference_table_missing', 'The stage table for these reference rows does not exist'));
     e.errorClass = 'reference_table_missing';
     throw e;
 }

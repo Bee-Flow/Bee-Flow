@@ -18,6 +18,7 @@ const path = require('node:path');
 
 const projectStore = require('./projectStore');
 const { makeProjectStore } = projectStore;
+const { withTransactionVia } = require('../testUtils/txFake');
 
 const GOLDEN_PATH = path.join(__dirname, 'projectStore.characterisation.golden.json');
 const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g;
@@ -53,6 +54,7 @@ function fakeDb(responders = []) {
             query: async (sql, params) => answer('client.query', sql, params) ?? { rows: [] },
             release: () => { calls.push(['client.release']); },
         }),
+        withTransaction: withTransactionVia(() => db.getClient()),
     };
     return { db, calls };
 }

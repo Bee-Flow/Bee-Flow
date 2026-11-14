@@ -10,142 +10,162 @@ const { readTimeComputedError, READ_TIME_FUNCTIONS } = require('../../core/dataE
 
 
 /**
- * PURE merge of one app_upsert_table call into a data model. Returns
- * { model, table, hints } or { error, _fixHint }. Never touches the input.
- * @returns {import('./dataTools').TableMerge}
+ * The table a call evolves (by tableId), or null for a create. A create may
+ * not carry a `source`: a model that learned that shape must not point an app
+ * at a guessed tbl_ id; the link tool resolves by name and checks the grade.
+ * A LINKED table's fields are the source's: name/icon/access may change, a
+ * differing field list is refused rather than drifting the copy.
+ * @returns {{ existing: any } | { refusal: import('./dataTools').TableMerge }}
  */
-function mergeTableOp(model, args, rowCounts = {}) {
-    /** @type {string[]} */
-    const hints = [];
-    const tables = Array.isArray(model.tables) ? model.tables : [];
-
+function existingTableOf(model, args, tables) {
     let existing = null;
     if (args.tableId !== undefined && args.tableId !== null) {
         existing = tables.find((t) => t.id === args.tableId) || null;
         if (!existing) {
             const suggestion = pickClosestId(args.tableId, tables.map((t) => t.id));
-            return {
+            return { refusal: {
                 error: `Unknown tableId ${JSON.stringify(args.tableId)}.${suggestion ? ` Did you mean "${suggestion}"?` : ''}`,
                 _fixHint: `${tableIdHint(model)} Omit tableId to create a new table.`,
-            };
+            } };
         }
     }
-
-    // A model that learned the `source` shape must not point an app at a
-    // guessed tbl_ id; the link tool resolves by name and checks the grade.
     if (!existing && args.source !== undefined) {
-        return {
+        return { refusal: {
             error: 'app_upsert_table creates the app\'s OWN tables — to bring in a table that already exists in Studio (a Nextcloud mirror, an org table) call app_link_datatable.',
             _fixHint: 'app_link_datatable { name:"<the table\'s title>" } — it returns the tbl_ id and field keys to bind.',
-        };
+        } };
     }
-    // A LINKED table's fields are the source's. Name/icon/access may change;
-    // a differing field list is refused rather than drifting the copy.
     if (existing && isDatatableBacked(existing) && Array.isArray(args.fields)) {
         const sig = (fs) => (fs || []).map((f) => `${f && f.key}:${f && f.type}`).sort().join('|');
-        if (sig(args.fields) !== sig(existing.fields)) return linkedTableRefusal(existing, 'fields');
+        if (sig(args.fields) !== sig(existing.fields)) return { refusal: linkedTableRefusal(existing, 'fields') };
     }
+    return { existing };
+}
 
+/**
+ * The table's key: the given one, the existing one, or for a create that names
+ * the table but not its key, the name slugged (the derivation the Nextcloud
+ * mirror uses for column titles). Measured 2026-09-13: the prompt teaches
+ * {name, fields}; a small model does not add a key it was never shown, and
+ * "key is required" cost a round for a value the server can spell itself.
+ * @returns {{ key: string } | { refusal: import('./dataTools').TableMerge }}
+ */
+function tableKeyOf(args, existing, tables, hints) {
     let key = existing ? existing.key : null;
     if (args.key !== undefined && args.key !== null) {
-        if (typeof args.key !== 'string' || !DATA_KEY_RE.test(args.key)) {
-            return { error: `key ${JSON.stringify(args.key)} must be lowercase snake_case starting with a letter (max 63 chars), e.g. "tasks".` };
+        if (typeof args.key !== 'string' || !DATA_KEY_RE.test(args.key)) { // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- DATA_KEY_RE is an anchored key pattern without nested quantifiers
+            return { refusal: { error: `key ${JSON.stringify(args.key)} must be lowercase snake_case starting with a letter (max 63 chars), e.g. "tasks".` } };
         }
         key = args.key;
     }
-    // A create that names the table but not its key: the key IS the name,
-    // slugged — the same derivation the Nextcloud mirror uses for column
-    // titles. Measured 2026-09-13: the prompt teaches {name, fields}; a small
-    // model does not add a key it was never shown, and "key is required" cost
-    // a round for a value the server can spell itself.
     if (!key && !existing && typeof args.name === 'string' && args.name.trim()) {
         key = keyFromTitle(args.name, 0, new Set(tables.map((t) => t.key)));
         hints.push(`key derived from name: ${JSON.stringify(args.name)} → ${key}.`);
     }
-    if (!key) return { error: 'key is required when creating a table (lowercase snake_case, e.g. "tasks") — or give the table a name and the key is derived from it.' };
-    if (tables.some((t) => t !== existing && t.key === key)) {
-        const holder = tables.find((t) => t !== existing && t.key === key);
-        return {
+    if (!key) return { refusal: { error: 'key is required when creating a table (lowercase snake_case, e.g. "tasks") — or give the table a name and the key is derived from it.' } };
+    const holder = tables.find((t) => t !== existing && t.key === key);
+    if (holder) {
+        return { refusal: {
             error: `A table with key "${key}" already exists (${holder.id}).`,
             _fixHint: 'Pass its tableId to evolve that table, or pick a different key.',
-        };
+        } };
     }
+    return { key };
+}
 
+/**
+ * The COMPLETE field list the call sends; an edit of a linked table that sends
+ * none keeps the source's.
+ * @returns {{ rawFields: any[] } | { refusal: import('./dataTools').TableMerge }}
+ */
+function rawFieldsOf(args, existing) {
     const linkedEdit = existing && isDatatableBacked(existing);
     const rawFields = Array.isArray(args.fields) ? args.fields : (linkedEdit ? existing.fields : null);
     if (!rawFields || !rawFields.length) {
-        return { error: 'fields must be a non-empty array of { key, type, … } — the table\'s COMPLETE field list.' };
+        return { refusal: { error: 'fields must be a non-empty array of { key, type, … } — the table\'s COMPLETE field list.' } };
     }
     if (rawFields.length > DATA_LIMITS.MAX_FIELDS_PER_TABLE) {
-        return { error: `fields: max ${DATA_LIMITS.MAX_FIELDS_PER_TABLE} fields per table.` };
+        return { refusal: { error: `fields: max ${DATA_LIMITS.MAX_FIELDS_PER_TABLE} fields per table.` } };
     }
+    return { rawFields };
+}
 
-    const oldFields = existing ? (existing.fields || []) : [];
-    const byId = new Map(oldFields.map((f) => [f.id, f]));
-    const byKey = new Map(oldFields.map((f) => [f.key, f]));
-    const tableId = existing ? existing.id : newTableId();
-    const rowCount = Math.max(0, parseInt(rowCounts[tableId], 10) || 0);
+/**
+ * One entry of fields[]: checked, matched to the field it evolves, built, and
+ * its type change checked. Pushes its hints. A NOT NULL column cannot be ADDed
+ * to a populated table without a default (DDL v1): the column lands nullable,
+ * so the hint teaches instead of surprising.
+ * @returns {{ field: any, isNew: boolean } | { refusal: import('./dataTools').TableMerge }}
+ */
+function mergeOneField(given, i, run) {
+    const at = `fields[${i}]`;
+    if (!given || typeof given !== 'object' || Array.isArray(given)) {
+        return { refusal: { error: `${at} must be an object { key, type, … }.` } };
+    }
+    const checked = checkFieldSpec(normaliseFieldSpec(given, i, run.seenKeys, run.derivedFieldKeys), at, run.seenKeys);
+    if (checked.error) return { refusal: checked };
+    const raw = checked.spec;
+    const prior = priorField(raw, at, run.lookup);
+    if (prior.error) return { refusal: prior };
+    const old = prior.old;
+    const built = buildField(raw, old, at, run.model);
+    if (built.error) return { refusal: built };
+    const field = built.field;
+    const conversion = conversionCheck(old, field, run.rowCount);
+    if (conversion.error) return { refusal: conversion };
+    if (conversion.hint) run.hints.push(conversion.hint);
+    if (field.required && (field.default === undefined || field.default === null)
+        && !old && run.existing && run.rowCount > 0) {
+        run.hints.push(`Field "${field.key}" is required with no default on a table holding ${run.rowCount} row(s) — the ${run.rowCount} existing row(s) keep it empty and only NEW writes enforce it. Give it a default to backfill.`);
+    }
+    return { field, isNew: !old };
+}
 
-    const seenKeys = new Set();
+/**
+ * Every entry of fields[], in order; then the hints that need the whole list
+ * (a read-time expression may name a field listed after it) and the derived keys.
+ * @returns {{ fields: any[] } | { refusal: import('./dataTools').TableMerge }}
+ */
+function mergeFields(model, rawFields, existing, { tableId, rowCount, oldFields, hints }) {
+    const run = {
+        model, existing, rowCount, hints, seenKeys: new Set(), derivedFieldKeys: [],
+        lookup: { byId: new Map(oldFields.map((f) => [f.id, f])), byKey: new Map(oldFields.map((f) => [f.key, f])), oldFields, tableId },
+    };
     const fields = [];
-    /** @type {string[]} */
-    const derivedFieldKeys = [];
     const added = []; // fields new in this call
-
     for (const [i, given] of rawFields.entries()) {
-        const at = `fields[${i}]`;
-        if (!given || typeof given !== 'object' || Array.isArray(given)) {
-            return { error: `${at} must be an object { key, type, … }.` };
-        }
-        const checked = checkFieldSpec(normaliseFieldSpec(given, i, seenKeys, derivedFieldKeys), at, seenKeys);
-        if (checked.error) return checked;
-        const raw = checked.spec;
-
-        const prior = priorField(raw, at, { byId, byKey, oldFields, tableId });
-        if (prior.error) return prior;
-        const old = prior.old;
-
-        const built = buildField(raw, old, at, model);
-        if (built.error) return built;
-        const field = built.field;
-        const conversion = conversionCheck(old, field, rowCount);
-        if (conversion.error) return conversion;
-        if (conversion.hint) hints.push(conversion.hint);
-        if (!old) added.push(field);
-
-        // DDL v1: a NOT NULL column can't be ADDed to a populated table without
-        // a default — the column lands nullable; teach instead of surprising.
-        if (field.required && (field.default === undefined || field.default === null)
-            && !old && existing && rowCount > 0) {
-            hints.push(`Field "${field.key}" is required with no default on a table holding ${rowCount} row(s) — the ${rowCount} existing row(s) keep it empty and only NEW writes enforce it. Give it a default to backfill.`);
-        }
-        fields.push(field);
+        const one = mergeOneField(given, i, run);
+        if ('refusal' in one) return one;
+        if (one.isNew) added.push(one.field);
+        fields.push(one.field);
     }
-
-    // After the loop: a read-time expression may name a field listed after it.
     for (const f of added) {
         const readTime = readTimeHint(f, fields);
         if (readTime) hints.push(readTime);
     }
-    if (derivedFieldKeys.length) hints.push(`field keys derived from names: ${derivedFieldKeys.join(', ')}.`);
+    if (run.derivedFieldKeys.length) hints.push(`field keys derived from names: ${run.derivedFieldKeys.join(', ')}.`);
+    return { fields };
+}
 
-    // Relation targets must resolve within the NEXT model (self-relations ok).
+/** Relation targets must resolve within the NEXT model (self-relations ok). */
+function relationRefusal(model, tables, tableId, fields) {
     const knownIds = new Set(tables.map((t) => t.id));
     knownIds.add(tableId);
-    for (const f of fields) {
-        if (f.type === 'relation' && !knownIds.has(f.relation.table)) {
-            return {
-                error: `Field "${f.key}" points at unknown table ${JSON.stringify(f.relation.table)}.`,
-                _fixHint: `${tableIdHint(model)} Create the parent table first (one app_upsert_table call per table), then reference its returned tbl_… id.`,
-            };
-        }
-    }
+    const f = fields.find((x) => x.type === 'relation' && !knownIds.has(x.relation.table));
+    if (!f) return null;
+    return {
+        error: `Field "${f.key}" points at unknown table ${JSON.stringify(f.relation.table)}.`,
+        _fixHint: `${tableIdHint(model)} Create the parent table first (one app_upsert_table call per table), then reference its returned tbl_… id.`,
+    };
+}
 
-    const dropped = oldFields.filter((f) => !fields.some((nf) => nf.id === f.id));
-    if (dropped.length) {
-        hints.push(`Dropped field(s) ${dropped.map((f) => f.key).join(', ')} — they were missing from fields[] (the array is the COMPLETE field list); their column data is deleted.`);
-    }
-
+/**
+ * The table as stored: name, icon and access as given or kept; declared
+ * indexes (schema 3, the catalogue's tableOption.indexes): given replaces,
+ * null removes, absent keeps.
+ * @returns {{ table: any } | { refusal: import('./dataTools').TableMerge }}
+ */
+function assembleTable(existing, args, { tableId, key, fields }) {
     const table = {
         ...(existing || {}),
         id: tableId,
@@ -156,18 +176,62 @@ function mergeTableOp(model, args, rowCounts = {}) {
     };
     if (args.access !== undefined) {
         if (!args.access || typeof args.access !== 'object' || Array.isArray(args.access)) {
-            return { error: 'access must be an object { default, roles?, rowFilters? }.' };
+            return { refusal: { error: 'access must be an object { default, roles?, rowFilters? }.' } };
         }
         table.access = args.access;
     }
-    // Declared indexes (schema 3, the catalogue's tableOption.indexes): given replaces, null removes, absent keeps.
     if (args.indexes === null) delete table.indexes;
     else if (args.indexes !== undefined) table.indexes = args.indexes;
+    return { table };
+}
 
-    const nextTables = existing ? tables.map((t) => (t.id === tableId ? table : t)) : [...tables, table];
-    if (!existing && nextTables.length > DATA_LIMITS.MAX_TABLES_PER_APP) {
-        return { error: `The app already has ${DATA_LIMITS.MAX_TABLES_PER_APP} tables (the maximum).` };
-    }
+/** The model's tables with this one evolved or added; null when a create would pass the app's table limit. */
+function nextTablesOf(tables, existing, table) {
+    if (existing) return tables.map((t) => (t.id === table.id ? table : t));
+    const nextTables = [...tables, table];
+    return nextTables.length > DATA_LIMITS.MAX_TABLES_PER_APP ? null : nextTables;
+}
+
+/** The fields an evolve leaves out: the array is the complete list, so their data goes. */
+function droppedFieldsHint(oldFields, fields) {
+    const dropped = oldFields.filter((f) => !fields.some((nf) => nf.id === f.id));
+    if (!dropped.length) return null;
+    return `Dropped field(s) ${dropped.map((f) => f.key).join(', ')} — they were missing from fields[] (the array is the COMPLETE field list); their column data is deleted.`;
+}
+
+/**
+ * PURE merge of one app_upsert_table call into a data model. Returns
+ * { model, table, hints } or { error, _fixHint }. Never touches the input.
+ * @returns {import('./dataTools').TableMerge}
+ */
+function mergeTableOp(model, args, rowCounts = {}) {
+    /** @type {string[]} */
+    const hints = [];
+    const tables = Array.isArray(model.tables) ? model.tables : [];
+    const found = existingTableOf(model, args, tables);
+    if ('refusal' in found) return found.refusal;
+    const { existing } = found;
+    const keyed = tableKeyOf(args, existing, tables, hints);
+    if ('refusal' in keyed) return keyed.refusal;
+    const given = rawFieldsOf(args, existing);
+    if ('refusal' in given) return given.refusal;
+
+    const oldFields = existing ? (existing.fields || []) : [];
+    const tableId = existing ? existing.id : newTableId();
+    const rowCount = Math.max(0, parseInt(rowCounts[tableId], 10) || 0);
+    const merged = mergeFields(model, given.rawFields, existing, { tableId, rowCount, oldFields, hints });
+    if ('refusal' in merged) return merged.refusal;
+    const { fields } = merged;
+    const relation = relationRefusal(model, tables, tableId, fields);
+    if (relation) return relation;
+
+    const dropped = droppedFieldsHint(oldFields, fields);
+    if (dropped) hints.push(dropped);
+    const assembled = assembleTable(existing, args, { tableId, key: keyed.key, fields });
+    if ('refusal' in assembled) return assembled.refusal;
+    const { table } = assembled;
+    const nextTables = nextTablesOf(tables, existing, table);
+    if (!nextTables) return { error: `The app already has ${DATA_LIMITS.MAX_TABLES_PER_APP} tables (the maximum).` };
     return { model: { ...model, tables: nextTables }, table, hints };
 }
 

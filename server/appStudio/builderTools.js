@@ -65,7 +65,7 @@ const { applyFinalize, persistDraft } = require('./builderTools/persistence');
 const { applyLinkDatatable } = require('./builderTools/linkTools');
 const { applySetMailboxHook } = require('./builderTools/mailboxHookTool');
 const { noteRepeatedRejection, isRepeat } = require('../core/llm/toolCallHygiene');
-const { applyPatchOps } = require('../automation/builderTools/suggestedPatch');
+const { applyPatchOps } = require('../core/llm/suggestedPatch');
 
 // ── Mutation bookkeeping ─────────────────────────────────────────────
 
@@ -250,7 +250,7 @@ module.exports = {
  *   _ownerDatatables?: Awaited<ReturnType<typeof import('./datatableSource').listOwnerDatatableIds>>,
  *   _lastAddedScreenId?: string, _lastTouchedScreenId?: string, _syncedMetaKey?: string,
  *   _addedBatches?: Map<string, import('./builderTools/definitionTools/addComponents').BatchRecord>,
- *   _lastRejected?: { sig?: string, patch?: { ops?: Parameters<typeof import('../automation/builderTools/suggestedPatch').applyPatchOps>[1] } }|null,
+ *   _lastRejected?: { sig?: string, patch?: { ops?: Parameters<typeof import('../core/llm/suggestedPatch').applyPatchOps>[1] } }|null,
  * }} BuilderDraft
  *   `rowCounts`: keyed by TABLE ID; `_screenConstraint`: the person's screen-count rule for this turn.
  */

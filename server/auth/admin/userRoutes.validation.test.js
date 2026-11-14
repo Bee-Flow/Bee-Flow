@@ -239,3 +239,9 @@ test('a monthly budget reaches the store, and null clears it', async () => {
         assert.strictEqual(touched.find((t) => t.what === 'updateUser').args[1].monthlyCostLimit, null);
     });
 });
+
+test('a two-factor reset takes no fields: one sent is refused by name before the user is looked up', async () => {
+    await refuses({ method: 'POST', url: '/users/u2/mfa/reset', body: { keepKeys: true } }, 'body');
+    const res = await dispatch({ method: 'POST', url: '/users/u2/mfa/reset', body: { keepKeys: true } });
+    assert.match(res.body.error, /does not take "keepKeys"/);
+});

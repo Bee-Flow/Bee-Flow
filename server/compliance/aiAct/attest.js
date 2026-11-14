@@ -34,14 +34,14 @@ const EVIDENCE_CHECK_ID = 'AIA-Art53-model-inventory';
  * register row only, never into the evidence chain.
  *
  * @param {{ orgId: string, kind: 'automation'|'agent', id: string, signals: object, answers: object, actorId: string|null, validMonths?: number, source?: string|null, evidence?: object|null }} input
- * @param {{ store?: typeof import('../../stores/aiActAssessmentStore'), complianceStore?: typeof import('../../stores/complianceStore'), events?: typeof import('../events'), assess?: typeof import('./assess'), now?: () => Date }} [deps]
+ * @param {{ store?: typeof import('../../stores/aiActAssessmentStore'), complianceStore?: typeof import('../../stores/complianceStore'), events?: typeof import('../events'), assess?: typeof import('../../core/aiAct/assess'), now?: () => Date }} [deps]
  * @returns {Promise<{ row: object|null, result: object }>}
  */
 async function attest({ orgId, kind, id, signals, answers, actorId, validMonths, source = null, evidence = null }, deps = {}) {
     const store = deps.store || require('../../stores/aiActAssessmentStore');
     const complianceStore = deps.complianceStore || require('../../stores/complianceStore');
     const events = deps.events || require('../events');
-    const assess = deps.assess || require('./assess');
+    const assess = deps.assess || require('../../core/aiAct/assess');
     const attestedAt = deps.now ? deps.now() : new Date();
     const live = signals || {};
     const result = assess.assess(live, answers || {}, { attestedAt });

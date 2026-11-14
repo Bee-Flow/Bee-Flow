@@ -22,7 +22,7 @@ const documents = require('./documents');
 const provider = 'nextcloud_files';
 
 /**
- * @param {string} p
+ * @param {string | null | undefined} p   none is the root
  */
 function normalizePath(p) {
     const s = ('/' + String(p || '')).replace(/\/+/g, '/').replace(/\/+$/, '');

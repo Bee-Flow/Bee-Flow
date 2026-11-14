@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Publishing and what the public gets to see: the thumbnail and the
  * org/group visibility, with the version that is pinned to it.
@@ -12,7 +12,7 @@ const { resolveAudienceContext } = require('../../auth/audience');
 const { hasPermission, validateSharedGroupsForOrg } = require('../../auth');
 const { requireAuth } = require('../../auth/permissions');
 const webpageUsageSync = require('../../core/webpages/webpageUsageSync');
-const { liveMatchesPin, pinPublishedVersion } = require('./publishedSnapshot');
+const { liveMatchesPin, pinPublishedVersion } = require('../../usecases/webpages/publishedSnapshot');
 const { validate } = require('../../core/http/validate');
 const { z, onUnknownKeys, typeError } = require('../../utils/zod');
 const { bodyOf, idList, NO_QUERY } = require('./schemas');

@@ -117,3 +117,11 @@ test('an unauthenticated caller still reads 401, not a 400 about its body', asyn
     assert.strictEqual(res.statusCode, 401);
     assert.deepStrictEqual(touched, []);
 });
+
+test('disconnecting takes no fields: one sent is refused by name', async () => {
+    const res = await dispatch({ method: 'POST', url: '/disconnect', body: { revoke: true } });
+    assert.strictEqual(res.statusCode, 400);
+    assert.match(res.body.error, /Disconnecting LinkedIn does not take "revoke"/);
+    const ok = await dispatch({ method: 'POST', url: '/disconnect', body: undefined });
+    assert.strictEqual(ok.statusCode, 200, JSON.stringify(ok.body));
+});

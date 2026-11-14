@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The AI Act check of ONE automation (Studio → Automations handoff 5, settings
  * page): the three-question wizard, what Bee suggests for each question, and
@@ -12,7 +13,7 @@
  * ladder and the mapping in this file are shared by both paths.
  *
  * THE THREE QUESTIONS, mapped onto the register's own vocabulary
- * (compliance/aiAct/assess.js, `{ art5, art50, annex_iii }`):
+ * (core/aiAct/assess.js, `{ art5, art50, annex_iii }`):
  *
  *   1 usesAi          "Does this automation use AI?"
  *                     -> signals.contains_ai. The platform's detection stands:
@@ -24,7 +25,7 @@
  *                     -> art50.interacts (the Art. 50(1) transparency duty).
  *   3 sensitiveUse    "Does it help decide about people in one of these areas?"
  *                     with all TEN Annex III domains listed -> annex_iii.domains.
- *                     All ten on screen is the point (compliance/aiAct/annexIii.js):
+ *                     All ten on screen is the point (core/aiAct/annexIii.js):
  *                     "none of these" is a declaration about ten domains the
  *                     person was shown, never about four. "yes" names at least
  *                     one domain; the others shown are answered "no".
@@ -44,13 +45,12 @@
  *
  * Everything in here is pure except `makeAiActState`, whose IO is injected.
  */
-
 'use strict';
 
-const graph = require('./automationGraph');
+const graph = require('../core/automationModel/automationGraph');
 const detect = require('./aiActDetect');
-const annexIii = require('../compliance/aiAct/annexIii');
-const assess = require('../compliance/aiAct/assess');
+const annexIii = require('../core/aiAct/annexIii');
+const assess = require('../core/aiAct/assess');
 
 const TRI = Object.freeze(['yes', 'no', 'unknown']);
 const QUESTION_IDS = Object.freeze(['usesAi', 'externalOutput', 'sensitiveUse']);
@@ -135,7 +135,7 @@ function wizardFromAssessment(row) {
 /**
  * Prefilled answers for the three questions.
  *
- * @param {{ definition: object, signals?: object, latest?: object|null, internalDomains?: string[], title?: string, description?: string }} input
+ * @param {{ definition: object, signals?: { contains_ai?: any }, latest?: object|null, internalDomains?: string[], title?: string, description?: string }} input
  */
 function suggestWizard({ definition, signals = null, latest = null, internalDomains = [], title = '', description = '' }) {
     const ai = detectAiUse(definition);
@@ -312,8 +312,8 @@ const iso = (v) => (v ? new Date(v).toISOString() : null);
  *   { required, status, expiresAt, outcome, attestedAt, attestedBy, orgId, row }
  *
  * @param {{
- *   isRequired: (automation: object, orgId: string|null) => Promise<boolean>,
- *   getLatest: (orgId: string, kind: 'automation', id: string) => Promise<object|null>,
+ *   isRequired: (automation: AutomationRef, orgId: string|null) => Promise<boolean>,
+ *   getLatest: (orgId: string, kind: 'automation', id: string) => Promise<AiActRow|null>,
  *   organisationOf: (automation: object) => Promise<string|null>,
  *   enabled?: () => Promise<boolean>,
  *   now?: () => number,
@@ -437,7 +437,7 @@ module.exports = {
     defaultAiActState,
 };
 
-/** @typedef {import('./automationGraph').AutomationDefinition} AutomationDefinition */
+/** @typedef {import('../core/automationModel/automationGraph').AutomationDefinition} AutomationDefinition */
 
 /**
  * @typedef AutomationRef  the parts of an automation row this check reads

@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import { API_BASE } from '../../utils/helpers';
-import { getPublicOrganizations, getSetupStatus } from '../../api/loginRequests';
+import { usePublicOrganizationsQuery, useSetupStatusQuery } from '../../api/queries/loginReads';
+import useAdjustOnChange from '../../hooks/useAdjustOnChange';
 
 /** One Microsoft button on the login page; empty label/logo mean the defaults. */
 export interface MicrosoftLogin {
@@ -34,85 +35,75 @@ function microsoftLoginsOf(data: SetupStatus): MicrosoftLogin[] {
     return data.isMicrosoftConfigured ? [{ id: 'default' }] : [];
 }
 
+const NO_LOCALES: { code: string }[] = [];
+const NO_LOGINS: MicrosoftLogin[] = [];
+const NO_ORGS: unknown[] = [];
+const DEFAULT_CONSUMER_METHODS = ['password', 'google', 'microsoft'];
+
+/** The logo as an address: a server path is served from API_BASE. */
+function logoOf(data: SetupStatus | null | undefined): string | null {
+    const logo = data?.branding?.logo;
+    if (!logo) return null;
+    return logo.startsWith('/') ? `${API_BASE}${logo}` : logo;
+}
+
+/** The sign-in methods the deployment offers; none before the server answered. */
+function loginMethodsOf(data: SetupStatus | null) {
+    if (!data) return { isOAuthConfigured: false, isGoogleConfigured: false, isMicrosoftConfigured: false, microsoftLogins: NO_LOGINS, serverUrl: '' };
+    return {
+        isOAuthConfigured: data.isOAuthConfigured,
+        isGoogleConfigured: data.isGoogleConfigured,
+        isMicrosoftConfigured: data.isMicrosoftConfigured,
+        microsoftLogins: microsoftLoginsOf(data),
+        serverUrl: data.serverUrl || '',
+    };
+}
+
+/** Who may sign up and how; an error status (null) allows everything, no answer yet leaves the two gates unknown. */
+function signupRulesOf(data: SetupStatus | null, answered: boolean) {
+    return {
+        allowSignups: answered ? data?.allowSignups !== false : null,
+        allowOrgSignups: data?.allowOrgSignups !== false,
+        allowConsumerSignups: data?.allowConsumerSignups !== false,
+        consumerLoginMethods: Array.isArray(data?.consumerLoginMethods) ? data.consumerLoginMethods : DEFAULT_CONSUMER_METHODS,
+        allowPasswordLogin: answered ? data?.allowPasswordLogin !== false : null,
+    };
+}
+
+/** Branding, locales and the signup challenge. */
+function lookOf(data: SetupStatus | null) {
+    return {
+        availableLocales: data?.availableLocales ?? NO_LOCALES,
+        deploymentMode: data?.deploymentMode || 'cloud',
+        orgLogo: logoOf(data),
+        captchaConfig: data?.signupCaptcha ?? null,
+    };
+}
+
 /**
  * What the server says about this deployment before anyone signs in:
  * which login methods exist, whether signups are open, branding, locales and the
- * public organisation list. One request on mount, the effect has no dependencies.
+ * public organisation list. One read of each per mount, the list after the status.
+ * An error status shows everything (the safe fallback); a network failure leaves
+ * the settings unloaded.
  */
 export function useAuthSettings() {
-    const [availableLocales, setAvailableLocales] = useState<{ code: string }[]>([]);
-    const [setupMode, setSetupMode] = useState(false);
-    const [isOAuthConfigured, setIsOAuthConfigured] = useState<boolean | undefined>(false);
-    const [serverUrl, setServerUrl] = useState('');
-    const [isGoogleConfigured, setIsGoogleConfigured] = useState<boolean | undefined>(false);
-    const [isMicrosoftConfigured, setIsMicrosoftConfigured] = useState<boolean | undefined>(false);
-    const [microsoftLogins, setMicrosoftLogins] = useState<MicrosoftLogin[]>([]);
+    const statusQuery = useSetupStatusQuery<SetupStatus>();
+    // Answered: an ok body, or null for an error status.
+    const answered = statusQuery.isSuccess;
+    const data = statusQuery.data ?? null;
+    const signupOrgs = usePublicOrganizationsQuery(answered).data ?? NO_ORGS;
+
+    // The setup wizard opens when the server says setup is not complete; the screen can close it again.
+    const needsSetup = !!data && !data.isSetupComplete;
+    const [setupMode, setSetupMode] = useState(needsSetup);
+    useAdjustOnChange([data], () => { if (needsSetup) setSetupMode(true); });
     const [, setIsSetupComplete] = useState<boolean | undefined>(true);
-    const [allowSignups, setAllowSignups] = useState<boolean | null>(null);
-    const [allowOrgSignups, setAllowOrgSignups] = useState(true);
-    const [allowConsumerSignups, setAllowConsumerSignups] = useState(true);
-    const [consumerLoginMethods, setConsumerLoginMethods] = useState<string[]>(['password', 'google', 'microsoft']);
-    const [allowPasswordLogin, setAllowPasswordLogin] = useState<boolean | null>(null);
-    const [authSettingsLoaded, setAuthSettingsLoaded] = useState(false);
-    const [deploymentMode, setDeploymentMode] = useState('cloud');
-    const [orgLogo, setOrgLogo] = useState<string | null>(null);
-    const [signupOrgs, setSignupOrgs] = useState<unknown[]>([]);
-    // Bot challenge for signup. { enabled:false } unless the operator configured
-    // a provider (see server/auth/signupCaptcha.js). The server enforces it
-    // independently; this only produces the token.
-    const [captchaConfig, setCaptchaConfig] = useState<SetupStatus['signupCaptcha'] | null>(null);
 
-    useEffect(() => {
-        const checkSetup = async () => {
-            try {
-                const res = await getSetupStatus();
-                if (res.ok) {
-                    const data: SetupStatus = await res.json();
-                    setIsSetupComplete(data.isSetupComplete);
-                    setIsOAuthConfigured(data.isOAuthConfigured);
-                    setIsGoogleConfigured(data.isGoogleConfigured);
-                    setIsMicrosoftConfigured(data.isMicrosoftConfigured);
-                    setMicrosoftLogins(microsoftLoginsOf(data));
-                    if (data.serverUrl) setServerUrl(data.serverUrl);
-                    if (!data.isSetupComplete) setSetupMode(true);
-                    // Also track raw setup-complete flag for wizard
-                    setIsSetupComplete(data.isSetupComplete);
-                    if (data.allowSignups === false) setAllowSignups(false);
-                    else setAllowSignups(true);
-                    setAllowOrgSignups(data.allowOrgSignups !== false);
-                    setAllowConsumerSignups(data.allowConsumerSignups !== false);
-                    if (Array.isArray(data.consumerLoginMethods)) setConsumerLoginMethods(data.consumerLoginMethods);
-                    if (data.allowPasswordLogin === false) setAllowPasswordLogin(false);
-                    else setAllowPasswordLogin(true);
-                    if (data.deploymentMode) setDeploymentMode(data.deploymentMode);
-                    if (data.branding?.logo) {
-                        setOrgLogo(data.branding.logo.startsWith('/') ? `${API_BASE}${data.branding.logo}` : data.branding.logo);
-                    }
-                    if (data.availableLocales) setAvailableLocales(data.availableLocales);
-                    if (data.signupCaptcha) setCaptchaConfig(data.signupCaptcha);
-                } else {
-                    // If setup-status fails, show everything (safe fallback)
-                    setAllowSignups(true);
-                    setAllowPasswordLogin(true);
-                }
-                setAuthSettingsLoaded(true);
+    const settings = useMemo(
+        () => ({ ...loginMethodsOf(data), ...signupRulesOf(data, answered), ...lookOf(data) }),
+        [data, answered],
+    );
 
-                const orgRes = await getPublicOrganizations();
-                if (orgRes.ok) {
-                    const orgData: unknown[] = await orgRes.json();
-                    setSignupOrgs(orgData);
-                }
-            } catch (err) {
-                console.error('Failed to check setup status:', err);
-            }
-        };
-        checkSetup();
-    }, []);
-
-    return {
-        availableLocales, setupMode, setSetupMode, setIsSetupComplete,
-        isOAuthConfigured, serverUrl, isGoogleConfigured, isMicrosoftConfigured, microsoftLogins,
-        allowSignups, allowOrgSignups, allowConsumerSignups, consumerLoginMethods,
-        allowPasswordLogin, authSettingsLoaded, deploymentMode, orgLogo, signupOrgs, captchaConfig,
-    };
+    return { ...settings, setupMode, setSetupMode, setIsSetupComplete, authSettingsLoaded: answered, signupOrgs };
 }

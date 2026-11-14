@@ -11,8 +11,14 @@ const express = require('express');
 const router = express.Router();
 const agentStore = require('../../stores/agentStore');
 const { validate } = require('../../core/http/validate');
+const { bodyOf } = require('../../core/http/schemaParts');
 const { z, typeError } = require('../../utils/zod');
 const { fallback, bestEffort } = require('../../utils/bestEffort');
+// Favouriting needs the read grade on the agent (auth/agentAccess.mts): a
+// published or shared agent stays favouritable, an unknown or foreign id
+// answers the same 404. Removing a favourite is the caller's own list, so it
+// takes any id: an agent that was unshared since must still be removable.
+const { requireAgentGrade, canReadAgent } = require('./crud');
 
 const AGENT_IDS = 'agentIds is a list of agent ids.';
 const BulkFavoritesBody = z.object({
@@ -41,7 +47,7 @@ router.get('/favorites', async (req, res) => {
 });
 
 // Add favorite (idempotent)
-router.put('/:id/favorite', async (req, res) => {
+router.put('/:id/favorite', requireAgentGrade('read'), validate({ body: bodyOf({}, 'Marking a favourite') }), async (req, res) => {
     const userId = requireUser(req, res);
     if (!userId) return;
     await agentStore.addAgentFavorite(userId, req.params.id);
@@ -61,7 +67,7 @@ router.delete('/:id/favorite', async (req, res) => {
 // this an attacker could favourite (and later enumerate via GET /favorites)
 // arbitrary agent IDs they have no business seeing.
 const MAX_BULK_FAVORITES = 200;
-router.post('/favorites/bulk', validate({ body: BulkFavoritesBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof BulkFavoritesBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/favorites/bulk', validate({ body: BulkFavoritesBody }), async (req, res) => {
     const userId = requireUser(req, res);
     if (!userId) return;
     const { agentIds } = req.body;
@@ -69,7 +75,6 @@ router.post('/favorites/bulk', validate({ body: BulkFavoritesBody }), async (/**
     if (agentIds.length > MAX_BULK_FAVORITES) {
         return res.status(413).json({ error: `Too many agentIds (max ${MAX_BULK_FAVORITES})` });
     }
-    const { canReadAgent } = require('./crud');
     for (const id of agentIds) {
         const agent = await agentStore.getAgent(id).catch((e) => fallback('routes/agents/favorites:anon', e, null));
         if (!agent) continue;

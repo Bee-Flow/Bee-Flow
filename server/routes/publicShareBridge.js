@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Public-Share AI Bridge — anonymous, cross-origin AI endpoints callable from
  * an externally-shared webpage (the sandboxed /share/:token content iframe).
@@ -44,7 +45,6 @@
  */
 
 const express = require('express');
-const log = require('../telemetry/log');
 const { HttpError } = require('../core/http/errors');
 const { usageLogFields } = require('../core/providers/usageNormalizer');
 const router = express.Router();
@@ -122,7 +122,11 @@ async function resolveContext({ shareId, webpageId }) {
             if (Number(summary?.total_estimated_cost || 0) >= cap) {
                 return { status: 429, error: 'This page has reached its AI usage limit for today.' };
             }
-        } catch (err) { log.debug('usage lookup failure should not open the gate but must not 500 the call', err); }
+        } catch (err) {
+            // A cap that cannot be read is not "no cap": an anonymous call spends the author's budget.
+            bestEffort('routes/publicShareBridge:spendCapLookup', err);
+            return { status: 503, error: 'AI on this page is unavailable right now. Try again in a few minutes.' };
+        }
     }
 
     const ctx = await loadAuthorContext(webpageId);
@@ -181,7 +185,8 @@ router.post('/ai/chat', requireShareBridgeToken, publicAiLimiter, publicIpLimite
     const messages = await buildAiMessages(ctx, req.body || {}, { groundGrantKey: 'publicGroundOnPage', surface: 'public_share' });
     const queryLogHandle = handleOf(messages);
     const resolved = await resolveModelForTier(`tier:${clamp.tierName}`, { userOrgId: ctx.authorOrgId, userId: ctx.authorUserId });
-    const modelId = resolved?.modelId || resolved?.model || resolved;
+    const tierModel = /** @type {{ modelId?: string, model?: string } | null} */ (/** @type {unknown} */ (resolved)); // test stand-ins answer an object
+    const modelId = tierModel?.modelId || tierModel?.model || resolved;
     if (!modelId) throw new HttpError(500, 'no_model', `No model configured for tier "${clamp.tierName}"`);
 
     const tierDefaults = TIER_DEFAULTS[clamp.tierName] || TIER_DEFAULTS['fast'];
@@ -265,7 +270,8 @@ router.post('/ai/stream', requireShareBridgeToken, publicAiLimiter, publicIpLimi
         const messages = await buildAiMessages(ctx, req.body || {}, { groundGrantKey: 'publicGroundOnPage', surface: 'public_share' });
         queryLogHandle = handleOf(messages);
         const resolved = await resolveModelForTier(`tier:${tierName}`, { userOrgId: ctx.authorOrgId, userId: ctx.authorUserId });
-        const modelId = resolved?.modelId || resolved?.model || resolved;
+        const tierModel = /** @type {{ modelId?: string, model?: string } | null} */ (/** @type {unknown} */ (resolved)); // test stand-ins answer an object
+        const modelId = tierModel?.modelId || tierModel?.model || resolved;
         if (!modelId) {
             send('error', { error: `No model configured for tier "${tierName}"` });
             stopHeartbeat();

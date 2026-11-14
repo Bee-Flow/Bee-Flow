@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Heal steps that name a built-in step TYPE as if it were an integration tool.
  *
@@ -163,7 +164,7 @@ function repairStep(step) {
  * path (rowToAutomation runs per row of every list query) depend on that, and
  * on the cheap `some()` scan that precedes any copying.
  *
- * @template T
+ * @template {{ steps?: unknown, layers?: unknown }} T
  * @param {T} definition
  * @returns {T} the definition, repaired or untouched
  */
@@ -206,7 +207,7 @@ function repairBuiltinToolSteps(definition) {
 module.exports = { repairBuiltinToolSteps, repairStep, repairAiStepPermissions, liftBinding, REPAIRABLE };
 
 /**
- * @typedef {import('./automationGraph').AutomationStep & { agentPermissions?: Record<string, unknown>, inputs?: Record<string, unknown> }} RepairableStep
+ * @typedef {import('../core/automationModel/automationGraph').AutomationStep & { agentPermissions?: Record<string, unknown>, inputs?: Record<string, unknown> }} RepairableStep
  */
 
 /** @typedef {import('./builderTools/draftGraph').DraftGraph} DraftGraph */

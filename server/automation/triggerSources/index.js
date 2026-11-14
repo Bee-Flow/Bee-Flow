@@ -47,6 +47,8 @@ function freeze(decl, origin, orgId) {
  * Register one declaration. Returns the validator's issue records; a
  * declaration carrying any error is rejected outright rather than partially
  * honoured — a half-valid event would be offered in the builder and never fire.
+ * @param decl  the declaration, as validateTriggerSource reads it
+ * @param {{ origin?: string, orgId?: string | null }} [opts]
  */
 function registerTriggerSource(decl, { origin = 'runtime', orgId = null } = {}) {
     const issues = validateTriggerSource(decl, { existingIds: _global.keys() });

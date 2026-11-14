@@ -1,103 +1,95 @@
+// @typecheck
 /**
- * supportInboxStore — removing a mailbox must not leak into the company inbox.
+ * supportInboxStore — removing a mailbox must not leak into the company inbox,
+ * against a real Postgres (PGlite behind db.js's pool, testUtils/pglitePool.js).
  *
  * Bee Flow's OWN support inbox is defined as `inbox_id IS NULL` (see
- * routes/support.js GET /threads). deleteInbox used to "detach" the removed
- * mailbox's tickets with `UPDATE support_threads SET inbox_id = NULL`, which is
- * exactly that predicate — so deleting a tenant mailbox published every one of
- * its emails (receipts, calendar invites, private customer mail) into the
- * super-admin's Customer Support panel.
+ * routes/support.js GET /threads). Detaching a removed mailbox's tickets by
+ * nulling inbox_id is exactly that predicate: deleting a tenant mailbox would
+ * publish every one of its emails into the super-admin's Customer Support
+ * panel. So the mailbox's tickets are purged, never detached, and only once
+ * the org-scoped write actually matched the inbox, so a wrong-org caller can
+ * never delete another tenant's tickets.
  *
- * These tests pin the two properties that keeps closed:
- *   1. no statement ever nulls inbox_id, and
- *   2. the thread purge only runs once the org-scoped write actually matched a
- *      row, so a wrong-org caller can never delete another tenant's tickets.
- *
- * No live DB: `../db` is stubbed with a recording pool.
- *
- * Run: node --test stores/supportInboxStore.disconnect.test.js
+ * Run: cd server && node --test stores/supportInboxStore.disconnect.test.js
  */
+
+'use strict';
 
 const test = require('node:test');
 const assert = require('node:assert');
-const { recordDb } = require('../testUtils/routeHarness');
 
 process.env.SESSION_SECRET = process.env.SESSION_SECRET || 'x'.repeat(48);
 
-// The real db.js over a recording pool. `rowCounts` lets a case say what the scoped write matched.
-let rowCountFor = () => 1;
-const db = recordDb((sql, params) => ({ rows: [], rowCount: rowCountFor(String(sql), params) }));
+const { usePglitePool } = require('../testUtils/pglitePool');
+
+const { pg, close } = usePglitePool();
+const { initDB: initSupport } = require('./supportStore/schema');
 const store = require('./supportInboxStore');
 
-function reset(counts = () => 1) {
-    db.reset();
-    rowCountFor = counts;
-}
+test.before(async () => {
+    await initSupport();
+    await store.initDB();
+});
+test.after(close);
 
-const mutations = () => db.calls.filter(q => /^\s*(UPDATE|DELETE|INSERT)/i.test(q.sql));
+async function inbox(org = 'org-1') {
+    const { rows } = await pg.query(
+        `INSERT INTO support_inboxes (organization_id, created_by, provider, encrypted_tokens, active, gmail_history_id, graph_delta_link, sync_locked_until)
+         VALUES ($1, 'u1', 'gmail', 'sealed-tokens', true, 'h1', 'd1', NOW() + INTERVAL '5 minutes') RETURNING id`, [org]);
+    return rows[0].id;
+}
+async function ticket(inboxId) {
+    await pg.query(
+        `INSERT INTO support_threads (organization_id, requester_email, source, subject, inbox_id)
+         VALUES ('org-1', 'r@example.test', 'in_app', 'Mail', $1)`, [inboxId]);
+}
+const ticketsOf = async (inboxId) => Number((await pg.query(
+    'SELECT COUNT(*)::int AS n FROM support_threads WHERE inbox_id IS NOT DISTINCT FROM $1', [inboxId],
+)).rows[0].n);
+const companyInbox = () => ticketsOf(null);
 
 test('deleteInbox purges the mailbox threads instead of detaching them', async () => {
-    reset();
-    const res = await store.deleteInbox('inbox-1', 'org-1');
+    const id = await inbox();
+    const other = await inbox();
+    await ticket(id);
+    await ticket(other);
+    const company = await companyInbox();
 
-    assert.deepStrictEqual(res, { ok: true, purgedThreads: 1 });
-
-    // The regression: nothing may set inbox_id = NULL.
-    assert.ok(
-        !mutations().some(q => /inbox_id\s*=\s*NULL/i.test(q.sql)),
-        'a removed mailbox must never detach its threads into the company inbox'
-    );
-
-    const threadWrite = mutations().find(q => /support_threads/i.test(q.sql));
-    assert.ok(threadWrite, 'the inbox threads must be deleted');
-    assert.match(threadWrite.sql, /^\s*DELETE FROM support_threads WHERE inbox_id = \$1/i);
-    assert.deepStrictEqual(threadWrite.params, ['inbox-1']);
-
-    const inboxWrite = mutations().find(q => /support_inboxes/i.test(q.sql));
-    assert.match(inboxWrite.sql, /organization_id = \$2/i, 'the inbox delete stays org-scoped');
-    assert.deepStrictEqual(inboxWrite.params, ['inbox-1', 'org-1']);
+    assert.deepStrictEqual(await store.deleteInbox(id, 'org-1'), { ok: true, purgedThreads: 1 });
+    assert.strictEqual(await ticketsOf(id), 0, 'the inbox threads are deleted');
+    assert.strictEqual(await companyInbox(), company, 'a removed mailbox never detaches its threads into the company inbox');
+    assert.strictEqual(await ticketsOf(other), 1, "another inbox's tickets stay");
+    assert.strictEqual((await pg.query('SELECT 1 FROM support_inboxes WHERE id = $1', [id])).rows.length, 0);
 });
 
-test('deleteInbox touches no threads when the org scope does not match', async () => {
-    // The scoped DELETE matches nothing — a caller from another org.
-    reset(sql => (/support_inboxes/i.test(sql) ? 0 : 1));
-    const res = await store.deleteInbox('inbox-1', 'other-org');
-
-    assert.deepStrictEqual(res, { ok: false, purgedThreads: 0 });
-    assert.ok(
-        !mutations().some(q => /support_threads/i.test(q.sql)),
-        'a wrong-org delete must not reach another tenant\'s tickets'
-    );
+test('deleteInbox touches nothing when the org scope does not match', async () => {
+    const id = await inbox();
+    await ticket(id);
+    assert.deepStrictEqual(await store.deleteInbox(id, 'other-org'), { ok: false, purgedThreads: 0 });
+    assert.strictEqual(await ticketsOf(id), 1, "a wrong-org delete must not reach another tenant's tickets");
+    assert.strictEqual((await pg.query('SELECT 1 FROM support_inboxes WHERE id = $1', [id])).rows.length, 1);
 });
 
-test('disconnectInbox shreds the tokens, stops the sync and purges the tickets', async () => {
-    reset(() => 2);
-    const res = await store.disconnectInbox('inbox-2', 'org-1');
+test('disconnectInbox shreds the tokens, stops the sync and purges the tickets; the inbox row survives', async () => {
+    const id = await inbox();
+    await ticket(id);
+    await ticket(id);
+    const company = await companyInbox();
 
-    assert.deepStrictEqual(res, { ok: true, purgedThreads: 2 });
-
-    const inboxWrite = mutations().find(q => /support_inboxes/i.test(q.sql));
-    assert.match(inboxWrite.sql, /encrypted_tokens = NULL/i, 'the OAuth tokens must be dropped');
-    assert.match(inboxWrite.sql, /active = false/i, 'getDueInboxes must stop picking the row up');
-    assert.match(inboxWrite.sql, /gmail_history_id = NULL/i);
-    assert.match(inboxWrite.sql, /graph_delta_link = NULL/i);
-    assert.match(inboxWrite.sql, /sync_locked_until = NULL/i, 'a stale lease must not block a reconnect');
-    assert.match(inboxWrite.sql, /organization_id = \$2/i, 'the disconnect stays org-scoped');
-    assert.deepStrictEqual(inboxWrite.params, ['inbox-2', 'org-1']);
-
-    // The inbox row survives — settings, access and KB wiring outlive a reconnect.
-    assert.ok(!mutations().some(q => /DELETE FROM support_inboxes/i.test(q.sql)));
-
-    const threadWrite = mutations().find(q => /support_threads/i.test(q.sql));
-    assert.match(threadWrite.sql, /^\s*DELETE FROM support_threads WHERE inbox_id = \$1/i);
-    assert.ok(!mutations().some(q => /inbox_id\s*=\s*NULL/i.test(q.sql)));
+    assert.deepStrictEqual(await store.disconnectInbox(id, 'org-1'), { ok: true, purgedThreads: 2 });
+    const { rows } = await pg.query(
+        'SELECT encrypted_tokens, active, gmail_history_id, graph_delta_link, sync_locked_until FROM support_inboxes WHERE id = $1', [id]);
+    assert.deepStrictEqual(rows[0], { encrypted_tokens: null, active: false, gmail_history_id: null, graph_delta_link: null, sync_locked_until: null },
+        'tokens dropped, the sync stops picking it up, and a stale lease does not block a reconnect');
+    assert.strictEqual(await ticketsOf(id), 0);
+    assert.strictEqual(await companyInbox(), company);
 });
 
-test('disconnectInbox touches no threads when the org scope does not match', async () => {
-    reset(sql => (/support_inboxes/i.test(sql) ? 0 : 1));
-    const res = await store.disconnectInbox('inbox-2', 'other-org');
-
-    assert.deepStrictEqual(res, { ok: false, purgedThreads: 0 });
-    assert.ok(!mutations().some(q => /support_threads/i.test(q.sql)));
+test('disconnectInbox touches nothing when the org scope does not match', async () => {
+    const id = await inbox();
+    await ticket(id);
+    assert.deepStrictEqual(await store.disconnectInbox(id, 'other-org'), { ok: false, purgedThreads: 0 });
+    assert.strictEqual(await ticketsOf(id), 1);
+    assert.strictEqual((await pg.query('SELECT encrypted_tokens FROM support_inboxes WHERE id = $1', [id])).rows[0].encrypted_tokens, 'sealed-tokens');
 });
-

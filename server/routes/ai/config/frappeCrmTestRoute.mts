@@ -13,8 +13,8 @@
 
 import { createRequire } from 'node:module';
 import type { Request, RequestHandler, Response, Router } from 'express';
-import { frappeCrmFields } from './frappeCrmFields.mts';
-import { integrationTestLimiter } from './integrationTestLimit.mts';
+import { frappeCrmFields } from '../../../usecases/ai/config/frappeCrmFields.mts';
+import { integrationTestLimiter } from '../../../usecases/ai/config/integrationTestLimit.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 const express = nodeRequire('express') as typeof import('express');

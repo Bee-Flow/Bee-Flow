@@ -218,3 +218,11 @@ test('GET /providers reports the default provider (getProviders calls it default
     assert.strictEqual(res.statusCode, 200);
     assert.strictEqual(res.body.defaultProvider, 'p1');
 });
+
+test('making a provider the default takes no fields: one sent is refused by name', async () => {
+    const res = await dispatch({ method: 'PUT', url: '/providers/p1/default', body: { providerId: 'p2' } });
+    assert.strictEqual(res.statusCode, 400, JSON.stringify(res.body));
+    assert.match(res.body.error, /Making a provider the default does not take "providerId"/);
+    const ok = await dispatch({ method: 'PUT', url: '/providers/p1/default', body: {} });
+    assert.strictEqual(ok.statusCode, 200, JSON.stringify(ok.body));
+});

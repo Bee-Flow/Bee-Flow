@@ -72,3 +72,12 @@ test('a guardrail rule whose pattern the engine refuses is not saved, by name', 
     const ok = await post('/config', { regexGuardrails: { rules: [{ id: 'r1', name: 'ok', pattern: '(?i)nl\\d{2}[a-z]{4}\\d{10}' }], collections: [] } });
     assert.strictEqual(ok.status, 200, ok.text);
 });
+
+test('disconnecting the service mailbox and testing the reranker take no fields', async () => {
+    h.assertRefused(assert, await post('/config/service-email/disconnect', { mailbox: 'x' }), 'body', /Disconnecting the service mailbox does not take "mailbox"/);
+    h.assertRefused(assert, await post('/config/test-reranker', { endpoint: 'https://example.org' }), 'body', /Testing the reranker does not take "endpoint"/);
+    assert.deepStrictEqual(writes(), []);
+    const res = await post('/config/test-reranker', {});
+    assert.strictEqual(res.status, 400, res.text);
+    assert.match(res.body.error, /endpoint and key are required/);
+});

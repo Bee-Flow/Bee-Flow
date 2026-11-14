@@ -14,6 +14,7 @@
  *     exactly one organisation (the usual self-hosted installation).
  * Anything else leaves the account without an organisation for an admin to place.
  */
+const { fetchFixedEndpoint } = require('../../utils/fixedEndpointFetch.mts');
 const log = require('../../telemetry/log');
 const { GUID } = require('../microsoftIdentity');
 
@@ -84,7 +85,7 @@ async function saveMicrosoftPhoto(accessToken, user) {
     const fs = require('fs');
     const path = require('path');
     try {
-        const photoResponse = await fetch('https://graph.microsoft.com/v1.0/me/photo/$value', {
+        const photoResponse = await fetchFixedEndpoint('https://graph.microsoft.com/v1.0/me/photo/$value', {
             headers: { 'Authorization': `Bearer ${accessToken}` }
         });
         if (!photoResponse.ok) {

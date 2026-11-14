@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Storage Proxy — Auth-protected file streaming from RustFS
  *
@@ -42,7 +42,7 @@ router.get('/tmp/:token', async (/** @type {import('express').Request<{ token: s
     try {
         const { token } = req.params;
         const key = req.query.key;
-        const expires = parseInt(req.query.expires, 10);
+        const expires = parseInt(/** @type {string} */ (req.query.expires), 10); // NaN when absent, which the verdict below reads as missing
 
         log.info(`[StorageProxy] Temp download request: key=${key}`);
 
@@ -66,7 +66,8 @@ router.get('/tmp/:token', async (/** @type {import('express').Request<{ token: s
             throw new HttpError(503, 'storage_unavailable', 'Storage not available');
         }
 
-        const { stream, contentType, contentLength } = await storageStore.streamFile(key);
+        // An 'ok' verdict means the key was there and signed.
+        const { stream, contentType, contentLength } = await storageStore.streamFile(/** @type {string} */ (key));
 
         // Set proper Content-Type (default to octet-stream, not audio/wav which was the old transcription default)
         res.setHeader('Content-Type', contentType || 'application/octet-stream');

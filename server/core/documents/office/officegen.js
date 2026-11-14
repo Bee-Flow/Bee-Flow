@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * officegen — generate REAL binary office files (spreadsheets, word docs and
  * presentations) so automations can save proper `.xlsx`/`.ods`/
@@ -51,7 +52,7 @@ async function buildDocx(content, title) {
     if (title && String(title).trim()) {
         children.push(new Paragraph({ text: String(title).trim(), heading: HeadingLevel.TITLE }));
     }
-    /** @type {Record<string, string>} */
+    /** @type {Record<string, (typeof HeadingLevel)[keyof typeof HeadingLevel]>} */
     const HEAD = { 1: HeadingLevel.HEADING_1, 2: HeadingLevel.HEADING_2, 3: HeadingLevel.HEADING_3 };
     for (const b of blocks) {
         if (b.type === 'blank') children.push(new Paragraph({}));
@@ -134,15 +135,15 @@ async function toBuffer(out) {
 /**
  * Build a .pptx from a NORMALISED deck (core/documents/deckModel.js).
  *
- * @param {{ deck: import('../deckModel').Deck, theme?: DeckThemeInput | null, title?: string | null, author?: string | null,
- *   date?: string | null, marking?: DeckMarking | null }} [args]  `deck` is normalizeDeck() output (slide images must
+ * @param {Partial<{ deck: import('../deckModel').Deck, theme?: DeckThemeInput | null, title?: string | null, author?: string | null,
+ *   date?: string | null, marking?: DeckMarking | null }>} [args]  `deck` is normalizeDeck() output (slide images must
  *   already be PNG/JPEG data: URLs); `theme` a RESOLVED deck theme (deckThemeOptions.resolveDeckTheme), neutral when
  *   absent; `title` overrides deck.title on the cover and in the file properties; `marking` the FLAT marking or null
  * @returns {Promise<{buffer: Buffer, contentType: string, format: 'pptx', slideCount: number}>}
  */
 async function buildPresentation({ deck, theme = null, title = null, author = null, date = null, marking = null } = {}) {
     if (!deck || !Array.isArray(deck.slides)) throw new Error('buildPresentation needs a normalised deck');
-    const PptxGenJS = require('pptxgenjs');
+    const PptxGenJS = /** @type {typeof import('pptxgenjs').default} */ (/** @type {unknown} */ (require('pptxgenjs')));
     const th = deckTheme(theme);
     const pptx = new PptxGenJS();
     pptx.layout = 'LAYOUT_16x9';

@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 /**
@@ -52,7 +53,7 @@ function resolveBinding(b, _ctx, scope) {
 function backgroundRunHarness({ before, after, beforeEach }) {
     const { pg, db } = pgliteDb();
     const store = makeActionRunStore(db);
-    const s = { clock: 0, executed: [], sleeps: [], execute: defaultExecute, budgets: () => [], limits: {}, beats: [], context: null, metas: [], lastInput: null };
+    const s = { clock: 0, executed: [], sleeps: [], execute: /** @type {import('../appStudio/backgroundRunParts.mts').RunnerDeps['executeStep']} */ (defaultExecute), budgets: /** @type {import('../appStudio/backgroundRunParts.mts').RunnerDeps['budgetsFor']} */ (() => []), limits: /** @type {ReturnType<typeof backgroundLimits>} */ ({}), beats: [], context: null, metas: [], lastInput: null };
     const sameAsStart = async () => (s.lastInput ? { ok: true, input: { ...s.lastInput, scope: {} } } : { ok: false, code: 'app_gone', error: 'No start to continue.' });
     const tracked = (action, over) => { s.lastInput = input(action, over); return s.lastInput; };
 

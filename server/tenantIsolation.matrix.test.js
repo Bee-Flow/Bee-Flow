@@ -70,7 +70,7 @@ before(async () => {
     // Both orgs on a plan that grants the features their routers gate on
     // (automations, datatables); an org without a plan is refused by the licence
     // gate, which is an entitlement, not an identity, and not what this test is about.
-    const plan = await userStore.createPlan({ name: 'Matrix plan', tier: 'pro', allowed_features: ['automations', 'datatables', 'webpages', 'agents', 'knowledge'] });
+    const plan = await userStore.createPlan({ name: 'Matrix plan', tier: 'pro', allowed_features: ['automations', 'datatables', 'webpages', 'agents', 'knowledge', 'notebooks'] });
     for (const [id, name] of [[ORG_A, 'Org A'], [ORG_B, 'Org B']]) {
         await userStore.createOrganization({ id, name }, { autoGrantTrial: false });
         await userStore.setOrgSubscription(id, { plan_id: plan.id, status: 'active' });
@@ -100,13 +100,17 @@ after(async () => {
     await closePg();
 });
 
-const fill = (route, id) => route.replace(/:[A-Za-z_]+/g, id);
+/** Every parameter is the id, except the ones the kind fixes (`params`). */
+const fill = (route, id, params = {}) => route.replace(/:([A-Za-z_]+)/g, (_m, name) => params[name] ?? id);
+/** The address of one of the kind's routes: its parameters filled, and the query string the kind gives it (`queries`). */
+const urlOf = (f, r, id) => fill(r.split(' ')[1], id, f.params) + (f.queries?.[r] ? `?${f.queries[r]}` : '');
 
 for (const f of FIXTURES) {
     test(`${f.kind}: the owner in org B reads their own resource`, async () => {
         const { id, api } = created.get(f.kind);
-        const [method, route] = f.routes[0].split(' ');
-        const res = await api.call(method, fill(route, id), { user: USER_B });
+        const [method] = f.routes[0].split(' ');
+        // The same body the callers send, so a route that validates first answers the owner past its schema.
+        const res = await api.call(method, urlOf(f, f.routes[0], id), { user: USER_B, body: f.bodies?.[f.routes[0]] });
         assert.equal(res.status, f.ownerStatus || 200, `${f.routes[0]} as the owner: ${res.status} ${res.text.slice(0, 200)}`);
     });
 
@@ -117,8 +121,9 @@ for (const f of FIXTURES) {
             const { id, api } = created.get(f.kind);
             const leaks = [];
             for (const r of f.routes) {
-                const [method, route] = r.split(' ');
-                const res = await api.call(method, fill(route, id), { user: caller, body: method === 'GET' || method === 'DELETE' ? undefined : {} });
+                const [method] = r.split(' ');
+                const body = f.bodies?.[r] ?? (method === 'GET' || method === 'DELETE' ? undefined : {});
+                const res = await api.call(method, urlOf(f, r, id), { user: caller, body });
                 if (res.status !== 403 && res.status !== 404) leaks.push(`${r} → ${res.status}`);
             }
             assert.deepEqual(leaks, [], `${who} reached org B's ${f.kind}:\n  ${leaks.join('\n  ')}`);
@@ -162,6 +167,19 @@ test('knowledgeBase: an admin of org B changes the content of B\'s base', async 
     assert.equal(res.status, 200, `${res.status} ${res.text.slice(0, 200)}`);
 });
 
+test('kbCategory: a category of org B is deleted by an admin of B, not by an admin of A who holds manage_knowledge in A only', async () => {
+    const { api } = created.get('kbCategory');
+    const kbStore = require('./stores/knowledgeBases');
+    // Its own category: the kind's fixture is gone once the owner's case above deleted it.
+    const { id } = await kbStore.createKBCategory({ id: 'cat-matrix-admin', organizationId: ORG_B, name: 'Category of B', icon: null, color: null });
+    const foreign = await api.call('DELETE', `/api/kb/categories/${id}`, { user: USER_AB });
+    assert.equal(foreign.status, 404, `${foreign.status} ${foreign.text.slice(0, 200)}`);
+    assert.ok((await kbStore.listKBCategories(ORG_B)).some((c) => c.id === id), 'the category of org B is still there');
+    const own = await api.call('DELETE', `/api/kb/categories/${id}`, { user: USER_B_ADMIN });
+    assert.equal(own.status, 200, `${own.status} ${own.text.slice(0, 200)}`);
+    assert.ok(!(await kbStore.listKBCategories(ORG_B)).some((c) => c.id === id));
+});
+
 test('knowledgeBase: a base is created only in an organisation where manage_knowledge holds', async () => {
     const { api } = created.get('knowledgeBase');
     const inB = await api.call('POST', '/api/kb', { user: USER_AB, body: { name: 'Matrix KB in B', organizationId: ORG_B } });
@@ -183,6 +201,19 @@ test('agent: an agent is created only in an organisation where manage_agents hol
     const inA = await api.call('POST', '/agents', { user: USER_AB, body: { name: 'Matrix agent in A', organizationId: ORG_A } });
     assert.equal(inA.status, 200, `${inA.status} ${inA.text.slice(0, 200)}`);
     assert.equal(inA.body.organization_id, ORG_A);
+});
+
+// ── The support desk of org B is not listed for a right held in org A ───────
+// support_inbox and the admin role hold per organisation: the inbox list of
+// USER_AB (admin of A, a plain group member of B) leaves out B's inboxes.
+
+test('supportInbox: the inbox list of an admin of org A who is a plain group member of org B leaves out B\'s inboxes', async () => {
+    const { id, api } = created.get('supportInbox');
+    const own = await api.call('GET', '/api/support-inbox/inboxes', { user: USER_B });
+    assert.ok(own.body.inboxes.some((i) => i.id === id), `the owner lists their inbox: ${own.text.slice(0, 200)}`);
+    const res = await api.call('GET', '/api/support-inbox/inboxes', { user: USER_AB });
+    assert.equal(res.status, 200, res.text.slice(0, 200));
+    assert.deepEqual(res.body.inboxes.filter((i) => i.organization_id === ORG_B).map((i) => i.id), []);
 });
 
 // ── The inventory half ──────────────────────────────────────────────────────
@@ -216,5 +247,6 @@ test('every fixture route exists in the contract, spelled the same way', () => {
 
 test('synthetic: the id fills every parameter of a route', () => {
     assert.equal(fill('GET /api/x/:id/rows/:rowId', 'abc'), 'GET /api/x/abc/rows/abc');
+    assert.equal(fill('GET /api/x/:id/versions/:ref', 'abc', { ref: 'current' }), 'GET /api/x/abc/versions/current');
     assert.equal(path.posix.join('/a', 'b'), '/a/b');
 });

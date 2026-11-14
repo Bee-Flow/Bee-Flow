@@ -1,158 +1,145 @@
+// @typecheck
 /**
- * Regression: single-entry bridge-grant writes must be ATOMIC.
+ * Single-entry bridge-grant writes are ATOMIC, against a real Postgres
+ * (PGlite behind db.js's pool, testUtils/pglitePool.js).
  *
- * updateBridgeGrants() rewrites the whole bridge_grants column after reading
- * it. The studio AI grants several tools in one parallel tool-call burst, so
- * every call read the same `integrations` array, appended its own entry and the
- * last write won — the author was told five tools were granted and two landed
- * (observed live: vplan_whoami / vplan_get_collection / vplan_list_boards were
- * reported granted but never persisted, and the page 403'd on them).
+ * The studio AI grants several tools in one parallel tool-call burst. A write
+ * that read the `integrations` array, appended its entry and wrote the whole
+ * column back would let the last write win: the author is told five tools were
+ * granted and two land. upsertBridgeGrantEntry / removeBridgeGrantEntry write
+ * through one jsonb statement, so a burst of them all lands; ownership sits in
+ * the same statement, so a caller who does not own the page changes nothing.
  *
- * upsertBridgeGrantEntry / removeBridgeGrantEntry must therefore issue exactly
- * ONE statement: no read-then-write pair, so Postgres' row lock serialises
- * concurrent callers. This test stubs `../db` and asserts that contract; the
- * jsonb semantics themselves are exercised against a real Postgres.
- *
- * Run: node --test stores/webpageStore.bridgeGrantAtomic.test.js
+ * Run: cd server && node --test stores/webpageStore.bridgeGrantAtomic.test.js
  */
+
+'use strict';
 
 const test = require('node:test');
 const assert = require('node:assert');
 
-// Stub ../db and ./storageStore before requiring the store, so nothing tries to
-// reach a live database at import time.
-const calls = [];
-let nextRow = { bridge_grants: JSON.stringify({ ai: {}, automations: [], integrations: [{ tool: 'a' }] }) };
+const { usePglitePool } = require('../testUtils/pglitePool');
 
-const dbPath = require.resolve('../db');
-require.cache[dbPath] = {
-    id: dbPath, filename: dbPath, loaded: true,
-    exports: {
-        run: async (sql, params) => { calls.push({ kind: 'run', sql, params }); return { rowCount: 1 }; },
-        getOne: async (sql, params) => { calls.push({ kind: 'getOne', sql, params }); return nextRow; },
-        getAll: async (sql, params) => { calls.push({ kind: 'getAll', sql, params }); return []; },
-        exec: async (sql) => { calls.push({ kind: 'exec', sql }); },
-    },
-};
-const storagePath = require.resolve('./storageStore');
-require.cache[storagePath] = {
-    id: storagePath, filename: storagePath, loaded: true,
-    exports: { putObject: async () => {}, getObject: async () => null, deleteObject: async () => {} },
-};
-
+const { pg, close } = usePglitePool();
 const { upsertBridgeGrantEntry, removeBridgeGrantEntry } = require('./webpageStore');
+const { initDB } = require('./webpage/schema');
 
-function reset() { calls.length = 0; }
-/** Statements the store issued that touch the webpages row (ignore schema init). */
-function grantStatements() {
-    return calls.filter(c => /UPDATE webpages/i.test(c.sql || ''));
+test.before(async () => {
+    await initDB();
+});
+test.after(close);
+
+let seq = 0;
+/** A fresh page owned by u1, optionally with a stored bridge_grants value. */
+async function page(grants) {
+    seq += 1;
+    const id = `wp${seq}`;
+    await pg.query('INSERT INTO webpages (id, user_id) VALUES ($1, $2)', [id, 'u1']);
+    if (grants) await pg.query('UPDATE webpages SET bridge_grants = $2::jsonb WHERE id = $1', [id, JSON.stringify(grants)]);
+    return id;
 }
 
-test('upsert issues exactly one UPDATE — no read-then-write pair to lose', async () => {
-    reset();
-    const merged = await upsertBridgeGrantEntry('wp1', 'u1', 'integrations', { tool: 'vplan_whoami' });
+/** The stored column, parsed. */
+async function stored(id) {
+    const { rows } = await pg.query('SELECT bridge_grants FROM webpages WHERE id = $1', [id]);
+    const v = rows[0].bridge_grants;
+    return typeof v === 'string' ? JSON.parse(v) : v;
+}
 
-    const stmts = grantStatements();
-    assert.strictEqual(stmts.length, 1, `expected 1 UPDATE, got ${stmts.length}`);
-    // A SELECT of bridge_grants before the UPDATE is exactly the lost-update shape.
-    const readsBefore = calls.filter(c => /SELECT bridge_grants/i.test(c.sql || ''));
-    assert.strictEqual(readsBefore.length, 0, 'must not read bridge_grants separately before writing');
-
-    const { sql, params } = stmts[0];
-    assert.match(sql, /jsonb_set/, 'writes via jsonb_set, not a whole-column replace');
-    assert.match(sql, /WHERE id = \$1 AND user_id = \$2/, 'ownership is enforced in the same statement');
-    assert.match(sql, /RETURNING bridge_grants/, 'returns the post-write state');
-    assert.deepStrictEqual(params.slice(0, 3), ['wp1', 'u1', 'vplan_whoami']);
-    assert.deepStrictEqual(JSON.parse(params[3]), { tool: 'vplan_whoami' });
-    assert.ok(merged && Array.isArray(merged.integrations), 'returns normalized grants');
+test('a parallel burst of grants all lands: none is lost to another write', async () => {
+    const id = await page();
+    const tools = ['vplan_whoami', 'vplan_get_collection', 'vplan_list_boards', 'vplan_list_cards', 'vplan_get_card'];
+    const results = await Promise.all(tools.map((tool) => upsertBridgeGrantEntry(id, 'u1', 'integrations', { tool })));
+    assert.ok(results.every((r) => r && Array.isArray(r.integrations)), 'each call returns the normalized grants');
+    assert.deepStrictEqual((await stored(id)).integrations.map((e) => e.tool).sort(), [...tools].sort());
 });
 
-test('remove issues exactly one UPDATE and appends nothing', async () => {
-    reset();
-    await removeBridgeGrantEntry('wp1', 'u1', 'integrations', 'a');
-
-    const stmts = grantStatements();
-    assert.strictEqual(stmts.length, 1);
-    assert.ok(!/jsonb_build_array/.test(stmts[0].sql), 'revoke must not append an entry');
-    assert.deepStrictEqual(stmts[0].params, ['wp1', 'u1', 'a']);
+test('upsert returns the post-write state and replaces an entry with the same id', async () => {
+    const id = await page({ ai: {}, automations: [], integrations: [{ tool: 'a' }] });
+    const merged = await upsertBridgeGrantEntry(id, 'u1', 'integrations', { tool: 'vplan_whoami' });
+    assert.deepStrictEqual(merged.integrations.map((e) => e.tool), ['a', 'vplan_whoami']);
+    await upsertBridgeGrantEntry(id, 'u1', 'integrations', { tool: 'vplan_whoami', label: 'Who' });
+    assert.deepStrictEqual((await stored(id)).integrations, [{ tool: 'a' }, { tool: 'vplan_whoami', label: 'Who' }]);
 });
 
-test('automations use their own id field', async () => {
-    reset();
-    await upsertBridgeGrantEntry('wp1', 'u1', 'automations', { automationId: 'auto-9', label: 'Nightly' });
-
-    const { sql, params } = grantStatements()[0];
-    assert.match(sql, /'\{automations\}'/, 'targets the automations list');
-    assert.match(sql, /e->>'automationId'/, 'de-duplicates on automationId');
-    assert.strictEqual(params[2], 'auto-9');
-    assert.deepStrictEqual(JSON.parse(params[3]), { automationId: 'auto-9', label: 'Nightly' });
+test('remove takes out exactly that entry and appends nothing', async () => {
+    const id = await page({ ai: {}, automations: [], integrations: [{ tool: 'a' }, { tool: 'b' }] });
+    const after = await removeBridgeGrantEntry(id, 'u1', 'integrations', 'a');
+    assert.deepStrictEqual(after.integrations, [{ tool: 'b' }]);
+    assert.deepStrictEqual((await stored(id)).integrations, [{ tool: 'b' }]);
+    const again = await removeBridgeGrantEntry(id, 'u1', 'integrations', 'a');
+    assert.deepStrictEqual(again.integrations, [{ tool: 'b' }], 'removing something absent is a no-op success');
 });
 
-test('the written entry is normalized — junk fields never reach the column', async () => {
-    reset();
-    await upsertBridgeGrantEntry('wp1', 'u1', 'integrations', {
-        tool: 'vplan_list_cards',
-        fixedArgs: { limit: 10 },
-        label: 'Cards',
-        evil: 'dropped',
+test('automations are keyed on their own id field', async () => {
+    const id = await page();
+    await upsertBridgeGrantEntry(id, 'u1', 'automations', { automationId: 'auto-9', label: 'Nightly' });
+    await upsertBridgeGrantEntry(id, 'u1', 'automations', { automationId: 'auto-9', label: 'Hourly' });
+    await upsertBridgeGrantEntry(id, 'u1', 'automations', { automationId: 'auto-10', label: 'Weekly' });
+    const g = await stored(id);
+    assert.deepStrictEqual(g.automations, [
+        { automationId: 'auto-9', label: 'Hourly' },
+        { automationId: 'auto-10', label: 'Weekly' },
+    ]);
+    assert.deepStrictEqual(g.integrations, [], 'the other lists are untouched');
+});
+
+test('the written entry is normalized: junk fields never reach the column', async () => {
+    const id = await page();
+    await upsertBridgeGrantEntry(id, 'u1', 'integrations', {
+        tool: 'vplan_list_cards', fixedArgs: { limit: 10 }, label: 'Cards', evil: 'dropped',
     });
-    assert.deepStrictEqual(JSON.parse(grantStatements()[0].params[3]), {
-        tool: 'vplan_list_cards', fixedArgs: { limit: 10 }, label: 'Cards',
-    });
+    assert.deepStrictEqual((await stored(id)).integrations, [
+        { tool: 'vplan_list_cards', fixedArgs: { limit: 10 }, label: 'Cards' },
+    ]);
 });
 
-test('unknown list names and missing ids are rejected before touching the DB', async () => {
-    reset();
-    await assert.rejects(() => upsertBridgeGrantEntry('wp1', 'u1', 'ai', { tool: 'x' }), /unknown list/);
-    await assert.rejects(() => upsertBridgeGrantEntry('wp1', 'u1', 'integrations', {}), /tool is required/);
-    await assert.rejects(() => removeBridgeGrantEntry('wp1', 'u1', 'integrations', ''), /id is required/);
-    await assert.rejects(() => removeBridgeGrantEntry('wp1', 'u1', 'nope', 'x'), /unknown list/);
-    assert.strictEqual(grantStatements().length, 0, 'no statement is issued for invalid input');
+test('unknown list names and missing ids are rejected and the column stays as it was', async () => {
+    const id = await page({ ai: {}, automations: [], integrations: [{ tool: 'a' }] });
+    const before = await stored(id);
+    await assert.rejects(() => upsertBridgeGrantEntry(id, 'u1', 'ai', { tool: 'x' }), /unknown list/);
+    await assert.rejects(() => upsertBridgeGrantEntry(id, 'u1', 'integrations', {}), /tool is required/);
+    await assert.rejects(() => removeBridgeGrantEntry(id, 'u1', 'integrations', ''), /id is required/);
+    await assert.rejects(() => removeBridgeGrantEntry(id, 'u1', 'nope', 'x'), /unknown list/);
+    assert.deepStrictEqual(await stored(id), before);
 });
 
-test('a page the caller does not own yields null, not a silent success', async () => {
-    reset();
-    nextRow = undefined; // UPDATE ... RETURNING matched no row
-    const merged = await upsertBridgeGrantEntry('wp1', 'someone-else', 'integrations', { tool: 'x' });
-    assert.strictEqual(merged, null);
-    nextRow = { bridge_grants: JSON.stringify({ ai: {}, automations: [], integrations: [] }) };
+test('a page the caller does not own yields null and keeps its grants', async () => {
+    const id = await page({ ai: {}, automations: [], integrations: [{ tool: 'a' }] });
+    const before = await stored(id);
+    assert.strictEqual(await upsertBridgeGrantEntry(id, 'someone-else', 'integrations', { tool: 'x' }), null);
+    assert.strictEqual(await removeBridgeGrantEntry(id, 'someone-else', 'integrations', 'a'), null);
+    assert.strictEqual(await upsertBridgeGrantEntry('wp-missing', 'u1', 'integrations', { tool: 'x' }), null);
+    assert.deepStrictEqual(await stored(id), before);
 });
 
-test('table bindings use the same atomic path, keyed on datatableId', async () => {
-    // De Data-tab schakelt tabellen één voor één aan; twee gelijktijdige
-    // schakelaars mogen elkaar niet verliezen zoals de tool-grants dat deden.
-    reset();
-    await upsertBridgeGrantEntry('wp1', 'u1', 'tables', {
-        datatableId: 'tbl_1', mode: 'readwrite', columns: ['email', 'name'], publicColumns: ['name'],
-    });
-
-    const stmts = grantStatements();
-    assert.strictEqual(stmts.length, 1);
-    const { sql, params } = stmts[0];
-    assert.match(sql, /'\{tables\}'/, 'targets the tables list');
-    assert.match(sql, /e->>'datatableId'/, 'de-duplicates on datatableId');
-    assert.strictEqual(params[2], 'tbl_1');
-    assert.deepStrictEqual(JSON.parse(params[3]), {
-        datatableId: 'tbl_1', mode: 'readwrite', columns: ['email', 'name'], publicColumns: ['name'],
-    });
+test('table bindings take the same atomic path, keyed on datatableId', async () => {
+    // The Data tab switches tables on one at a time; two switches at once must not lose each other.
+    const id = await page();
+    await Promise.all([
+        upsertBridgeGrantEntry(id, 'u1', 'tables', { datatableId: 'tbl_1', mode: 'readwrite', columns: ['email', 'name'], publicColumns: ['name'] }),
+        upsertBridgeGrantEntry(id, 'u1', 'tables', { datatableId: 'tbl_2', mode: 'read', columns: ['title'] }),
+    ]);
+    const tables = (await stored(id)).tables.sort((a, b) => a.datatableId.localeCompare(b.datatableId));
+    assert.deepStrictEqual(tables[0], { datatableId: 'tbl_1', mode: 'readwrite', columns: ['email', 'name'], publicColumns: ['name'] });
+    assert.strictEqual(tables[1].datatableId, 'tbl_2');
+    await removeBridgeGrantEntry(id, 'u1', 'tables', 'tbl_1');
+    assert.deepStrictEqual((await stored(id)).tables.map((t) => t.datatableId), ['tbl_2']);
 });
 
 test('the single-entry path narrows exactly like the whole-column path', async () => {
-    // One entry point fewer to forget: the atomic writer fetches its entry through the same
-    // normaliser, so 'write' becomes read here too, and a public column outside `columns` does
-    // not fetch the column.
-    reset();
-    await upsertBridgeGrantEntry('wp1', 'u1', 'tables', {
+    // 'write' becomes read, and a public column outside `columns` does not fetch the column.
+    const id = await page();
+    await upsertBridgeGrantEntry(id, 'u1', 'tables', {
         datatableId: 'tbl_1', mode: 'write', columns: '*', publicColumns: ['bsn'], evil: 'dropped',
     });
-    assert.deepStrictEqual(JSON.parse(grantStatements()[0].params[3]), {
-        datatableId: 'tbl_1', mode: 'read', columns: [], publicColumns: [],
-    });
+    assert.deepStrictEqual((await stored(id)).tables, [{ datatableId: 'tbl_1', mode: 'read', columns: [], publicColumns: [] }]);
 });
 
-test('a table binding without a datatableId never reaches the DB', async () => {
-    reset();
-    await assert.rejects(() => upsertBridgeGrantEntry('wp1', 'u1', 'tables', { tableId: 'tbl_1' }), /datatableId is required/);
-    await assert.rejects(() => removeBridgeGrantEntry('wp1', 'u1', 'tables', ''), /id is required/);
-    assert.strictEqual(grantStatements().length, 0);
+test('a table binding without a datatableId never reaches the column', async () => {
+    const id = await page();
+    const before = await stored(id);
+    await assert.rejects(() => upsertBridgeGrantEntry(id, 'u1', 'tables', { tableId: 'tbl_1' }), /datatableId is required/);
+    await assert.rejects(() => removeBridgeGrantEntry(id, 'u1', 'tables', ''), /id is required/);
+    assert.deepStrictEqual(await stored(id), before);
 });

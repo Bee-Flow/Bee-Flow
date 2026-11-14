@@ -1,5 +1,5 @@
-import { API_BASE } from '@/utils/helpers';
-import { mutate, ApiError } from '@/api/mutate';
+import { ApiError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 import { toast } from '@/components/shared/Toast';
 import type { ImageLimits } from '@/utils/imageLimits';
 
@@ -10,17 +10,13 @@ import type { ImageLimits } from '@/utils/imageLimits';
  * so the editor keeps what was typed.
  */
 export async function saveImageLimits(
-    path: string,
-    field: 'imageLimits' | 'perUserImageLimits',
+    target: { user: string } | { group: string },
     limits: ImageLimits | null,
     { fetchData, failText }: { fetchData: () => Promise<void> | void; failText: string },
 ): Promise<boolean> {
     try {
-        await mutate(`${API_BASE}${path}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ [field]: limits }),
-        });
+        if ('user' in target) await apiRequest('PUT /auth/users/{id}', { params: { id: target.user }, body: { imageLimits: limits } });
+        else await apiRequest('PUT /auth/groups/{id}', { params: { id: target.group }, body: { perUserImageLimits: limits } });
     } catch (err) {
         if (!(err instanceof ApiError)) console.error('Failed to save image limits:', err);
         toast.error(err instanceof ApiError && err.message ? err.message : failText);

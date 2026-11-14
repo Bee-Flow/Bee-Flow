@@ -3,9 +3,9 @@ import React, { useState } from 'react';
 import Notice from './Notice';
 import { CARD, ROW, TabCard } from './TabParts';
 import { useTranslation } from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
 import type { TranslateFn } from '@/hooks/useTranslation';
-import { mutate, errorBody, RefusedError } from '@/api/mutate';
+import { errorBody, RefusedError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 interface BlueprintReport {
     counts?: { automations?: number; apps?: number; webpages?: number };
@@ -164,11 +164,7 @@ export default function ProjectBlueprintTab({ projectId, projectName, role, forc
         try {
             let res: Response;
             try {
-                res = await mutate(`${API_BASE}/api/projects/${projectId}/package/export`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ save: keepHere }),
-            });
+                res = await apiRequest('POST /api/projects/{id}/package/export', { params: { id: projectId }, body: { save: keepHere } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const body = errorBody(err) ?? {};

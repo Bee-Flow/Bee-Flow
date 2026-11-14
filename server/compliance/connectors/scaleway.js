@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Scaleway infrastructure connector — backup freshness and network exposure
  * evidence for the org's Scaleway project (A.8.13/A.8.14 backups, A.8.20/
@@ -103,6 +103,219 @@ function _ruleCoversPort(rule, port) {
     return port >= Number(from) && port <= Number(to);
 }
 
+/**
+ * @typedef {{ id: string, zone: string, name: string | null, state: string | null, volumeIds: string[] }} ServerRow
+ * @typedef {{ baseVolumeId: string | null, ageDays: number | null }} SnapshotRow
+ * @typedef {{ port: number, ip_range: string }} OpenAdminRule
+ * @typedef {{ id: string, zone: string, name: string | null, inboundDefaultAccept: boolean, openAdminRules: OpenAdminRule[] }} GroupRow
+ * @typedef {{ safeFetch: import('./index').SafeFetch, token: string, projectQs: string }} ZoneCtx
+ */
+
+/**
+ * The API secret key and region from the connection, refused when unusable.
+ * @param {import('./index').CollectArgs} args
+ */
+function _connection({ secret, settings }) {
+    const token = secret?.token || secret?.apiKey || secret?.api_key || null;
+    if (!token) throw new Error('Scaleway connection has no API secret key');
+    const region = String(settings?.region || 'nl-ams').trim().toLowerCase();
+    if (!REGION_RE.test(region)) throw new Error(`Invalid Scaleway region "${region}" — expected e.g. "nl-ams"`);
+    const projectId = settings?.project_id ? String(settings.project_id).trim() : null;
+    return { token: /** @type {string} */ (token), region, projectId };
+}
+
+/**
+ * An inbound accept rule for TCP (or any protocol) from the whole internet.
+ * @param {Record<string, any> | null | undefined} r
+ */
+function _acceptsTcpFromAnywhere(r) {
+    if (String(r?.direction || '').toLowerCase() !== 'inbound') return false;
+    if (String(r?.action || '').toLowerCase() !== 'accept') return false;
+    const proto = String(r?.protocol || 'ANY').toUpperCase();
+    if (proto !== 'TCP' && proto !== 'ANY') return false;
+    return _isWorldRange(r?.ip_range);
+}
+
+/**
+ * The inbound accept rules from anywhere that reach an admin port, one entry
+ * per port a rule covers.
+ * @param {unknown[]} rules
+ * @returns {OpenAdminRule[]}
+ */
+function _openAdminRules(rules) {
+    /** @type {OpenAdminRule[]} */
+    const open = [];
+    for (const r of /** @type {Record<string, any>[]} */ (rules)) {
+        if (!_acceptsTcpFromAnywhere(r)) continue;
+        for (const port of ADMIN_PORTS) {
+            if (_ruleCoversPort(r, port)) open.push({ port, ip_range: String(r?.ip_range || '0.0.0.0/0') });
+        }
+    }
+    return open;
+}
+
+/**
+ * @param {Record<string, any>} s
+ * @param {string} zone
+ * @returns {ServerRow}
+ */
+function _serverRow(s, zone) {
+    return {
+        id: s.id,
+        zone,
+        name: s.name || null,
+        state: s.state || null,
+        volumeIds: Object.values(s.volumes || {}).map(v => v?.id).filter(Boolean),
+    };
+}
+
+/**
+ * One security group with its open admin rules. Rules share the
+ * InstancesReadOnly permission, so an inaccessible rule set is treated as
+ * empty (unreachable when listing worked).
+ * @param {ZoneCtx} ctx
+ * @param {string} zone
+ * @param {Record<string, any>} g
+ * @returns {Promise<GroupRow>}
+ */
+async function _groupRow(ctx, zone, g) {
+    const rulesRes = await _api(ctx.safeFetch, ctx.token, `/instance/v1/zones/${zone}/security_groups/${g.id}/rules?per_page=100`);
+    const rules = rulesRes.ok && Array.isArray(rulesRes.data?.rules) ? rulesRes.data.rules : [];
+    return {
+        id: g.id,
+        zone,
+        name: g.name || null,
+        inboundDefaultAccept: String(g.inbound_default_policy || '').toLowerCase() === 'accept',
+        openAdminRules: _openAdminRules(rules),
+    };
+}
+
+/**
+ * Servers, snapshots and security groups of one zone, or null when the zone
+ * does not exist for this region/account.
+ * @param {ZoneCtx} ctx
+ * @param {string} zone
+ */
+async function _collectZone(ctx, zone) {
+    const { safeFetch, token, projectQs } = ctx;
+    const sv = await _pagedList(safeFetch, token, `/instance/v1/zones/${zone}/servers${projectQs}`, 'servers');
+    if (sv.rows === null) {
+        if (sv.status === 404) return null;
+        throw new Error(`Scaleway servers list denied (${sv.status}) in ${zone} — the key needs InstancesReadOnly`);
+    }
+    const servers = sv.rows.filter(s => s?.id).map(s => _serverRow(s, zone));
+
+    const sn = await _pagedList(safeFetch, token, `/instance/v1/zones/${zone}/snapshots${projectQs}`, 'snapshots');
+    if (sn.rows === null) throw new Error(`Scaleway snapshots list denied (${sn.status}) in ${zone}`);
+    /** @type {SnapshotRow[]} */
+    const snapshots = sn.rows.map(snap => ({ baseVolumeId: snap?.base_volume?.id || null, ageDays: _ageDays(snap?.creation_date) }));
+
+    const sg = await _pagedList(safeFetch, token, `/instance/v1/zones/${zone}/security_groups${projectQs}`, 'security_groups');
+    if (sg.rows === null) throw new Error(`Scaleway security groups list denied (${sg.status}) in ${zone}`);
+    /** @type {GroupRow[]} */
+    const groups = [];
+    for (const g of sg.rows) {
+        if (g?.id) groups.push(await _groupRow(ctx, zone, g));
+    }
+    return { servers, snapshots, groups, truncated: sv.truncated || sn.truncated || sg.truncated };
+}
+
+/**
+ * Kubernetes clusters of the region; `count` is null (unknown) without
+ * KubernetesReadOnly.
+ * @param {ZoneCtx} ctx
+ * @param {string} region
+ * @param {string | null} projectId
+ */
+async function _collectClusters(ctx, region, projectId) {
+    const kubeQs = `?page_size=100${projectId ? `&project_id=${encodeURIComponent(projectId)}` : ''}`;
+    const kres = await _api(ctx.safeFetch, ctx.token, `/k8s/v1/regions/${region}/clusters${kubeQs}`);
+    if (!kres.ok) return { count: /** @type {number | null} */ (null), rows: [] };
+    /** @type {Record<string, any>[]} */
+    const rows = Array.isArray(kres.data?.clusters) ? kres.data.clusters : [];
+    const count = Number.isFinite(Number(kres.data?.total_count)) ? Number(kres.data?.total_count) : rows.length;
+    return { count: /** @type {number | null} */ (count), rows };
+}
+
+/**
+ * Per-server backup freshness from the newest snapshot of each volume.
+ * @param {ServerRow[]} servers
+ * @param {SnapshotRow[]} snapshots
+ */
+function _serverBackups(servers, snapshots) {
+    /** @type {Map<string, number>} */
+    const newestByVolume = new Map();
+    for (const snap of snapshots) {
+        if (!snap.baseVolumeId || snap.ageDays === null) continue;
+        const prev = newestByVolume.get(snap.baseVolumeId);
+        if (prev === undefined || snap.ageDays < prev) newestByVolume.set(snap.baseVolumeId, snap.ageDays);
+    }
+    const rows = [];
+    let serversWithBackup = 0;
+    /** @type {number | null} */
+    let worstNewestAge = null;
+    for (const s of servers) {
+        /** @type {number | null} */
+        let newest = null;
+        for (const v of s.volumeIds) {
+            const age = newestByVolume.get(v);
+            if (age !== undefined && (newest === null || age < newest)) newest = age;
+        }
+        const count = snapshots.filter(snap => snap.baseVolumeId && s.volumeIds.includes(snap.baseVolumeId)).length;
+        if (newest !== null) {
+            serversWithBackup++;
+            if (worstNewestAge === null || newest > worstNewestAge) worstNewestAge = newest;
+        }
+        rows.push({
+            subject_id: s.id,
+            payload: { type: 'server', zone: s.zone, name: s.name, state: s.state, snapshot_count: count, newest_backup_age_days: newest },
+        });
+    }
+    return { rows, serversWithBackup, worstNewestAge };
+}
+
+/**
+ * Snapshots whose base volume is missing or belongs to no listed server.
+ * @param {ServerRow[]} servers
+ * @param {SnapshotRow[]} snapshots
+ */
+function _unassignedSnapshots(servers, snapshots) {
+    const assignedVolumes = new Set();
+    for (const s of servers) for (const v of s.volumeIds) assignedVolumes.add(v);
+    return snapshots.filter(sn => !sn.baseVolumeId || !assignedVolumes.has(sn.baseVolumeId)).length;
+}
+
+/**
+ * @param {Record<string, any>[]} clusterRows
+ * @param {string} region
+ */
+function _clusterRows(clusterRows, region) {
+    return clusterRows.filter(c => c?.id).map(c => ({
+        subject_id: c.id,
+        payload: { type: 'k8s_cluster', region, name: c.name || null, status: c.status || null, version: c.version || null },
+    }));
+}
+
+/**
+ * Open admin ports over all groups, with the first SAMPLE_LIMIT as samples.
+ * @param {GroupRow[]} groups
+ */
+function _exposure(groups) {
+    const openSamples = [];
+    let openAdminPorts = 0;
+    let defaultAcceptGroups = 0;
+    for (const g of groups) {
+        if (g.inboundDefaultAccept) defaultAcceptGroups++;
+        for (const rule of g.openAdminRules) {
+            openAdminPorts++;
+            if (openSamples.length < SAMPLE_LIMIT) {
+                openSamples.push({ security_group_id: g.id, zone: g.zone, port: rule.port, ip_range: rule.ip_range });
+            }
+        }
+    }
+    return { openAdminPorts, defaultAcceptGroups, openSamples };
+}
+
 module.exports = {
     id: 'scaleway',
     titleKey: 'compliance.connector.scaleway.title',
@@ -112,179 +325,60 @@ module.exports = {
     credential: { provider: 'scaleway', kinds: ['api_key'] },
     settingsHint: 'region: "nl-ams", project_id: "..."',
 
-    /** @param {import('./index').CollectArgs} args */
-    async collect({ secret, settings, safeFetch }) {
-        const token = secret?.token || secret?.apiKey || secret?.api_key || null;
-        if (!token) throw new Error('Scaleway connection has no API secret key');
-        const region = String(settings?.region || 'nl-ams').trim().toLowerCase();
-        if (!REGION_RE.test(region)) throw new Error(`Invalid Scaleway region "${region}" — expected e.g. "nl-ams"`);
-        const projectId = settings?.project_id ? String(settings.project_id).trim() : null;
-        const projectQs = projectId ? `?project=${encodeURIComponent(projectId)}` : '';
+    /** @param {import('./index').FetchingCollectArgs} args */
+    async collect(args) {
+        const { token, region, projectId } = _connection(args);
+        /** @type {ZoneCtx} */
+        const ctx = {
+            safeFetch: /** @type {import('./index').SafeFetch} */ (args.safeFetch),
+            token,
+            projectQs: projectId ? `?project=${encodeURIComponent(projectId)}` : '',
+        };
 
         /** @type {string[]} */
         const zonesProbed = [];
-        const servers = [];   // { id, zone, name, state, volumeIds }
-        const snapshots = []; // { baseVolumeId, ageDays }
-        const groups = [];    // { id, zone, name, inboundDefaultAccept, openAdminRules }
+        /** @type {ServerRow[]} */
+        const servers = [];
+        /** @type {SnapshotRow[]} */
+        const snapshots = [];
+        /** @type {GroupRow[]} */
+        const groups = [];
         let truncated = false;
-
         for (const zone of [1, 2, 3].map(n => `${region}-${n}`)) {
-            const sv = await _pagedList(safeFetch, token, `/instance/v1/zones/${zone}/servers${projectQs}`, 'servers');
-            if (sv.rows === null) {
-                if (sv.status === 404) continue; // zone does not exist for this region/account
-                throw new Error(`Scaleway servers list denied (${sv.status}) in ${zone} — the key needs InstancesReadOnly`);
-            }
+            const z = await _collectZone(ctx, zone);
+            if (!z) continue;
             zonesProbed.push(zone);
-            truncated = truncated || sv.truncated;
-            for (const s of sv.rows) {
-                if (!s?.id) continue;
-                servers.push({
-                    id: s.id,
-                    zone,
-                    name: s.name || null,
-                    state: s.state || null,
-                    volumeIds: Object.values(s.volumes || {}).map(v => v?.id).filter(Boolean),
-                });
-            }
-
-            const sn = await _pagedList(safeFetch, token, `/instance/v1/zones/${zone}/snapshots${projectQs}`, 'snapshots');
-            if (sn.rows === null) throw new Error(`Scaleway snapshots list denied (${sn.status}) in ${zone}`);
-            truncated = truncated || sn.truncated;
-            for (const snap of sn.rows) {
-                snapshots.push({ baseVolumeId: snap?.base_volume?.id || null, ageDays: _ageDays(snap?.creation_date) });
-            }
-
-            const sg = await _pagedList(safeFetch, token, `/instance/v1/zones/${zone}/security_groups${projectQs}`, 'security_groups');
-            if (sg.rows === null) throw new Error(`Scaleway security groups list denied (${sg.status}) in ${zone}`);
-            truncated = truncated || sg.truncated;
-            for (const g of sg.rows) {
-                if (!g?.id) continue;
-                // Rules share the InstancesReadOnly permission — an inaccessible
-                // rule set is treated as empty (unreachable when listing worked).
-                const rulesRes = await _api(safeFetch, token, `/instance/v1/zones/${zone}/security_groups/${g.id}/rules?per_page=100`);
-                const rules = rulesRes.ok && Array.isArray(rulesRes.data?.rules) ? rulesRes.data.rules : [];
-                /** @type {{ port: number; ip_range: string; }[]} */
-                const openAdminRules = [];
-                for (const r of rules) {
-                    if (String(r?.direction || '').toLowerCase() !== 'inbound') continue;
-                    if (String(r?.action || '').toLowerCase() !== 'accept') continue;
-                    const proto = String(r?.protocol || 'ANY').toUpperCase();
-                    if (proto !== 'TCP' && proto !== 'ANY') continue;
-                    if (!_isWorldRange(r?.ip_range)) continue;
-                    for (const port of ADMIN_PORTS) {
-                        if (_ruleCoversPort(r, port)) {
-                            openAdminRules.push({ port, ip_range: String(r?.ip_range || '0.0.0.0/0') });
-                        }
-                    }
-                }
-                groups.push({
-                    id: g.id,
-                    zone,
-                    name: g.name || null,
-                    inboundDefaultAccept: String(g.inbound_default_policy || '').toLowerCase() === 'accept',
-                    openAdminRules,
-                });
-            }
+            servers.push(...z.servers);
+            snapshots.push(...z.snapshots);
+            groups.push(...z.groups);
+            truncated = truncated || z.truncated;
         }
 
-        // Kubernetes clusters — degrade to null (unknown) without KubernetesReadOnly.
-        /** @type {number | null} */
-        let clusters = null;
-        let clusterRows = [];
-        const kubeQs = `?page_size=100${projectId ? `&project_id=${encodeURIComponent(projectId)}` : ''}`;
-        const kres = await _api(safeFetch, token, `/k8s/v1/regions/${region}/clusters${kubeQs}`);
-        if (kres.ok) {
-            clusterRows = Array.isArray(kres.data?.clusters) ? kres.data.clusters : [];
-            clusters = Number.isFinite(Number(kres.data?.total_count)) ? Number(kres.data.total_count) : clusterRows.length;
-        }
-
-        // Newest snapshot per volume → per-server backup freshness.
-        const newestByVolume = new Map();
-        for (const snap of snapshots) {
-            if (!snap.baseVolumeId || snap.ageDays === null) continue;
-            const prev = newestByVolume.get(snap.baseVolumeId);
-            if (prev === undefined || snap.ageDays < prev) newestByVolume.set(snap.baseVolumeId, snap.ageDays);
-        }
-        const assignedVolumes = new Set();
-        for (const s of servers) for (const v of s.volumeIds) assignedVolumes.add(v);
-        const unassignedSnapshots = snapshots.filter(sn => !sn.baseVolumeId || !assignedVolumes.has(sn.baseVolumeId)).length;
-
-        const out = [];
-        let serversWithBackup = 0;
-        let worstNewestAge = null;
-        for (const s of servers) {
-            let newest = null;
-            let count = 0;
-            for (const v of s.volumeIds) {
-                const age = newestByVolume.get(v);
-                if (age === undefined) continue;
-                if (newest === null || age < newest) newest = age;
-            }
-            for (const snap of snapshots) {
-                if (snap.baseVolumeId && s.volumeIds.includes(snap.baseVolumeId)) count++;
-            }
-            if (newest !== null) {
-                serversWithBackup++;
-                if (worstNewestAge === null || newest > worstNewestAge) worstNewestAge = newest;
-            }
-            out.push({
-                subject_id: s.id,
+        const clusters = await _collectClusters(ctx, region, projectId);
+        const backups = _serverBackups(servers, snapshots);
+        const exposure = _exposure(groups);
+        return [
+            ...backups.rows,
+            ..._clusterRows(clusters.rows, region),
+            {
+                subject_id: 'summary',
                 payload: {
-                    type: 'server',
-                    zone: s.zone,
-                    name: s.name,
-                    state: s.state,
-                    snapshot_count: count,
-                    newest_backup_age_days: newest,
-                },
-            });
-        }
-        for (const c of clusterRows) {
-            if (!c?.id) continue;
-            out.push({
-                subject_id: c.id,
-                payload: {
-                    type: 'k8s_cluster',
                     region,
-                    name: c.name || null,
-                    status: c.status || null,
-                    version: c.version || null,
+                    eu_region: /^(fr|nl|pl)-/.test(region),
+                    zones_probed: zonesProbed,
+                    servers: servers.length,
+                    clusters: clusters.count,
+                    snapshots: snapshots.length,
+                    unassigned_snapshots: _unassignedSnapshots(servers, snapshots),
+                    servers_with_backup: backups.serversWithBackup,
+                    newest_backup_age_days: backups.worstNewestAge,
+                    security_groups: groups.length,
+                    inbound_default_accept_groups: exposure.defaultAcceptGroups,
+                    open_admin_ports: exposure.openAdminPorts,
+                    open_admin_port_samples: exposure.openSamples,
+                    truncated,
                 },
-            });
-        }
-
-        const openSamples = [];
-        let openAdminPorts = 0;
-        let defaultAcceptGroups = 0;
-        for (const g of groups) {
-            if (g.inboundDefaultAccept) defaultAcceptGroups++;
-            for (const rule of g.openAdminRules) {
-                openAdminPorts++;
-                if (openSamples.length < SAMPLE_LIMIT) {
-                    openSamples.push({ security_group_id: g.id, zone: g.zone, port: rule.port, ip_range: rule.ip_range });
-                }
-            }
-        }
-
-        out.push({
-            subject_id: 'summary',
-            payload: {
-                region,
-                eu_region: /^(fr|nl|pl)-/.test(region),
-                zones_probed: zonesProbed,
-                servers: servers.length,
-                clusters,
-                snapshots: snapshots.length,
-                unassigned_snapshots: unassignedSnapshots,
-                servers_with_backup: serversWithBackup,
-                newest_backup_age_days: worstNewestAge,
-                security_groups: groups.length,
-                inbound_default_accept_groups: defaultAcceptGroups,
-                open_admin_ports: openAdminPorts,
-                open_admin_port_samples: openSamples,
-                truncated,
             },
-        });
-        return out;
+        ];
     },
 };

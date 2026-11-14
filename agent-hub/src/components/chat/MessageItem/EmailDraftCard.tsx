@@ -1,6 +1,6 @@
 import React, { type Dispatch, type SetStateAction } from 'react';
 import { Mail, Send, Loader, FileText, X, ExternalLink } from 'lucide-react';
-import { API_BASE, authFetch } from '@/utils/helpers';
+import { apiFetch } from '@/api/typedRequest';
 import type { DraftStatusMap } from '@/hooks/useDraftAction';
 import useTranslation from '@/hooks/useTranslation';
 import { errorMessage } from '@/utils/caughtError';
@@ -18,6 +18,11 @@ interface EmailDraft {
     [key: string]: unknown;
 }
 
+/** The draft as the model wrote it, sent whole (its optional fields are wider than the routes' schema types). */
+function draftInit(draft: EmailDraft) {
+    return { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draft) };
+}
+
 interface EmailDraftCardProps {
     msg: { emailDrafts?: EmailDraft[] };
     emailDraftStatuses: DraftStatusMap;
@@ -31,11 +36,8 @@ export default function EmailDraftCard({ msg, emailDraftStatuses, setEmailDraftS
     const handleSendEmail = async (draft: EmailDraft, index: number) => {
         setEmailDraftStatuses((prev: DraftStatusMap) => ({ ...prev, [index]: 'sending' }));
         try {
-            const endpoint = draft._provider === 'microsoft' ? 'outlook' : 'gmail';
-            const res = await authFetch(`${API_BASE}/api/integrations/${endpoint}/send`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(draft),
+            const res = await apiFetch(draft._provider === 'microsoft' ? 'POST /api/integrations/outlook/send' : 'POST /api/integrations/gmail/send', {
+                init: draftInit(draft),
             });
             if (res.ok) {
                 setEmailDraftStatuses((prev: DraftStatusMap) => ({ ...prev, [index]: 'sent' }));
@@ -55,11 +57,8 @@ export default function EmailDraftCard({ msg, emailDraftStatuses, setEmailDraftS
     const handleSaveAsDraft = async (draft: EmailDraft, index: number) => {
         setEmailDraftStatuses((prev: DraftStatusMap) => ({ ...prev, [index]: 'saving_draft' }));
         try {
-            const endpoint = draft._provider === 'microsoft' ? 'outlook' : 'gmail';
-            const res = await authFetch(`${API_BASE}/api/integrations/${endpoint}/draft`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(draft),
+            const res = await apiFetch(draft._provider === 'microsoft' ? 'POST /api/integrations/outlook/draft' : 'POST /api/integrations/gmail/draft', {
+                init: draftInit(draft),
             });
             if (res.ok) {
                 const data = await res.json();

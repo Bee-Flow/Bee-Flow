@@ -1,3 +1,4 @@
+// @typecheck
 /** @typedef {import('../../core/llm/modelCache').AIConfig} AIConfig */
 /** @typedef {import('../../core/providers/base')} BaseProvider */
 /**
@@ -56,7 +57,7 @@ const { NotebookTurnBody } = require('./directChat/turnSchema');
 const notebookCollab = require('../../agents/notebooks/notebookCollab');
 const { makeAiDocWriter } = require('../../agents/notebooks/aiDocWriter');
 const { makeNotebookFeed } = require('../../agents/notebooks/notebookFeed');
-const { hasNotebookRole } = require('../notebooksAccess');
+const { hasNotebookRole } = require('../../auth/notebookAccess.mts');
 const { createToolRepeatGuard } = require('../../core/agentRuntime/toolRepeatGuard');
 
 const { makeTurnScans } = require('./notebookChat/privacyScans');
@@ -82,7 +83,7 @@ const seams = {
 
 // ─── Streaming Notebook Chat ─────────────────────────────────────
 
-router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof NotebookTurnBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnBody }), async (req, res) => {
     const { message, notebookId, history, modelTier, timezone, attachments, notebookSelection, docVersion } = req.body;
     const userId = req.session.user.id;
 
@@ -147,7 +148,7 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
     if (!modelId) {
         const config = await getAIConfig();
         modelId = config.model;
-        if (!modelId) throw new Error(`No model configured for tier "${resolvedTier}". Set up model tiers in Settings.`);
+        if (!modelId) throw new HttpError(503, 'no_model', 'No AI model is configured for this workspace. Ask an admin to set up the model tiers in Settings.');
     }
 
     // Resolve provider
@@ -214,10 +215,10 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
         // the prompt, is not served again (see core/agentRuntime/toolRepeatGuard).
         const repeatGuard = createToolRepeatGuard({ readOnlyTools: ['notebook_kb_search', 'notebook_doc_read'] });
         // Search notebook knowledge base for relevant context
-        const kb = await retrieveKbContext({
+        const kb = /** @type {{ stop?: true, kbIds?: string[], kbContext?: string, citations?: Record<string, any>[] }} */ (await retrieveKbContext({
             req, notebook, userId, message, readySources, send, notebookId,
             docShield, orgShieldConfig, toolPiiGate, repeatGuard, scans, queryLogs, userOrgId: userOrgForTiers || null,
-        });
+        }));
         if (kb.stop) return;
         const { kbIds, kbContext } = kb;
 
@@ -230,7 +231,7 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
         // Build source summary
         const sourceSummary = buildSourceSummary(readySources);
 
-        const docCtx = await buildDocumentContext({ documentContent, notebook, notebookId, docShield, scans });
+        const docCtx = /** @type {Record<string, any>} */ (await buildDocumentContext({ documentContent, notebook, notebookId, docShield, scans }));
         if (docCtx.stop) return;
         const { documentContext, documentTruncation, docPiiTokenMap, scannedDocumentContent } = docCtx;
 
@@ -263,7 +264,7 @@ router.post('/chat/notebook/stream', requireAuth, validate({ body: NotebookTurnB
 
         // ── Input gates: Unicode smuggling (FIRST), PII, token addendum, regex ──
         stripUnicodeSmuggling({ messages, send, userOrgForTiers, userId, notebookId });
-        const pii = await runInputPiiGate({ messages, docShield, notebookId, modelId, send, res });
+        const pii = /** @type {Record<string, any>} */ (await runInputPiiGate({ messages, docShield, notebookId, modelId, send, res }));
         if (pii.stop) return;
         const { piiTokenMap, _userPiiCategories } = pii;
         let { _assistantTokenisationInfo } = pii;

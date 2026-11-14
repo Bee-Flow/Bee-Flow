@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The Blueprint store's pure helpers (stores/blueprint/mappers.js).
  *
@@ -65,6 +65,7 @@ test('the largest entity is named, so a size refusal can be acted on', () => {
         },
     };
     const worst = largestEntity(manifest);
+    assert.ok(worst);
     assert.strictEqual(worst.name, 'Orders');
     assert.strictEqual(worst.kind, 'apps');
     assert.ok(worst.bytes > 5000);
@@ -72,6 +73,7 @@ test('the largest entity is named, so a size refusal can be acted on', () => {
 
 test('an entity with no name is still identifiable by its ref', () => {
     const worst = largestEntity({ solution: { entities: { apps: [{ ref: 'app_1', definition: {} }] } } });
+    assert.ok(worst);
     assert.strictEqual(worst.name, 'app_1');
 });
 

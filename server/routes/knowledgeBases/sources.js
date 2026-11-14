@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Knowledge Bases — sources (K1).
  *
@@ -16,8 +16,9 @@
  *
  * Mounted BEFORE routes/knowledgeBases/detail.js — order is semantics.
  *
- * Authorization: reads go through `canAccessKB`, writes through
- * `requirePermission('manage_knowledge')` + `canManageKB` + `blockIfSystemKB`.
+ * Authorization: reads go through `requireKbGrade('read')`, writes through
+ * `requirePermission('manage_knowledge')` + `requireKbGrade('manage')` + `blockIfSystemKB`
+ * (`writableKb`); the gate is auth/kbAccess.mts, wired in ./shared.
  * Never the notebook owner-check: a KB is shared, a notebook is not.
  *
  * Two things this file deliberately does NOT do, because they belong to K3
@@ -42,11 +43,11 @@ const kbStore = require('../../stores/knowledgeBases');
 const kbSourcesStore = require('../../stores/kbSources');
 const { adoptOrphanDocuments } = require('../../stores/kb/adoptOrphanDocuments')(() => kbSourcesStore.initDB());
 const { requireAuth, requirePermission } = require('../../auth');
-const { getUserId } = require('./shared');
+const { getUserId, requireKbGrade, kbAccessOf } = require('./shared');
 const { PROJECT_FILES_SOURCE_KIND } = require('../../core/kb/projectFilesKb');
 const {
     CREATABLE_KINDS, REFRESH_MODES_BY_KIND, REFRESH_LABEL_KEYS, DEFAULT_DOC_PAGE, MAX_DOC_PAGE,
-    helpers, resolveKb, resolveSource, publicSourceConfig, resolveCreators, mapSourceForApi, refreshPatchFor,
+    helpers, writableKb, resolveSource, publicSourceConfig, resolveCreators, mapSourceForApi, refreshPatchFor,
 } = require('./sourcePolicy');
 const { CreateSourceBody, PatchSourceBody } = require('./sourceSchemas');
 const { createSource } = require('./sourceCreate');
@@ -54,7 +55,7 @@ const { acceptUploads, settleUploads, addFiles } = require('./sourceUploads');
 // After the sibling modules: Node caches a relative require per directory,
 // and the tests that cut this router's require seam rely on those modules
 // binding their stores before docFilters (outside the seam) does.
-const { statusFilter, piiFilter } = require('./docFilters');
+const { statusFilter, piiFilter } = require('../../usecases/knowledgeBases/docFilters');
 
 /**
  * Paging is clamped, not refused: a page size out of range is still a page.
@@ -96,9 +97,8 @@ function parseDocFilters(req, sourceId) {
 
 // ── GET /:id/sources ────────────────────────────────────────────────
 
-router.get('/:id/sources', requireAuth, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
-    const kb = await resolveKb(req, res);
-    if (!kb) return;
+router.get('/:id/sources', requireAuth, requireKbGrade('read'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
+    const { kb } = kbAccessOf(req);
 
     // Documents from before the source model have no source and would be
     // invisible here while the overview counts them: adopt them first. Scoped
@@ -111,7 +111,7 @@ router.get('/:id/sources', requireAuth, async (/** @type {import('express').Requ
     } catch (e) {
         log.warn('[KB] Adopting source-less documents failed:', /** @type {Error} */ (e).message);
     }
-    const sources = await kbSourcesStore.listByKb(kb.id);
+    const sources = /** @type {Array<NonNullable<Awaited<ReturnType<typeof kbSourcesStore.listByKb>>[number]>>} */ (await kbSourcesStore.listByKb(kb.id)); // rows mapped one to one
     const counts = sources.length > 0
         ? await kbStore.countsBySource(sources.map(s => s.id))
         : {};
@@ -140,18 +140,18 @@ router.get('/:id/sources', requireAuth, async (/** @type {import('express').Requ
 });
 // ── POST /:id/sources ───────────────────────────────────────────────
 
-router.post('/:id/sources', requireAuth, requirePermission('manage_knowledge'), validate({ body: CreateSourceBody }), createSource);
+router.post('/:id/sources', requireAuth, requirePermission('manage_knowledge'), requireKbGrade('manage'), validate({ body: CreateSourceBody }), createSource);
 
 // ── POST /:id/sources/:sid/files ────────────────────────────────────
 
-router.post('/:id/sources/:sid/files', requireAuth, requirePermission('manage_knowledge'), acceptUploads, addFiles);
+router.post('/:id/sources/:sid/files', requireAuth, requirePermission('manage_knowledge'), requireKbGrade('manage'), acceptUploads, addFiles);
 
 // ── PATCH /:id/sources/:sid ─────────────────────────────────────────
 // ── PATCH /:id/sources/:sid ─────────────────────────────────────────
 
-router.patch('/:id/sources/:sid', requireAuth, requirePermission('manage_knowledge'), validate({ body: PatchSourceBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
+router.patch('/:id/sources/:sid', requireAuth, requirePermission('manage_knowledge'), requireKbGrade('manage'), validate({ body: PatchSourceBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
     try {
-        const kb = await resolveKb(req, res, { manage: true });
+        const kb = writableKb(req, res);
         if (!kb) return;
         const source = await resolveSource(kb, req, res);
         if (!source) return;
@@ -196,7 +196,7 @@ router.patch('/:id/sources/:sid', requireAuth, requirePermission('manage_knowled
             }
         }
 
-        const updated = await kbSourcesStore.update(source.id, patch);
+        const updated = /** @type {NonNullable<Awaited<ReturnType<typeof kbSourcesStore.update>>>} */ (await kbSourcesStore.update(source.id, patch)); // the row it just wrote
         const counts = await kbStore.countsBySource([source.id]);
         res.json({ source: mapSourceForApi(updated, counts[source.id], await resolveCreators([updated.createdBy])) });
     } catch (e) {
@@ -211,8 +211,8 @@ router.patch('/:id/sources/:sid', requireAuth, requirePermission('manage_knowled
 
 // ── DELETE /:id/sources/:sid ────────────────────────────────────────
 
-router.delete('/:id/sources/:sid', requireAuth, requirePermission('manage_knowledge'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
-    const kb = await resolveKb(req, res, { manage: true });
+router.delete('/:id/sources/:sid', requireAuth, requirePermission('manage_knowledge'), requireKbGrade('manage'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
+    const kb = writableKb(req, res);
     if (!kb) return;
     const source = await resolveSource(kb, req, res);
     if (!source) return;
@@ -258,7 +258,7 @@ router.delete('/:id/sources/:sid', requireAuth, requirePermission('manage_knowle
             const { resolveDatatableForStep } = require('../../core/automationRunner/datatableResolve');
             const { askerContext } = require('../../core/kb/askerContext');
             const asker = await askerContext(getUserId(req));
-            const resolved = await resolveDatatableForStep(/** @type {string | undefined} */ (source.config?.datatableId), {
+            const resolved = await resolveDatatableForStep(/** @type {string} */ (source.config?.datatableId), { // as the source config stored it
                 userId: getUserId(req),
                 orgId: [...asker.orgIds][0] || null,
                 userGroupIds: asker.userGroups,
@@ -276,8 +276,8 @@ router.delete('/:id/sources/:sid', requireAuth, requirePermission('manage_knowle
 
 // ── POST /:id/sources/:sid/refresh ──────────────────────────────────
 
-router.post('/:id/sources/:sid/refresh', requireAuth, requirePermission('manage_knowledge'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
-    const kb = await resolveKb(req, res, { manage: true });
+router.post('/:id/sources/:sid/refresh', requireAuth, requirePermission('manage_knowledge'), requireKbGrade('manage'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
+    const kb = writableKb(req, res);
     if (!kb) return;
     const source = await resolveSource(kb, req, res);
     if (!source) return;
@@ -296,9 +296,8 @@ router.post('/:id/sources/:sid/refresh', requireAuth, requirePermission('manage_
 
 // ── GET /:id/sources/:sid/documents ─────────────────────────────────
 
-router.get('/:id/sources/:sid/documents', requireAuth, validate({ query: DocumentsQuery }), async (/** @type {import('express').Request<{ id: string, sid: string }, any, any, import('qs').ParsedQs & { limit?: number, offset?: number, status?: string, pii?: string, q?: string }>} */ req, /** @type {import('express').Response} */ res) => {
-    const kb = await resolveKb(req, res);
-    if (!kb) return;
+router.get('/:id/sources/:sid/documents', requireAuth, requireKbGrade('read'), validate({ query: DocumentsQuery }), async (req, /** @type {import('express').Response} */ res) => {
+    const { kb } = kbAccessOf(req);
     const source = await resolveSource(kb, req, res);
     if (!source) return;
 
@@ -316,9 +315,8 @@ router.get('/:id/sources/:sid/documents', requireAuth, validate({ query: Documen
 
 // ── GET /:id/sources/:sid/documents/:docId ──────────────────────────
 
-router.get('/:id/sources/:sid/documents/:docId', requireAuth, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
-    const kb = await resolveKb(req, res);
-    if (!kb) return;
+router.get('/:id/sources/:sid/documents/:docId', requireAuth, requireKbGrade('read'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
+    const { kb } = kbAccessOf(req);
     const source = await resolveSource(kb, req, res);
     if (!source) return;
 

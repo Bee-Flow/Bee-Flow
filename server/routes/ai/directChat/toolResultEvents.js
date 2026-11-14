@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Direct Chat — the SSE events a settled batch of tool results produces.
  *
@@ -28,7 +28,7 @@ function emitToolResultEvents(turn, toolResults, { streamed }) {
             const alreadySent = collectedEmailDrafts.some(d => JSON.stringify({ to: d.to, subject: d.subject, body: d.body }) === draftKey);
             if (!alreadySent) {
                 send('email_draft', toolResult.draft);
-                collectedEmailDrafts.push(toolResult.draft);
+                collectedEmailDrafts.push(/** @type {typeof collectedEmailDrafts[number]} */ (toolResult.draft)); // a draft action carries its draft
             }
         }
         // Emit calendar_draft SSE event for user approval (with dedup).
@@ -37,12 +37,12 @@ function emitToolResultEvents(turn, toolResults, { streamed }) {
         // drafts never carry, so the dedup was a no-op and the model
         // re-calling the tool across rounds duplicated the card.
         if (toolResult._action === 'calendar_draft') {
-            const calKey = /** @param {{ action?: string, title?: string, startTime?: string, endTime?: string, eventId?: string }} d */ (d) => JSON.stringify({ action: d?.action, title: d?.title, startTime: d?.startTime, endTime: d?.endTime, eventId: d?.eventId });
+            const calKey = /** @param {{ action?: string, title?: string, startTime?: string, endTime?: string, eventId?: string } | undefined} d */ (d) => JSON.stringify({ action: d?.action, title: d?.title, startTime: d?.startTime, endTime: d?.endTime, eventId: d?.eventId });
             const draftKey = calKey(toolResult.draft);
             const alreadySent = collectedCalendarDrafts.some(d => calKey(d) === draftKey);
             if (!alreadySent) {
                 send('calendar_draft', toolResult.draft);
-                collectedCalendarDrafts.push(toolResult.draft);
+                collectedCalendarDrafts.push(/** @type {typeof collectedCalendarDrafts[number]} */ (toolResult.draft)); // a draft action carries its draft
             }
         }
         // Emit linkedin_draft SSE event for user approval
@@ -79,13 +79,13 @@ function emitToolResultEvents(turn, toolResults, { streamed }) {
         }
         // Emit kb_sources SSE event, and keep the cards for the assistant row
         // (next to the injected passages' cards, a passage once).
-        if (toolResult._action === 'kb_sources' && toolResult._sources?.length > 0) {
+        if (toolResult._action === 'kb_sources' && (toolResult._sources?.length ?? 0) > 0) {
             send('kb_sources', { sources: toolResult._sources });
-            require('../../../core/kb/citation').addCitations(turn.kbSources, toolResult._sources);
+            require('../../../core/kb/citation').addCitations(turn.kbSources, /** @type {import('../../../core/kb/citation').CitationLike[]} */ (toolResult._sources)); // source cards
         }
         // Track audio URLs for persistence
         if (toolResult.audioUrl) {
-            generatedAudio.push({ url: toolResult.audioUrl, source: tr._toolName });
+            generatedAudio.push({ url: toolResult.audioUrl, source: /** @type {string} */ (tr._toolName) }); // as the tool loop named it
         }
         if (toolResult.file && typeof toolResult.file === 'object') {
             generatedFiles.push(toolResult.file);

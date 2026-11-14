@@ -26,6 +26,7 @@ const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 const { fallback, bestEffort } = require('../../utils/bestEffort');
+const { HttpError } = require('../../core/http/errors');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -183,7 +184,8 @@ router.put('/admin/:orgId/nc-integrations/groups/:groupId', requireAuth, require
 
     const disabled = req.body.disabledIntegrations;
     const ok = await userStore.updateGroup(groupId, { disabledIntegrations: disabled });
-    if (!ok) throw new Error(`Could not update group ${groupId}`);
+    // updateGroup answers false only when the row is gone: deleted since the lookup above.
+    if (!ok) throw new HttpError(404, 'group_not_found', 'Group not found');
 
     guardrailEventStore.logGuardrailEvent({
         organization_id: orgId,

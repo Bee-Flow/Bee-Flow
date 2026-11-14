@@ -1,5 +1,5 @@
 /** @typedef {import('qs').ParsedQs} ParsedQs */
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Session-token bridge for cross-context auth (embedded iframe, popup handoff).
  *

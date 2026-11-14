@@ -7,6 +7,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { rememberFormOpened } from '../../utils/formRecents';
 import type { OrgFormRow } from './FormsHomePage.types';
 import { messageOf } from '../../utils/caughtError';
+import { useShellProps } from '@/authedApp/useShellProps';
 
 interface FormCardProps {
     form: OrgFormRow;
@@ -114,7 +115,9 @@ function SkeletonGrid() {
     );
 }
 
-export default function FormsHomePage({ onNavigate = null }: Pick<FormCardProps, 'onNavigate'>) {
+export default function FormsHomePage({ onNavigate: onNavigateProp = null }: Pick<FormCardProps, 'onNavigate'>) {
+    // Inside the app shell the navigation comes from context; a host outside it still hands it as a prop.
+    const { onNavigate } = useShellProps({ onNavigate: onNavigateProp });
     const { t } = useTranslation();
     const api = useAutomationApi();
     const [forms, setForms] = useState<OrgFormRow[]>([]);

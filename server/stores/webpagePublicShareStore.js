@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Webpage Public Shares — external/anonymous publishing of webpages.
  *
@@ -239,10 +239,10 @@ async function createShare({ webpageId, createdBy, organizationId, accessMode, p
     try { tokenCipher = configStore.encryptValue(rawToken, organizationId || null); }
     catch (err) { fallback('stores/webpagePublicShareStore:createShare', err); /* MASTER_ENCRYPTION_KEY unset — degrade to legacy non-retrievable */ }
     const passwordHash = accessMode === 'password'
-        ? await argon2.hash(password, { type: argon2.argon2id })
+        ? await argon2.hash(/** @type {string} */ (password), { type: argon2.argon2id }) // checked above for this mode
         : null;
     const emails = accessMode === 'email'
-        ? allowedEmails.map(e => String(e).trim().toLowerCase()).filter(Boolean)
+        ? /** @type {unknown[]} */ (allowedEmails).map(e => String(e).trim().toLowerCase()).filter(Boolean) // checked above for this mode
         : null;
     const prefix = snapshotPrefix(id);
 
@@ -257,7 +257,7 @@ async function createShare({ webpageId, createdBy, organizationId, accessMode, p
     );
 
     const row = await getOne('SELECT * FROM webpage_public_shares WHERE id = $1', [id]);
-    return { share: mapRow(row), rawToken };
+    return { share: /** @type {NonNullable<ReturnType<typeof mapRow>>} */ (mapRow(row)), rawToken }; // the row it just wrote
 }
 
 /**
@@ -266,7 +266,7 @@ async function createShare({ webpageId, createdBy, organizationId, accessMode, p
  * every share on the webpage (used for read-visibility to non-owners — callers
  * must strip sensitive fields like allowedEmails themselves).
  * @param {string} webpageId
- * @param {string} createdBy
+ * @param {string | null} [createdBy]
  */
 async function listSharesForWebpage(webpageId, createdBy = null) {
     await initDB();
@@ -325,8 +325,8 @@ async function getRetrievableTokens(webpageId) {
  */
 function liveShareOrNull(r) {
     if (!r) return null;
-    /** @type {ReturnType<typeof mapRow> & { _passwordHash?: string | null }} */
-    const share = mapRow(r);
+    /** @type {NonNullable<ReturnType<typeof mapRow>> & { _passwordHash?: string | null }} */
+    const share = /** @type {NonNullable<ReturnType<typeof mapRow>>} */ (mapRow(r)); // r is a row here
     if (share.revokedAt) return null;
     if (share.expiresAt && new Date(share.expiresAt).getTime() < Date.now()) return null;
     // Include the password_hash on the returned row so the viewer can verify;
@@ -451,16 +451,16 @@ async function setSnapshotKind(shareId, kind) {
  */
 async function recordView(shareId, { viewerEmail, ip, userAgent }) {
     await initDB();
-    await run(
-        `INSERT INTO webpage_public_share_views (share_id, viewer_email, ip_hash, user_agent)
-         VALUES ($1, $2, $3, $4)`,
-        [shareId, viewerEmail || null, hashIp(ip), (userAgent || '').slice(0, 500)]
-    );
-    await run(
-        `UPDATE webpage_public_shares
+    await run( // the view row and the share's counter in one statement
+        `WITH v AS (
+            INSERT INTO webpage_public_share_views (share_id, viewer_email, ip_hash, user_agent)
+            VALUES ($1, $2, $3, $4)
+            RETURNING share_id
+         )
+         UPDATE webpage_public_shares
             SET view_count = view_count + 1, last_viewed_at = NOW()
-          WHERE id = $1`,
-        [shareId]
+          WHERE id IN (SELECT share_id FROM v)`,
+        [shareId, viewerEmail || null, hashIp(ip), (userAgent || '').slice(0, 500)]
     );
 }
 

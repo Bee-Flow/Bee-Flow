@@ -1,13 +1,14 @@
 import React, { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useEffectEvent } from 'react';
-import { API_BASE, isDemoPath } from '../../utils/helpers';
+import { isDemoPath } from '../../utils/helpers';
 import WallpaperLayer from './WallpaperLayer';
 import { applyThemeToDocument } from '../theme/applyTheme';
 import type { ThemeProviderProps, ThemeSettings, ThemeState } from './ThemeContext.types';
 import { messageOf } from '../../utils/caughtError';
 import { logger } from '../../utils/logger';
-import { mutate, errorBody, RefusedError } from '../../api/mutate';
+import { errorBody, RefusedError } from '../../api/mutate';
 import { DEFAULTS, ThemeContext } from './ThemeContext.constants';
 import { readBootstrap, writeBootstrap, detectPreviewMode } from './ThemeContext.helpers';
+import { apiRequest, apiUrl } from '@/api/typedRequest';
 export { THEME_PRESETS, FONT_OPTIONS } from './ThemeContext.constants';
 
 /**
@@ -123,10 +124,10 @@ export function ThemeProvider({ children, initialOverride = null }: ThemeProvide
             // authFetch treats any 401 as an expired session and reloads the
             // page — which meant every anonymous marketing pageview loaded the
             // entire site twice before this fallback could run.
-            let r = await fetch(`${API_BASE}/api/branding/effective`, { credentials: 'include' });
+            let r = await fetch(apiUrl('GET /api/branding/effective'), { credentials: 'include' });
             if (r.status === 401) {
                 // Not logged in yet — pull the safe public subset.
-                r = await fetch(`${API_BASE}/api/branding/public`);
+                r = await fetch(apiUrl('GET /api/branding/public'));
             }
             if (!r.ok) throw new Error(`HTTP ${r.status}`);
             const data = await r.json();
@@ -208,11 +209,7 @@ export function ThemeProvider({ children, initialOverride = null }: ThemeProvide
     const setUserOverride = useCallback(async (patch: Partial<ThemeSettings>) => {
         let r: Response;
         try {
-            r = await mutate(`${API_BASE}/api/branding/user`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(patch),
-        });
+            r = await apiRequest('PUT /api/branding/user', { init: { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) } });
         } catch (err) {
             if (!(err instanceof RefusedError)) throw err;
             const data = errorBody(err) ?? {};
@@ -231,7 +228,7 @@ export function ThemeProvider({ children, initialOverride = null }: ThemeProvide
     const clearUserOverride = useCallback(async () => {
         let r: Response;
         try {
-            r = await mutate(`${API_BASE}/api/branding/user`, { method: 'DELETE' });
+            r = await apiRequest('DELETE /api/branding/user');
         } catch (err) {
             if (!(err instanceof RefusedError)) throw err;
             const data = errorBody(err) ?? {};
@@ -247,11 +244,7 @@ export function ThemeProvider({ children, initialOverride = null }: ThemeProvide
     const setAdminDefault = useCallback(async (patch: Partial<ThemeSettings>) => {
         let r: Response;
         try {
-            r = await mutate(`${API_BASE}/api/branding/admin`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(patch),
-        });
+            r = await apiRequest('PUT /api/branding/admin', { init: { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch) } });
         } catch (err) {
             if (!(err instanceof RefusedError)) throw err;
             const data = errorBody(err) ?? {};
@@ -269,10 +262,7 @@ export function ThemeProvider({ children, initialOverride = null }: ThemeProvide
         fd.append('wallpaper', file);
         let r: Response;
         try {
-            r = await mutate(`${API_BASE}/api/branding/wallpaper`, {
-            method: 'POST',
-            body: fd,
-        });
+            r = await apiRequest('POST /api/branding/wallpaper', { init: { body: fd } });
         } catch (err) {
             if (!(err instanceof RefusedError)) throw err;
             const data = errorBody(err) ?? {};
@@ -284,7 +274,7 @@ export function ThemeProvider({ children, initialOverride = null }: ThemeProvide
 
     const deleteWallpaper = useCallback(async () => {
         try {
-            await mutate(`${API_BASE}/api/branding/wallpaper`, { method: 'DELETE' });
+            await apiRequest('DELETE /api/branding/wallpaper');
         } catch (err) {
             if (!(err instanceof RefusedError)) throw err;
             const data = errorBody(err) ?? {};

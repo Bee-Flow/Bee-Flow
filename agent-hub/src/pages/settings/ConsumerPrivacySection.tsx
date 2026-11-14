@@ -6,9 +6,9 @@ import PiiSensitivityPicker from '../../components/privacy/PiiSensitivityPicker'
 import Toggle from '../../components/shared/Toggle';
 import { piiCategoriesLocalized } from '../../config/piiCategories';
 import { TranslateParams, useTranslation } from '../../hooks/useTranslation';
-import { API_BASE } from '../../utils/helpers';
 import { useConsumerShieldConfig, useConsumerGuardStatus } from '../../api/queries/settingsConsumer';
-import { mutate, ApiError } from '../../api/mutate';
+import { ApiError } from '../../api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 /** The user's own Privacy Shield config (GET /api/org-privacy-shield/user/me). */
 interface ConsumerShieldConfig {
@@ -88,11 +88,7 @@ const ConsumerPrivacySection = () => {
         setSaved(false);
         setSaveError(false);
         try {
-            const res = await mutate(`${API_BASE}/api/org-privacy-shield/user/me`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(config),
-            }).catch((err: unknown) => {
+            const res = await apiRequest('PUT /api/org-privacy-shield/user/me', { init: { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(config) } }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });

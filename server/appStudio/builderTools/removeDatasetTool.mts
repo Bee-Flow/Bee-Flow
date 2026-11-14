@@ -6,9 +6,9 @@
  */
 
 import { createRequire } from 'node:module';
+import { pickClosestId } from '../../utils/closestId.mts';
 
 const nodeRequire = createRequire(import.meta.url);
-const { pickClosestId } = nodeRequire('../../automation/validate/helpers') as { pickClosestId: (t: unknown, c: string[]) => string | null };
 
 type Obj = Record<string, unknown>;
 type Node = Obj & { id?: string; children?: Node[] };

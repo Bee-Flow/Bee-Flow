@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Agent tests: running the set (POST /:id/tests/run). One real, sandboxed
  * turn per test, the facts it produced, the grader only where the facts
@@ -14,9 +15,10 @@ const { setupSSE, startSseHeartbeat } = require('../../core/http/sseHelpers');
 const sandbox = require('../../core/agentRuntime/testSandbox');
 const testAsMod = require('../../core/agentRuntime/testAs');
 const {
-    requireEditableAgent, versionInfo, resolveOrgOrRefuse, checkPlanOrRefuse, resolveFastTierOrRefuse,
+    versionInfo, resolveOrgOrRefuse, checkPlanOrRefuse, resolveFastTierOrRefuse,
     GRADER_MODEL, logGradeUsage, gradeMaxTokens,
 } = require('./testsGuards');
+const { agentAccessOf } = require('../../auth/agentAccess.mts');
 
 const MAX_ANSWER_STREAMED = 8000;
 
@@ -24,7 +26,7 @@ const MAX_ANSWER_STREAMED = 8000;
 const ERROR_KINDS = Object.freeze(['grading', 'no_answer', 'turn_failed']);
 
 /**
- * @typedef {{ index: number }} BuildTestResultRecordArgs
+ * @typedef {{ index: number, verdict?: any, test?: any, facts?: any, turn?: any }} BuildTestResultRecordArgs
  */
 /**
  * Split one graded turn into what is STORED (`item`, written to
@@ -68,7 +70,7 @@ function buildTestResultRecord({ verdict, test, facts, index, turn }) {
 /**
  * @typedef {{ userId: string,
  *   orgId?: string | null,
- *   signal: AbortSignal }} RunOneTestArgs
+ *   signal: AbortSignal, agentId?: any, test?: any, userAuth?: any, timezone?: any, testAs?: any }} RunOneTestArgs
  */
 /**
  * One test: a real turn, then the facts, then — only if the facts left
@@ -160,13 +162,13 @@ async function gradeAnswer({ gradeModelId, test, turn, facts, userId, orgId }) {
 
 async function runTests(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
     let headersSent = false;
-    let sendEvent = () => {};
+    let sendEvent = /** @type {(event: string, data?: unknown) => void} */ (() => {});
     /** @type {() => void | null} */
     let stopHeartbeat = null;
 
     try {
-        const gate = await requireEditableAgent(req, res);
-        if (!gate) return;
+        // The route's requireAgentGrade('edit', { views: true }) decided access.
+        const gate = agentAccessOf(req);
         const agentId = gate.agent.id;
         const userId = gate.userId;
 
@@ -184,10 +186,10 @@ async function runTests(/** @type {import('express').Request} */ req, /** @type 
         // ── "Test als · groep X" ────────────────────────────────
         // Refused, never downgraded: a run labelled "as a member of Sales"
         // that quietly ran as the editor is a worse answer than no answer.
-        // `canEdit` is already true here — `requireEditableAgent` said so.
-        const gated = await testAsMod.gateTestAsRequest({
+        // `canEdit` is already true here — the route's edit gate said so.
+        const gated = /** @type {Record<string, any>} */ (await testAsMod.gateTestAsRequest({
             asGroup: req.body.asGroup, userId, orgIds: orgIdSet, canEdit: true,
-        });
+        }));
         if (!gated.ok) return res.status(gated.status).json({ error: gated.error, code: gated.code });
         const testAs = gated.testAs;
 
@@ -200,7 +202,7 @@ async function runTests(/** @type {import('express').Request} */ req, /** @type 
         const gradeModelId = await resolveFastTierOrRefuse({ orgId, userId, what: GRADER_MODEL });
         if (!gradeModelId) return;
 
-        const info = versionInfo(gate.views);
+        const info = versionInfo(/** @type {Parameters<typeof versionInfo>[0]} */ (gate.views));
 
         // ── Stream ──────────────────────────────────────────────
         const sse = setupSSE(res);
@@ -217,7 +219,7 @@ async function runTests(/** @type {import('express').Request} */ req, /** @type 
             // still answer nine questions here, and knowing that is the point
             // of asking.
             audience: testAs
-                ? testAsMod.audienceForTestAs(gate.agent, testAs, { orgIds: orgIdSet })
+                ? testAsMod.audienceForTestAs(/** @type {import('./crud').AgentRow} */ (gate.agent), testAs, { orgIds: orgIdSet })
                 : null,
             tests: tests.map(t => ({ id: t.id, name: t.name })),
         });

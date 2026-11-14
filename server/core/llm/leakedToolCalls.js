@@ -207,6 +207,35 @@ function recoverLeakedToolCalls(response, { toolNames, iter = 0 } = {}) {
     return out;
 }
 
+/**
+ * The forced tool's call a model wrote as text into its content or thinking,
+ * with its parsed arguments, or null (no such call, or arguments that parse
+ * to nothing). Scanned only when there is a call to find: the wire syntax, or
+ * a bare JSON reply that names the tool. A plain JSON answer body with its
+ * own `name` field is the answer, not a call wrapper to reject.
+ * @param {{ content?: unknown, thinking?: unknown } | null | undefined} result
+ * @param {string} toolName
+ * @returns {{ structured: unknown, from: string, rawArguments: string } | null}
+ */
+function forcedCallWrittenAsText(result, toolName) {
+    const content = typeof result?.content === 'string' ? result.content : null;
+    const thinking = typeof result?.thinking === 'string' ? result.thinking : '';
+    if (!worthScanningFor(content, thinking, toolName)) return null;
+    const thinkingParts = thinking ? [{ text: thinking }] : [];
+    const recovered = recoverLeakedToolCalls({ content, thinkingParts }, { toolNames: new Set(toolName ? [toolName] : []) });
+    const call = recovered.toolCalls.find(tc => tc.function?.name === toolName);
+    if (!call) return null;
+    let structured;
+    try { structured = JSON.parse(call.function.arguments); } catch { structured = null; }
+    return structured ? { structured, from: call._recoveredFrom, rawArguments: call.function.arguments } : null;
+}
+
+/** @param {string | null} content @param {string} thinking @param {string} toolName */
+function worthScanningFor(content, thinking, toolName) {
+    return hasLeakedToolCallSyntax(content) || hasLeakedToolCallSyntax(thinking)
+        || (!!content && !!toolName && content.trim().startsWith('{') && content.includes(toolName));
+}
+
 // What the model reads back on a call it never actually made: the same
 // words in both builders, so a fix to the wording lands in both. Deliberately
 // WITHOUT the literal markers: llama-server tokenises message text with
@@ -237,6 +266,7 @@ module.exports = {
     parseLooseValueAt,
     extractLeakedToolCalls,
     recoverLeakedToolCalls,
+    forcedCallWrittenAsText,
 };
 
 /** @typedef {{ name: string, args: object, raw: string, format: string }} LeakedCall */

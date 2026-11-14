@@ -1,12 +1,13 @@
 import { GraduationCap, Info, Loader2, Lock, Save } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { trainingRulesKey, trainingRulesPath, useTrainingRulesQuery, type TrainingRulesRead } from '@/api/queries/learningReads';
+import { trainingRulesKey, useTrainingRulesQuery, type TrainingRulesRead } from '@/api/queries/learningReads';
 import { useAdminOrgScope } from '@/api/adminOrgScope';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { errorMessage } from '@/utils/caughtError';
-import { mutate, ApiError } from '@/api/mutate';
+import { ApiError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 interface TrainingArea {
     id: string;
@@ -82,11 +83,10 @@ export default function RequiredTrainingPanel() {
         try {
             let res: Response;
             try {
-                res = await mutate(trainingRulesPath(orgId), {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ areas: draft }),
-            });
+                res = await apiRequest('PUT /ai/learning/training-rules', {
+                    query: orgId ? { orgId } : undefined,
+                    init: { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ areas: draft }) },
+                });
             } catch (err) {
                 if (!(err instanceof ApiError)) throw err;
                 throw new Error(String(err.status));

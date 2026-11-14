@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The structured role at STORE level (A1c): who gets a persona, who never
  * does, and the undefined-means-preserve rule on the way in.
@@ -10,133 +11,51 @@
  *   - the write follows the same rule the three other optional columns learned
  *     the hard way: an argument nobody supplied preserves, it does not clear.
  *
- * `../../db`, `./initSchema`, `./agentTools` and `../versionStore` are mocked
- * through the Module._resolveFilename harness (mirrors agentCrud.published.test.js).
+ * Against a real Postgres (PGlite behind db.js's pool, testUtils/pglitePool.js)
+ * with the agent store's own schema; the persona projection is swapped on its
+ * module object (testUtils/swaps.js) to reach "the projection is unavailable".
  *
- * Run: cd server && node --test --test-force-exit stores/agent/agentCrud.persona.test.js
+ * Run: cd server && node --test stores/agent/agentCrud.persona.test.js
  */
+
+'use strict';
 
 const test = require('node:test');
 const assert = require('node:assert');
-const Module = require('module');
 
-const table = new Map();
-const runs = [];
-const versionCalls = [];
+process.env.NODE_ENV = 'test';
 
+const { usePglitePool } = require('../../testUtils/pglitePool');
+const { insertRow } = require('../../testUtils/pgliteSeed');
+const { makeSwaps } = require('../../testUtils/swaps');
+
+const { pg, close } = usePglitePool();
+const agentSchema = require('./initSchema');
+const agentCrud = require('./agentCrud');
+const personaPrompt = require('../../core/agentRuntime/personaPrompt');
+
+const { swap, restore } = makeSwaps();
+
+test.before(async () => {
+    await pg.exec(`CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, "organizationId" TEXT)`);
+    await agentSchema.initDB();
+    await require('../versionStore').initDB();
+});
+test.beforeEach(() => pg.exec('TRUNCATE agents, agent_versions CASCADE'));
+test.after(async () => { restore(); await close(); });
+
+/** An agent row as another writer left it. */
 function seed(id, extra = {}) {
-    table.set(id, {
+    return insertRow(pg, 'agents', {
         id, owner_id: 'owner', name: 'seed', rev: 1, is_published: true,
         system_prompt: 'the live prompt', config: JSON.stringify({ knowledge_base_ids: [] }),
-        shared_groups: '[]', organization_id: null, persona: null,
-        published_config: null, published_system_prompt: null, published_version: 0, published_rev: null, published_at: null,
+        shared_groups: '[]', organization_id: null, published_version: 0,
         ...extra,
     });
 }
-const clone = (r) => (r ? { ...r } : null);
-
-const mockDb = {
-    async exec() {},
-    async getOne(sql, params) {
-        if (/^SELECT \* FROM agents WHERE id = \$1/.test(sql)) return clone(table.get(params[0]));
-        if (/^SELECT rev, owner_id FROM agents WHERE id = \$1/.test(sql)) {
-            const r = table.get(params[0]);
-            return r ? { rev: r.rev, owner_id: r.owner_id } : null;
-        }
-        return null;
-    },
-    async getAll(sql) {
-        if (/FROM agents WHERE owner_id = \$1/.test(sql)) return [...table.values()].map(clone);
-        if (/FROM agents a WHERE a\.is_published = TRUE/.test(sql)) {
-            return [...table.values()].filter(r => r.is_published).map(clone);
-        }
-        if (/SELECT id, "organizationId" FROM groups/.test(sql)) return [];
-        return [];
-    },
-    async run(sql, params) {
-        runs.push({ sql, params });
-        if (/^INSERT INTO agents/.test(sql)) {
-            // Column list ends with `persona` — the last bound parameter.
-            const personaJson = params[params.length - 1];
-            table.set(params[0], {
-                id: params[0], owner_id: params[13], name: params[1], rev: 1,
-                system_prompt: params[3], config: params[9], shared_groups: params[11],
-                organization_id: params[10], persona: personaJson ? JSON.parse(personaJson) : null,
-                published_config: null, published_version: 0,
-            });
-            return { rowCount: 1, rows: [] };
-        }
-        if (/^UPDATE agents SET name=/.test(sql)) {
-            const row = table.get(params[14]);
-            if (!row || row.owner_id !== params[15]) return { rowCount: 0 };
-            // The CAS guard, read from the STATEMENT — so a persona clause that
-            // shifted the placeholder numbers shows up here as a lost conflict.
-            const guard = sql.match(/AND rev = \$(\d+)/);
-            if (guard && row.rev !== params[Number(guard[1]) - 1]) return { rowCount: 0 };
-            row.rev += 1;
-            row.system_prompt = params[2];
-            row.config = params[9];
-            const personaIdx = sql.match(/persona = \$(\d+)::jsonb/);
-            if (personaIdx) {
-                const raw = params[Number(personaIdx[1]) - 1];
-                row.persona = raw === null ? null : JSON.parse(raw);
-            }
-            return { rowCount: 1 };
-        }
-        return { rowCount: 0, rows: [] };
-    },
-};
-
-// The persona projection, delegating to the REAL module — with a switch, so
-// "the projection is unavailable" is a state the tests can actually reach.
-//
-// Loaded by ABSOLUTE path on purpose. This file sits in the same directory as
-// agentCrud.js, and Node memoises relative resolutions per (parent directory,
-// request string): requiring it as '../../core/…' from here would seed that
-// cache and agentCrud's own lazy require would then bypass
-// Module._resolveFilename entirely — the mock silently never installs.
-const realPersonaPrompt = require(require('node:path').join(__dirname, '..', '..', 'core', 'agentRuntime', 'personaPrompt'));
-let personaProjectionBroken = false;
-const mockPersonaPrompt = {
-    ...realPersonaPrompt,
-    personaOf(row) {
-        if (personaProjectionBroken) throw new Error('personaPrompt is unreachable');
-        return realPersonaPrompt.personaOf(row);
-    },
-};
-
-const MOCKS = {
-    '../../db': mockDb,
-    '../../core/agentRuntime/personaPrompt': mockPersonaPrompt,
-    './initSchema': { initDB: async () => {} },
-    '../versionStore': {
-        async createVersion(...args) { versionCalls.push(args); return { id: 'ver-1', version_number: 7, kind: args[5]?.kind || 'autosave' }; },
-    },
-    './agentTools': {
-        getAgentTools: async () => [],
-        getAgentToolsWithParams: async () => [],
-        getAgentToolsBatch: async (ids) => new Map(ids.map(id => [id, []])),
-        getAgentToolsWithParamsBatch: async (ids) => new Map(ids.map(id => [id, []])),
-    },
-};
-const MOCK_IDS = {};
-for (const [request, exportsObj] of Object.entries(MOCKS)) {
-    const mockId = `mock:agentcrud-persona:${request}`;
-    MOCK_IDS[request] = mockId;
-    require.cache[mockId] = { id: mockId, filename: mockId, loaded: true, exports: exportsObj };
-}
-const originalResolve = Module._resolveFilename;
-Module._resolveFilename = function (request, parent, ...rest) {
-    if (parent && /agent(?:Crud|Reads|RuntimeView|Rows|Publishing|Categories|OrgMaintenance|Projects|Sync)\.js$/.test(parent.filename) && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
-        return MOCK_IDS[request];
-    }
-    return originalResolve.call(this, request, parent, ...rest);
-};
-
-const agentCrud = require('./agentCrud');
-
-test.beforeEach(() => { table.clear(); runs.length = 0; versionCalls.length = 0; personaProjectionBroken = false; });
-test.after(() => { Module._resolveFilename = originalResolve; });
+const storedPersona = async (id) => (await pg.query('SELECT persona FROM agents WHERE id = $1', [id])).rows[0].persona;
+const versions = async () => (await pg.query('SELECT * FROM agent_versions ORDER BY created_at')).rows;
+const breakProjection = () => swap(personaPrompt, 'personaOf', () => { throw new Error('personaPrompt is unreachable'); });
 
 const FIELDS_PERSONA = {
     who: 'You are the Acme concierge.',
@@ -148,9 +67,9 @@ const FIELDS_PERSONA = {
 // ── Who sees a persona ──────────────────────────────────────────────
 
 test('getAgent carries the persona; getForRuntime does not', async () => {
-    seed('a1', { persona: FIELDS_PERSONA });
+    await seed('a1', { persona: FIELDS_PERSONA });
 
-    const draft = await agentCrud.getAgent('a1');
+    const draft = /** @type {any} */ (await agentCrud.getAgent('a1'));
     assert.strictEqual(draft.persona.who, 'You are the Acme concierge.');
     assert.strictEqual(draft.persona.mode, 'fields');
 
@@ -162,19 +81,20 @@ test('getAgent carries the persona; getForRuntime does not', async () => {
 test('a NULL persona column reads back as free mode over the concept prompt', async () => {
     // The whole "migration" for every agent that predates the column — computed
     // on read, so no pass ever rewrites a live row.
-    seed('a1', { persona: null, system_prompt: 'You answer questions about invoices.' });
-    const draft = await agentCrud.getAgent('a1');
+    await seed('a1', { persona: null, system_prompt: 'You answer questions about invoices.' });
+    const draft = /** @type {any} */ (await agentCrud.getAgent('a1'));
     assert.strictEqual(draft.persona.mode, 'free');
     assert.strictEqual(draft.persona.freeText, 'You answer questions about invoices.');
+    assert.strictEqual(await storedPersona('a1'), null, 'nothing was written back');
 });
 
 test('getAgentViews puts the persona on the DRAFT only', async () => {
-    seed('a1', {
+    await seed('a1', {
         persona: FIELDS_PERSONA,
         published_version: 2, published_rev: 1,
         published_config: { knowledge_base_ids: [] }, published_system_prompt: 'the published prompt',
     });
-    const views = await agentCrud.getAgentViews('a1');
+    const views = /** @type {any} */ (await agentCrud.getAgentViews('a1'));
     assert.strictEqual(views.draft.persona.who, 'You are the Acme concierge.');
     assert.ok(!('persona' in views.runtime),
         'the concept persona describes the concept prompt — pairing it with the published one is a claim nobody made');
@@ -182,55 +102,59 @@ test('getAgentViews puts the persona on the DRAFT only', async () => {
 });
 
 test('the raw column never rides along on a list read', async () => {
-    seed('a1', { persona: FIELDS_PERSONA });
-    seed('a2', { persona: FIELDS_PERSONA });
+    await seed('a1', { persona: FIELDS_PERSONA });
+    await seed('a2', { persona: FIELDS_PERSONA });
+    // The library leaves out agents whose owner no longer exists.
+    await pg.query(`INSERT INTO users (id) VALUES ('owner') ON CONFLICT DO NOTHING`);
 
-    for (const a of await agentCrud.getAgents('owner')) {
-        assert.ok(!('persona' in a), 'the library serves what runs, and a persona is not part of it');
-    }
-    for (const a of await agentCrud.getPublishedAgentsForUser([], null, new Set())) {
-        assert.ok(!('persona' in a), 'anyone who can see a published agent would otherwise get its editor fields');
-    }
+    const mine = await agentCrud.getAgents('owner');
+    assert.strictEqual(mine.length, 2);
+    for (const a of mine) assert.ok(!('persona' in a), 'the library serves what runs, and a persona is not part of it');
+    const published = await agentCrud.getPublishedAgentsForUser([], null, new Set());
+    assert.strictEqual(published.length, 2);
+    for (const a of published) assert.ok(!('persona' in a), 'anyone who can see a published agent would otherwise get its editor fields');
 });
 
 // ── The write ───────────────────────────────────────────────────────
 
+/** updateAgent with the positional arguments every test here shares. */
+const update = (id, opts) => agentCrud.updateAgent(id, 'n', 'd', 'sp', 'owner', null, [], null, true, true, false, {}, false, null, undefined, undefined, opts);
+
 test('updateAgent without a persona option leaves the column untouched', async () => {
-    seed('a1', { persona: FIELDS_PERSONA });
-    const res = await agentCrud.updateAgent('a1', 'n', 'd', 'sp', 'owner', null, [], null, true, true, false, {}, false, null, undefined, undefined, {});
+    await seed('a1', { persona: FIELDS_PERSONA });
+    const res = await update('a1', {});
     assert.strictEqual(res.ok, true);
-    assert.deepStrictEqual(table.get('a1').persona, FIELDS_PERSONA);
-    assert.ok(!/persona/.test(runs.find(r => /^UPDATE agents SET name=/.test(r.sql)).sql),
-        'no clause at all — a caller that never heard of personas cannot erase one');
+    assert.deepStrictEqual(await storedPersona('a1'), FIELDS_PERSONA, 'a caller that never heard of personas cannot erase one');
+    const row = (await pg.query('SELECT name, system_prompt FROM agents WHERE id = $1', ['a1'])).rows[0];
+    assert.deepStrictEqual(row, { name: 'n', system_prompt: 'sp' }, 'the rest of the update did land');
 });
 
 test('updateAgent writes a supplied persona, and an explicit null clears it', async () => {
-    seed('a1');
-    await agentCrud.updateAgent('a1', 'n', 'd', 'sp', 'owner', null, [], null, true, true, false, {}, false, null, undefined, undefined, { persona: FIELDS_PERSONA });
-    assert.deepStrictEqual(table.get('a1').persona, FIELDS_PERSONA);
+    await seed('a1');
+    await update('a1', { persona: FIELDS_PERSONA });
+    assert.deepStrictEqual(await storedPersona('a1'), FIELDS_PERSONA);
 
-    await agentCrud.updateAgent('a1', 'n', 'd', 'sp', 'owner', null, [], null, true, true, false, {}, false, null, undefined, undefined, { persona: null });
-    assert.strictEqual(table.get('a1').persona, null);
+    await update('a1', { persona: null });
+    assert.strictEqual(await storedPersona('a1'), null);
 });
 
-test('the persona clause never disturbs the placeholder numbers the CAS guard uses', async () => {
-    seed('a1', { rev: 7 });
-    const ok = await agentCrud.updateAgent('a1', 'n', 'd', 'sp', 'owner', null, [], null, true, true, false, {}, false, null, undefined, undefined, { expectedRev: 7, persona: FIELDS_PERSONA });
+test('with a persona clause in the SET list the rev guard still bites', async () => {
+    await seed('a1', { rev: 7 });
+    const ok = await update('a1', { expectedRev: 7, persona: FIELDS_PERSONA });
     assert.strictEqual(ok.ok, true);
-    const stmt = runs.find(r => /^UPDATE agents SET name=/.test(r.sql));
-    assert.match(stmt.sql, /WHERE id=\$15 AND owner_id=\$16 AND rev = \$17/);
-    assert.match(stmt.sql, /persona = \$18::jsonb/);
+    assert.deepStrictEqual(await storedPersona('a1'), FIELDS_PERSONA);
 
-    const stale = await agentCrud.updateAgent('a1', 'n', 'd', 'sp', 'owner', null, [], null, true, true, false, {}, false, null, undefined, undefined, { expectedRev: 7, persona: FIELDS_PERSONA });
+    const stale = /** @type {any} */ (await update('a1', { expectedRev: 7, persona: { ...FIELDS_PERSONA, who: 'a stale tab' } }));
     assert.strictEqual(stale.conflict, true, 'the CAS token still bites with a persona clause in the SET list');
+    assert.strictEqual((await storedPersona('a1')).who, 'You are the Acme concierge.', 'and the stale write changed nothing');
 });
 
 test('createAgent stores the persona it is given, and NULL when it is given none', async () => {
     const withPersona = await agentCrud.createAgent('n', 'd', 'sp', 'owner', null, [], true, true, false, {}, null, [], null, { persona: FIELDS_PERSONA });
-    assert.deepStrictEqual(table.get(withPersona.id).persona, FIELDS_PERSONA);
+    assert.deepStrictEqual(await storedPersona(withPersona.id), FIELDS_PERSONA);
 
     const without = await agentCrud.createAgent('n', 'd', 'sp', 'owner');
-    assert.strictEqual(table.get(without.id).persona, null,
+    assert.strictEqual(await storedPersona(without.id), null,
         'a caller that knows nothing about personas creates exactly what it always created');
 });
 
@@ -238,55 +162,56 @@ test('when the projection is unavailable the key is OMITTED, never set to null',
     // A client re-syncs from this payload and sends it back. A `persona: null`
     // born from a FAILED READ would return as an explicit "clear the column"
     // and delete a role nobody touched — the read becoming a decision.
-    seed('a1', { persona: FIELDS_PERSONA });
-    personaProjectionBroken = true;
+    await seed('a1', { persona: FIELDS_PERSONA });
+    const undo = breakProjection();
+    try {
+        const draft = /** @type {any} */ (await agentCrud.getAgent('a1'));
+        assert.ok(!('persona' in draft), 'a missing key means preserve, all the way down to the SET list');
 
-    const draft = await agentCrud.getAgent('a1');
-    assert.ok(!('persona' in draft), 'a missing key means preserve, all the way down to the SET list');
-
-    const views = await agentCrud.getAgentViews('a1');
-    assert.ok(!('persona' in views.draft));
-    assert.strictEqual(views.draft.name, 'seed', 'and the rest of the agent still loads');
+        const views = /** @type {any} */ (await agentCrud.getAgentViews('a1'));
+        assert.ok(!('persona' in views.draft));
+        assert.strictEqual(views.draft.name, 'seed', 'and the rest of the agent still loads');
+    } finally { undo(); }
 });
 
 // ── snapshotAgent: the undo point of a refinement ───────────────────
 
-test('snapshotAgent snapshot de RAUWE rij, niet de weergave van getAgent', async () => {
-    seed('a1', { persona: FIELDS_PERSONA, config: JSON.stringify({ memoryEnabled: true }) });
+test('snapshotAgent snapshots the RAW row, not the view of getAgent', async () => {
+    await seed('a1', { persona: FIELDS_PERSONA, config: JSON.stringify({ memoryEnabled: true }) });
 
     const created = await agentCrud.snapshotAgent('a1', 'u1', { kind: 'pre_refine' });
-    assert.deepStrictEqual(created, { id: 'ver-1', version_number: 7, kind: 'pre_refine' });
+    assert.strictEqual(created.kind, 'pre_refine');
 
-    assert.strictEqual(versionCalls.length, 1);
-    const [agentId, agentType, snapshot, userId, summary, opts] = versionCalls[0];
-    assert.strictEqual(agentId, 'a1');
-    assert.strictEqual(agentType, 'agent');
-    assert.strictEqual(userId, 'u1');
-    assert.strictEqual(opts.kind, 'pre_refine');
-    assert.strictEqual(typeof summary, 'string', 'een eigen samenvatting, zodat createVersion er geen hoeft te verzinnen');
-    // De rauwe vorm: config als JSON-tekst, persona als de kolom zelf.
+    const [v] = await versions();
+    assert.strictEqual(v.id, created.id);
+    assert.strictEqual(v.agent_id, 'a1');
+    assert.strictEqual(v.agent_type, 'agent');
+    assert.strictEqual(v.created_by, 'u1');
+    assert.strictEqual(typeof v.change_summary, 'string', 'its own summary, so createVersion need not invent one');
+    const snapshot = typeof v.snapshot === 'string' ? JSON.parse(v.snapshot) : v.snapshot;
+    // The raw shape: config as JSON text, persona as the column itself.
     assert.strictEqual(snapshot.config, JSON.stringify({ memoryEnabled: true }));
-    assert.strictEqual(snapshot.owner_id, 'owner', 'restore schrijft met deze owner_id — die moet erin zitten');
+    assert.strictEqual(snapshot.owner_id, 'owner', 'restore writes with this owner_id — it has to be in there');
 });
 
-test('een kapotte persona-projectie maakt de snapshot niet persona-loos', async () => {
-    // This is the reason that snapshotAgent does NOT read via getAgent(): there
-    // `persona` drops away entirely on a read error (_withPersona then omits the key),
-    // and the restore reads such a missing key as null and writes the column
-    // empty. The raw row carries it in any case.
-    seed('a1', { persona: FIELDS_PERSONA });
-    personaProjectionBroken = true;
-
-    const view = await agentCrud.getAgent('a1');
-    assert.ok(!('persona' in view), 'de weergave laat hem inderdaad weg — dat is het gevaar');
-
-    await agentCrud.snapshotAgent('a1', 'u1', { kind: 'pre_refine' });
-    const snapshot = versionCalls[0][2];
-    assert.deepStrictEqual(snapshot.persona, FIELDS_PERSONA, 'de snapshot houdt de rol vast');
+test('a broken persona projection does not make the snapshot persona-less', async () => {
+    // This is why snapshotAgent does NOT read via getAgent(): there `persona`
+    // drops away on a read error, and the restore reads such a missing key as
+    // null and writes the column empty. The raw row carries it in any case.
+    await seed('a1', { persona: FIELDS_PERSONA });
+    const undo = breakProjection();
+    try {
+        const view = await agentCrud.getAgent('a1');
+        assert.ok(!('persona' in view), 'the view does leave it out — that is the danger');
+        await agentCrud.snapshotAgent('a1', 'u1', { kind: 'pre_refine' });
+    } finally { undo(); }
+    const [v] = await versions();
+    const snapshot = typeof v.snapshot === 'string' ? JSON.parse(v.snapshot) : v.snapshot;
+    assert.deepStrictEqual(snapshot.persona, FIELDS_PERSONA, 'the snapshot keeps the role');
 });
 
-test('snapshotAgent van een onbekende agent geeft null en schrijft geen versie', async () => {
+test('snapshotAgent of an unknown agent gives null and writes no version', async () => {
     const created = await agentCrud.snapshotAgent('nope', 'u1', { kind: 'pre_refine' });
-    assert.strictEqual(created, null, '"niets te herstellen" is iets anders dan "een snapshot van niets"');
-    assert.strictEqual(versionCalls.length, 0);
+    assert.strictEqual(created, null, '"nothing to restore" is something other than "a snapshot of nothing"');
+    assert.deepStrictEqual(await versions(), []);
 });

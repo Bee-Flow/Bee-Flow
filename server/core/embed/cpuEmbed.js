@@ -18,6 +18,7 @@ const path = require('path');
 const log = require('../../telemetry/log');
 const { fallback, bestEffort } = require('../../utils/bestEffort');
 const { markUsed } = require('../llm/cpuPipelineUsage');
+const { envInt } = require('../../utils/envNumber.mts');
 
 // Pinned permissive-licensed embedding model (MIT). Multilingual-e5
 // requires the "query: " / "passage: " prefix for best quality —
@@ -25,13 +26,13 @@ const { markUsed } = require('../llm/cpuPipelineUsage');
 const CPU_EMBED_MODEL_ID = 'Xenova/multilingual-e5-small';
 const CPU_EMBED_DIM = 384;
 
-const CPU_EMBED_TIMEOUT_MS       = Number(process.env.CPU_EMBED_TIMEOUT_MS)      || 8000;
+const CPU_EMBED_TIMEOUT_MS       = envInt('CPU_EMBED_TIMEOUT_MS', 8000, { min: 1 });
 // Cold-start budget for model download + ONNX init. See cpuCrossEncoder.js
 // for the same pattern — both pipelines share the same cache directory
 // so the first call after a fresh boot pays one download per model.
-const CPU_EMBED_LOAD_TIMEOUT_MS  = Number(process.env.CPU_EMBED_LOAD_TIMEOUT_MS) || 60000;
-const CPU_EMBED_BATCH_SIZE       = Number(process.env.CPU_EMBED_BATCH_SIZE)      || 16;
-const CPU_EMBED_TEXT_CHARS       = Number(process.env.CPU_EMBED_TEXT_CHARS)      || 2000;
+const CPU_EMBED_LOAD_TIMEOUT_MS  = envInt('CPU_EMBED_LOAD_TIMEOUT_MS', 60000, { min: 1 });
+const CPU_EMBED_BATCH_SIZE       = envInt('CPU_EMBED_BATCH_SIZE', 16, { min: 1 });
+const CPU_EMBED_TEXT_CHARS       = envInt('CPU_EMBED_TEXT_CHARS', 2000, { min: 1 });
 const CPU_EMBED_WASM_THREADS = Math.max(
     1,
     Number(process.env.CPU_EMBED_WASM_THREADS) ||

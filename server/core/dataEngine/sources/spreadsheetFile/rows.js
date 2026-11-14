@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * One sheet row → one mirror row: `{ id, values }`, or null for a row that
  * gets no id (blank, key missing, duplicate key — identity.js decided that
@@ -24,7 +24,7 @@ const { readCell, isBlank } = require('./cells');
 
 /**
  * @param {{ id: string, rowNumber?: number, cells: unknown[] }} raw   id already derived (null = skip)
- * @param {{ columnMap?: Record<string, { col?: number, type?: string, derived?: string, localFieldId?: string, forFieldId?: string }>, fieldsById?: Map<string, { key: string, type?: string }>, relationIndexes?: Map<string, Map<string, string>>, labelIndexes?: Map<string, Map<string, string>>, coercion?: Record<string, number> }} [ctx]
+ * @param {{ columnMap?: Record<string, { col?: number, type?: string, derived?: string, localFieldId?: string, forFieldId?: string }>, fieldsById?: Map<string, { key: string, type?: string }>, relationIndexes?: Map<string, Map<string, string>>, labelIndexes?: Map<string, Map<string, string>>, coercion?: Record<string, number> | null }} [ctx]
  *   see mirror/rows.deriveRow (readCell is supplied here); `coercion` is { [key]: count }, incremented for cells that did not fit
  * @returns {{ id:string, values:object } | null}
  */
@@ -32,7 +32,8 @@ function rowFromSheet(raw, { columnMap, fieldsById, relationIndexes = new Map(),
     if (!raw || typeof raw.id !== 'string' || !raw.id) return null;
     const cells = Array.isArray(raw.cells) ? raw.cells : [];
     return deriveRow(raw.id, {
-        columnMap, fieldsById, relationIndexes, labelIndexes,
+        // Every caller (the pass, the write-through move) hands the mirror's fields.
+        columnMap, fieldsById: /** @type {Map<string, { key: string, type?: string }>} */ (fieldsById), relationIndexes, labelIndexes,
         /** @param {{ col?: number, type?: string }} entry @param {{ key: string, type?: string }} field */
         readCell: (entry, field) => {
             const cell = typeof entry.col === 'number' && Number.isInteger(entry.col) && entry.col < cells.length ? cells[entry.col] : null;

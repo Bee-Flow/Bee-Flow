@@ -88,6 +88,7 @@ const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const GROUPS_FILE = path.join(DATA_DIR, 'groups.json');
 const ROLES_FILE = path.join(DATA_DIR, 'roles.json');
 
+// stepwise: a one-time import of the JSON files; a row is inserted only when it is missing, so a re-run completes it
 async function migrateJsonToDb() {
     await initDB();
     if (fs.existsSync(USERS_FILE)) {

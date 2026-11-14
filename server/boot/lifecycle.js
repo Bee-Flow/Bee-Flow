@@ -1,3 +1,4 @@
+// @typecheck
 /** @typedef {import('express-serve-static-core').Express} Express */
 'use strict';
 /**
@@ -58,7 +59,7 @@ function startServer({ app, port, terminalErrorHandler, runStartupChecks, runSta
         // secret migration before accepting requests. Any failure stops startup.
         await (deps.userStore || require('../stores/userStore')).initDB();
         await (deps.authConfigStore || require('../stores/authConfigStore')).migrate();
-        server.listen(port, '0.0.0.0', () => {
+        server.listen(/** @type {number} */ (/** @type {unknown} */ (port)), '0.0.0.0', () => {
             log.info(`Server running on http://0.0.0.0:${port}`);
             // Refuse-to-boot / NODE_ENV posture checks, the INIT_* first-boot wizard and
             // the durable HMAC secrets — see boot/startupTasks.js.
@@ -100,7 +101,7 @@ function startServer({ app, port, terminalErrorHandler, runStartupChecks, runSta
 
 /**
  * Register the SIGTERM / SIGINT handlers. Returns the shutdown function.
- * @param {{ otel: { shutdown: Function }, disconnectRedis: Function, log?: object, proc?: NodeJS.Process, deps?: object }} opts
+ * @param {{ otel: { shutdown: Function }, disconnectRedis: Function, log?: { info?: any, warn?: any }, proc?: NodeJS.Process, deps?: { automationRunner?: any, backgroundRun?: any, chatSignals?: any, configStore?: any, opsMetricsPush?: any, studioAppDbStore?: any, usageOpenObservePush?: any, webpageDbStore?: any } }} opts
  */
 function installGracefulShutdown({ otel, disconnectRedis, log = defaultLog, proc = process, deps = {} }) {
     let _shuttingDown = false;

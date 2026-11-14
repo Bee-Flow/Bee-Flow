@@ -1,0 +1,3789 @@
+{
+  "fresh": {
+    "fields": [
+      {
+        "id": "fld_nc1dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_nc2txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "fld_nc3sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_nc4rel",
+        "key": "klant",
+        "name": "Klant",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_klant",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc4lbl",
+        "key": "klant_label",
+        "name": "Klant (label)",
+        "type": "text",
+        "derived": true
+      },
+      {
+        "id": "fld_nc5rel",
+        "key": "project",
+        "name": "Project",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_proj",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc5lbl",
+        "key": "project_label",
+        "name": "Project (label)",
+        "type": "text",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_nc1dat": {
+        "ncColumnId": 1,
+        "ncType": "datetime",
+        "ncSubtype": "date",
+        "title": "Datum"
+      },
+      "fld_nc2txt": {
+        "ncColumnId": 2,
+        "ncType": "text",
+        "ncSubtype": "line",
+        "title": "Leverancier"
+      },
+      "fld_nc3sel": {
+        "ncColumnId": 3,
+        "ncType": "selection",
+        "ncSubtype": "",
+        "title": "Status",
+        "options": [
+          {
+            "id": 0,
+            "label": "open"
+          },
+          {
+            "id": 1,
+            "label": "dicht"
+          }
+        ]
+      },
+      "fld_nc4rel": {
+        "ncColumnId": 4,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Klant",
+        "relation": {
+          "relationType": "table",
+          "targetId": 6,
+          "labelColumn": 12
+        }
+      },
+      "fld_nc4lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc4rel"
+      },
+      "fld_nc5rel": {
+        "ncColumnId": 5,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Project",
+        "relation": {
+          "relationType": "view",
+          "targetId": 7,
+          "labelColumn": 3
+        }
+      },
+      "fld_nc5lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc5rel"
+      }
+    },
+    "relations": [
+      {
+        "fieldId": "fld_nc4rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_klant",
+        "labelFieldId": "fld_nc4lbl",
+        "labelNcColumnId": 12
+      },
+      {
+        "fieldId": "fld_nc5rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_proj",
+        "labelFieldId": "fld_nc5lbl",
+        "labelNcColumnId": 3
+      }
+    ],
+    "warnings": [],
+    "changes": [
+      "added:datum",
+      "added:leverancier",
+      "added:status",
+      "added:klant",
+      "added:klant_label",
+      "added:project",
+      "added:project_label"
+    ],
+    "retyped": []
+  },
+  "notAList": {
+    "fields": [],
+    "columnMap": {},
+    "relations": [],
+    "warnings": [],
+    "changes": [],
+    "retyped": []
+  },
+  "noArgs": {
+    "fields": [],
+    "columnMap": {},
+    "relations": [],
+    "warnings": [],
+    "changes": [],
+    "retyped": []
+  },
+  "invalidColumns": {
+    "fields": [
+      {
+        "id": "fld_nc8num",
+        "key": "stringy",
+        "name": "Stringy",
+        "type": "number"
+      }
+    ],
+    "columnMap": {
+      "fld_nc8num": {
+        "ncColumnId": "8",
+        "ncType": "number",
+        "ncSubtype": "",
+        "title": "Stringy"
+      }
+    },
+    "relations": [],
+    "warnings": [],
+    "changes": [
+      "added:stringy"
+    ],
+    "retyped": []
+  },
+  "capped": [
+    "Only the first 100 of 103 columns are mirrored."
+  ],
+  "unlinkedRelations": {
+    "fields": [
+      {
+        "id": "fld_nc1dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_nc2txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "fld_nc3sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_nc4num",
+        "key": "klant",
+        "name": "Klant",
+        "type": "number"
+      },
+      {
+        "id": "fld_nc5num",
+        "key": "project",
+        "name": "Project",
+        "type": "number"
+      }
+    ],
+    "columnMap": {
+      "fld_nc1dat": {
+        "ncColumnId": 1,
+        "ncType": "datetime",
+        "ncSubtype": "date",
+        "title": "Datum"
+      },
+      "fld_nc2txt": {
+        "ncColumnId": 2,
+        "ncType": "text",
+        "ncSubtype": "line",
+        "title": "Leverancier"
+      },
+      "fld_nc3sel": {
+        "ncColumnId": 3,
+        "ncType": "selection",
+        "ncSubtype": "",
+        "title": "Status",
+        "options": [
+          {
+            "id": 0,
+            "label": "open"
+          },
+          {
+            "id": 1,
+            "label": "dicht"
+          }
+        ]
+      },
+      "fld_nc4num": {
+        "ncColumnId": 4,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Klant"
+      },
+      "fld_nc5num": {
+        "ncColumnId": 5,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Project"
+      }
+    },
+    "relations": [],
+    "warnings": [
+      "\"Klant\" links to a Nextcloud table that is not linked here, so it arrives as a plain number (the row id).",
+      "\"Project\" links to a Nextcloud table that is not linked here, so it arrives as a plain number (the row id)."
+    ],
+    "changes": [
+      "added:datum",
+      "added:leverancier",
+      "added:status",
+      "added:klant",
+      "added:project"
+    ],
+    "retyped": []
+  },
+  "badRelationSettings": {
+    "fields": [
+      {
+        "id": "fld_nc4num",
+        "key": "klant",
+        "name": "Klant",
+        "type": "number"
+      },
+      {
+        "id": "fld_nc5num",
+        "key": "project",
+        "name": "Project",
+        "type": "number"
+      },
+      {
+        "id": "fld_nc6num",
+        "key": "geen",
+        "name": "Geen",
+        "type": "number"
+      },
+      {
+        "id": "fld_nc7num",
+        "key": "tablenotview",
+        "name": "TableNotView",
+        "type": "number"
+      }
+    ],
+    "columnMap": {
+      "fld_nc4num": {
+        "ncColumnId": 4,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Klant"
+      },
+      "fld_nc5num": {
+        "ncColumnId": 5,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Project"
+      },
+      "fld_nc6num": {
+        "ncColumnId": 6,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Geen"
+      },
+      "fld_nc7num": {
+        "ncColumnId": 7,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "TableNotView"
+      }
+    },
+    "relations": [],
+    "warnings": [
+      "\"Klant\" links to a Nextcloud table that is not linked here, so it arrives as a plain number (the row id).",
+      "\"Project\" links to a Nextcloud table that is not linked here, so it arrives as a plain number (the row id).",
+      "\"Geen\" links to a Nextcloud table that is not linked here, so it arrives as a plain number (the row id).",
+      "\"TableNotView\" links to a Nextcloud table that is not linked here, so it arrives as a plain number (the row id)."
+    ],
+    "changes": [
+      "added:klant",
+      "added:project",
+      "added:geen",
+      "added:tablenotview"
+    ],
+    "retyped": []
+  },
+  "relationKept": {
+    "fields": [
+      {
+        "id": "fld_nc1dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_nc2txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "fld_nc3sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_nc4rel",
+        "key": "klant",
+        "name": "Klant",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_klant",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc4lbl",
+        "key": "klant_label",
+        "name": "Klant (label)",
+        "type": "text",
+        "derived": true
+      },
+      {
+        "id": "fld_nc5rel",
+        "key": "project",
+        "name": "Project",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_proj",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc5lbl",
+        "key": "project_label",
+        "name": "Project (label)",
+        "type": "text",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_nc1dat": {
+        "ncColumnId": 1,
+        "ncType": "datetime",
+        "ncSubtype": "date",
+        "title": "Datum"
+      },
+      "fld_nc2txt": {
+        "ncColumnId": 2,
+        "ncType": "text",
+        "ncSubtype": "line",
+        "title": "Leverancier"
+      },
+      "fld_nc3sel": {
+        "ncColumnId": 3,
+        "ncType": "selection",
+        "ncSubtype": "",
+        "title": "Status",
+        "options": [
+          {
+            "id": 0,
+            "label": "open"
+          },
+          {
+            "id": 1,
+            "label": "dicht"
+          }
+        ]
+      },
+      "fld_nc4rel": {
+        "ncColumnId": 4,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Klant",
+        "relation": {
+          "relationType": "table",
+          "targetId": 6,
+          "labelColumn": 12
+        }
+      },
+      "fld_nc4lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc4rel"
+      },
+      "fld_nc5rel": {
+        "ncColumnId": 5,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Project",
+        "relation": {
+          "relationType": "view",
+          "targetId": 7,
+          "labelColumn": 3
+        }
+      },
+      "fld_nc5lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc5rel"
+      }
+    },
+    "relations": [
+      {
+        "fieldId": "fld_nc4rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_klant",
+        "labelFieldId": "fld_nc4lbl",
+        "labelNcColumnId": 12
+      },
+      {
+        "fieldId": "fld_nc5rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_proj",
+        "labelFieldId": "fld_nc5lbl",
+        "labelNcColumnId": 3
+      }
+    ],
+    "warnings": [],
+    "changes": [],
+    "retyped": []
+  },
+  "relationRenamedLabelKept": {
+    "fields": [
+      {
+        "id": "fld_nc1dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_nc2txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "fld_nc3sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_nc4rel",
+        "key": "klant",
+        "name": "Client",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_klant",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc4lbl",
+        "key": "klant_label",
+        "name": "Client (label)",
+        "type": "text",
+        "derived": true
+      },
+      {
+        "id": "fld_nc5rel",
+        "key": "project",
+        "name": "Project",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_proj",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc5lbl",
+        "key": "project_label",
+        "name": "Project (label)",
+        "type": "text",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_nc1dat": {
+        "ncColumnId": 1,
+        "ncType": "datetime",
+        "ncSubtype": "date",
+        "title": "Datum"
+      },
+      "fld_nc2txt": {
+        "ncColumnId": 2,
+        "ncType": "text",
+        "ncSubtype": "line",
+        "title": "Leverancier"
+      },
+      "fld_nc3sel": {
+        "ncColumnId": 3,
+        "ncType": "selection",
+        "ncSubtype": "",
+        "title": "Status",
+        "options": [
+          {
+            "id": 0,
+            "label": "open"
+          },
+          {
+            "id": 1,
+            "label": "dicht"
+          }
+        ]
+      },
+      "fld_nc4rel": {
+        "ncColumnId": 4,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Client",
+        "relation": {
+          "relationType": "table",
+          "targetId": 6,
+          "labelColumn": 12
+        }
+      },
+      "fld_nc4lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc4rel"
+      },
+      "fld_nc5rel": {
+        "ncColumnId": 5,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Project",
+        "relation": {
+          "relationType": "view",
+          "targetId": 7,
+          "labelColumn": 3
+        }
+      },
+      "fld_nc5lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc5rel"
+      }
+    },
+    "relations": [
+      {
+        "fieldId": "fld_nc4rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_klant",
+        "labelFieldId": "fld_nc4lbl",
+        "labelNcColumnId": 12
+      },
+      {
+        "fieldId": "fld_nc5rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_proj",
+        "labelFieldId": "fld_nc5lbl",
+        "labelNcColumnId": 3
+      }
+    ],
+    "warnings": [],
+    "changes": [
+      "renamed:klant"
+    ],
+    "retyped": []
+  },
+  "relationLostTarget": {
+    "fields": [
+      {
+        "id": "fld_nc1dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_nc2txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "fld_nc3sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_nc4num",
+        "key": "klant",
+        "name": "Klant",
+        "type": "number"
+      },
+      {
+        "id": "fld_nc5rel",
+        "key": "project",
+        "name": "Project",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_proj",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc5lbl",
+        "key": "project_label",
+        "name": "Project (label)",
+        "type": "text",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_nc1dat": {
+        "ncColumnId": 1,
+        "ncType": "datetime",
+        "ncSubtype": "date",
+        "title": "Datum"
+      },
+      "fld_nc2txt": {
+        "ncColumnId": 2,
+        "ncType": "text",
+        "ncSubtype": "line",
+        "title": "Leverancier"
+      },
+      "fld_nc3sel": {
+        "ncColumnId": 3,
+        "ncType": "selection",
+        "ncSubtype": "",
+        "title": "Status",
+        "options": [
+          {
+            "id": 0,
+            "label": "open"
+          },
+          {
+            "id": 1,
+            "label": "dicht"
+          }
+        ]
+      },
+      "fld_nc4num": {
+        "ncColumnId": 4,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Klant"
+      },
+      "fld_nc5rel": {
+        "ncColumnId": 5,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Project",
+        "relation": {
+          "relationType": "view",
+          "targetId": 7,
+          "labelColumn": 3
+        }
+      },
+      "fld_nc5lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc5rel"
+      }
+    },
+    "relations": [
+      {
+        "fieldId": "fld_nc5rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_proj",
+        "labelFieldId": "fld_nc5lbl",
+        "labelNcColumnId": 3
+      }
+    ],
+    "warnings": [
+      "\"Klant\" links to a Nextcloud table that is not linked here, so it arrives as a plain number (the row id)."
+    ],
+    "changes": [
+      "added:klant",
+      "retyped:klant",
+      "retyped:klant_label"
+    ],
+    "retyped": [
+      {
+        "id": "fld_nc4rel",
+        "key": "klant",
+        "name": "Klant",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_klant",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc4lbl",
+        "key": "klant_label",
+        "name": "Klant (label)",
+        "type": "text",
+        "derived": true
+      }
+    ]
+  },
+  "relationGainedTarget": {
+    "fields": [
+      {
+        "id": "fld_nc1dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_nc2txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "fld_nc3sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_nc4rel",
+        "key": "klant",
+        "name": "Klant",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_klant",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc4lbl",
+        "key": "klant_label",
+        "name": "Klant (label)",
+        "type": "text",
+        "derived": true
+      },
+      {
+        "id": "fld_nc5rel",
+        "key": "project",
+        "name": "Project",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_proj",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc5lbl",
+        "key": "project_label",
+        "name": "Project (label)",
+        "type": "text",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_nc1dat": {
+        "ncColumnId": 1,
+        "ncType": "datetime",
+        "ncSubtype": "date",
+        "title": "Datum"
+      },
+      "fld_nc2txt": {
+        "ncColumnId": 2,
+        "ncType": "text",
+        "ncSubtype": "line",
+        "title": "Leverancier"
+      },
+      "fld_nc3sel": {
+        "ncColumnId": 3,
+        "ncType": "selection",
+        "ncSubtype": "",
+        "title": "Status",
+        "options": [
+          {
+            "id": 0,
+            "label": "open"
+          },
+          {
+            "id": 1,
+            "label": "dicht"
+          }
+        ]
+      },
+      "fld_nc4rel": {
+        "ncColumnId": 4,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Klant",
+        "relation": {
+          "relationType": "table",
+          "targetId": 6,
+          "labelColumn": 12
+        }
+      },
+      "fld_nc4lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc4rel"
+      },
+      "fld_nc5rel": {
+        "ncColumnId": 5,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Project",
+        "relation": {
+          "relationType": "view",
+          "targetId": 7,
+          "labelColumn": 3
+        }
+      },
+      "fld_nc5lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc5rel"
+      }
+    },
+    "relations": [
+      {
+        "fieldId": "fld_nc4rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_klant",
+        "labelFieldId": "fld_nc4lbl",
+        "labelNcColumnId": 12
+      },
+      {
+        "fieldId": "fld_nc5rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_proj",
+        "labelFieldId": "fld_nc5lbl",
+        "labelNcColumnId": 3
+      }
+    ],
+    "warnings": [],
+    "changes": [
+      "added:klant",
+      "added:klant_label",
+      "added:project",
+      "added:project_label",
+      "retyped:klant",
+      "retyped:project"
+    ],
+    "retyped": [
+      {
+        "id": "fld_nc4num",
+        "key": "klant",
+        "name": "Klant",
+        "type": "number"
+      },
+      {
+        "id": "fld_nc5num",
+        "key": "project",
+        "name": "Project",
+        "type": "number"
+      }
+    ]
+  },
+  "listsWithoutOptions": {
+    "fields": [
+      {
+        "id": "fld_nc1sel",
+        "key": "leeg",
+        "name": "Leeg",
+        "type": "text"
+      },
+      {
+        "id": "fld_nc2msl",
+        "key": "multi",
+        "name": "Multi",
+        "type": "text"
+      },
+      {
+        "id": "fld_nc3bol",
+        "key": "check",
+        "name": "Check",
+        "type": "bool"
+      }
+    ],
+    "columnMap": {
+      "fld_nc1sel": {
+        "ncColumnId": 1,
+        "ncType": "selection",
+        "ncSubtype": "",
+        "title": "Leeg"
+      },
+      "fld_nc2msl": {
+        "ncColumnId": 2,
+        "ncType": "selection",
+        "ncSubtype": "selection-multi",
+        "title": "Multi"
+      },
+      "fld_nc3bol": {
+        "ncColumnId": 3,
+        "ncType": "selection",
+        "ncSubtype": "check",
+        "title": "Check"
+      }
+    },
+    "relations": [],
+    "warnings": [
+      "\"Leeg\" is a list column with no options in Nextcloud, so its values arrive as text.",
+      "\"Multi\" is a list column with no options in Nextcloud, so its values arrive as text."
+    ],
+    "changes": [
+      "added:leeg",
+      "added:multi",
+      "added:check"
+    ],
+    "retyped": []
+  },
+  "retypeKeepsKey": {
+    "fields": [
+      {
+        "id": "fld_nc1txt",
+        "key": "datum",
+        "name": "Datum",
+        "type": "text"
+      },
+      {
+        "id": "fld_nc2txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "fld_nc3sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_nc4rel",
+        "key": "klant",
+        "name": "Klant",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_klant",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc4lbl",
+        "key": "klant_label",
+        "name": "Klant (label)",
+        "type": "text",
+        "derived": true
+      },
+      {
+        "id": "fld_nc5rel",
+        "key": "project",
+        "name": "Project",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_proj",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc5lbl",
+        "key": "project_label",
+        "name": "Project (label)",
+        "type": "text",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_nc1txt": {
+        "ncColumnId": 1,
+        "ncType": "text",
+        "ncSubtype": "line",
+        "title": "Datum"
+      },
+      "fld_nc2txt": {
+        "ncColumnId": 2,
+        "ncType": "text",
+        "ncSubtype": "line",
+        "title": "Leverancier"
+      },
+      "fld_nc3sel": {
+        "ncColumnId": 3,
+        "ncType": "selection",
+        "ncSubtype": "",
+        "title": "Status",
+        "options": [
+          {
+            "id": 0,
+            "label": "open"
+          },
+          {
+            "id": 1,
+            "label": "dicht"
+          }
+        ]
+      },
+      "fld_nc4rel": {
+        "ncColumnId": 4,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Klant",
+        "relation": {
+          "relationType": "table",
+          "targetId": 6,
+          "labelColumn": 12
+        }
+      },
+      "fld_nc4lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc4rel"
+      },
+      "fld_nc5rel": {
+        "ncColumnId": 5,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Project",
+        "relation": {
+          "relationType": "view",
+          "targetId": 7,
+          "labelColumn": 3
+        }
+      },
+      "fld_nc5lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc5rel"
+      }
+    },
+    "relations": [
+      {
+        "fieldId": "fld_nc4rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_klant",
+        "labelFieldId": "fld_nc4lbl",
+        "labelNcColumnId": 12
+      },
+      {
+        "fieldId": "fld_nc5rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_proj",
+        "labelFieldId": "fld_nc5lbl",
+        "labelNcColumnId": 3
+      }
+    ],
+    "warnings": [],
+    "changes": [
+      "added:datum",
+      "retyped:datum"
+    ],
+    "retyped": [
+      {
+        "id": "fld_nc1dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      }
+    ]
+  },
+  "retypeKeyTaken": {
+    "fields": [
+      {
+        "id": "fld_nc1txt",
+        "key": "datum_2",
+        "name": "Datum",
+        "type": "text"
+      },
+      {
+        "id": "fld_nc2txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "fld_nc3sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_nc4rel",
+        "key": "klant",
+        "name": "Klant",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_klant",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc4lbl",
+        "key": "klant_label",
+        "name": "Klant (label)",
+        "type": "text",
+        "derived": true
+      },
+      {
+        "id": "fld_nc5rel",
+        "key": "project",
+        "name": "Project",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_proj",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc5lbl",
+        "key": "project_label",
+        "name": "Project (label)",
+        "type": "text",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_nc1txt": {
+        "ncColumnId": 1,
+        "ncType": "text",
+        "ncSubtype": "date",
+        "title": "Datum"
+      },
+      "fld_nc2txt": {
+        "ncColumnId": 2,
+        "ncType": "text",
+        "ncSubtype": "line",
+        "title": "Leverancier"
+      },
+      "fld_nc3sel": {
+        "ncColumnId": 3,
+        "ncType": "selection",
+        "ncSubtype": "",
+        "title": "Status",
+        "options": [
+          {
+            "id": 0,
+            "label": "open"
+          },
+          {
+            "id": 1,
+            "label": "dicht"
+          }
+        ]
+      },
+      "fld_nc4rel": {
+        "ncColumnId": 4,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Klant",
+        "relation": {
+          "relationType": "table",
+          "targetId": 6,
+          "labelColumn": 12
+        }
+      },
+      "fld_nc4lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc4rel"
+      },
+      "fld_nc5rel": {
+        "ncColumnId": 5,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Project",
+        "relation": {
+          "relationType": "view",
+          "targetId": 7,
+          "labelColumn": 3
+        }
+      },
+      "fld_nc5lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc5rel"
+      }
+    },
+    "relations": [
+      {
+        "fieldId": "fld_nc4rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_klant",
+        "labelFieldId": "fld_nc4lbl",
+        "labelNcColumnId": 12
+      },
+      {
+        "fieldId": "fld_nc5rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_proj",
+        "labelFieldId": "fld_nc5lbl",
+        "labelNcColumnId": 3
+      }
+    ],
+    "warnings": [],
+    "changes": [
+      "added:datum_2",
+      "retyped:datum"
+    ],
+    "retyped": [
+      {
+        "id": "fld_nc1dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      }
+    ]
+  },
+  "retypeOfLabelIgnored": {
+    "fields": [
+      {
+        "id": "fld_nc1dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_nc2txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "fld_nc3sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_nc4rel",
+        "key": "klant",
+        "name": "Klant",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_klant",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc4lbl",
+        "key": "old_label",
+        "name": "Klant (label)",
+        "type": "text",
+        "derived": true
+      },
+      {
+        "id": "fld_nc5rel",
+        "key": "project",
+        "name": "Project",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_proj",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc5lbl",
+        "key": "project_label",
+        "name": "Project (label)",
+        "type": "text",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_nc1dat": {
+        "ncColumnId": 1,
+        "ncType": "datetime",
+        "ncSubtype": "date",
+        "title": "Datum"
+      },
+      "fld_nc2txt": {
+        "ncColumnId": 2,
+        "ncType": "text",
+        "ncSubtype": "line",
+        "title": "Leverancier"
+      },
+      "fld_nc3sel": {
+        "ncColumnId": 3,
+        "ncType": "selection",
+        "ncSubtype": "",
+        "title": "Status",
+        "options": [
+          {
+            "id": 0,
+            "label": "open"
+          },
+          {
+            "id": 1,
+            "label": "dicht"
+          }
+        ]
+      },
+      "fld_nc4rel": {
+        "ncColumnId": 4,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Klant",
+        "relation": {
+          "relationType": "table",
+          "targetId": 6,
+          "labelColumn": 12
+        }
+      },
+      "fld_nc4lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc4rel"
+      },
+      "fld_nc5rel": {
+        "ncColumnId": 5,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Project",
+        "relation": {
+          "relationType": "view",
+          "targetId": 7,
+          "labelColumn": 3
+        }
+      },
+      "fld_nc5lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc5rel"
+      }
+    },
+    "relations": [
+      {
+        "fieldId": "fld_nc4rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_klant",
+        "labelFieldId": "fld_nc4lbl",
+        "labelNcColumnId": 12
+      },
+      {
+        "fieldId": "fld_nc5rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_proj",
+        "labelFieldId": "fld_nc5lbl",
+        "labelNcColumnId": 3
+      }
+    ],
+    "warnings": [],
+    "changes": [],
+    "retyped": []
+  },
+  "keptFieldWithoutKey": {
+    "fields": [
+      {
+        "id": "fld_nc1dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_nc2txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "fld_nc3sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_nc4rel",
+        "key": "klant",
+        "name": "Klant",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_klant",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc4lbl",
+        "key": "klant_label",
+        "name": "Klant (label)",
+        "type": "text",
+        "derived": true
+      },
+      {
+        "id": "fld_nc5rel",
+        "key": "project",
+        "name": "Project",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_proj",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc5lbl",
+        "key": "project_label",
+        "name": "Project (label)",
+        "type": "text",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_nc1dat": {
+        "ncColumnId": 1,
+        "ncType": "datetime",
+        "ncSubtype": "date",
+        "title": "Datum"
+      },
+      "fld_nc2txt": {
+        "ncColumnId": 2,
+        "ncType": "text",
+        "ncSubtype": "line",
+        "title": "Leverancier"
+      },
+      "fld_nc3sel": {
+        "ncColumnId": 3,
+        "ncType": "selection",
+        "ncSubtype": "",
+        "title": "Status",
+        "options": [
+          {
+            "id": 0,
+            "label": "open"
+          },
+          {
+            "id": 1,
+            "label": "dicht"
+          }
+        ]
+      },
+      "fld_nc4rel": {
+        "ncColumnId": 4,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Klant",
+        "relation": {
+          "relationType": "table",
+          "targetId": 6,
+          "labelColumn": 12
+        }
+      },
+      "fld_nc4lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc4rel"
+      },
+      "fld_nc5rel": {
+        "ncColumnId": 5,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Project",
+        "relation": {
+          "relationType": "view",
+          "targetId": 7,
+          "labelColumn": 3
+        }
+      },
+      "fld_nc5lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc5rel"
+      }
+    },
+    "relations": [
+      {
+        "fieldId": "fld_nc4rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_klant",
+        "labelFieldId": "fld_nc4lbl",
+        "labelNcColumnId": 12
+      },
+      {
+        "fieldId": "fld_nc5rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_proj",
+        "labelFieldId": "fld_nc5lbl",
+        "labelNcColumnId": 3
+      }
+    ],
+    "warnings": [],
+    "changes": [],
+    "retyped": []
+  },
+  "keptKeyNotStolen": {
+    "fields": [
+      {
+        "id": "fld_nc9txt",
+        "key": "supplier_2",
+        "name": "Supplier",
+        "type": "text"
+      },
+      {
+        "id": "fld_nc1dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_nc2txt",
+        "key": "supplier",
+        "name": "Leverancier",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "fld_nc3sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_nc4rel",
+        "key": "klant",
+        "name": "Klant",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_klant",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc4lbl",
+        "key": "klant_label",
+        "name": "Klant (label)",
+        "type": "text",
+        "derived": true
+      },
+      {
+        "id": "fld_nc5rel",
+        "key": "project",
+        "name": "Project",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_proj",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc5lbl",
+        "key": "project_label",
+        "name": "Project (label)",
+        "type": "text",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_nc9txt": {
+        "ncColumnId": 9,
+        "ncType": "text",
+        "ncSubtype": "",
+        "title": "Supplier"
+      },
+      "fld_nc1dat": {
+        "ncColumnId": 1,
+        "ncType": "datetime",
+        "ncSubtype": "date",
+        "title": "Datum"
+      },
+      "fld_nc2txt": {
+        "ncColumnId": 2,
+        "ncType": "text",
+        "ncSubtype": "line",
+        "title": "Leverancier"
+      },
+      "fld_nc3sel": {
+        "ncColumnId": 3,
+        "ncType": "selection",
+        "ncSubtype": "",
+        "title": "Status",
+        "options": [
+          {
+            "id": 0,
+            "label": "open"
+          },
+          {
+            "id": 1,
+            "label": "dicht"
+          }
+        ]
+      },
+      "fld_nc4rel": {
+        "ncColumnId": 4,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Klant",
+        "relation": {
+          "relationType": "table",
+          "targetId": 6,
+          "labelColumn": 12
+        }
+      },
+      "fld_nc4lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc4rel"
+      },
+      "fld_nc5rel": {
+        "ncColumnId": 5,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Project",
+        "relation": {
+          "relationType": "view",
+          "targetId": 7,
+          "labelColumn": 3
+        }
+      },
+      "fld_nc5lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc5rel"
+      }
+    },
+    "relations": [
+      {
+        "fieldId": "fld_nc4rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_klant",
+        "labelFieldId": "fld_nc4lbl",
+        "labelNcColumnId": 12
+      },
+      {
+        "fieldId": "fld_nc5rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_proj",
+        "labelFieldId": "fld_nc5lbl",
+        "labelNcColumnId": 3
+      }
+    ],
+    "warnings": [],
+    "changes": [
+      "added:supplier_2"
+    ],
+    "retyped": []
+  },
+  "reservedKeys": {
+    "fields": [
+      {
+        "id": "fld_nc1dat",
+        "key": "datum_2",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_nc2txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "fld_nc3sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_nc4rel",
+        "key": "klant",
+        "name": "Klant",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_klant",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc4lbl",
+        "key": "klant_label_2",
+        "name": "Klant (label)",
+        "type": "text",
+        "derived": true
+      },
+      {
+        "id": "fld_nc5rel",
+        "key": "project",
+        "name": "Project",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_proj",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc5lbl",
+        "key": "project_label",
+        "name": "Project (label)",
+        "type": "text",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_nc1dat": {
+        "ncColumnId": 1,
+        "ncType": "datetime",
+        "ncSubtype": "date",
+        "title": "Datum"
+      },
+      "fld_nc2txt": {
+        "ncColumnId": 2,
+        "ncType": "text",
+        "ncSubtype": "line",
+        "title": "Leverancier"
+      },
+      "fld_nc3sel": {
+        "ncColumnId": 3,
+        "ncType": "selection",
+        "ncSubtype": "",
+        "title": "Status",
+        "options": [
+          {
+            "id": 0,
+            "label": "open"
+          },
+          {
+            "id": 1,
+            "label": "dicht"
+          }
+        ]
+      },
+      "fld_nc4rel": {
+        "ncColumnId": 4,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Klant",
+        "relation": {
+          "relationType": "table",
+          "targetId": 6,
+          "labelColumn": 12
+        }
+      },
+      "fld_nc4lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc4rel"
+      },
+      "fld_nc5rel": {
+        "ncColumnId": 5,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Project",
+        "relation": {
+          "relationType": "view",
+          "targetId": 7,
+          "labelColumn": 3
+        }
+      },
+      "fld_nc5lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc5rel"
+      }
+    },
+    "relations": [
+      {
+        "fieldId": "fld_nc4rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_klant",
+        "labelFieldId": "fld_nc4lbl",
+        "labelNcColumnId": 12
+      },
+      {
+        "fieldId": "fld_nc5rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_proj",
+        "labelFieldId": "fld_nc5lbl",
+        "labelNcColumnId": 3
+      }
+    ],
+    "warnings": [],
+    "changes": [
+      "added:datum_2",
+      "added:leverancier",
+      "added:status",
+      "added:klant",
+      "added:klant_label_2",
+      "added:project",
+      "added:project_label"
+    ],
+    "retyped": []
+  },
+  "titles": {
+    "fields": [
+      {
+        "id": "fld_nc1txt",
+        "key": "column_1",
+        "name": "column_1",
+        "type": "text"
+      },
+      {
+        "id": "fld_nc2txt",
+        "key": "column_2",
+        "name": "column_2",
+        "type": "text"
+      },
+      {
+        "id": "fld_nc3txt",
+        "key": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "name": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "type": "text"
+      },
+      {
+        "id": "fld_nc4rtx",
+        "key": "spaced",
+        "name": "Spaced",
+        "type": "richtext"
+      }
+    ],
+    "columnMap": {
+      "fld_nc1txt": {
+        "ncColumnId": 1,
+        "ncType": "text",
+        "ncSubtype": "",
+        "title": "   "
+      },
+      "fld_nc2txt": {
+        "ncColumnId": 2,
+        "ncType": "text",
+        "ncSubtype": ""
+      },
+      "fld_nc3txt": {
+        "ncColumnId": 3,
+        "ncType": "text",
+        "ncSubtype": "",
+        "title": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "fld_nc4rtx": {
+        "ncColumnId": 4,
+        "ncType": "text",
+        "ncSubtype": "rich",
+        "title": " Spaced "
+      }
+    },
+    "relations": [],
+    "warnings": [],
+    "changes": [
+      "added:column_1",
+      "added:column_2",
+      "added:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "added:spaced"
+    ],
+    "retyped": []
+  },
+  "removedAndAdded": {
+    "fields": [
+      {
+        "id": "fld_nc2txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "fld_nc3sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_nc4rel",
+        "key": "klant",
+        "name": "Klant",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_klant",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc4lbl",
+        "key": "klant_label",
+        "name": "Klant (label)",
+        "type": "text",
+        "derived": true
+      },
+      {
+        "id": "fld_nc5rel",
+        "key": "project",
+        "name": "Project",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_proj",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc5lbl",
+        "key": "project_label",
+        "name": "Project (label)",
+        "type": "text",
+        "derived": true
+      },
+      {
+        "id": "fld_nc9num",
+        "key": "nieuw",
+        "name": "Nieuw",
+        "type": "number"
+      }
+    ],
+    "columnMap": {
+      "fld_nc2txt": {
+        "ncColumnId": 2,
+        "ncType": "text",
+        "ncSubtype": "line",
+        "title": "Leverancier"
+      },
+      "fld_nc3sel": {
+        "ncColumnId": 3,
+        "ncType": "selection",
+        "ncSubtype": "",
+        "title": "Status",
+        "options": [
+          {
+            "id": 0,
+            "label": "open"
+          },
+          {
+            "id": 1,
+            "label": "dicht"
+          }
+        ]
+      },
+      "fld_nc4rel": {
+        "ncColumnId": 4,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Klant",
+        "relation": {
+          "relationType": "table",
+          "targetId": 6,
+          "labelColumn": 12
+        }
+      },
+      "fld_nc4lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc4rel"
+      },
+      "fld_nc5rel": {
+        "ncColumnId": 5,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Project",
+        "relation": {
+          "relationType": "view",
+          "targetId": 7,
+          "labelColumn": 3
+        }
+      },
+      "fld_nc5lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc5rel"
+      },
+      "fld_nc9num": {
+        "ncColumnId": 9,
+        "ncType": "number",
+        "ncSubtype": "",
+        "title": "Nieuw"
+      }
+    },
+    "relations": [
+      {
+        "fieldId": "fld_nc4rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_klant",
+        "labelFieldId": "fld_nc4lbl",
+        "labelNcColumnId": 12
+      },
+      {
+        "fieldId": "fld_nc5rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_proj",
+        "labelFieldId": "fld_nc5lbl",
+        "labelNcColumnId": 3
+      }
+    ],
+    "warnings": [],
+    "changes": [
+      "added:nieuw",
+      "removed:datum"
+    ],
+    "retyped": []
+  },
+  "priorJunk": {
+    "fields": [
+      {
+        "id": "fld_nc1dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_nc2txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "fld_nc3sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_nc4rel",
+        "key": "klant",
+        "name": "Klant",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_klant",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc4lbl",
+        "key": "klant_label",
+        "name": "Klant (label)",
+        "type": "text",
+        "derived": true
+      },
+      {
+        "id": "fld_nc5rel",
+        "key": "project",
+        "name": "Project",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_proj",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc5lbl",
+        "key": "project_label",
+        "name": "Project (label)",
+        "type": "text",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_nc1dat": {
+        "ncColumnId": 1,
+        "ncType": "datetime",
+        "ncSubtype": "date",
+        "title": "Datum"
+      },
+      "fld_nc2txt": {
+        "ncColumnId": 2,
+        "ncType": "text",
+        "ncSubtype": "line",
+        "title": "Leverancier"
+      },
+      "fld_nc3sel": {
+        "ncColumnId": 3,
+        "ncType": "selection",
+        "ncSubtype": "",
+        "title": "Status",
+        "options": [
+          {
+            "id": 0,
+            "label": "open"
+          },
+          {
+            "id": 1,
+            "label": "dicht"
+          }
+        ]
+      },
+      "fld_nc4rel": {
+        "ncColumnId": 4,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Klant",
+        "relation": {
+          "relationType": "table",
+          "targetId": 6,
+          "labelColumn": 12
+        }
+      },
+      "fld_nc4lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc4rel"
+      },
+      "fld_nc5rel": {
+        "ncColumnId": 5,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Project",
+        "relation": {
+          "relationType": "view",
+          "targetId": 7,
+          "labelColumn": 3
+        }
+      },
+      "fld_nc5lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc5rel"
+      }
+    },
+    "relations": [
+      {
+        "fieldId": "fld_nc4rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_klant",
+        "labelFieldId": "fld_nc4lbl",
+        "labelNcColumnId": 12
+      },
+      {
+        "fieldId": "fld_nc5rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_proj",
+        "labelFieldId": "fld_nc5lbl",
+        "labelNcColumnId": 3
+      }
+    ],
+    "warnings": [],
+    "changes": [
+      "removed:other"
+    ],
+    "retyped": []
+  },
+  "priorNotAList": {
+    "fields": [
+      {
+        "id": "fld_nc1dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_nc2txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "fld_nc3sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_nc4rel",
+        "key": "klant",
+        "name": "Klant",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_klant",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc4lbl",
+        "key": "klant_label",
+        "name": "Klant (label)",
+        "type": "text",
+        "derived": true
+      },
+      {
+        "id": "fld_nc5rel",
+        "key": "project",
+        "name": "Project",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_proj",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc5lbl",
+        "key": "project_label",
+        "name": "Project (label)",
+        "type": "text",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_nc1dat": {
+        "ncColumnId": 1,
+        "ncType": "datetime",
+        "ncSubtype": "date",
+        "title": "Datum"
+      },
+      "fld_nc2txt": {
+        "ncColumnId": 2,
+        "ncType": "text",
+        "ncSubtype": "line",
+        "title": "Leverancier"
+      },
+      "fld_nc3sel": {
+        "ncColumnId": 3,
+        "ncType": "selection",
+        "ncSubtype": "",
+        "title": "Status",
+        "options": [
+          {
+            "id": 0,
+            "label": "open"
+          },
+          {
+            "id": 1,
+            "label": "dicht"
+          }
+        ]
+      },
+      "fld_nc4rel": {
+        "ncColumnId": 4,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Klant",
+        "relation": {
+          "relationType": "table",
+          "targetId": 6,
+          "labelColumn": 12
+        }
+      },
+      "fld_nc4lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc4rel"
+      },
+      "fld_nc5rel": {
+        "ncColumnId": 5,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Project",
+        "relation": {
+          "relationType": "view",
+          "targetId": 7,
+          "labelColumn": 3
+        }
+      },
+      "fld_nc5lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc5rel"
+      }
+    },
+    "relations": [
+      {
+        "fieldId": "fld_nc4rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_klant",
+        "labelFieldId": "fld_nc4lbl",
+        "labelNcColumnId": 12
+      },
+      {
+        "fieldId": "fld_nc5rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_proj",
+        "labelFieldId": "fld_nc5lbl",
+        "labelNcColumnId": 3
+      }
+    ],
+    "warnings": [],
+    "changes": [
+      "added:datum",
+      "added:leverancier",
+      "added:status",
+      "added:klant",
+      "added:klant_label",
+      "added:project",
+      "added:project_label"
+    ],
+    "retyped": []
+  },
+  "declaredNew": {
+    "fields": [
+      {
+        "id": "fld_nc1dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_nc2txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "fld_nc3sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_nc4rel",
+        "key": "klant",
+        "name": "Klant",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_klant",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc4lbl",
+        "key": "klant_label",
+        "name": "Klant (label)",
+        "type": "text",
+        "derived": true
+      },
+      {
+        "id": "fld_nc5rel",
+        "key": "project",
+        "name": "Project",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_proj",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc5lbl",
+        "key": "project_label",
+        "name": "Project (label)",
+        "type": "text",
+        "derived": true
+      },
+      {
+        "id": "fld_ncrelc85972da5e",
+        "key": "leveranciers_ref",
+        "name": "Leveranciers row",
+        "type": "relation",
+        "derived": true,
+        "relation": {
+          "table": "tbl_lev",
+          "fk": false
+        }
+      }
+    ],
+    "columnMap": {
+      "fld_nc1dat": {
+        "ncColumnId": 1,
+        "ncType": "datetime",
+        "ncSubtype": "date",
+        "title": "Datum"
+      },
+      "fld_nc2txt": {
+        "ncColumnId": 2,
+        "ncType": "text",
+        "ncSubtype": "line",
+        "title": "Leverancier"
+      },
+      "fld_nc3sel": {
+        "ncColumnId": 3,
+        "ncType": "selection",
+        "ncSubtype": "",
+        "title": "Status",
+        "options": [
+          {
+            "id": 0,
+            "label": "open"
+          },
+          {
+            "id": 1,
+            "label": "dicht"
+          }
+        ]
+      },
+      "fld_nc4rel": {
+        "ncColumnId": 4,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Klant",
+        "relation": {
+          "relationType": "table",
+          "targetId": 6,
+          "labelColumn": 12
+        }
+      },
+      "fld_nc4lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc4rel"
+      },
+      "fld_nc5rel": {
+        "ncColumnId": 5,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Project",
+        "relation": {
+          "relationType": "view",
+          "targetId": 7,
+          "labelColumn": 3
+        }
+      },
+      "fld_nc5lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc5rel"
+      },
+      "fld_ncrelc85972da5e": {
+        "derived": "match",
+        "localFieldId": "fld_nc2txt",
+        "targetFieldId": "fld_nc20txt"
+      }
+    },
+    "relations": [
+      {
+        "fieldId": "fld_nc4rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_klant",
+        "labelFieldId": "fld_nc4lbl",
+        "labelNcColumnId": 12
+      },
+      {
+        "fieldId": "fld_nc5rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_proj",
+        "labelFieldId": "fld_nc5lbl",
+        "labelNcColumnId": 3
+      },
+      {
+        "fieldId": "fld_ncrelc85972da5e",
+        "kind": "match",
+        "targetDatatableId": "tbl_lev",
+        "localFieldId": "fld_nc2txt",
+        "targetFieldId": "fld_nc20txt"
+      }
+    ],
+    "warnings": [],
+    "changes": [
+      "added:leveranciers_ref"
+    ],
+    "retyped": []
+  },
+  "declaredKept": {
+    "fields": [
+      {
+        "id": "fld_nc1dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_nc2txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "fld_nc3sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_nc4rel",
+        "key": "klant",
+        "name": "Klant",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_klant",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc4lbl",
+        "key": "klant_label",
+        "name": "Klant (label)",
+        "type": "text",
+        "derived": true
+      },
+      {
+        "id": "fld_nc5rel",
+        "key": "project",
+        "name": "Project",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_proj",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc5lbl",
+        "key": "project_label",
+        "name": "Project (label)",
+        "type": "text",
+        "derived": true
+      },
+      {
+        "id": "fld_ncrelc85972da5e",
+        "key": "leveranciers_ref",
+        "name": "Leveranciers row",
+        "type": "relation",
+        "derived": true,
+        "relation": {
+          "table": "tbl_lev",
+          "fk": false
+        }
+      }
+    ],
+    "columnMap": {
+      "fld_nc1dat": {
+        "ncColumnId": 1,
+        "ncType": "datetime",
+        "ncSubtype": "date",
+        "title": "Datum"
+      },
+      "fld_nc2txt": {
+        "ncColumnId": 2,
+        "ncType": "text",
+        "ncSubtype": "line",
+        "title": "Leverancier"
+      },
+      "fld_nc3sel": {
+        "ncColumnId": 3,
+        "ncType": "selection",
+        "ncSubtype": "",
+        "title": "Status",
+        "options": [
+          {
+            "id": 0,
+            "label": "open"
+          },
+          {
+            "id": 1,
+            "label": "dicht"
+          }
+        ]
+      },
+      "fld_nc4rel": {
+        "ncColumnId": 4,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Klant",
+        "relation": {
+          "relationType": "table",
+          "targetId": 6,
+          "labelColumn": 12
+        }
+      },
+      "fld_nc4lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc4rel"
+      },
+      "fld_nc5rel": {
+        "ncColumnId": 5,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Project",
+        "relation": {
+          "relationType": "view",
+          "targetId": 7,
+          "labelColumn": 3
+        }
+      },
+      "fld_nc5lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc5rel"
+      },
+      "fld_ncrelc85972da5e": {
+        "derived": "match",
+        "localFieldId": "fld_nc2txt",
+        "targetFieldId": "fld_nc20txt"
+      }
+    },
+    "relations": [
+      {
+        "fieldId": "fld_nc4rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_klant",
+        "labelFieldId": "fld_nc4lbl",
+        "labelNcColumnId": 12
+      },
+      {
+        "fieldId": "fld_nc5rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_proj",
+        "labelFieldId": "fld_nc5lbl",
+        "labelNcColumnId": 3
+      },
+      {
+        "fieldId": "fld_ncrelc85972da5e",
+        "kind": "match",
+        "targetDatatableId": "tbl_lev",
+        "localFieldId": "fld_nc2txt",
+        "targetFieldId": "fld_nc20txt"
+      }
+    ],
+    "warnings": [],
+    "changes": [],
+    "retyped": []
+  },
+  "declaredKeptNoName": {
+    "fields": [
+      {
+        "id": "fld_nc1dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_nc2txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "fld_nc3sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_nc4rel",
+        "key": "klant",
+        "name": "Klant",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_klant",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc4lbl",
+        "key": "klant_label",
+        "name": "Klant (label)",
+        "type": "text",
+        "derived": true
+      },
+      {
+        "id": "fld_nc5rel",
+        "key": "project",
+        "name": "Project",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_proj",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc5lbl",
+        "key": "project_label",
+        "name": "Project (label)",
+        "type": "text",
+        "derived": true
+      },
+      {
+        "id": "fld_ncrelc85972da5e",
+        "key": "leveranciers_ref",
+        "name": "Leveranciers row",
+        "type": "relation",
+        "derived": true,
+        "relation": {
+          "table": "tbl_lev",
+          "fk": false
+        }
+      }
+    ],
+    "columnMap": {
+      "fld_nc1dat": {
+        "ncColumnId": 1,
+        "ncType": "datetime",
+        "ncSubtype": "date",
+        "title": "Datum"
+      },
+      "fld_nc2txt": {
+        "ncColumnId": 2,
+        "ncType": "text",
+        "ncSubtype": "line",
+        "title": "Leverancier"
+      },
+      "fld_nc3sel": {
+        "ncColumnId": 3,
+        "ncType": "selection",
+        "ncSubtype": "",
+        "title": "Status",
+        "options": [
+          {
+            "id": 0,
+            "label": "open"
+          },
+          {
+            "id": 1,
+            "label": "dicht"
+          }
+        ]
+      },
+      "fld_nc4rel": {
+        "ncColumnId": 4,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Klant",
+        "relation": {
+          "relationType": "table",
+          "targetId": 6,
+          "labelColumn": 12
+        }
+      },
+      "fld_nc4lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc4rel"
+      },
+      "fld_nc5rel": {
+        "ncColumnId": 5,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Project",
+        "relation": {
+          "relationType": "view",
+          "targetId": 7,
+          "labelColumn": 3
+        }
+      },
+      "fld_nc5lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc5rel"
+      },
+      "fld_ncrelc85972da5e": {
+        "derived": "match",
+        "localFieldId": "fld_nc2txt",
+        "targetFieldId": "fld_nc20txt"
+      }
+    },
+    "relations": [
+      {
+        "fieldId": "fld_nc4rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_klant",
+        "labelFieldId": "fld_nc4lbl",
+        "labelNcColumnId": 12
+      },
+      {
+        "fieldId": "fld_nc5rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_proj",
+        "labelFieldId": "fld_nc5lbl",
+        "labelNcColumnId": 3
+      },
+      {
+        "fieldId": "fld_ncrelc85972da5e",
+        "kind": "match",
+        "targetDatatableId": "tbl_lev",
+        "localFieldId": "fld_nc2txt",
+        "targetFieldId": "fld_nc20txt"
+      }
+    ],
+    "warnings": [],
+    "changes": [],
+    "retyped": []
+  },
+  "declaredDropped": {
+    "fields": [
+      {
+        "id": "fld_nc1dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_nc2txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "fld_nc3sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_nc4rel",
+        "key": "klant",
+        "name": "Klant",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_klant",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc4lbl",
+        "key": "klant_label",
+        "name": "Klant (label)",
+        "type": "text",
+        "derived": true
+      },
+      {
+        "id": "fld_nc5rel",
+        "key": "project",
+        "name": "Project",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_proj",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc5lbl",
+        "key": "project_label",
+        "name": "Project (label)",
+        "type": "text",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_nc1dat": {
+        "ncColumnId": 1,
+        "ncType": "datetime",
+        "ncSubtype": "date",
+        "title": "Datum"
+      },
+      "fld_nc2txt": {
+        "ncColumnId": 2,
+        "ncType": "text",
+        "ncSubtype": "line",
+        "title": "Leverancier"
+      },
+      "fld_nc3sel": {
+        "ncColumnId": 3,
+        "ncType": "selection",
+        "ncSubtype": "",
+        "title": "Status",
+        "options": [
+          {
+            "id": 0,
+            "label": "open"
+          },
+          {
+            "id": 1,
+            "label": "dicht"
+          }
+        ]
+      },
+      "fld_nc4rel": {
+        "ncColumnId": 4,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Klant",
+        "relation": {
+          "relationType": "table",
+          "targetId": 6,
+          "labelColumn": 12
+        }
+      },
+      "fld_nc4lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc4rel"
+      },
+      "fld_nc5rel": {
+        "ncColumnId": 5,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Project",
+        "relation": {
+          "relationType": "view",
+          "targetId": 7,
+          "labelColumn": 3
+        }
+      },
+      "fld_nc5lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc5rel"
+      }
+    },
+    "relations": [
+      {
+        "fieldId": "fld_nc4rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_klant",
+        "labelFieldId": "fld_nc4lbl",
+        "labelNcColumnId": 12
+      },
+      {
+        "fieldId": "fld_nc5rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_proj",
+        "labelFieldId": "fld_nc5lbl",
+        "labelNcColumnId": 3
+      }
+    ],
+    "warnings": [],
+    "changes": [
+      "removed:leveranciers_ref"
+    ],
+    "retyped": []
+  },
+  "declaredKeyReservedFromColumn": {
+    "fields": [
+      {
+        "id": "fld_nc1dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_nc2txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "fld_nc3sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_nc4rel",
+        "key": "klant",
+        "name": "Klant",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_klant",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc4lbl",
+        "key": "klant_label",
+        "name": "Klant (label)",
+        "type": "text",
+        "derived": true
+      },
+      {
+        "id": "fld_nc5rel",
+        "key": "project",
+        "name": "Project",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_proj",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc5lbl",
+        "key": "project_label",
+        "name": "Project (label)",
+        "type": "text",
+        "derived": true
+      },
+      {
+        "id": "fld_nc9txt",
+        "key": "leveranciers_ref_2",
+        "name": "leveranciers_ref",
+        "type": "text"
+      },
+      {
+        "id": "fld_ncrelc85972da5e",
+        "key": "leveranciers_ref",
+        "name": "Leveranciers row",
+        "type": "relation",
+        "derived": true,
+        "relation": {
+          "table": "tbl_lev",
+          "fk": false
+        }
+      }
+    ],
+    "columnMap": {
+      "fld_nc1dat": {
+        "ncColumnId": 1,
+        "ncType": "datetime",
+        "ncSubtype": "date",
+        "title": "Datum"
+      },
+      "fld_nc2txt": {
+        "ncColumnId": 2,
+        "ncType": "text",
+        "ncSubtype": "line",
+        "title": "Leverancier"
+      },
+      "fld_nc3sel": {
+        "ncColumnId": 3,
+        "ncType": "selection",
+        "ncSubtype": "",
+        "title": "Status",
+        "options": [
+          {
+            "id": 0,
+            "label": "open"
+          },
+          {
+            "id": 1,
+            "label": "dicht"
+          }
+        ]
+      },
+      "fld_nc4rel": {
+        "ncColumnId": 4,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Klant",
+        "relation": {
+          "relationType": "table",
+          "targetId": 6,
+          "labelColumn": 12
+        }
+      },
+      "fld_nc4lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc4rel"
+      },
+      "fld_nc5rel": {
+        "ncColumnId": 5,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Project",
+        "relation": {
+          "relationType": "view",
+          "targetId": 7,
+          "labelColumn": 3
+        }
+      },
+      "fld_nc5lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc5rel"
+      },
+      "fld_nc9txt": {
+        "ncColumnId": 9,
+        "ncType": "text",
+        "ncSubtype": "",
+        "title": "leveranciers_ref"
+      },
+      "fld_ncrelc85972da5e": {
+        "derived": "match",
+        "localFieldId": "fld_nc2txt",
+        "targetFieldId": "fld_nc20txt"
+      }
+    },
+    "relations": [
+      {
+        "fieldId": "fld_nc4rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_klant",
+        "labelFieldId": "fld_nc4lbl",
+        "labelNcColumnId": 12
+      },
+      {
+        "fieldId": "fld_nc5rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_proj",
+        "labelFieldId": "fld_nc5lbl",
+        "labelNcColumnId": 3
+      },
+      {
+        "fieldId": "fld_ncrelc85972da5e",
+        "kind": "match",
+        "targetDatatableId": "tbl_lev",
+        "localFieldId": "fld_nc2txt",
+        "targetFieldId": "fld_nc20txt"
+      }
+    ],
+    "warnings": [],
+    "changes": [
+      "added:leveranciers_ref_2"
+    ],
+    "retyped": []
+  },
+  "declaredOnGoneColumn": {
+    "fields": [
+      {
+        "id": "fld_nc1dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_nc2txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "fld_nc3sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_nc4rel",
+        "key": "klant",
+        "name": "Klant",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_klant",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc4lbl",
+        "key": "klant_label",
+        "name": "Klant (label)",
+        "type": "text",
+        "derived": true
+      },
+      {
+        "id": "fld_nc5rel",
+        "key": "project",
+        "name": "Project",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_proj",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc5lbl",
+        "key": "project_label",
+        "name": "Project (label)",
+        "type": "text",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_nc1dat": {
+        "ncColumnId": 1,
+        "ncType": "datetime",
+        "ncSubtype": "date",
+        "title": "Datum"
+      },
+      "fld_nc2txt": {
+        "ncColumnId": 2,
+        "ncType": "text",
+        "ncSubtype": "line",
+        "title": "Leverancier"
+      },
+      "fld_nc3sel": {
+        "ncColumnId": 3,
+        "ncType": "selection",
+        "ncSubtype": "",
+        "title": "Status",
+        "options": [
+          {
+            "id": 0,
+            "label": "open"
+          },
+          {
+            "id": 1,
+            "label": "dicht"
+          }
+        ]
+      },
+      "fld_nc4rel": {
+        "ncColumnId": 4,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Klant",
+        "relation": {
+          "relationType": "table",
+          "targetId": 6,
+          "labelColumn": 12
+        }
+      },
+      "fld_nc4lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc4rel"
+      },
+      "fld_nc5rel": {
+        "ncColumnId": 5,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Project",
+        "relation": {
+          "relationType": "view",
+          "targetId": 7,
+          "labelColumn": 3
+        }
+      },
+      "fld_nc5lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc5rel"
+      }
+    },
+    "relations": [
+      {
+        "fieldId": "fld_nc4rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_klant",
+        "labelFieldId": "fld_nc4lbl",
+        "labelNcColumnId": 12
+      },
+      {
+        "fieldId": "fld_nc5rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_proj",
+        "labelFieldId": "fld_nc5lbl",
+        "labelNcColumnId": 3
+      }
+    ],
+    "warnings": [
+      "A declared relation names a column this table no longer has (fld_nc99txt); it is skipped."
+    ],
+    "changes": [
+      "added:datum",
+      "added:leverancier",
+      "added:status",
+      "added:klant",
+      "added:klant_label",
+      "added:project",
+      "added:project_label"
+    ],
+    "retyped": []
+  },
+  "declaredOnPriorOnlyColumn": {
+    "fields": [
+      {
+        "id": "fld_nc3sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_nc4rel",
+        "key": "klant",
+        "name": "Klant",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_klant",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc4lbl",
+        "key": "klant_label",
+        "name": "Klant (label)",
+        "type": "text",
+        "derived": true
+      },
+      {
+        "id": "fld_nc5rel",
+        "key": "project",
+        "name": "Project",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_proj",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc5lbl",
+        "key": "project_label",
+        "name": "Project (label)",
+        "type": "text",
+        "derived": true
+      },
+      {
+        "id": "fld_ncrelc85972da5e",
+        "key": "leveranciers_ref",
+        "name": "Leveranciers row",
+        "type": "relation",
+        "derived": true,
+        "relation": {
+          "table": "tbl_lev",
+          "fk": false
+        }
+      }
+    ],
+    "columnMap": {
+      "fld_nc3sel": {
+        "ncColumnId": 3,
+        "ncType": "selection",
+        "ncSubtype": "",
+        "title": "Status",
+        "options": [
+          {
+            "id": 0,
+            "label": "open"
+          },
+          {
+            "id": 1,
+            "label": "dicht"
+          }
+        ]
+      },
+      "fld_nc4rel": {
+        "ncColumnId": 4,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Klant",
+        "relation": {
+          "relationType": "table",
+          "targetId": 6,
+          "labelColumn": 12
+        }
+      },
+      "fld_nc4lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc4rel"
+      },
+      "fld_nc5rel": {
+        "ncColumnId": 5,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Project",
+        "relation": {
+          "relationType": "view",
+          "targetId": 7,
+          "labelColumn": 3
+        }
+      },
+      "fld_nc5lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc5rel"
+      },
+      "fld_ncrelc85972da5e": {
+        "derived": "match",
+        "localFieldId": "fld_nc2txt",
+        "targetFieldId": "fld_nc20txt"
+      }
+    },
+    "relations": [
+      {
+        "fieldId": "fld_nc4rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_klant",
+        "labelFieldId": "fld_nc4lbl",
+        "labelNcColumnId": 12
+      },
+      {
+        "fieldId": "fld_nc5rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_proj",
+        "labelFieldId": "fld_nc5lbl",
+        "labelNcColumnId": 3
+      },
+      {
+        "fieldId": "fld_ncrelc85972da5e",
+        "kind": "match",
+        "targetDatatableId": "tbl_lev",
+        "localFieldId": "fld_nc2txt",
+        "targetFieldId": "fld_nc20txt"
+      }
+    ],
+    "warnings": [],
+    "changes": [
+      "added:leveranciers_ref",
+      "removed:datum",
+      "removed:leverancier"
+    ],
+    "retyped": []
+  },
+  "declaredInvalid": {
+    "fields": [
+      {
+        "id": "fld_nc1dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_nc2txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "fld_nc3sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_nc4rel",
+        "key": "klant",
+        "name": "Klant",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_klant",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc4lbl",
+        "key": "klant_label",
+        "name": "Klant (label)",
+        "type": "text",
+        "derived": true
+      },
+      {
+        "id": "fld_nc5rel",
+        "key": "project",
+        "name": "Project",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_proj",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc5lbl",
+        "key": "project_label",
+        "name": "Project (label)",
+        "type": "text",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_nc1dat": {
+        "ncColumnId": 1,
+        "ncType": "datetime",
+        "ncSubtype": "date",
+        "title": "Datum"
+      },
+      "fld_nc2txt": {
+        "ncColumnId": 2,
+        "ncType": "text",
+        "ncSubtype": "line",
+        "title": "Leverancier"
+      },
+      "fld_nc3sel": {
+        "ncColumnId": 3,
+        "ncType": "selection",
+        "ncSubtype": "",
+        "title": "Status",
+        "options": [
+          {
+            "id": 0,
+            "label": "open"
+          },
+          {
+            "id": 1,
+            "label": "dicht"
+          }
+        ]
+      },
+      "fld_nc4rel": {
+        "ncColumnId": 4,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Klant",
+        "relation": {
+          "relationType": "table",
+          "targetId": 6,
+          "labelColumn": 12
+        }
+      },
+      "fld_nc4lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc4rel"
+      },
+      "fld_nc5rel": {
+        "ncColumnId": 5,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Project",
+        "relation": {
+          "relationType": "view",
+          "targetId": 7,
+          "labelColumn": 3
+        }
+      },
+      "fld_nc5lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc5rel"
+      }
+    },
+    "relations": [
+      {
+        "fieldId": "fld_nc4rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_klant",
+        "labelFieldId": "fld_nc4lbl",
+        "labelNcColumnId": 12
+      },
+      {
+        "fieldId": "fld_nc5rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_proj",
+        "labelFieldId": "fld_nc5lbl",
+        "labelNcColumnId": 3
+      }
+    ],
+    "warnings": [],
+    "changes": [
+      "added:datum",
+      "added:leverancier",
+      "added:status",
+      "added:klant",
+      "added:klant_label",
+      "added:project",
+      "added:project_label"
+    ],
+    "retyped": []
+  },
+  "declaredNoNames": {
+    "fields": [
+      {
+        "id": "fld_nc1dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_nc2txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "fld_nc3sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_nc4rel",
+        "key": "klant",
+        "name": "Klant",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_klant",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc4lbl",
+        "key": "klant_label",
+        "name": "Klant (label)",
+        "type": "text",
+        "derived": true
+      },
+      {
+        "id": "fld_nc5rel",
+        "key": "project",
+        "name": "Project",
+        "type": "relation",
+        "relation": {
+          "table": "tbl_proj",
+          "fk": false
+        }
+      },
+      {
+        "id": "fld_nc5lbl",
+        "key": "project_label",
+        "name": "Project (label)",
+        "type": "text",
+        "derived": true
+      },
+      {
+        "id": "fld_ncrel88eb5cf4d5",
+        "key": "related_ref",
+        "name": "Related row",
+        "type": "relation",
+        "derived": true,
+        "relation": {
+          "table": "tbl_x",
+          "fk": false
+        }
+      }
+    ],
+    "columnMap": {
+      "fld_nc1dat": {
+        "ncColumnId": 1,
+        "ncType": "datetime",
+        "ncSubtype": "date",
+        "title": "Datum"
+      },
+      "fld_nc2txt": {
+        "ncColumnId": 2,
+        "ncType": "text",
+        "ncSubtype": "line",
+        "title": "Leverancier"
+      },
+      "fld_nc3sel": {
+        "ncColumnId": 3,
+        "ncType": "selection",
+        "ncSubtype": "",
+        "title": "Status",
+        "options": [
+          {
+            "id": 0,
+            "label": "open"
+          },
+          {
+            "id": 1,
+            "label": "dicht"
+          }
+        ]
+      },
+      "fld_nc4rel": {
+        "ncColumnId": 4,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Klant",
+        "relation": {
+          "relationType": "table",
+          "targetId": 6,
+          "labelColumn": 12
+        }
+      },
+      "fld_nc4lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc4rel"
+      },
+      "fld_nc5rel": {
+        "ncColumnId": 5,
+        "ncType": "relation",
+        "ncSubtype": "",
+        "title": "Project",
+        "relation": {
+          "relationType": "view",
+          "targetId": 7,
+          "labelColumn": 3
+        }
+      },
+      "fld_nc5lbl": {
+        "derived": "label",
+        "forFieldId": "fld_nc5rel"
+      },
+      "fld_ncrel88eb5cf4d5": {
+        "derived": "match",
+        "localFieldId": "fld_nc2txt",
+        "targetFieldId": "fld_y"
+      }
+    },
+    "relations": [
+      {
+        "fieldId": "fld_nc4rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_klant",
+        "labelFieldId": "fld_nc4lbl",
+        "labelNcColumnId": 12
+      },
+      {
+        "fieldId": "fld_nc5rel",
+        "kind": "nc",
+        "targetDatatableId": "tbl_proj",
+        "labelFieldId": "fld_nc5lbl",
+        "labelNcColumnId": 3
+      },
+      {
+        "fieldId": "fld_ncrel88eb5cf4d5",
+        "kind": "match",
+        "targetDatatableId": "tbl_x",
+        "localFieldId": "fld_nc2txt",
+        "targetFieldId": "fld_y"
+      }
+    ],
+    "warnings": [],
+    "changes": [
+      "added:datum",
+      "added:leverancier",
+      "added:status",
+      "added:klant",
+      "added:klant_label",
+      "added:project",
+      "added:project_label",
+      "added:related_ref"
+    ],
+    "retyped": []
+  },
+  "declaredNullThrows": {
+    "threw": "TypeError: Cannot read properties of null (reading 'targetDatatableId')"
+  }
+}

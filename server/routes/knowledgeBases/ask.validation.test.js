@@ -32,6 +32,7 @@ const Module = require('module');
 const touched = [];
 const pass = (req, res, next) => next();
 
+const { fakeKbGates } = require('./kbGate.testkit');
 const MOCKS = {
     '../../telemetry/log': { info() {}, warn() {}, error() {}, debug() {} },
     '../../stores/knowledgeBases': {
@@ -39,7 +40,7 @@ const MOCKS = {
     },
     '../../auth': { requireAuth: pass },
     './shared': {
-        canAccessKB: async () => true,
+        ...fakeKbGates({ kbStore: { getKB: (id) => MOCKS['../../stores/knowledgeBases'].getKB(id) }, canRead: () => true }),
         getUserId: (req) => req.session?.user?.id || null,
     },
     '../../core/llm/modelResolver': {

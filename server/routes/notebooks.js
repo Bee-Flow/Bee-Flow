@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Notebook Routes — CRUD for notebooks, the in-notebook chat history, editor
  * images and file import.
@@ -21,7 +21,7 @@
  * routes/notebooksVersions.js, mounted last. The role gates, `seams`, the upload
  * and the schema parts they share are in routes/notebooksShared.js.
  *
- * Every `/:id…` route starts with requireNotebookRole (routes/notebooksAccess.js):
+ * Every `/:id…` route starts with requireNotebookRole (auth/notebookAccess.mts):
  * viewers read, editors change the document and its sources, the notebook's
  * owner deletes. While a notebook is co-edited (core/collab), the whole-document
  * PUT refuses with 409 COLLAB_ACTIVE: the live document is the co-editing state.
@@ -36,10 +36,7 @@ const crypto = require('crypto');
 
 const notebookStore = require('../stores/notebookStore');
 
-/**
- * Request after requireNotebookRole: the loaded notebook and the caller's role on it.
- * @typedef {import('express').Request<{ id: string, sid: string }> & { notebook: NonNullable<Awaited<ReturnType<typeof notebookStore.getNotebook>>>, notebookRole: string }} NotebookReq
- */
+/** @typedef {import('./notebooksShared').NotebookReq} NotebookReq */
 const notebookConversationStore = require('../stores/notebookConversationStore');
 const storageStore = require('../stores/storageStore');
 require('../stores/knowledgeBases');
@@ -54,7 +51,8 @@ const { validate } = require('../core/http/validate');
 const { z, worded, bodyOf, queryOf, choice, flag, wholeNumber, typeError } = require('../core/http/schemaParts');
 const { HttpError } = require('../core/http/errors');
 const notebookCollab = require('../agents/notebooks/notebookCollab');
-const { asViewer, asEditor, asOwner, seams, upload, text, ids } = require('./notebooksShared');
+const { asViewer, asEditor, asOwner, notebookOf, notebookRoleOf, seams, upload, text, ids } = require('./notebooksShared');
+const { sessionUser } = require('../core/http/sessionUser');
 
 /**
  * The project a notebook is filed in, as its page shows it ("In project X"),
@@ -133,39 +131,39 @@ router.use(requirePermission('use_notebooks'));
 
 // ── Notebook CRUD ──────────────────────────────────────────────────
 
-router.post('/', requireAuth, validate({ body: CreateBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CreateBody>, import('qs').ParsedQs>} */ req, res) => {
-    const userId = req.session.user.id;
+router.post('/', requireAuth, validate({ body: CreateBody }), async (req, res) => {
+    const userId = sessionUser(req).id;
     const { name, description, instructions } = req.body;
     // Stamped at birth: without it the row stayed org-less until the next
     // boot's backfill, and the cross-tenant checks had nothing to compare.
-    const organizationId = req.session.user.organizationId || null;
+    const organizationId = sessionUser(req).organizationId || null;
     const notebook = await notebookStore.createNotebook({ userId, name, description, instructions, organizationId });
     res.json({ success: true, notebook });
 });
 
 router.get('/', requireAuth, validate({ query: ListQuery }), /** @param {NotebookListReq} req */ async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     // Paginate. This called getNotebooks(userId) with no options, which fell
     // back to the store's default LIMIT 50 — so a user with more than 50
     // notebooks silently lost access to the older ones (the sidebar never
     // listed them, and the deep-link path resolves ids out of this list).
     // Clamp to the store's cap so hasMore (length === limit) is truthful.
-    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 200, 1), notebookStore.MAX_CARD_LIMIT);
-    const offset = Math.max(parseInt(req.query.offset, 10) || 0, 0);
+    const limit = Math.min(Math.max(parseInt(String(req.query.limit), 10) || 200, 1), notebookStore.MAX_CARD_LIMIT);
+    const offset = Math.max(parseInt(String(req.query.offset), 10) || 0, 0);
     // Card projection — counts + cached preview, never document bodies.
     // `type` is hardcoded so only plain notebooks appear in this list
     // (or can be cascade-deleted through it). Sort/filter are whitelisted
     // here AND in the store; unknown values fall back to the defaults.
     const search = String(req.query.search || '').trim().slice(0, 200);
-    const sort = ['activity', 'name', 'created', 'words'].includes(req.query.sort) ? req.query.sort : 'activity';
-    const filter = ['all', 'pinned', 'sources', 'chat', 'empty', 'processing'].includes(req.query.filter) ? req.query.filter : 'all';
+    const sort = /** @type {Array<string | undefined>} */ (['activity', 'name', 'created', 'words']).includes(req.query.sort) ? req.query.sort : 'activity';
+    const filter = /** @type {Array<string | undefined>} */ (['all', 'pinned', 'sources', 'chat', 'empty', 'processing']).includes(req.query.filter) ? req.query.filter : 'all';
     const notebooks = await notebookStore.listNotebookCards(userId, { limit, offset, type: 'notebook', search, sort, filter });
     res.json({ notebooks, limit, offset, hasMore: notebooks.length === limit });
 });
 
-router.get('/:id', requireAuth, asViewer, /** @param {NotebookReq} req */ async (req, res) => {
-    const userId = req.session.user.id;
-    const notebook = req.notebook;
+router.get('/:id', requireAuth, asViewer, async (req, res) => {
+    const userId = sessionUser(req).id;
+    const notebook = notebookOf(req);
 
     // Flip any sources that have been "processing" for > 10 min to errored.
     // Protects users from yellow rows stuck forever after a worker crash.
@@ -174,7 +172,7 @@ router.get('/:id', requireAuth, asViewer, /** @param {NotebookReq} req */ async 
     const sources = await notebookStore.getSources(notebook.id);
     const project = await projectSummaryFor(notebook, userId);
     res.json({
-        notebook: { ...notebook, role: req.notebookRole },
+        notebook: { ...notebook, role: notebookRoleOf(req) },
         sources,
         // "In project X" and whether the page should join a co-editing session.
         project,
@@ -186,8 +184,8 @@ router.get('/:id', requireAuth, asViewer, /** @param {NotebookReq} req */ async 
 // Returns the durable conversation for this notebook
 // so the chat panel can rehydrate on page load / notebook switch instead of
 // starting from an empty React state. Ownership is enforced via getNotebook.
-router.get('/:id/conversation', requireAuth, asViewer, /** @param {NotebookReq} req */ async (req, res) => {
-    const userId = req.session.user.id;
+router.get('/:id/conversation', requireAuth, asViewer, async (req, res) => {
+    const userId = sessionUser(req).id;
     const encryptionKey = req.session.encryptionKey || null;
     // `locked` = encrypted history we can't decode with this session's DEK —
     // the UI shows "history unavailable" instead of a silently empty chat.
@@ -213,15 +211,15 @@ router.get('/:id/conversation', requireAuth, asViewer, /** @param {NotebookReq} 
 });
 
 // Clear the persisted in-notebook conversation ("new chat" in the panel).
-router.delete('/:id/conversation', requireAuth, asViewer, /** @param {NotebookReq} req */ async (req, res) => {
-    const userId = req.session.user.id;
+router.delete('/:id/conversation', requireAuth, asViewer, async (req, res) => {
+    const userId = sessionUser(req).id;
     await notebookConversationStore.deleteForNotebook(req.params.id, userId);
     // Drop the accumulated PII token map too, so a fresh chat doesn't inherit
     // stale `[person_1]` → value mappings from the cleared conversation.
     // Not for a project notebook: the map is the notebook's, shared by every
     // member's private chat, and one person starting over must not leave
     // the others' histories unreadable.
-    if (!req.notebook.projectId) {
+    if (!notebookOf(req).projectId) {
         try { require('../core/dlp/dlpRunner').clearConversationState(req.params.id); } catch (err) { bestEffort('routes/notebooks:anon#2', err); /* best-effort */ }
     }
     res.json({ success: true });
@@ -249,15 +247,15 @@ async function keepConflictCopy(notebookId, userId, documentContent) {
     }
 }
 
-router.put('/:id', requireAuth, validate({ body: UpdateBody }), asEditor, /** @param {NotebookReq} req */ async (req, res) => {
-    const userId = req.session.user.id;
-    const nb = req.notebook;
+router.put('/:id', requireAuth, validate({ body: UpdateBody }), asEditor, async (req, res) => {
+    const userId = sessionUser(req).id;
+    const nb = notebookOf(req);
     const { name, description, instructions, settings, knowledgeBaseIds, documentContent, pinned, expectedVersion } = req.body;
 
     // The pin orders and filters the OWNER's own library (listNotebookCards);
     // it is one person's, not the project's (mapProjectNotebookCard leaves it
     // out for that reason), so a colleague may neither set nor clear it.
-    if (pinned !== undefined && req.notebookRole !== 'owner') {
+    if (pinned !== undefined && notebookRoleOf(req) !== 'owner') {
         throw new HttpError(403, 'notebook_owner_only', 'Only the owner of this notebook can pin it in their library.');
     }
 
@@ -281,7 +279,7 @@ router.put('/:id', requireAuth, validate({ body: UpdateBody }), asEditor, /** @p
     // Which bases a notebook reads is its owner's call: an editor detaching the
     // notebook's own base would take every source away from everyone.
     if (knowledgeBaseIds !== undefined) {
-        if (req.notebookRole !== 'owner') {
+        if (notebookRoleOf(req) !== 'owner') {
             throw new HttpError(403, 'notebook_owner_only', 'Only the owner of this notebook can change which knowledge bases it uses.');
         }
         const { denied } = await partitionAccessibleKBIds(req, knowledgeBaseIds);
@@ -339,8 +337,8 @@ router.put('/:id', requireAuth, validate({ body: UpdateBody }), asEditor, /** @p
     res.json({ success: true, version: r.version });
 });
 
-router.delete('/:id', requireAuth, asOwner, /** @param {NotebookReq} req */ async (req, res) => {
-    const userId = req.session.user.id;
+router.delete('/:id', requireAuth, asOwner, async (req, res) => {
+    const userId = sessionUser(req).id;
     // Full cascade: per-source storage blobs and derived chunks/embeddings,
     // then the row (sources + versions cascade via FK), then the KBs this
     // notebook created, then the persisted chat. Deleting only the row left
@@ -387,12 +385,12 @@ const imageUpload = multer({
 // image belongs to the caller alone. Every real notebook needs an editor.
 const asEditorUnlessWorkspace = /** @param {import('express').Request} req @param {import('express').Response} res @param {import('express').NextFunction} next */ (req, res, next) => (req.params.id === 'workspace' ? next() : asEditor(req, res, next));
 
-router.post('/:id/images', requireAuth, asEditorUnlessWorkspace, imageUpload.single('image'), /** @param {NotebookReq} req */ async (req, res) => {
-    const userId = req.session.user.id;
+router.post('/:id/images', requireAuth, asEditorUnlessWorkspace, imageUpload.single('image'), async (req, res) => {
+    const userId = sessionUser(req).id;
     if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
 
     const { buffer, mimetype, originalname } = req.file;
-    const ext = originalname.split('.').pop().toLowerCase();
+    const ext = /** @type {string} */ (originalname.split('.').pop()).toLowerCase(); // split always gives a part
     const safeFilename = `${Date.now()}_${crypto.randomBytes(4).toString('hex')}.${ext}`;
 
     if (storageStore.isAvailable()) {
@@ -412,7 +410,7 @@ router.post('/:id/images', requireAuth, asEditorUnlessWorkspace, imageUpload.sin
 
 // ── Import File to Editor (PDF, DOCX, TXT...) ────────────────────
 
-router.post('/:id/import-file', requireAuth, asEditor, upload.single('file'), /** @param {NotebookReq} req */ async (req, res) => {
+router.post('/:id/import-file', requireAuth, asEditor, upload.single('file'), async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
     const { parseDocument } = require('../core/documents/documentParser');

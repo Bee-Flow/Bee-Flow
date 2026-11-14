@@ -1,10 +1,10 @@
+// @typecheck
 /**
  * Builder tools — draft-graph primitives: step ids, the empty definition,
  * edge wiring (branch labels, flowlet-aware append anchors, on_error edges)
  * and step lookup. Required from within automation/builderTools/ and the
  * ../builderTools facade.
  */
-
 const crypto = require('crypto');
 const { ON_REJECTED_LABEL, ON_REJECTED_SOURCE_TYPES } = require('../../core/automationModel/edgeLabels.mts');
 
@@ -52,7 +52,7 @@ function lastStepId(def) {
  * predecessor: the runner follows it only when that step fails after its retries / that
  * approval is rejected; validation enforces the legal sources (edge.*_label_invalid).
  */
-function branchEdgeFor(draft, fromId, toId, { branch, caseName } = {}) {
+function branchEdgeFor(draft, fromId, toId, /** @type {{ branch?: string, caseName?: string }} */ { branch, caseName } = {}) {
     const edge = { from: fromId, to: toId };
     if (branch === 'error' || branch === 'rejected') {
         edge.label = branch === 'error' ? 'on_error' : ON_REJECTED_LABEL;
@@ -325,7 +325,7 @@ function reconcileOutgoingEdges(graph, oldStep, newStep) {
  * - `graph.steps` order follows the move, so the default "append at the tail"
  *   keeps meaning the chain's real end rather than "after the step I moved".
  */
-function moveStepAfter(graph, stepId, { afterStepId, branch, caseName } = {}) {
+function moveStepAfter(graph, stepId, /** @type {{ afterStepId?: string, branch?: string, caseName?: string }} */ { afterStepId, branch, caseName } = {}) {
     const found = findStepAnywhere(graph, stepId);
     if (!found) return { error: `Unknown stepId "${stepId}". Existing step ids: ${listStepIds(graph)}.` };
     if (found.kind === 'loop') {

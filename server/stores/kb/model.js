@@ -228,6 +228,7 @@ function withoutRawAttestation(row) {
  *   run: (sql: string, params?: any[]) => Promise<any>,
  *   getOne: (sql: string, params?: any[]) => Promise<any>,
  *   getAll: (sql: string, params?: any[]) => Promise<any[]>,
+ *   withTransaction: <T>(fn: (client: { query: (sql: string, params?: any[]) => Promise<any> }) => Promise<T>) => Promise<T>,
  *   initDB: () => Promise<unknown>,
  *   log: any,
  *   managedParts: any,

@@ -1,3 +1,4 @@
+// @typecheck
 /** @typedef {import('../../stores/agent/agentRows').AgentConfig} AgentConfig */
 /**
  * Skills inside an AI step (Studio → Automations).
@@ -77,6 +78,10 @@ function orderSkills(skills, orderedIds) {
     return out;
 }
 
+/**
+ * @param {unknown} v
+ * @returns {v is Record<string, any>}
+ */
 function _plainObject(v) {
     return !!v && typeof v === 'object' && !Array.isArray(v);
 }
@@ -100,7 +105,7 @@ function skillOutputSchema(skill) {
 /**
  * The schema this step answers in, and where it came from.
  *
- * @param {{ stepSchema?: SchemaLike, skillSchema?: object|null, inferredFields?: string[], inferredSchema?: object|null }} [args]
+ * @param {{ stepSchema?: SchemaLike, skillSchema?: { properties?: any, required?: any }|null, inferredFields?: string[], inferredSchema?: { properties?: any }|null }} [args]
  *   `stepSchema` is `step.outputSchema` (wins when set); `skillSchema` the leading skill's schema
  *   (skillOutputSchema); `inferredFields` the fields later steps read off this step; `inferredSchema`
  *   the JSON Schema those reads imply (aiOutputInference.inferAiStepOutputSchema): nested records
@@ -201,8 +206,8 @@ function skillGrantsForStep(skills, helpers) {
  * @param {{startAutomations:boolean,useKnowledge:boolean,useTools:boolean}} permissions
  */
 function grantsUnderPermissions(grants, permissions) {
-    const g = grants || {};
-    const p = permissions || {};
+    const g = /** @type {Partial<typeof grants>} */ (grants || {});
+    const p = /** @type {Partial<typeof permissions>} */ (permissions || {});
     return {
         kbIds: p.useKnowledge === true ? [...(g.kbIds || [])] : [],
         apps: p.useTools === true ? [...(g.apps || [])] : [],
@@ -274,7 +279,7 @@ const EMPTY_GRANTS = Object.freeze({ kbIds: [], apps: [], automationIds: [] });
  *   leading: Object|null, leadingSchema: Object|null,
  *   grants: {kbIds:string[],apps:string[],automationIds:string[]} }>}
  */
-async function loadStepSkillContext({ step, ctx, binding = null, deps = {} }) {
+async function loadStepSkillContext({ step, ctx, binding = null, deps = /** @type {{ aiStepAgent?: Pick<typeof import('./aiStepAgent'), 'skillIdsForStep'>, skillInjection?: Pick<typeof import('../tools/skillInjection'), 'loadSkillsForIds'>, log?: Pick<typeof import('../../telemetry/log'), 'warn'> }} */ ({}) }) {
     const empty = { loaded: false, skills: [], orderedIds: [], leading: null, leadingSchema: null, grants: { ...EMPTY_GRANTS } };
     let ids;
     try {

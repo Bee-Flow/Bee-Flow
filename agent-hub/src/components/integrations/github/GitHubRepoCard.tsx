@@ -49,6 +49,7 @@ export function GitHubRepoCard({ config, overview, onEdit, onDisconnect }: GitHu
                         onClick={onEdit}
                         className="p-2 rounded-lg hover:bg-white/10 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                         title={t('integ.git_hub_sync_edit_configuration', 'Edit configuration')}
+                        aria-label={t('integ.git_hub_sync_edit_configuration', 'Edit configuration')}
                     >
                         <Settings className="w-4 h-4" />
                     </button>
@@ -56,6 +57,7 @@ export function GitHubRepoCard({ config, overview, onEdit, onDisconnect }: GitHu
                         onClick={onDisconnect}
                         className="p-2 rounded-lg hover:bg-red-500/10 text-[var(--text-muted)] hover:text-red-500 transition-colors"
                         title={t('integ.git_hub_sync_disconnect', 'Disconnect')}
+                        aria-label={t('integ.git_hub_sync_disconnect', 'Disconnect')}
                     >
                         <Unlink className="w-4 h-4" />
                     </button>

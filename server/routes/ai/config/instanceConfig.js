@@ -18,7 +18,7 @@ const configStore = require('../../../stores/configStore');
 const { isAdminUser } = require('./shared');
 const { requireAdminUser } = require('../requireAdminUser');
 const { RegexGuardrailsBody } = require('../../../core/privacy/regexGuardrailsBody');
-const { memberConfigView } = require('./memberConfigView');
+const { memberConfigView } = require('../../../usecases/ai/config/memberConfigView');
 const { safeFetch } = require('../../../utils/ssrfGuard');
 const { VALID_PII_ACTIONS } = require('../../../core/privacy/signupShield');
 const { validate } = require('../../../core/http/validate');
@@ -78,6 +78,9 @@ const { requireAuth } = require('../../../auth/permissions');
 const { fallback } = require('../../../utils/bestEffort');
 
 const requireAdmin = requireAdminUser(isAdminUser);
+
+/** @param {string} value an absolute http:// or https:// address */
+const isHttpUrl = (value) => URL.canParse(value) && ['http:', 'https:'].includes(new URL(value).protocol);
 
 // ─── General AI Config ───────────────────────────────────────────
 
@@ -255,7 +258,7 @@ router.post('/config', requireAuth, requireAdmin, validate({ body: ConfigBody })
         if (raw === null || raw === '' || raw === false) {
             await configStore.setConfig('max_tool_rounds_chat', null);
         } else {
-            const n = parseInt(raw, 10);
+            const n = parseInt(String(raw), 10);
             if (Number.isFinite(n)) {
                 const clamped = Math.min(Math.max(n, 1), 50);
                 await configStore.setConfig('max_tool_rounds_chat', clamped);
@@ -328,13 +331,8 @@ router.post('/config', requireAuth, requireAdmin, validate({ body: ConfigBody })
     // WhisperX self-hosted
     if (req.body.whisperxUrl !== undefined) {
         const rawUrl = (req.body.whisperxUrl || '').trim();
-        if (rawUrl) {
-            try {
-                const p = new URL(rawUrl);
-                if (!['http:', 'https:'].includes(p.protocol)) throw new Error('bad protocol');
-            } catch (_) {
-                return res.status(400).json({ error: 'WhisperX URL must be a valid http:// or https:// address.' });
-            }
+        if (rawUrl && !isHttpUrl(rawUrl)) {
+            return res.status(400).json({ error: 'WhisperX URL must be a valid http:// or https:// address.' });
         }
         await configStore.setSecret('whisperx_url', rawUrl);
     }
@@ -350,13 +348,8 @@ router.post('/config', requireAuth, requireAdmin, validate({ body: ConfigBody })
     }
     if (req.body.scalewayUrl !== undefined) {
         const rawUrl = (req.body.scalewayUrl || '').trim();
-        if (rawUrl) {
-            try {
-                const p = new URL(rawUrl);
-                if (!['http:', 'https:'].includes(p.protocol)) throw new Error('bad protocol');
-            } catch (_) {
-                return res.status(400).json({ error: 'Scaleway URL must be a valid http:// or https:// address.' });
-            }
+        if (rawUrl && !isHttpUrl(rawUrl)) {
+            return res.status(400).json({ error: 'Scaleway URL must be a valid http:// or https:// address.' });
         }
         await configStore.setConfig('scaleway_url', rawUrl);
     }
@@ -647,7 +640,7 @@ router.get('/config/service-email/oauth/start', requireAuth, requireAdmin, async
     res.json({ url });
 });
 
-router.post('/config/service-email/disconnect', requireAuth, requireAdmin, async (req, res) => {
+router.post('/config/service-email/disconnect', requireAuth, requireAdmin, validate({ body: bodyOf({}, 'Disconnecting the service mailbox') }), async (req, res) => {
     const { disconnectServiceEmail } = require('../../../utils/emailService');
     await disconnectServiceEmail();
     res.json({ success: true });
@@ -655,7 +648,7 @@ router.post('/config/service-email/disconnect', requireAuth, requireAdmin, async
 
 // ─── Test Azure Cohere Reranker ──────────────────────────────────
 
-router.post('/config/test-reranker', requireAuth, requireAdmin, async (req, res) => {
+router.post('/config/test-reranker', requireAuth, requireAdmin, validate({ body: bodyOf({}, 'Testing the reranker') }), async (req, res) => {
     const endpoint = (await configStore.getConfig('azure_reranker_endpoint') || process.env.AZURE_RERANKER_ENDPOINT || '').replace(/\/+$/, '');
     const key = await configStore.getSecret('azure_reranker_key') || process.env.AZURE_RERANKER_KEY;
     const model = await configStore.getConfig('azure_reranker_model') || process.env.AZURE_RERANKER_MODEL || 'Cohere-rerank-v4.0-fast';

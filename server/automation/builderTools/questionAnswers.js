@@ -3,7 +3,7 @@
  * Reading the text the chat sends after a question card ("Q: ...\nA: ...", one
  * block per question, a blank line between). One port for both readers: the
  * work-mode note that tells the model its questions were answered
- * (routes/ai/automationBuilder/workMode.js) and the table-consent gate
+ * (usecases/ai/automationBuilder/workMode.js) and the table-consent gate
  * (datatableApproval.js).
  *
  * It is a port of agent-hub/src/components/automation/Builder/chat/

@@ -23,6 +23,7 @@ process.env.NODE_ENV = 'test';
 const test = require('node:test');
 const assert = require('node:assert');
 const Module = require('module');
+const { fakeAgentGates } = require('./agentGate.testkit');
 
 // Every publish lands in `touched`. A refused request must leave it empty.
 const touched = [];
@@ -38,13 +39,14 @@ const MOCKS = {
     '../../auth': { requireActiveOrgForMutations: () => (req, res, next) => next() },
     '../../utils/routeHelpers': { getEffectiveUserId: () => 'owner' },
     './crud': {
-        canModifyAgent: async () => true,
         validateAgentConfigReferences: (agent, cfg) => fx.validate(agent, cfg),
         applyConfigValidation: (cfg) => cfg,
     },
     '../../stores/versionStore': { createVersion: async () => {} },
     '../../compliance/events': { EVENTS: { AGENT_PUBLISHED: 'agent_published' }, emit: () => {} },
 };
+
+Object.assign(MOCKS['./crud'], fakeAgentGates({ agentStore: MOCKS['../../stores/agentStore'], userId: () => 'owner' }));
 
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {

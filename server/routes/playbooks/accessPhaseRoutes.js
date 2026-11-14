@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * THE ACCESS PHASE — who may open the app the playbook built, and with which
  * role. No recipe asks for it and no model writes it: the assistant here
@@ -26,7 +26,7 @@ const AccessPlanBody = bodyOf({
 const { kindOf, firstOfKind, appBefore, localeOf } = require('./phaseList');
 // WHO THE ASSISTANT MAY NAME — the organisation's directory, never the
 // installation's (the rule and its history are in ./directory.js).
-const { directoryFor } = require('./directory');
+const { directoryFor } = require('../../usecases/playbooks/directory');
 const log = require('../../telemetry/log');
 const { isMissingTable } = require('../../utils/isMissingTable');
 const { fallback } = require('../../utils/bestEffort');
@@ -50,31 +50,33 @@ const DIGEST_VALUES = 40;
  * @param {import('../../playbooks/lifecycle').PhaseArtifacts & { fields?: Array<{ key?: string, name?: string, type?: string }> }} tableArt
  */
 async function readDataDigest(d, playbook, tableArt) {
-    const fields = Array.isArray(tableArt && tableArt.fields) ? tableArt.fields : [];
-    const candidates = fields.filter((f) => f && ['text', 'select'].includes(f.type) && f.key).slice(0, DIGEST_COLUMNS);
+    const fields = Array.isArray(tableArt && tableArt.fields) ? /** @type {NonNullable<typeof tableArt.fields>} */ (tableArt.fields) : [];
+    // The filter keeps fields with a key, so the casts below read a key that is there.
+    const candidates = fields.filter((f) => f && ['text', 'select'].includes(/** @type {string} */ (f.type)) && f.key).slice(0, DIGEST_COLUMNS);
     if (!tableArt || !tableArt.datatableId || !candidates.length) return null;
     let resolved;
     try {
         const principal = await d.datatableAccessPlan.resolveDatatablePrincipalForUser(playbook.userId);
-        resolved = await d.datatableRuntime.resolveForPrincipal(tableArt.datatableId, principal, { needed: 'viewer' });
+        resolved = /** @type {import('../../core/dataEngine/datatableRuntime').ResolvedTable} */ (await d.datatableRuntime.resolveForPrincipal(tableArt.datatableId, principal, { needed: 'viewer' })); // a resolved table carries its scope
     } catch (e) {
         return null;   // no digest is a smaller problem than a failed phase
     }
-    const allowColumns = fields.map((f) => f.key).filter(Boolean);
+    const allowColumns = /** @type {string[]} */ (fields.map((f) => f.key).filter(Boolean));
     const columns = [];
     for (const f of candidates) {
+        const key = /** @type {string} */ (f.key);
         try {
             const { rows } = await d.datatableRuntime.aggregateRows(resolved, {
                 allowColumns,
-                groupBy: [{ field: f.key }],
+                groupBy: [{ field: key }],
                 aggregates: [{ fn: 'count', field: '*', as: 'n' }],
                 limit: DIGEST_VALUES + 1,
             });
             const values = rows
-                .map((/** @type {Record<string, unknown>} */ r) => ({ value: r[f.key], count: Number(r.n) }))
+                .map((/** @type {Record<string, unknown>} */ r) => ({ value: r[key], count: Number(r.n) }))
                 .filter((/** @type {{ value: unknown; }} */ v) => typeof v.value === 'string' && v.value.trim());
             if (!values.length || values.length > DIGEST_VALUES) continue;
-            columns.push({ key: f.key, name: f.name || f.key, values });
+            columns.push({ key, name: f.name || key, values });
         } catch (err) { if (!isMissingTable(err)) throw err; log.debug('one unreadable column is not a reason to give up on the rest', err); }
     }
     return columns.length ? { tableName: tableArt.datatableName || null, columns } : null;

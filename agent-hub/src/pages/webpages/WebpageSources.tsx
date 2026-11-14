@@ -7,10 +7,11 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { nOf } from '../../components/admin/Studio/KnowledgeStudio/plural';
 import useConfirm from '../../components/shared/useConfirm';
 import useTranslation, { TranslateParams } from '../../hooks/useTranslation';
-import { API_BASE } from '../../utils/helpers';
 import { webpagesRequest as api } from '../../api/webpagesRequest';
 import { logger } from '../../utils/logger';
-import { mutate, errorBody, RefusedError } from '../../api/mutate';
+import { errorBody, RefusedError } from '../../api/mutate';
+import { apiRequest } from '@/api/typedRequest';
+import { useWebpageSourcesRead } from '@/api/queries/webpageSourcesRead';
 
 /*
  * The kind label travels as a KEY (`labelKey`), with the English beside it as fallback: the table is rendered in one place, but the value is text for the reader and must therefore be findable in the Languages panel. The i18n guard checks `labelKey` as a carrier — see i18nGuard.test.js (CARRIERS).
@@ -98,16 +99,16 @@ function SourceCard({ source, onDelete, onRetry, onCancel }: SourceCardProps) {
             </div>
             <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
                 {canRetry && (
-                    <button onClick={() => onRetry(source.id)} className="p-1 rounded hover:bg-white/40" title={t('webpages.knowledge.retry', 'Retry')}>
+                    <button onClick={() => onRetry(source.id)} className="p-1 rounded hover:bg-white/40" title={t('webpages.knowledge.retry', 'Retry')} aria-label={t('webpages.knowledge.retry', 'Retry')}>
                         <RotateCw className="w-3 h-3 [color:#3b82f6]" />
                     </button>
                 )}
                 {isProcessing && (
-                    <button onClick={() => onCancel(source.id)} className="p-1 rounded hover:bg-white/40" title={t('common.cancel', 'Cancel')}>
+                    <button onClick={() => onCancel(source.id)} className="p-1 rounded hover:bg-white/40" title={t('common.cancel', 'Cancel')} aria-label={t('common.cancel', 'Cancel')}>
                         <XCircle className="w-3 h-3 [color:#92400e]" />
                     </button>
                 )}
-                <button onClick={() => onDelete(source.id)} className="p-1 rounded hover:bg-white/40" title={t('webpages.card.delete', 'Delete')}>
+                <button onClick={() => onDelete(source.id)} className="p-1 rounded hover:bg-white/40" title={t('webpages.card.delete', 'Delete')} aria-label={t('webpages.card.delete', 'Delete')}>
                     <Trash2 className="w-3 h-3 [color:#ef4444]" />
                 </button>
             </div>
@@ -137,14 +138,13 @@ export default function WebpageSources({ webpageId, sources, onSourcesChange }: 
     const [error, setError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const readSources = useWebpageSourcesRead<WebpageSource>();
     const refreshSources = useCallback(async () => {
         try {
-            const res = await api(`/${webpageId}/sources`);
-            if (!res.ok) return;
-            const { sources: fresh } = await res.json();
-            onSourcesChange(fresh || []);
+            const fresh = await readSources(webpageId);
+            if (fresh) onSourcesChange(fresh);
         } catch (err) { logger.warn('sources refresh failed', err); }
-    }, [webpageId, onSourcesChange]);
+    }, [webpageId, onSourcesChange, readSources]);
 
     // Adaptive polling: when any source is still processing (or has no terminal
     // status yet), re-fetch with exponential backoff. Stops as soon as every
@@ -183,9 +183,7 @@ export default function WebpageSources({ webpageId, sources, onSourcesChange }: 
             form.append('file', file);
             let res: Response;
             try {
-                res = await mutate(`${API_BASE}/api/webpages/${webpageId}/sources/file`, {
-                method: 'POST', body: form,
-            });
+                res = await apiRequest('POST /api/webpages/{id}/sources/file', { params: { id: webpageId }, init: { body: form } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const data = errorBody(err) ?? {};

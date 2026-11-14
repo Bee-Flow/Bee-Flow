@@ -237,8 +237,8 @@ const EXPECTED = [
     'POST /:id/tasks [requireProjectRoleMw,validateRequest]',
     'POST /:id/tasks/batch [requireProjectRoleMw,validateRequest]',
     'GET /:id/meetings/:meetingId/task-suggestions [requireProjectRoleMw]',
-    'POST /:id/meetings/:meetingId/task-suggestions/improve [requireProjectRoleMw,rateLimitMiddleware]',
-    'POST /:id/tasks/:taskId/improve [requireProjectRoleMw,rateLimitMiddleware]',
+    'POST /:id/meetings/:meetingId/task-suggestions/improve [requireProjectRoleMw,rateLimitMiddleware,validateRequest]',
+    'POST /:id/tasks/:taskId/improve [requireProjectRoleMw,rateLimitMiddleware,validateRequest]',
     'PATCH /:id/tasks/:taskId [requireProjectRoleMw,validateRequest]',
     'DELETE /:id/tasks/:taskId [requireProjectRoleMw]',
     // The task router's error mapper (a 4-argument handler, so it flattens to
@@ -252,8 +252,8 @@ const EXPECTED = [
     'DELETE /:id/sprints/:sprintId [requireProjectRoleMw]',
     'POST /:id/sprints/:sprintId/items [requireProjectRoleMw,validateRequest]',
     'DELETE /:id/sprints/:sprintId/items/:taskId [requireProjectRoleMw]',
-    'POST /:id/sprints/:sprintId/start [requireProjectRoleMw]',
-    'POST /:id/sprints/:sprintId/complete [requireProjectRoleMw]',
+    'POST /:id/sprints/:sprintId/start [requireProjectRoleMw,validateRequest]',
+    'POST /:id/sprints/:sprintId/complete [requireProjectRoleMw,validateRequest]',
     // The sprint router's error mapper: the date-range constraint becomes a 400.
     'USE:anonymous',
     // A person's colour in the project: the owner for anyone, everybody else for themselves (decided in the handler).
@@ -306,8 +306,8 @@ const EXPECTED = [
     'GET /:id/comments/:threadId [requireProjectRoleMw,validateRequest]',
     'PATCH /:id/comments/:threadId [requireProjectRoleMw,validateRequest]',
     'DELETE /:id/comments/:threadId [requireProjectRoleMw]',
-    'POST /:id/comments/:threadId/resolve [requireProjectRoleMw]',
-    'POST /:id/comments/:threadId/reopen [requireProjectRoleMw]',
+    'POST /:id/comments/:threadId/resolve [requireProjectRoleMw,validateRequest]',
+    'POST /:id/comments/:threadId/reopen [requireProjectRoleMw,validateRequest]',
     'POST /:id/comments/:threadId/replies [requireProjectRoleMw,rateLimitMiddleware,validateRequest]',
     'PATCH /:id/comments/:threadId/replies/:commentId [requireProjectRoleMw,validateRequest]',
     'DELETE /:id/comments/:threadId/replies/:commentId [requireProjectRoleMw]',

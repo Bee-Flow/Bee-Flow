@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Carried knowledge content: the documents (and their chunks) of a knowledge
  * base whose part option is `carry` (design section 2, D15, D20).
@@ -81,7 +81,7 @@ const qi = (name) => `"${String(name).replace(/"/g, '""')}"`;
 
 function defaultDeps() {
     return {
-        db: { query: (/** @type {string} */ sql, /** @type {unknown[]} */ params) => require('../../db').run(sql, params) },
+        db: { query: (/** @type {string} */ sql, /** @type {unknown[] | undefined} */ params) => require('../../db').run(sql, params) },
         usesLocalIngest: () => require('../../core/kb/kbIngestionHelpers').usesLocalIngest(),
     };
 }
@@ -269,7 +269,7 @@ async function chunkColumns(client) {
 }
 
 /**
- * @param {string} contentHash
+ * @param {string | undefined} contentHash
  */
 function contentDrift(contentHash) {
     const e = /** @type {InstanceType<typeof HttpError> & { errorClass?: string }} */ (new HttpError(409, 'content_drift',
@@ -316,7 +316,7 @@ async function applyKnowledge(client, { sourceKbId, targetKbId, tenantId, releas
              RETURNING id::text AS id`,
             [tenantId, targetKbId, src[0].id],
         );
-        const newId = inserted.rows[0].id;
+        const newId = /** @type {NonNullable<typeof inserted.rows>} */ (inserted.rows)[0].id; // RETURNING one row
         await client.query(
             `INSERT INTO kb_chunks (tenant_id, knowledge_base_id, document_id, ${chunkList})
              SELECT $1, $2::text, $3::text, ${chunkList} FROM kb_chunks

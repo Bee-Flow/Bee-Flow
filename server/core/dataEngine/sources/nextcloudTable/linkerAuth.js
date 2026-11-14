@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * "May this mirror talk to Nextcloud right now, and as whom?"
  *
@@ -82,7 +82,7 @@ async function resolveLinker(source, { orgId = null, fresh = false } = {}) {
     // lost access to is not re-probed on every push event.
     _memo.set(memoKey, { at: Date.now(), value, error });
     if (error) throw error;
-    return value;
+    return /** @type {NonNullable<typeof value>} */ (value); // set whenever nothing was thrown
 }
 
 /**

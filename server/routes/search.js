@@ -1,8 +1,8 @@
+// @typecheck
 /**
  * Search service — Node.js implementation of the hosted Python
- * search-service HTTP surface. Mounted at `/api/search` and meant
- * to be reached via SEARCH_SERVICE_URL=https://server.<host>/api/search
- * so the existing clients (`server/integrations/agentSearchTools.js`,
+ * search-service HTTP surface. Mounted at `/api/search` and meant to be reached via
+ * SEARCH_SERVICE_URL=https://server.<host>/api/search so the existing clients (`server/integrations/agentSearchTools.js`,
  * `server/core/kbIngestionHelpers.js`) work unchanged.
  *
  * Endpoints:
@@ -46,6 +46,7 @@
  * forwards would otherwise start failing a search that works today.
  */
 
+const { fetchFixedEndpoint } = require('../utils/fixedEndpointFetch.mts');
 const express = require('express');
 const crypto = require('node:crypto');
 const router = express.Router();
@@ -63,7 +64,7 @@ const { bestEffort } = require('../utils/bestEffort');
 
 // ─── What a caller may send ─────────────────────────────────────
 
-/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
+/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. @template {import('zod').ZodRawShape} S @param {S} shape */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 /**
  * @param {string} message
@@ -243,7 +244,7 @@ router.post('/rerank', validate({ body: RerankBody }), async (req, res) => {
 // Returns: { query, chunks: [{ content, title?, source_uri?, score }], total }
 router.post('/tools/kb-search', validate({ body: KbSearchBody }), async (req, res) => {
     const { tenant_id, kb_ids, query, top_k } = req.body;
-    const out = await searchLocally(tenant_id, kb_ids, query, { topK: Math.min(top_k || 10, 50) });
+    const out = /** @type {Record<string, any>} */ (await searchLocally(tenant_id, kb_ids, query, { topK: Math.min(top_k || 10, 50) }));
     const chunks = Array.isArray(out?.chunks) ? out.chunks : Array.isArray(out) ? out : [];
     const mapped = chunks.map(c => ({
         content: c.content || c.text || '',
@@ -265,15 +266,15 @@ async function resolveSerperKey(req) {
 }
 
 async function serperSearch(query, maxResults, serperKey) {
-    const resp = await fetch('https://google.serper.dev/search', {
+    const resp = await fetchFixedEndpoint('https://google.serper.dev/search', {
         method: 'POST',
         headers: { 'X-API-KEY': serperKey, 'Content-Type': 'application/json' },
         body: JSON.stringify({ q: query, num: maxResults }),
         signal: AbortSignal.timeout(15000),
     });
     if (!resp.ok) {
-        const text = await resp.text();
-        throw new Error(`Serper HTTP ${resp.status}: ${text.slice(0, 200)}`);
+        log.warn(`[Search] Serper answered HTTP ${resp.status}`); // the status only: the body can repeat the query
+        throw new HttpError(502, 'search_failed', 'The web search service did not answer. Try again later.');
     }
     const data = /** @type {{ organic?: { title?: string, link?: string, snippet?: string }[] }} */ (await resp.json());
     const organic = Array.isArray(data.organic) ? data.organic : [];
@@ -304,9 +305,9 @@ router.post('/tools/search', validate({ body: SearchBody }), async (req, res) =>
         const tenantId = body.kb_scope?.tenant_id || body.tenant_id || body.kb?.tenant_id;
         const kbIds = body.kb_scope?.knowledge_base_ids || body.kb_ids || body.kb?.kb_ids || [];
         if (tenantId && kbIds.length > 0) {
-            const out = await searchLocally(tenantId, kbIds, query, {
+            const out = /** @type {Record<string, any>} */ (await searchLocally(tenantId, kbIds, query, {
                 topK: body.kb?.top_k_final || 10,
-            });
+            }));
             const chunks = Array.isArray(out?.chunks) ? out.chunks : Array.isArray(out) ? out : [];
             if (chunks.length > 0 || mode === 'kb') {
                 return res.json({
@@ -346,11 +347,11 @@ router.post('/tools/search', validate({ body: SearchBody }), async (req, res) =>
 // Returns: { document_id, chunks_created, status: 'ok' }
 router.post('/kb/ingest/json', validate({ body: IngestBody }), async (req, res) => {
     const { tenant_id, knowledge_base_id, document_id, content, title, source_uri, lang } = req.body;
-    const result = await ingestLocally(tenant_id, knowledge_base_id, document_id, content, {
+    const result = /** @type {Record<string, any>} */ (await ingestLocally(tenant_id, knowledge_base_id, document_id, content, {
         title: title || '',
         sourceUri: source_uri || '',
         lang: lang || 'auto',
-    });
+    }));
     const chunksCreated = result?.chunks_created ?? result?.chunksCreated ?? result?.chunkCount ?? 0;
     res.json({ document_id, chunks_created: chunksCreated, status: 'ok' });
 });
@@ -385,7 +386,7 @@ router.get('/kb/:kbId/documents/:documentId/content', validate({ query: ContentQ
 // route on either implementation, which is why the callers in
 // core/kb/kbIngestionHelpers.js and routes/knowledgeBases/detail.js were
 // deleting nothing at all before K1.
-router.delete('/kb/documents/:documentId', validate({ query: DeleteQuery, body: DeleteBody }), async (/** @type {import('express').Request<{ documentId: string }, any, import('zod').infer<typeof DeleteBody>, import('zod').infer<typeof DeleteQuery>>} */ req, res) => {
+router.delete('/kb/documents/:documentId', validate({ query: DeleteQuery, body: DeleteBody }), async (req, res) => {
     const body = req.body;
     const tenantId = req.query.tenant_id || body.tenant_id;
     const kbId = req.query.knowledge_base_id || body.knowledge_base_id;

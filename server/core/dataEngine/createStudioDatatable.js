@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Create ONE Studio datatable for an owner, programmatically — the same
  * transaction the POST /api/datatables route and projects/packaging/install.js

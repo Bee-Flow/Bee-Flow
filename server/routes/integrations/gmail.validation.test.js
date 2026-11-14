@@ -46,7 +46,7 @@ const gmailClient = {
 const MOCKS = {
     '../../auth/permissions': { loadConfig: async () => ({ providers: {} }), requireAuth: pass },
     '../../integrations/googleClient': { createGoogleApiClient: async () => gmailClient },
-    '../../services/email/parse': { extractTextBody: () => '', getGmailHeader: () => '' },
+    '../../utils/emailParse': { extractTextBody: () => '', getGmailHeader: () => '' },
     '../../integrations/gmailTools': {
         buildRawMessage: (p) => { touched.push({ what: 'buildRawMessage', args: [p] }); return 'cmF3'; },
     },

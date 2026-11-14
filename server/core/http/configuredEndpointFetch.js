@@ -10,12 +10,17 @@
  * fe80::/10, fd00:ec2::254), the unspecified address, the metadata host names
  * and every scheme but http(s). Redirects are not followed unless the caller says otherwise
  * (each hop is still re-screened on connect).
+ *
+ * The call is bounded by the outbound default time-out (utils/outboundTimeout.mts:
+ * OUTBOUND_HTTP_TIMEOUT_MS, `timeoutMs`, `timeoutPhase`); a caller that passes
+ * its own `signal` (an SDK with its own request timer) keeps its own bound.
  */
 'use strict';
 
 const dns = require('dns');
 const { fetch: undiciFetch, Agent, buildConnector } = require('undici');
 const canonical = require('./ssrfGuard');
+const { fetchWithTimeout } = require('../../utils/outboundTimeout.mts');
 
 const METADATA_NAMES = new Set(['metadata.google.internal', 'metadata.goog', 'instance-data']);
 
@@ -85,15 +90,19 @@ let shared = null;
 
 /**
  * @param {string} url
- * @param {RequestInit & { dispatcher?: any }} [opts]
+ * @param {RequestInit & { dispatcher?: any } & import('../../utils/outboundTimeout.mts').OutboundTimeoutOptions} [opts]
  */
 async function fetchConfiguredEndpoint(url, opts = {}) {
     const parsed = new URL(String(url));
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') throw new Error('Only http(s) URLs are allowed.');
     if (isBlocked(parsed.hostname)) throw refusal();
-    if (!shared) shared = createDispatcher();
+    const dispatcherFor = shared || (shared = createDispatcher());
     const { dispatcher, ...init } = /** @type {any} */ (opts || {});
-    return undiciFetch(url, { redirect: 'error', ...init, dispatcher: dispatcher || shared });
+    return fetchWithTimeout(
+        (/** @type {string | URL} */ u, /** @type {import('undici').RequestInit} */ i) => undiciFetch(u, { redirect: 'error', ...i, dispatcher: dispatcher || dispatcherFor }),
+        url,
+        init,
+    );
 }
 
 module.exports = { fetchConfiguredEndpoint, isMetadataOrLinkLocal };

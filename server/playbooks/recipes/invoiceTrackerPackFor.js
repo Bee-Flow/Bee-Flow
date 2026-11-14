@@ -110,7 +110,7 @@ const PACKS = Object.freeze({
 
 /**
  * The pack of the playbook's language — Dutch, or English for the rest.
- * @param {string} locale
+ * @param {string | null | undefined} locale
  */
 function packFor(locale) {
     return PACKS[/** @type {'nl'|'en'} */ (packLocale(locale))];

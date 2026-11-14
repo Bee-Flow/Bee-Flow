@@ -60,7 +60,7 @@ function _dsrCommonVars({ requestId, requestType, orgName, dpoEmail }, lang) {
 /**
  * Acknowledgement + identity link, sent right after a public-form submission.
  * @param {{ to: string, requestId: number|string, requestType: string, dueAt: string|Date,
- *   verifyUrl?: string, statusUrl?: string, orgName?: string, dpoEmail?: string, locale?: string }} opts
+ *   verifyUrl?: string | null, statusUrl?: string, orgName?: string | null, dpoEmail?: string | null, locale?: string }} opts
  */
 async function sendDsrAckEmail({ to, requestId, requestType, dueAt, verifyUrl, statusUrl, orgName, dpoEmail, locale }) {
     if (!to) throw new Error('to is required');
@@ -81,7 +81,7 @@ async function sendDsrAckEmail({ to, requestId, requestType, dueAt, verifyUrl, s
  * Art. 12(3) extension notice — the subject must be told within the first
  * month, with the reason.
  * @param {{ to: string, requestId: number|string, requestType: string, extendedUntil: string|Date,
- *   reason: string, orgName?: string, dpoEmail?: string, locale?: string }} opts
+ *   reason: string, orgName?: string | null, dpoEmail?: string | null, locale?: string }} opts
  */
 async function sendDsrExtensionEmail({ to, requestId, requestType, extendedUntil, reason, orgName, dpoEmail, locale }) {
     if (!to) throw new Error('to is required');
@@ -101,7 +101,7 @@ async function sendDsrExtensionEmail({ to, requestId, requestType, extendedUntil
  * The outcome letter. `resultSummary` is the admin's text for the subject —
  * the data itself travels by the channel the admin chose, never in this mail.
  * @param {{ to: string, requestId: number|string, requestType: string, status: 'fulfilled'|'rejected',
- *   resultSummary?: string, orgName?: string, dpoEmail?: string, locale?: string }} opts
+ *   resultSummary?: string, orgName?: string | null, dpoEmail?: string | null, locale?: string }} opts
  */
 async function sendDsrResultEmail({ to, requestId, requestType, status, resultSummary, orgName, dpoEmail, locale }) {
     if (!to) throw new Error('to is required');

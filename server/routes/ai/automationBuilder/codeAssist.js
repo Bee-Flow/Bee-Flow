@@ -1,3 +1,4 @@
+// @typecheck
 /** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
 /**
  * Automation Builder — the code step's AI assistant.
@@ -44,9 +45,9 @@ const { validate } = require('../../../core/http/validate');
 const { z, worded, bodyOf, closedObject, choice, typeError } = require('../../../core/http/schemaParts');
 const { perUserRateLimit } = require('../../../utils/perUserRateLimit');
 const { openSse } = require('../../../core/http/sseHelpers');
-const { streamWithRetry } = require('../builderShared');
-const { runCodeAssistTurn } = require('./codeAssistTurn');
-const { MAX_CODE_CHARS } = require('./codeAssistTools');
+const { streamWithRetry } = require('../../../usecases/ai/builderShared');
+const { runCodeAssistTurn } = require('../../../usecases/ai/automationBuilder/codeAssistTurn');
+const { MAX_CODE_CHARS } = require('../../../usecases/ai/automationBuilder/codeAssistTools');
 const { fallback } = require('../../../utils/bestEffort');
 
 // One assistant turn is a short tool loop on the fast tier, repairs
@@ -234,7 +235,7 @@ function makeCodeAssistRouter(overrides = {}) {
         return next();
     }
 
-    router.post('/code/assist', deps.requireAuth, deps.rateLimit, requireAutomationsBeta, validate({ body: CodeAssistBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CodeAssistBody>, import('qs').ParsedQs>} */ req, res) => {
+    router.post('/code/assist', deps.requireAuth, deps.rateLimit, requireAutomationsBeta, validate({ body: CodeAssistBody }), async (req, res) => {
         const userId = req.session.user.id;
         const body = req.body;
         const messages = body.messages;
@@ -311,12 +312,7 @@ function makeCodeAssistRouter(overrides = {}) {
     return router;
 }
 
-module.exports = makeCodeAssistRouter();
-module.exports.makeCodeAssistRouter = makeCodeAssistRouter;
-module.exports.CodeAssistBody = CodeAssistBody;
-module.exports.codeAssistRateLimit = codeAssistRateLimit;
-module.exports.resolveAssistModel = resolveAssistModel;
-module.exports.lookupToolDocs = lookupToolDocs;
+module.exports = Object.assign(makeCodeAssistRouter(), { makeCodeAssistRouter, CodeAssistBody, codeAssistRateLimit, resolveAssistModel, lookupToolDocs });
 
 /**
  * @typedef {ReturnType<typeof makeCodeAssistRouter> & { makeCodeAssistRouter: typeof makeCodeAssistRouter; CodeAssistBody: typeof CodeAssistBody; codeAssistRateLimit: typeof codeAssistRateLimit; resolveAssistModel: typeof resolveAssistModel; lookupToolDocs: typeof lookupToolDocs }} RouterExports

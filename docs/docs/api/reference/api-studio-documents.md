@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/studio-documents`
 
-58 routes, 29 with a request schema. Back to the [endpoint reference](../reference.md).
+58 routes, 35 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -187,7 +187,7 @@ No request schema.
 
 **Access:** Signed-in user
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `GET /api/studio-documents/:id/sharing`
 
@@ -301,31 +301,31 @@ No request schema.
 
 **Access:** Signed-in user
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `POST /api/studio-documents/:id/suggestions/:sid/reject`
 
 **Access:** Signed-in user
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `POST /api/studio-documents/:id/suggestions/batch/:batchId/accept`
 
 **Access:** Signed-in user
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `POST /api/studio-documents/:id/suggestions/batch/:batchId/reject`
 
 **Access:** Signed-in user
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `POST /api/studio-documents/:id/unarchive`
 
 **Access:** Signed-in user · the handler also checks who the caller is
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `GET /api/studio-documents/:id/updates`
 

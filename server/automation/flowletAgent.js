@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * flowletAgent.js — a focused sub-agent that builds (or refines) ONE inline
  * flowlet (a reusable sub-flow in definition.layers).
@@ -76,7 +76,7 @@ function layerAgentTools() {
 //    route module — that would be a circular dependency) ──────────────────
 /** @param {{ status?: number, statusCode?: number, response?: { status?: number }, message?: string } | null | undefined} err */
 function isTransientChatError(err) {
-    const status = err?.status || err?.statusCode || err?.response?.status;
+    const status = err?.status || err?.statusCode || err?.response?.status || 0;
     if (status === 429 || (status >= 500 && status < 600)) return true;
     const msg = String(err?.message || '').toLowerCase();
     return /rate.?limit|overloaded|timeout|timed out|socket hang up|econnreset|etimedout|temporarily|try again|\b429\b|\b503\b/.test(msg);
@@ -297,8 +297,8 @@ async function runLayerAgent({
                 id: tc.id,
                 type: 'function',
                 function: {
-                    name: tc.function.name,
-                    arguments: typeof tc.function.arguments === 'string' ? tc.function.arguments : JSON.stringify(tc.function.arguments),
+                    name: tc.function?.name,
+                    arguments: typeof tc.function?.arguments === 'string' ? tc.function.arguments : JSON.stringify(tc.function?.arguments),
                 },
                 _thought_signature: tc._thought_signature || undefined,
                 _raw_content_parts: tc._raw_content_parts || undefined,

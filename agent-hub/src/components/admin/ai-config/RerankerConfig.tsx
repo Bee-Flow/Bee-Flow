@@ -5,11 +5,11 @@ import SecretInput from './ProviderCards/shared/SecretInput';
 import { PROVIDER_INPUT_CLS, PROVIDER_INPUT_STYLE } from './ProviderCards/shared/ProviderCardShell';
 import Section from '@/components/shared/Section';
 import useProviderConfig from '@/hooks/useProviderConfig';
-import { API_BASE, authFetch } from '@/utils/helpers';
 import { useTranslation } from '@/hooks/useTranslation';
 import { errorMessage } from '@/utils/caughtError';
 import RerankerProviderSection from './RerankerProviderSection';
 import type { RerankModel, RerankProvider } from './RerankerProviderSection';
+import { apiFetch } from '@/api/typedRequest';
 
 const hasChanges = (endpoint: string, apiKey: string, model: string, savedModel: string): boolean => !!endpoint.trim() || !!apiKey.trim() || model !== savedModel;
 
@@ -60,10 +60,7 @@ const RerankerConfig = ({ onMessage, providers = [], allModels = [] }: RerankerC
     const handleTest = async () => {
         setTesting(true);
         try {
-            const res = await authFetch(`${API_BASE}/ai/config/test-reranker`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-            });
+            const res = await apiFetch('POST /ai/config/test-reranker', { init: { headers: { 'Content-Type': 'application/json' } } });
             const data = await res.json();
             if (res.ok && data.success) {
                 onMessage?.({ type: 'success', text: t('admin_ai_config.rerank_working', 'Reranker working! Latency: {ms}ms', { ms: data.latencyMs }) });

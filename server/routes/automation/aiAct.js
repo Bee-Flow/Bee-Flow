@@ -40,6 +40,14 @@ const aiActCheck = require('../../automation/aiActCheck');
 const { makeAiActAuto, loadBlocksWith } = require('../../automation/aiActAuto');
 const { computeReadiness } = require('../../automation/readiness');
 const { fallback } = require('../../utils/bestEffort');
+const { validate } = require('../../core/http/validate');
+const { z, bodyOf } = require('../../core/http/schemaParts');
+
+// The keys each body takes. Their values are checked by aiActCheck.parseWizard
+// and parseAnswers, which answer with the ai_act.* codes the screen reads.
+const open = z.unknown().optional();
+const WizardBody = bodyOf({ usesAi: open, externalOutput: open, sensitiveUse: open, domains: open }, 'The AI Act check');
+const AnswersBody = bodyOf({ usesAi: open, externalOutput: open, sensitiveUse: open, prohibitedUse: open, domains: open, practices: open }, 'Answering the AI Act questions');
 
 /** How many recent runs the checklist looks through for the last test. */
 const RUNS_FOR_LAST_TEST = 100;
@@ -138,7 +146,7 @@ function makeAiActRouter(overrides = {}) {
      * @param {{ role: string | null }} acc
      */
     function describe(state, acc) {
-        const assess = require('../../compliance/aiAct/assess');
+        const assess = require('../../core/aiAct/assess');
         const row = state.row;
         return {
             ...aiActCheck.publicState(state),
@@ -182,7 +190,7 @@ function makeAiActRouter(overrides = {}) {
 
     // The questions Bee could not answer (or any the person wants to change),
     // merged into what Bee found. Records the check once nothing is left open.
-    router.put('/:id/ai-act/answers', async (req, res) => {
+    router.put('/:id/ai-act/answers', validate({ body: AnswersBody }), async (req, res) => {
         const loaded = await load(req, res, 'edit');
         if (!loaded) return;
         const { a, acc } = loaded;
@@ -212,7 +220,7 @@ function makeAiActRouter(overrides = {}) {
         res.json({ required: state.required, status: state.status, ...suggestion });
     });
 
-    router.put('/:id/ai-act', async (req, res) => {
+    router.put('/:id/ai-act', validate({ body: WizardBody }), async (req, res) => {
         const loaded = await load(req, res, 'edit');
         if (!loaded) return;
         const { a, acc } = loaded;

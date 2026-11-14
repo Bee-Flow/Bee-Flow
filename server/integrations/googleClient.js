@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Google API Client — Shared helper for Google integrations
  *
@@ -11,6 +12,7 @@
  * stop working ~1 hour after each user re-auth.
  */
 
+const { fetchFixedEndpoint } = require('../utils/fixedEndpointFetch.mts');
 const { loadConfig } = require('../auth/permissions');
 const { google } = require('googleapis');
 const log = require('../telemetry/log');
@@ -39,7 +41,7 @@ async function refreshAccessToken(session) {
         throw new Error('No refresh token available — user must re-authenticate with Google');
     }
 
-    const response = await fetch(GOOGLE_TOKEN_URL, {
+    const response = await fetchFixedEndpoint(GOOGLE_TOKEN_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
@@ -74,7 +76,7 @@ async function refreshAccessToken(session) {
 /**
  * Authenticated fetch against a Google REST endpoint. Retries once with a
  * refreshed token on 401. Mirrors `msGraphClient.graphFetch`.
- * @param {string | URL | Request} url
+ * @param {string | URL} url
  * @param {GoogleSession} session
  */
 async function googleFetch(url, session, options = {}) {
@@ -93,7 +95,8 @@ async function googleFetch(url, session, options = {}) {
         if (options.body && !headers['Content-Type'] && typeof options.body === 'string') {
             headers['Content-Type'] = 'application/json';
         }
-        return fetch(url, { ...options, headers });
+        // Bounds the wait for the answer, not the body: a Drive download may take longer.
+        return fetchFixedEndpoint(url, { timeoutPhase: 'headers', ...options, headers });
     };
 
     let response = await doFetch(session.accessToken);
@@ -137,7 +140,7 @@ async function googleFetch(url, session, options = {}) {
 async function revokeToken(token) {
     if (!token) return false;
     try {
-        const r = await fetch(GOOGLE_REVOKE_URL, {
+        const r = await fetchFixedEndpoint(GOOGLE_REVOKE_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({ token }).toString(),
@@ -247,9 +250,9 @@ const GOOGLE_RETRY_CONFIG = Object.freeze({
  * whose vault sessions have no .save()).
  *
  * @param {GoogleSession} session             Live session (mutated on token refresh).
- * @param {{ api: string, version: string, extraApis?: Array<{ api: string, version: string }>,
+ * @param {Partial<{ api: string, version: string, extraApis?: Array<{ api: string, version: string }>,
  *   exposeOAuth2?: boolean, onSaved?: (session: GoogleSession) => unknown,
- *   notConnectedError?: string, notConfiguredError?: string }} opts  `api` is the google API
+ *   notConnectedError?: string, notConfiguredError?: string }>} opts  `api` is the google API
  *   name ('gmail', 'calendar', 'drive'), `version` its version ('v1', 'v3'); `extraApis` are
  *   extra clients on the SAME OAuth2 (docs/slides/sheets); `exposeOAuth2` also returns the
  *   oauth2Client; `onSaved` overrides the write-back (default session.save?.());
@@ -307,7 +310,7 @@ module.exports = {
 /**
  * The session fields the Google clients read and write: an Express session, or an
  * automation's vault session (which has no save()).
- * @typedef {{ accessToken?: string, refreshToken?: string, oauthProvider?: string, save?: () => void }} GoogleSession
+ * @typedef {{ accessToken?: string, refreshToken?: string | null, oauthProvider?: string | null, save?: () => void }} GoogleSession
  */
 
 /**

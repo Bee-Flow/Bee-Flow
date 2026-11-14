@@ -58,6 +58,7 @@ const router = makeDocumentSuggestionsRouter({
 });
 
 const app = express();
+app.use(express.json());
 app.use((req, _res, next) => { req.session = { user: { id: req.headers['x-user'] || 'anna' } }; next(); });
 app.use('/api/studio-documents', router);
 app.use(terminalErrorHandler);
@@ -65,9 +66,10 @@ const server = http.createServer(app);
 const ready = new Promise((r) => server.listen(0, '127.0.0.1', r));
 test.after(() => server.close());
 
-async function call(method, path, user = 'anna') {
+async function call(method, path, user = 'anna', body = undefined) {
     await ready;
-    const res = await fetch(`http://127.0.0.1:${server.address().port}/api/studio-documents${path}`, { method, headers: { 'x-user': user } });
+    const headers = body === undefined ? { 'x-user': user } : { 'x-user': user, 'content-type': 'application/json' };
+    const res = await fetch(`http://127.0.0.1:${server.address().port}/api/studio-documents${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
     return { status: res.status, body: await res.json() };
 }
 
@@ -145,4 +147,15 @@ test('batch reject, and reject of one', async () => {
     assert.deepStrictEqual(batch.body.rejected, ['s1', 's2', 's3']);
     const one = await call('POST', '/proj/suggestions/s2/reject');
     assert.deepStrictEqual(one.body, { accepted: [], rejected: ['s2'], stale: [], versionId: null });
+});
+
+test('accepting and rejecting take no fields: one sent is refused by name and nothing is resolved', async () => {
+    for (const path of ['/proj/suggestions/s1/accept', '/proj/suggestions/s1/reject', '/proj/suggestions/batch/b1/accept', '/proj/suggestions/batch/b1/reject']) {
+        const out = await call('POST', path, 'anna', { ids: ['s2'] });
+        assert.strictEqual(out.status, 400, path);
+        assert.strictEqual(out.body.code, 'invalid_request');
+        assert.match(out.body.error, /does not take "ids"/);
+    }
+    assert.deepStrictEqual(resolved, []);
+    assert.strictEqual((await call('POST', '/proj/suggestions/s1/accept', 'anna', {})).status, 200, 'the client\'s empty object is fine');
 });

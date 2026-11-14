@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/automation`
 
-158 routes, 74 with a request schema. Back to the [endpoint reference](../reference.md).
+162 routes, 95 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -75,7 +75,7 @@ No request schema.
 
 **Access:** Signed-in user · Licence feature `automations` · Capability `automations` · middleware `trainingGate`
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `GET /api/automation/:id/agent-bindings`
 
@@ -113,13 +113,29 @@ No request schema.
 
 **Access:** Signed-in user · Licence feature `automations` · Capability `automations` · middleware `trainingGate`
 
-No request schema.
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `usesAi` | any |  |  |
+| `externalOutput` | any |  |  |
+| `sensitiveUse` | any |  |  |
+| `domains` | any |  |  |
 
 ### `PUT /api/automation/:id/ai-act/answers`
 
 **Access:** Signed-in user · Licence feature `automations` · Capability `automations` · middleware `trainingGate`
 
-No request schema.
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `usesAi` | any |  |  |
+| `externalOutput` | any |  |  |
+| `sensitiveUse` | any |  |  |
+| `prohibitedUse` | any |  |  |
+| `domains` | any |  |  |
+| `practices` | any |  |  |
 
 ### `GET /api/automation/:id/ai-act/check`
 
@@ -159,13 +175,13 @@ No request schema.
 
 **Access:** Signed-in user · Licence feature `automations` · Capability `automations` · middleware `trainingGate`
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `POST /api/automation/:id/diagnose-trigger`
 
 **Access:** Signed-in user · Licence feature `automations` · Capability `automations` · middleware `trainingGate`
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `POST /api/automation/:id/dry-run`
 
@@ -296,7 +312,7 @@ No request schema.
 
 **Access:** Signed-in user · Licence feature `automations` · Capability `automations` · middleware `trainingGate`
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `GET /api/automation/:id/forms`
 
@@ -367,7 +383,7 @@ No request schema.
 
 **Access:** Signed-in user · Licence feature `automations` · Capability `automations` · middleware `trainingGate`
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `POST /api/automation/:id/run`
 
@@ -408,7 +424,7 @@ No request schema.
 
 **Access:** Signed-in user · Licence feature `automations` · Capability `automations` · middleware `trainingGate`
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `POST /api/automation/:id/save-as-template`
 
@@ -611,6 +627,12 @@ No request schema.
 
 **Query:** object (no other keys)
 
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `name` | string or null | yes |  |
+
 ### `POST /api/automation/:id/versions/:versionId/restore`
 
 **Access:** Signed-in user · Licence feature `automations` · Capability `automations` · middleware `trainingGate`
@@ -639,13 +661,13 @@ No request schema.
 
 **Access:** Signed-in user · Licence feature `automations` · Capability `automations` · middleware `trainingGate`
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `POST /api/automation/:id/webhook/:slug/test`
 
 **Access:** Signed-in user · Licence feature `automations` · Capability `automations` · middleware `trainingGate`
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `GET /api/automation/:id/webhooks`
 
@@ -829,7 +851,7 @@ No request schema.
 
 **Access:** Signed-in user · Licence feature `automations` · Capability `automations` · middleware `trainingGate` · the handler also checks who the caller is
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `POST /api/automation/approvals/:id/withdraw`
 
@@ -879,6 +901,26 @@ No request schema.
 | `stepId` | string or null |  |  |
 | `modelTier` | string or null |  |  |
 
+### `POST /api/automation/builder/feedback`
+
+**Access:** Signed-in user · Licence feature `automations` · middleware `requireAutomationsBeta`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `action` | string | yes |  |
+| `signature` | string or null |  |  |
+| `reasonCode` | string or null |  |  |
+| `suggestion` | object | yes |  |
+| `suggestion.id` | string or null |  |  |
+| `suggestion.title` | string | yes | min length 1; max length 200 |
+| `suggestion.buildPrompt` | string or null |  |  |
+| `suggestion.complexity` | string or null |  |  |
+| `suggestion.requiredIntegrations` | array of string or null |  |  |
+| `suggestion.groundedIn` | string or null |  |  |
+| `reason` | string or null |  |  |
+
 ### `POST /api/automation/builder/label-steps`
 
 **Access:** Signed-in user · Licence feature `automations`
@@ -892,7 +934,7 @@ No request schema.
 
 ### `POST /api/automation/builder/layer-agent`
 
-**Access:** Signed-in user · Licence feature `automations` · middleware `suggestionsRouter`
+**Access:** Signed-in user · Licence feature `automations`
 
 **Body**
 
@@ -956,7 +998,7 @@ No request schema.
 
 ### `POST /api/automation/builder/stream`
 
-**Access:** Signed-in user · Licence feature `automations` · middleware `suggestionsRouter`
+**Access:** Signed-in user · Licence feature `automations`
 
 **Query**
 
@@ -984,6 +1026,21 @@ No request schema.
 | `timezone` | string or null |  |  |
 | `canvasScope` | string or null |  |  |
 | `seedMetadata` | object or null |  |  |
+
+### `POST /api/automation/builder/suggest`
+
+**Access:** Signed-in user · Licence feature `automations` · middleware `requireAutomationsBeta` · the handler also checks who the caller is
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `mode` | one of `"patterns"`, `"ideas"` |  |  |
+| `sources` | array of string |  | max items 50 |
+| `integrationIds` | array of string |  | max items 200 |
+| `focus` | string |  | max length 2000 |
+| `timezone` | string |  | max length 64 |
+| `force` | boolean |  |  |
 
 ### `POST /api/automation/builder/suggest-mappings`
 
@@ -1014,6 +1071,22 @@ No request schema.
 | `sources[].label` | string |  | max length 200 |
 | `sources[].real` | boolean |  |  |
 | `sources[].sample` | any |  |  |
+
+### `GET /api/automation/builder/suggest/last`
+
+**Access:** Signed-in user · Licence feature `automations` · the handler also checks who the caller is
+
+**Query**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `mode` | one of `"patterns"`, `"ideas"` |  |  |
+
+### `GET /api/automation/builder/suggest/sources`
+
+**Access:** Signed-in user · Licence feature `automations` · middleware `requireAutomationsBeta`
+
+No request schema.
 
 ### `POST /api/automation/builder/summarise-layer`
 
@@ -1211,7 +1284,15 @@ No request schema.
 
 **Access:** Signed-in user · Licence feature `automations` · middleware `trainingGate`, `contentLengthGuard`
 
-No request schema.
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `field` | any |  |  |
+| `query` | any |  |  |
+| `csrf` | any |  |  |
+| `sessionId` | any |  |  |
+| `limit` | any |  |  |
 
 ### `GET /api/automation/form/:token/s/:sid`
 
@@ -1241,19 +1322,24 @@ No request schema.
 
 **Access:** Signed-in user · Licence feature `automations` · middleware `trainingGate`
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `POST /api/automation/form/:token/s/:sid/notebook`
 
 **Access:** Signed-in user · Licence feature `automations` · middleware `trainingGate`
 
-No request schema.
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `text` | any |  |  |
+| `title` | any |  |  |
 
 ### `POST /api/automation/form/:token/s/:sid/webpage`
 
 **Access:** Signed-in user · Licence feature `automations` · middleware `trainingGate`, `webpagesGate`
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `POST /api/automation/form/:token/upload`
 
@@ -1279,7 +1365,7 @@ No request schema.
 
 **Access:** Signed-in user · Licence feature `automations` · Capability `automations` · middleware `trainingGate`
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `PUT /api/automation/forms/:automationId/audience`
 
@@ -1303,7 +1389,7 @@ No request schema.
 
 **Access:** Signed-in user · Licence feature `automations` · Capability `automations` · middleware `trainingGate`, `editGate`
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `DELETE /api/automation/forms/:automationId/test-link`
 
@@ -1327,7 +1413,14 @@ No request schema.
 
 **Access:** Signed-in user · Licence feature `automations` · Capability `automations` · middleware `trainingGate`
 
-No request schema.
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `mode` | one of `"create"`, `"revise"` |  | default `"create"` |
+| `brief` | string |  |  |
+| `note` | string |  |  |
+| `current` | object or null |  |  |
 
 ## `import`
 

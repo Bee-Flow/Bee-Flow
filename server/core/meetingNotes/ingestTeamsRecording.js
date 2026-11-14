@@ -25,6 +25,7 @@ const path = require('path');
 const { parseTeamsVtt } = require('./teamsVtt');
 const { lazyDeps } = require('./lazyDeps');
 const log = require('../../telemetry/log');
+const { ignoreGone } = require('../../utils/bestEffort');
 
 /** Collaborators, loaded on first use; tests swap them through init(). */
 const { deps: d, init } = lazyDeps({
@@ -198,6 +199,6 @@ async function resolveSharedWith(ownerId, orgId, attendees) {
 /**
  * @param {string} p
  */
-function safeUnlink(p) { try { fs.unlinkSync(p); } catch (_) { log.debug('file already gone', _); } }
+function safeUnlink(p) { try { fs.unlinkSync(p); } catch (_) { ignoreGone('meetingNotes/ingestTeamsRecording:unlinkTemp', _); } }
 
 module.exports = { init, ingestTeamsMeeting, teamsSourceUri, rosterOf };

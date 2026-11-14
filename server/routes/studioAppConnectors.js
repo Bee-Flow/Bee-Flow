@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio — connectors runtime bridge.
  *
@@ -177,7 +178,7 @@ router.get('/:id/data/connectors', requireAuth, async (req, res) => {
 });
 
 // ── POST /:id/data/connectors/:connectorId/run ──────────────────────
-router.post('/:id/data/connectors/:connectorId/run', requireAuth, connectorRunLimiter, jsonBody, bodySizeGuard, validate({ body: ParamsBody }), async (/** @type {import('express').Request<{ id: string, connectorId: string }, any, import('zod').infer<typeof ParamsBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/:id/data/connectors/:connectorId/run', requireAuth, connectorRunLimiter, jsonBody, bodySizeGuard, validate({ body: ParamsBody }), async (req, res) => {
     try {
         const userId = req.session.user.id;
         const app = await loadVisibleApp(req, res);
@@ -269,7 +270,7 @@ function describeToolFamily(toolName) {
 // a table, a row identity and an incremental strategy the owner just confirms.
 // This is the single authority for detection: the picker, the table proposal and
 // the sync engine all read this one answer, so they cannot drift.
-router.post('/:id/data/connectors/:connectorId/inspect', requireAuth, connectorSyncLimiter, jsonBody, bodySizeGuard, validate({ body: ParamsBody }), async (/** @type {import('express').Request<{ id: string, connectorId: string }, any, import('zod').infer<typeof ParamsBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/:id/data/connectors/:connectorId/inspect', requireAuth, connectorSyncLimiter, jsonBody, bodySizeGuard, validate({ body: ParamsBody }), async (req, res) => {
     try {
         const loaded = await loadOwnedConnector(req, res);
         if (!loaded) return;
@@ -357,7 +358,7 @@ router.post('/:id/data/connectors/:connectorId/inspect', requireAuth, connectorS
 // ── POST /:id/data/connectors/:connectorId/sync ─────────────────────
 // "Refresh now". The same engine the schedule and the on-view kick use, so what
 // the owner sees when they press the button is exactly what happens at 3am.
-router.post('/:id/data/connectors/:connectorId/sync', requireAuth, connectorSyncLimiter, jsonBody, bodySizeGuard, async (req, res) => {
+router.post('/:id/data/connectors/:connectorId/sync', requireAuth, connectorSyncLimiter, jsonBody, bodySizeGuard, validate({ body: bodyOf({}, 'Refreshing a connector') }), async (req, res) => {
     try {
         const loaded = await loadOwnedConnector(req, res);
         if (!loaded) return;
@@ -380,7 +381,7 @@ router.post('/:id/data/connectors/:connectorId/sync', requireAuth, connectorSync
 // the sync just writes zero rows, forever, looking healthy. Gmail is worse —
 // sending from an unverified alias fails only at send time, long after the
 // author thought they were done. So the author gets to ask now.
-router.post('/:id/data/connectors/:connectorId/verify', requireAuth, connectorSyncLimiter, jsonBody, bodySizeGuard, async (req, res) => {
+router.post('/:id/data/connectors/:connectorId/verify', requireAuth, connectorSyncLimiter, jsonBody, bodySizeGuard, validate({ body: bodyOf({}, 'Verifying a connector') }), async (req, res) => {
     try {
         const loaded = await loadOwnedConnector(req, res);
         if (!loaded) return;
@@ -554,7 +555,7 @@ router.get('/:id/runtime/connectors/status', requireAuth, async (req, res) => {
     return res.json({ connectors: out });
 });
 
-router.post('/:id/runtime/connectors/:connectorId/refresh', requireAuth, connectorSyncLimiter, async (req, res) => {
+router.post('/:id/runtime/connectors/:connectorId/refresh', requireAuth, connectorSyncLimiter, validate({ body: bodyOf({}, 'Refreshing a connector') }), async (req, res) => {
     try {
         const app = await loadMemberApp(req, res);
         if (!app) return;

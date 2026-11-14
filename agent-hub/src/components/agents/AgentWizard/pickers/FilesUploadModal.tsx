@@ -1,16 +1,17 @@
 import { Upload, X } from 'lucide-react';
 import React, { useState, useEffect, useEffectEvent, useCallback } from 'react';
-import { API_BASE } from '@/utils/helpers';
 import { nOf } from '@/components/admin/Studio/KnowledgeStudio/plural';
 import Modal from '@/components/shared/Modal';
 import { kbDocumentCount, uploadKbIdOf } from '../builderSplit/uploadKb';
 import { errorMessage } from '@/utils/caughtError';
 import type { TranslateFn, TranslateParams } from '@/hooks/useTranslation';
 import type { KnowledgeBaseRow } from '../builderSplit/useKnowledgeBases';
-import { logger } from '@/utils/logger';
-import { mutate, request, RefusedError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
+import { useKbDocumentPageQuery, useReloadKbDocumentPage } from '@/api/queries/kbDocumentPage';
 
 /** One document of the base (`GET /api/kb/:id/documents`). */
+const NO_DOCS: never[] = [];
+
 interface KbDocument {
     id: string;
     title?: string;
@@ -141,10 +142,12 @@ export default function FilesUploadModal({ t, agent, agentName, knowledgeBaseIds
     // linked KB. The "Upload files" pill counts the same base (uploadKb.ts).
     const initialKbId = uploadKbIdOf(agent, knowledgeBaseIds);
     const [kbId, setKbId] = useState<string | null>(initialKbId);
-    const [docs, setDocs] = useState<KbDocument[]>([]);
+    const docsQuery = useKbDocumentPageQuery<KbDocument>(kbId);
+    const docs = docsQuery.data?.docs ?? NO_DOCS;
     // The server's count of every document in the base; `docs` is one page.
-    const [total, setTotal] = useState<number | null>(null);
-    const [loading, setLoading] = useState(false);
+    const total = docsQuery.data?.total ?? null;
+    const loading = docsQuery.isFetching;
+    const reloadDocs = useReloadKbDocumentPage();
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState<string | null | undefined>(null);
     const [dragOver, setDragOver] = useState(false);
@@ -162,11 +165,7 @@ export default function FilesUploadModal({ t, agent, agentName, knowledgeBaseIds
         // the stale agent shell so a draft doesn't mint a KB called "Untitled".
         const kbName = agentName || agent?.name || 'Knowledge';
         try {
-            const res = await mutate(`${API_BASE}/api/kb`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: kbName, description: `Auto-generated for agent "${kbName}"` }),
-            });
+            const res = await apiRequest('POST /api/kb', { body: { name: kbName, description: `Auto-generated for agent "${kbName}"` } });
             const created = await res.json();
             setKbId(created.id);
             const next = Array.from(new Set([...(knowledgeBaseIds || []), created.id]));
@@ -183,23 +182,9 @@ export default function FilesUploadModal({ t, agent, agentName, knowledgeBaseIds
     const reportDocCount = useEffectEvent((id: string, n: number) => { onDocCountChange?.(id, n); });
 
     const loadDocs = useCallback(async (id: string | null) => {
-        if (!id) return;
-        setLoading(true);
-        try {
-            const res = await request(`${API_BASE}/api/kb/${id}/documents?limit=200`).catch((err: unknown) => {
-                if (err instanceof RefusedError) return null;
-                throw err;
-            });
-            if (res) {
-                const data = await res.json();
-                const list = Array.isArray(data) ? data : (data?.documents || data?.items || []);
-                setDocs(list);
-                setTotal(Number.isFinite(data?.total) ? data.total : list.length);
-            }
-        } catch (err) { logger.debug('ignore', err); } finally { setLoading(false); }
-    }, []);
+        if (id) await reloadDocs(id);
+    }, [reloadDocs]);
 
-    useEffect(() => { if (kbId) loadDocs(kbId); }, [kbId, loadDocs]);
     useEffect(() => { if (kbId && total !== null) reportDocCount(kbId, total); }, [kbId, total]);
 
     const uploadFiles = async (files: File[]) => {
@@ -214,10 +199,7 @@ export default function FilesUploadModal({ t, agent, agentName, knowledgeBaseIds
                 const fd = new FormData();
                 fd.append('file', file);
                 try {
-                    await mutate(`${API_BASE}/api/kb/${id}/ingest/file`, {
-                        method: 'POST',
-                        body: fd,
-                    });
+                    await apiRequest('POST /api/kb/{id}/ingest/file', { params: { id }, init: { body: fd } });
                 } catch (err) {
                     throw new Error(`${file.name}: ${errorMessage(err)}`);
                 }
@@ -244,7 +226,7 @@ export default function FilesUploadModal({ t, agent, agentName, knowledgeBaseIds
     const deleteDoc = async (docId: string) => {
         if (!kbId) return;
         try {
-            await mutate(`${API_BASE}/api/kb/${kbId}/documents/${docId}`, { method: 'DELETE' });
+            await apiRequest('DELETE /api/kb/{id}/documents/{docId}', { params: { id: kbId, docId } });
             await loadDocs(kbId);
             onKbsChange?.();
         } catch (err) { setError(errorMessage(err)); }

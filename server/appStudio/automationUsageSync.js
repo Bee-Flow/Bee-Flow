@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The writer of `automation_usage` for one STUDIO APP (P4 part C).
  *
@@ -92,8 +92,8 @@ const REASONS = Object.freeze({
 /**
  * Wat draait deze app NU aan automatiseringen?
  *
- * @returns {Promise<{ok:boolean, reason:string, ownerId?:string|null,
- *                    entries?:Parameters<typeof import('../stores/automationUsageStore').reconcileAutomationUsage>[3], unset?:number, error?:string, which?:string}>}
+ * @returns {Promise<{ok:true, reason:'collected', ownerId:string, entries:Parameters<typeof import('../stores/automationUsageStore').reconcileAutomationUsage>[3], unset:number}
+ *                  | {ok:false, reason:string, ownerId?:string|null, error?:string, which?:string}>}
  *   `ok:false` betekent ALTIJD "laat de index staan" — nooit "schrijf een lege
  *   lijst". Het onderscheid staat in `reason`.
  * @param {string} appId
@@ -291,7 +291,7 @@ function cancelPendingReconcile(appId) {
  */
 function reconcileAppAutomationUsageDetached(appId, deps = {}) {
     if (!appId) return;
-    const delayMs = Number.isFinite(deps.delayMs) ? deps.delayMs : RECONCILE_DEBOUNCE_MS;
+    const delayMs = Number.isFinite(deps.delayMs) ? /** @type {number} */ (deps.delayMs) : RECONCILE_DEBOUNCE_MS;
     if (_pending.has(appId)) return;                  // één pass dekt de reeks
     const timer = setTimeout(() => {
         _pending.delete(appId);
@@ -360,7 +360,7 @@ async function backfillAutomationUsage(deps = {}) {
     _backfillRunning = true;
     const log = deps.log || console;
     const store = deps.automationUsageStore || require('../stores/automationUsageStore');
-    const limit = Number.isFinite(deps.limit) ? deps.limit : BACKFILL_BATCH;
+    const limit = Number.isFinite(deps.limit) ? /** @type {number} */ (deps.limit) : BACKFILL_BATCH;
     let indexed = 0;
     let failed = 0;
     try {

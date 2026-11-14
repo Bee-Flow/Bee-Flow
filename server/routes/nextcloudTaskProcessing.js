@@ -1,3 +1,4 @@
+// @typecheck
 /** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
 /**
  * Execution endpoint for Nextcloud Task Processing.
@@ -41,7 +42,6 @@
  * type is exempt; its turns are conversational and an empty one is not ours
  * to refuse.
  */
-
 const express = require('express');
 const crypto = require('crypto');
 const { z, typeError, worded } = require('../core/http/schemaParts');
@@ -64,7 +64,7 @@ const captureRaw = express.json({
 // must stay byte-identical to the connector's signing side) in auth/connectorSig.
 const { verifyConnectorSig } = require('../auth/connectorSig');
 const { fallback } = require('../utils/bestEffort');
-const { meterAssistantCall, meteredAssistantChat } = require('./nextcloudTaskProcessingUsage');
+const { meterAssistantCall, meteredAssistantChat } = require('../usecases/nextcloudTaskProcessingUsage');
 
 /**
  * Per-task-type prompt construction.
@@ -211,13 +211,13 @@ const AGENT_SYSTEM = 'You are Bee Flow, an assistant working inside the user\'s 
  * Removing this filter is the last step of the confirmation-gate work, not an
  * independent change.
  */
-async function runAgentTurn({ input, org, user, ncUid }) {
+async function runAgentTurn({ input, org, user }) {
     const userId = user?.id || null;
     if (!userId) {
         // Checked before anything is loaded or called: no mapped Bee Flow user
         // means no per-user tool scope, and running an agent as "the
         // organisation" would hand one person another user's data.
-        throw new Error(`No Bee Flow user is linked to the Nextcloud account "${ncUid}"`);
+        throw new HttpError(403, 'nc_user_not_linked', 'This Nextcloud account is not linked to a Bee Flow user. Sign in to Bee Flow from Nextcloud once to link it.');
     }
 
     const { getIntegrationTools } = require('../core/integrations/integrationTools');
@@ -277,7 +277,7 @@ async function runAgentTurn({ input, org, user, ncUid }) {
     for (let step = 0; step < AGENT_MAX_STEPS; step++) {
         // Capped: each step of this loop is a full prompt evaluation on the
         // provider, and a tool-calling round never needs more than this.
-        const completion = await meteredAssistantChat(llmClient, modelId, messages, { stream: false, tools, maxTokens: 4096 }, { userId, org });
+        const completion = /** @type {{ content?: string, toolCalls?: any[], tool_calls?: any[], text?: string }} */ (await meteredAssistantChat(llmClient, modelId, messages, { stream: false, tools, maxTokens: 4096 }, { userId, org }));
         const calls = completion?.toolCalls || completion?.tool_calls || [];
         const text = typeof completion === 'string'
             ? completion
@@ -386,7 +386,7 @@ router.post('/execute', captureRaw, requireConnectorSig, validate({ body: Execut
         const agentUser = ncUid
             ? await userStoreEarly.getUserByNcUid(org.id, ncUid).catch((e) => fallback('routes/nextcloudTaskProcessing:anon', e, null))
             : null;
-        const out = await runAgentTurn({ input, org, user: agentUser, ncUid });
+        const out = await runAgentTurn({ input, org, user: agentUser });
         return res.json({ output: out });
     }
 
@@ -433,13 +433,13 @@ router.post('/execute', captureRaw, requireConnectorSig, validate({ body: Execut
         userId: user?.id || null,
     });
 
-    const completion = await meteredAssistantChat(require('../core/llm/llmClient'), modelId, messages, {
+    const completion = /** @type {{ content?: string, toolCalls?: any[], tool_calls?: any[], text?: string }} */ (await meteredAssistantChat(require('../core/llm/llmClient'), modelId, messages, {
         // Task Processing is a background API — nothing is streaming this
         // to a browser, and Nextcloud wants the whole answer in one reply.
         stream: false,
         // Bounded so one runaway generation cannot hold a self-hosted slot.
         maxTokens: 8192,
-    }, { userId: user?.id || null, org });
+    }, { userId: user?.id || null, org }));
 
     const text = typeof completion === 'string'
         ? completion

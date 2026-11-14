@@ -1,12 +1,12 @@
 import { useEffect, useEffectEvent, useRef, type Dispatch, type SetStateAction } from 'react';
-import { request, RefusedError } from '../api/mutate';
+import { RefusedError } from '../api/mutate';
 import { loadWorkspaceNotebook } from '../api/workspaceNotebook';
 import type { ChatMessage } from '../hooks/useChatEngine/types';
-import { API_BASE } from '../utils/helpers';
 import { normalizeLoadedMessages, type ShapedMessage } from '../utils/messageShape';
 import scopedStorage from '../utils/scopedStorage';
 import { updateAgentUrl, updateDirectChatUrl } from './hubUrl';
 import type { AgentLike, IdRef } from './useAgentHubData.types';
+import { apiRequest, apiUrl } from '@/api/typedRequest';
 
 // The multi-step flows behind the hub's startup: which chat to open, and how a
 // short conversation id from the address becomes a full one. They read inside
@@ -21,9 +21,9 @@ function matchByPrefix(convs: Conversation[], prefix: string): Conversation | un
     return convs.find((c): boolean => c.id === prefix || c.id.startsWith(prefix));
 }
 
-/** GET a JSON answer; null when the server refused it. */
-async function getJsonOrNull<T>(url: string): Promise<T | null> {
-    const res = await request(url).catch((err: unknown) => {
+/** The JSON answer of a checked GET; null when the server refused it. */
+async function getJsonOrNull<T>(pending: Promise<Response>): Promise<T | null> {
+    const res = await pending.catch((err: unknown) => {
         if (err instanceof RefusedError) return null;
         throw err;
     });
@@ -66,11 +66,11 @@ interface DirectRestorePorts {
 /** Open the direct conversation /d/:prefix names: its detail, its knowledge bases, its messages, its notebook. */
 async function restoreDirectConversation(prefix: string, ports: DirectRestorePorts): Promise<void> {
     try {
-        const convs = await getJsonOrNull<Conversation[]>(`${API_BASE}/ai/direct/conversations`);
+        const convs = await getJsonOrNull<Conversation[]>(apiRequest('GET /ai/direct/conversations'));
         const match = convs && matchByPrefix(convs, prefix);
         if (!match) return;
         const detailData = await getJsonOrNull<IdRef & { knowledgeBaseIds?: unknown; messages?: (ChatMessage & ShapedMessage)[]; model_tier?: string }>(
-            `${API_BASE}/ai/direct/conversations/${match.id}`,
+            apiRequest('GET /ai/direct/conversations/{id}', { params: { id: match.id } }),
         );
         if (!detailData) return;
         ports.setCurrentDirectConversation(detailData);
@@ -86,7 +86,7 @@ async function restoreDirectConversation(prefix: string, ports: DirectRestorePor
         if (detailData.model_tier) ports.setSelectedTier(detailData.model_tier);
         updateDirectChatUrl(match.id);
         await loadWorkspaceNotebook(
-            `${API_BASE}/ai/direct/conversations/${match.id}/workspace`,
+            apiUrl('GET /ai/direct/conversations/{id}/workspace', { params: { id: match.id } }),
             { setNotebookLinkedId: ports.setNotebookLinkedId, setNotebookContent: ports.setNotebookContent, setShowNotebook: ports.setShowNotebook },
             { logLabel: 'Failed to fetch direct notebook from URL:' },
         );
@@ -95,7 +95,7 @@ async function restoreDirectConversation(prefix: string, ports: DirectRestorePor
 
 /** The full id of the agent conversation /a/:agent/:prefix names, or undefined. */
 async function findAgentConversation(agentId: string, prefix: string): Promise<string | undefined> {
-    const convs = await getJsonOrNull<Conversation[]>(`${API_BASE}/agents/${agentId}/conversations`);
+    const convs = await getJsonOrNull<Conversation[]>(apiRequest('GET /agents/{id}/conversations', { params: { id: agentId } }));
     return convs ? matchByPrefix(convs, prefix)?.id : undefined;
 }
 

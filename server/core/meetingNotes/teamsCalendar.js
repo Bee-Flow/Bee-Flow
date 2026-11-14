@@ -33,6 +33,7 @@ const MAX_PAGES = 20;
 /**
  * True for a Teams meeting join URL (work/school or personal Teams).
  * @param {string | null | undefined} url
+ * @returns {url is string}
  */
 function isTeamsJoinUrl(url) {
     return typeof url === 'string' && TEAMS_JOIN_RE.test(url.trim());

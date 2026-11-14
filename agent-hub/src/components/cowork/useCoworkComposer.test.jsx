@@ -6,9 +6,10 @@
  * schedule without the user touching a chip, while a chip they *did* touch has
  * to survive whatever the model thinks.
  */
-import { act, render } from '@testing-library/react';
+import { act } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { renderWithClient } from '@/test/render';
 import useCoworkComposer from './useCoworkComposer';
 
 const composeCowork = vi.fn();
@@ -31,7 +32,7 @@ function harness() {
         Object.assign(api, useCoworkComposer({ onCreated: () => {} }));
         return null;
     }
-    render(<Probe />);
+    renderWithClient(<Probe />);
     return api;
 }
 

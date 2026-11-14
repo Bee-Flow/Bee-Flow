@@ -1,3 +1,4 @@
+// @typecheck
 const { collectStringLeaves, applyStringLeaves, _vaultOf } = require('./safetyLeaves');
 const { _detectPii, _scanText } = require('./safetyScan');
 const { bestEffort } = require('../../utils/bestEffort');
@@ -22,7 +23,7 @@ const { bestEffort } = require('../../utils/bestEffort');
  * the WHOLE vault, so every point where the runner already puts real values back
  * puts these back too.
  *
- * @returns {{ text, entities, degraded, degradedReason, overflow }}
+ * @returns {Promise<string | { text: string, entities: any[], degraded?: boolean, degradedReason?: string, overflow?: boolean }>}
  */
 async function mintTokensFor(text, entities, ctx) {
     const source = String(text ?? '');
@@ -157,7 +158,7 @@ async function logEgress({ toolName, toolArgs, result, error, blocked, probe, po
             toolName,
             toolArgs,
             result,
-            error: error || null,
+            error: /** @type {string | Error | null} */ (error || null),
             blocked: !!blocked,
             probe: probe || null,
             source: auditBase.source || 'automation',

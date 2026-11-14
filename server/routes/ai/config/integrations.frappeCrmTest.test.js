@@ -13,7 +13,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const h = require('../../../testUtils/routeHarness');
 const { createFrappeCrmTestRouter, SECRET_NEEDED, NOT_CONFIGURED, CONNECT_FAILED } = require('./frappeCrmTestRoute.mts');
-const { frappeCrmFields } = require('./frappeCrmFields.mts');
+const { frappeCrmFields } = require('../../../usecases/ai/config/frappeCrmFields.mts');
 
 const SECRET = 'storedSecretValue99';
 const stored = {};
@@ -111,7 +111,7 @@ test('user-settings fields: empty clears, a valid connection passes, a private a
 });
 
 test('INTEGRATION_TEST_MAX_PER_MINUTE: a user past the limit gets 429 without an attempt; 0 is unlimited', async () => {
-    const { integrationTestLimiter } = require('./integrationTestLimit.mts');
+    const { integrationTestLimiter } = require('../../../usecases/ai/config/integrationTestLimit.mts');
     const deps = { requireAuth: (_req, _res, next) => next(), getSecret: async () => null, testConnection: async () => outcome };
     process.env.INTEGRATION_TEST_MAX_PER_MINUTE = '2';
     const limited = h.serve('/ai', createFrappeCrmTestRouter({ ...deps, rateLimit: integrationTestLimiter('frappe-crm-test-limit') }));

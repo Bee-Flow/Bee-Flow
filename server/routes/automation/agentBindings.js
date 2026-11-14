@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Which agents may call an agent_call automation (automation/agentBinding.js).
  *
@@ -52,7 +52,8 @@ function makeAgentBindingsRouter(overrides = {}) {
     const store = () => overrides.store || require('../../stores/automationStore');
     const binding = () => overrides.binding || require('../../automation/agentBinding');
     const access = makeAutomationAccess({
-        store: overrides.store,
+        // The store's share rows are mapped one to one, so none is null.
+        store: /** @type {NonNullable<Parameters<typeof makeAutomationAccess>[0]>['store']} */ (overrides.store),
         ...(overrides.getUser ? { getUser: overrides.getUser } : {}),
         ...(overrides.hasPermission ? { hasPermission: overrides.hasPermission } : {}),
     });

@@ -27,7 +27,7 @@ const {
     isServerInContainer, imageExists, pullImage: pullImageStream, ensureNetwork,
     connectSelfToNetwork: connectSelf, removeContainerIfExists,
 } = require('./docker/dockerKit');
-const { bestEffort } = require('../utils/bestEffort');
+const { bestEffort, ignoreGone } = require('../utils/bestEffort');
 
 // The runner image MUST match the server's Playwright version (connect()
 // rejects a minor-version mismatch). Derive the version and bake it into the
@@ -272,7 +272,7 @@ function followLogs(docker, container, onLine) {
         logStream = stream;
         container.modem.demuxStream(stream, sink, sink);
     });
-    return () => { try { logStream?.destroy(); } catch (_) { log.debug('log stream already destroyed', _); } };
+    return () => { try { logStream?.destroy(); } catch (_) { ignoreGone('services/pwtRunner:destroyLogStream', _); } };
 }
 
 // ── Shared browser singleton ────────────────────────────────────────────────
@@ -386,8 +386,8 @@ async function ensureBrowserSingleton({ onLine } = {}) {
             return _browserSingleton;
         } catch (e) {
             try { detach(); } catch (_) { bestEffort('services/pwtRunner:ensureBrowserSingleton', _); /* log follower already detached */ }
-            try { await container.stop({ t: 3 }); } catch (_) { log.debug('container already stopped', _); }
-            try { await container.remove({ force: true }); } catch (_) { log.debug('container already removed', _); }
+            try { await container.stop({ t: 3 }); } catch (_) { ignoreGone('services/pwtRunner:stopContainer', _, [304, 404]); }
+            try { await container.remove({ force: true }); } catch (_) { ignoreGone('services/pwtRunner:removeContainer', _, [404, 409]); }
             throw e;
         } finally {
             // We only needed logs to capture the endpoint line; liveness is

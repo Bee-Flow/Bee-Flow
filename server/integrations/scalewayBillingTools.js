@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Scaleway Billing Tools — read-only access to an organisation's Scaleway invoices.
  *
@@ -24,7 +25,6 @@
  *
  * API reference: https://www.scaleway.com/en/developers/api/billing/
  */
-
 const { jsonApiRequest } = require('./shared/apiClient');
 const log = require('../telemetry/log');
 
@@ -242,7 +242,7 @@ async function runScalewayBillingTool(toolName, args, creds, deps) {
         case 'scaleway_list_invoices': {
             const limit = clampLimit(args.limit);
             const { after, before } = periodWindow(args, deps.now || new Date());
-            if (args.type != null && args.type !== '' && !INVOICE_TYPES.includes(args.type)) {
+            if (args.type != null && args.type !== '' && !INVOICE_TYPES.includes(/** @type {string} */ (args.type))) {
                 throw new Error(`type must be one of: ${INVOICE_TYPES.join(', ')}.`);
             }
             // Always one full page, then filter, sort and cut here: Scaleway puts a

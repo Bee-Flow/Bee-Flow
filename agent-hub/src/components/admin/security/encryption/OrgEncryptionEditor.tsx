@@ -18,16 +18,18 @@
  * save that 403s.
  */
 import { Lock, ShieldCheck, ShieldOff, KeyRound, AlertTriangle } from 'lucide-react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
+import { useOrgSettingRead } from '@/components/admin/org/useOrgSettingRead';
 
 import EncryptExistingData from './EncryptExistingData';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
-import { errorMessage, messageOf } from '@/utils/caughtError';
-import { API_BASE } from '@/utils/helpers';
+import { messageOf } from '@/utils/caughtError';
 import ChoiceCards from '@/components/shared/ChoiceCards';
 import type { ChoiceCardOption } from '@/components/shared/ChoiceCards';
 import { toast } from '@/components/shared/Toast';
-import { request, errorBody, RefusedError, mutate } from '@/api/mutate';
+import { errorBody, RefusedError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 type EncryptionTier = 'none' | 'managed' | 'zk';
 
@@ -107,62 +109,33 @@ function tierChoiceOptions(server: EncryptionSettings | null, t: TranslateFn) {
     });
 }
 
-export default function OrgEncryptionEditor({ orgId }: { orgId: string }) {
-    const { t } = useTranslation();
-    const [loading, setLoading] = useState(true);
-    const [loadError, setLoadError] = useState<string | null | undefined>(null);
-    const [server, setServer] = useState<EncryptionSettings | null>(null);   // last loaded server state
+/** The loaded settings, the tier picked from them, and the save. */
+function useEncryptionForm(orgId: string, t: TranslateFn) {
+    const { server, loading, loadError, refetch } = useOrgSettingRead<EncryptionSettings>('GET /auth/organizations/{id}/encryption', orgId);
     const [tier, setTier] = useState<EncryptionTier | null>(null);       // current selection
-    const [saving, setSaving] = useState(false);
-
-    const load = useCallback(async () => {
-        if (!orgId) return;
-        setLoading(true);
-        setLoadError(null);
-        try {
-            let res: Response;
-            try {
-                res = await request(`${API_BASE}/auth/organizations/${orgId}/encryption`);
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                const body = errorBody(err) ?? {};
-                throw new Error(body.error || `HTTP ${err.status}`);
-            }
-            const data = await res.json();
-            setServer(data);
-            setTier(data.tier);
-        } catch (err) {
-            // Null the loaded state so Save stays disabled — saving on top of a
-            // failed load would write a guess.
-            setServer(null);
-            setLoadError(errorMessage(err));
-        } finally {
-            setLoading(false);
-        }
-    }, [orgId]);
-
-    useEffect(() => { load(); }, [load]);
-
+    const [seeded, setSeeded] = useState<EncryptionSettings | null>(null);
+    if (server && server !== seeded) {
+        setSeeded(server);
+        setTier(server.tier);
+    }
     const isDirty = !!server && tier !== server.tier;
 
-    const handleSave = useCallback(async () => {
-        if (!server || !isDirty) return;
-        setSaving(true);
-        try {
-            let res: Response;
+    const save = useMutation({
+        mutationFn: async () => {
             try {
-                res = await mutate(`${API_BASE}/auth/organizations/${orgId}/encryption`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tier }),
-            });
+                const res = await apiRequest('PUT /auth/organizations/{id}/encryption', { params: { id: orgId }, body: { tier: tier as EncryptionTier } });
+                return { refused: null as string | null, body: await res.json().catch(() => ({})) };
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const body = errorBody(err) ?? {};
-                toast.error(body.message || body.error || t('admin.encryption.save_failed', 'Could not save encryption settings'));
+                return { refused: (body.message || body.error || '') as string, body: {} };
+            }
+        },
+        onSuccess: async ({ refused, body }) => {
+            if (refused !== null) {
+                toast.error(refused || t('admin.encryption.save_failed', 'Could not save encryption settings'));
                 return;
             }
-            const body = await res.json().catch(() => ({}));
             if (body.sessionsBusted) {
                 // Everyone, including the admin doing this, has to sign in again.
                 toast.info(t(
@@ -172,13 +145,17 @@ export default function OrgEncryptionEditor({ orgId }: { orgId: string }) {
             } else {
                 toast.success(t('admin.encryption.saved', 'Encryption settings saved'));
             }
-            await load();
-        } catch (err) {
-            toast.error(messageOf(err, t('admin.encryption.save_failed', 'Could not save encryption settings')));
-        } finally {
-            setSaving(false);
-        }
-    }, [server, isDirty, orgId, tier, t, load]);
+            await refetch();
+        },
+        onError: (err) => toast.error(messageOf(err, t('admin.encryption.save_failed', 'Could not save encryption settings'))),
+    });
+    const handleSave = () => { if (server && isDirty) save.mutate(); };
+    return { server, loading, loadError, tier, setTier, isDirty, saving: save.isPending, handleSave };
+}
+
+export default function OrgEncryptionEditor({ orgId }: { orgId: string }) {
+    const { t } = useTranslation();
+    const { server, loading, loadError, tier, setTier, isDirty, saving, handleSave } = useEncryptionForm(orgId, t);
 
     // Note: this component owns its save bar rather than reporting up through
     // the shell's onStateChange — OrgInfoPanel already drives that for the org
@@ -259,7 +236,7 @@ export default function OrgEncryptionEditor({ orgId }: { orgId: string }) {
                 >
                     {saving ? t('common.saving', 'Saving…') : t('common.save', 'Save')}
                 </button>
-                {isDirty && (
+                {isDirty && server && (
                     <button
                         type="button"
                         onClick={() => setTier(server.tier)}

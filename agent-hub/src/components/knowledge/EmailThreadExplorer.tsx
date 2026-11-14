@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { AuthFetchOptions } from '../../utils/helpers';
-import { API_BASE } from '../../utils/helpers';
 import { ChevronDown, ChevronRight, Mail } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
-import { request, RefusedError } from '../../api/mutate';
+import { RefusedError } from '../../api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 interface EmailThread {
     thread_id: string;
@@ -32,30 +33,36 @@ interface EmailThreadExplorerProps {
  *   - authFetch  : fetch wrapper with auth cookies
  *   - onOpenDoc? : (doc) => void  (optional: let the parent jump to the doc)
  */
+const NO_THREADS: EmailThread[] = [];
+
 export default function EmailThreadExplorer({ kbId, authFetch, onOpenDoc }: EmailThreadExplorerProps) {
     const { t } = useTranslation();
-    const [loading, setLoading] = useState(false);
-    const [threads, setThreads] = useState<EmailThread[]>([]);
     const [expandedThreadId, setExpandedThreadId] = useState<string | null>(null);
     const [threadDocs, setThreadDocs] = useState<Record<string, EmailThreadDoc[]>>({});
 
-    const loadThreads = useCallback(async () => {
-        if (!kbId) return;
-        setLoading(true);
-        try {
-            const res = await request(`${API_BASE}/api/kb/${kbId}/threads?limit=100`).catch((err: unknown) => {
-                if (err instanceof RefusedError) return null;
-                throw err;
-            });
-            if (res) {
-                const body = await res.json();
-                setThreads(body.threads || []);
+    const queryClient = useQueryClient();
+    const threadsKey = ['kb', kbId, 'emailThreads'] as const;
+    const threadsQuery = useQuery<EmailThread[]>({
+        queryKey: threadsKey,
+        enabled: !!kbId,
+        staleTime: 0,
+        retry: false,
+        queryFn: async () => {
+            try {
+                const res = await apiRequest('GET /api/kb/{id}/threads', { params: { id: kbId }, query: { limit: '100' } }).catch((err: unknown) => {
+                    if (err instanceof RefusedError) return null;
+                    throw err;
+                });
+                // A refusal keeps what was shown.
+                return res ? ((await res.json()).threads || []) : (queryClient.getQueryData<EmailThread[]>(threadsKey) ?? NO_THREADS);
+            } catch (e) {
+                console.error('Failed to load threads:', e);
+                throw e;
             }
-        } catch (e) { console.error('Failed to load threads:', e); }
-        finally { setLoading(false); }
-    }, [kbId, authFetch]);
-
-    useEffect(() => { loadThreads(); }, [loadThreads]);
+        },
+    });
+    const loading = threadsQuery.isFetching;
+    const threads = threadsQuery.data ?? NO_THREADS;
 
     const expandThread = async (threadId: string) => {
         if (expandedThreadId === threadId) {
@@ -65,7 +72,7 @@ export default function EmailThreadExplorer({ kbId, authFetch, onOpenDoc }: Emai
         setExpandedThreadId(threadId);
         if (!threadDocs[threadId]) {
             try {
-                const res = await request(`${API_BASE}/api/kb/${kbId}/threads/${encodeURIComponent(threadId)}/documents`).catch((err: unknown) => {
+                const res = await apiRequest('GET /api/kb/{id}/threads/{threadId}/documents', { params: { id: kbId, threadId } }).catch((err: unknown) => {
                     if (err instanceof RefusedError) return null;
                     throw err;
                 });

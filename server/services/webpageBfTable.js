@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The `bf-*` vocabulary → STATIC HTML, for the public snapshot.
  *
@@ -226,7 +227,7 @@ async function renderTableElement(document, el, ctx) {
     const missing = bfElements.missingAttributes(TABLE.tag, attrs);
     if (missing.length) return emptyBlock(document, TABLE, `no-${missing[0]}`);
 
-    const gate = gateFor(attrs.source, ctx);
+    const gate = /** @type {Record<string, any>} */ (gateFor(attrs.source, ctx));
     if (gate.reason) return emptyBlock(document, TABLE, gate.reason);
 
     try {
@@ -340,7 +341,7 @@ async function renderStatElement(document, el, ctx) {
     // that would produce a different number than was asked for.
     if (!STAT_AGGREGATIONS.includes(eff.agg)) return emptyBlock(document, STAT, 'bad-agg');
 
-    const gate = gateFor(eff.source, ctx);
+    const gate = /** @type {Record<string, any>} */ (gateFor(eff.source, ctx));
     if (gate.reason) return emptyBlock(document, STAT, gate.reason);
     // THE GATE, second round. A sum over a column that is not public
     // publishes that column after all — summarised, but it is the same data.
@@ -599,6 +600,7 @@ async function expandBfElements(html, { webpageId, ownerId } = {}) {
     // (that is its own document fragment), so an element in there was skipped here and
     // then vanished without trace in DOMPurify: the only case in which a KNOWN element went
     // as silently missing as an unknown one.
+    /** @type {Array<Document | DocumentFragment>} */
     const roots = [document];
     for (let i = 0; i < roots.length; i++) {
         for (const tpl of roots[i].querySelectorAll('template')) roots.push(tpl.content);

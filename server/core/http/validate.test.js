@@ -46,3 +46,30 @@ test('parts are checked in order and the first failure ends the request', async 
     assert.strictEqual(err.message, 'id must be a uuid');
     assert.deepStrictEqual(req.body, {}, 'the body was not touched');
 });
+
+// Types: the handler registered after validate() reads what the schema produces, with no cast.
+// The typecheck (scripts/typecheck.mjs) checks this file; each @ts-expect-error below must stay an
+// error, so a validate() that lost its types fails the typecheck with "unused @ts-expect-error".
+test('a handler after validate() is typed by the schema', () => {
+    const express = require('express');
+    const { bodyOf, queryOf, wholeNumber, choice, worded } = require('./schemaParts');
+    const NameBody = bodyOf({ name: worded('A folder needs a name.'), colour: choice(['red', 'blue'], 'red or blue').optional() }, 'Naming a folder');
+    const PageQuery = queryOf({ page: wholeNumber('page is a whole number.').optional() }, 'The folder list');
+    const router = express.Router();
+    router.post('/folders/:id', validate({ body: NameBody }), (req, res) => {
+        /** @type {string} */ const name = req.body.name;
+        /** @type {'red' | 'blue' | undefined} */ const colour = req.body.colour;
+        // @ts-expect-error -- not a key of NameBody
+        const misspelt = req.body.nmae;
+        // @ts-expect-error -- the name is a string, not a number
+        /** @type {number} */ const wrong = req.body.name;
+        res.json({ name, colour, misspelt, wrong });
+    });
+    router.get('/folders', validate({ query: PageQuery }), (req, res) => {
+        /** @type {number | undefined} */ const page = req.query.page;
+        // @ts-expect-error -- the query takes no `sort`
+        const sort = req.query.sort;
+        res.json({ page, sort });
+    });
+    assert.strictEqual(router.stack.length, 2);
+});

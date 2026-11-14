@@ -22,6 +22,7 @@
  * passages found" under the same 200 as a search that genuinely found none.
  */
 
+const { fetchFixedEndpoint } = require('../../utils/fixedEndpointFetch.mts');
 const express = require('express');
 const log = require('../../telemetry/log');
 const router = express.Router();
@@ -41,10 +42,7 @@ const {
     resolveAdminOrgIds,
 } = require('./shared');
 
-/**
- * A body that also accepts no body at all: Express 5 leaves `req.body` undefined then.
- * @param {import('zod').ZodRawShape} shape
- */
+/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. @template {import('zod').ZodRawShape} S @param {S} shape */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 const DEFAULT_TOP_K = 8;
@@ -92,7 +90,7 @@ router.post('/search', requireAuth, validate({ body: SearchBody }), async (req, 
     // the existing strict per-KB access check. Org admins may search every
     // KB of the org they administer (incl. drafts / group-restricted) — same
     // policy as the KB list & per-id guards (canUserAccessKB opts.adminOrgIds).
-    let effectiveKbIds = req.body.kb_ids || [];
+    let effectiveKbIds = /** @type {string[]} */ (req.body.kb_ids || []);
     if (effectiveKbIds.length === 0) {
         const all = await kbStore.listKBs(userId, orgIds, { adminOrgIds });
         effectiveKbIds = (all || [])
@@ -135,7 +133,7 @@ router.post('/search', requireAuth, validate({ body: SearchBody }), async (req, 
             results: localResults
         };
     } else {
-        const searchRes = await fetch(`${SEARCH_SERVICE_URL}/tools/kb-search`, {
+        const searchRes = await fetchFixedEndpoint(`${SEARCH_SERVICE_URL}/tools/kb-search`, {
             method: 'POST',
             headers: getServiceHeaders(),
             body: JSON.stringify({

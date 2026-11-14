@@ -13,34 +13,33 @@
  */
 import { useMemo } from 'react';
 import { createJsonResource } from '@/api/client';
-import { useAdminOrgScope, withOrgIdParam } from '@/api/adminOrgScope';
-import { API_BASE } from '@/utils/helpers';
-
-const root = `${API_BASE}/ai/learning/admin`;
+import { useAdminOrgScope } from '@/api/adminOrgScope';
+import { apiUrl } from '@/api/typedRequest';
 
 const resource = createJsonResource('', { contentType: 'body', errorText: (status: number) => `HTTP ${status}` });
 const request = (url: string, { method = 'GET', body }: { method?: string; body?: unknown } = {}) => resource(url, { method, body });
 
 /** The calls for one organisation (null: the caller's own; a platform admin's choice is sent as ?orgId=). */
 function academyApiFor(orgId: string | null) {
-    const at = (path: string) => withOrgIdParam(`${root}${path}`, orgId);
+    const query = orgId ? { orgId } : undefined;
+    const course = (courseId: string) => ({ params: { courseId }, query });
     return {
         // → { courses: [{ courseId, title, status, updatedAt }] }
-        listCourses: () => request(at('/courses')),
+        listCourses: () => request(apiUrl('GET /ai/learning/admin/courses', { query })),
         // → { course: CourseDoc, lessons: LessonDoc[] } (drafts)
-        getCourse: (courseId: string) => request(at(`/courses/${encodeURIComponent(courseId)}`)),
+        getCourse: (courseId: string) => request(apiUrl('GET /ai/learning/admin/courses/{courseId}', course(courseId))),
         // → { course } — id always minted server-side
-        createCourse: (course: unknown) => request(at('/courses'), { method: 'POST', body: course }),
+        createCourse: (body: unknown) => request(apiUrl('POST /ai/learning/admin/courses', { query }), { method: 'POST', body }),
         // → { course }
-        saveCourse: (courseId: string, course: unknown) => request(at(`/courses/${encodeURIComponent(courseId)}`), { method: 'PUT', body: course }),
+        saveCourse: (courseId: string, body: unknown) => request(apiUrl('PUT /ai/learning/admin/courses/{courseId}', course(courseId)), { method: 'PUT', body }),
         // → { success: true } — also deletes all the course's lessons
-        deleteCourse: (courseId: string) => request(at(`/courses/${encodeURIComponent(courseId)}`), { method: 'DELETE' }),
+        deleteCourse: (courseId: string) => request(apiUrl('DELETE /ai/learning/admin/courses/{courseId}', course(courseId)), { method: 'DELETE' }),
         // → { lesson } — pass 'new' as lessonId to create (id minted server-side)
-        saveLesson: (lessonId: string, lesson: unknown) => request(at(`/lessons/${encodeURIComponent(lessonId)}`), { method: 'PUT', body: lesson }),
+        saveLesson: (lessonId: string, body: unknown) => request(apiUrl('PUT /ai/learning/admin/lessons/{lessonId}', { params: { lessonId }, query }), { method: 'PUT', body }),
         // → { success: true, course }
-        publishCourse: (courseId: string) => request(at(`/courses/${encodeURIComponent(courseId)}/publish`), { method: 'POST' }),
+        publishCourse: (courseId: string) => request(apiUrl('POST /ai/learning/admin/courses/{courseId}/publish', course(courseId)), { method: 'POST' }),
         // → { success: true }
-        unpublishCourse: (courseId: string) => request(at(`/courses/${encodeURIComponent(courseId)}/unpublish`), { method: 'POST' }),
+        unpublishCourse: (courseId: string) => request(apiUrl('POST /ai/learning/admin/courses/{courseId}/unpublish', course(courseId)), { method: 'POST' }),
     };
 }
 

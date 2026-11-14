@@ -42,7 +42,7 @@ const MOCKS = {
     '../../../core/entitlements/betaFeatures': { userHasBetaFeature: async () => true },
     '../../../core/http/sseHelpers': quietSse(),
     '../../../auth/permissions': { requireAuth: pass },
-    './rateLimits': { layerAgentRateLimit: pass },
+    '../../../usecases/ai/automationBuilder/rateLimits': { layerAgentRateLimit: pass },
     './builderDraft': {
         loadOrCreateDraft: async ({ automationId }) => {
             touched.push(['loadOrCreateDraft', automationId]);

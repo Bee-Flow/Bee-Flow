@@ -119,3 +119,12 @@ test('an unauthenticated caller still reads 401, not a 400 about its body', asyn
     assert.strictEqual(res.statusCode, 401);
     assert.deepStrictEqual(touched, []);
 });
+
+test('disconnecting takes no fields: one sent is refused by name, nothing is deleted', async () => {
+    const res = await dispatch({ method: 'POST', url: '/disconnect', body: { userId: 'u2' } });
+    assert.strictEqual(res.statusCode, 400);
+    assert.match(res.body.error, /Disconnecting GitHub does not take "userId"/);
+    assert.deepStrictEqual(touched, []);
+    const ok = await dispatch({ method: 'POST', url: '/disconnect', body: undefined });
+    assert.strictEqual(ok.statusCode, 200, JSON.stringify(ok.body));
+});

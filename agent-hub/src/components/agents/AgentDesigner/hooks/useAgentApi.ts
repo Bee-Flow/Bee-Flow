@@ -1,6 +1,7 @@
 import { useEffect, useRef, useEffectEvent } from 'react';
-import { API_BASE, authFetch, parseSaveError } from '@/utils/helpers';
-import { mutate, request, RefusedError, errorBody } from '@/api/mutate';
+import { parseSaveError } from '@/utils/helpers';
+import { RefusedError, errorBody } from '@/api/mutate';
+import { apiFetch, apiRequest } from '@/api/typedRequest';
 import { logger } from '@/utils/logger';
 import { filterVisibleModels, fetchAllowedModelsByAgentType } from '@/api/modelMeta';
 import { toast } from '@/components/shared/Toast';
@@ -12,8 +13,8 @@ import type { AgentSaveBody, ApiOptions, ApiState, DesignerAgent, DesignerMessag
  * All API operations for the AgentDesigner: fetch, save, delete, duplicate, publish.
  * Accepts the state object from useAgentState.
  */
-export default function useAgentApi(state: ApiState, { systemMode, securityMode, initialAgentId, orgId }: ApiOptions) {
-    const orgQuery = orgId ? `?orgId=${encodeURIComponent(orgId)}` : '';
+export default function useAgentApi(state: ApiState, { systemMode, initialAgentId, orgId }: ApiOptions) {
+    const orgQuery = orgId ? { orgId } : undefined;
     const {
         setAgents, setLoading, setComponents, setAvailableModels,
         setAvailableCollections, setModelTiers, setIntegrationStatus,
@@ -40,10 +41,9 @@ export default function useAgentApi(state: ApiState, { systemMode, securityMode,
     const { confirm, confirmDialog } = useConfirm();
     const fetchAgents = async () => {
         try {
-            const endpoint = securityMode
-                ? `${API_BASE}/security-agents`
-                : systemMode ? `${API_BASE}/agents/system` : `${API_BASE}/agents/all${orgQuery}`;
-            const res = await authFetch(endpoint);
+            const res = systemMode
+                ? await apiFetch('GET /agents/system')
+                : await apiFetch('GET /agents/all', { query: orgQuery });
             const data = await res.json();
             // A refusal (a 404 for an organisation that is gone, a 403) is an error body, not a list.
             if (!res.ok || !Array.isArray(data)) { setAgents([]); return; }
@@ -66,7 +66,7 @@ export default function useAgentApi(state: ApiState, { systemMode, securityMode,
 
     const fetchComponents = async () => {
         try {
-            const res = await authFetch(`${API_BASE}/agents/meta/components`);
+            const res = await apiFetch('GET /agents/meta/components');
             const data = await res.json();
             if (Array.isArray(data)) {
                 setComponents(data);
@@ -80,7 +80,7 @@ export default function useAgentApi(state: ApiState, { systemMode, securityMode,
 
     const fetchModels = async () => {
         try {
-            const res = await authFetch(`${API_BASE}/agents/meta/models`);
+            const res = await apiFetch('GET /agents/meta/models');
             const data = await res.json();
             if (data.models) {
                 const allowedConfig = await fetchAllowedModelsByAgentType();
@@ -97,7 +97,7 @@ export default function useAgentApi(state: ApiState, { systemMode, securityMode,
 
     const fetchCollections = async () => {
         try {
-            const res = await authFetch(`${API_BASE}/ai/config`);
+            const res = await apiFetch('GET /ai/config');
             const data = await res.json();
             if (data.regexGuardrails?.collections) {
                 setAvailableCollections(data.regexGuardrails.collections);
@@ -109,7 +109,7 @@ export default function useAgentApi(state: ApiState, { systemMode, securityMode,
 
     const fetchModelTiers = async () => {
         try {
-            const res = await request(`${API_BASE}/ai/config/chat-models`).catch((err: unknown) => {
+            const res = await apiRequest('GET /ai/config/chat-models').catch((err: unknown) => {
                 if (err instanceof RefusedError) return null;
                 throw err;
             });
@@ -119,7 +119,7 @@ export default function useAgentApi(state: ApiState, { systemMode, securityMode,
 
     const fetchIntegrationStatus = async () => {
         try {
-            const res = await request(`${API_BASE}/ai/user-settings`).catch((err: unknown) => {
+            const res = await apiRequest('GET /ai/user-settings').catch((err: unknown) => {
                 if (err instanceof RefusedError) return null;
                 throw err;
             });
@@ -137,7 +137,7 @@ export default function useAgentApi(state: ApiState, { systemMode, securityMode,
         fetchIntegrationStatus();
         (async () => {
             try {
-                const res = await request(`${API_BASE}/agents/categories${systemMode || securityMode ? '' : orgQuery}`).catch((err: unknown) => {
+                const res = await apiRequest('GET /agents/categories', { query: systemMode ? undefined : orgQuery }).catch((err: unknown) => {
                     if (err instanceof RefusedError) return null;
                     throw err;
                 });
@@ -155,8 +155,8 @@ export default function useAgentApi(state: ApiState, { systemMode, securityMode,
         const loadOrgData = async () => {
             try {
                 const [orgsRes, groupsRes] = await Promise.all([
-                    authFetch(`${API_BASE}/auth/organizations`),
-                    authFetch(`${API_BASE}/auth/groups`)
+                    apiFetch('GET /auth/organizations'),
+                    apiFetch('GET /auth/groups')
                 ]);
                 if (orgsRes.ok) setOrganizations(await orgsRes.json());
                 if (groupsRes.ok) setOrgGroups(await groupsRes.json());
@@ -172,8 +172,7 @@ export default function useAgentApi(state: ApiState, { systemMode, securityMode,
         setIsCreating(false);
         if (agent) {
             try {
-                const agentEndpoint = securityMode ? `${API_BASE}/security-agents/${agent.id}` : `${API_BASE}/agents/${agent.id}`;
-                const freshRes = await authFetch(agentEndpoint);
+                const freshRes = await apiFetch('GET /agents/{id}', { params: { id: agent.id } });
                 const freshAgent = await freshRes.json();
                 logger.debug('[AgentDesigner] Loaded agent with tool_params:', freshAgent.tool_params);
 
@@ -216,7 +215,7 @@ export default function useAgentApi(state: ApiState, { systemMode, securityMode,
 
         // Fetch conversation history
         try {
-            const res = await authFetch(`${API_BASE}/agents/${agent.id}/history`);
+            const res = await apiFetch('GET /agents/{id}/history', { params: { id: agent.id } });
             const history = await res.json();
             setMessages(history.filter((m: DesignerMessage) => m.role === 'user' || m.role === 'assistant'));
         } catch (err) {
@@ -278,19 +277,15 @@ export default function useAgentApi(state: ApiState, { systemMode, securityMode,
             };
             body.categoryId = categoryId || null;
             // A new agent belongs to the organisation the list is narrowed to, or it would vanish from it.
-            if (!selectedAgent && orgId && !systemMode && !securityMode) body.organizationId = orgId;
+            if (!selectedAgent && orgId && !systemMode) body.organizationId = orgId;
             if (selectedAgent) {
-                await mutate(securityMode ? `${API_BASE}/security-agents/${selectedAgent.id}` : `${API_BASE}/agents/${selectedAgent.id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
+                // The raw body: the designer sends workspaceEnabled as 1/0, wider than the route's schema type.
+                await apiRequest('PUT /agents/{id}', {
+                    params: { id: selectedAgent.id },
+                    init: { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
                 });
             } else {
-                const res = await mutate(securityMode ? `${API_BASE}/security-agents` : `${API_BASE}/agents`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
-                });
+                const res = await apiRequest('POST /agents', { body });
                 const newAgent = await res.json();
                 setSelectedAgent(newAgent);
                 setIsCreating(false);
@@ -305,7 +300,7 @@ export default function useAgentApi(state: ApiState, { systemMode, securityMode,
         if (!(await confirm({ title: 'Delete this agent?', confirmLabel: 'Delete', destructive: true }))) return;
         try {
             try {
-                await mutate(securityMode ? `${API_BASE}/security-agents/${id}` : `${API_BASE}/agents/${id}`, { method: 'DELETE' });
+                await apiRequest('DELETE /agents/{id}', { params: { id } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const data = errorBody(err) ?? {};
@@ -327,7 +322,7 @@ export default function useAgentApi(state: ApiState, { systemMode, securityMode,
 
     const duplicateAgent = async (agent: DesignerAgent) => {
         try {
-            const freshRes = await authFetch(securityMode ? `${API_BASE}/security-agents/${agent.id}` : `${API_BASE}/agents/${agent.id}`);
+            const freshRes = await apiFetch('GET /agents/{id}', { params: { id: agent.id } });
             const freshAgent = await freshRes.json();
 
             setSelectedAgent(null);
@@ -381,10 +376,9 @@ export default function useAgentApi(state: ApiState, { systemMode, securityMode,
         const groups = nextPublished ? (Array.isArray(nextGroups) ? nextGroups : []) : [];
         try {
             setPublishError('');
-            const res = await authFetch(securityMode ? `${API_BASE}/security-agents/${selectedAgent.id}/publish` : `${API_BASE}/agents/${selectedAgent.id}/publish`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ isPublished: nextPublished, sharedGroups: groups })
+            const res = await apiFetch('PATCH /agents/{id}/publish', {
+                params: { id: selectedAgent.id },
+                body: { isPublished: nextPublished, sharedGroups: groups },
             });
 
             if (res.ok) {

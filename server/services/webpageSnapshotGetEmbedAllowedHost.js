@@ -69,7 +69,10 @@ function sanitizeSvg(svg) {
 
 const TEXT_LIKE_MIMES = ['text/html', 'image/svg', 'text/css'];
 
-/** @param {string | null | undefined} mime */
+/**
+ * @param {string | null | undefined} mime
+ * @returns {mime is string}
+ */
 function shouldSanitizeExtra(mime) {
     if (!mime) return false;
     return TEXT_LIKE_MIMES.some(p => mime.startsWith(p));

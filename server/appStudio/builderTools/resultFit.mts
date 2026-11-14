@@ -2,7 +2,7 @@
  * App Studio builder: keep a tool result under the builder's tool-result limit.
  *
  * The chat route sends a tool result to the model through truncateJson
- * (routes/ai/appStudioBuilder/turnLoop.js, 30,000 characters). A result over it becomes a cut-off
+ * (usecases/ai/appStudioBuilder/turnLoop.js, 30,000 characters). A result over it becomes a cut-off
  * preview the model cannot read as JSON, so a tool whose answer can grow (a run report with 300
  * steps, a test run, a run log page) shortens it itself first: the longest list is halved until
  * the answer fits, and `_trimmed` says what was left out. Pure.
@@ -10,7 +10,7 @@
 
 type Obj = Record<string, unknown>;
 
-/** truncateJson's default (routes/ai/appStudioBuilder/turnLoop.js). */
+/** truncateJson's default (usecases/ai/appStudioBuilder/turnLoop.js). */
 export const BUILDER_TOOL_RESULT_CHARS = 30_000;
 /** Room for the `_trimmed` notes and the hints the dispatcher adds after the tool. */
 const MARGIN = 1_500;

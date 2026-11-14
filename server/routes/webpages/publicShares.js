@@ -16,7 +16,7 @@ const publicAddress = require('../../stores/webpage/publicAddress');
 const webpageSnapshot = require('../../services/webpageSnapshot');
 const { resolveAudienceContext } = require('../../auth/audience');
 const { requireAuth } = require('../../auth/permissions');
-const shareUrls = require('../webpageShareUrls');
+const shareUrls = require('../../usecases/webpageShareUrls');
 const shareReconciler = require('../../core/webpages/webpageShareReconciler');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
@@ -108,8 +108,8 @@ function buildShareUrl(req, rawToken) {
 function parseExpiresAt(input) {
     if (input === null || input === '' || input === undefined) return null;
     const d = new Date(input);
-    if (Number.isNaN(d.getTime())) throw new Error('Invalid expires_at');
-    if (d.getTime() < Date.now() + 60_000) throw new Error('expires_at must be in the future');
+    if (Number.isNaN(d.getTime())) throw new HttpError(400, 'bad_request', 'Invalid expires_at');
+    if (d.getTime() < Date.now() + 60_000) throw new HttpError(400, 'bad_request', 'expires_at must be in the future');
     return d;
 }
 
@@ -159,9 +159,7 @@ function register(router) {
 
             const { accessMode, password, allowedEmails, expiresAt, title } = req.body;
             /** @type {Date | null} */
-            let expiry;
-            try { expiry = parseExpiresAt(expiresAt); }
-            catch (e) { throw new HttpError(400, 'bad_request', /** @type {Error} */ (e).message); }
+            const expiry = parseExpiresAt(expiresAt);
 
             const { share, rawToken } = await publicShareStore.createShare({
                 webpageId: wp.id,
@@ -234,9 +232,7 @@ function register(router) {
             return res.status(404).json({ error: 'Share not found' });
         }
         /** @type {Date | null} */
-        let expiry;
-        try { expiry = parseExpiresAt(req.body.expiresAt); }
-        catch (e) { throw new HttpError(400, 'bad_request', /** @type {Error} */ (e).message); }
+        const expiry = parseExpiresAt(req.body.expiresAt);
         await publicShareStore.updateExpiry(share.id, userId, expiry);
         const updated = await publicShareStore.getShareById(share.id);
         res.json({ success: true, share: updated });

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * TEST FIXTURE, never shipped: App Studio catalogue entries marked `since: 3`, one per place a
  * mark can sit, put into the live spec tables for the length of a test.
@@ -206,7 +207,7 @@ function installKeyFixtures() {
     for (const list of sectionLists) list.push('weight');
     undo.push(() => { for (const list of sectionLists) list.splice(list.indexOf('weight'), 1); });
     _setCatalogueOverlay({
-        DESIGN_SPEC: { ...DESIGN_SPEC, zz_backdrop: { type: 'enum', values: ['none', 'dots'], default: 'none', optional: true, since: 3, description: 'A pattern behind the whole app.' } },
+        DESIGN_SPEC: /** @type {typeof DESIGN_SPEC} */ ({ ...DESIGN_SPEC, zz_backdrop: { type: 'enum', values: ['none', 'dots'], default: 'none', optional: true, since: 3, description: 'A pattern behind the whole app.' } }),
         NAV_STYLES: [...NAV_STYLES, 'zz_dock'],
         FIELD_TYPES: [...vocabulary.FIELD_TYPES, 'zz_money'],
         FILTER_OPS: [...vocabulary.FILTER_OPS, 'zz_near'],
@@ -226,7 +227,7 @@ function fixtureSinceCatalogue() {
     const { fullCatalogue } = require('../appStudio/catalogTiers.mts');
     const { queryValuesSince } = require('../core/dataEngine/dataModel/vocabularySince');
     const live = since.liveCatalogue();
-    return { ...live, keyTables: { ...live.keyTables, design: fullCatalogue().DESIGN_SPEC }, queryValuesSince: queryValuesSince(fixtureDataMarks()) };
+    return /** @type {import('../appStudio/schemaSince.mts').Catalogue} */ ({ ...live, keyTables: { ...live.keyTables, design: fullCatalogue().DESIGN_SPEC }, queryValuesSince: queryValuesSince(fixtureDataMarks()) });
 }
 
 const FIXTURE_KEY_ENTRY = {
@@ -259,9 +260,9 @@ function installExtensionFixtures() {
     background.values.push('zz_mesh');
     background.valuesSince = { ...marks.background, zz_mesh: 3 };
     STEP_KINDS.push('zz_wait');
-    Object.assign(STEP_SPECS, withErrorEnvelope({
+    Object.assign(STEP_SPECS, withErrorEnvelope(/** @type {Parameters<typeof withErrorEnvelope>[0]} */ ({
         zz_wait: { mutatesData: false, since: 3, retrySafe: true, description: 'Pause the sequence for a moment.', fields: { ms: { type: 'int', min: 0, max: 5000, required: true } } },
-    }));
+    })));
     toastFields.zz_duration = { type: 'int', min: 1, max: 30, since: 3, description: 'Seconds the toast stays up.' };
     BINDING_KINDS.push('zz_lookup');
     BINDING_KIND_SINCE.zz_lookup = 3;
@@ -280,7 +281,7 @@ function installExtensionFixtures() {
         background.values.splice(background.values.indexOf('zz_mesh'), 1);
         if (marks.background) background.valuesSince = marks.background; else delete background.valuesSince;
         STEP_KINDS.splice(STEP_KINDS.indexOf('zz_wait'), 1);
-        delete STEP_SPECS.zz_wait;
+        delete /** @type {Record<string, unknown>} */ (STEP_SPECS).zz_wait;
         delete toastFields.zz_duration;
         BINDING_KINDS.splice(BINDING_KINDS.indexOf('zz_lookup'), 1);
         delete BINDING_KIND_SINCE.zz_lookup;

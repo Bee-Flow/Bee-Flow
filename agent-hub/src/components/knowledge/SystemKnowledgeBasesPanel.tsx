@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { BookOpen, CheckCircle2, Circle, Loader2, RefreshCw, ShieldCheck, Download } from 'lucide-react';
-import { API_BASE } from '../../utils/helpers';
+import { useCallback, useState } from 'react';
+import { BookOpen, CheckCircle2, Circle, Loader2, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useSystemKnowledgeBases } from '../../api/queries/systemKnowledgeBases';
 import { TranslateParams, useTranslation } from '../../hooks/useTranslation';
-import { logger } from '../../utils/logger';
-import { mutate, ApiError, request, RefusedError } from '../../api/mutate';
+import { ApiError, RefusedError } from '../../api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 interface SystemKb {
     id: string;
@@ -21,15 +20,6 @@ interface SystemKb {
     updatedAt?: string;
 }
 
-interface RefreshStatus {
-    running?: boolean;
-    total: number;
-    done: number;
-    okCount?: number;
-    failCount: number;
-    finishedAt?: string;
-}
-
 const NO_ITEMS: SystemKb[] = [];
 
 const SystemKnowledgeBasesPanel = () => {
@@ -42,78 +32,12 @@ const SystemKnowledgeBasesPanel = () => {
     const [toggling, setToggling] = useState<string | null>(null);
     const [actionError, setError] = useState<string | null>(null);
     const error = actionError ?? (listQuery.isError ? (listQuery.error.message || 'Load failed') : null);
-    // slug → { running, total, done, okCount, failCount, finishedAt, ... }
-    const [refreshStatus, setRefreshStatus] = useState<Record<string, RefreshStatus>>({});
-    const pollRef = useRef<NodeJS.Timeout | null>(null);
 
     const { refetch } = listQuery;
     const load = useCallback(async () => {
         setError(null);
         await refetch();
     }, [refetch]);
-
-    // Poll the per-slug seed status while any refresh is running. Stops as
-    // soon as the server reports `running: false` for every slug; restarts
-    // when a new refresh is triggered. 2s interval keeps the panel responsive
-    // without hammering the server during the (typically 30–60s) ingest.
-    const startPolling = useCallback(() => {
-        if (pollRef.current) return;
-        pollRef.current = setInterval(async () => {
-            try {
-                const slugs = items.filter(i => i.system_slug).map(i => i.system_slug);
-                const updates = await Promise.all(slugs.map(async (slug) => {
-                    let r: Response;
-                    try {
-                        r = await request(`${API_BASE}/api/kb/system/${slug}/status`);
-                    } catch (err) {
-                        if (!(err instanceof RefusedError)) throw err;
-                        return [slug, null];
-                    }
-                    return [slug, await r.json()];
-                }));
-                let stillRunning = false;
-                setRefreshStatus(prev => {
-                    const next = { ...prev };
-                    for (const [slug, s] of updates) {
-                        if (s) next[slug] = s;
-                        if (s?.running) stillRunning = true;
-                    }
-                    return next;
-                });
-                if (!stillRunning) {
-                    clearInterval(pollRef.current as NodeJS.Timeout);
-                    pollRef.current = null;
-                    // One last reload to pick up the new document counts.
-                    load();
-                }
-            } catch (err) { logger.debug('keep polling — transient errors are OK', err); }
-        }, 2000);
-    }, [items, load]);
-
-    useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current); }, []);
-
-    const refresh = async (item: SystemKb, { force = false } = {}) => {
-        if (!isSuperAdmin || !item.system_slug) return;
-        setError(null);
-        try {
-            let res: Response;
-            try {
-                res = await mutate(`${API_BASE}/api/kb/system/${item.system_slug}/refresh`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ force }),
-                });
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                throw new Error(`Refresh kick-off failed (${err.status}): ${err.message.slice(0, 200)}`);
-            }
-            const j = await res.json();
-            setRefreshStatus(prev => ({ ...prev, [item.system_slug as string]: j.status }));
-            startPolling();
-        } catch (e) {
-            setError((e as Error).message || 'Refresh failed');
-        }
-    };
 
     const toggle = async (item: SystemKb) => {
         if (!item.betaFeatureId || toggling) return;
@@ -132,7 +56,7 @@ const SystemKnowledgeBasesPanel = () => {
             if (isSuperAdmin && goingOn && !item.allowedForOrg) {
                 let cur: Response;
                 try {
-                    cur = await request(`${API_BASE}/auth/beta-features`);
+                    cur = await apiRequest('GET /auth/beta-features');
                 } catch (apiErr) {
                     if (!(apiErr instanceof RefusedError)) throw apiErr;
                     throw new Error('Could not read allow-list');
@@ -143,11 +67,7 @@ const SystemKnowledgeBasesPanel = () => {
                     ? current
                     : [...current, item.betaFeatureId];
                 try {
-                    await mutate(`${API_BASE}/auth/organizations/${orgId}/beta-features`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ features: nextAllow }),
-                });
+                    await apiRequest('PUT /auth/organizations/{orgId}/beta-features', { params: { orgId }, body: { features: nextAllow } });
                 } catch (err) {
                     if (!(err instanceof ApiError)) throw err;
                     throw new Error('Could not grant feature to organisation');
@@ -157,7 +77,7 @@ const SystemKnowledgeBasesPanel = () => {
             // Flip the org-admin active subset (the toggle every user sees).
             let cur: Response;
             try {
-                cur = await request(`${API_BASE}/auth/me/active-features`);
+                cur = await apiRequest('GET /auth/me/active-features');
             } catch (apiErr) {
                 if (!(apiErr instanceof RefusedError)) throw apiErr;
                 throw new Error('Could not read current features');
@@ -167,11 +87,7 @@ const SystemKnowledgeBasesPanel = () => {
             if (goingOn) active.add(item.betaFeatureId);
             else active.delete(item.betaFeatureId);
             try {
-                await mutate(`${API_BASE}/auth/me/active-features`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ betaEnabled: Array.from(active) }),
-            });
+                await apiRequest('PUT /auth/me/active-features', { body: { betaEnabled: Array.from(active) as string[] } });
             } catch (err) {
                 if (!(err instanceof ApiError)) throw err;
                 throw new Error('Save failed');
@@ -209,7 +125,6 @@ const SystemKnowledgeBasesPanel = () => {
             <div className="p-6 rounded-lg border text-center border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-muted)]">
                 <BookOpen className="w-6 h-6 mx-auto mb-2 opacity-50" />
                 <div className="text-sm">{t('knowledge.system_knowledge_bases_no_system_knowledge_bases_have_been', 'No system knowledge bases have been provisioned yet.')}</div>
-                <div className="text-xs mt-1 opacity-70">{t('knowledge.system_knowledge_bases_the_server_auto_seeds_on_next_boot', 'The server auto-seeds on next boot when a beta feature exists. You can also click "Refresh now" once the row appears.')}</div>
             </div>
         );
     }
@@ -218,7 +133,7 @@ const SystemKnowledgeBasesPanel = () => {
         <div className="space-y-3">
             <SystemKnowledgeBasesPanelSection2 t={t} load={load} />
 
-            <SystemKnowledgeBasesPanelSection items={items} toggling={toggling} t={t} refreshStatus={refreshStatus} toggle={toggle} orgId={orgId} isSuperAdmin={isSuperAdmin} refresh={refresh} />
+            <SystemKnowledgeBasesPanelSection items={items} toggling={toggling} t={t} toggle={toggle} orgId={orgId} />
         </div>
     );
 };
@@ -246,7 +161,7 @@ function SystemKnowledgeBasesPanelSection2({ t, load }: { t: (key: string | unde
     </div>;
 }
 
-function SystemKnowledgeBasesPanelSection({ items, toggling, t, refreshStatus, toggle, orgId, isSuperAdmin, refresh }: { items: SystemKb[]; toggling: string | null; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; refreshStatus: Record<string, RefreshStatus>; toggle: (item: SystemKb) => Promise<void>; orgId: string | null; isSuperAdmin: boolean; refresh: (item: SystemKb, { force }?: { force?: boolean | undefined; }) => Promise<void>; }) {
+function SystemKnowledgeBasesPanelSection({ items, toggling, t, toggle, orgId }: { items: SystemKb[]; toggling: string | null; t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams | null) => string; toggle: (item: SystemKb) => Promise<void>; orgId: string | null; }) {
     return <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {items.map(item => {
             const isOn = !!item.enabledForOrg;
@@ -284,34 +199,6 @@ function SystemKnowledgeBasesPanelSection({ items, toggling, t, refreshStatus, t
                         )}
                     </div>
 
-                    {/* Refresh progress — visible while a seed is running or just finished. */}
-                    {(() => {
-                        const s = item.system_slug ? refreshStatus[item.system_slug] : null;
-                        if (!s) return null;
-                        if (s.running) {
-                            const pct = s.total > 0 ? Math.round((s.done / s.total) * 100) : 0;
-                            return (
-                                <div className="text-xs space-y-1 text-[var(--text-muted)]">
-                                    <div className="flex items-center gap-2">
-                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                        <span>{t('knowledge.system_knowledge_bases_seeding_done_total_statutes_pct', 'Seeding {done} / {total} statutes ({pct}%)', { done: s.done, total: s.total, pct })}</span>
-                                    </div>
-                                    <div className="w-full h-1.5 rounded-full overflow-hidden bg-[var(--bg-tertiary)]">
-                                        <div className="h-full transition-all" style={{ width: `${pct}%`, background: 'var(--accent-primary)' }} />
-                                    </div>
-                                </div>
-                            );
-                        }
-                        if (s.finishedAt && (s.okCount || s.failCount)) {
-                            return (
-                                <div className="text-xs" style={{ color: s.failCount > 0 ? 'rgb(217, 119, 6)' : 'var(--text-muted)' }}>
-                                    {t('knowledge.system_knowledge_bases_last_seed_ok_count_ok_fail_count', 'Last seed: {ok_count} ok, {fail_count} failed · {time}', { ok_count: s.okCount, fail_count: s.failCount, time: new Date(s.finishedAt).toLocaleTimeString() })}
-                                </div>
-                            );
-                        }
-                        return null;
-                    })()}
-
                     <div className="flex items-center justify-between pt-1 gap-2 flex-wrap">
                         <button
                             onClick={() => toggle(item)}
@@ -340,22 +227,6 @@ function SystemKnowledgeBasesPanelSection({ items, toggling, t, refreshStatus, t
                                 {t('knowledge.system_knowledge_bases_available_to_you_super_admin', 'Available to you (super-admin)')}
                             </span>
                         )}
-                        {isSuperAdmin && item.system_slug && (() => {
-                            const s = refreshStatus[item.system_slug];
-                            const running = !!s?.running;
-                            return (
-                                <button
-                                    onClick={() => refresh(item)}
-                                    disabled={running}
-                                    className="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium"
-                                    style={{ color: 'var(--text-secondary)', background: 'var(--bg-tertiary)', cursor: running ? 'wait' : 'pointer' }}
-                                    title={t('knowledge.system_knowledge_bases_re_ingest_statutes_from_koop_wetten', 'Re-ingest statutes from KOOP (wetten.overheid.nl). Super-admin only.')}
-                                >
-                                    {running ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                                    {running ? 'Seeding…' : 'Refresh now'}
-                                </button>
-                            );
-                        })()}
                     </div>
                 </div>
             );

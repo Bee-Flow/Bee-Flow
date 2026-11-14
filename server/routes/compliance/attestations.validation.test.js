@@ -82,7 +82,7 @@ const MOCKS = {
         signalsForAgent: async () => ({ public: true }),
         signalsForAutomation: async () => ({ public: false }),
     },
-    '../../compliance/aiAct/assess': {
+    '../../core/aiAct/assess': {
         // The questionnaire's own vocabulary: the outcome follows the answers.
         assess: (live, answers) => ({
             answers, outcome: answers.high_risk === true ? 'high_risk' : 'limited_risk',
@@ -100,11 +100,11 @@ const MOCKS = {
     '../../core/entitlements/entitlements': { requireCapability: () => pass },
     './shared': { resolveOrgId: async () => 'orgA', requireOrgId: async () => 'orgA' },
     './counts': { invalidate: () => {} },
-    '../../db': { getAll: async () => [] },
+    // The DPIA routes look the agent up in the caller's organisation: it is there.
+    '../../db': { getAll: async (sql) => (String(sql).includes('FROM agents') ? [{ name: 'Support agent' }] : []) },
 };
 
 MOCKS['../events'] = MOCKS['../../compliance/events'];
-MOCKS['./assess'] = MOCKS['../../compliance/aiAct/assess'];
 
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {

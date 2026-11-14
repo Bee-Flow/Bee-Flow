@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Organization Memory API
  *
@@ -119,7 +119,7 @@ function createOrgMemoryRouter(deps = null) {
         res.json({ settings, stats });
     });
 
-    router.put('/:orgId', requireAuth, validate({ body: SettingsBody }), async (/** @type {import('express').Request<{ orgId: string }, any, import('zod').infer<typeof SettingsBody>>} */ req, /** @type {import('express').Response} */ res) => {
+    router.put('/:orgId', requireAuth, validate({ body: SettingsBody }), async (req, /** @type {import('express').Response} */ res) => {
         await requireAdminOf(req);
         const { orgId } = req.params;
         const before = await getOrgMemorySettings(orgId);

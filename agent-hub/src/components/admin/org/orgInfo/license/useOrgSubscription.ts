@@ -3,10 +3,10 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { BillingPlan, OrgSubscription, SubMessage } from './licenseShared';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { cloudFetch } from '@/api/cloudFetch';
-import { API_BASE } from '@/utils/helpers';
 import useSubscriptionActions from './useSubscriptionActions';
 import type { SubscriptionActions } from './useSubscriptionActions';
 import { logger } from '@/utils/logger';
+import { apiUrl } from '@/api/typedRequest';
 
 export interface OrgSubscriptionState extends SubscriptionActions {
     subscription: OrgSubscription | null;
@@ -62,9 +62,9 @@ function useCheckoutReturn(
                     // Reconcile straight from the Stripe session so activation
                     // doesn't depend on the webhook landing in time (or at all).
                     if (sessionId) {
-                        await cloudFetch(deploymentMode, `${API_BASE}/api/stripe/sessions/${encodeURIComponent(sessionId)}`).catch(() => {});
+                        await cloudFetch(deploymentMode, apiUrl('GET /api/stripe/sessions/{id}', { params: { id: sessionId } })).catch(() => {});
                     }
-                    const res = await cloudFetch(deploymentMode, `${API_BASE}/api/subscriptions/orgs/${orgId}`);
+                    const res = await cloudFetch(deploymentMode, apiUrl('GET /api/subscriptions/orgs/{orgId}', { params: { orgId } }));
                     if (res?.ok) {
                         const fresh: OrgSubscription | null = await res.json();
                         if (fresh && (fresh.status === 'active' || fresh.status === 'trialing')) {
@@ -111,7 +111,7 @@ export default function useOrgSubscription(orgId: string | undefined, deployment
         if (!id) return;
         setSubLoading(true);
         try {
-            const res = await cloudFetch(deploymentMode, `${API_BASE}/api/subscriptions/orgs/${id}`);
+            const res = await cloudFetch(deploymentMode, apiUrl('GET /api/subscriptions/orgs/{orgId}', { params: { orgId: id } }));
             if (res?.ok) {
                 setSubscription(await res.json());
             } else {
@@ -132,8 +132,8 @@ export default function useOrgSubscription(orgId: string | undefined, deployment
     const fetchStripePlans = useCallback(async () => {
         try {
             const [statusRes, plansRes] = await Promise.all([
-                cloudFetch(deploymentMode, `${API_BASE}/api/stripe/status`),
-                cloudFetch(deploymentMode, `${API_BASE}/api/stripe/plans`),
+                cloudFetch(deploymentMode, apiUrl('GET /api/stripe/status')),
+                cloudFetch(deploymentMode, apiUrl('GET /api/stripe/plans')),
             ]);
             if (statusRes?.ok) {
                 const statusData = await statusRes.json();

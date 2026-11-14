@@ -1,3 +1,4 @@
+// @typecheck
 /** @typedef {import('express-serve-static-core').Router} Router */
 // The Forms directory and the Form page, split out of routes/automation/crud.js:
 // the org's published forms, one form, who may fill it in, and its answers
@@ -8,6 +9,7 @@ const { resolveDatatablePrincipal } = require('../../auth/datatableAccess');
 const { ensureAnswersTable } = require('../../automation/liveSideEffects');
 const automationStore = require('../../stores/automationStore');
 const { validate } = require('../../core/http/validate');
+const { bodyOf } = require('../../core/http/schemaParts');
 const { syncDatatableUsage } = require('../../automation/datatableUsageSync');
 const { audienceAdmits, needsGroups, publicAudience } = require('../../automation/formAudience');
 const { AudienceBody, readAudienceBody } = require('./formAudienceBody');
@@ -15,6 +17,7 @@ const { roleSatisfies } = require('../../automation/access');
 const { orgOf, automationAccess } = require('./crudContext');
 const { registerFormTestLinkRoutes, editorFormFacts } = require('./formTestLink');
 const { StyleAssistBody } = require('./formStyleAssistBody.mts');
+const { DraftBody } = require('./formDraftBody.mts');
 
 /**
  * `row → may this caller fill it in`, for a batch of page rows: the
@@ -174,9 +177,7 @@ function registerFormRoutes(router) {
     const formsAi = () => require('./formsAi');
     router.post('/forms/ai/draft',
         (req, res, next) => formsAi().limiter(req, res, next),
-        // Lazily, like everything else that reaches into formsAi from here: the
-        // schema lives beside the handler that reads it.
-        (req, res, next) => validate({ body: formsAi().DraftBody })(req, res, next),
+        validate({ body: DraftBody }),
         (req, res) => formsAi().draft(req, res));
 
     /**
@@ -216,7 +217,7 @@ function registerFormRoutes(router) {
         // Who may edit the questions (handoff 5): the owner, an org admin, or a
         // colleague with an `edit` share. Only they get the definition.
         const formAccess = isOwner ? { role: 'owner', via: 'owner' } : await automationAccess.roleFor(
-            { id: row.automationId, userId: row.userId, organizationId: row.organizationId || null },
+            { id: row.automationId, userId: row.userId, organizationId: /** @type {{ organizationId?: string }} */ (row).organizationId || null },
             req.session.user.id, { session: req.session });
         const mayEdit = roleSatisfies(formAccess.role, 'edit');
         // An editor edits the WORKING copy (saved back through PUT /:id); anyone
@@ -273,7 +274,7 @@ function registerFormRoutes(router) {
      * PRIMARY trigger's page row; a rotated link keeps it (the store carries the
      * audience over). Answers with the owner's view of the audience.
      */
-    router.put('/forms/:automationId/audience', validate({ body: AudienceBody }), async (/** @type {import('express').Request<{ automationId: string }, any, import('zod').infer<typeof AudienceBody>, import('qs').ParsedQs>} */ req, res) => {
+    router.put('/forms/:automationId/audience', validate({ body: AudienceBody }), async (req, res) => {
         const a = await automationStore.getAutomation(req.params.automationId);
         if (!a) return res.status(404).json({ error: 'Not found' });
         if (!await automationAccess.guard(req, res, a, 'edit')) return;
@@ -299,7 +300,7 @@ function registerFormRoutes(router) {
      * table for a form that collects. Owner only. Exists for "provisioning
      * failed, try again" and for a form whose table was deleted by hand.
      */
-    router.post('/forms/:automationId/answers-table', async (req, res) => {
+    router.post('/forms/:automationId/answers-table', validate({ body: bodyOf({}, 'Making the answers table') }), async (req, res) => {
         const a = await automationStore.getAutomation(req.params.automationId);
         if (!a) return res.status(404).json({ error: 'Not found' });
         if (!await automationAccess.guard(req, res, a, 'edit')) return;

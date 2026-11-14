@@ -323,25 +323,25 @@ async function upsertChecks(orgId, frameworkId, rows) {
         if (seen.has(key)) throw new Error(`duplicate ref "${r.ref}" in the same batch`);
         seen.add(key);
     }
-    for (const r of normalized) {
-        await run(`
-            INSERT INTO compliance_custom_checks
-                (framework_id, organization_id, ref, title, description, severity, evidence_required, mapped_check_id, sort_order)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-            ON CONFLICT (framework_id, ref) DO UPDATE SET
-                title = EXCLUDED.title,
-                description = EXCLUDED.description,
-                severity = EXCLUDED.severity,
-                evidence_required = EXCLUDED.evidence_required,
-                mapped_check_id = EXCLUDED.mapped_check_id,
-                sort_order = EXCLUDED.sort_order,
-                updated_at = NOW()
-            WHERE compliance_custom_checks.organization_id = $2
-        `, [fw.id, orgId, r.ref, r.title, r.description, r.severity, r.evidence_required, r.mapped_check_id, r.sort_order]);
-    }
-    if (normalized.length) {
-        await run(`UPDATE compliance_custom_frameworks SET updated_at = NOW() WHERE organization_id = $1 AND id = $2`, [orgId, fw.id]);
-    }
+    await withTransaction(async (client) => { // the import lands whole, with the framework's updated_at
+        for (const r of normalized) {
+            await client.query(`
+                INSERT INTO compliance_custom_checks
+                    (framework_id, organization_id, ref, title, description, severity, evidence_required, mapped_check_id, sort_order)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                ON CONFLICT (framework_id, ref) DO UPDATE SET
+                    title = EXCLUDED.title,
+                    description = EXCLUDED.description,
+                    severity = EXCLUDED.severity,
+                    evidence_required = EXCLUDED.evidence_required,
+                    mapped_check_id = EXCLUDED.mapped_check_id,
+                    sort_order = EXCLUDED.sort_order,
+                    updated_at = NOW()
+                WHERE compliance_custom_checks.organization_id = $2
+            `, [fw.id, orgId, r.ref, r.title, r.description, r.severity, r.evidence_required, r.mapped_check_id, r.sort_order]);
+        }
+        if (normalized.length) await client.query(`UPDATE compliance_custom_frameworks SET updated_at = NOW() WHERE organization_id = $1 AND id = $2`, [orgId, fw.id]);
+    });
     return listChecks(orgId, fw.id);
 }
 
@@ -382,7 +382,7 @@ const ATT_COLUMNS = `id, organization_id, check_id, subject_id, outcome, stateme
  *
  * @param {string} orgId
  * @param {{checkId?:string, subjectId?:string|null, outcome?:string, statement?:string,
- *          evidenceRefs?:Array<{evidence_id,sha256,filename}>, attestedBy?:string, expiresAt?:Date|string|null}} [input]
+ *          evidenceRefs?:Array<{evidence_id,sha256,filename}>, attestedBy?:string|null, expiresAt?:Date|string|null}} [input]
  */
 async function attest(orgId, { checkId, subjectId, outcome, statement, evidenceRefs, attestedBy, expiresAt } = {}) {
     await initDB();
@@ -437,7 +437,7 @@ async function latestAttestation(orgId, checkId, subjectId = null) {
     `, [orgId, _text(checkId, 160), _text(subjectId, 200)]);
 }
 
-/** Full history, newest first — the drawer's "previous answers". */
+/** Full history, newest first — the drawer's "previous answers". @param {string} orgId @param {string} checkId @param {string | null} [subjectId] @param {{ limit?: number }} [opts] */
 async function listAttestations(orgId, checkId, subjectId = null, { limit = 50 } = {}) {
     await initDB();
     return getAll(`

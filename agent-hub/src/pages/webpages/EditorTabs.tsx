@@ -87,6 +87,7 @@ export default function EditorTabs({ openFiles, activeKey, onSelect, onClose, di
                             onClick={() => onClose?.(key)}
                             className="flex items-center justify-center h-full pr-2 opacity-40 group-hover:opacity-80 hover:opacity-100"
                             title={t('webpages.tabs_close', 'Close tab')}
+                            aria-label={t('webpages.tabs_close', 'Close tab')}
                         >
                             <X size={12} />
                         </button>

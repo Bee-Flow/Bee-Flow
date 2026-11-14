@@ -500,11 +500,11 @@ async function cancelOrphanedPendingApprovals() {
           RETURNING *`,
         [],
     );
-    return rows.map(rowToApproval);
+    return rows.map((r) => /** @type {NonNullable<ReturnType<typeof rowToApproval>>} */ (rowToApproval(r))); // a selected row maps, never to null
 }
 
 /** Append-only event log (requested/approved/rejected/expired/cancelled). */
-async function appendApprovalAudit({ approvalId, runId = null, stepId = null, decidedBy = null, decision, comment = null, source = null }) {
+async function appendApprovalAudit(/** @type {{ approvalId: string, runId?: string | null, stepId?: string | null, decidedBy?: string | null, decision: string, comment?: string | null, source?: string | null }} */ { approvalId, runId = null, stepId = null, decidedBy = null, decision, comment = null, source = null }) {
     await run(
         `INSERT INTO automation_approval_audit (id, approval_id, run_id, step_id, decided_by, decision, comment, source)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,

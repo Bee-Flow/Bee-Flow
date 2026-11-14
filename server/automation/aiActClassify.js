@@ -32,9 +32,9 @@
 'use strict';
 
 const crypto = require('node:crypto');
-const graph = require('./automationGraph');
-const annexIii = require('../compliance/aiAct/annexIii');
-const { ART5_PRACTICES } = require('../compliance/aiAct/assess');
+const graph = require('../core/automationModel/automationGraph');
+const annexIii = require('../core/aiAct/annexIii');
+const { ART5_PRACTICES } = require('../core/aiAct/assess');
 const log = require('../telemetry/log');
 
 const TIMEOUT_MS = 15_000;
@@ -292,6 +292,6 @@ module.exports = {
 };
 
 /**
- * @typedef {import('./automationGraph').AutomationDefinition} AutomationDefinition
+ * @typedef {import('../core/automationModel/automationGraph').AutomationDefinition} AutomationDefinition
  * @typedef {{ available: boolean, hash: string, modelId?: string, prohibited?: object|null, highRisk?: object|null }} ClassifierResult
  */

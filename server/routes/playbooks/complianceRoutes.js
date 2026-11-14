@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * WHAT A PERSON DOES WITH THE COMPLIANCE REVIEW.
  *
@@ -16,7 +16,7 @@
 
 const lifecycle = require('../../playbooks/lifecycle');
 const { z, sendErr, isObject, worded, bodyOf, check, onUnknownKeys, typeError } = require('./contract');
-const { directoryFor } = require('./directory');
+const { directoryFor } = require('../../usecases/playbooks/directory');
 
 // -- The envelope around the three POSTs ------------------------------
 //
@@ -243,7 +243,7 @@ function register(router, ctx) {
             if (!Number.isFinite(days) || days < 1 || days > MAX_RETENTION_DAYS) return sendErr(res, 400, 'bad_retention_days', `A retention period is between 1 and ${MAX_RETENTION_DAYS} days.`);
 
             const principal = await d.datatableAccessPlan.resolveDatatablePrincipalForUser(pb.userId);
-            const resolved = await d.datatableRuntime.resolveForPrincipal(tableArt.datatableId, principal, { needed: 'viewer' });
+            const resolved = /** @type {import('../../core/dataEngine/datatableRuntime').ResolvedTable} */ (await d.datatableRuntime.resolveForPrincipal(tableArt.datatableId, principal, { needed: 'viewer' })); // a resolved table carries its scope
             const allowColumns = [...fields.map((f) => f.key).filter(Boolean), ...RETENTION_SYSTEM_FIELDS];
             const cutoff = new Date(d.now() - Math.round(days) * 86400000).toISOString();
             const span = await d.datatableRuntime.aggregateRows(resolved, {
@@ -337,7 +337,7 @@ function register(router, ctx) {
                     notRegistered = check.error;
                 } else {
                     try {
-                        await d.datatableStore.updateDatatableMeta(tableArt.datatableId, tableArt.datatableScope, check.patch);
+                        await d.datatableStore.updateDatatableMeta(tableArt.datatableId, /** @type {NonNullable<typeof tableArt.datatableScope>} */ (tableArt.datatableScope), /** @type {NonNullable<typeof check.patch>} */ (check.patch)); // the scope as recorded; a check without an error has a patch
                         written.push('processing_register');
                         registeredPatch = check.patch;
                     } catch (e) {

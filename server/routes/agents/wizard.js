@@ -1,3 +1,4 @@
+// @typecheck
 const express = require('express');
 const agentStore = require('../../stores/agentStore');
 const skillStore = require('../../stores/skillStore');
@@ -28,7 +29,7 @@ const { fallback } = require('../../utils/bestEffort');
 // refuses, but a misspelled `locale` or `modelTier` was dropped in silence and
 // the wizard drew a plan in the wrong language on the wrong tier.
 
-/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
+/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. @template {import('zod').ZodRawShape} S @param {S} shape */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 /**
@@ -69,7 +70,7 @@ const CommitBody = bodyOf({
 // bot-like abuse.
 const wizardLimiter = perUserRateLimit({ windowMs: 60_000, max: 30 });
 
-const { INTEGRATION_CATALOG } = require('./wizardIntegrationCatalog');
+const { INTEGRATION_CATALOG } = require('../../usecases/agents/wizardIntegrationCatalog');
 
 // Compute the integrations actually available to this user — same gating
 // rules as agent-hub/src/components/admin/AgentDesigner/sections/ToolsSection.jsx
@@ -363,7 +364,7 @@ function normalizePlan(plan, availableIntegrationIds) {
 }
 
 /**
- * @typedef {{ userId: string }} GeneratePlanArgs
+ * @typedef {{ userId: string, userPrompt?: any, priorPlan?: any, refinement?: any, modelTier?: any, locale?: any, userOrgId?: any, currentConfig?: any }} GeneratePlanArgs
  */
 /**
  * @param {GeneratePlanArgs} param0
@@ -419,7 +420,7 @@ async function generatePlan({ userPrompt, priorPlan, refinement, modelTier, loca
     const text = result?.content || '';
     const plan = extractJSON(text);
     if (!plan || !plan.name) {
-        const err = new Error('Could not parse agent plan from model output');
+        const err = /** @type {Error & { raw?: string }} */ (new Error('Could not parse agent plan from model output'));
         err.raw = text;
         throw err;
     }
@@ -462,7 +463,7 @@ function buildPreserved(current) {
     };
 }
 
-router.post('/wizard/draft', requirePermission('manage_agents'), wizardLimiter, validate({ body: DraftBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof DraftBody>, import('qs').ParsedQs>} */ req, res, next) => {
+router.post('/wizard/draft', requirePermission('manage_agents'), wizardLimiter, validate({ body: DraftBody }), async (req, res, next) => {
     try {
         const { prompt, modelTier, locale } = req.body;
         const userId = getEffectiveUserId(req);
@@ -476,7 +477,7 @@ router.post('/wizard/draft', requirePermission('manage_agents'), wizardLimiter, 
     }
 });
 
-router.post('/wizard/refine', requirePermission('manage_agents'), wizardLimiter, validate({ body: RefineBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof RefineBody>, import('qs').ParsedQs>} */ req, res, next) => {
+router.post('/wizard/refine', requirePermission('manage_agents'), wizardLimiter, validate({ body: RefineBody }), async (req, res, next) => {
     try {
         const { prompt, plan, refinement, modelTier, locale, current } = req.body;
         const userId = getEffectiveUserId(req);
@@ -669,7 +670,7 @@ router.post('/wizard/commit', requirePermission('manage_agents'), wizardLimiter,
             if (allowed) {
                 const coworkStore = require('../../stores/coworkStore');
                 const { computeScheduleNextRun } = require('../../shared/schedule/nextRun.mjs');
-                const r = plan.schedule;
+                const r = /** @type {Record<string, any>} */ (plan.schedule);
                 // Shared TZ-aware helper — same one the modal and wizard chat
                 // use, so behavior is identical regardless of entry point.
                 const nextRunAt = computeScheduleNextRun(r, r.timezone || 'UTC');

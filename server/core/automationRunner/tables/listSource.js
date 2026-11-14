@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * A list of rows as a table source for the `table` step.
@@ -50,7 +50,8 @@ const safeKey = (k) => (RESERVED_KEYS.has(k) ? `${k}_` : k);
  */
 function declaredColumns(columns) {
     const used = new Set();
-    return columns.map((/** @type {string | { key?: string | number, label?: string, type?: string }} */ c, /** @type {number} */ i) => {
+    // Each entry is checked below: a string, or an object whose key is a string or a number.
+    return /** @type {Array<string | { key?: string | number, label?: string, type?: string }>} */ (columns).map((c, i) => {
         const raw = typeof c === 'string' ? { key: c } : c;
         if (!raw || (typeof raw.key !== 'string' && typeof raw.key !== 'number') || String(raw.key) === '') {
             throw badList(`Column ${i + 1} has no key. Give every column a "key".`);
@@ -58,7 +59,7 @@ function declaredColumns(columns) {
         let key = safeKey(String(raw.key));
         for (let n = 2; used.has(key); n += 1) key = `${raw.key} (${n})`;
         used.add(key);
-        return { key, source: String(raw.key), label: String(raw.label ?? raw.key), declared: COLUMN_TYPES.includes(raw.type) ? raw.type : null };
+        return { key, source: String(raw.key), label: String(raw.label ?? raw.key), declared: COLUMN_TYPES.includes(/** @type {string} */ (raw.type)) ? /** @type {string} */ (raw.type) : null };
     });
 }
 
@@ -101,7 +102,8 @@ function listToTable(value, opts = {}) {
     }
 
     const masks = new Array(decl.length).fill(0);
-    const rows = slice.map((/** @type {Record<string, unknown> | unknown[]} */ r, /** @type {number} */ i) => {
+    // Each row is checked below: an aligned array or a plain object.
+    const rows = /** @type {Array<Record<string, unknown> | unknown[]>} */ (slice).map((r, i) => {
         const isArr = aligned(r);
         if (!isPlainObject(r) && !(isArr && payload.columns)) {
             throw badList(`Row ${i + 1} is ${r === null ? 'empty' : isArr ? 'a list (rows as lists need "columns")' : `a ${typeof r}`}, not a record. Each row must be an object such as {"name": "Ann", "amount": 3}.`);

@@ -13,10 +13,11 @@ const configModelsKeys = {
     configChatModels: ['configModels', 'configChatModels'] as const,
 };
 
-/** GET /ai/config/tiers-for-user?taskType=direct_chat, fresh on every mount. */
-export function useConfigTiersForUser() {
+/** GET /ai/config/tiers-for-user?taskType=direct_chat, fresh on every mount; only asked when `enabled`. */
+export function useConfigTiersForUser(enabled = true) {
     return useQuery<ModelTierMap, Error>({
         queryKey: configModelsKeys.configTiersForUser,
+        enabled,
         queryFn: async () => {
             const res = await authFetch(`${API_BASE}/ai/config/tiers-for-user?taskType=direct_chat`);
             if (!res.ok) throw new ApiError(`HTTP ${res.status}`, { status: res.status });

@@ -1,4 +1,5 @@
-import { render, screen, cleanup } from '@testing-library/react';
+import { screen, cleanup } from '@testing-library/react';
+import { renderWithClient as render } from '@/test/render';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import SkillsPopover from './SkillsPopover';

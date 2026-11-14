@@ -15,6 +15,7 @@ const {
     quoteIdent, validateSql, toDollarParams, normalizeParams, normalizeRows, mapPgError,
 } = require('./pgAppEngineHelpers');
 const { bestEffort } = require('../../utils/bestEffort');
+const { runTransaction } = require('../../utils/txRollback');
 
 /**
  * A mapped engine error keeps the plan index of the migration statement that
@@ -80,19 +81,15 @@ function makeTx({ getClient, entityLabel, schemaFor, assertAccessFn, ownershipCa
      * "query() never mutates" rule — no fragile SQL sniffing.
      */
     async function withAppTx(ownerId, appId, { readOnly = false } = {}, fn) {
-        const client = await getClient();
+        const tx = await getClient();
         try {
-            await client.query(readOnly ? 'BEGIN READ ONLY' : 'BEGIN');
-            await assertOwnership(client, ownerId, appId);
-            await client.query(`SET LOCAL search_path = ${schemaIdent(appId)}, pg_temp`);
-            const out = await fn(client);
-            await client.query('COMMIT');
-            return out;
+            return await runTransaction(tx, async (client) => {
+                await assertOwnership(client, ownerId, appId);
+                await client.query(`SET LOCAL search_path = ${schemaIdent(appId)}, pg_temp`);
+                return fn(client);
+            }, { begin: readOnly ? 'BEGIN READ ONLY' : 'BEGIN' });
         } catch (err) {
-            try { await client.query('ROLLBACK'); } catch (err) { bestEffort('stores/lib/pgAppEnginePartsTx:withAppTx', err); /* connection-level failure */ }
             throw keepStatementIndex(mapPgError(err), err);
-        } finally {
-            client.release();
         }
     }
 
@@ -256,6 +253,10 @@ function makeMigration({ logPrefix, schemaIdent, assertOwnership, withAppTx }) {
      * BEGIN/COMMIT here — the B3 migrator owns the boundary; note SET LOCAL
      * search_path then lives until the caller's COMMIT). Without it, the
      * engine opens its own transaction.
+     * @param {string} ownerId
+     * @param {string} appId
+     * @param {string[]} orderedDDL
+     * @param {{ targetVersion?: number | null, client?: import('pg').PoolClient | null, probes?: Array<{ sql: string, at: number, opIndex: number, refuse?: boolean, tableKey?: string }> }} [opts]
      */
     async function applyMigration(ownerId, appId, orderedDDL, { targetVersion = null, client = null, probes = [] } = {}) {
         if (!Array.isArray(orderedDDL)) {

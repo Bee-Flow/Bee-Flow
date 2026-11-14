@@ -2,11 +2,11 @@ import { Copy, Check, X } from 'lucide-react';
 import React, { useEffect, useId, useRef, useState } from 'react';
 
 import { useTranslation } from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
-import { errorBody, mutate, RefusedError } from '@/api/mutate';
+import { errorBody, RefusedError } from '@/api/mutate';
 import Modal from '../../shared/Modal';
 import { memoryRefusal } from './memoryErrors';
 import { logger } from '@/utils/logger';
+import { apiRequest } from '@/api/typedRequest';
 
 // The prompt goes to ANOTHER assistant, so it stays English whatever the UI language is.
 const EXPORT_PROMPT = `Export all of my stored memories and any context you've learned about me from past conversations. Preserve my words verbatim where possible, especially for instructions and preferences.
@@ -68,11 +68,7 @@ export default function ImportMemoryModal({ onClose, onImported }: ImportMemoryM
         try {
             let data: ImportResult & { error?: string; code?: string };
             try {
-                const res = await mutate(`${API_BASE}/agents/memory/import`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: pasted.trim() }),
-                });
+                const res = await apiRequest('POST /agents/memory/import', { body: { text: pasted.trim() } });
                 data = (await res.json().catch(() => ({}))) as ImportResult & { error?: string; code?: string };
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;

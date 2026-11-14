@@ -389,165 +389,155 @@ async function getTalkRecordingCapability(session, userId) {
 }
 
 
+async function listRooms(args, { baseUrl, fetch: ncFetch, authError }) {
+    // `noStatusUpdate=1` — Talk otherwise marks the user online in
+    // Nextcloud for every listing. Bee Flow reads rooms on the user's
+    // behalf (assistant queries, and the auto-record poller once a
+    // minute); neither is the user showing up for work, so we never
+    // claim presence for them.
+    const params = new URLSearchParams({ format: 'json', noStatusUpdate: '1' });
+    if (args.includeStatus) params.set('includeStatus', 'true');
+    const url = `${v4(baseUrl)}/room?${params.toString()}`;
+    const res = await ncFetch(url, { headers: COMMON_HEADERS });
+    if (res.status === 401) return { error: authError };
+    if (res.status === 404) return { error: 'Talk app is not installed/enabled on this Nextcloud server.' };
+    if (!res.ok) return { error: `Talk room list failed (${res.status})` };
+    const data = await readJsonSafe(res);
+    const rooms = Array.isArray(data?.ocs?.data) ? data.ocs.data.map(mapRoom) : [];
+    return { count: rooms.length, rooms };
+}
+
+async function getRoom(args, { baseUrl, fetch: ncFetch, authError }) {
+    if (!args.token) return { error: 'token is required' };
+    const res = await ncFetch(`${v4(baseUrl)}/room/${encodeURIComponent(args.token)}?format=json`, { headers: COMMON_HEADERS });
+    if (res.status === 401) return { error: authError };
+    if (res.status === 404) return { error: `Room not found: ${args.token}` };
+    if (!res.ok) return { error: `Talk room fetch failed (${res.status})` };
+    const data = await readJsonSafe(res);
+    return data?.ocs?.data ? mapRoom(data.ocs.data) : data;
+}
+
+async function createRoom(args, { baseUrl, fetch: ncFetch, authError }) {
+    if (!args.roomType) return { error: 'roomType is required (1=one-to-one, 2=group, 3=public, 4=changelog)' };
+    const body = {
+        roomType: args.roomType,
+        invite: args.invite || '',
+        roomName: args.roomName || '',
+        source: '',
+        objectType: args.objectType || '',
+        objectId: args.objectId || '',
+    };
+    const res = await ncFetch(`${v4(baseUrl)}/room?format=json`, {
+        method: 'POST',
+        headers: { ...COMMON_HEADERS, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+    });
+    if (res.status === 401) return { error: authError };
+    if (!res.ok) {
+        const err = await readJsonSafe(res);
+        return { error: `Room create failed (${res.status})`, detail: err };
+    }
+    const data = await readJsonSafe(res);
+    return data?.ocs?.data ? { success: true, room: mapRoom(data.ocs.data) } : { success: true, raw: data };
+}
+
+async function listParticipants(args, { baseUrl, fetch: ncFetch, authError }) {
+    if (!args.token) return { error: 'token is required' };
+    const res = await ncFetch(`${v4(baseUrl)}/room/${encodeURIComponent(args.token)}/participants?format=json`, { headers: COMMON_HEADERS });
+    if (res.status === 401) return { error: authError };
+    if (res.status === 404) return { error: `Room not found: ${args.token}` };
+    if (!res.ok) return { error: `Talk participants fetch failed (${res.status})` };
+    const data = await readJsonSafe(res);
+    const participants = Array.isArray(data?.ocs?.data) ? data.ocs.data.map(mapParticipant) : [];
+    return { token: args.token, count: participants.length, participants };
+}
+
+async function startRecording(args, { baseUrl, fetch: ncFetch, authError }) {
+    if (!args.token) return { error: 'token is required' };
+    // status: 2 = audio-only, 1 = video (Nextcloud's numbering — audio is
+    // the higher value, intentionally not "fixed").
+    const status = args.status === 1 ? 1 : 2;
+    const res = await ncFetch(`${v1(baseUrl)}/recording/${encodeURIComponent(args.token)}?format=json`, {
+        method: 'POST',
+        headers: { ...COMMON_HEADERS, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+    });
+    return classifyRecordingResponse(res, authError, { started: true, status });
+}
+
+async function stopRecording(args, { baseUrl, fetch: ncFetch, authError }) {
+    if (!args.token) return { error: 'token is required' };
+    const res = await ncFetch(`${v1(baseUrl)}/recording/${encodeURIComponent(args.token)}?format=json`, {
+        method: 'DELETE',
+        headers: COMMON_HEADERS,
+    });
+    return classifyRecordingResponse(res, authError, { stopped: true });
+}
+
+async function shareFile(args, { baseUrl, fetch: ncFetch, authError }) {
+    if (!args.token) return { error: 'token is required' };
+    if (!args.path) return { error: 'path is required' };
+    // Talk file shares go through the normal sharing API with
+    // shareType 10 (room) and the conversation token as the target.
+    const params = new URLSearchParams({
+        path: args.path,
+        shareType: '10',
+        shareWith: args.token,
+    });
+    const res = await ncFetch(`${baseUrl}/ocs/v2.php/apps/files_sharing/api/v1/shares?format=json`, {
+        method: 'POST',
+        headers: { 'OCS-APIRequest': 'true', 'Accept': 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString(),
+    });
+    if (res.status === 401) return { error: authError };
+    if (res.status === 404) return { error: `File not found: ${args.path}` };
+    if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        return { error: `Sharing "${args.path}" to the conversation failed (${res.status}): ${text.slice(0, 160)}` };
+    }
+    const data = await res.json().catch(() => null);
+    return { success: true, token: args.token, path: args.path, shareId: data?.ocs?.data?.id ?? null };
+}
+
+async function markRead(args, { baseUrl, fetch: ncFetch, authError }) {
+    if (!args.token) return { error: 'token is required' };
+    const body = args.lastReadMessage ? { lastReadMessage: args.lastReadMessage } : {};
+    const res = await ncFetch(`${v1(baseUrl)}/chat/${encodeURIComponent(args.token)}/read?format=json`, {
+        method: 'POST',
+        headers: { ...COMMON_HEADERS, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+    });
+    if (res.status === 401) return { error: authError };
+    if (!res.ok) return { error: `Mark read failed (${res.status})` };
+    return { success: true };
+}
+
+const HANDLERS = {
+    nextcloud_talk_list_rooms: listRooms,
+    nextcloud_talk_get_room: getRoom,
+    nextcloud_talk_create_room: createRoom,
+    nextcloud_talk_list_participants: listParticipants,
+    nextcloud_talk_start_recording: startRecording,
+    nextcloud_talk_stop_recording: stopRecording,
+    nextcloud_talk_list_messages: listMessages,
+    nextcloud_talk_search_messages: searchMessages,
+    nextcloud_talk_send_message: sendMessage,
+    nextcloud_talk_delete_message: deleteMessage,
+    nextcloud_talk_add_reaction: (args, ctx) => reactToMessage('nextcloud_talk_add_reaction', args, ctx),
+    nextcloud_talk_remove_reaction: (args, ctx) => reactToMessage('nextcloud_talk_remove_reaction', args, ctx),
+    nextcloud_talk_create_poll: createPoll,
+    nextcloud_talk_get_poll: getPoll,
+    nextcloud_talk_vote_poll: votePoll,
+    nextcloud_talk_close_poll: closePoll,
+    nextcloud_talk_share_file: shareFile,
+    nextcloud_talk_mark_read: markRead,
+};
+
 async function executeNextcloudTalkTool(toolName, args, userId, session) {
     const ctx = await ncClient.resolveAuth(session, userId);
-    const { baseUrl, fetch: ncFetch, authError } = ctx;
-
-    switch (toolName) {
-        case 'nextcloud_talk_list_rooms': {
-            // `noStatusUpdate=1` — Talk otherwise marks the user online in
-            // Nextcloud for every listing. Bee Flow reads rooms on the user's
-            // behalf (assistant queries, and the auto-record poller once a
-            // minute); neither is the user showing up for work, so we never
-            // claim presence for them.
-            const params = new URLSearchParams({ format: 'json', noStatusUpdate: '1' });
-            if (args.includeStatus) params.set('includeStatus', 'true');
-            const url = `${v4(baseUrl)}/room?${params.toString()}`;
-            const res = await ncFetch(url, { headers: COMMON_HEADERS });
-            if (res.status === 401) return { error: authError };
-            if (res.status === 404) return { error: 'Talk app is not installed/enabled on this Nextcloud server.' };
-            if (!res.ok) return { error: `Talk room list failed (${res.status})` };
-            const data = await readJsonSafe(res);
-            const rooms = Array.isArray(data?.ocs?.data) ? data.ocs.data.map(mapRoom) : [];
-            return { count: rooms.length, rooms };
-        }
-
-        case 'nextcloud_talk_get_room': {
-            if (!args.token) return { error: 'token is required' };
-            const res = await ncFetch(`${v4(baseUrl)}/room/${encodeURIComponent(args.token)}?format=json`, { headers: COMMON_HEADERS });
-            if (res.status === 401) return { error: authError };
-            if (res.status === 404) return { error: `Room not found: ${args.token}` };
-            if (!res.ok) return { error: `Talk room fetch failed (${res.status})` };
-            const data = await readJsonSafe(res);
-            return data?.ocs?.data ? mapRoom(data.ocs.data) : data;
-        }
-
-        case 'nextcloud_talk_create_room': {
-            if (!args.roomType) return { error: 'roomType is required (1=one-to-one, 2=group, 3=public, 4=changelog)' };
-            const body = {
-                roomType: args.roomType,
-                invite: args.invite || '',
-                roomName: args.roomName || '',
-                source: '',
-                objectType: args.objectType || '',
-                objectId: args.objectId || '',
-            };
-            const res = await ncFetch(`${v4(baseUrl)}/room?format=json`, {
-                method: 'POST',
-                headers: { ...COMMON_HEADERS, 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-            });
-            if (res.status === 401) return { error: authError };
-            if (!res.ok) {
-                const err = await readJsonSafe(res);
-                return { error: `Room create failed (${res.status})`, detail: err };
-            }
-            const data = await readJsonSafe(res);
-            return data?.ocs?.data ? { success: true, room: mapRoom(data.ocs.data) } : { success: true, raw: data };
-        }
-
-        case 'nextcloud_talk_list_participants': {
-            if (!args.token) return { error: 'token is required' };
-            const res = await ncFetch(`${v4(baseUrl)}/room/${encodeURIComponent(args.token)}/participants?format=json`, { headers: COMMON_HEADERS });
-            if (res.status === 401) return { error: authError };
-            if (res.status === 404) return { error: `Room not found: ${args.token}` };
-            if (!res.ok) return { error: `Talk participants fetch failed (${res.status})` };
-            const data = await readJsonSafe(res);
-            const participants = Array.isArray(data?.ocs?.data) ? data.ocs.data.map(mapParticipant) : [];
-            return { token: args.token, count: participants.length, participants };
-        }
-
-        case 'nextcloud_talk_start_recording': {
-            if (!args.token) return { error: 'token is required' };
-            // status: 2 = audio-only, 1 = video (Nextcloud's numbering — audio is
-            // the higher value, intentionally not "fixed").
-            const status = args.status === 1 ? 1 : 2;
-            const res = await ncFetch(`${v1(baseUrl)}/recording/${encodeURIComponent(args.token)}?format=json`, {
-                method: 'POST',
-                headers: { ...COMMON_HEADERS, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status }),
-            });
-            return classifyRecordingResponse(res, authError, { started: true, status });
-        }
-
-        case 'nextcloud_talk_stop_recording': {
-            if (!args.token) return { error: 'token is required' };
-            const res = await ncFetch(`${v1(baseUrl)}/recording/${encodeURIComponent(args.token)}?format=json`, {
-                method: 'DELETE',
-                headers: COMMON_HEADERS,
-            });
-            return classifyRecordingResponse(res, authError, { stopped: true });
-        }
-
-        case 'nextcloud_talk_list_messages':
-            return listMessages(args, ctx);
-
-        case 'nextcloud_talk_search_messages':
-            return searchMessages(args, ctx);
-
-        case 'nextcloud_talk_send_message':
-            return sendMessage(args, ctx);
-
-        case 'nextcloud_talk_delete_message':
-            return deleteMessage(args, ctx);
-
-        case 'nextcloud_talk_add_reaction':
-        case 'nextcloud_talk_remove_reaction':
-            return reactToMessage(toolName, args, ctx);
-
-        case 'nextcloud_talk_create_poll':
-            return createPoll(args, ctx);
-
-        case 'nextcloud_talk_get_poll':
-            return getPoll(args, ctx);
-
-        case 'nextcloud_talk_vote_poll':
-            return votePoll(args, ctx);
-
-        case 'nextcloud_talk_close_poll':
-            return closePoll(args, ctx);
-
-        case 'nextcloud_talk_share_file': {
-            if (!args.token) return { error: 'token is required' };
-            if (!args.path) return { error: 'path is required' };
-            // Talk file shares go through the normal sharing API with
-            // shareType 10 (room) and the conversation token as the target.
-            const params = new URLSearchParams({
-                path: args.path,
-                shareType: '10',
-                shareWith: args.token,
-            });
-            const res = await ncFetch(`${baseUrl}/ocs/v2.php/apps/files_sharing/api/v1/shares?format=json`, {
-                method: 'POST',
-                headers: { 'OCS-APIRequest': 'true', 'Accept': 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: params.toString(),
-            });
-            if (res.status === 401) return { error: authError };
-            if (res.status === 404) return { error: `File not found: ${args.path}` };
-            if (!res.ok) {
-                const text = await res.text().catch(() => '');
-                return { error: `Sharing "${args.path}" to the conversation failed (${res.status}): ${text.slice(0, 160)}` };
-            }
-            const data = await res.json().catch(() => null);
-            return { success: true, token: args.token, path: args.path, shareId: data?.ocs?.data?.id ?? null };
-        }
-
-        case 'nextcloud_talk_mark_read': {
-            if (!args.token) return { error: 'token is required' };
-            const body = args.lastReadMessage ? { lastReadMessage: args.lastReadMessage } : {};
-            const res = await ncFetch(`${v1(baseUrl)}/chat/${encodeURIComponent(args.token)}/read?format=json`, {
-                method: 'POST',
-                headers: { ...COMMON_HEADERS, 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-            });
-            if (res.status === 401) return { error: authError };
-            if (!res.ok) return { error: `Mark read failed (${res.status})` };
-            return { success: true };
-        }
-
-        default:
-            return { error: `Unknown Nextcloud Talk tool: ${toolName}` };
-    }
+    const handler = Object.hasOwn(HANDLERS, toolName) ? HANDLERS[toolName] : null;
+    if (!handler) return { error: `Unknown Nextcloud Talk tool: ${toolName}` };
+    return handler(args, ctx);
 }
 
 function isNextcloudTalkTool(toolName) {

@@ -28,6 +28,7 @@
 const dns = require('dns');
 const { isPrivateHostname, safeFetch } = require('../utils/ssrfGuard');
 const { bestEffort } = require('./bestEffort');
+const { fetchWithTimeout } = require('./outboundTimeout.mts');
 
 const MAX_REDIRECTS = 5;
 
@@ -154,9 +155,9 @@ async function nextcloudFetch(url, opts = {}) {
     const parsed = assertAllowedNextcloudHost(url);
     // A listed host goes out as a private target; any other host keeps the
     // connect-time screen of safeFetch (a public name that resolves to a
-    // private address is refused there).
+    // private address is refused there). Both carry the outbound default time-out.
     const listed = allowedPrivateHosts();
-    if (listed === null || listed.includes(bareHost(parsed.hostname))) return privateHostFetch(url, opts);
+    if (listed === null || listed.includes(bareHost(parsed.hostname))) return fetchWithTimeout(privateHostFetch, url, opts);
     return safeFetch(url, opts);
 }
 

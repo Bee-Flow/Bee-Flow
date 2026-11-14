@@ -1,7 +1,6 @@
 import { Loader2, Paperclip, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import useTranslation from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
 import { useDataContext } from '../DataContext';
 import { useFormField } from '../formContext';
 import { useRuntime } from '../RuntimeContext';
@@ -10,7 +9,8 @@ import useInputChange from '../useInputChange';
 import type { NodeProps } from './appNode.types';
 import type { TranslateParams } from '@/hooks/useTranslation';
 import { logger } from '@/utils/logger';
-import { mutate, errorBody, RefusedError } from '@/api/mutate';
+import { errorBody, RefusedError } from '@/api/mutate';
+import { apiRequest, apiUrl } from '@/api/typedRequest';
 
 /**
  * App Studio runtime — 'input_file'. Spec: server/appStudio/componentSpecs.js.
@@ -66,7 +66,7 @@ export function entryIsImage(entry: FileValue | { kind?: string; fileId?: string
 
 export function entryHref(entry: string | null | { fileId?: string; }, appId: string | null) {
     if (entry && typeof entry === 'object') {
-        return appId ? `${API_BASE}/api/studio-apps/${encodeURIComponent(appId as string)}/data/attachments/${encodeURIComponent(entry.fileId as string)}` : null;
+        return appId ? apiUrl('GET /api/studio-apps/{id}/data/attachments/{fileId}', { params: { id: appId, fileId: String(entry.fileId) } }) : null;
     }
     return String(entry || '') || null;
 }
@@ -163,7 +163,7 @@ export default function AppInputFile({ node }: NodeProps<InputFileProps>) {
                 fd.append('file', file);
                 let res: Response;
                 try {
-                    res = await mutate(`${API_BASE}/api/studio-apps/${encodeURIComponent(appId as string)}/data/attachments`, { method: 'POST', body: fd });
+                    res = await apiRequest('POST /api/studio-apps/{id}/data/attachments', { params: { id: appId as string }, init: { body: fd } });
                 } catch (err) {
                     if (!(err instanceof RefusedError)) throw err;
                     const data = errorBody(err) ?? {};
@@ -217,10 +217,10 @@ export default function AppInputFile({ node }: NodeProps<InputFileProps>) {
         if (!canUpload || !entry || typeof entry !== 'object' || !entry.fileId) return;
         const deleteToken = deleteTokensRef.current.get(entry.fileId);
         deleteTokensRef.current.delete(entry.fileId);
-        mutate(
-            `${API_BASE}/api/studio-apps/${encodeURIComponent(appId as string)}/data/attachments/${encodeURIComponent(entry.fileId)}`,
-            { method: 'DELETE', ...(deleteToken ? { headers: { 'X-Upload-Delete-Token': deleteToken } } : {}) },
-        ).catch(() => { /* the field is already clear; the sweep can have the bytes */ });
+        apiRequest('DELETE /api/studio-apps/{id}/data/attachments/{fileId}', {
+            params: { id: String(appId), fileId: entry.fileId },
+            ...(deleteToken ? { init: { headers: { 'X-Upload-Delete-Token': deleteToken } } } : {}),
+        }).catch(() => { /* the field is already clear; the sweep can have the bytes */ });
     };
 
     return (

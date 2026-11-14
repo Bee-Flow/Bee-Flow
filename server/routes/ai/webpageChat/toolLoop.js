@@ -1,4 +1,5 @@
-/** @typedef {import('../../../core/providers').BaseProvider} BaseProvider */
+// @typecheck
+/** @typedef {import('../../../core/providers/base')} BaseProvider */
 /**
  * Webpage chat: the tool rounds of one turn (routes/ai/webpageChat.js). The
  * tool menu and options, the turn's shared state, the termination monitor's
@@ -39,6 +40,7 @@ async function runToolLoop({
     shieldGate, _dlpConvId, _dlpActive, queryLogs = null,
 }) {
     // Tool list
+    /** @type {import('../../../core/agentRuntime/chatStream/turnState').ToolDef[]} */
     const webpageTools = [...WEBPAGE_DOC_TOOLS, ...WEBPAGE_MULTI_FILE_TOOLS, ...WEBPAGE_DB_TOOLS, ...WEBPAGE_BRIDGE_TOOLS, WEBPAGE_ADD_SOURCE_TOOL, WEBPAGE_SET_FRAMEWORK_TOOL, WEBPAGE_SET_RUNTIME_TOOL, WEBPAGE_SCREENSHOT_TOOL];
     // Plan tool exposed ONLY in ask/plan modes — auto mode is "just work,
     // no approval gate". Also dropped on plan-execution turns so the AI

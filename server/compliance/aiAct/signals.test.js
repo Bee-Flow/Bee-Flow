@@ -1,33 +1,28 @@
 /**
  * aiAct/signals — what the platform detects about an automation or agent.
- * Run: node --test --test-force-exit server/compliance/aiAct/signals.test.js
+ * Run: node --test server/compliance/aiAct/signals.test.js
  */
 
 const { test, after } = require('node:test');
 const assert = require('node:assert');
 const { installResolveStub } = require('../../testUtils/stubRequire');
 
-// One recording db double behind every require spelling the graph uses.
-const calls = [];
-let oneResult = null;
-let allResult = [];
-const db = {
-    getOne: async (sql, params) => { calls.push({ fn: 'getOne', sql, params }); return typeof oneResult === 'function' ? oneResult(sql, params) : oneResult; },
-    getAll: async (sql, params) => { calls.push({ fn: 'getAll', sql, params }); return typeof allResult === 'function' ? allResult(sql, params) : allResult; },
-    run: async (sql, params) => { calls.push({ fn: 'run', sql, params }); return { rows: [] }; },
-    exec: async () => {},
-};
+const { usePglitePool } = require('../../testUtils/pglitePool');
+const { ladderPglite } = require('../../testUtils/pgliteTemplate');
+const { insertRow } = require('../../testUtils/pgliteSeed');
+const { failReads, hideTable } = require('../../testUtils/pgliteFaults');
+
+// The automations, agents, users and form pages are real tables (the boot
+// ladder's schema on PGlite behind db.js's pool); only the org settings are stubbed.
+const { pg, close } = usePglitePool(ladderPglite());
 let settings = { ai_content_marking_enabled: false };
 const complianceStore = { getSettings: async () => settings };
 
 const restore = installResolveStub({
-    '../../db': db,
-    '../../../db': db,
-    '../db': db,
     '../../stores/complianceStore': complianceStore,
 });
 const signals = require('./signals');
-after(() => restore());
+after(async () => { restore(); await close(); });
 
 const AI_AUTOMATION = {
     trigger: { id: 't', kind: 'webhook' },
@@ -156,89 +151,93 @@ test('signalsFromAgent: always AI + generating, customer_facing = is_published, 
     assert.deepStrictEqual(draft.annex_iii_categories, ['employment']);
 });
 
-test('signalsForAutomation scopes through COALESCE(a.organization_id, u."organizationId") and returns null outside the org', async () => {
-    calls.length = 0;
-    oneResult = null;
-    assert.strictEqual(await signals.signalsForAutomation('org-1', 'auto-9'), null);
-    assert.strictEqual(calls.length, 1);
-    assert.match(calls[0].sql, /COALESCE\(a\.organization_id, u\."organizationId"\) = \$1/);
-    assert.match(calls[0].sql, /JOIN users u ON u\.id = a\.user_id/);
-    assert.deepStrictEqual(calls[0].params, ['org-1', 'auto-9']);
+let seeded = null;
+const AI_DOC = AI_AUTOMATION;
+const seed = () => (seeded ||= (async () => {
+    await insertRow(pg, 'users', { id: 'sg-u1', username: 'sg-u1', organizationId: 'org-1' });
+    await insertRow(pg, 'users', { id: 'sg-u2', username: 'sg-u2', organizationId: 'org-2' });
+    const aut = (/** @type {Record<string, unknown>} */ over) => insertRow(pg, 'automations', {
+        user_id: 'sg-u1', definition_json: AI_DOC, is_active: true, is_draft: false, kind: 'automation', ...over,
+    });
+    // org through the owner (organization_id never stamped) and stamped.
+    await aut({ id: 'auto-9', title: 'Kredietaanvraag', description: '' });
+    await insertRow(pg, 'automation_form_pages', { id: 'fp-9', automation_id: 'auto-9' });
+    await aut({ id: 'a', title: 'With doc', organization_id: 'org-1' });
+    await aut({ id: 'b', title: 'Plain', definition_json: { steps: [{ id: 'doc', type: 'generate_document', content: 'x' }] } });
+    await aut({ id: 'c', title: 'AI no doc', definition_json: { steps: [{ id: 'ai', type: 'ai_step' }] } });
+    await aut({ id: 'theirs', title: 'Other org', user_id: 'sg-u2' });
+    await aut({ id: 'trashed', title: 'Trashed', deleted_at: new Date().toISOString() });
+    // The live copy is what runs: the working copy lost its AI step since.
+    await aut({ id: 'live-ai', title: 'Live AI', definition_json: { steps: [] }, live_definition_json: AI_DOC });
+    await aut({ id: 'live-plain', title: 'Live plain', definition_json: AI_DOC, live_definition_json: { steps: [] } });
+    await insertRow(pg, 'agents', { id: 'a1', name: 'Bot', owner_id: 'sg-u1', organization_id: 'org-1', is_published: true, system_prompt: 'I am an AI assistant.' });
+    await insertRow(pg, 'agents', { id: 'ag1', name: 'Helpdesk', owner_id: 'sg-u1', organization_id: 'org-1', is_published: true, system_prompt: 'x' });
+    await insertRow(pg, 'agents', { id: 'ag-theirs', name: 'Theirs', owner_id: 'sg-u2', organization_id: 'org-2', is_published: true, system_prompt: 'x' });
+})());
 
-    calls.length = 0;
+test('signalsForAutomation scopes through the owner\'s organisation and returns null outside the org', async () => {
+    await seed();
+    assert.strictEqual(await signals.signalsForAutomation('org-2', 'auto-9'), null);
+    assert.strictEqual(await signals.signalsForAutomation('org-1', 'missing'), null);
     settings = { ai_content_marking_enabled: true };
-    oneResult = { id: 'auto-9', title: 'Kredietaanvraag', description: '', definition_json: JSON.stringify(AI_AUTOMATION), live_form_pages: 1 };
     const s = await signals.signalsForAutomation('org-1', 'auto-9');
     assert.deepStrictEqual(
         [s.contains_ai, s.generates_content, s.customer_facing, s.marking_enabled, s.annex_iii_hint],
         [true, true, true, true, true],
+        'a live form page makes it customer-facing',
     );
+    settings = { ai_content_marking_enabled: false };
     assert.strictEqual(await signals.signalsForAutomation(null, 'auto-9'), null, 'no org → nothing (never a cross-org read)');
 });
 
 test('signalsForAgent scopes on agents.organization_id; listGeneratingAutomations keeps only automations with AI-fed documents', async () => {
-    calls.length = 0;
-    oneResult = { id: 'a1', name: 'Bot', is_published: true, system_prompt: 'I am an AI assistant.' };
+    await seed();
     const s = await signals.signalsForAgent('org-1', 'a1');
-    assert.match(calls[0].sql, /FROM agents/);
-    assert.match(calls[0].sql, /organization_id = \$1/);
-    assert.deepStrictEqual(calls[0].params, ['org-1', 'a1']);
     assert.strictEqual(s.disclosure_present, true);
+    assert.strictEqual(await signals.signalsForAgent('org-2', 'a1'), null, 'another org\'s agent is not found');
 
-    calls.length = 0;
-    allResult = [
-        { id: 'a', title: 'With doc', is_active: true, is_draft: false, definition_json: AI_AUTOMATION },
-        { id: 'b', title: 'Plain', is_active: true, is_draft: false, definition_json: { steps: [{ id: 'doc', type: 'generate_document', content: 'x' }] } },
-        { id: 'c', title: 'AI no doc', is_active: false, is_draft: true, definition_json: { steps: [{ id: 'ai', type: 'ai_step' }] } },
-    ];
     const list = await signals.listGeneratingAutomations('org-1');
-    assert.match(calls[0].sql, /COALESCE\(a\.organization_id, u\."organizationId"\) = \$1/);
-    assert.deepStrictEqual(list.map(x => x.id), ['a']);
-    assert.deepStrictEqual(list[0].aiStepIds, ['ai_1']);
-    assert.deepStrictEqual(list[0].generating.map(g => g.id), ['doc']);
-    assert.ok(!('user_id' in list[0]), 'no owner data in the subject list');
+    assert.deepStrictEqual(list.map((/** @type {any} */ x) => x.id).sort(), ['a', 'auto-9', 'live-ai']);
+    const a = list.find((/** @type {any} */ x) => x.id === 'a');
+    assert.deepStrictEqual(a.aiStepIds, ['ai_1']);
+    assert.deepStrictEqual(a.generating.map((/** @type {any} */ g) => g.id), ['doc']);
+    assert.ok(!('user_id' in a), 'no owner data in the subject list');
     assert.deepStrictEqual(await signals.listGeneratingAutomations(null), []);
 });
 
 test('titlesFor looks titles up per kind, org-scoped, and returns nothing else', async () => {
-    calls.length = 0;
-    allResult = (sql) => /FROM agents/.test(sql)
-        ? [{ id: 'ag1', name: 'Helpdesk', organization_id: 'org-1', owner_email: 'x@y.z' }]
-        : [{ id: 'au1', title: 'Letters' }];
+    await seed();
     const t = await signals.titlesFor('org-1', [
-        { target_kind: 'automation', target_id: 'au1' }, { target_kind: 'agent', target_id: 'ag1' }, { target_kind: 'bogus', target_id: 'q' },
+        { target_kind: 'automation', target_id: 'a' }, { target_kind: 'agent', target_id: 'ag1' }, { target_kind: 'bogus', target_id: 'q' },
+        { target_kind: 'agent', target_id: 'ag-theirs' }, { target_kind: 'automation', target_id: 'theirs' },
     ]);
-    assert.deepStrictEqual(t, { automation: { au1: 'Letters' }, agent: { ag1: 'Helpdesk' } });
-    assert.strictEqual(calls.length, 2);
-    for (const c of calls) assert.strictEqual(c.params[0], 'org-1');
+    assert.deepStrictEqual(t, { automation: { a: 'With doc' }, agent: { ag1: 'Helpdesk' } });
 });
 
 test('listGeneratingAutomations judges the live copy and leaves trashed automations out', async () => {
-    calls.length = 0;
-    allResult = [];
-    await signals.listGeneratingAutomations('org-1');
-    const sql = calls[0].sql.replace(/\s+/g, ' ');
+    await seed();
+    const ids = (await signals.listGeneratingAutomations('org-1')).map((/** @type {any} */ x) => x.id);
     // Scheduled, form and app runs execute live_definition_json; a never-live
     // automation (live NULL) runs its working copy.
-    assert.match(sql, /COALESCE\(a\.live_definition_json, a\.definition_json\) AS definition_json/);
+    assert.ok(ids.includes('live-ai') && !ids.includes('live-plain'));
     // A trashed automation no longer runs, so it is no Art. 50(2) subject.
-    assert.match(sql, /a\.deleted_at IS NULL/);
+    assert.ok(!ids.includes('trashed'));
 });
 
 test('loadAutomation does not resolve a trashed automation (no assessment, no attestation)', async () => {
-    calls.length = 0;
-    oneResult = null;
-    await signals.loadAutomation('org-1', 'auto-9');
-    assert.ok(calls.length >= 1);
-    for (const c of calls) assert.match(c.sql, /a\.deleted_at IS NULL/);
+    await seed();
+    assert.strictEqual(await signals.loadAutomation('org-1', 'trashed'), null);
+    assert.ok(await signals.loadAutomation('org-1', 'a'));
 });
 
 test('listGeneratingAutomations throws on a failed read: the Art. 50(2) list retires what it no longer holds', async () => {
+    await seed();
     // "could not read" answered as [] would retire every automation's slot.
-    allResult = () => { const e = new Error('canceling statement due to statement timeout'); e.code = '57014'; throw e; };
-    await assert.rejects(() => signals.listGeneratingAutomations('org-1'), (e) => e.code === '57014');
+    const undo = await failReads(pg, 'automations', '57014', 'canceling statement due to statement timeout');
+    try {
+        await assert.rejects(() => signals.listGeneratingAutomations('org-1'), (/** @type {any} */ e) => e.code === '57014');
+    } finally { await undo(); }
     // A missing table (fresh install) is still an empty list.
-    allResult = () => { const e = new Error('relation "automations" does not exist'); e.code = '42P01'; throw e; };
-    assert.deepStrictEqual(await signals.listGeneratingAutomations('org-1'), []);
-    allResult = [];
+    const show = await hideTable(pg, 'automations');
+    try { assert.deepStrictEqual(await signals.listGeneratingAutomations('org-1'), []); } finally { await show(); }
 });

@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import useUserSettingSave from '../../hooks/useUserSettingSave';
-import { API_BASE } from '../../utils/helpers';
 import { postForBody } from '../../api/postForBody';
 import { IntegrationRow, DisconnectButton } from './IntegrationPrimitives';
 import type { FirebirdIntegrationProps } from './IntegrationsSection.types';
+import { apiUrl } from '@/api/typedRequest';
 
 // ── Firebird database ─────────────────────────────────────────────────────────
 // Read-only access to a Firebird database (typically Syntess Atrium). The
@@ -62,7 +62,7 @@ function useFirebirdForm(hasFirebirdConfig: boolean | undefined, onSaved: () => 
         setTesting(true);
         setTestResult(null);
         try {
-            const { body } = await postForBody(`${API_BASE}/ai/firebird/test`, { method: 'POST', body: JSON.stringify(filled()), headers: { 'Content-Type': 'application/json' } });
+            const { body } = await postForBody(apiUrl('POST /ai/firebird/test'), { method: 'POST', body: JSON.stringify(filled()), headers: { 'Content-Type': 'application/json' } });
             const version = String(body.server_version ?? '');
             const tables = String(body.table_count ?? '');
             setTestResult(body.ok

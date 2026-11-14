@@ -56,7 +56,7 @@ const SURE_NO = {
 
 function attestDouble(input) {
     state.attests.push(input);
-    const assess = require('../../compliance/aiAct/assess');
+    const assess = require('../../core/aiAct/assess');
     const result = assess.assess(input.signals, input.answers, { attestedAt: new Date(NOW) });
     const row = {
         organization_id: input.orgId, target_kind: input.kind, target_id: input.id,
@@ -350,7 +350,7 @@ test('PUT /:id/ai-act/answers: validation, rights and the licence', async () => 
     assert.deepStrictEqual(await codes({ sensitiveUse: 'yes', domains: ['astrology'] }), [400, 'ai_act.domain_invalid']);
     assert.deepStrictEqual(await codes({ prohibitedUse: 'yes', practices: ['mind_reading'] }), [400, 'ai_act.practice_invalid']);
     assert.deepStrictEqual(await codes({ externalOutput: 'perhaps' }), [400, 'ai_act.answer_invalid']);
-    assert.deepStrictEqual(await codes({ externalOutput: 'no', note: 'x' }), [400, 'ai_act.unknown_field']);
+    assert.deepStrictEqual(await codes({ externalOutput: 'no', note: 'x' }), [400, 'invalid_request']);
     assert.strictEqual((await call('PUT', '/a1/ai-act/answers', { externalOutput: 'no' }, 'viewer')).status, 403);
     state.required = false;
     assert.deepStrictEqual(await codes({ externalOutput: 'no' }), [403, 'ai_act_not_available']);
@@ -387,3 +387,12 @@ test('a valid hub attestation stands: the check does not redo it or ask the mode
     assert.strictEqual(state.attests.length, 0);
 });
 
+
+test('the wizard and the answers refuse a key they do not take by name, before the automation is read', async () => {
+    const wizard = await call('PUT', '/a1/ai-act', { usesAi: 'yes', externalOutput: 'no', sensitiveUse: 'no', name: 'x' });
+    assert.strictEqual(wizard.status, 400);
+    assert.match(wizard.json.error, /The AI Act check does not take "name"/);
+    const answers = await call('PUT', '/a1/ai-act/answers', { usesAi: 'yes', notes: 'x' });
+    assert.strictEqual(answers.status, 400);
+    assert.match(answers.json.error, /Answering the AI Act questions does not take "notes"/);
+});

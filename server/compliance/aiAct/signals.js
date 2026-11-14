@@ -20,12 +20,12 @@
  *   annex_iii_questions all TEN Annex III domains, hinted ones first, each with
  *                       the point of the annex that settles it. The admin
  *                       answers these; nothing here answers them for him.
- *                       See compliance/aiAct/annexIii.js for why a pattern is
+ *                       See core/aiAct/annexIii.js for why a pattern is
  *                       not allowed to be the answer.
  *   steps               { ai: [{id,label,type}], generating: [{id,label,signal,aiStepIds}] }
  *
  * The graph reading is shared with the Art. 50(2) marking check through
- * automation/automationGraph.js so the two can never disagree. Everything
+ * core/automationModel/automationGraph.js so the two can never disagree. Everything
  * that touches the database is in the *ForAutomation / *ForAgent / list*
  * functions; `signalsFromDefinition` is pure and what the tests pin.
  *
@@ -36,7 +36,7 @@
  */
 
 const { getOne, getAll } = require('../../db');
-const graph = require('../../automation/automationGraph');
+const graph = require('../../core/automationModel/automationGraph');
 // hasDisclosure is attached non-enumerably (Object.defineProperty), so the module's own type does not list it.
 const { hasDisclosure } = /** @type {typeof import('../checks/aia/art50-ai-disclosure') & { hasDisclosure: (text: unknown) => boolean }} */ (require('../checks/aia/art50-ai-disclosure'));
 const complianceStore = require('../../stores/complianceStore');
@@ -44,7 +44,7 @@ const complianceStore = require('../../stores/complianceStore');
 // The Annex III catalogue — ten domains, their keyword hints and the point of
 // the annex each one cites. It lives in its own file because `assess.js` needs
 // the same vocabulary and may not reach through this module (which does IO).
-const annexIii = require('./annexIii');
+const annexIii = require('../../core/aiAct/annexIii');
 const { fallback } = require('../../utils/bestEffort');
 const { ANNEX_III_RE } = annexIii;
 

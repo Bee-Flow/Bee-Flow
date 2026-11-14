@@ -51,7 +51,7 @@ const MOCKS = {
         resolveOrgIdForUser: async () => null,   // consumer path
         getOrigin: () => 'https://api.example.test',
     },
-    './checkoutEvents': { handleCheckoutCompleted: async () => {} },
+    '../../usecases/stripe/checkoutEvents': { handleCheckoutCompleted: async () => {} },
     '../../auth/consentGuards': {
         validateWaiver: (w) => (w && w.accepted === true
             ? { ok: true }

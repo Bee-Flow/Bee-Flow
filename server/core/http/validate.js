@@ -48,20 +48,52 @@ const REQUEST_PARTS = ['body', 'query', 'params'];
  */
 const isRequestPart = (entry) => REQUEST_PARTS.includes(entry[0]) && entry[1] !== undefined;
 
+/** @typedef {{ body?: import('zod').ZodType, query?: import('zod').ZodType, params?: import('zod').ZodType }} Schemas */
+
 /**
- * @param {{ body?: import('zod').ZodType, query?: import('zod').ZodType, params?: import('zod').ZodType }} schemas
+ * What a handler after `validate(schemas)` reads in one part of the request: the schema's
+ * output when the part has one, otherwise what Express gives it without (`D`).
+ * @template S
+ * @template {keyof Schemas} K
+ * @template D
+ * @typedef {S extends { [k in K]: infer T extends import('zod').ZodType } ? import('zod').output<T> : D} PartOf
+ */
+
+/**
+ * The middleware `validate` returns. Express types every handler of one route with the same
+ * `ReqBody` / `ReqQuery`, inferred from the handlers it is given, so the handler after this
+ * one reads `req.body` and `req.query` as the schemas produce them, without a cast.
+ *
+ * It is deliberately NOT generic: TypeScript leaves a generic function argument out of the first
+ * inference pass, and the handler's parameter types are fixed in that pass, so a generic
+ * middleware here would leave the handler with `any`. The price is the route parameters: without
+ * a `params` schema they are `any` here (Express's path inference cannot reach a non-generic
+ * argument); pass a `params` schema for typed ones.
+ *
+ * Two things still win over the schema types: a middleware earlier in the chain typed with a
+ * plain `import('express').Request` (its `any` body and `ParsedQs` query join the inference), and
+ * a helper that takes a plain `Request`, which cannot accept a typed query. Type such middleware
+ * and helpers `Request<any, any, any, any>` when they read only the session or the path.
+ * @template S
+ * @typedef {(
+ *   req: import('express').Request<PartOf<S, 'params', any>, any, PartOf<S, 'body', any>, PartOf<S, 'query', import('qs').ParsedQs>>,
+ *   res: import('express').Response,
+ *   next: import('express').NextFunction,
+ * ) => void} ValidatedHandler
+ */
+
+/**
+ * @template {Schemas} S
+ * @param {S} schemas
+ * @returns {ValidatedHandler<S>}
  */
 function validate(schemas) {
     const parts = Object.entries(schemas).filter(isRequestPart);
     /**
-     * Generic in the route parameters, so the handler after it keeps the `{ id: string }` Express
-     * infers from the path.
-     * @template P
-     * @param {import('express').Request<P>} req
+     * @param {import('express').Request<any, any, any, any>} req
      * @param {unknown} _res
      * @param {import('express').NextFunction} next
      */
-
     return function validateRequest(req, _res, next) {
 
         for (const [part, schema] of parts) {

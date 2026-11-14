@@ -8,7 +8,7 @@
 'use strict';
 
 const fs = require('fs');
-const log = require('../../telemetry/log');
+const { ignoreGone } = require('../../utils/bestEffort');
 
 class IngestError extends Error {
     /**
@@ -25,6 +25,6 @@ class IngestError extends Error {
 /**
  * @param {string | undefined} p
  */
-function safeUnlink(p) { if (!p) return; try { fs.unlinkSync(p); } catch (_) { log.debug('file already gone', _); } }
+function safeUnlink(p) { if (!p) return; try { fs.unlinkSync(p); } catch (_) { ignoreGone('meetingNotes/ingestShared:unlinkTemp', _); } }
 
 module.exports = { IngestError, safeUnlink };

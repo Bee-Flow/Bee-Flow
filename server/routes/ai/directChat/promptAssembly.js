@@ -10,10 +10,10 @@
  */
 
 const configStore = require('../../../stores/configStore');
-const { protectMemoryContext } = require('./memoryProtection');
+const { protectMemoryContext } = require('../../../usecases/ai/directChat/memoryProtection');
 const { buildToolHint } = require('../../../core/integrations/integrationTools');
 const { emitPhase, emitPhaseEnd } = require('../../../core/agentRuntime/phaseEvents');
-const { DEFAULT_SYSTEM_PROMPT } = require('./systemPrompt');
+const { DEFAULT_SYSTEM_PROMPT } = require('../../../usecases/ai/directChat/systemPrompt');
 const { formatLocalNow } = require('../../../core/llm/clock');
 const {
     makeKbPassagesText, projectContextFor, attachedKbContext, retrieveMemories, houseStyleContextFor,

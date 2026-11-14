@@ -10,7 +10,7 @@
  *   schemaSection      schemaVersion as stored and after canonicalize
  *   validationSection  validateAppDefinition on the canonical form: "code @ path" per error and
  *                      warning, strict (publish-style data references) and as a save runs it
- *   installSection     templateUpgrade.hashDefinition of the stored and of the re-saved form
+ *   installSection     core/packaging/definitionHash of the stored and of the re-saved form
  *                      (template installs only: the only rows that carry an install hash)
  *   publicSection      publicAccess.buildPublicDefinition over the stored bytes, as the public
  *                      page route serves them (apps with publicAccess only)
@@ -34,7 +34,7 @@ type Surface = { ok: boolean; reason?: string; actionIds?: Set<string> };
 
 const { canonicalizeAppDefinition } = nodeRequire('../canonicalize') as { canonicalizeAppDefinition: Canon };
 const { validateAppDefinition } = nodeRequire('../validate') as { validateAppDefinition: Validate };
-const { hashDefinition } = nodeRequire('../templateUpgrade') as { hashDefinition: (def: unknown) => string };
+const { hashDefinition } = nodeRequire('../../core/packaging/definitionHash.mts') as { hashDefinition: (def: unknown) => string };
 const publicAccess = nodeRequire('../publicAccess') as {
     resolvePublicSurface: (def: unknown) => Surface;
     buildPublicDefinition: (def: unknown, surface: Surface) => Obj;

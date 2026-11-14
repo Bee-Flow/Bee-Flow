@@ -1,3 +1,4 @@
+import { matchPattern, matchRoute } from '../router/matchRoute';
 // Route mapping + URL parsers for the authenticated app shell.
 // Extracted verbatim from AuthedApp.jsx — pure constants and helpers only.
 
@@ -155,198 +156,145 @@ export function mobilePageKey(page: string | null | undefined): string {
     return head;
 }
 
-// Reverse lookup: path → page key
-const PATH_TO_PAGE = Object.fromEntries(
-    Object.entries(PAGE_ROUTES).map(([page, path]) => [path, page])
-);
+// ── The route table ─────────────────────────────────────────────
+// One row per address shape, first match wins. A pattern is literal segments,
+// `:name` for one segment (`:name?` when it may be absent) and a trailing `*`
+// for whatever follows, including nothing. A trailing slash never matters.
+//
+// `access` says who the page lets in; the page itself refuses everyone else at
+// the same address (the admin dashboard, organisation settings and the agent
+// editor each render their own refusal). `redirect` is the address a cold load
+// forwards to, with `replace`, so Back never returns to the forwarding one: the
+// legacy pages that moved into Studio, the desktop client's hand-over addresses
+// (desktop/src/main/deepLink.ts: /app/chat, /app/knowledge, /app/tasks) and
+// /app/billing, whose target depends on the account (`billing` is resolved by
+// navigateToPage).
+type RouteAccess = 'member' | 'admin' | 'orgAdmin' | 'manageAgents';
 
-/** The member library's selected document, including notebook/<id> references. */
-export function parseDocumentUrl(pathname: string): string | null {
-    const ref = pathname.match(/^\/app\/documents\/(.+?)\/?$/)?.[1];
-    if (!ref) return null;
-    try { return ref.split('/').map(decodeURIComponent).join('/'); }
-    catch { return null; }
+export interface RouteDef {
+    pattern: string;
+    page: string;
+    access?: RouteAccess;
+    /** Address template (`:name` filled from the match) or the page name `billing`. */
+    redirect?: string;
 }
 
-export function documentRoutePath(ref: string | null = null): string {
-    return ref ? `${PAGE_ROUTES.documents}/${ref.split('/').map(encodeURIComponent).join('/')}` : PAGE_ROUTES.documents;
+export const APP_ROUTES: readonly RouteDef[] = [
+    { pattern: '/', page: 'agents' },
+    { pattern: '/app', page: 'agents' },
+    { pattern: '/app/admin/*', page: 'admin', access: 'admin' },
+    { pattern: '/admin/*', page: 'admin', access: 'admin' },
+    { pattern: '/app/org-settings/*', page: 'orgSettings', access: 'orgAdmin' },
+    { pattern: '/org-settings/*', page: 'orgSettings', access: 'orgAdmin' },
+    { pattern: '/app/settings/*', page: 'settings' },
+    // The stable billing entry point: the pricing page and every upgrade link
+    // can use it without knowing whether the visitor has a personal or an
+    // organisation account. It resolves to the plan page of that account.
+    { pattern: '/app/billing/*', page: 'billing', redirect: 'billing' },
+    { pattern: '/app/agent-designer-advanced/:agentId?', page: 'agentDesignerAdvanced', access: 'manageAgents' },
+    // Without an agent the editor is Studio's agents section; with one it is
+    // that agent's editor at its own address.
+    { pattern: '/app/agent-designer', page: 'agentDesigner', access: 'manageAgents', redirect: '/app/studio/agents' },
+    { pattern: '/app/agent-designer/:agentId/*', page: 'agentDesigner', access: 'manageAgents' },
+    { pattern: '/app/agent-wizard/*', page: 'agentWizard', access: 'manageAgents' },
+    // Cowork's previous life as a Studio tab, matched before the Studio rule.
+    { pattern: '/app/studio/cowork/:coworkId?', page: 'cowork' },
+    // Studio's sections are not routes: /app/studio/<segment> is read by
+    // components/admin/Studio/studioRoutes.ts from the Studio app registry.
+    { pattern: '/app/studio/*', page: 'studio' },
+    // The old standalone automations page, under its three names. Kept for
+    // good: a link in someone's mailbox does not expire when we ship.
+    { pattern: '/app/automations/*', page: 'studio' },
+    { pattern: '/app/routines/*', page: 'studio' },
+    { pattern: '/app/ai-tasks/*', page: 'studio' },
+    { pattern: '/app/cowork/:coworkId?', page: 'cowork' },
+    { pattern: '/app/work/:coworkId?', page: 'cowork' },
+    { pattern: '/app/documents/*', page: 'documents' },
+    // A notebook is a document type: the library and every notebook live in
+    // Studio → Documents.
+    { pattern: '/app/notebooks', page: 'notebooks', redirect: '/app/studio/documents' },
+    { pattern: '/app/notebooks/:id/*', page: 'studio' },
+    { pattern: '/app/projects/*', page: 'projects' },
+    { pattern: '/app/webpages', page: 'webpages', redirect: '/app/studio/webpages' },
+    { pattern: '/app/webpages/:id/*', page: 'studio' },
+    // The directory of published apps, then the run view of one app. The run
+    // view is the standalone end-user surface; the directory keeps the sidebar.
+    { pattern: '/app/apps', page: 'apps' },
+    { pattern: '/app/apps/:appId/*', page: 'appRun' },
+    // Every published form, then one form rendered inside the workspace (the
+    // same page answers anonymously at /f/:token).
+    { pattern: '/app/forms', page: 'forms' },
+    { pattern: '/app/forms/:token/*', page: 'formView' },
+    { pattern: '/app/meeting-notes', page: 'meetingNotes', redirect: '/app/studio/meeting-notes' },
+    { pattern: '/app/meeting-notes/*', page: 'studio' },
+    { pattern: '/app/reports', page: 'reports' },
+    { pattern: '/app/templates', page: 'templates' },
+    // The desktop client's hand-over addresses.
+    { pattern: '/app/knowledge', page: 'studio', redirect: '/app/studio/knowledge' },
+    { pattern: '/app/knowledge/:id/*', page: 'studio', redirect: '/app/studio/knowledge/:id' },
+    { pattern: '/app/chat', page: 'agents', redirect: '/app' },
+    { pattern: '/app/chat/:id/*', page: 'agents', redirect: '/app/d/:id' },
+    { pattern: '/app/tasks', page: 'cowork', redirect: '/app/cowork' },
+    { pattern: '/app/tasks/:id/*', page: 'cowork', redirect: '/app/cowork/:id' },
+    // Chat addresses: an agent (short id, optional conversation) or a direct
+    // conversation, under /app and in their bare legacy form.
+    { pattern: '/app/a/:agentId/:conversationId?', page: 'agents' },
+    { pattern: '/app/agent/:agentId/:conversationId?', page: 'agents' },
+    { pattern: '/app/d/:conversationId', page: 'agents' },
+    { pattern: '/a/:agentId/:conversationId?', page: 'agents' },
+    { pattern: '/agent/:agentId/:conversationId?', page: 'agents' },
+    { pattern: '/d/:conversationId', page: 'agents' },
+    // /login is the app home on purpose: login renders in place, and the
+    // server keeps mailing this address with the query the boot code reads
+    // (?verified=, ?signup=, ?reset=, ?error=; core/appPaths.legacyLoginPath).
+    // Declared ahead of the legacy ?page= lookup, so /login?page=<key> opens
+    // the home page rather than that key.
+    { pattern: '/login/*', page: 'agents' },
+    { pattern: '/app/*', page: 'agents' },
+];
+
+/** Where an address lands: the page, the named segments and the forward it asks for. */
+export interface AppRoute {
+    page: string;
+    params: Record<string, string>;
+    pathname: string;
+    search: string;
+    /** The address (or `billing`) a cold load replaces this one with; null when the page renders here. */
+    redirect: string | null;
 }
 
+export { matchPattern };
+
+function fillTemplate(template: string, params: Record<string, string>): string {
+    return template.replace(/:([a-zA-Z]+)/g, (_, name: string) => params[name] ?? '');
+}
+
+/**
+ * The app route of an address. An address no row fits is the home page,
+ * unless its query carries the legacy `?page=<key>` of a canonical page.
+ */
+export function matchAppRoute(pathname: string, search = ''): AppRoute {
+    const hit = matchRoute(APP_ROUTES, pathname);
+    if (hit) {
+        const { route, params } = hit;
+        const redirect = route.redirect ? (route.redirect.startsWith('/') ? fillTemplate(route.redirect, params) : route.redirect) : null;
+        return { page: route.page, params, pathname, search, redirect };
+    }
+    const legacyPage = new URLSearchParams(search).get('page');
+    const page = legacyPage && PAGE_ROUTES[legacyPage] ? legacyPage : 'agents';
+    return { page, params: {}, pathname, search, redirect: null };
+}
+
+/**
+ * The page key of an address. The legacy `?page=` is read from the browser's
+ * own query, and only for an address no row claims (this function also runs
+ * under the native app's tests, where there is no window).
+ */
 export function pageFromPath(pathname: string): string {
-    // Root → agents (redirect to /app)
-    if (pathname === '/') return 'agents';
-    // Exact match for app routes
-    if (PATH_TO_PAGE[pathname]) return PATH_TO_PAGE[pathname];
-    // /app/admin or /app/admin/* → admin page
-    if (pathname === '/app/admin' || pathname.startsWith('/app/admin/')) return 'admin';
-    // Legacy bare /admin → redirect to /app/admin (handled below)
-    if (pathname === '/admin' || pathname.startsWith('/admin/')) return 'admin';
-    // /app/org-settings or /app/org-settings/* → orgSettings
-    if (pathname === '/app/org-settings' || pathname.startsWith('/app/org-settings/')) return 'orgSettings';
-    // Legacy bare /org-settings
-    if (pathname === '/org-settings' || pathname.startsWith('/org-settings/')) return 'orgSettings';
-    // /app/settings or /app/settings/* → settings
-    if (pathname === '/app/settings' || pathname.startsWith('/app/settings/')) return 'settings';
-    // /app/billing (+ /app/billing/* for future sub-tabs) → billing
-    if (pathname === '/app/billing' || pathname.startsWith('/app/billing/')) return 'billing';
-    // /app/agent-designer-advanced or /app/agent-designer-advanced/* → agentDesignerAdvanced (legacy form)
-    if (pathname === '/app/agent-designer-advanced' || pathname.startsWith('/app/agent-designer-advanced/')) return 'agentDesignerAdvanced';
-    // /app/agent-designer or /app/agent-designer/* → agentDesigner (unified studio)
-    if (pathname === '/app/agent-designer' || pathname.startsWith('/app/agent-designer/')) return 'agentDesigner';
-    // /app/agent-wizard → agentWizard
-    if (pathname === '/app/agent-wizard' || pathname.startsWith('/app/agent-wizard/')) return 'agentWizard';
-    // Cowork used to be a Studio tab. Its deep links keep working, but they
-    // resolve to the standalone page now — matched BEFORE the generic Studio
-    // rule below, which would otherwise swallow them.
-    if (pathname === '/app/studio/cowork' || pathname.startsWith('/app/studio/cowork/')) return 'cowork';
-    // /app/studio (and sub-sections) → unified Studio
-    if (pathname === '/app/studio' || pathname.startsWith('/app/studio/')) return 'studio';
-    // The old standalone automations page — /app/ai-tasks (before Aug 2026),
-    // /app/routines, /app/automations [+ /<id>] — opens Studio → Automations
-    // now (parseStudioUrl maps the id). Kept permanently: a link in someone's
-    // mailbox does not expire when we ship.
-    if (/^\/app\/(?:automations|routines|ai-tasks)(?:\/|$)/.test(pathname)) return 'studio';
-    // /app/cowork (+ /app/cowork/:id for the detail pane) → Cowork.
-    // /app/work is what this page was called before the rename; kept so
-    // bookmarks and the old sidebar entry still land somewhere.
-    if (pathname === '/app/cowork' || pathname.startsWith('/app/cowork/')) return 'cowork';
-    if (pathname === '/app/work' || pathname.startsWith('/app/work/')) return 'cowork';
-    if (pathname.startsWith('/app/documents/')) return 'documents';
-    // Legacy /app/notebooks[/:id] → Studio's Documents section, where notebooks
-    // live now (parseStudioUrl maps the id). Before the generic /app/* match.
-    if (pathname === '/app/notebooks' || pathname.startsWith('/app/notebooks/')) return 'studio';
-    // /app/projects, /app/projects/:id, /app/projects/:id/:tab
-    if (pathname.startsWith('/app/projects')) return 'projects';
-    // /app/webpages/:id → unified Studio (Webpages tab)
-    if (pathname.startsWith('/app/webpages')) return 'studio';
-    // /app/apps → the published-apps directory (consumer gallery). Must be
-    // matched BEFORE the /app/apps/:id run view so the bare path resolves here.
-    if (pathname === '/app/apps' || pathname === '/app/apps/') return 'apps';
-    // /app/forms → every form published in the organisation. No /app/forms/:id
-    // yet: a form's own page IS its public address, so a row opens /f/<token>.
-    if (pathname === '/app/forms' || pathname === '/app/forms/') return 'forms';
-    // /app/forms/:token → the form itself, rendered INSIDE the workspace so the
-    // sidebar stays. The same page also answers anonymously at /f/:token; this
-    // is the signed-in way in, and the address is shareable with a colleague.
-    if (pathname.startsWith('/app/forms/')) return 'formView';
-    // /app/apps/:id → standalone App Studio run view (end users open a
-    // published app without the Studio shell). The editor lives at
-    // /app/studio/apps.
-    if (pathname.startsWith('/app/apps/')) return 'appRun';
-    // /app/meeting-notes → unified Studio (Meeting Notes tab)
-    if (pathname === '/app/meeting-notes' || pathname.startsWith('/app/meeting-notes/')) return 'studio';
-
-    // /app/a/:shortId or /app/agent/:id → agents page
-    if (pathname.startsWith('/app/a/') || pathname.startsWith('/app/agent/')) return 'agents';
-    // /app/d/:convId → direct chat
-    if (pathname.startsWith('/app/d/')) return 'agents';
-    // Legacy bare paths (backward compat)
-    if (pathname.startsWith('/a/') || pathname.startsWith('/agent/')) return 'agents';
-    if (pathname.startsWith('/d/')) return 'agents';
-    // /login → the app home, on purpose (B1). There is no /login ROUTE and
-    // there will not be one: login renders in place, so a new top-level path
-    // would buy nothing and cost nginx, the SPA fallback, the self-host compose
-    // and e2e. But the server keeps sending people here, those links sit in
-    // mailboxes, and the boot code reads their query string:
-    //   auth/login/emailVerificationRoutes.js  ?verified=1, ?error=verify_*
-    //   auth/login/inviteRoutes.js             ?signup=1,   ?error=invite_*
-    //   auth/login/passwordResetRoutes.js      ?reset=<token>
-    // all three via core/appPaths.legacyLoginPath, which appPaths.test.js
-    // freezes. NOT auth/admin/invitationRoutes.js: the invite mail deliberately
-    // carries /auth/redeem-invite/<token> instead, so the token never lands in
-    // the URL bar, the Referer header or proxy logs — it arrives here as the
-    // ?signup=1 redirect that endpoint fires.
-    //
-    // Registered as a declared alias rather than left to the fall-through
-    // below: /login does not start with /app/, so it used to reach the legacy
-    // ?page= branch and then the default return. One behaviour change came
-    // with that — /login?page=<a PAGE_ROUTES key> used to open that page and
-    // now always opens agents. Nothing mints that shape; the query params the
-    // mails carry are the ones above. (/settings/billing, the Stripe portal's
-    // fallback return, still rides the fall-through — see
-    // legacyBillingSettingsPath.)
-    if (pathname === '/login' || pathname.startsWith('/login/')) return 'agents';
-    // /app/* catch-all → agents
-    if (pathname.startsWith('/app/')) return 'agents';
-    // Legacy ?page= param support (backward compat)
-    const params = new URLSearchParams(window.location.search);
-    const legacyPage = params.get('page');
-    if (legacyPage && PAGE_ROUTES[legacyPage]) return legacyPage;
-    // Default — redirect everything to app
-    return 'agents';
+    const hit = matchRoute(APP_ROUTES, pathname);
+    if (hit) return hit.route.page;
+    return matchAppRoute(pathname, typeof window === 'undefined' ? '' : window.location.search).page;
 }
 
-// Parse /app/admin/{seg1}/{seg2}/{seg3} from the URL. The query and hash are
-// never part of a segment: in-app navigation hands over the whole page string
-// ('admin/compliance/frameworks?tab=calendar'), and 'frameworks?tab=calendar'
-// is not a section.
-export function parseAdminPath(pathname: unknown): { seg1: string; seg2: string; seg3: string } {
-    const match = String(pathname || '').match(/^\/(?:app\/)?admin(?:\/([^/?#]+))?(?:\/([^/?#]+))?(?:\/([^/?#]+))?/);
-    return {
-        seg1: match?.[1] || '',
-        seg2: match?.[2] || '',
-        seg3: match?.[3] || '',
-    };
-}
-
-// Parse /app/org-settings/{seg1}/{seg2} from the URL
-export function parseOrgSettingsPath(pathname: string): { seg1: string; seg2: string } {
-    const match = pathname.match(/^\/(?:app\/)?org-settings(?:\/([^/]+))?(?:\/([^/]+))?/);
-    return {
-        seg1: match?.[1] || '',
-        seg2: match?.[2] || '',
-    };
-}
-
-// Parse the agent id out of /app/agent-designer/{agentId} (trailing segments ignored).
-export function parseAgentDesignerUrl(pathname: string): string | null {
-    const match = pathname.match(/^\/app\/agent-designer(?:-advanced)?(?:\/([^/]+))?/);
-    return match?.[1] || null;
-}
-
-// parseStudioUrl (parsing /app/studio/* + legacy /app/webpages, /app/meeting-notes)
-// now lives in ../components/admin/Studio/studioRoutes.js, derived from the
-// Studio app registry.
-
-// Extract the cowork id from /app/cowork/:id, plus the two legacy shapes it
-// used to live at: /app/work/:id and the Studio tab /app/studio/cowork/:id.
-export function parseCoworkUrl(pathname: string): string | null {
-    const match = pathname.match(/^\/app\/(?:studio\/cowork|cowork|work)(?:\/([^/]+))?/);
-    return match?.[1] || null;
-}
-
-// Extract agent ID prefix and conversation ID prefix from URL
-// Supports: /app/a/:shortId, /app/a/:shortId/:shortConvId, /app/agent/:fullId, and legacy bare forms
-export function parseAgentUrl(pathname: string): { agentId: string | null; conversationId: string | null } {
-    const match = pathname.match(/^\/(?:app\/)?(?:a|agent)\/([a-zA-Z0-9_-]+)(?:\/([a-zA-Z0-9_-]+))?/);
-    if (match) {
-        return { agentId: match[1], conversationId: match[2] || null };
-    }
-    return { agentId: null, conversationId: null };
-}
-
-// Extract direct chat conversation ID from URL: /app/d/:shortConvId (legacy: /d/:shortConvId)
-export function parseDirectChatUrl(pathname: string): string | null {
-    const match = pathname.match(/^\/(?:app\/)?d\/([a-zA-Z0-9_-]+)/);
-    return match ? match[1] : null;
-}
-
-
-// A Studio app opened from its own Nextcloud app-menu entry. The connector's
-// per-entry page script (nextcloud-connector/src/studioAppMenus.js) mounts the
-// SPA iframe at the signed-proxy ROOT with `?ncStudioApp=<appId>` — inside
-// Nextcloud the pathname is the proxy path and never matches /app/apps/:id,
-// so the boot route comes from this query param instead.
-export function parseNcStudioAppParam(): string | null {
-    try {
-        const id = new URLSearchParams(window.location.search).get('ncStudioApp');
-        // App ids are UUIDs; refuse anything else so a mangled param falls
-        // back to the normal home screen instead of a broken run view.
-        return (id && /^[0-9a-f-]{36}$/i.test(id)) ? id : null;
-    } catch (_) {
-        return null;
-    }
-}
-
-// Reserved top-level paths + CMS slug routing rules live in
-// utils/cmsPublicRouting.js (shared with the CMS editor's slug warnings).
+// The URL parsers the pages are opened with (admin and organisation segments,
+// chat ids, cowork ids, the Nextcloud app-menu param) live in ./urlParsers.ts.

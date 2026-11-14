@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * What every phase of a stage deployment shares: the injectable stores
  * (`storesOf`), the deployment journal (`makeJournal`) and the actions that

@@ -11,14 +11,15 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import type { ReactNode } from 'react';
 import { READ } from './canUse/canUseFacts';
 import { readSkills } from '@/api/queries/skills';
-import { API_BASE, authFetch } from '@/utils/helpers';
-import { isAbortError } from '@/utils/caughtError';
 import type { AgentEditorBootstrap, AutomationRow, CategoryRow, ReadState } from './agentEditor.types';
 import type { OrgGroup } from '../AgentDesigner/PublishMenu';
 import type { ModelTierMap } from '@/api/queries/modelTiers';
 import type { Skill } from '@/api/queries/skills';
 import type { IntegrationStatus } from '../AgentDesigner/DesignerPanels';
-import { request, RefusedError } from '@/api/mutate';
+import { RefusedError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
+import { useAgentEditorBootstrapQuery } from '@/api/queries/agentEditorBootstrap';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 const EMPTY: AgentEditorBootstrap = {
     allSkills: null,
@@ -68,7 +69,7 @@ export function AgentEditorBootstrapProvider({ children }: { children?: ReactNod
         try {
             let r: Response;
             try {
-                r = await request(`${API_BASE}/agents/categories`);
+                r = await apiRequest('GET /agents/categories');
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 setCategoriesState(READ.ERROR);
@@ -84,66 +85,34 @@ export function AgentEditorBootstrapProvider({ children }: { children?: ReactNod
         }
     }, []);
 
+    // One read of the six requests per session (api/queries/agentEditorBootstrap.ts).
+    const bootstrap = useAgentEditorBootstrapQuery();
+    useAdjustOnChange([bootstrap.dataUpdatedAt], () => {
+        const answer = bootstrap.data;
+        if (!answer) return;
+        setAllSkills(answer.skills as Skill[]);
+        setIntegrationStatus(answer.integrationStatus as IntegrationStatus);
+        setCategories((answer.categories ?? []) as CategoryRow[]);
+        setCategoriesState(answer.categories ? READ.OK : READ.ERROR);
+        setOrgGroups(answer.orgGroups as OrgGroup[]);
+        setTiers(answer.tiers as ModelTierMap);
+        const autos = answer.automations;
+        if (autos.state === 'ok') { setAutomations(autos.list as AutomationRow[]); setAutomationsState(READ.OK); }
+        else if (autos.state === 'unrecognised') { setAutomations([]); setAutomationsState(READ.ERROR); }
+        else setAutomationsState(READ.ERROR);
+        setLoaded(true);
+    });
+    useAdjustOnChange([bootstrap.errorUpdatedAt], () => {
+        if (!bootstrap.error) return;
+        setAllSkills([]);
+        setIntegrationStatus({});
+        setAutomationsState(READ.ERROR);
+        setCategoriesState(READ.ERROR);
+        setLoaded(true);
+    });
     useEffect(() => {
-        const ac = new AbortController();
-        const { signal } = ac;
-        (async () => {
-            try {
-                const [skillsRes, statusRes, catsRes, groupsRes, tiersRes, autosRes] = await Promise.all([
-                    authFetch(`${API_BASE}/api/skills`, { signal }),
-                    authFetch(`${API_BASE}/ai/user-settings`, { signal }),
-                    authFetch(`${API_BASE}/agents/categories`, { signal }),
-                    authFetch(`${API_BASE}/auth/groups`, { signal }),
-                    authFetch(`${API_BASE}/ai/config/tiers-for-user?taskType=direct_chat`, { signal }),
-                    authFetch(`${API_BASE}/api/automation`, { signal }).catch((e: unknown): { ok: false } => {
-                        if (!isAbortError(e)) console.warn('[AgentEditorBootstrap] automations fetch failed', e);
-                        return { ok: false };
-                    }),
-                ]);
-                if (signal.aborted) return;
-                setAllSkills(skillsRes.ok ? await skillsRes.json() : []);
-                setIntegrationStatus(statusRes.ok ? await statusRes.json() : {});
-                if (catsRes.ok) {
-                const list = await catsRes.json();
-                const okList = Array.isArray(list);
-                setCategories(okList ? list : []);
-                setCategoriesState(okList ? READ.OK : READ.ERROR);
-            } else {
-                setCategories([]);
-                setCategoriesState(READ.ERROR);
-            }
-                setOrgGroups(groupsRes.ok ? await groupsRes.json() : []);
-                setTiers(tiersRes.ok ? await tiersRes.json() : {});
-                if (autosRes.ok) {
-                    try {
-                        const data = await autosRes.json();
-                        if (!signal.aborted) {
-                            // A 200 without an `automations` array is not an empty list but an answer that we do not
-                            // recognise.
-                            const ok = Array.isArray(data?.automations);
-                            setAutomations(ok ? data.automations : []);
-                            setAutomationsState(ok ? READ.OK : READ.ERROR);
-                        }
-                    } catch (e) {
-                        console.warn('[AgentEditorBootstrap] automations parse failed', e);
-                        if (!signal.aborted) { setAutomations([]); setAutomationsState(READ.ERROR); }
-                    }
-                } else if (!signal.aborted) {
-                    setAutomationsState(READ.ERROR);
-                }
-            } catch (e) {
-                if (isAbortError(e) || signal.aborted) return;
-                console.warn('[AgentEditorBootstrap] bootstrap fetch failed', e);
-                setAllSkills([]);
-                setIntegrationStatus({});
-                setAutomationsState(READ.ERROR);
-                setCategoriesState(READ.ERROR);
-            } finally {
-                if (!signal.aborted) setLoaded(true);
-            }
-        })();
-        return () => { ac.abort(); };
-    }, []);
+        if (bootstrap.error) console.warn('[AgentEditorBootstrap] bootstrap fetch failed', bootstrap.error);
+    }, [bootstrap.error]);
 
     const value = {
         allSkills,

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * nextcloudMenuSync.js — tell the org's Nextcloud connector "the app menu
  * changed, sync now".
@@ -12,7 +12,7 @@
  *
  * Transport is the channel the SaaS already has into a paired connector:
  * `organizations.connector_callback_url` (Nextcloud's AppAPI proxy in front of
- * the connector) signed with the tenant-key HMAC from integrations/ncSigning.js
+ * the connector) signed with the tenant-key HMAC from auth/connector/ncSigning.js
  * — the same headers `ncProxy.verifyHmac` checks for every `/nc/*` call. The
  * hook path sits under the ExApp manifest's existing PUBLIC `hooks/` route, so
  * a connector that has the handler needs no re-registration to receive it.
@@ -50,7 +50,7 @@
 
 const userStore = require('../stores/userStore');
 const configStore = require('../stores/configStore');
-const { signedConnectorHeaders } = require('../integrations/ncSigning');
+const { signedConnectorHeaders } = require('../auth/connector/ncSigning');
 const { nextcloudFetch } = require('../utils/nextcloudTarget');
 const log = require('../telemetry/log');
 const { fallback, bestEffort } = require('../utils/bestEffort');
@@ -153,7 +153,7 @@ async function pushOnce(target, meta) {
     }
     return {
         outcome: 'synced',
-        result: { added: data.added | 0, removed: data.removed | 0, updated: data.updated | 0 },
+        result: { added: (data.added ?? 0) | 0, removed: (data.removed ?? 0) | 0, updated: (data.updated ?? 0) | 0 },
     };
 }
 
@@ -203,7 +203,8 @@ function requestMenuSync(orgId, meta = {}) {
     if (!orgId) return Promise.resolve({ outcome: 'not_connected', ms: 0 });
     const state = orgState(orgId);
     if (state.cooldownUntil > Date.now()) {
-        return Promise.resolve({ outcome: state.cooldownOutcome, detail: 'cooldown', ms: 0 });
+        // A cooldown is set together with the outcome it repeats.
+        return Promise.resolve({ outcome: /** @type {Outcome} */ (state.cooldownOutcome), detail: 'cooldown', ms: 0 });
     }
     if (!state.inflight) {
         state.inflight = runPush(orgId, meta).finally(() => { state.inflight = null; });

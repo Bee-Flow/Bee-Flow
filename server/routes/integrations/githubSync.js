@@ -9,6 +9,7 @@
  * getOrgId) and user id, so none of them carries a body schema.
  */
 
+const { fetchFixedEndpoint } = require('../../utils/fixedEndpointFetch.mts');
 const express = require('express');
 const log = require('../../telemetry/log');
 const router = express.Router();
@@ -19,6 +20,7 @@ const configStore = require('../../stores/configStore');
 const userStore = require('../../stores/userStore');
 const { getEffectiveUserId } = require('../../utils/routeHelpers');
 const { validate } = require('../../core/http/validate');
+const { bodyOf } = require('../../core/http/schemaParts');
 const { z, typeError } = require('../../utils/zod');
 
 // ── What a caller may send ──────────────────────────────────────────
@@ -120,7 +122,7 @@ router.post('/configure', requirePermission('manage_agents'), validate({ body: C
 
     // Verify the repo is accessible with the user's token
     const token = await githubSyncService.getToken(userId);
-    const repoCheck = await fetch(`https://api.github.com/repos/${repoOwner}/${repoName}`, {
+    const repoCheck = await fetchFixedEndpoint(`https://api.github.com/repos/${repoOwner}/${repoName}`, {
         headers: {
             'Authorization': `Bearer ${token}`,
             'Accept': 'application/vnd.github+json',
@@ -162,7 +164,7 @@ router.delete('/configure', requirePermission('manage_agents'), async (/** @type
 
 // ─── Push All ────────────────────────────────────────────────────
 // Trigger a full sync of all agents and skills to GitHub
-router.post('/push', requirePermission('manage_agents'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
+router.post('/push', requirePermission('manage_agents'), validate({ body: bodyOf({}, 'Pushing everything to GitHub') }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgs = await resolveOrgs(req);
     const { orgId } = orgs;
     if (!orgId) return res.status(400).json({ error: 'No organisation found' });
@@ -176,7 +178,7 @@ router.post('/push', requirePermission('manage_agents'), async (/** @type {impor
 
 // ─── Push Pending ────────────────────────────────────────────────
 // Push only resources that changed since last sync
-router.post('/push-pending', requirePermission('manage_agents'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
+router.post('/push-pending', requirePermission('manage_agents'), validate({ body: bodyOf({}, 'Pushing the pending changes to GitHub') }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgs = await resolveOrgs(req);
     const { orgId } = orgs;
     if (!orgId) return res.status(400).json({ error: 'No organisation found' });

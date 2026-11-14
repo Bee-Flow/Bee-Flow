@@ -17,13 +17,23 @@ const path = require('node:path');
 
 const SRC = fs.readFileSync(path.join(__dirname, 'nextcloudTablesTools.js'), 'utf8');
 
-test('both row writes post data keyed by column id, never the pair array', () => {
-    // Source pins: the two call sites (create + update) must go through the
-    // shaper. A regression here only shows up against a live Nextcloud.
-    const raw = SRC.match(/data: resolved\.data\b/g) || [];
-    assert.deepEqual(raw, [], 'no call site may post the internal pair array');
-    const shaped = SRC.match(/data: toWireData\(resolved\.data\)/g) || [];
-    assert.equal(shaped.length, 2, 'create_row and update_row both shape the body');
+test('both row writes post data keyed by column id, never the pair array', async () => {
+    // A regression here only shows up against a live Nextcloud, so both
+    // writes are driven through the tool against a fake.
+    const { json, installFakeNc, resetFakeNc } = require('./nextcloudToolFakes');
+    const { executeNextcloudTablesTool } = require('./nextcloudTablesTools');
+    const calls = installFakeNc(({ url }) => (url.endsWith('/columns')
+        ? json(200, [{ id: 3, title: 'Name', type: 'text' }])
+        : json(200, { id: 9, data: [{ columnId: 3, value: 'a' }] })));
+    try {
+        await executeNextcloudTablesTool('nextcloud_tables_create_row', { tableId: 5, values: { Name: 'a' } }, 'u', {});
+        await executeNextcloudTablesTool('nextcloud_tables_update_row', { tableId: 5, rowId: 9, values: { Name: 'a' } }, 'u', {});
+    } finally {
+        resetFakeNc();
+    }
+    const writes = calls.filter((c) => c.method === 'POST' || c.method === 'PUT');
+    assert.deepEqual(writes.map((c) => [c.method, c.body.data]), [['POST', { 3: 'a' }], ['PUT', { 3: 'a' }]],
+        'create_row and update_row both shape the body');
 });
 
 test('toWireData turns the pair list into a columnId-keyed object', () => {

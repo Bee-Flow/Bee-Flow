@@ -175,3 +175,42 @@ test('an omitted Claude toggle keeps its documented default of true', async () =
     assert.strictEqual(res.statusCode, 200);
     assert.deepStrictEqual(writes, [['claude_settings', { autoRetryOnEmpty: true }]]);
 });
+
+// ═══ Tier sets ══════════════════════════════════════════════════════
+
+for (const url of ['/config/chat-models', '/config/chat-models-eu']) {
+    test(`${url}: a misspelled tier name is refused by name, not saved as an empty tier`, async () => {
+        const res = await dispatch({ method: 'POST', url, body: { fats: { modelId: 'm-known' } } });
+        assert.strictEqual(res.statusCode, 400);
+        assert.match(res.body.error, /does not take "fats"/);
+        assert.deepStrictEqual(writes, []);
+    });
+
+    test(`${url}: the stored set the screen sends back, legacy alias included, still saves`, async () => {
+        const res = await dispatch({ method: 'POST', url, body: { fast: { modelId: 'm-known', label: 'Fast', maxTokens: 800 }, smart: { modelId: 'x' } } });
+        assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+        assert.strictEqual(writes.length, 1);
+        assert.deepStrictEqual(writes[0][1].fast, { modelId: 'm-known', label: 'Fast', maxTokens: 800 });
+        assert.ok(!('smart' in writes[0][1]));
+    });
+}
+
+test('custom tiers: a list is required, and an unknown key is refused by name', async () => {
+    let res = await dispatch({ method: 'POST', url: '/config/custom-chat-models', body: { tiers: 'x' } });
+    assert.strictEqual(res.statusCode, 400);
+    assert.ok(res.body.details.some((d) => d.path === 'body.tiers'));
+    res = await dispatch({ method: 'POST', url: '/config/custom-chat-models', body: { tiers: [], orgId: 'o1' } });
+    assert.strictEqual(res.statusCode, 400);
+    assert.match(res.body.error, /does not take "orgId"/);
+    assert.deepStrictEqual(writes, []);
+    res = await dispatch({ method: 'POST', url: '/config/custom-chat-models', body: { tiers: [{ id: 'custom:a', label: 'A', modelId: 'm-known' }] } });
+    assert.strictEqual(res.statusCode, 200, JSON.stringify(res.body));
+    assert.strictEqual(writes[0][0], 'custom_chat_model_tiers');
+});
+
+test('org custom tiers: an unknown key is refused before the organisation is resolved', async () => {
+    const res = await dispatch({ method: 'POST', url: '/config/org-custom-chat-models', body: { tiers: [], org: 'o1' } });
+    assert.strictEqual(res.statusCode, 400);
+    assert.match(res.body.error, /does not take "org"/);
+    assert.deepStrictEqual(writes, []);
+});

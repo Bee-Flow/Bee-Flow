@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Compliance — the ISO 27001 ISMS process layer: risk register, internal
  * audits and findings, management reviews, nonconformities, objectives,
@@ -39,7 +39,7 @@ const incidentStore = require('../../stores/incidentStore');
 const configStore = require('../../stores/configStore');
 const { getAll } = require('../../db');
 const { requireAuth, requirePermission } = require('../../auth/permissions');
-const { resolveOrgId, _riskStore, _auditStore, _obligationStore, latestOf } = require('./shared');
+const { resolveOrgId, _riskStore, _auditStore, _obligationStore, latestOf, orNotFound } = require('./shared');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
@@ -300,9 +300,9 @@ router.post('/iso/risks', requireAuth, requirePermission('admin_compliance'), va
 router.put('/iso/risks/:id', requireAuth, requirePermission('admin_compliance'), validate({ body: RiskPatch }), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
-    const saved = await _riskStore().updateRisk(orgId, req.params.id, req.body || {}, actorId);
+    const saved = orNotFound(await _riskStore().updateRisk(orgId, req.params.id, req.body || {}, actorId));
     // Risk acceptance is an auditor-relevant decision — chain it, for a risk this organisation has (an unknown id saves nothing).
-    if (saved && req.body?.status === 'accepted') {
+    if (req.body?.status === 'accepted') {
         await complianceStore.addEvidence({
             organization_id: orgId, check_id: null,
             subject_type: 'risk', subject_id: String(req.params.id),
@@ -316,7 +316,7 @@ router.put('/iso/risks/:id', requireAuth, requirePermission('admin_compliance'),
 router.post('/iso/risks/:id/treatments', requireAuth, requirePermission('admin_compliance'), validate({ body: TreatmentBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
-    res.json(await _riskStore().addTreatment(orgId, req.params.id, req.body || {}, actorId));
+    res.json(orNotFound(await _riskStore().addTreatment(orgId, req.params.id, req.body || {}, actorId)));
 });
 
 // Seed risk scenarios from LIVE facts — failing checks and unattested non-EU
@@ -433,12 +433,12 @@ router.post('/iso/audits', requireAuth, requirePermission('admin_compliance'), v
 
 router.put('/iso/audits/:id', requireAuth, requirePermission('admin_compliance'), validate({ body: AuditPatch }), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
-    res.json(await _auditStore().updateAudit(orgId, req.params.id, req.body || {}));
+    res.json(orNotFound(await _auditStore().updateAudit(orgId, req.params.id, req.body || {})));
 });
 
 router.post('/iso/audits/:id/findings', requireAuth, requirePermission('admin_compliance'), validate({ body: FindingBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
-    res.json(await _auditStore().addFinding(orgId, req.params.id, req.body || {}));
+    res.json(orNotFound(await _auditStore().addFinding(orgId, req.params.id, req.body || {})));
 });
 
 router.post('/iso/reviews', requireAuth, requirePermission('admin_compliance'), validate({ body: ReviewBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
@@ -463,7 +463,7 @@ router.post('/iso/ncs', requireAuth, requirePermission('admin_compliance'), vali
 router.put('/iso/ncs/:id', requireAuth, requirePermission('admin_compliance'), validate({ body: NcPatch }), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
-    res.json(await _auditStore().updateNonconformity(orgId, req.params.id, req.body || {}, actorId));
+    res.json(orNotFound(await _auditStore().updateNonconformity(orgId, req.params.id, req.body || {}, actorId)));
 });
 
 router.post('/iso/objectives', requireAuth, requirePermission('admin_compliance'), validate({ body: CreateObjective }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
@@ -474,7 +474,7 @@ router.post('/iso/objectives', requireAuth, requirePermission('admin_compliance'
 
 router.put('/iso/objectives/:id', requireAuth, requirePermission('admin_compliance'), validate({ body: ObjectivePatch }), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
-    res.json(await _auditStore().updateObjective(orgId, req.params.id, req.body || {}));
+    res.json(orNotFound(await _auditStore().updateObjective(orgId, req.params.id, req.body || {})));
 });
 
 // Training & competence (7.2/7.3) — policy-ack coverage + platform learning
@@ -557,13 +557,13 @@ router.post('/iso/obligations', requireAuth, requirePermission('admin_compliance
 
 router.put('/iso/obligations/:id', requireAuth, requirePermission('admin_compliance'), validate({ body: ObligationPatch }), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
-    res.json(await _obligationStore().updateObligation(orgId, req.params.id, req.body || {}));
+    res.json(orNotFound(await _obligationStore().updateObligation(orgId, req.params.id, req.body || {})));
 });
 
 router.post('/iso/obligations/:id/complete', requireAuth, requirePermission('admin_compliance'), validate({ body: EmptyBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
-    res.json(await _obligationStore().completeObligation(orgId, req.params.id, actorId));
+    res.json(orNotFound(await _obligationStore().completeObligation(orgId, req.params.id, actorId)));
 });
 
 module.exports = router;

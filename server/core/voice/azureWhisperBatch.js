@@ -7,13 +7,14 @@
 
 'use strict';
 
+const { fetchFixedEndpoint } = require('../../utils/fixedEndpointFetch.mts');
 const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const configStore = require('../../stores/configStore');
 const log = require('../../telemetry/log');
-const { bestEffort } = require('../../utils/bestEffort');
+const { bestEffort, ignoreGone } = require('../../utils/bestEffort');
 
 /**
  * Build a diagnostic error message for a non-succeeded Azure batch job.
@@ -194,7 +195,7 @@ async function runAzureWhisperBatch({ filePath, audioData, fileName, language = 
         const pageSize = 100;
         while (true) {
             const modelsUrl = `${speechApiBase}/models/base?skip=${skip}&top=${pageSize}`;
-            const modelsResp = await fetch(modelsUrl, {
+            const modelsResp = await fetchFixedEndpoint(modelsUrl, {
                 headers: { 'Ocp-Apim-Subscription-Key': speechKey },
             });
             if (!modelsResp.ok) throw new Error(`Failed to list Azure models: HTTP ${modelsResp.status}`);
@@ -236,7 +237,7 @@ async function runAzureWhisperBatch({ filePath, audioData, fileName, language = 
         };
 
         log.info('[Transcription:AzureWhisper] Submitting batch job...');
-        const createResp = await fetch(`${speechApiBase}/transcriptions`, {
+        const createResp = await fetchFixedEndpoint(`${speechApiBase}/transcriptions`, {
             method: 'POST',
             headers: { 'Ocp-Apim-Subscription-Key': speechKey, 'Content-Type': 'application/json' },
             body: JSON.stringify(jobBody),
@@ -258,7 +259,7 @@ async function runAzureWhisperBatch({ filePath, audioData, fileName, language = 
             if (Date.now() - pollStart > pollCapMs)
                 throw new Error(`Azure Whisper batch job timed out after ${Math.round(pollCapMs / 60000)} minutes.`);
             await new Promise(r => setTimeout(r, 5000));
-            const pollResp = await fetch(transcriptionJobUrl, { headers: { 'Ocp-Apim-Subscription-Key': speechKey } });
+            const pollResp = await fetchFixedEndpoint(transcriptionJobUrl, { headers: { 'Ocp-Apim-Subscription-Key': speechKey } });
             if (!pollResp.ok) throw new Error(`Polling failed: HTTP ${pollResp.status}`);
             pollData = /** @type {{ status?: string, properties?: { error?: { code?: string, message?: string } } }} */ (await pollResp.json());
             jobStatus = pollData.status;
@@ -271,12 +272,12 @@ async function runAzureWhisperBatch({ filePath, audioData, fileName, language = 
         }
 
         // ── Step 5: Fetch result ──
-        const filesResp = await fetch(`${transcriptionJobUrl}/files`, { headers: { 'Ocp-Apim-Subscription-Key': speechKey } });
+        const filesResp = await fetchFixedEndpoint(`${transcriptionJobUrl}/files`, { headers: { 'Ocp-Apim-Subscription-Key': speechKey } });
         if (!filesResp.ok) throw new Error(`Fetching result files failed: HTTP ${filesResp.status}`);
         const filesData = /** @type {{ values?: Array<{ kind?: string, links?: { contentUrl?: string } }> }} */ (await filesResp.json());
         const resultFile = (filesData.values || []).find(f => f.kind === 'Transcription');
         if (!resultFile?.links?.contentUrl) throw new Error('No transcription result file in Azure job output.');
-        const resultResp = await fetch(resultFile.links.contentUrl);
+        const resultResp = await fetchFixedEndpoint(resultFile.links.contentUrl, { timeoutPhase: 'headers' }); // the transcript of a long meeting is a large body
         if (!resultResp.ok) throw new Error(`Downloading result failed: HTTP ${resultResp.status}`);
         const resultData = /** @type {{ recognizedPhrases?: Array<any> }} */ (await resultResp.json());
 
@@ -302,13 +303,13 @@ async function runAzureWhisperBatch({ filePath, audioData, fileName, language = 
             durationSeconds: Math.round(totalDuration),
         };
     } finally {
-        try { if (tempInputPath) fs.unlinkSync(tempInputPath); } catch (_) { log.debug('temp input file already gone', _); }
+        try { if (tempInputPath) fs.unlinkSync(tempInputPath); } catch (_) { ignoreGone('voice/azureWhisperBatch:unlinkTempInput', _); }
         try { audioCleanup(); } catch (_) { bestEffort('core/voice/azureWhisperBatch:runAzureWhisperBatch', _); /* audio cleanup already done */ }
         try {
             if (rustfsKey) { const ss = require('../../stores/storageStore'); await ss.deleteFile(rustfsKey); log.info('[Transcription:AzureWhisper] Temp audio deleted from RustFS'); }
         } catch (_) { log.warn('temp audio could not be deleted from object storage', _); }
         try {
-            if (transcriptionJobUrl && speechKey) await fetch(transcriptionJobUrl, { method: 'DELETE', headers: { 'Ocp-Apim-Subscription-Key': speechKey } });
+            if (transcriptionJobUrl && speechKey) await fetchFixedEndpoint(transcriptionJobUrl, { method: 'DELETE', headers: { 'Ocp-Apim-Subscription-Key': speechKey } });
         } catch (_) { log.warn('Azure transcription job could not be deleted', _); }
     }
 }

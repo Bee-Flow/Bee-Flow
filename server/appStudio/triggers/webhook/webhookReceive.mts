@@ -9,7 +9,7 @@
  *   X-BeeFlow-Signature: sha256=<hex HMAC-SHA256 of  nonce "\n" timestamp "\n" body  with the secret>
  *
  * The same headers, signature form and primitives as the automation webhook
- * (routes/automation/webhookSignature.js; the route hands `sign` and `same` in), with two things
+ * (usecases/automation/webhookSignature.js; the route hands `sign` and `same` in), with two things
  * stricter: the timestamp is required, and only the bytes that were sent are signed.
  *
  * THE ORDER, and what a caller learns at each step:

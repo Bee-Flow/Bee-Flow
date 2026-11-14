@@ -38,6 +38,8 @@ const { pgliteDb } = require('../../testUtils/pgliteDb');
 
 const { up } = require('../../migrations/automation-handoff5-2026-09');
 const { updateAutomationWith, deleteAutomationWith } = require('./automations');
+/** updateAutomationWith on a transaction of its own, the way updateAutomation runs it. */
+const updateWith = (...a) => db.tx((c) => updateAutomationWith(c, ...a));
 const { makeLifecycleStore } = require('./lifecycle');
 const { makeSharesStore } = require('./shares');
 const { publishBlockVersionWith, publishStepWith, setStepSharingWith, setStepExposeWith } = require('./steps');
@@ -59,7 +61,7 @@ const managedParts = makeManagedParts({
 
 const lifecycle = makeLifecycleStore(db, { managedParts });
 const shares = makeSharesStore(db, { managedParts });
-const update = (id, updates, opts = {}) => updateAutomationWith(db, id, updates, 'u1', { managedParts, ...opts });
+const update = (id, updates, opts = {}) => updateWith(id, updates, 'u1', { managedParts, ...opts });
 
 const DEF = { trigger: { kind: 'manual', id: 't' }, steps: [{ id: 's1', type: 'note', text: 'hi' }] };
 const SCHEDULED = {
@@ -212,7 +214,7 @@ test('switching off a never-live managed automation passes, through the real dea
     await seed('r_off', { active: true });
     const store = {
         deleteSubscriptionsForAutomation: async () => {},
-        updateAutomation: (id, updates, actorId) => updateAutomationWith(db, id, updates, actorId, { managedParts }),
+        updateAutomation: (id, updates, actorId) => updateWith(id, updates, actorId, { managedParts }),
     };
     const { automation } = await deactivateCore({
         automation: { id: 'r_off', userId: 'runas' }, actorId: 'operator',

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Admin Routes — feature toggles and entitlements: beta features, active
  * integrations, the unified entitlement snapshot and the Access matrix
@@ -344,7 +344,7 @@ async function resolveActiveFeaturesContext(req) {
     try {
         const { isCustomIntegrationsEnabled } = require('../../core/customIntegrations/featureFlag');
         if (await isCustomIntegrationsEnabled()) {
-            const rows = await require('../../stores/orgCustomIntegrationStore').listActiveForOrg(orgId);
+            const rows = /** @type {Array<{ id: string, name: string, description?: string | null }>} */ (await require('../../stores/orgCustomIntegrationStore').listActiveForOrg(orgId)); // rows read from the table, never null
             customIntegrations = rows.map(r => ({
                 id: `custom:${r.id}`,
                 name: r.name,

@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { FieldRow, inputClass } from './basicFields';
 import { AssetPickerDialog } from './jsDeps';
 import { useTranslation } from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
-import { settled } from '@/api/settled';
 import { uploadCmsFile } from '../cmsUpload';
 import { errorMessage } from '@/utils/caughtError';
-import { mutate, errorBody, RefusedError } from '@/api/mutate';
+import { errorBody, RefusedError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
+import { useCmsAssetLibraryAvailable } from '@/api/queries/cmsAssets';
 
 /**
  * Resolve a stored image value to a displayable URL: full http(s) URLs and
@@ -22,38 +22,6 @@ export function resolveCmsAssetUrl(urlOrKey: string | null | undefined): string 
         return `/api/cms/asset/${urlOrKey.split('/').map(encodeURIComponent).join('/')}`;
     }
     return urlOrKey;
-}
-
-// Probes the asset-library route once per session and caches the verdict
-// module-side, so N image fields on one page don't each fire a request.
-// `false` (route missing, storage in local-fs mode, or not an admin) hides
-// every Browse button — the picker is pure convenience over upload/paste.
-let assetLibraryProbe: { settled: boolean; value: boolean; promise?: Promise<boolean> } | null = null;
-function useAssetLibraryAvailable(enabled: boolean): boolean {
-    const [available, setAvailable] = useState(
-        () => (assetLibraryProbe?.settled ? assetLibraryProbe.value : false));
-    useEffect(() => {
-        if (!enabled) return undefined;
-        if (!assetLibraryProbe) {
-            const probe: { settled: boolean; value: boolean; promise?: Promise<boolean> } = { settled: false, value: false };
-            assetLibraryProbe = probe;
-            probe.promise = settled(`${API_BASE}/api/cms/admin/assets`, undefined, 'empty')
-                .then(r => (r.ok ? r.res.json() : null))
-                .then((data: { unavailable?: boolean } | null) => !!(data && data.unavailable !== true))
-                .catch(() => false)
-                .then((v: boolean) => {
-                    probe.settled = true;
-                    probe.value = v;
-                    return v;
-                });
-        }
-        let cancelled = false;
-        Promise.resolve(assetLibraryProbe.promise).then(v => {
-            if (!cancelled) setAvailable(!!v);
-        });
-        return () => { cancelled = true; };
-    }, [enabled]);
-    return enabled && available;
 }
 
 type PreviewKind = 'image' | 'video' | 'clip' | 'captions';
@@ -87,10 +55,7 @@ async function uploadAsset(file: File, uploadPath: string, onProgress: (pct: num
     fd.append('file', file);
     let res: Response;
     try {
-        res = await mutate(`${API_BASE}/api/cms/admin/upload`, {
-        method: 'POST',
-        body: fd,
-    });
+        res = await apiRequest('POST /api/cms/admin/upload', { init: { body: fd } });
     } catch (err) {
         if (!(err instanceof RefusedError)) throw err;
         const data = errorBody(err) ?? {};
@@ -125,7 +90,7 @@ export function ImageField({
     const [progress, setProgress] = useState<number | null>(null);
     const [error, setError] = useState<string | null | undefined>(null);
     const [browsing, setBrowsing] = useState(false);
-    const libraryAvailable = useAssetLibraryAvailable(allowBrowse);
+    const libraryAvailable = useCmsAssetLibraryAvailable(allowBrowse);
 
     const handleFile = async (file: File | undefined) => {
         if (!file) return;

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Pinned sample data — the rules for a payload an author saved onto a node so
  * the node serves it instead of running. One function for steps and triggers
@@ -63,7 +63,7 @@ const { BRANCHER_TYPES } = require('../constants');
  */
 function checkPinnedOutput(node, at, /** @type {{pushE?: any, outgoingLabels?: any, isTrigger?: boolean}} */ { pushE, outgoingLabels = null, isTrigger = false } = {}) {
     const pin = node?.pinnedOutput;
-    if (pin === undefined || pin === null) return;
+    if (!node || pin === undefined || pin === null) return;
     const who = `${isTrigger ? 'Trigger' : 'Step'} ${node.id || '(no id)'}`;
     const unpin = isTrigger
         ? 'Open the trigger and clear its sample data, or replace it with a smaller one.'
@@ -90,7 +90,7 @@ function checkPinnedOutput(node, at, /** @type {{pushE?: any, outgoingLabels?: a
     }
 
     // 3 — a pinned brancher has to say which way it went.
-    if (BRANCHER_TYPES.has(node.type)) {
+    if (BRANCHER_TYPES.has(/** @type {string} */ (node.type))) {
         /** @type {string[]} */
         const labels = [];
         if (isObject(pin)) {

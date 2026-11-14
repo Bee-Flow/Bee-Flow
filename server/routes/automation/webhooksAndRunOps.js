@@ -7,11 +7,13 @@ const automationStore = require('../../stores/automationStore');
 const { webhookUrlForSlug, formUrlForToken } = require('../../automation/publicUrl');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { validate } = require('../../core/http/validate');
+const { bodyOf } = require('../../core/http/schemaParts');
 const { HttpError } = require('../../core/http/errors');
 // Handoff 5 sharing: what a role may do with an automation and its runs.
 const { makeAutomationAccess, mayReadRun, roleSatisfies } = require('../../automation/access');
 const { isTestRun } = require('../../core/automationRunner/definitionForRun');
 const { assertCanReadRunData, redactRunForViewer, redactStepsForViewer, redactChainStepsForViewer } = require('../../core/automationModel/callerRunVisibility');
+const { envInt } = require('../../utils/envNumber.mts');
 const automationAccess = makeAutomationAccess({ store: automationStore });
 // @typecheck
 // The caller's access to the automation behind a RUN, or null after a 403
@@ -24,7 +26,7 @@ const runAccess = (req, /** @type {import('express').Response} */ res, run, need
 // Per-user throttle for the run-spawning endpoints (retry re-executes a run;
 // agent-invoke runs an agent-callable automation). Same budget as the other
 // run-trigger endpoints (routes/automation/runs.js). Keyed by session user id.
-const RUN_TRIGGER_RPM = parseInt(process.env.AUTOMATION_RUN_TRIGGER_RPM, 10) || 30;
+const RUN_TRIGGER_RPM = envInt('AUTOMATION_RUN_TRIGGER_RPM', 30, { min: 1 });
 const runTriggerLimiter = perUserRateLimit({ windowMs: 60_000, max: RUN_TRIGGER_RPM });
 
 const {
@@ -32,10 +34,10 @@ const {
 } = require('./runOpsSchemas');
 const { fallback } = require('../../utils/bestEffort');
 const { startCapped, pendingRunBody } = require('../../core/automationRunner/startCapped.mts');
-const { pendingFormPage, formJourneyExtras, refusePublicJourney, finaliseContinuedRun, closeFormWait, addRunViewFacts } = require('./runPauseOps.mts');
+const { pendingFormPage, formJourneyExtras, refusePublicJourney, finaliseContinuedRun, closeFormWait, addRunViewFacts } = require('../../usecases/automation/runPauseOps.mts');
 
 
-router.post('/:id/webhook', validate({ body: TriggerStepBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof TriggerStepBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/:id/webhook', validate({ body: TriggerStepBody }), async (req, res) => {
     const a = await automationStore.getAutomation(req.params.id);
     if (!a) return res.status(404).json({ error: 'Not found' });
     if (!await automationAccess.guard(req, res, a, 'edit')) return;
@@ -78,7 +80,7 @@ router.get('/:id/webhooks', async (req, res) => {
  * overlap; null = it stopped at once). The new secret is returned ONCE so the
  * user can copy it before navigating away: it is stored sealed.
  */
-router.post('/:id/webhook/:slug/rotate', async (req, res) => {
+router.post('/:id/webhook/:slug/rotate', validate({ body: bodyOf({}, 'Rotating a webhook address') }), async (req, res) => {
     const a = await automationStore.getAutomation(req.params.id);
     if (!a) return res.status(404).json({ error: 'Not found' });
     if (!await automationAccess.guard(req, res, a, 'edit')) return;
@@ -116,7 +118,7 @@ async function resolveFormTrigger(a, requestedId) {
     return { ok: true, id: match.id };
 }
 
-router.post('/:id/form', validate({ body: TriggerStepBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof TriggerStepBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/:id/form', validate({ body: TriggerStepBody }), async (req, res) => {
     const a = await automationStore.getAutomation(req.params.id);
     if (!a) return res.status(404).json({ error: 'Not found' });
     if (!await automationAccess.guard(req, res, a, 'edit')) return;
@@ -140,7 +142,7 @@ router.get('/:id/forms', async (req, res) => {
     return res.json({ forms: list.map(p => ({ ...p, url: formUrlForToken(p.id, req) })) });
 });
 
-router.post('/:id/form/:token/rotate', async (req, res) => {
+router.post('/:id/form/:token/rotate', validate({ body: bodyOf({}, 'Rotating a form address') }), async (req, res) => {
     const a = await automationStore.getAutomation(req.params.id);
     if (!a) return res.status(404).json({ error: 'Not found' });
     if (!await automationAccess.guard(req, res, a, 'edit')) return;
@@ -252,7 +254,7 @@ router.get('/runs/:id/steps/:stepId/full-output', validate({ query: FullOutputQu
  * exists).
  */
 const RETRYABLE_STATUSES = new Set(['success', 'error', 'cancelled']);
-router.post('/:id/runs/:runId/retry', runTriggerLimiter, async (req, res) => {
+router.post('/:id/runs/:runId/retry', runTriggerLimiter, validate({ body: bodyOf({}, 'Retrying a run') }), async (req, res) => {
     const userId = req.session.user.id;
     const a = await automationStore.getAutomation(req.params.id);
     if (!a) return res.status(404).json({ error: 'Not found' });
@@ -345,7 +347,7 @@ async function resolveActionableRun(runId) {
     return (leg && leg.userId === addressed.userId) ? leg : addressed;
 }
 
-router.post('/runs/:runId/approve-step', validate({ body: ApproveStepBody }), async (/** @type {import('express').Request<{ runId: string }, any, import('zod').infer<typeof ApproveStepBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/runs/:runId/approve-step', validate({ body: ApproveStepBody }), async (req, res) => {
     const userId = req.session.user.id;
     // Address the JOURNEY, not the row. The history collapses a run and
     // everything that continued it into one line, so the id arriving here
@@ -438,7 +440,7 @@ router.get('/runs/:runId/form', async (req, res) => {
  * Returns the CHILD run, linked to the parent — the same lineage the approval
  * resume produces.
  */
-router.post('/runs/:runId/form', runTriggerLimiter, validate({ body: RunFormBody }), async (/** @type {import('express').Request<{ runId: string }, any, import('zod').infer<typeof RunFormBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/runs/:runId/form', runTriggerLimiter, validate({ body: RunFormBody }), async (req, res) => {
     const userId = req.session.user.id;
     const run = await resolveActionableRun(req.params.runId);
     if (!run) return res.status(404).json({ error: 'Not found' });
@@ -519,7 +521,7 @@ router.post('/:id/form-pick', runTriggerLimiter, validate({ body: FormPickBody }
     const { searchRecords } = require('../../automation/formPickRecord');
     const caller = await formPickCaller(req);
     if (!caller) return res.status(403).json({ error: 'Forbidden' });
-    const out = await searchRecords(req.body.source, req.body.query, caller, { limit: req.body.limit });
+    const out = await searchRecords(/** @type {string} */ (req.body.source), /** @type {string} */ (req.body.query), caller, { limit: /** @type {number} */ (req.body.limit) });
     // A refusal is a 200 with a reason — "Fireflies is not connected for
     // your account" is something the picker prints beside its search box.
     return res.json({ results: out.results || [], ...(out.error ? { error: out.error } : {}) });
@@ -548,7 +550,7 @@ async function formPickCaller(req) {
  * latency is bounded by step duration. Acknowledges immediately; the UI
  * polls run status to confirm the cancellation took effect.
  */
-router.post('/runs/:runId/cancel', validate({ body: CancelRunBody }), async (/** @type {import('express').Request<{ runId: string }, any, import('zod').infer<typeof CancelRunBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/runs/:runId/cancel', validate({ body: CancelRunBody }), async (req, res) => {
     const userId = req.session.user.id;
     // Same as approve-step: stop the leg that is actually running, not the
     // journey head that finished when it handed off.
@@ -615,7 +617,7 @@ router.post('/runs/:runId/cancel', validate({ body: CancelRunBody }), async (/**
  * default is never WIDER than an explicit approval — it IS one. An
  * unreadable or unknown decision is a 400, never a silent approve.
  */
-router.post('/runs/:id/approve', validate({ body: ApproveRunBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof ApproveRunBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/runs/:id/approve', validate({ body: ApproveRunBody }), async (req, res) => {
     const userId = req.session.user.id;
     const run = await automationStore.getRun(req.params.id);
     if (!run) return res.status(404).json({ error: 'Not found' });
@@ -677,7 +679,7 @@ router.post('/runs/:id/approve', validate({ body: ApproveRunBody }), async (/** 
  * person may do. Runs as the owner; the person is recorded in startedByUserId.
  * Body: { args }. Returns the final step output verbatim.
  */
-router.post('/:id/agent-invoke', runTriggerLimiter, validate({ body: AgentInvokeBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof AgentInvokeBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/:id/agent-invoke', runTriggerLimiter, validate({ body: AgentInvokeBody }), async (req, res) => {
     const userId = req.session.user.id;
     // The LIVE definition decides whether the automation is agent-callable, and
     // is what runs (handoff 5).
@@ -710,7 +712,7 @@ router.post('/:id/agent-invoke', runTriggerLimiter, validate({ body: AgentInvoke
  * request/response for display. Phase 2 lands the full implementation;
  * this is the route surface so the UI can target a stable URL.
  */
-router.post('/:id/webhook/:slug/test', async (req, res) => {
+router.post('/:id/webhook/:slug/test', validate({ body: bodyOf({}, 'Testing a webhook') }), async (req, res) => {
     const automation = await automationStore.getAutomation(req.params.id);
     if (!automation) return res.status(404).json({ error: 'Not found' });
     if (!await automationAccess.guard(req, res, automation, 'edit')) return;

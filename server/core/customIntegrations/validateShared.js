@@ -91,8 +91,11 @@ const VALUE_TEMPLATE_PATHS = new Set(['auth.valueTemplate', 'mcp.valueTemplate']
  * @typedef {{ url?: unknown, authStyle?: string, credentials?: unknown, header?: unknown, valueTemplate?: unknown, toolAllowList?: unknown }} McpDefBlock
  */
 
-/** @param {unknown} x */
-function isObject(x) { return x && typeof x === 'object' && !Array.isArray(x); }
+/**
+ * @param {unknown} x
+ * @returns {x is Record<string, unknown>}
+ */
+function isObject(x) { return !!x && typeof x === 'object' && !Array.isArray(x); }
 
 /**
  * @param {unknown} name

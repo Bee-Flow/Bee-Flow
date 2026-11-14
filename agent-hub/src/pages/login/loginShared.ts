@@ -16,6 +16,8 @@ export interface AuthAnswer {
     success?: boolean;
     user?: unknown;
     recoveryKey?: string;
+    /** Password reset: the account's encryption key could not follow the new password, so it starts a fresh one. */
+    encryptionKeyReset?: boolean;
     error?: string;
     code?: string;
     useOpaque?: boolean;

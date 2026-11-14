@@ -55,7 +55,7 @@ interface OutcomePill {
  */
 
 /**
- * Outcome → pill tone + label key. The vocabulary is `server/compliance/aiAct/assess.js`
+ * Outcome → pill tone + label key. The vocabulary is `server/core/aiAct/assess.js`
  * (`prohibited | high_risk | transparency | minimal | not_applicable`); the chip keys are
  * fe-8's (`keys/fe-8-ai-act-ladder.json`). Unknown outcomes fall back to neutral + the raw word.
  */

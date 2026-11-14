@@ -14,6 +14,7 @@ const { sharingDdl } = dep('documentSharing');
 
 const initDB = makeStoreInit('NotebookStore', _initDB);
 
+// stepwise: a boot migration; every statement is idempotent and the next boot re-runs what a failed one left
 async function _initDB() {
 
     // ── Notebooks table ──────────────────────────────────────────────

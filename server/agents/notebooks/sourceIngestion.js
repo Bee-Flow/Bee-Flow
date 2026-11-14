@@ -369,7 +369,7 @@ async function ingestTextSource(notebookId, sourceId, userId, text, name) {
  * @param {string} sourceId
  * @param {string} userId
  * @param {string} content
- * @param {string} fileName
+ * @param {string} [fileName]  none: the source gets the untitled name
  */
 async function ingestDriveSource(notebookId, sourceId, userId, content, fileName) {
     await ingestTextIntoKB(notebookId, sourceId, userId, content, fileName);

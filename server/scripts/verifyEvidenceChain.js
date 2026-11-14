@@ -32,7 +32,7 @@
 
 const path = require('path');
 const fs = require('fs');
-const log = require('../telemetry/log');
+const { ignoreGone } = require('../utils/bestEffort');
 
 const APP_ROOT = fs.existsSync('/app/db.js') ? '/app' : path.join(__dirname, '..');
 
@@ -117,7 +117,7 @@ async function main() {
         console.error(`Could not verify the chain for org ${orgId}: ${e.message}`);
         return EXIT_UNVERIFIED;
     } finally {
-        try { await db.pool.end(); } catch (err) { log.debug('best-effort', err); }
+        try { await db.pool.end(); } catch (err) { ignoreGone('scripts/verifyEvidenceChain:poolEnd', err); }
     }
 }
 

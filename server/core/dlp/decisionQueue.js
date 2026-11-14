@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * In-memory queue of pending DLP decisions.
  *
@@ -88,7 +88,7 @@ function touch(decisionId, callerUserId) {
     const entry = _pending.get(decisionId);
     if (!entry) return false;
     if (entry.userId && callerUserId && entry.userId !== callerUserId) return false;
-    clearTimeout(entry.timeoutId);
+    clearTimeout(entry.timeoutId ?? undefined);
     entry.timeoutId = _armTimeout(decisionId, entry);
     return true;
 }
@@ -107,7 +107,7 @@ function resolve(decisionId, decision, callerUserId) {
     const entry = _pending.get(decisionId);
     if (!entry) return false;
     if (entry.userId && callerUserId && entry.userId !== callerUserId) return false;
-    clearTimeout(entry.timeoutId);
+    clearTimeout(entry.timeoutId ?? undefined);
     _pending.delete(decisionId);
     entry.resolve(decision);
     return true;
@@ -121,7 +121,7 @@ function resolve(decisionId, decision, callerUserId) {
 function reject(decisionId, reason) {
     const entry = _pending.get(decisionId);
     if (!entry) return false;
-    clearTimeout(entry.timeoutId);
+    clearTimeout(entry.timeoutId ?? undefined);
     _pending.delete(decisionId);
     const err = new Error(reason || 'DLP decision rejected');
     err.code = 'DLP_REJECTED';
@@ -142,7 +142,7 @@ module.exports = {
     DEFAULT_TIMEOUT_MS,
 };
 
-/** @typedef {{ conversationId: string, userId: string, timeoutMs?: number }} RegisterOpts */
+/** @typedef {{ conversationId?: string | null, userId?: string | null, timeoutMs?: number }} RegisterOpts */
 
 /**
  * `manualAdditions` are the spans the user marked in the review UI as personal data the detector missed.

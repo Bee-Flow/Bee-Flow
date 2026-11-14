@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Deck model — the one shape every presentation surface agrees on.
  *
@@ -90,7 +91,7 @@ function normalizeDeck(input, { limits = DECK_LIMITS } = {}) {
     if (typeof input === 'string') {
         if (!input.trim()) throw new DeckError('There are no slides to put in the presentation.', 'deck_empty');
         deck = deckFromMarkdown(input, warnings);
-    } else if (input && typeof input === 'object' && (Array.isArray(input.slides) || typeof input.markdown === 'string')) {
+    } else if (input && typeof input === 'object' && (Array.isArray(/** @type {{ slides?: unknown }} */ (input).slides) || typeof /** @type {{ markdown?: unknown }} */ (input).markdown === 'string')) {
         deck = deckFromJson(input, warnings);
     } else if (Array.isArray(input)) {
         deck = deckFromJson({ slides: input }, warnings);
@@ -277,10 +278,10 @@ module.exports = {
  * @typedef {{ dataUrl?: string, storageKey?: string, rejected?: string, alt: string }} ImageRef
  * @typedef {{ columns: string[], rows: unknown[][] }} SlideTable
  * @typedef {{ title: string, bullets: BulletItem[], body: string[], icon?: string | null, image?: ImageRef | null }} ParsedColumn
- * @typedef {NonNullable<ReturnType<typeof chartFromAny>>} SlideChart
- * @typedef {ReturnType<typeof statsFromAny>[number]} SlideStat
- * @typedef {ReturnType<typeof stepsFromAny>[number]} SlideStep
- * @typedef {ReturnType<typeof cardFrom>} SlideCard
+ * @typedef {NonNullable<ReturnType<typeof import('./deckChart').chartFromAny>>} SlideChart
+ * @typedef {ReturnType<typeof import('./deckChart').statsFromAny>[number]} SlideStat
+ * @typedef {ReturnType<typeof import('./deckChart').stepsFromAny>[number]} SlideStep
+ * @typedef {{ title: string | null, text: string | null, icon: string | null, image: ImageRef | null }} SlideCard  deckParse.cardFrom's card
  * @typedef {{ layout: string | null, title: string, bullets: BulletItem[], columns: { title: string | null, bullets: BulletItem[] }[] | null,
  *   body: string | null, table: SlideTable | null, image: ImageRef | null, quote: { text: string, attribution: string | null } | null,
  *   chart: SlideChart | null, stats: SlideStat[] | null, steps: SlideStep[] | null, cards: SlideCard[] | null,

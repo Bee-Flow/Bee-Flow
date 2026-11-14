@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Microsoft Contacts Tools — Built-in tools for AI to manage Outlook Contacts
  * 
@@ -15,7 +15,7 @@ const { graphFetch, isMicrosoftConnected } = require('./msGraphClient');
  * A Graph contact, as far as this file reads or writes it.
  * @typedef {{ id?: string, givenName?: string, surname?: string, displayName?: string,
  *   emailAddresses?: Array<{ address?: string, name?: string }>, businessPhones?: string[], mobilePhone?: string,
- *   homePhones?: string[], companyName?: string, jobTitle?: string }} GraphContact
+ *   homePhones?: string[], companyName?: string | null, jobTitle?: string | null }} GraphContact  null clears a field on a PATCH
  * The contact draft the user approves (built by executeMsContactsTool).
  * @typedef {{ contactId?: string, givenName?: string, surname?: string | null, emailAddress?: string | null,
  *   phone?: string | null, companyName?: string | null, jobTitle?: string | null }} MsContactDraft

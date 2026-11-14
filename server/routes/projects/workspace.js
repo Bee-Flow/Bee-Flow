@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Project workspace routes — files, "my chats" and presence.
  *
@@ -42,7 +42,7 @@ const MAX_FILE_MB = 20;
  * @param {typeof import('../../stores/projectStore').logActivity} [deps.logActivity]
  * @param {typeof import('../../core/projectFeed').emitProjectEvent} [deps.emitProjectEvent]
  * @param {typeof import('../../core/projectEventBus').publishTransient} [deps.publishTransient]
- * @param {typeof import('./complianceSignal').signalProjectChanged} [deps.signalProjectChanged]
+ * @param {typeof import('../../usecases/projects/complianceSignal').signalProjectChanged} [deps.signalProjectChanged]
  * @param {import('express').RequestHandler} [deps.uploadLimiter]  rate limit for uploads
  * @param {import('express').RequestHandler} [deps.presenceLimiter]  rate limit for presence pings
  * @param {number} [deps.maxFileBytes]
@@ -66,7 +66,7 @@ function makeWorkspaceRouter(deps = {}) {
     const publishTransient = (...a) => (deps.publishTransient || require('../../core/projectEventBus').publishTransient)(...a);
     // The project's files are something the project compliance checks read.
     /** @param {{ id: string }} project */
-    const filesChanged = (project) => (deps.signalProjectChanged || require('./complianceSignal').signalProjectChanged)(project, 'files');
+    const filesChanged = (project) => (deps.signalProjectChanged || require('../../usecases/projects/complianceSignal').signalProjectChanged)(project, 'files');
     const log = deps.log || require('../../telemetry/log');
     const maxFileBytes = deps.maxFileBytes || require('../../projects/projectFiles').MAX_FILE_BYTES;
 
@@ -118,8 +118,8 @@ function makeWorkspaceRouter(deps = {}) {
         });
     }
 
-    /** @param {Pick<import('express').Request, 'session'>} req */
-    const userIdOf = (req) => req.session?.user?.id;
+    /** @param {Pick<import('express').Request, 'session'>} req  past requireRole, so signed in */
+    const userIdOf = (req) => /** @type {string} */ (req.session?.user?.id);
 
     /**
      * The project behind a passed role gate; it can still vanish mid-request.

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 const express = require('express');
 const { z } = require('../../utils/zod');
@@ -25,9 +25,10 @@ function makeDiscoveryRouter(deps = {}) {
     const load = async (/** @type {import('express').Request<{ id: string }>} */ req) => {
         const project = await (deps.getProject || require('../../stores/projectStore').getProject)(req.params.id);
         if (!project) throw notFound();
-        return (deps.catalogue || catalogue)(project, req.session?.user?.id);
+        // Behind role('viewer'): there is a signed-in user.
+        return (deps.catalogue || catalogue)(project, /** @type {string} */ (req.session?.user?.id));
     };
-    router.get('/:id/search', role('viewer'), validate({ query }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
+    router.get('/:id/search', role('viewer'), /** @type {import('express').RequestHandler<any, any, any, any>} */ (validate({ query })), async (req, res) => {
         res.set('Cache-Control', 'no-store').json(searchCatalogue(await load(req), req.query));
     });
     router.get('/:id/pins', role('viewer'), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {

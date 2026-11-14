@@ -11,11 +11,12 @@ interface PasswordResetDeps {
     setForgotSent: Setter<boolean>;
     setResetToken: Setter<string | null>;
     setResetDone: Setter<boolean>;
+    setResetKeyReset: Setter<boolean>;
 }
 
 /** The forgot-password e-mail step and the reset-with-token step. */
 export function usePasswordResetActions(deps: PasswordResetDeps) {
-    const { t, resetToken, setError, setIsLoading, setForgotMode, setForgotSent, setResetToken, setResetDone } = deps;
+    const { t, resetToken, setError, setIsLoading, setForgotMode, setForgotSent, setResetToken, setResetDone, setResetKeyReset } = deps;
 
     const handleForgotPassword = async (email: string) => {
         setError('');
@@ -39,6 +40,7 @@ export function usePasswordResetActions(deps: PasswordResetDeps) {
             const res = await postResetPassword(resetToken, newPassword);
             const data: AuthAnswer = await res.json();
             if (res.ok && data.success) {
+                setResetKeyReset(data.encryptionKeyReset === true);
                 setResetDone(true);
             } else {
                 setError(data.error || t('reset.failed', 'Failed to reset password.'));
@@ -55,6 +57,7 @@ export function usePasswordResetActions(deps: PasswordResetDeps) {
         setForgotSent(false);
         setResetToken(null);
         setResetDone(false);
+        setResetKeyReset(false);
         setError('');
     };
 

@@ -1,5 +1,6 @@
 import { Check, Copy, Search } from 'lucide-react';
-import { memo, useCallback, useEffect, useState } from 'react';
+import { memo, useCallback, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { KeyboardEvent } from 'react';
 import AiTranslateControl, { AiTranslateResult } from './AiTranslateControl';
 import { LANGUAGES_API } from './useLanguages';
@@ -80,7 +81,7 @@ const GuiStringRow = memo(function GuiStringRow({ stringKey, defaultValue, trans
                         />
                         {isSaved && <Check className="w-3.5 h-3.5 text-green-500 shrink-0" />}
                         {!value && (
-                            <button onClick={() => { setValue(defaultValue); onSave(stringKey, defaultValue); }} className="p-1 rounded opacity-0 group-hover:opacity-50 hover:!opacity-100 transition-opacity" title={t('admin_languages.copy_default_short', 'Copy default')}>
+                            <button onClick={() => { setValue(defaultValue); onSave(stringKey, defaultValue); }} className="p-1 rounded opacity-0 group-hover:opacity-50 hover:!opacity-100 transition-opacity" title={t('admin_languages.copy_default_short', 'Copy default')} aria-label={t('admin_languages.copy_default_short', 'Copy default')}>
                                 <Copy className="w-3 h-3" />
                             </button>
                         )}
@@ -91,34 +92,39 @@ const GuiStringRow = memo(function GuiStringRow({ stringKey, defaultValue, trans
     );
 });
 
+const NO_TRANSLATIONS: Record<string, string> = {};
+
 /** Load the locale's GUI strings; `reload` refetches after an AI run. */
 function useGuiStrings(locale: string) {
-    const [data, setData] = useState<GuiData | null>(null);
-    const [translations, setTranslations] = useState<Record<string, string>>({});
+    const queryClient = useQueryClient();
+    const key = ['languages', locale, 'gui'] as const;
+    const query = useQuery<GuiData>({
+        queryKey: key,
+        staleTime: 0,
+        retry: false,
+        queryFn: async () => (await getLanguages(`${locale}/gui`)).json(),
+    });
+    const data = query.data ?? null;
+    const translations = data?.translations ?? NO_TRANSLATIONS;
     const [savedKey, setSavedKey] = useState<string | null>(null);
+    const { refetch } = query;
+    const reload = useCallback(() => { void refetch(); }, [refetch]);
 
-    const reload = useCallback(() => {
-        getLanguages(`${locale}/gui`)
-            .then((r: Response) => r.json())
-            .then((d: GuiData) => {
-                setData(d);
-                setTranslations(d.translations || {});
-            });
-    }, [locale]);
-
-    useEffect(() => { reload(); }, [reload]);
-
-    const saveTranslation = useCallback(async (key: string, value: string) => {
-        try {
-            const res = await sendLanguagesJson('PATCH', `${locale}/gui`, { updates: { [key]: value } });
-            if (res.ok) {
-                const result = await res.json();
-                setTranslations(result.translations);
-                setSavedKey(key);
-                setTimeout(() => setSavedKey(null), 1500);
-            }
-        } catch (err) { logger.warn('GUI string save failed', err); }
-    }, [locale]);
+    const save = useMutation({
+        mutationFn: async ({ stringKey, value }: { stringKey: string; value: string }) => {
+            const res = await sendLanguagesJson('PATCH', `${locale}/gui`, { updates: { [stringKey]: value } });
+            return res.ok ? { stringKey, result: await res.json() } : null;
+        },
+        onSuccess: (saved) => {
+            if (!saved) return;
+            queryClient.setQueryData<GuiData>(key, (prev) => (prev ? { ...prev, translations: saved.result.translations } : prev));
+            setSavedKey(saved.stringKey);
+            setTimeout(() => setSavedKey(null), 1500);
+        },
+        onError: (err) => logger.warn('GUI string save failed', err),
+    });
+    const { mutate } = save;
+    const saveTranslation = useCallback((stringKey: string, value: string) => mutate({ stringKey, value }), [mutate]);
 
     return { data, translations, savedKey, reload, saveTranslation };
 }

@@ -21,8 +21,7 @@ const fs = require('fs');
 const path = require('path');
 
 const { resolveModelForTier } = require('../core/llm/modelResolver');
-const log = require('../telemetry/log');
-const { fallback, bestEffort } = require('../utils/bestEffort');
+const { fallback, bestEffort, ignoreGone } = require('../utils/bestEffort');
 
 const PROMPT_PATH = path.join(__dirname, '..', 'prompts', 'browse-web-prompt.md');
 const DEFAULT_MAX_STEPS = parseInt(process.env.BROWSER_AGENT_MAX_STEPS || '8', 10);
@@ -521,8 +520,8 @@ async function runBrowseTask({ task, startUrl = null, userId = null, orgId = nul
     } catch (e) {
         return { status: 'error', answer: _finalize(extracted), visitedUrls: [...new Set(visitedUrls)], steps: 0, error: e.message };
     } finally {
-        try { await page?.close(); } catch (_) { log.debug('page already closed', _); }
-        try { await ctx?.close(); } catch (_) { log.debug('browser context already closed', _); }
+        try { await page?.close(); } catch (_) { ignoreGone('services/browserAgentDriver:closePage', _); }
+        try { await ctx?.close(); } catch (_) { ignoreGone('services/browserAgentDriver:closeContext', _); }
     }
 }
 

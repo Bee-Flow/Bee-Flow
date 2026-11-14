@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Direct Chat — the LLM rounds of a streamed turn: the non-streaming tool
  * pre-check loop, the primary stream, and the streamed tool rounds (with the
@@ -331,7 +331,9 @@ async function runStreamedToolRounds(turn, loop, followStreamCallback) {
         countStepRound(turn, turn.streamToolCalls, tc => tc.function?.name);
         turn.messages.push({
             role: 'assistant',
-            content: turn.fullContent || null,
+            // null, not an absent key, when the round said nothing: that is the
+            // shape the provider adapters send for a tool-call-only message.
+            content: /** @type {string} */ (turn.fullContent || null),
             tool_calls: turn.streamToolCalls,
             // The reasoning that produced THESE tool calls. Claude needs the
             // signed thinking blocks to precede the tool_use blocks on replay,

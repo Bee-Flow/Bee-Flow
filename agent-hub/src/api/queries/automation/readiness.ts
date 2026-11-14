@@ -24,7 +24,7 @@ export interface Readiness {
 export const AI_ACT_QUESTIONS = ['usesAi', 'externalOutput', 'sensitiveUse'] as const;
 export type AiActQuestion = typeof AI_ACT_QUESTIONS[number];
 
-/** The ten Annex III areas (compliance/aiAct/annexIii.js). */
+/** The ten Annex III areas (core/aiAct/annexIii.js). */
 export const ANNEX_III_DOMAINS = [
     'biometrics', 'critical_infrastructure', 'education', 'employment', 'essential_services',
     'credit', 'insurance', 'law_enforcement', 'migration', 'justice',

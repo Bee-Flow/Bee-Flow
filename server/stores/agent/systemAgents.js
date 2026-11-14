@@ -10,7 +10,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { run, getOne } = require('../../db');
+const { run, getOne, withTransaction } = require('../../db');
 const { initDB } = require('./initSchema');
 const { REGISTRY, REGISTRY_MAP, SYSTEM_AGENT_IDS, PROMPTS_DIR } = require('./systemAgentRegistry');
 const log = require('../../telemetry/log');
@@ -61,24 +61,24 @@ async function seedSystemAgents() {
         const existing = await getOne('SELECT id, system_prompt FROM agents WHERE id = $1', [def.id]);
 
         if (!existing) {
-            // ── New agent: insert ────────────────────────────────────────────
-            await run(
-                `INSERT INTO agents (id, name, description, system_prompt, model, owner_id, is_published, created_at, updated_at)
-                 VALUES ($1, $2, $3, $4, $5, 'system', FALSE, NOW(), NOW())`,
-                [def.id, def.name, def.description, prompt, def.defaultModel]
-            );
-            log.info(`[SystemAgents] Created ${def.name}`);
-
-            // Attach tools if defined
-            if (def.tools && def.tools.length > 0) {
-                for (const toolId of def.tools) {
-                    await run(
+            // ── New agent: the row and its tools in one transaction. A later
+            // boot only inserts a missing agent, so an agent left without its
+            // tools would stay that way.
+            await withTransaction(async (client) => {
+                await client.query(
+                    `INSERT INTO agents (id, name, description, system_prompt, model, owner_id, is_published, created_at, updated_at)
+                     VALUES ($1, $2, $3, $4, $5, 'system', FALSE, NOW(), NOW())`,
+                    [def.id, def.name, def.description, prompt, def.defaultModel]
+                );
+                for (const toolId of def.tools || []) {
+                    await client.query(
                         'INSERT INTO agent_tools (id, agent_id, component_id) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
                         [crypto.randomUUID(), def.id, toolId]
                     );
                 }
-                log.info(`[SystemAgents]   └─ Attached ${def.tools.length} tools`);
-            }
+            });
+            log.info(`[SystemAgents] Created ${def.name}`);
+            if (def.tools?.length) log.info(`[SystemAgents]   └─ Attached ${def.tools.length} tools`);
         } else if (def.alwaysUpdate) {
             // ── Existing agent with alwaysUpdate: update only if prompt file changed ─
             const existingHash = hashContent(existing.system_prompt || '');

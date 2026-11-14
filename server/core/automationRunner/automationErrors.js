@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Structured error hierarchy for the automation runner. Phase 1 lands
  * the classes and a classifier; the runner doesn't throw these yet — a
@@ -131,7 +131,7 @@ function classifyUnknownError(err) {
     const status = (
         err.status
         ?? err.statusCode
-        ?? err.response?.status
+        ?? /** @type {{ response?: { status?: number } }} */ (err).response?.status
         ?? null
     );
     if (status === 401 || status === 403) return 'PermissionError';
@@ -139,7 +139,7 @@ function classifyUnknownError(err) {
     if (typeof status === 'number' && status >= 500) return 'TransientError';
     if (typeof status === 'number' && status >= 400) return 'IntegrationError';
 
-    const code = err.code || err.errno || '';
+    const code = err.code || /** @type {{ errno?: string | number }} */ (err).errno || '';
     if (code === 'ECONNRESET' || code === 'ETIMEDOUT' || code === 'EAI_AGAIN' || code === 'ENOTFOUND') {
         return 'TransientError';
     }

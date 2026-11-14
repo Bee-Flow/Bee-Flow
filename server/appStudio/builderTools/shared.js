@@ -13,7 +13,7 @@
 const { LIMITS } = require('../componentSpecs');
 const { canonicalizeAppDefinition } = require('../canonicalize');
 const { schemaNewerMessage } = require('../schemaSince.mts');
-const { pickClosestId } = require('../../automation/validate/helpers');
+const { pickClosestId } = require('../../utils/closestId.mts');
 const { NODE_VALIDATION_TYPES } = require('./schemas');
 
 // v2 node-level logic fields the AI may author on add/update. The node shape

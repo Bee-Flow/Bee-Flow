@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * DB-free unit test for stores/lib/json.js (M6).
  * Run: cd server && node --test --test-force-exit --test-timeout=30000 stores/lib/json.test.js
@@ -46,7 +46,7 @@ test('fromJsonb: null-coalesces undefined to null, passes through everything els
 test('safeParse: parses or returns fallback (no object passthrough)', () => {
     assert.deepEqual(safeParse('{"a":1}', null), { a: 1 });
     assert.equal(safeParse('bad', 'FB'), 'FB');
-    assert.equal(safeParse(undefined, 'FB'), 'FB'); // JSON.parse(undefined) throws → fallback
+    assert.equal(safeParse(/** @type {any} */ (undefined), 'FB'), 'FB'); // JSON.parse(undefined) throws → fallback
 });
 
 // ── parseJSONObject ───────────────────────────────────────────────────────────

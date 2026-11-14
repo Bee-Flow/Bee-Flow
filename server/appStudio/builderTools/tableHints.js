@@ -33,9 +33,10 @@ function tableHandle(id) {
 
 /**
  * The one table `id` can only mean, or null.
+ * @template {{id:string,key?:string,name?:string}} T
  * @param {string} id
- * @param {Array<{id:string,key?:string,name?:string}>} tables
- * @returns {{ table: object, via: 'id'|'key'|'name' } | null}
+ * @param {T[]} tables
+ * @returns {{ table: T, via: 'id'|'key'|'name' } | null}
  */
 function suggestTableId(id, tables) {
     if (typeof id !== 'string' || !id.trim() || !Array.isArray(tables) || !tables.length) return null;

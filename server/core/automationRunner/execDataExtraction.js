@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * `data_extraction` — pull named, typed fields out of a piece of text.
  *
@@ -385,9 +386,9 @@ function parseExtractionReply(text, { stepId, fieldNames }) {
 
     const asked = `a JSON object with the fields ${fieldNames.map(n => `"${n}"`).join(', ')}`;
     const looksTruncated = body.startsWith('{') && !/\}\s*$/.test(body);
-    const err = new Error(looksTruncated
+    const err = /** @type {Error & { errorClass?: string }} */ (new Error(looksTruncated
         ? `This step was asked for ${asked} but its answer was cut off before the JSON was complete (${raw.length} characters), so every "steps.${stepId}.output.…" reference downstream would have been empty. Ask for fewer fields, or shorten the text it reads. First 200 characters: ${raw.trim().slice(0, 200)}`
-        : `This step was asked for ${asked} but answered with something else, so every "steps.${stepId}.output.…" reference downstream would have been empty. First 200 characters: ${raw.trim().slice(0, 200)}`);
+        : `This step was asked for ${asked} but answered with something else, so every "steps.${stepId}.output.…" reference downstream would have been empty. First 200 characters: ${raw.trim().slice(0, 200)}`));
     err.errorClass = 'ValidationError';
     throw err;
 }
@@ -416,7 +417,7 @@ function shapeExtractionOutput(fields, parsed) {
 async function execDataExtraction(step, ctx, runState, mode) {
     const fields = normaliseFields(step.fields);
     if (!fields.length) {
-        const err = new Error(`data_extraction ${step.id}: no fields to extract — declare at least one field (name, type, what to look for).`);
+        const err = /** @type {Error & { errorClass?: string }} */ (new Error(`data_extraction ${step.id}: no fields to extract — declare at least one field (name, type, what to look for).`));
         err.errorClass = 'ValidationError';
         throw err;
     }
@@ -431,7 +432,7 @@ async function execDataExtraction(step, ctx, runState, mode) {
     if (!sourceText.trim()) {
         const path = step.source && typeof step.source === 'object' && typeof step.source.path === 'string'
             ? step.source.path : (typeof step.source === 'string' ? step.source : '');
-        const err = new Error(`data_extraction ${step.id}: there is no text to read${path ? ` — \`${path}\` resolved to nothing` : ''}. Point \`source\` at the text an earlier step produced.`);
+        const err = /** @type {Error & { errorClass?: string }} */ (new Error(`data_extraction ${step.id}: there is no text to read${path ? ` — \`${path}\` resolved to nothing` : ''}. Point \`source\` at the text an earlier step produced.`));
         err.errorClass = 'ValidationError';
         throw err;
     }
@@ -458,7 +459,7 @@ async function execDataExtraction(step, ctx, runState, mode) {
     auditBase.model = modelId;
     const aiGuard = await safety.guardAiInput(messages, policy, auditBase, mode, ctx);
     if (aiGuard.blocked) {
-        const err = new Error('data_extraction: the Privacy Shield blocked this text from reaching the model.');
+        const err = /** @type {Error & { errorClass?: string }} */ (new Error('data_extraction: the Privacy Shield blocked this text from reaching the model.'));
         err.errorClass = 'guardrail_blocked';
         throw err;
     }
@@ -476,7 +477,7 @@ async function execDataExtraction(step, ctx, runState, mode) {
     // next step needed a value.
     const missing = fields.filter(f => f.required && output[f.name] === null).map(f => f.name);
     if (missing.length) {
-        const err = new Error(`data_extraction ${step.id}: the text does not contain the required field${missing.length > 1 ? 's' : ''} ${missing.map(n => `"${n}"`).join(', ')}.`);
+        const err = /** @type {Error & { errorClass?: string }} */ (new Error(`data_extraction ${step.id}: the text does not contain the required field${missing.length > 1 ? 's' : ''} ${missing.map(n => `"${n}"`).join(', ')}.`));
         err.errorClass = 'ValidationError';
         throw err;
     }

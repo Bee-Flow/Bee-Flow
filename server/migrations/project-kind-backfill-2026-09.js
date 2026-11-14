@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: classify the projects that existed before the workspace /
  * Solution split.
@@ -133,7 +133,7 @@ async function buildPredicates(db) {
 }
 
 /**
- * @param {{ dryRun?: boolean, db?: Pick<typeof import('../db'), 'getOne' | 'getAll' | 'run' | 'withTransaction'>, initSchema?: () => Promise<unknown> }} [opts]
+ * @param {{ dryRun?: boolean, db?: Pick<typeof import('../db'), 'getOne' | 'getAll' | 'run' | 'withTransaction'> | null, initSchema?: (() => Promise<unknown>) | null }} [opts]
  *        `db` (getOne + withTransaction, db.js's shape) and `initSchema` are
  *        seams for the integration test; boot calls up() without arguments.
  * @returns {Promise<{ solution: number, workspace: number, unclassified: number, dryRun: boolean }>}

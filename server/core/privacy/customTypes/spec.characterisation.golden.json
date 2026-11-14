@@ -1,0 +1,3102 @@
+{
+  "notObject": {
+    "ok": false,
+    "normalized": null,
+    "errors": [
+      {
+        "id": null,
+        "field": "type",
+        "code": "invalid_type",
+        "message": "A data type is an object."
+      }
+    ]
+  },
+  "arrayType": {
+    "ok": false,
+    "normalized": null,
+    "errors": [
+      {
+        "id": null,
+        "field": "type",
+        "code": "invalid_type",
+        "message": "A data type is an object."
+      }
+    ]
+  },
+  "nullType": {
+    "ok": false,
+    "normalized": null,
+    "errors": [
+      {
+        "id": null,
+        "field": "type",
+        "code": "invalid_type",
+        "message": "A data type is an object."
+      }
+    ]
+  },
+  "badId": {
+    "ok": false,
+    "normalized": null,
+    "errors": [
+      {
+        "id": null,
+        "field": "id",
+        "code": "invalid_id",
+        "message": "A data type id is cdt_ followed by 10 hex characters."
+      }
+    ]
+  },
+  "noName": {
+    "ok": false,
+    "normalized": null,
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "name",
+        "code": "name_invalid",
+        "message": "Give the data type a name of 1 to 60 characters."
+      }
+    ]
+  },
+  "longName": {
+    "ok": false,
+    "normalized": null,
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "name",
+        "code": "name_invalid",
+        "message": "Give the data type a name of 1 to 60 characters."
+      }
+    ]
+  },
+  "nameAtCap": {
+    "ok": true,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn",
+      "description": "Code names",
+      "method": "words",
+      "tokenKey": "project",
+      "words": {
+        "values": [
+          "Falcon"
+        ],
+        "caseSensitive": false,
+        "wholeWord": true
+      },
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": []
+  },
+  "badMethod": {
+    "ok": false,
+    "normalized": null,
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "method",
+        "code": "method_invalid",
+        "message": "The method is words, pattern or ai."
+      }
+    ]
+  },
+  "allStructural": {
+    "ok": false,
+    "normalized": null,
+    "errors": [
+      {
+        "id": null,
+        "field": "id",
+        "code": "invalid_id",
+        "message": "A data type id is cdt_ followed by 10 hex characters."
+      },
+      {
+        "id": null,
+        "field": "name",
+        "code": "name_invalid",
+        "message": "Give the data type a name of 1 to 60 characters."
+      },
+      {
+        "id": null,
+        "field": "method",
+        "code": "method_invalid",
+        "message": "The method is words, pattern or ai."
+      },
+      {
+        "id": null,
+        "field": "legacy",
+        "code": "legacy_forged",
+        "message": "Only the server marks a data type as migrated."
+      }
+    ]
+  },
+  "forgedLegacy": {
+    "ok": false,
+    "normalized": null,
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "legacy",
+        "code": "legacy_forged",
+        "message": "Only the server marks a data type as migrated."
+      }
+    ]
+  },
+  "forgedLegacyStoredNotLegacy": {
+    "ok": false,
+    "normalized": null,
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "legacy",
+        "code": "legacy_forged",
+        "message": "Only the server marks a data type as migrated."
+      }
+    ]
+  },
+  "longDescription": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "method": "words",
+      "tokenKey": "project",
+      "words": {
+        "values": [
+          "Falcon"
+        ],
+        "caseSensitive": false,
+        "wholeWord": true
+      },
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "description",
+        "code": "description_too_long",
+        "message": "The description holds at most 400 characters."
+      }
+    ]
+  },
+  "descriptionNotString": {
+    "ok": true,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "",
+      "method": "words",
+      "tokenKey": "project",
+      "words": {
+        "values": [
+          "Falcon"
+        ],
+        "caseSensitive": false,
+        "wholeWord": true
+      },
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": []
+  },
+  "tokenKeyMissing": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "words",
+      "tokenKey": "",
+      "words": {
+        "values": [
+          "Falcon"
+        ],
+        "caseSensitive": false,
+        "wholeWord": true
+      },
+      "status": "invalid",
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "tokenKey",
+        "code": "token_key_invalid",
+        "message": "The placeholder name uses lowercase letters, digits and underscores, starts and ends with a letter, and is at most 32 characters."
+      }
+    ]
+  },
+  "tokenKeyBad": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "words",
+      "tokenKey": "projectcode",
+      "words": {
+        "values": [
+          "Falcon"
+        ],
+        "caseSensitive": false,
+        "wholeWord": true
+      },
+      "status": "invalid",
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "tokenKey",
+        "code": "token_key_invalid",
+        "message": "The placeholder name uses lowercase letters, digits and underscores, starts and ends with a letter, and is at most 32 characters."
+      }
+    ]
+  },
+  "tokenKeyLong": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "words",
+      "tokenKey": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "words": {
+        "values": [
+          "Falcon"
+        ],
+        "caseSensitive": false,
+        "wholeWord": true
+      },
+      "status": "invalid",
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "tokenKey",
+        "code": "token_key_invalid",
+        "message": "The placeholder name uses lowercase letters, digits and underscores, starts and ends with a letter, and is at most 32 characters."
+      }
+    ]
+  },
+  "tokenKeyReserved": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "words",
+      "tokenKey": "email",
+      "words": {
+        "values": [
+          "Falcon"
+        ],
+        "caseSensitive": false,
+        "wholeWord": true
+      },
+      "status": "invalid",
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "tokenKey",
+        "code": "token_key_reserved",
+        "message": "This placeholder name is already used by a built-in kind of data. Pick another one."
+      }
+    ]
+  },
+  "tokenKeyReservedData": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "words",
+      "tokenKey": "data",
+      "words": {
+        "values": [
+          "Falcon"
+        ],
+        "caseSensitive": false,
+        "wholeWord": true
+      },
+      "status": "invalid",
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "tokenKey",
+        "code": "token_key_reserved",
+        "message": "This placeholder name is already used by a built-in kind of data. Pick another one."
+      }
+    ]
+  },
+  "tokenKeyCustomtermNotLegacy": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "words",
+      "tokenKey": "customterm",
+      "words": {
+        "values": [
+          "Falcon"
+        ],
+        "caseSensitive": false,
+        "wholeWord": true
+      },
+      "status": "invalid",
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "tokenKey",
+        "code": "token_key_reserved",
+        "message": "This placeholder name is already used by a built-in kind of data. Pick another one."
+      }
+    ]
+  },
+  "tokenKeyTaken": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "words",
+      "tokenKey": "project",
+      "words": {
+        "values": [
+          "Falcon"
+        ],
+        "caseSensitive": false,
+        "wholeWord": true
+      },
+      "status": "invalid",
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "tokenKey",
+        "code": "token_key_duplicate",
+        "message": "Another data type already uses this placeholder name."
+      }
+    ]
+  },
+  "tokenKeyTakenBySelf": {
+    "ok": true,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "words",
+      "tokenKey": "project",
+      "words": {
+        "values": [
+          "Falcon"
+        ],
+        "caseSensitive": false,
+        "wholeWord": true
+      },
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": []
+  },
+  "tokenKeyTakenByLegacy": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "words",
+      "tokenKey": "customterm",
+      "words": {
+        "values": [
+          "Falcon"
+        ],
+        "caseSensitive": false,
+        "wholeWord": true
+      },
+      "status": "invalid",
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "tokenKey",
+        "code": "token_key_reserved",
+        "message": "This placeholder name is already used by a built-in kind of data. Pick another one."
+      }
+    ]
+  },
+  "tokenKeyTakenByLegacyOther": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "words",
+      "tokenKey": "project",
+      "words": {
+        "values": [
+          "Falcon"
+        ],
+        "caseSensitive": false,
+        "wholeWord": true
+      },
+      "status": "invalid",
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "tokenKey",
+        "code": "token_key_duplicate",
+        "message": "Another data type already uses this placeholder name."
+      }
+    ]
+  },
+  "tokenKeyExistingJunk": {
+    "ok": true,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "words",
+      "tokenKey": "project",
+      "words": {
+        "values": [
+          "Falcon"
+        ],
+        "caseSensitive": false,
+        "wholeWord": true
+      },
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": []
+  },
+  "wordsJunk": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "words",
+      "tokenKey": "project",
+      "words": {
+        "values": [
+          "a",
+          "b"
+        ],
+        "caseSensitive": true,
+        "wholeWord": false
+      },
+      "status": "invalid",
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "words.values",
+        "code": "word_too_long",
+        "message": "Each word or phrase holds at most 120 characters."
+      }
+    ]
+  },
+  "wordsNotList": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "words",
+      "tokenKey": "project",
+      "words": {
+        "values": [],
+        "caseSensitive": false,
+        "wholeWord": true
+      },
+      "status": "invalid",
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "words.values",
+        "code": "words_invalid",
+        "message": "The words are a list of text."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "words.values",
+        "code": "words_empty",
+        "message": "Add at least one word or phrase."
+      }
+    ]
+  },
+  "wordsMissing": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "words",
+      "tokenKey": "project",
+      "words": {
+        "values": [],
+        "caseSensitive": false,
+        "wholeWord": true
+      },
+      "status": "invalid",
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "words.values",
+        "code": "words_invalid",
+        "message": "The words are a list of text."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "words.values",
+        "code": "words_empty",
+        "message": "Add at least one word or phrase."
+      }
+    ]
+  },
+  "wordsEmpty": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "words",
+      "tokenKey": "project",
+      "words": {
+        "values": [],
+        "caseSensitive": false,
+        "wholeWord": true
+      },
+      "status": "invalid",
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "words.values",
+        "code": "words_empty",
+        "message": "Add at least one word or phrase."
+      }
+    ]
+  },
+  "wordsTooMany": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "words",
+      "tokenKey": "project",
+      "words": {
+        "values": [
+          "w0",
+          "w1",
+          "w2",
+          "w3",
+          "w4",
+          "w5",
+          "w6",
+          "w7",
+          "w8",
+          "w9",
+          "w10",
+          "w11",
+          "w12",
+          "w13",
+          "w14",
+          "w15",
+          "w16",
+          "w17",
+          "w18",
+          "w19",
+          "w20",
+          "w21",
+          "w22",
+          "w23",
+          "w24",
+          "w25",
+          "w26",
+          "w27",
+          "w28",
+          "w29",
+          "w30",
+          "w31",
+          "w32",
+          "w33",
+          "w34",
+          "w35",
+          "w36",
+          "w37",
+          "w38",
+          "w39",
+          "w40",
+          "w41",
+          "w42",
+          "w43",
+          "w44",
+          "w45",
+          "w46",
+          "w47",
+          "w48",
+          "w49",
+          "w50",
+          "w51",
+          "w52",
+          "w53",
+          "w54",
+          "w55",
+          "w56",
+          "w57",
+          "w58",
+          "w59",
+          "w60",
+          "w61",
+          "w62",
+          "w63",
+          "w64",
+          "w65",
+          "w66",
+          "w67",
+          "w68",
+          "w69",
+          "w70",
+          "w71",
+          "w72",
+          "w73",
+          "w74",
+          "w75",
+          "w76",
+          "w77",
+          "w78",
+          "w79",
+          "w80",
+          "w81",
+          "w82",
+          "w83",
+          "w84",
+          "w85",
+          "w86",
+          "w87",
+          "w88",
+          "w89",
+          "w90",
+          "w91",
+          "w92",
+          "w93",
+          "w94",
+          "w95",
+          "w96",
+          "w97",
+          "w98",
+          "w99",
+          "w100",
+          "w101",
+          "w102",
+          "w103",
+          "w104",
+          "w105",
+          "w106",
+          "w107",
+          "w108",
+          "w109",
+          "w110",
+          "w111",
+          "w112",
+          "w113",
+          "w114",
+          "w115",
+          "w116",
+          "w117",
+          "w118",
+          "w119",
+          "w120",
+          "w121",
+          "w122",
+          "w123",
+          "w124",
+          "w125",
+          "w126",
+          "w127",
+          "w128",
+          "w129",
+          "w130",
+          "w131",
+          "w132",
+          "w133",
+          "w134",
+          "w135",
+          "w136",
+          "w137",
+          "w138",
+          "w139",
+          "w140",
+          "w141",
+          "w142",
+          "w143",
+          "w144",
+          "w145",
+          "w146",
+          "w147",
+          "w148",
+          "w149",
+          "w150",
+          "w151",
+          "w152",
+          "w153",
+          "w154",
+          "w155",
+          "w156",
+          "w157",
+          "w158",
+          "w159",
+          "w160",
+          "w161",
+          "w162",
+          "w163",
+          "w164",
+          "w165",
+          "w166",
+          "w167",
+          "w168",
+          "w169",
+          "w170",
+          "w171",
+          "w172",
+          "w173",
+          "w174",
+          "w175",
+          "w176",
+          "w177",
+          "w178",
+          "w179",
+          "w180",
+          "w181",
+          "w182",
+          "w183",
+          "w184",
+          "w185",
+          "w186",
+          "w187",
+          "w188",
+          "w189",
+          "w190",
+          "w191",
+          "w192",
+          "w193",
+          "w194",
+          "w195",
+          "w196",
+          "w197",
+          "w198",
+          "w199",
+          "w200",
+          "w201",
+          "w202",
+          "w203",
+          "w204",
+          "w205",
+          "w206",
+          "w207",
+          "w208",
+          "w209",
+          "w210",
+          "w211",
+          "w212",
+          "w213",
+          "w214",
+          "w215",
+          "w216",
+          "w217",
+          "w218",
+          "w219",
+          "w220",
+          "w221",
+          "w222",
+          "w223",
+          "w224",
+          "w225",
+          "w226",
+          "w227",
+          "w228",
+          "w229",
+          "w230",
+          "w231",
+          "w232",
+          "w233",
+          "w234",
+          "w235",
+          "w236",
+          "w237",
+          "w238",
+          "w239",
+          "w240",
+          "w241",
+          "w242",
+          "w243",
+          "w244",
+          "w245",
+          "w246",
+          "w247",
+          "w248",
+          "w249",
+          "w250",
+          "w251",
+          "w252",
+          "w253",
+          "w254",
+          "w255",
+          "w256",
+          "w257",
+          "w258",
+          "w259",
+          "w260",
+          "w261",
+          "w262",
+          "w263",
+          "w264",
+          "w265",
+          "w266",
+          "w267",
+          "w268",
+          "w269",
+          "w270",
+          "w271",
+          "w272",
+          "w273",
+          "w274",
+          "w275",
+          "w276",
+          "w277",
+          "w278",
+          "w279",
+          "w280",
+          "w281",
+          "w282",
+          "w283",
+          "w284",
+          "w285",
+          "w286",
+          "w287",
+          "w288",
+          "w289",
+          "w290",
+          "w291",
+          "w292",
+          "w293",
+          "w294",
+          "w295",
+          "w296",
+          "w297",
+          "w298",
+          "w299",
+          "w300",
+          "w301",
+          "w302",
+          "w303",
+          "w304",
+          "w305",
+          "w306",
+          "w307",
+          "w308",
+          "w309",
+          "w310",
+          "w311",
+          "w312",
+          "w313",
+          "w314",
+          "w315",
+          "w316",
+          "w317",
+          "w318",
+          "w319",
+          "w320",
+          "w321",
+          "w322",
+          "w323",
+          "w324",
+          "w325",
+          "w326",
+          "w327",
+          "w328",
+          "w329",
+          "w330",
+          "w331",
+          "w332",
+          "w333",
+          "w334",
+          "w335",
+          "w336",
+          "w337",
+          "w338",
+          "w339",
+          "w340",
+          "w341",
+          "w342",
+          "w343",
+          "w344",
+          "w345",
+          "w346",
+          "w347",
+          "w348",
+          "w349",
+          "w350",
+          "w351",
+          "w352",
+          "w353",
+          "w354",
+          "w355",
+          "w356",
+          "w357",
+          "w358",
+          "w359",
+          "w360",
+          "w361",
+          "w362",
+          "w363",
+          "w364",
+          "w365",
+          "w366",
+          "w367",
+          "w368",
+          "w369",
+          "w370",
+          "w371",
+          "w372",
+          "w373",
+          "w374",
+          "w375",
+          "w376",
+          "w377",
+          "w378",
+          "w379",
+          "w380",
+          "w381",
+          "w382",
+          "w383",
+          "w384",
+          "w385",
+          "w386",
+          "w387",
+          "w388",
+          "w389",
+          "w390",
+          "w391",
+          "w392",
+          "w393",
+          "w394",
+          "w395",
+          "w396",
+          "w397",
+          "w398",
+          "w399",
+          "w400",
+          "w401",
+          "w402",
+          "w403",
+          "w404",
+          "w405",
+          "w406",
+          "w407",
+          "w408",
+          "w409",
+          "w410",
+          "w411",
+          "w412",
+          "w413",
+          "w414",
+          "w415",
+          "w416",
+          "w417",
+          "w418",
+          "w419",
+          "w420",
+          "w421",
+          "w422",
+          "w423",
+          "w424",
+          "w425",
+          "w426",
+          "w427",
+          "w428",
+          "w429",
+          "w430",
+          "w431",
+          "w432",
+          "w433",
+          "w434",
+          "w435",
+          "w436",
+          "w437",
+          "w438",
+          "w439",
+          "w440",
+          "w441",
+          "w442",
+          "w443",
+          "w444",
+          "w445",
+          "w446",
+          "w447",
+          "w448",
+          "w449",
+          "w450",
+          "w451",
+          "w452",
+          "w453",
+          "w454",
+          "w455",
+          "w456",
+          "w457",
+          "w458",
+          "w459",
+          "w460",
+          "w461",
+          "w462",
+          "w463",
+          "w464",
+          "w465",
+          "w466",
+          "w467",
+          "w468",
+          "w469",
+          "w470",
+          "w471",
+          "w472",
+          "w473",
+          "w474",
+          "w475",
+          "w476",
+          "w477",
+          "w478",
+          "w479",
+          "w480",
+          "w481",
+          "w482",
+          "w483",
+          "w484",
+          "w485",
+          "w486",
+          "w487",
+          "w488",
+          "w489",
+          "w490",
+          "w491",
+          "w492",
+          "w493",
+          "w494",
+          "w495",
+          "w496",
+          "w497",
+          "w498",
+          "w499"
+        ],
+        "caseSensitive": false,
+        "wholeWord": true
+      },
+      "status": "invalid",
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "words.values",
+        "code": "words_too_many",
+        "message": "A data type holds at most 500 words."
+      }
+    ]
+  },
+  "wordsWholeWordDefault": {
+    "ok": true,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "words",
+      "tokenKey": "project",
+      "words": {
+        "values": [
+          "x"
+        ],
+        "caseSensitive": false,
+        "wholeWord": true
+      },
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": []
+  },
+  "patternOk": {
+    "ok": true,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "pattern",
+      "tokenKey": "project",
+      "pattern": {
+        "source": "PRJ-\\d{4}",
+        "caseSensitive": true,
+        "engine": "re2"
+      },
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": []
+  },
+  "patternMissing": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "pattern",
+      "tokenKey": "project",
+      "pattern": {
+        "source": "",
+        "caseSensitive": false,
+        "engine": "re2",
+        "error": "missing"
+      },
+      "status": "invalid",
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "pattern.source",
+        "code": "pattern_required",
+        "message": "Write the pattern."
+      }
+    ]
+  },
+  "patternNotObject": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "pattern",
+      "tokenKey": "project",
+      "pattern": {
+        "source": "",
+        "caseSensitive": false,
+        "engine": "re2",
+        "error": "missing"
+      },
+      "status": "invalid",
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "pattern.source",
+        "code": "pattern_required",
+        "message": "Write the pattern."
+      }
+    ]
+  },
+  "patternTooLong": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "pattern",
+      "tokenKey": "project",
+      "pattern": {
+        "source": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "caseSensitive": false,
+        "engine": "re2",
+        "error": "too long"
+      },
+      "status": "invalid",
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "pattern.source",
+        "code": "pattern_too_long",
+        "message": "A pattern holds at most 300 characters."
+      }
+    ]
+  },
+  "patternRe2Refuses": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "pattern",
+      "tokenKey": "project",
+      "pattern": {
+        "source": "(a)\\1",
+        "caseSensitive": false,
+        "engine": "re2",
+        "error": "invalid escape sequence: \\1"
+      },
+      "status": "invalid",
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "pattern.source",
+        "code": "pattern_invalid",
+        "message": "This pattern is not supported: invalid escape sequence: \\1."
+      }
+    ]
+  },
+  "patternBroken": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "pattern",
+      "tokenKey": "project",
+      "pattern": {
+        "source": "(",
+        "caseSensitive": false,
+        "engine": "re2",
+        "error": "missing ): ("
+      },
+      "status": "invalid",
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "pattern.source",
+        "code": "pattern_invalid",
+        "message": "This pattern is not supported: missing ): (."
+      }
+    ]
+  },
+  "patternMatchesEmpty": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "pattern",
+      "tokenKey": "project",
+      "pattern": {
+        "source": "a*",
+        "caseSensitive": false,
+        "engine": "re2",
+        "error": "matches empty text"
+      },
+      "status": "invalid",
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "pattern.source",
+        "code": "pattern_matches_empty",
+        "message": "This pattern also matches empty text, so it would match everywhere. Make it require at least one character."
+      }
+    ]
+  },
+  "patternWithWordsToo": {
+    "ok": true,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "pattern",
+      "tokenKey": "project",
+      "pattern": {
+        "source": "x+",
+        "caseSensitive": false,
+        "engine": "re2"
+      },
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": []
+  },
+  "aiOk": {
+    "ok": true,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "ai",
+      "tokenKey": "project",
+      "ai": {
+        "prompt": "Customer number",
+        "floor": 0.3,
+        "groupSignature": "g1"
+      },
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": []
+  },
+  "aiDefaults": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "ai",
+      "tokenKey": "project",
+      "ai": {
+        "prompt": "",
+        "floor": 0.5
+      },
+      "status": "invalid",
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "ai.prompt",
+        "code": "ai_prompt_invalid",
+        "message": "The label for the AI is 2 to 60 characters of plain text."
+      }
+    ]
+  },
+  "aiNotObject": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "ai",
+      "tokenKey": "project",
+      "ai": {
+        "prompt": "",
+        "floor": 0.5
+      },
+      "status": "invalid",
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "ai.prompt",
+        "code": "ai_prompt_invalid",
+        "message": "The label for the AI is 2 to 60 characters of plain text."
+      }
+    ]
+  },
+  "aiPromptShort": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "ai",
+      "tokenKey": "project",
+      "ai": {
+        "prompt": "x",
+        "floor": 0.5
+      },
+      "status": "invalid",
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "ai.prompt",
+        "code": "ai_prompt_invalid",
+        "message": "The label for the AI is 2 to 60 characters of plain text."
+      }
+    ]
+  },
+  "aiPromptLong": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "ai",
+      "tokenKey": "project",
+      "ai": {
+        "prompt": "pppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp",
+        "floor": 0.5
+      },
+      "status": "invalid",
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "ai.prompt",
+        "code": "ai_prompt_invalid",
+        "message": "The label for the AI is 2 to 60 characters of plain text."
+      }
+    ]
+  },
+  "aiPromptControl": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "ai",
+      "tokenKey": "project",
+      "ai": {
+        "prompt": "line\u0007bell",
+        "floor": 0.5
+      },
+      "status": "invalid",
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "ai.prompt",
+        "code": "ai_prompt_invalid",
+        "message": "The label for the AI is 2 to 60 characters of plain text."
+      }
+    ]
+  },
+  "aiPromptBrackets": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "ai",
+      "tokenKey": "project",
+      "ai": {
+        "prompt": "a << b",
+        "floor": 0.5
+      },
+      "status": "invalid",
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "ai.prompt",
+        "code": "ai_prompt_invalid",
+        "message": "The label for the AI is 2 to 60 characters of plain text."
+      }
+    ]
+  },
+  "aiPromptBracketsClose": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "ai",
+      "tokenKey": "project",
+      "ai": {
+        "prompt": "a >> b",
+        "floor": 0.5
+      },
+      "status": "invalid",
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "ai.prompt",
+        "code": "ai_prompt_invalid",
+        "message": "The label for the AI is 2 to 60 characters of plain text."
+      }
+    ]
+  },
+  "aiFloorLow": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "ai",
+      "tokenKey": "project",
+      "ai": {
+        "prompt": "Label",
+        "floor": 0.5
+      },
+      "status": "invalid",
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "ai.floor",
+        "code": "ai_floor_invalid",
+        "message": "The sensitivity is a number between 0.1 and 0.95."
+      }
+    ]
+  },
+  "aiFloorHigh": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "ai",
+      "tokenKey": "project",
+      "ai": {
+        "prompt": "Label",
+        "floor": 0.5
+      },
+      "status": "invalid",
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "ai.floor",
+        "code": "ai_floor_invalid",
+        "message": "The sensitivity is a number between 0.1 and 0.95."
+      }
+    ]
+  },
+  "aiFloorString": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "ai",
+      "tokenKey": "project",
+      "ai": {
+        "prompt": "Label",
+        "floor": 0.5
+      },
+      "status": "invalid",
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "ai.floor",
+        "code": "ai_floor_invalid",
+        "message": "The sensitivity is a number between 0.1 and 0.95."
+      }
+    ]
+  },
+  "aiFloorNaN": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "ai",
+      "tokenKey": "project",
+      "ai": {
+        "prompt": "Label",
+        "floor": 0.5
+      },
+      "status": "invalid",
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "ai.floor",
+        "code": "ai_floor_invalid",
+        "message": "The sensitivity is a number between 0.1 and 0.95."
+      }
+    ]
+  },
+  "aiGroupSignatureLong": {
+    "ok": true,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "ai",
+      "tokenKey": "project",
+      "ai": {
+        "prompt": "Label",
+        "floor": 0.5
+      },
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": []
+  },
+  "quality": {
+    "ok": true,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "words",
+      "tokenKey": "project",
+      "words": {
+        "values": [
+          "Falcon"
+        ],
+        "caseSensitive": false,
+        "wholeWord": true
+      },
+      "quality": {
+        "found": 3,
+        "total": 4,
+        "falseAlarms": 0,
+        "sentences": 0,
+        "at": "2026-01-01",
+        "stale": true
+      },
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": []
+  },
+  "qualityJunk": {
+    "ok": true,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "words",
+      "tokenKey": "project",
+      "words": {
+        "values": [
+          "Falcon"
+        ],
+        "caseSensitive": false,
+        "wholeWord": true
+      },
+      "quality": {
+        "found": 0,
+        "total": 0,
+        "falseAlarms": 0,
+        "sentences": 0
+      },
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": []
+  },
+  "qualityNotObject": {
+    "ok": true,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "words",
+      "tokenKey": "project",
+      "words": {
+        "values": [
+          "Falcon"
+        ],
+        "caseSensitive": false,
+        "wholeWord": true
+      },
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": []
+  },
+  "clientServerFields": {
+    "ok": true,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "words",
+      "tokenKey": "project",
+      "words": {
+        "values": [
+          "Falcon"
+        ],
+        "caseSensitive": false,
+        "wholeWord": true
+      },
+      "origin": "created",
+      "createdAt": "2020-01-01",
+      "createdBy": "u9",
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": []
+  },
+  "clientCreatedAtLong": {
+    "ok": true,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "words",
+      "tokenKey": "project",
+      "words": {
+        "values": [
+          "Falcon"
+        ],
+        "caseSensitive": false,
+        "wholeWord": true
+      },
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": []
+  },
+  "noUserId": {
+    "ok": true,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "words",
+      "tokenKey": "project",
+      "words": {
+        "values": [
+          "Falcon"
+        ],
+        "caseSensitive": false,
+        "wholeWord": true
+      },
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": []
+  },
+  "storedCreated": {
+    "ok": true,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "words",
+      "tokenKey": "project",
+      "words": {
+        "values": [
+          "Falcon"
+        ],
+        "caseSensitive": false,
+        "wholeWord": true
+      },
+      "origin": "created",
+      "createdAt": "2025-03-03",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": []
+  },
+  "storedChanged": {
+    "ok": true,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "words",
+      "tokenKey": "project",
+      "words": {
+        "values": [
+          "Falcon",
+          "Heron"
+        ],
+        "caseSensitive": false,
+        "wholeWord": true
+      },
+      "origin": "created",
+      "createdAt": "2026-11-14T00:00:00.000Z",
+      "createdBy": null,
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": []
+  },
+  "storedFromExisting": {
+    "ok": true,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "words",
+      "tokenKey": "project",
+      "words": {
+        "values": [
+          "Falcon"
+        ],
+        "caseSensitive": false,
+        "wholeWord": true
+      },
+      "origin": "migrated",
+      "createdAt": "2025-05-05",
+      "createdBy": "u5",
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": []
+  },
+  "legacyWords": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "words",
+      "tokenKey": "customterm",
+      "words": {
+        "values": [
+          " exact  ",
+          "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        ],
+        "caseSensitive": false,
+        "wholeWord": false
+      },
+      "status": "invalid",
+      "origin": "migrated",
+      "legacy": true,
+      "legacyTermId": "term-1",
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "createdBy": "u0",
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "words.values",
+        "code": "word_too_long",
+        "message": "Each word or phrase holds at most 500 characters."
+      }
+    ]
+  },
+  "legacyUnchanged": {
+    "ok": true,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "words",
+      "tokenKey": "customterm",
+      "words": {
+        "values": [
+          "Falcon"
+        ],
+        "caseSensitive": false,
+        "wholeWord": false
+      },
+      "origin": "migrated",
+      "legacy": true,
+      "legacyTermId": "term-1",
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "createdBy": "u0",
+      "updatedAt": "2025-02-01T00:00:00.000Z"
+    },
+    "errors": []
+  },
+  "legacyNewKey": {
+    "ok": true,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "words",
+      "tokenKey": "project",
+      "words": {
+        "values": [
+          "Falcon"
+        ],
+        "caseSensitive": false,
+        "wholeWord": false
+      },
+      "origin": "migrated",
+      "legacy": true,
+      "legacyTermId": "term-1",
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "createdBy": "u0",
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": []
+  },
+  "legacyPatternV8": {
+    "ok": true,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "pattern",
+      "tokenKey": "customterm",
+      "pattern": {
+        "source": "(?<=a)b",
+        "caseSensitive": false,
+        "engine": "v8-legacy"
+      },
+      "origin": "migrated",
+      "legacy": true,
+      "legacyTermId": "term-1",
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "createdBy": "u0",
+      "updatedAt": "2025-02-01T00:00:00.000Z"
+    },
+    "errors": []
+  },
+  "legacyPatternV8Broken": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "pattern",
+      "tokenKey": "customterm",
+      "pattern": {
+        "source": "(",
+        "caseSensitive": false,
+        "engine": "v8-legacy",
+        "error": "Invalid regular expression: /(/gi: Unterminated group"
+      },
+      "status": "invalid",
+      "origin": "migrated",
+      "legacy": true,
+      "legacyTermId": "term-1",
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "createdBy": "u0",
+      "updatedAt": "2025-02-01T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "pattern.source",
+        "code": "pattern_invalid",
+        "message": "This pattern does not compile."
+      }
+    ]
+  },
+  "legacyPatternChanged": {
+    "ok": true,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "pattern",
+      "tokenKey": "customterm",
+      "pattern": {
+        "source": "a*",
+        "caseSensitive": false,
+        "engine": "re2"
+      },
+      "origin": "migrated",
+      "legacy": true,
+      "legacyTermId": "term-1",
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "createdBy": "u0",
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": []
+  },
+  "legacyPatternLong": {
+    "ok": true,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "pattern",
+      "tokenKey": "customterm",
+      "pattern": {
+        "source": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "caseSensitive": false,
+        "engine": "re2"
+      },
+      "origin": "migrated",
+      "legacy": true,
+      "legacyTermId": "term-1",
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "createdBy": "u0",
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": []
+  },
+  "legacyPatternTooLong": {
+    "ok": false,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "pattern",
+      "tokenKey": "customterm",
+      "pattern": {
+        "source": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "caseSensitive": false,
+        "engine": "re2",
+        "error": "too long"
+      },
+      "status": "invalid",
+      "origin": "migrated",
+      "legacy": true,
+      "legacyTermId": "term-1",
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "createdBy": "u0",
+      "updatedAt": "2026-11-14T00:00:00.000Z"
+    },
+    "errors": [
+      {
+        "id": "cdt_00000000aa",
+        "field": "pattern.source",
+        "code": "pattern_too_long",
+        "message": "A pattern holds at most 500 characters."
+      }
+    ]
+  },
+  "legacyNoTermId": {
+    "ok": true,
+    "normalized": {
+      "id": "cdt_00000000aa",
+      "name": "Project names",
+      "description": "Code names",
+      "method": "words",
+      "tokenKey": "customterm",
+      "words": {
+        "values": [
+          "Falcon"
+        ],
+        "caseSensitive": false,
+        "wholeWord": false
+      },
+      "origin": "migrated",
+      "legacy": true,
+      "createdAt": "2025-01-01T00:00:00.000Z",
+      "createdBy": "u0",
+      "updatedAt": "2025-02-01T00:00:00.000Z"
+    },
+    "errors": []
+  },
+  "list/all": {
+    "types": [
+      {
+        "id": "cdt_00000000aa",
+        "name": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn",
+        "description": "Code names",
+        "method": "words",
+        "tokenKey": "project",
+        "words": {
+          "values": [
+            "Falcon"
+          ],
+          "caseSensitive": false,
+          "wholeWord": true
+        },
+        "origin": "created",
+        "createdAt": "2026-11-14T00:00:00.000Z",
+        "createdBy": "u1",
+        "updatedAt": "2026-11-14T00:00:00.000Z"
+      }
+    ],
+    "errors": [
+      {
+        "id": null,
+        "field": "type",
+        "code": "invalid_type",
+        "message": "A data type is an object."
+      },
+      {
+        "id": null,
+        "field": "type",
+        "code": "invalid_type",
+        "message": "A data type is an object."
+      },
+      {
+        "id": null,
+        "field": "type",
+        "code": "invalid_type",
+        "message": "A data type is an object."
+      },
+      {
+        "id": null,
+        "field": "id",
+        "code": "invalid_id",
+        "message": "A data type id is cdt_ followed by 10 hex characters."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "name",
+        "code": "name_invalid",
+        "message": "Give the data type a name of 1 to 60 characters."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "name",
+        "code": "name_invalid",
+        "message": "Give the data type a name of 1 to 60 characters."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "method",
+        "code": "method_invalid",
+        "message": "The method is words, pattern or ai."
+      },
+      {
+        "id": null,
+        "field": "id",
+        "code": "invalid_id",
+        "message": "A data type id is cdt_ followed by 10 hex characters."
+      },
+      {
+        "id": null,
+        "field": "name",
+        "code": "name_invalid",
+        "message": "Give the data type a name of 1 to 60 characters."
+      },
+      {
+        "id": null,
+        "field": "method",
+        "code": "method_invalid",
+        "message": "The method is words, pattern or ai."
+      },
+      {
+        "id": null,
+        "field": "legacy",
+        "code": "legacy_forged",
+        "message": "Only the server marks a data type as migrated."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "legacy",
+        "code": "legacy_forged",
+        "message": "Only the server marks a data type as migrated."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "legacy",
+        "code": "legacy_forged",
+        "message": "Only the server marks a data type as migrated."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "legacy",
+        "code": "legacy_forged",
+        "message": "Only the server marks a data type as migrated."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "legacy",
+        "code": "legacy_forged",
+        "message": "Only the server marks a data type as migrated."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      }
+    ]
+  },
+  "list/legacy": {
+    "types": [
+      {
+        "id": "cdt_00000000aa",
+        "name": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn",
+        "description": "Code names",
+        "method": "words",
+        "tokenKey": "project",
+        "words": {
+          "values": [
+            "Falcon"
+          ],
+          "caseSensitive": false,
+          "wholeWord": false
+        },
+        "origin": "migrated",
+        "legacy": true,
+        "legacyTermId": "term-1",
+        "createdAt": "2025-01-01T00:00:00.000Z",
+        "createdBy": "u0",
+        "updatedAt": "2026-11-14T00:00:00.000Z"
+      }
+    ],
+    "errors": [
+      {
+        "id": null,
+        "field": "type",
+        "code": "invalid_type",
+        "message": "A data type is an object."
+      },
+      {
+        "id": null,
+        "field": "type",
+        "code": "invalid_type",
+        "message": "A data type is an object."
+      },
+      {
+        "id": null,
+        "field": "type",
+        "code": "invalid_type",
+        "message": "A data type is an object."
+      },
+      {
+        "id": null,
+        "field": "id",
+        "code": "invalid_id",
+        "message": "A data type id is cdt_ followed by 10 hex characters."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "name",
+        "code": "name_invalid",
+        "message": "Give the data type a name of 1 to 60 characters."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "name",
+        "code": "name_invalid",
+        "message": "Give the data type a name of 1 to 60 characters."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "method",
+        "code": "method_invalid",
+        "message": "The method is words, pattern or ai."
+      },
+      {
+        "id": null,
+        "field": "id",
+        "code": "invalid_id",
+        "message": "A data type id is cdt_ followed by 10 hex characters."
+      },
+      {
+        "id": null,
+        "field": "name",
+        "code": "name_invalid",
+        "message": "Give the data type a name of 1 to 60 characters."
+      },
+      {
+        "id": null,
+        "field": "method",
+        "code": "method_invalid",
+        "message": "The method is words, pattern or ai."
+      },
+      {
+        "id": null,
+        "field": "legacy",
+        "code": "legacy_forged",
+        "message": "Only the server marks a data type as migrated."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      },
+      {
+        "id": "cdt_00000000aa",
+        "field": "id",
+        "code": "duplicate_id",
+        "message": "Two data types have the same id."
+      }
+    ]
+  }
+}

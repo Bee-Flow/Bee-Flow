@@ -59,7 +59,7 @@ stub('../stores/userStore', {
     getOrgSubscription: async () => orgSub,
     setOrgSubscription: async (id, patch) => { setOrgSubCalls.push([id, patch]); },
     getPlan: async (id) => plans[id] || null,
-    getActiveSeatCount: async () => seatCount,
+    getActiveSeatCount: async () => { if (seatCount instanceof Error) throw seatCount; return seatCount; },
     getAllOrgSubscriptions: async () => [],
     getAllConsumerSubscriptions: async () => [],
 });
@@ -241,6 +241,66 @@ test('createCheckoutSession: stored customer + existing VAT skip search/create/c
 
 test('createCheckoutSession refuses an unsynced plan', async () => {
     await assert.rejects(svc.createCheckoutSession({ plan: { id: 'p' } }), /has not been synced/);
+});
+
+const fail = (msg) => () => { throw new Error(msg); };
+const orgCheckout = (over = {}) => svc.createCheckoutSession({ plan: { id: 'p', stripe_price_id: 'pr', per_seat: true }, orgId: 'o3', userEmail: 'e', successUrl: 's', cancelUrl: 'c', ...over });
+const sessionParams = () => calls.find(c => c[0] === 'checkout.sessions.create')[1];
+
+test('createCheckoutSession: a customer found by search is reused and stored; a failed seat count bills one seat', async () => {
+    seatCount = new Error('db down');
+    responses['customers.search'] = () => ({ data: [{ id: 'cus_found' }] });
+    await orgCheckout();
+    assert.deepStrictEqual(calls.map(c => c[0]), ['customers.search', 'checkout.sessions.create'], 'no org row: no VAT, no address');
+    assert.deepStrictEqual(setOrgSubCalls, [['o3', { stripe_customer_id: 'cus_found' }]]);
+    assert.deepStrictEqual([sessionParams().customer, sessionParams().line_items], ['cus_found', [{ price: 'pr', quantity: 1 }]]);
+
+    reset();
+    seatCount = 0;
+    responses['customers.search'] = () => ({ data: [{ id: 'cus_found' }] });
+    await orgCheckout();
+    assert.equal(sessionParams().line_items[0].quantity, 1, 'never fewer than one seat');
+});
+
+test('createCheckoutSession: a failed search falls through to create; failed VAT and address syncs never stop the checkout', async () => {
+    org = { name: 'Acme', email: 'billing@acme.nl', phone: '+31', vat: 'NL123456789B01' };
+    responses['customers.search'] = fail('search down');
+    responses['customers.create'] = () => ({ id: 'cus_c' });
+    responses['customers.listTaxIds'] = fail('tax down');
+    responses['customers.update'] = fail('update down');
+    await orgCheckout({ userEmail: undefined, plan: { id: 'p', stripe_price_id: 'pr' } });
+    assert.deepStrictEqual(calls.map(c => c[0]), ['customers.search', 'customers.create', 'customers.listTaxIds', 'customers.update', 'checkout.sessions.create']);
+    assert.deepStrictEqual(calls[1][1], { name: 'Acme', email: 'billing@acme.nl', metadata: { beeflow_org_id: 'o3' } }, 'the org name and e-mail fill in');
+    assert.equal(sessionParams().customer, 'cus_c');
+});
+
+test('createCheckoutSession: a customer that cannot be created leaves the e-mail to Checkout, and tax without a customer update', async () => {
+    config.stripe_tax_enabled = true;
+    responses['customers.search'] = () => ({ data: [] });
+    responses['customers.create'] = fail('create down');
+    await orgCheckout();
+    const p = sessionParams();
+    assert.deepStrictEqual([p.customer, p.customer_email, p.customer_update], [undefined, 'e', undefined]);
+    assert.deepStrictEqual([p.automatic_tax, p.billing_address_collection, p.tax_id_collection], [{ enabled: true }, 'required', { enabled: true }]);
+    assert.deepStrictEqual(setOrgSubCalls, []);
+});
+
+test('createCheckoutSession: a consumer is one seat, named in the metadata, with no customer lookup', async () => {
+    config.stripe_tax_enabled = true;
+    config.stripe_tos_consent_enabled = true;
+    seatCount = 5;
+    await svc.createCheckoutSession({ plan: { id: 'p', stripe_price_id: 'pr', per_seat: true, billing_interval: 'yearly', trial_days: 0 }, subscriberType: 'consumer', userId: 'u1', orgId: 'o3', userEmail: 'e', successUrl: 's', cancelUrl: 'c' });
+    assert.deepStrictEqual(calls.map(c => c[0]), ['checkout.sessions.create']);
+    const p = sessionParams();
+    const md = { beeflow_plan_id: 'p', beeflow_subscriber_type: 'consumer', beeflow_user_id: 'u1' };
+    assert.deepStrictEqual([p.metadata, p.client_reference_id, p.line_items[0].quantity, p.customer_email, p.customer_update], [md, 'u1', 1, 'e', undefined]);
+    assert.deepStrictEqual(p.consent_collection, { terms_of_service: 'required' });
+    assert.match(p.custom_text.submit.message, /^Jaarabonnement/);
+
+    reset();
+    config.stripe_tax_enabled = true;
+    await svc.createCheckoutSession({ plan: { id: 'p', stripe_price_id: 'pr' }, subscriberType: 'consumer', userId: 'u1', userEmail: 'e', successUrl: 's', cancelUrl: 'c', stripeCustomerId: 'cus_u' });
+    assert.deepStrictEqual([sessionParams().customer, sessionParams().customer_update], ['cus_u', { address: 'auto', name: 'auto' }]);
 });
 
 test('pushOrgBillingToStripe pushes name/email/phone/address to the subscription customer', async () => {

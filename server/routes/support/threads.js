@@ -48,9 +48,8 @@ const { worded } = require('../../core/http/schemaParts');
 // The handler bodies: the steps of creating a ticket, and the staff routes.
 const { _isLikelySpam, loggedInRequester, openTicket } = require('./threadCreate');
 const H = require('./threadHandlers');
-const log = require('../../telemetry/log');
 const requesterSession = require('./requesterSession');
-const { fallback, bestEffort } = require('../../utils/bestEffort');
+const { fallback, bestEffort, ignoreGone } = require('../../utils/bestEffort');
 
 // ── What a body and a query may carry ───────────────────────────────
 
@@ -279,8 +278,8 @@ async function stream(/** @type {import('express').Request} */ req, /** @type {i
     const cleanup = () => {
         if (cleaned) return;
         cleaned = true;
-        try { if (heartbeat) heartbeat(); } catch (err) { log.debug('heartbeat already stopped', err); }
-        try { if (listener) supportEvents.off('event', listener); } catch (err) { log.debug('listener already removed', err); }
+        try { if (heartbeat) heartbeat(); } catch (err) { ignoreGone('routes/support/threads:stopHeartbeat', err); }
+        try { if (listener) supportEvents.off('event', listener); } catch (err) { ignoreGone('routes/support/threads:removeListener', err); }
         try { markEnded(); } catch (err) { bestEffort('routes/support/threads:cleanup', err); /* stream already marked ended */ }
     };
     try {

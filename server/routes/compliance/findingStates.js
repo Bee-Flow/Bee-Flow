@@ -97,7 +97,7 @@ function makeFindingStateRouter(overrides = {}) {
         d.requireAuth,
         d.requirePermission('admin_compliance'),
         validate({ body: StateBody }),
-        async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof StateBody>, import('qs').ParsedQs>} */ req, res) => {
+        async (req, res) => {
             const orgId = await d.resolveOrgId(req);
             const checkId = String(req.params.id);
             const def = registry().get(checkId);
@@ -106,7 +106,7 @@ function makeFindingStateRouter(overrides = {}) {
             if (!active.has(def.regulation)) {
                 throw new HttpError(409, 'framework_disabled', 'This check belongs to a framework that is not active for your organisation.');
             }
-            const body = req.body || {};
+            const body = req.body;
             const scopeId = body.scope_id == null || body.scope_id === '' ? null : String(body.scope_id);
             const scopeKey = findingState.scopeKeyOf({ scope_id: scopeId });
             const actorId = req.session?.user?.id || null;

@@ -7,13 +7,14 @@ import { PRIMARY_BTN, QUIET_BTN, SECONDARY_BTN } from '@/components/mcpLibrary/u
 import VersionHistory from '../../VersionHistory';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { DesignerSectionProps } from './sectionProps';
-import { mutate, ApiError } from '@/api/mutate';
+import { ApiError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 import AvatarPicker from './AvatarPicker';
 
-type CategoryProps = Pick<DesignerSectionProps, 'API_BASE' | 'categoryId' | 'setCategoryId' | 'agentCategories' | 'setAgentCategories' | 'adminOrgId'>;
+type CategoryProps = Pick<DesignerSectionProps, 'categoryId' | 'setCategoryId' | 'agentCategories' | 'setAgentCategories' | 'adminOrgId'>;
 
 /** The category select with a + to create one inline; without any categories, only the + as a quiet button. */
-function CategoryControl({ API_BASE, categoryId, setCategoryId, agentCategories, setAgentCategories, adminOrgId }: CategoryProps) {
+function CategoryControl({ categoryId, setCategoryId, agentCategories, setAgentCategories, adminOrgId }: CategoryProps) {
   const { t } = useTranslation();
   const [showNewCategory, setShowNewCategory] = useLocalState(false);
   const [newCategoryName, setNewCategoryName] = useLocalState('');
@@ -22,11 +23,9 @@ function CategoryControl({ API_BASE, categoryId, setCategoryId, agentCategories,
     if (!newCategoryName.trim()) return;
     try {
       // In the admin dashboard with one organisation chosen, the category is created in it (the list shows only its categories).
-      const orgQuery = adminOrgId ? `?orgId=${encodeURIComponent(adminOrgId)}` : '';
-      const res = await mutate(`${API_BASE}/agents/categories${orgQuery}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newCategoryName.trim() })
+      const res = await apiRequest('POST /agents/categories', {
+        query: adminOrgId ? { orgId: adminOrgId } : undefined,
+        body: { name: newCategoryName.trim() },
       }).catch((err: unknown) => {
           if (err instanceof ApiError) return null;
           throw err;
@@ -88,6 +87,7 @@ function CategoryControl({ API_BASE, categoryId, setCategoryId, agentCategories,
         onClick={() => setShowNewCategory(true)}
         className={`${SECONDARY_BTN} px-2`}
         title={t('agent_studio.identity_create_new_category', 'Create new category')}
+        aria-label={t('agent_studio.identity_create_new_category', 'Create new category')}
       >
         <Plus className="h-4 w-4" aria-hidden="true" />
       </button>

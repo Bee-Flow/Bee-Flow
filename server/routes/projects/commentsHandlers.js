@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Project comment threads: the handler bodies of the routes. Threads (list,
  * start, read, AI mode, delete, resolve/reopen) and comments (reply, edit,
@@ -243,10 +243,10 @@ async function reply(ctx, req, res) {
  * A comment of this thread, or a 404.
  * @param {Ctx} ctx
  * @param {import('./commentsContext').CommentThread} thread
- * @param {string} commentId
+ * @param {string | undefined} commentId  the route's :commentId, always in its path
  */
 async function loadComment(ctx, thread, commentId) {
-    const comment = await ctx.store().getComment(thread.id, commentId);
+    const comment = await ctx.store().getComment(thread.id, /** @type {string} */ (commentId));
     if (!comment) throw notFound('comment_not_found', 'This comment does not exist in this thread.');
     return comment;
 }

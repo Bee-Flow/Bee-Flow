@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Spreadsheet documents (docType 'spreadsheet'). Mounted by
  * routes/studioDocuments.js under /api/studio-documents.
@@ -105,7 +106,7 @@ async function copyTabs(cellsApi, doc, userId, made = []) {
     /** @type {{ id: string; name: string; datatableId: string; }[]} */
     const newTabs = [];
     const tabIds = new Map();
-    for (const t of sheetTabsOf(doc)) {
+    for (const t of sheetTabsOf(/** @type {Parameters<typeof sheetTabsOf>[0]} */ (/** @type {unknown} */ (doc)))) {
         const table = await cellsApi.createSheetTable({ ownerUserId: userId, name: `${t.name} — copy` });
         made.push(table.id);
         await cellsApi.copyCells(doc.userId, t.datatableId, table.id, userId);
@@ -159,7 +160,7 @@ async function copySheet(cellsApi, documentsApi, doc, userId, name, ctx) {
     const made = [];
     try {
         const { newTabs, tabIds } = await copyTabs(cellsApi, doc, userId, made);
-        const charts = copiedCharts(doc.settings?.sheet?.charts, tabIds);
+        const charts = copiedCharts(/** @type {{ charts?: unknown } | undefined} */ (doc.settings?.sheet)?.charts, tabIds);
         const copy = await documentsApi.createDocument({
             userId, name, docType: 'spreadsheet', kind: 'document', visibility: 'private', folderId: null,
             sheetTableId: newTabs[0].datatableId,
@@ -274,7 +275,7 @@ function makeSheetRouter(deps = {}) {
 
     router.get('/:id/sheet', requireAuth, handle(async (req, res) => {
         const { doc, tabs } = await sheetFor(req);
-        const tab = resolveTab(tabs, req.query.tab);
+        const tab = resolveTab(tabs, /** @type {string} */ (req.query.tab));
         const sheet = await cells().readSheet(doc.userId, tab.datatableId);
         // The tabs its formulas point at, so the editor computes `Klanten!A1` instead of #REF!.
         const refTabs = await require('../../core/documents/sheetWorkbook').readReferencedTabs(doc, tabs, tab.id, sheet.cells, cells());
@@ -284,14 +285,14 @@ function makeSheetRouter(deps = {}) {
     router.patch('/:id/sheet', requireAuth, validate({ body: WriteBody }), handle(async (req, res) => {
         const { doc, tabs } = await sheetFor(req);
         if ((doc.projectRole === 'viewer' || doc.sharingRole === 'viewer')) throw forbidden('document_read_only', 'You can read this spreadsheet, but only its editors can change it.');
-        const tab = resolveTab(tabs, req.query.tab);
+        const tab = resolveTab(tabs, /** @type {string} */ (req.query.tab));
         const saved = await cells().writeCells(doc.userId, tab.datatableId, req.body.cells);
         res.json({ ok: true, cells: saved.cells, tabs, activeTab: tab.id });
     }));
 
     router.get('/:id/sheet.csv', requireAuth, handle(async (req, res) => {
         const { doc, tabs } = await sheetFor(req);
-        const tab = resolveTab(tabs, req.query.tab);
+        const tab = resolveTab(tabs, /** @type {string} */ (req.query.tab));
         const { cells: raw } = await cells().readSheet(doc.userId, tab.datatableId);
         res.setHeader('Content-Type', 'text/csv; charset=utf-8');
         // fileNameOf keeps letters of every script, and a header value outside
@@ -382,7 +383,7 @@ function makeSheetRouter(deps = {}) {
     }
 
     /** Whether this reader may start spreadsheets (the library offers the type). Never throws. */
-    function sheetsVisible(/** @type {import('express').Request} */ req) {
+    function sheetsVisible(/** @type {import('express').Request<any, any, any, any>} */ req) {
         return require('./sheetGate').sheetsVisible(/** @type {import('./sheetGate').Middleware} */ (gate()), req);
     }
 

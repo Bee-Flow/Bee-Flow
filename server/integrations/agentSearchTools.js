@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Agent Search Tools — Self-hosted AI-powered search integration
  *
@@ -155,18 +155,18 @@ async function executeAgentSearchTool(toolName, args) {
     // path. Coerce any stale 'kb'/'auto' request (cached tool def, admin default)
     // down to a working web search rather than forwarding a doomed mode.
     const allowedModes = ['web', 'web_fast'];
-    const searchMode = allowedModes.includes(mode) ? mode : (allowedModes.includes(defaults.mode) ? defaults.mode : 'web');
+    const searchMode = allowedModes.includes(/** @type {string} */ (mode)) ? /** @type {string} */ (mode) : (allowedModes.includes(/** @type {string} */ (defaults.mode)) ? /** @type {string} */ (defaults.mode) : 'web');
     const isWebFast = searchMode === 'web_fast';
 
     // Use per-mode settings from new nested config, with fallbacks for old flat config
     const modeDefaults = isWebFast ? (defaults.web_fast || {}) : (defaults.web || {});
-    const maxResults = Math.min(Math.max(parseInt(max_results) || parseInt(modeDefaults.max_results) || (isWebFast ? 10 : 5), 1), isWebFast ? 20 : 10);
-    const fetchTopN = isWebFast ? 1 : Math.min(Math.max(parseInt(fetch_top_n) || parseInt(modeDefaults.fetch_top_n) || 3, 1), 5);
+    const maxResults = Math.min(Math.max(parseInt(String(max_results)) || parseInt(/** @type {string} */ (modeDefaults.max_results)) || (isWebFast ? 10 : 5), 1), isWebFast ? 20 : 10);
+    const fetchTopN = isWebFast ? 1 : Math.min(Math.max(parseInt(String(fetch_top_n)) || parseInt(/** @type {string} */ (modeDefaults.fetch_top_n)) || 3, 1), 5);
     const maxTokens = parseInt(modeDefaults.max_tokens_markdown) || (isWebFast ? 1500 : 2000);
     const includeCitations = defaults.include_citations !== false;
 
     // Resolve detail_level (only meaningful for web mode)
-    const detailLevel = ['basic', 'detailed', 'highly_detailed'].includes(detail_level) ? detail_level : (modeDefaults.detail_level || 'detailed');
+    const detailLevel = ['basic', 'detailed', 'highly_detailed'].includes(/** @type {string} */ (detail_level)) ? /** @type {string} */ (detail_level) : (modeDefaults.detail_level || 'detailed');
 
     log.info(`[AgentSearch] Searching: query ${String(query || '').length} chars (mode=${searchMode}, max=${maxResults}, fetch=${fetchTopN}, detail=${detailLevel})`);
     log.info(`[AgentSearch] Config — includeCitations=${includeCitations}, maxTokens=${maxTokens}`);

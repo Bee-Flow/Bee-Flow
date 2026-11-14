@@ -163,7 +163,7 @@ test('the turn prompt: the notes ride the ONE user message after the draft state
     require('../../../stores/configStore').getConfig = async () => null;
     require('../../../stores/automationStore').getAutomationsForUser = async () => [];
     require('../../../automation/builderDocumentCatalog').buildDocumentCatalogForUser = async () => [];
-    const { assembleTurnPrompt } = require('./promptAssembly');
+    const { assembleTurnPrompt } = require('../../../usecases/ai/appStudioBuilder/promptAssembly');
     const briefCalls = [];
     const stream = async (adapter, cfg, modelId, messages, options) => {
         briefCalls.push({ modelId, messages, options });
@@ -207,7 +207,7 @@ test('the turn prompt: the notes ride the ONE user message after the draft state
 });
 
 test('the snapshot keeps the brief until the build finalizes', async () => {
-    const { persistTurnSnapshot } = require('./turnClosing');
+    const { persistTurnSnapshot } = require('../../../usecases/ai/appStudioBuilder/turnClosing');
     const studioAppStore = require('../../../stores/studioAppStore');
     const orig = studioAppStore.setBuilderSession;
     const snapshotOf = async (turn, draftExtra) => {

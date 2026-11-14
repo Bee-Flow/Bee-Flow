@@ -97,15 +97,13 @@ function noEditorAccess({ t, onNavigate }: HubMainContentProps) {
     );
 }
 
-function studioSlot({ user, studioRoute, onCloseStudio, onNavigate, modelTiers, setStudioFullscreen, hasPermission }: HubMainContentProps) {
+function studioSlot({ studioRoute, onCloseStudio, modelTiers, setStudioFullscreen, hasPermission }: HubMainContentProps) {
     return (
         /* Unified Studio: Agents / Skills / AI Tasks under one shell. */
         <Studio
-            user={user}
             section={studioRoute.section}
             {...studioRouteProps(studioRoute)}
             onClose={onCloseStudio}
-            onNavigate={onNavigate}
             modelTiers={modelTiers}
             onEditingChange={setStudioFullscreen}
             hasPermission={hasPermission}
@@ -239,7 +237,7 @@ export default function HubMainContent(props: HubMainContentProps) {
     } = props;
     return showSettings ? (
         /* Settings rendered inline in conversation area — Open WebUI style */
-        <AdvancedSettings onBack={null} onNavigate={onNavigate} onLogout={onLogout} user={user} onUpdateUser={onUpdateUser} onClose={onCloseSettings} />
+        <AdvancedSettings onBack={null} onLogout={onLogout} onUpdateUser={onUpdateUser} onClose={onCloseSettings} />
     ) : showStudio ? (
         studioSlot(props)
     ) : showAgentDesigner ? (
@@ -270,7 +268,7 @@ export default function HubMainContent(props: HubMainContentProps) {
     ) : currentPage === 'forms' ? (
         /* Published-forms directory (/app/forms). A tile opens the
            form itself, in this tab, at /app/forms/:token. */
-        <FormsHomePage onNavigate={onNavigate} />
+        <FormsHomePage />
     ) : currentPage === 'formView' ? (
         <div className="h-full overflow-y-auto custom-scrollbar px-4 py-8">
             <div className="mx-auto w-full max-w-xl">

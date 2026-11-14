@@ -122,6 +122,7 @@ function RoleDropdown({ member: u, memberRoles }: { member: OrgMember; memberRol
                     onClick={() => setEditingUserRole(u.id)}
                     className="text-xs px-2 py-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors"
                     title={t('admin_org.users_change_role', 'Change role')}
+                    aria-label={t('admin_org.users_change_role', 'Change role')}
                 >
                     <Edit2 className="w-3.5 h-3.5" />
                 </button>

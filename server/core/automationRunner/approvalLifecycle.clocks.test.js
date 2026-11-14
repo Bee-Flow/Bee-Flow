@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Reminder + escalation clocks — the pure half.
  *
@@ -19,15 +19,15 @@ const H = 3_600_000;
 
 test('hours become timestamps measured from the pause', () => {
     const { remindAt, escalateAt } = approvalClocks({ remindAfterHours: 24, escalateAfterHours: 48 }, NOW);
-    assert.strictEqual(Date.parse(remindAt), NOW + 24 * H);
-    assert.strictEqual(Date.parse(escalateAt), NOW + 48 * H);
+    assert.strictEqual(Date.parse(/** @type {any} */ (remindAt)), NOW + 24 * H);
+    assert.strictEqual(Date.parse(/** @type {any} */ (escalateAt)), NOW + 48 * H);
 });
 
 test('a clock at or past the deadline is dropped', () => {
     const expiresAt = new Date(NOW + 24 * H).toISOString();
     const c = approvalClocks({ remindAfterHours: 24, escalateAfterHours: 12, expiresAt }, NOW);
     assert.strictEqual(c.remindAt, null, 'reminder AT the deadline never fires');
-    assert.strictEqual(Date.parse(c.escalateAt), NOW + 12 * H, 'escalation before the deadline survives');
+    assert.strictEqual(Date.parse(/** @type {any} */ (c.escalateAt)), NOW + 12 * H, 'escalation before the deadline survives');
 });
 
 test('no deadline = clocks run free; junk hours = no clock', () => {
@@ -42,7 +42,7 @@ test('no deadline = clocks run free; junk hours = no clock', () => {
 
 test('hours cap at 720 (30 days), mirroring the deadline ceiling', () => {
     const { remindAt } = approvalClocks({ remindAfterHours: 9999 }, NOW);
-    assert.strictEqual(Date.parse(remindAt), NOW + 720 * H);
+    assert.strictEqual(Date.parse(/** @type {any} */ (remindAt)), NOW + 720 * H);
 });
 
 test('the reminder bell text puts the nudge on its own line, with no dash as punctuation', () => {

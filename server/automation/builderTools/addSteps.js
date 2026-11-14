@@ -15,7 +15,7 @@ const {
 } = require('./stepBuilders');
 const { applyAddCallLayer } = require('./layers');
 const { validateAndFixBindings } = require('./bindings');
-const { canonicalJson } = require('./suggestedPatch');
+const { canonicalJson } = require('../../utils/stableJson');
 const {
     junkEntriesError, validateEntries, evictRemoved, buildFailure, missingRefMessage, resolveWires,
 } = require('./addStepsSupport');

@@ -5,8 +5,8 @@
 //   const detail = useRunDetail(api, appId, runId);  // one run with its steps
 
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { API_BASE, request } from '@/api/mutate';
 import type { WaitingFor } from '@/api/actionHttp';
+import { apiRequest } from '@/api/typedRequest';
 
 type RunStatus = 'running' | 'paused' | 'success' | 'error' | 'interrupted' | 'cancelled' | 'refused';
 type RunOrigin = 'click' | 'public' | 'mcp' | 'test' | 'background' | 'mailbox_hook' | 'trigger';
@@ -113,25 +113,24 @@ export interface RunsApi {
     cancel?(appId: string, runId: string): Promise<{ status: string }>;
 }
 
-function query(filters: RunFilters, cursor: string | null): string {
+function query(filters: RunFilters, cursor: string | null): URLSearchParams {
     const q = new URLSearchParams();
     for (const [k, v] of Object.entries(filters)) if (typeof v === 'string' && v) q.set(k, v);
     if (cursor) q.set('cursor', cursor);
-    const s = q.toString();
-    return s ? `?${s}` : '';
+    return q;
 }
 
 export const runsApi: RunsApi = {
     async list(appId, filters, cursor) {
-        const res = await request(`${API_BASE}/api/studio-apps/${encodeURIComponent(appId)}/runs${query(filters, cursor)}`);
+        const res = await apiRequest('GET /api/studio-apps/{id}/runs', { params: { id: appId }, query: query(filters, cursor) });
         return (await res.json()) as RunPage;
     },
     async get(appId, runId) {
-        const res = await request(`${API_BASE}/api/studio-apps/${encodeURIComponent(appId)}/runs/${encodeURIComponent(runId)}`);
+        const res = await apiRequest('GET /api/studio-apps/{id}/runs/{runId}', { params: { id: appId, runId } });
         return (await res.json()) as { run: RunSummary; steps: RunStep[]; startedBy?: RunStartedBy };
     },
     async cancel(appId, runId) {
-        const res = await request(`${API_BASE}/api/studio-apps/${encodeURIComponent(appId)}/actions/jobs/${encodeURIComponent(runId)}/cancel`, { method: 'POST' });
+        const res = await apiRequest('POST /api/studio-apps/{id}/actions/jobs/{jobId}/cancel', { params: { id: appId, jobId: runId } });
         return (await res.json()) as { status: string };
     },
 };

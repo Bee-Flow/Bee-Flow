@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * CAD metadata reader — bytes in, a short honest summary out.
  *
@@ -189,9 +189,10 @@ function dxfExtents(header) {
     const { extmin, extmax, insunits } = header;
     const coords = [extmin.x, extmin.y, extmax.x, extmax.y];
     if (!coords.every(Number.isFinite)) return null;
-    const w = extmax.x - extmin.x;
-    const h = extmax.y - extmin.y;
-    const unit = INSUNITS_TO_MM[insunits];
+    const [minX, minY, maxX, maxY] = /** @type {number[]} */ (coords); // finite, checked above
+    const w = maxX - minX;
+    const h = maxY - minY;
+    const unit = INSUNITS_TO_MM[/** @type {keyof typeof INSUNITS_TO_MM} */ (insunits)]; // an unknown unit finds none
     if (unit) {
         return { widthMm: round2(w * unit.mm), heightMm: round2(h * unit.mm), units: unit.label, converted: true };
     }

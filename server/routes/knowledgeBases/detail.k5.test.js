@@ -43,6 +43,7 @@ function resetFx() {
 }
 resetFx();
 
+const { fakeKbGates } = require('./kbGate.testkit');
 const MOCKS = {
     '../stores/knowledgeBases': {
         getKB: async (id) => (fx.kb && fx.kb.id === id ? fx.kb : null),
@@ -69,7 +70,7 @@ const MOCKS = {
             return orgId;
         },
     },
-    '../support/kbAccess': { canAccessKB: async () => true, resolveAdminOrgIds: async () => new Set() },
+    '../support/kbAccess': { ...fakeKbGates({ kbStore: { getKB: (id) => MOCKS['../stores/knowledgeBases'].getKB(id) }, canRead: () => true, canManage: () => fx.canManage }), resolveAdminOrgIds: async () => new Set() },
     '../core/kb/kbUsage': {
         usageForKb: async () => fx.usage,
         scrubReferences: async (id) => { fx.scrubbed.push(id); return { agent: 1 }; },

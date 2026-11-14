@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The refresh engine: one `syncSource` for every kind of knowledge source.
  *
@@ -76,11 +76,12 @@ const cloudFolder = require('./cloudFolder.mts');
  *   original?: { buffer: Buffer, mime: string, filename: string } | null }} FetchedDoc
  */
 /**
- * @typedef {{ enumerate: (source: KbSource, ctx: SyncCtx, deps: SyncDeps) => Promise<SourceItem[]>,
- *   isUnchanged: (item: SourceItem, stored: Record<string, any>) => boolean,
- *   fetch: (item: SourceItem, stored: Record<string, any> | null, ctx: SyncCtx, deps: SyncDeps) => Promise<FetchedDoc | null>,
+ * Method signatures: each source kind hands its own item shape from enumerate to fetch.
+ * @typedef {{ enumerate(source: KbSource, ctx: SyncCtx, deps: SyncDeps): Promise<SourceItem[]>,
+ *   isUnchanged(item: SourceItem, stored: Record<string, any>): boolean,
+ *   fetch(item: SourceItem, stored: Record<string, any> | null, ctx: SyncCtx, deps: SyncDeps): Promise<FetchedDoc | null>,
  *   dedupe?: boolean, maxItems?: number,
- *   precheck?: (source: KbSource, ctx: SyncCtx, deps: SyncDeps) => Promise<{ changed: boolean, cursor?: unknown }> }} SourceAdapter
+ *   precheck?(source: KbSource, ctx: SyncCtx, deps: SyncDeps): Promise<{ changed: boolean, cursor?: unknown }> }} SourceAdapter
  */
 
 /** @type {Record<string, SourceAdapter>} */

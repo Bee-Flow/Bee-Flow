@@ -4,11 +4,11 @@
  * headings and lists). A failure is reported to the page's notice.
  */
 import { useCallback, useRef, type ChangeEvent, type MutableRefObject } from 'react';
-import { API_BASE } from '@/utils/helpers';
 import useTranslation from '@/hooks/useTranslation';
 import type { NotebookEditorHandle } from './editorHandle';
 import { errorMessage } from '@/utils/caughtError';
-import { mutate, errorBody, RefusedError } from '@/api/mutate';
+import { errorBody, RefusedError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 export function useImportFile(notebookId: string, editorRef: MutableRefObject<NotebookEditorHandle | null>, onError: (message: string) => void) {
     const { t } = useTranslation();
@@ -23,7 +23,7 @@ export function useImportFile(notebookId: string, editorRef: MutableRefObject<No
             form.append('file', file);
             let res: Response;
             try {
-                res = await mutate(`${API_BASE}/api/notebooks/${notebookId}/import-file`, { method: 'POST', body: form });
+                res = await apiRequest('POST /api/notebooks/{id}/import-file', { params: { id: notebookId }, init: { body: form } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const data = errorBody(err) ?? {};

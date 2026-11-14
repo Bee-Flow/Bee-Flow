@@ -26,6 +26,9 @@
 
 'use strict';
 
+// Another feature's module, looked up by name (core/featureModules.js).
+const { featureModule } = require('../../core/featureModules');
+
 const studioAppDataStore = require('../../stores/studioAppDataStore');
 const { buildServerScope, resolveBinding, coerceRecordId } = require('./shared');
 const log = require('../../telemetry/log');
@@ -107,7 +110,7 @@ async function fillDocumentStep(app, model, step, ctx) {
             orgId: app.organizationId || ctx.orgId || null,
             marking: null,
             format,
-            resolveImage: isDeck ? require('../../services/presentationRenderer').makeUserImageResolver(app.userId) : null,
+            resolveImage: isDeck ? featureModule('services/presentationRenderer').makeUserImageResolver(app.userId) : null,
         });
     } catch (e) {
         // document_empty is the author's mistake and worth saying plainly; the

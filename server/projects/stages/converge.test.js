@@ -24,7 +24,8 @@ const assert = require('node:assert');
 const { converge, MAX_ATTEMPTS } = require('./converge');
 
 const STAGE = { projectId: 'p_uat', solutionId: 'p_dev', stage: 'uat', organizationId: 'org1', runAsUserId: 'so' };
-const DEPLOYMENT = { id: 'dep_1', kind: 'deploy', releaseSeq: 2, requestedBy: 'so' };
+// Only the fields converge reads; the full deployment row type has more.
+const DEPLOYMENT = /** @type {any} */ ({ id: 'dep_1', kind: 'deploy', releaseSeq: 2, requestedBy: 'so' });
 
 function harness(steps) {
     const log = [];

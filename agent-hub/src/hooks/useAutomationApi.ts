@@ -5,6 +5,7 @@ import type { HttpConnection } from './useAutomationApi.types';
 import { logger } from '../utils/logger';
 import { type AutomationApiError, type AutomationListFilter, type RunQuery, type FacetQuery, type ApprovalQuery, type RunStreamOptions, type SseEventHandler, type RunStartBody, type PartialRunBody, type RunFormBody, type RunRespond, type FormTestBody } from './useAutomationApi.types2';
 import { errorBody, safeText, buildRunQuery, buildAutomationListQuery, buildFacetQuery } from './useAutomationApi.helpers';
+import { apiFetch } from '@/api/typedRequest';
 export { errorBody, safeText } from './useAutomationApi.helpers';
 export { type AutomationApiError, type AutomationListFilter, type RunQuery, type FacetQuery, type ApprovalQuery, type RunStreamOptions, type SseEventHandler, type RunStartBody, type PartialRunBody, type RunFormBody, type RunRespond, type RunStartReply, type FormTestBody } from './useAutomationApi.types2';
 /**
@@ -166,16 +167,12 @@ export default function useAutomationApi() {
         // to this user (marked access:'lent'). Responses never contain the
         // secret — write-only by API contract.
         listHttpConnections: async (): Promise<{ connections?: HttpConnection[] }> => {
-            const r = await authFetch(`${API_BASE}/api/integrations/connections?provider=http&includeShared=1`);
+            const r = await apiFetch('GET /api/integrations/connections', { query: { provider: 'http', includeShared: '1' } });
             if (!r.ok) throw new Error((await safeText(r)) || 'GET /integrations/connections failed');
             return r.json();
         },
         createHttpConnection: async (body?: unknown): Promise<{ connection: HttpConnection }> => {
-            const r = await authFetch(`${API_BASE}/api/integrations/connections`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body || {}),
-            });
+            const r = await apiFetch('POST /api/integrations/connections', { init: { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) } });
             if (!r.ok) throw new Error((await safeText(r)) || 'POST /integrations/connections failed');
             return r.json();
         },

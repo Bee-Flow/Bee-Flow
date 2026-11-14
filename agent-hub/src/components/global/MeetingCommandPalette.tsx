@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Mic, Upload, Video, FileAudio, Search } from 'lucide-react';
 import { useCapture } from '../../pages/meeting-notes/capture/CaptureContext';
 import * as api from '../../api/transcriptionsApi';
@@ -46,6 +47,8 @@ interface MeetingCommandPaletteProps {
  * capture actions and the five most-recent meetings, so the user can jump back
  * to a meeting from anywhere without leaving the keyboard.
  */
+const NO_RECENT: LibraryMeeting[] = [];
+
 export default function MeetingCommandPalette({ user, onNavigate }: MeetingCommandPaletteProps) {
     const { t } = useTranslation();
     const { openCapture } = useCapture();
@@ -56,7 +59,6 @@ export default function MeetingCommandPalette({ user, onNavigate }: MeetingComma
 
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState('');
-    const [recent, setRecent] = useState<LibraryMeeting[]>([]);
     const [activeIdx, setActiveIdx] = useState(0);
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -73,10 +75,17 @@ export default function MeetingCommandPalette({ user, onNavigate }: MeetingComma
         return () => document.removeEventListener('keydown', onKey);
     }, [allowed]);
 
+    // Read on every opening; the last list stays until the new one lands, and a failure keeps it.
+    const recent = useQuery<LibraryMeeting[]>({
+        queryKey: ['meetingNotes', 'paletteRecent'],
+        enabled: open,
+        staleTime: 0,
+        retry: false,
+        queryFn: async () => (await api.listTranscriptions({ limit: 8 })).slice(0, 8),
+    }).data ?? NO_RECENT;
     useAdjustOnChange([open], () => { if (open) { setQuery(''); setActiveIdx(0); } });
     useEffect(() => {
         if (!open) return;
-        api.listTranscriptions({ limit: 8 }).then((list) => setRecent(list.slice(0, 8))).catch(() => {});
         const timer = setTimeout(() => inputRef.current?.focus(), 30);
         return () => clearTimeout(timer);
     }, [open]);

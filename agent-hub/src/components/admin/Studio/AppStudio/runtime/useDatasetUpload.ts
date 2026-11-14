@@ -1,17 +1,21 @@
 import { useCallback, useEffect, useRef } from 'react';
 import useTranslation, { type TranslateFn } from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
-import { mutate, errorBody, RefusedError } from '@/api/mutate';
+import { errorBody, RefusedError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 /**
  * PUT one part. Resolves null when the server took it, or the part number it
  * expects instead (409: its ledger knows better than our counter). Anything else throws.
  */
-async function putPart(url: string, blob: Blob, signal: AbortSignal, n: number, t: TranslateFn): Promise<number | null> {
+async function putPart(part: { appId: string; datasetId: string; n: number }, blob: Blob, signal: AbortSignal, t: TranslateFn): Promise<number | null> {
+    const { appId, datasetId, n } = part;
     let res: Response | null = null;
     let refused: RefusedError | null = null;
     try {
-        res = await mutate(url, { method: 'PUT', headers: { 'Content-Type': 'application/octet-stream' }, body: blob, signal });
+        res = await apiRequest('PUT /api/studio-apps/{id}/large-datasets/{datasetId}/parts/{n}', {
+            params: { id: appId, datasetId, n },
+            init: { headers: { 'Content-Type': 'application/octet-stream' }, body: blob, signal },
+        });
     } catch (partErr) {
         if (!(partErr instanceof RefusedError)) throw partErr;
         refused = partErr;
@@ -55,16 +59,14 @@ export default function useDatasetUpload(appId: string | null | undefined) {
         if (!appId || !file) throw new Error(tRef.current('studio_apps_runtime.dataset_upload.nothing', 'Nothing to upload'));
         const ac = new AbortController();
         abortRef.current = ac;
-        const base = `${API_BASE}/api/studio-apps/${encodeURIComponent(appId)}/large-datasets`;
 
         let initRes: Response;
         try {
-            initRes = await mutate(base, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: file.name, bytes: file.size, kind: 'vcf' }),
-            signal: ac.signal,
-        });
+            initRes = await apiRequest('POST /api/studio-apps/{id}/large-datasets', {
+                params: { id: appId },
+                body: { name: file.name, bytes: file.size, kind: 'vcf' },
+                init: { signal: ac.signal },
+            });
         } catch (apiErr) {
             if (!(apiErr instanceof RefusedError)) throw apiErr;
             const init = errorBody(apiErr) ?? {};
@@ -83,7 +85,7 @@ export default function useDatasetUpload(appId: string | null | undefined) {
             let sent = false;
             for (let attempt = 0; attempt < 3 && !sent; attempt++) {
                 try {
-                    const resync = await putPart(`${base}/${encodeURIComponent(datasetId)}/parts/${n}`, blob, ac.signal, n, tRef.current);
+                    const resync = await putPart({ appId, datasetId, n }, blob, ac.signal, tRef.current);
                     if (resync !== null) { n = resync; sent = true; break; }
                     n += 1;
                     sent = true;
@@ -99,12 +101,11 @@ export default function useDatasetUpload(appId: string | null | undefined) {
 
         let doneRes: Response;
         try {
-            doneRes = await mutate(`${base}/${encodeURIComponent(datasetId)}/complete`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({}),
-            signal: ac.signal,
-        });
+            doneRes = await apiRequest('POST /api/studio-apps/{id}/large-datasets/{datasetId}/complete', {
+                params: { id: appId, datasetId },
+                body: {},
+                init: { signal: ac.signal },
+            });
         } catch (apiErr) {
             if (!(apiErr instanceof RefusedError)) throw apiErr;
             const done = errorBody(apiErr) ?? {};

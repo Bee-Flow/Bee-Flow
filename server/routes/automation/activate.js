@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * POST /automations/:id/activate and /publish — the HTTP side of going live.
  *
@@ -182,7 +183,7 @@ module.exports = { activateAutomation, publishAutomation, checkBeforeLive };
 
 /** @typedef {import('../../automation/goLive').GoLiveAutomation} GoLiveAutomation */
 
-/** @typedef {import('../../automation/goLive').GoLiveDefinition} GoLiveDefinition */
+/** @typedef {import('../../core/automationModel/automationGraph').AutomationDefinition} GoLiveDefinition */
 
 /**
  * @typedef {Omit<import('../../automation/goLive').GoLiveDeps, 'kbFindingsFor'> & {

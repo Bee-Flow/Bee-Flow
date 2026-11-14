@@ -15,16 +15,19 @@
  * happened to save the page again.
  *
  * Behaviour, not shape: the tap is really run, with a simulated clock for
- * the debounce, and the two listeners are spies. `db.js` is the seam — the
- * usual require.cache trick — so no database is involved.
+ * the debounce, and the two listeners are spies. The table itself is a real
+ * row on PGlite.
  *
- * Run: cd server && node --test --test-force-exit stores/datatableStore.deleteNotify.test.js
+ * Run: cd server && node --test stores/datatableStore.deleteNotify.test.js
  */
 
 const { test, mock } = require('node:test');
 const assert = require('node:assert');
 const path = require('node:path');
 const Module = require('node:module');
+const { usePglitePool } = require('../testUtils/pglitePool');
+const { ladderPglite } = require('../testUtils/pgliteTemplate');
+const { insertRow } = require('../testUtils/pgliteSeed');
 
 function mockModule(absId, exports) {
     const p = require.resolve(absId);
@@ -34,41 +37,16 @@ function mockModule(absId, exports) {
     require.cache[p] = m;
 }
 
-// ── De naad: één nep-client die vertelt wat er gevraagd is ──────────────────
-
-const sql = [];
-let deleteRowCount = 1;
-
-const client = {
-    query: async (text, params) => {
-        sql.push({ text: String(text).replace(/\s+/g, ' ').trim(), params });
-        if (/^SELECT model, model_version/i.test(String(text).trim())) {
-            return {
-                rows: [{
-                    model: JSON.stringify({ modelVersion: 1, tables: [{ id: 'tbl_doomed', key: 'klanten' }] }),
-                    model_version: 3,
-                }],
-            };
-        }
-        if (/^DELETE FROM datatables/i.test(String(text).trim())) return { rowCount: deleteRowCount };
-        return { rows: [], rowCount: 1 };
-    },
-    release: () => { },
-};
-
-mockModule(path.join(__dirname, '..', 'db.js'), {
-    pool: { query: async () => ({ rows: [] }), connect: async () => client },
-    run: async () => ({ rows: [], rowCount: 0 }),
-    getOne: async () => null,
-    getAll: async () => [],
-    exec: async () => ({ rows: [] }),
-    getClient: async () => client,
-    withTransaction: async (fn) => fn(client),
-    makeStoreInit: () => async () => { },
-    getRedis: () => null,
-    redisHealthy: () => false,
-    isSqlStateError: () => false,
-});
+// The table lives in a real database: the boot ladder's schema on PGlite
+// behind db.js's pool (testUtils/pglitePool.js).
+const { pg, close } = usePglitePool(ladderPglite());
+test.after(close);
+const tableExists = async (/** @type {string} */ id) => (await pg.query('SELECT 1 FROM datatables WHERE id = $1', [id])).rows.length === 1;
+/** The doomed table, in `org`. @param {string} [org] */
+async function seedTable(org = 'org-1') {
+    await pg.query('DELETE FROM datatables WHERE id = $1', ['tbl_doomed']);
+    await insertRow(pg, 'datatables', { id: 'tbl_doomed', key: 'klanten', name: 'Klanten', scope_kind: 'org', scope_id: org, owner_user_id: 'u1', organization_id: org });
+}
 
 // De twee luisteraars aan de tap.
 const reconciled = [];
@@ -99,22 +77,21 @@ async function runDebounce() {
     for (let i = 0; i < 5; i++) await new Promise(r => setImmediate(r));
 }
 
-function reset() {
-    sql.length = 0;
+async function reset(/** @type {string} */ org = 'org-1') {
+    await seedTable(org);
     reconciled.length = 0;
     armed.length = 0;
-    deleteRowCount = 1;
     reconcilerThrows = false;
 }
 
 test('een verwijderde tabel wekt de reconciler die de openbare snapshot herschrijft', async (t) => {
-    reset();
+    await reset();
     mock.timers.enable({ apis: ['setTimeout'] });
     t.after(() => mock.timers.reset());
 
     const ok = await datatableStore.deleteDatatable('tbl_doomed', SCOPE);
     assert.strictEqual(ok, true);
-    assert.ok(sql.some(q => /^DELETE FROM datatables/i.test(q.text)), 'de rij moet echt weg zijn');
+    assert.strictEqual(await tableExists('tbl_doomed'), false, 'de rij moet echt weg zijn');
 
     await runDebounce();
     assert.deepStrictEqual(reconciled, ['tbl_doomed'],
@@ -124,13 +101,13 @@ test('een verwijderde tabel wekt de reconciler die de openbare snapshot herschri
 });
 
 test('een verwijdering die niets wist, wekt niemand', async (t) => {
-    reset();
-    deleteRowCount = 0;   // andere scope, of al weg
+    await reset('org-2');   // andere scope
     mock.timers.enable({ apis: ['setTimeout'] });
     t.after(() => mock.timers.reset());
 
     const ok = await datatableStore.deleteDatatable('tbl_doomed', SCOPE);
     assert.strictEqual(ok, false);
+    assert.strictEqual(await tableExists('tbl_doomed'), true, 'de tabel van een ander blijft staan');
 
     await runDebounce();
     assert.deepStrictEqual(reconciled, [],
@@ -139,7 +116,7 @@ test('een verwijdering die niets wist, wekt niemand', async (t) => {
 });
 
 test('valt de reconciler om, dan blijft de verwijdering geslaagd en loopt de andere luisteraar door', async (t) => {
-    reset();
+    await reset();
     reconcilerThrows = true;
     mock.timers.enable({ apis: ['setTimeout'] });
     t.after(() => mock.timers.reset());

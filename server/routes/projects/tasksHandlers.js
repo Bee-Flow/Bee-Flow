@@ -11,7 +11,7 @@
 const log = require('../../telemetry/log');
 const { badRequest, forbidden, notFound, conflict } = require('../../core/http/errors');
 const { itemTextHash, itemKey, createdTaskFor } = require('../../projects/taskFromMeeting');
-const { taskEvent, presentTask, sealList, checkDates } = require('./tasksPresent');
+const { taskEvent, presentTask, sealList, checkDates } = require('../../usecases/projects/tasksPresent');
 const {
     checkedAssignees, checkedLinks, checkedHierarchy, prepareTask, announceAssigned, announceCreated, meetingTexts, alreadyATask,
 } = require('./tasksRules');

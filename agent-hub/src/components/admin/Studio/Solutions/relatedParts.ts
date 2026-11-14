@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useRef, useState, useLayoutEffect } from 'react';
-import { API_BASE } from '@/utils/helpers';
-import { mutate, ApiError } from '@/api/mutate';
+import { useCallback, useRef, useLayoutEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import useDebouncedValue from '@/hooks/useDebouncedValue';
+import { ApiError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 /**
  * What else comes along when parts are added to a Solution.
@@ -84,11 +86,7 @@ async function fetchRelated(projectId: string, items: RelatedRef[]): Promise<Rel
     try {
         let res: Response;
         try {
-            res = await mutate(`${API_BASE}/api/projects/${encodeURIComponent(projectId)}/resources/related`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ items: items.map(({ kind, id }) => ({ kind, id })) }),
-        });
+            res = await apiRequest('POST /api/projects/{id}/resources/related', { params: { id: projectId }, body: { items: items.map(({ kind, id }) => ({ kind, id })) } });
         } catch (err) {
             if (!(err instanceof ApiError)) throw err;
             return null;
@@ -119,23 +117,23 @@ export function useRelatedParts(projectId: string, items: RelatedRef[]): Related
     useLayoutEffect(() => {
         itemsRef.current = items;
     });
-    const [answer, setAnswer] = useState<{ key: string; result: RelatedResult | null } | null>(null);
-    const [attempt, setAttempt] = useState(0);
-
-    useEffect(() => {
-        if (!key) return undefined;
-        let alive = true;
-        const timer = setTimeout(() => {
-            void fetchRelated(projectId, itemsRef.current).then(result => { if (alive) setAnswer({ key, result }); });
-        }, RELATED_DEBOUNCE_MS);
-        return () => { alive = false; clearTimeout(timer); };
-    }, [key, projectId, attempt]);
-
-    const retry = useCallback(() => { setAnswer(null); setAttempt(n => n + 1); }, []);
+    const settledKey = useDebouncedValue(key, RELATED_DEBOUNCE_MS);
+    // Asked once per settled selection: nothing is kept for a selection left behind,
+    // so coming back to it asks again. fetchRelated never rejects (null = could not ask).
+    const query = useQuery<RelatedResult | null>({
+        queryKey: ['solutions', 'relatedParts', projectId, settledKey],
+        enabled: !!settledKey && settledKey === key,
+        staleTime: 0,
+        gcTime: 0,
+        retry: false,
+        queryFn: () => fetchRelated(projectId, itemsRef.current),
+    });
+    const { refetch } = query;
+    const retry = useCallback(() => { void refetch(); }, [refetch]);
 
     if (!key) return { status: 'idle', retry };
-    if (!answer || answer.key !== key) return { status: 'loading', retry };
-    return answer.result ? { status: 'ok', result: answer.result, retry } : { status: 'error', retry };
+    if (settledKey !== key || query.isFetching || query.data === undefined) return { status: 'loading', retry };
+    return query.data ? { status: 'ok', result: query.data, retry } : { status: 'error', retry };
 }
 
 /** The related parts that will be filed with the selection, dependencies first. */

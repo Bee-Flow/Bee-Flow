@@ -1,9 +1,10 @@
-import { API_BASE, authFetch, parseSaveError } from '@/utils/helpers';
+import { parseSaveError } from '@/utils/helpers';
 import { errorMessage, messageOf } from '@/utils/caughtError';
 import type { EditorSnapshot, Ref, Setter } from '@/api/agentSaveTypes';
 import type { CategoryRow } from '../agentEditor.types';
 import { logger } from '@/utils/logger';
-import { mutate, errorBody, RefusedError } from '@/api/mutate';
+import { errorBody, RefusedError } from '@/api/mutate';
+import { apiFetch, apiRequest } from '@/api/typedRequest';
 
 export interface FieldUpdaterDeps {
     setName: (value: string) => void;
@@ -112,11 +113,7 @@ export function createCategoryActions({ setCategories, updateCategory, bootstrap
         const trimmed = name?.trim();
         if (!trimmed) return { ok: false, error: 'Name is required' };
         try {
-            const res = await authFetch(`${API_BASE}/agents/categories`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: trimmed }),
-            });
+            const res = await apiFetch('POST /agents/categories', { body: { name: trimmed } });
             if (!res.ok) throw new Error(await res.text());
             const created = await res.json();
             // Idempotent create: `existing: true` = case-insensitive duplicate —
@@ -133,11 +130,7 @@ export function createCategoryActions({ setCategories, updateCategory, bootstrap
         try {
             let res: Response;
             try {
-                res = await mutate(`${API_BASE}/agents/categories/${id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name }),
-            });
+                res = await apiRequest('PATCH /agents/categories/{id}', { params: { id }, body: { name } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const data = errorBody(err) ?? {};
@@ -164,10 +157,9 @@ export function createCategoryActions({ setCategories, updateCategory, bootstrap
                 updateCategory(reassignTo !== 'none' ? reassignTo : null);
                 try { await flush(); } catch (err) { logger.debug('best-effort', err); }
             }
-            const qs = reassignTo ? `?reassignTo=${encodeURIComponent(reassignTo)}` : '';
             let res: Response;
             try {
-                res = await mutate(`${API_BASE}/agents/categories/${id}${qs}`, { method: 'DELETE' });
+                res = await apiRequest('DELETE /agents/categories/{id}', { params: { id }, query: reassignTo ? { reassignTo } : undefined });
             } catch (apiErr) {
                 if (!(apiErr instanceof RefusedError)) throw apiErr;
                 const data = errorBody(apiErr) ?? {};
@@ -198,11 +190,7 @@ export function createPublishActions({ agentIdRef, isPublished, sharedGroups, se
         const id = agentIdRef.current;
         if (!id) return;
         try {
-            const res = await authFetch(`${API_BASE}/agents/${id}/publish`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ isPublished: next, sharedGroups: groups }),
-            });
+            const res = await apiFetch('PATCH /agents/{id}/publish', { params: { id }, body: { isPublished: next, sharedGroups: groups } });
             if (!res.ok) {
                 // Surface the real reason in the save banner. The old path did
                 // `throw new Error(await res.text())` then `alert(err.message)`,

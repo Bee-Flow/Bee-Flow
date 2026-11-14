@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Microsoft 365 connector routes — mounted at /api/integrations/microsoft.
  *
@@ -38,7 +38,10 @@
  * verifier, not a shape. The other three read nothing but the session.
  */
 
+const { fetchFixedEndpoint } = require('../../utils/fixedEndpointFetch.mts');
 const express = require('express');
+const { validate } = require('../../core/http/validate');
+const { bodyOf } = require('../../core/http/schemaParts');
 const crypto = require('crypto');
 const log = require('../../telemetry/log');
 const router = express.Router();
@@ -190,12 +193,12 @@ router.get('/callback', /** @param {import('express').Request<{}, any, any, { co
         const { clientId, clientSecret, tenantId } = await getMicrosoftClientConfig();
         const redirectUri = storedRedirectUri || buildRedirectUri(req);
 
-        const tokenRes = await fetch(OAUTH_PROVIDERS.microsoft.tokenUrl(tenantId), {
+        const tokenRes = await fetchFixedEndpoint(OAUTH_PROVIDERS.microsoft.tokenUrl(tenantId), {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({
                 grant_type: 'authorization_code',
-                code,
+                code: String(code), // what URLSearchParams would make of it
                 redirect_uri: redirectUri,
                 client_id: clientId,
                 client_secret: clientSecret,
@@ -220,7 +223,7 @@ router.get('/callback', /** @param {import('express').Request<{}, any, any, { co
 
         let email = '';
         try {
-            const infoRes = await fetch(`${OAUTH_PROVIDERS.microsoft.userInfoUrl}?$select=mail,userPrincipalName`, {
+            const infoRes = await fetchFixedEndpoint(`${OAUTH_PROVIDERS.microsoft.userInfoUrl}?$select=mail,userPrincipalName`, {
                 headers: { Authorization: `Bearer ${tokenData.access_token}` },
             });
             if (infoRes.ok) {
@@ -320,7 +323,7 @@ router.get('/status', requireAuth, async (req, res) => {
 });
 
 // ─── Disconnect ──────────────────────────────────────────────────
-router.post('/disconnect', requireAuth, async (req, res) => {
+router.post('/disconnect', requireAuth, validate({ body: bodyOf({}, 'Disconnecting Microsoft 365') }), async (req, res) => {
     const userId = req.session?.user?.id;
     if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 
@@ -360,7 +363,7 @@ function openerTargetOrigin() {
 // text, never markup.
 /** @param {unknown} value */
 function escapeHtml(value) {
-    return String(value).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+    return String(value).replace(/[&<>"']/g, (c) => /** @type {Record<string, string>} */ ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 }
 
 /** @param {string} message @param {boolean} success @param {string} [type] the postMessage type the opener listens for */

@@ -280,3 +280,11 @@ test('the admin routes refuse a session that holds only the all permission, and 
     const admin = await dispatch({ method: 'GET', url: '/' });
     assert.strictEqual(admin.statusCode, 200, JSON.stringify(admin.body));
 });
+
+test('choosing the default language takes no fields; the organisation default still takes its own', async () => {
+    const res = await refuses({ method: 'PUT', url: '/nl/default', body: { code: 'en' } }, 'body');
+    assert.match(res.body.error, /does not take "code"/);
+    assert.strictEqual((await dispatch({ method: 'PUT', url: '/nl/default', body: undefined })).statusCode, 200);
+    const org = await dispatch({ method: 'PUT', url: '/org/default', body: { defaultLocale: 'nl' } });
+    assert.notStrictEqual(org.body?.code, 'invalid_request', 'the org route is not refused by the platform one');
+});

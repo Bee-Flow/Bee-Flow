@@ -262,14 +262,14 @@ test('a request with no query object at all is NOT a confirmation', async () => 
 // ── Permission comes first ──────────────────────────────────────────
 
 test('someone who may not edit the agent is refused BEFORE any usage is gathered', async () => {
-    // A 403 that first tells you which automations your colleague runs is a
-    // disclosure the permission check was there to prevent.
+    // A refusal that first tells you which automations your colleague runs is a
+    // disclosure the permission check was there to prevent. A stranger who may
+    // not even read the agent gets the 404 of an unknown id.
     fx.userId = 'stranger';
     fx.hasManage = false;
     fx.usage = { rows: [TASK_ROW], partial: [] };
     const res = await dispatch({ url: '/a1' });
-    assert.strictEqual(res.statusCode, 403);
-    assert.strictEqual(res.body.code, 'agent_not_editable');
+    assert.strictEqual(res.statusCode, 404);
     assert.strictEqual(res.body.usage, undefined);
     assert.deepStrictEqual(fx.chatCalls, [], 'nothing was even asked');
 });

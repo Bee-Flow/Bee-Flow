@@ -273,7 +273,7 @@ async function buildStatus(req) {
 }
 
 // GET / — the caller's own effective Privacy Shield status
-router.get('/', requireAuth, validate({ query: NO_QUERY }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
+router.get('/', requireAuth, validate({ query: NO_QUERY }), async (req, res) => {
     let status;
     try {
         status = await buildStatus(req);

@@ -54,15 +54,15 @@ function mkCtx(over = {}) {
 const call = (name, args) => ({ id: 'tc-1', function: { name, arguments: JSON.stringify(args) } });
 
 test('dispatcher options: the full surface, timezone default, tier overrides', async () => {
-    const { ctx, events } = mkCtx();
+    const { ctx } = mkCtx();
     await executeDirectChatToolCall(call('my_tool', { a: 1 }), ctx);
     const { opts } = h.dispatch[0];
     assert.deepStrictEqual(Object.keys(opts), [
         'userId', 'session', 'userAuth', 'fixedParams', 'agentId', 'conversationId', 'orgId', 'send', 'imageGenSettings',
         'nanoBananaSettings', 'req', 'attachments', 'sessionSkills', 'activatedSessionSkillIds', 'completedSessionSkillIds',
-        'roundsInCurrentStep', 'timezone', 'onImageGenerated', 'onSkillsActivated', 'terminalCtx',
+        'roundsInCurrentStep', 'timezone', 'onImageGenerated', 'onSkillsActivated',
     ]);
-    const { send, onImageGenerated, onSkillsActivated, terminalCtx, ...plain } = opts;
+    const { send, onImageGenerated, onSkillsActivated, ...plain } = opts;
     assert.deepStrictEqual(plain, {
         userId: 'user-1', session: ctx.req.session, userAuth: { token: 'ua' }, fixedParams: { fixed: true }, agentId: null,
         conversationId: 'conv-1', orgId: 'org-n8n', imageGenSettings: { ig: 1 }, nanoBananaSettings: { nb: 1 }, req: ctx.req,
@@ -72,10 +72,6 @@ test('dispatcher options: the full surface, timezone default, tier overrides', a
     assert.strictEqual(send, ctx.send);
     assert.strictEqual(onImageGenerated, ctx.onImageGenerated);
     assert.strictEqual(onSkillsActivated, ctx.onSkillsActivated);
-    const { onEvent, ...term } = terminalCtx;
-    assert.deepStrictEqual(term, { agentId: 'user-user-1', containerKey: 'direct-conv-1', timeout: 60000, blockedCommands: [], signal: undefined });
-    onEvent('t', { d: 1 });
-    assert.deepStrictEqual(events.at(-1), ['t', { d: 1 }]);
 });
 
 test('usage row + egress payload', async () => {

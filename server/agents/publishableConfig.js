@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What an agent's concept may become when it goes live — the anti-leak
  * validation of every cross-element reference in its config, the fold of that

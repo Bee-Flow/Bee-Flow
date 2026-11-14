@@ -1,7 +1,7 @@
-import { API_BASE, authFetch } from '@/utils/helpers';
 import { KIND_KEYS } from '@/components/shared/kindColors';
 import { isAbortError } from '@/utils/caughtError';
 import { logger } from '@/utils/logger';
+import { apiFetch } from '@/api/typedRequest';
 
 /** The answer of the endpoint: untrusted input, so every field is still `unknown`. */
 interface PayloadBody {
@@ -137,12 +137,7 @@ export async function routeDescription(text: string, { signal }: { signal?: Abor
 
     let res: Response;
     try {
-        res = await authFetch(`${API_BASE}/api/studio/ai/route`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: body }),
-            signal,
-        });
+        res = await apiFetch('POST /api/studio/ai/route', { body: { text: body }, init: { signal } });
     } catch (err) {
         // Cancelling is a choice of the user, not a fault.
         if (isAbortError(err)) throw err;

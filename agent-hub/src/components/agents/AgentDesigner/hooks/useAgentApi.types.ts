@@ -10,7 +10,6 @@ export type ApiState = ReturnType<typeof useAgentState>;
 
 export interface ApiOptions {
     systemMode?: boolean;
-    securityMode?: boolean;
     initialAgentId?: string | null;
     /** The admin dashboard's chosen organisation, sent as `orgId` with the agents list and the categories. */
     orgId?: string | null;

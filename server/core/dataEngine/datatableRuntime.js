@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * THE SHARED DATATABLE RUNNER: "read/write this table, as this person, and only these columns".
  *
@@ -177,7 +177,7 @@ async function resolveForPrincipal(datatableId, principal, { needed = 'viewer' }
         throw refuse(403, 'datatable_forbidden', `This needs ${needed} access to the datatable`);
     }
 
-    const meta = await datatableStore.getTableMeta(scope, table.id);
+    const meta = await datatableStore.getTableMeta(/** @type {NonNullable<typeof scope>} */ (scope), table.id); // found with the table
     if (!meta) throw refuse(409, 'datatable_no_columns', 'This datatable has no columns yet');
 
     return {
@@ -378,7 +378,7 @@ async function aggregateRows(resolved, { allowColumns, groupBy, aggregates, filt
     assertFieldsBound(require('../../shared/expr/filterGroups.mjs').filterClauseFields(filterList), columns); // OR-group clauses too
     assertFieldsBound(sortFields(sort), columns);
 
-    await require('../../stores/lib/sheetCrypto').assertQuery(resolved, [...groups.map(g => g?.field), ...aggs.map(a => a?.field), ...require('../../shared/expr/filterGroups.mjs').filterClauseFields(filterList), ...sortFields(sort)]);
+    await require('../../stores/lib/sheetCrypto').assertQuery(resolved, /** @type {string[]} */ ([...groups.map(g => g?.field), ...aggs.map(a => a?.field), ...require('../../shared/expr/filterGroups.mjs').filterClauseFields(filterList), ...sortFields(sort)])); // a missing field names no encrypted column
 
     const filter = accessFilter.compileAccessFilter(
         resolved.meta, resolved.grade, { id: resolved.principal?.userId || null }, 'read', PG);
@@ -474,7 +474,7 @@ async function updateRow(resolved, { allowColumns, rowId, values, expectedUpdate
         const r = await mirrorWrites(resolved).updateRow(mirrorCtx(resolved), rowId, clean, { expectedUpdatedAt });
         if (!r.changes) {
             if (!r.row) throw refuse(404, 'row_not_found', 'Not found');
-            const conflict = /** @type {DatatableRuntimeError & { row?: object }} */ (refuse(409, 'row_conflict', 'Someone else changed this row while you had it open'));
+            const conflict = /** @type {DatatableRuntimeError & { row?: Record<string, unknown> | null }} */ (refuse(409, 'row_conflict', 'Someone else changed this row while you had it open'));
             conflict.row = projectRow(r.row, columns);
             throw conflict;
         }
@@ -501,7 +501,7 @@ async function updateRow(resolved, { allowColumns, rowId, values, expectedUpdate
 
     if (!out?.changes) {
         if (!row) throw refuse(404, 'row_not_found', 'Not found');
-        const conflict = /** @type {DatatableRuntimeError & { row?: object }} */ (refuse(409, 'row_conflict', 'Someone else changed this row while you had it open'));
+        const conflict = /** @type {DatatableRuntimeError & { row?: Record<string, unknown> | null }} */ (refuse(409, 'row_conflict', 'Someone else changed this row while you had it open'));
         conflict.row = projectRow(row, columns);
         throw conflict;
     }

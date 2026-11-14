@@ -13,17 +13,19 @@
  * rows behind would not be what anyone read it as.
  */
 import { AlertTriangle, Loader2 } from 'lucide-react';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
+import { useOrgSettingRead } from './useOrgSettingRead';
 
-import { useTranslation } from '@/hooks/useTranslation';
+import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import {
     KillSwitchNotice, OrgIntegrationCacheEditorHeader, OrgIntegrationCacheEditorSection, ScopeChecks, StoredLine, TtlPicker, cacheModeOptions,
 } from './OrgIntegrationCacheParts';
-import { API_BASE } from '@/utils/helpers';
-import { errorMessage, messageOf } from '@/utils/caughtError';
+import { messageOf } from '@/utils/caughtError';
 import ChoiceCards from '../../shared/ChoiceCards';
 import { toast } from '../../shared/Toast';
-import { request, errorBody, RefusedError, mutate } from '@/api/mutate';
+import { errorBody, RefusedError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 /** GET /api/org-integration-cache/:orgId (the fields this editor reads). */
 interface IntegrationCacheSettings {
@@ -37,11 +39,21 @@ interface IntegrationCacheSettings {
     ttlRange?: { min: number; max: number };
 }
 
-export default function OrgIntegrationCacheEditor({ orgId }: { orgId?: string | null }) {
-    const { t } = useTranslation();
-    const [loading, setLoading] = useState(true);
-    const [loadError, setLoadError] = useState<string | null | undefined>(null);
-    const [server, setServer] = useState<IntegrationCacheSettings | null>(null);
+/** A write's outcome: the parsed body, or the server's refusal text. */
+type WriteOutcome = { refused: string | null; body: { purged?: boolean } };
+
+async function writeOutcome(send: () => Promise<Response>): Promise<WriteOutcome> {
+    try {
+        const res = await send();
+        return { refused: null, body: await res.json().catch(() => ({})) };
+    } catch (err) {
+        if (!(err instanceof RefusedError)) throw err;
+        return { refused: (errorBody(err) ?? {}).error || '', body: {} };
+    }
+}
+
+/** The loaded setting, the choices seeded from it, the save and the clear. */
+function useIntegrationCacheForm(orgId: string | null | undefined, t: TranslateFn) {
     const [enabled, setEnabled] = useState(false);
     const [ttlSeconds, setTtlSeconds] = useState(300);
     // WHICH outbound answers the consent covers. One decision, one config row,
@@ -53,40 +65,19 @@ export default function OrgIntegrationCacheEditor({ orgId }: { orgId?: string | 
     // What an AI step answered. Off until said otherwise: a stored answer is a
     // copy of what the model wrote about somebody's data.
     const [scopeAi, setScopeAi] = useState(false);
-    const [saving, setSaving] = useState(false);
-    const [clearing, setClearing] = useState(false);
 
-    const load = useCallback(async () => {
-        if (!orgId) return;
-        setLoading(true);
-        setLoadError(null);
-        try {
-            let res: Response;
-            try {
-                res = await request(`${API_BASE}/api/org-integration-cache/${orgId}`);
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                const body = errorBody(err) ?? {};
-                throw new Error(body.error || `HTTP ${err.status}`);
-            }
-            const data = await res.json();
-            setServer(data);
-            setEnabled(!!data.enabled);
-            setTtlSeconds(data.ttlSeconds ?? 300);
-            setScopeIntegration(data.scopes ? data.scopes.integration !== false : true);
-            setScopeHttp(!!(data.scopes && data.scopes.http));
-            setScopeAi(!!(data.scopes && data.scopes.ai));
-        } catch (err) {
-            // Null the loaded state so Save stays disabled — saving on top of a
-            // failed load would write a guess about somebody's data policy.
-            setServer(null);
-            setLoadError(errorMessage(err));
-        } finally {
-            setLoading(false);
-        }
-    }, [orgId]);
-
-    useEffect(() => { load(); }, [load]);
+    // A failed load leaves `server` null, so Save stays disabled — saving on top
+    // of a failed load would write a guess about somebody's data policy.
+    const { server, loading, loadError, refetch } = useOrgSettingRead<IntegrationCacheSettings>('GET /api/org-integration-cache/{orgId}', orgId);
+    const [seeded, setSeeded] = useState<IntegrationCacheSettings | null>(null);
+    if (server && server !== seeded) {
+        setSeeded(server);
+        setEnabled(!!server.enabled);
+        setTtlSeconds(server.ttlSeconds ?? 300);
+        setScopeIntegration(server.scopes ? server.scopes.integration !== false : true);
+        setScopeHttp(!!(server.scopes && server.scopes.http));
+        setScopeAi(!!(server.scopes && server.scopes.ai));
+    }
 
     const serverScopes = server?.scopes || { integration: true, http: false, ai: false };
     const isDirty = !!server && (
@@ -97,61 +88,46 @@ export default function OrgIntegrationCacheEditor({ orgId }: { orgId?: string | 
         || scopeAi !== !!serverScopes.ai
     );
 
-    const handleSave = useCallback(async () => {
-        if (!server || !isDirty) return;
-        setSaving(true);
-        try {
-            let res: Response;
-            try {
-                res = await mutate(`${API_BASE}/api/org-integration-cache/${orgId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    enabled, ttlSeconds,
-                    scopes: { integration: scopeIntegration, http: scopeHttp, ai: scopeAi },
-                }),
-            });
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                const body = errorBody(err) ?? {};
-                toast.error(body.error || t('admin.integration_cache.save_failed', 'Could not save the setting'));
-                return;
-            }
-            const body = await res.json().catch(() => ({}));
+    const save = useMutation({
+        mutationFn: () => writeOutcome(() => apiRequest('PUT /api/org-integration-cache/{orgId}', {
+            params: { orgId: String(orgId) },
+            body: { enabled, ttlSeconds, scopes: { integration: scopeIntegration, http: scopeHttp, ai: scopeAi } },
+        })),
+        onSuccess: async ({ refused, body }) => {
+            if (refused !== null) { toast.error(refused || t('admin.integration_cache.save_failed', 'Could not save the setting')); return; }
             toast.success(body.purged
                 ? t('admin.integration_cache.saved_purged', 'Saved. Stored answers were deleted.')
                 : t('admin.integration_cache.saved', 'Saved'));
-            await load();
-        } catch (err) {
-            toast.error(messageOf(err, t('admin.integration_cache.save_failed', 'Could not save the setting')));
-        } finally {
-            setSaving(false);
-        }
-    }, [server, isDirty, orgId, enabled, ttlSeconds, scopeIntegration, scopeHttp, scopeAi, t, load]);
+            await refetch();
+        },
+        onError: (err) => toast.error(messageOf(err, t('admin.integration_cache.save_failed', 'Could not save the setting'))),
+    });
 
-    const handleClear = useCallback(async () => {
-        setClearing(true);
-        try {
-            let res: Response;
-            try {
-                res = await mutate(`${API_BASE}/api/org-integration-cache/${orgId}/entries`, { method: 'DELETE' });
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                const body = errorBody(err) ?? {};
-                toast.error(body.error || t('admin.integration_cache.clear_failed', 'Could not clear the stored answers'));
-                return;
-            }
-            const body = await res.json().catch(() => ({}));
+    const clear = useMutation({
+        mutationFn: () => writeOutcome(() => apiRequest('DELETE /api/org-integration-cache/{orgId}/entries', { params: { orgId: String(orgId) } })),
+        onSuccess: async ({ refused }) => {
+            if (refused !== null) { toast.error(refused || t('admin.integration_cache.clear_failed', 'Could not clear the stored answers')); return; }
             toast.success(t('admin.integration_cache.cleared', 'Stored answers deleted'));
-            await load();
-        } catch {
-            // A dropped request must not look like nothing happened: the
-            // answers are still stored, and the admin has to know that.
-            toast.error(t('admin.integration_cache.clear_failed', 'Could not clear the stored answers'));
-        } finally {
-            setClearing(false);
-        }
-    }, [orgId, t, load]);
+            await refetch();
+        },
+        // A dropped request must not look like nothing happened: the
+        // answers are still stored, and the admin has to know that.
+        onError: () => toast.error(t('admin.integration_cache.clear_failed', 'Could not clear the stored answers')),
+    });
+
+    return {
+        server, loading, loadError, enabled, setEnabled, ttlSeconds, setTtlSeconds,
+        scopeIntegration, setScopeIntegration, scopeHttp, setScopeHttp, scopeAi, setScopeAi, isDirty,
+        saving: save.isPending, clearing: clear.isPending,
+        // The toasts are the mutations' own; the section only awaits the outcome.
+        handleSave: async () => { if (server && isDirty) await save.mutateAsync().catch(() => undefined); },
+        handleClear: async () => { await clear.mutateAsync().catch(() => undefined); },
+    };
+}
+
+export default function OrgIntegrationCacheEditor({ orgId }: { orgId?: string | null }) {
+    const { t } = useTranslation();
+    const { server, loading, loadError, enabled, setEnabled, ttlSeconds, setTtlSeconds, scopeIntegration, setScopeIntegration, scopeHttp, setScopeHttp, scopeAi, setScopeAi, isDirty, saving, clearing, handleSave, handleClear } = useIntegrationCacheForm(orgId, t);
 
     if (!orgId) return null;
 

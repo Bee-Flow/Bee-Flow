@@ -11,7 +11,6 @@ import { toast } from '../../components/shared/Toast';
 import { useEntitlements } from '../../components/licensing/EntitlementsContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import useUserSettingSave from '../../hooks/useUserSettingSave';
-import { API_BASE } from '../../utils/helpers';
 import { postForBody } from '../../api/postForBody';
 import NcScopeSection from '../../components/integrations/nextcloud/NcScopeSection';
 import OrgMcpConnections from './OrgMcpConnections';
@@ -20,9 +19,10 @@ import type { UserSettingSaveResult } from '../../hooks/useUserSettingSave';
 import type { SettingsStatuses, SettingsUser } from './shell/settingsShellTypes';
 import type { GroupLabelProps, FirefliesIntegrationProps, YouTrackIntegrationProps, SignRequestIntegrationProps, GammaIntegrationProps, AFASIntegrationProps, GitHubIntegrationProps, NextcloudIntegrationProps, McpCredential, McpCredentialServer, McpCredentialRowsProps, IntegrationGroupProps, IntegrationsSectionProps } from './IntegrationsSection.types';
 import { logger } from '../../utils/logger';
-import { mutate, ApiError, request, RefusedError } from '../../api/mutate';
+import { ApiError, RefusedError } from '../../api/mutate';
 import { IntegrationRow, ApiKeyField, DisconnectButton } from './IntegrationPrimitives';
 import { GoogleWorkspaceIntegration, LinkedInIntegration, WithingsIntegration } from './OAuthIntegrations';
+import { apiRequest, apiUrl } from '@/api/typedRequest';
 
 const GroupLabel = ({ children }: GroupLabelProps) => (
     <p className="text-[11px] font-semibold uppercase tracking-widest px-1 mb-2 text-[var(--text-muted)]">
@@ -232,7 +232,7 @@ const GitHubIntegration = ({ onSaved, last }: GitHubIntegrationProps) => {
     const { saving, disconnecting, error, save, disconnect } = useUserSettingSave(onSaved);
     const checkStatus = async () => {
         try {
-            const res = await request(`${API_BASE}/api/integrations/github/status`).catch((err: unknown) => {
+            const res = await apiRequest('GET /api/integrations/github/status').catch((err: unknown) => {
                 if (err instanceof RefusedError) return null;
                 throw err;
             });
@@ -243,13 +243,13 @@ const GitHubIntegration = ({ onSaved, last }: GitHubIntegrationProps) => {
     const handleSave = () => {
         if (!token.trim()) return;
         save({ token: token.trim() }, {
-            endpoint: `${API_BASE}/api/integrations/github/connect`,
+            endpoint: apiUrl('POST /api/integrations/github/connect'),
             fallback: 'Failed to connect',
             onSuccess: (data) => { setConnected(true); setUsername(data.username as string); setToken(''); },
         });
     };
     const handleDisconnect = () => disconnect(null, {
-        endpoint: `${API_BASE}/api/integrations/github/disconnect`,
+        endpoint: apiUrl('POST /api/integrations/github/disconnect'),
         onSuccess: () => { setConnected(false); setUsername(null); },
     });
     return (
@@ -321,7 +321,7 @@ const NextcloudIntegration = ({ hasNextcloudAppPassword, isNextcloudUser, isConn
         save(
             { username: username.trim(), password: password.trim(), url: url.trim() },
             {
-                endpoint: `${API_BASE}/auth/save-app-password`,
+                endpoint: apiUrl('POST /auth/save-app-password'),
                 onSuccess: () => { setUsername(''); setPassword(''); },
             },
         );
@@ -330,7 +330,7 @@ const NextcloudIntegration = ({ hasNextcloudAppPassword, isNextcloudUser, isConn
     const autoCreate = async () => {
         setAutoCreating(true); setNotice(null); setError(null);
         try {
-            const { ok, body: data } = await postForBody(`${API_BASE}/auth/create-app-password`, { method: 'POST' });
+            const { ok, body: data } = await postForBody(apiUrl('POST /auth/create-app-password'), { method: 'POST' });
             if (ok) {
                 onSaved();
                 if (data.warning) setNotice(data.warning);
@@ -341,7 +341,7 @@ const NextcloudIntegration = ({ hasNextcloudAppPassword, isNextcloudUser, isConn
         setAutoCreating(false);
     };
 
-    const handleDisconnect = () => disconnect(null, { endpoint: `${API_BASE}/auth/app-password`, method: 'DELETE' });
+    const handleDisconnect = () => disconnect(null, { endpoint: apiUrl('DELETE /auth/app-password'), method: 'DELETE' });
 
     return (
         <IntegrationRow
@@ -411,7 +411,7 @@ const useMcpCredentialServers = (enabled: boolean) => {
     const [servers, setServers] = useState<McpCredentialServer[]>([]);
     const load = React.useCallback(async () => {
         try {
-            const res = await request(`${API_BASE}/ai/mcp-servers/user-credentials`).catch((err: unknown) => {
+            const res = await apiRequest('GET /ai/mcp-servers/user-credentials').catch((err: unknown) => {
                 if (err instanceof RefusedError) return null;
                 throw err;
             });
@@ -432,10 +432,7 @@ const McpCredentialRows = ({ servers, reload, onSaved, last }: McpCredentialRows
         if (!value?.trim()) return;
         setSaving(stateKey);
         try {
-            const res = await mutate(`${API_BASE}/ai/mcp-servers/user-credentials`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ serverId, credKey, value: value.trim() }),
-            }).catch((err: unknown) => {
+            const res = await apiRequest('POST /ai/mcp-servers/user-credentials', { body: { serverId, credKey, value: value.trim() } }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });

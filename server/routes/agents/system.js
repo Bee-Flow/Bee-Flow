@@ -35,7 +35,7 @@ const systemHelperLimiter = perUserRateLimit({ windowMs: 60_000, max: 30 });
 // a body that was not sent at all threw on the destructure and came back a
 // 500. Both now say which field.
 
-/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
+/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. @template {import('zod').ZodRawShape} S @param {S} shape */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 /**
@@ -130,7 +130,7 @@ router.get('/system', async (req, res) => {
 // This endpoint uses SSE streaming, so it can't use the generic handler factory.
 // It stays as a standalone implementation.
 
-router.post('/system/prompt-designer/stream', requireAuth, systemHelperLimiter, validate({ body: DesignerBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof DesignerBody>, import('qs').ParsedQs>} */ req, res, next) => {
+router.post('/system/prompt-designer/stream', requireAuth, systemHelperLimiter, validate({ body: DesignerBody }), async (req, res, next) => {
     try {
         const { message } = req.body;
 

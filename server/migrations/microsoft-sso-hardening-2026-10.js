@@ -4,7 +4,7 @@
 const { GUID } = require('../auth/microsoftIdentity');
 const { decryptValue } = require('../stores/configEncryption');
 const { getClientCredentialsToken } = require('../integrations/azureGraph');
-const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 // The dry run opens only a read-only transaction. It does not import stores
 // whose initialization creates tables, migrates rows or starts background work.
@@ -80,7 +80,7 @@ function createUpgradeInspector({ db, initialize, migrateSecrets, request = fetc
             if (rawSecret && !secret && apply) throw new Error('Microsoft OAuth credential cannot be decrypted');
             if (secret) {
                 try { token = await tokenFor(ms.clientId, secret, tenantId); }
-                catch (err) { log.debug('Directory unavailable: leave identities unbound.', err); }
+                catch (err) { bestEffort('migrations/microsoft-sso-hardening:directoryToken', err); /* without the directory, identities stay unbound */ }
             }
         }
         /** @param {string} kind @param {string} oid */
@@ -143,7 +143,7 @@ function createUpgradeInspector({ db, initialize, migrateSecrets, request = fetc
                 try {
                     if (await verifyDirectoryObject('groups', group.azureGroupId)) report.groups.push({ groupId: group.id, tenantId: binding.syncTenantId,
                         objectId: group.azureGroupId.toLowerCase(), organizationId: group.organizationId });
-                } catch (err) { log.debug('Preserve groups whose provenance cannot be verified.', err); }
+                } catch (err) { bestEffort('migrations/microsoft-sso-hardening:verifyGroup', err); /* a group whose provenance cannot be verified is preserved */ }
             }
         }
         if (apply) {

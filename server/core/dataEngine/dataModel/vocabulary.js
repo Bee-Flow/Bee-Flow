@@ -15,6 +15,8 @@
 
 'use strict';
 
+const { envInt } = require('../../../utils/envNumber.mts');
+
 // ---------------------------------------------------------------------------
 // Enumerations (exported — the FE runtime + query compiler share these)
 // ---------------------------------------------------------------------------
@@ -262,7 +264,7 @@ const DATA_LIMITS = Object.freeze({
     // mailboxAttachments.js): a CAD-order workload (~20 mailed files per order)
     // consumes rows far faster than the form-upload workloads the default was
     // sized for.
-    MAX_ATTACHMENTS_PER_APP: parseInt(process.env.STUDIO_APP_MAX_ATTACHMENTS, 10) || 5000,
+    MAX_ATTACHMENTS_PER_APP: envInt('STUDIO_APP_MAX_ATTACHMENTS', 5000, { min: 1 }),
     // Not in the primary caps list but needed by select validation.
     MAX_SELECT_OPTIONS: 100,
     MAX_NAME_LEN: 120,

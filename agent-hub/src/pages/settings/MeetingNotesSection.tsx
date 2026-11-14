@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { MessageSquare } from 'lucide-react';
-import { API_BASE } from '../../utils/helpers';
 import { useTalkNotesUserSettings } from '../../api/queries/settingsOptionalRead';
 import { NC_BLUE, languageOptions, Toggle, Row, Select } from '@/components/settings/shared/settingsPrimitives';
 import { useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
-import { mutate, errorBody, RefusedError } from '../../api/mutate';
+import { errorBody, RefusedError } from '../../api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 interface TalkNotesConfig {
     autoTranscribe: boolean;
@@ -53,9 +53,7 @@ export default function MeetingNotesSection() {
         try {
             let res: Response | undefined;
             try {
-                res = await mutate(`${API_BASE}/api/talk-notes-settings/user/me`, {
-                method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cfg),
-            });
+                res = await apiRequest('PUT /api/talk-notes-settings/user/me', { init: { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cfg) } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const e = errorBody(err) ?? {};

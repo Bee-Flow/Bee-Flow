@@ -46,7 +46,7 @@ router.get('/user/me', requireAuth, async (req, res) => {
     res.json({ ...config, connection: teamsNotes.deriveConnectionStatus({ session: req.session, credential }), orgImport });
 });
 
-router.put('/user/me', requireAuth, validate({ body: SettingsBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof SettingsBody>, import('qs').ParsedQs>} */ req, res) => {
+router.put('/user/me', requireAuth, validate({ body: SettingsBody }), async (req, res) => {
     const config = await teamsNotes.saveUserSettings(sessionUser(req).id, req.body);
     res.json({ ok: true, config });
 });

@@ -164,7 +164,7 @@ function parseDxf(text) {
  */
 function num(v) {
     const n = Number(v);
-    return Number.isFinite(n) ? n : 0;
+    return Number.isFinite(n) ? /** @type {number} */ (n) : 0;
 }
 
 /**

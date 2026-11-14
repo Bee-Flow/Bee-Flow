@@ -17,6 +17,7 @@
  * comments, all tables converted to Markdown table syntax.
  */
 
+const { fetchFixedEndpoint } = require('../../utils/fixedEndpointFetch.mts');
 const configStore = require('../../stores/configStore');
 const { computeDocIntelligenceCost } = require('../llm/azureServiceCosts');
 const azureServiceUsageStore = require('../../stores/azureServiceUsageStore');
@@ -112,7 +113,7 @@ async function extractWithAzureWithStats(buffer, filename = 'unknown') {
     for (let i = 0; i < maxPolls; i++) {
         await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
 
-        const pollResponse = await fetch(operationLocation, {
+        const pollResponse = await fetchFixedEndpoint(operationLocation, {
             headers: {
                 'Ocp-Apim-Subscription-Key': apiKey,
             },

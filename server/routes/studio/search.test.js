@@ -19,12 +19,10 @@
  *     filter is ANDed onto it (without the brackets the AND would bind to the
  *     last OR branch and the first two branches would return the whole table).
  *
- * NO POSTGRES RUNS HERE (5432/55432 are closed in this container), so the two
- * raw-SQL kinds are checked by asserting on the generated statement and its
- * parameters — its SHAPE, not its result. That is a real limitation and is
- * reported as one.
+ * The three raw-SQL kinds (automations, agents, meeting notes) run on a real
+ * Postgres: the boot ladder's schema on PGlite, handed in as the db dependency.
  *
- * Run: node --test --test-force-exit routes/studio/search.test.js
+ * Run: node --test routes/studio/search.test.js
  */
 
 const test = require('node:test');
@@ -34,6 +32,8 @@ const {
     createSearchRouter, KIND_KEYS, MAX_PER_KIND, MIN_QUERY_LENGTH, MAX_QUERY_LENGTH, escapeLike, nameOf,
 } = require('./search');
 const { studioApp, studioServer } = require('./studioServer.testkit');
+const { ladderPglite } = require('../../testUtils/pgliteTemplate');
+const { insertRow } = require('../../testUtils/pgliteSeed');
 
 // ── A fully-open, fully-populated fake dependency set ───────────────────────
 function makeDeps(overrides = {}) {
@@ -112,7 +112,6 @@ const get = (q = 'invoice', user = 'u1') => fetch(
     { headers: user ? { 'x-test-user': user } : {} },
 );
 
-const sqlFor = (fragment) => deps._calls.sql.find((c) => c.sql.includes(fragment));
 
 // ── The happy path ──────────────────────────────────────────────────────────
 
@@ -287,22 +286,48 @@ test('a missing q parameter is the same cheap path, not a crash', async () => {
 
 // ── Query handling ──────────────────────────────────────────────────────────
 
+// ── The raw-SQL kinds, on a real Postgres ───────────────────────────────────
+// The boot ladder's schema on PGlite (testUtils/pgliteTemplate.js), handed in
+// as `db` and `automationCore`; the statements are recorded so "no query" is a fact.
+
+const pg = ladderPglite();
+test.after(() => pg.close());
+const sqlSeen = [];
+const realGetAll = async (sql, params) => { sqlSeen.push(sql); return (await pg.query(sql, params)).rows; };
+const realDeps = (over = {}) => makeDeps({ db: { getAll: realGetAll }, automationCore: { getAll: realGetAll }, ...over });
+async function resetTables() {
+    await pg.exec('TRUNCATE automations, agents, transcriptions CASCADE');
+    sqlSeen.length = 0;
+}
+let seq = 0;
+const automation = (title, over = {}) => insertRow(pg, 'automations', { id: `au${++seq}`, user_id: 'u1', title, definition_json: {}, ...over });
+const transcription = (title, over = {}) => insertRow(pg, 'transcriptions', { id: `t${++seq}`, user_id: 'u9', title, shared_with: [], is_published: false, shared_groups: [], ...over });
+const agentRow = (name, over = {}) => insertRow(pg, 'agents', { id: `ag${++seq}`, name, owner_id: 'u1', ...over });
+const ids = (rows) => rows.map((r) => r.id).sort();
+
 test('LIKE wildcards in the query are escaped, so "100%" searches for "100%"', async () => {
     assert.strictEqual(escapeLike('100%'), '100\\%');
     assert.strictEqual(escapeLike('a_b'), 'a\\_b');
     assert.strictEqual(escapeLike('c:\\x'), 'c:\\\\x');
-    await listen(mount(makeDeps()));
-    await get('100%');
-    const automations = sqlFor('FROM automations');
-    assert.strictEqual(automations.params[1], '%100\\%%');
-    assert.ok(automations.sql.includes("ESCAPE '\\'"), 'the escape character is declared');
+    await resetTables();
+    const hit = await automation('Done 100% of it');
+    await automation('Done 1000 times');
+    await automation('A_B plan');
+    const theirs = await automation('100% theirs', { user_id: 'u2' });
+    await listen(mount(realDeps()));
+    const body = await (await get('100%')).json();
+    assert.deepStrictEqual(ids(body.results.automations), [hit.id], 'the % is a character, and another user\'s automation is not searched');
+    assert.ok(theirs);
+    assert.deepStrictEqual((await (await get('a_b')).json()).results.automations.map((r) => r.name), ['A_B plan']);
 });
 
 test('an over-long query is truncated rather than sent on', async () => {
-    await listen(mount(makeDeps()));
+    await resetTables();
+    const exact = await automation('x'.repeat(MAX_QUERY_LENGTH));
+    await listen(mount(realDeps()));
     const body = await (await get('x'.repeat(MAX_QUERY_LENGTH + 50))).json();
     assert.strictEqual(body.query.length, MAX_QUERY_LENGTH);
-    assert.strictEqual(sqlFor('FROM automations').params[1].length, MAX_QUERY_LENGTH + 2);
+    assert.deepStrictEqual(ids(body.results.automations), [exact.id], 'the truncated query is what was searched');
 });
 
 test('results are capped per kind, prefix matches first', async () => {
@@ -314,58 +339,65 @@ test('results are capped per kind, prefix matches first', async () => {
     assert.strictEqual(body.results.skills[0].id, 'first', 'a name that STARTS with the query ranks first');
 });
 
-// ── The two raw-SQL kinds: shape, not result (no Postgres here) ──────────────
-
-test('the transcriptions predicate is parenthesised before the name filter is ANDed on', async () => {
-    await listen(mount(makeDeps()));
-    await get('invoice');
-    const { sql, params } = sqlFor('FROM transcriptions');
+test('the transcriptions visibility predicate is bracketed before the name filter is ANDed on', async () => {
     // The visibility clauses are ORed INSIDE brackets. Without them the
-    // trailing AND binds to the last branch only and the first two branches
-    // return every row in the table — the exact fail-open this asserts away.
-    assert.match(sql, /WHERE \(user_id = \$1 OR shared_with @> \$2::jsonb OR \(is_published = true[\s\S]*?\)\)\s+AND \(title ILIKE/);
-    assert.ok(sql.includes('shared_groups ?| $4::text[]'), 'the group filter travels with the org filter');
-    assert.deepStrictEqual(params.slice(0, 4), ['u1', JSON.stringify(['u1']), ['orgA'], ['g1']]);
-    assert.strictEqual(params[4], '%invoice%');
-    assert.strictEqual(params[5], MAX_PER_KIND);
-    // Printed rather than executed: no Postgres runs in this container, so
-    // the statement is reviewed for SHAPE and that limitation is stated.
-    console.log('[shape-only, not executed]', sql.replace(/\s+/g, ' '));
+    // trailing AND binds to the last branch only and the first branches return
+    // every row the caller may see, whatever its name.
+    await resetTables();
+    const own = await transcription('Invoice call', { user_id: 'u1' });
+    await transcription('Weekly sync', { user_id: 'u1' });
+    const shared = await transcription('Invoice review', { shared_with: ['u1'] });
+    await transcription('Other review', { shared_with: ['u1'] });
+    const org = await transcription('Invoice org', { is_published: true, organization_id: 'orgA', shared_groups: ['g1'] });
+    await transcription('Invoice other group', { is_published: true, organization_id: 'orgA', shared_groups: ['g2'] });
+    await transcription('Invoice other org', { is_published: true, organization_id: 'orgB' });
+    const byFile = await transcription('', { user_id: 'u1', file_name: 'invoice-call.m4a' });
+    await listen(mount(realDeps()));
+    const body = await (await get('invoice')).json();
+    assert.deepStrictEqual(ids(body.results.meetingNotes), ids([own, shared, org, byFile]));
 });
 
-test('a super admin gets the same query without the visibility predicate', async () => {
-    await listen(mount(makeDeps({
+test('a super admin searches every transcription by name', async () => {
+    await resetTables();
+    const a = await transcription('Invoice A', { organization_id: 'orgA' });
+    const b = await transcription('Invoice B', { organization_id: 'orgZ' });
+    await transcription('Unrelated');
+    await listen(mount(realDeps({
         transcriptionsShared: { resolveAccessContext: async () => ({ orgIds: [], userGroupIds: [], isSuperAdmin: true }) },
     })));
-    await get('invoice');
-    const { sql, params } = sqlFor('FROM transcriptions');
-    assert.match(sql, /WHERE \(TRUE\)\s+AND \(title ILIKE \$1/);
-    assert.deepStrictEqual(params, ['%invoice%', MAX_PER_KIND]);
+    const body = await (await get('invoice')).json();
+    assert.deepStrictEqual(ids(body.results.meetingNotes), ids([a, b]));
 });
 
-test('the agents query carries the org narrowing in its WHERE', async () => {
-    await listen(mount(makeDeps()));
-    await get('invoice');
-    const { sql, params } = sqlFor('FROM agents');
-    assert.match(sql, /owner_id NOT IN \('system', 'swarm'\)/);
-    assert.match(sql, /organization_id = ANY\(\$2::text\[\]\)/);
-    assert.deepStrictEqual(params, ['%invoice%', ['orgA'], MAX_PER_KIND]);
-    console.log('[shape-only, not executed]', sql.replace(/\s+/g, ' '));
+test('the agents search is narrowed to the caller\'s orgs, without system or swarm agents', async () => {
+    await resetTables();
+    const mine = await agentRow('Invoice bot', { organization_id: 'orgA' });
+    await agentRow('Invoice bot B', { organization_id: 'orgB' });
+    await agentRow('Invoice system', { organization_id: 'orgA', owner_id: 'system' });
+    await agentRow('Invoice swarm', { organization_id: 'orgA', owner_id: 'swarm' });
+    await agentRow('Holiday bot', { organization_id: 'orgA' });
+    await listen(mount(realDeps()));
+    const body = await (await get('invoice')).json();
+    assert.deepStrictEqual(ids(body.results.agents), [mine.id]);
 });
 
 test('a super admin searches agents without an org filter; a member of no org searches nothing', async () => {
-    await listen(mount(makeDeps({
+    await resetTables();
+    const a = await agentRow('Invoice A', { organization_id: 'orgA' });
+    const b = await agentRow('Invoice B', { organization_id: 'orgB' });
+    await agentRow('Invoice system', { owner_id: 'system' });
+    await listen(mount(realDeps({
         auth: { resolveUserOrgIds: async () => null, resolveUserGroups: async () => [] },
     })));
-    await get('invoice');
-    assert.ok(!sqlFor('FROM agents').sql.includes('organization_id'));
+    assert.deepStrictEqual(ids((await (await get('invoice')).json()).results.agents), ids([a, b]));
 
-    await listen(mount(makeDeps({
+    sqlSeen.length = 0;
+    await listen(mount(realDeps({
         auth: { resolveUserOrgIds: async () => new Set(), resolveUserGroups: async () => [] },
     })));
     const body = await (await get('invoice')).json();
     assert.deepStrictEqual(body.results.agents, [], 'no org = no agents, and no query either');
-    assert.strictEqual(sqlFor('FROM agents'), undefined);
+    assert.strictEqual(sqlSeen.filter((q) => q.includes('agents')).length, 0);
 });
 
 // ── Response hygiene ────────────────────────────────────────────────────────

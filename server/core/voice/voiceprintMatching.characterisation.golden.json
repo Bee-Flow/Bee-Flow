@@ -1,0 +1,485 @@
+{
+  "roundedDetail": {
+    "mapping": {
+      "S0": "Tom Smit",
+      "S1": "Ann Bakker"
+    },
+    "roster": [],
+    "ruledOut": {
+      "S0": [
+        "Ann Bakker"
+      ],
+      "S1": [
+        "Tom Smit"
+      ]
+    },
+    "matchedIds": [
+      "vp_tom",
+      "vp_ann"
+    ],
+    "detail": [
+      {
+        "speakerId": "S0",
+        "label": "vp_tom",
+        "userId": "tom",
+        "name": "Tom Smit",
+        "seconds": 31.3,
+        "share": 0.94,
+        "confidence": 77.7,
+        "decision": "matched"
+      },
+      {
+        "speakerId": "S1",
+        "label": "vp_ann",
+        "userId": "ann",
+        "name": "Ann Bakker",
+        "seconds": 36.7,
+        "share": 1,
+        "confidence": 61,
+        "decision": "matched"
+      }
+    ]
+  },
+  "bestConfidencePerLabel": {
+    "mapping": {
+      "S0": "Tom Smit"
+    },
+    "roster": [],
+    "ruledOut": {},
+    "matchedIds": [
+      "vp_tom"
+    ],
+    "detail": [
+      {
+        "speakerId": "S0",
+        "label": "vp_tom",
+        "userId": "tom",
+        "name": "Tom Smit",
+        "seconds": 40,
+        "share": 1,
+        "confidence": 81,
+        "decision": "matched"
+      }
+    ]
+  },
+  "missingScoreThenReal": {
+    "mapping": {},
+    "roster": [
+      "Tom Smit"
+    ],
+    "ruledOut": {},
+    "matchedIds": [],
+    "detail": [
+      {
+        "speakerId": "S0",
+        "label": "vp_tom",
+        "userId": "tom",
+        "name": "Tom Smit",
+        "seconds": 40,
+        "share": 1,
+        "confidence": 40,
+        "decision": "low_confidence"
+      }
+    ]
+  },
+  "realScoreThenMissing": {
+    "mapping": {
+      "S0": "Tom Smit"
+    },
+    "roster": [],
+    "ruledOut": {},
+    "matchedIds": [
+      "vp_tom"
+    ],
+    "detail": [
+      {
+        "speakerId": "S0",
+        "label": "vp_tom",
+        "userId": "tom",
+        "name": "Tom Smit",
+        "seconds": 40,
+        "share": 1,
+        "confidence": 90,
+        "decision": "matched"
+      }
+    ]
+  },
+  "weakRowDroppedButOtherSpeakerKept": {
+    "mapping": {},
+    "roster": [
+      "Tom Smit"
+    ],
+    "ruledOut": {},
+    "matchedIds": [],
+    "detail": [
+      {
+        "speakerId": "S0",
+        "label": "vp_tom",
+        "userId": "tom",
+        "name": "Tom Smit",
+        "seconds": 20,
+        "share": 0.5,
+        "confidence": 90,
+        "decision": "low_share"
+      }
+    ]
+  },
+  "diarizationSpeakerKey": {
+    "mapping": {
+      "S0": "Ann Bakker",
+      "S1": "Tom Smit"
+    },
+    "roster": [],
+    "ruledOut": {
+      "S0": [
+        "Tom Smit"
+      ],
+      "S1": [
+        "Ann Bakker"
+      ]
+    },
+    "matchedIds": [
+      "vp_ann",
+      "vp_tom"
+    ],
+    "detail": [
+      {
+        "speakerId": "S0",
+        "label": "vp_ann",
+        "userId": "ann",
+        "name": "Ann Bakker",
+        "seconds": 30,
+        "share": 1,
+        "confidence": 90,
+        "decision": "matched"
+      },
+      {
+        "speakerId": "S1",
+        "label": "vp_tom",
+        "userId": "tom",
+        "name": "Tom Smit",
+        "seconds": 60,
+        "share": 2,
+        "confidence": 90,
+        "decision": "matched"
+      }
+    ]
+  },
+  "malformedRows": {
+    "mapping": {
+      "S0": "Tom Smit"
+    },
+    "roster": [],
+    "ruledOut": {
+      "S1": [
+        "Tom Smit"
+      ]
+    },
+    "matchedIds": [
+      "vp_tom"
+    ],
+    "detail": [
+      {
+        "speakerId": "S0",
+        "label": "vp_tom",
+        "userId": "tom",
+        "name": "Tom Smit",
+        "seconds": 30,
+        "share": 1,
+        "confidence": 90,
+        "decision": "matched"
+      }
+    ]
+  },
+  "noLabelledTurns": {
+    "mapping": {},
+    "roster": [],
+    "ruledOut": {},
+    "matchedIds": [],
+    "detail": []
+  },
+  "twoLabelsOnePerson": {
+    "mapping": {
+      "S0": "Tom Smit"
+    },
+    "roster": [],
+    "ruledOut": {
+      "S1": [
+        "Tom Smit"
+      ]
+    },
+    "matchedIds": [
+      "vp_tom"
+    ],
+    "detail": [
+      {
+        "speakerId": "S0",
+        "label": "vp_tom",
+        "userId": "tom",
+        "name": "Tom Smit",
+        "seconds": 40,
+        "share": 1,
+        "confidence": 90,
+        "decision": "matched"
+      },
+      {
+        "speakerId": "S1",
+        "label": "vp_tom2",
+        "userId": "tom",
+        "name": "Tom Smit",
+        "seconds": 10,
+        "share": 0.17,
+        "confidence": 90,
+        "decision": "low_share"
+      },
+      {
+        "speakerId": "S2",
+        "label": "vp_tom2",
+        "userId": "tom",
+        "name": "Tom Smit",
+        "seconds": 25,
+        "share": 0.42,
+        "confidence": 90,
+        "decision": "low_share"
+      }
+    ]
+  },
+  "personWithoutId": {
+    "mapping": {
+      "S0": "Bob de Vries"
+    },
+    "roster": [],
+    "ruledOut": {
+      "S1": [
+        "Bob de Vries"
+      ]
+    },
+    "matchedIds": [],
+    "detail": [
+      {
+        "speakerId": "S0",
+        "label": "vp_bob",
+        "userId": null,
+        "name": "Bob de Vries",
+        "seconds": 30,
+        "share": 1,
+        "confidence": 90,
+        "decision": "matched"
+      }
+    ]
+  },
+  "countWithSinglePin": {
+    "mapping": {
+      "S0": "Tom Smit"
+    },
+    "roster": [
+      "Ann Bakker"
+    ],
+    "ruledOut": {
+      "S1": [
+        "Tom Smit"
+      ]
+    },
+    "matchedIds": [
+      "vp_tom"
+    ],
+    "detail": [
+      {
+        "speakerId": "S0",
+        "label": "vp_tom",
+        "userId": "tom",
+        "name": "Tom Smit",
+        "seconds": 30,
+        "share": 1,
+        "confidence": 90,
+        "decision": "matched"
+      },
+      {
+        "speakerId": "S1",
+        "label": "vp_ann",
+        "userId": "ann",
+        "name": "Ann Bakker",
+        "seconds": 30,
+        "share": 1,
+        "confidence": 50,
+        "decision": "low_confidence"
+      }
+    ]
+  },
+  "threePinsTwoOverlap": {
+    "mapping": {
+      "S3": "Ann Bakker"
+    },
+    "roster": [
+      "Tom Smit"
+    ],
+    "ruledOut": {
+      "S0": [
+        "Ann Bakker"
+      ],
+      "S1": [
+        "Ann Bakker"
+      ],
+      "S2": [
+        "Ann Bakker"
+      ]
+    },
+    "matchedIds": [
+      "vp_ann"
+    ],
+    "detail": [
+      {
+        "speakerId": "S0",
+        "label": "vp_tom",
+        "userId": "tom",
+        "name": "Tom Smit",
+        "seconds": 20,
+        "share": 1,
+        "confidence": 90,
+        "decision": "shared_voiceprint"
+      },
+      {
+        "speakerId": "S1",
+        "label": "vp_tom",
+        "userId": "tom",
+        "name": "Tom Smit",
+        "seconds": 30,
+        "share": 1,
+        "confidence": 90,
+        "decision": "shared_voiceprint"
+      },
+      {
+        "speakerId": "S2",
+        "label": "vp_tom",
+        "userId": "tom",
+        "name": "Tom Smit",
+        "seconds": 35,
+        "share": 1,
+        "confidence": 90,
+        "decision": "shared_voiceprint"
+      },
+      {
+        "speakerId": "S3",
+        "label": "vp_ann",
+        "userId": "ann",
+        "name": "Ann Bakker",
+        "seconds": 40,
+        "share": 1,
+        "confidence": 90,
+        "decision": "matched"
+      }
+    ]
+  },
+  "optionOverrides": {
+    "mapping": {
+      "S0": "Tom Smit",
+      "S1": "Ann Bakker"
+    },
+    "roster": [],
+    "ruledOut": {
+      "S0": [
+        "Ann Bakker"
+      ],
+      "S1": [
+        "Tom Smit"
+      ]
+    },
+    "matchedIds": [
+      "vp_tom",
+      "vp_ann"
+    ],
+    "detail": [
+      {
+        "speakerId": "S0",
+        "label": "vp_tom",
+        "userId": "tom",
+        "name": "Tom Smit",
+        "seconds": 6,
+        "share": 0.6,
+        "confidence": 30,
+        "decision": "matched"
+      },
+      {
+        "speakerId": "S1",
+        "label": "vp_ann",
+        "userId": "ann",
+        "name": "Ann Bakker",
+        "seconds": 10,
+        "share": 1,
+        "confidence": 30,
+        "decision": "matched"
+      }
+    ]
+  },
+  "ambiguousAtMargin": {
+    "mapping": {},
+    "roster": [
+      "Tom Smit",
+      "Ann Bakker"
+    ],
+    "ruledOut": {},
+    "matchedIds": [],
+    "detail": [
+      {
+        "speakerId": "S0",
+        "label": "vp_tom",
+        "userId": "tom",
+        "name": "Tom Smit",
+        "seconds": 70,
+        "share": 0.7,
+        "confidence": 90,
+        "decision": "ambiguous"
+      }
+    ]
+  },
+  "shortCandidateNotRostered": {
+    "mapping": {},
+    "roster": [],
+    "ruledOut": {},
+    "matchedIds": [],
+    "detail": [
+      {
+        "speakerId": "S0",
+        "label": "vp_tom",
+        "userId": "tom",
+        "name": "Tom Smit",
+        "seconds": 6,
+        "share": 0.6,
+        "confidence": 90,
+        "decision": "too_short"
+      }
+    ]
+  },
+  "rosterOrder": {
+    "mapping": {},
+    "roster": [
+      "Tom Smit",
+      "Ann Bakker",
+      "Bob de Vries"
+    ],
+    "ruledOut": {},
+    "matchedIds": [],
+    "detail": [
+      {
+        "speakerId": "S0",
+        "label": "vp_tom",
+        "userId": "tom",
+        "name": "Tom Smit",
+        "seconds": 55,
+        "share": 0.55,
+        "confidence": 90,
+        "decision": "low_share"
+      },
+      {
+        "speakerId": "S1",
+        "label": "vp_bob",
+        "userId": null,
+        "name": "Bob de Vries",
+        "seconds": 50,
+        "share": 0.5,
+        "confidence": 90,
+        "decision": "low_share"
+      }
+    ]
+  }
+}

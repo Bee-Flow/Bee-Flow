@@ -1,3 +1,4 @@
+// @typecheck
 /** @typedef {import('qs').ParsedQs} ParsedQs */
 'use strict';
 /**
@@ -35,7 +36,7 @@ const encodeCursor = (map) => Buffer.from(JSON.stringify(map), 'utf8').toString(
 function decodeCursor(text) {
     if (!text) return {};
     try {
-        const v = JSON.parse(Buffer.from(text, 'base64url').toString('utf8'));
+        const v = JSON.parse(Buffer.from(/** @type {string} */ (text), 'base64url').toString('utf8'));
         if (!isObject(v)) throw new Error('shape');
         return v;
     } catch {
@@ -125,7 +126,7 @@ function makeDeploymentRouter(d) {
     });
 
     /** GET /:id/deployments/:depId */
-    router.get('/:id/deployments/:depId', gate(d, 'projects'), authMw(d, { dev: 'viewer', anyStage: 'viewer' }), async (req, res) => {
+    router.get('/:id/deployments/:depId', gate(d, 'projects'), authMw(d, { dev: 'viewer', anyStage: 'viewer' }), async (/** @type {import('express').Request<{ id: string, depId: string }>} */ req, res) => {
         const ctx = req.stageCtx;
         const row = await deploymentOf(ctx, req.params.depId);
         // Their stage, or no such deployment.

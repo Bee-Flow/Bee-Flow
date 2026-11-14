@@ -37,13 +37,14 @@ require('../core/datasets/bgzf');
 const { recordJobRun } = require('../telemetry/metrics');
 const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
+const { envInt } = require('../utils/envNumber.mts');
 
 const LOCK_KEY = 0xBEEFDA7A;
 const INTERVAL_MS = 15 * 1000;
 const BOOT_DELAY_MS = 45 * 1000;
-const CONCURRENCY = parseInt(process.env.DATASET_INGEST_CONCURRENCY, 10) || 1;
-const PART_BYTES = parseInt(process.env.DATASET_PART_BYTES, 10) || 32 * 1024 * 1024;
-const FAILED_RAW_TTL_H = parseInt(process.env.DATASET_FAILED_RAW_TTL_H, 10) || 24;
+const CONCURRENCY = envInt('DATASET_INGEST_CONCURRENCY', 1, { min: 1 });
+const PART_BYTES = envInt('DATASET_PART_BYTES', 32 * 1024 * 1024, { min: 1 });
+const FAILED_RAW_TTL_H = envInt('DATASET_FAILED_RAW_TTL_H', 24, { min: 1 });
 const HEARTBEAT_MS = 60 * 1000;
 
 let _inFlight = false;

@@ -79,6 +79,8 @@ function vaultOrgId(user, fallbackOrgId) {
  * their credential in THIS legacy layer — a pre-flight that only reads the new
  * store told those users to "Connect gmail" over an app that was loading fine.
  * `deps` is optional for that caller; the mailbox ladder keeps injecting its own.
+ * @param {string} integrationId
+ * @param {{ userId: string, orgId: string | null, deps?: Partial<ReturnType<typeof defaultDeps>> }} who
  */
 async function viewerHasIntegration(integrationId, { userId, orgId, deps: injected }) {
     const deps = injected || defaultDeps();

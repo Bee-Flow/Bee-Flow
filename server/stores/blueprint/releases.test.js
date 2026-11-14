@@ -14,11 +14,11 @@
  *      (see the header of `_pruneReleases`), so both are checked here — including that the DELETE
  *      receives exclusively the ids that the candidate query returned.
  *
- * Hermetic: `../db` is stubbed (the pattern of guardrailEventStore.test.js),
- * so no Postgres is involved. The SQL is therefore checked on SHAPE —
- * the same choice that blueprint/mappers.test.js makes for `canRead` — plus on
- * behaviour where that is possible: which calls land on the transaction client,
- * in which order, with which parameters, and what comes back.
+ * On a real Postgres: the boot ladder's schema on PGlite
+ * (testUtils/pgliteTemplate.js ladderPglite) behind the store's db facade
+ * (testUtils/pgliteDb.js dbFacade), whose withTransaction is a real BEGIN /
+ * COMMIT / ROLLBACK on that database. A failing release row and a gallery row
+ * that vanishes mid-publication are triggers the test switches on.
  *
  * Run: cd server && node --test stores/blueprint/releases.test.js
  */
@@ -27,103 +27,36 @@ const test = require('node:test');
 const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
-const Module = require('module');
 
-// ── De db-stub ──────────────────────────────────────────────────────────────
+const { pgliteDb, dbFacade } = require('../../testUtils/pgliteDb');
+const { ladderPglite } = require('../../testUtils/pgliteTemplate');
+const { withTransactionVia } = require('../../testUtils/txFake');
+const { makeBlueprintStore, MAX_NOTES_BYTES, MAX_RELEASES_PER_PROJECT } = require('../blueprintStore');
 
-const calls = { exec: [], run: [], getOne: [], getAll: [], client: [], tx: [] };
+const { pg, db } = pgliteDb(ladderPglite());
+const store = makeBlueprintStore(dbFacade(db));
 
-// Wat de stub antwoordt; per test bijgesteld.
-const state = {
-    existingBlueprint: null,   // rij voor de bump-lookup, of null (nieuw pad)
-    blueprintCount: 0,         // voor het plafond van 100
-    pruneCandidates: [],       // id's die de kandidatenquery teruggeeft
-    releaseInsertThrows: null, // Error om de INSERT op project_releases te laten falen
-    blueprintWriteEmpty: false, // de UPDATE/INSERT op project_blueprints raakt nul rijen
-    poolRows: [],              // rijen voor getAll (listReleases)
-    poolRow: null,             // rij voor getOne (getRelease)
-};
-
-const flat = (s) => String(s).replace(/\s+/g, ' ').trim();
-
-function answer(sql, params = []) {
-    const s = flat(sql);
-    if (/^SELECT id, version FROM project_blueprints/.test(s)) {
-        return { rows: state.existingBlueprint ? [state.existingBlueprint] : [], rowCount: 0 };
-    }
-    if (/SELECT COUNT\(\*\)::int AS n FROM project_blueprints/.test(s)) {
-        return { rows: [{ n: state.blueprintCount }], rowCount: 1 };
-    }
-    if (/^UPDATE project_blueprints/.test(s)) {
-        if (state.blueprintWriteEmpty) return { rows: [], rowCount: 0 };
-        return { rows: [{
-            id: params[5], solution_key: 'sol_p1', version: params[1], name: params[2],
-            description: params[3], icon: params[4], created_by: 'alice',
-            source_project_id: 'p1', organization_id: 'org1',
-            manifest: JSON.parse(params[0]), created_at: 't0', updated_at: 't1',
-        }], rowCount: 1 };
-    }
-    if (/^INSERT INTO project_blueprints/.test(s)) {
-        return { rows: [{
-            id: params[0], organization_id: params[1], created_by: params[2],
-            source_project_id: params[3], solution_key: params[4], name: params[5],
-            description: params[6], icon: params[7], version: params[8],
-            manifest: JSON.parse(params[9]), created_at: 't0', updated_at: 't0',
-        }], rowCount: 1 };
-    }
-    if (/^INSERT INTO project_releases/.test(s)) {
-        if (state.releaseInsertThrows) throw state.releaseInsertThrows;
-        return { rows: [{
-            id: params[0], project_id: params[1], blueprint_id: params[2], version: params[3],
-            notes: JSON.parse(params[5]), published_at: '2026-09-08T10:00:00.000Z',
-            published_by: params[6],
-        }], rowCount: 1 };
-    }
-    if (/^SELECT id FROM project_releases/.test(s)) {
-        return { rows: state.pruneCandidates.map(id => ({ id })), rowCount: state.pruneCandidates.length };
-    }
-    if (/^DELETE FROM project_releases/.test(s)) {
-        return { rows: [], rowCount: (params[0] || []).length };
-    }
-    return { rows: [], rowCount: 0 };
-}
-
-const dbStub = {
-    async exec(sql) { calls.exec.push(sql); return { rowCount: 0 }; },
-    async run(sql, params) { calls.run.push({ sql, params }); return answer(sql, params); },
-    async getOne(sql, params) { calls.getOne.push({ sql, params }); return state.poolRow; },
-    async getAll(sql, params) { calls.getAll.push({ sql, params }); return state.poolRows; },
-    isSqlStateError(err) { return typeof err?.code === 'string' && /^[0-9A-Z]{5}$/.test(err.code); },
-    // The contract that the store sees: fn receives a client, COMMIT on success,
-    // ROLLBACK on a throw. The real BEGIN/COMMIT live in db.js.
-    async withTransaction(fn) {
-        calls.tx.push('BEGIN');
-        const client = {
-            async query(sql, params) { calls.client.push({ sql, params }); return answer(sql, params); },
-        };
-        try {
-            const out = await fn(client);
-            calls.tx.push('COMMIT');
-            return out;
-        } catch (err) {
-            calls.tx.push('ROLLBACK');
-            throw err;
-        }
-    },
-};
-
-const STORES_DIR = path.sep + 'stores' + path.sep;
-const STUB_PATH = path.join(__dirname, '__stub_db_releases__.js');
-const origResolve = Module._resolveFilename;
-Module._resolveFilename = function (request, parent, ...rest) {
-    if (parent && parent.filename && parent.filename.includes(STORES_DIR) && request === '../db') {
-        return STUB_PATH;
-    }
-    return origResolve.call(this, request, parent, ...rest);
-};
-require.cache[STUB_PATH] = { id: STUB_PATH, filename: STUB_PATH, loaded: true, exports: dbStub };
-
-const store = require('../blueprintStore');
+test.before(() => pg.exec(`
+    CREATE TABLE test_faults (name TEXT PRIMARY KEY);
+    CREATE FUNCTION test_fail_release() RETURNS trigger LANGUAGE plpgsql AS $$
+    BEGIN
+        IF EXISTS (SELECT 1 FROM test_faults WHERE name = 'release_insert') THEN
+            RAISE EXCEPTION 'disk full';
+        END IF;
+        RETURN NEW;
+    END $$;
+    CREATE TRIGGER test_fail_release BEFORE INSERT ON project_releases FOR EACH ROW EXECUTE FUNCTION test_fail_release();
+    -- A row deleted between the lookup and the UPDATE: the UPDATE touches nothing.
+    CREATE FUNCTION test_vanish_blueprint() RETURNS trigger LANGUAGE plpgsql AS $$
+    BEGIN
+        IF EXISTS (SELECT 1 FROM test_faults WHERE name = 'blueprint_vanishes') THEN
+            RETURN NULL;
+        END IF;
+        RETURN NEW;
+    END $$;
+    CREATE TRIGGER test_vanish_blueprint BEFORE UPDATE ON project_blueprints FOR EACH ROW EXECUTE FUNCTION test_vanish_blueprint();
+`));
+test.after(() => pg.close());
 
 // ── Fixtures ────────────────────────────────────────────────────────────────
 
@@ -136,164 +69,202 @@ const publishArgs = (over = {}) => ({
     organizationId: 'org1', createdBy: 'alice', sourceProjectId: 'p1', manifest: manifest(), ...over,
 });
 
-/** Warmt de init op (die draait zelf DDL) en wist daarna de recorders. */
 async function reset() {
-    await store.initDB();
-    for (const k of Object.keys(calls)) calls[k].length = 0;
-    state.existingBlueprint = null;
-    state.blueprintCount = 0;
-    state.pruneCandidates = [];
-    state.releaseInsertThrows = null;
-    state.blueprintWriteEmpty = false;
-    state.poolRows = [];
-    state.poolRow = null;
+    await pg.exec(`
+        DELETE FROM test_faults;
+        DELETE FROM project_solution_entities;
+        DELETE FROM project_releases;
+        DELETE FROM project_blueprints;
+        DELETE FROM projects;
+        INSERT INTO projects (id, name, owner_id, organization_id) VALUES ('p1', 'Orders', 'alice', 'org1'), ('p2', 'Other', 'bob', 'org2');
+    `);
+}
+/** @param {string} name */
+const fault = (name) => pg.query('INSERT INTO test_faults (name) VALUES ($1)', [name]);
+const blueprints = async () => (await pg.query('SELECT id, version, manifest FROM project_blueprints ORDER BY id')).rows;
+const releases = async (projectId = 'p1') => (await pg.query(
+    'SELECT id, blueprint_id, version, manifest, notes, channel FROM project_releases WHERE project_id = $1 ORDER BY published_at, id', [projectId])).rows;
+
+let relSeq = 0;
+/**
+ * A release row of the past, `daysAgo` old.
+ * @param {Record<string, unknown>} over
+ */
+async function pastRelease(over) {
+    relSeq += 1;
+    const r = { id: `rel_${String(relSeq).padStart(4, '0')}`, project_id: 'p1', blueprint_id: 'bp_old', version: 1,
+        manifest: '{}', published_by: 'alice', channel: 'gallery', daysAgo: 100, ...over };
+    const daysAgo = r.daysAgo; delete r.daysAgo;
+    const cols = Object.keys(r);
+    await pg.query(`INSERT INTO project_releases (${cols.join(', ')}, published_at)
+        VALUES (${cols.map((_, i) => `$${i + 1}`).join(', ')}, NOW() - make_interval(days => $${cols.length + 1}))`,
+    [...Object.values(r), daysAgo]);
+    return r.id;
 }
 
-const clientSql = () => calls.client.map(c => flat(c.sql));
-const indexOfCall = (re) => clientSql().findIndex(s => re.test(s));
-const callMatching = (re) => calls.client.find(c => re.test(flat(c.sql)));
+// ── 1. The order: one transaction, and which side wins ──────────────────────
 
-// ── 1. De volgorde: één transactie, en welke kant wint ──────────────────────
-
-test('publiceren schrijft de Blueprint en de release-rij in ÉÉN transactie, in die volgorde', async () => {
+test('publishing writes the Blueprint and the release row together', async () => {
     await reset();
     const out = await store.publishRelease(publishArgs());
 
-    assert.deepStrictEqual(calls.tx, ['BEGIN', 'COMMIT'], 'één transactie, en die commit');
-
-    const blueprintAt = indexOfCall(/^INSERT INTO project_blueprints/);
-    const releaseAt = indexOfCall(/^INSERT INTO project_releases/);
-    assert.ok(blueprintAt >= 0, 'de galerijrij wordt op de transactieclient geschreven');
-    assert.ok(releaseAt >= 0, 'de release-rij wordt op de transactieclient geschreven');
-    assert.ok(blueprintAt < releaseAt,
-        'de release-rij draagt het blueprint_id, dus de galerijrij moet eerst geschreven zijn');
-
-    // And none of this may have gone through the pool: a write
-    // outside the transaction is exactly the half-finished publication that is forbidden here.
-    const poolWrites = [...calls.run, ...calls.getOne]
-        .map(c => flat(c.sql))
-        .filter(s => /project_blueprints|project_releases/.test(s));
-    assert.deepStrictEqual(poolWrites, [], 'geen enkele schrijfactie buiten de transactie');
-
+    const [bp] = await blueprints();
+    const [rel] = await releases();
+    assert.strictEqual(bp.id, out.blueprint.id);
+    assert.strictEqual(rel.blueprint_id, bp.id, 'the release row carries the blueprint_id of the gallery row');
     assert.strictEqual(out.blueprint.version, 1);
     assert.strictEqual(out.release.version, 1);
     assert.strictEqual(out.release.blueprintId, out.blueprint.id);
     assert.strictEqual(out.release.projectId, 'p1');
 });
 
-test('faalt de release-rij, dan is er NIETS gepubliceerd — ook geen Blueprint', async () => {
+test('if the release row fails, NOTHING is published — no Blueprint either', async () => {
     await reset();
-    state.releaseInsertThrows = Object.assign(new Error('disk full'), { code: '53100' });
-
+    await fault('release_insert');
     await assert.rejects(() => store.publishRelease(publishArgs()), /disk full/);
-
-    assert.ok(calls.tx.includes('ROLLBACK'), 'de transactie draait terug');
-    assert.ok(!calls.tx.includes('COMMIT'),
-        'niets committen: een Blueprint die in geen geschiedenis staat is de W2-toestand');
+    assert.deepStrictEqual(await blueprints(), [], 'a Blueprint in no history at all is the forbidden state');
+    assert.deepStrictEqual(await releases(), []);
 });
 
-test('een mislukte release-rij verbrandt geen versienummer', async () => {
+test('a failed release row burns no version number', async () => {
     // The bump path: the gallery is at v2, so this publication would become v3.
     await reset();
-    state.existingBlueprint = { id: 'bp_1', version: 2 };
-    state.releaseInsertThrows = new Error('nope');
-
+    await store.publishRelease(publishArgs());
+    await store.publishRelease(publishArgs());
+    await fault('release_insert');
     await assert.rejects(() => store.publishRelease(publishArgs()));
-
-    const update = callMatching(/^UPDATE project_blueprints/);
-    assert.ok(update, 'de bump draait binnen de transactie');
-    assert.strictEqual(update.params[1], 3, 'de bump zou v3 schrijven');
-    assert.ok(calls.tx.includes('ROLLBACK'),
-        '…en draait mee terug, anders serveert de galerij een v3 die niemand kan terugvinden');
+    const [bp] = await blueprints();
+    assert.strictEqual(bp.version, 2, '…the bump rolls back too, or the gallery serves a v3 nobody can find');
+    assert.strictEqual(bp.manifest.solution.version, 2);
+    assert.deepStrictEqual((await releases()).map(r => r.version), [1, 2]);
 });
 
-test('een galerijrij die tussendoor verdwijnt levert GEEN release-rij op die nergens naar wijst', async () => {
+test('a gallery row that vanishes in between yields NO release row pointing nowhere', async () => {
     // The creator may delete their Blueprint while a colleague is publishing:
     // the lookup still finds it, the UPDATE touches zero rows. Without this guarantee
     // the history would record a blueprint_id that does not exist.
     await reset();
-    state.existingBlueprint = { id: 'bp_1', version: 2 };
-    state.blueprintWriteEmpty = true;
-
+    await store.publishRelease(publishArgs());
+    await fault('blueprint_vanishes');
     await assert.rejects(() => store.publishRelease(publishArgs()), /nothing was published/);
-
-    assert.strictEqual(callMatching(/^INSERT INTO project_releases/), undefined,
-        'er wordt geen release-rij geschreven');
-    assert.ok(calls.tx.includes('ROLLBACK'));
-    assert.ok(!calls.tx.includes('COMMIT'));
+    assert.deepStrictEqual((await releases()).map(r => r.version), [1], 'no release row is written');
 });
 
-test('de release-rij draagt het manifest zoals OPGESLAGEN, niet zoals aangeboden', async () => {
+test('the release row carries the manifest as STORED, not as offered', async () => {
     await reset();
-    state.existingBlueprint = { id: 'bp_1', version: 2 };
-    const offered = manifest();           // draagt version 1
+    await store.publishRelease(publishArgs());
+    await store.publishRelease(publishArgs());
+    const offered = manifest();           // carries version 1
     const out = await store.publishRelease(publishArgs({ manifest: offered }));
 
-    const insert = callMatching(/^INSERT INTO project_releases/);
-    assert.strictEqual(insert.params[3], 3, 'het versienummer is dat van ná de bump');
-    assert.strictEqual(JSON.parse(insert.params[4]).solution.version, 3,
-        'het opgeslagen manifest is herschreven naar v3; de geschiedenis legt vast wat er is gepubliceerd');
-    assert.strictEqual(offered.solution.version, 1, 'het object van de aanroeper blijft ongemoeid');
+    const last = (await releases()).at(-1);
+    assert.strictEqual(last.version, 3, 'the version number is the one after the bump');
+    assert.strictEqual(last.manifest.solution.version, 3,
+        'the stored manifest was rewritten to v3; the history records what was published');
+    assert.strictEqual(offered.solution.version, 1, 'the caller\'s object is left alone');
     assert.strictEqual(out.release.version, 3);
 });
 
-test('publiceren zonder project wordt geweigerd VÓÓR elke schrijfactie', async () => {
+test('the bump lookup locks the row it is about to raise, inside the publication\'s transaction', async () => {
+    // Without FOR UPDATE, two simultaneous publications by the same creator both read v2 and
+    // both write v3: two v3 rows in the history, and (blueprint_id, version) is no longer one
+    // row, which both pruning guarantees rest on. One PGlite session cannot run that race, so
+    // this pins the statement: the same store over a facade that records what it sends, and
+    // where (`tx`: the transaction's client, `pool`: outside any transaction).
+    await reset();
+    /** @type {{ via: string, sql: string }[]} */
+    const sent = [];
+    /** @param {string} via */
+    const recording = (via) => async (/** @type {string} */ sql, /** @type {unknown[]} */ params) => {
+        sent.push({ via, sql: String(sql).replace(/\s+/g, ' ').trim() });
+        return db.query(sql, params);
+    };
+    const recordingStore = makeBlueprintStore({
+        ...dbFacade({ query: recording('pool') }),
+        withTransaction: withTransactionVia(async () => ({ query: recording('tx'), release() {} })),
+    });
+    await recordingStore.publishRelease(publishArgs());
+    sent.length = 0;
+    const out = await recordingStore.publishRelease(publishArgs());
+    assert.strictEqual(out.blueprint.version, 2, 'the bump path ran');
+
+    const at = (/** @type {(sql: string) => boolean} */ match) => sent.findIndex(s => match(s.sql));
+    const begin = at(s => s === 'BEGIN');
+    const lookup = at(s => s.startsWith('SELECT id, version FROM project_blueprints'));
+    const bump = at(s => s.startsWith('UPDATE project_blueprints'));
+    const commit = at(s => s === 'COMMIT');
+    assert.ok(begin >= 0 && lookup > begin && bump > lookup && commit > bump, `order: ${JSON.stringify(sent.map(s => s.sql.slice(0, 50)))}`);
+    assert.strictEqual(sent[lookup].via, 'tx', 'the lookup runs on the transaction client, so its lock holds until the COMMIT');
+    assert.ok(sent[lookup].sql.endsWith('FOR UPDATE'), `the lookup locks its row: ${sent[lookup].sql}`);
+});
+
+test('publishing without a project is refused BEFORE any write', async () => {
     await reset();
     await assert.rejects(
         () => store.publishRelease(publishArgs({ sourceProjectId: null })),
         /sourceProjectId is required/,
     );
-    assert.deepStrictEqual(calls.tx, [], 'er is geen transactie geopend');
-    assert.deepStrictEqual(calls.client, [], 'en dus ook geen Blueprint opgeslagen');
+    assert.deepStrictEqual(await blueprints(), [], 'so no Blueprint was saved either');
 });
 
-test('een notitie boven het plafond weigert vóór de transactie, en zegt wat eraan te doen is', async () => {
+test('a note over the cap is refused before the transaction, and says what to do about it', async () => {
     await reset();
-    const huge = { summary: 'x'.repeat(store.MAX_NOTES_BYTES + 1) };
+    const huge = { summary: 'x'.repeat(MAX_NOTES_BYTES + 1) };
     await assert.rejects(
         () => store.publishRelease(publishArgs({ notes: huge })),
         (err) => /over the .* limit/.test(err.message) && /Shorten/.test(err.message),
     );
-    assert.deepStrictEqual(calls.tx, [], 'geen halve publicatie om een notitie');
+    assert.deepStrictEqual(await blueprints(), [], 'no half publication over a note');
 });
 
-test('een notitie is een object; alles anders is een weigering, geen stille {}', async () => {
+test('a note is an object; anything else is a refusal, not a silent {}', async () => {
     await reset();
-    await assert.rejects(() => store.publishRelease(publishArgs({ notes: 'klaar' })), /must be an object/);
+    await assert.rejects(() => store.publishRelease(publishArgs({ notes: 'done' })), /must be an object/);
     await assert.rejects(() => store.publishRelease(publishArgs({ notes: ['a'] })), /must be an object/);
-    // Geen notitie is wél geldig en landt als {}.
-    await reset();
+    // No note IS valid and lands as {}.
     await store.publishRelease(publishArgs({ notes: null }));
-    const insert = callMatching(/^INSERT INTO project_releases/);
-    assert.strictEqual(insert.params[5], '{}');
+    assert.deepStrictEqual((await releases())[0].notes, {});
 });
 
-// ── 2. Het snoeien tot twintig ──────────────────────────────────────────────
+// ── 2. Pruning to twenty ────────────────────────────────────────────────────
 
-test('het snoeien houdt de laatste twintig aan, met een stabiele sortering', async () => {
+/**
+ * p1's history: bp_old (bob's, served at v2) published v1..v24, oldest first,
+ * plus rows that are not p1's gallery history. Then alice publishes once more:
+ * 25 gallery rows, so the five oldest are candidates.
+ */
+async function longHistory() {
     await reset();
-    await store.publishRelease(publishArgs());
+    await pg.exec(`
+        INSERT INTO project_blueprints (id, organization_id, created_by, solution_key, name, version, manifest)
+            VALUES ('bp_old', 'org1', 'bob', 'sol_old', 'Old', 2, '{}');
+        INSERT INTO projects (id, name, owner_id, organization_id, installed_from_blueprint_id) VALUES
+            ('p_inst', 'Installed here', 'carol', 'org1', 'bp_old'),
+            ('p_far', 'Installed elsewhere', 'dave', 'org2', 'bp_old');
+        INSERT INTO project_solution_entities (project_id, ref, kind, entity_id, install_hash, installed_version) VALUES
+            ('p_inst', 'r1', 'automation', 'a1', 'h', 3),
+            ('p_far', 'r1', 'automation', 'a1', 'h', 4);
+    `);
+    for (let v = 1; v <= 24; v++) await pastRelease({ version: v, daysAgo: 100 - v });
+    for (let i = 0; i < 3; i++) await pastRelease({ project_id: 'p2', version: i + 1, daysAgo: 200 });
+    await pastRelease({ blueprint_id: null, channel: 'pipeline', version: 1, daysAgo: 300 });
+    return store.publishRelease(publishArgs());
+}
 
-    const prune = callMatching(/^SELECT id FROM project_releases/);
-    assert.ok(prune, 'er wordt gesnoeid');
-    assert.strictEqual(prune.params[0], 'p1', 'per project');
-    assert.strictEqual(prune.params[1], store.MAX_RELEASES_PER_PROJECT);
-    assert.strictEqual(store.MAX_RELEASES_PER_PROJECT, 20);
-    assert.match(flat(prune.sql), /ORDER BY r\.published_at DESC, r\.id\s+OFFSET \$2/,
-        'published_at is transactietijd: zonder `, id` kan OFFSET een willekeurige rij laten vallen');
+test('pruning keeps the newest twenty of this project\'s gallery history, and the rows something points at', async () => {
+    const out = await longHistory();
+    assert.strictEqual(MAX_RELEASES_PER_PROJECT, 20);
+    const kept = (await releases()).filter(r => r.channel === 'gallery');
+    const oldVersions = kept.filter(r => r.blueprint_id === 'bp_old').map(r => r.version);
+    // Held rows sit outside the twenty: v2 is what the gallery serves for
+    // bp_old, v3 is what an installation in the source's organisation runs,
+    // and the new release is what the gallery serves for the new Blueprint.
+    // Of the other 22, the twenty newest stay: v1 and v4 go.
+    assert.deepStrictEqual(oldVersions, [2, 3, ...Array.from({ length: 20 }, (_, i) => i + 5)]);
+    assert.ok(kept.some(r => r.blueprint_id === out.blueprint.id), 'the new release stays');
 });
 
-test('het snoeien laat de rij staan waar een INSTALLATIE naar wijst', async () => {
-    await reset();
-    await store.publishRelease(publishArgs());
-    const sql = flat(callMatching(/^SELECT id FROM project_releases/).sql);
-
-    // An installation points with installed_from_blueprint_id to the Blueprint and
-    // with installed_version to the number; together those are precisely one row.
-    assert.match(sql, /NOT EXISTS \( SELECT 1 FROM projects p JOIN project_solution_entities e ON e\.project_id = p\.id JOIN projects src ON src\.id = r\.project_id WHERE p\.installed_from_blueprint_id = r\.blueprint_id AND e\.installed_version = r\.version AND COALESCE\(p\.organization_id, ''\) = COALESCE\(src\.organization_id, ''\)\)/);
-});
-
-test('alleen installaties in de organisatie van de BRON houden een rij vast', async () => {
+test('only installations in the organisation of the SOURCE hold a row', async () => {
     // The narrowing, and why it exists. With a file installation both the claimed
     // Blueprint id and installed_version come from a file that
     // the installer edits himself. Without the org comparison someone could, with
@@ -301,170 +272,115 @@ test('alleen installaties in de organisatie van de BRON houden een rij vast', as
     // making installations that claim versions 21..300 — and those rows are not even
     // readable for him (listReleases/getRelease sit behind the
     // owner role on the source project, canRead is org-scoped).
+    await longHistory();
+    const versions = (await releases()).filter(r => r.blueprint_id === 'bp_old').map(r => r.version);
+    assert.ok(!versions.includes(4), 'p_far (org2) claims v4 and does not hold it');
+    assert.ok(versions.includes(3), 'p_inst (org1) holds v3');
+});
+
+test('an org-less source holds the rows of its org-less installations', async () => {
+    // projects.organization_id is TEXT DEFAULT '' and may be NULL: a bare = never matches org-less rows.
+    await longHistory();
+    await pg.exec(`
+        UPDATE projects SET organization_id = NULL WHERE id = 'p1';
+        UPDATE projects SET organization_id = '' WHERE id = 'p_far';
+        UPDATE project_blueprints SET version = 99 WHERE id = 'bp_old';
+    `);
+    for (let v = 1; v <= 3; v++) await pastRelease({ version: 100 + v, daysAgo: 500 });
+    await pastRelease({ version: 4, daysAgo: 500 });   // the row p_far (now org-less) claims
+    await store.publishRelease(publishArgs({ organizationId: null }));
+    const versions = (await releases()).filter(r => r.blueprint_id === 'bp_old').map(r => r.version);
+    assert.ok(versions.includes(4), 'NULL and \'\' are the same "no organisation"');
+    assert.ok(!versions.some(v => v > 100), 'the unheld old rows go');
+});
+
+test('the prune touches only THIS project\'s gallery rows', async () => {
+    // The DELETE is the only destructive statement of a publication. If the
+    // project scope or the channel dropped away, every publication would prune
+    // the history of EVERY project on the instance, across organisation
+    // boundaries, and the releases a UAT or PRD stage runs on.
+    await longHistory();
+    assert.strictEqual((await releases('p2')).length, 3, 'another project keeps its history');
+    assert.strictEqual((await releases()).filter(r => r.channel === 'pipeline').length, 1, 'a pipeline row is not pruned by a gallery publish');
+});
+
+test('nothing to prune deletes nothing', async () => {
     await reset();
+    for (let v = 1; v <= 5; v++) await pastRelease({ version: v });
     await store.publishRelease(publishArgs());
-    const sql = flat(callMatching(/^SELECT id FROM project_releases/).sql);
-
-    assert.match(sql, /JOIN projects src ON src\.id = r\.project_id/,
-        'de organisatie van de bron komt uit het project dat publiceert');
-    assert.match(sql, /COALESCE\(p\.organization_id, ''\) = COALESCE\(src\.organization_id, ''\)/,
-        "projects.organization_id is TEXT DEFAULT '' en mag NULL zijn: een kale = matcht org-loze rijen nooit");
+    assert.strictEqual((await releases()).length, 6);
 });
 
-test('de kandidatenquery kijkt alleen naar de release-rijen van DIT project', async () => {
-    // The DELETE below is the only destructive statement of a
-    // publication. If this WHERE drops away — or becomes `(r.project_id = $1 OR
-    // TRUE)` — then every publication prunes the history of EVERY project on the
-    // instance, across organisation boundaries. Checking only the parameter is
-    // not enough: that can be right while the query does not use it.
+test('the prune rolls back with a failed publication', async () => {
+    await longHistory();
+    const before = (await releases()).length;
+    await pastRelease({ version: 50, daysAgo: 1 });
+    await fault('release_insert');
+    await assert.rejects(() => store.publishRelease(publishArgs()));
+    assert.strictEqual((await releases()).length, before + 1);
+});
+
+// ── 3. What comes out of the store ──────────────────────────────────────────
+
+test('listReleases builds an ALLOW-LIST, not a passed-through row', async () => {
     await reset();
-    await store.publishRelease(publishArgs());
-    const sql = flat(callMatching(/^SELECT id FROM project_releases/).sql);
-    assert.match(sql, /^SELECT id FROM project_releases r WHERE r\.project_id = \$1 AND NOT EXISTS/,
-        'de scoping staat vooraan en is de eerste voorwaarde, niet een losse parameter');
-    assert.ok(!/OR\s+TRUE/i.test(sql), 'geen verbreding naast de scoping');
+    await pastRelease({ id: 'rel_1', version: 3, notes: JSON.stringify({ summary: 'Two more automations' }), manifest: JSON.stringify({ solution: { key: 'sol_p1' } }) });
+    await pg.exec('ALTER TABLE project_releases ADD COLUMN internal_note_next_year TEXT DEFAULT \'secret\'');
+    try {
+        const [row] = await store.listReleases('p1');
+        assert.deepStrictEqual(Object.keys(row).sort(),
+            ['blueprintId', 'id', 'notes', 'projectId', 'publishedAt', 'publishedBy', 'version']);
+        assert.deepStrictEqual(row.notes, { summary: 'Two more automations' });
+        assert.strictEqual(row.manifest, undefined, 'a list of twenty releases is not twenty manifests');
+    } finally {
+        await pg.exec('ALTER TABLE project_releases DROP COLUMN internal_note_next_year');
+    }
 });
 
-test('de bump-lookup vergrendelt de rij die hij gaat ophogen', async () => {
-    // Without FOR UPDATE, two simultaneous publications by the same creator both read
-    // v2 and both write v3. Then the history carries TWO v3 rows, one of which records a version that
-    // was never installable — and the invariant on which both pruning guarantees rest
-    // ((blueprint_id, version) is exactly one row) is gone.
-    await reset();
-    state.existingBlueprint = { id: 'bp_1', version: 2 };
-    await store.publishRelease(publishArgs());
-    const lookup = callMatching(/^SELECT id, version FROM project_blueprints/);
-    assert.ok(lookup, 'de lookup draait op de transactieclient');
-    assert.match(flat(lookup.sql), /FOR UPDATE$/,
-        'de vergrendeling houdt tot de COMMIT, dus de tweede publicatie telt door vanaf het nieuwe nummer');
-});
-
-test('het snoeien laat de versie staan die de galerij NU serveert', async () => {
-    await reset();
-    await store.publishRelease(publishArgs());
-    const sql = flat(callMatching(/^SELECT id FROM project_releases/).sql);
-    assert.match(sql, /NOT EXISTS \( SELECT 1 FROM project_blueprints b WHERE b\.id = r\.blueprint_id AND b\.version = r\.version\)/);
-});
-
-test('de DELETE krijgt uitsluitend de id\'s die de kandidatenquery teruggaf', async () => {
-    await reset();
-    state.pruneCandidates = ['rel_old1', 'rel_old2'];
-    await store.publishRelease(publishArgs());
-
-    const del = callMatching(/^DELETE FROM project_releases/);
-    assert.ok(del, 'de kandidaten worden verwijderd');
-    assert.match(flat(del.sql), /WHERE id = ANY\(\$1::text\[\]\)$/,
-        'geen eigen predicaat — dat zou de drie waarborgen van de kandidatenquery omzeilen');
-    assert.deepStrictEqual(del.params[0], ['rel_old1', 'rel_old2']);
-});
-
-test('niets te snoeien is geen DELETE', async () => {
-    await reset();
-    state.pruneCandidates = [];
-    await store.publishRelease(publishArgs());
-    assert.strictEqual(callMatching(/^DELETE FROM project_releases/), undefined);
-});
-
-test('het snoeien draait binnen dezelfde transactie als de publicatie', async () => {
-    await reset();
-    state.pruneCandidates = ['rel_old1'];
-    await store.publishRelease(publishArgs());
-    assert.ok(indexOfCall(/^DELETE FROM project_releases/) > indexOfCall(/^INSERT INTO project_releases/));
-    const poolDeletes = calls.run.map(c => flat(c.sql)).filter(s => /DELETE FROM project_releases/.test(s));
-    assert.deepStrictEqual(poolDeletes, [], 'niet buiten de transactie om');
-});
-
-// ── 3. Wat er uit de store komt ─────────────────────────────────────────────
-
-test('listReleases bouwt een ALLOW-LIST, geen doorgegeven rij', async () => {
-    await reset();
-    state.poolRows = [{
-        id: 'rel_1', project_id: 'p1', blueprint_id: 'bp_1', version: 3,
-        notes: { summary: 'Twee automations erbij' },
-        published_at: '2026-09-08T10:00:00.000Z', published_by: 'alice',
-        // Two columns that do not exist today: a manifest of 16 MB and a
-        // column that will be added next year. Neither may ride along.
-        manifest: { solution: { key: 'sol_p1' } },
-        internal_note_next_year: 'geheim',
-    }];
-    const [row] = await store.listReleases('p1');
-    assert.deepStrictEqual(Object.keys(row).sort(),
-        ['blueprintId', 'id', 'notes', 'projectId', 'publishedAt', 'publishedBy', 'version']);
-    assert.strictEqual(row.manifest, undefined, 'een lijst van twintig releases is geen twintig manifesten');
-    assert.strictEqual(row.internal_note_next_year, undefined);
-});
-
-test('listReleases leest ALLEEN de rijen van het meegegeven project', async () => {
+test('listReleases reads ONLY the rows of the given project, and one channel', async () => {
     // This WHERE IS the scoping — the header of listReleases itself says that it
     // authorises nothing. If it drops away, then GET /:id/package/releases gives every
     // project owner the twenty newest release rows of the WHOLE instance,
-    // including the notes of projects from other organisations. The route test
-    // stubs this function and by definition cannot see that.
+    // including the notes of projects from other organisations.
     await reset();
-    await store.listReleases('p1');
-    const call = calls.getAll.at(-1);
-    assert.match(flat(call.sql), /FROM project_releases WHERE project_id = \$1 AND channel = \$3 ORDER BY/,
-        'de scoping zit in de query, niet alleen in de parameterlijst');
-    assert.ok(!/OR\s+TRUE/i.test(flat(call.sql)), 'geen verbreding naast de scoping');
-    assert.strictEqual(call.params[0], 'p1');
-    // The channel is part of the scope: the Versions tab and the installs
-    // counter must never see a pipeline release.
-    assert.strictEqual(call.params[2], 'gallery', 'the gallery channel by default');
-    await store.listReleases('p1', { channel: 'pipeline' });
-    assert.strictEqual(calls.getAll.at(-1).params[2], 'pipeline');
-    await assert.rejects(() => store.listReleases('p1', { channel: 'nope' }), /Unknown release channel/);
+    await pastRelease({ id: 'rel_mine', version: 1 });
+    await pastRelease({ id: 'rel_theirs', project_id: 'p2', version: 1 });
+    await pastRelease({ id: 'rel_pipe', blueprint_id: null, channel: 'pipeline', version: 1 });
+    assert.deepStrictEqual((await store.listReleases('p1')).map(r => r.id), ['rel_mine'], 'the gallery channel by default');
+    assert.deepStrictEqual((await store.listReleases('p1', { channel: 'pipeline' })).map(r => r.id), ['rel_pipe']);
+    await assert.rejects(() => store.listReleases('p1', { channel: /** @type {any} */ ('nope') }), /Unknown release channel/);
 });
 
-test('a gallery publication prunes the gallery channel only', async () => {
-    // A pipeline row has no blueprint_id, so both NOT EXISTS guards are true
-    // for it: without the channel predicate one gallery publish would prune the
-    // releases a UAT or PRD stage runs on.
+test('listReleases is newest first, and capped', async () => {
     await reset();
-    await store.publishRelease(publishArgs());
-    const sql = flat(callMatching(/^SELECT id FROM project_releases/).sql);
-    assert.match(sql, /AND r\.channel = 'gallery' ORDER BY/);
-    assert.strictEqual(callMatching(/to_regclass/), undefined, 'the pipeline prune does not run on a gallery publish');
+    for (let v = 1; v <= 25; v++) await pastRelease({ version: v, daysAgo: 100 - v });
+    const all = await store.listReleases('p1', { limit: 999 });
+    assert.strictEqual(all.length, MAX_RELEASES_PER_PROJECT, 'the cap is the cap');
+    assert.deepStrictEqual(all.slice(0, 3).map(r => r.version), [25, 24, 23]);
+    assert.strictEqual((await store.listReleases('p1', { limit: 0 })).length, MAX_RELEASES_PER_PROJECT);
+    assert.strictEqual((await store.listReleases('p1', { limit: 2 })).length, 2);
 });
 
-test('listReleases is nieuwste-eerst met dezelfde tiebreaker, en begrensd', async () => {
-    await reset();
-    await store.listReleases('p1', { limit: 999 });
-    const call = calls.getAll.at(-1);
-    assert.match(flat(call.sql), /ORDER BY published_at DESC, id LIMIT \$2/);
-    assert.ok(!/SELECT \*/.test(call.sql), 'expliciete kolomlijst');
-    assert.strictEqual(call.params[1], store.MAX_RELEASES_PER_PROJECT, 'het plafond is het plafond');
-
-    await store.listReleases('p1', { limit: 0 });
-    assert.strictEqual(calls.getAll.at(-1).params[1], store.MAX_RELEASES_PER_PROJECT);
-});
-
-test('listReleases zonder project vraagt de database niets', async () => {
+test('listReleases without a project asks the database nothing', async () => {
     await reset();
     assert.deepStrictEqual(await store.listReleases(null), []);
     assert.deepStrictEqual(await store.listReleases(''), []);
-    assert.deepStrictEqual(calls.getAll, []);
 });
 
-test('getRelease scoopt ALTIJD op het project, nooit op het id alleen', async () => {
+test('getRelease ALWAYS scopes on the project, never on the id alone', async () => {
     await reset();
-    state.poolRow = {
-        id: 'rel_1', project_id: 'p1', blueprint_id: 'bp_1', version: 3,
-        manifest: { solution: { key: 'sol_p1', version: 3 } }, notes: {},
-        published_at: 'x', published_by: 'alice',
-    };
+    await pastRelease({ id: 'rel_1', version: 3, manifest: JSON.stringify({ solution: { key: 'sol_p1', version: 3 } }) });
     const rel = await store.getRelease('p1', 'rel_1');
-    const call = calls.getOne.at(-1);
-    assert.match(flat(call.sql), /WHERE id = \$1 AND project_id = \$2/);
-    assert.deepStrictEqual(call.params, ['rel_1', 'p1']);
     // This is the ONE place where the manifest does travel along: one release, explicitly requested.
     assert.strictEqual(rel.manifest.solution.version, 3);
+    assert.strictEqual(await store.getRelease('p2', 'rel_1'), null, 'another project\'s id reads nothing');
 });
 
-test('getRelease zonder project of zonder id vraagt de database niets', async () => {
+test('getRelease without a project or without an id is null', async () => {
     await reset();
+    await pastRelease({ id: 'rel_1' });
     assert.strictEqual(await store.getRelease(null, 'rel_1'), null);
     assert.strictEqual(await store.getRelease('p1', null), null);
-    assert.deepStrictEqual(calls.getOne, []);
 });
 
 // ── 4. De grens die twee bestanden delen ────────────────────────────────────
@@ -477,14 +393,14 @@ test('de enveloppegrens van releaseNotes.js is dezelfde als MAX_NOTES_BYTES', as
     // what releaseNotes.js promises can never happen. This test is the link that
     // fits in neither of the two files.
     const notes = require('../../projects/packaging/releaseNotes');
-    assert.strictEqual(notes.MAX_NOTES_ENVELOPE_BYTES, store.MAX_NOTES_BYTES);
+    assert.strictEqual(notes.MAX_NOTES_ENVELOPE_BYTES, MAX_NOTES_BYTES);
 
     // En de envelop die hij bij die grens teruggeeft, past er ook echt in.
     const rows = Array.from({ length: 400 }, (_, i) => ({
         kind: 'automation', entityId: `a${i}`, name: 'R'.repeat(100), change: 'changed', text: 'T'.repeat(150),
     }));
     const payload = notes.releaseNotesPayload(rows);
-    assert.ok(Buffer.byteLength(JSON.stringify(payload), 'utf8') <= store.MAX_NOTES_BYTES);
+    assert.ok(Buffer.byteLength(JSON.stringify(payload), 'utf8') <= MAX_NOTES_BYTES);
 });
 
 // ── 5. De ladder ────────────────────────────────────────────────────────────

@@ -292,3 +292,9 @@ test('a viewer still READS what the run gate guards: the automation and its runs
     assert.strictEqual((await call('GET', '/a1', { as: 'vic' })).status, 200);
     assert.strictEqual((await call('GET', '/a1/runs', { as: 'vic' })).status, 200);
 });
+
+test('diagnosing a trigger takes no fields: one sent is refused by name before the automation is read', async () => {
+    const res = await call('POST', '/a1/diagnose-trigger', { as: 'owner', body: { provider: 'gmail' } });
+    assert.strictEqual(res.status, 400, JSON.stringify(res.body));
+    assert.match(res.body.error, /Diagnosing a trigger does not take "provider"/);
+});

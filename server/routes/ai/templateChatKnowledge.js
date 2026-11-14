@@ -9,7 +9,7 @@
 
 const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
-const { buildKbContext } = require('./templateChatPrompt');
+const { buildKbContext } = require('../../usecases/ai/templateChatPrompt');
 
 /**
  * @param {{ req: import('express').Request, template: { id: string, name: string, knowledgeBaseIds?: string[] }, message: string,

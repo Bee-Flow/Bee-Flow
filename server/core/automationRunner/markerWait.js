@@ -9,6 +9,9 @@
 
 'use strict';
 
-const CONCURRENT_WAIT_MS = Math.max(0, Number(process.env.AUTOMATION_CONCURRENT_WAIT_MS ?? 300_000) || 0);
+const { envInt } = require('../../utils/envNumber.mts');
+
+// 0 switches the wait off (runHeartbeat skips it).
+const CONCURRENT_WAIT_MS = envInt('AUTOMATION_CONCURRENT_WAIT_MS', 300_000, { min: 0 });
 
 module.exports = { CONCURRENT_WAIT_MS };

@@ -9,7 +9,8 @@ import { cmsApi } from '../cmsApi';
 import { isRecord, revOf, storedRev, withRev } from './cmsRevisions';
 import type { CmsPageDoc, CmsPageIndexEntry, CmsSiteDoc } from './cmsPanelTypes';
 import type { BuilderTurn } from './useCmsPanelState';
-import { mutate, ApiError, errorBody, RefusedError } from '@/api/mutate';
+import { ApiError, errorBody, RefusedError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 /** The site as the server holds it right now: its chrome revision and its page index. */
 interface ServerSiteState {
@@ -74,11 +75,7 @@ export async function revertBuilderTurn(siteId: string, turn: BuilderTurn): Prom
     if (turn.preSite) {
         let res: Response;
         try {
-            res = await mutate(cmsApi.site(siteId), {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ site: withRev(turn.preSite, serverSite.rev) }),
-        });
+            res = await apiRequest('PUT /api/cms/sites/{siteId}', { params: { siteId }, body: { site: withRev(turn.preSite, serverSite.rev) as Record<string, unknown> } });
         } catch (apiErr) {
             if (!(apiErr instanceof RefusedError)) throw apiErr;
             const d = errorBody(apiErr) ?? {};
@@ -95,11 +92,7 @@ export async function revertBuilderTurn(siteId: string, turn: BuilderTurn): Prom
             const patch: Record<string, unknown> = {};
             for (const f of INDEX_FIELDS) patch[f] = entry[f];
             try {
-                await mutate(cmsApi.pageMeta(siteId, entry.id), {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(patch),
-            });
+                await apiRequest('PUT /api/cms/sites/{siteId}/pages/{id}/meta', { params: { siteId, id: entry.id }, body: patch });
             } catch (err) {
                 if (!(err instanceof ApiError)) throw err;
                 throw new Error('Failed to restore page settings');
@@ -108,11 +101,7 @@ export async function revertBuilderTurn(siteId: string, turn: BuilderTurn): Prom
         const nowOrder = serverSite.pages.map(p => p.id).join();
         if (preEntries.length && nowOrder !== preEntries.map(e => e.id).join()) {
             try {
-                await mutate(cmsApi.pagesOrder(siteId), {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ orderedIds: preEntries.map(e => e.id) }),
-            });
+                await apiRequest('PUT /api/cms/sites/{siteId}/pages/order', { params: { siteId }, body: { orderedIds: preEntries.map(e => e.id) } });
             } catch (err) {
                 if (!(err instanceof ApiError)) throw err;
                 throw new Error('Failed to restore page order');
@@ -120,7 +109,7 @@ export async function revertBuilderTurn(siteId: string, turn: BuilderTurn): Prom
         }
         if (pre.homepageId && pre.homepageId !== serverSite.homepageId) {
             try {
-                await mutate(cmsApi.pageHomepage(siteId, pre.homepageId), { method: 'PUT' });
+                await apiRequest('PUT /api/cms/sites/{siteId}/pages/{id}/homepage', { params: { siteId, id: pre.homepageId } });
             } catch (err) {
                 if (!(err instanceof ApiError)) throw err;
                 throw new Error('Failed to restore the homepage');
@@ -136,11 +125,7 @@ export async function revertBuilderTurn(siteId: string, turn: BuilderTurn): Prom
         if (rev === null) continue;
         let res: Response;
         try {
-            res = await mutate(cmsApi.page(siteId, id), {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ page: withRev(pre, rev) }),
-        });
+            res = await apiRequest('PUT /api/cms/sites/{siteId}/pages/{id}', { params: { siteId, id }, body: { page: withRev(pre, rev) as Record<string, unknown> } });
         } catch (err) {
             if (!(err instanceof RefusedError)) throw err;
             const d = errorBody(err) ?? {};

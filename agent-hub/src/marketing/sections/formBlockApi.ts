@@ -2,7 +2,7 @@
 // with no credentials; the server (server/routes/cmsForms.js) decides
 // everything that matters.
 
-import { API_BASE } from '../../utils/helpers';
+import { apiUrl } from '../../api/typedRequest';
 import { MIN_FORM_AGE_MS, fieldErrorsFromResponse } from './formBlockModel';
 import type { FormErrors, SubmitPayload } from './formBlockModel';
 
@@ -21,12 +21,10 @@ export type TokenResult = FormToken | typeof TOKEN_BUSY | null;
 // visitor on the silent drop.
 const READY_MARGIN_MS = 250;
 
-const endpoint = (blockId: string) => `${API_BASE}/api/cms/forms/${encodeURIComponent(blockId)}`;
-
 /** A signed token for this form; null when the form is not available. */
 export async function fetchFormToken(blockId: string): Promise<TokenResult> {
     try {
-        const res = await fetch(endpoint(blockId), { credentials: 'omit' });
+        const res = await fetch(apiUrl('GET /api/cms/forms/{blockId}', { params: { blockId } }), { credentials: 'omit' });
         if (res.status === 429) return TOKEN_BUSY;
         if (!res.ok) return null;
         const body = (await res.json()) as { token?: unknown; issuedAt?: unknown; serverNow?: unknown };
@@ -50,7 +48,7 @@ export type SendOutcome =
 /** What the server made of a submission, as the cases the form reacts to. */
 export async function sendForm(blockId: string, payload: SubmitPayload): Promise<SendOutcome> {
     try {
-        const res = await fetch(endpoint(blockId), {
+        const res = await fetch(apiUrl('POST /api/cms/forms/{blockId}', { params: { blockId } }), {
             method: 'POST',
             credentials: 'omit',
             headers: { 'Content-Type': 'application/json' },

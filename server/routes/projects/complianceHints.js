@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 
 /**
@@ -68,7 +68,7 @@ function makeComplianceHintsRouter(deps = {}) {
 
     /**
      * Every hint that applies now (before this person's dismissals), or [] on any failure.
-     * @param {import('express').Request<{ id: string }>} req
+     * @param {import('express').Request<{ id: string }>} req  past requireRole, which set req.projectRole
      */
     async function currentCandidates(req) {
         if (!moduleAvailable()) return [];
@@ -83,7 +83,7 @@ function makeComplianceHintsRouter(deps = {}) {
             store.getLatestForChecks(orgId, hints.HINT_CHECK_IDS),
             store.listFindingStates(orgId).catch((e) => fallback('routes/projects/complianceHints:currentCandidates', e, [])),
         ]);
-        return hints.candidates({ projectId: String(project.id), role: req.projectRole, rows, active, states, now: now(), defs: defOf });
+        return hints.candidates({ projectId: String(project.id), role: /** @type {string} */ (req.projectRole), rows, active, states, now: now(), defs: defOf });
     }
 
     router.get('/:id/compliance-hints', requireRole('viewer'), async (req, res) => {

@@ -4,6 +4,7 @@ import type { Dispatch, SetStateAction } from 'react';
 import { API_BASE } from '@/utils/helpers';
 import { settled } from '@/api/settled';
 import type { MicrosoftAppTestAnswer, TeamsDiagnosticsReport } from '@/components/meetings/teamsSetup/types';
+import { apiUrl } from '@/api/typedRequest';
 
 export type SsoProviderId = 'nextcloud' | 'google' | 'microsoft';
 
@@ -144,7 +145,7 @@ export default function useSsoProviders(): SsoProvidersState {
         setMessage(null);
 
         try {
-            const res = await settled(`${API_BASE}/auth/providers/${provider}`, {
+            const res = await settled(apiUrl('PUT /auth/providers/{provider}', { params: { provider } }), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(providerBody(provider, providers[provider], secrets[provider], connectionSecrets))
@@ -172,7 +173,7 @@ export default function useSsoProviders(): SsoProvidersState {
         setTestReports(prev => ({ ...prev, [provider]: undefined }));
 
         try {
-            const res = await settled(`${API_BASE}/auth/providers/${provider}/test`, {
+            const res = await settled(apiUrl('POST /auth/providers/{provider}/test', { params: { provider } }), {
                 method: 'POST',
             });
             const data = res.ok ? await res.res.json() : res.body;

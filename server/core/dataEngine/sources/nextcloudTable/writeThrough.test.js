@@ -5,7 +5,9 @@
  *
  * Nextcloud is a fake `fetch` (the integrations/nextcloudTablesTools.test.js
  * idiom) behind the real ncApi, so the wire shape is asserted for real: an
- * OBJECT keyed by column id, option labels as numeric ids.
+ * OBJECT keyed by column id, option labels as numeric ids. The copy is a real
+ * Postgres table: the planner's table on PGlite behind the datatableDbStore
+ * surface (testUtils/pgDatatableEngine.testkit.js).
  *
  * Run: cd server && node --test core/dataEngine/sources/nextcloudTable/writeThrough.test.js
  */
@@ -13,6 +15,7 @@ const test = require('node:test');
 require('../../../../integrations/integrationClients'); // the injected integration clients (boot does this for the server)
 const assert = require('node:assert');
 const { installResolveStub } = require('../../../../testUtils/stubRequire');
+const { pgDatatableEngine } = require('../../../../testUtils/pgDatatableEngine.testkit');
 
 const SCOPE = { kind: 'org', id: 'org_1' };
 const OPTS = [{ id: 0, label: 'open' }, { id: 1, label: 'betaald' }];
@@ -64,25 +67,18 @@ async function fakeFetch(url, init = {}) {
     return { ok: true, status: 200, text: async () => JSON.stringify(ncRowFor(id, nc.rows.get(id) || {})) };
 }
 
-// ── the fake copy ──────────────────────────────────────────────────────────
-const db = { rows: new Map(), execs: [], bumps: [] };
+// ── the copy, on PGlite ────────────────────────────────────────────────────
+const db = { bumps: [] };
+/** @type {Awaited<ReturnType<typeof pgDatatableEngine>>} */
+let dt;
+// Handed out before the engine boots; the methods reach it at call time.
 const datatableDbStore = {
     scopeKey: () => 'org:org_1',
-    query: async (a, b, sql, params) => {
-        if (/^SELECT \* FROM "facturen" WHERE "id" = \?/.test(sql)) {
-            const row = db.rows.get(params[0]);
-            return { rows: row ? [row] : [] };
-        }
-        return { rows: [] };
-    },
-    exec: async (a, b, sql, params) => {
-        db.execs.push({ sql, params });
-        if (/^INSERT INTO/.test(sql)) { db.rows.set(params[0], { id: params[0], updated_at: params[2] }); return { changes: 1 }; }
-        if (/^UPDATE/.test(sql)) { const id = params[params.length - 2]; if (db.rows.has(id)) { db.rows.set(id, { ...db.rows.get(id), updated_at: params[0] }); return { changes: 1 }; } return { changes: 0 }; }
-        if (/^DELETE/.test(sql)) { const had = db.rows.delete(params[0]); return { changes: had ? 1 : 0 }; }
-        return { changes: 0 };
-    },
+    query: (o, a, sql, params) => dt.store.query(o, a, sql, params),
+    exec: (o, a, sql, params) => dt.store.exec(o, a, sql, params),
 };
+const copy = async () => dt.rows('facturen');
+const putCopy = (id, over = {}) => dt.insert('facturen', { id, org_id: 'org_1', updated_at: '2026-09-12T10:00:00.000Z', ...over });
 const restore = installResolveStub({
     '../../../../stores/datatableStore': { bumpAfterWrite: async (id, scope, d) => { db.bumps.push(d); } },
     '../../../../stores/datatableDbStore': datatableDbStore,
@@ -91,8 +87,12 @@ const restore = installResolveStub({
     './relations': { buildRelationIndexes: async () => ({ relationIndexes: new Map([['fld_ncrelabc', new Map([['Acme', '40']])]]), labelIndexes: new Map(), warnings: [] }) },
 });
 const wt = require('./writeThrough');
-test.after(() => restore());
-test.beforeEach(() => { nc.calls.length = 0; nc.rows.clear(); nc.status = 200; db.rows.clear(); db.execs.length = 0; db.bumps.length = 0; });
+test.before(async () => { dt = await pgDatatableEngine([META]); });
+test.after(async () => { restore(); await dt.close(); });
+test.beforeEach(async () => {
+    nc.calls.length = 0; nc.rows.clear(); nc.status = 200; db.bumps.length = 0;
+    await dt.pg.exec('TRUNCATE "facturen"');
+});
 
 const ctx = () => wt.contextOf({ table: TABLE, scope: SCOPE, scopeKey: 'org:org_1', tableMeta: META, grade: 'editor', viewerId: 'user_9' });
 
@@ -100,10 +100,13 @@ test('insert: the wire body is an object keyed by column id with labels as ids; 
     const r = await wt.insertRow(ctx(), { leverancier: 'Acme', totaal: '121', status: 'betaald', id: 'ignored' });
     assert.deepEqual(nc.calls[0], { method: 'POST', url: '/tables/4/rows', body: { data: { 2: 'Acme', 6: 121, 7: 1 } } });
     assert.equal(r.id, '100');
-    assert.match(db.execs[0].sql, /^INSERT INTO "facturen"/);
-    assert.equal(db.execs[0].params[0], '100');
-    assert.equal(db.execs[0].params[3], 'user_9');                  // created_by is the editor
-    assert.ok(db.execs[0].params.includes('40'), 'the derived relation was filled from the index');
+    const [row] = await copy();
+    assert.equal(row.id, '100');
+    assert.equal(row.created_by, 'user_9', 'created_by is the editor');
+    assert.equal(row.leverancier, 'Acme');
+    assert.equal(Number(row.totaal), 121);
+    assert.equal(row.status, 'betaald');
+    assert.equal(row.leveranciers_ref, '40', 'the derived relation was filled from the index');
     assert.deepEqual(db.bumps, [1]);
     assert.ok(r.row && r.row.id === '100');
 });
@@ -119,13 +122,13 @@ test('insert: a viewer is refused; Nextcloud 403 is a 403 with errorClass and no
     nc.status = 403;
     await assert.rejects(() => wt.insertRow(ctx(), { leverancier: 'x' }),
         (e) => e.status === 403 && e.code === 'nextcloud_forbidden' && e.errorClass === 'datatable_forbidden' && e.safe === true);
-    assert.equal(db.execs.length, 0);
+    assert.deepEqual(await copy(), []);
     assert.deepEqual(db.bumps, []);
 });
 
 test('update: the copy is probed first — not there → 0/null, stale token → 0/row — without a Nextcloud call', async () => {
     assert.deepEqual(await wt.updateRow(ctx(), '5', { leverancier: 'x' }), { changes: 0, row: null });
-    db.rows.set('5', { id: '5', updated_at: '2026-09-12T10:00:00.000Z' });
+    await putCopy('5');
     const stale = await wt.updateRow(ctx(), '5', { leverancier: 'x' }, { expectedUpdatedAt: '2026-09-12T09:00:00.000Z' });
     assert.equal(stale.changes, 0);
     assert.equal(stale.row.id, '5');
@@ -133,28 +136,33 @@ test('update: the copy is probed first — not there → 0/null, stale token →
 });
 
 test('update: a matching token goes to Nextcloud by row id, then the copy is rewritten from the answer', async () => {
-    db.rows.set('5', { id: '5', updated_at: '2026-09-12T10:00:00.000Z' });
+    await putCopy('5', { leverancier: 'Old', totaal: 1 });
     nc.rows.set(5, { 2: 'Old', 6: 1 });
     const r = await wt.updateRow(ctx(), '5', { totaal: 9 }, { expectedUpdatedAt: '2026-09-12T10:00:00Z' });
     assert.deepEqual(nc.calls[0], { method: 'PUT', url: '/rows/5', body: { data: { 6: 9 } } });
     assert.equal(r.changes, 1);
-    assert.match(db.execs[0].sql, /^UPDATE "facturen"/);
+    const [row] = await copy();
+    assert.equal(Number(row.totaal), 9, 'the copy is rewritten from Nextcloud\'s answer');
+    assert.equal(row.leverancier, 'Old');
+    assert.notEqual(new Date(row.updated_at).toISOString(), '2026-09-12T10:00:00.000Z', 'the token moves');
     assert.deepEqual(db.bumps, [0]);
 });
 
 test('update: a row Nextcloud no longer has leaves the copy too', async () => {
-    db.rows.set('5', { id: '5', updated_at: 'x' });
+    await putCopy('5');
+    await putCopy('6');
     const r = await wt.updateRow(ctx(), '5', { totaal: 9 });
     assert.deepEqual(r, { changes: 0, row: null });
-    assert.equal(db.rows.has('5'), false);
+    assert.deepEqual((await copy()).map((x) => x.id), ['6']);
     assert.deepEqual(db.bumps, [-1]);
 });
 
 test('delete: probe, then Nextcloud, then the copy; already-gone in Nextcloud still counts', async () => {
     assert.deepEqual(await wt.deleteRow(ctx(), '5'), { changes: 0 });
-    db.rows.set('5', { id: '5' });
+    await putCopy('5');
     const r = await wt.deleteRow(ctx(), '5');     // not in nc.rows → DELETE answers 200 anyway here
     assert.deepEqual(r, { changes: 1 });
     assert.deepEqual(nc.calls.map(c => c.method), ['DELETE']);
     assert.deepEqual(db.bumps, [-1]);
+    assert.deepEqual(await copy(), []);
 });

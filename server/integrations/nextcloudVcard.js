@@ -117,8 +117,8 @@ function contactFromVCard(text) {
 
 /**
  * @param {{ uid?: string|null, fullName?: string|null, firstName?: string|null, lastName?: string|null,
- *   emails?: string[], phones?: string[], organization?: string|null, title?: string|null,
- *   notes?: string|null }} c
+ *   emails?: Array<string|null>, phones?: Array<string|null>, organization?: string|null, title?: string|null,
+ *   notes?: string|null }} c   empty email and phone entries are skipped
  */
 function buildVCard(c) {
     const card = new vCard();

@@ -19,7 +19,7 @@
 const { test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert');
 const crypto = require('node:crypto');
-const { serve } = require('../../testUtils/routeHarness');
+const { serve, assertRefused } = require('../../testUtils/routeHarness');
 const { pgliteDb } = require('../../testUtils/pgliteDb');
 const { fakeRequireProjectRole, projectUser } = require('../../testUtils/projectRoleGate');
 const taskStoreModule = require('../../stores/projectTaskStore');
@@ -278,4 +278,14 @@ test('the feed carries ids, never the sealed words', async () => {
         assert.strictEqual(e.payload.sprintId, sprint.id);
         assert.ok(!JSON.stringify(e).includes('Apricot') && !JSON.stringify(e).includes('secret'), 'no content in the feed');
     }
+});
+
+test('starting and completing take no fields: one sent is refused by name before the sprint moves', async () => {
+    const sprint = await makeSprint({ name: 'Fields' });
+    for (const action of ['start', 'complete']) {
+        const res = await call('POST', `/api/projects/p1/sprints/${sprint.id}/${action}`, { body: { status: 'active' } });
+        assertRefused(assert, res, undefined, /does not take "status"/);
+    }
+    assert.strictEqual((await call('GET', '/api/projects/p1/sprints')).body.sprints.find((s) => s.id === sprint.id).status, 'planned');
+    assert.strictEqual((await call('POST', `/api/projects/p1/sprints/${sprint.id}/start`, { body: {} })).body.sprint.status, 'active');
 });

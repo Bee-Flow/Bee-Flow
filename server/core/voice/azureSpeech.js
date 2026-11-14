@@ -24,7 +24,7 @@ const fs = require('fs');
 const configStore = require('../../stores/configStore');
 const { preprocessForStt } = require('./audioPreprocess');
 const log = require('../../telemetry/log');
-const { bestEffort } = require('../../utils/bestEffort');
+const { bestEffort, ignoreGone } = require('../../utils/bestEffort');
 
 /** BCP-47 locales per product language code; unknown codes fall back to xx-XX. */
 const AZURE_LOCALE_MAP = {
@@ -159,7 +159,7 @@ async function transcribeWithAzureSpeech(inputPath, { language = 'nl', contextTe
 
             const trip = (reason) => {
                 if (settled) return;
-                try { transcriber.stopTranscribingAsync(() => {}, () => {}); } catch (_) { log.debug('transcriber already stopped', _); }
+                try { transcriber.stopTranscribingAsync(() => {}, () => {}); } catch (_) { ignoreGone('voice/azureSpeech:stopTranscribing', _); }
                 if (rawSegments.length > 0) {
                     // Salvage: everything recognised so far becomes the result.
                     truncated = { reason, atSeconds: rawSegments[rawSegments.length - 1].end };
@@ -207,8 +207,8 @@ async function transcribeWithAzureSpeech(inputPath, { language = 'nl', contextTe
             );
         });
     } finally {
-        try { if (transcriber) transcriber.close(); } catch (_) { log.debug('transcriber already closed', _); }
-        try { if (speechConfig.close) speechConfig.close(); } catch (_) { log.debug('speech config already closed', _); }
+        try { if (transcriber) transcriber.close(); } catch (_) { ignoreGone('voice/azureSpeech:closeTranscriber', _); }
+        try { if (speechConfig.close) speechConfig.close(); } catch (_) { ignoreGone('voice/azureSpeech:closeSpeechConfig', _); }
         wav.cleanup();
     }
 

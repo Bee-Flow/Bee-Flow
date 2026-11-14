@@ -146,7 +146,7 @@ test('apply saves the rewritten definition and moves the template stamp onto it'
         setTemplateStamp: async (id, owner, stamp) => { calls.push(['stamp', id, stamp.templateVersion, stamp.templateInstallHash]); },
     };
     const out = await applyCopiedAssets({ app: APP, definition: defWith('old-1'), assets: [entry('old-1')], templateVersion: 4, deps: store.deps, appStore });
-    const { hashDefinition } = require('./templateUpgrade');
+    const { hashDefinition } = require('../core/packaging/definitionHash.mts');
     assert.deepEqual(calls, [['save', 'app-target', 'owner-1', 'asset:new-1'], ['stamp', 'app-target', 4, hashDefinition(out.definition)]]);
 });
 

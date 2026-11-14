@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { API_BASE } from '../../utils/helpers';
 import { integrationsAdminKeys, useConnectionLendingQuery } from '../../api/queries/integrationsAdmin';
-import { mutate } from '../../api/mutate';
+import { apiRequest } from '../../api/typedRequest';
 import useTranslation from '../../hooks/useTranslation';
 
 /**
@@ -17,7 +16,6 @@ import useTranslation from '../../hooks/useTranslation';
  * for — there's nothing to lend otherwise.
  */
 
-const BASE = `${API_BASE}/api/integrations/connections`;
 
 // Providers that support lending today (API-key / basic named connections).
 const LENDABLE = new Set(['fireflies', 'youtrack', 'gamma', 'signrequest', 'linkedin', 'github']);
@@ -53,12 +51,12 @@ const ConnectionPolicyPicker = ({ resourceType, resourceId, providers }: Connect
         try {
             const existing = grantByProvider[provider];
             // Revoke any current grant for this provider+resource first.
-            if (existing?.grantId) await mutate(`${BASE}/grants/${existing.grantId}`, { method: 'DELETE' });
+            if (existing?.grantId) await apiRequest('DELETE /api/integrations/connections/grants/{grantId}', { params: { grantId: existing.grantId } });
             // value === '' means bring-your-own (no grant).
             if (value) {
-                await mutate(`${BASE}/${value}/grants`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ granteeType: 'org', resourceType, resourceId }),
+                await apiRequest('POST /api/integrations/connections/{id}/grants', {
+                    params: { id: value },
+                    init: { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ granteeType: 'org', resourceType, resourceId }) },
                 });
             }
             await queryClient.refetchQueries({ queryKey: integrationsAdminKeys.connectionLending(resourceType, resourceId) });

@@ -1,4 +1,4 @@
-import { render, waitFor } from '@testing-library/react';
+import { waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -7,6 +7,7 @@ vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 import ConnectorSyncPanel from './ConnectorSyncPanel';
 import { authFetch } from '@/utils/helpers';
 import { asMock } from '@/test/mocks';
+import { renderWithClient } from '@/test/render';
 
 /**
  * "Keep this in a table" — the panel that turns a connector into a cached,
@@ -40,7 +41,7 @@ function proposal(incremental: { mode: string; field?: string | null; param?: st
 function renderPanel(props = {}) {
     const onChange = vi.fn();
     const onCreateTable = vi.fn();
-    const utils = render(
+    const utils = renderWithClient(
         <ConnectorSyncPanel
             connector={CONNECTOR}
             tables={[]}

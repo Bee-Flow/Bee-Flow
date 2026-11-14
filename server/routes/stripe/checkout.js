@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Starting a purchase and following it through to a finalised subscription.
  *
@@ -12,7 +12,7 @@ const stripeService = require('../../services/stripeService');
 const userStore = require('../../stores/userStore');
 const { isNcOrg } = require('../../auth/ncAudience');
 const { requireCloud, requireAuth, resolveOrgIdForUser, getOrigin, stripeIpLimiter, stripeUserLimiter } = require('./shared');
-const { handleCheckoutCompleted } = require('./checkoutEvents');
+const { handleCheckoutCompleted } = require('../../usecases/stripe/checkoutEvents');
 const { accountLicenseSettingsPath, orgLicenseSettingsPath } = require('../../utils/appPaths');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
@@ -46,7 +46,7 @@ const router = express.Router();
 // `successUrl` keeps its own `startsWith(origin)` check in the handler.
 
 /** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
-const bodyOf = /** @param {Parameters<typeof z.object>[0]} shape */ (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
+const bodyOf = /** Generic, so the fields' types reach the handler. @template {import('zod').ZodRawShape} S @param {S} shape */ (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 const PLAN_TEXT = 'planId is required — the plan to subscribe to.';
 const ORIGIN_TEXT = 'origin must be a URL like https://app.example.com.';
@@ -122,7 +122,7 @@ router.post('/checkout', requireCloud, stripeIpLimiter, requireAuth, stripeUserL
 
         const { planId } = req.body;
 
-        const user = req.session.user;
+        const user = /** @type {NonNullable<typeof req.session.user>} */ (req.session.user); // behind requireAuth
         const orgId = await resolveOrgIdForUser(req);
         const isConsumer = !!user?.isConsumerAccount || !orgId;
 
@@ -161,7 +161,7 @@ router.post('/checkout', requireCloud, stripeIpLimiter, requireAuth, stripeUserL
             /** @type {{ stripe_product_id: string, stripe_price_id: string, stripe_meter_id?: string, stripe_meter_event_name?: string }} */
             const updates = { stripe_product_id: result.productId, stripe_price_id: result.priceId };
             if (isPayg) { updates.stripe_meter_id = result.meterId; updates.stripe_meter_event_name = result.meterEventName; }
-            await require('../subscriptions/storedWrites').storePlanStripeIds(p.id, updates);
+            await require('../../usecases/subscriptions/storedWrites').storePlanStripeIds(p.id, updates);
             return userStore.getPlan(p.id);
         };
         // Wrap session creation so a stale/cross-account price id (Stripe

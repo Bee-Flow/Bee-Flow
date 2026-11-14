@@ -1,318 +1,234 @@
+// @typecheck
 /**
- * webpage_versions: the NUMBER, the MAKER and the LINE DIFFERENCE (W4).
+ * webpage_versions: the NUMBER, the MAKER and the LINE DIFFERENCE, against a
+ * real Postgres (PGlite behind db.js's pool, testUtils/pglitePool.js). Object
+ * storage is not configured, so only the rows move.
  *
- * ── WHAT IS AT STAKE HERE ───────────────────────────────────────────────────
- *
- * "v14" has to mean something. Two things can make that break:
+ * "v14" has to mean something. Two things can break that:
  *
  *   1. TWO WRITERS, ONE NUMBER. The number is computed in the INSERT
- *      (`COALESCE(MAX(seq),0)+1`). Under READ COMMITTED — the setting of this pool —
- *      two concurrent saves see the same maximum. The unique index (webpage_id, seq)
- *      from schema.js turns the second into a 23505; this store then has to TRY AGAIN
- *      rather than let the error through or, worse, write the duplicate.
- *   2. A NUMBER THAT MEASURES NOTHING. `line_delta` and `seq` are NULL on every row from
- *      before their column. Whoever flattens those with `|| 0` makes the list say "v0" and
- *      "0 lines changed" about rows where nothing is known.
+ *      (`COALESCE(MAX(seq),0)+1`). Under READ COMMITTED two concurrent saves
+ *      see the same maximum; the unique index (webpage_id, seq) turns the
+ *      second into a 23505, and the store tries again with a fresh maximum.
+ *      PGlite is one session, so the collision is raised by a trigger that
+ *      fails the first N inserts with the real SQLSTATE; a sequence counts the
+ *      attempts, because nextval survives the rolled-back statement.
+ *   2. A NUMBER THAT MEASURES NOTHING. `line_delta`, `seq` and the maker are
+ *      NULL on rows from before their columns; flattening them with `|| 0`
+ *      would make the list say "v0" and "0 lines changed".
  *
- * ── WHAT THIS TEST CAN AND CANNOT PROVE ─────────────────────────────────────
- *
- * CAN: that the store computes the number in one statement, that it retries on 23505 with a
- * FRESH maximum, that after a series of collisions it fails loudly, and that maker and line
- * difference are recorded and read back exactly as described above.
- *
- * CANNOT: that Postgres actually enforces the index. No database runs here — `../../db` is
- * replaced. That the index exists is stated in schema.js and is checked below as SOURCE TEXT;
- * that it does its job is Postgres' responsibility and not something a unit test can show.
- *
- * Run: node --test --test-force-exit stores/webpage/versions.seq.test.js
+ * Run: cd server && node --test stores/webpage/versions.seq.test.js
  */
+
+'use strict';
 
 const test = require('node:test');
 const assert = require('node:assert');
-const fs = require('node:fs');
-const path = require('node:path');
 
-process.env.NODE_ENV = 'test';
+const { usePglitePool } = require('../../testUtils/pglitePool');
 
-const calls = { run: [], getOne: [], getAll: [] };
-
-// Rijen die de gemockte getOne kan oplossen (patroon van
-// webpageStore.publishLifecycle.test.js).
-const versionRows = [
-    {
-        id: 'v-old', webpage_id: 'wp1', summary: 'Edited in code', source: 'manual',
-        html_sha256: 'h', css_sha256: 'c', js_sha256: 'j', content_length: 10,
-        seq: 7, actor_user_id: 'alice', line_delta: -3,
-    },
-    {
-        // A row from before W4: no number, no maker, no line difference.
-        id: 'v-legacy', webpage_id: 'wp1', summary: 'Auto-save', source: 'manual',
-        html_sha256: '', css_sha256: '', js_sha256: '', content_length: 0,
-        seq: null, actor_user_id: null, line_delta: null,
-    },
-];
-
-function matchRow(rows, sql, params) {
-    const conds = [...sql.matchAll(/([a-z_]+)\s*=\s*\$(\d+)/gi)].map(m => [m[1], params[Number(m[2]) - 1]]);
-    return rows.find(r => conds.every(([col, val]) => r[col] === val)) || null;
-}
-
-// Wat de INSERT teruggeeft, per test in te stellen. `null` = normaal gedrag
-// (een oplopend nummer); een functie mag gooien om een botsing na te bootsen.
-let insertBehaviour = null;
-let nextSeq = 1;
-/** Wat de LIJST-query teruggeeft; per test in te stellen. */
-let listRows = [];
-
-const mockDb = {
-    run: async (sql, params = []) => { calls.run.push({ sql, params }); return { rowCount: 1 }; },
-    getOne: async (sql, params = []) => {
-        calls.getOne.push({ sql, params });
-        if (/^\s*INSERT INTO webpage_versions/i.test(sql)) {
-            if (insertBehaviour) return insertBehaviour(calls.getOne.filter(c => /^\s*INSERT/i.test(c.sql)).length);
-            return { seq: nextSeq++ };
-        }
-        if (/FROM webpage_versions/i.test(sql)) return matchRow(versionRows, sql, params);
-        if (/FROM webpages/i.test(sql)) return { id: 'wp1', user_id: 'alice', html_sha256: '', css_sha256: '', js_sha256: '', html_size: 0, css_size: 0, js_size: 0 };
-        return null;
-    },
-    getAll: async (sql, params = []) => {
-        calls.getAll.push({ sql, params });
-        return listRows;
-    },
-    exec: async () => undefined,
-};
-const mockStorage = {
-    deleteFile: async () => undefined,
-    isAvailable: () => false,
-    copyObject: async () => undefined,
-    streamFile: async () => { throw Object.assign(new Error('NoSuchKey'), { name: 'NoSuchKey' }); },
-    buildWebpageKey: (userId, webpageId, slot, versionId) =>
-        `webpages/${userId}/${webpageId}/${versionId || 'current'}/${slot}`,
-};
-
-const Module = require('module');
-const originalResolve = Module._resolveFilename;
-Module._resolveFilename = function (request, parent, ...rest) {
-    if (request === '../db' || request === '../../db') return 'mock-db';
-    if (request === './storageStore' || request === '../storageStore') return 'mock-storage';
-    return originalResolve.call(this, request, parent, ...rest);
-};
-require.cache['mock-db'] = { id: 'mock-db', exports: mockDb };
-require.cache['mock-storage'] = { id: 'mock-storage', exports: mockStorage };
-
+const { pg, close } = usePglitePool();
 const versions = require('./versions');
+const { initDB } = require('./schema');
 
-function reset() {
-    calls.run = []; calls.getOne = []; calls.getAll = [];
-    insertBehaviour = null; nextSeq = 1; listRows = [];
+test.before(async () => {
+    await initDB();
+    await pg.exec(`
+        CREATE SEQUENCE insert_attempts;
+        CREATE TABLE insert_fault (fail_first INT NOT NULL, code TEXT NOT NULL);
+        INSERT INTO insert_fault VALUES (0, '23505');
+        CREATE FUNCTION insert_fault_fn() RETURNS trigger AS $$
+        DECLARE n BIGINT := nextval('insert_attempts');
+        DECLARE cfg insert_fault;
+        BEGIN
+            SELECT * INTO cfg FROM insert_fault;
+            IF n <= cfg.fail_first THEN
+                IF cfg.code = '23505' THEN
+                    RAISE unique_violation USING MESSAGE = 'duplicate key value violates unique constraint';
+                END IF;
+                RAISE EXCEPTION 'connection terminated' USING ERRCODE = cfg.code;
+            END IF;
+            RETURN NEW;
+        END $$ LANGUAGE plpgsql;
+        CREATE TRIGGER insert_fault BEFORE INSERT ON webpage_versions FOR EACH ROW EXECUTE FUNCTION insert_fault_fn();
+    `);
+});
+test.after(close);
+
+let seq = 0;
+async function page() {
+    seq += 1;
+    const id = `wp${seq}`;
+    await pg.query('INSERT INTO webpages (id, user_id) VALUES ($1, $2)', [id, 'alice']);
+    return id;
 }
-const insertCalls = () => calls.getOne.filter(c => /^\s*INSERT INTO webpage_versions/i.test(c.sql));
 
-const uniqueViolation = () => Object.assign(new Error('duplicate key value violates unique constraint'), { code: '23505' });
+/** Fail the next `n` version INSERTs with `code`, and count attempts from zero. */
+async function failNext(n, code = '23505') {
+    await pg.query('UPDATE insert_fault SET fail_first = $1, code = $2', [n, code]);
+    await pg.query('ALTER SEQUENCE insert_attempts RESTART');
+}
+const attempts = async () => Number((await pg.query('SELECT CASE WHEN is_called THEN last_value ELSE 0 END AS n FROM insert_attempts')).rows[0].n);
 
-// ── 1. Het nummer ─────────────────────────────────────────────────────
+async function rowOf(id) {
+    return (await pg.query('SELECT seq, source, actor_user_id, line_delta FROM webpage_versions WHERE id = $1', [id])).rows[0];
+}
 
-test('het nummer wordt IN de INSERT berekend, niet eerst gelezen', () => {
-    reset();
-    return versions.createVersion('alice', 'wp1', 'x').then(() => {
-        const ins = insertCalls();
-        assert.strictEqual(ins.length, 1);
-        assert.match(ins[0].sql, /COALESCE\(MAX\(seq\), 0\) \+ 1/,
-            'lezen-dan-schrijven laat een heel rondje open waarin een ander hetzelfde nummer pakt');
-        assert.match(ins[0].sql, /FROM webpage_versions WHERE webpage_id = \$2/,
-            'het maximum is per PAGINA — een globaal nummer zou v1 van een verse pagina v4013 maken');
-        assert.match(ins[0].sql, /RETURNING seq/, 'de aanroeper moet het toegekende nummer terugkrijgen');
-    });
+// ── 1. The number ─────────────────────────────────────────────────────
+
+test('the number counts up per page, and createVersion returns the one it got', async () => {
+    const a = await page();
+    const b = await page();
+    assert.deepStrictEqual([(await versions.createVersion('alice', a, 'x')).seq, (await versions.createVersion('alice', a, 'x')).seq], [1, 2]);
+    const firstOfB = await versions.createVersion('alice', b, 'x');
+    assert.strictEqual(firstOfB.seq, 1, 'the maximum is per PAGE: a fresh page starts at v1');
+    assert.strictEqual((await rowOf(firstOfB.id)).seq, 1);
 });
 
-test('createVersion geeft het toegekende nummer terug', async () => {
-    reset();
-    nextSeq = 14;
-    const v = await versions.createVersion('alice', 'wp1', 'x');
-    assert.strictEqual(v.seq, 14);
+test('two saves at once both get a number, and not the same one', async () => {
+    const id = await page();
+    const [x, y] = await Promise.all([versions.createVersion('alice', id, 'x'), versions.createVersion('alice', id, 'y')]);
+    assert.deepStrictEqual([x.seq, y.seq].sort(), [1, 2]);
 });
 
-test('BIJT: een botsing op het nummer wordt OPNIEUW geprobeerd, niet doorgegeven', async () => {
-    reset();
-    // Eerste poging botst (de andere schrijver was net iets eerder), tweede
-    // poging leest een vers maximum en slaagt.
-    insertBehaviour = (n) => {
-        if (n === 1) throw uniqueViolation();
-        return { seq: 15 };
-    };
-    const v = await versions.createVersion('alice', 'wp1', 'x');
-    assert.strictEqual(v.seq, 15);
-    assert.strictEqual(insertCalls().length, 2, 'precies één herkansing was nodig');
+test('a collision on the number is TRIED AGAIN, not passed on', async () => {
+    const id = await page();
+    await versions.createVersion('alice', id, 'x');
+    await failNext(1);
+    const v = await versions.createVersion('alice', id, 'x');
+    await failNext(0);
+    assert.strictEqual(v.seq, 2);
+    assert.strictEqual((await rowOf(v.id)).seq, 2);
 });
 
-test('een botsing die blijft botsen faalt LUID in plaats van een rij zonder nummer te schrijven', async () => {
-    reset();
-    insertBehaviour = () => { throw uniqueViolation(); };
-    await assert.rejects(
-        () => versions.createVersion('alice', 'wp1', 'x'),
-        /duplicate key/,
-        'een stille rij zonder nummer zou in de lijst verschijnen zonder dat iets zei dat er iets misging');
-    assert.strictEqual(insertCalls().length, 5, 'vijf pogingen, daarna stoppen — niet eindeloos hameren');
+test('a collision that keeps colliding fails LOUDLY after five attempts instead of writing a row without a number', async () => {
+    const id = await page();
+    await failNext(100);
+    await assert.rejects(() => versions.createVersion('alice', id, 'x'), /duplicate key/);
+    const n = await attempts();
+    await failNext(0);
+    assert.strictEqual(n, 5, 'five attempts, then stop');
+    assert.strictEqual((await pg.query('SELECT COUNT(*)::int AS n FROM webpage_versions WHERE webpage_id = $1', [id])).rows[0].n, 0);
 });
 
-test('een ANDERE databasefout wordt niet als botsing behandeld', async () => {
-    reset();
-    let n = 0;
-    insertBehaviour = () => { n++; throw Object.assign(new Error('connection terminated'), { code: '08006' }); };
-    await assert.rejects(() => versions.createVersion('alice', 'wp1', 'x'), /connection terminated/);
-    assert.strictEqual(n, 1, 'opnieuw proberen op een dode verbinding is alleen maar langer wachten');
+test('ANOTHER database error is not treated as a collision', async () => {
+    const id = await page();
+    await failNext(100, '08006');
+    await assert.rejects(() => versions.createVersion('alice', id, 'x'), /connection terminated/);
+    const n = await attempts();
+    await failNext(0);
+    assert.strictEqual(n, 1, 'retrying on a dead connection is only waiting longer');
 });
 
-test('de unieke index staat in het schema — zonder hem is de herkansing zinloos', () => {
-    // Genuinely textual, as the file header already says: no Postgres runs here, so that the
-    // index EXISTS is the only thing a unit test can show — that it does its job is Postgres'
-    // responsibility. The entire race strategy leans on 23505. Without this index the second
-    // writer simply writes a duplicate and nothing ever collides.
-    const src = fs.readFileSync(path.join(__dirname, 'schema.js'), 'utf8');
-    assert.match(src, /CREATE UNIQUE INDEX IF NOT EXISTS idx_webpage_versions_seq[\s\S]{0,120}webpage_versions\(webpage_id, seq\)/,
-        'stores/webpage/schema.js moet (webpage_id, seq) uniek maken');
-    assert.match(src, /idx_webpage_versions_seq[\s\S]{0,160}WHERE seq IS NOT NULL/,
-        'partieel, anders zouden twee rijen zonder nummer elkaar in de weg zitten');
+test('the unique index on (webpage_id, seq) exists and is partial, so rows without a number never collide', async () => {
+    const { rows } = await pg.query("SELECT indexdef FROM pg_indexes WHERE indexname = 'idx_webpage_versions_seq'");
+    assert.strictEqual(rows.length, 1, 'without it the second writer writes a duplicate and nothing ever collides');
+    const id = await page();
+    await pg.query("INSERT INTO webpage_versions (id, webpage_id, seq) VALUES ('legacy-1', $1, NULL), ('legacy-2', $1, NULL)", [id]);
+    await pg.query("INSERT INTO webpage_versions (id, webpage_id, seq) VALUES ('n-1', $1, 1)", [id]);
+    await assert.rejects(() => pg.query("INSERT INTO webpage_versions (id, webpage_id, seq) VALUES ('n-1b', $1, 1)", [id]), (/** @type {any} */ e) => e.code === '23505');
 });
 
-// ── 2. De maker ───────────────────────────────────────────────────────
+// ── 2. The maker ──────────────────────────────────────────────────────
 
-const SOURCE_PARAM = 7;
-const ACTOR_PARAM = 8;
-const DELTA_PARAM = 9;
-
-test('de maker is standaard de schrijvende gebruiker', async () => {
-    reset();
-    await versions.createVersion('alice', 'wp1', 'x');
-    assert.strictEqual(insertCalls()[0].params[ACTOR_PARAM], 'alice');
+test('the maker defaults to the writing user; an explicit null stays null; another maker is kept as given', async () => {
+    const id = await page();
+    const byDefault = await versions.createVersion('alice', id, 'x');
+    // "Said nothing" is not "nobody": a caller that knows it does not know records that.
+    const unknown = await versions.createVersion('alice', id, 'x', null, 'manual', { actorUserId: null });
+    const other = await versions.createVersion('alice', id, 'x', null, 'ai', { actorUserId: 'bob' });
+    assert.strictEqual((await rowOf(byDefault.id)).actor_user_id, 'alice');
+    assert.strictEqual((await rowOf(unknown.id)).actor_user_id, null);
+    assert.deepStrictEqual([(await rowOf(other.id)).actor_user_id, (await rowOf(other.id)).source], ['bob', 'ai']);
 });
 
-test('BIJT: een expliciete null-maker blijft null — "niets gezegd" is niet "niemand"', async () => {
-    reset();
-    await versions.createVersion('alice', 'wp1', 'x', null, 'manual', { actorUserId: null });
-    assert.strictEqual(insertCalls()[0].params[ACTOR_PARAM], null,
-        'een aanroeper die weet dat hij het niet weet, moet dat kunnen vastleggen');
+// ── 3. The line difference ────────────────────────────────────────────
+
+test('the line difference is stored as given, negative included; none is NULL, never 0', async () => {
+    const id = await page();
+    const neg = await versions.createVersion('alice', id, 'x', null, 'manual', { lineDelta: -12 });
+    const none = await versions.createVersion('alice', id, 'x');
+    assert.strictEqual((await rowOf(neg.id)).line_delta, -12);
+    assert.strictEqual((await rowOf(none.id)).line_delta, null, '0 would read as "nothing changed", which is a claim');
 });
 
-test('een andere maker dan de eigenaar wordt vastgelegd zoals gegeven', async () => {
-    reset();
-    await versions.createVersion('alice', 'wp1', 'x', null, 'ai', { actorUserId: 'bob' });
-    assert.strictEqual(insertCalls()[0].params[ACTOR_PARAM], 'bob');
-    assert.strictEqual(insertCalls()[0].params[SOURCE_PARAM], 'ai');
-});
-
-// ── 3. Het regelverschil ──────────────────────────────────────────────
-
-test('het regelverschil gaat mee zoals gegeven, ook negatief', async () => {
-    reset();
-    await versions.createVersion('alice', 'wp1', 'x', null, 'manual', { lineDelta: -12 });
-    assert.strictEqual(insertCalls()[0].params[DELTA_PARAM], -12);
-});
-
-test('BIJT: geen regelverschil is NULL, geen 0', async () => {
-    reset();
-    await versions.createVersion('alice', 'wp1', 'x');
-    assert.strictEqual(insertCalls()[0].params[DELTA_PARAM], null,
-        '0 zou in de lijst lezen als "er veranderde niets", en dat is een bewering');
-});
-
-test('een regelverschil dat geen getal is telt als niet gemeten', async () => {
-    reset();
+test('a line difference that is not a number counts as not measured', async () => {
+    const id = await page();
     for (const bad of [NaN, Infinity, '12', null]) {
-        calls.getOne = [];
-        await versions.createVersion('alice', 'wp1', 'x', null, 'manual', { lineDelta: bad });
-        assert.strictEqual(insertCalls()[0].params[DELTA_PARAM], null, `${String(bad)} is geen meting`);
+        const v = await versions.createVersion('alice', id, 'x', null, 'manual', { lineDelta: /** @type {any} */ (bad) });
+        assert.strictEqual((await rowOf(v.id)).line_delta, null, `${String(bad)} is not a measurement`);
     }
 });
 
-// ── 4. Het vocabulaire ────────────────────────────────────────────────
+// ── 4. The vocabulary ─────────────────────────────────────────────────
 
-test("'restore' hoort bij het bestaande vocabulaire, als vierde waarde", () => {
-    assert.deepStrictEqual(versions.VERSION_SOURCES, ['manual', 'ai', 'published', 'restore'],
-        'W4 voegt één waarde toe; een tweede vocabulaire naast source zou de lijst laten liegen');
+test("'restore' is the fourth value of the one vocabulary, and is stored as such", async () => {
+    assert.deepStrictEqual(versions.VERSION_SOURCES, ['manual', 'ai', 'published', 'restore']);
+    const id = await page();
+    const v = await versions.createVersion('alice', id, 'x', null, 'restore');
+    assert.strictEqual((await rowOf(v.id)).source, 'restore');
 });
 
-test("'restore' wordt echt opgeslagen en niet naar 'manual' teruggezet", async () => {
-    reset();
-    await versions.createVersion('alice', 'wp1', 'x', null, 'restore');
-    assert.strictEqual(insertCalls()[0].params[SOURCE_PARAM], 'restore');
+test('a restore snapshot is NOT safe from the prune: only a publication is', async () => {
+    const id = await page();
+    await pg.query(
+        `INSERT INTO webpage_versions (id, webpage_id, source, seq, created_at) VALUES
+            ('old-restore', $1, 'restore', 1, NOW() - INTERVAL '30 days'),
+            ('old-published', $1, 'published', 2, NOW() - INTERVAL '30 days')`,
+        [id],
+    );
+    await pg.query(
+        `INSERT INTO webpage_versions (id, webpage_id, source, seq, created_at)
+         SELECT 'r' || g, $1, 'manual', 10 + g, NOW() - INTERVAL '1 day' FROM generate_series(1, 199) AS g`,
+        [id],
+    );
+    await versions.createVersion('alice', id, 'x', null, 'restore');
+    const left = new Set((await pg.query('SELECT id FROM webpage_versions WHERE webpage_id = $1', [id])).rows.map((r) => r.id));
+    assert.ok(!left.has('old-restore'), 'a restore point is an ordinary point in time');
+    assert.ok(left.has('old-published'));
 });
 
-test('een terugzet-momentopname is NIET prune-vast — alleen een publicatie is dat', async () => {
-    reset();
-    await versions.createVersion('alice', 'wp1', 'x', null, 'restore');
-    const prune = calls.getAll.find(c => /SELECT id FROM webpage_versions/i.test(c.sql));
-    assert.match(prune.sql, /source <> 'published'/);
-    assert.ok(!/source <> 'restore'/.test(prune.sql),
-        "een terugzetpunt is een gewoon punt in de tijd; alleen een bevroren publicatie mag de cap negeren");
-});
+// ── 5. Reading back ───────────────────────────────────────────────────
 
-// ── 5. Teruglezen ─────────────────────────────────────────────────────
-
-test('getVersionMeta leest nummer, maker en regelverschil terug', async () => {
-    reset();
+test('getVersionMeta reads number, maker and line difference back; a row from before them comes back null, not 0', async () => {
+    const id = await page();
+    await pg.query(
+        `INSERT INTO webpage_versions (id, webpage_id, summary, source, seq, actor_user_id, line_delta) VALUES
+            ('v-old', $1, 'Edited in code', 'manual', 7, 'alice', -3),
+            ('v-legacy', $1, 'Auto-save', 'manual', NULL, NULL, NULL)`,
+        [id],
+    );
     const meta = await versions.getVersionMeta('v-old');
-    assert.strictEqual(meta.seq, 7);
-    assert.strictEqual(meta.actorUserId, 'alice');
-    assert.strictEqual(meta.lineDelta, -3);
+    assert.deepStrictEqual([meta.seq, meta.actorUserId, meta.lineDelta], [7, 'alice', -3]);
+    const legacy = await versions.getVersionMeta('v-legacy');
+    assert.deepStrictEqual([legacy.seq, legacy.actorUserId, legacy.lineDelta], [null, null, null], 'v0 does not exist');
 });
 
-test('BIJT: een rij van vóór W4 komt terug met null, niet met 0', async () => {
-    reset();
-    const meta = await versions.getVersionMeta('v-legacy');
-    assert.strictEqual(meta.seq, null, 'v0 bestaat niet');
-    assert.strictEqual(meta.actorUserId, null);
-    assert.strictEqual(meta.lineDelta, null);
+test('the list carries number, maker and line difference, and orders by number within the same time', async () => {
+    // created_at is transaction time: rows written together tie, and without
+    // seq as the second key v15 could land under v14.
+    const id = await page();
+    await pg.query(
+        `INSERT INTO webpage_versions (id, webpage_id, summary, source, seq, actor_user_id, line_delta, created_at) VALUES
+            ('a-v14', $1, 'Edited in code', 'manual', 14, 'alice', -7, '2026-09-01T10:00:00Z'),
+            ('z-v15', $1, 'Edited again', 'ai', 15, 'bob', 3, '2026-09-01T10:00:00Z'),
+            ('v-legacy-list', $1, 'Published', 'published', NULL, NULL, NULL, '2026-08-01T10:00:00Z')`,
+        [id],
+    );
+    const out = await versions.getVersions(id);
+    assert.deepStrictEqual(out.map((v) => v.id), ['z-v15', 'a-v14', 'v-legacy-list']);
+    assert.deepStrictEqual(out.map((v) => v.seq), [15, 14, null]);
+    assert.deepStrictEqual(out.map((v) => v.actorUserId), ['bob', 'alice', null]);
+    assert.deepStrictEqual(out.map((v) => v.lineDelta), [3, -7, null]);
+    assert.deepStrictEqual(out.map((v) => v.source), ['ai', 'manual', 'published']);
 });
 
-test('de lijst vraagt de drie kolommen op en ordent op nummer binnen dezelfde tijd', async () => {
-    reset();
-    await versions.getVersions('wp1');
-    const q = calls.getAll.find(c => /SELECT id, webpage_id, summary/i.test(c.sql));
-    assert.match(q.sql, /seq, actor_user_id, line_delta/);
-    assert.match(q.sql, /ORDER BY created_at DESC, seq DESC NULLS LAST, id/,
-        'created_at is transactietijd; zonder seq als tweede sleutel kon v15 onder v14 landen');
-});
-
-test('de LIJST draagt nummer, maker en regelverschil — niet alleen de query ernaar', async () => {
-    // The test above reads only the SQL TEXT. That is exactly what went wrong: you could delete
-    // `...mapVersionFacts(r)` from `getVersions` and everything stayed green — while the whole
-    // History tab then fell over (no v-number, every maker "Unknown", no line difference). The
-    // route tests do not see it, because they stub `getVersions` and supply the rows already
-    // mapped.
-    reset();
-    listRows = [
-        {
-            id: 'v14', webpage_id: 'wp1', summary: 'Edited in code', content_length: 2048,
-            created_at: '2026-09-01T10:00:00.000Z', source: 'manual',
-            seq: 14, actor_user_id: 'alice', line_delta: -7,
-        },
-        {
-            id: 'v-legacy', webpage_id: 'wp1', summary: 'Published', content_length: 10,
-            created_at: '2026-08-01T10:00:00.000Z', source: 'published',
-            seq: null, actor_user_id: null, line_delta: null,
-        },
-    ];
-    const out = await versions.getVersions('wp1');
-    assert.deepStrictEqual(out.map(v => v.seq), [14, null]);
-    assert.deepStrictEqual(out.map(v => v.actorUserId), ['alice', null]);
-    assert.deepStrictEqual(out.map(v => v.lineDelta), [-7, null],
-        'een negatief verschil is een echt getal en mag niet als afwezig lezen; NULL blijft null, nooit 0');
-    assert.deepStrictEqual(out.map(v => v.source), ['manual', 'published']);
-});
-
-test('shouldAutoVersion klokt per BRON, zodat de AI-arm de handmatige klok niet stilzet', async () => {
-    reset();
-    await versions.shouldAutoVersion('wp1', 'manual');
-    const q = calls.getOne.find(c => /ORDER BY created_at DESC LIMIT 1/i.test(c.sql));
-    assert.match(q.sql, /source = \$2/,
-        'zonder bronfilter zet elke AI-beurt de klok van de handmatige autosave stil, en krijgt een bewerking '
-        + 'die iemand met de hand maakt geen eigen terugzetpunt meer');
-    assert.deepStrictEqual(q.params, ['wp1', 'manual']);
-
-    reset();
-    await versions.shouldAutoVersion('wp1');
-    const all = calls.getOne.find(c => /ORDER BY created_at DESC LIMIT 1/i.test(c.sql));
-    assert.strictEqual(/source = /.test(all.sql), false, 'zonder bron blijft het oude gedrag over');
+test('shouldAutoVersion clocks per SOURCE, so the AI arm does not stop the manual clock', async () => {
+    const id = await page();
+    assert.strictEqual(await versions.shouldAutoVersion(id, 'manual'), true, 'no snapshot yet');
+    await versions.createVersion('alice', id, 'turn', null, 'ai');
+    assert.strictEqual(await versions.shouldAutoVersion(id, 'manual'), true,
+        'an AI turn must not suppress the restore point of a hand edit');
+    assert.strictEqual(await versions.shouldAutoVersion(id, 'ai'), false);
+    assert.strictEqual(await versions.shouldAutoVersion(id), false, 'without a source any recent snapshot counts');
 });

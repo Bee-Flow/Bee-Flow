@@ -1,0 +1,616 @@
+{
+  "notAnObject": {
+    "error": "row is not an object"
+  },
+  "aString": {
+    "error": "row is not an object"
+  },
+  "minimal": {
+    "row": {
+      "id": null,
+      "provider": "claude",
+      "model_id": "claude-x",
+      "tier": "standard",
+      "currency": "USD",
+      "input": 3,
+      "output": 15,
+      "cache_read": null,
+      "cache_write_5m": null,
+      "cache_write_1h": null,
+      "long_ctx_threshold": null,
+      "long_ctx_rates": null,
+      "multipliers": null,
+      "source": "anthropic-pricing",
+      "catalog_version": "2026-09-01",
+      "valid_from": "1970-01-01T00:00:00.000Z",
+      "valid_to": null,
+      "validFromMs": 0,
+      "validToMs": null
+    },
+    "prototypes": {
+      "long_ctx_rates": "none",
+      "multipliers": "none"
+    }
+  },
+  "full": {
+    "row": {
+      "id": 42,
+      "provider": "claude",
+      "model_id": "claude-x",
+      "tier": "batch",
+      "currency": "EUR",
+      "input": 3,
+      "output": 15,
+      "cache_read": 0.3,
+      "cache_write_5m": 3.75,
+      "cache_write_1h": null,
+      "long_ctx_threshold": 200000,
+      "long_ctx_rates": {
+        "input": 6,
+        "output": 22.5
+      },
+      "multipliers": {
+        "batch": 0.5,
+        "flex": 0.6,
+        "regional": 1.1,
+        "geo": {
+          "eu": 1.2,
+          "us-east": 1
+        }
+      },
+      "source": "anthropic-pricing-feed-with-a-really-long-name-that-goes-on-and-",
+      "catalog_version": "2026-09-01",
+      "valid_from": "2026-01-01T00:00:00.000Z",
+      "valid_to": "2027-01-01T00:00:00.000Z",
+      "validFromMs": 1767225600000,
+      "validToMs": 1798761600000
+    },
+    "prototypes": {
+      "long_ctx_rates": true,
+      "multipliers": true,
+      "geo": true
+    }
+  },
+  "unknownProvider": {
+    "error": "unknown provider"
+  },
+  "providerNotString": {
+    "error": "unknown provider"
+  },
+  "providerProtoKey": {
+    "error": "unknown provider"
+  },
+  "modelIdEmpty": {
+    "error": "invalid model_id"
+  },
+  "modelIdSpace": {
+    "error": "invalid model_id"
+  },
+  "modelIdNotString": {
+    "error": "invalid model_id"
+  },
+  "modelIdTooLong": {
+    "error": "invalid model_id"
+  },
+  "tierUnknown": {
+    "error": "unknown tier"
+  },
+  "tierNotString": {
+    "row": {
+      "id": null,
+      "provider": "claude",
+      "model_id": "claude-x",
+      "tier": "standard",
+      "currency": "USD",
+      "input": 3,
+      "output": 15,
+      "cache_read": null,
+      "cache_write_5m": null,
+      "cache_write_1h": null,
+      "long_ctx_threshold": null,
+      "long_ctx_rates": null,
+      "multipliers": null,
+      "source": "anthropic-pricing",
+      "catalog_version": "2026-09-01",
+      "valid_from": "1970-01-01T00:00:00.000Z",
+      "valid_to": null,
+      "validFromMs": 0,
+      "validToMs": null
+    },
+    "prototypes": {
+      "long_ctx_rates": "none",
+      "multipliers": "none"
+    }
+  },
+  "tierNull": {
+    "row": {
+      "id": null,
+      "provider": "claude",
+      "model_id": "claude-x",
+      "tier": "standard",
+      "currency": "USD",
+      "input": 3,
+      "output": 15,
+      "cache_read": null,
+      "cache_write_5m": null,
+      "cache_write_1h": null,
+      "long_ctx_threshold": null,
+      "long_ctx_rates": null,
+      "multipliers": null,
+      "source": "anthropic-pricing",
+      "catalog_version": "2026-09-01",
+      "valid_from": "1970-01-01T00:00:00.000Z",
+      "valid_to": null,
+      "validFromMs": 0,
+      "validToMs": null
+    },
+    "prototypes": {
+      "long_ctx_rates": "none",
+      "multipliers": "none"
+    }
+  },
+  "currencyBad": {
+    "error": "invalid currency"
+  },
+  "currencyNumber": {
+    "error": "invalid currency"
+  },
+  "inputMissing": {
+    "error": "input/output must be finite non-negative rates"
+  },
+  "outputEmpty": {
+    "error": "input/output must be finite non-negative rates"
+  },
+  "inputNegative": {
+    "error": "input/output must be finite non-negative rates"
+  },
+  "inputTooHigh": {
+    "error": "input/output must be finite non-negative rates"
+  },
+  "inputAtCap": {
+    "row": {
+      "id": null,
+      "provider": "claude",
+      "model_id": "claude-x",
+      "tier": "standard",
+      "currency": "USD",
+      "input": 1000000,
+      "output": 15,
+      "cache_read": null,
+      "cache_write_5m": null,
+      "cache_write_1h": null,
+      "long_ctx_threshold": null,
+      "long_ctx_rates": null,
+      "multipliers": null,
+      "source": "anthropic-pricing",
+      "catalog_version": "2026-09-01",
+      "valid_from": "1970-01-01T00:00:00.000Z",
+      "valid_to": null,
+      "validFromMs": 0,
+      "validToMs": null
+    },
+    "prototypes": {
+      "long_ctx_rates": "none",
+      "multipliers": "none"
+    }
+  },
+  "inputText": {
+    "error": "input/output must be finite non-negative rates"
+  },
+  "cacheBad": {
+    "error": "invalid cache rate"
+  },
+  "validFromBad": {
+    "error": "invalid validity date"
+  },
+  "validToBad": {
+    "error": "invalid validity date"
+  },
+  "validToBeforeFrom": {
+    "error": "valid_to must be after valid_from"
+  },
+  "validToEqualFrom": {
+    "error": "valid_to must be after valid_from"
+  },
+  "longCtxEmptyThreshold": {
+    "row": {
+      "id": null,
+      "provider": "claude",
+      "model_id": "claude-x",
+      "tier": "standard",
+      "currency": "USD",
+      "input": 3,
+      "output": 15,
+      "cache_read": null,
+      "cache_write_5m": null,
+      "cache_write_1h": null,
+      "long_ctx_threshold": null,
+      "long_ctx_rates": null,
+      "multipliers": null,
+      "source": "anthropic-pricing",
+      "catalog_version": "2026-09-01",
+      "valid_from": "1970-01-01T00:00:00.000Z",
+      "valid_to": null,
+      "validFromMs": 0,
+      "validToMs": null
+    },
+    "prototypes": {
+      "long_ctx_rates": "none",
+      "multipliers": "none"
+    }
+  },
+  "longCtxThresholdZero": {
+    "error": "invalid long_ctx_threshold"
+  },
+  "longCtxThresholdTooHigh": {
+    "error": "invalid long_ctx_threshold"
+  },
+  "longCtxThresholdText": {
+    "error": "invalid long_ctx_threshold"
+  },
+  "longCtxNoRates": {
+    "error": "long_ctx_threshold needs long_ctx_rates"
+  },
+  "longCtxBrokenJson": {
+    "error": "long_ctx_threshold needs long_ctx_rates"
+  },
+  "longCtxRatesArray": {
+    "error": "long_ctx_threshold needs long_ctx_rates"
+  },
+  "longCtxRateBad": {
+    "error": "invalid long_ctx_rates.cache_write_5m"
+  },
+  "longCtxOnlyCache": {
+    "error": "long_ctx_rates needs input or output"
+  },
+  "longCtxOnlyOutput": {
+    "row": {
+      "id": null,
+      "provider": "claude",
+      "model_id": "claude-x",
+      "tier": "standard",
+      "currency": "USD",
+      "input": 3,
+      "output": 15,
+      "cache_read": null,
+      "cache_write_5m": null,
+      "cache_write_1h": null,
+      "long_ctx_threshold": 1000,
+      "long_ctx_rates": {
+        "output": 2
+      },
+      "multipliers": null,
+      "source": "anthropic-pricing",
+      "catalog_version": "2026-09-01",
+      "valid_from": "1970-01-01T00:00:00.000Z",
+      "valid_to": null,
+      "validFromMs": 0,
+      "validToMs": null
+    },
+    "prototypes": {
+      "long_ctx_rates": true,
+      "multipliers": "none"
+    }
+  },
+  "longCtxProtoRates": {
+    "row": {
+      "id": null,
+      "provider": "claude",
+      "model_id": "claude-x",
+      "tier": "standard",
+      "currency": "USD",
+      "input": 3,
+      "output": 15,
+      "cache_read": null,
+      "cache_write_5m": null,
+      "cache_write_1h": null,
+      "long_ctx_threshold": 1000,
+      "long_ctx_rates": {
+        "output": 2
+      },
+      "multipliers": null,
+      "source": "anthropic-pricing",
+      "catalog_version": "2026-09-01",
+      "valid_from": "1970-01-01T00:00:00.000Z",
+      "valid_to": null,
+      "validFromMs": 0,
+      "validToMs": null
+    },
+    "prototypes": {
+      "long_ctx_rates": true,
+      "multipliers": "none"
+    }
+  },
+  "multipliersNull": {
+    "row": {
+      "id": null,
+      "provider": "claude",
+      "model_id": "claude-x",
+      "tier": "standard",
+      "currency": "USD",
+      "input": 3,
+      "output": 15,
+      "cache_read": null,
+      "cache_write_5m": null,
+      "cache_write_1h": null,
+      "long_ctx_threshold": null,
+      "long_ctx_rates": null,
+      "multipliers": null,
+      "source": "anthropic-pricing",
+      "catalog_version": "2026-09-01",
+      "valid_from": "1970-01-01T00:00:00.000Z",
+      "valid_to": null,
+      "validFromMs": 0,
+      "validToMs": null
+    },
+    "prototypes": {
+      "long_ctx_rates": "none",
+      "multipliers": "none"
+    }
+  },
+  "multipliersBrokenJson": {
+    "error": "multipliers must be an object"
+  },
+  "multipliersArray": {
+    "error": "multipliers must be an object"
+  },
+  "multipliersNumber": {
+    "error": "multipliers must be an object"
+  },
+  "multipliersJsonText": {
+    "row": {
+      "id": null,
+      "provider": "claude",
+      "model_id": "claude-x",
+      "tier": "standard",
+      "currency": "USD",
+      "input": 3,
+      "output": 15,
+      "cache_read": null,
+      "cache_write_5m": null,
+      "cache_write_1h": null,
+      "long_ctx_threshold": null,
+      "long_ctx_rates": null,
+      "multipliers": {
+        "flex": 0.5,
+        "geo": {
+          "eu": 2
+        }
+      },
+      "source": "anthropic-pricing",
+      "catalog_version": "2026-09-01",
+      "valid_from": "1970-01-01T00:00:00.000Z",
+      "valid_to": null,
+      "validFromMs": 0,
+      "validToMs": null
+    },
+    "prototypes": {
+      "long_ctx_rates": "none",
+      "multipliers": true,
+      "geo": true
+    }
+  },
+  "multipliersEmpty": {
+    "row": {
+      "id": null,
+      "provider": "claude",
+      "model_id": "claude-x",
+      "tier": "standard",
+      "currency": "USD",
+      "input": 3,
+      "output": 15,
+      "cache_read": null,
+      "cache_write_5m": null,
+      "cache_write_1h": null,
+      "long_ctx_threshold": null,
+      "long_ctx_rates": null,
+      "multipliers": {},
+      "source": "anthropic-pricing",
+      "catalog_version": "2026-09-01",
+      "valid_from": "1970-01-01T00:00:00.000Z",
+      "valid_to": null,
+      "validFromMs": 0,
+      "validToMs": null
+    },
+    "prototypes": {
+      "long_ctx_rates": "none",
+      "multipliers": true
+    }
+  },
+  "multiplierZero": {
+    "error": "invalid multipliers.batch"
+  },
+  "multiplierTooHigh": {
+    "error": "invalid multipliers.priority"
+  },
+  "multiplierAtCap": {
+    "row": {
+      "id": null,
+      "provider": "claude",
+      "model_id": "claude-x",
+      "tier": "standard",
+      "currency": "USD",
+      "input": 3,
+      "output": 15,
+      "cache_read": null,
+      "cache_write_5m": null,
+      "cache_write_1h": null,
+      "long_ctx_threshold": null,
+      "long_ctx_rates": null,
+      "multipliers": {
+        "priority": 100
+      },
+      "source": "anthropic-pricing",
+      "catalog_version": "2026-09-01",
+      "valid_from": "1970-01-01T00:00:00.000Z",
+      "valid_to": null,
+      "validFromMs": 0,
+      "validToMs": null
+    },
+    "prototypes": {
+      "long_ctx_rates": "none",
+      "multipliers": true
+    }
+  },
+  "regionalBad": {
+    "error": "invalid multipliers.regional"
+  },
+  "regionalNull": {
+    "row": {
+      "id": null,
+      "provider": "claude",
+      "model_id": "claude-x",
+      "tier": "standard",
+      "currency": "USD",
+      "input": 3,
+      "output": 15,
+      "cache_read": null,
+      "cache_write_5m": null,
+      "cache_write_1h": null,
+      "long_ctx_threshold": null,
+      "long_ctx_rates": null,
+      "multipliers": {},
+      "source": "anthropic-pricing",
+      "catalog_version": "2026-09-01",
+      "valid_from": "1970-01-01T00:00:00.000Z",
+      "valid_to": null,
+      "validFromMs": 0,
+      "validToMs": null
+    },
+    "prototypes": {
+      "long_ctx_rates": "none",
+      "multipliers": true
+    }
+  },
+  "geoArray": {
+    "error": "multipliers.geo must be an object"
+  },
+  "geoString": {
+    "error": "multipliers.geo must be an object"
+  },
+  "geoSixteen": {
+    "row": {
+      "id": null,
+      "provider": "claude",
+      "model_id": "claude-x",
+      "tier": "standard",
+      "currency": "USD",
+      "input": 3,
+      "output": 15,
+      "cache_read": null,
+      "cache_write_5m": null,
+      "cache_write_1h": null,
+      "long_ctx_threshold": null,
+      "long_ctx_rates": null,
+      "multipliers": {
+        "geo": {
+          "g0": 1.1,
+          "g1": 1.1,
+          "g2": 1.1,
+          "g3": 1.1,
+          "g4": 1.1,
+          "g5": 1.1,
+          "g6": 1.1,
+          "g7": 1.1,
+          "g8": 1.1,
+          "g9": 1.1,
+          "g10": 1.1,
+          "g11": 1.1,
+          "g12": 1.1,
+          "g13": 1.1,
+          "g14": 1.1,
+          "g15": 1.1
+        }
+      },
+      "source": "anthropic-pricing",
+      "catalog_version": "2026-09-01",
+      "valid_from": "1970-01-01T00:00:00.000Z",
+      "valid_to": null,
+      "validFromMs": 0,
+      "validToMs": null
+    },
+    "prototypes": {
+      "long_ctx_rates": "none",
+      "multipliers": true,
+      "geo": true
+    }
+  },
+  "geoSeventeen": {
+    "error": "multipliers.geo has too many keys"
+  },
+  "geoBadKey": {
+    "error": "invalid multipliers.geo key"
+  },
+  "geoBadValue": {
+    "error": "invalid multipliers.geo.eu"
+  },
+  "sourceMissing": {
+    "error": "invalid source"
+  },
+  "sourceBlank": {
+    "error": "invalid source"
+  },
+  "sourceNonAscii": {
+    "error": "invalid source"
+  },
+  "versionMissing": {
+    "error": "invalid catalog_version"
+  },
+  "versionNonAscii": {
+    "error": "invalid catalog_version"
+  },
+  "idZero": {
+    "row": {
+      "id": 0,
+      "provider": "claude",
+      "model_id": "claude-x",
+      "tier": "standard",
+      "currency": "USD",
+      "input": 3,
+      "output": 15,
+      "cache_read": null,
+      "cache_write_5m": null,
+      "cache_write_1h": null,
+      "long_ctx_threshold": null,
+      "long_ctx_rates": null,
+      "multipliers": null,
+      "source": "anthropic-pricing",
+      "catalog_version": "2026-09-01",
+      "valid_from": "1970-01-01T00:00:00.000Z",
+      "valid_to": null,
+      "validFromMs": 0,
+      "validToMs": null
+    },
+    "prototypes": {
+      "long_ctx_rates": "none",
+      "multipliers": "none"
+    }
+  },
+  "idUndefined": {
+    "row": {
+      "id": null,
+      "provider": "claude",
+      "model_id": "claude-x",
+      "tier": "standard",
+      "currency": "USD",
+      "input": 3,
+      "output": 15,
+      "cache_read": null,
+      "cache_write_5m": null,
+      "cache_write_1h": null,
+      "long_ctx_threshold": null,
+      "long_ctx_rates": null,
+      "multipliers": null,
+      "source": "anthropic-pricing",
+      "catalog_version": "2026-09-01",
+      "valid_from": "1970-01-01T00:00:00.000Z",
+      "valid_to": null,
+      "validFromMs": 0,
+      "validToMs": null
+    },
+    "prototypes": {
+      "long_ctx_rates": "none",
+      "multipliers": "none"
+    }
+  }
+}

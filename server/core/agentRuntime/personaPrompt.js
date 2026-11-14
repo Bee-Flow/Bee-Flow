@@ -1,5 +1,5 @@
+// @typecheck
 'use strict';
-
 /**
  * Persona — an agent's role as FIELDS, and the one place a system prompt is
  * rendered from them (A1c, PLAN.md "Gestructureerde rol").
@@ -50,7 +50,6 @@
  * can also CLEAR one silently undoes a setting nobody pointed at. The one
  * asymmetric case is spelled out at the function.
  */
-
 const { hasKnowledgeSource } = require('./agentGrounding');
 const { bestEffort } = require('../../utils/bestEffort');
 
@@ -107,6 +106,7 @@ const LANGUAGE_NAMES = Object.freeze({
 // its casing silently drops the owner's language line.
 const LANGUAGE_CODE_RE = /^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})?$/;
 
+/** @param {unknown} v @returns {v is Record<string, any>} */
 function _plainObject(v) {
     return !!v && typeof v === 'object' && !Array.isArray(v);
 }
@@ -187,7 +187,7 @@ function languageNameOf(code) {
  * so no reader downstream has to defend against a half-persona.
  *
  * @param {unknown} raw
- * @returns {{persona: object, warnings: string[]}}
+ * @returns {{persona: Persona, warnings: string[]}}
  */
 function normalisePersona(raw) {
     /** @type {string[]} */
@@ -362,7 +362,7 @@ function renderSystemPrompt(persona, opts = {}) {
  * spent an afternoon on, with the row's own version history as the only way
  * back. So the empty render narrows to "not my decision", and the caller keeps
  * what it already had.
- * @param {{ handoffLabel: string | null; }} [opts]
+ * @param {{ handoffLabel?: string | null; }} [opts]
  */
 function renderedPromptFor(persona, opts = {}) {
     const rendered = renderSystemPrompt(persona, opts);
@@ -439,7 +439,7 @@ function renderedPromptFor(persona, opts = {}) {
  *   id AFTER the caller checked that it exists, is active and belongs to the agent's OWNER. Null/absent
  *   ⇒ no grant is written. There is no "unknown" case that writes one: this module cannot check, so it
  *   never assumes
- * @returns {{config: object, warnings: string[]}}
+ * @returns {{config: PersonaConfig, warnings: string[]}}
  */
 function applyPersonaToConfig(config, persona, opts = {}) {
     /** @type {string[]} */

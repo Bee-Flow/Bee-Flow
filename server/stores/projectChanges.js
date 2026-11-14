@@ -38,6 +38,7 @@
 
 const crypto = require('crypto');
 const log = require('../telemetry/log');
+const { rollback } = require('../utils/txRollback');
 
 /** Activity actions that describe content (the "Changes only" view and the change feed). */
 const CONTENT_ACTIONS = Object.freeze([
@@ -94,32 +95,25 @@ function mapMemberState(r) {
  *   getOne: (sql: string, params?: any[]) => Promise<any>,
  *   getAll: (sql: string, params?: any[]) => Promise<any[]>,
  *   run: (sql: string, params?: any[]) => Promise<{ rowCount: number }>,
- *   getClient: () => Promise<{ query: (sql: string, params?: any[]) => Promise<{ rows: any[] }>, release: () => void }>,
+ *   withTransaction: (fn: (client: { query: (sql: string, params?: any[]) => Promise<{ rows: any[] }> }) => Promise<any>) => Promise<any>,
  *   ready: () => Promise<unknown>,
  * }} db
  */
-function makeProjectChangeFns({ getOne, getAll, run, getClient, ready }) {
+function makeProjectChangeFns({ getOne, getAll, run, withTransaction, ready }) {
     /**
-     * Run `fn(client)` in one transaction; null when it throws (logged, never raised).
+     * Run `fn(client)` in one transaction; null when it throws (logged, never
+     * raised) or answers null (rolled back).
      * @param {string} label
      */
     async function inTransaction(label, fn) {
-        const client = await getClient();
         try {
-            await client.query('BEGIN');
-            const out = await fn(client);
-            if (out === null) {
-                await client.query('ROLLBACK');
-                return null;
-            }
-            await client.query('COMMIT');
-            return out;
+            return await withTransaction(async (client) => {
+                const out = await fn(client);
+                return out === null ? rollback(null) : out;
+            });
         } catch (err) {
-            try { await client.query('ROLLBACK'); } catch (err) { log.debug('connection already gone', err); }
             log.warn(`[ProjectStore] ${label} failed:`, /** @type {Error} */ (err).message);
             return null;
-        } finally {
-            client.release();
         }
     }
 
@@ -404,6 +398,7 @@ function makeProjectChangeFns({ getOne, getAll, run, getClient, ready }) {
      * (they carry an id and counts, and the feed shows an erased author as a
      * former member).
      */
+    // stepwise: account erasure; each step is idempotent and reported, and erasing again finishes a failed one
     async function eraseUserChangeState(userId) {
         await ready();
         if (!userId) return { memberState: 0, itemReads: 0 };

@@ -48,7 +48,7 @@ const LIST_LINE = /^\s*(?:[-*•]|\d+[.)])\s+\S/m;
 // ─── Cache ────────────────────────────────────────────────────────
 
 /** The LLM stage may hold a turn this long, whatever the adapter does with timeoutMs. */
-const LLM_DEADLINE_MS = Number(process.env.AUTO_TIER_LLM_DEADLINE_MS) || 2000;
+const LLM_DEADLINE_MS = require('../../utils/envNumber.mts').envInt('AUTO_TIER_LLM_DEADLINE_MS', 2000, { min: 1 });
 /** The LLM sees the start and the end of a long message; intent lives there. */
 const LLM_HEAD_CHARS = 1500;
 const LLM_TAIL_CHARS = 500;

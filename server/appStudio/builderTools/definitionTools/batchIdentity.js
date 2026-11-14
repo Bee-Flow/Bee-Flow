@@ -14,7 +14,7 @@
 
 const ops = require('../../definitionOps');
 const { LIMITS } = require('../../componentSpecs/limits');
-const { canonicalJson } = require('../../../automation/builderTools/suggestedPatch');
+const { canonicalJson } = require('../../../utils/stableJson');
 
 /**
  * Forms in the batch whose props.name a form on the target screen already

@@ -16,7 +16,8 @@
  * definition, and there is no saved assessment. Any OTHER failure is its own
  * state (`error`) — never an empty result pretending to be "not assessed".
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { API, fetchJson, jsonInit, asObject } from '@/api/complianceApi';
 import { fallbackSignals, type AiActSignals } from './aiSignals';
 import type { FilmDefinition } from '../../Studio/Playbooks/stages/runFilm';
@@ -60,6 +61,10 @@ interface AssessmentState {
     serverSignals: LadderSignals | null;
 }
 
+/** What one read settled on; loading and the error come from the query. */
+type AssessmentRead = Omit<AssessmentState, 'loading' | 'error'>;
+const NOTHING_READ: AssessmentRead = { absent: false, assessment: null, serverSignals: null };
+
 const ASSESSMENT_KINDS: readonly (string | undefined)[] = Object.freeze(['automation', 'agent']);
 
 function assessmentUrl(kind: string | undefined, id: string | number | boolean) {
@@ -88,37 +93,33 @@ function mergeSignals(server: LadderSignals | null, fallback: LadderSignals | nu
 export default function useAiActAssessment(kind: string | undefined, target: LadderSubject | null | undefined, opts: { enabled?: boolean } = {}) {
     const enabled = opts.enabled !== false;
     const id = target?.id ?? null;
-    const [state, setState] = useState<AssessmentState>({ loading: false, error: null, absent: false, assessment: null, serverSignals: null });
-    const alive = useRef(true);
-    useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+    const queryClient = useQueryClient();
+    const key = useMemo(() => ['compliance', 'aiActAssessment', kind, id] as const, [kind, id]);
+    const query = useQuery<AssessmentRead>({
+        queryKey: key,
+        enabled: enabled && !!id && ASSESSMENT_KINDS.includes(kind),
+        staleTime: 0,
+        retry: false,
+        queryFn: async () => {
+            try {
+                const body = asObject(await fetchJson(assessmentUrl(kind, id as string))) as LadderAssessment | null;
+                // `current` false or no outcome → nothing is recorded yet.
+                return { absent: false, assessment: body && body.outcome ? body : null, serverSignals: asObject(body?.signals) as LadderSignals | null };
+            } catch (err) {
+                if (isNotFound(err)) return { absent: true, assessment: null, serverSignals: null };
+                throw err;
+            }
+        },
+    });
+    // A failed read keeps what was shown, beside the error.
+    const state: AssessmentState = { ...(query.data ?? NOTHING_READ), loading: query.isFetching, error: (query.error as Error | null) ?? null };
+    const setState = useCallback((edit: (s: AssessmentRead) => AssessmentRead) => {
+        queryClient.setQueryData<AssessmentRead>(key, (prev) => edit(prev ?? NOTHING_READ));
+    }, [queryClient, key]);
+    const { refetch } = query;
+    const load = useCallback(async () => { await refetch(); }, [refetch]);
 
     const fallback: LadderSignals | null = useMemo(() => fallbackSignals(kind as string, target), [kind, target]);
-
-    const load = useCallback(async () => {
-        if (!enabled || !id || !ASSESSMENT_KINDS.includes(kind)) return;
-        setState(s => ({ ...s, loading: true, error: null }));
-        try {
-            const body = asObject(await fetchJson(assessmentUrl(kind, id))) as LadderAssessment | null;
-            if (!alive.current) return;
-            setState({
-                loading: false,
-                error: null,
-                absent: false,
-                // `current` false or no outcome → nothing is recorded yet.
-                assessment: body && body.outcome ? body : null,
-                serverSignals: asObject(body?.signals) as LadderSignals | null,
-            });
-        } catch (err) {
-            if (!alive.current) return;
-            if (isNotFound(err)) {
-                setState({ loading: false, error: null, absent: true, assessment: null, serverSignals: null });
-            } else {
-                setState(s => ({ ...s, loading: false, error: err as Error }));
-            }
-        }
-    }, [enabled, id, kind]);
-
-    useEffect(() => { load(); }, [load]);
 
     /** Re-read the live signals (after "Enable marking"); a 404 keeps the fallback. */
     const refetchSignals = useCallback(async () => {
@@ -126,19 +127,19 @@ export default function useAiActAssessment(kind: string | undefined, target: Lad
         try {
             const body = asObject(await fetchJson(`${assessmentUrl(kind, id)}/signals`)) as LadderAssessment | null;
             const sig = (asObject(body?.signals) || body) as LadderSignals | null;
-            if (alive.current && sig) setState(s => ({ ...s, serverSignals: sig, absent: false }));
+            if (sig) setState(s => ({ ...s, serverSignals: sig, absent: false }));
             return sig;
         } catch (err) {
             if (isNotFound(err)) return null;
             throw err;
         }
-    }, [id, kind]);
+    }, [id, kind, setState]);
 
     /** PUT the answers; the server recomputes the outcome and stamps who/when/expiry. */
     const save = useCallback(async (answers: LadderAnswers) => {
         if (!id) throw new Error('no target');
         const row = asObject(await fetchJson(assessmentUrl(kind, id), jsonInit('PUT', { answers }))) as LadderAssessment | null;
-        if (alive.current && row) {
+        if (row) {
             setState(s => ({
                 ...s,
                 absent: false,
@@ -147,17 +148,17 @@ export default function useAiActAssessment(kind: string | undefined, target: Lad
             }));
         }
         return row;
-    }, [id, kind]);
+    }, [id, kind, setState]);
 
     /** Flip the org-wide Art. 50(2) marking on, then refetch the signals so the sub-card turns green. */
     const enableMarking = useCallback(async () => {
         await fetchJson(`${API}/settings`, jsonInit('PUT', { ai_content_marking_enabled: true }));
         const sig = await refetchSignals();
-        if (!sig && alive.current) {
+        if (!sig) {
             // Routes absent: reflect the flip locally so the card still answers.
             setState(s => ({ ...s, serverSignals: { ...(s.serverSignals || {}), marking_enabled: true } }));
         }
-    }, [refetchSignals]);
+    }, [refetchSignals, setState]);
 
     const signals = useMemo(() => mergeSignals(state.serverSignals, fallback), [state.serverSignals, fallback]);
 

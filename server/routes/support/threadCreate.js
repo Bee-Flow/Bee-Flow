@@ -1,3 +1,4 @@
+// @typecheck
 /** @typedef {import('../../services/outboundChatNotifier').SupportThread} SupportThread */
 /**
  * Company inbox: the steps of creating a ticket (POST /threads), anonymous
@@ -163,10 +164,10 @@ function afterAiReply(result, { thread, userId, requesterEmail, requesterName, s
  * @typedef {{ thread: SupportThread,
  *   requesterUrl: string,
  *   effectiveSource: string,
- *   firstMsg: unknown,
- *   requesterEmail: unknown,
- *   requesterName: unknown,
- *   subject: unknown,
+ *   firstMsg: { id?: string } | null,
+ *   requesterEmail: string,
+ *   requesterName: string | null,
+ *   subject: string,
  *   skipOutboundEmail: unknown }} AnnounceCreatedArgs
  */
 /**

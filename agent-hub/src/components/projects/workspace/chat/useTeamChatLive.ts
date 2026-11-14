@@ -5,7 +5,7 @@
 // is what these hooks add.
 
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { refreshTeamChatMessage, useProjectChatQuery } from '@/api/queries/projectChats';
 import { teamChatKeys } from '@/api/queries/useTeamChatMessages';
 import { useProjectLive, type ProjectLiveEvent } from '../ProjectLiveContext';
@@ -66,22 +66,23 @@ export function useTeamChatLive(projectId: string, chatId: string) {
     const [ai, setAi] = useState<TeamChatAiState>({ answering: false, problem: null });
     const [gone, setGone] = useState(false);
     const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const detailKey = useMemo(() => teamChatKeys.detail(projectId, chatId), [projectId, chatId]);
 
     const setAnswering = useCallback((answering: boolean, problem: TeamChatAiProblem = null) => {
         if (timer.current) clearTimeout(timer.current);
-        timer.current = answering ? setTimeout(() => { void qc.invalidateQueries({ queryKey: teamChatKeys.detail(projectId, chatId) }); }, AI_ANSWER_TIMEOUT_MS) : null;
+        timer.current = answering ? setTimeout(() => { void qc.invalidateQueries({ queryKey: detailKey }); }, AI_ANSWER_TIMEOUT_MS) : null;
         setAi({ answering, problem });
-    }, [qc, projectId, chatId]);
+    }, [qc, detailKey]);
 
     useEffect(() => {
         if (snapshot.data?.aiState) setAnswering(snapshot.data.aiState.status === 'running');
     }, [snapshot.dataUpdatedAt, snapshot.data?.aiState, setAnswering]);
     useEffect(() => {
-        const refresh = () => { void qc.invalidateQueries({ queryKey: teamChatKeys.detail(projectId, chatId) }); };
+        const refresh = () => { void qc.invalidateQueries({ queryKey: detailKey }); };
         const poll = setInterval(refresh, 15000);
         window.addEventListener('online', refresh);
         return () => { clearInterval(poll); window.removeEventListener('online', refresh); };
-    }, [qc, projectId, chatId]);
+    }, [qc, detailKey]);
 
     useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
@@ -90,9 +91,9 @@ export function useTeamChatLive(projectId: string, chatId: string) {
         if (!handler || chatIdOfEvent(event) !== chatId) return;
         handler({ qc, projectId, chatId, setAnswering, setGone }, event.payload || {});
         if (kind.startsWith('chat.ai.')) {
-            void qc.invalidateQueries({ queryKey: teamChatKeys.detail(projectId, chatId), exact: true });
+            void qc.invalidateQueries({ queryKey: detailKey, exact: true });
         }
-    }), [subscribe, qc, projectId, chatId, setAnswering]);
+    }), [subscribe, qc, projectId, chatId, setAnswering, detailKey]);
 
     return { ai, gone, setAnswering, threadId: snapshot.data?.aiState?.threadId ?? null };
 }

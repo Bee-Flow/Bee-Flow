@@ -1,7 +1,8 @@
-import { render, screen, cleanup, waitFor } from '@testing-library/react';
+import { screen, cleanup, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ok } from '@/test/http';
+import { renderWithClient } from '@/test/render';
 import { authFetch } from '@/utils/helpers';
 import OrgIntegrationCacheEditor from './OrgIntegrationCacheEditor';
 import { toast } from '../../shared/Toast';
@@ -35,21 +36,21 @@ describe('OrgIntegrationCacheEditor', () => {
         // thousands of rows sat there between prune passes — and hid the one
         // button that would have deleted them.
         authFetch.mockImplementation(() => ok(envelope({ entries: 0, expiredEntries: 40, bytes: 4096 })));
-        render(<OrgIntegrationCacheEditor orgId="org-a" />);
+        renderWithClient(<OrgIntegrationCacheEditor orgId="org-a" />);
         expect(await screen.findByText(/Delete the 40 stored answer\(s\) now/)).toBeTruthy();
     });
 
     it('reports the size, not just the count', async () => {
         authFetch.mockImplementation(() => ok(envelope({ entries: 3, expiredEntries: 1, bytes: 2 * 1024 * 1024 })));
-        render(<OrgIntegrationCacheEditor orgId="org-a" />);
+        renderWithClient(<OrgIntegrationCacheEditor orgId="org-a" />);
         expect(await screen.findByText(/Stored right now: 4 answer\(s\), 2\.0 MB\./)).toBeTruthy();
         expect(screen.getByText(/1 of those have already expired/)).toBeTruthy();
     });
 
     it('says nothing about stored answers when there are none', async () => {
         authFetch.mockImplementation(() => ok(envelope()));
-        render(<OrgIntegrationCacheEditor orgId="org-a" />);
-        await waitFor(() => expect(authFetch).toHaveBeenCalled());
+        renderWithClient(<OrgIntegrationCacheEditor orgId="org-a" />);
+        await loaded();
         expect(screen.queryByText(/Stored right now/)).toBeNull();
         expect(screen.queryByText(/Delete the/)).toBeNull();
     });
@@ -61,7 +62,7 @@ describe('OrgIntegrationCacheEditor', () => {
             enabled: true, ttlSeconds: 300, configured: true, killSwitch: false,
             ttlRange: { min: 60, max: 3600 }, entries: 5,
         }));
-        render(<OrgIntegrationCacheEditor orgId="org-a" />);
+        renderWithClient(<OrgIntegrationCacheEditor orgId="org-a" />);
         expect(await screen.findByText(/Delete the 5 stored answer\(s\) now/)).toBeTruthy();
         expect(screen.getByText(/Stored right now: 5 answer\(s\), 0 B\./)).toBeTruthy();
     });
@@ -74,7 +75,7 @@ describe('OrgIntegrationCacheEditor', () => {
             ? Promise.reject(new TypeError('Failed to fetch'))
             : ok(envelope({ entries: 2, bytes: 10 }))));
         const user = userEvent.setup();
-        render(<OrgIntegrationCacheEditor orgId="org-a" />);
+        renderWithClient(<OrgIntegrationCacheEditor orgId="org-a" />);
 
         await user.click(await screen.findByRole('button', { name: /Delete the 2 stored answer\(s\) now/ }));
 
@@ -94,6 +95,12 @@ describe('OrgIntegrationCacheEditor', () => {
  * outbound HTTP, so the widening needs a fresh tick rather than a reworded
  * screen.
  */
+/** The read answered and the editor replaced its loading line. */
+const loaded = () => waitFor(() => {
+    expect(authFetch).toHaveBeenCalled();
+    expect(screen.queryByText(/Loading/)).toBeNull();
+});
+
 describe('OrgIntegrationCacheEditor — what may be kept', () => {
     beforeEach(() => { cleanup(); authFetch.mockReset(); });
 
@@ -103,16 +110,16 @@ describe('OrgIntegrationCacheEditor — what may be kept', () => {
 
     it('shows both ticks once the feature is on', async () => {
         authFetch.mockImplementation(() => ok(envelope({ scopes: { integration: true, http: false } })));
-        render(<OrgIntegrationCacheEditor orgId="org-a" />);
-        await waitFor(() => expect(authFetch).toHaveBeenCalled());
+        renderWithClient(<OrgIntegrationCacheEditor orgId="org-a" />);
+        await loaded();
         expect(appTick().checked).toBe(true);
         expect(httpTick().checked).toBe(false);
     });
 
     it('hides them while the feature is off — there is nothing to scope', async () => {
         authFetch.mockImplementation(() => ok(envelope({ enabled: false })));
-        render(<OrgIntegrationCacheEditor orgId="org-a" />);
-        await waitFor(() => expect(authFetch).toHaveBeenCalled());
+        renderWithClient(<OrgIntegrationCacheEditor orgId="org-a" />);
+        await loaded();
         expect(screen.queryByRole('checkbox', { name: /Answers from web service calls/i })).toBeNull();
     });
 
@@ -121,8 +128,8 @@ describe('OrgIntegrationCacheEditor — what may be kept', () => {
         // the migration stamps, so the screen never shows a state the server
         // would not agree with.
         authFetch.mockImplementation(() => ok(envelope()));   // no `scopes` key
-        render(<OrgIntegrationCacheEditor orgId="org-a" />);
-        await waitFor(() => expect(authFetch).toHaveBeenCalled());
+        renderWithClient(<OrgIntegrationCacheEditor orgId="org-a" />);
+        await loaded();
         expect(appTick().checked).toBe(true);
         expect(httpTick().checked).toBe(false);
     });
@@ -130,8 +137,8 @@ describe('OrgIntegrationCacheEditor — what may be kept', () => {
     it('ticking outbound HTTP is a change worth saving, and is what gets sent', async () => {
         authFetch.mockImplementation(() => ok(envelope({ scopes: { integration: true, http: false, ai: false } })));
         const user = userEvent.setup();
-        render(<OrgIntegrationCacheEditor orgId="org-a" />);
-        await waitFor(() => expect(authFetch).toHaveBeenCalled());
+        renderWithClient(<OrgIntegrationCacheEditor orgId="org-a" />);
+        await loaded();
 
         const save = screen.getByRole('button', { name: /^Save$/i });
         expect(save.disabled).toBe(true);
@@ -141,7 +148,7 @@ describe('OrgIntegrationCacheEditor — what may be kept', () => {
         authFetch.mockClear();
         authFetch.mockImplementation(() => ok(envelope({ scopes: { integration: true, http: true, ai: false } })));
         await user.click(save);
-        await waitFor(() => expect(authFetch).toHaveBeenCalled());
+        await loaded();
         const put = authFetch.mock.calls.find(([, init]) => init && init.method === 'PUT');
         expect(put).toBeTruthy();
         expect(JSON.parse(put[1].body).scopes).toEqual({ integration: true, http: true, ai: false });
@@ -149,8 +156,8 @@ describe('OrgIntegrationCacheEditor — what may be kept', () => {
 
     it('answers from AI steps are off by default, also for a server that predates the setting', async () => {
         authFetch.mockImplementation(() => ok(envelope({ scopes: { integration: true, http: false } })));   // no `ai` key
-        render(<OrgIntegrationCacheEditor orgId="org-a" />);
-        await waitFor(() => expect(authFetch).toHaveBeenCalled());
+        renderWithClient(<OrgIntegrationCacheEditor orgId="org-a" />);
+        await loaded();
         expect(aiTick().checked).toBe(false);
         expect(screen.getByRole('button', { name: /^Save$/i }).disabled).toBe(true);
     });
@@ -158,8 +165,8 @@ describe('OrgIntegrationCacheEditor — what may be kept', () => {
     it('ticking AI answers is a change worth saving, and is what gets sent', async () => {
         authFetch.mockImplementation(() => ok(envelope({ scopes: { integration: true, http: false, ai: false } })));
         const user = userEvent.setup();
-        render(<OrgIntegrationCacheEditor orgId="org-a" />);
-        await waitFor(() => expect(authFetch).toHaveBeenCalled());
+        renderWithClient(<OrgIntegrationCacheEditor orgId="org-a" />);
+        await loaded();
 
         await user.click(aiTick());
         const save = screen.getByRole('button', { name: /^Save$/i });
@@ -168,7 +175,7 @@ describe('OrgIntegrationCacheEditor — what may be kept', () => {
         authFetch.mockClear();
         authFetch.mockImplementation(() => ok(envelope({ scopes: { integration: true, http: false, ai: true } })));
         await user.click(save);
-        await waitFor(() => expect(authFetch).toHaveBeenCalled());
+        await loaded();
         const put = authFetch.mock.calls.find(([, init]) => init && init.method === 'PUT');
         expect(JSON.parse(put[1].body).scopes).toEqual({ integration: true, http: false, ai: true });
         await waitFor(() => expect(aiTick().checked).toBe(true));
@@ -176,16 +183,16 @@ describe('OrgIntegrationCacheEditor — what may be kept', () => {
 
     it('says what is stored and that test runs never use it', async () => {
         authFetch.mockImplementation(() => ok(envelope()));
-        render(<OrgIntegrationCacheEditor orgId="org-a" />);
-        await waitFor(() => expect(authFetch).toHaveBeenCalled());
+        renderWithClient(<OrgIntegrationCacheEditor orgId="org-a" />);
+        await loaded();
         expect(screen.getByText(/same \(privacy-protected\) input, the stored answer is reused/i)).toBeTruthy();
         expect(screen.getByText(/never used in test runs/i)).toBeTruthy();
     });
 
     it('the copy names outbound web service calls, not just apps', async () => {
         authFetch.mockImplementation(() => ok(envelope()));
-        render(<OrgIntegrationCacheEditor orgId="org-a" />);
-        await waitFor(() => expect(authFetch).toHaveBeenCalled());
+        renderWithClient(<OrgIntegrationCacheEditor orgId="org-a" />);
+        await loaded();
         expect(screen.getByText(/or of a web service they call directly/i)).toBeTruthy();
     });
 });

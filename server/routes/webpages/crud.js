@@ -13,7 +13,7 @@ const { resolveAudienceContext } = require('../../auth/audience');
 const { requireAuth } = require('../../auth/permissions');
 const webpageUsageSync = require('../../core/webpages/webpageUsageSync');
 const versionFacts = require('../../core/webpages/versionFacts');
-const { readSlotsForReader } = require('./publishedSnapshot');
+const { readSlotsForReader } = require('../../usecases/webpages/publishedSnapshot');
 const { reSnapshotWebpageShares } = require('./publicShares');
 const {
     MAX_PROMPT_CHARS,
@@ -25,7 +25,7 @@ const {
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded, bodyOf, choice, idList, NO_QUERY } = require('./schemas');
-const { FRAMEWORKS, RUNTIMES } = require('../../integrations/webpageFramework');
+const { FRAMEWORKS, RUNTIMES } = require('../../core/webpages/frameworkModel.mts');
 const log = require('../../telemetry/log');
 const { sessionUser } = require('../../core/http/sessionUser');
 
@@ -92,8 +92,8 @@ function register(router) {
         // Record the framework + runtime tier in settings so the chat handler and
         // preview pipeline know how to build this project. ABSENT falls back to
         // the safe defaults; a word that is not one of the two is refused by the
-        // schema and never lands here — see webpageFramework.js.
-        const { DEFAULT_NEW_FRAMEWORK, DEFAULT_RUNTIME } = require('../../integrations/webpageFramework');
+        // schema and never lands here — see core/webpages/frameworkModel.mts.
+        const { DEFAULT_NEW_FRAMEWORK, DEFAULT_RUNTIME } = require('../../core/webpages/frameworkModel.mts');
         const settings = {
             framework: framework ?? DEFAULT_NEW_FRAMEWORK,
             runtime: runtime ?? DEFAULT_RUNTIME,
@@ -238,7 +238,7 @@ function register(router) {
         });
     });
 
-    router.put('/:id', requireAuth, validate({ body: UpdateBody, query: NO_QUERY }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof UpdateBody>, import('zod').infer<typeof NO_QUERY>>} */ req, /** @type {import('express').Response} */ res) => {
+    router.put('/:id', requireAuth, validate({ body: UpdateBody, query: NO_QUERY }), async (req, /** @type {import('express').Response} */ res) => {
         const userId = req.session.user.id;
         const id = req.params.id;
         const {

@@ -31,7 +31,8 @@
  */
 
 import { createJsonResource } from '@/api/client';
-import { API_BASE, authFetch } from '@/utils/helpers';
+import { authFetch } from '@/utils/helpers';
+import { apiUrl } from '@/api/typedRequest';
 import { fromError } from '@/components/shared/managedPart';
 import type {
     Body,
@@ -43,7 +44,6 @@ import type {
 } from './datatablesApi.types';
 import { logger } from '@/utils/logger';
 
-const base = `${API_BASE}/api/datatables`;
 const enc = encodeURIComponent;
 
 // One request helper for every call: JSON in and out, and on a non-2xx an
@@ -59,9 +59,9 @@ const request = createJsonResource('', {
 
 export const datatablesApi = {
     /** Every table the caller holds any grade on, each already carrying it. */
-    list: () => request(base),
+    list: () => request(apiUrl('GET /api/datatables')),
     /** body: { name, key, description, fields?, rowScope?, projectId? } */
-    create: (body: Body) => request(base, { method: 'POST', body: JSON.stringify(body) }),
+    create: (body: Body) => request(apiUrl('POST /api/datatables'), { method: 'POST', body: JSON.stringify(body) }),
     /**
      * Provision a table whose COLUMNS the platform owns — today only
      * `kind:'http_cache'`, the visible half of "ask this web service once".
@@ -78,7 +78,7 @@ export const datatablesApi = {
      *
      * body: { kind, name, key, description?, retentionDays?, scope? }
      */
-    createManaged: (body: Body) => request(`${base}/managed`, { method: 'POST', body: JSON.stringify(body) }),
+    createManaged: (body: Body) => request(apiUrl('POST /api/datatables/managed'), { method: 'POST', body: JSON.stringify(body) }),
     /**
      * "Build it with AI": `{ mode: 'create'|'revise', brief?, note?, current?, allowDestructive? }`
      * → `{ draft: { name, key, description, fields, notes, changes }, mode }`.
@@ -86,8 +86,8 @@ export const datatablesApi = {
      * to their own unsaved state; `allowDestructive` defaults to false and
      * is the person's explicit say-so that a column may go or change type.
      */
-    draft: (body: Body) => request(`${base}/ai/draft`, { method: 'POST', body: JSON.stringify(body) }),
-    get: (id: string) => request(`${base}/${enc(id)}`),
+    draft: (body: Body) => request(apiUrl('POST /api/datatables/ai/draft'), { method: 'POST', body: JSON.stringify(body) }),
+    get: (id: string) => request(apiUrl('GET /api/datatables/{id}', { params: { id } })),
     /**
      * Change what the table IS, never what it holds: name, description,
      * lawful basis, row scope, and the retention pair.
@@ -102,7 +102,7 @@ export const datatablesApi = {
      * patch: { name?, description?, lawfulBasis?, rowScope?, retentionDays?,
      *          retentionField?, subjectColumn? }
      */
-    update: (id: string, patch: Body) => request(`${base}/${enc(id)}`, {
+    update: (id: string, patch: Body) => request(apiUrl('PATCH /api/datatables/{id}', { params: { id } }), {
         method: 'PATCH', body: JSON.stringify(patch),
     }),
     /**
@@ -110,14 +110,14 @@ export const datatablesApi = {
      * `{ modelVersion, schemaStamp, tableExists, missingColumns, stampBehind,
      *    healthy }`.
      */
-    health: (id: string) => request(`${base}/${enc(id)}/health`),
+    health: (id: string) => request(apiUrl('GET /api/datatables/{id}/health', { params: { id } })),
     /**
      * Re-emit this table's own DDL. Every statement is IF NOT EXISTS and the
      * plan is add-only by construction, so on a healthy table it is a no-op —
      * which is what makes it safe to offer as a menu item rather than as a
      * support procedure. Answers `{ repaired: true, ...health }`.
      */
-    repair: (id: string) => request(`${base}/${enc(id)}/repair`, { method: 'POST' }),
+    repair: (id: string) => request(apiUrl('POST /api/datatables/{id}/repair', { params: { id } }), { method: 'POST' }),
     /**
      * The server refuses (409 `in_use`) when automations still name this table,
      * unless the caller confirms. Pass `{confirmBreaking:true}` only from a
@@ -127,15 +127,15 @@ export const datatablesApi = {
      * for a confirmation.
      */
     remove: (id: string, { confirmBreaking = false }: ConfirmBreakingOptions = {}) => request(
-        `${base}/${enc(id)}${confirmBreaking ? '?confirmBreaking=true' : ''}`, { method: 'DELETE' }),
+        `${apiUrl('DELETE /api/datatables/{id}', { params: { id } })}${confirmBreaking ? '?confirmBreaking=true' : ''}`, { method: 'DELETE' }),
 
     // Columns. The read hands back `modelVersion`; send it back on the write
     // and a concurrent edit comes back as a 409 instead of silently winning.
     // `confirmBreaking` answers the OTHER 409 (`breaking_change`): a column a
     // automation still reads. Two different 409 codes, and the caller must tell
     // them apart — one means reload, the other means ask.
-    getSchema: (id: string) => request(`${base}/${enc(id)}/schema`),
-    putSchema: (id: string, fields: unknown[], expectedVersion: unknown, { confirmBreaking = false }: ConfirmBreakingOptions = {}) => request(`${base}/${enc(id)}/schema`, {
+    getSchema: (id: string) => request(apiUrl('GET /api/datatables/{id}/schema', { params: { id } })),
+    putSchema: (id: string, fields: unknown[], expectedVersion: unknown, { confirmBreaking = false }: ConfirmBreakingOptions = {}) => request(apiUrl('PUT /api/datatables/{id}/schema', { params: { id } }), {
         method: 'PUT',
         body: JSON.stringify({ fields, expectedVersion, confirmBreaking }),
     }),
@@ -161,10 +161,10 @@ export const datatablesApi = {
         if (dir) qs.set('dir', dir);
         if (q) qs.set('q', q);
         const query = qs.toString();
-        return request(`${base}/${enc(id)}/rows${query ? `?${query}` : ''}`);
+        return request(`${apiUrl('GET /api/datatables/{id}/rows', { params: { id } })}${query ? `?${query}` : ''}`);
     },
-    getRow: (id: string, rowId: string) => request(`${base}/${enc(id)}/rows/${enc(rowId)}`),
-    addRow: (id: string, values: Body) => request(`${base}/${enc(id)}/rows`, {
+    getRow: (id: string, rowId: string) => request(apiUrl('GET /api/datatables/{id}/rows/{rowId}', { params: { id, rowId } })),
+    addRow: (id: string, values: Body) => request(apiUrl('POST /api/datatables/{id}/rows', { params: { id } }), {
         method: 'POST', body: JSON.stringify({ values }),
     }),
     /**
@@ -173,10 +173,10 @@ export const datatablesApi = {
      * silently overwrite each other. A stale one comes back 409 `row_conflict`
      * carrying the row as it now is, so the caller can show what changed.
      */
-    updateRow: (id: string, rowId: string, values: Body, expectedUpdatedAt: unknown) => request(`${base}/${enc(id)}/rows/${enc(rowId)}`, {
+    updateRow: (id: string, rowId: string, values: Body, expectedUpdatedAt: unknown) => request(apiUrl('PUT /api/datatables/{id}/rows/{rowId}', { params: { id, rowId } }), {
         method: 'PUT', body: JSON.stringify({ values, expectedUpdatedAt }),
     }),
-    deleteRow: (id: string, rowId: string) => request(`${base}/${enc(id)}/rows/${enc(rowId)}`, { method: 'DELETE' }),
+    deleteRow: (id: string, rowId: string) => request(apiUrl('DELETE /api/datatables/{id}/rows/{rowId}', { params: { id, rowId } }), { method: 'DELETE' }),
     /**
      * Delete up to 200 rows in ONE transaction — the answer to a ticked
      * select-all over a page of rows.
@@ -188,7 +188,7 @@ export const datatablesApi = {
      * `{ code: 'too_many_ids', limit, used }` — a number the caller can show,
      * not a truncated delete.
      */
-    bulkDeleteRows: (id: string, ids: string[]) => request(`${base}/${enc(id)}/rows/bulk-delete`, {
+    bulkDeleteRows: (id: string, ids: string[]) => request(apiUrl('POST /api/datatables/{id}/rows/bulk-delete', { params: { id } }), {
         method: 'POST', body: JSON.stringify({ ids }),
     }),
     /**
@@ -196,7 +196,7 @@ export const datatablesApi = {
      * error}]}` — a spreadsheet with two bad dates in it is a fixable import,
      * so the bad rows are reported by line rather than failing the whole file.
      */
-    bulkImport: (id: string, rows: unknown) => request(`${base}/${enc(id)}/rows/bulk`, {
+    bulkImport: (id: string, rows: unknown) => request(apiUrl('POST /api/datatables/{id}/rows/bulk', { params: { id } }), {
         method: 'POST', body: JSON.stringify({ rows }),
     }),
     /**
@@ -208,7 +208,7 @@ export const datatablesApi = {
      * hard way. The caller turns the text into a Blob and revokes the URL.
      */
     exportCsv: async (id: string): Promise<string> => {
-        const res = await authFetch(`${base}/${enc(id)}/rows.csv`, { headers: { Accept: 'text/csv' } });
+        const res = await authFetch(apiUrl('GET /api/datatables/{id}/rows.csv', { params: { id } }), { headers: { Accept: 'text/csv' } });
         if (!res.ok) {
             let body = null;
             try { body = await res.json(); } catch (err) { logger.debug('not JSON', err); }
@@ -231,17 +231,17 @@ export const datatablesApi = {
     // (`groups_required`), not a silent widening. Write access stays the
     // separate `writeMode` axis: publishing must never be what made a table
     // org-WRITABLE.
-    setSharing: (id: string, descriptor: Body) => request(`${base}/${enc(id)}/sharing`, {
+    setSharing: (id: string, descriptor: Body) => request(apiUrl('PUT /api/datatables/{id}/sharing', { params: { id } }), {
         method: 'PUT', body: JSON.stringify(descriptor),
     }),
-    listGrants: (id: string) => request(`${base}/${enc(id)}/grants`),
-    addGrant: (id: string, grant: Body) => request(`${base}/${enc(id)}/grants`, {
+    listGrants: (id: string) => request(apiUrl('GET /api/datatables/{id}/grants', { params: { id } })),
+    addGrant: (id: string, grant: Body) => request(apiUrl('POST /api/datatables/{id}/grants', { params: { id } }), {
         method: 'POST', body: JSON.stringify(grant),
     }),
-    removeGrant: (id: string, grantId: string) => request(`${base}/${enc(id)}/grants/${enc(grantId)}`, { method: 'DELETE' }),
+    removeGrant: (id: string, grantId: string) => request(apiUrl('DELETE /api/datatables/{id}/grants/{grantId}', { params: { id, grantId } }), { method: 'DELETE' }),
 
     /** Which automations read or write this table — the answer before a delete. */
-    listUsage: (id: string) => request(`${base}/${enc(id)}/usage`),
+    listUsage: (id: string) => request(apiUrl('GET /api/datatables/{id}/usage', { params: { id } })),
 
     // A table that MIRRORS a Nextcloud Tables table (server/core/dataEngine/
     // sources/nextcloudTable). The collection routes live under /nextcloud;
@@ -251,13 +251,13 @@ export const datatablesApi = {
     // emoji, rowsCount, columnsCount, views:[{ncViewId,title,linkedAs}],
     // linkedAs:[datatableId]}]}` — `connected:false` carries the server's
     // reason code, which the dialog turns into a sentence.
-    linkable: (scope: string | null = null) => request(`${base}/nextcloud/linkable${scope ? `?scope=${enc(scope)}` : ''}`),
+    linkable: (scope: string | null = null) => request(`${apiUrl('GET /api/datatables/nextcloud/linkable')}${scope ? `?scope=${enc(scope)}` : ''}`),
     /** The columns a link would arrive with: `{ncTableId, ncViewId, columns:[…]}`. */
     describeNc: ({ ncTableId = null, ncViewId = null, scope = null }: DescribeNcOptions = {}) => {
         const qs = new URLSearchParams();
         if (ncViewId) qs.set('ncViewId', String(ncViewId)); else qs.set('ncTableId', String(ncTableId));
         if (scope) qs.set('scope', scope);
-        return request(`${base}/nextcloud/describe?${qs}`);
+        return request(`${apiUrl('GET /api/datatables/nextcloud/describe')}?${qs}`);
     },
     /**
      * Link one or several tables in one go. Answers `{datatables, warnings,
@@ -269,24 +269,24 @@ export const datatablesApi = {
      *         relations?:[{from:{ncTableId,ncColumnId}, to:{ncTableId,ncColumnId}}],
      *         schedule?:{everyMinutes} }
      */
-    linkNc: (body: Body) => request(`${base}/nextcloud/link`, { method: 'POST', body: JSON.stringify(body) }),
-    getNc: (id: string) => request(`${base}/${enc(id)}/nextcloud`),
+    linkNc: (body: Body) => request(apiUrl('POST /api/datatables/nextcloud/link'), { method: 'POST', body: JSON.stringify(body) }),
+    getNc: (id: string) => request(apiUrl('GET /api/datatables/{id}/nextcloud', { params: { id } })),
     /**
      * The PULSE a client sends while it has a mirror open: `{dataVersion,
      * rowCount, sync}`. Every pulse makes the server re-check Nextcloud (at
      * most once per few seconds), and a `dataVersion` that moved is the
      * signal to reload the rows — that is what makes a mirror live.
      */
-    pulseNc: (id: string) => request(`${base}/${enc(id)}/nextcloud/pulse`),
+    pulseNc: (id: string) => request(apiUrl('GET /api/datatables/{id}/nextcloud/pulse', { params: { id } })),
     /** Refresh now. 200 `{ok, sync, warnings}` or 202 `{alreadyRunning, sync}`. */
-    refreshNc: (id: string) => request(`${base}/${enc(id)}/nextcloud/refresh`, { method: 'POST' }),
+    refreshNc: (id: string) => request(apiUrl('POST /api/datatables/{id}/nextcloud/refresh', { params: { id } }), { method: 'POST' }),
     /** Declared relations, replacing the previous list: [{targetDatatableId, localFieldId, targetFieldId}]. */
-    setNcRelations: (id: string, relations: unknown[]) => request(`${base}/${enc(id)}/nextcloud/relations`, {
+    setNcRelations: (id: string, relations: unknown[]) => request(apiUrl('PUT /api/datatables/{id}/nextcloud/relations', { params: { id } }), {
         method: 'PUT', body: JSON.stringify({ relations }),
     }),
     /** patch: { schedule?:{everyMinutes}, refreshOnView? } */
-    updateNc: (id: string, patch: Body) => request(`${base}/${enc(id)}/nextcloud`, { method: 'PUT', body: JSON.stringify(patch) }),
-    relinkNc: (id: string) => request(`${base}/${enc(id)}/nextcloud/relink`, { method: 'POST' }),
+    updateNc: (id: string, patch: Body) => request(apiUrl('PUT /api/datatables/{id}/nextcloud', { params: { id } }), { method: 'PUT', body: JSON.stringify(patch) }),
+    relinkNc: (id: string) => request(apiUrl('POST /api/datatables/{id}/nextcloud/relink', { params: { id } }), { method: 'POST' }),
 
     // A table that MIRRORS one worksheet of a spreadsheet file in Google
     // Drive, OneDrive or Nextcloud Files (server/core/dataEngine/sources/
@@ -299,7 +299,7 @@ export const datatablesApi = {
     // reason?}]}` for ONLY the storages this account has a credential or
     // binding for — cheap, no call to any provider — so the create dialog can
     // gate its card on one probe. An empty list means no card at all.
-    spreadsheetProviders: (scope: string | null = null) => request(`${base}/spreadsheets/providers${scope ? `?scope=${enc(scope)}` : ''}`),
+    spreadsheetProviders: (scope: string | null = null) => request(`${apiUrl('GET /api/datatables/spreadsheets/providers')}${scope ? `?scope=${enc(scope)}` : ''}`),
     /**
      * One folder of one storage: `{provider, folder:{id,name,path:[…]},
      * items:[{id, name, kind:'folder'|'file', format?, size?, modifiedAt?,
@@ -317,7 +317,7 @@ export const datatablesApi = {
         if (shared) qs.set('shared', 'true');
         if (pageToken) qs.set('pageToken', pageToken);
         if (scope) qs.set('scope', scope);
-        return request(`${base}/spreadsheets/browse?${qs}`);
+        return request(`${apiUrl('GET /api/datatables/spreadsheets/browse')}?${qs}`);
     },
     /**
      * One file, one sheet, read up to the header row: the sheet list, the
@@ -333,7 +333,7 @@ export const datatablesApi = {
         if (sheet) qs.set('sheet', sheet);
         if (headerRow) qs.set('headerRow', String(headerRow));
         if (scope) qs.set('scope', scope);
-        return request(`${base}/spreadsheets/describe?${qs}`);
+        return request(`${apiUrl('GET /api/datatables/spreadsheets/describe')}?${qs}`);
     },
     /**
      * Link one or several sheets in one go — the spreadsheet twin of `linkNc`,
@@ -345,19 +345,19 @@ export const datatablesApi = {
      *         sharedWriteOptIn?, name, key, description? }] (1..10),
      *         relations:[{ from:{provider,fileId,sheet,col}, to:{…} }] }
      */
-    linkSpreadsheets: (body: Body) => request(`${base}/spreadsheets/link`, { method: 'POST', body: JSON.stringify(body) }),
+    linkSpreadsheets: (body: Body) => request(apiUrl('POST /api/datatables/spreadsheets/link'), { method: 'POST', body: JSON.stringify(body) }),
 
-    getSource: (id: string) => request(`${base}/${enc(id)}/source`),
+    getSource: (id: string) => request(apiUrl('GET /api/datatables/{id}/source', { params: { id } })),
     /** The pulse, for any kind of mirror: `{dataVersion, rowCount, sync}` (see pulseNc). */
-    pulseSource: (id: string) => request(`${base}/${enc(id)}/source/pulse`),
-    refreshSource: (id: string) => request(`${base}/${enc(id)}/source/refresh`, { method: 'POST' }),
+    pulseSource: (id: string) => request(apiUrl('GET /api/datatables/{id}/source/pulse', { params: { id } })),
+    refreshSource: (id: string) => request(apiUrl('POST /api/datatables/{id}/source/refresh', { params: { id } }), { method: 'POST' }),
     /**
      * patch: { refreshOnView? } for either kind; a spreadsheet also takes
      * { headerRow?, keyColumn?:int|null, columns?:{[fieldId]:{type}} } — a
      * re-map, which the next refresh applies (a retyped column is a new one).
      */
-    updateSource: (id: string, patch: Body) => request(`${base}/${enc(id)}/source`, { method: 'PUT', body: JSON.stringify(patch) }),
-    setSourceRelations: (id: string, relations: unknown[]) => request(`${base}/${enc(id)}/source/relations`, {
+    updateSource: (id: string, patch: Body) => request(apiUrl('PUT /api/datatables/{id}/source', { params: { id } }), { method: 'PUT', body: JSON.stringify(patch) }),
+    setSourceRelations: (id: string, relations: unknown[]) => request(apiUrl('PUT /api/datatables/{id}/source/relations', { params: { id } }), {
         method: 'PUT', body: JSON.stringify({ relations }),
     }),
     /**
@@ -365,7 +365,7 @@ export const datatablesApi = {
      * for a spreadsheet, optionally point the table at another file or
      * sheet: body `{ file:{provider, fileId, path?}, sheet? }`.
      */
-    relinkSource: (id: string, body: Body | null = null) => request(`${base}/${enc(id)}/source/relink`, {
+    relinkSource: (id: string, body: Body | null = null) => request(apiUrl('POST /api/datatables/{id}/source/relink', { params: { id } }), {
         method: 'POST', ...(body ? { body: JSON.stringify(body) } : {}),
     }),
     // ── A form's answers (managed_kind 'form_answers') ────────────────────
@@ -375,15 +375,15 @@ export const datatablesApi = {
         if (from) q.set('from', from);
         if (to) q.set('to', to);
         const qs = q.toString();
-        return request(`${base}/${enc(id)}/answers/summary${qs ? `?${qs}` : ''}`);
+        return request(`${apiUrl('GET /api/datatables/{id}/answers/summary', { params: { id } })}${qs ? `?${qs}` : ''}`);
     },
     // A validated aggregate over any table the caller may read.
-    aggregate: (id: string, body: Body | null) => request(`${base}/${enc(id)}/aggregate`, { method: 'POST', body: JSON.stringify(body || {}) }),
+    aggregate: (id: string, body: Body | null) => request(apiUrl('POST /api/datatables/{id}/aggregate', { params: { id } }), { method: 'POST', body: JSON.stringify(body || {}) }),
     // The one DROP a form's table allows: a question no longer on the form.
     removeAnswersColumn: (id: string, fieldId: string, { confirmBreaking = false }: ConfirmBreakingOptions = {}) =>
-        request(`${base}/${enc(id)}/answers/columns/${enc(fieldId)}${confirmBreaking ? '?confirmBreaking=1' : ''}`, { method: 'DELETE' }),
+        request(`${apiUrl('DELETE /api/datatables/{id}/answers/columns/{fieldId}', { params: { id, fieldId } })}${confirmBreaking ? '?confirmBreaking=1' : ''}`, { method: 'DELETE' }),
     // Keep the answers, forget the form: an ordinary table from here on.
-    releaseAnswers: (id: string) => request(`${base}/${enc(id)}/answers/release`, { method: 'POST' }),
+    releaseAnswers: (id: string) => request(apiUrl('POST /api/datatables/{id}/answers/release', { params: { id } }), { method: 'POST' }),
 };
 
 export default datatablesApi;

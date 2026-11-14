@@ -67,3 +67,15 @@ test('the session is checked before the body', async () => {
     assert.strictEqual(res.status, 401);
     assert.deepStrictEqual(db.queries, []);
 });
+
+test('refreshing an MCP server takes no fields; the empty object the screen sends passes the schema', async () => {
+    const ADMIN = { ...h.USER, role: 'admin' };
+    h.assertRefused(assert, await api.call('POST', '/ai/mcp-servers/s1/refresh', { body: { force: true }, user: ADMIN }), 'body', /Refreshing an MCP server does not take "force"/);
+    const res = await api.call('POST', '/ai/mcp-servers/s1/refresh', { body: {}, user: ADMIN });
+    assert.notStrictEqual(res.body?.code, 'invalid_request', res.text);
+});
+
+test('enabling n8n for the organisation takes no fields', async () => {
+    const res = await api.call('POST', '/ai/n8n/enable-for-org', { body: { orgId: 'org2' }, user: { ...h.USER, role: 'admin' } });
+    h.assertRefused(assert, res, 'body', /Enabling n8n for the organisation does not take "orgId"/);
+});

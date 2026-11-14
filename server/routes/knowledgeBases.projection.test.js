@@ -36,6 +36,7 @@ function doc(over = {}) {
     };
 }
 
+const { fakeKbGates } = require('./knowledgeBases/kbGate.testkit');
 const MOCKS = {
     '../stores/knowledgeBases': {
         getKB: async (id) => (id === 'kb1'
@@ -66,7 +67,7 @@ const MOCKS = {
     },
     '../core/entitlements/betaFeatures': { userHasBetaFeature: async () => false },
     '../core/serviceAuth': { getServiceHeaders: () => ({}) },
-    '../support/kbAccess': { canAccessKB: async () => true, resolveAdminOrgIds: async () => new Set(['org1']) },
+    '../support/kbAccess': { ...fakeKbGates({ kbStore: { getKB: (id) => MOCKS['../stores/knowledgeBases'].getKB(id) }, canRead: () => true, canManage: (kb) => MOCKS['../stores/knowledgeBases'].canUserManageKB(kb, null, null, true) }), resolveAdminOrgIds: async () => new Set(['org1']) },
     '../license': { resolveTier: async () => 'community', tiers: { getLimitsForTier: () => ({ max_kb_sources: -1 }) } },
     '../core/kb/localKBIngest': { getDocumentContent: async () => fx.localChunks },
     '../core/kb/kbIngestionHelpers': {

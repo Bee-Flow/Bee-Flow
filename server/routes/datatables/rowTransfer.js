@@ -18,7 +18,7 @@ const { metaAndFilter, metaFor } = require('./grade');
 const { assertQuota, answerDatatableError } = require('./refusals');
 const { mirrorCtx } = require('./source');
 const { answering } = require('./rowHandlers');
-const log = require('../../telemetry/log');
+const { ignoreGone } = require('../../utils/bestEffort');
 
 /** @typedef {import('./grade').DatatableRequest} DatatableRequest */
 /** @typedef {Awaited<ReturnType<typeof metaFor>>} TableMeta */
@@ -217,10 +217,11 @@ async function writeCsvRows(req, res, meta, filter, columns) {
  * rather than buffered. The access filter is compiled exactly as it is for a
  * read, so an export can never contain a row the caller could not already
  * see on screen.
- * @param {DatatableRequest} req
+ * @param {unknown} gatedReq  the router's request, past requireDatatableGrade
  * @param {import('express').Response} res
  */
-async function exportCsv(req, res) {
+async function exportCsv(gatedReq, res) {
+    const req = /** @type {DatatableRequest} */ (gatedReq);
     try {
         const { meta, filter } = await metaAndFilter(req, 'read');
         const columns = [
@@ -237,7 +238,7 @@ async function exportCsv(req, res) {
     } catch (e) {
         // Headers may already be out: a half-written CSV cannot become a JSON
         // error, so the only honest end is to stop the stream.
-        if (res.headersSent) { try { res.end(); } catch (err) { log.debug('client already gone', err); } return; }
+        if (res.headersSent) { try { res.end(); } catch (err) { ignoreGone('routes/datatables/rowTransfer:endCsv', err); } return; }
         if (answerDatatableError(res, e, req.datatableScope)) return;
         throw e;
     }

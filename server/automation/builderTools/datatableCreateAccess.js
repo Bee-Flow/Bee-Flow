@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * May the person building this automation CREATE a datatable, and where?
  *
@@ -37,11 +38,12 @@ function defaultDeps() {
  * @param {number} status
  * @param {string} code
  * @param {string} message
+ * @returns {{ ok: false, status: number, code: string, message: string }}
  */
 const fail = (status, code, message) => ({ ok: false, status, code, message });
 
 /**
- * @param {{ userId: string, req?: object|null, automationOrgId?: string|null }} p
+ * @param {Partial<{ userId: string, req?: { session?: any }|null, automationOrgId?: string|null }>} p
  *   `req` is given where a request exists (Apply, a chat turn): only then is
  *   the training rule evaluated, because it reads the session.
  * @returns {Promise<{ok:true, principal:object, scope:object, hasManage:boolean}

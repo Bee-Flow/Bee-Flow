@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * "New email" on a shared Outlook mailbox, by polling (Graph has no change
  * notifications for shared mailboxes on delegated access).
@@ -49,7 +49,7 @@ function harness({ session = SCOPED } = {}) {
     const pollers = createMsGraphPollers({
         store: () => ({ updateSubscription: async (id, patch) => { updates.push({ id, patch }); } }),
         microsoftSession: async (s, userId, opts) => { asked.push({ s, userId, opts }); return /** @type {any} */ (session); },
-        msGraphClient: () => require('../../../integrations/msGraphClient'),
+        msGraphClient: () => /** @type {any} */ (require('../../../integrations/msGraphClient')),
     });
     return { poll: pollers['mail.new'], updates, asked };
 }

@@ -36,6 +36,7 @@
  */
 
 const { getOne, run } = require('../db');
+const { fallback } = require('../utils/bestEffort');
 
 /**
  * A text[] as node-postgres or pglite hands it back, as a JS array.
@@ -68,7 +69,7 @@ async function pkCovers(table, cols) {
 async function up() {
     // A fresh install reaches this migration with no datatable tables at all —
     // datatableStore.createSchema already creates them in the scoped shape.
-    const probe = await getOne(`SELECT to_regclass('datatable_models') AS t`).catch(/** @returns {null} */ () => null);
+    const probe = await getOne(`SELECT to_regclass('datatable_models') AS t`).catch((err) => fallback('migrations/datatable-scope:probe', err, null));
     if (!probe?.t) return;
 
     // 1. The columns. `scope_id` starts nullable so the backfill has somewhere
@@ -144,12 +145,12 @@ async function up() {
     //    forgot to update deleteOrganization", and this half becomes impossible
     //    to forget. Valid only now that the column is nullable: a personal
     //    table has no organisation to point at.
-    const orgs = await getOne(`SELECT to_regclass('organizations') AS t`).catch(/** @returns {null} */ () => null);
+    const orgs = await getOne(`SELECT to_regclass('organizations') AS t`).catch((err) => fallback('migrations/datatable-scope:probeOrganizations', err, null));
     if (orgs?.t) {
         const fk = await getOne(
             `SELECT 1 AS present FROM pg_constraint
               WHERE conname = 'fk_datatables_organization' AND conrelid = 'datatables'::regclass`,
-        ).catch(/** @returns {null} */ () => null);
+        ).catch((err) => fallback('migrations/datatable-scope:probeOrgForeignKey', err, null));
         if (!fk?.present) {
             // NOT VALID would skip the scan of existing rows, but it would also
             // leave rows naming a deleted organisation behind for ever. The

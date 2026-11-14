@@ -24,7 +24,7 @@ const {
     BETA_FEATURES, BetaLifecycle, getFeatureLifecycle, setRemoteBetaFeatures,
     listRemoteBetaFeatures, listBetaFeatures, listCompoundGatedFeatures,
 } = require('./betaCatalog');
-const { bestEffort, fallback } = require('../../utils/bestEffort');
+const { bestEffort, fallback } = require('../../utils/bestEffort'); const { isMissingTable } = require('../../utils/isMissingTable');
 
 
 // ──────────────────────────────────────────────
@@ -107,7 +107,7 @@ async function ensureColumn() {
     try {
         await exec(`ALTER TABLE organizations ADD COLUMN IF NOT EXISTS beta_features TEXT DEFAULT '[]'`);
         log.info('[BetaFeatures] Added beta_features column to organizations table');
-    } catch (err) { log.debug('Column already exists or table doesn\'t exist yet — expected during cold start', err); }
+    } catch (err) { if (!isMissingTable(err)) bestEffort('entitlements/betaFeatures:ensureColumn', err); /* no organizations table yet on a cold start */ }
     migrated = true;
 }
 

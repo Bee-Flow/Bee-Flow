@@ -12,8 +12,9 @@
  *
  * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentWizard/tests/useAgentTests.test.jsx
  */
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { renderHookWithClient as renderHook } from '@/test/render';
 
 import { authFetch } from '@/utils/helpers';
 import { PROGRESS, REFUSAL } from './testSetFacts';

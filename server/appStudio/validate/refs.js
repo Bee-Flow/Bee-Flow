@@ -8,7 +8,7 @@
 'use strict';
 
 const { LIMITS, FORMULA_SCOPE_ROOTS } = require('../componentSpecs');
-const { pickClosestId } = require('../../automation/validate/helpers');
+const { pickClosestId } = require('../../utils/closestId.mts');
 // Data-engine vocabularies (single source of truth for the per-app database):
 // the filter-op grammar, the system columns every table carries, and the
 // table-source vocabulary (waar de rijen van een tabel staan).

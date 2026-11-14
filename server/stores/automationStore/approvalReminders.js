@@ -14,8 +14,8 @@
  */
 
 const crypto = require('crypto');
-const { initDB, getClient } = require('./core');
-const { bestEffort } = require('../../utils/bestEffort');
+const { initDB, withTransaction } = require('./core');
+const { rollback } = require('../../utils/txRollback');
 
 const REMIND_WINDOW_MINUTES = 10;
 
@@ -24,15 +24,14 @@ const REMIND_WINDOW_MINUTES = 10;
  *
  * @param {string} approvalId
  * @param {{ byUserId?: string|null, windowMinutes?: number }} [opts]
- * @param {{ getClient?: () => Promise<{ query: Function, release: Function }> }} [deps]  a test's own database
+ * @param {{ withTransaction?: (fn: (client: { query: Function }) => Promise<any>) => Promise<any> }} [deps]  a test's own database
  * @returns {Promise<{ claimed: true, at: string } | { claimed: false, reason: 'rate_limited', lastAt: string, nextAt: string } | { claimed: false, reason: 'not_pending' }>}
  */
 async function claimApprovalReminder(approvalId, { byUserId = null, windowMinutes = REMIND_WINDOW_MINUTES } = {}, deps = {}) {
-    if (!deps.getClient) await initDB();
+    if (!deps.withTransaction) await initDB();
     const minutes = Math.max(1, Math.round(Number(windowMinutes) || REMIND_WINDOW_MINUTES));
-    const client = await (deps.getClient || getClient)();
-    try {
-        await client.query('BEGIN');
+    // The advisory lock is transaction-scoped: it is held until the COMMIT or ROLLBACK below.
+    return (deps.withTransaction || withTransaction)(async (client) => {
         await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`approval-remind:${approvalId}`]);
         const last = await client.query(
             `SELECT MAX(ts) AS ts FROM automation_approval_audit
@@ -43,12 +42,11 @@ async function claimApprovalReminder(approvalId, { byUserId = null, windowMinute
         const now = await client.query('SELECT NOW() AS now');
         const nowTs = new Date(now.rows[0].now);
         if (lastTs && nowTs.getTime() - lastTs.getTime() < minutes * 60_000) {
-            await client.query('ROLLBACK');
-            return {
+            return rollback({
                 claimed: false, reason: 'rate_limited',
                 lastAt: lastTs.toISOString(),
                 nextAt: new Date(lastTs.getTime() + minutes * 60_000).toISOString(),
-            };
+            });
         }
         const inserted = await client.query(
             `INSERT INTO automation_approval_audit (id, approval_id, run_id, step_id, decided_by, decision, source)
@@ -58,18 +56,9 @@ async function claimApprovalReminder(approvalId, { byUserId = null, windowMinute
              RETURNING ts`,
             [crypto.randomUUID(), approvalId, byUserId],
         );
-        if (!inserted.rows.length) {
-            await client.query('ROLLBACK');
-            return { claimed: false, reason: 'not_pending' };
-        }
-        await client.query('COMMIT');
+        if (!inserted.rows.length) return rollback({ claimed: false, reason: 'not_pending' });
         return { claimed: true, at: new Date(inserted.rows[0].ts).toISOString() };
-    } catch (e) {
-        try { await client.query('ROLLBACK'); } catch (err) { bestEffort('stores/automationStore/approvalReminders:claimApprovalReminder', err); /* the original error is the one to report */ }
-        throw e;
-    } finally {
-        client.release();
-    }
+    });
 }
 
 module.exports = { claimApprovalReminder, REMIND_WINDOW_MINUTES };

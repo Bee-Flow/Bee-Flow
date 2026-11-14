@@ -179,6 +179,7 @@ export function UserMessageMeta({ msg, canEdit, onEdit, t }: { msg: ChatMessage;
                     onClick={onEdit}
                     className="p-1 rounded hover:bg-white/10 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
                     title={t('chat.msg.edit_message', 'Edit message')}
+                    aria-label={t('chat.msg.edit_message', 'Edit message')}
                 >
                     <Pencil className="w-3 h-3" />
                 </button>

@@ -1,4 +1,4 @@
-import { fireEvent, render, within } from '@testing-library/react';
+import { fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -58,6 +58,7 @@ vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 import ConnectorsManager, { connectorProblem } from './ConnectorsManager';
 import { authFetch } from '@/utils/helpers';
 import { asMock, partial, stub } from '@/test/mocks';
+import { renderWithClient } from '@/test/render';
 
 /**
  * ConnectorsManager is a CONTROLLED editor over model.connectors[]: it never
@@ -68,7 +69,7 @@ import { asMock, partial, stub } from '@/test/mocks';
 
 function renderMgr(connectors = [], props = {}) {
     const onChange = vi.fn();
-    const utils = render(<ConnectorsManager connectors={connectors} onChange={onChange} {...props} />);
+    const utils = renderWithClient(<ConnectorsManager connectors={connectors} onChange={onChange} {...props} />);
     const last = () => onChange.mock.calls.at(-1)?.[0];
     return { onChange, last, ...utils };
 }

@@ -129,6 +129,7 @@ export default function TopBar({
                             onClick={onExitTranslationMode}
                             className="ml-0.5 hover:text-amber-300"
                             title={t('cms_site.site.shell.tb_back_source', 'Back to the source language')}
+                            aria-label={t('cms_site.site.shell.tb_back_source', 'Back to the source language')}
                         >
                             <AppIcon name="X" className="w-3 h-3" />
                         </button>

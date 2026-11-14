@@ -1,15 +1,11 @@
-import { API_BASE } from '@/utils/helpers';
-import { mutate, errorBody, RefusedError } from '@/api/mutate';
+import { errorBody, RefusedError } from '@/api/mutate';
 import type { TranslateParams } from '@/hooks/useTranslation';
+import { apiRequest } from '@/api/typedRequest';
 
 export async function runPreview(appId: string | null | undefined, payload: { tableId: string; descriptor: unknown }, t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) {
     let body = null;
     try {
-        const res = await mutate(`${API_BASE}/api/studio-apps/${encodeURIComponent(String(appId))}/data/query`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tableId: payload.tableId, aggregate: payload.descriptor }),
-        });
+        const res = await apiRequest('POST /api/studio-apps/{id}/data/query', { params: { id: String(appId) }, body: { tableId: payload.tableId, aggregate: payload.descriptor } });
         try { body = await res.json(); } catch { body = null; }
     } catch (err) {
         if (!(err instanceof RefusedError)) throw err;

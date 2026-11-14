@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 // Read-only tools for the assistant. Run values never enter the model or the
 // saved transcript before the PII detector has checked them. If the guard is
 // absent/degraded, the assistant gets types and shapes instead of raw values.
@@ -121,7 +121,8 @@ async function inspect(name, args, wrap, { store, pii }) {
     const { runs } = await store.listRunsForAutomation(wrap.automationId, { limit: 10 });
     const run = (runs || []).find((r) => canReadRunData(r, wrap.userId));
     if (!run) return { error: 'This automation has no runs yet.' };
-    const rows = await store.getRunSteps(run.id);
+    // Mapped from rows one to one, so no entry is null.
+    const rows = /** @type {Array<NonNullable<Awaited<ReturnType<typeof store.getRunSteps>>[number]>>} */ (await store.getRunSteps(run.id));
     // A flowlet's steps are recorded under the step that called it
     // (`<callStepId>/<stepId>`, execFlow.execCallLayer); a test of the
     // flowlet's own steps records them bare.

@@ -130,7 +130,7 @@ router.get('/:orgId', requireAuth, async (/** @type {import('express').Request<{
 });
 
 // PUT /:orgId — save (org admin or super admin only)
-router.put('/:orgId', requireAuth, validate({ body: PolicyBody }), async (/** @type {import('express').Request<{ orgId: string }, any, import('zod').infer<typeof PolicyBody>>} */ req, /** @type {import('express').Response} */ res) => {
+router.put('/:orgId', requireAuth, validate({ body: PolicyBody }), async (req, /** @type {import('express').Response} */ res) => {
     const { orgId } = req.params;
     if (!(await isOrgAdmin(req, orgId))) {
         return res.status(403).json({ error: 'Only organization admins can change this setting' });

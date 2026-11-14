@@ -84,3 +84,15 @@ test('a failed verification read after a sent add is an error that says so', asy
     const out = await executeNextcloudTeamsTool('nextcloud_teams_add_members', { teamId: 'c1', userIds: ['alice1'] }, 'u', {});
     assert.match(out.error, /could not be verified/);
 });
+
+test('the dispatcher: an unknown name, a bad level, update in two calls and remove_member', async () => {
+    const calls = installFakeNc(() => json(200, { ocs: { data: {} } }));
+    assert.deepEqual(await executeNextcloudTeamsTool('nextcloud_teams_nope', {}, 'u', {}), { error: 'Unknown Nextcloud Teams tool: nextcloud_teams_nope' });
+    assert.match((await executeNextcloudTeamsTool('nextcloud_teams_set_member_level', { teamId: 'c1', memberId: 'm1', level: 'boss' }, 'u', {})).error, /^level must be one of: /);
+    assert.deepEqual(await executeNextcloudTeamsTool('nextcloud_teams_update', { teamId: 'c1', name: 'N', description: 'D' }, 'u', {}),
+        { success: true, teamId: 'c1', updated: ['name', 'description'] });
+    assert.deepEqual(await executeNextcloudTeamsTool('nextcloud_teams_remove_member', { teamId: 'c1', memberId: 'm1' }, 'u', {}),
+        { success: true, teamId: 'c1', memberId: 'm1' });
+    assert.deepEqual(calls.map((c) => `${c.method} ${c.url.split('/apps/circles/')[1]}`), ['PUT circles/c1/name', 'PUT circles/c1/description', 'DELETE circles/c1/members/m1']);
+    assert.deepEqual(await executeNextcloudTeamsTool('nextcloud_share_with_team', { teamId: 'c1' }, 'u', {}), { error: 'path is required' });
+});

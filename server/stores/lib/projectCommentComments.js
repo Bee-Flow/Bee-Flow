@@ -172,7 +172,7 @@ function makeCommentReads(db, ready, { threadPage }) {
             'SELECT * FROM project_comments WHERE thread_id = $1 ORDER BY seq DESC LIMIT $2',
             [threadId, n],
         );
-        return r.rows.reverse().map(rowToComment);
+        return r.rows.reverse().map((row) => /** @type {NonNullable<ReturnType<typeof rowToComment>>} */ (rowToComment(row))); // a selected row maps, never to null
     }
 
     /**

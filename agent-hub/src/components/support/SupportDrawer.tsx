@@ -5,14 +5,15 @@
  * NewThreadForm + ThreadDetail from this module and composes them into the
  * settings page layout.
  */
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Send, ArrowLeft, Bot, User, AlertTriangle } from 'lucide-react';
-import { API_BASE } from '../../utils/helpers';
 import { useTranslation, type TranslateFn } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
-import { mutate, ApiError, request, RefusedError, errorBody } from '../../api/mutate';
+import { ApiError, RefusedError, errorBody } from '../../api/mutate';
 import { FIELD_INPUT } from '@/components/shared/SettingsList';
 import { PRIMARY_BTN, QUIET_BTN, SECONDARY_BTN } from '@/components/mcpLibrary/ui';
+import { apiRequest } from '@/api/typedRequest';
 
 export const STATUS_LABELS: Record<string, string> = {
     open: 'Open',
@@ -72,11 +73,7 @@ export function NewThreadForm({ onCreated, onCancel }: { onCreated?: (threadId: 
         try {
             let data: { threadId: string };
             try {
-                const res = await mutate(`${API_BASE}/api/support/threads`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ subject: subject.trim(), message: message.trim(), source: 'in_app' }),
-                });
+                const res = await apiRequest('POST /api/support/threads', { body: { subject: subject.trim(), message: message.trim(), source: 'in_app' } });
                 data = await res.json();
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
@@ -137,41 +134,44 @@ interface SupportMessage {
     body?: string;
 }
 
+const NO_MESSAGES: SupportMessage[] = [];
+
 export function ThreadDetail({ threadId, onBack, onChanged }: { threadId: string; onBack?: React.MouseEventHandler<HTMLButtonElement>; onChanged?: () => void }) {
     const { t } = useTranslation();
-    const [thread, setThread] = useState<SupportThread | null>(null);
-    const [messages, setMessages] = useState<SupportMessage[]>([]);
     const [reply, setReply] = useState<string>('');
     const [sending, setSending] = useState<boolean>(false);
 
-    const load = useCallback(async () => {
-        const res = await request(`${API_BASE}/api/support/threads/${threadId}`).catch((err: unknown) => {
-            if (err instanceof RefusedError) return null;
-            throw err;
-        });
-        if (res) {
+    const queryClient = useQueryClient();
+    const threadKey = ['support', 'thread', threadId] as const;
+    // Read again every 10 s while the thread is open, also in a background tab.
+    const threadQuery = useQuery<{ thread: SupportThread | null; messages: SupportMessage[] }>({
+        queryKey: threadKey,
+        staleTime: 0,
+        retry: false,
+        refetchInterval: 10000,
+        refetchIntervalInBackground: true,
+        queryFn: async () => {
+            const res = await apiRequest('GET /api/support/threads/{id}', { params: { id: threadId } }).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            // A refusal keeps what is shown.
+            if (!res) return queryClient.getQueryData<{ thread: SupportThread | null; messages: SupportMessage[] }>(threadKey) ?? { thread: null, messages: [] };
             const data = await res.json();
-            setThread(data.thread);
-            setMessages(data.messages || []);
-        }
-    }, [threadId]);
-
-    useEffect(() => { load(); }, [load]);
-    useEffect(() => {
-        const id = setInterval(load, 10000);
-        return () => clearInterval(id);
-    }, [load]);
+            return { thread: data.thread, messages: data.messages || [] };
+        },
+    });
+    const thread = threadQuery.data?.thread ?? null;
+    const messages = threadQuery.data?.messages ?? NO_MESSAGES;
+    const { refetch } = threadQuery;
+    const load = useCallback(async () => { await refetch(); }, [refetch]);
 
     const send = async () => {
         const body = reply.trim();
         if (!body) return;
         setSending(true);
         try {
-            const res = await mutate(`${API_BASE}/api/support/threads/${threadId}/messages`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ body }),
-            }).catch((err: unknown) => {
+            const res = await apiRequest('POST /api/support/threads/{id}/messages', { params: { id: threadId }, body: { body } }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });

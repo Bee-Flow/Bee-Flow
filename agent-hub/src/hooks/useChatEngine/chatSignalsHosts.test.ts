@@ -54,7 +54,8 @@ const code = (file: string) => fs.readFileSync(file, 'utf8')
 const FILES = walk(SRC).map((file) => ({ file: rel(file), code: code(file) }));
 const where = (re: RegExp) => FILES.filter((f) => re.test(f.code)).map((f) => f.file).sort();
 
-const DIRECT_STREAM_WRITERS = where(/\/ai\/chat\/direct\/stream/);
+// The generated contract types (api/apiTypes.generated.ts) name every path as a type; they send nothing.
+const DIRECT_STREAM_WRITERS = where(/\/ai\/chat\/direct\/stream/).filter((f) => !f.endsWith('.generated.ts'));
 const ENGINE_HOSTS = where(/\buseChatEngine\s*\(/).filter((f) => f !== 'hooks/useChatEngine.ts');
 const MARKER_HOSTS = where(/\bgetChatSignalsPayload\b/).filter((f) => !f.startsWith('hooks/useChatEngine'));
 

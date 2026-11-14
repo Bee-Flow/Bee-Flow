@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The provider half of the OAuth callback (./providerCallbackRoutes.js):
  * exchange the authorization code for tokens and read the user's profile,
@@ -7,6 +7,7 @@
  * puts in its `?error=` redirect.
  */
 
+const { fetchFixedEndpoint, defaultTimeoutSignal } = require('../../utils/fixedEndpointFetch.mts');
 const log = require('../../telemetry/log');
 const { OAUTH_PROVIDERS } = require('../permissions');
 const microsoftLogin = require('./microsoftLogin');
@@ -34,11 +35,11 @@ async function exchangeGoogle({ config, code, redirectUri, codeVerifier }) {
         grant_type: 'authorization_code',
         code: code,
         redirect_uri: redirectUri,
-        client_id: providerConfig.clientId,
-        client_secret: providerConfig.clientSecret,
+        client_id: /** @type {string} */ (providerConfig.clientId),
+        client_secret: /** @type {string} */ (providerConfig.clientSecret),
     };
     if (codeVerifier) googleBody.code_verifier = codeVerifier;
-    const tokenResponse = await fetch(OAUTH_PROVIDERS.google.tokenUrl, {
+    const tokenResponse = await fetchFixedEndpoint(OAUTH_PROVIDERS.google.tokenUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams(googleBody).toString()
@@ -52,7 +53,7 @@ async function exchangeGoogle({ config, code, redirectUri, codeVerifier }) {
 
     tokenData = /** @type {OAuthTokenResponse} */ (await tokenResponse.json());
 
-    const userResponse = await fetch(OAUTH_PROVIDERS.google.userInfoUrl, {
+    const userResponse = await fetchFixedEndpoint(OAUTH_PROVIDERS.google.userInfoUrl, {
         headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
     });
 
@@ -114,7 +115,7 @@ async function exchangeMicrosoft({ config, code, redirectUri, codeVerifier, nonc
         client_secret: providerConfig.clientSecret,
     };
     if (codeVerifier) msBody.code_verifier = codeVerifier;
-    const tokenResponse = await fetch(tokenUrl, {
+    const tokenResponse = await fetchFixedEndpoint(tokenUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams(msBody).toString()
@@ -136,7 +137,7 @@ async function exchangeMicrosoft({ config, code, redirectUri, codeVerifier, nonc
     if (tokenData.error) log.error(`[OAuth/Microsoft] Token response error: ${tokenData.error} — ${tokenData.error_description || ''}`);
 
     log.info(`[OAuth/Microsoft] User info URL: ${OAUTH_PROVIDERS.microsoft.userInfoUrl}`);
-    const userResponse = await fetch(OAUTH_PROVIDERS.microsoft.userInfoUrl, {
+    const userResponse = await fetchFixedEndpoint(OAUTH_PROVIDERS.microsoft.userInfoUrl, {
         headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
     });
 
@@ -173,10 +174,12 @@ async function exchangeMicrosoft({ config, code, redirectUri, codeVerifier, nonc
 async function exchangeNextcloud({ config, code, redirectUri, session }) {
     let tokenData, user;
 
-    const { nextcloudUrl, clientId, clientSecret } = config.oauth || {};
+    // The Nextcloud provider is offered only once its OAuth client is configured.
+    const { nextcloudUrl, clientId, clientSecret } = /** @type {{ nextcloudUrl: string, clientId: string, clientSecret: string }} */ (config.oauth || {});
 
     // nosemgrep: semgrep.beeflow-bare-fetch -- the admin-configured OAuth issuer; nextcloudFetch would refuse a private-host Nextcloud without NEXTCLOUD_ALLOW_PRIVATE_HOSTS and break sign-in there
     const tokenResponse = await fetch(nextcloudOAuthUrl(nextcloudUrl, 'token'), {
+        signal: defaultTimeoutSignal(),
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
@@ -196,7 +199,9 @@ async function exchangeNextcloud({ config, code, redirectUri, session }) {
 
     tokenData = /** @type {OAuthTokenResponse} */ (await tokenResponse.json());
 
+    // nosemgrep: semgrep.beeflow-bare-fetch -- the admin-configured OAuth issuer; nextcloudFetch would refuse a private-host Nextcloud without NEXTCLOUD_ALLOW_PRIVATE_HOSTS and break sign-in there
     const userResponse = await fetch(`${nextcloudUrl}/ocs/v2.php/cloud/user?format=json`, {
+        signal: defaultTimeoutSignal(),
         headers: {
             'Authorization': `Bearer ${tokenData.access_token}`,
             'OCS-APIRequest': 'true'

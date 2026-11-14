@@ -6,8 +6,12 @@
  * Meeting notes (core/meetingNotes/) fetch recordings from Google Meet,
  * Microsoft Teams and Nextcloud Talk; the datatable sources
  * (core/dataEngine/sources/) mirror Nextcloud Tables and spreadsheet files in
- * Drive, OneDrive and Nextcloud. The clients themselves live in integrations/,
- * a feature, and core may not require a feature (server/ARCHITECTURE.md). So
+ * Drive, OneDrive and Nextcloud; the automation feature posts approval cards
+ * to Talk and the Nextcloud bell (automation/approvalDelivery.js) and polls
+ * Gmail, Google and Nextcloud for its triggers (automation/triggerBus.js); the
+ * test generator reads GitHub and YouTrack (services/testGenerator.js). The
+ * clients themselves live in integrations/, a feature, and neither core nor
+ * another feature may require a feature (server/ARCHITECTURE.md). So
  * integrations/integrationClients.js registers each client here at boot (it is
  * loaded by boot/featureRegistrations.js) and core asks for it by name:
  *
@@ -16,11 +20,11 @@
  *
  * A client is registered as a GETTER, called on every lookup, so the module
  * behind it is only loaded when first used and a test's require.cache stub of
- * that module is what a lookup returns. The names, and what core uses of each:
+ * that module is what a lookup returns. The names, and what callers use of each:
  *
- *   google              createGoogleApiClient
+ *   google              createGoogleApiClient (the trigger bus: the whole googleClient module)
  *   msGraph             graphRequest, graphFetch, GRAPH_BASE
- *   nextcloud           resolveAuth, resolveNcBinding, isConnected, webdavRoot, downloadBinary
+ *   nextcloud           resolveAuth, resolveNcBinding, isConnected, webdavRoot, downloadBinary, getBaseUrl
  *   nextcloudWebdav     joinDavPath, parsePropfind, PROPFIND_BODY
  *   nextcloudTables     TABLES_API, HEADERS, toWireData, readJsonSafe, describeColumn, mapTable,
  *                       executeNextcloudTablesTool
@@ -28,6 +32,11 @@
  *   nextcloudCalendar   executeNextcloudCalendarTool
  *   nextcloudDeck       executeNextcloudDeckTool
  *   nextcloudFiles      the Files / tags family executor (nextcloudTools.js)
+ *   nextcloudTalkBot    getBotSecret, postBotMessage, postBotReaction, findMessageIdByReference,
+ *                       listMessageReactions, TALK_V1, MAX_MESSAGE_CHARS
+ *   nextcloudAdminNotify  sendAdminNotification
+ *   nextcloudActivity, nextcloudNotifications, gmail   the trigger pollers' tool executors
+ *   github, youtrack    executeGitHubTool, executeYouTrackTool (services/testGenerator.js)
  */
 
 'use strict';

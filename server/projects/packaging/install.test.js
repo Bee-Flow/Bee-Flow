@@ -1041,7 +1041,7 @@ test('verifyClaimedBlueprint geeft een boolean, en niets uit de galerijrij', asy
 
 // ═══ Stage-ready install engine (design 7: F2, F3, F7, F10, F13, F14) ═══
 
-const { hashDefinition } = require('../../appStudio/templateUpgrade');
+const { hashDefinition } = require('../../core/packaging/definitionHash.mts');
 const { installOne, makeInstallCtx, stampAll } = require('./install');
 
 test('a cross-referencing app and automation pair is PRISTINE right after install (F2)', async () => {

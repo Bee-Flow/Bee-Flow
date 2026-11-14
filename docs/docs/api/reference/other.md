@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # Other endpoints
 
-229 routes, 116 with a request schema. Back to the [endpoint reference](../reference.md).
+229 routes, 119 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -1103,13 +1103,13 @@ No request schema.
 
 **Access:** Platform admin
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `POST /api/release-notes/admin/:id/unpublish`
 
 **Access:** Platform admin
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `POST /api/release-notes/ingest`
 
@@ -1183,7 +1183,7 @@ No request schema.
 
 **Access:** middleware `requireSignedIn`
 
-No request schema.
+**Body:** object (no other keys)
 
 ## `api/search`
 
@@ -1577,6 +1577,8 @@ No request schema.
 
 **Query:** object (no other keys)
 
+**Body:** object (no other keys)
+
 ### `GET /api/teams-setup/org/app-import`
 
 **Access:** Signed-in user · Scope `orgAdminOfSessionOrg` · Licence feature `meeting_notes` · Capability `meeting_notes`
@@ -1614,6 +1616,8 @@ No request schema.
 **Access:** Signed-in user · Scope `orgAdminOfSessionOrg` · Licence feature `meeting_notes` · Capability `meeting_notes`
 
 **Query:** object (no other keys)
+
+**Body:** object (no other keys)
 
 ### `GET /api/teams-setup/org/overview`
 
@@ -2166,31 +2170,31 @@ No request schema.
 
 ### `GET /versions/:agentId`
 
-**Access:** Signed-in user · the handler also checks who the caller is
+**Access:** Signed-in user · Resource role `edit` or higher
 
 No request schema.
 
 ### `GET /versions/:agentId/:versionId`
 
-**Access:** Signed-in user · the handler also checks who the caller is
+**Access:** Signed-in user · Resource role `edit` or higher
 
 No request schema.
 
 ### `DELETE /versions/:agentId/:versionId`
 
-**Access:** Signed-in user · the handler also checks who the caller is
+**Access:** Signed-in user · Resource role `edit` or higher
 
 **Body:** object (no other keys)
 
 ### `POST /versions/:agentId/:versionId/restore`
 
-**Access:** Signed-in user · the handler also checks who the caller is
+**Access:** Signed-in user · Resource role `edit` or higher
 
 **Body:** object (no other keys)
 
 ### `POST /versions/:agentId/pre-refine`
 
-**Access:** Signed-in user · the handler also checks who the caller is
+**Access:** Signed-in user · Resource role `edit` or higher
 
 **Body:** object (no other keys)
 

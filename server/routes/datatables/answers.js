@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * A form's answers (managed_kind = 'form_answers').
  *
@@ -20,9 +20,14 @@ const { readFilters } = require('./rowDescriptor');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { worded, bodyOf, ConfirmBreakingQuery } = require('./schemas');
+const { bodyOf: closedBodyOf } = require('../../core/http/schemaParts');
 const log = require('../../telemetry/log');
 
 /** @typedef {import('./grade').DatatableRequest} DatatableRequest */
+
+// The parts readAggregateDescriptor reads; each is checked there, against the table.
+const open = z.unknown().optional();
+const AggregateBody = closedBodyOf({ groupBy: open, aggregates: open, filters: open, match: open, sort: open, limit: open }, 'An aggregate');
 
 // ── What the dashboard may ask for ──────────────────────────────────
 //
@@ -40,8 +45,9 @@ const SummaryQuery = z.object({ from: day(), to: day() }).strict();
 const NOTHING = bodyOf({});
 const NO_QUERY = z.object({}).strict();
 
-/** @param {DatatableRequest} req @param {import('express').Response} res @param {import('express').NextFunction} next */
-function requireAnswersTable(req, res, next) {
+/** @param {import('express').Request} gatedReq @param {import('express').Response} res @param {import('express').NextFunction} next */
+function requireAnswersTable(gatedReq, res, next) {
+    const req = /** @type {DatatableRequest} */ (gatedReq); // past requireDatatableGrade
     if (!isDefinitionManagedKind(req.datatable.managedKind)) return res.status(404).json({ error: 'Not found' });
     next();
 }
@@ -55,7 +61,7 @@ async function formOf(req) {
         const a = await automationStore.getAutomation(automationId);
         if (!a) return { automationId, title: null, live: false, url: null, linked: false, mine: false };
         const pages = await automationStore.getFormPagesForAutomation(automationId);
-        const page = (pages || []).find(p => !p.triggerStepId) || (pages || [])[0] || null;
+        const page = (pages || []).find(p => !/** @type {NonNullable<typeof p>} */ (p).triggerStepId) || (pages || [])[0] || null; // rows mapped one to one
         return {
             automationId,
             title: a.definition?.trigger?.form?.title || a.title || null,
@@ -76,7 +82,8 @@ async function formOf(req) {
 /** @param {import('express').Router} router */
 function register(router) {
     router.get('/:id/answers/summary', requireDatatableGrade('viewer'), requireAnswersTable,
-        validate({ query: SummaryQuery }), async (/** @type {DatatableRequest} */ req, /** @type {import('express').Response} */ res) => {
+        validate({ query: SummaryQuery }), async (gatedReq, /** @type {import('express').Response} */ res) => {
+        const req = /** @type {DatatableRequest} */ (gatedReq); // what requireDatatableGrade set
         try {
             const { meta, filter } = await metaAndFilter(req, 'read');
             const formAnswers = require('../../automation/formAnswers');
@@ -94,18 +101,19 @@ function register(router) {
     });
 
     /**
-     * LEFT OPEN — deliberately, and the reason is where the check lives.
+     * The envelope is closed; what is inside each part is not checked here.
      *
-     * The aggregate body is a descriptor whose every field key is resolved
-     * against THIS table's own declared column list, whose functions come from
-     * dataModel.AGG_FNS and whose buckets come from DATE_BUCKETS — and that
-     * resolution needs the table's meta, which only exists inside the handler.
-     * readAggregateDescriptor (automation/formAnswers/summary.js) is that
-     * check and it throws a 400 by name. A zod schema in front could only
-     * restate the shape and would have to be kept in step with the compiler's
-     * vocabulary in two places.
+     * The descriptor's every field key is resolved against THIS table's own
+     * declared column list, its functions come from dataModel.AGG_FNS and its
+     * buckets from DATE_BUCKETS — and that resolution needs the table's meta,
+     * which only exists inside the handler. readAggregateDescriptor
+     * (automation/formAnswers/summary.js) is that check and it throws a 400 by
+     * name. A zod schema could only restate the shape and would have to be kept
+     * in step with the compiler's vocabulary in two places, so the parts stay
+     * open and only a key the descriptor does not read is refused.
      */
-    router.post('/:id/aggregate', requireDatatableGrade('viewer'), async (/** @type {DatatableRequest} */ req, /** @type {import('express').Response} */ res) => {
+    router.post('/:id/aggregate', requireDatatableGrade('viewer'), validate({ body: AggregateBody }), async (gatedReq, /** @type {import('express').Response} */ res) => {
+        const req = /** @type {DatatableRequest} */ (gatedReq); // what requireDatatableGrade set
         try {
             const { meta, filter } = await metaAndFilter(req, 'read');
             const formAnswers = require('../../automation/formAnswers');
@@ -126,7 +134,8 @@ function register(router) {
         requireManageForOrgScope(),
         requireAnswersTable,
         validate({ query: ConfirmBreakingQuery }),
-        async (/** @type {DatatableRequest} */ req, /** @type {import('express').Response} */ res) => {
+        async (gatedReq, /** @type {import('express').Response} */ res) => {
+            const req = /** @type {DatatableRequest} */ (gatedReq); // what requireDatatableGrade set
             try {
                 const entry = req.datatable.source?.columnMap?.[req.params.fieldId];
                 if (!entry) return res.status(404).json({ error: 'No such column', code: 'unknown_field' });
@@ -145,7 +154,7 @@ function register(router) {
                 }
                 const formAnswers = require('../../automation/formAnswers');
                 const out = await formAnswers.deleteRetiredColumn(req.datatable, req.datatableScope, req.params.fieldId);
-                res.json({ fields: out.fields, modelVersion: out.modelVersion, source: publicSource(out.table.source, out.table.managedKind) });
+                res.json({ fields: out.fields, modelVersion: out.modelVersion, source: publicSource(/** @type {NonNullable<typeof out.table>} */ (out.table).source, /** @type {NonNullable<typeof out.table>} */ (out.table).managedKind) }); // the table it just changed
             } catch (e) {
                 if (answerDatatableError(res, e, req.datatableScope)) return;
                 throw e;
@@ -157,7 +166,9 @@ function register(router) {
         requireManageForOrgScope(),
         requireAnswersTable,
         validate({ body: NOTHING, query: NO_QUERY }),
-        async (/** @type {DatatableRequest} */ req, /** @type {import('express').Response} */ res) => {
+        async (gatedReq, /** @type {import('express').Response} */ res) => {
+            // What requireDatatableGrade set; the validated empty body and query do not overlap its types.
+            const req = /** @type {DatatableRequest} */ (/** @type {unknown} */ (gatedReq));
             try {
                 if (req.datatable.source?.linked !== false) {
                     return res.status(409).json({

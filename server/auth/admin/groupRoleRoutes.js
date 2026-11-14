@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Admin Routes — group and role management, plus the SYSTEM_PERMISSIONS
  * catalogue. Split out of auth/adminRoutes.js; mounted there in the original
@@ -690,7 +690,8 @@ router.put('/org-roles/:roleId', requirePrimaryOrgAdmin(), validate({ body: OrgR
         return res.status(404).json({ error: 'Unknown organisation role' });
     }
     const stored = await orgRolePolicy.setOrgRolePermissions(
-        req.primaryOrgId, roleId, req.body.permissions,
+        /** @type {string} */ (req.primaryOrgId), roleId, // set by requirePrimaryOrgAdmin
+        req.body.permissions,
     );
     // Every member of this org may have just gained or lost a section.
     // Their resolved permissions are cached per user, so the whole cache

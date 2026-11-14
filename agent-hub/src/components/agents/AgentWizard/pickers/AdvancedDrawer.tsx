@@ -80,6 +80,7 @@ export default function AdvancedDrawer({
                         onClick={onClose}
                         className="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition"
                         title={t('common.close', 'Close')}
+                        aria-label={t('common.close', 'Close')}
                     >
                         <X size={16} />
                     </button>

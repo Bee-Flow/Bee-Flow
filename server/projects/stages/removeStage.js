@@ -1,3 +1,4 @@
+// @typecheck
 /** @typedef {import('pg').PoolClient} PoolClient */
 /**
  * The `remove` deployment kind (design 6.8): take a UAT or PRD stage down
@@ -35,6 +36,10 @@
 
 'use strict';
 
+// What this needs of automation/ and appStudio/ (features) is looked up by name
+// (core/featureModules.js, registered in boot/featureModules.js).
+const { featureModule } = require('../../core/featureModules');
+
 const log = require('../../telemetry/log');
 const { stageLockSql } = require('../../stores/solutionStage/stages');
 const { storesOf, makeJournal } = require('./journal');
@@ -65,12 +70,12 @@ async function liveStamps(s, stage) {
 /**
  * Switch the stage off: every automation deactivated, every app, page and agent unpublished.
  *
- * @param {{ deployment: object, stage: object }} input
+ * @param {{ deployment: DeploymentRow, stage: StageRow }} input
  * @param {Record<string, unknown>} [deps]  stores (journal.storesOf), `goLive`, `goLiveDeps`
  */
 async function prepareRemove({ deployment, stage }, deps = {}) {
     const s = storesOf(deps);
-    const goLive = dep(deps, 'goLive', () => require('../../automation/goLive'));
+    const goLive = dep(deps, 'goLive', () => featureModule('automation/goLive'));
     const journal = makeJournal(s.stageStore, deployment.id, 'prepare');
     const managedWrite = { deploymentId: deployment.id };
     const runAs = stage.runAsUserId;
@@ -116,7 +121,7 @@ const REMOVABLE = Object.freeze(['automation', 'app', 'webpage', 'agent', 'skill
  * Did this removal's commit begin deleting? (A commit-phase step that is done or pending: a delete may have
  * landed before its journal row was marked done.) After that, compensation must not run.
  *
- * @param {{ deployment: object }} input
+ * @param {{ deployment: DeploymentRow }} input
  * @param {Record<string, unknown>} [deps]
  */
 async function removeStarted({ deployment }, deps = {}) {
@@ -172,7 +177,7 @@ async function deleteStageRows(client, s, stage) {
  * The commit of a removal: the parts go with the capability, then one
  * transaction removes the stage's rows and moves the deployment to `converging`.
  *
- * @param {{ deployment: object, stage: object }} input  the row is `committing`
+ * @param {{ deployment: DeploymentRow, stage: StageRow }} input  the row is `committing`
  * @param {Record<string, unknown>} [deps]
  */
 async function commitRemove({ deployment, stage }, deps = {}) {
@@ -205,7 +210,7 @@ async function commitRemove({ deployment, stage }, deps = {}) {
 /**
  * Tear the stage project down with the removal capability, then close the deployment.
  *
- * @param {{ deployment: object, stage: object }} input  the row is `converging`
+ * @param {{ deployment: DeploymentRow, stage: StageRow }} input  the row is `converging`
  * @param {Record<string, unknown>} [deps]  `teardown` ({ deleteProject }), `emitProjectEvent`
  */
 async function finishRemove({ deployment, stage }, deps = {}) {
@@ -234,7 +239,7 @@ async function finishRemove({ deployment, stage }, deps = {}) {
 
 module.exports = { prepareRemove, commitRemove, finishRemove, removeStarted, deletesData, removePart };
 
-/** @typedef {import('./model').DeploymentRow} DeploymentRow */
+/** @typedef {import('./stageRows').DeploymentRow} DeploymentRow */
 
 /** @typedef {import('./model').StageRow} StageRow */
 

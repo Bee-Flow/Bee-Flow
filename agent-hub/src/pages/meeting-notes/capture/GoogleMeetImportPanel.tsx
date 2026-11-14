@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Video, Loader2, RefreshCw, Download, Check, Clock } from 'lucide-react';
 import useTranslation from '@/hooks/useTranslation';
 import CaptureControls from './CaptureControls';
@@ -92,14 +93,37 @@ function RecordingAction({ item, pending, busy, uploading, onImport, t }: Record
     );
 }
 
+/** The caller's Meet recordings and the connection they came through; Refresh reads again. */
+function useMeetRecordings() {
+    const query = useQuery<{ items: MeetRecording[]; connection: MeetConnection | null }>({
+        queryKey: ['meetingNotes', 'googleMeetRecordings'],
+        staleTime: 0,
+        retry: false,
+        queryFn: async () => {
+            const data = await listGoogleMeetRecordings();
+            return {
+                items: Array.isArray(data?.items) ? data.items : [],
+                connection: data?.connection && typeof data.connection === 'object' ? data.connection : null,
+            };
+        },
+    });
+    const { refetch } = query;
+    return {
+        loading: query.isFetching,
+        error: query.error as unknown,
+        items: query.data?.items ?? NO_RECORDINGS,
+        connection: query.data?.connection ?? null,
+        load: () => { void refetch(); },
+    };
+}
+
+const NO_RECORDINGS: MeetRecording[] = [];
+
 export default function GoogleMeetImportPanel({ onComplete }: { onComplete?: () => void }) {
     const { t } = useTranslation();
     const { importFromGoogleMeet, settings, uploading, uploadStage, uploadError, clearError } = useRecorder();
     const { needsReconsent } = useGoogleMeetConnected(true);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<unknown>(null);
-    const [items, setItems] = useState<MeetRecording[]>([]);
-    const [connection, setConnection] = useState<MeetConnection | null>(null);
+    const { loading, error, items, connection, load } = useMeetRecordings();
     const [busyKey, setBusyKey] = useState<string | null | undefined>(null);
     // Imports the server parked as awaiting_artifacts: the job keeps polling
     // server-side, so the row says so instead of offering Transcribe again.
@@ -108,21 +132,6 @@ export default function GoogleMeetImportPanel({ onComplete }: { onComplete?: () 
     const [reauthBusy, setReauthBusy] = useState(false);
     const [reauthError, setReauthError] = useState<unknown>(null);
 
-    const load = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const data = await listGoogleMeetRecordings();
-            setItems(Array.isArray(data?.items) ? data.items : []);
-            setConnection(data?.connection && typeof data.connection === 'object' ? data.connection : null);
-        } catch (err) {
-            setError(err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => { load(); }, []);
 
     const handleImport = async (item: MeetRecording) => {
         clearError();

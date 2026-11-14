@@ -8,6 +8,7 @@
  * module stays a leaf of the server's import cycle.
  */
 
+const { fetchFixedEndpoint } = require('../../utils/fixedEndpointFetch.mts');
 const log = require('../../telemetry/log');
 const { RENEW_FAILURE_THRESHOLD } = require('./escalation');
 
@@ -127,7 +128,7 @@ async function provisionSubscription(sub, session) {
         clientState,
     };
     try {
-        const r = await fetch('https://graph.microsoft.com/v1.0/subscriptions', {
+        const r = await fetchFixedEndpoint('https://graph.microsoft.com/v1.0/subscriptions', {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
             body: JSON.stringify(body),
@@ -161,7 +162,7 @@ async function revokeSubscription(sub, session) {
     const token = microsoftTokenOf(session);
     if (!token) return false;
     try {
-        const r = await fetch(`https://graph.microsoft.com/v1.0/subscriptions/${sub.externalRef}`, {
+        const r = await fetchFixedEndpoint(`https://graph.microsoft.com/v1.0/subscriptions/${sub.externalRef}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` },
         });
@@ -190,7 +191,7 @@ async function renewExpiringSubscriptions(ctx) {
                     continue;
                 }
                 const newExpiry = new Date(Date.now() + MSGRAPH_LIFETIME_MS).toISOString();
-                const r = await fetch(`https://graph.microsoft.com/v1.0/subscriptions/${sub.externalRef}`, {
+                const r = await fetchFixedEndpoint(`https://graph.microsoft.com/v1.0/subscriptions/${sub.externalRef}`, {
                     method: 'PATCH',
                     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ expirationDateTime: newExpiry }),

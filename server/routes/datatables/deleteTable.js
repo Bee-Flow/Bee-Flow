@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Deleting a table.
  *
@@ -34,7 +34,8 @@ function register(router) {
         requireDatatableGrade('owner'),
         requireManageForOrgScope(),
         validate({ body: DeleteBody, query: ConfirmBreakingQuery }),
-        async (/** @type {DatatableRequest} */ req, /** @type {import('express').Response} */ res) => {
+        async (gatedReq, /** @type {import('express').Response} */ res) => {
+            const req = /** @type {DatatableRequest} */ (gatedReq); // what requireDatatableGrade set
             try {
                 // Same question as a column drop, one level up: the automations in the
                 // usage index stop working the moment this table is gone. Ask once.

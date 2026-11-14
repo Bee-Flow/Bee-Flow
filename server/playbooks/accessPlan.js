@@ -29,31 +29,18 @@ const { modelUnreachable, modelLookupFailed } = require('./modelFailure');
 // The model deps every playbook step shares; the default also meters the call.
 const { defaultDeps, meteredCall } = require('./phases/phaseModel');
 
-// A role per value of a column is a legitimate ask ("one per supplier"), so the
-// cap is the number of values a person can still read on a screen — not the 8
-// that fitted when a role was always hand-named. `PUT /:id/schema` has no role
-// cap of its own; the 20 on `def.roles` and on the builder's `set_roles` tool
-// is a different list (the app's UI roles) and is not touched here.
-const MAX_ROLES = 40;
-const MAX_ENTRIES = 25;
+const { resolveNames, renderRule, MAX_ROLES, ROLE_KEY_RE, BUILTIN_ROLES } = require('./accessPlanResolve');
+
 /** The digest the model reads: enough columns to choose from, few enough to read. */
 const DIGEST_MAX_COLUMNS = 6;
 const DIGEST_MAX_VALUES = 40;
-const ROLE_KEY_RE = /^[a-z][a-z0-9_]{0,31}$/;
-/** Roles the platform always understands, whatever the app's model says. */
-const BUILTIN_ROLES = Object.freeze(['app', 'member', 'public']);
 
 /**
- * @typedef {{ tableName?: string, columns?: Array<{ key: string, name?: string, truncated?: boolean,
- *   values?: Array<{ value: unknown, count?: number }> }> }} DataDigest
- * @typedef {{ key: string, label?: string }} AppRole
- * @typedef {{ id: string, name: string }} DirectoryGroup
- * @typedef {{ id: string, name?: string, email?: string }} DirectoryPerson
- * @typedef {(rule: string) => ({ ok?: boolean } | null | undefined)} RuleValidator
- * @typedef {{ audience?: { kind?: string, groups?: unknown[] }, roles?: Array<{ key?: unknown, label?: unknown, scope?: { column?: unknown, value?: unknown } } | null>,
- *   defaultRole?: unknown, groupRoles?: Array<{ group?: unknown, role?: unknown } | null>,
- *   people?: Array<{ person?: unknown, role?: unknown } | null>, note?: unknown }} ProposedAccess
- *   The `propose_access` tool's arguments, as the model sent them (parsed JSON, so every leaf is unchecked).
+ * @typedef {import('./accessPlanResolve').DataDigest} DataDigest
+ * @typedef {import('./accessPlanResolve').AppRole} AppRole
+ * @typedef {import('./accessPlanResolve').DirectoryGroup} DirectoryGroup
+ * @typedef {import('./accessPlanResolve').DirectoryPerson} DirectoryPerson
+ * @typedef {import('./accessPlanResolve').RuleValidator} RuleValidator
  */
 
 const ACCESS_TOOL = {
@@ -184,166 +171,6 @@ function systemPrompt({ locale, roles, groups, people, appName, digest = null })
         '- Leave `audience.kind` "unchanged" unless they said something about who can open the app.',
         '- Nothing they did not ask for. An empty proposal is a fine answer when their sentence asks for nothing.',
     ].join('\n');
-}
-
-const str = /** @param {unknown} v @param {number} [n] */ (v, n = 80) => (typeof v === 'string' ? v.trim().slice(0, n) : '');
-const fold = /** @param {unknown} v */ (v) => str(v, 120).toLowerCase().replace(/\s+/g, ' ');
-
-/**
- * A group by name, then by a forgiving match; null when the directory has no such group.
- * @param {DirectoryGroup[]} groups
- * @param {unknown} name
- */
-function findGroup(groups, name) {
-    const want = fold(name);
-    if (!want) return null;
-    return groups.find((g) => fold(g.name) === want)
-        || groups.find((g) => fold(g.name).includes(want) || want.includes(fold(g.name)))
-        || null;
-}
-
-/**
- * A person by e-mail first (exact), then by name.
- * @param {DirectoryPerson[]} people
- * @param {unknown} name
- */
-function findPerson(people, name) {
-    const want = fold(name);
-    if (!want) return null;
-    return people.find((u) => fold(u.email) === want)
-        || people.find((u) => fold(u.name) === want)
-        || people.find((u) => fold(u.name).startsWith(`${want} `) || fold(u.name) === want)
-        || null;
-}
-
-/**
- * A `{column, value}` pair as a row rule the RLS gateway accepts.
- *
- * The expression grammar is tiny on purpose (core/dataEngine/accessFilter.js):
- * `record.<field> == <literal>`. Building it here rather than letting the model
- * write it means there is no syntax to get wrong and nothing to inject — the
- * value goes in as a JSON string literal and is BOUND as a parameter when the
- * filter is compiled.
- * @param {unknown} column
- * @param {unknown} value
- */
-function renderRule(column, value) {
-    const col = str(column, 63);
-    if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(col)) return null;
-    if (typeof value !== 'string' || !value.trim()) return null;
-    return `record.${col} == ${JSON.stringify(value.slice(0, 200))}`;
-}
-
-/**
- * The model's answer, resolved against the directory and the app's own roles.
- * Returns what the client may apply, what it could not resolve, and the list a
- * person reads before pressing Approve.
- * @param {ProposedAccess | null} raw
- * @param {{ roles?: AppRole[], groups?: DirectoryGroup[], people?: DirectoryPerson[], digest?: DataDigest | null, tableId?: string | null, validateRule?: RuleValidator | null }} [ctx]
- */
-function resolveNames(raw, { roles = [], groups = [], people = [], digest = null, tableId = null, validateRule = null } = {}) {
-    const digestColumns = new Map(((digest && digest.columns) || []).map((c) => [c.key, new Set((c.values || []).map((v) => String(v.value)))]));
-    /** @type {ProposedAccess} */
-    const d = raw && typeof raw === 'object' ? raw : {};
-    const existing = new Map(roles.filter((r) => r && r.key).map((r) => [r.key, r]));
-    /** @type {Array<{ kind: string, name: string, what?: string }>} */
-    const unresolved = [];
-
-    /** @type {Array<{ key: string, label: string, scope?: { column: string, value: string } }>} */
-    const newRoles = [];
-    /** @type {Array<{ tableId: string, roleKey: string, expr: string }>} */
-    const tableRules = [];
-    for (const r of (Array.isArray(d.roles) ? d.roles : []).slice(0, MAX_ROLES)) {
-        const key = str(r && r.key, 32).toLowerCase().replace(/[^a-z0-9_]/g, '_');
-        const label = str(r && r.label, 60) || key;
-        if (!ROLE_KEY_RE.test(key) || existing.has(key) || BUILTIN_ROLES.includes(key)) continue;
-        if (newRoles.some((x) => x.key === key)) continue;
-        const scope = r && r.scope && typeof r.scope === 'object' ? r.scope : null;
-        /** @type {string | null} */
-        let rule = null;
-        if (scope) {
-            const column = str(scope.column, 63);
-            const value = str(scope.value, 200);
-            const known = digestColumns.get(column);
-            // A column or a value the data does not have is a hallucination,
-            // and a role scoped to nothing would show its holder an empty app
-            // without ever saying why.
-            if (!known) unresolved.push({ kind: 'column', name: column, what: key });
-            else if (!known.has(value)) unresolved.push({ kind: 'value', name: value, what: column });
-            else {
-                rule = renderRule(column, value);
-                if (rule && typeof validateRule === 'function') {
-                    const verdict = validateRule(rule);
-                    if (verdict && verdict.ok === false) { unresolved.push({ kind: 'rule', name: `${column} = ${value}`, what: key }); rule = null; }
-                }
-                if (!rule && !unresolved.some((u) => u.kind === 'rule' && u.what === key)) unresolved.push({ kind: 'rule', name: `${column} = ${value}`, what: key });
-            }
-            // A role whose whole point was the scope is not created without it.
-            if (!rule) continue;
-        }
-        newRoles.push({ key, label, ...(scope && rule ? { scope: { column: str(scope.column, 63), value: str(scope.value, 200) } } : {}) });
-        if (rule && tableId) tableRules.push({ tableId, roleKey: key, expr: rule });
-    }
-    const known = new Set([...existing.keys(), ...newRoles.map((r) => r.key), ...BUILTIN_ROLES]);
-    const roleOf = /** @param {unknown} v @param {string} what */ (v, what) => {
-        const key = str(v, 32).toLowerCase();
-        if (known.has(key)) return key;
-        unresolved.push({ kind: 'role', name: str(v, 60), what });
-        return null;
-    };
-
-    /** @type {Record<string, string>} */
-    const byGroup = {};
-    for (const entry of (Array.isArray(d.groupRoles) ? d.groupRoles : []).slice(0, MAX_ENTRIES)) {
-        const g = findGroup(groups, entry && entry.group);
-        const role = roleOf(entry && entry.role, str(entry && entry.group, 60));
-        if (!g) { unresolved.push({ kind: 'group', name: str(entry && entry.group, 60) }); continue; }
-        if (role) byGroup[g.id] = role;
-    }
-
-    /** @type {Array<{ userId: string, roleKey: string, name: string }>} */
-    const members = [];
-    for (const entry of (Array.isArray(d.people) ? d.people : []).slice(0, MAX_ENTRIES)) {
-        const u = findPerson(people, entry && entry.person);
-        const role = roleOf(entry && entry.role, str(entry && entry.person, 60));
-        if (!u) { unresolved.push({ kind: 'person', name: str(entry && entry.person, 60) }); continue; }
-        if (role && !members.some((m) => m.userId === u.id)) members.push({ userId: u.id, roleKey: role, name: u.name || u.email });
-    }
-
-    const rawAudience = d.audience && typeof d.audience === 'object' ? d.audience : { kind: 'unchanged' };
-    /** @type {{ kind: string; groupIds: string[]; groupNames: string[]; } | { kind: string | undefined; } | null} */
-    let audience = null;
-    if (['private', 'organisation', 'groups'].includes(rawAudience.kind)) {
-        if (rawAudience.kind === 'groups') {
-            /** @type {string[]} */
-            const ids = [];
-            /** @type {string[]} */
-            const names = [];
-            for (const name of (Array.isArray(rawAudience.groups) ? rawAudience.groups : []).slice(0, MAX_ENTRIES)) {
-                const g = findGroup(groups, name);
-                if (!g) { unresolved.push({ kind: 'group', name: str(name, 60) }); continue; }
-                if (!ids.includes(g.id)) { ids.push(g.id); names.push(g.name); }
-            }
-            if (ids.length) audience = { kind: 'groups', groupIds: ids, groupNames: names };
-        } else {
-            audience = { kind: rawAudience.kind };
-        }
-    }
-
-    const defaultRole = d.defaultRole ? roleOf(d.defaultRole, 'default') : null;
-
-    return {
-        note: str(d.note, 240),
-        audience,
-        roles: newRoles,
-        tableRules,
-        defaultRole,
-        byGroup,
-        byGroupNames: Object.fromEntries(Object.entries(byGroup).map(([id, role]) => [(groups.find((g) => g.id === id) || {}).name || id, role])),
-        members,
-        unresolved,
-        empty: !audience && !newRoles.length && !tableRules.length && !defaultRole && !Object.keys(byGroup).length && !members.length,
-    };
 }
 
 /**

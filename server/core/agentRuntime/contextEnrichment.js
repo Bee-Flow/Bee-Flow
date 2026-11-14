@@ -1,3 +1,4 @@
+// @typecheck
 /** @typedef {import('./chatStream/turnState').AgentRow} AgentRow */
 /** @typedef {import('./chatStream/turnState').UserAuth} UserAuth */
 /** @typedef {import('./chatStream/turnState').KbSource} KbSource */
@@ -35,7 +36,7 @@ async function resolveProjectContext({ userId, messageMetadata, conversation, is
         if (resolved) {
             validProjectId = resolved.projectId;
             validProject = resolved.project;
-            extractMemoriesEnabled = resolved.project.extractMemories === true;
+            extractMemoriesEnabled = /** @type {{ extractMemories?: boolean }} */ (resolved.project).extractMemories === true;
         }
     }
 
@@ -55,7 +56,8 @@ async function resolveProjectContext({ userId, messageMetadata, conversation, is
 }
 
 /**
- * @param {{ usedOut?: { items?: Array<{id: string, type: string, preview: string}> } }} p
+ * @param {{ agent?: { config?: Record<string, any> | null, organization_id?: string | null, [k: string]: unknown } | null, agentId?: string, userId?: string, userMessage?: string, validProjectId?: string | null,
+ *   onEvent?: (event: string, data: unknown) => void, memoryPolicy?: Awaited<ReturnType<typeof resolveMemoryPolicy>> | null, usedOut?: { items?: Array<{id: string, type: string, preview: string}> }, conversationId?: string | null }} p
  *   `usedOut`: optional: receives the memories injected this turn (also sent to the client as the
  *   `memory_used` event), so the turn can persist them on the message
  */

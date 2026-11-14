@@ -28,6 +28,12 @@ async function advanceRead(q, chatId, userId, seq) {
 }
 
 /**
+ * @typedef {NonNullable<ReturnType<typeof rowToMessage>>} ChatMessage
+ * @typedef {{ message: ChatMessage, created: boolean, stale?: false }} AppendedMessage  `created` false: the earlier copy of an idempotent retry
+ * @typedef {AppendedMessage | { stale: true } | null} AppendResult  `stale`: a member posted after `unlessHumanAfterSeq`; null: no such chat in this project
+ */
+
+/**
  * Append a message: the next seq under the chat row's lock.
  * @param {{
  *   query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }>,
@@ -55,7 +61,7 @@ function makeMessageAppend(db, ready) {
      *           refs?: { kind: string, id: string }[], aiMeta?: object|null, aiTrace?: string|null, clientMsgId?: string|null,
      *           aiTrigger?: string|null, aiReason?: string|null, notice?: string|null,
      *           unlessHumanAfterSeq?: number|null }} m  `content` sealed ('' for a notice)
-     * @returns {Promise<{ message: ReturnType<typeof rowToMessage>, created: boolean, stale?: false }|{ stale: true }|null>}
+     * @returns {Promise<AppendResult>}
      */
     async function appendMessage(m) {
         await ready();
@@ -95,7 +101,7 @@ function makeMessageAppend(db, ready) {
                     if ((existing.author_user_id || null) !== (authorUserId || null)) {
                         throw new ProjectChatStoreError('CLIENT_MSG_ID_TAKEN', 'This clientMsgId was already used for another message in this chat.');
                     }
-                    return { message: rowToMessage(existing), created: false, stale: /** @type {false} */ (false) };
+                    return { message: /** @type {ChatMessage} */ (rowToMessage(existing)), created: false, stale: /** @type {false} */ (false) };
                 }
             }
 
@@ -144,7 +150,7 @@ function makeMessageAppend(db, ready) {
             );
             // A notice is written on a member's behalf, not read by them.
             if (authorUserId && authorKind !== 'system') await advanceRead(q, chatId, authorUserId, seq);
-            return { message: rowToMessage(inserted), created: true, stale: /** @type {false} */ (false) };
+            return { message: /** @type {ChatMessage} */ (rowToMessage(inserted)), created: true, stale: /** @type {false} */ (false) };
         });
     }
 

@@ -65,13 +65,6 @@ export interface TeamsData {
     meetings: TeamsMeeting[];
 }
 
-/** One source's load state. */
-export interface SourceState<D> {
-    loading: boolean;
-    error: unknown;
-    data: D | null;
-}
-
 /** A row of the merged list; `provider` tells which meeting shape `m` has. */
 export type UpcomingRow =
     | { provider: 'talk'; key: string; start: string | null | undefined; m: TalkMeeting; status: string | undefined }

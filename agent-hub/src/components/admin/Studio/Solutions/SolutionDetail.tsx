@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { effectiveStage, readStateOf, type PipelineReadState } from './pipeline/pipelineModel';
 import StageRail from './pipeline/StageRail';
 import { getPipeline, stageFromSearch, type PipelineStage, type Pipeline, type StageName, type StageKey } from '@/api/stagesApi';
@@ -12,11 +13,11 @@ import { HeaderExtras, PublishButton } from './SolutionDetailParts';
 import { installsBadge } from './SolutionInstallsTab';
 import { updateAvailability } from './upgradeClient';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
 import StudioSectionHeader from '@/components/shared/StudioSectionHeader';
 import type { SolutionProject, SolutionDetailViewProps, SolutionDetailProps } from './SolutionDetail.types';
 import { logger } from '@/utils/logger';
-import { mutate, errorBody, RefusedError } from '@/api/mutate';
+import { errorBody, RefusedError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 export type { SolutionProject } from './SolutionDetail.types';
 
 ;
@@ -120,11 +121,7 @@ function SolutionDetailView({
         setRemoveError(null);
         try {
             try {
-                await mutate(`${API_BASE}/api/projects/${project.id}/resources`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ kind, id: item.id, attach: false }),
-            });
+                await apiRequest('PUT /api/projects/{id}/resources', { params: { id: project.id }, body: { kind, id: item.id, attach: false } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const body = errorBody(err) ?? null;
@@ -142,11 +139,7 @@ function SolutionDetailView({
     const rename = async (next: string) => {
         setName(next);
         try {
-            await mutate(`${API_BASE}/api/projects/${project.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: next }),
-            });
+            await apiRequest('PUT /api/projects/{id}', { params: { id: project.id }, body: { name: next } });
         } catch { setName(project.name); }   // the server refused (or was unreachable); say so by reverting
     };
 
@@ -267,26 +260,45 @@ function mirrorToUrl(stage: string, tab: string | null) {
     } catch (err) { logger.debug('a URL that cannot be written only costs a deep link', err); }
 }
 
+interface PipelineRead {
+    status: 'loading' | 'ok' | 'error';
+    data: Pipeline | null;
+    state: PipelineReadState;
+}
+
+const PIPELINE_LOADING: PipelineRead = { status: 'loading', data: null, state: 'ok' };
+
+/**
+ * The Solution's pipeline, read on mount and on every ask. The last answer stays
+ * on screen until the next one lands; an answer for an earlier Solution or an
+ * earlier ask never overwrites a newer one (each is its own query).
+ */
+function usePipelineRead(projectId: string, asked: number): PipelineRead {
+    const query = useQuery<PipelineRead>({
+        queryKey: ['solutions', 'pipeline', projectId, asked],
+        queryFn: async () => {
+            const res = await getPipeline(projectId);
+            return res.ok ? { status: 'ok', data: res.data, state: 'ok' } : { status: 'error', data: null, state: readStateOf(res) };
+        },
+        staleTime: Infinity,
+        gcTime: 0,
+        retry: false,
+        refetchOnReconnect: false,
+        placeholderData: keepPreviousData,
+    });
+    return query.data ?? PIPELINE_LOADING;
+}
+
 export default function SolutionDetail({ project, onBack, currentUserId, initialStage = null }: SolutionDetailProps) {
-    const [read, setRead] = useState<{ status: 'loading' | 'ok' | 'error'; data: Pipeline | null; state: PipelineReadState }>({ status: 'loading', data: null, state: 'ok' });
     const [wanted, setWanted] = useState<{ stage: StageName; tab: string | null }>(() => {
         const params = new URLSearchParams(window.location.search);
         return { stage: initialStage || stageFromSearch(window.location.search), tab: params.get('tab') };
     });
 
-    // `reload` only asks; the read itself sits in the effect so a late answer
-    // for an earlier Solution or an earlier ask can never overwrite a newer one.
+    // `reload` only asks: every ask is a read of its own.
     const [asked, setAsked] = useState(0);
     const reload = useCallback(() => setAsked(n => n + 1), []);
-    useEffect(() => {
-        let alive = true;
-        (async () => {
-            const res = await getPipeline(project.id);
-            if (!alive) return;
-            setRead(res.ok ? { status: 'ok', data: res.data, state: 'ok' } : { status: 'error', data: null, state: readStateOf(res) });
-        })();
-        return () => { alive = false; };
-    }, [project.id, asked]);
+    const read = usePipelineRead(project.id, asked);
 
     const stages = read.data?.stages || [];
     const hasDev = !!read.data?.dev;

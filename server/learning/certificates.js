@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 // Certificate issuance + lookup — the authority that the auth endpoints and the
 // public /verify route both call. Eligibility is ALWAYS recomputed from the
 // server-side progress blob; client claims are never trusted.
@@ -69,10 +69,10 @@ function isEligible(certId, progress, visibleByCourse) {
  */
 async function issueCertificate(userId, certId, { recipientName, orgName, makePublic = false, visibleByCourse } = {}) {
     const cert = getCatalogCert(certId);
-    if (!cert) return { error: 'unknown_certificate' };
+    if (!cert) return { error: /** @type {const} */ ('unknown_certificate') };
 
     const progress = await readServerProgress(userId);
-    if (!isEligible(certId, progress, visibleByCourse)) return { error: 'not_eligible' };
+    if (!isEligible(certId, progress, visibleByCourse)) return { error: /** @type {const} */ ('not_eligible') };
 
     const existing = await certStore.getCertificate(userId, certId);
     const issuedAt = existing?.issuedAt || new Date().toISOString();
@@ -133,7 +133,7 @@ function buildUrls(record, verifyToken) {
         const issued = new Date(String(record.issuedAt));
         const params = new URLSearchParams({
             startTask: 'CERTIFICATION_NAME',
-            name: record.title,
+            name: /** @type {string} */ (record.title), // every certificate in the catalogue has a title
             organizationName: 'Bee Flow',
             issueYear: String(issued.getUTCFullYear()),
             issueMonth: String(issued.getUTCMonth() + 1),

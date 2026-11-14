@@ -97,7 +97,7 @@ function headingDecl(h, defaultFont, fallbackColor) {
  * The CSS stays for anything that renders the HTML itself.
  *
  * @param {{ styleMeta?: Record<string, unknown> } | symbol | null | undefined} style  a symbol (NO_SUCH_STYLE) reads as no style
- * @returns {{ css: string, opts: object, inline: Record<string, string> }}
+ * @returns {{ css: string, opts: { headerHTML?: string | null, footerHTML?: string | null, [k: string]: unknown }, inline: Record<string, string> }}
  */
 function buildDocxStylingFromHouseStyle(style) {
     const meta = /** @type {StyleMeta} */ (/** @type {{ styleMeta?: Record<string, unknown> } | null | undefined} */ (style)?.styleMeta || {});

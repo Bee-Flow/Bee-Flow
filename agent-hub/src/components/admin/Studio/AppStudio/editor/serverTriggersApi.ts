@@ -5,7 +5,7 @@
 //   const flip = useTriggerSwitch(api, appId);        // switch an armed trigger off or on again
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { API_BASE, request } from '@/api/mutate';
+import { apiJson } from '@/api/typedRequest';
 
 export interface TriggerView {
     id: string;
@@ -32,17 +32,13 @@ export interface TriggersApi {
     setEnabled(appId: string, triggerId: string, enabled: boolean): Promise<{ trigger: TriggerView }>;
 }
 
-const base = (appId: string) => `${API_BASE}/api/studio-apps/${encodeURIComponent(appId)}/triggers`;
-
 export const triggersApi: TriggersApi = {
     async list(appId) {
-        return (await (await request(base(appId))).json()) as TriggerState;
+        return apiJson<'GET /api/studio-apps/{id}/triggers', TriggerState>('GET /api/studio-apps/{id}/triggers', { params: { id: appId } });
     },
     async setEnabled(appId, triggerId, enabled) {
-        const res = await request(`${base(appId)}/${encodeURIComponent(triggerId)}`, {
-            method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled }),
-        });
-        return (await res.json()) as { trigger: TriggerView };
+        return apiJson<'PUT /api/studio-apps/{id}/triggers/{triggerId}', { trigger: TriggerView }>(
+            'PUT /api/studio-apps/{id}/triggers/{triggerId}', { params: { id: appId, triggerId }, body: { enabled } });
     },
 };
 

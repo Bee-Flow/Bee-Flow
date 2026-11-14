@@ -3,7 +3,8 @@ import type { BuilderSnapshot, BuilderStreamData, BuilderValidation } from './bu
 import { openTurn } from './builderStream';
 import { isBlankDefinition } from '../components/automation/Builder/flow/normalizeDefinition';
 import { readEventStream } from '../api/readEventStream';
-import { API_BASE, authFetch } from '../utils/helpers';
+import { authFetch } from '../utils/helpers';
+import { apiUrl } from '../api/typedRequest';
 import type { AutomationBuilderInitial, AutomationBuilderSendOptions, AutomationBuilderState } from './automationBuilder/types';
 import { handle } from './automationBuilder/reducer';
 import { finalizeStreaming, questionsPlanIdOf } from './automationBuilder/streamHelpers';
@@ -184,7 +185,7 @@ export default function useAutomationBuilderStream(initial: AutomationBuilderIni
         }));
 
         try {
-            const url = `${API_BASE}/api/automation/builder/stream${resume ? '?resume=1' : ''}`;
+            const url = apiUrl('POST /api/automation/builder/stream', { query: resume ? { resume: '1' } : undefined });
             const resp = await authFetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

@@ -1,5 +1,5 @@
+// @typecheck
 'use strict';
-
 /**
  * The shared harness of the form surface's tests (formPublic/*.test.js):
  * every store, the runner and the rate limiter mocked through require.cache,
@@ -13,7 +13,6 @@
 const assert = require('node:assert');
 const path = require('path');
 const Module = require('module');
-
 const SERVER = path.resolve(__dirname, '..', '..', '..');
 function mock(absId, exports) {
     const p = require.resolve(absId);
@@ -22,7 +21,6 @@ function mock(absId, exports) {
     m.loaded = true;
     require.cache[p] = m;
 }
-
 const TOKEN = 'a'.repeat(48), OTHER_TOKEN = 'b'.repeat(48);
 
 const FORM = {
@@ -334,7 +332,7 @@ const { MIN_FORM_AGE_MS, HONEYPOT_FIELD, MAX_SUBMISSION_BYTES, QUEUE_DEPTH, UPLO
 
 function findHandler(method, routePath) {
     for (const layer of router.stack) {
-        if (layer.route && layer.route.path === routePath && layer.route.methods[method]) {
+        if (layer.route && layer.route.path === routePath && /** @type {{ methods?: Record<string, boolean> }} */ (layer.route).methods[method]) {
             return layer.route.stack[layer.route.stack.length - 1].handle;
         }
     }
@@ -342,7 +340,7 @@ function findHandler(method, routePath) {
 }
 const getForm = findHandler('get', '/form/:token');
 const postUpload = findHandler('post', '/form/:token/upload');
-const postSubmit = findHandler('post', '/form/:token');
+const postSubmit = /** @type {(req: object, res: object, next?: Function) => Promise<void>} */ (findHandler('post', '/form/:token'));
 const postPick = findHandler('post', '/form/:token/pick');
 const getSession = findHandler('get', '/form/:token/s/:sid');
 const getDownload = findHandler('get', '/form/:token/s/:sid/file/:fileId');
@@ -360,6 +358,7 @@ const postSession = findHandler('post', '/form/:token/s/:sid');
 function makeRes() {
     const { Writable } = require('stream');
     const chunks = [];
+    /** @type {import('stream').Writable & Record<string, any>} */
     const res = new Writable({ write(chunk, _enc, cb) { chunks.push(chunk); cb(); } });
     res.statusCode = 200;
     res.body = null;
@@ -371,6 +370,7 @@ function makeRes() {
     res.bytes = () => Buffer.concat(chunks);
     return res;
 }
+/** @param {{ token?: string, sid?: string | null, body?: object, headers?: Record<string, string>, file?: object | null, params?: Record<string, string>, session?: object }} [opts] */
 function makeReq({ token = TOKEN, sid = null, body = {}, headers = {}, file = null, params = {}, session } = {}) {
     const h = { 'content-type': 'application/json', 'user-agent': 'test', ...headers };
     // `params`: the extra route parameters some endpoints take (the download route's :fileId).

@@ -1,5 +1,4 @@
 import { computeScheduleNextRun } from '@shared/schedule/nextRun.mjs';
-import { API_BASE, authFetch } from '@/utils/helpers';
 import { configuredTierKeys } from '@/components/licensing/tierMeta';
 import { buildRefineContext, diffRefinedPlan, mergeRefinedPlan } from '../state/refineMerge';
 import { errorMessage } from '@/utils/caughtError';
@@ -10,7 +9,8 @@ import type { ModelTierMap } from '@/api/queries/modelTiers';
 import type { Skill } from '@/api/queries/skills';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { logger } from '@/utils/logger';
-import { mutate, ApiError } from '@/api/mutate';
+import { ApiError } from '@/api/mutate';
+import { apiFetch, apiRequest } from '@/api/typedRequest';
 
 export interface RefineDeps {
     chat: ChatMessage[];
@@ -99,17 +99,15 @@ export function createHandleRefine({ chat, setChat, chatInput, setChatInput, cha
                 // along. See personaFieldsOf.
                 persona: currentPersona,
             });
-            const res = await authFetch(`${API_BASE}/agents/wizard/refine`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+            const res = await apiFetch('POST /agents/wizard/refine', {
+                body: {
                     prompt: chat[0]?.content || '',
                     plan: ctx.plan,
                     current: ctx.current,
                     refinement: text,
                     modelTier: chatTier || tier || 'fast',
                     locale,
-                }),
+                },
             });
             if (!res.ok) {
                 // Structured, actionable error — a malformed model output (422)
@@ -139,7 +137,7 @@ export function createHandleRefine({ chat, setChat, chatInput, setChatInput, cha
             let undoVersionId: string | null = null;
             if (agent?.id) {
                 try {
-                    const snapRes = await mutate(`${API_BASE}/versions/${agent.id}/pre-refine`, { method: 'POST' }).catch((err: unknown) => {
+                    const snapRes = await apiRequest('POST /versions/{agentId}/pre-refine', { params: { agentId: agent.id } }).catch((err: unknown) => {
                         if (err instanceof ApiError) return null;
                         throw err;
                     });
@@ -159,10 +157,8 @@ export function createHandleRefine({ chat, setChat, chatInput, setChatInput, cha
                         attach.add(s.id); // reuse an existing skill
                     } else if (!s.id && s.name) {
                         try {
-                            const sres = await mutate(`${API_BASE}/api/skills`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ name: s.name, description: s.description || '', instructions: s.instructions || '', isShared: false, dynamicActivation: false, automationId: null }),
+                            const sres = await apiRequest('POST /api/skills', {
+                                body: { name: s.name, description: s.description || '', instructions: s.instructions || '', isShared: false, dynamicActivation: false, automationId: null },
                             }).catch((err: unknown) => {
                                 if (err instanceof ApiError) return null;
                                 throw err;
@@ -262,10 +258,8 @@ export function createHandleRefine({ chat, setChat, chatInput, setChatInput, cha
                     const r = updated.schedule;
                     const tz = r.timezone || (Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC');
                     const nextRunAt = computeScheduleNextRun(r, tz);
-                    const createRes = await mutate(`${API_BASE}/api/cowork`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
+                    const createRes = await apiRequest('POST /api/cowork', {
+                        body: {
                             agentId: agent.id,
                             title: r.title,
                             prompt: r.prompt,
@@ -274,7 +268,7 @@ export function createHandleRefine({ chat, setChat, chatInput, setChatInput, cha
                             timeOfDay: r.timeOfDay,
                             timezone: r.timezone || (Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'),
                             nextRunAt,
-                        }),
+                        },
                     }).catch((err: unknown) => {
                         if (err instanceof ApiError) return null;
                         throw err;

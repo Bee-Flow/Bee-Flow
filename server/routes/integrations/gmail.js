@@ -26,9 +26,9 @@ async function createGmailClient(req) {
     });
 }
 
-// Body/header parsing — shared home (services/email/parse). getGmailHeader
+// Body/header parsing — shared home (utils/emailParse). getGmailHeader
 // additionally guards entries without a name (the old inline copy threw).
-const { extractTextBody, getGmailHeader: getHeader } = require('../../services/email/parse');
+const { extractTextBody, getGmailHeader: getHeader } = require('../../utils/emailParse');
 
 // The RFC 2822 builder is shared with the tool/automation path so both send
 // paths sanitise header values identically (no second copy to keep in sync).
@@ -105,7 +105,7 @@ router.get('/status', requireAuth, async (req, res) => {
 
 // ─── List / Search Messages ──────────────────────────────────────
 
-router.get('/messages', validate({ query: MessagesQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof MessagesQuery>>} */ req, res, next) => {
+router.get('/messages', validate({ query: MessagesQuery }), async (req, res, next) => {
     try {
         const gmail = await createGmailClient(req);
         const { query, pageToken, pageSize = 20, label = 'INBOX' } = req.query;
@@ -216,7 +216,7 @@ router.get('/messages/:messageId', validate({ params: MessageParams }), async (r
 
 // ─── Send Email (User Approved) ──────────────────────────────────
 
-router.post('/send', validate({ body: EmailBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof EmailBody>, import('qs').ParsedQs>} */ req, res, next) => {
+router.post('/send', validate({ body: EmailBody }), async (req, res, next) => {
     try {
         const gmail = await createGmailClient(req);
         const { to, cc, bcc, subject, body, threadId, inReplyTo, references } = req.body;
@@ -265,7 +265,7 @@ router.post('/send', validate({ body: EmailBody }), async (/** @type {import('ex
 
 // ─── Save as Gmail Draft ─────────────────────────────────────────
 
-router.post('/draft', validate({ body: EmailBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof EmailBody>, import('qs').ParsedQs>} */ req, res, next) => {
+router.post('/draft', validate({ body: EmailBody }), async (req, res, next) => {
     try {
         const gmail = await createGmailClient(req);
         const { to, cc, bcc, subject, body, threadId, inReplyTo, references } = req.body;

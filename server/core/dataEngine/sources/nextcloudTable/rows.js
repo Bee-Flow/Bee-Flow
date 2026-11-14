@@ -17,7 +17,7 @@ const { cellToLocal } = require('./values');
 
 /**
  * @param {{ id: string|number, data?: Array<{ columnId: string|number, value?: unknown }> }} ncRow
- * @param {Omit<Parameters<typeof deriveRow>[1], 'readCell'>} ctx   see mirror/rows.deriveRow (readCell is supplied here)
+ * @param {Omit<Parameters<typeof deriveRow<import('./writeThrough').NcColumnEntry | { derived: string, localFieldId?: string, forFieldId?: string, [k: string]: unknown }>>[1], 'readCell'>} ctx   see mirror/rows.deriveRow (readCell is supplied here)
  */
 function mirrorRowFromNc(ncRow, ctx) {
     const byColumnId = new Map();

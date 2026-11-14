@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * The registry of OUTPUT DIFFERS: how two values that carry a `kind` are
@@ -120,9 +120,12 @@ function comparePart(changes, label, i, pa, pb) {
     const base = `${label}[${i}]`;
     if (pa && !pb) { changes.push({ path: base, change: 'removed', before: cutValue(pa) }); return; }
     if (!pa && pb) { changes.push({ path: base, change: 'added', after: cutValue(pb) }); return; }
+    // Only past the shorter list is one side missing (above); here both are parts of a summary.
+    const a = /** @type {Record<string, unknown>} */ (pa);
+    const b = /** @type {Record<string, unknown>} */ (pb);
     for (const field of ['title', 'name', 'rows', 'cols', 'textChars', 'textHash']) {
-        if (pa[field] === undefined && pb[field] === undefined) continue;
-        fieldChange(changes, `${base}.${field}`, pa[field], pb[field]);
+        if (a[field] === undefined && b[field] === undefined) continue;
+        fieldChange(changes, `${base}.${field}`, a[field], b[field]);
     }
 }
 

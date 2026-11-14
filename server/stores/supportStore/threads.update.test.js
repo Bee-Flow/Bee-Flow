@@ -1,68 +1,82 @@
 // @typecheck strict
 /**
- * supportStore.updateThread — where the column names come from.
+ * supportStore.updateThread against a real Postgres (PGlite behind db.js's
+ * pool, testUtils/pglitePool.js).
  *
- * This write used to echo the CALLER'S key into the SQL (`${k} = $n`), with a
- * list of allowed key names as the only thing standing between a patch and an
- * arbitrary column. That is one edit away from a caller naming a column:
- * anything added to the list is a column name, and anything the list misses is
- * dropped in silence. The column literal now comes from a map and nothing else,
- * so an unknown key can neither name a column nor sneak SQL into one.
+ * The column literal comes from a map and nothing else, so a caller's key can
+ * neither name a column nor carry SQL into one: an unknown key is dropped, and
+ * a patch of only unknown keys writes nothing. The SLA pause follows the
+ * status unless the caller sets it, and every write bumps updated_at.
  *
- * The SLA derivation and the timestamp bump are locked here too, because both
- * are shapes a dynamic-UPDATE builder can change without anything failing.
- *
- * Run: cd server && node --test --test-force-exit stores/supportStore/threads.update.test.js
+ * Run: cd server && node --test stores/supportStore/threads.update.test.js
  */
 
-const { test, beforeEach } = require('node:test');
+'use strict';
+
+const { test, before, after } = require('node:test');
 const assert = require('node:assert');
 
-process.env.NODE_ENV = 'test';
+const { usePglitePool } = require('../../testUtils/pglitePool');
 
-const { recordDb } = require('../../testUtils/routeHarness');
-
-// The real db.js over a recording pool; every statement answers one row.
-const db = recordDb(() => ({ rows: [{ id: 'thr-1' }], rowCount: 1 }));
-
+const { pg, close } = usePglitePool();
+const { initDB } = require('./schema');
 const threads = require('./threads');
 
-beforeEach(db.reset);
+before(() => initDB());
+after(close);
 
-const updates = () => db.calls.filter(q => /^UPDATE support_threads/i.test(q.sql.trim()));
+async function thread() {
+    const { rows } = await pg.query(
+        `INSERT INTO support_threads (organization_id, requester_email, source, subject, updated_at)
+         VALUES ('org-1', 'r@example.test', 'in_app', 'Invoice', NOW() - INTERVAL '1 day') RETURNING id`,
+    );
+    return rows[0].id;
+}
+const row = async (/** @type {string} */ id) => (await pg.query(
+    'SELECT organization_id, subject, priority, status, assignee_user_id, sla_paused, updated_at FROM support_threads WHERE id = $1', [id],
+)).rows[0];
 
 test('a known field is written, and the timestamp goes with it', async () => {
-    await threads.updateThread('thr-1', { priority: 'high' });
-    const u = updates()[0];
-    assert.match(u.sql, /^UPDATE support_threads SET priority = \$1, updated_at = now\(\)/i);
-    assert.match(u.sql, /WHERE id = \$2/);
-    assert.deepStrictEqual(u.params, ['high', 'thr-1']);
+    const id = await thread();
+    const before = await row(id);
+    const out = await threads.updateThread(id, { priority: 'high' });
+    const after = await row(id);
+    assert.strictEqual(after.priority, 'high');
+    assert.strictEqual(out.priority, 'high');
+    assert.ok(new Date(after.updated_at) > new Date(before.updated_at));
 });
 
 test('an unknown key names no column and reaches no SQL', async () => {
-    await threads.updateThread('thr-1', {
+    const id = await thread();
+    const before = await row(id);
+    await threads.updateThread(id, {
         organization_id: 'other-org',
         "status = 'closed', assignee_user_id": 'attacker',
     });
-    assert.strictEqual(updates().length, 0, 'nothing mapped changed → no UPDATE at all');
+    assert.deepStrictEqual(await row(id), before, 'nothing mapped changed: no write at all');
 });
 
 test('an unknown key alongside a known one does not widen the write', async () => {
-    await threads.updateThread('thr-1', { subject: 'Re: factuur', organization_id: 'other-org' });
-    const u = updates()[0];
-    assert.ok(!/organization_id/.test(u.sql), 'the caller does not get to name a column');
-    assert.deepStrictEqual(u.params, ['Re: factuur', 'thr-1']);
+    const id = await thread();
+    await threads.updateThread(id, { subject: 'Re: factuur', organization_id: 'other-org' });
+    const after = await row(id);
+    assert.strictEqual(after.subject, 'Re: factuur');
+    assert.strictEqual(after.organization_id, 'org-1', 'the caller does not get to name a column');
 });
 
 test('sla_paused is derived from the status transition, and an explicit value wins', async () => {
-    await threads.updateThread('thr-1', { status: 'awaiting_user' });
-    assert.ok(updates()[0].params.includes(true), 'waiting on the customer pauses the clock');
+    const id = await thread();
+    await threads.updateThread(id, { status: 'awaiting_user' });
+    assert.strictEqual((await row(id)).sla_paused, true, 'waiting on the customer pauses the clock');
+    await threads.updateThread(id, { status: 'open' });
+    assert.strictEqual((await row(id)).sla_paused, false, 'any other status resumes it');
+    await threads.updateThread(id, { status: 'awaiting_user', sla_paused: false });
+    assert.strictEqual((await row(id)).sla_paused, false, 'an explicit sla_paused is not overruled');
+});
 
-    db.reset();
-    await threads.updateThread('thr-1', { status: 'open' });
-    assert.ok(updates()[0].params.includes(false), 'any other status resumes it');
-
-    db.reset();
-    await threads.updateThread('thr-1', { status: 'awaiting_user', sla_paused: false });
-    assert.ok(updates()[0].params.includes(false), 'an explicit sla_paused is not overruled');
+test('the update touches only the thread it names', async () => {
+    const a = await thread();
+    const b = await thread();
+    await threads.updateThread(a, { priority: 'urgent' });
+    assert.notStrictEqual((await row(b)).priority, 'urgent');
 });

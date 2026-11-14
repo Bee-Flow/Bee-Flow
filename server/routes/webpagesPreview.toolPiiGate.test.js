@@ -74,7 +74,7 @@ const restore = installResolveStub({
         findOwnerOfTool: (tool) => (tool === 'gmail_search' ? { app: 'gmail' } : null),
         loadTools: () => [{ type: 'function', function: { name: 'gmail_search', parameters: { type: 'object', properties: {} } } }],
     },
-    '../integrations/webpageFramework': { resolveRuntime: () => 'static' },
+    '../core/webpages/frameworkModel.mts': { resolveRuntime: () => 'static' },
     '../integrations/webpageApiRuntime': { executeApiHandler: async () => ({}) },
     '../core/aiAgent': { getProviderForModel: async () => ({ providerType: 'openai', url: 'http://model.invalid', apiKey: 'k' }) },
     '../core/providers': streamingToolCallProvider(fx),

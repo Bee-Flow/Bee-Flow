@@ -30,8 +30,7 @@ const { makeFinding } = require('../../core/findings/finding');
 /** @typedef {{ name?: string, required?: boolean, type?: string, choices?: unknown }} Declaration */
 /** @typedef {{ slot?: string, kind?: string, value?: DefinitionNode|null }} BindingRow */
 
-/** @type {typeof import('../../core/packaging/walkers').walkAllSteps} */
-const walkAllSteps = (definition, fn) => require('../../automation/portability').walkAllSteps(definition, fn);
+const { walkAllSteps } = require('../../core/packaging/walkers');
 /**
  * @template T
  * @param {Record<string, unknown>|undefined} deps

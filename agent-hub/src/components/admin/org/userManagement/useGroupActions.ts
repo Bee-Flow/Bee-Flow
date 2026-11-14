@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { TranslateFn } from '@/hooks/useTranslation';
-import { API_BASE, authFetch } from '@/utils/helpers';
 import type { AdminGroup, AdminMessage, AskConfirm, GroupFormData } from './types';
 import { costLimitToInput, parseCostLimitInput } from './costLimitInput';
+import { type ApiBody, apiFetch } from '@/api/typedRequest';
 import { EMPTY_IMAGE_LIMITS_INPUT, imageLimitsToInput, parseImageLimitsInput } from '@/utils/imageLimits';
 
 const EMPTY_GROUP: GroupFormData = {
@@ -94,10 +94,7 @@ export default function useGroupActions({ loadData, setMessage, askConfirm, t, i
         const body = requestBody(groupData, isSelfHosted, setMessage, t, false);
         if (!body) return;
         try {
-            const res = await authFetch(`${API_BASE}/auth/groups`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-            });
+            const res = await apiFetch('POST /auth/groups', { body: body as ApiBody<'POST /auth/groups'> }); // requestBody(…, false) is the create shape
             if (res.ok) {
                 setMessage({ type: 'success', text: 'Group created successfully' });
                 setShowAddGroup(false);
@@ -113,10 +110,7 @@ export default function useGroupActions({ loadData, setMessage, askConfirm, t, i
         const body = requestBody(groupData, isSelfHosted, setMessage, t, true);
         if (!body) return;
         try {
-            const res = await authFetch(`${API_BASE}/auth/groups/${groupData.id}`, {
-                method: 'PUT', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-            });
+            const res = await apiFetch('PUT /auth/groups/{id}', { params: { id: groupData.id }, body: body as ApiBody<'PUT /auth/groups/{id}'> });
             if (res.ok) {
                 setMessage({ type: 'success', text: 'Group updated successfully' });
                 setShowEditGroup(false);
@@ -140,7 +134,7 @@ export default function useGroupActions({ loadData, setMessage, askConfirm, t, i
 
     const doDeleteGroup = async (groupId: string) => {
         try {
-            const res = await authFetch(`${API_BASE}/auth/groups/${groupId}`, { method: 'DELETE' });
+            const res = await apiFetch('DELETE /auth/groups/{id}', { params: { id: groupId } });
             if (res.ok) { setMessage({ type: 'success', text: 'Group deleted' }); loadData(); }
             else { const d = await res.json(); setMessage({ type: 'error', text: d.error || 'Failed' }); }
         } catch (err) { setMessage({ type: 'error', text: 'Connection error' }); }

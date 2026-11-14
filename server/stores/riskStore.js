@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Risk Store — ISO 27001 clause 6.1.2/6.1.3 information-security risk register.
  *
@@ -150,9 +150,9 @@ async function createRisk(orgId, fields = {}, actorId = null) {
         likelihood,
         impact,
         likelihood * impact,
-        VALID_STATUSES.has(fields.status) ? fields.status : 'open',
+        VALID_STATUSES.has(/** @type {string} */ (fields.status)) ? /** @type {string} */ (fields.status) : 'open',
         fields.owner_user_id || null,
-        VALID_SOURCES.has(fields.source) ? fields.source : 'manual',
+        VALID_SOURCES.has(/** @type {string} */ (fields.source)) ? /** @type {string} */ (fields.source) : 'manual',
         fields.seed_key || null,
         fields.review_due_at || null,
         actorId,
@@ -177,7 +177,7 @@ async function updateRisk(orgId, id, patch = {}, actorId = null) {
 
     const likelihood = clampScale(patch.likelihood) ?? clampScale(existing.likelihood) ?? 3;
     const impact = clampScale(patch.impact) ?? clampScale(existing.impact) ?? 3;
-    const status = VALID_STATUSES.has(patch.status) ? patch.status : existing.status;
+    const status = VALID_STATUSES.has(/** @type {string} */ (patch.status)) ? /** @type {string} */ (patch.status) : existing.status;
     const stampAcceptance = status === 'accepted' && !existing.accepted_at;
 
     await run(`
@@ -237,7 +237,7 @@ async function addTreatment(orgId, riskId, fields = {}, actorId = null) {
     `, [
         orgId,
         id,
-        VALID_OPTIONS.has(fields.option) ? fields.option : 'mitigate',
+        VALID_OPTIONS.has(/** @type {string} */ (fields.option)) ? /** @type {string} */ (fields.option) : 'mitigate',
         fields.description || null,
         fields.due_at || null,
         fields.owner_user_id || actorId || null,
@@ -267,7 +267,7 @@ async function updateTreatment(orgId, id, patch = {}) {
         WHERE organization_id = $1 AND id = $2
     `, [
         orgId, id,
-        VALID_OPTIONS.has(patch.option) ? patch.option : existing.option,
+        VALID_OPTIONS.has(/** @type {string} */ (patch.option)) ? /** @type {string} */ (patch.option) : existing.option,
         patch.description !== undefined ? (patch.description || null) : (existing.description ?? null),
         patch.due_at !== undefined ? (patch.due_at || null) : (existing.due_at ?? null),
         patch.done_at !== undefined ? (patch.done_at || null) : (existing.done_at ?? null),

@@ -84,6 +84,7 @@ export default function FloatingValidationPill({ fatalError, validation, aborted
                             onClick={() => setOpen(false)}
                             className="p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]"
                             title={t('automations.floating_validation_pill.collapse', 'Collapse')}
+                            aria-label={t('automations.floating_validation_pill.collapse', 'Collapse')}
                         >
                             <X size={14} />
                         </button>

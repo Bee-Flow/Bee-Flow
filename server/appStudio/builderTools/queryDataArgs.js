@@ -40,6 +40,119 @@ const bad = (error, _fixHint) => ({ error, _fixHint });
  * }} QueryArgs
  */
 
+/** @param {unknown} v */
+const given = (v) => v !== undefined && v !== null;
+
+/**
+ * The arguments' readers, in the order their refusals are checked. Each reads
+ * its argument(s) from `a` into `out`, or answers the refusal.
+ * @typedef {(a: Record<string, any>, out: QueryArgs) => QueryArgs | undefined} QueryArgReader
+ */
+
+/** @type {QueryArgReader} */
+function readSource(a, out) {
+    out.tableId = typeof a.tableId === 'string' && a.tableId ? a.tableId : null;
+    out.datasetId = typeof a.datasetId === 'string' && a.datasetId ? a.datasetId : null;
+    if (out.tableId && out.datasetId) {
+        return bad('Pass either tableId or datasetId, not both.', 'tableId lists raw rows (filter/sort/paging); datasetId runs a saved aggregation.');
+    }
+    if (!out.tableId && !out.datasetId) {
+        return bad('Pass tableId (raw rows) or datasetId (a saved aggregation).', 'Table ids are in the data model (app_get_data_model).');
+    }
+    return undefined;
+}
+
+/** A limit past the per-call page is clamped, and the answer says so. @type {QueryArgReader} */
+function readLimit(a, out) {
+    out.limit = DEFAULT_QUERY_LIMIT;
+    out.limitClamped = false;
+    out.requestedLimit = undefined;
+    if (!given(a.limit)) return undefined;
+    const n = Number(a.limit);
+    if (!Number.isInteger(n) || n < 1) {
+        return bad('limit must be a whole number of at least 1.', `Rows per call: 1-${MAX_QUERY_LIMIT} (default ${DEFAULT_QUERY_LIMIT}); page on with cursor.`);
+    }
+    out.limitClamped = n > MAX_QUERY_LIMIT;
+    if (out.limitClamped) out.requestedLimit = n;
+    out.limit = Math.min(n, MAX_QUERY_LIMIT);
+    return undefined;
+}
+
+/** @type {QueryArgReader} */
+function readSort(a, out) {
+    out.sort = undefined;
+    if (!given(a.sort)) return undefined;
+    const dir = a.sort && typeof a.sort === 'object' ? (a.sort.dir ?? 'desc') : null;
+    if (!a.sort || typeof a.sort !== 'object' || Array.isArray(a.sort) || typeof a.sort.field !== 'string' || !a.sort.field
+        || typeof dir !== 'string' || !SORT_DIRS.includes(dir.toLowerCase())) {
+        return bad('sort must be { field, dir } with dir "asc" or "desc".');
+    }
+    out.sort = { field: a.sort.field, dir: dir.toLowerCase() };
+    return undefined;
+}
+
+/** @type {QueryArgReader} */
+function readOrderBy(a, out) {
+    if (!given(a.orderBy)) return undefined;
+    if (!Array.isArray(a.orderBy) || !a.orderBy.length || out.sort) return bad('orderBy must be a list of { field, dir } entries, without sort.', 'Up to 3 columns; dir is "asc" or "desc".');
+    out.orderBy = a.orderBy;
+    return undefined;
+}
+
+/** @type {QueryArgReader} */
+function readFilter(a, out) {
+    out.filter = undefined;
+    if (!given(a.filter)) return undefined;
+    if (!Array.isArray(a.filter)) return bad('filter must be an array of { field, op, value? }.', `ops: ${FILTER_OPS.join(', ')}.`);
+    out.filter = a.filter;
+    return undefined;
+}
+
+/** @type {QueryArgReader} */
+function readMatch(a, out) {
+    if (!given(a.match)) return undefined;
+    if (a.match !== 'all' && a.match !== 'any') return bad('match must be "all" or "any".', '"any" returns a row when ONE of the filters matches; "all" (the default) needs every one.');
+    out.match = a.match;
+    return undefined;
+}
+
+/** @type {QueryArgReader} */
+function readSearch(a, out) {
+    if (!given(a.search)) return undefined;
+    const s = a.search;
+    if (!s || typeof s !== 'object' || Array.isArray(s) || typeof s.value !== 'string' || !s.value || !Array.isArray(s.fields) || !s.fields.length) {
+        return bad('search must be { value: <text>, fields: [<field keys>] }.', 'It finds rows where ANY of the fields contains the text; it ANDs with filter.');
+    }
+    out.search = { value: s.value, fields: s.fields };
+    return undefined;
+}
+
+/** @type {QueryArgReader} */
+function readPaging(a) {
+    if (given(a.cursor) && typeof a.cursor !== 'string') {
+        return bad('cursor must be the nextCursor string of the previous call.');
+    }
+    if (given(a.total) && typeof a.total !== 'boolean') {
+        return bad('total must be true or false.', 'total:true adds totalRows, the number of rows the whole read matches (tableId only).');
+    }
+    return undefined;
+}
+
+/** Read through a relation (tableId only); the compiler checks the entries against both tables. @type {QueryArgReader} */
+function readThrough(a, out) {
+    for (const name of /** @type {const} */ (['expand', 'fields'])) {
+        if (!given(a[name])) continue;
+        if (!Array.isArray(a[name]) || !a[name].length) {
+            return bad(`${name} must be a non-empty list.`, name === 'expand' ? 'expand: [{ field: <relation field>, pick?: [<fields of the related table>], as? }].' : 'fields: the field keys to return.');
+        }
+        out[name] = a[name];
+    }
+    return undefined;
+}
+
+/** @type {QueryArgReader[]} */
+const QUERY_ARG_READERS = [readSource, readLimit, readSort, readOrderBy, readFilter, readMatch, readSearch, readPaging, readThrough];
+
 /**
  * Validate app_query_data arguments. Returns { error, _fixHint } or the parsed
  * { tableId, datasetId, limit, limitClamped, sort, filter, cursor }.
@@ -49,85 +162,27 @@ const bad = (error, _fixHint) => ({ error, _fixHint });
  */
 function parseQueryArgs(args) {
     const a = args && typeof args === 'object' ? args : {};
-    const tableId = typeof a.tableId === 'string' && a.tableId ? a.tableId : null;
-    const datasetId = typeof a.datasetId === 'string' && a.datasetId ? a.datasetId : null;
-    if (tableId && datasetId) {
-        return bad('Pass either tableId or datasetId, not both.', 'tableId lists raw rows (filter/sort/paging); datasetId runs a saved aggregation.');
+    /** @type {QueryArgs} */
+    const o = {};
+    for (const read of QUERY_ARG_READERS) {
+        const refusal = read(a, o);
+        if (refusal) return refusal;
     }
-    if (!tableId && !datasetId) {
-        return bad('Pass tableId (raw rows) or datasetId (a saved aggregation).', 'Table ids are in the data model (app_get_data_model).');
-    }
+    return queryArgsResult(a, o);
+}
 
-    let limit = DEFAULT_QUERY_LIMIT;
-    let limitClamped = false;
-    let requestedLimit;
-    if (a.limit !== undefined && a.limit !== null) {
-        const n = Number(a.limit);
-        if (!Number.isInteger(n) || n < 1) {
-            const hint = `Rows per call: 1-${MAX_QUERY_LIMIT} (default ${DEFAULT_QUERY_LIMIT}); page on with cursor.`;
-            return bad('limit must be a whole number of at least 1.', hint);
-        }
-        limitClamped = n > MAX_QUERY_LIMIT;
-        if (limitClamped) requestedLimit = n;
-        limit = Math.min(n, MAX_QUERY_LIMIT);
-    }
-
-    let sort;
-    if (a.sort !== undefined && a.sort !== null) {
-        const dir = a.sort && typeof a.sort === 'object' ? (a.sort.dir ?? 'desc') : null;
-        if (!a.sort || typeof a.sort !== 'object' || Array.isArray(a.sort) || typeof a.sort.field !== 'string' || !a.sort.field
-            || typeof dir !== 'string' || !SORT_DIRS.includes(dir.toLowerCase())) {
-            return bad('sort must be { field, dir } with dir "asc" or "desc".');
-        }
-        sort = { field: a.sort.field, dir: dir.toLowerCase() };
-    }
-
-    let orderBy;
-    if (a.orderBy !== undefined && a.orderBy !== null) {
-        if (!Array.isArray(a.orderBy) || !a.orderBy.length || sort) return bad('orderBy must be a list of { field, dir } entries, without sort.', 'Up to 3 columns; dir is "asc" or "desc".');
-        orderBy = a.orderBy;
-    }
-
-    let filter;
-    if (a.filter !== undefined && a.filter !== null) {
-        if (!Array.isArray(a.filter)) return bad('filter must be an array of { field, op, value? }.', `ops: ${FILTER_OPS.join(', ')}.`);
-        filter = a.filter;
-    }
-
-    let match;
-    if (a.match !== undefined && a.match !== null) {
-        if (a.match !== 'all' && a.match !== 'any') return bad('match must be "all" or "any".', '"any" returns a row when ONE of the filters matches; "all" (the default) needs every one.');
-        match = a.match;
-    }
-    let search;
-    if (a.search !== undefined && a.search !== null) {
-        const s = a.search;
-        if (!s || typeof s !== 'object' || Array.isArray(s) || typeof s.value !== 'string' || !s.value || !Array.isArray(s.fields) || !s.fields.length) {
-            return bad('search must be { value: <text>, fields: [<field keys>] }.', 'It finds rows where ANY of the fields contains the text; it ANDs with filter.');
-        }
-        search = { value: s.value, fields: s.fields };
-    }
-
-    if (a.cursor !== undefined && a.cursor !== null && typeof a.cursor !== 'string') {
-        return bad('cursor must be the nextCursor string of the previous call.');
-    }
-    if (a.total !== undefined && a.total !== null && typeof a.total !== 'boolean') {
-        return bad('total must be true or false.', 'total:true adds totalRows, the number of rows the whole read matches (tableId only).');
-    }
+/**
+ * The parsed arguments, keys in the order callers have always received them.
+ * @param {Record<string, any>} a @param {QueryArgs} o
+ * @returns {QueryArgs}
+ */
+function queryArgsResult(a, o) {
     const params = a.params && typeof a.params === 'object' && !Array.isArray(a.params) ? a.params : undefined;
-    // Read through a relation (tableId only); the compiler checks the entries against both tables.
-    /** @type {{ expand?: unknown[], fields?: unknown[] }} */
-    const through = {};
-    for (const name of /** @type {const} */ (['expand', 'fields'])) {
-        if (a[name] === undefined || a[name] === null) continue;
-        if (!Array.isArray(a[name]) || !a[name].length) {
-            return bad(`${name} must be a non-empty list.`, name === 'expand' ? 'expand: [{ field: <relation field>, pick?: [<fields of the related table>], as? }].' : 'fields: the field keys to return.');
-        }
-        through[name] = a[name];
-    }
+    const through = { ...(o.expand ? { expand: o.expand } : {}), ...(o.fields ? { fields: o.fields } : {}) };
     return {
-        tableId, datasetId, limit, limitClamped, requestedLimit, sort, ...(orderBy ? { orderBy } : {}), ...through, filter,
-        ...(match ? { match } : {}), ...(search ? { search } : {}), cursor: a.cursor || null,
+        tableId: o.tableId, datasetId: o.datasetId, limit: o.limit, limitClamped: o.limitClamped, requestedLimit: o.requestedLimit, sort: o.sort,
+        ...(o.orderBy ? { orderBy: o.orderBy } : {}), ...through, filter: o.filter,
+        ...(o.match ? { match: o.match } : {}), ...(o.search ? { search: o.search } : {}), cursor: a.cursor || null,
         ...(a.total === true ? { total: true } : {}), ...(params ? { params } : {}),
     };
 }

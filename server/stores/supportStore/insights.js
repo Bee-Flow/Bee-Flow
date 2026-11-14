@@ -10,6 +10,7 @@ const { initDB } = require('./schema');
 
 // ── Insights / dashboard aggregates ─────────────────────────────────────────
 
+/** @param {{ organizationId?: string | null, inboxId?: string | null, inboxIdIn?: string[] | null, inboxIsNull?: boolean | null, tagsIn?: string[] | null, excludeTags?: string[] | null }} [filter] */
 async function getInsights({ organizationId = null, inboxId = null, inboxIdIn = null, inboxIsNull = null, tagsIn = null, excludeTags = null } = {}) {
     await initDB();
     const clauses = [];

@@ -38,10 +38,11 @@ import { useCallback, useEffect, useEffectEvent, useState, type ChangeEvent } fr
 import { knowledgeApi } from '../components/admin/Studio/KnowledgeStudio/knowledgeApi';
 import { toast } from '../components/shared/Toast';
 import useConfirm from '../components/shared/useConfirm';
-import { API_BASE, mutate, ApiError, request, RefusedError, errorBody } from '../api/mutate';
+import { ApiError, RefusedError, errorBody } from '../api/mutate';
 import { errorMessage } from '../utils/caughtError';
 import { useN8nIngestible } from '../api/queries/knowledgeBases';
 import { useDriveConnected, useAzureDocProcessing } from '../api/queries/coreKnowledgeBases';
+import { type ApiBody, apiRequest } from '@/api/typedRequest';
 
 /** A knowledge base row. Consumers render more of it than this hook reads. */
 export interface KnowledgeBase {
@@ -222,10 +223,8 @@ export default function useKnowledgeBases({
     async function fetchKBs() {
         setLoadingKbs(true);
         try {
-            const url = listContext
-                ? `${API_BASE}/api/kb?context=${encodeURIComponent(listContext)}`
-                : `${API_BASE}/api/kb`;
-            const res = await request(url).catch((err: unknown) => {
+            // A plain string from the caller, sent as it is (a URLSearchParams is not checked against the schema).
+            const res = await apiRequest('GET /api/kb', { query: listContext ? new URLSearchParams({ context: listContext }) : undefined }).catch((err: unknown) => {
                 if (err instanceof RefusedError) return null;
                 throw err;
             });
@@ -241,11 +240,7 @@ export default function useKnowledgeBases({
         if (!newKBName.trim()) return;
         setCreatingKB(true);
         try {
-            const res = await mutate(`${API_BASE}/api/kb`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: newKBName, description: newKBDesc }),
-            }).catch((err: unknown) => {
+            const res = await apiRequest('POST /api/kb', { body: { name: newKBName, description: newKBDesc } }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });
@@ -266,11 +261,7 @@ export default function useKnowledgeBases({
         if (!editingKB || !editName.trim()) return;
         setSavingEdit(true);
         try {
-            const res = await mutate(`${API_BASE}/api/kb/${editingKB}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: editName, description: editDesc }),
-            }).catch((err: unknown) => {
+            const res = await apiRequest('PATCH /api/kb/{id}', { params: { id: editingKB }, body: { name: editName, description: editDesc } }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });
@@ -288,7 +279,7 @@ export default function useKnowledgeBases({
     async function deleteKB(kbId: string) {
         if (!(await confirm({ title: deleteKBConfirm, confirmLabel: 'Delete', destructive: true }))) return;
         try {
-            await mutate(`${API_BASE}/api/kb/${kbId}`, { method: 'DELETE' });
+            await apiRequest('DELETE /api/kb/{id}', { params: { id: kbId } });
             if (selectedKB?.id === kbId) { setSelectedKB(null); setKbDocs([]); }
             fetchKBs();
             onKBDeleted?.(kbId);
@@ -300,9 +291,9 @@ export default function useKnowledgeBases({
         { append = false, offset = 0, filters = kbDocsFilters }: { append?: boolean; offset?: number; filters?: KbDocFilters } = {},
     ) {
         try {
-            let url = `${API_BASE}/api/kb/${kbId}/documents`;
+            let params: URLSearchParams | undefined;
             if (paginateDocs) {
-                const params = new URLSearchParams();
+                params = new URLSearchParams();
                 params.set('limit', String(docsPageSize));
                 params.set('offset', String(offset));
                 if (filters.sender) params.set('sender', filters.sender);
@@ -310,11 +301,10 @@ export default function useKnowledgeBases({
                 if (filters.hasAttachment) params.set('hasAttachment', 'true');
                 if (filters.dateFrom) params.set('dateFrom', filters.dateFrom);
                 if (filters.dateTo) params.set('dateTo', filters.dateTo);
-                url += `?${params.toString()}`;
             }
             let res: Response;
             try {
-                res = await request(url);
+                res = await apiRequest('GET /api/kb/{id}/documents', { params: { id: kbId }, query: params });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 return;
@@ -343,7 +333,7 @@ export default function useKnowledgeBases({
         if (!selectedKB) return;
         if (!(await confirm({ title: deleteDocConfirm, confirmLabel: 'Delete', destructive: true }))) return;
         try {
-            await mutate(`${API_BASE}/api/kb/${selectedKB.id}/documents/${docId}`, { method: 'DELETE' });
+            await apiRequest('DELETE /api/kb/{id}/documents/{docId}', { params: { id: selectedKB.id, docId } });
             fetchKBDocs(selectedKB.id, { offset: 0 });
             fetchKBs();
         } catch (e) { console.error('Failed to delete doc:', e); toast.error(errorMessage(e)); }
@@ -383,11 +373,7 @@ export default function useKnowledgeBases({
             for (let i = 0; i < ids.length; i += MAX_BULK_DELETE) {
                 const batch = ids.slice(i, i + MAX_BULK_DELETE);
                 try {
-                    await mutate(`${API_BASE}/api/kb/${selectedKB.id}/documents/bulk-delete`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ documentIds: batch }),
-                });
+                    await apiRequest('POST /api/kb/{id}/documents/bulk-delete', { params: { id: selectedKB.id }, body: { documentIds: batch } });
                 } catch (apiErr) {
                     if (!(apiErr instanceof RefusedError)) throw apiErr;
                     const err = errorBody(apiErr) ?? {};
@@ -415,10 +401,7 @@ export default function useKnowledgeBases({
         try {
             let res: Response | undefined;
             try {
-                res = await mutate(`${API_BASE}/api/kb/${selectedKB.id}/reindex`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-            });
+                res = await apiRequest('POST /api/kb/{id}/reindex', { params: { id: selectedKB.id }, init: { headers: { 'Content-Type': 'application/json' } } });
             } catch (apiErr) {
                 if (!(apiErr instanceof RefusedError)) throw apiErr;
                 const err = errorBody(apiErr) ?? {};
@@ -451,11 +434,10 @@ export default function useKnowledgeBases({
         try {
             let res: Response | undefined;
             try {
-                res = await mutate(`${API_BASE}/api/kb/${selectedKB.id}/ingest/text`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: kbTextContent, title: kbTextTitle || 'Text' }),
-            });
+                res = await apiRequest('POST /api/kb/{id}/ingest/text', {
+                    params: { id: selectedKB.id },
+                    body: { content: kbTextContent, title: kbTextTitle || 'Text' },
+                });
             } catch (apiErr) {
                 if (!(apiErr instanceof RefusedError)) throw apiErr;
                 const err = errorBody(apiErr) ?? {};
@@ -475,11 +457,7 @@ export default function useKnowledgeBases({
         try {
             let res: Response | undefined;
             try {
-                res = await mutate(`${API_BASE}/api/kb/${selectedKB.id}/ingest/url`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url: kbUrlInput.trim() }),
-            });
+                res = await apiRequest('POST /api/kb/{id}/ingest/url', { params: { id: selectedKB.id }, body: { url: kbUrlInput.trim() } });
             } catch (apiErr) {
                 if (!(apiErr instanceof RefusedError)) throw apiErr;
                 const err = errorBody(apiErr) ?? {};
@@ -499,11 +477,7 @@ export default function useKnowledgeBases({
         try {
             let res: Response | undefined;
             try {
-                res = await mutate(`${API_BASE}/api/kb/${selectedKB.id}/ingest/sitemap`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url: kbUrlInput.trim(), maxPages: sitemapMaxPages }),
-            });
+                res = await apiRequest('POST /api/kb/{id}/ingest/sitemap', { params: { id: selectedKB.id }, body: { url: kbUrlInput.trim(), maxPages: sitemapMaxPages } });
             } catch (apiErr) {
                 if (!(apiErr instanceof RefusedError)) throw apiErr;
                 const err = errorBody(apiErr) ?? {};
@@ -526,11 +500,7 @@ export default function useKnowledgeBases({
         try {
             let res: Response | undefined;
             try {
-                res = await mutate(`${API_BASE}/api/kb/${selectedKB.id}/ingest/n8n`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ workflowId, mode: n8nIngestMode }),
-            });
+                res = await apiRequest('POST /api/kb/{id}/ingest/n8n', { params: { id: selectedKB.id }, body: { workflowId, mode: n8nIngestMode as ApiBody<'POST /api/kb/{id}/ingest/n8n'>['mode'] } });
             } catch (apiErr) {
                 if (!(apiErr instanceof RefusedError)) throw apiErr;
                 const err = errorBody(apiErr) ?? {};
@@ -555,9 +525,7 @@ export default function useKnowledgeBases({
         try {
             let res: Response | undefined;
             try {
-                res = await mutate(`${API_BASE}/api/kb/${selectedKB.id}/ingest/file`, {
-                method: 'POST', body: formData,
-            });
+                res = await apiRequest('POST /api/kb/{id}/ingest/file', { params: { id: selectedKB.id }, init: { body: formData } });
             } catch (apiErr) {
                 if (!(apiErr instanceof RefusedError)) throw apiErr;
                 const err = errorBody(apiErr) ?? {};
@@ -580,11 +548,7 @@ export default function useKnowledgeBases({
                 setKbIngestStatus(`Ingesting ${file.name}... (${ingested + 1}/${driveFiles.length})`);
                 let res: Response | undefined;
                 try {
-                    res = await mutate(`${API_BASE}/api/kb/${selectedKB.id}/ingest/text`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ content: file.content, title: file.name }),
-                });
+                    res = await apiRequest('POST /api/kb/{id}/ingest/text', { params: { id: selectedKB.id }, body: { content: file.content, title: file.name } });
                 } catch (apiErr) {
                     if (!(apiErr instanceof RefusedError)) throw apiErr;
                     const err = errorBody(apiErr) ?? {};

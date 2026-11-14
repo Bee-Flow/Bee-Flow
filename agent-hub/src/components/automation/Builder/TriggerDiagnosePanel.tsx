@@ -96,6 +96,7 @@ export default function TriggerDiagnosePanel({ result, loading, error, onClose, 
                     onClick={onClose}
                     className="p-1 rounded text-[var(--text-tertiary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]"
                     title={t('automations.trigger_diagnose_panel.close', 'Close')}
+                    aria-label={t('automations.trigger_diagnose_panel.close', 'Close')}
                 >
                     <X size={14} />
                 </button>

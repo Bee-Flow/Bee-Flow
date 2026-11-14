@@ -10,7 +10,7 @@ const express = require('express');
 const userStore = require('../../stores/userStore');
 const { isNcOrg } = require('../../auth/ncAudience');
 const { getAdminId } = require('./shared');
-const { storedAfterStripe } = require('./storedWrites');
+const { storedAfterStripe } = require('../../usecases/subscriptions/storedWrites');
 const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
 const { validate } = require('../../core/http/validate');
@@ -27,10 +27,7 @@ const router = express.Router();
 // code rather than in its spelling; `.strict()` names the key it did not
 // expect instead.
 
-/**
- * A body that also accepts no body at all: Express 5 leaves `req.body` undefined then.
- * @param {import('zod').ZodRawShape} shape
- */
+/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. @template {import('zod').ZodRawShape} S @param {S} shape */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 const PLAN_TEXT = 'planId is required — the plan to change to.';

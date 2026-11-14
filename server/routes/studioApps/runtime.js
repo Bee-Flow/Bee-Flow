@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Pre-flight check, template upgrade and the run-view payload (routes/studioApps/).
  */
@@ -16,14 +16,16 @@ const { gateDefinition, gateFindings } = require('../../appStudio/definitionGate
 const { validateAppDefinition } = require('../../appStudio/validate');
 const { resolveTemplate } = require('../../appStudio/templateRegistry');
 const { installTemplate } = require('../../appStudio/templateInstall');
-const { hashDefinition, isPristine, upgradeCandidate } = require('../../appStudio/templateUpgrade');
+const { isPristine, upgradeCandidate } = require('../../appStudio/templateUpgrade');
+const { hashDefinition } = require('../../core/packaging/definitionHash.mts');
 const { carryAssetsInto } = require('../../appStudio/portableAssetStore.mts');
 const { requireAuth } = require('../../auth/permissions');
-const { CheckBody, DraftQuery } = require('./schemas');
+const { CheckBody, DraftQuery, NoBody } = require('./schemas');
 const { requireManageApps, audienceFor, refuseRead } = require('./access');
-const { loadOwnedAutomations, loadDataRefs } = require('./appHelpers');
+const { loadOwnedAutomations, loadDataRefs } = require('../../usecases/studioApps/appHelpers');
 const { fallback } = require('../../utils/bestEffort');
 const { sessionUser } = require('../../core/http/sessionUser');
+const { HttpError } = require('../../core/http/errors');
 
 const router = express.Router();
 
@@ -111,7 +113,7 @@ router.post('/:id/check', requireAuth, validate({ body: CheckBody }), /** @param
  * data is never duplicated), and the template stamp moves to the new
  * version + hash. → { ok:true, fromVersion, toVersion, version, dataInstall? }
  */
-router.post('/:id/template-upgrade', requireAuth, requireManageApps, /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
+router.post('/:id/template-upgrade', requireAuth, requireManageApps, validate({ body: NoBody }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const userId = sessionUser(req).id;
     const app = await studioAppStore.getStudioApp(req.params.id);
     if (!app) return res.status(404).json({ error: 'App not found' });
@@ -167,8 +169,9 @@ router.post('/:id/template-upgrade', requireAuth, requireManageApps, /** @param 
     // and the version bump makes any open editor's CAS save conflict
     // instead of silently clobbering the upgrade.
     const saved = await studioAppStore.saveDefinition(req.params.id, userId, canonical);
+    // Without an expectedVersion the save only fails on a missing row: the app was deleted meanwhile.
     if (!saved || !saved.ok) {
-        throw new Error('Failed to save the upgraded definition');
+        throw new HttpError(404, 'app_not_found', 'This app no longer exists. Reload the page.');
     }
 
     // Data side: migration diff + missing-tables-only seeding. Best-effort

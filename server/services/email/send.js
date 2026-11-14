@@ -1,4 +1,5 @@
-/** @typedef {import('dompurify').DOMPurify} DOMPurify */
+// @typecheck
+/** @typedef {typeof import('dompurify')} DOMPurify */
 /** @typedef {import('nodemailer/lib/mime-node').MimeNodeAddress} MimeNodeAddress */
 /** @typedef {import('nodemailer/lib/mime-node').MimeNodeAddressInput} MimeNodeAddressInput */
 /** @typedef {import('stream').Readable} Readable */
@@ -78,7 +79,7 @@ const MAIL_ALLOWED_ATTR = [
     'colspan', 'rowspan', 'cellpadding', 'cellspacing', 'border', 'dir',
 ];
 
-/** @type {boolean | DOMPurify | null} */
+/** @type {false | DOMPurify | null} */
 let mailPurify = null;
 function getMailPurify() {
     if (mailPurify !== null) return mailPurify;
@@ -208,7 +209,7 @@ function htmlToText(html) {
         .trim();
 }
 
-/** @typedef {{ fromEmail: string | MimeNodeAddress | MimeNodeAddressInput[], to: string, cc?: string | undefined, subject: string, text?: string | Readable | Buffer<ArrayBufferLike> | MailComposerAlternative, html?: string | Readable | Buffer<ArrayBufferLike> | MailComposerAlternative, inReplyTo?: string, references?: string | undefined, attachments?: MailComposerAttachment[] }} BuildRawMimeArgs */
+/** @typedef {{ fromEmail: string | MimeNodeAddress | MimeNodeAddressInput[], to: string, cc?: string | undefined, subject: string, text?: string | Readable | Buffer<ArrayBufferLike> | MailComposerAlternative, html?: string | Readable | Buffer<ArrayBufferLike> | MailComposerAlternative, inReplyTo?: string, references?: string | undefined, attachments?: MailComposerAttachment[], fromName?: any, messageId?: any }} BuildRawMimeArgs */
 /**
  * @param {BuildRawMimeArgs} param0
  */
@@ -274,7 +275,7 @@ function mintMessageId(seed, fromEmail) {
 
 // ── Provider senders ─────────────────────────────────────────────────────────
 
-/** @typedef {{ textBody: string | Readable | Buffer<ArrayBufferLike> | MailComposerAlternative, htmlBody: string, inReplyTo?: string, attachments: MailComposerAttachment[] }} SendViaGmailArgs */
+/** @typedef {{ textBody: string | Readable | Buffer<ArrayBufferLike> | MailComposerAlternative, htmlBody: string, inReplyTo?: string, attachments: MailComposerAttachment[], tokens?: any, onRefresh?: any, mailbox?: any, to?: any, cc?: any, subject?: any, references?: any, providerThreadId?: any, messageId?: any }} SendViaGmailArgs */
 /**
  * @param {SendViaGmailArgs} param0
  */
@@ -310,7 +311,7 @@ async function sendViaGmail({
     };
 }
 
-/** @typedef {{ sourceProviderMessageId?: string | number | boolean, attachments?: MailComposerAttachment[] }} SendViaOutlookArgs */
+/** @typedef {{ sourceProviderMessageId?: string | number | boolean, attachments?: MailComposerAttachment[], tokens?: any, onRefresh?: any, mailbox?: any, to?: any, cc?: any, subject?: any, htmlBody?: any, providerThreadId?: any, replyStrategy?: any }} SendViaOutlookArgs */
 /**
  * @param {SendViaOutlookArgs} param0
  */
@@ -401,12 +402,12 @@ const PROVIDER_SENDERS = { gmail: sendViaGmail, outlook: sendViaOutlook };
  * @returns {Promise<{providerMessageId, providerThreadId, rfc822MessageId}>}
  */
 async function sendMailMessage(p) {
-    const sender = PROVIDER_SENDERS[p.provider];
+    const sender = /** @type {(args: Record<string, any>) => Promise<{ providerMessageId, providerThreadId, rfc822MessageId }>} */ (PROVIDER_SENDERS[p.provider]);
     if (!sender) throw new Error(`Unsupported provider: ${p.provider}`);
     if (!p.tokens || !p.tokens.accessToken) {
         throw new Error('Mailbox is not connected — reconnect the mailbox.');
     }
-    const mailbox = p.mailbox || {};
+    const mailbox = /** @type {MailSendMailbox} */ (p.mailbox || {});
     if (!mailbox.address) throw new Error('No mailbox address to send from.');
 
     return sender({
@@ -437,7 +438,6 @@ module.exports = {
 };
 
 /**
- * @typedef {{ accessToken?: string, refreshToken?: string, scope?: string, expiryDate?: number }} MailTokens
  * @typedef {{ address?: string, displayName?: string, mode?: 'personal'|'shared' }} MailSendMailbox
  * @typedef {{
  *   provider?: 'gmail'|'outlook', tokens: MailTokens, onRefresh: (blob: object) => unknown, mailbox: MailSendMailbox,

@@ -122,7 +122,7 @@ async function buildCatalogForUser(userId, session, { deps = null } = {}) {
                     inputSchema: t.function?.parameters || null,
                     outputSample: sch?.sample || null,
                 };
-            }).filter(Boolean);
+            }).filter((a) => a !== null);
             // Only the actions this user can actually run. An app can be
             // connected while a subset of its actions is granted (group
             // opt-outs, entitlement tiers), and advertising the rest is the

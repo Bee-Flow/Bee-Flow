@@ -7,12 +7,12 @@
 const express = require('express');
 const userStore = require('../../stores/userStore');
 const { getAdminId } = require('./shared');
-const { storePlanStripeIds } = require('./storedWrites');
+const { storePlanStripeIds } = require('../../usecases/subscriptions/storedWrites');
 const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
-const { worded } = require('../../core/http/schemaParts');
+const { worded, bodyOf } = require('../../core/http/schemaParts');
 const { HttpError } = require('../../core/http/errors');
 
 const router = express.Router();
@@ -137,7 +137,7 @@ router.get('/plans', async (req, res) => {
 });
 
 // POST /api/subscriptions/plans
-router.post('/plans', validate({ body: CreatePlanBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CreatePlanBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/plans', validate({ body: CreatePlanBody }), async (req, res) => {
     try {
         const plan = await userStore.createPlan(req.body);
         if (!plan) return res.status(400).json({ error: 'Failed to create plan' });
@@ -274,7 +274,7 @@ router.delete('/plans/:id', async (/** @type {import('express').Request<{ id: st
 });
 
 // POST /api/subscriptions/plans/:id/sync-stripe — Manually sync a plan to Stripe
-router.post('/plans/:id/sync-stripe', async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
+router.post('/plans/:id/sync-stripe', validate({ body: bodyOf({}, 'Syncing a plan to Stripe') }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
     const stripeService = require('../../services/stripeService');
     if (!(await stripeService.isEnabled())) {
         return res.status(400).json({ error: 'Stripe is not enabled. Configure Stripe in the Stripe settings tab first.' });

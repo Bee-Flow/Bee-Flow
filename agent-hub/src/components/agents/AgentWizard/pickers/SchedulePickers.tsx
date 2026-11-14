@@ -5,8 +5,7 @@
 import { computeScheduleNextRun } from '@shared/schedule/nextRun.mjs';
 import { X } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { API_BASE } from '@/utils/helpers';
-import { mutate } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 import Modal from '@/components/shared/Modal';
 import type { TranslateParams } from '@/hooks/useTranslation';
 import type { Schedule } from '../builderSplit/useAgentSchedules';
@@ -111,14 +110,10 @@ export function ScheduleModal({ t, agent, initialSchedule, onClose, onSaved }: S
                 nextRunAt: computeNextRun(),
             };
             if (!isEdit) body.agentId = agent.id;
-            const url = isEdit
-                ? `${API_BASE}/api/cowork/${initialSchedule.id}`
-                : `${API_BASE}/api/cowork`;
-            await mutate(url, {
-                method: isEdit ? 'PUT' : 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-            });
+            // The raw body: built as a loose record, wider than the route's schema type.
+            const init = { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
+            if (isEdit) await apiRequest('PUT /api/cowork/{id}', { params: { id: initialSchedule.id }, init });
+            else await apiRequest('POST /api/cowork', { init });
             onSaved();
         } catch (err) {
             setError((err as Error).message || 'Save failed');

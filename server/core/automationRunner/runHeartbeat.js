@@ -35,7 +35,8 @@ const { bestEffort } = require('../../utils/bestEffort');
  * (see the guard in executeAutomation).
  */
 const { CONCURRENT_WAIT_MS } = require('./markerWait');
-const CONCURRENT_POLL_MS = Math.max(50, Number(process.env.AUTOMATION_CONCURRENT_POLL_MS) || 5_000);
+const { envInt } = require('../../utils/envNumber.mts');
+const CONCURRENT_POLL_MS = Math.max(50, envInt('AUTOMATION_CONCURRENT_POLL_MS', 5_000, { min: 1 }));
 const WAITS_FOR_MARKER = new Set(['app_event', 'webhook']);
 /**
  * @param {number} ms

@@ -313,7 +313,7 @@ function _products(v) {
  * @param {{
  *   organization_id: string, title: string, kind?: 'breach'|'security_incident'|'vulnerability',
  *   regimes?: string[], customerNoticeHours?: number, customer_notice_hours?: number, cve_ids?: string[],
- *   affected_products?: Array<{name,version_range}>, exploited_in_wild?: boolean, actively_exploited?: boolean,
+ *   affected_products?: Array<string | {name?: string, version_range?: string}>, exploited_in_wild?: boolean, actively_exploited?: boolean,
  *   reported_via?: string, severity?: string, detected_at?: string|Date, occurred_at?: string|Date,
  *   description?: string, source?: string, high_risk?: boolean, created_by?: string,
  * }} input
@@ -462,7 +462,7 @@ const CRA_STAGES = new Set(['early_warning', 'full']);
  * second call never overwrites an earlier timestamp.
  *
  * @param {string} orgId
- * @param {string} id
+ * @param {string | number} id
  * @param {{stage?:'early_warning'|'full', reportedVia?:string, reference?:string, by?:string}} [opts]
  */
 async function stampCraReport(orgId, id, { stage, reportedVia, reference, by } = {}) {

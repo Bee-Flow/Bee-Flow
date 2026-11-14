@@ -1,3 +1,4 @@
+// @typecheck
 /** @typedef {import('./documentRenderer').AiMarking} AiMarking */
 const { featureModule } = require('../../featureModules');
 const { escapeHtml } = require('../../../templates/exportTemplate');
@@ -20,10 +21,11 @@ const MAX_CONTENT_CHARS = 2_000_000;
  * Render a normalised deck to a landscape PDF. Same two paths and the same
  * marking contract as renderDocument: Chromium when reachable, pdfkit (plain,
  * `degraded:true`) when not.
+ * @param {{ deck?: import('../deckModel').Deck | null, theme?: Record<string, unknown> | null, title?: string, marking?: object | null, date?: string }} [input]
  */
 async function renderDeckPdf({ deck, theme = null, title = '', marking = null, date = '' } = {}) {
     if (!deck || !Array.isArray(deck.slides)) throw Object.assign(new Error('There are no slides to put in the presentation.'), { errorClass: 'document_empty' });
-    const mark = marking && marking.enabled !== false && markingText(marking) ? marking : null;
+    const mark = marking && /** @type {{ enabled?: boolean }} */ (marking).enabled !== false && markingText(marking) ? marking : null;
     const html = deckToSlidesHtml(deck, { theme, marking: mark, date, title });
     let rendered;
     try {
@@ -157,11 +159,11 @@ async function renderPdfViaBrowser(html, { timeoutMs = 60_000, layout = 'documen
  * without the pwt-runner container still gets a (plainer) PDF. The caller is
  * told which one it got via `degraded`.
  *
- * @param {{ html: string, title?: string, marking?: import('./documentRenderer').AiMarking | null, timeoutMs?: number, allowFallback?: boolean }} args
+ * @param {Partial<{ html: string, title?: string, marking?: import('./documentRenderer').AiMarking | null, timeoutMs?: number, allowFallback?: boolean }>} args
  *   `html`: a full <!DOCTYPE html> document (see services/documentCompose.js); `marking`: AI Act Art.
  *   50 marking, as resolveMarking returns it; `allowFallback`: false = throw instead of degrading to
  *   the plain PDF
- * @returns {Promise<{buffer: Buffer, contentType: string, extension: string, degraded: boolean, marking: object|null}>}
+ * @returns {Promise<{buffer: Buffer, contentType: string, format?: string, extension: string, degraded: boolean, marking: object|null}>}
  */
 async function renderStyledHtmlToPdf({ html, title = '', marking = null, timeoutMs = 60_000, allowFallback = true } = {}) {
     const source = String(html || '');
@@ -174,7 +176,7 @@ async function renderStyledHtmlToPdf({ html, title = '', marking = null, timeout
             { errorClass: 'document_too_large' },
         );
     }
-    const mark = marking && marking.enabled !== false && markingText(marking) ? marking : null;
+    const mark = marking && /** @type {{ enabled?: boolean }} */ (marking).enabled !== false && markingText(marking) ? marking : null;
 
     let rendered;
     try {

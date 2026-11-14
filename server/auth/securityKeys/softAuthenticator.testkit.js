@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * A software security key, for tests. It does what a YubiKey does on the wire:
  * an ES256 key pair per credential, authenticatorData with the RP ID hash, the
@@ -58,7 +58,7 @@ function createSoftAuthenticator() {
     /**
      * @param {string} type
      * @param {string} challenge
-     * @param {string} origin
+     * @param {string | undefined} origin
      */
     function clientData(type, challenge, origin) {
         return Buffer.from(JSON.stringify({ type, challenge, origin, crossOrigin: false }));

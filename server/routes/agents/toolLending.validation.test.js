@@ -8,7 +8,8 @@
  * under a 200. What this file pins:
  *
  *   - a query parameter is refused with a 400 that names it;
- *   - a refused request reads no agent and no connection;
+ *   - a refused request reads no connection (the access gate runs first and
+ *     reads the agent, so a caller without access gets its 404, not a 400);
  *   - the plain request the Tools card sends still gets its answer.
  *
  * Run: cd server && node --test routes/agents/toolLending.validation.test.js
@@ -21,6 +22,7 @@ process.env.NODE_ENV = 'test';
 const test = require('node:test');
 const assert = require('node:assert');
 const Module = require('module');
+const { fakeAgentGates } = require('./agentGate.testkit');
 
 // Every read lands in `touched`. A refused request must leave it empty.
 const touched = [];
@@ -31,10 +33,12 @@ const MOCKS = {
         getForRuntime: async () => { touched.push('getForRuntime'); return { config: {} }; },
     },
     '../../utils/routeHelpers': { getEffectiveUserId: () => 'editor' },
-    './crud': { canReadAgent: async () => true, canModifyAgent: async () => true },
+    './crud': null,
     '../../core/integrations/connectionResolution': { isLendingEnabled: () => { touched.push('isLendingEnabled'); return false; } },
     '../../core/agentRuntime/toolPolicy': { hasCuratedGrants: () => false, toolsConfigOf: () => null },
 };
+
+MOCKS['./crud'] = fakeAgentGates({ agentStore: MOCKS['../../stores/agentStore'], userId: () => 'editor' });
 
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
@@ -88,7 +92,7 @@ test('an ownerId in the query is refused by name, not answered about somebody el
     assert.strictEqual(res.body.code, 'invalid_request');
     assert.match(res.body.error, /ownerId/);
     assert.ok(res.body.details.some((d) => d.path === 'query'));
-    assert.deepStrictEqual(touched, [], 'no agent and no connection is read');
+    assert.deepStrictEqual(touched, ['getAgent'], 'only the access gate read the agent; no connection is read');
 });
 
 test('the plain request the Tools card sends still gets its answer', async () => {

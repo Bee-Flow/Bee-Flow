@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Write a mirror's derived field list into the scope model, with the DDL that
  * follows from it, in ONE transaction — the schema route's own idiom
@@ -72,7 +73,7 @@ async function reconcileMirrorSchema(scope, datatable, nextFields, { retyped = [
                 const ensure = ddlForTable(t, {
                     tableKeyById: new Map((after.tables || []).map(x => [x.id, x.key])),
                     dialect: 'pg',
-                    rowScope: datatable.rowScope,
+                    rowScope: /** @type {'all' | 'own'} */ (datatable.rowScope),
                 });
                 await datatableDbStore.applyMigration(scopeKey, scopeKey,
                     [ensure, ...drops, ...plan], { client: c, targetVersion: modelVersion });

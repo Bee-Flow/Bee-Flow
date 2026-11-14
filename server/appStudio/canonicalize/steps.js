@@ -112,10 +112,119 @@ function cleanStepBranches(raw, path, depth, push) {
     });
 }
 
+/** A cleaner's answer for "leave the field out of the step". */
+const NO_VALUE = Symbol('no value');
+
+/**
+ * @typedef {(arg0: string, arg1: string, arg2: string) => void} Push
+ * @typedef {{ raw: any, field: string, fs: StepField & Record<string, any>, path: string, depth: number, push: Push }} FieldCtx
+ * @typedef {(v: any, c: FieldCtx) => any} FieldCleaner
+ */
+
+/**
+ * Cleaned only when the step carries the field; the cleaner's own undefined is
+ * stored as given.
+ * @param {FieldCleaner} clean
+ * @returns {FieldCleaner}
+ */
+const whenPresent = (clean) => (v, c) => (v === undefined ? NO_VALUE : clean(v, c));
+/**
+ * Cleaned only when the step carries the field; undefined from the cleaner
+ * (dropped with a note) leaves the field out.
+ * @param {FieldCleaner} clean
+ * @returns {FieldCleaner}
+ */
+const whenKept = (clean) => (v, c) => {
+    if (v === undefined) return NO_VALUE;
+    const out = clean(v, c);
+    return out === undefined ? NO_VALUE : out;
+};
+
+/** @type {FieldCleaner} */
+function cleanStringField(v, { field, fs, path, push }) {
+    if (typeof v === 'string') return truncate(v, fs.maxLen || LIMITS.MAX_STRING, path, push);
+    if (v === null && fs.nullable) return null;
+    if (v !== undefined) push('step.field_invalid', path, `${field} must be a string${fs.nullable ? ' or null' : ''} — dropped.`);
+    return fs.nullable ? null : NO_VALUE;
+}
+
+/** @type {FieldCleaner} */
+function cleanEnumField(v, { field, fs, path, push }) {
+    if (fs.values.includes(v)) return v;
+    if (v !== undefined) push('step.field_invalid', path, `Unknown ${field} ${JSON.stringify(v)} — set to ${JSON.stringify(fs.default)}.`);
+    return fs.default;
+}
+
+/** @type {FieldCleaner} */
+function cleanBooleanField(v, { field, fs, path, push }) {
+    if (typeof v === 'boolean') return v;
+    if (v === undefined || fs.default === undefined) return NO_VALUE;
+    push('step.field_invalid', path, `${field} must be a boolean — set to ${fs.default}.`);
+    return fs.default;
+}
+
+/** Range clamping is validate.js's job; a numeric string is coerced. @type {FieldCleaner} */
+function cleanNumberField(v, { path, push }) {
+    if (typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v))) {
+        push('props.coerced', path, `Coerced numeric string ${JSON.stringify(v)} to ${Number(v)}.`);
+        return Number(v);
+    }
+    return v === undefined ? NO_VALUE : deepCopy(v);
+}
+
+/** @type {FieldCleaner} */
+function cleanFormulaField(v, { path, push }) {
+    if (typeof v === 'string') return truncate(v, LIMITS.MAX_FORMULA_LEN, path, push);
+    return v === undefined ? NO_VALUE : deepCopy(v);
+}
+
+/**
+ * One cleaner per STEP_SPECS field type. A type without an entry is left out
+ * of the cleaned step.
+ * @type {Record<string, FieldCleaner>}
+ */
+const FIELD_CLEANERS = {
+    string: cleanStringField,
+    url: cleanStringField,
+    enum: cleanEnumField,
+    boolean: cleanBooleanField,
+    int: cleanNumberField,
+    number: cleanNumberField,
+    formula: cleanFormulaField,
+    aiChecks: whenKept((v, { path, push }) => cleanAiChecks(v, path, push)),
+    binding: whenPresent((v, { path, push }) => cleanBinding(v, path, push)),
+    // Read even when absent: the filter is scoped to the step's own tableId.
+    recordFilter: (v, { raw, path, push }) => {
+        const f = cleanRecordFilter(v, path, push, { tableId: raw.tableId });
+        return f === undefined ? NO_VALUE : f;
+    },
+    inputMapping: whenKept((v, { path, push }) => cleanInputMapping(v, path, push)),
+    recordValues: whenPresent((v, { path, push }) => cleanRecordValues(v, path, push)),
+    steps: whenPresent((v, { path, depth, push }) => cleanSteps(v, path, depth + 1, push)),
+    switchCases: whenPresent((v, { path, depth, push }) => cleanSwitchCases(v, path, depth + 1, push)),
+    stepBranches: whenPresent((v, { path, depth, push }) => cleanStepBranches(v, path, depth + 1, push)),
+    navParams: whenKept((v, { path, push }) => cleanNavParams(v, path, push)),
+    stringList: whenPresent((v) => cleanStringList(v)),
+    aiSchema: whenPresent((v, { path, push }) => cleanAiSchema(v, path, push)),
+    contextSources: whenPresent((v, { path, push }) => cleanContextSources(v, path, push)),
+    aiWriteTo: whenKept((v, { path, push }) => cleanAiWriteTo(v, path, push)),
+    approvalQuestions: whenPresent((v, { path, push }) => cleanApprovalQuestions(v, path, push)),
+    approvalStages: whenPresent((v, { path, push }) => cleanApprovalStages(v, path, push)),
+    approvalOnDecided: whenKept((v, { path, push }) => cleanApprovalOnDecided(v, path, push)),
+    callParams: whenPresent((v, { path, push }) => cleanCallParams(v, path, push)),
+    tierChoice: whenKept((v, { fs, path, push }) => cleanTierChoice(v, fs.maxLen || LIMITS.MAX_STRING, path, push)),
+    code: (v, { field, path, push }) => {
+        const c = cleanCodeField(field, v, path, push);
+        return c === undefined ? NO_VALUE : c;
+    },
+    errorHandler: whenKept((v, { path, depth, push }) => cleanErrorHandler(v, path, depth, push)),
+    retry: whenKept((v, { path, push }) => cleanRetry(v, path, push)),
+};
+
 /**
  * @param {string} path
  * @param {number} depth
- * @param {(arg0: string, arg1: string, arg2: string) => void} push
+ * @param {Push} push
  */
 function cleanStep(raw, path, depth, push) {
     if (!isObject(raw)) {
@@ -130,86 +239,15 @@ function cleanStep(raw, path, depth, push) {
     }
     const out = { kind: raw.kind };
     for (const [field, fs] of Object.entries(spec.fields)) {
-        const p = `${path}.${field}`;
         const v = raw[field];
         if (v === undefined && isLateEntry(fs)) continue; // a field added after the base: only when the step carries it
-        if (fs.type === 'string' || fs.type === 'url') {
-            if (typeof v === 'string') out[field] = truncate(v, fs.maxLen || LIMITS.MAX_STRING, p, push);
-            else if (v === null && fs.nullable) out[field] = null;
-            else if (v === undefined) { if (fs.nullable) out[field] = null; }
-            else { push('step.field_invalid', p, `${field} must be a string${fs.nullable ? ' or null' : ''} — dropped.`); if (fs.nullable) out[field] = null; }
-        } else if (fs.type === 'enum') {
-            if (fs.values.includes(v)) out[field] = v;
-            else { out[field] = fs.default; if (v !== undefined) push('step.field_invalid', p, `Unknown ${field} ${JSON.stringify(v)} — set to ${JSON.stringify(fs.default)}.`); }
-        } else if (fs.type === 'boolean') {
-            if (typeof v === 'boolean') out[field] = v;
-            else if (v !== undefined && fs.default !== undefined) { out[field] = fs.default; push('step.field_invalid', p, `${field} must be a boolean — set to ${fs.default}.`); }
-        } else if (fs.type === 'int' || fs.type === 'number') {
-            if (typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v))) { push('props.coerced', p, `Coerced numeric string ${JSON.stringify(v)} to ${Number(v)}.`); out[field] = Number(v); }
-            else if (v !== undefined) out[field] = deepCopy(v); // range clamp is validate.js's job
-        } else if (fs.type === 'aiChecks') {
-            if (v !== undefined) { const c = cleanAiChecks(v, p, push); if (c !== undefined) out[field] = c; }
-        } else if (fs.type === 'formula') {
-            if (typeof v === 'string') out[field] = truncate(v, LIMITS.MAX_FORMULA_LEN, p, push);
-            else if (v !== undefined) out[field] = deepCopy(v);
-        } else if (fs.type === 'binding') {
-            if (v !== undefined) out[field] = cleanBinding(v, p, push);
-        } else if (fs.type === 'recordFilter') {
-            const f = cleanRecordFilter(v, p, push, { tableId: raw.tableId });
-            if (f !== undefined) out[field] = f;
-        } else if (fs.type === 'inputMapping') {
-            if (v !== undefined) { const m = cleanInputMapping(v, p, push); if (m !== undefined) out[field] = m; }
-        } else if (fs.type === 'recordValues') {
-            if (v !== undefined) out[field] = cleanRecordValues(v, p, push);
-        } else if (fs.type === 'steps') {
-            if (v !== undefined) out[field] = cleanSteps(v, p, depth + 1, push);
-        } else if (fs.type === 'switchCases') {
-            if (v !== undefined) out[field] = cleanSwitchCases(v, p, depth + 1, push);
-        } else if (fs.type === 'stepBranches') {
-            if (v !== undefined) out[field] = cleanStepBranches(v, p, depth + 1, push);
-        } else if (fs.type === 'navParams') {
-            if (v !== undefined) { const m = cleanNavParams(v, p, push); if (m !== undefined) out[field] = m; }
-        } else if (fs.type === 'stringList') {
-            if (v !== undefined) out[field] = cleanStringList(v);
-        } else if (fs.type === 'aiSchema') {
-            if (v !== undefined) out[field] = cleanAiSchema(v, p, push);
-        } else if (fs.type === 'contextSources') {
-            if (v !== undefined) out[field] = cleanContextSources(v, p, push);
-        } else if (fs.type === 'aiWriteTo') {
-            if (v !== undefined) { const w = cleanAiWriteTo(v, p, push); if (w !== undefined) out[field] = w; }
-        } else if (fs.type === 'approvalQuestions') {
-            if (v !== undefined) out[field] = cleanApprovalQuestions(v, p, push);
-        } else if (fs.type === 'approvalStages') {
-            if (v !== undefined) out[field] = cleanApprovalStages(v, p, push);
-        } else if (fs.type === 'approvalOnDecided') {
-            if (v !== undefined) { const w = cleanApprovalOnDecided(v, p, push); if (w !== undefined) out[field] = w; }
-        } else if (fs.type === 'callParams') {
-            if (v !== undefined) out[field] = cleanCallParams(v, p, push);
-        } else if (fs.type === 'tierChoice') {
-            if (v !== undefined) { const t = cleanTierChoice(v, fs.maxLen || LIMITS.MAX_STRING, p, push); if (t !== undefined) out[field] = t; }
-        } else if (fs.type === 'code') {
-            const c = cleanCodeField(field, v, p, push); if (c !== undefined) out[field] = c;
-        } else if (fs.type === 'errorHandler' || fs.type === 'retry') {
-            if (v !== undefined) { const e = cleanEnvelopeField(fs.type, v, p, depth, push); if (e !== undefined) out[field] = e; }
-        }
+        const clean = Object.hasOwn(FIELD_CLEANERS, fs.type) ? FIELD_CLEANERS[fs.type] : null;
+        const value = clean ? clean(v, { raw, field, fs, path: `${path}.${field}`, depth, push }) : NO_VALUE;
+        if (value !== NO_VALUE) out[field] = value;
     }
     const unknown = Object.keys(raw).filter((k) => k !== 'kind' && !(k in spec.fields));
     if (unknown.length) push('step.unknown_field', path, `Dropped unknown fields for step "${raw.kind}": ${unknown.join(', ')}. Legal: ${Object.keys(spec.fields).join(', ')}.`);
     return out;
-}
-
-/**
- * The error-handling envelope of a server step: `onError` (handler) and `retry`.
- * undefined = drop the field (with a note).
- *
- * @param {string} type
- * @param {unknown} v
- * @param {string} path
- * @param {number} depth
- * @param {(arg0: string, arg1: string, arg2: string) => void} push
- */
-function cleanEnvelopeField(type, v, path, depth, push) {
-    return type === 'retry' ? cleanRetry(v, path, push) : cleanErrorHandler(v, path, depth, push);
 }
 
 const ON_ERROR_SHAPE = 'onError on a step takes { steps: [...] } (add stop: true to end the action after them); a message is a toast step inside it.';

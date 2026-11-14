@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * OneDrive Tools — Built-in tools for AI to search and manage OneDrive files
  * 
@@ -136,7 +136,7 @@ function formatSize(bytes) {
  * @typedef {{ id?: string, name?: string, size?: number, lastModifiedDateTime?: string, webUrl?: string,
  *   file?: { mimeType?: string }, folder?: { childCount?: number },
  *   createdBy?: { user?: { displayName?: string } } }} GraphDriveItem
- * @typedef {{ id: string, name: string, type: string, size: string|null, sizeBytes: number, lastModified: string,
+ * @typedef {{ id: string | undefined, name: string | undefined, type: string, size: string|null, sizeBytes: number, lastModified: string,
  *   createdBy: string, webUrl: string, isFolder: boolean, childCount: number|undefined,
  *   parentPath?: string, downloadUrl?: string|null }} FormattedDriveItem
  */
@@ -218,7 +218,7 @@ function formatRecentItem(item, meId = null) {
  */
 async function listRecentDriveItems(args, fetchPage, { now = Date.now() } = {}) {
     const sinceIso = resolveSince(args?.since, now);
-    const want = Math.min(Math.max(parseInt(args?.maxResults) || 50, 1), RECENT_MAX_RESULTS);
+    const want = Math.min(Math.max(parseInt(String(args?.maxResults)) || 50, 1), RECENT_MAX_RESULTS);
     const sinceMs = Date.parse(sinceIso);
 
     /**
@@ -226,6 +226,7 @@ async function listRecentDriveItems(args, fetchPage, { now = Date.now() } = {}) 
      */
     const collect = async (firstPath) => {
         const items = [];
+        /** @type {string | null} */
         let next = firstPath;
         let pages = 0;
         while (next && pages < RECENT_MAX_PAGES) {

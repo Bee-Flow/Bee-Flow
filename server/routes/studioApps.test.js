@@ -476,12 +476,12 @@ const MOCKS = {
 };
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
-    const mockId = (MOCK_IDS[request] = `mock:${request}`);
-    require.cache[mockId] = { id: mockId, filename: mockId, loaded: true, exports: exportsObj };
+    const mockId = (MOCK_IDS[request] = `mock:${request}`); require.cache[mockId] = { id: mockId, filename: mockId, loaded: true, exports: exportsObj };
 }
 const originalResolve = Module._resolveFilename;
+const PART_DIRS = ['studioApps', '../usecases/studioApps'].map((d) => require('node:path').join(__dirname, d) + require('node:path').sep); // the router's parts
 Module._resolveFilename = function (request, parent, ...rest) {
-    const key = request.startsWith('../../') && parent?.filename?.startsWith(`${__dirname}${require('node:path').sep}studioApps${require('node:path').sep}`) ? request.slice(3) : request;
+    const key = request.startsWith('../../') && PART_DIRS.some((dir) => parent?.filename?.startsWith(dir)) ? request.slice(3) : request;
     if (Object.prototype.hasOwnProperty.call(MOCK_IDS, key)) return MOCK_IDS[key];
     return originalResolve.call(this, request, parent, ...rest);
 };
@@ -506,7 +506,7 @@ datatableSource.listOwnerDatatableIds = async () => ownerDatatables;
 const { emptyDefinition, COMPONENT_TYPES, ACTION_KINDS } = require('../appStudio/componentSpecs');
 const { validateAppDefinition } = require('../appStudio/validate');
 const { DATA_LIMITS } = require('../appStudio/dataModel');
-const { hashDefinition } = require('../appStudio/templateUpgrade');
+const { hashDefinition } = require('../core/packaging/definitionHash.mts');
 
 // ── HTTP harness ────────────────────────────────────────────────────
 

@@ -10,7 +10,8 @@
  *
  * Run: cd agent-hub && npx vitest run src/components/ThemeContext.demo.test.jsx
  */
-import { render, waitFor } from '@testing-library/react';
+import { waitFor } from '@testing-library/react';
+import { renderWithClient } from '@/test/render';
 import { afterEach, beforeEach, describe, expect, it, Mock, vi } from 'vitest';
 import { ThemeProvider } from './ThemeContext';
 
@@ -32,7 +33,7 @@ describe('ThemeContext on a public feature demo', () => {
 
     it('asks the server for nothing', async () => {
         setPath('/__demo__/privacy-shield');
-        render(<ThemeProvider><div>demo</div></ThemeProvider>);
+        renderWithClient(<ThemeProvider><div>demo</div></ThemeProvider>);
         // Give the mount effect every chance to fire before concluding it did not.
         await new Promise(r => setTimeout(r, 50));
         const branding = fetchSpy.mock.calls.filter(([url]) => String(url).includes('/api/branding/'));
@@ -41,7 +42,7 @@ describe('ThemeContext on a public feature demo', () => {
 
     it('still reconciles with the server everywhere else', async () => {
         setPath('/app/studio/agents');
-        render(<ThemeProvider><div>app</div></ThemeProvider>);
+        renderWithClient(<ThemeProvider><div>app</div></ThemeProvider>);
         await waitFor(() => {
             expect(fetchSpy.mock.calls.some(([url]) => String(url).includes('/api/branding/effective'))).toBe(true);
         });

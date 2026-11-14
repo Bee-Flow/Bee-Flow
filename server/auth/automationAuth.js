@@ -27,6 +27,7 @@
  * `session.refreshToken` exactly as it does today.
  */
 
+const { fetchFixedEndpoint, defaultTimeoutSignal } = require('../utils/fixedEndpointFetch.mts');
 const automationCredentialStore = require('../stores/automationCredentialStore');
 const { loadConfig, OAUTH_PROVIDERS, microsoftRefreshScope } = require('./permissions');
 const log = require('../telemetry/log');
@@ -129,7 +130,7 @@ async function refreshGoogle(cred) {
     if (!providerConfig.clientId || !providerConfig.clientSecret) {
         throw new Error('Google OAuth not configured');
     }
-    const res = await fetch(OAUTH_PROVIDERS.google.tokenUrl, {
+    const res = await fetchFixedEndpoint(OAUTH_PROVIDERS.google.tokenUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
@@ -159,7 +160,7 @@ async function refreshMicrosoft(cred) {
     if (!providerConfig) throw new Error('Microsoft OAuth not configured');
     const tenantId = providerConfig.tenantId;
     const tokenUrl = OAUTH_PROVIDERS.microsoft.tokenUrl(tenantId);
-    const res = await fetch(tokenUrl, {
+    const res = await fetchFixedEndpoint(tokenUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
@@ -188,11 +189,9 @@ async function refreshNextcloud(cred) {
     if (!cred?.refreshToken) throw reauthError('No Nextcloud refresh token');
     const config = await loadConfig();
     const { nextcloudUrl, clientId, clientSecret } = config.oauth || {};
-    if (!nextcloudUrl || !clientId || !clientSecret) {
-        throw new Error('Nextcloud OAuth not configured');
-    }
+    if (!nextcloudUrl || !clientId || !clientSecret) throw new Error('Nextcloud OAuth not configured');
     const res = await fetch(require('../utils/nextcloudTarget').nextcloudOAuthUrl(nextcloudUrl, 'token'), { // nosemgrep: semgrep.beeflow-bare-fetch -- the admin-configured OAuth issuer; nextcloudFetch would refuse a private-host Nextcloud without NEXTCLOUD_ALLOW_PRIVATE_HOSTS and break sign-in there
-        method: 'POST',
+        signal: defaultTimeoutSignal(), method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
             grant_type: 'refresh_token',
@@ -229,7 +228,7 @@ async function refreshWithings(cred) {
     const { clientId, clientSecret } = await withingsClientConfig();
     if (!clientId || !clientSecret) throw new Error('Withings OAuth not configured');
 
-    const res = await fetch(OAUTH_PROVIDERS.withings.tokenUrl, {
+    const res = await fetchFixedEndpoint(OAUTH_PROVIDERS.withings.tokenUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({

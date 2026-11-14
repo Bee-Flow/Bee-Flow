@@ -14,26 +14,26 @@
 const express = require('express');
 const stripeService = require('../../services/stripeService');
 const userStore = require('../../stores/userStore');
-const { handleCheckoutCompleted } = require('./checkoutEvents');
+const { handleCheckoutCompleted } = require('../../usecases/stripe/checkoutEvents');
 const {
     handleSubscriptionUpdated,
     handleSubscriptionDeleted,
     handleTrialWillEnd,
     _notifyAdminNewSubscriptionOnce,
-} = require('./subscriptionEvents');
+} = require('../../usecases/stripe/subscriptionEvents');
 const {
     handleInvoicePaid,
     handleInvoicePaymentFailed,
     handleChargeRefunded,
     handleChargeDisputeCreated,
-} = require('./paymentEvents');
+} = require('../../usecases/stripe/paymentEvents');
 const {
     handleCustomerDeleted,
     handleCustomerTaxIdChange,
     handleCustomerUpdated,
     handleSetupIntentFailed,
     handleSetupIntentSucceeded,
-} = require('./customerEvents');
+} = require('../../usecases/stripe/customerEvents');
 const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
 

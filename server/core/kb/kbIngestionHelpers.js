@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * KB Ingestion Helpers — shared logic for both Knowledge Base routes
  * and Notebook source ingestion.
@@ -56,8 +57,8 @@ async function findActiveByHash(kbId, hash) {
  * @param {string}  sourceType — 'text' | 'web' | 'upload' | 'notebook_source' | …
  * @param {string|null} sourceUri — source identifier (filename, URL, source ID)
  * @param {{ skipDedup?: boolean, lang?: string, metadata?: Record<string, unknown>, simhashDistance?: number,
- *   sourceId?: string, externalId?: string, sourceModifiedAt?: Date|string, sizeBytes?: number, mime?: string,
- *   pageCount?: number, sheetCount?: number, pages?: ExtractedPage[] | null,
+ *   sourceId?: string | null, externalId?: string | null, sourceModifiedAt?: Date|string, sizeBytes?: number | null, mime?: string | null,
+ *   pageCount?: number | null, sheetCount?: number | null, pages?: ExtractedPage[] | null,
  *   privacy?: { orgId?: string | null, userId?: string | null, pages?: ExtractedPage[] | null } | null,
  *   createdBy?: string, status?: 'processed'|'redacted', piiStatus?: string, piiCategories?: string[] | null,
  *   extractSummary?: string, onFailure?: 'throw'|'record' }} [options] `skipDedup`: skip deduplication
@@ -77,7 +78,7 @@ async function findActiveByHash(kbId, hash) {
  * 'duplicate'); a match in ANOTHER source is annotated on the new row
  * (overlaps_document_id) and ingested anyway — K4 shows "overlaps with …".
  *
- * @returns {Promise<{document: object, chunks: number, status: string, overlapsDocumentId?: string|null, duplicateOf?: string, error?: string}>}
+ * @returns {Promise<{document: { id: string, [k: string]: any }, chunks: number, status: string, overlapsDocumentId?: string|null, duplicateOf?: string, error?: string}>}
  */
 async function ingestDocument(tenantId, kbId, content, title, sourceType, sourceUri, options = {}) {
     const {
@@ -265,10 +266,10 @@ async function ingestDocument(tenantId, kbId, content, title, sourceType, source
  * 'skipped' | 'error', so the source shows the file and why it is missing.
  * Never throws on a bad reason; the row is the point.
  *
- * @param {{ tenantId: string, kbId: string, title: string, sourceType: string, sourceUri?: string | null,
+ * @param {Partial<{ tenantId: string, kbId: string, title: string, sourceType: string, sourceUri?: string | null,
  *   status?: 'error'|'skipped', error?: Error | string | null, reason?: string | null, sourceId?: string,
  *   externalId?: string, sizeBytes?: number, mime?: string, createdBy?: string | null,
- *   metadata?: Record<string, unknown> | null }} p  `status` defaults to 'error'; `reason` wins over `error`
+ *   metadata?: Record<string, unknown> | null }>} p  `status` defaults to 'error'; `reason` wins over `error`
  */
 async function recordFailedDocument({ tenantId, kbId, title, sourceType, sourceUri = null, status = 'error', error = null, reason = null, metadata = null, ...extra } = {}) {
     const st = status === 'skipped' ? 'skipped' : 'error';

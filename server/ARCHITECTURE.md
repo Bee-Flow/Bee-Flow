@@ -10,7 +10,7 @@ the intent and the tree is the backlog.
 
 ---
 
-## The three layers
+## The layers
 
 Everything in `server/` belongs to exactly one of these. The layer decides who
 may depend on you, and it is the only rule that must never be bent.
@@ -20,6 +20,11 @@ may depend on you, and it is the only rule that must never be bent.
        │  API          HTTP surface. No logic.       │   routes/
        └──────────────────────┬──────────────────────┘
                               │  may call anything below
+       ┌──────────────────────┴──────────────────────┐
+       │  APPLICATION  Use cases: combine features   │   usecases/
+       │               for one request. No HTTP.     │
+       └──────────────────────┬──────────────────────┘
+                              │  may call FEATURES, CORE, PLATFORM
        ┌──────────────────────┴──────────────────────┐
        │  FEATURES     One product surface each.     │   cms, learning, support,
        │               Independent of each other.    │   compliance, automation,
@@ -45,7 +50,8 @@ may depend on you, and it is the only rule that must never be bent.
   thing means that thing belongs in CORE or PLATFORM. `core/cms/themeSpec.js`
   carries a comment explaining exactly this case — it was moved out of
   `appStudio/` the moment `automation/` needed it too.
-- Nothing may require `routes/`.
+- Nothing may require `routes/`, and only `routes/` (and the composition
+  roots) may require `usecases/`.
 
 Violations are the main reason a large codebase stops being navigable, because
 they make "where does this live?" unanswerable.
@@ -73,6 +79,7 @@ for the cost.
 | `core/dataEngine/` | The user-defined-table engine: field/filter/aggregate vocabulary, per-dialect DDL, stable-id migration planning, and `queryCompiler.js` — **the only place SQL is generated** from a validated table descriptor plus a closed-vocabulary request. Shared by App Studio apps and automation datatables; it lives in core precisely because two features need it and neither may require the other. `appStudio/queryCompiler.js` and `appStudio/dataModel/*` are re-export shims over it. |
 | `core/packaging/` | The Blueprint format's leaves: `manifest.js` (the format), `scrub.js` (what never leaves an installation), `pointers.js` (every place a part points at another), `walkers.js` (`walkObjects`, `walkAllSteps`). App Studio capture, automation export and `projects/packaging/` all use them, so they live below all three; `projects/packaging/{manifest,scrub,pointers}.js` are re-export shims, and `appStudio/templateCapture.js` / `automation/portability.js` re-export the walkers. |
 | `core/dlp/` | Data-loss prevention: scanning, decision queue, ledger. |
+| `core/aiAct/` | The EU AI Act rulebook, pure: `annexIii.js` (the ten Annex III areas and how their answers combine) and `assess.js` (signals and answers to an outcome, the Art. 5 practices, the open duties). The compliance feature's questionnaire and the automation feature's readiness checks both read it, so it lives below both. |
 | `core/kb/`, `core/rerank/`, `core/embed/` | Retrieval: ingestion, embedding, reranking. |
 | `core/memory/`, `core/conversation/` | Long-term memory and conversation shaping. |
 | `core/meetingNotes/`, `core/voice/` | Audio capture, transcription, summarisation. |
@@ -130,7 +137,7 @@ files belong together. They were grouped into the folders above, a domain at a t
   `core/customIntegrations/` · `core/dataEngine/` · `core/datasets/`
   `core/findings/` · `core/scheduling/` · `core/skills/` · `core/packaging/`
   `core/automationModel/` · `core/projectContent/` · `core/classify/`
-  `core/collab/` · `core/media/` · `core/versioning/`
+  `core/collab/` · `core/media/` · `core/versioning/` · `core/aiAct/`
 
 New code goes in the folder for its domain. Do not add to the flat level.
 
@@ -183,6 +190,7 @@ Infrastructure that knows nothing about AI or about any product feature.
 | `middleware/` | Express middleware (upload guards, public uploads). |
 | `telemetry/` | Metrics, traces and the logger (`telemetry/log.js`). |
 | `testUtils/` | Test doubles — see the `installResolveStub` warning above. |
+| `journeys/` | User journeys across routes, stores and permissions against the real app in-process (`npm run test:journeys`, ci.yml `server-journeys`); `journeyWorld.testkit.js` says what is real and what is stubbed. |
 | `license/`, `modules/` | Entitlement resolution: what tier an org is on and which capabilities it holds. Classified here, not as features — see the note below. |
 
 **Encryption at rest** is a platform concern with more than one shape, on
@@ -234,6 +242,18 @@ halves of features, not a layer of their own.
 `automation/builderTools/README.md`: server-side repair over rejection, prefix-apply batches,
 a replay corpus of recorded model batches, and the live-run gate on the local model.
 
+## APPLICATION — `usecases/`
+
+Code that composes several features for one request and holds no HTTP: the
+chat and builder turn engines, the helpers a router calls that never see `req`
+or `res`. It exists because a feature may not require another feature, so
+before this layer the only place allowed to combine two was `routes/`, and the
+composition landed there. A file here keeps the sub-folder it had under
+`routes/` (`routes/ai/directChat/x.js` lives at `usecases/ai/directChat/x.js`),
+so a router and its use cases are found by the same path. `npm run
+lint:routes-http-free-ratchet` counts the files under `routes/` that neither
+take `req`/`res` nor register a route; it may only go down.
+
 ## API — `routes/`
 
 Express routers only: parse, authorise, delegate, serialise. A route that
@@ -251,7 +271,8 @@ license server.
 `layering.test.js` puts every top-level entry of `server/` in one layer —
 `tooling` (`scripts/`, `testUtils/`, the CLIs) above `entry` (`index.js`,
 `auth/router.js`, `boot/`, `boot-init.js`, `migrations/`) above `api`
-(`routes/`, the routers in `auth/`) above `feature` above `core` above
+(`routes/`, the routers in `auth/`) above `application` (`usecases/`) above
+`feature` above `core` above
 `platform` (`stores/`, `auth/`, `utils/`, `db.js`, `telemetry/`, `license/`,
 `modules/`, `core/entitlements/`, …), plus `data` (no code) — and fails on a new
 folder that is not in its `LAYERS` table. It then counts every require that

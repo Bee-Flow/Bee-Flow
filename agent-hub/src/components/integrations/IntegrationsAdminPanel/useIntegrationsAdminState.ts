@@ -3,12 +3,43 @@
 // in the panel so all state stays owned by the panel's fiber; the panel, the
 // other panel hooks and the section components receive these bindings by
 // explicit threading.
-import { useEffect, useState } from 'react';
-import { API_BASE, authFetch } from '@/utils/helpers';
+import { useCallback, useState } from 'react';
 import type {
     AdminMcpServer, AdminMessage, AdminOrganization, AgentSearchDefaults,
 } from './IntegrationsAdminPanel.types';
-import { request, RefusedError } from '@/api/mutate';
+import { useIntegrationsAdminReadQuery } from '@/api/queries/integrationsAdminRead';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
+
+/** The flags and settings GET /ai/config answers, as far as this panel reads them. */
+interface AdminConfigAnswer {
+    hasAgentSearchUrl?: boolean;
+    hasAzureDocIntelligenceEndpoint?: boolean;
+    hasAzureDocIntelligenceKey?: boolean;
+    hasAzureOpenaiEmbeddingEndpoint?: boolean;
+    hasAzureOpenaiEmbeddingKey?: boolean;
+    hasAzureSpeechKey?: boolean;
+    hasBingSearchKey?: boolean;
+    hasLinkedInConfig?: boolean;
+    hasPyannoteKey?: boolean;
+    hasScalewayKey?: boolean;
+    hasSerperKey?: boolean;
+    hasServiceEmail?: boolean;
+    hasWhisperxToken?: boolean;
+    hasWhisperxUrl?: boolean;
+    hasWithingsConfig?: boolean;
+    useAzureDocProcessing?: boolean;
+    voiceprintMatchingEnabled?: boolean;
+    agentSearchUrl?: string;
+    azureOpenaiEmbeddingModel?: string;
+    azureSpeechRegion?: string;
+    bingSearchMarket?: string;
+    pyannoteTranscriptionModel?: string;
+    searchProvider?: string;
+    serviceEmailAddress?: string;
+    serviceEmailDisplayName?: string;
+    transcriptionProvider?: string;
+    pyannoteIdentifyThreshold?: number | null;
+}
 
 export default function useIntegrationsAdminState() {
     const [defaults, setDefaults] = useState<string[] | null>(null); // null = all enabled
@@ -99,97 +130,59 @@ export default function useIntegrationsAdminState() {
     // live in the Access & Permissions hub.
     const [mcpServers, setMcpServers] = useState<AdminMcpServer[]>([]);
 
-    const load = async () => {
-        setLoading(true);
-        // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- browser-side console log of a failed request; nothing reaches another user or a response
-        try {
-            const [defRes, orgsRes] = await Promise.all([
-                authFetch(`${API_BASE}/auth/default-integrations`),
-                authFetch(`${API_BASE}/auth/organizations`),
-            ]);
-            if (defRes.ok) {
-                const data = await defRes.json();
-                setDefaults(data.defaults);
-            }
-            if (orgsRes.ok) {
-                const orgs = await orgsRes.json();
-                setOrganizations(orgs);
-            }
-        } catch (e) { console.error(e); }
-        // Load config status
-        // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- browser-side console log of a failed request; nothing reaches another user or a response
-        try {
-            const configRes = await request(`${API_BASE}/ai/config`).catch((err: unknown) => {
-                if (err instanceof RefusedError) return null;
-                throw err;
-            });
-            if (configRes) {
-                const configData = await configRes.json();
-                setHasAgentSearchUrl(!!configData.hasAgentSearchUrl);
-                if (configData.agentSearchUrl) setAgentSearchUrl(configData.agentSearchUrl);
-                setHasLinkedInConfig(!!configData.hasLinkedInConfig);
-                setHasWithingsConfig(!!configData.hasWithingsConfig);
-                setHasSerperKey(!!configData.hasSerperKey);
-                setSearchProvider(configData.searchProvider || 'agent-search');
-                setHasBingSearchKey(!!configData.hasBingSearchKey);
-                if (configData.bingSearchMarket) setBingSearchMarket(configData.bingSearchMarket);
-                // Azure Document Intelligence
-                setHasAzureDocEndpoint(!!configData.hasAzureDocIntelligenceEndpoint);
-                setHasAzureDocKey(!!configData.hasAzureDocIntelligenceKey);
-                // Azure OpenAI Embeddings
-                setHasAzureEmbedEndpoint(!!configData.hasAzureOpenaiEmbeddingEndpoint);
-                setHasAzureEmbedKey(!!configData.hasAzureOpenaiEmbeddingKey);
-                if (configData.azureOpenaiEmbeddingModel) setAzureEmbedModel(configData.azureOpenaiEmbeddingModel);
-                setUseAzureDocProcessing(!!configData.useAzureDocProcessing);
-                // Azure AI Speech
-                setHasAzureSpeechKey(!!configData.hasAzureSpeechKey);
-                if (configData.azureSpeechRegion) setAzureSpeechRegion(configData.azureSpeechRegion);
-                setTranscriptionProvider(configData.transcriptionProvider || 'voxtral');
-                // WhisperX
-                setHasWhisperxUrl(!!configData.hasWhisperxUrl);
-                setHasWhisperxToken(!!configData.hasWhisperxToken);
-                // Scaleway (hybrid)
-                setHasScalewayKey(!!configData.hasScalewayKey);
-                // pyannoteAI
-                setHasPyannoteKey(!!configData.hasPyannoteKey);
-                setPyannoteTranscriptionModel(configData.pyannoteTranscriptionModel || '');
-                setVoiceprintMatchingEnabled(configData.voiceprintMatchingEnabled !== false);
-                if (configData.pyannoteIdentifyThreshold != null) setPyannoteIdentifyThreshold(configData.pyannoteIdentifyThreshold);
-                // Service Email
-                setHasServiceEmail(!!configData.hasServiceEmail);
-                if (configData.serviceEmailAddress) setServiceEmailAddress(configData.serviceEmailAddress);
-                if (configData.serviceEmailDisplayName) setServiceEmailDisplayName(configData.serviceEmailDisplayName);
-            }
-        } catch (e) { console.error(e); }
-        // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- browser-side console log of a failed request; nothing reaches another user or a response
-        try {
-            const searchDefRes = await request(`${API_BASE}/ai/agent-search/defaults`).catch((err: unknown) => {
-                if (err instanceof RefusedError) return null;
-                throw err;
-            });
-            if (searchDefRes) {
-                const d = await searchDefRes.json();
-                setAgentSearchDefaults(prev => ({ ...prev, ...d }));
-            }
-        } catch (e) { console.error(e); }
-        // Load MCP servers
-        // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- browser-side console log of a failed request; nothing reaches another user or a response
-        try {
-            const mcpRes = await request(`${API_BASE}/ai/mcp-servers`).catch((err: unknown) => {
-                if (err instanceof RefusedError) return null;
-                throw err;
-            });
-            if (mcpRes) {
-                const mcpData = await mcpRes.json();
-                setMcpServers(mcpData.servers || []);
-            }
-        } catch (e) { console.error(e); }
-        setLoading(false);
-    };
-
-    useEffect(() => {
-        load();
-    }, []);
+    const panelRead = useIntegrationsAdminReadQuery();
+    const { refetch } = panelRead;
+    const load = useCallback(async () => { await refetch(); }, [refetch]);
+    useAdjustOnChange([panelRead.isFetching], () => setLoading(panelRead.isFetching));
+    // Each answer fills the form, group by group; a group the server did not give leaves its fields as they are.
+    useAdjustOnChange([panelRead.dataUpdatedAt], () => {
+        const read = panelRead.data;
+        if (!read) return;
+        if (read.hasDefaults) setDefaults(read.defaults as typeof defaults);
+        if (read.hasOrganizations) setOrganizations(read.organizations as typeof organizations);
+        const configData = read.config as AdminConfigAnswer | null;
+        if (configData) {
+            setHasAgentSearchUrl(!!configData.hasAgentSearchUrl);
+            if (configData.agentSearchUrl) setAgentSearchUrl(configData.agentSearchUrl);
+            setHasLinkedInConfig(!!configData.hasLinkedInConfig);
+            setHasWithingsConfig(!!configData.hasWithingsConfig);
+            setHasSerperKey(!!configData.hasSerperKey);
+            setSearchProvider(configData.searchProvider || 'agent-search');
+            setHasBingSearchKey(!!configData.hasBingSearchKey);
+            if (configData.bingSearchMarket) setBingSearchMarket(configData.bingSearchMarket);
+            // Azure Document Intelligence
+            setHasAzureDocEndpoint(!!configData.hasAzureDocIntelligenceEndpoint);
+            setHasAzureDocKey(!!configData.hasAzureDocIntelligenceKey);
+            // Azure OpenAI Embeddings
+            setHasAzureEmbedEndpoint(!!configData.hasAzureOpenaiEmbeddingEndpoint);
+            setHasAzureEmbedKey(!!configData.hasAzureOpenaiEmbeddingKey);
+            if (configData.azureOpenaiEmbeddingModel) setAzureEmbedModel(configData.azureOpenaiEmbeddingModel);
+            setUseAzureDocProcessing(!!configData.useAzureDocProcessing);
+            // Azure AI Speech
+            setHasAzureSpeechKey(!!configData.hasAzureSpeechKey);
+            if (configData.azureSpeechRegion) setAzureSpeechRegion(configData.azureSpeechRegion);
+            setTranscriptionProvider(configData.transcriptionProvider || 'voxtral');
+            // WhisperX
+            setHasWhisperxUrl(!!configData.hasWhisperxUrl);
+            setHasWhisperxToken(!!configData.hasWhisperxToken);
+            // Scaleway (hybrid)
+            setHasScalewayKey(!!configData.hasScalewayKey);
+            // pyannoteAI
+            setHasPyannoteKey(!!configData.hasPyannoteKey);
+            setPyannoteTranscriptionModel(configData.pyannoteTranscriptionModel || '');
+            setVoiceprintMatchingEnabled(configData.voiceprintMatchingEnabled !== false);
+            if (configData.pyannoteIdentifyThreshold != null) setPyannoteIdentifyThreshold(configData.pyannoteIdentifyThreshold);
+            // Service Email
+            setHasServiceEmail(!!configData.hasServiceEmail);
+            if (configData.serviceEmailAddress) setServiceEmailAddress(configData.serviceEmailAddress);
+            if (configData.serviceEmailDisplayName) setServiceEmailDisplayName(configData.serviceEmailDisplayName);
+        }
+        if (read.searchDefaults) {
+            const d = read.searchDefaults;
+            setAgentSearchDefaults(prev => ({ ...prev, ...d }));
+        }
+        if (read.mcpServers) setMcpServers(read.mcpServers as AdminMcpServer[]);
+    });
 
     return {
         defaults, setDefaults,

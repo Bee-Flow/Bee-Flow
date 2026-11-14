@@ -244,7 +244,7 @@ function mountBackgroundRoutes(router, mw) {
         res.json(backgroundRun().toJobView(row));
     });
 
-    router.post('/:id/actions/jobs/:jobId/cancel', mw.requireAuth, mw.actionRunLimiter, validate({ params: R.JobParams }), /** @param {import('express').Request<{ id: string, jobId: string }>} req */ async (req, res) => {
+    router.post('/:id/actions/jobs/:jobId/cancel', mw.requireAuth, mw.actionRunLimiter, validate({ params: R.JobParams, body: R.NoBody }), /** @param {import('express').Request<{ id: string, jobId: string }>} req */ async (req, res) => {
         const app = await loadVisibleApp(req, res);
         if (!app) return;
         const row = await ownJob(req, app);

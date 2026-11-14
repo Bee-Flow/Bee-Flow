@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Org-health emitter — the single never-throws front door for writing to
  * orgHealthStore (mirror of server/support/audit.js emit()/emitSystem()).
@@ -19,7 +20,6 @@
  * 15 minutes. In-memory throttles are per replica — the DB rollup remains the
  * hard cap.
  */
-
 const { sanitizeError } = require('../core/privacy/errorSanitizer');
 const { bestEffort, fallback } = require('../utils/bestEffort');
 
@@ -129,6 +129,7 @@ function _sanitizeMeta(input) {
 
 // ── Subject-key resolution ─────────────────────────────────────────────────
 
+/** @param {{ orgId?: string | null, ncInstanceId?: string | null, subjectKey?: string | null }} [who] */
 function _resolveSubjectKey({ orgId, ncInstanceId, subjectKey } = {}) {
     if (orgId) return String(orgId);
     if (ncInstanceId) return `nc:${String(ncInstanceId).slice(0, 120)}`;
@@ -336,6 +337,7 @@ function openProblemLastSeen(code) {
     }
 }
 
+/** @param {string} orgId @param {string} kind @param {{ connectorVersion?: string | null }} [opts] */
 async function _touchLivenessAsync(orgId, kind, { connectorVersion } = {}) {
     if (!orgId) return;
     const k = LIVENESS_KINDS.has(kind) ? kind : 'authOk';

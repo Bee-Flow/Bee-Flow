@@ -1,3 +1,4 @@
+// @typecheck
 const { SLIDE_W, BAND_H, BODY_BOTTOM, pptxHex, assertDataImage, cardFill, fitBox, bulletRuns, addBulletsBody } = require('./officegenPptxBase');
 const { readableOn, mix: mixHex } = require('../deckThemeOptions');
 
@@ -22,7 +23,7 @@ function addTitle(slide, title, th) {
     }
 }
 
-function addCover(pptx, deck, th, { title, author, date, notes } = {}) {
+function addCover(pptx, deck, th, /** @type {{ title?: string, author?: string | null, date?: string | null, notes?: string | null }} */ { title, author, date, notes } = {}) {
     const slide = pptx.addSlide({ masterName: 'BF_COVER' });
     const templ = !!th.template;
     const split = !templ && th.coverStyle === 'split';
@@ -243,6 +244,7 @@ function addStatsSlide(slide, s, th, top) {
         slide.addShape('roundRect', { x, y, w, h, rectRadius: 0.1, fill: cardFill(th), line: { color: th.statFill, width: 0, transparency: 100 } });
         if (t.iconDataUrl) slide.addImage({ data: t.iconDataUrl, x: x + w - 0.6, y: y + 0.18, w: 0.36, h: 0.36 });
         slide.addShape('rect', { x: x + 0.14, y: y + 0.3, w: 0.06, h: h - 0.6, fill: { color: th.accentOnSlide }, line: { color: th.accentOnSlide, width: 0 } });
+        /** @type {Array<{ text: string, options: Record<string, unknown> }>} */
         const runs = [
             { text: t.value, options: { fontSize: n > 3 ? 26 : 32, bold: true, color: th.text, fontFace: th.titleFont, breakLine: true, paraSpaceAfter: 4 } },
             { text: t.label || ' ', options: { fontSize: 11, color: th.muted, fontFace: th.bodyFont, charSpacing: 1, breakLine: !!t.delta } },

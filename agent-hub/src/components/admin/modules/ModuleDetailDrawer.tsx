@@ -127,6 +127,7 @@ export default function ModuleDetailDrawer({ module, health = null, actions, onC
                                     onClick={() => onOpenLogs(module)}
                                     className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)]"
                                     title={t('modules.details_logs')}
+                                    aria-label={t('modules.details_logs')}
                                     data-testid="drawer-logs"
                                 >
                                     <ScrollText className="w-4 h-4 text-[var(--text-muted)]" />

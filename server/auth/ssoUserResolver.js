@@ -302,7 +302,7 @@ function planNewSSOUserPlacement(org, /** @type {{ existingGroups?: string[], al
  * stable subject id + email, so repeated callbacks for the SAME identity resolve
  * to the same id (idempotent) while a DIFFERENT identity never reuses the slug.
  *
- * @param {string} email
+ * @param {string | undefined} email
  * @param {string} providerKey  provider-stable id (Google `sub` / Azure oid)
  * @param {(id:string)=>Promise<boolean>} isTaken  true if a row with `id` exists
  * @returns {Promise<string>}

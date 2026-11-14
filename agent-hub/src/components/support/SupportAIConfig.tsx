@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Save, Sparkles, AlertTriangle, Send } from 'lucide-react';
 import AgentEditorUI from '../agents/AgentEditorUI';
 import MarkdownRenderer from '../renderers/MarkdownRenderer';
@@ -13,11 +14,12 @@ import { useTranslation } from '../../hooks/useTranslation';
 import type { ModelTierMap } from '../../api/queries/modelTiers';
 import type { SupportAgentRow, SupportAgentData, PreviewReply } from './SupportAIConfig.types';
 import { useConfigTiersForUser } from '../../api/queries/configModels';
-import { request, errorBody, RefusedError, mutate } from '../../api/mutate';
+import { errorBody, RefusedError } from '../../api/mutate';
 import StudioShell from '@/components/shared/StudioShell';
 import SectionNav from '@/components/shared/SectionNav';
 import { FIELD_INPUT } from '@/components/shared/SettingsList';
 import { ALERT_ERROR, CARD, CHIP, CHIP_WARNING, EYEBROW, PRIMARY_BTN } from '@/components/mcpLibrary/ui';
+import { apiRequest } from '@/api/typedRequest';
 
 function deriveAgentData(agent: SupportAgentRow | null | undefined): SupportAgentData | null {
     if (!agent) return null;
@@ -46,7 +48,6 @@ export default function SupportAIConfig() {
     const [agent, setAgent] = useState<SupportAgentRow | null>(null);
     const [data, setData] = useState<SupportAgentData | null>(null);
     const [knowledgeBaseIds, setKnowledgeBaseIds] = useState<string[]>([]);
-    const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [dirty, setDirty] = useState(false);
@@ -61,37 +62,43 @@ export default function SupportAIConfig() {
     // StrictMode runs effects twice in dev: mount → unmount (cleanup runs, ref
     // flips to false) → mount again — and without resetting here, the second
     // mount would keep mountedRef as `false`, silently swallowing every
-    // setLoading/setSaving call after the first fetch.
+    // setSaving/setPreviewing call after the first one.
     useEffect(() => {
         mountedRef.current = true;
         return () => { mountedRef.current = false; };
     }, []);
 
-    const load = useCallback(async () => {
-        setLoading(true);
-        try {
-            let res: Response;
+    // Each answer seeds the draft (agent, fields, knowledge bases) and clears dirty.
+    const agentQuery = useQuery({
+        queryKey: ['support', 'agent'],
+        staleTime: 0,
+        gcTime: 0,
+        retry: false,
+        queryFn: async () => {
             try {
-                res = await request(`${API_BASE}/api/support/agent`);
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                const e = errorBody(err) ?? {};
-                setSaveError(e.error || 'Failed to load support agent');
-                return;
+                let res: Response;
+                try {
+                    res = await apiRequest('GET /api/support/agent');
+                } catch (err) {
+                    if (!(err instanceof RefusedError)) throw err;
+                    const e = errorBody(err) ?? {};
+                    setSaveError(e.error || 'Failed to load support agent');
+                    return false;
+                }
+                const { agent: fetched } = await res.json();
+                setAgent(fetched);
+                setData(deriveAgentData(fetched));
+                setKnowledgeBaseIds(fetched?.config?.knowledge_base_ids || []);
+                setDirty(false);
+            } catch (e) {
+                setSaveError((e as Error).message);
             }
-            const { agent: fetched } = await res.json();
-            setAgent(fetched);
-            setData(deriveAgentData(fetched));
-            setKnowledgeBaseIds(fetched?.config?.knowledge_base_ids || []);
-            setDirty(false);
-        } catch (e) {
-            setSaveError((e as Error).message);
-        } finally {
-            if (mountedRef.current) setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => { load(); }, [load]);
+            return true;
+        },
+    });
+    const loading = agentQuery.isFetching;
+    const { refetch } = agentQuery;
+    const load = useCallback(async () => { await refetch(); }, [refetch]);
 
     // Same tier source the rest of the app uses (InputArea, BuilderSplit, …).
     // We mirror it locally so we can surface a "this tier has no modelId in
@@ -134,11 +141,7 @@ export default function SupportAIConfig() {
                 // save and reflect the result.
             };
             try {
-                await mutate(`${API_BASE}/api/support/agent`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-            });
+                await apiRequest('PUT /api/support/agent', { body });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const e = errorBody(err) ?? {};
@@ -162,11 +165,7 @@ export default function SupportAIConfig() {
         try {
             let res: Response;
             try {
-                res = await mutate(`${API_BASE}/api/support/preview`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message }),
-            });
+                res = await apiRequest('POST /api/support/preview', { body: { message } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const json = errorBody(err) ?? {};

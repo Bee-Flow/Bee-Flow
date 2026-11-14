@@ -95,6 +95,7 @@ export function AlignControl({ value, onChange }: { value?: string; onChange: (a
                         key={o.v}
                         type="button"
                         title={o.title}
+                        aria-label={o.title}
                         aria-pressed={active}
                         onClick={() => onChange(o.v)}
                         className={`px-2 py-1 transition-colors ${i > 0 ? 'border-l border-[var(--border-default)]' : ''} ${

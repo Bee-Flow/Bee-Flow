@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Unit tests for model-class banding used by the automation builder.
  *
@@ -18,7 +18,7 @@ const {
     assert.strictEqual(getProfileForModel('qwen3.8-27b', { 'qwen3.8-27b': 'huge' }), getProfile('small'), 'an unknown band is ignored');
     assert.strictEqual(getProfileForModel('qwen3.8-27b', { 'other-model': 'frontier' }), getProfile('small'), 'an entry for another model is ignored');
     assert.strictEqual(getProfileForModel('qwen3.8-27b', 'frontier'), getProfile('small'), 'a non-object map is ignored');
-    assert.strictEqual(getProfileForModel('qwen3.8-27b', ['frontier']), getProfile('small'), 'an array is ignored');
+    assert.strictEqual(getProfileForModel('qwen3.8-27b', /** @type {any} */ (['frontier'])), getProfile('small'), 'an array is ignored');
     assert.strictEqual(getProfileForModel(null, { null: 'frontier' }), getProfile('mid'), 'a missing id matches no map entry and classifies as mid like before');
 }
 

@@ -9,7 +9,7 @@ import { useAdminOrgScope, withOrgIdParam } from '../adminOrgScope';
 export const trainingRulesKey = (orgId: string | null) => ['learning', 'training-rules', orgId] as const;
 
 /** The training rules address, for the organisation an AdminOrgScopeProvider names (null: the caller's own). */
-export const trainingRulesPath = (orgId: string | null) => withOrgIdParam(`${API_BASE}/ai/learning/training-rules`, orgId);
+const trainingRulesPath = (orgId: string | null) => withOrgIdParam(`${API_BASE}/ai/learning/training-rules`, orgId);
 
 export interface TrainingRulesRead<Area, Course> { catalog: Area[]; courses: Course[]; areas: Record<string, string> }
 

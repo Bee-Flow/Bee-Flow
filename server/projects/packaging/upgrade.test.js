@@ -154,7 +154,7 @@ require.cache[kbMembershipPath] = {
 
 const { planUpgrade, applyUpgrade, isNewer } = require('./upgrade');
 const { buildManifest } = require('../../core/packaging/manifest');
-const { hashDefinition } = require('../../appStudio/templateUpgrade');
+const { hashDefinition } = require('../../core/packaging/definitionHash.mts');
 
 const DEF_V1 = { schemaVersion: 2, steps: [{ id: 's1', type: 'code' }] };
 const DEF_V2 = { schemaVersion: 2, steps: [{ id: 's1', type: 'code' }, { id: 's2', type: 'code' }] };

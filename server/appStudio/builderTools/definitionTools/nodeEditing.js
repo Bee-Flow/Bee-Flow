@@ -8,7 +8,7 @@
 'use strict';
 
 const ops = require('../../definitionOps');
-const { pickClosestId } = require('../../../automation/validate/helpers');
+const { pickClosestId } = require('../../../utils/closestId.mts');
 const { checkComponentDataRefs, guardResult } = require('../bindingGuard');
 const { NODE_AUTHORABLE_FIELDS, NODE_EXTENSION_FIELDS, normalizeNodeField, adoptCanonical } = require('../shared');
 const { resolveParent } = require('./componentPlacement');

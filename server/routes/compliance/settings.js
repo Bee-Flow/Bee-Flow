@@ -62,6 +62,14 @@ const { requireAuth, requirePermission } = require('../../auth/permissions');
 const { resolveOrgId } = require('./shared');
 const { publicBaseUrl, publicDsrPath } = require('../../utils/appPaths');
 const { bestEffort } = require('../../utils/bestEffort');
+const { validate } = require('../../core/http/validate');
+const { bodyOf, worded, flag } = require('../../core/http/schemaParts');
+
+const SccBody = bodyOf({
+    operator: worded('operator is required').min(1, 'operator is required'),
+    confirmed: flag('confirmed is true or false.').optional(),
+}, 'An SCC attestation');
+const AutoDetectBody = bodyOf({}, 'Auto-detecting settings'); // it reads the org's own configuration
 
 // ───────────────── Settings / onboarding ─────────────────
 
@@ -194,10 +202,9 @@ const SCC_READING_CHECKS = Object.freeze([
     'ISO27001-A.5.20-suppliers',
 ]);
 
-router.post('/settings/scc', requireAuth, requirePermission('admin_compliance'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
+router.post('/settings/scc', requireAuth, requirePermission('admin_compliance'), validate({ body: SccBody }), async (req, res) => {
     const orgId = await resolveOrgId(req);
-    const { operator, confirmed } = req.body || {};
-    if (!operator) return res.status(400).json({ error: 'operator is required' });
+    const { operator, confirmed } = req.body;
     const actorId = req.session?.user?.id || null;
     const next = await complianceStore.setSccConfirmed(orgId, operator, !!confirmed, actorId);
     // Re-run every check that reads the attestation list, so none of them
@@ -213,7 +220,7 @@ router.post('/settings/scc', requireAuth, requirePermission('admin_compliance'),
 // happens here — the wizard PUTs the result back to /settings after the user
 // confirms.
 
-router.post('/auto-detect-settings', requireAuth, requirePermission('admin_compliance'), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
+router.post('/auto-detect-settings', requireAuth, requirePermission('admin_compliance'), validate({ body: AutoDetectBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     const ai = (await configStore.getConfig('ai')) || {};
     const hasProviders = Array.isArray(ai.providers) && ai.providers.length > 0;

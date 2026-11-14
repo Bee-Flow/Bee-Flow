@@ -12,7 +12,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { stableStringify, sortedKeysJson } = require('./stableJson');
+const { stableStringify, sortedKeysJson, canonicalJson } = require('./stableJson');
 
 const sample = () => ({ z: [3, undefined, { y: 1, b: null }], a: 'x', u: undefined, '10': true, '2': new Date(0), f: () => 1 });
 
@@ -62,11 +62,18 @@ for (const caller of ['automation/diffSummary', 'automation/fieldDiff']) {
     });
 }
 
-// sortedKeysJson, toJSON (callers turn undefined into 'undefined')
-for (const caller of ['automation/builderTools/suggestedPatch', 'core/llm/toolCallHygiene']) {
-    test(`${caller}: replacer sort, toJSON first`, () => {
-        assert.equal(sortedKeysJson(sample()), SORTED_TOJSON);
-        assert.equal(sortedKeysJson(undefined), undefined);
+// sortedKeysJson, toJSON
+test('sortedKeysJson: replacer sort, toJSON first', () => {
+    assert.equal(sortedKeysJson(sample()), SORTED_TOJSON);
+    assert.equal(sortedKeysJson(undefined), undefined);
+});
+
+// canonicalJson: sortedKeysJson with toJSON, undefined becomes 'undefined'
+for (const caller of ['core/llm/suggestedPatch', 'core/llm/toolCallHygiene', 'appStudio/builderTools/definitionTools']) {
+    test(`${caller}: canonicalJson is the sorted text, always a string`, () => {
+        assert.equal(canonicalJson(sample()), SORTED_TOJSON);
+        assert.equal(canonicalJson(undefined), 'undefined');
+        assert.equal(canonicalJson(null), 'null');
     });
 }
 

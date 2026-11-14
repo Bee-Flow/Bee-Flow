@@ -1,10 +1,11 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RegexRule, RuleCollection } from './patternTypes';
 import PatternsView from './PatternsView';
 import { apiJson, saveRegexGuardrails } from '../api/guardrailsApi';
+import { renderWithClient } from '@/test/render';
 
 vi.mock('../api/guardrailsApi', () => ({
     apiJson: vi.fn(),
@@ -31,7 +32,7 @@ afterEach(cleanup);
 describe('PatternsView', () => {
     it('adds a rule, groups it in a collection, and drops it from the collection on delete', async () => {
         const user = userEvent.setup();
-        render(<Harness />);
+        renderWithClient(<Harness />);
         await user.type(screen.getByLabelText('Name'), 'IBAN');
         await user.type(screen.getByLabelText('Pattern…'), 'NL\\d{{2}');
         await user.click(screen.getByRole('button', { name: 'Add' }));
@@ -51,7 +52,7 @@ describe('PatternsView', () => {
 
     it('stages a starter set and saves the whole library', async () => {
         const user = userEvent.setup();
-        render(<Harness />);
+        renderWithClient(<Harness />);
         const starter = screen.getByRole('region', { name: 'Start from a template' });
         await user.click(starter.querySelector('button') as HTMLButtonElement);
         expect(latest.rules.length).toBeGreaterThan(0);

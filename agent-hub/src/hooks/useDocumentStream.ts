@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { API_BASE, authFetch } from '../utils/helpers';
 import { parseFrame, readFrames } from './useProjectStream';
 import { logger } from '../utils/logger';
+import { apiFetch } from '@/api/typedRequest';
 
 /** A number in [0, 1) for the reconnect jitter, from the platform's CSPRNG. */
 const unitRandom = () => crypto.getRandomValues(new Uint32Array(1))[0] / 2 ** 32;
@@ -65,8 +65,9 @@ export default function useDocumentStream(documentId: string | null | undefined,
             if (stopped) return;
             controller = new AbortController();
             try {
-                const res = await authFetch(`${API_BASE}/api/studio-documents/${encodeURIComponent(documentId)}/stream`, {
-                    signal: controller.signal, headers: { Accept: 'text/event-stream' },
+                const res = await apiFetch('GET /api/studio-documents/{id}/stream', {
+                    params: { id: documentId },
+                    init: { signal: controller.signal, headers: { Accept: 'text/event-stream' } },
                 });
                 // 404: no (longer) a reader; retrying cannot help.
                 if (res.status === 404 || res.status === 403) { stopped = true; return; }

@@ -191,3 +191,8 @@ test('sample inputs still reach the dry run', async () => {
     assert.strictEqual(res.statusCode, 200);
     assert.deepStrictEqual(touched.find((t) => t.what === 'executeAutomation').args[0].triggerPayload, { amount: 10 });
 });
+
+test('publishing a Step takes no fields: one sent is refused by name before the Step is read', async () => {
+    const res = await refuses({ method: 'POST', url: '/s1/publish', body: { sharedGroups: [] } }, 'body');
+    assert.match(res.body.error, /does not take "sharedGroups"/);
+});

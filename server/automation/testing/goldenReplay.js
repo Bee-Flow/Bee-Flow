@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * Golden runs: replay a saved run as a DRY RUN of the automation as it is now,
@@ -89,7 +89,7 @@ async function resolveEntry(runEntry, automation, goldenRun) {
  * What replayGoldens resolves its collaborators to (the real modules, unless overridden).
  * @typedef ReplayDeps
  * @property {typeof import('../../stores/automationStore')} store
- * @property {{ setGoldenReplay: (id: string, state: Record<string, unknown>) => unknown }} testingStore
+ * @property {{ setGoldenReplay: (id: string, state: { status: string, summary?: unknown, replayRunId?: string | null, errorCode?: string | null }) => unknown }} testingStore
  * @property {typeof import('../../core/automationRunner').executeAutomation} executeAutomation
  * @property {typeof import('./formAnswers').answersFromJourney} answersFromJourney
  * @property {typeof import('./approvalAnswers.mts').approvalAnswersFromJourney} approvalAnswersFromJourney

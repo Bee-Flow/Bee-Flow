@@ -1,3 +1,5 @@
+// @typecheck
+/** @typedef {import('./model').StageRow} StageRow @typedef {import('./stageRows').DeploymentRow} DeploymentRow */
 /**
  * Compensation (design 6.5): put a stage back the way it was before a
  * deployment that failed before (or during) its commit. The live copies were
@@ -27,6 +29,10 @@
  */
 
 'use strict';
+
+// What this needs of automation/ and appStudio/ (features) is looked up by name
+// (core/featureModules.js, registered in boot/featureModules.js).
+const { featureModule } = require('../../core/featureModules');
 
 const log = require('../../telemetry/log');
 const { storesOf, makeJournal } = require('./journal');
@@ -146,8 +152,8 @@ const UNDO = {
         if (b.isActive !== true) return 'skipped';
         const a = await s.automationStore.getAutomation(step.entityId);
         if (!a || a.isActive) return 'skipped';
-        const { activateCore } = dep(deps, 'goLive', () => require('../../automation/goLive'));
-        const aiActState = dep(deps, 'aiActState', () => require('../../automation/aiActCheck').defaultAiActState());
+        const { activateCore } = dep(deps, 'goLive', () => featureModule('automation/goLive'));
+        const aiActState = dep(deps, 'aiActState', () => featureModule('automation/aiActCheck').defaultAiActState());
         const out = await activateCore({ automation: a, actorId: runAs, organizationId: stage.organizationId || null,
             deps: { aiActState, ...(deps.goLiveDeps || {}) } });
         return out && out.ok === false ? 'failed' : 'done';
@@ -167,7 +173,7 @@ const UNDO = {
 /**
  * Undo a deployment's prepare, newest write first.
  *
- * @param {{ deployment: object, stage: object }} input  the row is `compensating`
+ * @param {{ deployment: DeploymentRow, stage: StageRow }} input  the row is `compensating`
  * @param {Record<string, unknown>} [deps]  stores (journal.storesOf), `goLive`, `goLiveDeps`, `aiActState`, `documentStore`
  * @returns {Promise<{ undone: number, failed: number, skipped: number }>}
  */

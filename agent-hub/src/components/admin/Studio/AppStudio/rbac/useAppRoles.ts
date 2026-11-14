@@ -2,9 +2,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRef } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import type { AuthFetchOptions } from '@/utils/helpers';
-import { API_BASE, authFetch } from '@/utils/helpers';
+import { authFetch } from '@/utils/helpers';
 import type { AccessPerm, RuleTable } from './rowRuleModel.types';
 import { errorStatus, errorBodyRecord } from '@/utils/caughtError';
+import { apiUrl } from '@/api/typedRequest';
 
 /**
  * App Studio RBAC — the authoring hooks for the per-app role model.
@@ -114,7 +115,6 @@ interface ApiError extends Error {
 }
 
 const enc = encodeURIComponent as (value: string | number | boolean | null | undefined) => string;
-const base = `${API_BASE}/api/studio-apps`;
 
 async function request(url: string, options: AuthFetchOptions = {}): Promise<ApiBody | null> {
     const res = await authFetch(url, {
@@ -161,7 +161,7 @@ export default function useAppRoles(appId: string | null | undefined) {
     const schemaQuery = useQuery({
         queryKey: schemaKey,
         queryFn: async () => {
-            const body = await request(`${base}/${enc(appId)}/schema`);
+            const body = await request(apiUrl('GET /api/studio-apps/{id}/schema', { params: { id: String(appId) } }));
             // The version lives BESIDE the model on the wire, and it is the ROW's
             // version — not whatever `modelVersion` the stored model happens to
             // carry. Held apart from the data so it can never be confused with
@@ -177,7 +177,7 @@ export default function useAppRoles(appId: string | null | undefined) {
     const membersQuery = useQuery({
         queryKey: membersKey,
         queryFn: async () => {
-            const body = await request(`${base}/${enc(appId)}/members`);
+            const body = await request(apiUrl('GET /api/studio-apps/{id}/members', { params: { id: String(appId) } }));
             return Array.isArray(body?.members) ? body.members : [];
         },
         enabled: !!appId,
@@ -218,7 +218,7 @@ export default function useAppRoles(appId: string | null | undefined) {
         const expected = serverVersionRef.current;
         let body;
         try {
-            body = await request(`${base}/${enc(appId)}/schema`, {
+            body = await request(apiUrl('PUT /api/studio-apps/{id}/schema', { params: { id: String(appId) } }), {
                 method: 'PUT',
                 body: JSON.stringify({
                     model: nextModel,
@@ -287,7 +287,7 @@ export default function useAppRoles(appId: string | null | undefined) {
     });
 
     const addMemberMutation = useMutation({
-        mutationFn: ({ userId, roleKey }: { userId: string; roleKey: string }) => request(`${base}/${enc(appId)}/members`, {
+        mutationFn: ({ userId, roleKey }: { userId: string; roleKey: string }) => request(apiUrl('POST /api/studio-apps/{id}/members', { params: { id: String(appId) } }), {
             method: 'POST',
             body: JSON.stringify({ userId, roleKey }),
         }),
@@ -295,7 +295,7 @@ export default function useAppRoles(appId: string | null | undefined) {
     });
 
     const removeMemberMutation = useMutation({
-        mutationFn: (userId: string) => request(`${base}/${enc(appId)}/members/${enc(userId)}`, { method: 'DELETE' }),
+        mutationFn: (userId: string) => request(apiUrl('DELETE /api/studio-apps/{id}/members/{userId}', { params: { id: String(appId), userId } }), { method: 'DELETE' }),
         onSuccess: () => qc.invalidateQueries({ queryKey: membersKey }),
     });
 
@@ -372,7 +372,7 @@ export function useOrgDirectory(enabled = true) {
     const groupsQuery = useQuery({
         queryKey: ['org-directory-groups'],
         queryFn: async () => {
-            const body = await request(`${API_BASE}/auth/groups`);
+            const body = await request(apiUrl('GET /auth/groups'));
             return Array.isArray(body) ? body as DirectoryEntry[] : [];
         },
         enabled: !!enabled,
@@ -382,7 +382,7 @@ export function useOrgDirectory(enabled = true) {
     const usersQuery = useQuery({
         queryKey: ['org-directory-users'],
         queryFn: async () => {
-            const body = await request(`${API_BASE}/auth/users`);
+            const body = await request(apiUrl('GET /auth/users'));
             return Array.isArray(body) ? body as DirectoryEntry[] : [];
         },
         enabled: !!enabled,

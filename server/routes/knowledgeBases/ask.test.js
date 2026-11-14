@@ -49,6 +49,7 @@ function resetFx() {
 }
 resetFx();
 
+const { fakeKbGates } = require('./kbGate.testkit');
 const MOCKS = {
     '../stores/knowledgeBases': {
         getKB: async (id) => (fx.kb && fx.kb.id === id ? fx.kb : null),
@@ -68,7 +69,7 @@ const MOCKS = {
         resolveUserGroups: async () => [],
         validateSharedGroupsForOrg: async () => {},
     },
-    '../support/kbAccess': { canAccessKB: async () => fx.canAccess, resolveAdminOrgIds: async () => new Set() },
+    '../support/kbAccess': { ...fakeKbGates({ kbStore: { getKB: (id) => MOCKS['../stores/knowledgeBases'].getKB(id) }, canRead: () => fx.canAccess, canManage: (kb) => fx.canAccess && MOCKS['../stores/knowledgeBases'].canUserManageKB(kb, null, null, true) }), resolveAdminOrgIds: async () => new Set() },
     '../core/agentRuntime/knowledgeSearch': {
         quickKBSearch: async (userId, kbIds, query, opts) => {
             fx.searchCalls.push({ userId, kbIds, query, opts });
@@ -161,7 +162,7 @@ test('a knowledge base the asker may not read is refused before any search', asy
     // is handed, and this one came off the URL.
     fx.canAccess = false;
     const res = await ask({ question: 'Hoeveel verlof?' });
-    assert.strictEqual(res.statusCode, 403);
+    assert.strictEqual(res.statusCode, 404, 'the same answer as for a base that does not exist');
     assert.deepStrictEqual(fx.searchCalls, [], 'nothing was searched');
 });
 

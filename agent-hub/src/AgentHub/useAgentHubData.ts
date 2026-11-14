@@ -9,7 +9,7 @@ import useChatSignals from '../components/chat/chatSignals/useChatSignals';
 import useChatEngine from '../hooks/useChatEngine';
 import { chatSignalsSurfaceFor, resolveTurnEndpoint, type ChatSignalsTurnSurface } from '../hooks/useChatEngine/turnEndpoint';
 import { DEFAULT_AGENT_EMOJI, pickAgentAvatar } from '../utils/agentAvatar';
-import { API_BASE, generateMessageId } from '../utils/helpers';
+import { generateMessageId } from '../utils/helpers';
 import { memoryLockOf } from '../utils/memoryMode';
 import { hasRenderableContent, normalizeLoadedMessages, type ShapedMessage } from '../utils/messageShape';
 import type { GammaPreview } from '../hooks/useChatEngine/sse/gammaPreview';
@@ -17,7 +17,8 @@ import type { ChatMessage } from '../hooks/useChatEngine/types';
 import type { SessionSkill } from '../components/skills/sessionSkillState';
 import type { TurnConversation } from './useProjectChatStart';
 import type { UseAgentHubDataArgs } from './useAgentHubData.types';
-import { request, RefusedError } from '../api/mutate';
+import { RefusedError } from '../api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 export type { IdRef, AgentLike, HubUser } from './useAgentHubData.types';
 
 // The chat core of AgentHub: the chat engine wiring (chat signals, the
@@ -195,13 +196,13 @@ const useAgentHubData = ({
         reloadConversation: useCallback(async () => {
             const convId = directChatMode ? currentDirectConversation?.id : currentConversation?.id;
             if (!convId) return null;
-            const url = directChatMode
-                ? `${API_BASE}/ai/direct/conversations/${convId}`
-                : `${API_BASE}/agents/${selectedAgent?.id}/conversations/${convId}`;
-            if (!directChatMode && !selectedAgent?.id) return null;
+            const agentId = selectedAgent?.id;
+            if (!directChatMode && !agentId) return null;
             let res: Response;
             try {
-                res = await request(url);
+                res = directChatMode || !agentId
+                    ? await apiRequest('GET /ai/direct/conversations/{id}', { params: { id: convId } })
+                    : await apiRequest('GET /agents/{id}/conversations/{convId}', { params: { id: agentId, convId } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 return null;

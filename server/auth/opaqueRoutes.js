@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * OPAQUE Authentication Routes
  * 
@@ -107,7 +107,7 @@ const { validate } = require('../core/http/validate');
 router.post('/register/start', ensureReady, requireAuth, opaqueRegisterLimiter, validate({ body: RegisterStartBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const { registrationRequest } = req.body;
 
-    const username = req.session.user.id;
+    const username = /** @type {NonNullable<typeof req.session.user>} */ (req.session.user).id;
     const serverSetup = getServerSetup();
     const { registrationResponse } = opaque.server.createRegistrationResponse({
         serverSetup,
@@ -136,7 +136,7 @@ router.post('/register/finish', requireAuth, opaqueRegisterLimiter, validate({ b
     // then be handed a session as that user — account takeover by
     // username, plus destruction of their key wrapping. /pin/register/
     // finish below always did this correctly; this one did not.
-    const userId = req.session.user.id;
+    const userId = /** @type {NonNullable<typeof req.session.user>} */ (req.session.user).id;
     if (!requireCredentialProof(req, res, userId)) return;
     // Migration path: the account exists (created by /auth/signup, which
     // establishes the session this route now requires).
@@ -430,7 +430,7 @@ router.post('/login/finish', opaqueLoginLimiter, validate({ body: LoginFinishBod
 router.post('/pin/register/start', ensureReady, requireAuth, opaqueRegisterLimiter, validate({ body: RegisterStartBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const { registrationRequest } = req.body;
 
-    const userId = req.session.user.id;
+    const userId = /** @type {NonNullable<typeof req.session.user>} */ (req.session.user).id;
     const serverSetup = getServerSetup();
     const { registrationResponse } = opaque.server.createRegistrationResponse({
         serverSetup,
@@ -447,7 +447,7 @@ router.post('/pin/register/start', ensureReady, requireAuth, opaqueRegisterLimit
 router.post('/pin/register/finish', requireAuth, opaqueRegisterLimiter, validate({ body: PinRegisterFinishBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const { registrationRecord, wrappedDEK, recoveryWrappedDEK } = req.body;
 
-    const userId = req.session.user.id;
+    const userId = /** @type {NonNullable<typeof req.session.user>} */ (req.session.user).id;
 
     // Same hazard as /register/finish: this route is reachable whenever a
     // session exists, and it overwrites wrappedDEK unconditionally. A
@@ -497,7 +497,7 @@ router.post('/pin/register/finish', requireAuth, opaqueRegisterLimiter, validate
 router.post('/pin/login/start', ensureReady, requireAuth, opaqueLoginLimiter, validate({ body: PinLoginStartBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const { startLoginRequest } = req.body;
 
-    const userId = req.session.user.id;
+    const userId = /** @type {NonNullable<typeof req.session.user>} */ (req.session.user).id;
     const user = await userStore.getUser(userId);
 
     if (!user || !user.opaqueRecord) {
@@ -571,7 +571,7 @@ router.post('/pin/login/finish', requireAuth, opaqueLoginLimiter, validate({ bod
             }
         }
 
-        log.info(`[OPAQUE] PIN login complete for SSO user ${req.session.user.id}`);
+        log.info(`[OPAQUE] PIN login complete for SSO user ${/** @type {NonNullable<typeof req.session.user>} */ (req.session.user).id}`);
 
         req.session.save((err) => {
             if (err) log.error('Session save error:', err);

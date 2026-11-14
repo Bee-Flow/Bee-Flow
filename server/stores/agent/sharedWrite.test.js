@@ -52,7 +52,10 @@ mock(path.join(SERVER, 'db'), {
         return null;
     },
     async getAll() { return []; },
+    // The store destructures these at load: the transaction reaches run through the module.
+    async withTransaction(fn) { return fn({ query: (sql, params) => require(path.join(SERVER, 'db')).run(sql, params) }); },
     async run(sql, params) {
+        if (/to_regclass/.test(sql)) return { rows: [{ present: true }] };
         fx.calls.push({ sql, params });
         if (/DELETE FROM conversation_messages/i.test(sql)) {
             if (fx.failWipe) throw new Error('connection reset');

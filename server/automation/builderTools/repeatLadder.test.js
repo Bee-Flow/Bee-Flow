@@ -33,7 +33,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 const { applyToolCall, emptyDefinition, rejectionSignature, isRepeat } = require('../builderTools');
-const { canonicalJson } = require('./suggestedPatch');
+const { canonicalJson } = require('../../utils/stableJson');
 
 const STR = { type: 'string' };
 const SCHEMAS = {

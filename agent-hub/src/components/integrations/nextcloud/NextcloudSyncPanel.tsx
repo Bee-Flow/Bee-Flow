@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Cloud, RefreshCw, Users, AlertTriangle, Check, Loader2 } from 'lucide-react';
-import { API_BASE } from '@/utils/helpers';
 import { integrationsAdminKeys, useFreshOrgIdQuery, useNcSyncQuery } from '@/api/queries/integrationsAdmin';
 import type { NcSyncConfig, NcSyncUser } from '@/api/queries/integrationsAdmin';
 import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
-import { mutate, ApiError, RefusedError, errorBody } from '@/api/mutate';
+import { ApiError, RefusedError, errorBody } from '@/api/mutate';
+import { type ApiBody, apiRequest } from '@/api/typedRequest';
 
 // Theme tokens only, so every card, pill and control stays readable in the
 // dark themes (Tailwind 4 draws a bare `border` in currentColor).
@@ -63,7 +63,7 @@ function useNcSyncData(user: NextcloudSyncPanelProps['user'], orgIdProp: string 
 /** POST nc-sync/run; a refusal reads as the server's `error` (or "Sync failed"). */
 async function runNcSync(orgId: string | null): Promise<{ created?: number; deactivated?: number }> {
     try {
-        const res = await mutate(`${API_BASE}/auth/admin/${orgId}/nc-sync/run`, { method: 'POST' });
+        const res = await apiRequest('POST /auth/admin/{orgId}/nc-sync/run', { params: { orgId: String(orgId) } });
         return await res.json();
     } catch (err) {
         if (err instanceof RefusedError) throw new Error((errorBody(err) as { error?: string } | null)?.error || 'Sync failed');
@@ -96,16 +96,15 @@ const NextcloudSyncPanel = ({ user, orgId: orgIdProp }: NextcloudSyncPanelProps)
         setSaving(true);
         try {
             try {
-                await mutate(`${API_BASE}/auth/admin/${orgId}/nc-sync`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    mode: config.mode,
+                await apiRequest('PUT /auth/admin/{orgId}/nc-sync', {
+                    params: { orgId: String(orgId) },
+                    body: {
+                    mode: config.mode as ApiBody<'PUT /auth/admin/{orgId}/nc-sync'>['mode'],
                     syncGroups: config.syncGroups,
                     excludedGroups: config.excludedGroups,
-                    newUserDefaultStatus: config.newUserDefaultStatus,
-                }),
-            });
+                    newUserDefaultStatus: config.newUserDefaultStatus as ApiBody<'PUT /auth/admin/{orgId}/nc-sync'>['newUserDefaultStatus'],
+                },
+                });
             } catch (err) {
                 if (!(err instanceof ApiError)) throw err;
                 throw new Error('Save failed');

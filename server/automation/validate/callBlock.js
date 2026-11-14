@@ -4,7 +4,8 @@
  * from validate.js).
  */
 
-const { isObject, pickClosestId } = require('./helpers');
+const { isObject } = require('./helpers');
+const { pickClosestId } = require('../../utils/closestId.mts');
 
 /**
  * Collect every call_block step in a graph, including those nested in loop

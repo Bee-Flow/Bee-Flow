@@ -23,14 +23,11 @@ import ModulesPanel from '@/components/admin/modules';
 import SupportInboxPanel from '@/components/support/SupportInboxPanel';
 import AccessPermissionsPanel from '@/components/admin/org/AccessPermissionsPanel';
 import OrganisationHub from '@/components/admin/organisation/OrganisationHub';
-import type { AdminCurrentUser } from '@/components/admin/org/userManagement/types';
 
 export interface AdminTabContentProps {
     activeTab: string;
-    user: AdminCurrentUser | null;
     hasPermission: (perm: string) => boolean;
     agentSection: string;
-    onNavigate: (path: string, opts?: { replace?: boolean }) => void;
     adminPath: { seg1?: string; seg2?: string; seg3?: string };
 }
 
@@ -46,15 +43,15 @@ type Panel = { render: (p: AdminTabContentProps) => ReactNode; page?: boolean };
 
 /** The panel of each tab; a tab without one renders nothing here (product-website escapes the chrome). */
 const PANELS: Record<string, Panel> = {
-    agents: { render: (p) => <AgentConfigHub user={p.user} hasPermission={p.hasPermission} activeSection={p.agentSection} onNavigate={p.onNavigate} /> },
-    organisation: { render: (p) => <OrganisationHub user={p.user} activeSection={p.adminPath.seg2} />, page: true },
-    'ai-config': { render: (p) => <AIConfigPanel activeSection={p.adminPath.seg2} activeProvider={p.adminPath.seg3} onNavigate={p.onNavigate} /> },
-    security: { render: (p) => <SecurityHub user={p.user} activeSection={p.adminPath.seg2} userSection={p.adminPath.seg3} onNavigate={p.onNavigate} /> },
-    integrations: { render: (p) => <IntegrationsAdminPanel activeSection={p.adminPath.seg2} onNavigate={p.onNavigate} /> },
-    access: { render: (p) => <AccessPermissionsPanel user={p.user} activeSection={p.adminPath.seg2} onNavigate={p.onNavigate} /> },
-    monitoring: { render: (p) => <MonitoringPanel user={p.user} activeSection={p.adminPath.seg2} onNavigate={p.onNavigate} /> },
-    compliance: { render: (p) => <ComplianceHub activeSection={p.adminPath.seg2} focusCheckId={p.adminPath.seg3} onNavigate={p.onNavigate} /> },
-    subscriptions: { render: (p) => <SubscriptionsPanel activeSection={p.adminPath.seg2} onNavigate={p.onNavigate} /> },
+    agents: { render: (p) => <AgentConfigHub hasPermission={p.hasPermission} activeSection={p.agentSection} /> },
+    organisation: { render: (p) => <OrganisationHub activeSection={p.adminPath.seg2} />, page: true },
+    'ai-config': { render: (p) => <AIConfigPanel activeSection={p.adminPath.seg2} activeProvider={p.adminPath.seg3} /> },
+    security: { render: (p) => <SecurityHub activeSection={p.adminPath.seg2} userSection={p.adminPath.seg3} /> },
+    integrations: { render: (p) => <IntegrationsAdminPanel activeSection={p.adminPath.seg2} /> },
+    access: { render: (p) => <AccessPermissionsPanel activeSection={p.adminPath.seg2} /> },
+    monitoring: { render: (p) => <MonitoringPanel activeSection={p.adminPath.seg2} /> },
+    compliance: { render: (p) => <ComplianceHub activeSection={p.adminPath.seg2} focusCheckId={p.adminPath.seg3} /> },
+    subscriptions: { render: (p) => <SubscriptionsPanel activeSection={p.adminPath.seg2} /> },
     support: { render: (p) => <SupportInboxPanel focusThreadId={p.adminPath.seg2 || null} /> },
     licenses: { render: () => <ServerLicensePanel />, page: true },
     modules: { render: () => <ModulesPanel />, page: true },

@@ -37,7 +37,7 @@ const license = require('../../license');
 const dsrStore = require('../../stores/dsrStore');
 const userStore = require('../../stores/userStore');
 const { resolveOrgIdStrict } = require('./shared');
-const { metadataShape, pagingShape, metadataFilter, auditFirst } = require('../knowledgeBases/queryLogFilters');
+const { metadataShape, pagingShape, metadataFilter, auditFirst } = require('../../usecases/knowledgeBases/queryLogFilters');
 const { toCsv } = require('../../core/kb/queryLog/csvExport.mts');
 const queryLogStore = require('../../stores/kb/queryLog/index.mts');
 const orgViews = require('../../stores/kb/queryLog/orgViews.mts');
@@ -87,7 +87,7 @@ const DeleteBody = bodyOf({
  * The caller's own organisation. Never a default: this decides whose log is read. The gate's
  * `admin_compliance` may come from any organisation the caller is in; the log is read only when
  * the caller holds it IN this one (auth/permissionGrants.mts).
- * @param {import('express').Request} req
+ * @param {import('express').Request<any, any, any, any>} req
  */
 async function orgOf(req) {
     const orgId = await resolveOrgIdStrict(/** @type {import('../../auth/orgScope').OrgScopeRequest} */ (/** @type {unknown} */ (req)));
@@ -196,7 +196,7 @@ router.get('/kb-query-log/overview', requireAuth, requirePermission('admin_compl
 
 // ── GET /kb-query-log/entries ───────────────────────────────────────
 
-router.get('/kb-query-log/entries', requireAuth, requirePermission('admin_compliance'), validate({ query: EntriesQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof EntriesQuery>>} */ req, /** @type {import('express').Response} */ res) => {
+router.get('/kb-query-log/entries', requireAuth, requirePermission('admin_compliance'), validate({ query: EntriesQuery }), async (req, /** @type {import('express').Response} */ res) => {
     const orgId = await orgOf(req);
     const limit = req.query.limit ?? PAGE_DEFAULT;
     const offset = req.query.offset ?? 0;
@@ -209,7 +209,7 @@ router.get('/kb-query-log/entries', requireAuth, requirePermission('admin_compli
 
 const ENTRY_HEADERS = ['createdAt', 'knowledgeBase', 'user', 'channel', 'outcome', 'reviewStatus', 'chunkCount', 'topScore', 'model'];
 
-router.get('/kb-query-log/entries/export.csv', requireAuth, requirePermission('admin_compliance'), exportLimiter, validate({ query: EntriesExportQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof EntriesExportQuery>>} */ req, /** @type {import('express').Response} */ res) => {
+router.get('/kb-query-log/entries/export.csv', requireAuth, requirePermission('admin_compliance'), exportLimiter, validate({ query: EntriesExportQuery }), async (req, /** @type {import('express').Response} */ res) => {
     const orgId = await orgOf(req);
     const filter = metadataFilter(req.query);
     await auditFirst([{
@@ -249,7 +249,7 @@ router.get('/kb-query-log/subjects/:userId', requireAuth, requirePermission('adm
 
 // ── GET /kb-query-log/subjects/:userId/content ──────────────────────
 
-router.get('/kb-query-log/subjects/:userId/content', requireAuth, requirePermission('admin_compliance'), validate({ query: ContentQuery }), async (/** @type {import('express').Request<{ userId: string }, any, any, import('zod').infer<typeof ContentQuery>>} */ req, /** @type {import('express').Response} */ res) => {
+router.get('/kb-query-log/subjects/:userId/content', requireAuth, requirePermission('admin_compliance'), validate({ query: ContentQuery }), async (req, /** @type {import('express').Response} */ res) => {
     const orgId = await orgOf(req);
     const userId = req.params.userId;
     const requestId = req.query.dsrRequestId;
@@ -272,7 +272,7 @@ router.get('/kb-query-log/subjects/:userId/content', requireAuth, requirePermiss
 
 const SUBJECT_HEADERS = ['createdAt', 'knowledgeBase', 'channel', 'outcome', 'query', 'answer', 'passages', 'model', 'reviewStatus'];
 
-router.get('/kb-query-log/subjects/:userId/export', requireAuth, requirePermission('admin_compliance'), exportLimiter, validate({ query: SubjectExportQuery }), async (/** @type {import('express').Request<{ userId: string }, any, any, import('zod').infer<typeof SubjectExportQuery>>} */ req, /** @type {import('express').Response} */ res) => {
+router.get('/kb-query-log/subjects/:userId/export', requireAuth, requirePermission('admin_compliance'), exportLimiter, validate({ query: SubjectExportQuery }), async (req, /** @type {import('express').Response} */ res) => {
     const orgId = await orgOf(req);
     const userId = req.params.userId;
     const requestId = req.query.dsrRequestId;
@@ -307,7 +307,7 @@ router.get('/kb-query-log/subjects/:userId/export', requireAuth, requirePermissi
 
 // ── DELETE /kb-query-log/subjects/:userId ───────────────────────────
 
-router.delete('/kb-query-log/subjects/:userId', requireAuth, requirePermission('admin_compliance'), validate({ body: DeleteBody }), async (/** @type {import('express').Request<{ userId: string }, any, import('zod').infer<typeof DeleteBody>>} */ req, /** @type {import('express').Response} */ res) => {
+router.delete('/kb-query-log/subjects/:userId', requireAuth, requirePermission('admin_compliance'), validate({ body: DeleteBody }), async (req, /** @type {import('express').Response} */ res) => {
     const orgId = await orgOf(req);
     const userId = req.params.userId;
     const actorId = String(req.session?.user?.id);

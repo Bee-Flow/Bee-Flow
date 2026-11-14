@@ -24,7 +24,7 @@ const { HttpError } = require('../../core/http/errors');
 const studioAppStore = require('../../stores/studioAppStore');
 const { requireAuth } = require('../../auth/permissions');
 const { sessionUser } = require('../../core/http/sessionUser');
-const { TriggerParams, TriggerSwitchBody } = require('./schemas');
+const { TriggerParams, TriggerSwitchBody, NoBody } = require('./schemas');
 const { listTriggerState, setTriggerEnabled } = require('../../appStudio/triggers/triggerState.mts');
 const { webhookView, revealWebhookSecret, rotateWebhookSecret } = require('../../appStudio/triggers/webhook/webhookEndpoints.mts');
 const { resolvePublicBaseUrl } = require('../../utils/publicUrl');
@@ -72,11 +72,11 @@ function sendSecret(res, out) {
     res.json({ secret: out.secret, previousValidUntil: out.previousValidUntil });
 }
 
-router.post('/:id/triggers/:triggerId/webhook/secret', requireAuth, gateOwnedApp, validate({ params: TriggerParams }), /** @param {import('express').Request<{ id: string, triggerId: string }>} req */ async (req, res) => {
+router.post('/:id/triggers/:triggerId/webhook/secret', requireAuth, gateOwnedApp, validate({ params: TriggerParams, body: NoBody }), /** @param {import('express').Request<{ id: string, triggerId: string }>} req */ async (req, res) => {
     sendSecret(res, await revealWebhookSecret(res.locals.ownedApp, req.params.triggerId));
 });
 
-router.post('/:id/triggers/:triggerId/webhook/rotate', requireAuth, gateOwnedApp, validate({ params: TriggerParams }), /** @param {import('express').Request<{ id: string, triggerId: string }>} req */ async (req, res) => {
+router.post('/:id/triggers/:triggerId/webhook/rotate', requireAuth, gateOwnedApp, validate({ params: TriggerParams, body: NoBody }), /** @param {import('express').Request<{ id: string, triggerId: string }>} req */ async (req, res) => {
     sendSecret(res, await rotateWebhookSecret(res.locals.ownedApp, req.params.triggerId));
 });
 

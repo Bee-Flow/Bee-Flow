@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Knowledge-base source refresh — the scheduled half of "sources keep
  * themselves up to date".
@@ -33,6 +33,7 @@ const kbSourcesStore = require('../stores/kbSources');
 const { recordJobRun } = require('../telemetry/metrics');
 const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
+const { envInt } = require('../utils/envNumber.mts');
 
 /**
  * A key of its own. 0xBEEF105–0xBEEF10E are taken by the other jobs
@@ -42,11 +43,11 @@ const { bestEffort } = require('../utils/bestEffort');
 const LOCK_KEY = 0xBEEF10F;
 const INTERVAL_MS = 60 * 1000;          // the finest schedule granularity is a minute
 const BOOT_DELAY_MS = 50 * 1000;        // after the app-connector job, not with it
-const MAX_PER_TICK = parseInt(process.env.KB_SOURCE_REFRESH_PER_TICK, 10) || 20;
-const REFRESH_CONCURRENCY = parseInt(process.env.KB_SOURCE_REFRESH_CONCURRENCY, 10) || 3;
-const STUCK_MINUTES = parseInt(process.env.KB_SOURCE_REFRESH_STUCK_MINUTES, 10) || 15;
+const MAX_PER_TICK = envInt('KB_SOURCE_REFRESH_PER_TICK', 20, { min: 1 });
+const REFRESH_CONCURRENCY = envInt('KB_SOURCE_REFRESH_CONCURRENCY', 3, { min: 1 });
+const STUCK_MINUTES = envInt('KB_SOURCE_REFRESH_STUCK_MINUTES', 15, { min: 1 });
 /** One source's share of a 60s tick, with room for three of them at once. */
-const TIME_BUDGET_MS = parseInt(process.env.KB_SOURCE_REFRESH_BUDGET_MS, 10) || 45_000;
+const TIME_BUDGET_MS = envInt('KB_SOURCE_REFRESH_BUDGET_MS', 45_000, { min: 1 });
 
 /** Version rows to keep per document, and for how long — pruned from the tick. */
 const VERSION_KEEP_PER_DOC = 3;

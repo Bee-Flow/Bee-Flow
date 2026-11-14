@@ -105,3 +105,8 @@ test('the run log: a step\'s runKey and the end report are bounded; an empty end
     assert.strictEqual(res.status, 404, res.text);
     assert.ok(db.queries.some((q) => /studio_apps/.test(q)), db.queries.join(' | '));
 });
+
+test('cancelling a background job takes no fields: one sent is refused by name before the app is looked up', async () => {
+    h.assertRefused(assert, await post('/actions/jobs/sar_1/cancel', { reason: 'stop' }), 'body', /does not take "reason"/);
+    assert.deepStrictEqual(db.queries, []);
+});

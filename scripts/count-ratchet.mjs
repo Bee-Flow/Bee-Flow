@@ -39,13 +39,22 @@
  *                     mock). The target there is a prop, a context provider or
  *                     a msw handler instead of swapping the module.
  *   authfetch-outside-api  non-test files outside src/api/ that call
- *                     authFetch themselves (utils/helpers.js, where it is
+ *                     authFetch or apiFetch (its typed form in
+ *                     api/typedRequest.ts) themselves (utils/helpers.js, where it is
  *                     defined, not counted). The data layer is src/api/:
  *                     apiClient / createJsonResource (client.ts), mutate()
  *                     and the readers in api/queries/; a call written by hand
  *                     elsewhere is one more copy of URL, headers and error
  *                     handling.
- *   authfetch-effect  non-test files that call authFetch AND use useEffect:
+ *   url-outside-api   non-test files outside src/api/ that build a request
+ *                     URL by hand (`${API_BASE}/…` in a template, or
+ *                     `API_BASE + '/…'`) or call mutate()/request() from
+ *                     api/mutate.ts with a URL of their own. The target is a
+ *                     call through api/typedRequest.ts (apiJson, apiRequest,
+ *                     apiFetch, apiUrl), whose key is an operation of the
+ *                     server's contract (api/apiTypes.generated.ts), or an
+ *                     api/ helper built on it.
+ *   authfetch-effect  non-test files that name authFetch or apiFetch AND use useEffect:
  *                     a fetch wired by hand into a component's lifecycle. The
  *                     target is useQuery/useMutation in src/api/queries/.
  *   big-file          source files longer than the package's limit (400 lines
@@ -131,8 +140,9 @@
  *                     shared piece down (into api/, hooks/ or components/),
  *                     then an eslint no-restricted-paths rule once at zero.
  *   unchecked-mutation  non-test calls of authFetch with a literal POST, PUT,
- *                     PATCH or DELETE method whose Response nobody checks:
- *                     authFetch does not throw on 4xx/5xx, so a caller that
+ *                     PATCH or DELETE method, or of apiFetch with a key of one
+ *                     of those methods, whose Response nobody checks: neither
+ *                     throws on 4xx/5xx, so a caller that
  *                     neither reads `.ok`/`.status` nor hands the Response on
  *                     shows success when the server refused. A call counts as
  *                     checked when it is returned (the caller owns it) or
@@ -179,10 +189,37 @@
  *                     which owns the commit, the rollback and the release.
  *                     `ROLLBACK TO SAVEPOINT` is a step inside a transaction
  *                     and is not counted.
+ *   store-write-tx    functions in stores/ (tests and testkits left out) that
+ *                     write two or more tables in separate statements with no
+ *                     transaction around them and no caller's client: a failure
+ *                     after the first write leaves it behind. Read off the
+ *                     syntax tree by scripts/store-write-tx.mjs (its header has
+ *                     the rules; its CLI lists the functions). A function that is
+ *                     stepwise on purpose carries a `// stepwise: <why>` line.
  *   db-in-routes      imports of server/db.js from routes/ (non-test), in any
  *                     relative spelling (`../db`, `../../db.js`, ...): a route
  *                     running its own SQL. The target is a store or a core
  *                     service between the route and the database.
+ *   plain-error-in-routes
+ *                     `throw new Error(...)` in routes/ (tests and testkits
+ *                     left out) outside a try block of the same function: an error that ends at the terminal handler
+ *                     as a generic 500. A caller's mistake is an HttpError 4xx
+ *                     with a sentence for the client, an upstream or missing
+ *                     service a 502/503; a plain Error is left for a real bug.
+ *                     A throw a local try catches (a fallback, an OAuth popup
+ *                     page) is not counted; one in a nested function body is.
+ *   routes-http-free  files under routes/ (tests and testkits left out, .mts
+ *                     and .mjs included) that neither name `req` / `res` in
+ *                     their code nor register a route (`Router(`, or a
+ *                     `.get('/…'` / `.post('/…'` / `.use('/…'` call with a path
+ *                     literal): domain code that composes features and was
+ *                     filed under the HTTP layer because only routes/ may
+ *                     combine features. Its home is the application layer,
+ *                     server/usecases/ (see server/layering.test.js). A
+ *                     request schema module (`…Schema.js`, `…Schemas.js`,
+ *                     `…SchemaParts.js`, `…Body.js`) is not counted: the zod
+ *                     shape of a request body is the parse step of the HTTP
+ *                     adapter and stays next to its route.
  *   deep-imports      import specifiers in agent-hub/src that climb three or more
  *                     levels (`../../../utils/helpers`) and that the `@/` alias
  *                     (agent-hub/src) can spell instead: import and export-from,
@@ -208,6 +245,16 @@
  *                     the `/`, so `if (x) /re/.test(y)` is misread; braces in
  *                     JSX text count as code; a function nested inside a long
  *                     function counts on its own when it is long too.
+ *   sql-text-test     server test files that assert on SQL text and never run it:
+ *                     an assert/expect call whose arguments hold a SQL shape
+ *                     (`INSERT INTO`, `FROM users`, `ON CONFLICT`, `WHERE x`,
+ *                     `col = $1`, `ORDER BY`, ...) in a file that touches no
+ *                     database engine (PGlite, better-sqlite3 and their
+ *                     testUtils helpers). Such a test passes a syntax error or a
+ *                     misspelt column and fails an equivalent rewrite. The
+ *                     target is the store's public functions against
+ *                     testUtils/pglitePool.js or pgliteDb.js, asserting what the
+ *                     database holds or returns afterwards.
  *
  * Usage:
  *   node scripts/count-ratchet.mjs <metric> <package>            gate
@@ -275,9 +322,37 @@ function resolveImport(spec, fromRel) {
     return target.startsWith('../') ? null : target;
 }
 
+// url-outside-api: a URL built from API_BASE (an identifier the blanked code still
+// holds, so a comment or a plain string does not count), or a call of the
+// mutate()/request() that api/mutate.ts exports, under whatever local name.
+const API_BASE_URL = /\$\{\s*API_BASE\s*\}\/|\bAPI_BASE\s*\+\s*['"`]\//g;
+const MUTATE_IMPORT = /import\s*\{([^}]*)\}\s*from\s*['"][^'"]*\bapi\/mutate(?:\.[jt]s)?['"]/g;
+
+function buildsUrlOutsideApi(text) {
+    const code = blankNonCode(text);
+    for (const m of text.matchAll(API_BASE_URL)) {
+        const at = m.index + m[0].indexOf('API_BASE');
+        if (code.startsWith('API_BASE', at)) return 1;
+    }
+    const names = [];
+    for (const m of text.matchAll(MUTATE_IMPORT)) {
+        if (!code.startsWith('import', m.index)) continue;
+        for (const part of m[1].split(',')) {
+            const [imported, local] = part.trim().replace(/^type\s+/, '').split(/\s+as\s+/);
+            if (imported === 'mutate' || imported === 'request') names.push(local || imported);
+        }
+    }
+    return names.some((n) => new RegExp(`(?<![\\w.$])${n}\\s*\\(`).test(code)) ? 1 : 0;
+}
+
 // unchecked-mutation: a non-GET authFetch whose Response is never looked at.
+// apiFetch (api/typedRequest.ts) is the same unchecked transport under a typed
+// key; its method is the key's first word: `apiFetch('DELETE /api/x/{id}', …)`.
 const MUTATION_METHOD = /\bmethod\s*:\s*(['"`])(?:POST|PUT|PATCH|DELETE)\1/i;
-const AUTHFETCH_CALL = /(?<![\w.$])authFetch\s*\(/g;
+const MUTATION_KEY = /^\(\s*(['"`])(?:POST|PUT|PATCH|DELETE) /;
+const AUTHFETCH_CALL = /(?<![\w.$])(?:authFetch|apiFetch)\s*\(/g;
+const UNCHECKED_CALL = /(?<![\w.$])(?:authFetch|apiFetch)\s*\(/;
+const UNCHECKED_NAME = /\b(?:authFetch|apiFetch)\b/;
 const CHECK_WINDOW_LINES = 25;
 
 /** Index just past the `)` closing the call whose `(` sits at `open`, or -1. */
@@ -326,7 +401,8 @@ function countUncheckedMutations(text) {
         const open = m.index + m[0].length - 1;
         const end = closeParen(text, open);
         if (end < 0) continue;
-        if (!MUTATION_METHOD.test(text.slice(open, end))) continue;
+        const args = text.slice(open, end);
+        if (!MUTATION_METHOD.test(args) && !MUTATION_KEY.test(args)) continue;
         const lineStart = text.lastIndexOf('\n', m.index) + 1;
         const before = text.slice(lineStart, m.index);
         // Returned: the caller receives the Response and owns the check.
@@ -417,6 +493,24 @@ function countLogPersonal(text) {
 // inline-pglite: the shapes a hand-rolled node-postgres adapter over PGlite takes.
 const INLINE_PGLITE_ADAPTER = /^(?:async\s+)?function\s+(?:adapt\w*|rawQuery|q|query)\s*\(|\browCount\s*:|typeof\s+[\w?.]+\.affectedRows|\.affectedRows\s*\?\?|\bpool\.(?:query|connect)\s*=|\bquery\s*:\s*\(sql, params\)\s*=>\s*pg\.query/m;
 
+// sql-text-test: a SQL shape inside an assertion, in a test with no database engine.
+// Upper-case keywords only, with a lower-case identifier after FROM/WHERE/JOIN, so
+// prose ("goes out FROM the shared mailbox") and HTTP verbs (`DELETE /x`) stay out.
+const SQL_SHAPE = /\bSELECT\b[\s\S]{0,120}?\bFROM\b|\bFROM\s+\\?"?(?!(?:the|a|an|your|this|that)\b)[a-z_][\w.]*|\bINSERT\s+INTO\b|\bUPDATE\s+\\?"?[a-z_]\w*\\?"?\s+SET\b|\bDELETE\s+FROM\b|\bON\s+CONFLICT\b|\bWHERE\s+\\?[a-z_(]|\b(?:ORDER|GROUP)\s+BY\b|\bRETURNING\b|\bJOIN\s+[a-z_]|\bIS\s+(?:NOT\s+)?NULL\b|\bCOALESCE\s*\\?\(|\bLIMIT\s+(?:\\?\$|\d|\\?\?)|\bFOR\s+UPDATE\b|\bSKIP\s+LOCKED\b|\b[a-z_]\w*\s*=\s*\\?\$\d|\bAND\s+[a-z_][\w.]*\s*(?:=|IS\b|IN\b)/;
+const SQL_ASSERT_CALL = /(?<![\w$.])(?:assert(?:\s*\.\s*\w+)?|expect)\s*\(/g;
+const DB_ENGINE_REF = /pglite|better-sqlite3|node:sqlite|DatabaseSync|sqliteEngine|appEngines|sqliteAppStores|pgAppEngine/i;
+
+function assertsSqlText(text) {
+    if (DB_ENGINE_REF.test(text)) return 0;
+    const code = blankNonCode(text);
+    for (const m of code.matchAll(SQL_ASSERT_CALL)) {
+        const open = m.index + m[0].length - 1;
+        const end = closeParen(code, open);
+        if (end > 0 && SQL_SHAPE.test(text.slice(open, end))) return 1;
+    }
+    return 0;
+}
+
 // empty-catch: a catch clause whose block holds nothing, or only comments.
 // `.catch(() => {})` on a promise is a call, not a clause, and is not counted.
 const EMPTY_CATCH = /(?<![\w$.])catch\s*(?:\([^)]*\))?\s*\{\s*(?:(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/)\s*)*\}/g;
@@ -427,6 +521,23 @@ const ADMIN_ID_LITERAL = /(?:\.id|\bid|Id|\busername|Username)\s*[!=]==?\s*['"`]
 // rollback-in-store: a ROLLBACK written into a query string by hand.
 // `ROLLBACK TO SAVEPOINT` is a step inside a transaction, not the end of one.
 const LITERAL_ROLLBACK = /(['"`])\s*ROLLBACK\b(?!\s+TO\b)/g;
+
+// plain-error-in-routes: a plain Error thrown where no try of the same function catches it.
+const PLAIN_ERROR_THROW = /(?<![\w$.])throw\s+(?:new\s+)?Error\s*\(/g;
+const ROUTE_TEST_FILE = /\.test(?:kit)?\.[cm]?[jt]sx?$/;
+// routes/ and the use cases it calls (server/usecases/): what a file moved between the two
+// keeps counting in the metrics scoped to the request-facing code.
+const REQUEST_LAYER = /^(?:routes|usecases)\//;
+
+// routes-http-free: a file in routes/ with nothing of HTTP in it. `req` / `res` are
+// read off the code (comments and strings blanked); the route registration off the
+// text, because its path literal is a string. A route in a comment therefore keeps
+// a file counted as HTTP, which errs on the side of leaving it in routes/.
+const REQ_RES = /(?<![\w$.])(?:req|res)(?![\w$])/;
+const ROUTE_REGISTRATION = /\bRouter\s*\(|\.(?:get|post|put|patch|delete|all|use|route)\s*\(\s*['"`]\//;
+const ALL_SOURCE = /\.(?:[cm]?[jt]sx?)$/;
+const REQUEST_SCHEMA_FILE = /(?:[sS]chemas?|SchemaParts|Body)\.[cm]?[jt]s$/;
+const DECLARATION_FILE = /\.d\.[cm]?ts$/;
 
 // long-function
 const LONG_FUNCTION_LINES = 200;
@@ -541,6 +652,38 @@ function opensFunction(code, open) {
     return !word || !NOT_A_FUNCTION.has(word[1]);
 }
 
+/**
+ * Plain `throw new Error(` sites outside a try block. Braces are tracked as a
+ * stack of try / function / other blocks; a throw is caught when a try sits
+ * above it before the nearest function boundary (a callback defined inside a
+ * try runs later, outside it).
+ */
+function countUncaughtPlainThrows(text) {
+    const code = blankNonCode(text);
+    const sites = [...code.matchAll(PLAIN_ERROR_THROW)].map((m) => m.index);
+    if (!sites.length) return 0;
+    const stack = [];
+    const caught = () => {
+        for (let k = stack.length - 1; k >= 0; k--) {
+            if (stack[k] === 'try') return true;
+            if (stack[k] === 'fn') return false;
+        }
+        return false;
+    };
+    let next = 0;
+    let n = 0;
+    for (let i = 0; i < code.length && next < sites.length; i++) {
+        if (i === sites[next]) {
+            if (!caught()) n++;
+            next++;
+        }
+        const c = code[i];
+        if (c === '{') stack.push(/(?<![\w$.])try\s*$/.test(code.slice(Math.max(0, i - 16), i)) ? 'try' : (opensFunction(code, i) ? 'fn' : 'block'));
+        else if (c === '}') stack.pop();
+    }
+    return n;
+}
+
 /** Functions whose body spans more than LONG_FUNCTION_LINES lines, braces included. */
 function countLongFunctions(text) {
     const code = blankNonCode(text);
@@ -579,8 +722,8 @@ const STATIC_MOUNT = /\bexpress\s*\.\s*static\s*\(/g;
 // multer's fileFilter only sees the client's own mimetype.
 const MULTER_CALL = /(?<![\w$.])multer\s*\(/g;
 // env-parseint-fallback: parseInt(process.env.X) || n (or Number(...)): zero and
-// an unparsable value both fall back to n, so 0 cannot be configured. Parse
-// with Number.isNaN and refuse to boot on a non-numeric value.
+// an unparsable value both fall back to n, so 0 cannot be configured and a bad
+// value is ignored without a word. server/utils/envNumber.mts reads them instead.
 const ENV_PARSEINT_FALLBACK = /\b(?:parseInt|Number|parseFloat)\s*\(\s*process\.env\.[^()]*\)\s*\|\|\s*\d/g;
 // secret-equality: === or !== with a secret-shaped identifier on the left and a
 // value (not a literal, null or undefined) on the right. `token` is left out of
@@ -652,9 +795,9 @@ const METRICS = {
         // On the code only: a word in a comment is not a call.
         measure: (text) => {
             const code = blankNonCode(text);
-            return /\bauthFetch\b/.test(code) && /\buseEffect\b/.test(code) ? 1 : 0;
+            return UNCHECKED_NAME.test(code) && /\buseEffect\b/.test(code) ? 1 : 0;
         },
-        what: 'files pairing authFetch with useEffect',
+        what: 'files pairing authFetch or apiFetch with useEffect',
         advice: 'read through useQuery/useMutation in src/api/queries/ instead',
     },
     'fetch-in-effect': {
@@ -668,9 +811,15 @@ const METRICS = {
     },
     'authfetch-outside-api': {
         include: (rel) => !TEST_FILE.test(rel) && !rel.startsWith('api/') && rel !== 'utils/helpers.ts',
-        measure: (text) => (/(?<![\w.$])authFetch\s*\(/.test(blankNonCode(text)) ? 1 : 0),
-        what: 'files calling authFetch outside src/api',
+        measure: (text) => (UNCHECKED_CALL.test(blankNonCode(text)) ? 1 : 0),
+        what: 'files calling authFetch or apiFetch outside src/api',
         advice: 'call through src/api/ instead: apiClient or createJsonResource (api/client.ts), mutate() (api/mutate.ts), or a reader in api/queries/',
+    },
+    'url-outside-api': {
+        include: (rel) => !TEST_FILE.test(rel) && !rel.startsWith('api/'),
+        measure: (text) => buildsUrlOutsideApi(text),
+        what: 'files building an API URL or calling mutate() outside src/api',
+        advice: 'call through api/typedRequest.ts (apiJson / apiRequest / apiFetch / apiUrl with an operation key of api/apiTypes.generated.ts), or an api/ helper built on it,',
     },
     'big-file': {
         include: (rel) => !TEST_FILE.test(rel) && !BIG_FILE_EXEMPT.test(rel),
@@ -789,14 +938,20 @@ const METRICS = {
     'unchecked-mutation': {
         include: (rel) => !TEST_FILE.test(rel),
         measure: (text) => countUncheckedMutations(text),
-        what: 'non-GET authFetch calls whose Response is not checked',
-        advice: 'call mutate() from src/api/mutate.ts (it throws an ApiError on a non-2xx answer) and show the error, or check res.ok',
+        what: 'non-GET authFetch or apiFetch calls whose Response is not checked',
+        advice: 'call mutate() from src/api/mutate.ts or apiRequest() from src/api/typedRequest.ts (both throw on a non-2xx answer) and show the error, or check res.ok',
     },
     'inline-pglite': {
         include: (rel) => TEST_FILE.test(rel) && !rel.startsWith('testUtils/'),
         measure: (text) => (/\bnew PGlite\(/.test(text) && INLINE_PGLITE_ADAPTER.test(text) ? 1 : 0),
         what: 'test files with their own PGlite adapter',
         advice: 'use pgliteQuery(pg) / usePglitePool() from testUtils/pglitePool.js or pgliteDb()/dbFacade() from testUtils/pgliteDb.js instead',
+    },
+    'sql-text-test': {
+        include: (rel) => TEST_FILE.test(rel) && !rel.startsWith('testUtils/'),
+        measure: (text) => assertsSqlText(text),
+        what: 'test files asserting on SQL text without a database',
+        advice: 'call the store\'s public functions against testUtils/pglitePool.js (usePglitePool) or pgliteDb.js and assert what the database holds or returns',
     },
     'empty-catch': {
         include: (rel) => !TEST_FILE.test(rel),
@@ -827,8 +982,15 @@ const METRICS = {
         what: 'hand-written ROLLBACKs in stores/',
         advice: 'wrap the work in db.withTransaction(async (client) => { … }) (server/db.js): it owns BEGIN, COMMIT, ROLLBACK and the release',
     },
+    'store-write-tx': {
+        include: (rel) => isStoreSource(rel),
+        ext: ALL_SOURCE,
+        measure: (text, pkg, rel) => (pkg === 'server' ? nonAtomicWrites(text, rel).length : 0),
+        what: 'store functions writing two or more tables without a transaction',
+        advice: "wrap the writes in db.withTransaction(async (client) => { … }) (or runTransaction on an injected client), take the caller's client where a caller already holds a transaction, or mark a function that is stepwise on purpose with `// stepwise: <why>`; node scripts/store-write-tx.mjs lists them",
+    },
     'db-in-routes': {
-        include: (rel) => !TEST_FILE.test(rel) && rel.startsWith('routes/'),
+        include: (rel) => !TEST_FILE.test(rel) && REQUEST_LAYER.test(rel),
         measure: (text, pkg, rel) => {
             let n = 0;
             // A JSDoc type (`typeof import('../db').getAll`) is no runtime import.
@@ -840,6 +1002,19 @@ const METRICS = {
         },
         what: 'imports of db.js in routes/',
         advice: 'move the query into a store (stores/) or a service in core/ and call that from the route',
+    },
+    'plain-error-in-routes': {
+        include: (rel) => REQUEST_LAYER.test(rel) && !ROUTE_TEST_FILE.test(rel),
+        measure: (text) => countUncaughtPlainThrows(text),
+        what: 'plain Errors thrown in routes/ outside a try block',
+        advice: "throw an HttpError(status, code, message) from core/http/errors.js (a 4xx with a sentence for the caller's mistake, a 502/503 for an upstream or missing service) and keep a plain Error for a real bug",
+    },
+    'routes-http-free': {
+        include: (rel) => rel.startsWith('routes/') && !ROUTE_TEST_FILE.test(rel) && !DECLARATION_FILE.test(rel) && !REQUEST_SCHEMA_FILE.test(rel),
+        ext: ALL_SOURCE,
+        measure: (text) => (REQ_RES.test(blankNonCode(text)) || ROUTE_REGISTRATION.test(text) ? 0 : 1),
+        what: 'files under routes/ that neither take req/res nor register a route',
+        advice: 'move the file into server/usecases/ (same sub-folder, git mv, repoint the requires): routes/ holds the HTTP adapters, the code they call lives below them',
     },
     'deep-imports': {
         include: (rel) => !isDeepImportsExcluded(rel),
@@ -875,7 +1050,7 @@ const METRICS = {
         include: (rel) => !TEST_FILE.test(rel),
         measure: (text) => (blankNonCode(text).match(ENV_PARSEINT_FALLBACK) || []).length,
         what: 'numeric env vars parsed as parseInt(process.env.X) || default, where 0 cannot be configured',
-        advice: 'parse once at boot: const n = Number(process.env.X ?? default); if (!Number.isFinite(n)) throw; a value of 0 then means 0',
+        advice: 'read it with envInt / envNumber from server/utils/envNumber.mts: envInt(\'X\', default, { min: 1 }) where 0 means nothing, { min: 0 } where 0 means off; a bad value is logged once and the default is used',
     },
     'secret-equality': {
         include: (rel) => !TEST_FILE.test(rel) && !rel.startsWith('testUtils/'),
@@ -886,7 +1061,7 @@ const METRICS = {
     'instance-config-gate': {
         // The request-facing layers: a service that writes a setting on the
         // operator's behalf is gated by whoever called it.
-        include: (rel) => !TEST_FILE.test(rel) && /^(?:routes|auth)\//.test(rel),
+        include: (rel) => !TEST_FILE.test(rel) && /^(?:routes|usecases|auth)\//.test(rel),
         measure: (text) => (CONFIG_WRITE.test(text) && CONFIG_STORE_REF.test(text) && !PLATFORM_GATE_REF.test(text) ? 1 : 0),
         what: 'files that write instance-wide config (configStore setConfig / setSecret / deleteConfig) without a platform-admin gate',
         advice: 'gate the write with requirePlatformAdmin (super admin, or an admin permission only on a self-hosted install); an organisation-level permission may not change settings the whole install shares',
@@ -910,6 +1085,9 @@ let countSwallowed;
 if (metricName === 'swallowed-error') ({ countSwallowed } = await import('./catch-classify.mjs'));
 let fetchInEffect;
 if (metricName === 'fetch-in-effect') ({ fetchInEffect } = await import('./effect-fetch.mjs'));
+let nonAtomicWrites;
+let isStoreSource;
+if (metricName === 'store-write-tx') ({ nonAtomicWrites, isStoreSource } = await import('./store-write-tx.mjs'));
 if (metricName === 'deep-imports') ({ deepSpecifiers, isExcluded: isDeepImportsExcluded } = await import('./deep-imports.mjs'));
 const metric = METRICS[metricName];
 if (!metric || !pkg) {
@@ -934,7 +1112,7 @@ function collect(from, into) {
         const full = path.join(from, entry.name);
         if (entry.isDirectory()) {
             if (!SKIP_DIRS.has(entry.name)) collect(full, into);
-        } else if (entry.isFile() && /\.[jt]sx?$/.test(entry.name)) {
+        } else if (entry.isFile() && (metric.ext || /\.[jt]sx?$/).test(entry.name)) {
             into.push(full);
         }
     }

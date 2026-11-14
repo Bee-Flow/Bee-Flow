@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Automation Builder — POST /label-steps: fast-tier auto-label and auto-icon
  * for the steps in a flow.
@@ -21,7 +21,7 @@ const { validate } = require('../../../core/http/validate');
 const { resolveModelForTierName } = require('../../../core/llm/modelResolver');
 const llmClient = require('../../../core/llm/llmClient');
 const { requireAuth } = require('../../../auth/permissions');
-const { summariseLayerRateLimit } = require('./rateLimits');
+const { summariseLayerRateLimit } = require('../../../usecases/ai/automationBuilder/rateLimits');
 const { sessionUser } = require('../../../core/http/sessionUser');
 
 // ── Auto-label + auto-icon for steps ────────────────────────────────────────
@@ -112,7 +112,8 @@ router.post('/label-steps', requireAuth, summariseLayerRateLimit, validate({ bod
         return res.status(403).json({ error: 'The Automations beta is not enabled for your organisation.' });
     }
 
-    const def = req.body.definition;
+    // The schema's refinement has checked that the definition carries steps.
+    const def = /** @type {Record<string, any>} */ (req.body.definition);
     // Absent means "labels only": no icon can pass the allowedSet filter below.
     const allowedIcons = req.body.allowedIcons || [];
     const allowedSet = new Set(allowedIcons);
@@ -133,7 +134,8 @@ router.post('/label-steps', requireAuth, summariseLayerRateLimit, validate({ bod
     const bounded = targets.slice(0, MAX_LABEL_STEPS);
 
     const userOrgId = req.session?.user?.organizationId || null;
-    const modelId = await resolveModelForTierName('fast', { userOrgId, userId, fallback: 'gemini-2.0-flash-lite' });
+    // A non-empty fallback makes the resolved id a string.
+    const modelId = /** @type {string} */ (await resolveModelForTierName('fast', { userOrgId, userId, fallback: 'gemini-2.0-flash-lite' }));
 
     const sys = 'You label steps in an automation flow for a non-technical user. For each step return: "label" — a 2–4 word Title Case name describing what the step accomplishes (not its technical type); and "icon" — the single best-fitting icon NAME chosen ONLY from the provided allowed list (or "" if none fits). Copy each step id verbatim. Keep labels concise and human.';
     const iconList = allowedIcons.length ? `Allowed icon names:\n${allowedIcons.join(', ')}\n\n` : '';

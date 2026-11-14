@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Who may do what with one automation (Studio → Automations handoff 5, sharing
  * and roles).
@@ -86,13 +87,14 @@ function runStartForbidden() {
 /**
  * The strongest of a list of share roles, or null.
  * @param {string[]} roles
+ * @returns {keyof typeof RANK | null}
  */
 function strongestRole(roles) {
-    /** @type {string | null} */
+    /** @type {keyof typeof RANK | null} */
     let best = null;
     for (const r of roles || []) {
         if (!RANK[r]) continue;
-        if (!best || RANK[r] > RANK[best]) best = r;
+        if (!best || RANK[r] > RANK[best]) best = /** @type {keyof typeof RANK} */ (r);
     }
     return best;
 }
@@ -114,7 +116,7 @@ const NONE = Object.freeze({ role: null, via: null });
 
 /**
  * @param {{
- *   store?: { listSharesForAutomation: (id: string) => Promise<Array<{principalType: string, principalId: string, role: string}>> },
+ *   store?: { listSharesForAutomation: (id: string) => Promise<Array<{principalType: string, principalId: string, role: string}>>, getAutomation?: (id: string) => Promise<{ id?: string, userId?: string, organizationId?: string | null } | null> },
  *   getUser?: (id: string) => Promise<any>,
  *   hasPermission?: (userId: string, permission: string, session?: any) => Promise<boolean>,
  * }} [overrides]
@@ -136,7 +138,7 @@ function makeAutomationAccess(overrides = {}) {
     /**
      * The caller's role on an automation.
      *
-     * @param {object|null} automation  a store row (rowToAutomation shape)
+     * @param {{ id?: any, userId?: any, organizationId?: any }|null} automation  a store row (rowToAutomation shape)
      * @param {string|null} userId
      * @param {{ session?: any }} [opts]
      * @returns {Promise<{ role: 'owner'|'edit'|'view'|'run'|null, via: 'owner'|'admin'|'share'|null, runShare?: true }>}

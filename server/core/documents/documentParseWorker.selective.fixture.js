@@ -1,3 +1,4 @@
+// @typecheck strict
 'use strict';
 /**
  * Test fixture for documentParsePool.test.js: a parse worker that never answers a job

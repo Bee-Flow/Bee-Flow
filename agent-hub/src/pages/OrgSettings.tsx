@@ -101,6 +101,7 @@ const OrgSettings = ({ user, onBack, orgSettingsPath = {}, onNavigate }: OrgSett
                             onClick={onBack}
                             className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                             title={t('admin.back_to_chat', 'Back to chat')}
+                            aria-label={t('admin.back_to_chat', 'Back to chat')}
                         >
                             <ArrowLeft className="w-5 h-5" />
                         </button>

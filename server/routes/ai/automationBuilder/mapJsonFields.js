@@ -22,7 +22,7 @@ const { validate } = require('../../../core/http/validate');
 const { resolveModelForTierName } = require('../../../core/llm/modelResolver');
 const llmClient = require('../../../core/llm/llmClient');
 const { requireAuth } = require('../../../auth/permissions');
-const { mapJsonFieldsRateLimit } = require('./rateLimits');
+const { mapJsonFieldsRateLimit } = require('../../../usecases/ai/automationBuilder/rateLimits');
 
 // ── Map-with-AI for parse_json steps ────────────────────────────────────────
 // Design-time only: turn a sample + plain-language description into
@@ -224,7 +224,7 @@ function verifyMapJsonItemsRef(rawItemsRef, sample) {
  * The sample is user DATA — it is never treated as instructions and never
  * logged (errors log e.message only, like the sibling routes).
  */
-router.post('/map-json-fields', requireAuth, mapJsonFieldsRateLimit, validate({ body: MapJsonBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof MapJsonBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/map-json-fields', requireAuth, mapJsonFieldsRateLimit, validate({ body: MapJsonBody }), async (req, res) => {
     const userId = req.session.user.id;
     const { userHasBetaFeature } = require('../../../core/entitlements/betaFeatures');
     if (!await userHasBetaFeature(userId, 'automations', req.session)) {

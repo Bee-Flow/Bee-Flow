@@ -19,6 +19,7 @@ export default {
     "reset.set_password": "Set new password",
     "reset.success": "Your password has been reset. You can now sign in with your new password.",
     "reset.go_signin": "Go to sign in",
+    "reset.encryption_key_reset": "Your organisation keeps the encryption key with your password only, so it could not be carried over: content you encrypted before the reset cannot be opened any more. Everything you create from now on is encrypted with a new key.",
     "reset.min_length": "Password must be at least 8 characters",
     "reset.failed": "Failed to reset password.",
 };

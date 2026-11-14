@@ -176,7 +176,8 @@ export function parsePayslipXml(xml: string): PayslipRow[] {
 
 // ─── The two backends ────────────────────────────────────────────
 
-export type SoapRequest = (creds: unknown, service: string, method: string, params: Record<string, unknown>) => Promise<unknown>;
+// A method's type, so the caller's request may name its own credentials shape: this module only hands them back.
+export type SoapRequest = { request(creds: unknown, service: string, method: string, params: Record<string, unknown>): Promise<unknown> }['request'];
 
 export interface RunRef {
     runId: string;

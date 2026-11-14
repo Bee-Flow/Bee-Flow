@@ -46,10 +46,10 @@ const log = require('../telemetry/log');
 const {
     DATATABLE_TOOLS, DATATABLE_TOOL_NAMES, WRITE_TOOL_NAMES, caps, envCount,
     DEFAULT_QUERY_PAGE, LIST_MAX_TABLES, MAX_ID_CHARS,
-} = require('./mcpDatatableToolDefs');
+} = require('../usecases/mcpDatatableToolDefs');
 const {
     ToolRefusal, isPlainObject, jsonBytes, rowFailure, tableIdOf, asRefusal, checkValues,
-} = require('./mcpDatatableRows');
+} = require('../usecases/mcpDatatableRows');
 
 /** The caller's identity in the shape the datatable resolver reads. */
 async function ctxFor(deps, userId) {

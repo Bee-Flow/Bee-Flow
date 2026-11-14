@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Direct Chat — posting into a conversation shared with a project.
  *
@@ -52,7 +52,8 @@ async function claimSharedThreadTurn(turn) {
             }
             turn._turnLock = { conversationId: turn.convId, runId };
 
-            await emitThreadEvent(access.projectId, {
+            // A project-shared conversation is filed in a project.
+            await emitThreadEvent(/** @type {string} */ (access.projectId), {
                 kind: 'run.started', actorId: userId,
                 targetType: 'conversation', targetId: turn.convId,
             });

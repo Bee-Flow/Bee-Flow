@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { Video, Loader2 } from 'lucide-react';
-import { API_BASE } from '../../utils/helpers';
 import { useOrgNotesSettingsQuery } from '../../api/queries/meetingNotesSettings';
 import { languageOptions, Row } from '@/components/settings/shared/settingsPrimitives';
 import { InheritHint, InheritSelect, InheritSwitch, OrgSettingsLoadError, orgFormFromAnswer } from '@/components/settings/shared/orgSettingFields';
 import { useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
-import { mutate, errorBody, RefusedError } from '../../api/mutate';
+import { errorBody, RefusedError } from '../../api/mutate';
 import { panelOrgId } from '@/utils/adminAccess';
+import { apiRequest } from '@/api/typedRequest';
 
 const MEET_GREEN = '#00832D';
 
@@ -58,9 +58,7 @@ export default function GoogleMeetAdminPanel({ user, orgId: orgIdProp }: GoogleM
         try {
             let res: Response | undefined;
             try {
-                res = await mutate(`${API_BASE}/api/gmeet-notes-settings/${orgId}`, {
-                method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cfg),
-            });
+                res = await apiRequest('PUT /api/gmeet-notes-settings/{orgId}', { params: { orgId: String(orgId) }, init: { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cfg) } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const e = errorBody(err) ?? {};

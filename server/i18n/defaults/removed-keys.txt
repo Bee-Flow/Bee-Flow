@@ -3198,3 +3198,17 @@ app_studio.builder.chat.empty_title
 # Encryption (2026-11): managed encryption is on every plan; only the zero-knowledge card
 # carries the plan block (Enterprise badge and upgrade link), so the banner above the cards went.
 admin.encryption.not_entitled
+
+# Chat (2026-11): the terminal panel is gone from the chat, and with it its labels.
+chat.msg.term_commands
+chat.msg.term_commands_plural
+chat.msg.term_exit_error
+chat.msg.term_files
+chat.msg.term_new_session
+
+# Knowledge (2026-11): the system knowledge bases panel has no seed or re-ingest button,
+# so the seeding progress and re-ingest texts went.
+knowledge.system_knowledge_bases_last_seed_ok_count_ok_fail_count
+knowledge.system_knowledge_bases_re_ingest_statutes_from_koop_wetten
+knowledge.system_knowledge_bases_seeding_done_total_statutes_pct
+knowledge.system_knowledge_bases_the_server_auto_seeds_on_next_boot

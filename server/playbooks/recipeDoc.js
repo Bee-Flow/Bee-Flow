@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The recipe DOCUMENT — a playbook's plan as data, so an AI (or a person)
  * can write a new one instead of a developer adding a module.
@@ -262,7 +262,7 @@ function normaliseField(raw, i, used, copy) {
 function normalisePhase(raw, i, copy) {
     // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- constant replace/test patterns without nested repeats on bounded strings: linear
     const p = /** @type {RawPhase} */ (raw && typeof raw === 'object' ? raw : {});
-    let kind = String(p.kind || p.key || '').toLowerCase().replace(/-/g, '_');
+    /** @type {string | null} */ let kind = String(p.kind || p.key || '').toLowerCase().replace(/-/g, '_');
     // An approval flow is a AUTOMATION on Studio → Approvals (the person decides
     // there), never a change to the app.
     let requires = p.requires === 'approvals' || p.requiresApprovals === true ? 'approvals' : null;
@@ -663,7 +663,7 @@ function rolesOf(doc) {
     /** @type {Record<string, RoleSpec>} */
     const roles = {};
     for (const f of (doc.table ? doc.table.fields : [])) {
-        const aliases = new Set([f.key, f.role, slug(f.name), ...(f.aliases || [])].filter(Boolean));
+        const aliases = new Set([f.key, f.role || '', slug(f.name), ...(f.aliases || [])].filter(Boolean));
         const types = f.type === 'number' ? ['number', 'text'] : f.type === 'date' ? ['date', 'datetime', 'text'] : f.type === 'select' ? ['select', 'text'] : [f.type, 'text'];
         roles[f.role || f.key] = { required: f.required !== false, aliases: [...aliases], types: [...new Set(types)] };
     }
@@ -804,7 +804,7 @@ function fromDocument(doc) {
          */
         composeBrief: (key, ctx) => {
             const spec = doc.phases.find((p) => p.key === key);
-            if (!spec || !BRIEF_KINDS.has(spec.kind) || !spec.brief) return null;
+            if (!spec || !BRIEF_KINDS.has(/** @type {string} */ (spec.kind)) || !spec.brief) return null;
             const text = renderBrief(spec.brief, briefContext(ctx));
             // Placeholders GROW: `{{table.id}}` is 13 characters and a uuid is
             // 36, so a template the validator accepted at 1600 can render past

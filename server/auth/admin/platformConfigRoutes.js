@@ -112,7 +112,7 @@ router.put('/free-email-domains', requireSuperAdmin, validate({ body: FreeEmailD
     const seen = new Set();
     const normalised = [];
     for (const item of extra) {
-        const domain = freeEmailDomains.normalizeDomain(item);
+        const domain = freeEmailDomains.normalizeDomain(/** @type {string} */ (item));
         if (!domain) {
             return res.status(400).json({ error: `Invalid domain: "${String(item).slice(0, 100)}"` });
         }

@@ -1,15 +1,15 @@
 import React, { useId, useState } from 'react';
 import { CheckCircle2, ChevronRight, ChevronLeft, Loader2 } from 'lucide-react';
-import { API_BASE } from '../../utils/helpers';
 import { useOrgForm, useGroups } from './useOnboardingData';
 import beeFlowLogo from '../../assets/bee-flow-logo.svg';
 import { useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
-import { mutate, errorBody, RefusedError } from '../../api/mutate';
+import { errorBody, RefusedError } from '../../api/mutate';
 import ChoiceCards from '../shared/ChoiceCards';
 import Toggle from '../shared/Toggle';
 import { piiCategoriesLocalized } from '../../config/piiCategories';
 import { EYEBROW, SECTION_TITLE, ALERT_ERROR } from '../mcpLibrary/ui';
+import { type ApiBody, apiRequest } from '@/api/typedRequest';
 /**
  * Bee Flow ↔ Nextcloud App Store onboarding wizard.
  *
@@ -122,14 +122,13 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
         try {
             // 1. Persist org details (mirrors OrgInfoPanel's PUT).
             try {
-                await mutate(`${API_BASE}/auth/organizations/${orgId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
+                await apiRequest('PUT /auth/organizations/{id}', {
+                    params: { id: orgId },
+                    body: {
                         name: org.name.trim(), email: org.email.trim(), tagline: org.tagline.trim(),
                         description: org.description.trim(), address: org.address.trim(), phone: org.phone.trim(),
                         website: org.website.trim(), kvk: org.kvk.trim(), vat: org.vat.trim(),
-                    }),
+                    },
                 });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
@@ -141,21 +140,20 @@ const NcOnboardingWizard = ({ user, orgName, onComplete, deploymentMode = 'cloud
             //    is handled separately by the organisation admin, so it's not sent
             //    here — the org keeps whatever plan it already has.
             try {
-                await mutate(`${API_BASE}/auth/admin/${orgId}/nc-onboarding/complete`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        deploymentMode,
-                        syncMode,
+                await apiRequest('POST /auth/admin/{orgId}/nc-onboarding/complete', {
+                    params: { orgId },
+                    body: {
+                        deploymentMode: deploymentMode as ApiBody<'POST /auth/admin/{orgId}/nc-onboarding/complete'>['deploymentMode'],
+                        syncMode: syncMode as ApiBody<'POST /auth/admin/{orgId}/nc-onboarding/complete'>['syncMode'],
                         syncGroups: syncMode === 'selective_groups' ? syncGroups : [],
                         excludedGroups,
-                        newUserDefaultStatus,
+                        newUserDefaultStatus: newUserDefaultStatus as ApiBody<'POST /auth/admin/{orgId}/nc-onboarding/complete'>['newUserDefaultStatus'],
                         privacyShield: {
                             enabled: shieldEnabled,
-                            piiDetectionAction: shieldAction,
+                            piiDetectionAction: shieldAction as NonNullable<ApiBody<'POST /auth/admin/{orgId}/nc-onboarding/complete'>['privacyShield']>['piiDetectionAction'],
                             piiDetectionCategories: shieldCategories,
                         },
-                    }),
+                    },
                 });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;

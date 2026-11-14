@@ -205,3 +205,10 @@ test('a refused onboarding starts no sync', async () => {
     await new Promise((resolve) => setImmediate(resolve));
     assert.deepStrictEqual(fullSyncs, []);
 });
+
+test('a sync run takes no fields: one sent is refused by name and no sync starts', async () => {
+    const before = fullSyncs.length;
+    const res = await refuses({ method: 'POST', url: '/admin/org1/nc-sync/run', body: { mode: 'auto_all' } }, 'body');
+    assert.match(res.body.error, /does not take "mode"/);
+    assert.strictEqual(fullSyncs.length, before);
+});

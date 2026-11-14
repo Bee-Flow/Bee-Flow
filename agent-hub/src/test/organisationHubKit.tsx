@@ -7,6 +7,7 @@ import { render } from '@testing-library/react';
 import React from 'react';
 import { vi } from 'vitest';
 import AdminDashboard from '@/pages/AdminDashboard';
+import { withShell } from '@/test/shellProviders';
 import EntitlementsContext, { type EntitlementsValue } from '@/components/licensing/EntitlementsContext';
 import LicenseContext from '@/components/licensing/LicenseContext';
 import type { OrgSectionFacts } from '@/components/admin/organisation/orgSections';
@@ -77,7 +78,7 @@ export function renderOrgTab({ user = PLATFORM_ADMIN, section = 'info', search =
     render(withQueryClient(
         <LicenseContext.Provider value={license}>
             <EntitlementsContext.Provider value={plan}>
-                <AdminDashboard user={withMode as never} onBack={vi.fn()} onNavigate={onNavigate} adminPath={{ seg1: 'organisation', seg2: section }} />
+                {withShell(<AdminDashboard user={withMode as never} onBack={vi.fn()} onNavigate={onNavigate} adminPath={{ seg1: 'organisation', seg2: section }} />, { user: withMode, onNavigate })}
             </EntitlementsContext.Provider>
         </LicenseContext.Provider>,
     ));

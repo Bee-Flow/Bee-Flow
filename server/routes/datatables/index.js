@@ -101,6 +101,8 @@ const { requireBetaFeature } = require('../../core/entitlements/betaFeatures');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { rejectSqlKeys } = require('./refusals');
 const { publicTable } = require('./projection');
+const { validate } = require('../../core/http/validate');
+const { DraftBody } = require('../datatableDraftBody.mts');
 
 // ── Router-level chain (mirrors routes/automation.js:59-71) ─────────────────
 
@@ -129,7 +131,7 @@ router.use('/spreadsheets', require('../datatablesSpreadsheets')({ publicTable }
 // "Build it with AI": draft or revise a table's columns from a brief. Lazy,
 // so the DB-free suites never load the LLM client; literal path, above `/:id`.
 const datatablesAi = () => require('../datatablesAi');
-router.post('/ai/draft', (req, res, next) => datatablesAi().limiter(req, res, next), (req, res) => datatablesAi().draft(req, res));
+router.post('/ai/draft', (req, res, next) => datatablesAi().limiter(req, res, next), validate({ body: DraftBody }), (req, res) => datatablesAi().draft(req, res));
 
 // The resource groups, in the order they were registered when this was one
 // file. `/:id` is registered before `/:id/schema` and the rest; keep it.

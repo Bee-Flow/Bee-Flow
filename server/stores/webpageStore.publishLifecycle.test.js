@@ -1,165 +1,137 @@
+// @typecheck
 /**
- * The W2 publish lifecycle, at the store layer.
+ * The publish lifecycle at the store layer, against a real Postgres (PGlite
+ * behind db.js's pool, testUtils/pglitePool.js). Object storage is not
+ * configured, so the version copies are skipped and only the rows move.
  *
- * Three things are pinned here, and each one is a way an org reader could end
- * up looking at content the owner never published:
+ * Each case is a way an org reader could end up looking at content the owner
+ * never published:
  *
- *   1. THE PRUNE CANNOT EAT THE PIN. Three independent guards: the `, id`
- *      tiebreaker (created_at is TRANSACTION time, so rows written together
- *      tie and OFFSET over an unstable sort drops arbitrary rows), the
- *      `source <> 'published'` exclusion, and the live pointer excluded by id.
- *   2. A POINTER NEVER LEAVES ITS OWN PAGE. setPublishedVersion verifies the
- *      version belongs to this webpage before writing it — a cross-page
- *      pointer would serve another page's bytes to this page's readers.
- *   3. THE READ RULE IS EXPLICIT. resolveReadVersion is the one function that
- *      decides live-vs-pinned, including the documented NULL fall-back, which
- *      is pinned here so it cannot drift silently in either direction.
+ *   1. THE PRUNE CANNOT EAT THE PIN. Rows written together tie on created_at
+ *      (transaction time), so the prune breaks the tie on id; it never counts a
+ *      published snapshot; and it keeps the live pointer by id.
+ *   2. A POINTER NEVER LEAVES ITS OWN PAGE. setPublishedVersion refuses a
+ *      version of another page.
+ *   3. THE READ RULE IS EXPLICIT. resolveReadVersion decides live-vs-pinned,
+ *      including the documented NULL fall-back.
  *
- * ../db and ../storageStore are mocked (the pattern of webpageStore.idor.test.js)
- * so nothing here touches Postgres or object storage.
- *
- * Run: node --test --test-force-exit stores/webpageStore.publishLifecycle.test.js
+ * Run: cd server && node --test stores/webpageStore.publishLifecycle.test.js
  */
+
+'use strict';
 
 const test = require('node:test');
 const assert = require('node:assert');
 
-process.env.NODE_ENV = 'test';
+const { usePglitePool } = require('../testUtils/pglitePool');
 
-const calls = { run: [], getOne: [], getAll: [] };
-
-// Rows the mocked getOne can resolve, keyed the same way the IDOR test does.
-const versionRows = [
-    { id: 'v-mine', webpage_id: 'wp1', source: 'manual', html_sha256: 'h', css_sha256: 'c', js_sha256: 'j', content_length: 10 },
-    { id: 'v-foreign', webpage_id: 'wp2', source: 'manual', html_sha256: '', css_sha256: '', js_sha256: '', content_length: 0 },
-];
-const webpageRows = [
-    { id: 'wp1', user_id: 'alice', html_sha256: 'h', css_sha256: 'c', js_sha256: 'j', html_size: 5, css_size: 3, js_size: 2 },
-];
-
-function matchRow(rows, sql, params) {
-    const conds = [...sql.matchAll(/([a-z_]+)\s*=\s*\$(\d+)/gi)].map(m => [m[1], params[Number(m[2]) - 1]]);
-    return rows.find(r => conds.every(([col, val]) => r[col] === val)) || null;
-}
-
-const mockDb = {
-    run: async (sql, params = []) => { calls.run.push({ sql, params }); return { rowCount: 1 }; },
-    getOne: async (sql, params = []) => {
-        calls.getOne.push({ sql, params });
-        if (/FROM webpage_versions/i.test(sql)) return matchRow(versionRows, sql, params);
-        if (/FROM webpages/i.test(sql)) return matchRow(webpageRows, sql, params);
-        return null;
-    },
-    getAll: async (sql, params = []) => { calls.getAll.push({ sql, params }); return []; },
-    exec: async () => undefined,
-};
-const mockStorage = {
-    deleteFile: async () => undefined,
-    isAvailable: () => false,
-    copyObject: async () => undefined,
-    buildWebpageKey: (userId, webpageId, slot, versionId) =>
-        `webpages/${userId}/${webpageId}/${versionId || 'current'}/${slot}`,
-};
-
-const Module = require('module');
-const originalResolve = Module._resolveFilename;
-Module._resolveFilename = function (request, parent, ...rest) {
-    if (request === '../db' || request === '../../db') return 'mock-db';
-    if (request === './storageStore' || request === '../storageStore') return 'mock-storage';
-    return originalResolve.call(this, request, parent, ...rest);
-};
-require.cache['mock-db'] = { id: 'mock-db', exports: mockDb };
-require.cache['mock-storage'] = { id: 'mock-storage', exports: mockStorage };
-
+const { pg, close } = usePglitePool();
 const webpageStore = require('./webpageStore');
+const { initDB } = require('./webpage/schema');
 
-function reset() { calls.run = []; calls.getOne = []; calls.getAll = []; }
-const pruneQuery = () => calls.getAll.find(c => /SELECT id FROM webpage_versions/i.test(c.sql));
+const MAX = 200;
+
+test.before(async () => {
+    await initDB();
+    await pg.query(`INSERT INTO webpages (id, user_id, html_sha256, css_sha256, js_sha256, html_size, css_size, js_size)
+                    VALUES ('wp1', 'alice', 'h', 'c', 'j', 5, 3, 2), ('wp2', 'bob', '', '', '', 0, 0, 0)`);
+    await pg.query(`INSERT INTO webpage_versions (id, webpage_id, summary, html_sha256, css_sha256, js_sha256, content_length, source, seq)
+                    VALUES ('v-mine', 'wp1', 'mine', 'h', 'c', 'j', 10, 'manual', 1),
+                           ('v-foreign', 'wp2', 'theirs', '', '', '', 0, 'manual', 1)`);
+});
+test.after(close);
+
+async function versionsOf(webpageId) {
+    const { rows } = await pg.query('SELECT id, source, summary FROM webpage_versions WHERE webpage_id = $1', [webpageId]);
+    return rows;
+}
+const pointerOf = async (id) => (await pg.query('SELECT published_version_id FROM webpages WHERE id = $1', [id])).rows[0].published_version_id;
 
 // ── 1. The prune ──────────────────────────────────────────────────────
 
-test('the prune orders by (created_at, id) — created_at alone ties', async () => {
-    reset();
-    await webpageStore.createVersion('alice', 'wp1', 'x');
-    const q = pruneQuery();
-    assert.ok(q, 'createVersion must still prune');
-    assert.match(q.sql, /ORDER BY created_at DESC, id/,
-        'NOW() is transaction time: two rows from one transaction tie, and OFFSET over an unstable sort drops arbitrary rows');
+test('the prune keeps the cap, never a published snapshot or the live pointer, and breaks created_at ties on id', async () => {
+    await pg.query("INSERT INTO webpages (id, user_id) VALUES ('wp-prune', 'alice')");
+    // Old rows first: a published snapshot and the row the live pointer names.
+    await pg.query(`INSERT INTO webpage_versions (id, webpage_id, source, seq, created_at) VALUES
+        ('a-published', 'wp-prune', 'published', 1, NOW() - INTERVAL '10 days'),
+        ('a-pinned', 'wp-prune', 'ai', 2, NOW() - INTERVAL '10 days')`);
+    await pg.query("UPDATE webpages SET published_version_id = 'a-pinned' WHERE id = 'wp-prune'");
+    // MAX manual rows that all tie on created_at, written in an order that is not their id order.
+    const ids = Array.from({ length: MAX }, (_, i) => `m${String(i).padStart(3, '0')}`);
+    const shuffled = ids.map((id, i) => /** @type {[string, number]} */ ([id, (i * 7919) % MAX])).sort((a, b) => a[1] - b[1]).map(([id]) => id);
+    await pg.query(
+        `INSERT INTO webpage_versions (id, webpage_id, source, seq, created_at)
+         SELECT v, 'wp-prune', 'manual', 10 + ord, NOW() - INTERVAL '1 day' FROM unnest($1::text[]) WITH ORDINALITY AS t(v, ord)`,
+        [shuffled],
+    );
+
+    // The new snapshot makes MAX + 1 prunable rows: exactly one goes.
+    await webpageStore.createVersion('alice', 'wp-prune', 'x');
+
+    const left = await versionsOf('wp-prune');
+    const leftIds = new Set(left.map((r) => r.id));
+    assert.ok(leftIds.has('a-published'), "a frozen snapshot is a deliberate point in time and never counts against the cap");
+    assert.ok(leftIds.has('a-pinned'), 'the live pointer survives whatever its source');
+    assert.strictEqual(left.length, MAX + 2, 'the cap plus the two protected rows');
+    // ORDER BY created_at DESC, id: among the tied rows the highest id sorts last and is the one past the cap.
+    assert.ok(!leftIds.has('m199'), 'the tie is broken on id, so the dropped row is the same on every run');
+    assert.ok(ids.slice(0, MAX - 1).every((id) => leftIds.has(id)));
 });
 
-test('the prune never counts or deletes a published snapshot', async () => {
-    reset();
-    await webpageStore.createVersion('alice', 'wp1', 'x');
-    assert.match(pruneQuery().sql, /source\s*<>\s*'published'/,
-        "a frozen snapshot is a deliberate point in time — W4's per-turn 'ai' rows must not bury it");
-});
-
-test('the prune excludes the live pointer by id, and a NULL pointer excludes nothing', async () => {
-    reset();
-    await webpageStore.createVersion('alice', 'wp1', 'x');
-    const sql = pruneQuery().sql;
-    assert.match(sql, /id\s*<>\s*COALESCE\(\(SELECT published_version_id FROM webpages WHERE id = \$1\)/,
-        'belt on top of the braces: a row pinned under any source still survives');
-    assert.match(sql, /COALESCE\([^)]*\)\s*,\s*''\)|COALESCE\(\(SELECT published_version_id FROM webpages WHERE id = \$1\), ''\)/,
-        "COALESCE keeps the comparison total — without it a NULL pointer makes the whole predicate NULL and NOTHING is pruned");
+test('a page with no live pointer still prunes', async () => {
+    await pg.query("INSERT INTO webpages (id, user_id) VALUES ('wp-null', 'alice')");
+    await pg.query(
+        `INSERT INTO webpage_versions (id, webpage_id, source, seq, created_at)
+         SELECT 'n' || g, 'wp-null', 'manual', g, NOW() - INTERVAL '1 day' - g * INTERVAL '1 second' FROM generate_series(1, $1::int) AS g`,
+        [MAX],
+    );
+    await webpageStore.createVersion('alice', 'wp-null', 'x');
+    const left = new Set((await versionsOf('wp-null')).map((r) => r.id));
+    // A NULL pointer must exclude nothing, not make the whole predicate NULL.
+    assert.strictEqual(left.size, MAX);
+    assert.ok(!left.has(`n${MAX}`), 'the oldest row went');
 });
 
 // ── 2. The source column ──────────────────────────────────────────────
 
-// Since W4 the INSERT runs via getOne (INSERT … RETURNING seq, see _insertVersionRow) and carries
-// two more parameters after `source`. `source` sits at $8 and is therefore read at INDEX 7 — no
-// longer at the last position, because then this test would quietly check line_delta instead.
-const insertCall = () => calls.getOne.find(c => /INSERT INTO webpage_versions/i.test(c.sql));
-const SOURCE_PARAM = 7;
-
-test("createVersion defaults to 'manual' so the four pre-W2 call sites are unchanged", async () => {
-    reset();
-    await webpageStore.createVersion('alice', 'wp1', 'Auto-save');
-    const insert = insertCall();
-    assert.ok(insert);
-    assert.strictEqual(insert.params[SOURCE_PARAM], 'manual');
+test("createVersion defaults to 'manual', records an explicit source, and stores anything else as manual", async () => {
+    const plain = await webpageStore.createVersion('alice', 'wp1', 'Auto-save');
+    const published = await webpageStore.createVersion('alice', 'wp1', 'Published', null, 'published');
+    // A caller inventing a value must not be able to write a row the prune then refuses to touch.
+    const invented = await webpageStore.createVersion('alice', 'wp1', 'x', null, 'published-ish');
+    const rows = new Map((await versionsOf('wp1')).map((r) => [r.id, r]));
+    assert.strictEqual(rows.get(plain.id).source, 'manual');
+    assert.strictEqual(rows.get(published.id).source, 'published');
+    assert.strictEqual(rows.get(invented.id).source, 'manual');
+    assert.strictEqual(invented.source, 'manual');
 });
 
-test('createVersion records an explicit source', async () => {
-    reset();
-    await webpageStore.createVersion('alice', 'wp1', 'Published', null, 'published');
-    assert.strictEqual(insertCall().params[SOURCE_PARAM], 'published');
-});
-
-test('an unknown source is stored as manual, never as free text', async () => {
-    reset();
-    // A caller inventing a value must not be able to write a row the prune
-    // then refuses to touch: only the vocabulary can produce 'published'.
-    await webpageStore.createVersion('alice', 'wp1', 'x', null, 'published-ish');
-    assert.strictEqual(insertCall().params[SOURCE_PARAM], 'manual');
+test('createVersion copies the hashes and size of the live row into the snapshot', async () => {
+    const v = await webpageStore.createVersion('alice', 'wp1', 'snap');
+    const meta = await webpageStore.getVersionMeta(v.id);
+    assert.deepStrictEqual([meta.htmlSha, meta.cssSha, meta.jsSha, meta.contentLength], ['h', 'c', 'j', 10]);
 });
 
 // ── 3. setPublishedVersion ────────────────────────────────────────────
 
 test('setPublishedVersion refuses a version belonging to another webpage', async () => {
-    reset();
-    const ok = await webpageStore.setPublishedVersion('wp1', 'alice', 'v-foreign');
-    assert.strictEqual(ok, false, "wp2's version must not become wp1's published snapshot");
-    assert.ok(!calls.run.some(c => /published_version_id/i.test(c.sql)),
-        'and no UPDATE may be issued at all');
+    await pg.query("UPDATE webpages SET published_version_id = NULL WHERE id = 'wp1'");
+    assert.strictEqual(await webpageStore.setPublishedVersion('wp1', 'alice', 'v-foreign'), false,
+        "wp2's version must not become wp1's published snapshot");
+    assert.strictEqual(await pointerOf('wp1'), null, 'and nothing was written');
 });
 
-test('setPublishedVersion writes an owned version, scoped to the owner', async () => {
-    reset();
-    const ok = await webpageStore.setPublishedVersion('wp1', 'alice', 'v-mine');
-    assert.strictEqual(ok, true);
-    const upd = calls.run.find(c => /published_version_id/i.test(c.sql));
-    assert.match(upd.sql, /WHERE id = \$2 AND user_id = \$3/, 'owner-scoped like every other write here');
-    assert.deepStrictEqual(upd.params, ['v-mine', 'wp1', 'alice']);
+test('setPublishedVersion writes an owned version, and only for the owner', async () => {
+    assert.strictEqual(await webpageStore.setPublishedVersion('wp1', 'alice', 'v-mine'), true);
+    assert.strictEqual(await pointerOf('wp1'), 'v-mine');
+    assert.strictEqual(await webpageStore.setPublishedVersion('wp1', 'bob', null), false, 'not the owner');
+    assert.strictEqual(await pointerOf('wp1'), 'v-mine');
 });
 
-test('setPublishedVersion(null) clears the pointer without looking anything up', async () => {
-    reset();
-    const ok = await webpageStore.setPublishedVersion('wp1', 'alice', null);
-    assert.strictEqual(ok, true);
-    assert.strictEqual(calls.getOne.filter(c => /FROM webpage_versions/i.test(c.sql)).length, 0);
-    const upd = calls.run.find(c => /published_version_id/i.test(c.sql));
-    assert.strictEqual(upd.params[0], null, 'a page with no audience must not keep a pointer claiming one');
+test('setPublishedVersion(null) clears the pointer', async () => {
+    await pg.query("UPDATE webpages SET published_version_id = 'v-mine' WHERE id = 'wp1'");
+    assert.strictEqual(await webpageStore.setPublishedVersion('wp1', 'alice', null), true);
+    assert.strictEqual(await pointerOf('wp1'), null, 'a page with no audience must not keep a pointer claiming one');
 });
 
 // ── 4. The read rule ──────────────────────────────────────────────────
@@ -167,24 +139,17 @@ test('setPublishedVersion(null) clears the pointer without looking anything up',
 const OWNED = { id: 'wp1', userId: 'alice', publishedVersionId: 'v-mine' };
 
 test('the owner always reads the live row', () => {
-    const r = webpageStore.resolveReadVersion(OWNED, 'alice');
-    assert.deepStrictEqual(r, { versionId: null, fellBackToLive: false },
+    assert.deepStrictEqual(webpageStore.resolveReadVersion(OWNED, 'alice'), { versionId: null, fellBackToLive: false },
         'an owner served their own snapshot could not edit their own page');
 });
 
 test('a non-owner reads the pinned snapshot', () => {
-    assert.deepStrictEqual(
-        webpageStore.resolveReadVersion(OWNED, 'bob'),
-        { versionId: 'v-mine', fellBackToLive: false });
+    assert.deepStrictEqual(webpageStore.resolveReadVersion(OWNED, 'bob'), { versionId: 'v-mine', fellBackToLive: false });
 });
 
 test('a NULL pointer falls back to live AND says so — the documented fail-open', () => {
-    // This is the one case the product rule ("unknown is never the wider
-    // value") and the W2 spec ("otherwise the live row") disagree on. It is
-    // built per spec so pages published before the column existed do not go
-    // blank on deploy, and `fellBackToLive` is what makes every such read
-    // observable. If this ever flips to a refusal, this test is the record
-    // of the decision that was changed.
+    // Built per spec so pages published before the column existed do not go
+    // blank on deploy; `fellBackToLive` makes every such read observable.
     const r = webpageStore.resolveReadVersion({ id: 'wp1', userId: 'alice', publishedVersionId: null }, 'bob');
     assert.deepStrictEqual(r, { versionId: null, fellBackToLive: true });
 });
@@ -202,15 +167,12 @@ test('an empty-string pointer is treated as no pointer, not as a version id', ()
 
 // ── 5. getVersionMeta ─────────────────────────────────────────────────
 
-test('getVersionMeta returns null for a pruned pointer instead of guessing', async () => {
-    reset();
+test('getVersionMeta returns null for a pruned or never-set pointer', async () => {
     assert.strictEqual(await webpageStore.getVersionMeta('v-gone'), null);
-    assert.strictEqual(await webpageStore.getVersionMeta(null), null,
-        'and it never queries for a pointer that was never set');
+    assert.strictEqual(await webpageStore.getVersionMeta(null), null);
 });
 
-test('getVersionMeta reads the row only — no object-storage round trip', async () => {
-    reset();
+test('getVersionMeta reads the row: the page it belongs to, its hashes and its source', async () => {
     const meta = await webpageStore.getVersionMeta('v-mine');
     assert.strictEqual(meta.webpageId, 'wp1', 'callers must be able to reject a cross-page pointer');
     assert.strictEqual(meta.htmlSha, 'h');

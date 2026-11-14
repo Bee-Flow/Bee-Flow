@@ -1,8 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useState } from 'react';
+import { notificationKeys, useNotificationListQuery, useUnreadCountQuery } from '@/api/queries/notificationInbox';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 import { settingsPathForTab } from '@/authedApp/settingsRoutes';
-import { API_BASE } from '@/utils/helpers';
 import { logger } from '@/utils/logger';
-import { mutate, request, RefusedError } from '@/api/mutate';
+import { RefusedError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 /** One notification as GET /api/notifications returns it. */
 export interface AppNotification {
@@ -21,6 +24,7 @@ export interface AppNotification {
 export interface ChatTarget { agentId: string | null; conversationId: string | null }
 
 const NO_TARGET: ChatTarget = { agentId: null, conversationId: null };
+const NO_NOTIFICATIONS: AppNotification[] = [];
 
 /**
  * Where a finished run should continue.
@@ -37,7 +41,7 @@ export async function resolveChatTarget(n: AppNotification | null | undefined): 
     try {
         let res: Response;
         try {
-            res = await request(`${API_BASE}/api/cowork/${taskId}`);
+            res = await apiRequest('GET /api/cowork/{id}', { params: { id: taskId } });
         } catch (err) {
             if (!(err instanceof RefusedError)) throw err;
             return NO_TARGET;
@@ -66,7 +70,7 @@ function chatTargetOf(item: Record<string, string | null | undefined> | null): C
 export async function startReconnect(provider: string): Promise<void> {
     if (provider === 'google') {
         try {
-            const res = await request(`${API_BASE}/api/integrations/google/auth-url`);
+            const res = await apiRequest('GET /api/integrations/google/auth-url');
             const data = await res.json().catch(() => ({}));
             if (data.url) {
                 const [w, h] = [600, 700];
@@ -90,64 +94,39 @@ export async function startReconnect(provider: string): Promise<void> {
  * Split out of NotificationCenter.jsx without a change in behaviour.
  */
 export function useNotifications() {
-    const [notifications, setNotifications] = useState<AppNotification[]>([]);
+    const qc = useQueryClient();
+    const listQuery = useNotificationListQuery<AppNotification>();
+    const countQuery = useUnreadCountQuery();
+    const notifications = listQuery.data ?? NO_NOTIFICATIONS;
+    const setNotifications = useCallback((change: (prev: AppNotification[]) => AppNotification[]) => {
+        qc.setQueryData<AppNotification[]>(notificationKeys.list, (prev) => change(prev ?? []));
+    }, [qc]);
     const [unreadCount, setUnreadCount] = useState(0);
-    const [loading, setLoading] = useState(false);
+    // A count above the one on screen means something new: the list is read again.
+    const [grewAt, setGrewAt] = useState(0);
 
-    const fetchNotifications = useCallback(async () => {
-        setLoading(true);
-        try {
-            const res = await request(`${API_BASE}/api/notifications?limit=30`).catch((err: unknown) => {
-                if (err instanceof RefusedError) return null;
-                throw err;
-            });
-            if (res) {
-                const data = await res.json();
-                const list: AppNotification[] = data.notifications || [];
-                setNotifications(list);
-                setUnreadCount(list.filter(n => !n.read).length);
-            }
-        } catch (err) { logger.debug('silent', err); }
-        setLoading(false);
-    }, []);
+    useAdjustOnChange([listQuery.dataUpdatedAt], () => {
+        if (listQuery.data) setUnreadCount(listQuery.data.filter(n => !n.read).length);
+    });
+    useAdjustOnChange([countQuery.dataUpdatedAt], () => {
+        if (countQuery.data === undefined) return;
+        if (countQuery.data > unreadCount) setGrewAt(countQuery.dataUpdatedAt);
+        setUnreadCount(countQuery.data);
+    });
+    const refetchList = listQuery.refetch;
+    useEffect(() => { if (grewAt) void refetchList(); }, [grewAt, refetchList]);
 
-    const fetchNotificationsRef = useRef(fetchNotifications);
-    useEffect(() => { fetchNotificationsRef.current = fetchNotifications; }, [fetchNotifications]);
-
-    const fetchCount = useCallback(async () => {
-        try {
-            const res = await request(`${API_BASE}/api/notifications/unread-count`).catch((err: unknown) => {
-                if (err instanceof RefusedError) return null;
-                throw err;
-            });
-            if (res) {
-                const data = await res.json();
-                const newCount: number = data.count || 0;
-                setUnreadCount(prev => {
-                    if (newCount > prev) {
-                        fetchNotificationsRef.current?.();
-                    }
-                    return newCount;
-                });
-            }
-        } catch (err) { logger.debug('silent', err); }
-    }, []);
-
-    useEffect(() => {
-        fetchCount();
-        fetchNotifications();
-        const interval = setInterval(fetchCount, 30000);
-        return () => clearInterval(interval);
-    }, [fetchCount, fetchNotifications]);
+    const fetchNotifications = useCallback(async () => { await refetchList(); }, [refetchList]);
+    const loading = listQuery.isFetching;
 
     const markRead = async (id: string) => {
-        await mutate(`${API_BASE}/api/notifications/${id}/read`, { method: 'POST' });
+        await apiRequest('POST /api/notifications/{id}/read', { params: { id } });
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
         setUnreadCount(prev => Math.max(0, prev - 1));
     };
 
     const markAllRead = async () => {
-        await mutate(`${API_BASE}/api/notifications/read-all`, { method: 'POST' });
+        await apiRequest('POST /api/notifications/read-all');
         setNotifications(prev => prev.map(n => ({ ...n, read: true })));
         setUnreadCount(0);
     };
@@ -155,7 +134,7 @@ export function useNotifications() {
     /** Delete one; resolves once the list no longer holds it. */
     const deleteNotification = async (id: string) => {
         const wasUnread = notifications.find(n => n.id === id && !n.read);
-        await mutate(`${API_BASE}/api/notifications/${id}`, { method: 'DELETE' });
+        await apiRequest('DELETE /api/notifications/{id}', { params: { id } });
         setNotifications(prev => prev.filter(n => n.id !== id));
         if (wasUnread) setUnreadCount(prev => Math.max(0, prev - 1));
     };

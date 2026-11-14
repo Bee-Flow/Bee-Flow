@@ -16,6 +16,14 @@ const { endingFrom, resultOf, markdownToSafeHtml, webpageSlots, aiStepsOf, resul
 const { privateHeaders, loadForm, loadSession, currentRunFor, journeyRunIds } = require('./access');
 const { ipLimiter, sessionLimiter, exportLimiter } = require('./limits');
 const { friendly } = require('./friendly');
+const { validate } = require('../../../core/http/validate');
+const { z, bodyOf } = require('../../../core/http/schemaParts');
+
+// These save what the run produced, never what the page sends. The phone app
+// sends the closing text and title to /notebook; they are taken and not read.
+const ignored = z.unknown().optional();
+const NoBody = (/** @type {string} */ subject) => validate({ body: bodyOf({}, subject) });
+const NotebookBody = validate({ body: bodyOf({ text: ignored, title: ignored }, 'Saving a result to Notebooks') });
 
 /**
  * POST /form/:token/s/:sid/file/:fileId/notebook — put this document's TEXT
@@ -340,10 +348,10 @@ function documentHtml(parsed) {
  * @param {import('express').Router} router
  */
 function register(router) {
-    router.post('/form/:token/s/:sid/file/:fileId/notebook', ipLimiter, sessionLimiter, friendly(openFileInNotebooks, 'notebook_open_failed', 'Could not open this in Notebooks'));
-    router.post('/form/:token/s/:sid/notebook', ipLimiter, sessionLimiter, friendly(saveResultToNotebook, 'notebook_save_failed', 'Could not save this to Notebooks'));
+    router.post('/form/:token/s/:sid/file/:fileId/notebook', ipLimiter, sessionLimiter, NoBody('Opening a file in Notebooks'), friendly(openFileInNotebooks, 'notebook_open_failed', 'Could not open this in Notebooks'));
+    router.post('/form/:token/s/:sid/notebook', ipLimiter, sessionLimiter, NotebookBody, friendly(saveResultToNotebook, 'notebook_save_failed', 'Could not save this to Notebooks'));
     router.get('/form/:token/s/:sid/export/:format', ipLimiter, sessionLimiter, exportLimiter, friendly(exportResult, 'export_failed', 'Could not create this file'));
-    router.post('/form/:token/s/:sid/webpage', ipLimiter, sessionLimiter, webpagesGate, friendly(saveResultAsWebpage, 'webpage_save_failed', 'Could not save this as a webpage'));
+    router.post('/form/:token/s/:sid/webpage', ipLimiter, sessionLimiter, webpagesGate, NoBody('Saving a result as a webpage'), friendly(saveResultAsWebpage, 'webpage_save_failed', 'Could not save this as a webpage'));
 }
 
 module.exports = { register };

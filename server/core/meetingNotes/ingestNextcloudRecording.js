@@ -31,7 +31,7 @@ const { AUDIO_SCRATCH_DIR: uploadsDir } = require('./savedAudioStore');
 // lives in its own db-free module so the routes can share it.
 const { parseTalkRoomToken, talkRecordingRoots, DEFAULT_RECORDING_FOLDER } = require('./talkRecordingPaths');
 const log = require('../../telemetry/log');
-const { bestEffort } = require('../../utils/bestEffort');
+const { bestEffort, ignoreGone } = require('../../utils/bestEffort');
 // Nextcloud and Talk clients are injected by integrations/ (see ../integrations/integrationClients.js).
 const { integrationClient } = require('../integrations/integrationClients');
 
@@ -48,9 +48,9 @@ const MAX_RECORDING_BYTES = 500 * 1024 * 1024;
 const inFlight = new Map();
 
 /**
- * @param {{ accessCtx?: import('../../stores/transcription/acl').ReadAclCtx, userId: string, session: Express.Session, orgId?: string, ncPath: string, language?: string,
- *   provider?: string, contextTerms?: string, titleHint?: string, userName?: string, source?: string,
- *   sourceUri?: string, talkRoomToken?: string, postSummaryBack?: boolean }} opts `accessCtx`: the
+ * @param {{ accessCtx?: import('../../stores/transcription/acl').ReadAclCtx, userId: string, session: Express.Session, orgId?: string | null, ncPath: string, language?: string,
+ *   provider?: string, contextTerms?: string, titleHint?: string | null, userName?: string, source?: string,
+ *   sourceUri?: string, talkRoomToken?: string | null, postSummaryBack?: boolean }} opts `accessCtx`: the
  *   caller's access context, for a dedup hit it must be able to read; `userId`: Bee Flow user who owns
  *   the note; `session`: req.session OR triggerBus pseudo-session; `orgId`: org id (model-tier + EU
  *   resolution); `ncPath`: Nextcloud Files path to the recording; `language`: BCP-47-ish lang code
@@ -298,7 +298,7 @@ async function resolveTalkParticipantNames(session, userId, talkRoomToken, orgId
 }
 
 /** @param {string} p */
-function safeUnlink(p) { try { fs.unlinkSync(p); } catch (_) { log.debug('file already gone', _); } }
+function safeUnlink(p) { try { fs.unlinkSync(p); } catch (_) { ignoreGone('meetingNotes/ingestNextcloudRecording:unlinkTemp', _); } }
 
 module.exports = {
     ingestNextcloudRecording,

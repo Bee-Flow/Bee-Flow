@@ -23,20 +23,18 @@ const test = require('node:test');
 const assert = require('node:assert');
 const h = require('../testUtils/routeHarness');
 
-// The one notebook the recording database knows: nb1, owned by the harness
-// user, so a valid request passes the role gate and reaches the store.
-const NB1 = { id: 'nb1', user_id: 'u1', name: 'NB', document_content: '', version: 5, source_count: 0 };
-const writes = [];
-const answer = (sql, params) => {
-    if (/^\s*SELECT n\.\*/.test(sql) && params?.[0] === 'nb1' && params[1] === 'u1') return { rows: [NB1] };
-    if (/^\s*SELECT \* FROM notebooks WHERE id = \$1 FOR UPDATE/.test(sql) && params?.[0] === 'nb1') return { rows: [NB1] };
-    if (/^\s*UPDATE notebooks SET/.test(sql) && /RETURNING version/.test(sql)) {
-        writes.push({ sql, params });
-        return { rows: params.at(-1) === NB1.version ? [{ version: NB1.version + 1 }] : [] };
-    }
-    if (/^\s*SELECT version FROM notebooks/.test(sql) && params?.[0] === 'nb1') return { rows: [{ version: NB1.version }] };
-    return undefined;
-};
+const { ladderPglite } = require('../testUtils/pgliteTemplate');
+const { insertRow } = require('../testUtils/pgliteSeed');
+
+// The router runs on the boot ladder's schema on PGlite; every statement is
+// recorded. nb1 is owned by the harness user, at version 5, so a valid request
+// passes the role gate and reaches the store.
+const pg = ladderPglite();
+test.before(async () => {
+    await insertRow(pg, 'users', { id: 'u1', username: 'u1', organizationId: 'org1' });
+    await insertRow(pg, 'notebooks', { id: 'nb1', user_id: 'u1', name: 'NB', document_content: '', version: 5 });
+});
+const notebook = async () => (await pg.query("SELECT version, document_content FROM notebooks WHERE id = 'nb1'")).rows[0];
 
 const { db, api } = h.routeUnderTest(test, '/api/notebooks', () => {
     const router = require('./notebooks');
@@ -45,7 +43,7 @@ const { db, api } = h.routeUnderTest(test, '/api/notebooks', () => {
     router.seams.collab = () => null;
     router.seams.feed = () => ({ contentChanged: async () => {}, renamed: async () => {}, sourcesAdded: async () => {} });
     return router;
-}, { answer });
+}, { pg });
 
 const put = (body, user) => api.call('PUT', '/api/notebooks/nb1', { body, user });
 
@@ -58,20 +56,15 @@ test('a version that is not a whole number, and a pin that is not a boolean, are
 });
 
 test('the version as digits is read as the number, so the check still runs', async () => {
-    writes.length = 0;
     const res = await put({ documentContent: '<p>x</p>', expectedVersion: '5' });
     assert.strictEqual(res.status, 200, res.text);
-    assert.strictEqual(writes.length, 1);
-    assert.match(writes[0].sql, /AND version = \$\d+/);
-    assert.strictEqual(writes[0].params.at(-1), 5);
+    assert.deepStrictEqual(await notebook(), { version: 6, document_content: '<p>x</p>' });
 });
 
 test('a stale version supplied as digits refuses the write with a conflict', async () => {
-    writes.length = 0;
-    const res = await put({ documentContent: '<p>x</p>', expectedVersion: '4' });
+    const res = await put({ documentContent: '<p>late</p>', expectedVersion: '4' });
     assert.strictEqual(res.status, 409, res.text);
-    assert.strictEqual(writes.length, 1);
-    assert.strictEqual(writes[0].params.at(-1), 4);
+    assert.deepStrictEqual(await notebook(), { version: 6, document_content: '<p>x</p>' }, 'nothing written');
 });
 
 test('source bodies take only what the source reads', async () => {
@@ -101,5 +94,6 @@ test('a valid create reaches the store and answers as before', async () => {
     const res = await api.call('POST', '/api/notebooks', { body: { name: 'Plans' } });
     assert.strictEqual(res.status, 200, res.text);
     assert.strictEqual(res.body.success, true);
-    assert.ok(db.queries.some((q) => /INSERT INTO notebooks/i.test(q)), db.queries.join(' | '));
+    const { rows } = await pg.query("SELECT user_id FROM notebooks WHERE name = 'Plans'");
+    assert.deepStrictEqual(rows, [{ user_id: 'u1' }], 'the notebook row exists');
 });

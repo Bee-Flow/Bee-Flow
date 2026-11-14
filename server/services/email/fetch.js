@@ -25,7 +25,7 @@ const {
     detectAutoOrBulk,
     parseAddress,
     parseDisplayName,
-} = require('./parse');
+} = require('../../utils/emailParse');
 const { gmailClientFromTokens, graphFetchFromTokens } = require('./providerClients');
 const { fetchOutlookAttachment, listOutlookAttachments } = require('./outlookAttachment.mts');
 const { outlookListQuery } = require('../../core/integrations/outlookQuery.mts');

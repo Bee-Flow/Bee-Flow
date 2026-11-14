@@ -41,13 +41,13 @@ toc_max_heading_level: 2
 
 ### `GET /api/notebooks/:id`
 
-**Access:** Signed-in user · Permission `use_notebooks` · Capability `notebooks` · middleware `gate`, `requireNotebookRoleMw`
+**Access:** Signed-in user · Permission `use_notebooks` · Resource role `viewer` or higher · Capability `notebooks` · middleware `gate`
 
 No request schema.
 
 ### `PUT /api/notebooks/:id`
 
-**Access:** Signed-in user · Permission `use_notebooks` · Capability `notebooks` · middleware `gate`, `requireNotebookRoleMw`
+**Access:** Signed-in user · Permission `use_notebooks` · Resource role `editor` or higher · Capability `notebooks` · middleware `gate`
 
 **Body**
 
@@ -64,13 +64,13 @@ No request schema.
 
 ### `DELETE /api/notebooks/:id`
 
-**Access:** Signed-in user · Permission `use_notebooks` · Capability `notebooks` · middleware `gate`, `requireNotebookRoleMw`
+**Access:** Signed-in user · Permission `use_notebooks` · Resource role `owner` or higher · Capability `notebooks` · middleware `gate`
 
 No request schema.
 
 ### `POST /api/notebooks/:id/ai-fill`
 
-**Access:** Signed-in user · Permission `use_notebooks` · Capability `notebooks` · middleware `gate`, `requireNotebookRoleMw` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `use_notebooks` · Resource role `editor` or higher · Capability `notebooks` · middleware `gate` · the handler also checks who the caller is
 
 **Body**
 
@@ -81,19 +81,19 @@ No request schema.
 
 ### `GET /api/notebooks/:id/conversation`
 
-**Access:** Signed-in user · Permission `use_notebooks` · Capability `notebooks` · middleware `gate`, `requireNotebookRoleMw`
+**Access:** Signed-in user · Permission `use_notebooks` · Resource role `viewer` or higher · Capability `notebooks` · middleware `gate`
 
 No request schema.
 
 ### `DELETE /api/notebooks/:id/conversation`
 
-**Access:** Signed-in user · Permission `use_notebooks` · Capability `notebooks` · middleware `gate`, `requireNotebookRoleMw`
+**Access:** Signed-in user · Permission `use_notebooks` · Resource role `viewer` or higher · Capability `notebooks` · middleware `gate`
 
 No request schema.
 
 ### `POST /api/notebooks/:id/export/docx`
 
-**Access:** Signed-in user · Capability `notebooks` · middleware `gate`, `requireNotebookOwner`
+**Access:** Signed-in user · Resource role `viewer` or higher · Capability `notebooks` · middleware `gate`
 
 **Body**
 
@@ -105,7 +105,7 @@ No request schema.
 
 ### `POST /api/notebooks/:id/export/nextcloud`
 
-**Access:** Signed-in user · Capability `notebooks` · middleware `gate`, `requireNotebookOwner` · the handler also checks who the caller is
+**Access:** Signed-in user · Resource role `viewer` or higher · Capability `notebooks` · middleware `gate` · the handler also checks who the caller is
 
 **Body**
 
@@ -117,7 +117,7 @@ No request schema.
 
 ### `POST /api/notebooks/:id/export/pdf`
 
-**Access:** Signed-in user · Capability `notebooks` · middleware `gate`, `requireNotebookOwner`
+**Access:** Signed-in user · Resource role `viewer` or higher · Capability `notebooks` · middleware `gate`
 
 **Body**
 
@@ -128,7 +128,7 @@ No request schema.
 
 ### `POST /api/notebooks/:id/export/signrequest`
 
-**Access:** Signed-in user · Capability `notebooks` · middleware `gate`, `requireNotebookOwner`
+**Access:** Signed-in user · Resource role `viewer` or higher · Capability `notebooks` · middleware `gate`
 
 **Body**
 
@@ -146,7 +146,7 @@ No request schema.
 
 ### `POST /api/notebooks/:id/generate/:type`
 
-**Access:** Signed-in user · Permission `use_notebooks` · Capability `notebooks` · middleware `gate`, `requireNotebookRoleMw` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `use_notebooks` · Resource role `editor` or higher · Capability `notebooks` · middleware `gate` · the handler also checks who the caller is
 
 **Body**
 
@@ -162,19 +162,19 @@ No request schema.
 
 ### `POST /api/notebooks/:id/import-file`
 
-**Access:** Signed-in user · Permission `use_notebooks` · Capability `notebooks` · middleware `gate`, `requireNotebookRoleMw`
+**Access:** Signed-in user · Permission `use_notebooks` · Resource role `editor` or higher · Capability `notebooks` · middleware `gate`
 
 No request schema.
 
 ### `GET /api/notebooks/:id/sources`
 
-**Access:** Signed-in user · Permission `use_notebooks` · Capability `notebooks` · middleware `gate`, `requireNotebookRoleMw`
+**Access:** Signed-in user · Permission `use_notebooks` · Resource role `viewer` or higher · Capability `notebooks` · middleware `gate`
 
 No request schema.
 
 ### `PATCH /api/notebooks/:id/sources/:sid`
 
-**Access:** Signed-in user · Permission `use_notebooks` · Capability `notebooks` · middleware `gate`, `requireNotebookRoleMw`
+**Access:** Signed-in user · Permission `use_notebooks` · Resource role `editor` or higher · Capability `notebooks` · middleware `gate`
 
 **Body**
 
@@ -184,31 +184,31 @@ No request schema.
 
 ### `DELETE /api/notebooks/:id/sources/:sid`
 
-**Access:** Signed-in user · Permission `use_notebooks` · Capability `notebooks` · middleware `gate`, `requireNotebookRoleMw`
+**Access:** Signed-in user · Permission `use_notebooks` · Resource role `editor` or higher · Capability `notebooks` · middleware `gate`
 
 No request schema.
 
 ### `POST /api/notebooks/:id/sources/:sid/cancel`
 
-**Access:** Signed-in user · Permission `use_notebooks` · Capability `notebooks` · middleware `gate`, `requireNotebookRoleMw`
+**Access:** Signed-in user · Permission `use_notebooks` · Resource role `editor` or higher · Capability `notebooks` · middleware `gate`
 
 No request schema.
 
 ### `GET /api/notebooks/:id/sources/:sid/content`
 
-**Access:** Signed-in user · Permission `use_notebooks` · Capability `notebooks` · middleware `gate`, `requireNotebookRoleMw`
+**Access:** Signed-in user · Permission `use_notebooks` · Resource role `viewer` or higher · Capability `notebooks` · middleware `gate`
 
 No request schema.
 
 ### `POST /api/notebooks/:id/sources/:sid/retry`
 
-**Access:** Signed-in user · Permission `use_notebooks` · Capability `notebooks` · middleware `gate`, `requireNotebookRoleMw`
+**Access:** Signed-in user · Permission `use_notebooks` · Resource role `editor` or higher · Capability `notebooks` · middleware `gate`
 
 No request schema.
 
 ### `POST /api/notebooks/:id/sources/bulk-delete`
 
-**Access:** Signed-in user · Permission `use_notebooks` · Capability `notebooks` · middleware `gate`, `requireNotebookRoleMw` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `use_notebooks` · Resource role `editor` or higher · Capability `notebooks` · middleware `gate` · the handler also checks who the caller is
 
 **Body**
 
@@ -218,7 +218,7 @@ No request schema.
 
 ### `POST /api/notebooks/:id/sources/drive`
 
-**Access:** Signed-in user · Permission `use_notebooks` · Capability `notebooks` · middleware `gate`, `requireNotebookRoleMw`
+**Access:** Signed-in user · Permission `use_notebooks` · Resource role `editor` or higher · Capability `notebooks` · middleware `gate`
 
 **Body**
 
@@ -232,13 +232,13 @@ No request schema.
 
 ### `POST /api/notebooks/:id/sources/file`
 
-**Access:** Signed-in user · Permission `use_notebooks` · Capability `notebooks` · middleware `gate`, `requireNotebookRoleMw`
+**Access:** Signed-in user · Permission `use_notebooks` · Resource role `editor` or higher · Capability `notebooks` · middleware `gate`
 
 No request schema.
 
 ### `POST /api/notebooks/:id/sources/meeting`
 
-**Access:** Signed-in user · Permission `use_notebooks` · Capability `notebooks` · middleware `gate`, `requireNotebookRoleMw`
+**Access:** Signed-in user · Permission `use_notebooks` · Resource role `editor` or higher · Capability `notebooks` · middleware `gate`
 
 **Body**
 
@@ -249,7 +249,7 @@ No request schema.
 
 ### `PATCH /api/notebooks/:id/sources/reorder`
 
-**Access:** Signed-in user · Permission `use_notebooks` · Capability `notebooks` · middleware `gate`, `requireNotebookRoleMw`
+**Access:** Signed-in user · Permission `use_notebooks` · Resource role `editor` or higher · Capability `notebooks` · middleware `gate`
 
 **Body**
 
@@ -259,7 +259,7 @@ No request schema.
 
 ### `POST /api/notebooks/:id/sources/text`
 
-**Access:** Signed-in user · Permission `use_notebooks` · Capability `notebooks` · middleware `gate`, `requireNotebookRoleMw`
+**Access:** Signed-in user · Permission `use_notebooks` · Resource role `editor` or higher · Capability `notebooks` · middleware `gate`
 
 **Body**
 
@@ -270,7 +270,7 @@ No request schema.
 
 ### `POST /api/notebooks/:id/sources/url`
 
-**Access:** Signed-in user · Permission `use_notebooks` · Capability `notebooks` · middleware `gate`, `requireNotebookRoleMw`
+**Access:** Signed-in user · Permission `use_notebooks` · Resource role `editor` or higher · Capability `notebooks` · middleware `gate`
 
 **Body**
 
@@ -280,7 +280,7 @@ No request schema.
 
 ### `GET /api/notebooks/:id/versions`
 
-**Access:** Permission `use_notebooks` · Capability `notebooks` · middleware `gate`, `requireNotebookRoleMw`
+**Access:** Permission `use_notebooks` · Resource role `viewer` or higher · Capability `notebooks` · middleware `gate`
 
 **Query**
 
@@ -291,7 +291,7 @@ No request schema.
 
 ### `POST /api/notebooks/:id/versions`
 
-**Access:** Permission `use_notebooks` · Capability `notebooks` · middleware `gate`, `requireNotebookRoleMw`
+**Access:** Permission `use_notebooks` · Resource role `editor` or higher · Capability `notebooks` · middleware `gate`
 
 **Body**
 
@@ -301,19 +301,19 @@ No request schema.
 
 ### `GET /api/notebooks/:id/versions/:ref`
 
-**Access:** Permission `use_notebooks` · Capability `notebooks` · middleware `gate`, `requireNotebookRoleMw`
+**Access:** Permission `use_notebooks` · Resource role `viewer` or higher · Capability `notebooks` · middleware `gate`
 
 No request schema.
 
 ### `DELETE /api/notebooks/:id/versions/:ref`
 
-**Access:** Permission `use_notebooks` · Capability `notebooks` · middleware `gate`, `requireNotebookRoleMw`
+**Access:** Permission `use_notebooks` · Resource role `owner` or higher · Capability `notebooks` · middleware `gate`
 
 No request schema.
 
 ### `PUT /api/notebooks/:id/versions/:ref/name`
 
-**Access:** Permission `use_notebooks` · Capability `notebooks` · middleware `gate`, `requireNotebookRoleMw`
+**Access:** Permission `use_notebooks` · Resource role `editor` or higher · Capability `notebooks` · middleware `gate`
 
 **Body**
 
@@ -323,7 +323,7 @@ No request schema.
 
 ### `POST /api/notebooks/:id/versions/:ref/restore`
 
-**Access:** Permission `use_notebooks` · Capability `notebooks` · middleware `gate`, `requireNotebookRoleMw` · the handler also checks who the caller is
+**Access:** Permission `use_notebooks` · Resource role `editor` or higher · Capability `notebooks` · middleware `gate` · the handler also checks who the caller is
 
 **Body**
 
@@ -333,7 +333,7 @@ No request schema.
 
 ### `POST /api/notebooks/:id/versions/kept`
 
-**Access:** Permission `use_notebooks` · Capability `notebooks` · middleware `gate`, `requireNotebookRoleMw`
+**Access:** Permission `use_notebooks` · Resource role `editor` or higher · Capability `notebooks` · middleware `gate`
 
 **Body**
 

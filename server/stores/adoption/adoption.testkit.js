@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * The Adoption read model's test bed: a real Postgres (PGlite behind db.js),
@@ -123,7 +124,7 @@ async function seedLedger(letter, orgId) {
     ];
     for (const [userId, actor, source, agentId, cost, daysAgo] of rows) {
         await run(`INSERT INTO ai_usage_log (timestamp, user_id, actor_user_id, agent_id, model, source, organization_id, estimated_cost)
-                   VALUES ($1, $2, $3, $4, 'test-model', $5, $6, $7)`, [at(daysAgo), userId, actor, agentId, source, orgId, cost]);
+                   VALUES ($1, $2, $3, $4, 'test-model', $5, $6, $7)`, [at(/** @type {number} */ (daysAgo)), userId, actor, agentId, source, orgId, cost]);
     }
     // A tool row: never counted as a call.
     await run(`INSERT INTO ai_usage_log (timestamp, user_id, model, source, organization_id, estimated_cost, tool_name) VALUES ($1, $2, 'm', 'agent_stream', $3, 0, 'search')`,

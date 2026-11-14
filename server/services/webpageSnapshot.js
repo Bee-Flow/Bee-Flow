@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Webpage Snapshot Service — capture an immutable, sanitized copy of a
  * webpage for external/public sharing.
@@ -39,7 +39,7 @@
 const webpageStore = require('../stores/webpageStore');
 const publicShareStore = require('../stores/webpagePublicShareStore');
 const storageStore = require('../stores/storageStore');
-const { resolveFramework } = require('../integrations/webpageFramework');
+const { resolveFramework } = require('../core/webpages/frameworkModel.mts');
 const { composeReactDoc } = require('./reactBundleServer');
 const { loadReactFiles } = require('./webpageReactFiles');
 const { expandBfElements } = require('./webpageBfTable');
@@ -278,7 +278,7 @@ async function writeReactSnapshot({ shareId, webpageId, ownerId }) {
     if (composed.buildError) {
         throw new Error('React bundle failed: ' + composed.buildError);
     }
-    const docBuf = Buffer.from(composed.doc, 'utf8');
+    const docBuf = Buffer.from(/** @type {string} */ (composed.doc), 'utf8'); // a build without an error has its document
     await storageStore.uploadFile(
         publicShareStore.snapshotKey(shareId, 'reactdoc'),
         docBuf,

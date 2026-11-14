@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * AI Config — the model cost table: public read, admin config view and
  * cost updates/resets.

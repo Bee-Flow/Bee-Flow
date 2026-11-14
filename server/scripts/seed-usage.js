@@ -17,6 +17,7 @@ require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env'
 const { run, getOne, pool } = require('../db');
 const usageStore = require('../stores/usageStore');
 const userStore = require('../stores/userStore');
+const { ignoreGone } = require('../utils/bestEffort');
 
 // ── local-DB guard ───────────────────────────────────────────────────────────
 const CONN = process.env.CORE_DATABASE_URL || 'postgresql://beeflow:beeflow@localhost:5432/beeflow_core';
@@ -131,6 +132,6 @@ async function seedUsage() {
         console.error('[seed-usage] failed:', e.message);
         process.exitCode = 1;
     } finally {
-        await pool.end().catch(() => {});
+        await pool.end().catch((err) => ignoreGone('scripts/seed-usage:poolEnd', err));
     }
 })();

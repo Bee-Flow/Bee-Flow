@@ -47,6 +47,7 @@ function GroupActions({ group, isSystem, groupsState }: { group: OrgGroupRow; is
                         onClick={(e) => { e.stopPropagation(); setExpandedGroup(group.id); setEditingGroup(group.id); setEditGroupDesc(group.description || ''); }}
                         className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
                         title={t('admin_org.users_edit_group', 'Edit group settings')}
+                        aria-label={t('admin_org.users_edit_group', 'Edit group settings')}
                     >
                         <Edit2 className="w-3.5 h-3.5" />
                     </button>
@@ -55,6 +56,7 @@ function GroupActions({ group, isSystem, groupsState }: { group: OrgGroupRow; is
                             onClick={(e) => { e.stopPropagation(); handleDeleteGroup(group.id); }}
                             className="p-1.5 rounded-lg hover:bg-red-500/10 text-[var(--text-muted)] hover:text-red-500 transition-colors"
                             title={t('admin_org.users_delete_group', 'Delete group')}
+                            aria-label={t('admin_org.users_delete_group', 'Delete group')}
                         >
                             <Trash2 className="w-3.5 h-3.5" />
                         </button>

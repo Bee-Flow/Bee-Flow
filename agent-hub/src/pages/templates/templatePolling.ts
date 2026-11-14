@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import { templatesApi } from '../../api/templatesApi';
+import { useConfigChatModels } from '../../api/queries/configModels';
 import type { ModelTiers, TemplateRecord } from './templateTypes';
 
 /** What a background poll needs from the page: its interval registry and the setters it feeds. */
@@ -109,12 +110,9 @@ export function usePollersRef(): MutableRefObject<Set<ReturnType<typeof setInter
     return pollersRef;
 }
 
-/** Loads the chat model tiers once (a failed load leaves them empty). */
+/** Loads the chat model tiers once per mount (a failed load leaves them empty). */
 export function useModelTiersLoader(setModelTiers: (tiers: ModelTiers) => void): void {
-    useEffect(() => {
-        templatesApi.chatModels()
-            .then(r => r.ok ? r.json() : {})
-            .then(data => setModelTiers(data))
-            .catch(e => console.warn('[TemplatesPage] load model tiers failed', e));
-    }, [setModelTiers]);
+    const { data, error } = useConfigChatModels();
+    useEffect(() => { if (data) setModelTiers(data as ModelTiers); }, [data, setModelTiers]);
+    useEffect(() => { if (error) console.warn('[TemplatesPage] load model tiers failed', error); }, [error]);
 }

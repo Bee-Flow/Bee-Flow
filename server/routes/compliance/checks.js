@@ -147,19 +147,21 @@ const ChecksQuery = z.object({
     framework: z.string({ error: typeError({ invalid: FRAMEWORK_TEXT }) }).max(120, 'framework is at most 120 characters.').optional(),
 }).strict();
 
-// ── Why POST /checks/:id/auto-fix keeps an open body ────────────
-//
-// The body is forwarded whole to `runner.autoFix`, which hands it to the
-// check module that owns the fix. Each one reads its own options (which
-// agent, which retention window, which connector), and there is no register
-// here that knows them: a schema in this router would have to enumerate every
-// check's fix arguments and would fall behind the first new check.
+// What an auto-fix takes: the one subject a per-source check fixes (a project,
+// a file), or nothing for a check that fixes the whole organisation. Every fix
+// in compliance/checks reads `subjectId` and the `actorId` this route sets from
+// the session; a fix that needs a new option names it here.
+const { bodyOf, worded } = require('../../core/http/schemaParts');
+const AutoFixBody = bodyOf({
+    subjectId: worded('subjectId is the id of the subject to fix.').nullish(),
+}, 'An auto-fix');
+const RunBody = bodyOf({}, 'Running checks'); // the check, or all of them, is in the path
 // `/checks` keeps its own `unknown_framework` 400, which already names the
 // value it refused.
 
 // ───────────────── Checks ─────────────────
 
-router.get('/checks', requireAuth, requirePermission('admin_compliance'), validate({ query: ChecksQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof ChecksQuery>>} */ req, res) => {
+router.get('/checks', requireAuth, requirePermission('admin_compliance'), validate({ query: ChecksQuery }), async (req, res) => {
     const orgId = await resolveOrgId(req);
     const fwParam = typeof req.query.framework === 'string' && req.query.framework ? req.query.framework : null;
     if (fwParam && !frameworks.byId(fwParam) && !frameworks.isCustomId(fwParam)) {
@@ -212,7 +214,7 @@ const HistoryQuery = z.object({
         .optional(),
 }).strict();
 
-router.get('/checks/:id/history', requireAuth, requirePermission('admin_compliance'), validate({ query: HistoryQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof HistoryQuery>>} */ req, res) => {
+router.get('/checks/:id/history', requireAuth, requirePermission('admin_compliance'), validate({ query: HistoryQuery }), async (req, res) => {
     const orgId = await resolveOrgId(req);
     const scopeId = typeof req.query.scope_id === 'string' ? req.query.scope_id : null;
     const rows = scopeId
@@ -221,7 +223,7 @@ router.get('/checks/:id/history', requireAuth, requirePermission('admin_complian
     res.json(rows);
 });
 
-router.post('/checks/run', requireAuth, requirePermission('admin_compliance'), async (req, res, next) => {
+router.post('/checks/run', requireAuth, requirePermission('admin_compliance'), validate({ body: RunBody }), async (req, res, next) => {
     try {
         const orgId = await resolveOrgId(req);
         const results = await runner.runAll(orgId, { runType: 'manual' });
@@ -240,7 +242,7 @@ router.post('/checks/run', requireAuth, requirePermission('admin_compliance'), a
     }
 });
 
-router.post('/checks/:id/run', requireAuth, requirePermission('admin_compliance'), async (req, res, next) => {
+router.post('/checks/:id/run', requireAuth, requirePermission('admin_compliance'), validate({ body: RunBody }), async (req, res, next) => {
     try {
         const orgId = await resolveOrgId(req);
         const result = await runner.runOne(orgId, req.params.id);
@@ -253,14 +255,11 @@ router.post('/checks/:id/run', requireAuth, requirePermission('admin_compliance'
     }
 });
 
-router.post('/checks/:id/auto-fix', requireAuth, requirePermission('admin_compliance'), async (req, res) => {
+router.post('/checks/:id/auto-fix', requireAuth, requirePermission('admin_compliance'), validate({ body: AutoFixBody }), async (req, res) => {
     try {
         const orgId = await resolveOrgId(req);
         const actorId = req.session?.user?.id || null;
-        const result = await runner.autoFix(orgId, req.params.id, {
-            ...(req.body || {}),
-            actorId,
-        });
+        const result = await runner.autoFix(orgId, req.params.id, { ...req.body, actorId });
         // Re-run the check so the UI shows the fresh result.
         await runner.runOne(orgId, req.params.id).catch((e) => bestEffort('routes/compliance/checks:anon#2', e));
         res.json({ ok: true, result });

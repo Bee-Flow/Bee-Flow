@@ -102,6 +102,7 @@ function BlockRow({ block, isActive, onClick, onToggle, onDuplicate, onDelete }:
                         : 'text-[var(--text-muted)] opacity-100'
                     }`}
                 title={block.enabled ? t('cms_site.site.blocklist.hide_block', 'Hide block') : t('cms_site.site.blocklist.show_block', 'Show block')}
+                aria-label={block.enabled ? t('cms_site.site.blocklist.hide_block', 'Hide block') : t('cms_site.site.blocklist.show_block', 'Show block')}
             >
                 <AppIcon name={block.enabled ? 'Eye' : 'EyeOff'} className="w-3.5 h-3.5" />
             </button>
@@ -113,6 +114,7 @@ function BlockRow({ block, isActive, onClick, onToggle, onDuplicate, onDelete }:
                     onClick={() => onDuplicate(block.id)}
                     className="w-6 h-6 flex items-center justify-center rounded text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]"
                     title={t('cms_site.site.blocklist.duplicate_block', 'Duplicate block')}
+                    aria-label={t('cms_site.site.blocklist.duplicate_block', 'Duplicate block')}
                 >
                     <AppIcon name="Copy" className="w-3 h-3" />
                 </button>
@@ -121,6 +123,7 @@ function BlockRow({ block, isActive, onClick, onToggle, onDuplicate, onDelete }:
                     onClick={() => onDelete(block.id)}
                     className="w-6 h-6 flex items-center justify-center rounded text-[var(--text-muted)] hover:text-red-400 hover:bg-red-500/10"
                     title={t('cms_site.site.blocklist.delete_block', 'Delete block')}
+                    aria-label={t('cms_site.site.blocklist.delete_block', 'Delete block')}
                 >
                     <AppIcon name="Trash2" className="w-3 h-3" />
                 </button>
@@ -171,6 +174,7 @@ export default function BlockList({ blocks, activeBlockId, onSelect, onRequestAd
                     onClick={() => onRequestAdd?.()}
                     className="w-6 h-6 flex items-center justify-center rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
                     title={t('cms_site.site.blocklist.add_block', 'Add block')}
+                    aria-label={t('cms_site.site.blocklist.add_block', 'Add block')}
                 >
                     <AppIcon name="Plus" className="w-4 h-4" />
                 </button>

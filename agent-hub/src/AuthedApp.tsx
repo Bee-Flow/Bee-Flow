@@ -57,10 +57,10 @@ const AppRunPage = lazy(() => import('./pages/apps/AppRunPage'));
 const AgentDesigner = lazy(() => import('./components/agents/AgentDesigner/index'));
 
 import { queryClient } from './api/queryClient';
-// The route table, the URL parsers, the full-screen gates and the two big
-// hook groups (auth bootstrap, navigateToPage) live in ./authedApp/*. They are
-// verbatim extractions — this file keeps the same public surface.
-import { PAGE_ROUTES, pageFromPath, parseAdminPath, parseAgentDesignerUrl, parseAgentUrl, parseCoworkUrl, parseDocumentUrl, parseDirectChatUrl, parseNcStudioAppParam, parseOrgSettingsPath } from './authedApp/appRoutes';
+// The route table and URL parsers, the derived route, the full-screen gates
+// and the two hook groups (auth bootstrap, navigateToPage) live in ./authedApp/*.
+import { PAGE_ROUTES } from './authedApp/appRoutes';
+import { parseAgentUrl, parseDirectChatUrl } from './authedApp/urlParsers';
 import { MobileRouteGuard, SubscriptionGate } from './authedApp/guards';
 import { projectHistoryMode } from './authedApp/projectNavigation';
 import { AppBackdrop, LoadingScreen, NoOrganizationScreen, PendingApprovalScreen, RouteFallback, ServerUnavailableScreen, type BootstrapDiagnostics } from './authedApp/shellScreens';
@@ -68,22 +68,26 @@ import { SignedOutGate } from './authedApp/SignedOutGate';
 import type { SignInRefusal } from './authedApp/signedOutScreen';
 import { useAuthSession } from './authedApp/useAuthSession';
 import { useNavigateToPage } from './authedApp/useNavigateToPage';
-import { parseStudioUrl, parseStudioQuery } from './components/admin/Studio/studioRoutes';
+import { useAppRoute } from './authedApp/useAppRoute';
+import { NavigationProvider } from './authedApp/NavigationContext';
+import { SessionProvider } from './authedApp/SessionContext';
+import { navigate } from './router/history';
 import { capturePendingPlanFromUrl } from './components/billing/pendingPlan';
 import { clearSessionCaches } from './hooks/sessionCaches';
 import { useAppHeight } from './hooks/useAppHeight';
 import { useTranslation } from './hooks/useTranslation';
 import { useViewport } from './hooks/useViewport';
-import { API_BASE, setSessionToken } from './utils/helpers';
+import { setSessionToken } from './utils/helpers';
 import { fetchAuthUser, fetchMyPermissions, postLogout } from './api/queries/coreAuthSession';
 import { identityKey, shouldResetCache } from './utils/identityCache';
-import { parseProjectUrl, projectRoutePath } from './utils/projectRoutes';
+import { projectRoutePath } from './utils/projectRoutes';
 // Storage identity plumbing for the effect below: pin the scoped namespace to
 // the signed-in user, then run the version-gated browser-state schema passes.
 import scopedStorage from './utils/scopedStorage';
 import { runStorageMigrations, runUserStorageMigrations } from './utils/storageMigrations';
-import type { AuthedUser, HubUser, PendingNcBinding, StudioRoute } from './AuthedApp.types';
-import { request, RefusedError } from './api/mutate';
+import type { AuthedUser, HubUser, PendingNcBinding } from './AuthedApp.types';
+import { RefusedError } from './api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 // Kept exported from this module: the allow-list moved to ./authedApp/appRoutes
 // with the rest of the route table, but AuthedApp.jsx is still its address.
@@ -126,20 +130,14 @@ function App() {
     // any early return so the rules of hooks hold and the vars update on the
     // auth/splash screens too).
     useAppHeight();
-    // Drive mobile access control. navigateToPage is a useCallback([]) and can't
-    // read this directly, so we mirror it into a ref kept current by an effect.
     const { isMobile } = useViewport();
-    const isMobileRef = useRef(isMobile);
-    useEffect(() => { isMobileRef.current = isMobile; }, [isMobile]);
-    const [currentPage, setCurrentPage] = useState(() => (
-        // Opened from a Nextcloud app-menu entry → boot straight into the
-        // app's own run view (the proxy-root pathname can't express it).
-        parseNcStudioAppParam() ? 'appRun' : pageFromPath(window.location.pathname)
-    ));
-    const [adminPath, setAdminPath] = useState(() => parseAdminPath(window.location.pathname));
-    const [orgSettingsPath, setOrgSettingsPath] = useState(() => parseOrgSettingsPath(window.location.pathname));
-    const [initialCoworkId, setInitialCoworkId] = useState(() => parseCoworkUrl(window.location.pathname));
-    const [initialDocumentId, setInitialDocumentId] = useState(() => parseDocumentUrl(window.location.pathname));
+    // Where we are: the page and what it is opened with, all read off the
+    // address (./authedApp/useAppRoute). Back/Forward and every navigateToPage
+    // call publish a new location; nothing about the page is held in state.
+    const {
+        route, page, adminPath, orgSettingsPath, coworkId, documentId, designerAgentId, formViewToken, appRunId,
+        studioRoute, projectRoute,
+    } = useAppRoute();
     const [user, setUser] = useState<AuthedUser | null>(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
@@ -178,44 +176,6 @@ function App() {
     const [deploymentMode, setDeploymentMode] = useState('cloud');
     const [orgLogo, setOrgLogo] = useState<string | null>(null);
     const [serverAvailable, setServerAvailable] = useState<boolean | null>(null); // null=unknown, true=ok, false=down
-    const [showProfileMenu, setShowProfileMenu] = useState(false);
-    const [showAgentDesigner, setShowAgentDesigner] = useState(() => pageFromPath(window.location.pathname) === 'agentDesigner');
-    const [showAgentWizard, setShowAgentWizard] = useState(() => pageFromPath(window.location.pathname) === 'agentWizard');
-    const [showStudio, setShowStudio] = useState(() => pageFromPath(window.location.pathname) === 'studio');
-    // Path = which automation; query = what of it is open (?view/run/step), so a
-    // run deep-link survives a cold load.
-    const [studioRoute, setStudioRoute] = useState<StudioRoute>(() => ({
-        ...parseStudioUrl(window.location.pathname),
-        ...parseStudioQuery(window.location.search),
-    }));
-    const [initialDesignerAgentId, setInitialDesignerAgentId] = useState(() => parseAgentDesignerUrl(window.location.pathname));
-    // Standalone published-app run view (/app/apps/:id). The id is re-derived
-    // from the URL at render time; this state exists so an in-app 'apps/<id>'
-    // navigation re-renders even when currentPage is already 'appRun' (the
-    // sidebar lists published apps, so app→app switches are one click now).
-    // Which published form /app/forms/:token is showing. Held in state (not
-    // re-read at render) so a form→form click re-renders while currentPage is
-    // already 'formView' — the sidebar lists forms, so that is one click.
-    const [formViewToken, setFormViewToken] = useState(
-        () => window.location.pathname.match(/^\/app\/forms\/([^/]+)/)?.[1] || null,
-    );
-    const [appRunId, setAppRunId] = useState(() => {
-        const m = window.location.pathname.match(/^\/app\/apps\/([^/]+)/);
-        // The Nextcloud app-menu embed carries the id in ?ncStudioApp instead
-        // of the pathname (see parseNcStudioAppParam).
-        return m ? m[1] : parseNcStudioAppParam();
-    });
-    // Settings panel is rendered inline inside AgentHub when showSettings is true.
-    // Keep it in sync with the URL so /app/settings/* on hard-refresh opens the panel
-    // and the browser's back/forward buttons toggle it.
-    const [showSettings, setShowSettings] = useState(() => pageFromPath(window.location.pathname) === 'settings');
-    const [showSkillsPanel, setShowSkillsPanel] = useState(false);
-    // Projects route state. `showProjects` distinguishes "on a projects page"
-    // from "not"; `initialProjectRoute.projectId` distinguishes the list from a
-    // specific project, so /app/projects and /app/projects/:id are separate
-    // destinations rather than one view that only appears after closing another.
-    const [showProjects, setShowProjects] = useState(() => pageFromPath(window.location.pathname) === 'projects');
-    const [initialProjectRoute, setInitialProjectRoute] = useState(() => parseProjectUrl(window.location.pathname));
     const [encryptionState, setEncryptionState] = useState<'setup' | 'pin' | { recoveryKey: string } | null>(null); // null | 'setup' | 'pin' | { recoveryKey: string }
     const [noOrganization, setNoOrganization] = useState(false);
     const [pendingApproval, setPendingApproval] = useState(false);
@@ -238,16 +198,18 @@ function App() {
     const [bootstrapDiagnostics, setBootstrapDiagnostics] = useState<BootstrapDiagnostics | null>(null);
     // What a non-ok /auth/user answered at boot (the connector sign-in's reason).
     const [signInRefusal, setSignInRefusal] = useState<SignInRefusal | null>(null);
-    const profileMenuRef = useRef(null);
 
-    // Parse initial agent/conversation from URL
-    const initialUrlRef = useRef(parseAgentUrl(window.location.pathname));
-    const initialDirectConvRef = useRef(parseDirectChatUrl(window.location.pathname));
+    // The agent / conversation the app was opened on, read once: a deep link
+    // survives the sign-in (which lands on /app) and the forward of a desktop
+    // hand-over address (/app/chat/<id> → /app/d/<id>) because the forward's
+    // target is what is read.
+    const initialChatRef = useRef((() => {
+        const openedAt = route.redirect?.startsWith('/') ? route.redirect : route.pathname;
+        return { ...parseAgentUrl(openedAt), directConvId: parseDirectChatUrl(openedAt) };
+    })());
 
     // Boot the session: the shared /auth/user + /auth/my-permissions applier
-    // (used by handleLogin too) plus the mount-time auth probe. Same two hooks
-    // in the same order, called from the same position — they just live in
-    // ./authedApp/useAuthSession now.
+    // (used by handleLogin too) plus the mount-time auth probe.
     const applyAuthSession = useAuthSession({
         setDeploymentMode,
         setOrgLogo,
@@ -266,69 +228,24 @@ function App() {
         setIsLoading,
     });
 
-    // Handle browser back/forward
+    // On first load, send a legacy ?page= URL at the root to its clean path.
     useEffect(() => {
-        const handlePopState = () => whenMayNavigate(() => {
-            // Same rule as the first render, so Back between an embedded app's screens stays in it.
-            const page = parseNcStudioAppParam() ? 'appRun' : pageFromPath(window.location.pathname);
-            setCurrentPage(page);
-            setAdminPath(parseAdminPath(window.location.pathname));
-            setOrgSettingsPath(parseOrgSettingsPath(window.location.pathname));
-            if (page === 'cowork') setInitialCoworkId(parseCoworkUrl(window.location.pathname));
-            setInitialDocumentId(parseDocumentUrl(window.location.pathname));
-            setFormViewToken(window.location.pathname.match(/^\/app\/forms\/([^/]+)/)?.[1] || null);
-            // Sync inline-rendered panels with the URL so back/forward opens or closes them.
-            setShowSettings(page === 'settings');
-            const isDesigner = page === 'agentDesigner';
-            setShowAgentDesigner(isDesigner);
-            setShowAgentWizard(page === 'agentWizard');
-            const isStudio = page === 'studio';
-            setShowStudio(isStudio);
-            if (isStudio) setStudioRoute({ ...parseStudioUrl(window.location.pathname), ...parseStudioQuery(window.location.search) });
-            if (isDesigner) setInitialDesignerAgentId(parseAgentDesignerUrl(window.location.pathname));
-            // Back/forward now moves between the project list and individual
-            // projects, which it could not do while this was local state.
-            const isProjects = page === 'projects';
-            setShowProjects(isProjects);
-            setInitialProjectRoute(isProjects ? parseProjectUrl(window.location.pathname) : null);
-        });
-        window.addEventListener('popstate', handlePopState);
-        return () => window.removeEventListener('popstate', handlePopState);
-    }, []);
-
-    // On first load, redirect legacy ?page= URLs to clean paths
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        const legacyPage = params.get('page');
+        const legacyPage = new URLSearchParams(window.location.search).get('page');
         if (legacyPage && PAGE_ROUTES[legacyPage] && window.location.pathname === '/') {
-            window.history.replaceState({}, '', PAGE_ROUTES[legacyPage]);
+            navigate(PAGE_ROUTES[legacyPage], { replace: true, state: {} });
         }
     }, []);
 
-    // Every in-app navigation. One useCallback, unchanged and still created
-    // once at this exact position — the body now lives in
-    // ./authedApp/useNavigateToPage.
-    const navigateToPage = useNavigateToPage({
-        isMobileRef,
-        user,
-        setCurrentPage,
-        setAdminPath,
-        setOrgSettingsPath,
-        setInitialCoworkId,
-        setInitialDocumentId,
-        setShowProfileMenu,
-        setShowAgentDesigner,
-        setShowAgentWizard,
-        setShowStudio,
-        setStudioRoute,
-        setInitialDesignerAgentId,
-        setFormViewToken,
-        setAppRunId,
-        setShowSettings,
-        setShowSkillsPanel,
-        setShowProjects,
-        setInitialProjectRoute,
-    });
+    // Every in-app navigation (./authedApp/useNavigateToPage), created once.
+    const navigateToPage = useNavigateToPage({ isMobile, isConsumerAccount: !!user?.isConsumerAccount });
+
+    // An address that forwards (a page that moved into Studio, a desktop
+    // hand-over address, /app/billing) is replaced by its target once signed
+    // in; nothing renders at the forwarding address, so no page flashes.
+    const pendingRedirect = isAuthenticated && !isLoading ? route.redirect : null;
+    useEffect(() => {
+        if (pendingRedirect) navigateToPage(pendingRedirect, { replace: true });
+    }, [pendingRedirect, navigateToPage]);
 
     // Tell the (above-auth-boundary) EntitlementsProvider to re-resolve whenever
     // auth flips — login/logout/bootstrap all run through setIsAuthenticated, so
@@ -338,21 +255,6 @@ function App() {
     useEffect(() => {
         window.dispatchEvent(new Event('beeflow:auth-changed'));
     }, [isAuthenticated]);
-
-    // Runtime (remotely-installed) modules add their own Studio sections. On a
-    // cold load of a deep link into such a section (e.g. /app/studio/<module>),
-    // the runtime map is empty at first parse so parseStudioUrl falls back to
-    // 'agents'. Re-parse once the module descriptors arrive so the correct tab
-    // renders without a manual refresh. Only touches state while on /app/studio.
-    useEffect(() => {
-        const onModulesChanged = () => {
-            if (pageFromPath(window.location.pathname) === 'studio') {
-                setStudioRoute({ ...parseStudioUrl(window.location.pathname), ...parseStudioQuery(window.location.search) });
-            }
-        };
-        window.addEventListener('beeflow:modules-changed', onModulesChanged);
-        return () => window.removeEventListener('beeflow:modules-changed', onModulesChanged);
-    }, []);
 
     const handleLogin = async (userData: AuthedUser, recoveryKey?: string) => {
         // Hydrate from /auth/user + /auth/my-permissions exactly like a page
@@ -380,9 +282,8 @@ function App() {
             setUser(userData);
             setIsAuthenticated(true);
         }
-        // Reset to main app view after login (currentPage may still be a homepage route)
-        setCurrentPage('agents');
-        window.history.pushState({ page: 'agents' }, '', '/app');
+        // Back to the app home after login (the address may still be a homepage route).
+        navigate('/app', { state: { page: 'agents' } });
         // Show recovery key if one was generated (new user or migration).
         // Set last so it takes precedence over any encryption-setup state the
         // applier may have derived from /auth/user.
@@ -479,7 +380,7 @@ function App() {
                 onResolved={async () => {
                     // Re-pull /auth/user so the next gate (wizard or app) renders.
                     try {
-                        const res = await request(`${API_BASE}/auth/user`, { cache: 'no-store' }).catch((err: unknown) => {
+                        const res = await apiRequest('GET /auth/user', { init: { cache: 'no-store' } }).catch((err: unknown) => {
                             if (err instanceof RefusedError) return null;
                             throw err;
                         });
@@ -530,7 +431,7 @@ function App() {
                 onDone={async () => {
                     setMfaSetupRequired(false);
                     try {
-                        const res = await request(`${API_BASE}/auth/user`, { cache: 'no-store' }).catch((err: unknown) => {
+                        const res = await apiRequest('GET /auth/user', { init: { cache: 'no-store' } }).catch((err: unknown) => {
                             if (err instanceof RefusedError) return null;
                             throw err;
                         });
@@ -554,37 +455,37 @@ function App() {
         </ErrorBoundary>
     );
 
+    // Closing an inline panel returns the address to the app root, so Back
+    // does not leave /app/settings (or the panel's address) in the bar.
+    const closeTo = (prefix: string) => () => {
+        if (window.location.pathname.startsWith(prefix)) navigate('/app', { state: { page: 'agents' } });
+    };
+
     const renderContent = () => {
-        if (currentPage === 'admin') {
+        // The forwarding address renders nothing; its target is on its way.
+        if (route.redirect) return null;
+        if (page === 'admin') {
             return routed('admin', <AdminDashboard user={user} onBack={() => navigateToPage('agents')} adminPath={adminPath} onNavigate={navigateToPage} />);
         }
-        if (currentPage === 'orgSettings') {
+        if (page === 'orgSettings') {
             return routed('orgSettings', <OrgSettings user={user} onBack={() => navigateToPage('agents')} orgSettingsPath={orgSettingsPath} onNavigate={navigateToPage} />);
         }
-
-        // The two published-directory pages, Apps and Forms, used to return
-        // here and take over the whole viewport — which meant arriving at
-        // either one lost the app sidebar, and the only way back was the
-        // browser's Back button. They now fall through to AgentHub and render
-        // in its inline slot off `currentPage`, the same way Cowork does. (`appRun` below is different on purpose: opening one
-        // published app IS a standalone end-user surface.)
-
-        if (currentPage === 'appRun') {
-            // Standalone run view for a published App Studio app. The id comes
-            // from the URL (/app/apps/:id); ?draft=1 lets the owner preview the
-            // working draft (the server enforces owner-only on that flag).
-            const appMatch = window.location.pathname.match(/^\/app\/apps\/([^/]+)/);
+        // Apps and Forms (the published directories) render inside AgentHub's
+        // inline slot like Cowork, so the sidebar stays. `appRun` is different
+        // on purpose: opening one published app IS a standalone end-user surface.
+        if (page === 'appRun') {
+            // ?draft=1 lets the owner preview the working draft (the server
+            // enforces owner-only on that flag).
             const isDraftPreview = new URLSearchParams(window.location.search).get('draft') === '1';
-            return routed('appRun', <AppRunPage appId={appMatch?.[1] || appRunId || null} draft={isDraftPreview} />);
+            return routed('appRun', <AppRunPage appId={appRunId} draft={isDraftPreview} />);
         }
-
-        if (currentPage === 'agentDesignerAdvanced') {
+        if (page === 'agentDesignerAdvanced') {
             return routed('agentDesignerAdvanced',
                 <AgentDesigner
                     onBack={null}
-                    initialAgentId={initialDesignerAgentId}
+                    initialAgentId={designerAgentId}
                     user={user}
-                    onClose={() => navigateToPage(initialDesignerAgentId ? `agentDesigner:${initialDesignerAgentId}` : 'agentDesigner')}
+                    onClose={() => navigateToPage(designerAgentId ? `agentDesigner:${designerAgentId}` : 'agentDesigner')}
                     hasPermission={(perm: string) => {
                         const perms = user?.permissions || [];
                         return perms.includes('all') || perms.includes(perm);
@@ -592,96 +493,49 @@ function App() {
                 />
             );
         }
-
-
-        // Meeting Notes now renders inside Studio (see studio handler above).
-        // The legacy `/app/meeting-notes` URL is normalised to the Studio
-        // route by pageFromPath() / parseStudioUrl().
-        if (currentPage === 'meetingNotes') {
-            navigateToPage('studio/meeting-notes');
-            return null;
-        }
-        if (currentPage === 'templates') {
+        if (page === 'templates') {
             if (user?.featureFlags?.templates === false) return navigateToPage('agents');
             return routed('templates', <TemplatesPage user={user} onBack={() => navigateToPage('agents')} />);
         }
-        // Notebooks have no page of their own any more: a notebook is a document
-        // type and opens in Studio → Documents. /app/notebooks/<id> already
-        // parses into it (pageFromPath, parseStudioUrl); the bare /app/notebooks
-        // keeps its frozen page key and is normalised here, like Meeting Notes.
-        if (currentPage === 'notebooks') {
-            navigateToPage('notebooks', { replace: true });
-            return null;
-        }
 
-        return <AgentHub onNavigate={navigateToPage} user={user} onUpdateUser={(patch: Partial<HubUser>) => setUser(prev => prev ? { ...prev, ...patch } : prev)} initialAgentId={initialUrlRef.current.agentId} initialConversationId={initialUrlRef.current.conversationId} initialDirectConvId={initialDirectConvRef.current} onLogout={handleLogout} currentPage={currentPage} showSettings={showSettings} onCloseSettings={() => {
-            setShowSettings(false);
-            // Return the URL to the app root when the settings panel closes, so
-            // the back button doesn't leave /app/settings stuck in the address bar.
-            if (window.location.pathname.startsWith('/app/settings')) {
-                setCurrentPage('agents');
-                window.history.pushState({ page: 'agents' }, '', '/app');
-            }
-        }} showAgentDesigner={showAgentDesigner} onCloseAgentDesigner={() => {
-            setShowAgentDesigner(false);
-            // Return the URL to the app root when the designer closes so /app/agent-designer
-            // doesn't stay in the address bar.
-            if (window.location.pathname.startsWith('/app/agent-designer')) {
-                setCurrentPage('agents');
-                window.history.pushState({ page: 'agents' }, '', '/app');
-            }
-        }} initialDesignerAgentId={initialDesignerAgentId} showAgentWizard={showAgentWizard} onCloseAgentWizard={() => {
-            setShowAgentWizard(false);
-            if (window.location.pathname.startsWith('/app/agent-wizard')) {
-                setCurrentPage('agents');
-                window.history.pushState({ page: 'agents' }, '', '/app');
-            }
-        }} showStudio={showStudio} studioRoute={studioRoute} onCloseStudio={() => {
-            setShowStudio(false);
-            if (window.location.pathname.startsWith('/app/studio')) {
-                setCurrentPage('agents');
-                window.history.pushState({ page: 'agents' }, '', '/app');
-            }
-        }} initialCoworkId={initialCoworkId} initialDocumentId={initialDocumentId} formViewToken={formViewToken} showProjects={showProjects} initialProjectRoute={initialProjectRoute} onProjectRouteChange={(projectId: string | null, tab?: string | null, sub?: string | null) => whenMayNavigate(() => {
-            // The workspace clears its dirty flag before its own confirmed moves,
-            // so this guard refuses only moves started outside the workspace
-            // (the rail, the switcher).
-            // Drives the URL from the app, so a project view — down to one
-            // team chat or document inside it — can be linked, bookmarked and
-            // reached with the back button. `''` means "open the create form":
-            // keep it distinct from the list (null), or the New Project button
-            // navigates nowhere.
-            const isCreate = projectId === '';
-            const route = {
-                projectId: isCreate ? '' : (projectId || null),
-                tab: isCreate || !projectId ? null : (tab || null),
-                sub: isCreate || !projectId || !tab ? null : (sub || null),
-            };
-            const path = projectRoutePath(route.projectId, route.tab, route.sub);
-            setInitialProjectRoute(route);
-            setShowProjects(true);
-            setCurrentPage('projects');
-            // Leaving the create form for the project it just created, or a
-            // workspace normalising its own address, replaces rather than
-            // pushes, so Back doesn't land on a page that sends you forward.
-            const mode = projectHistoryMode(window.location.pathname, path);
-            const state = { page: 'projects', projectId: route.projectId };
-            if (mode === 'replace') window.history.replaceState(state, '', path);
-            else if (mode === 'push') window.history.pushState(state, '', path);
-        })} onCloseProjects={() => {
-            setShowProjects(false);
-            setInitialProjectRoute(null);
-            if (window.location.pathname.startsWith('/app/projects')) {
-                setCurrentPage('agents');
-                window.history.pushState({ page: 'agents' }, '', '/app');
-            }
-        }} showSkillsPanel={showSkillsPanel} onCloseSkillsPanel={() => setShowSkillsPanel(false)} />;
+        return <AgentHub onNavigate={navigateToPage} user={user} onUpdateUser={(patch: Partial<HubUser>) => setUser(prev => prev ? { ...prev, ...patch } : prev)} initialAgentId={initialChatRef.current.agentId} initialConversationId={initialChatRef.current.conversationId} initialDirectConvId={initialChatRef.current.directConvId} onLogout={handleLogout} currentPage={page}
+            showSettings={page === 'settings'} onCloseSettings={closeTo('/app/settings')}
+            showAgentDesigner={page === 'agentDesigner'} onCloseAgentDesigner={closeTo('/app/agent-designer')} initialDesignerAgentId={designerAgentId}
+            showAgentWizard={page === 'agentWizard'} onCloseAgentWizard={closeTo('/app/agent-wizard')}
+            showStudio={page === 'studio'} studioRoute={studioRoute} onCloseStudio={closeTo('/app/studio')}
+            initialCoworkId={coworkId} initialDocumentId={documentId} formViewToken={formViewToken}
+            showProjects={page === 'projects'} initialProjectRoute={projectRoute} onProjectRouteChange={(projectId: string | null, tab?: string | null, sub?: string | null) => whenMayNavigate(() => {
+                // The workspace clears its dirty flag before its own confirmed moves,
+                // so this guard refuses only moves started outside the workspace
+                // (the rail, the switcher).
+                // Drives the URL from the app, so a project view — down to one
+                // team chat or document inside it — can be linked, bookmarked and
+                // reached with the back button. `''` means "open the create form":
+                // keep it distinct from the list (null), or the New Project button
+                // navigates nowhere.
+                const isCreate = projectId === '';
+                const next = {
+                    projectId: isCreate ? '' : (projectId || null),
+                    tab: isCreate || !projectId ? null : (tab || null),
+                    sub: isCreate || !projectId || !tab ? null : (sub || null),
+                };
+                const path = projectRoutePath(next.projectId, next.tab, next.sub);
+                // Leaving the create form for the project it just created, or a
+                // workspace normalising its own address, replaces rather than
+                // pushes, so Back doesn't land on a page that sends you forward.
+                const mode = projectHistoryMode(window.location.pathname, path);
+                navigate(path, { replace: mode === 'replace', state: { page: 'projects', projectId: next.projectId } });
+            })} onCloseProjects={closeTo('/app/projects')} />;
     };
 
     return (
+        <SessionProvider user={user}>
+        <NavigationProvider navigateToPage={navigateToPage} route={route}>
         <SubscriptionProvider user={user}>
-        <AppRecorderProvider user={user} navigateToPage={navigateToPage} isAuthenticated={isAuthenticated} currentPage={currentPage} deploymentMode={deploymentMode} isMobile={isMobile} renderContent={renderContent} />
+        <AppRecorderProvider user={user} navigateToPage={navigateToPage} isAuthenticated={isAuthenticated} currentPage={page} deploymentMode={deploymentMode} isMobile={isMobile} renderContent={renderContent} />
         </SubscriptionProvider>
+        </NavigationProvider>
+        </SessionProvider>
     );
 }
 

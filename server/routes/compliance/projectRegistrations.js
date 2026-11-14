@@ -116,7 +116,7 @@ function makeProjectRegistrationRouter(overrides = {}) {
         const { projectId } = req.params;
         if (!(await projectInOrg(orgId, projectId))) throw new HttpError(404, 'not_found', 'There is no such project in your organisation.');
         const actorId = req.session?.user?.id || null;
-        const body = req.body || {};
+        const body = req.body;
         const registration = await store().upsertSubjectRegistration(orgId, {
             subjectKind: 'project',
             subjectId: projectId,

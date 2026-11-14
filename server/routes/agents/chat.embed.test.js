@@ -36,6 +36,8 @@ process.env.NODE_ENV = 'test';
 const { test } = require('node:test');
 const assert = require('node:assert');
 const Module = require('module');
+const { fakeAgentGates } = require('./agentGate.testkit');
+
 
 const seen = [];
 const pass = (req, res, next) => next();
@@ -106,12 +108,22 @@ const MOCKS = {
         setupSSE: () => ({ abortController: new AbortController(), markEnded: () => {}, sendEvent: () => {} }),
         sendSSEError: (res, err) => { res.body = { error: err }; res.statusCode = 402; },
     },
-    './crud': { canModifyAgent: async () => false, canReadAgent: async () => false },
+    // The real chat gate over the fixture's audience: nobody outside the owner (set after MOCKS below).
+    './crud': null,
     // Chat signals: the resolver for the agent's org (the embed's notice).
     '../../core/entitlements/chatMonitoringFlag': {
         resolveChatMonitoring: async (orgKey) => { monitoring.asked.push(orgKey); return monitoring.answer; },
     },
 };
+
+MOCKS['./crud'] = fakeAgentGates({
+    agentStore: MOCKS['../../stores/agentStore'],
+    // The audience rule itself is auth/agentAccess.test.js's; here every signed-in
+    // or admitted visitor is in the audience, so what is tested is the gate's
+    // own answers (404, the two 401s, the owner's draft).
+    canRead: () => false, canModify: () => false, canChat: () => true,
+    userId: (req) => require('../../utils/routeHelpers').getEffectiveUserId(req),
+});
 
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {

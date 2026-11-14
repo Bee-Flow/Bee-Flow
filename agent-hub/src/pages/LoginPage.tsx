@@ -42,6 +42,7 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
     const [forgotSent, setForgotSent] = useState(false);
     const [resetToken, setResetToken] = useState<string | null>(null);
     const [resetDone, setResetDone] = useState(false);
+    const [resetKeyReset, setResetKeyReset] = useState(false);
 
     // Email verification: "check your inbox" gate after signup / blocked login.
     const [verifyEmailSent, setVerifyEmailSent] = useState(false);
@@ -77,7 +78,7 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
         setVerifyEmail, setResendDone, setVerifyEmailSent,
     });
     const { handleForgotPassword, handleResetPassword, exitPasswordReset } = usePasswordResetActions({
-        t, resetToken, setError, setIsLoading, setForgotMode, setForgotSent, setResetToken, setResetDone,
+        t, resetToken, setError, setIsLoading, setForgotMode, setForgotSent, setResetToken, setResetDone, setResetKeyReset,
     });
     const { handleSignup, handleResendVerification, resetSignup } = useSignupActions({
         t, locale, onLogin, signupData, selectedPlanId, inviteInfo, inviteToken,
@@ -161,6 +162,7 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
                             onDone={exitPasswordReset}
                             isLoading={isLoading}
                             done={resetDone}
+                            keyReset={resetKeyReset}
                             inputClass={inputClass}
                             labelClass={labelClass}
                         />

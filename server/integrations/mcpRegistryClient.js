@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * mcpRegistryClient.js — read-only client for the OFFICIAL, open MCP Registry
  * (registry.modelcontextprotocol.io). No API key, no third-party SaaS — this
@@ -105,7 +105,8 @@ function argTokens(argList) {
 function credsFromEnv(envVars) {
     return (envVars || [])
         .filter(v => v && v.name && (v.isSecret || v.isRequired || v.is_secret || v.is_required))
-        .map(v => ({ key: v.name, label: humanize(v.name) }));
+        // The filter keeps only entries with a name.
+        .map(v => { const name = /** @type {string} */ (v?.name); return { key: name, label: humanize(name) }; });
 }
 
 /** @param {RegistryEntry | null | undefined} entry */

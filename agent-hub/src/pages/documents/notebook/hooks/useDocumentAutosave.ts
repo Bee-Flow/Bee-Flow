@@ -44,6 +44,7 @@
  */
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { notebookApi } from '@/api/notebookApi';
+import { useNotebookDocumentSaveMutation } from '@/api/queries/notebookDocumentSave';
 import { errorStatus, errorBodyRecord } from '@/utils/caughtError';
 import { logger } from '@/utils/logger';
 
@@ -85,13 +86,6 @@ function refusalOf(e: unknown): 'collab' | 'conflict' | 'permission' | 'other' {
     return 'other';
 }
 
-/** One whole-document save, compare-and-set when a version is known. */
-function putDocument(id: string, html: string, version: number | null) {
-    const body: { documentContent: string; expectedVersion?: number } = { documentContent: html };
-    if (version != null) body.expectedVersion = version;
-    return notebookApi(`/${id}`, { method: 'PUT', body: JSON.stringify(body) }) as Promise<{ version?: number } | null>;
-}
-
 /** Keep text that will not be saved as a version (the server's 'conflict' copy), before it leaves the editor. */
 export function keepUnsavedCopy(id: string, html: string): Promise<{ version?: { id?: string } } | null> {
     return notebookApi(`/${id}/versions/kept`, { method: 'POST', body: JSON.stringify({ html }) }) as Promise<{ version?: { id?: string } } | null>;
@@ -100,6 +94,7 @@ export function keepUnsavedCopy(id: string, html: string): Promise<{ version?: {
 export default function useDocumentAutosave({
     entityId, initialVersion, initialContent = '', onConflict, onCollabActive, bound = false, readOnly = false,
 }: Options = {}) {
+    const { mutateAsync: saveDocument } = useNotebookDocumentSaveMutation();
     const [documentContent, setDocumentContent] = useState(initialContent);
     const [docSaving, setDocSaving] = useState(false);
     const [saveState, setSaveState] = useState<SaveState>('idle');
@@ -231,7 +226,7 @@ export default function useDocumentAutosave({
         setDocSaving(true);
         setSaveState('saving');
         try {
-            const res = await putDocument(savingForId, html, versionRef.current);
+            const res = await saveDocument({ id: savingForId, html, version: versionRef.current });
             if (entityIdRef.current !== savingForId) return false; // switched entities mid-flight
             onSaved(html, res);
             return true;
@@ -240,7 +235,7 @@ export default function useDocumentAutosave({
         } finally {
             setDocSaving(false);
         }
-    }, [onSaved, onRefused]);
+    }, [onSaved, onRefused, saveDocument]);
 
     const handleDocSave = useCallback(async (html: string, { isRetry = false }: { isRetry?: boolean } = {}) => {
         if (!entityId || skipRef.current) return;
@@ -335,11 +330,11 @@ export default function useDocumentAutosave({
             if (!leavingId || pending == null) return;
             // Held back by a conflict or a session to join: the server keeps
             // this copy as a version (a 409 here is not a loss).
-            putDocument(leavingId, pending, versionRef.current).catch((err) => {
+            saveDocument({ id: leavingId, html: pending, version: versionRef.current }).catch((err) => {
                 if (errorStatus(err) !== 409) console.error('[Notebooks] flush-on-switch save failed:', err);
             });
         };
-    }, [entityId]);
+    }, [entityId, saveDocument]);
 
     // Warn before closing the tab while anything is unsaved, and take one last
     // shot at persisting it (compare-and-set like every other save).

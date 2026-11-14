@@ -13,12 +13,11 @@
  * draw on the same list, which is also how the backend sees it.
  */
 import { useCallback, useState } from 'react';
-import { API_BASE } from '../utils/helpers';
-import { mutate } from '../api/mutate';
 import { useAppsCatalogSources } from '../api/queries/coreAppsCatalog';
 import { useIntegrationStatus } from './useIntegrationStatus';
 import { APP_DEFS, buildAppCatalog, filterAvailableApps } from '../components/apps/appCatalog';
 import type { AppDef } from '../components/apps/appCatalog';
+import { apiRequest } from '@/api/typedRequest';
 
 /** One entry of the picker (the gate flags filterAvailableApps reads included). */
 export type CatalogApp = AppDef;
@@ -66,11 +65,7 @@ export default function useAppsCatalog(
                 : [...current, appId];
             // Persist to the server, fire-and-forget: the switch flipping
             // instantly matters more than confirming the write.
-            mutate(`${API_BASE}/ai/user-settings`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ enabledApps: next }),
-            }).catch(() => { });
+            apiRequest('POST /ai/user-settings', { body: { enabledApps: next } }).catch(() => { });
             return next;
         });
     }, []);

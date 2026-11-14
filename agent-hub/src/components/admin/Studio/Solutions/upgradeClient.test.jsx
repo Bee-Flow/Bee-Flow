@@ -1,4 +1,4 @@
-import { render, waitFor } from '@testing-library/react';
+import { waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -7,6 +7,7 @@ vi.mock('@/utils/helpers', () => ({
     authFetch: (...args) => globalThis.__authFetch(...args),
 }));
 
+import { renderWithClient } from '@/test/render';
 import { PlanBody } from './DialogBody';
 import UpgradeDialog, { UpdateBanner, fetchUpgradePlan, isNewer, nameIndex, planRows, planTouchesNothing, readReport, runUpgrade, updateAvailability } from './upgradeClient';
 
@@ -124,7 +125,7 @@ describe('the plan as it is shown before the button', () => {
         // not be READ, for example (upgrade.js deliberately puts it there rather than at
         // “deleted by you”). The explanation may therefore not be a statement about
         // tables ALONE.
-        const { getByTestId } = render(<PlanBody rows={planRows(PLAN_BODY)} />);
+        const { getByTestId } = renderWithClient(<PlanBody rows={planRows(PLAN_BODY)} />);
         const note = getByTestId('upgrade-group-undetermined').textContent;
         expect(note).toMatch(/without checking whether you changed them/);
         expect(note).toMatch(/not a statement that you did not/);
@@ -133,7 +134,7 @@ describe('the plan as it is shown before the button', () => {
     });
 
     it('a group with nothing in it renders no heading at all', () => {
-        const { queryByTestId } = render(
+        const { queryByTestId } = renderWithClient(
             <PlanBody rows={planRows({ manifest: MANIFEST, plan: { add: [{ ref: 'agt_1', kind: 'agent' }] } })} />,
         );
         expect(queryByTestId('upgrade-group-added')).toBeTruthy();
@@ -184,7 +185,7 @@ describe('may the banner promise anything', () => {
     });
 
     it('names the version only in the available state', () => {
-        const { getByTestId } = render(
+        const { getByTestId } = renderWithClient(
             <UpdateBanner availability={{ state: 'available', latestVersion: 5, installedVersion: 4 }} onOpen={() => {}} />,
         );
         expect(getByTestId('solution-update-available').textContent).toMatch(/Version 5/);
@@ -193,19 +194,19 @@ describe('may the banner promise anything', () => {
     it('the unknown state says so and offers no button', () => {
         // Unknown offers no button: there is nothing to update of which we do not know
         // whether it exists.
-        const { getByTestId, queryByTestId } = render(<UpdateBanner availability={{ state: 'unknown' }} />);
+        const { getByTestId, queryByTestId } = renderWithClient(<UpdateBanner availability={{ state: 'unknown' }} />);
         expect(getByTestId('solution-update-unknown')).toBeTruthy();
         expect(queryByTestId('solution-update-open')).toBeNull();
     });
 
     it('an up-to-date Solution gets no banner of any kind', () => {
-        const { queryByTestId } = render(<UpdateBanner availability={{ state: 'current' }} />);
+        const { queryByTestId } = renderWithClient(<UpdateBanner availability={{ state: 'current' }} />);
         expect(queryByTestId('solution-update-available')).toBeNull();
         expect(queryByTestId('solution-update-unknown')).toBeNull();
     });
 
     it('without a handler the sentence stays and the button goes', () => {
-        const { getByTestId, queryByTestId } = render(
+        const { getByTestId, queryByTestId } = renderWithClient(
             <UpdateBanner availability={{ state: 'available', latestVersion: 5, installedVersion: 4 }} />,
         );
         expect(getByTestId('solution-update-available')).toBeTruthy();
@@ -267,7 +268,7 @@ describe('what travels to the server', () => {
 describe('the dialog', () => {
     it('shows the plan first and only then a confirm button', async () => {
         globalThis.__authFetch = vi.fn(async () => ({ ok: true, json: async () => PLAN_BODY }));
-        const { getByTestId, findByTestId } = render(
+        const { getByTestId, findByTestId } = renderWithClient(
             <UpgradeDialog open projectId="p1" blueprintId="bp1" onClose={() => {}} />,
         );
         await findByTestId('upgrade-group-changed');
@@ -277,7 +278,7 @@ describe('the dialog', () => {
 
     it('A PLAN THAT COULD NOT BE READ OFFERS NO CONFIRM AT ALL', async () => {
         globalThis.__authFetch = vi.fn(async () => ({ ok: false, json: async () => ({ error: 'Request failed' }) }));
-        const { findByTestId, queryByTestId } = render(
+        const { findByTestId, queryByTestId } = renderWithClient(
             <UpgradeDialog open projectId="p1" blueprintId="bp1" onClose={() => {}} />,
         );
         await findByTestId('upgrade-plan-unreadable');
@@ -289,7 +290,7 @@ describe('the dialog', () => {
             ok: true,
             json: async () => ({ ok: true, toVersion: 4, manifest: MANIFEST, plan: { skip: PLAN_BODY.plan.skip } }),
         }));
-        const { findByTestId, queryByTestId } = render(
+        const { findByTestId, queryByTestId } = renderWithClient(
             <UpgradeDialog open projectId="p1" blueprintId="bp1" onClose={() => {}} />,
         );
         await findByTestId('upgrade-plan-empty');
@@ -309,7 +310,7 @@ describe('the dialog', () => {
             };
         });
         const onDone = vi.fn();
-        const { findByTestId, getByTestId } = render(
+        const { findByTestId, getByTestId } = renderWithClient(
             <UpgradeDialog open projectId="p1" blueprintId="bp1" onClose={() => {}} onDone={onDone} />,
         );
         await user.click(await findByTestId('upgrade-confirm'));
@@ -329,7 +330,7 @@ describe('the dialog', () => {
                 : { ok: false, json: async () => ({ error: 'Request failed' }) }
         ));
         const onDone = vi.fn();
-        const { findByTestId, getByTestId, queryByTestId } = render(
+        const { findByTestId, getByTestId, queryByTestId } = renderWithClient(
             <UpgradeDialog open projectId="p1" blueprintId="bp1" onClose={() => {}} onDone={onDone} />,
         );
         await user.click(await findByTestId('upgrade-confirm'));
@@ -339,12 +340,12 @@ describe('the dialog', () => {
     });
 
     it('asks for nothing while it is closed', () => {
-        render(<UpgradeDialog open={false} projectId="p1" blueprintId="bp1" onClose={() => {}} />);
+        renderWithClient(<UpgradeDialog open={false} projectId="p1" blueprintId="bp1" onClose={() => {}} />);
         expect(globalThis.__authFetch).not.toHaveBeenCalled();
     });
 
     it('asks for nothing without a Blueprint the scope resolved', () => {
-        render(<UpgradeDialog open projectId="p1" blueprintId={null} onClose={() => {}} />);
+        renderWithClient(<UpgradeDialog open projectId="p1" blueprintId={null} onClose={() => {}} />);
         expect(globalThis.__authFetch).not.toHaveBeenCalled();
     });
 });

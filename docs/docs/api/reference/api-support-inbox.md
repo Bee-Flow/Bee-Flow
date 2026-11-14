@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/support-inbox`
 
-35 routes, 16 with a request schema. Back to the [endpoint reference](../reference.md).
+35 routes, 18 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `audit`
 
@@ -169,7 +169,7 @@ No request schema.
 
 **Access:** Capability `support_inbox`
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `PUT /api/support-inbox/inboxes/:id/kb-automation`
 
@@ -344,7 +344,7 @@ No request schema.
 
 **Access:** Capability `support_inbox`
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `GET /api/support-inbox/threads/:id/events`
 

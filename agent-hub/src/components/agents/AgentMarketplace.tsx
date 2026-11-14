@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { getAgentInitials, getAgentColor } from '../../utils/helpers';
 import { isImageAvatar, resolveAvatarSrc, pickAgentAvatar } from '../../utils/agentAvatar';
 import { ChevronDown, ChevronUp, X, Search, Heart, EyeOff, Pencil } from 'lucide-react';
@@ -67,6 +68,7 @@ const AgentCard = React.memo(({ agentId, name, avatar, description, typeLabel, i
                     onClick={(e) => { e.stopPropagation(); onEdit(); }}
                     className="p-1.5 rounded-lg transition-opacity opacity-0 group-hover:opacity-100 hover:brightness-90 bg-[var(--bg-tertiary)]"
                     title={t('agent.agent_marketplace_edit_agent', 'Edit agent')}
+                    aria-label={t('agent.agent_marketplace_edit_agent', 'Edit agent')}
                     data-testid={`agent-edit-${agentId}`}
                 >
                     <Pencil className="w-3.5 h-3.5 text-[var(--text-muted)]" />
@@ -77,6 +79,7 @@ const AgentCard = React.memo(({ agentId, name, avatar, description, typeLabel, i
                     onClick={(e) => { e.stopPropagation(); onUnpublish(agentId); }}
                     className="p-1.5 rounded-lg transition-opacity opacity-0 group-hover:opacity-100 bg-[var(--bg-tertiary)]"
                     title={t('agent.agent_marketplace_unpublish_agent', 'Unpublish agent')}
+                    aria-label={t('agent.agent_marketplace_unpublish_agent', 'Unpublish agent')}
                 >
                     <EyeOff className="w-3.5 h-3.5 text-[var(--text-muted)]" />
                 </button>
@@ -117,9 +120,23 @@ const AgentCard = React.memo(({ agentId, name, avatar, description, typeLabel, i
 );
 });
 
-
 /* ── Main Store ── */
 const API = (import.meta.env.VITE_API_URL || '') + '/api/usage';
+const NO_USAGE: Record<string, number> = {};
+
+/** Calls per agent (monitoring API), for the popularity sort; a failed read sorts as no calls. */
+function useAgentPopularity(): Record<string, number> {
+    return useQuery<Record<string, number>>({
+        queryKey: ['usage', 'callsByAgent'],
+        staleTime: 0,
+        retry: false,
+        queryFn: async () => {
+            const r = await fetch(`${API}/agents`);
+            const data: unknown = r.ok ? await r.json() : [];
+            return Object.fromEntries((Array.isArray(data) ? data : []).filter((d) => d?.agent_id).map((d) => [d.agent_id, d.calls || 0]));
+        },
+    }).data ?? NO_USAGE;
+}
 
 const AgentMarketplace = ({ agents = [], favorites = [], categories = [], onToggleFavorite, onSelect, onClose, onUnpublish, onEditAgent, user }: AgentMarketplaceProps) => {
     const { t } = useTranslation();
@@ -128,7 +145,7 @@ const AgentMarketplace = ({ agents = [], favorites = [], categories = [], onTogg
     const [activeCategory, setActiveCategory] = useState('popular');
     const [activeJobs, setActiveJobs] = useState<string[]>([]);
     const [sortBy, setSortBy] = useState('top');
-    const [usageByAgent, setUsageByAgent] = useState<Record<string, number>>({});
+    const usageByAgent = useAgentPopularity();
     const [recents, setRecents] = useState<string[]>(() => scopedStorage.getJSON<string[]>('agent_marketplace_recents', []) ?? []);
 
     // Build category list dynamically: static before + dynamic org categories + static after
@@ -153,17 +170,6 @@ const AgentMarketplace = ({ agents = [], favorites = [], categories = [], onTogg
         setActiveCategory('popular');
     }
 
-    // Fetch popularity data from monitoring API
-    useEffect(() => {
-        fetch(`${API}/agents`)
-            .then(r => r.ok ? r.json() : [])
-            .then(data => {
-                const map: Record<string, number> = {};
-                (Array.isArray(data) ? data : []).forEach((d: { agent_id?: string; calls?: number }) => { if (d.agent_id) map[d.agent_id] = d.calls || 0; });
-                setUsageByAgent(map);
-            })
-            .catch(() => { });
-    }, []);
     const handleSelect = useCallback((agent: MarketAgent) => {
         const r = scopedStorage.getJSON<string[]>('agent_marketplace_recents', []) ?? [];
         const updated = [agent.id, ...r.filter(id => id !== agent.id)].slice(0, 8);
@@ -353,9 +359,6 @@ const AgentMarketplace = ({ agents = [], favorites = [], categories = [], onTogg
             {/* Content */}
             <div className="flex-1 overflow-auto">
                 <div className="px-6 py-5 space-y-5">
-
-
-
 
                     {/* Grid */}
                     <div>

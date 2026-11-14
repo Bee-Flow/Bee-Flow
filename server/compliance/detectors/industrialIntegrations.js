@@ -35,7 +35,7 @@
  * Sources (all org-scoped except mcp_servers, which is a platform-wide admin
  * table without an org column — those matches carry scope:'platform'):
  *   org_custom_integrations (definition + activated_definition), automations
- *   (definition_json walked with automation/automationGraph.walkSteps when present),
+ *   (definition_json walked with core/automationModel/automationGraph.walkSteps when present),
  *   integration_connections.provider/label, integration_activity_log
  *   server_endpoint/tls_servername/dest_host over 90 days, mcp_servers url/command.
  *
@@ -136,7 +136,7 @@ function confidenceOf(signals) {
 // ── automation definitions ──────────────────────────────────────────────────
 
 /**
- * Minimal step walker used when automation/automationGraph.js (another workstream)
+ * Minimal step walker used when core/automationModel/automationGraph.js (another workstream)
  * is not on disk yet: flattens steps, loop/forEach bodies, parallel branches
  * and condition arms.
  * @param {Record<string, any> | null | undefined} definition
@@ -168,7 +168,7 @@ function _fallbackWalkSteps(definition, fn) {
  */
 function _walkSteps(definition, fn) {
     try {
-        const graph = require('../../automation/automationGraph');
+        const graph = require('../../core/automationModel/automationGraph');
         if (typeof graph.walkSteps === 'function') return graph.walkSteps(definition, fn);
     } catch (err) { bestEffort('compliance/detectors/industrialIntegrations:_walkSteps', err); /* not there yet — fall back */ }
     return _fallbackWalkSteps(definition, fn);

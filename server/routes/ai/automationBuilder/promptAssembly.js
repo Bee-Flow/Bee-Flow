@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Automation Builder — the turn's prompt: the catalogue in the profile's
  * order, the pre-inspected tool schemas, the web-research decision and the
@@ -8,12 +8,12 @@
 
 const log = require('../../../telemetry/log');
 const { rankAppsForMessage, applyCatalogOrder, catalogOrderOf } = require('../../../automation/builderPrompt/rankApps');
-const { resolveWebResearch, webResearchPromptLine } = require('./webResearch');
-const { LARGE_CHANGE_STEPS, modeInstruction, reviewStatusNote, questionStatusNote } = require('./workMode');
-const { composeTurnMessages } = require('./turnMessages');
+const { resolveWebResearch, webResearchPromptLine } = require('../../../usecases/ai/automationBuilder/webResearch');
+const { LARGE_CHANGE_STEPS, modeInstruction, reviewStatusNote, questionStatusNote } = require('../../../usecases/ai/automationBuilder/workMode');
+const { composeTurnMessages } = require('../../../usecases/ai/automationBuilder/turnMessages');
 const { renderLastTestRun, stepIdsOf } = require('../../../automation/builderPrompt/lastTestRun.mts');
-const { lastRunBlock } = require('./lastRunContext.mts');
-const { splitTurnImages, blindImageLine } = require('./turnImages.mts');
+const { lastRunBlock } = require('../../../usecases/ai/automationBuilder/lastRunContext.mts');
+const { splitTurnImages, blindImageLine } = require('../../../usecases/ai/automationBuilder/turnImages.mts');
 
 // Catalog ORDERING for profiles that ask for it — see
 // automation/builderPrompt/rankApps.js. It used to be a catalog FILTER, and
@@ -81,7 +81,7 @@ async function assembleTurnPrompt(turn) {
             const relevant = renderRelevantToolSchemas(catalog, message, draftWrap.def, { max: 10 });
             if (relevant) {
                 schemaPart = relevant.text;
-                for (const t of relevant.tools) draftWrap._inspectedTools.add(t);
+                for (const t of relevant.tools) /** @type {Set<string>} */ (draftWrap._inspectedTools).add(t); // turnSetup gave the turn its set
             }
         } catch (e) { log.warn('[AutomationBuilder] schema injection skipped:', /** @type {Error} */ (e).message); }
     }
@@ -132,7 +132,7 @@ async function assembleTurnPrompt(turn) {
             disabledMedia: disabledMedia || {},
             // The ONLY ai_step modelTier values this user has (validated
             // server-side by modelTierGateError as well).
-            allowedModelTiers: [...draftWrap._allowedModelTiers],
+            allowedModelTiers: [.../** @type {Set<string>} */ (draftWrap._allowedModelTiers)], // resolveTurnModel set them
         },
     });
 

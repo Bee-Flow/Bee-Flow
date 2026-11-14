@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * automations.js — automationStore aggregate (§WS5, extracted verbatim).
  */
@@ -6,13 +6,12 @@
 const crypto = require('crypto');
 const { keepConnectionsPolicy } = require('./connectionsPolicy');
 const { buildAutomationUpdate } = require('./automationUpdate');
-const { initDB, run, getOne, getAll, getClient, pool, withTransaction } = require('./core');
+const { initDB, run, getOne, getAll, pool, withTransaction } = require('./core');
 const { rowToAutomation, safeParse } = require('./rowMappers');
 const { planVersionWrite } = require('../../automation/diffSummary');
 // Handoff 5: every read carries pendingChanges, trashed rows are excluded, and
 // a working-copy write never moves the live copy (see lifecycle.js).
 const { AUTOMATION_SELECT, LIVE_INVARIANT_SQL, stripLiveFollowingFields } = require('./lifecycle');
-const { bestEffort } = require('../../utils/bestEffort');
 const { reapStuckRuns } = require('./runReaper');
 
 /** @typedef {{ definition?: Record<string, unknown>, projectId?: string | null, [key: string]: unknown }} AutomationUpdates */
@@ -54,33 +53,34 @@ function suppliedOf(updates) {
 async function createAutomation({ userId, organizationId = null, title, description = '', definition, triggerType, scheduleCron = null, scheduleTz = 'Europe/Amsterdam', nextRunAt = null, createdFromChatId = null, versionMeta = null }) {
     await initDB();
     const id = crypto.randomUUID();
-    // Layers are inline (definition.layers) since the inline-layers
-    // migration — every new row is a plain automation; the `kind` column's
-    // default covers it (kept for legacy rows converted from standalone
-    // layers).
-    await run(
-        `INSERT INTO automations (id, user_id, organization_id, title, description, definition_json,
-            version, is_active, is_draft, needs_first_run_confirm, trigger_type, schedule_cron, schedule_tz, next_run_at, created_from_chat_id)
-         VALUES ($1,$2,$3,$4,$5,$6,1,FALSE,TRUE,TRUE,$7,$8,$9,$10,$11)`,
-        [id, userId, organizationId, title, description, JSON.stringify(definition || {}),
-            triggerType, scheduleCron, scheduleTz, nextRunAt, createdFromChatId],
-    );
-    // Seed the v1 version snapshot so run history can render the flow exactly
-    // as it was at run time, even for runs that fire before the first edit
-    // (updateAutomation only inserts a version row on subsequent changes).
-    // Handoff 5: v1 says how the automation came to be ("Created", "Created from
-    // template ...", "Copied from ..."), as codes the UI translates plus text.
-    const v1 = versionMeta || {};
-    const v1Json = v1.descriptionJson != null ? v1.descriptionJson : [{ code: 'created', params: {} }];
-    await run(
-        `INSERT INTO automation_versions (id, automation_id, version, definition_json, saved_by_user_id, change_summary,
-                                          name, description, description_json)
-         VALUES ($1, $2, 1, $3, $4, $5, $6, $7, $8)
-         ON CONFLICT (automation_id, version) DO NOTHING`,
-        [crypto.randomUUID(), id, JSON.stringify(definition || {}), userId, 'Created',
-            typeof v1.name === 'string' && v1.name.trim() ? v1.name.trim() : null,
-            v1.description || 'Created', JSON.stringify(v1Json)],
-    );
+    // The row and its v1 version commit together: a row without v1 would show
+    // runs that fire before the first edit with no flow to render.
+    await withTransaction(async (client) => {
+        // Layers are inline (definition.layers): every new row is a plain
+        // automation; the `kind` column's default covers it.
+        await client.query(
+            `INSERT INTO automations (id, user_id, organization_id, title, description, definition_json,
+                version, is_active, is_draft, needs_first_run_confirm, trigger_type, schedule_cron, schedule_tz, next_run_at, created_from_chat_id)
+             VALUES ($1,$2,$3,$4,$5,$6,1,FALSE,TRUE,TRUE,$7,$8,$9,$10,$11)`,
+            [id, userId, organizationId, title, description, JSON.stringify(definition || {}),
+                triggerType, scheduleCron, scheduleTz, nextRunAt, createdFromChatId],
+        );
+        // The v1 snapshot lets run history render the flow as it was at run
+        // time (updateAutomation inserts a version row only on later changes).
+        // Handoff 5: v1 says how the automation came to be ("Created", "Created
+        // from template ...", "Copied from ..."), as codes the UI translates plus text.
+        const v1 = versionMeta || {};
+        const v1Json = v1.descriptionJson != null ? v1.descriptionJson : [{ code: 'created', params: {} }];
+        await client.query(
+            `INSERT INTO automation_versions (id, automation_id, version, definition_json, saved_by_user_id, change_summary,
+                                              name, description, description_json)
+             VALUES ($1, $2, 1, $3, $4, $5, $6, $7, $8)
+             ON CONFLICT (automation_id, version) DO NOTHING`,
+            [crypto.randomUUID(), id, JSON.stringify(definition || {}), userId, 'Created',
+                typeof v1.name === 'string' && v1.name.trim() ? v1.name.trim() : null,
+                v1.description || 'Created', JSON.stringify(v1Json)],
+        );
+    });
     return getAutomation(id);
 }
 
@@ -230,10 +230,7 @@ async function claimDueAutomations(instanceId, limit = 20) {
              FOR UPDATE SKIP LOCKED`,
             [limit],
         );
-        if (sel.rows.length === 0) {
-            await client.query('COMMIT');
-            return [];
-        }
+        if (sel.rows.length === 0) return [];
         const ids = sel.rows.map(r => r.id);
         const upd = await client.query(
             `UPDATE automations
@@ -377,7 +374,7 @@ async function reapStuckAutomations({ staleAfterMs = 10 * 60_000, maxAttempts = 
           RETURNING *`,
         [staleAfterMs, maxAttempts, bufferMs],
     );
-    return rows.map(rowToAutomation);
+    return rows.map((r) => /** @type {NonNullable<ReturnType<typeof rowToAutomation>>} */ (rowToAutomation(r))); // a selected row maps, never to null
 }
 
 /**
@@ -514,18 +511,13 @@ async function resetAttempts(id) {
 async function updateAutomation(id, updates, savedByUserId, opts = {}) {
     await initDB();
     if (!buildAutomationUpdate(updates).built) return false;
-    const client = await getClient();
-    try {
-        return await updateAutomationWith(client, id, updates, savedByUserId, opts);
-    } finally {
-        client.release();
-    }
+    return withTransaction((client) => updateAutomationWith(client, id, updates, savedByUserId, opts));
 }
 
 /**
- * updateAutomation's transaction on a client the caller owns (and releases).
+ * updateAutomation on a transaction the caller owns (BEGIN/COMMIT are theirs).
  * Split out so the version rules run against a real Postgres in a test
- * (automations.versions.pg.test.js) without reaching into the module system.
+ * (versions.pg.test.js) without reaching into the module system.
  *
  * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[] }> }} client
  * @param {string} id
@@ -540,95 +532,89 @@ async function updateAutomationWith(client, id, updates, savedByUserId, {
     const { write, definitionJson, buildFor, built: initial } = buildAutomationUpdate(updates);
     if (!initial) return false;
     const definitionChanged = definitionJson !== null;
-    try {
-        await client.query('BEGIN');
-        // The pre-update definition decides whether this write is a version
-        // at all (layout-only is not) and describes what changed. The live
-        // version rides along: it decides which columns this write may move.
-        // Locked, so a concurrent publish cannot slip in between.
-        const prevRow = await client.query('SELECT definition_json, live_version, project_id FROM automations WHERE id = $1 FOR UPDATE', [id]);
-        const locked = prevRow.rows[0];
-        const hasLive = locked?.live_version != null;
-        if (locked) {
-            // On a managed automation only the allow-list moves without a deploy.
-            // The values go along, so switching a never-live automation OFF passes
-            // while switching it ON (which would publish the working copy) does not.
-            // A goLive write also copies the working copy into the live columns
-            // (LIVE_INVARIANT_SQL below), a publish whatever keys it carries.
-            const guard = guardOf(managedParts);
-            const supplied = suppliedOf(updates);
+    // The pre-update definition decides whether this write is a version
+    // at all (layout-only is not) and describes what changed. The live
+    // version rides along: it decides which columns this write may move.
+    // Locked, so a concurrent publish cannot slip in between.
+    const prevRow = await client.query('SELECT definition_json, live_version, project_id FROM automations WHERE id = $1 FOR UPDATE', [id]);
+    const locked = prevRow.rows[0];
+    const hasLive = locked?.live_version != null;
+    if (locked) {
+        // On a managed automation only the allow-list moves without a deploy.
+        // The values go along, so switching a never-live automation OFF passes
+        // while switching it ON (which would publish the working copy) does not.
+        // A goLive write also copies the working copy into the live columns
+        // (LIVE_INVARIANT_SQL below), a publish whatever keys it carries.
+        const guard = guardOf(managedParts);
+        const supplied = suppliedOf(updates);
+        await guard.assertManagedWrite({
+            kind: 'automation', projectId: locked.project_id,
+            changedKeys: goLive ? { ...supplied, liveDefinition: true } : supplied,
+            managedWrite, client, liveVersion: locked.live_version ?? null,
+        });
+        // Filing INTO a stage project is a stage write too.
+        if (supplied.projectId && supplied.projectId !== locked.project_id) {
             await guard.assertManagedWrite({
-                kind: 'automation', projectId: locked.project_id,
-                changedKeys: goLive ? { ...supplied, liveDefinition: true } : supplied,
-                managedWrite, client, liveVersion: locked.live_version ?? null,
+                kind: 'automation', projectId: supplied.projectId, changedKeys: ['projectId'], managedWrite, client,
             });
-            // Filing INTO a stage project is a stage write too.
-            if (supplied.projectId && supplied.projectId !== locked.project_id) {
-                await guard.assertManagedWrite({
-                    kind: 'automation', projectId: supplied.projectId, changedKeys: ['projectId'], managedWrite, client,
-                });
-            }
         }
-        let plan = null;
-        if (definitionChanged) {
-            const pj = prevRow.rows[0]?.definition_json;
-            const prevDefinition = typeof pj === 'string' ? safeParse(pj, {}) : (pj || {});
-            plan = planVersionWrite(prevDefinition, updates.definition, { versionMeta, forceVersion });
-        }
-        const built = buildFor(stripLiveFollowingFields(write, { hasLive, goLive }));
-        if (!built) {
-            // Everything asked for was a live-following column on a live
-            // automation: nothing to write, the row stands as it is.
-            const same = await client.query(`${AUTOMATION_SELECT} WHERE a.id = $1 AND a.deleted_at IS NULL`, [id]);
-            await client.query('COMMIT');
-            return rowToAutomation(same.rows[0] || null);
-        }
-        // Bump the version when the definition changed structurally. Both
-        // clauses are verbatim SQL over the stored row, so they continue after
-        // the builder's placeholders rather than going through it.
-        const params = built.params;
-        let idx = params.length + 1;
-        const setClauses = [];
-        if (definitionChanged) {
-            if (plan.createVersion) setClauses.push('version = version + 1');
-            // Keep the builder-session snapshot's draft in lock-step with the
-            // persisted definition. Visual edits (drag, layer ops, inspector
-            // saves) update the row but NOT the snapshot the client rehydrates
-            // from on refresh — without this the stale snapshot draft masks the
-            // saved definition and the user's changes appear to vanish on
-            // reload. Only touch the snapshot when one already exists.
-            setClauses.push(`builder_session = CASE WHEN builder_session IS NULL THEN builder_session ELSE jsonb_set(builder_session, '{draft}', $${idx}::jsonb, true) END`);
-            params.push(definitionJson);
-            idx++;
-        }
-        params.push(id);
-        const upd = await client.query(
-            `${built.sql}${setClauses.length ? ', ' + setClauses.join(', ') : ''} WHERE id = $${idx} RETURNING *`,
-            params,
-        );
-        const updatedRow = upd.rows[0];
-        if (definitionChanged && updatedRow && plan.createVersion) {
-            await client.query(
-                `INSERT INTO automation_versions (id, automation_id, version, definition_json, saved_by_user_id, change_summary,
-                                                  name, description, description_json, is_layout_only)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-                 ON CONFLICT (automation_id, version) DO NOTHING`,
-                [crypto.randomUUID(), id, updatedRow.version, definitionJson, savedByUserId || updatedRow.user_id, plan.changeSummary,
-                    plan.name, plan.description,
-                    plan.descriptionJson != null ? JSON.stringify(plan.descriptionJson) : null,
-                    plan.isLayoutOnly],
-            );
-        }
-        if (updatedRow) await client.query(LIVE_INVARIANT_SQL, [id, !!goLive]);
-        const fresh = updatedRow
-            ? (await client.query(`${AUTOMATION_SELECT} WHERE a.id = $1`, [id])).rows[0] || updatedRow
-            : updatedRow;
-        await client.query('COMMIT');
-        return rowToAutomation(fresh);
-    } catch (e) {
-        await client.query('ROLLBACK').catch((e) => bestEffort('stores/automationStore/automations:updateAutomationWith', e));
-        throw e;
     }
+    let plan = null;
+    if (definitionChanged) {
+        const pj = prevRow.rows[0]?.definition_json;
+        const prevDefinition = typeof pj === 'string' ? safeParse(pj, {}) : (pj || {});
+        plan = planVersionWrite(/** @type {Parameters<typeof planVersionWrite>[0]} */ (prevDefinition), /** @type {Parameters<typeof planVersionWrite>[1]} */ (updates.definition), { versionMeta, forceVersion });
+    }
+    // A changed definition is what made the plan, and every read below is under definitionChanged.
+    const versionPlan = /** @type {ReturnType<typeof planVersionWrite>} */ (plan);
+    const built = buildFor(stripLiveFollowingFields(write, { hasLive, goLive }));
+    if (!built) {
+        // Everything asked for was a live-following column on a live
+        // automation: nothing to write, the row stands as it is.
+        const same = await client.query(`${AUTOMATION_SELECT} WHERE a.id = $1 AND a.deleted_at IS NULL`, [id]);
+        return rowToAutomation(same.rows[0] || null);
+    }
+    // Bump the version when the definition changed structurally. Both
+    // clauses are verbatim SQL over the stored row, so they continue after
+    // the builder's placeholders rather than going through it.
+    const params = built.params;
+    let idx = params.length + 1;
+    const setClauses = [];
+    if (definitionChanged) {
+        if (versionPlan.createVersion) setClauses.push('version = version + 1');
+        // Keep the builder-session snapshot's draft in lock-step with the
+        // persisted definition. Visual edits (drag, layer ops, inspector
+        // saves) update the row but NOT the snapshot the client rehydrates
+        // from on refresh — without this the stale snapshot draft masks the
+        // saved definition and the user's changes appear to vanish on
+        // reload. Only touch the snapshot when one already exists.
+        setClauses.push(`builder_session = CASE WHEN builder_session IS NULL THEN builder_session ELSE jsonb_set(builder_session, '{draft}', $${idx}::jsonb, true) END`);
+        params.push(definitionJson);
+        idx++;
+    }
+    params.push(id);
+    const upd = await client.query(
+        `${built.sql}${setClauses.length ? ', ' + setClauses.join(', ') : ''} WHERE id = $${idx} RETURNING *`,
+        params,
+    );
+    const updatedRow = upd.rows[0];
+    if (definitionChanged && updatedRow && versionPlan.createVersion) {
+        await client.query(
+            `INSERT INTO automation_versions (id, automation_id, version, definition_json, saved_by_user_id, change_summary,
+                                              name, description, description_json, is_layout_only)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+             ON CONFLICT (automation_id, version) DO NOTHING`,
+            [crypto.randomUUID(), id, updatedRow.version, definitionJson, savedByUserId || updatedRow.user_id, versionPlan.changeSummary,
+                versionPlan.name, versionPlan.description,
+                versionPlan.descriptionJson != null ? JSON.stringify(versionPlan.descriptionJson) : null,
+                versionPlan.isLayoutOnly],
+        );
+    }
+    if (updatedRow) await client.query(LIVE_INVARIANT_SQL, [id, !!goLive]);
+    const fresh = updatedRow
+        ? (await client.query(`${AUTOMATION_SELECT} WHERE a.id = $1`, [id])).rows[0] || updatedRow
+        : updatedRow;
+    return rowToAutomation(fresh);
 }
 
 /**

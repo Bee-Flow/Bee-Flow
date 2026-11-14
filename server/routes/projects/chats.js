@@ -73,7 +73,7 @@
 const express = require('express');
 const { validate } = require('../../core/http/validate');
 const S = require('./chatSchemas');
-const { titleFromMessage } = require('./chatsPresent');
+const { titleFromMessage } = require('../../usecases/projects/chatsPresent');
 const { makeChatsContext } = require('./chatsContext');
 const C = require('./chatsHandlers');
 const M = require('./chatMessageHandlers');
@@ -105,7 +105,7 @@ const M = require('./chatMessageHandlers');
  *   policy  { resolveOrgPolicy } (projects/participation/policy)
  *   participationStore  { recordFeedback, feedbackFor } (stores/projectAiParticipationStore)
  *   collabNotifier  { chatMentioned } (projects/collabNotify): the bell for a mention
- *   signalProjectChanged  (project, reason) => void (routes/projects/complianceSignal)
+ *   signalProjectChanged  (project, reason) => void (usecases/projects/complianceSignal)
  *   now
  *   newId
  */

@@ -92,6 +92,162 @@ function mapMember(m) {
 }
 
 /**
+ * @typedef {{ baseUrl: string, api: string, ncFetch: import('./nextcloudClient.types').NcAuth['fetch'], authError: string }} TeamsCtx
+ * @typedef {(args: Record<string, any>, c: TeamsCtx) => Promise<Record<string, any>>} TeamsHandler
+ */
+
+/** @type {TeamsHandler} */
+async function listTeams(_args, { api, ncFetch, authError }) {
+    const out = await handle(await ncFetch(api, { headers: HEADERS }), authError, 'team list');
+    if (out.error) return out;
+    const teams = (Array.isArray(out.data) ? out.data : []).map(mapTeam);
+    return { count: teams.length, teams };
+}
+
+/** @type {TeamsHandler} */
+async function getTeam(args, { api, ncFetch, authError }) {
+    if (!args.teamId) return { error: 'teamId is required' };
+    const out = await handle(
+        await ncFetch(`${api}/${encodeURIComponent(args.teamId)}`, { headers: HEADERS }),
+        authError, 'team fetch',
+    );
+    if (out.error) return out;
+    return { team: mapTeam(out.data || {}) };
+}
+
+/** @type {TeamsHandler} */
+async function listMembers(args, { api, ncFetch, authError }) {
+    if (!args.teamId) return { error: 'teamId is required' };
+    const out = await handle(
+        await ncFetch(`${api}/${encodeURIComponent(args.teamId)}/members`, { headers: HEADERS }),
+        authError, 'member list',
+    );
+    if (out.error) return out;
+    const members = (Array.isArray(out.data) ? out.data : []).map(mapMember);
+    return { teamId: args.teamId, count: members.length, members };
+}
+
+/** @type {TeamsHandler} */
+async function createTeam(args, { api, ncFetch, authError }) {
+    if (!args.name) return { error: 'name is required' };
+    const out = await handle(
+        await ncFetch(api, {
+            method: 'POST', headers: HEADERS,
+            body: JSON.stringify({
+                name: args.name,
+                personal: !!args.personal,
+                local: !!args.local,
+            }),
+        }),
+        authError, 'team create',
+    );
+    if (out.error) return out;
+    // `population` is stale at create time; the creator is already the owner.
+    const team = mapTeam(out.data || {});
+    return { success: true, team: { ...team, memberCount: Math.max(1, team.memberCount || 0) } };
+}
+
+/** @type {TeamsHandler} */
+async function removeMember(args, { api, ncFetch, authError }) {
+    if (!args.teamId) return { error: 'teamId is required' };
+    if (!args.memberId) return { error: 'memberId is required (from nextcloud_teams_list_members — not the Nextcloud user id)' };
+    const out = await handle(
+        await ncFetch(`${api}/${encodeURIComponent(args.teamId)}/members/${encodeURIComponent(args.memberId)}`, {
+            method: 'DELETE', headers: HEADERS,
+        }),
+        authError, 'member remove',
+    );
+    if (out.error) return out;
+    return { success: true, teamId: args.teamId, memberId: args.memberId };
+}
+
+/** @type {TeamsHandler} */
+async function setMemberLevel(args, { api, ncFetch, authError }) {
+    if (!args.teamId) return { error: 'teamId is required' };
+    if (!args.memberId) return { error: 'memberId is required' };
+    const level = MEMBER_LEVELS[String(args.level || '').toLowerCase()];
+    if (!level) return { error: `level must be one of: ${Object.keys(MEMBER_LEVELS).filter(l => l !== 'owner').join(', ')}` };
+    const out = await handle(
+        await ncFetch(`${api}/${encodeURIComponent(args.teamId)}/members/${encodeURIComponent(args.memberId)}/level`, {
+            method: 'PUT', headers: HEADERS, body: JSON.stringify({ level }),
+        }),
+        authError, 'level change',
+    );
+    if (out.error) return out;
+    return { success: true, teamId: args.teamId, memberId: args.memberId, level: args.level };
+}
+
+/** @type {TeamsHandler} */
+async function updateTeam(args, { api, ncFetch, authError }) {
+    if (!args.teamId) return { error: 'teamId is required' };
+    if (args.name === undefined && args.description === undefined) {
+        return { error: 'Nothing to update — pass a name and/or a description.' };
+    }
+    // Name and description are separate endpoints upstream.
+    /** @type {[string, string, string][]} */
+    const steps = [['name', 'name', 'rename'], ['description', 'description', 'description change']];
+    /** @type {string[]} */
+    const updated = [];
+    for (const [field, endpoint, what] of steps) {
+        if (args[field] === undefined) continue;
+        const out = await handle(
+            await ncFetch(`${api}/${encodeURIComponent(args.teamId)}/${endpoint}`, {
+                method: 'PUT', headers: HEADERS, body: JSON.stringify({ value: args[field] }),
+            }),
+            authError, what,
+        );
+        if (out.error) return out;
+        updated.push(field);
+    }
+    return { success: true, teamId: args.teamId, updated };
+}
+
+/** @type {TeamsHandler} */
+async function shareWithTeam(args, { baseUrl, ncFetch, authError }) {
+    if (!args.path) return { error: 'path is required' };
+    if (!args.teamId) return { error: 'teamId is required' };
+    // shareType 7 is a circle/team share in the files_sharing API.
+    const params = new URLSearchParams({
+        path: args.path,
+        shareType: '7',
+        shareWith: String(args.teamId),
+        permissions: String(args.permissions || 1),
+    });
+    if (args.expireDate) params.set('expireDate', args.expireDate);
+    if (args.note) params.set('note', args.note);
+    const res = await ncFetch(`${baseUrl}/ocs/v2.php/apps/files_sharing/api/v1/shares?format=json`, {
+        method: 'POST',
+        headers: { 'OCS-APIRequest': 'true', 'Accept': 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString(),
+    });
+    const out = await handle(res, authError, 'team share');
+    if (out.error) return out;
+    const share = out.data || {};
+    return {
+        success: true,
+        id: toShareId(share.id),
+        shareId: toShareId(share.id),
+        path: args.path,
+        teamId: args.teamId,
+        permissions: share.permissions ?? Number(args.permissions || 1),
+    };
+}
+
+/** @type {Record<string, TeamsHandler>} */
+const HANDLERS = {
+    nextcloud_teams_list: listTeams,
+    nextcloud_teams_get: getTeam,
+    nextcloud_teams_list_members: listMembers,
+    nextcloud_teams_create: createTeam,
+    nextcloud_teams_add_members: (args, { api, ncFetch, authError }) => addMembers({ api, ncFetch, authError, handle, HEADERS }, args),
+    nextcloud_teams_remove_member: removeMember,
+    nextcloud_teams_set_member_level: setMemberLevel,
+    nextcloud_teams_update: updateTeam,
+    nextcloud_teams_delete: (args, { api, ncFetch, authError }) => deleteTeam({ api, ncFetch, authError, handle, HEADERS }, args),
+    nextcloud_share_with_team: shareWithTeam,
+};
+
+/**
  * @param {string} toolName
  * @param {Record<string, any>} args tool arguments as the model sent them
  * @param {string} userId
@@ -99,155 +255,9 @@ function mapMember(m) {
  */
 async function executeNextcloudTeamsTool(toolName, args, userId, session) {
     const ctx = await ncClient.resolveAuth(session, userId);
-    const { baseUrl, fetch: ncFetch, authError } = ctx;
-    const api = `${baseUrl}${CIRCLES_API}`;
-
-    switch (toolName) {
-        case 'nextcloud_teams_list': {
-            const out = await handle(await ncFetch(api, { headers: HEADERS }), authError, 'team list');
-            if (out.error) return out;
-            const teams = (Array.isArray(out.data) ? out.data : []).map(mapTeam);
-            return { count: teams.length, teams };
-        }
-
-        case 'nextcloud_teams_get': {
-            if (!args.teamId) return { error: 'teamId is required' };
-            const out = await handle(
-                await ncFetch(`${api}/${encodeURIComponent(args.teamId)}`, { headers: HEADERS }),
-                authError, 'team fetch',
-            );
-            if (out.error) return out;
-            return { team: mapTeam(out.data || {}) };
-        }
-
-        case 'nextcloud_teams_list_members': {
-            if (!args.teamId) return { error: 'teamId is required' };
-            const out = await handle(
-                await ncFetch(`${api}/${encodeURIComponent(args.teamId)}/members`, { headers: HEADERS }),
-                authError, 'member list',
-            );
-            if (out.error) return out;
-            const members = (Array.isArray(out.data) ? out.data : []).map(mapMember);
-            return { teamId: args.teamId, count: members.length, members };
-        }
-
-        case 'nextcloud_teams_create': {
-            if (!args.name) return { error: 'name is required' };
-            const out = await handle(
-                await ncFetch(api, {
-                    method: 'POST', headers: HEADERS,
-                    body: JSON.stringify({
-                        name: args.name,
-                        personal: !!args.personal,
-                        local: !!args.local,
-                    }),
-                }),
-                authError, 'team create',
-            );
-            if (out.error) return out;
-            // `population` is stale at create time; the creator is already the owner.
-            const team = mapTeam(out.data || {});
-            return { success: true, team: { ...team, memberCount: Math.max(1, team.memberCount || 0) } };
-        }
-
-        case 'nextcloud_teams_add_members':
-            return addMembers({ api, ncFetch, authError, handle, HEADERS }, args);
-
-        case 'nextcloud_teams_remove_member': {
-            if (!args.teamId) return { error: 'teamId is required' };
-            if (!args.memberId) return { error: 'memberId is required (from nextcloud_teams_list_members — not the Nextcloud user id)' };
-            const out = await handle(
-                await ncFetch(`${api}/${encodeURIComponent(args.teamId)}/members/${encodeURIComponent(args.memberId)}`, {
-                    method: 'DELETE', headers: HEADERS,
-                }),
-                authError, 'member remove',
-            );
-            if (out.error) return out;
-            return { success: true, teamId: args.teamId, memberId: args.memberId };
-        }
-
-        case 'nextcloud_teams_set_member_level': {
-            if (!args.teamId) return { error: 'teamId is required' };
-            if (!args.memberId) return { error: 'memberId is required' };
-            const level = MEMBER_LEVELS[String(args.level || '').toLowerCase()];
-            if (!level) return { error: `level must be one of: ${Object.keys(MEMBER_LEVELS).filter(l => l !== 'owner').join(', ')}` };
-            const out = await handle(
-                await ncFetch(`${api}/${encodeURIComponent(args.teamId)}/members/${encodeURIComponent(args.memberId)}/level`, {
-                    method: 'PUT', headers: HEADERS, body: JSON.stringify({ level }),
-                }),
-                authError, 'level change',
-            );
-            if (out.error) return out;
-            return { success: true, teamId: args.teamId, memberId: args.memberId, level: args.level };
-        }
-
-        case 'nextcloud_teams_update': {
-            if (!args.teamId) return { error: 'teamId is required' };
-            if (args.name === undefined && args.description === undefined) {
-                return { error: 'Nothing to update — pass a name and/or a description.' };
-            }
-            // Name and description are separate endpoints upstream.
-            /** @type {string[]} */
-            const updated = [];
-            if (args.name !== undefined) {
-                const out = await handle(
-                    await ncFetch(`${api}/${encodeURIComponent(args.teamId)}/name`, {
-                        method: 'PUT', headers: HEADERS, body: JSON.stringify({ value: args.name }),
-                    }),
-                    authError, 'rename',
-                );
-                if (out.error) return out;
-                updated.push('name');
-            }
-            if (args.description !== undefined) {
-                const out = await handle(
-                    await ncFetch(`${api}/${encodeURIComponent(args.teamId)}/description`, {
-                        method: 'PUT', headers: HEADERS, body: JSON.stringify({ value: args.description }),
-                    }),
-                    authError, 'description change',
-                );
-                if (out.error) return out;
-                updated.push('description');
-            }
-            return { success: true, teamId: args.teamId, updated };
-        }
-
-        case 'nextcloud_teams_delete':
-            return deleteTeam({ api, ncFetch, authError, handle, HEADERS }, args);
-
-        case 'nextcloud_share_with_team': {
-            if (!args.path) return { error: 'path is required' };
-            if (!args.teamId) return { error: 'teamId is required' };
-            // shareType 7 is a circle/team share in the files_sharing API.
-            const params = new URLSearchParams({
-                path: args.path,
-                shareType: '7',
-                shareWith: String(args.teamId),
-                permissions: String(args.permissions || 1),
-            });
-            if (args.expireDate) params.set('expireDate', args.expireDate);
-            if (args.note) params.set('note', args.note);
-            const res = await ncFetch(`${baseUrl}/ocs/v2.php/apps/files_sharing/api/v1/shares?format=json`, {
-                method: 'POST',
-                headers: { 'OCS-APIRequest': 'true', 'Accept': 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: params.toString(),
-            });
-            const out = await handle(res, authError, 'team share');
-            if (out.error) return out;
-            const share = out.data || {};
-            return {
-                success: true,
-                id: toShareId(share.id),
-                shareId: toShareId(share.id),
-                path: args.path,
-                teamId: args.teamId,
-                permissions: share.permissions ?? Number(args.permissions || 1),
-            };
-        }
-
-        default:
-            return { error: `Unknown Nextcloud Teams tool: ${toolName}` };
-    }
+    const handler = Object.hasOwn(HANDLERS, toolName) ? HANDLERS[toolName] : null;
+    if (!handler) return { error: `Unknown Nextcloud Teams tool: ${toolName}` };
+    return handler(args, { baseUrl: ctx.baseUrl, api: `${ctx.baseUrl}${CIRCLES_API}`, ncFetch: ctx.fetch, authError: ctx.authError });
 }
 
 /** @param {unknown} toolName */

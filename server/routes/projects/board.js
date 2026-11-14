@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 const crypto = require('crypto');
 const express = require('express');
@@ -70,7 +70,8 @@ function makeBoardRouter(deps = {}) {
             if (row.version !== version) throw conflict('board_changed', 'The board changed. Reload it before saving your columns.');
             const old = decode(row);
             const all = await (deps.taskStoreFor || require('../../stores/projectTaskStore').makeProjectTaskStore)(client).listSearchTasks(req.params.id);
-            for (const task of all) {
+            for (const listed of all) {
+                const task = /** @type {NonNullable<typeof listed>} */ (listed); // mapped from rows, never null
                 const from = columnFor(task, old, row.assignments);
                 const to = columns.find((/** @type {BoardColumn} */ c) => c.id === from?.id);
                 if (!to || to.status !== task.status) throw conflict('column_not_empty', 'Move all tasks out of this column before removing it or changing its status.');

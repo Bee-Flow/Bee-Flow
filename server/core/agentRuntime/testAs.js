@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
@@ -98,7 +99,7 @@ const AUDIENCE_REASONS = {
 
 /**
  * @param {number} max
- * @param {string} v
+ * @param {unknown} v
  */
 function _str(v, max) {
     if (typeof v !== 'string') return '';
@@ -108,7 +109,7 @@ function _str(v, max) {
 
 /**
  * A group id as it may travel: a non-empty, bounded string, or null.
- * @param {string} raw
+ * @param {unknown} raw
  */
 function normaliseGroupId(raw) {
     const s = _str(raw, MAX_GROUP_ID);
@@ -159,7 +160,7 @@ function testAsLabelParts(testAs) {
  * a group the resolver then refuses, which reads as a broken feature, or —
  * worse the other way round — a list that quietly says who is in what.
  */
-function mayNameGroup(group, { orgIds, ownGroups = [] } = {}) {
+function mayNameGroup(group, /** @type {{ orgIds?: unknown, ownGroups?: string[] }} */ { orgIds, ownGroups = [] } = {}) {
     if (!group || typeof group.id !== 'string' || !group.id) return false;
     if (orgIds === null) return true;
     if (orgIds instanceof Set && group.organizationId && orgIds.has(group.organizationId)) return true;
@@ -170,7 +171,7 @@ function mayNameGroup(group, { orgIds, ownGroups = [] } = {}) {
 const MAX_SIMULATABLE_GROUPS = 200;
 
 /**
- * @typedef {{ userId?: string }} ListSimulatableGroupsArgs
+ * @typedef {{ userId?: string, orgIds?: string[] | null, deps?: { getAllGroups?: () => Promise<any[]>, resolveUserGroups?: (uid: string) => Promise<string[]> } }} ListSimulatableGroupsArgs
  */
 /**
  * The groups this person may preview an agent as — the picker behind
@@ -212,7 +213,7 @@ async function listSimulatableGroups({ userId, orgIds, deps = {} } = {}) {
 /**
  * Turn a caller-supplied `asGroup` into a simulation, or refuse.
  *
- * @param {{ groupId: string, userId: string, orgIds: Set<string>|null, deps?: TestAsDeps }} p `groupId`: raw, from
+ * @param {Partial<{ groupId: unknown, userId: string, orgIds: Set<string>|null, deps?: TestAsDeps }>} p `groupId`: raw, from
  *   the request body; `userId`: the person pressing the button; `orgIds`: `resolveUserOrgIds(req)`;
  *   null = super admin; `deps`: { getGroup, resolveUserGroups } — tests only
  * @returns {Promise<{ok:true, testAs:object}|{ok:false, status:number, code:string, error:string}>}
@@ -281,7 +282,7 @@ async function resolveTestAs({ groupId, userId, orgIds, deps = {} } = {}) {
  * second time — never widened, see the module header.
  *
  * @param {string[]} kbIds
- * @param {{ userId: string, testAs?: unknown, context?: string, agentId?: string | null, deps?: TestAsDeps }} p
+ * @param {Partial<{ userId: string, testAs?: unknown, context?: string, agentId?: string | null, deps?: TestAsDeps }>} p
  *   `userId`: the real asker; unchanged by the simulation; `testAs`: raw metadata value, coerced here;
  *   `context`: for the log line ('agent_chat', 'kb_search', …)
  */
@@ -372,7 +373,7 @@ function audienceForTestAs(agent, testAs, { orgIds = null, deps = {} } = {}) {
  * refuses; there is no branch where a caller asked for a simulation and gets a
  * plain run.
  *
- * @param {{ asGroup: unknown, userId: string, orgIds: Set<string>|null, canEdit: boolean, deps?: TestAsDeps }} p
+ * @param {Partial<{ asGroup: unknown, userId: string, orgIds: Set<string>|null, canEdit: boolean, deps?: TestAsDeps }>} p
  *   `asGroup`: req.body.asGroup; `canEdit`: "Test as" is an editor's tool, not a chatter's
  */
 async function gateTestAsRequest({ asGroup, userId, orgIds, canEdit, deps = {} } = {}) {

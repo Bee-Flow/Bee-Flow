@@ -19,6 +19,12 @@ const { privateHeaders, loadForm, loadSession, pendingPageFor } = require('./acc
 const { ipLimiter, tokenLimiter, uploadLimiter, pickLimiter, contentLengthGuard } = require('./limits');
 const { pickCaller, declaredPickField } = require('./picks');
 const { friendly } = require('./friendly');
+const { validate } = require('../../../core/http/validate');
+const { z, bodyOf } = require('../../../core/http/schemaParts');
+
+// The keys a pick search takes; searchPick reads each value as it always did.
+const open = z.unknown().optional();
+const PickBody = bodyOf({ field: open, query: open, csrf: open, sessionId: open, limit: open }, 'A search from a form');
 const { bestEffort } = require('../../../utils/bestEffort');
 
 // Per-form upload quota inside a rolling window. There is no user to bill, so
@@ -205,7 +211,7 @@ function safeFilename(name) {
 function register(router) {
     router.get('/form/:token', ipLimiter, tokenLimiter, friendly(renderForm, 'form_load_failed', 'Could not load this form'));
     router.post('/form/:token/upload', ipLimiter, uploadLimiter, guard, friendly(uploadFile, 'upload_failed', 'Upload failed'));
-    router.post('/form/:token/pick', ipLimiter, pickLimiter, contentLengthGuard, friendly(searchPick, 'pick_failed', 'That app could not be searched'));
+    router.post('/form/:token/pick', ipLimiter, pickLimiter, contentLengthGuard, validate({ body: PickBody }), friendly(searchPick, 'pick_failed', 'That app could not be searched'));
 }
 
 module.exports = { register, storeUpload, UPLOAD_QUOTA_WINDOW_MS, UPLOAD_QUOTA_FILES, UPLOAD_QUOTA_BYTES };

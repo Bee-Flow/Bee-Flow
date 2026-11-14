@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, SetStateAction, RefObject, Dispatch } from 'react';
+import { useState, useRef, SetStateAction, RefObject, Dispatch } from 'react';
 import { Sparkles, X, Users, Lock } from 'lucide-react';
-import { readOrgGroups, type OrgGroup } from '../../api/queries/orgGroups';
+import { useOrgGroupsQuery, type OrgGroup } from '../../api/queries/orgGroups';
 import { useSkillDetail } from '../../api/queries/skillDetail';
 import useTranslation from '../../hooks/useTranslation';
 import { managedOf, managedRefusalOf, type ManagedBannerInfo, type ManagedPart } from '../shared/managedPart';
@@ -92,16 +92,8 @@ export default function SkillFormModal({ skill, onSave, onCancel, saving, groups
         if (!info) throw err;
         setRefusal(info);
     });
-    // Auto-fetch groups if not supplied by parent
-    const [fetchedGroups, setFetchedGroups] = useState<OrgGroup[] | null>(null);
-    useEffect(() => {
-        if (groups && groups.length > 0) return;
-        let cancelled = false;
-        readOrgGroups()
-            .then((list) => { if (!cancelled && list) setFetchedGroups(list); })
-            .catch(() => { /* non-fatal */ });
-        return () => { cancelled = true; };
-    }, [groups]);
+    // The org's groups when the parent supplies none; a refusal or a failure offers none.
+    const fetchedGroups = useOrgGroupsQuery(!(groups && groups.length > 0)).data ?? null;
     const effectiveGroups = (groups && groups.length > 0) ? groups : (fetchedGroups || []);
     const effectiveOrgId = orgId || user?.organizationId || null;
     const orgGroups = effectiveGroups.filter(g => !effectiveOrgId || g.organizationId === effectiveOrgId);

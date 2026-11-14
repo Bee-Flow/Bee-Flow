@@ -32,7 +32,7 @@ const SELF_STARTING = new Set(['schedule', 'app_event', 'webhook', 'form', 'agen
 
 /** The tool names the draft's steps call, in walk order, root graph and layers. */
 function usedTools(def: Definition): string[] {
-    const { walkSteps } = nodeRequire('../automationGraph');
+    const { walkSteps } = nodeRequire('../../core/automationModel/automationGraph');
     const out = new Set<string>();
     const add = (t: unknown) => { if (typeof t === 'string' && t) out.add(t); };
     walkSteps(def, (s: Step) => {

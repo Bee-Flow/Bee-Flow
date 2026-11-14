@@ -52,6 +52,7 @@ function resetFx() {
 
 const mw = (req, res, next) => next();
 
+const { fakeKbGates } = require('./kbGate.testkit');
 const MOCKS = {
     '../stores/knowledgeBases': {
         getKB: async (id) => (fx.kb && fx.kb.id === id ? { ...fx.kb } : null),
@@ -85,7 +86,7 @@ const MOCKS = {
     },
     './shared': {
         getUserId: (req) => req.session?.user?.id || null,
-        canAccessKB: async () => fx.canAccess,
+        ...fakeKbGates({ kbStore: { getKB: (id) => MOCKS['../stores/knowledgeBases'].getKB(id) }, canRead: () => fx.canAccess, canManage: () => fx.canAccess }),
         sanitizeUsageContexts: (v) => (Array.isArray(v) ? v : null),
     },
 };

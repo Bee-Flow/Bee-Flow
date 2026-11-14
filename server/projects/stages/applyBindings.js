@@ -55,11 +55,7 @@ const { KIND_OF_SECTION } = require('./stagePayload');
  * }} SeatValidators
  */
 
-/**
- * @param {unknown} definition
- * @param {(node: DefinitionNode, layerKey: string | null, isTrigger: boolean) => void} fn
- */
-const walkAllSteps = (definition, fn) => require('../../automation/portability').walkAllSteps(definition, fn);
+const { walkAllSteps } = require('../../core/packaging/walkers');
 
 /**
  * Slot prefix → solution_bindings.kind.

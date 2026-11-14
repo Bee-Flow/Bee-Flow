@@ -13,7 +13,7 @@
  * Keys are asserted by SHAPE, not one by one: the property is "this string is
  * reachable from the Languages panel, in a namespace this track owns".
  */
-import { act, screen } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
@@ -142,7 +142,9 @@ describe('the detail pane under a key-echoing translator', () => {
 
     it('translates the figures’ labels and the line under them', async () => {
         await renderPane();
-        const keys = keysOn(screen.getByTestId('cowork-stats'));
-        expect(keys.filter(k => k.startsWith('cowork.stats.')).length).toBeGreaterThanOrEqual(4);
+        await waitFor(() => {
+            const keys = keysOn(screen.getByTestId('cowork-stats'));
+            expect(keys.filter(k => k.startsWith('cowork.stats.')).length).toBeGreaterThanOrEqual(4);
+        });
     });
 });

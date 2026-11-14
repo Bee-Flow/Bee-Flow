@@ -1,8 +1,9 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { skillsApi } from '@/api/skillsApi';
+import { renderWithClient } from '@/test/render';
 import TestTab from './TestTab';
 
 /**
@@ -70,7 +71,7 @@ beforeEach(() => {
     skillsApi.testAgents.mockResolvedValue({ agents: [{ id: 'ag1', name: 'Quote assistant', description: '' }] });
 });
 
-const renderTab = (props = {}) => render(
+const renderTab = (props = {}) => renderWithClient(
     <TestTab skillId="s1" steps={STEPS} onNavigate={() => {}} {...props} />,
 );
 
@@ -151,16 +152,15 @@ describe('a skill this account may not edit', () => {
 describe('the agent picker', () => {
     it('offers the agents the server says this account may test as', async () => {
         renderTab();
-        await waitFor(() => expect(skillsApi.testAgents).toHaveBeenCalled());
         const select = screen.getByTestId('skill-test-agent');
-        expect([...select.options].map(o => o.textContent)).toEqual(['Just this skill', 'Quote assistant']);
+        await waitFor(() => expect([...select.options].map(o => o.textContent)).toEqual(['Just this skill', 'Quote assistant']));
     });
 
     it('sends the chosen agent with the run', async () => {
         const user = userEvent.setup();
         skillsApi.test.mockImplementation(streams([['answer', { text: 'ok' }], ['done', { run: RUN }]]));
         renderTab();
-        await waitFor(() => expect(skillsApi.testAgents).toHaveBeenCalled());
+        expect(await screen.findByRole('option', { name: 'Quote assistant' })).toBeTruthy();
         fireEvent.change(screen.getByTestId('skill-test-agent'), { target: { value: 'ag1' } });
         fireEvent.change(screen.getByLabelText('Question'), { target: { value: 'What does line 4 mean?' } });
         await user.click(screen.getByTestId('skill-test-run'));

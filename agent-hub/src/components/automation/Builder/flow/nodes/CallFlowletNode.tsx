@@ -142,6 +142,7 @@ function ExpandedFlowlet({ id, step, summary, runStep, refCount, onOpenLayer, on
                         type="button"
                         onClick={(e) => { e.stopPropagation(); onOpenLayer(step.layerKey as string); }}
                         title={t('automations.call_flowlet_node.open_this_flowlet_on_its_own', 'Open this flowlet on its own canvas')}
+                        aria-label={t('automations.call_flowlet_node.open_this_flowlet_on_its_own', 'Open this flowlet on its own canvas')}
                         className="shrink-0 text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
                     >
                         <SquareArrowOutUpRight size={13} />
@@ -152,6 +153,7 @@ function ExpandedFlowlet({ id, step, summary, runStep, refCount, onOpenLayer, on
                         type="button"
                         onClick={onToggle}
                         title={t('automations.call_flowlet_node.collapse_this_flowlet', 'Collapse this flowlet')}
+                        aria-label={t('automations.call_flowlet_node.collapse_this_flowlet', 'Collapse this flowlet')}
                         className="shrink-0 text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
                     >
                         <ChevronDown size={15} />

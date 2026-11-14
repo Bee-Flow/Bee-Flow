@@ -52,8 +52,8 @@ const { PGlite } = require('@electric-sql/pglite');
 const SERVER = path.join(__dirname, '..');
 /** Bump when the file layout below changes. */
 const FORMAT = 1;
-/** Directories that never hold schema-defining source. */
-const SKIP_DIRS = new Set(['node_modules', '.git', 'coverage', 'dist']);
+/** Directories that never hold schema-defining source (journeys/ is test code that only reads the template). */
+const SKIP_DIRS = new Set(['node_modules', '.git', 'coverage', 'dist', 'journeys']);
 const SOURCE_FILE = /\.(c|m)?js$|\.mts$|\.ts$|\.json$|\.sql$|\.md$|\.txt$/;
 
 /** The package's `exports` hides package.json, so find it beside the entry point. */

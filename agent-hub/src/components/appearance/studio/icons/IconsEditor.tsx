@@ -1,15 +1,60 @@
 import { Package, Plus, Trash2, Star, Download, Upload, AlertCircle, X } from 'lucide-react';
-import React, { useState, useEffect, useCallback, useId } from 'react';
+import React, { useState, useCallback, useId } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { iconPackKeys, useIconPackListQuery, type IconPackList } from '@/api/queries/iconPacks';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 import { useIconPack } from '@/hooks/useIconPack';
 import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
 import { EMOJI_CATEGORIES as FALLBACK_CATEGORIES } from '@/utils/emojiCatalog';
-import { authFetch } from '@/utils/helpers';
 import Modal from '@/components/shared/Modal';
 import useConfirm from '@/components/shared/useConfirm';
 import type { AddPackModalProps, IconCategory, IconPack, PackListItemProps } from './IconsEditor.types';
-import { mutate, ApiError, request, RefusedError } from '@/api/mutate';
-import { API, PackEditor } from './PackEditor';
+import { ApiError, RefusedError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
+import { PackEditor } from './PackEditor';
 import { ALERT_ERROR, CHIP_SUCCESS, INPUT, PRIMARY_BTN } from '@/components/mcpLibrary/ui';
+
+const NO_PACKS: IconPack[] = [];
+
+/**
+ * The pack list (one read on mount, again after a change), the active and the
+ * selected pack (both follow each answer), and the error line.
+ */
+function useIconPackList() {
+    const packsQuery = useIconPackListQuery<IconPack, IconCategory>();
+    const qc = useQueryClient();
+    const listed = packsQuery.data;
+    const packs = listed?.packs || NO_PACKS;
+    const categories = Array.isArray(listed?.categories) && listed.categories.length ? listed.categories : FALLBACK_CATEGORIES;
+    // The active pack follows each answer; activating or deleting one sets it at once.
+    const [activePackId, setActivePackId] = useState<string | null>(null);
+    const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
+    useAdjustOnChange([listed], () => {
+        if (!listed) return;
+        setActivePackId(listed.activeIconPackId || null);
+        setSelectedPackId((prev: string | null) => {
+            if (prev && listed.packs?.some((p: IconPack) => p.id === prev)) return prev;
+            return listed.activeIconPackId || listed.packs?.[0]?.id || null;
+        });
+    });
+    const loading = packsQuery.isPending;
+    const [error, setError] = useState('');
+    useAdjustOnChange([packsQuery.errorUpdatedAt], () => { if (packsQuery.isError) setError('Failed to load icon packs'); });
+    const refetchPacks = packsQuery.refetch;
+    const fetchPacks = useCallback(async () => { await refetchPacks(); }, [refetchPacks]);
+
+    const updatePackLocally = (id: string, partial: Partial<IconPack>) => {
+        qc.setQueryData<IconPackList<IconPack, IconCategory>>(iconPackKeys.list(), (prev) => prev && {
+            ...prev,
+            packs: (prev.packs || []).map((p: IconPack) => p.id === id ? { ...p, ...partial } : p),
+        });
+    };
+
+    return {
+        packs, categories, loading, error, setError, activePackId, setActivePackId,
+        selectedPackId, setSelectedPackId, fetchPacks, updatePackLocally,
+    };
+}
 
 /**
  * IconsEditor — icon-pack management. Moved verbatim from the old
@@ -21,43 +66,17 @@ export default function IconsEditor() {
     const { t } = useTranslation();
     const iconPackContext = useIconPack();
 
-    const [packs, setPacks] = useState<IconPack[]>([]);
-    const [activePackId, setActivePackId] = useState<string | null>(null);
-    const [selectedPackId, setSelectedPackId] = useState<string | null>(null);
-    const [categories, setCategories] = useState<IconCategory[]>(FALLBACK_CATEGORIES);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+    const {
+        packs, categories, loading, error, setError, activePackId, setActivePackId,
+        selectedPackId, setSelectedPackId, fetchPacks, updatePackLocally,
+    } = useIconPackList();
     const [showAddModal, setShowAddModal] = useState(false);
     const { confirm, confirmDialog } = useConfirm();
-
-    const fetchPacks = useCallback(async () => {
-        try {
-            const res = await authFetch(API);
-            const data = await res.json();
-            setPacks(data.packs || []);
-            setActivePackId(data.activeIconPackId || null);
-            if (Array.isArray(data.categories) && data.categories.length) setCategories(data.categories);
-            setSelectedPackId((prev: string | null) => {
-                if (prev && data.packs?.some((p: IconPack) => p.id === prev)) return prev;
-                return data.activeIconPackId || data.packs?.[0]?.id || null;
-            });
-        } catch {
-            setError('Failed to load icon packs');
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => { fetchPacks(); }, [fetchPacks]);
 
     const handleCreatePack = async (name: string) => {
         if (!name?.trim()) return;
         try {
-            const res = await mutate(API, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: name.trim(), icons: {} }),
-            }).catch((err: unknown) => {
+            const res = await apiRequest('POST /api/icons', { body: { name: name.trim(), icons: {} } }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });
@@ -76,7 +95,7 @@ export default function IconsEditor() {
 
     const handleActivatePack = async (id: string | null) => {
         try { // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- browser-side console log of a failed request; nothing reaches another user or a response
-            const res = await mutate(`${API}/${id || 'default'}/activate`, { method: 'POST' }).catch((err: unknown) => {
+            const res = await apiRequest('POST /api/icons/{id}/activate', { params: { id: id || 'default' } }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });
@@ -92,7 +111,7 @@ export default function IconsEditor() {
     const handleDeletePack = async (id: string) => {
         if (!(await confirm({ title: 'Delete this icon pack?', description: 'This cannot be undone.', confirmLabel: 'Delete', destructive: true }))) return;
         try { // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- browser-side console log of a failed request; nothing reaches another user or a response
-            const res = await mutate(`${API}/${id}`, { method: 'DELETE' }).catch((err: unknown) => {
+            const res = await apiRequest('DELETE /api/icons/{id}', { params: { id } }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });
@@ -113,7 +132,7 @@ export default function IconsEditor() {
         try {
             let res: Response;
             try {
-                res = await request(`${API}/${id}/export`);
+                res = await apiRequest('GET /api/icons/{id}/export', { params: { id } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 throw new Error('export failed');
@@ -143,11 +162,7 @@ export default function IconsEditor() {
                 const data = JSON.parse(text);
                 let res: Response;
                 try {
-                    res = await mutate(`${API}/import`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data),
-                });
+                    res = await apiRequest('POST /api/icons/import', { body: data });
                 } catch (err) {
                     if (!(err instanceof ApiError)) throw err;
                     throw new Error('import failed');
@@ -160,10 +175,6 @@ export default function IconsEditor() {
             }
         };
         input.click();
-    };
-
-    const updatePackLocally = (id: string, partial: Partial<IconPack>) => {
-        setPacks((prev: IconPack[]) => prev.map((p: IconPack) => p.id === id ? { ...p, ...partial } : p));
     };
 
     if (loading) {

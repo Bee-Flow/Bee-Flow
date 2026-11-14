@@ -109,7 +109,7 @@ async function listFolder(n, { view = 'mine', path = '/', parentId = null, q = n
     }
     const base = await n.linkBase();
     const items = (answer.items || []).map((/** @type {NcEntry} */ e) => toFileRef(e, { baseUrl: n.baseUrl, uid: n.uid, linkBase: base, accept: n.accept })).filter(Boolean);
-    items.sort((/** @type {FileRef} */ a, /** @type {FileRef} */ b) => (a.isFolder === b.isFolder ? a.name.localeCompare(b.name) : (a.isFolder ? -1 : 1)));
+    items.sort((/** @type {FileRef} */ a, /** @type {FileRef} */ b) => (a.isFolder === b.isFolder ? /** @type {string} */ (a.name).localeCompare(/** @type {string} */ (b.name)) : (a.isFolder ? -1 : 1))); // a listed entry has its name
     return { items, nextPageToken: null };
 }
 
@@ -195,7 +195,7 @@ async function uploadFile(n, file, buffer, { ifMatch = null, contentType = null 
     const format = file.format || formatOf({ name: file.name || path });
     /** @type {Record<string, string>} */
     const headers = {
-        'Content-Type': contentType || /** @type {Record<string, string>} */ (n.d.officegen.CONTENT_TYPES)[format] || 'application/octet-stream',
+        'Content-Type': contentType || /** @type {Record<string, string>} */ (n.d.officegen.CONTENT_TYPES)[String(format)] || 'application/octet-stream',
         'OC-Total-Length': String(buffer.length),
     };
     if (ifMatch && ifMatch.etag) headers['If-Match'] = ifMatch.etag;
@@ -244,7 +244,7 @@ function makeApi(auth, ctx = {}) {
      * @param {string} u
      */
     const trim = (u) => (u ? String(u).replace(/\/+$/, '') : null);
-    /** @type {Promise<string | null>} */
+    /** @type {Promise<string | null> | null} */
     let linkBasePromise = null;
     function linkBase() {
         if (!linkBasePromise) {

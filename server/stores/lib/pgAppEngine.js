@@ -62,7 +62,8 @@ const {
     SIZE_TTL_MS, toDollarParams, normalizeRows, dateOnlyString, mapPgError, normalizeParams,
 } = require('./pgAppEngineHelpers');
 const { makeTx, makeStatements, makeMigration } = require('./pgAppEnginePartsTx');
-const { bestEffort } = require('../../utils/bestEffort');
+// db.withTransaction's runner over the injected getClient (see DEPENDENCY INJECTION above).
+const { runTransaction } = require('../../utils/txRollback');
 
 /** schema inspection + the cached on-disk size. */
 function makeInspect({ schemaFor, runQuery, logPrefix, sizeCache, mirrorSizeFn, withAppTx }) {
@@ -140,25 +141,22 @@ function makeInspect({ schemaFor, runQuery, logPrefix, sizeCache, mirrorSizeFn, 
 function makeLifecycle({ getClient, schemaIdent, assertOwnership, clearMetaFn, sizeCache, ownershipCache }) {
     /** Drop the app schema entirely and zero the studio_apps size metadata. */
     async function reset(ownerId, appId) {
-        const client = await getClient();
+        const tx = await getClient();
         try {
-            await client.query('BEGIN');
-            await assertOwnership(client, ownerId, appId);
-            await client.query(`DROP SCHEMA IF EXISTS ${schemaIdent(appId)} CASCADE`);
-            if (clearMetaFn) {
-                await clearMetaFn(client, appId, ownerId);
-            } else {
-                await client.query(
-                    `UPDATE studio_apps SET db_sha256 = '', db_size = 0, updated_at = NOW() WHERE id = $1 AND user_id = $2`,
-                    [appId, ownerId],
-                );
-            }
-            await client.query('COMMIT');
+            await runTransaction(tx, async (client) => {
+                await assertOwnership(client, ownerId, appId);
+                await client.query(`DROP SCHEMA IF EXISTS ${schemaIdent(appId)} CASCADE`);
+                if (clearMetaFn) {
+                    await clearMetaFn(client, appId, ownerId);
+                } else {
+                    await client.query(
+                        `UPDATE studio_apps SET db_sha256 = '', db_size = 0, updated_at = NOW() WHERE id = $1 AND user_id = $2`,
+                        [appId, ownerId],
+                    );
+                }
+            });
         } catch (err) {
-            try { await client.query('ROLLBACK'); } catch (_) { bestEffort('stores/lib/pgAppEngine:reset', _); /* connection already broken, the original error is rethrown */ }
             throw mapPgError(err);
-        } finally {
-            client.release();
         }
         sizeCache.delete(appId);
     }

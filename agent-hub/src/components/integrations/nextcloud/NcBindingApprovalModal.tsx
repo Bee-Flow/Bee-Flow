@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldCheck, AlertTriangle, Copy, Check, X } from 'lucide-react';
-import { API_BASE } from '@/utils/helpers';
 import { useTranslation } from '@/hooks/useTranslation';
 import { errorMessage } from '@/utils/caughtError';
 import { logger } from '@/utils/logger';
-import { mutate, errorBody, RefusedError } from '@/api/mutate';
+import { errorBody, RefusedError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 export interface PendingNcBinding {
     id: string;
@@ -75,9 +75,7 @@ const NcBindingApprovalModal = ({ pending, organizationName, onResolved }: NcBin
         setError(null);
         try {
             try {
-                await mutate(`${API_BASE}/auth/admin/nc-bindings/${pending.id}/${action}`, {
-                method: 'POST',
-            });
+                await apiRequest(action === 'approve' ? 'POST /auth/admin/nc-bindings/{id}/approve' : 'POST /auth/admin/nc-bindings/{id}/deny', { params: { id: pending.id } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const body = errorBody(err) ?? {};

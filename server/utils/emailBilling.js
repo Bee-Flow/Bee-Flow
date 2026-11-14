@@ -8,7 +8,7 @@ const { sendServiceEmail } = require('./emailTransport');
  * `customer.subscription.trial_will_end` ~3 days before trial end. The
  * caller is responsible for idempotency (use userStore.claimNotification).
  *
- * @param {{ email: string, displayName?: string, orgName?: string, trialEndIso: string, portalUrl: string }} opts
+ * @param {{ email: string, displayName?: string, orgName?: string, trialEndIso: string | null, portalUrl: string }} opts  no trial end: "soon"
  */
 async function sendTrialEndingEmail({ email, displayName, orgName, trialEndIso, portalUrl }) {
     const clientHost = appPaths.clientHost();
@@ -122,7 +122,8 @@ async function sendDunningGraceWarningEmail({ email, displayName, orgName, porta
 
 /**
  * Subscription suspended (post-dunning). Final-state email confirming AI
- * access is blocked until payment is resolved.
+ * access is blocked until payment is resolved. `reason` is the caller's trigger; the mail reads the same.
+ * @param {{ email: string, displayName?: string | null, orgName?: string | null, portalUrl: string, reason?: string }} opts
  */
 async function sendSubscriptionSuspendedEmail({ email, displayName, orgName, portalUrl }) {
     const targetName = orgName || displayName || 'there';

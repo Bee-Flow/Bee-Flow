@@ -1,6 +1,6 @@
 /**
  * pauseRowStore.mts: the rows a person touches when they END a run's pause
- * outside the runner (routes/automation/runPauseOps.mts, automation/approvalService.js,
+ * outside the runner (usecases/automation/runPauseOps.mts, automation/approvalService.js,
  * automation/approvalDecision.js):
  *
  *   closeAwaitingStepRow       the paused step row: 'cancelled' (withdrawn, form

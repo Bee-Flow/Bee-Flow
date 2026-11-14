@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Shared setup for the routes/agents/crud*.test.js files: stub the requires
  * that crud.js and its split siblings (crudSchemas, agentPersonaWrite,
@@ -9,7 +10,7 @@
 
 'use strict';
 
-const Module = require('module');
+const Module = /** @type {typeof import('module') & { _resolveFilename: (request: string, parent: NodeJS.Module | null | undefined, ...rest: unknown[]) => string }} */ (require('module'));
 
 /** The modules whose requires the crud tests stub. */
 const CRUD_MODULES = /agents[\\/](crud|crudSchemas|agentPersonaWrite|agentUpdate)\.js$/;
@@ -25,7 +26,7 @@ function stubCrudRequires(mocks, tag) {
     for (const [request, exportsObj] of Object.entries(mocks)) {
         const mockId = `mock:${tag}:${request}`;
         mockIds[request] = mockId;
-        require.cache[mockId] = { id: mockId, filename: mockId, loaded: true, exports: exportsObj };
+        require.cache[mockId] = /** @type {NodeJS.Module} */ ({ id: mockId, filename: mockId, loaded: true, exports: exportsObj });
     }
     const originalResolve = Module._resolveFilename;
     Module._resolveFilename = function (request, parent, ...rest) {

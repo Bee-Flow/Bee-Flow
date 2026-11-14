@@ -21,8 +21,12 @@ process.env.NODE_ENV = 'test';
 const test = require('node:test');
 const assert = require('node:assert');
 const h = require('../testUtils/routeHarness');
+const { ladderPglite } = require('../testUtils/pgliteTemplate');
+const { insertRow } = require('../testUtils/pgliteSeed');
 
-const { db, api } = h.routeUnderTest(test, '/api/studio-documents', () => require('./studioDocuments'));
+// The router runs on the boot ladder's schema on PGlite; every statement is recorded.
+const pg = ladderPglite();
+const { db, api } = h.routeUnderTest(test, '/api/studio-documents', () => require('./studioDocuments'), { pg });
 
 test('a list filter the library does not have is refused, not dropped', async () => {
     h.assertRefused(assert, await api.call('GET', '/api/studio-documents?docType=invoce'), 'query.docType', /document type/);
@@ -61,5 +65,15 @@ test('a valid list reaches the store and answers as before', async () => {
     // stay behind the beta switch, which no session passes here; spreadsheets
     // left the beta (#164) and only need the module and the licence feature.
     assert.deepStrictEqual(res.body, { documents: [], total: 0, people: {}, notebooks: false, spreadsheets: true });
-    assert.ok(db.queries.some((q) => /FROM studio_documents/.test(q)));
+    // The session's user, in the organisation the list scopes to.
+    await insertRow(pg, 'users', { id: 'u1', username: 'u1', organizationId: 'org1' });
+    await insertRow(pg, 'studio_documents', { id: 'tpl-1', user_id: 'u1', organization_id: 'org1', name: 'Mine', kind: 'template', doc_type: 'page', archived: false });
+    const again = await api.call('GET', '/api/studio-documents?kind=template&folderId=&sort=name&limit=30&offset=0');
+    assert.strictEqual(again.status, 200, again.text);
+    assert.deepStrictEqual(again.body.documents.map((d) => d.id), ['tpl-1'], 'the store read the row');
+});
+
+test('restoring a document and saving a section take no fields: one sent is refused by name', async () => {
+    h.assertRefused(assert, await api.call('POST', '/api/studio-documents/d1/unarchive', { body: { archived: false } }), 'body', /Restoring a document does not take "archived"/);
+    h.assertRefused(assert, await api.call('POST', '/api/studio-documents/d1/sections/s1/save', { body: { html: '<p>x</p>' } }), 'body', /Saving a section does not take "html"/);
 });

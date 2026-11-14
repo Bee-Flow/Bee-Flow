@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * boot/storeSchemas.js — the server's one call to "create the store schemas".
  *
@@ -48,8 +49,8 @@ const loadStore = (file) => require(path.join(__dirname, '..', file));
 /**
  * Start every registered store's schema init, in registry order.
  *
- * @param {{log?: object, modules?: {name: string, file: string}[],
- *          load?: (file: string) => object}} [opts] - `modules` and `load` are
+ * @param {{log?: Pick<typeof log, 'info' | 'warn' | 'error'>, modules?: {name: string, file: string}[],
+ *          load?: (file: string) => { initDB?: () => Promise<unknown>, ready?: Promise<unknown> } | null}} [opts] - `modules` and `load` are
  *   the injection seam the colocated test uses; boot passes neither.
  * @returns {{started: string[], unverified: string[], failed: string[]}}
  *   `unverified` = registered but exposing no awaitable init; `failed` = threw

@@ -122,6 +122,80 @@ function readPageContent(context, pageNode) {
     return { bytes: Buffer.concat(joined), refs };
 }
 
+/**
+ * @typedef {{ ctm: number[], fill: number[]|null, stroke: number[]|null, lineWidth: number, tc: number, tw: number, th: number, tl: number, rise: number, font: PdfFont|null, size: number }} GraphicsState
+ * @typedef {{ start: number, points: number[][], segments: number, clip: boolean }} PathUnderConstruction
+ * The interpreter's state while it walks one content stream.
+ * @typedef {{ gs: GraphicsState, stack: GraphicsState[], tm: number[], tlm: number[], path: PathUnderConstruction|null,
+ *   resources: import('pdf-lib').PDFDict|null, form: string|null, depth: number }} RunState
+ * @typedef {(interp: Interpreter, st: RunState, o: PdfOperation) => void} OperatorHandler
+ */
+
+/** An operation's operands as numbers; a non-number operand is NaN. */
+const nums = (/** @type {PdfOperation} */ o) => o.operands.map((v) => (typeof v === 'number' ? v : NaN));
+
+/** Move to the start of the next text line (T*, and before ' and "). @param {RunState} st */
+function nextLine(st) {
+    st.tlm = mul([1, 0, 0, 1, 0, -st.gs.tl], st.tlm);
+    st.tm = st.tlm;
+}
+
+/** @type {OperatorHandler} */
+const setFill = (_i, st, o) => { st.gs.fill = toRgb(o.operands); };
+/** @type {OperatorHandler} */
+const setStroke = (_i, st, o) => { st.gs.stroke = toRgb(o.operands); };
+/** @type {OperatorHandler} */
+const moveText = (_i, st, o) => {
+    const [tx, ty] = nums(o);
+    st.tlm = mul([1, 0, 0, 1, tx || 0, ty || 0], st.tlm); st.tm = st.tlm;
+    if (o.op === 'TD') st.gs.tl = -(ty || 0);
+};
+
+/**
+ * The graphics-state, text-state and drawing operators (path construction and
+ * painting are handled before this table). An operator not in it is ignored.
+ * @type {Map<string, OperatorHandler>}
+ */
+const OPERATORS = new Map(/** @type {Array<[string, OperatorHandler]>} */ ([
+    ['q', (_i, st) => { st.stack.push({ ...st.gs }); }],
+    ['Q', (_i, st) => { if (st.stack.length) st.gs = /** @type {GraphicsState} */ (st.stack.pop()); }],
+    ['cm', (_i, st, o) => { const v = nums(o); if (v.length === 6) st.gs.ctm = mul(v, st.gs.ctm); }],
+    ['w', (_i, st, o) => { st.gs.lineWidth = nums(o)[0] || 0; }],
+    ...['g', 'rg', 'k', 'sc', 'scn'].map((op) => /** @type {[string, OperatorHandler]} */ ([op, setFill])),
+    ...['G', 'RG', 'K', 'SC', 'SCN'].map((op) => /** @type {[string, OperatorHandler]} */ ([op, setStroke])),
+    ['cs', (_i, st) => { st.gs.fill = [0, 0, 0]; }],
+    ['CS', (_i, st) => { st.gs.stroke = [0, 0, 0]; }],
+    ['BT', (_i, st) => { st.tm = IDENTITY; st.tlm = IDENTITY; }],
+    ['Tf', (interp, st, o) => {
+        const name = /** @type {{ name?: string } | undefined} */ (o.operands[0])?.name;
+        st.gs.font = name ? interp.font(st.resources, name) : null;
+        st.gs.size = typeof o.operands[1] === 'number' ? o.operands[1] : 0;
+    }],
+    ['Tc', (_i, st, o) => { st.gs.tc = nums(o)[0] || 0; }],
+    ['Tw', (_i, st, o) => { st.gs.tw = nums(o)[0] || 0; }],
+    ['Tz', (_i, st, o) => { st.gs.th = (nums(o)[0] ?? 100) / 100; }],
+    ['TL', (_i, st, o) => { st.gs.tl = nums(o)[0] || 0; }],
+    ['Ts', (_i, st, o) => { st.gs.rise = nums(o)[0] || 0; }],
+    ['Tm', (_i, st, o) => { const v = nums(o); if (v.length === 6) { st.tm = v; st.tlm = v; } }],
+    ['Td', moveText],
+    ['TD', moveText],
+    ['T*', (_i, st) => { nextLine(st); }],
+    ['Tj', (interp, st, o) => { interp.showText(st, o, [o.operands[0]]); }],
+    ['TJ', (interp, st, o) => { interp.showText(st, o, Array.isArray(o.operands[0]) ? o.operands[0] : []); }],
+    ["'", (interp, st, o) => { nextLine(st); interp.showText(st, o, [o.operands[0]]); }],
+    ['"', (interp, st, o) => {
+        const [aw, ac] = nums(o);
+        st.gs.tw = aw || 0; st.gs.tc = ac || 0;
+        nextLine(st);
+        interp.showText(st, o, [o.operands[2]]);
+    }],
+    ['Do', (interp, st, o) => { interp.drawXObject(o, st.resources, st.gs.ctm, st.form, st.depth); }],
+    ['BI', (interp, st, o) => {
+        const corners = [[0, 0], [1, 0], [0, 1], [1, 1]].map(([x, y]) => apply(st.gs.ctm, x, y));
+        interp.objects.push({ kind: 'image', start: o.start, end: o.end, bbox: bboxOf(corners), name: null, inline: true, form: st.form, removable: !st.form });
+    }],
+]));
+
 class Interpreter {
     /**
      * @param {PDFContext} context
@@ -173,116 +247,89 @@ class Interpreter {
     run(bytes, resources, baseCtm, form = null, depth = 0) {
         const { ops, malformed } = parseOperations(bytes);
         this.malformed += malformed;
-        /** @type {{ ctm: number[], fill: number[]|null, stroke: number[]|null, lineWidth: number, tc: number, tw: number, th: number, tl: number, rise: number, font: PdfFont|null, size: number }} */
-        let gs = { ctm: baseCtm, fill: [0, 0, 0], stroke: [0, 0, 0], lineWidth: 1, tc: 0, tw: 0, th: 1, tl: 0, rise: 0, font: null, size: 0 };
-        /** @type {Array<typeof gs>} */
-        const stack = [];
-        let tm = IDENTITY; let tlm = IDENTITY;
-        /** @type {{ start: number, points: number[][], segments: number, clip: boolean }|null} */
-        let path = null;
-
-        const nums = (/** @type {PdfOperation} */ o) => o.operands.map((v) => (typeof v === 'number' ? v : NaN));
-        const showText = (/** @type {PdfOperation} */ o, /** @type {PdfOperand[]} */ pieces) => {
-            const f = gs.font || loadFont(this.context, undefined);
-            let x = 0;
-            let text = '';
-            for (const piece of pieces) {
-                if (typeof piece === 'number') { x -= (piece / 1000) * gs.size * gs.th; continue; }
-                if (!piece || !piece.bytes) continue;
-                for (const g of f.decode(piece.bytes)) {
-                    text += g.text;
-                    x += (g.width * gs.size + gs.tc + (g.isSpace ? gs.tw : 0)) * gs.th;
-                }
-            }
-            const m = mul(tm, gs.ctm);
-            const lo = f.descent * gs.size + gs.rise;
-            const hi = f.ascent * gs.size + gs.rise;
-            const corners = [apply(m, 0, lo), apply(m, x, lo), apply(m, 0, hi), apply(m, x, hi)];
-            const scaleY = Math.hypot(m[2], m[3]);
-            this.objects.push({
-                kind: 'text', start: o.start, end: o.end, text, bbox: bboxOf(corners),
-                origin: apply(m, 0, gs.rise), size: gs.size * scaleY, form, removable: !form,
-            });
-            tm = mul([1, 0, 0, 1, x, 0], tm);
+        /** @type {RunState} */
+        const st = {
+            gs: { ctm: baseCtm, fill: [0, 0, 0], stroke: [0, 0, 0], lineWidth: 1, tc: 0, tw: 0, th: 1, tl: 0, rise: 0, font: null, size: 0 },
+            stack: [], tm: IDENTITY, tlm: IDENTITY, path: null, resources, form, depth,
         };
-
         for (const o of ops) {
-            const op = o.op;
-            if (CONSTRUCT.has(op)) {
-                const v = nums(o);
-                if (!path) path = { start: o.start, points: [], segments: 0, clip: false };
-                if (op === 're' && v.length === 4) {
-                    const [x, y, w, h] = v;
-                    path.points.push(apply(gs.ctm, x, y), apply(gs.ctm, x + w, y), apply(gs.ctm, x, y + h), apply(gs.ctm, x + w, y + h));
-                    path.segments += 4;
-                } else {
-                    for (let i = 0; i + 1 < v.length; i += 2) path.points.push(apply(gs.ctm, v[i], v[i + 1]));
-                    if (op !== 'm') path.segments++;
-                }
-                continue;
-            }
-            if (op === 'W' || op === 'W*') { if (path) path.clip = true; continue; }
-            if (PAINT.has(op)) {
-                if (path && path.points.length && op !== 'n') {
-                    const scale = Math.sqrt(Math.abs(gs.ctm[0] * gs.ctm[3] - gs.ctm[1] * gs.ctm[2])) || 1;
-                    this.objects.push({
-                        kind: 'path', start: path.start, end: o.end, bbox: bboxOf(path.points),
-                        fill: FILLS.has(op) ? gs.fill : null, stroke: STROKES.has(op) ? gs.stroke : null,
-                        lineWidth: gs.lineWidth * scale, segments: path.segments, clip: path.clip,
-                        form, removable: !form && !path.clip,
-                    });
-                }
-                path = null;
-                continue;
-            }
-            switch (op) {
-                case 'q': stack.push({ ...gs }); break;
-                case 'Q': if (stack.length) gs = stack.pop(); break;
-                case 'cm': { const v = nums(o); if (v.length === 6) gs.ctm = mul(v, gs.ctm); break; }
-                case 'w': gs.lineWidth = nums(o)[0] || 0; break;
-                case 'g': case 'rg': case 'k': case 'sc': case 'scn': gs.fill = toRgb(o.operands); break;
-                case 'G': case 'RG': case 'K': case 'SC': case 'SCN': gs.stroke = toRgb(o.operands); break;
-                case 'cs': gs.fill = [0, 0, 0]; break;
-                case 'CS': gs.stroke = [0, 0, 0]; break;
-                case 'BT': tm = IDENTITY; tlm = IDENTITY; break;
-                case 'Tf': {
-                    const name = o.operands[0]?.name;
-                    gs.font = name ? this.font(resources, name) : null;
-                    gs.size = typeof o.operands[1] === 'number' ? o.operands[1] : 0;
-                    break;
-                }
-                case 'Tc': gs.tc = nums(o)[0] || 0; break;
-                case 'Tw': gs.tw = nums(o)[0] || 0; break;
-                case 'Tz': gs.th = (nums(o)[0] ?? 100) / 100; break;
-                case 'TL': gs.tl = nums(o)[0] || 0; break;
-                case 'Ts': gs.rise = nums(o)[0] || 0; break;
-                case 'Tm': { const v = nums(o); if (v.length === 6) { tm = v; tlm = v; } break; }
-                case 'Td': case 'TD': {
-                    const [tx, ty] = nums(o);
-                    tlm = mul([1, 0, 0, 1, tx || 0, ty || 0], tlm); tm = tlm;
-                    if (op === 'TD') gs.tl = -(ty || 0);
-                    break;
-                }
-                case 'T*': tlm = mul([1, 0, 0, 1, 0, -gs.tl], tlm); tm = tlm; break;
-                case 'Tj': showText(o, [o.operands[0]]); break;
-                case 'TJ': showText(o, Array.isArray(o.operands[0]) ? o.operands[0] : []); break;
-                case "'": tlm = mul([1, 0, 0, 1, 0, -gs.tl], tlm); tm = tlm; showText(o, [o.operands[0]]); break;
-                case '"': {
-                    const [aw, ac] = nums(o);
-                    gs.tw = aw || 0; gs.tc = ac || 0;
-                    tlm = mul([1, 0, 0, 1, 0, -gs.tl], tlm); tm = tlm;
-                    showText(o, [o.operands[2]]);
-                    break;
-                }
-                case 'Do': this.drawXObject(o, resources, gs.ctm, form, depth); break;
-                case 'BI': {
-                    const corners = [[0, 0], [1, 0], [0, 1], [1, 1]].map(([x, y]) => apply(gs.ctm, x, y));
-                    this.objects.push({ kind: 'image', start: o.start, end: o.end, bbox: bboxOf(corners), name: null, inline: true, form, removable: !form });
-                    break;
-                }
-                default: break;
+            if (CONSTRUCT.has(o.op)) this.constructPath(st, o);
+            else if (o.op === 'W' || o.op === 'W*') { if (st.path) st.path.clip = true; }
+            else if (PAINT.has(o.op)) this.paintPath(st, o);
+            else OPERATORS.get(o.op)?.(this, st, o);
+        }
+    }
+
+    /**
+     * A path construction operator: start the path or extend it, in device space.
+     * @param {RunState} st
+     * @param {PdfOperation} o
+     */
+    constructPath(st, o) {
+        const v = nums(o);
+        const ctm = st.gs.ctm;
+        if (!st.path) st.path = { start: o.start, points: [], segments: 0, clip: false };
+        const path = st.path;
+        if (o.op === 're' && v.length === 4) {
+            const [x, y, w, h] = v;
+            path.points.push(apply(ctm, x, y), apply(ctm, x + w, y), apply(ctm, x, y + h), apply(ctm, x + w, y + h));
+            path.segments += 4;
+            return;
+        }
+        for (let i = 0; i + 1 < v.length; i += 2) path.points.push(apply(ctm, v[i], v[i + 1]));
+        if (o.op !== 'm') path.segments++;
+    }
+
+    /**
+     * A painting operator ends the path; anything but `n` on a non-empty path is
+     * a path object. A clipping path stays on the page.
+     * @param {RunState} st
+     * @param {PdfOperation} o
+     */
+    paintPath(st, o) {
+        const { path, gs } = st;
+        if (path && path.points.length && o.op !== 'n') {
+            const scale = Math.sqrt(Math.abs(gs.ctm[0] * gs.ctm[3] - gs.ctm[1] * gs.ctm[2])) || 1;
+            this.objects.push({
+                kind: 'path', start: path.start, end: o.end, bbox: bboxOf(path.points),
+                fill: FILLS.has(o.op) ? gs.fill : null, stroke: STROKES.has(o.op) ? gs.stroke : null,
+                lineWidth: gs.lineWidth * scale, segments: path.segments, clip: path.clip,
+                form: st.form, removable: !st.form && !path.clip,
+            });
+        }
+        st.path = null;
+    }
+
+    /**
+     * A text-showing operator: one text object over the advance of its glyphs,
+     * then the text matrix moves past it.
+     * @param {RunState} st
+     * @param {PdfOperation} o
+     * @param {PdfOperand[]} pieces
+     */
+    showText(st, o, pieces) {
+        const gs = st.gs;
+        const f = gs.font || loadFont(this.context, undefined);
+        let x = 0;
+        let text = '';
+        for (const piece of pieces) {
+            if (typeof piece === 'number') { x -= (piece / 1000) * gs.size * gs.th; continue; }
+            if (!piece || !piece.bytes) continue;
+            for (const g of f.decode(piece.bytes)) {
+                text += g.text;
+                x += (g.width * gs.size + gs.tc + (g.isSpace ? gs.tw : 0)) * gs.th;
             }
         }
+        const m = mul(st.tm, gs.ctm);
+        const lo = f.descent * gs.size + gs.rise;
+        const hi = f.ascent * gs.size + gs.rise;
+        const corners = [apply(m, 0, lo), apply(m, x, lo), apply(m, 0, hi), apply(m, x, hi)];
+        const scaleY = Math.hypot(m[2], m[3]);
+        this.objects.push({
+            kind: 'text', start: o.start, end: o.end, text, bbox: bboxOf(corners),
+            origin: apply(m, 0, gs.rise), size: gs.size * scaleY, form: st.form, removable: !st.form,
+        });
+        st.tm = mul([1, 0, 0, 1, x, 0], st.tm);
     }
 
     /**

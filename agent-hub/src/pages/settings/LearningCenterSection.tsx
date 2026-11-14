@@ -54,7 +54,6 @@ import {
 import { TOUR_START_EVENT } from '../../components/onboarding/tourSteps';
 import AnchoredMenu from '../../components/shared/AnchoredMenu';
 import { useTranslation } from '../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../utils/helpers';
 import type { ProgressMap, Course, PracticeItem, ServerLessonDoc } from '../../api/lessons.types';
 import type { LocaleCoverage } from '../../components/admin/product-website/shell/LocaleMenu';
 import type { SettingsUser } from './shell/settingsShellTypes';
@@ -62,6 +61,7 @@ import type { LearningNavTarget } from './learning/learning.types';
 import type { StudioSectionHeaderTab } from '../../components/projects/workspace/studioParts';
 import type { CertificateRecord, LearningCenterSectionProps } from './LearningCenterSection.types';
 import { logger } from '../../utils/logger';
+import { apiFetch } from '@/api/typedRequest';
 /**
  * LearningCenterSection — "Bee Flow Academy", redesigned (handoff "Learning
  * Center.dc.html", Sep 2026): the same shell as Compliance — a 300px rail, a
@@ -166,7 +166,7 @@ export default function LearningCenterSection({ user }: LearningCenterSectionPro
         seedFromLocal();
         (async () => {
             try {
-                const res = await authFetch(`${API_BASE}/ai/user-settings`);
+                const res = await apiFetch('GET /ai/user-settings');
                 if (!res.ok || cancelled) return;
                 const data = await res.json();
                 if (cancelled) return;

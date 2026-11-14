@@ -380,8 +380,3 @@ export function useDeleteCommentThread(target: CommentTarget) {
         },
     });
 }
-
-/** Mark the item's comments stale (a live event said something changed), whole threads included. */
-export function invalidateCommentThreads(qc: QueryClient, target: CommentTarget) {
-    return qc.invalidateQueries({ queryKey: commentKeys.target(target) });
-}

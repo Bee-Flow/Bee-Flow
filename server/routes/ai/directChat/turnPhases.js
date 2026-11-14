@@ -15,7 +15,7 @@ const { assembleToolStack } = require('./toolStackAssembly');
 const { buildPromptAndHistory, applyMemorySwap } = require('./promptAssembly');
 const { setupSessionSkills } = require('./sessionSkillSetup');
 const { claimSharedThreadTurn } = require('./sharedThreadLock');
-const { swapModelForActiveStage } = require('./stageModelSwap');
+const { swapModelForActiveStage } = require('../../../usecases/ai/directChat/stageModelSwap');
 const { processAttachmentsAndUserMessage } = require('./attachmentIntake');
 
 async function runSetupPhases(turn, body) {

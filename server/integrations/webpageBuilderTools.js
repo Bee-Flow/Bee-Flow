@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Webpage Builder Tools — used by directChat so the regular AI chat can create
  * and edit webpages without the user being in the dedicated Webpages editor.
@@ -13,7 +13,7 @@
 
 const webpageStore = require('../stores/webpageStore');
 const { executeWebpageDocTool } = require('./webpageDocTools');
-const { resolveFramework } = require('./webpageFramework');
+const { resolveFramework } = require('../core/webpages/frameworkModel.mts');
 const { scheduleThumbnail } = require('../core/webpages/webpageThumbnailGenerator');
 const log = require('../telemetry/log');
 const { sanitizeMetadata, countLines, slotTooLarge } = require('./webpageMetadataInput');
@@ -222,7 +222,9 @@ async function executeBuilderTool(toolName, args, ctx) {
     }
 
     if (toolName === 'webpage_file_write') {
-        const { webpageId, file, content, title } = args;
+        const { webpageId, file, title } = args;
+        // No content writes an empty file, as the doc tool reads it.
+        const content = args.content || '';
         if (!webpageId) return { result: { error: 'webpageId is required.' } };
         const webpage = await webpageStore.getWebpage(webpageId, userId).catch((e) => fallback('integrations/webpageBuilderTools:executeBuilderTool#3', e, null));
         if (!webpage) return { result: { error: `Webpage ${webpageId} not found.` } };
@@ -233,7 +235,8 @@ async function executeBuilderTool(toolName, args, ctx) {
         const docResult = executeWebpageDocTool('webpage_file_write', { file, content, title }, files);
         if (docResult.error) return { result: docResult };
 
-        await webpageStore.writeSlot(userId, webpageId, file, content);
+        const slot = /** @type {string} */ (file); // the doc tool refused anything but a known slot
+        await webpageStore.writeSlot(userId, webpageId, slot, content);
         log.info(`[WebpageBuilder] webpage_file_write: ${file} → ${webpageId} (${content.length} chars)`);
 
         // Soft post-write validation (BFSF-222) — full-page html writes on
@@ -285,10 +288,11 @@ async function executeBuilderTool(toolName, args, ctx) {
         const docResult = executeWebpageDocTool(toolName, docArgs, files, { readSlots: readSetFor(webpageId) });
         if (docResult.error) return { result: docResult };
 
-        const newContent = docResult.content;
+        // An edit the doc tool accepted names a known slot and answers its new text.
+        const newContent = /** @type {string} */ (docResult.content);
         const tooLarge = slotTooLarge(newContent);
         if (tooLarge) return { result: tooLarge };
-        await webpageStore.writeSlot(userId, webpageId, file, newContent);
+        await webpageStore.writeSlot(userId, webpageId, /** @type {string} */ (file), newContent);
         log.info(`[WebpageBuilder] ${toolName}: ${file} in ${webpageId}`);
 
         scheduleThumbnail({ userId, webpageId });
