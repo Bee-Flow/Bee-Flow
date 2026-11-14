@@ -68,9 +68,9 @@ function _resolveSessionNcUid(user, req, payload) {
 // Cache derived encryption keys per userId. The fallback key uses PBKDF2 with
 // 210k iterations (~50-100ms each) — running that on every request is
 // noticeable in chat latency. The derived key is fully determined by
-// userId + MASTER_ENCRYPTION_KEY, both stable, so we cache forever (process
-// lifetime). Cleared on server restart.
-const _encKeyCache = new Map();
+// userId + MASTER_ENCRYPTION_KEY, both stable, so it is cached: briefly and
+// in bounded number (connectorKeyCache.js), not for the process lifetime.
+const _encKeyCache = require('./connectorKeyCache').createKeyCache();
 
 /**
  * The JWT was signed with org X's key, so the EXISTING user it names must be

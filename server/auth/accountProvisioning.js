@@ -395,10 +395,10 @@ async function createOrgPlacement(intent) {
 async function joinOrgPlacement(intent) {
     const orgs = await userStore.getAllOrganizations();
     const org = orgs.find(o => o.id === intent.organizationId);
-    if (!org) throw new SignupError('ORG_NOT_FOUND', 'Organization not found');
-
     const invited = !!intent.invite;
-    // Invited users are auto-approved; self-signup depends on the org's allowSignup.
+    // By invitation only unless the organisation allows self-signup; a closed one answers like an unknown one.
+    if (!org || (!invited && !org.allowSignup)) throw new SignupError('ORG_NOT_FOUND', 'Organization not found');
+
     return {
         organizationId: org.id,
         orgRole: intent.invite?.data?.role || intent.invite?.data?.org_role || '',

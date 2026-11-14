@@ -4,7 +4,8 @@ const componentManager = require('./cms/componentManager');
 const watcherStateStore = require('../stores/watcherStateStore');
 const { buildMcpChildEnv } = require('./mcpChildEnv');
 const log = require('../telemetry/log');
-const { assertPublicTargets } = require('./cms/componentInputGuard');
+const { assertPublicTargets, allowedPrivateHosts } = require('./cms/componentInputGuard');
+const COMPONENT_NET_GUARD = require.resolve('./cms/componentNetGuard'); // screens the child's connections
 // @typecheck
 /**
  * Variables a component child gets on top of the MCP child allow-list.
@@ -338,10 +339,10 @@ function runComponent(componentPath, inputs, limits = {}) {
 
         // We use 'spawn' to run a separate node process.
         // We pass inputs via STDIN JSON string.
-        const child = spawn('node', [entryFile], {
+        const child = spawn('node', ['--require', COMPONENT_NET_GUARD, entryFile], {
             cwd: componentPath, // FORCE CWD to component folder for node_modules resolution
             // Never process.env: see buildComponentEnv.
-            env: buildComponentEnv(),
+            env: { ...buildComponentEnv(), BEEFLOW_COMPONENT_ALLOWED_HOSTS: allowedPrivateHosts(/** @type {Record<string, unknown>} */ (inputs)).join(',') },
         });
 
         /** @type {Buffer[]} */

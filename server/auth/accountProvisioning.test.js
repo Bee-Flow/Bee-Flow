@@ -328,11 +328,12 @@ describe('prepareAccountPlacement — join existing', () => {
             (e) => e.code === 'ORG_NOT_FOUND');
     });
 
-    test('self-signup into an org that does not allow it lands pending, with no groups', async () => {
+    test('self-signup into an org that does not allow it is refused like an unknown org', async () => {
+        // By invitation only: no pending row an administrator never asked for,
+        // and no confirmation that the organisation exists.
         const i = ap.normalizeSignupIntent({ organizationId: 'acme' });
-        const p = await ap.prepareAccountPlacement(i, { req: REQ });
-        assert.equal(p.status, 'pending');
-        assert.deepEqual(p.groups, []);
+        await assert.rejects(() => ap.prepareAccountPlacement(i, { req: REQ }),
+            (e) => e.code === 'ORG_NOT_FOUND' && e.message === 'Organization not found');
     });
 
     test('an invited user is active, gets the default groups and the invited role', async () => {

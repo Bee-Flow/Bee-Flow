@@ -1,5 +1,6 @@
 import React, { Suspense, type ComponentProps, type ComponentType, useCallback, useEffect, useRef, useState } from 'react';
 import type MonacoReact from '@monaco-editor/react';
+import { monacoVsUrl } from '@/components/automation/Builder/flow/settings/codeStep/monaco';
 import type { Monaco } from '@monaco-editor/react';
 import type { editor as MonacoNs } from 'monaco-editor';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -20,6 +21,8 @@ const MonacoEditor = lazy((): Promise<{ default: ComponentType<MonacoProps> }> =
     import('@monaco-editor/react')
         .then(m => {
             if (!m.default) throw new Error('Monaco default export missing');
+            // This app's own copy, never the loader's CDN default (see monacoVsUrl).
+            m.loader.config({ paths: { vs: monacoVsUrl() } });
             return { default: m.default };
         })
         .catch(err => {

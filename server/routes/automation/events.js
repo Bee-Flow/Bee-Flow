@@ -12,8 +12,8 @@
 // here is the signature check and the rate limit, both below — not a shape.
 const express = require('express');
 const { checkWebhookSignature, sameSignature } = require('../../usecases/automation/webhookSignature');
+const { scopeOfGithubDelivery } = require('../../usecases/automation/githubWebhookScope');
 const { NOT_ACCEPTED, verifyDeliverySignature, startSignedDelivery } = require('../../usecases/automation/webhookReceive.mts');
-const crypto = require('crypto');
 const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
 const router = express.Router();
@@ -349,11 +349,8 @@ router.post('/events/msgraph', eventsLimiter, express.json({ limit: '128kb' }), 
 // SECURITY: the HMAC is verified over the RAW request bytes (what GitHub
 // actually signs) — never over a re-serialised JSON.stringify(req.body), which
 // can diverge from the bytes GitHub hashed and silently reject valid payloads.
-// NOTE (follow-up, see audit WS1.2): the secret `automation_github_webhook_secret`
-// is currently a single GLOBAL value, so a leak forges GitHub triggers for every
-// org. Scoping it per-org requires a per-org GitHub App installation→org mapping
-// (derive the org from the installation id / repo in the payload) — a separate
-// feature that also changes the webhook URL users register in GitHub.
+// The secret that signed a delivery decides which organisation it reaches
+// (usecases/automation/githubWebhookScope.js).
 const captureRawJson = (/** @type {string} */ limit) => express.json({
     limit,
     verify: (req, _res, buf) => { req.rawBody = buf; },
@@ -361,12 +358,19 @@ const captureRawJson = (/** @type {string} */ limit) => express.json({
 router.post('/events/github', eventsLimiter, captureRawJson('256kb'), async (req, res) => {
     const sig = req.get('X-Hub-Signature-256') || '';
     const event = req.get('X-GitHub-Event') || 'unknown';
-    const secret = await configStore.getConfig('automation_github_webhook_secret');
-    if (!secret) throw new HttpError(503, 'github_webhooks_unconfigured', 'GitHub webhooks not configured');
     const raw = Buffer.isBuffer(req.rawBody) ? req.rawBody : Buffer.from(JSON.stringify(req.body || {}), 'utf8');
-    const expected = 'sha256=' + crypto.createHmac('sha256', secret).update(raw).digest('hex');
-    if (!sameSignature(sig, expected)) return res.status(401).json({ error: 'Bad signature' });
-    await triggerBus.dispatchEvent({ provider: 'github', event, payload: req.body || {} });
+    const scope = await scopeOfGithubDelivery({
+        signature: sig, raw,
+        getConfig: (key) => configStore.getConfig(key),
+        listOrganizations: () => require('../../stores/userStore').getAllOrganizations(),
+    });
+    if (scope.outcome === 'unconfigured') throw new HttpError(503, 'github_webhooks_unconfigured', 'GitHub webhooks not configured');
+    if (scope.outcome === 'bad_signature') return res.status(401).json({ error: 'Bad signature' });
+    if (scope.outcome === 'needs_org_secret') {
+        log.warn('[automation/events/github] delivery signed with the installation-wide secret refused: more than one organisation, set a secret per organisation');
+        throw new HttpError(409, 'github_webhook_needs_org_secret', 'This installation has several organisations: GitHub webhooks need a secret per organisation');
+    }
+    await triggerBus.dispatchEvent({ provider: 'github', event, payload: req.body || {}, ...(scope.outcome === 'org' ? { orgId: scope.orgId } : {}) });
     return res.status(202).end();
 });
 

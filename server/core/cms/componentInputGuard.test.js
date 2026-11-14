@@ -26,3 +26,15 @@ test('text that is not an http(s) URL, and the server-set `_` inputs, are left a
     const inputs = { query: 'state: Open', note: 'see http in the middle', _nextcloudUrl: 'http://10.0.0.9', max: 10 };
     assert.strictEqual(await privateUrlInput(inputs, { lookup: lookupWith() }), null);
 });
+
+test('the operator list, the caller\'s Nextcloud and a proxy may be private', async () => {
+    const { allowedPrivateHosts } = require('./componentInputGuard');
+    assert.deepStrictEqual(allowedPrivateHosts({ _nextcloudUrl: 'https://NC.lan/x' }, { COMPONENT_ALLOW_PRIVATE_HOSTS: 'n8n.lan, 10.0.0.5', HTTPS_PROXY: 'http://proxy.lan:3128' }),
+        ['n8n.lan', '10.0.0.5', 'nc.lan', 'proxy.lan']);
+    assert.deepStrictEqual(allowedPrivateHosts({}, { COMPONENT_ALLOW_PRIVATE_HOSTS: '1' }), ['*']);
+    assert.deepStrictEqual(allowedPrivateHosts({}, {}), []);
+    const never = () => { throw new Error('no lookup expected'); };
+    assert.strictEqual(await privateUrlInput({ webhookUrl: 'http://10.0.0.5/hook' }, { lookup: never, allowed: ['10.0.0.5'] }), null);
+    assert.strictEqual(await privateUrlInput({ webhookUrl: 'http://10.0.0.6/hook' }, { lookup: never, allowed: ['10.0.0.5'] }), 'webhookUrl');
+    assert.strictEqual(await privateUrlInput({ webhookUrl: 'http://10.0.0.6/hook' }, { lookup: never, allowed: ['*'] }), null);
+});
