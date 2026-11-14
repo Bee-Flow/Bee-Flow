@@ -15,7 +15,7 @@ const {
 } = require('./localeOverrides');
 const { getPublishedSnapshot } = require('./publishing');
 const { cleanOverrideMedia, applyOverrideMedia } = require('./localeMedia');
-const { LOCALE_PREFIXES } = require('./slugRules');
+const { LOCALE_PREFIXES, BLOG_BASE } = require('./slugRules');
 
 // ── Effective content (preview-time render) ──────────────────────────
 
@@ -85,8 +85,8 @@ function localePathPrefix(locale, defaultLocale) {
 
 /**
  * Put a site path into the page's language: '/contact' becomes '/nl/contact'
- * and '/' becomes '/nl'. Only a path to the homepage or to a page of this site
- * moves; '/app', '/api', an asset, a path that already carries the prefix and
+ * and '/' becomes '/nl'. Only a path to the homepage, to a page of this site or
+ * to the blog moves; '/app', '/api', an asset, a path that already carries the prefix and
  * anything that is not a site path (https:, mailto:, '#...') stay as they are.
  * @param {string} href
  * @param {string} prefix
@@ -98,10 +98,21 @@ function localizePath(href, prefix, pages) {
     const path = m ? m[1] : href;
     const tail = m ? m[2] : '';
     if (path === '/') return `${prefix}${tail}`;
-    const first = path.split('/')[1];
+    const segments = path.split('/').slice(1);
+    const first = segments[0];
     if (`/${first}` === prefix) return href;
-    if (!pages.some(p => p.slug === first)) return href;
+    if (!pages.some(p => p.slug === first) && !isBlogPath(segments)) return href;
     return `${prefix}${path}${tail}`;
+}
+
+/**
+ * The blog is a built-in route with a page per language (/blog, /blog/<post>,
+ * /blog/feed.xml), not a CMS page, so it is matched by name. The blog router
+ * sends an untranslated Dutch address on to the English one.
+ * @param {string[]} segments the path's segments after the leading '/'
+ */
+function isBlogPath(segments) {
+    return segments[0] === BLOG_BASE && segments.length <= 2;
 }
 
 // Block fields that hold a bare internal path instead of a Link object

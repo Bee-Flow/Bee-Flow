@@ -1,67 +1,84 @@
 import BlogSearch from './BlogSearch';
+import { PostMeta, tagLine } from './PostCard';
 import {
-    assetSrc, formatPostDate, indexHref, label, postHref,
+    assetSrc, formatPostDay, indexHref, label, postHref,
     type BlogIndexPayload, type BlogLabels, type BlogPostSummary,
 } from './blogFormat';
 
 /**
- * The blog index (/blog): heading and intro, a tag filter, the newest post as
- * a featured card, the rest in a responsive grid, and newer/older paging.
- * Every link is a plain <a> — the marketing site navigates with full page
- * loads, which is what makes each URL server-rendered and shareable.
+ * The blog index (/blog): heading and intro with the search box beside them,
+ * the topics as a row of text links, the newest post in one tinted panel and
+ * the rest as a dated list. A post without a cover image is the normal case,
+ * so nothing here depends on one. Every link is a plain <a> — the marketing
+ * site navigates with full page loads, which is what makes each URL
+ * server-rendered and shareable.
  */
 
-function PostMeta({ post, locale, labels }: { post: BlogPostSummary; locale: string; labels: BlogLabels }) {
-    const date = formatPostDate(post.publishedAt, locale);
-    return (
-        <p className="blog-meta">
-            {date ? <time dateTime={post.publishedAt || undefined}>{date}</time> : null}
-            {date && post.readingMinutes ? <span aria-hidden="true">·</span> : null}
-            {post.readingMinutes ? <span>{label(labels, 'min_read', { n: post.readingMinutes })}</span> : null}
-        </p>
-    );
-}
-
-export function PostCard({ post, basePath, locale, labels, featured = false, headingLevel = 2 }: {
-    post: BlogPostSummary;
-    basePath: string;
-    locale: string;
-    labels: BlogLabels;
-    featured?: boolean;
-    headingLevel?: 2 | 3;
-}) {
+/** The newest post: the one tinted panel of the page. */
+function PostFeature({ post, basePath, locale, labels }: { post: BlogPostSummary; basePath: string; locale: string; labels: BlogLabels }) {
     const href = postHref(basePath, post.slug);
     const cover = assetSrc(post.coverImage);
-    const Heading = headingLevel === 3 ? 'h3' : 'h2';
     return (
-        <article className={`blog-card${featured ? ' blog-card--featured' : ''}${cover ? '' : ' blog-card--no-cover'}`}>
-            {cover ? (
-                <a className="blog-card-cover" href={href} tabIndex={-1} aria-hidden="true">
-                    <img src={cover} alt="" loading={featured ? 'eager' : 'lazy'} decoding="async" />
-                </a>
-            ) : null}
-            <div className="blog-card-body">
-                {post.tags.length ? <p className="blog-eyebrow">{post.tags.slice(0, 2).map(t => t.label).join(' · ')}</p> : null}
-                <Heading className="blog-card-title"><a href={href}>{post.title}</a></Heading>
-                {post.excerpt ? <p className="blog-card-excerpt">{post.excerpt}</p> : null}
+        <article className={`blog-feature${cover ? ' blog-feature--cover' : ''}`}>
+            <div className="blog-feature-body">
                 <PostMeta post={post} locale={locale} labels={labels} />
+                <h2 className="blog-feature-title"><a href={href}>{post.title}</a></h2>
+                {post.excerpt ? <p className="blog-feature-excerpt">{post.excerpt}</p> : null}
+                {post.tags.length ? <p className="blog-feature-tags">{tagLine(post, 3)}</p> : null}
             </div>
+            {cover ? (
+                <div className="blog-feature-cover">
+                    <img src={cover} alt="" loading="eager" decoding="async" />
+                </div>
+            ) : null}
         </article>
     );
 }
 
-function TagFilter({ blog }: { blog: BlogIndexPayload }) {
+/** One post in the dated list: date, title and excerpt, topic and reading time. */
+function PostRow({ post, basePath, locale, labels }: { post: BlogPostSummary; basePath: string; locale: string; labels: BlogLabels }) {
+    const href = postHref(basePath, post.slug);
+    const cover = assetSrc(post.coverImage);
+    const { day, year } = formatPostDay(post.publishedAt, locale);
+    return (
+        <li className={`blog-row${cover ? ' blog-row--cover' : ''}`}>
+            <p className="blog-row-date">
+                {day ? (
+                    <time dateTime={post.publishedAt || undefined}>
+                        <span className="blog-row-day">{day}</span>
+                        <span className="blog-row-year">{year}</span>
+                    </time>
+                ) : null}
+            </p>
+            <div className="blog-row-body">
+                <h2 className="blog-row-title"><a href={href}>{post.title}</a></h2>
+                {post.excerpt ? <p className="blog-row-excerpt">{post.excerpt}</p> : null}
+            </div>
+            <p className="blog-row-aside">
+                {post.tags.length ? <span>{tagLine(post, 1)}</span> : null}
+                {post.readingMinutes ? <span>{label(labels, 'min_read', { n: post.readingMinutes })}</span> : null}
+            </p>
+            {cover ? (
+                <div className="blog-row-cover">
+                    <img src={cover} alt="" loading="lazy" decoding="async" />
+                </div>
+            ) : null}
+        </li>
+    );
+}
+
+function Topics({ blog }: { blog: BlogIndexPayload }) {
     const { labels, basePath } = blog;
     if (!blog.tags?.length) return null;
     return (
-        <nav className="blog-tags" aria-label={label(labels, 'tags')}>
-            <a className={`blog-tag${blog.tag ? '' : ' is-active'}`} href={basePath} aria-current={blog.tag ? undefined : 'page'}>
+        <nav className="blog-topics" aria-label={label(labels, 'tags')}>
+            <a className={`blog-topic${blog.tag ? '' : ' is-active'}`} href={basePath} aria-current={blog.tag ? undefined : 'page'}>
                 {label(labels, 'all_posts')}
             </a>
             {blog.tags.map(t => {
                 const active = blog.tag?.slug === t.slug;
                 return (
-                    <a key={t.slug} className={`blog-tag${active ? ' is-active' : ''}`} href={indexHref(basePath, { tag: t.slug })} aria-current={active ? 'page' : undefined}>
+                    <a key={t.slug} className={`blog-topic${active ? ' is-active' : ''}`} href={indexHref(basePath, { tag: t.slug })} aria-current={active ? 'page' : undefined}>
                         {t.label}
                     </a>
                 );
@@ -94,18 +111,20 @@ export default function BlogIndex({ blog }: { blog: BlogIndexPayload }) {
     return (
         <section className="blog-index">
             <div className="container">
-                <header className="blog-index-head">
-                    <h1 className="blog-index-title">{heading}</h1>
-                    {blog.description && !blog.tag ? <p className="blog-index-lead">{blog.description}</p> : null}
-                </header>
-                <BlogSearch blog={blog} />
-                <TagFilter blog={blog} />
+                <div className="blog-index-top">
+                    <header className="blog-index-head">
+                        <h1 className="blog-index-title">{heading}</h1>
+                        {blog.description && !blog.tag ? <p className="blog-index-lead">{blog.description}</p> : null}
+                    </header>
+                    <BlogSearch blog={blog} />
+                </div>
+                <Topics blog={blog} />
                 {!posts.length ? <p className="blog-empty">{label(labels, blog.tag ? 'no_posts_tag' : 'no_posts')}</p> : null}
-                {featured ? <PostCard post={featured} basePath={basePath} locale={locale} labels={labels} featured /> : null}
+                {featured ? <PostFeature post={featured} basePath={basePath} locale={locale} labels={labels} /> : null}
                 {rest.length ? (
-                    <div className="blog-grid">
-                        {rest.map(p => <PostCard key={p.id} post={p} basePath={basePath} locale={locale} labels={labels} />)}
-                    </div>
+                    <ol className="blog-list">
+                        {rest.map(p => <PostRow key={p.id} post={p} basePath={basePath} locale={locale} labels={labels} />)}
+                    </ol>
                 ) : null}
                 <Paging blog={blog} />
             </div>

@@ -1,0 +1,198 @@
+/**
+ * English text of the integration pages for the Nextcloud apps (see index.mts).
+ */
+
+import type { Prose } from '../types.mts';
+import { NC_CONNECT, ncApp, NC_APP_PASSWORD } from './shared.mts';
+
+export const NEXTCLOUD: Record<string, Prose> = {
+    nextcloud: {
+        title: 'Nextcloud Files integration: files and shares',
+        description: 'A Bee Flow assistant searches, reads and organises your Nextcloud files, creates Office documents, shares files and restores versions.',
+        summary: 'Search and read files, create documents, organise, share and restore.',
+        name: 'Nextcloud Files',
+        intro: ['The Nextcloud Files integration is the base of Bee Flow\'s Nextcloud tools. An assistant finds files, reads PDFs, Word, PowerPoint and Excel files, creates real Office documents that open in Nextcloud Office, and handles shares, tags, the trash and version history.'],
+        groups: {
+            find: 'List a folder, search by name, get the folder tree in one call, search across all Nextcloud apps at once, and read a file\'s content.',
+            create: 'Upload files and create Word, Excel and PowerPoint files (the last in your organisation\'s house style), and convert a file to PDF with Nextcloud Office.',
+            organise: 'Create folders, move, rename, copy and delete (to the trash), and work with tags.',
+            share: 'Create a public link, share with a person, a group or by email, change or revoke shares, and make a short-lived download link.',
+            comments: 'Read and add comments on a file.',
+            restore: 'List the trash and restore from it, delete for good, and list or restore earlier versions of a file.',
+        },
+        connect: [NC_CONNECT],
+        limits: ['File content passes through the Privacy Shield before the model sees it.', 'Very long extracted text is cut at about 200 KB.', 'Converting to PDF needs the Nextcloud Office app.'],
+        examples: ['Find the signed contract for this project and summarise the terms.', 'Make a spreadsheet of these figures in the Reports folder and share it with the finance group.'],
+    },
+    'nextcloud-calendar': {
+        title: 'Nextcloud Calendar integration via CalDAV',
+        description: 'A Bee Flow assistant reads your Nextcloud calendars, finds events and creates, updates or deletes them. Automations start on calendar events.',
+        summary: 'Read and search events; create, update and delete them.',
+        intro: ['The Nextcloud Calendar integration works with your calendars over CalDAV. An assistant lists what is planned, finds an event by title, location or attendee, and plans new events.'],
+        groups: {
+            read: 'List your calendars, list events in a date range, search events, and read one event.',
+            change: 'Create and update events, and delete them after you confirm.',
+        },
+        connect: [NC_CONNECT],
+        limits: ['Times without a time zone are read as UTC.', 'Event descriptions pass through the Privacy Shield.'],
+        examples: ['What is on my calendar tomorrow?', 'Plan a one-hour meeting with the project team on Friday morning.'],
+    },
+    'nextcloud-contacts': {
+        title: 'Nextcloud Contacts integration via CardDAV',
+        description: 'A Bee Flow assistant searches your Nextcloud address books by name, email, phone or organisation and creates, updates or deletes contacts.',
+        summary: 'Search address books; create, update and delete contacts.',
+        intro: ['The Nextcloud Contacts integration works with your address books over CardDAV, so an assistant finds the right person and keeps their details up to date.'],
+        groups: {
+            find: 'List address books and contacts, search all address books by name, email, phone or organisation, and read one contact.',
+            change: 'Create and update contacts, and delete one after you confirm.',
+        },
+        connect: [NC_CONNECT],
+        limits: ['Contact details are replaced with placeholders by the Privacy Shield before the model sees them.'],
+    },
+    'nextcloud-deck': {
+        title: 'Nextcloud Deck integration: boards and cards',
+        description: 'A Bee Flow assistant reads and updates your Nextcloud Deck boards: cards, columns, labels and comments. Automations start on card changes.',
+        summary: 'Read boards; create, move and label cards; comment.',
+        intro: ['Nextcloud Deck is a kanban board app. With this integration an assistant summarises a board, creates cards, moves them between columns and keeps labels and comments up to date.'],
+        groups: {
+            read: 'List boards and columns, list and search cards, and read a card with its labels, assignees, comments and attachments.',
+            cards: 'Create and update cards, move them to another column, archive or delete them, add and remove labels, and comment.',
+            board: 'Create, rename and reorder columns, and delete a column after you confirm.',
+        },
+        connect: [NC_CONNECT, NC_APP_PASSWORD],
+        limits: [ncApp('Deck')],
+        examples: ['Summarise the open cards on the marketing board.', 'Move every card labelled bug from In progress back to Triage.'],
+    },
+    'nextcloud-mail': {
+        title: 'Nextcloud Mail integration: read and send mail',
+        description: 'A Bee Flow assistant searches and reads mail in Nextcloud Mail, reads attachments, files messages and sends mail after you approve.',
+        summary: 'Search and read mail and attachments, file messages, send mail.',
+        intro: ['The Nextcloud Mail integration works with the mail accounts you have set up in the Nextcloud Mail app. An assistant searches and reads messages, reads attachments, files mail and sends messages and replies.'],
+        groups: {
+            read: 'List your mail accounts and folders, search messages and read one with its attachments, and read the text of an attachment.',
+            send: 'Send a message or a reply after you approve it.',
+            sort: 'Mark mail read, flagged or junk, move it to another folder, and save an attachment straight into Nextcloud Files.',
+        },
+        connect: [NC_CONNECT, 'The mail account passwords stay in Nextcloud. Bee Flow never sees them.'],
+        limits: [ncApp('Mail'), 'Set up the mail account in Nextcloud Mail first.', 'Message bodies and attachments pass through the Privacy Shield.'],
+    },
+    'nextcloud-notifications': {
+        title: 'Nextcloud Notifications integration',
+        description: 'A Bee Flow assistant lists and dismisses your Nextcloud notifications, and an admin account can send notifications. Automations can start on them.',
+        summary: 'List and dismiss notifications; send them as an admin.',
+        intro: ['With the Notifications integration an assistant tells you what Nextcloud wants your attention for and clears what you have dealt with.'],
+        groups: {
+            read: 'List your pending notifications with subject, app, time and action links.',
+            dismiss: 'Dismiss one notification, or all of them after you confirm.',
+            send: 'Send a notification to a Nextcloud user.',
+        },
+        connect: [NC_CONNECT],
+        limits: ['Sending a notification needs an administrator account in Nextcloud; Nextcloud refuses it from other accounts.'],
+    },
+    'nextcloud-talk': {
+        title: 'Nextcloud Talk integration: rooms and polls',
+        description: 'A Bee Flow assistant reads Nextcloud Talk conversations, posts messages and files, runs polls and creates rooms. Automations start on messages.',
+        summary: 'Read and post messages, share files, run polls, create rooms.',
+        intro: ['Nextcloud Talk is Nextcloud\'s chat and video app. With this integration an assistant summarises a conversation, posts updates, shares a file and runs a poll to collect a decision.'],
+        groups: {
+            read: 'List your conversations and their participants, read recent messages and search messages across all rooms.',
+            post: 'Post a message or a reply, share a file from Nextcloud Files, react with an emoji, delete your own message and mark a room as read.',
+            polls: 'Create a poll, read its results, vote and close it.',
+            rooms: 'Create a one-to-one, group or public room, and start or stop recording a call as a moderator.',
+        },
+        connect: [NC_CONNECT],
+        limits: [ncApp('Talk'), 'Recording needs the Talk recording backend.', 'Message text passes through the Privacy Shield.'],
+        examples: ['Summarise yesterday\'s discussion in the project room.', 'Ask the team in a poll which date suits them.'],
+    },
+    'nextcloud-tasks': {
+        title: 'Nextcloud Tasks integration: to-do lists',
+        description: 'A Bee Flow assistant reads your Nextcloud task lists and creates, updates, completes or deletes tasks with due dates and priorities.',
+        summary: 'Read task lists; create, update, complete and delete tasks.',
+        intro: ['The Nextcloud Tasks integration works with your to-do lists, which Nextcloud keeps in CalDAV. An assistant adds tasks with a due date and a priority and ticks them off.'],
+        groups: {
+            read: 'List your task lists and the tasks in them, open or completed, search tasks and read one.',
+            change: 'Create and update tasks, mark them done or reopen them, and delete one after you confirm.',
+        },
+        connect: [NC_CONNECT],
+        limits: ['Tasks are only created in lists that can hold tasks and that you may write to.'],
+        examples: ['Add a task to pay the invoice, due Friday, high priority.', 'Which of my tasks are overdue?'],
+    },
+    'nextcloud-notes': {
+        title: 'Nextcloud Notes integration for AI assistants',
+        description: 'A Bee Flow assistant reads, searches and writes your Nextcloud Notes, and keeps running logs by appending to a note.',
+        summary: 'Read and search notes; create, append, update and delete.',
+        intro: ['Nextcloud Notes keeps plain-text and Markdown notes. With this integration an assistant finds a note, writes a new one or adds to an existing one, which suits a daily log.'],
+        groups: {
+            read: 'List notes and categories, search titles and content, and read a note in full.',
+            change: 'Create and update notes, append text to a note (creating it if it does not exist), and delete a note after you confirm.',
+        },
+        connect: [NC_CONNECT, NC_APP_PASSWORD],
+        limits: [ncApp('Notes'), 'Very long notes are cut at about 200 KB.'],
+        examples: ['Append today\'s stand-up summary to my daily log.'],
+    },
+    'nextcloud-activity': {
+        title: 'Nextcloud Activity integration: what changed',
+        description: 'A Bee Flow assistant reads your Nextcloud activity feed: file changes, shares, comments and mentions, for all files or one folder. Read-only.',
+        summary: 'Read the activity feed of all files or one file. Read-only.',
+        name: 'Nextcloud Activity',
+        intro: ['The Activity integration reads the feed of what happened in your Nextcloud, so an assistant can answer questions like what changed in a folder this week or where you were mentioned.'],
+        groups: {
+            read: 'Read recent activity (file changes, shares, comments, mentions, calendar invitations), or the activity of one file or folder.',
+        },
+        connect: [NC_CONNECT],
+        limits: ['Read-only: the Activity app offers nothing to write, and Bee Flow adds nothing to the feed.'],
+    },
+    'nextcloud-tables': {
+        title: 'Nextcloud Tables integration: rows and columns',
+        description: 'A Bee Flow assistant reads and writes Nextcloud Tables: tables, columns and rows by column title. Automations start on new or changed rows.',
+        summary: 'Read and write tables, columns and rows.',
+        intro: [
+            'Nextcloud Tables is Nextcloud\'s app for structured data. An assistant or automation reads rows, adds new ones and updates them, with values keyed by column title so they read naturally.',
+            'A Nextcloud table can also be linked as a live datatable in Bee Flow: changes go both ways.',
+        ],
+        groups: {
+            read: 'List the tables you can open, their columns with ids and types, and their rows with a simple filter.',
+            rows: 'Add, update and delete rows, with values by column title.',
+            shape: 'Create, rename, archive and delete tables, and add or delete columns.',
+        },
+        connect: [NC_CONNECT],
+        limits: [ncApp('Tables')],
+    },
+    'nextcloud-forms': {
+        title: 'Nextcloud Forms integration: forms and answers',
+        description: 'A Bee Flow assistant builds Nextcloud Forms, reads the answers by question and changes form settings. Automations start on a new submission.',
+        summary: 'Build forms, read answers, change settings.',
+        intro: ['Nextcloud Forms collects answers, which makes it the intake side of many workflows. An automation can start on every new submission and use the answers by question text.'],
+        groups: {
+            read: 'List your forms, read one with its questions, and read the answers keyed by question.',
+            build: 'Create a form, add questions, change settings such as expiry and anonymity, open or close it, and delete it.',
+        },
+        connect: [NC_CONNECT],
+        limits: [ncApp('Forms'), 'Deleting a form also deletes its answers.'],
+    },
+    'nextcloud-teams': {
+        title: 'Nextcloud Teams integration: members and shares',
+        description: 'A Bee Flow assistant lists your Nextcloud Teams and members, manages membership and shares files with a whole team.',
+        summary: 'List teams and members, manage them, share files with a team.',
+        intro: ['Nextcloud Teams (formerly Circles) groups people across Nextcloud. With this integration an assistant keeps a team\'s membership current and shares files with everyone in it at once.'],
+        groups: {
+            read: 'List your teams, read one with its settings, and list its members and their levels.',
+            manage: 'Create a team, add and remove members, change a member\'s level, rename or delete a team.',
+            share: 'Share a file or folder with a whole team.',
+        },
+        connect: [NC_CONNECT],
+        limits: ['Deleting a team ends every share made to it.'],
+    },
+    'nextcloud-status': {
+        title: 'Nextcloud User Status integration',
+        description: 'A Bee Flow assistant reads and sets your Nextcloud status: availability, a custom message with emoji, or a predefined status.',
+        summary: 'Read and set your availability and status message.',
+        intro: ['With the User Status integration an assistant sets your availability and status message, for example do not disturb with a message for the next two hours.'],
+        groups: {
+            read: 'Read your current status: availability, message, emoji and when it clears.',
+            set: 'Set availability and a message, pick a predefined status such as in a meeting or on vacation, or clear the message.',
+        },
+        connect: [NC_CONNECT],
+        limits: ['Nextcloud\'s own automatic status can overwrite a status that was set by hand.'],
+    },
+};

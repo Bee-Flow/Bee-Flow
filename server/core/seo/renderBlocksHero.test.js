@@ -53,3 +53,34 @@ test('external and svg images keep a plain src without srcset', () => {
 test('renderBlocks still returns the HTML string', () => {
     assert.strictEqual(typeof renderBlocks([block({ title: 'Hi' })]), 'string');
 });
+
+// The home hero's `tour` is `{ enabled, src: <mp4>, poster, alt }`: it has the shape of an image
+// without a `kind`. Switched off it is not on the page, so it must leave no trace in the HTML.
+const tour = (/** @type {Record<string, unknown>} */ extra = {}) => ({
+    src: '/api/cms/asset/cms/1-a-tour-en.mp4', poster: '/api/cms/asset/cms/1-a-tour-poster.webp', alt: 'Tour', ...extra,
+});
+
+test('a disabled tour gives no preload and no reference to its video', () => {
+    const { html, heroImage, headLinks } = renderBlocksWithHints([block({ title: 'Hero', tour: tour({ enabled: false }) })]);
+    assert.ok(!html.includes('.mp4'), html);
+    assert.strictEqual(heroImage, null);
+    assert.deepStrictEqual(headLinks, []);
+});
+
+test('an enabled tour never makes its video an image or a preload', () => {
+    const { html, headLinks } = renderBlocksWithHints([block({ title: 'Hero', tour: tour({ enabled: true }) })]);
+    assert.ok(!html.includes('<img src="/api/cms/asset/cms/1-a-tour-en.mp4"'), html);
+    assert.ok(!headLinks.some((l) => l.includes('.mp4')), headLinks.join('\n'));
+});
+
+test('a video file is not rendered as an image even with kind image', () => {
+    const { html, headLinks } = renderBlocksWithHints([block({ media: { kind: 'image', src: 'cms/1-a-clip.webm', alt: 'clip' } })]);
+    assert.ok(!html.includes('<img'), html);
+    assert.deepStrictEqual(headLinks, []);
+});
+
+test('the first real image after a disabled tour is still the hero', () => {
+    const { heroImage } = renderBlocksWithHints([block({ tour: tour({ enabled: false }), media: img('1-a-shot') })]);
+    assert.ok(heroImage);
+    assert.strictEqual(heroImage.src, '/api/cms/asset/cms/1-a-shot.png');
+});

@@ -50,7 +50,7 @@ test('post body: escaped text, sanitized Markdown, one h1', () => {
     const html = renderBlogBody(postEff());
     assert.strictEqual((html.match(/<h1>/g) || []).length, 1);
     assert.ok(!/<script|<b>raw|javascript:/i.test(html), html);
-    assert.match(html, /<h3 id="part">Part<\/h3>/, 'a ## section sits under the title h1');
+    assert.match(html, /<h2 id="part">Part<\/h2>/, 'a ## section is the h2 under the title h1');
     assert.match(html, /By Ann Writer · 3 min read/);
     assert.match(html, /href="\/blog\?tag=product">#Product/);
 });
@@ -74,6 +74,79 @@ test('index body and head: list, paging links, Blog JSON-LD', () => {
     const head = buildBlogHead({ origin: ORIGIN, eff, locale: 'en', defaultLocale: 'en', locales: ['en'], siteName: 'Acme' });
     assert.match(head, /"@type":"Blog"/);
     assert.strictEqual(indexQuery({ page: 1 }), '');
+});
+
+// The live chrome: the design's logo is a 64 px favicon, the homepage is slugged `home`.
+const CHROME = { design: { logo: 'cms/1700-favicon-64.png' }, pages: [{ id: 'p1', slug: 'home', title: 'Home', isHomepage: true }] };
+/** @param {string} head */
+const ogImage = (head) => (head.match(/<meta property="og:image" content="([^"]*)">/) || [])[1];
+/** @param {string} head */
+const titleOf = (head) => (head.match(/<title>([^<]*)<\/title>/) || [])[1];
+/** @param {string} head */
+const graphOf = (head) => JSON.parse(head.match(/<script type="application\/ld\+json">([^]*?)<\/script>/)[1])['@graph'];
+
+function indexEff(locale = 'en', title = 'Blog') {
+    return {
+        ...CHROME,
+        page: { slug: 'blog', title, seo: { metaTitle: '', metaDescription: 'News', ogImage: '', noIndex: false }, blocks: [] },
+        blog: {
+            view: 'index', locale, defaultLocale: 'en', basePath: locale === 'en' ? '/blog' : `/${locale}/blog`, title, description: 'News', labels,
+            posts: [], page: 1, pageCount: 1, total: 0, tag: null, tags: [], locales: ['en', 'nl'],
+        },
+    };
+}
+
+test('a post without a cover shares the site card, not the favicon-sized logo', () => {
+    const eff = { ...postEff({ coverImage: '' }), ...CHROME };
+    eff.page.seo.ogImage = '';
+    const head = buildBlogHead({ origin: ORIGIN, eff, locale: 'en', defaultLocale: 'en', locales: ['en', 'nl'], siteName: 'Acme', shareImageVersion: 'v1' });
+    assert.strictEqual(ogImage(head), 'https://site.test/api/cms/og/en/home.png?v=v1');
+    assert.match(head, /<meta name="twitter:image" content="https:\/\/site.test\/api\/cms\/og\/en\/home.png\?v=v1">/);
+    const nl = buildBlogHead({ origin: ORIGIN, eff, locale: 'nl', defaultLocale: 'en', locales: ['en', 'nl'], siteName: 'Acme', shareImageVersion: 'v1' });
+    assert.strictEqual(ogImage(nl), 'https://site.test/api/cms/og/nl/home.png?v=v1');
+    const posting = graphOf(head).find((n) => n['@type'] === 'BlogPosting');
+    assert.strictEqual(posting.image, 'https://site.test/api/cms/og/en/home.png?v=v1');
+});
+
+test('a post with a cover shares its cover', () => {
+    const eff = { ...postEff(), ...CHROME };
+    const head = buildBlogHead({ origin: ORIGIN, eff, locale: 'en', defaultLocale: 'en', locales: ['en'], siteName: 'Acme', shareImageVersion: 'v1' });
+    assert.strictEqual(ogImage(head), 'https://site.test/api/cms/asset/cms/1700-cover.jpg');
+});
+
+test('the blog index shares the site card and carries the site name in its title, in each language', () => {
+    const en = buildBlogHead({ origin: ORIGIN, eff: indexEff('en'), locale: 'en', defaultLocale: 'en', locales: ['en', 'nl'], siteName: 'Acme', shareImageVersion: 'v1' });
+    assert.strictEqual(titleOf(en), 'Blog | Acme');
+    assert.strictEqual(ogImage(en), 'https://site.test/api/cms/og/en/home.png?v=v1');
+    assert.match(en, /<link rel="canonical" href="https:\/\/site.test\/blog">/);
+    const nl = buildBlogHead({ origin: ORIGIN, eff: indexEff('nl', 'Nieuws'), locale: 'nl', defaultLocale: 'en', locales: ['en', 'nl'], siteName: 'Acme', shareImageVersion: 'v1' });
+    assert.strictEqual(titleOf(nl), 'Nieuws | Acme');
+    assert.strictEqual(ogImage(nl), 'https://site.test/api/cms/og/nl/home.png?v=v1');
+    assert.match(nl, /<link rel="canonical" href="https:\/\/site.test\/nl\/blog">/);
+    assert.match(nl, /hreflang="en" href="https:\/\/site.test\/blog"/);
+    assert.match(nl, /hreflang="nl" href="https:\/\/site.test\/nl\/blog"/);
+    assert.match(nl, /hreflang="x-default" href="https:\/\/site.test\/blog"/);
+    const named = buildBlogHead({ origin: ORIGIN, eff: indexEff('en', 'Acme blog'), locale: 'en', defaultLocale: 'en', locales: ['en'], siteName: 'Acme' });
+    assert.strictEqual(titleOf(named), 'Acme blog', 'a title that already names the site is kept');
+});
+
+test('a post without its own meta title gets the site name; one with it keeps it', () => {
+    const plain = buildBlogHead({ origin: ORIGIN, eff: postEff({ title: 'Hello' }), locale: 'en', defaultLocale: 'en', locales: ['en'], siteName: 'Acme' });
+    assert.strictEqual(titleOf(plain), 'Hello | Acme');
+    const eff = postEff({ title: 'Hello' });
+    eff.page.seo.metaTitle = 'Hello there – Acme';
+    const own = buildBlogHead({ origin: ORIGIN, eff, locale: 'en', defaultLocale: 'en', locales: ['en'], siteName: 'Acme' });
+    assert.strictEqual(titleOf(own), 'Hello there – Acme');
+});
+
+test('an author named like the site is the Organization, not a Person', () => {
+    for (const authorName of ['Acme', ' acme ']) {
+        const head = buildBlogHead({ origin: ORIGIN, eff: postEff({ authorName }), locale: 'en', defaultLocale: 'en', locales: ['en'], siteName: 'Acme' });
+        const posting = graphOf(head).find((n) => n['@type'] === 'BlogPosting');
+        assert.deepStrictEqual(posting.author, { '@id': 'https://site.test/#organization' });
+    }
+    const person = buildBlogHead({ origin: ORIGIN, eff: postEff(), locale: 'en', defaultLocale: 'en', locales: ['en'], siteName: 'Acme' });
+    assert.deepStrictEqual(graphOf(person).find((n) => n['@type'] === 'BlogPosting').author, { '@type': 'Person', name: 'Ann Writer' });
 });
 
 test('feed: valid RSS with escaped text, absolute links and safe HTML content', () => {

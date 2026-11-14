@@ -68,6 +68,23 @@ test('a relative link to a page of the site moves; everything else stays', () =>
     assert.strictEqual(localizePath('#tabs', '/nl', PAGES), '#tabs');
 });
 
+test('a relative link to the blog follows the page language too', () => {
+    // The menu and footer store "Blog" as { kind: 'external', url: '/blog' }: the blog is
+    // a built-in route, not a page, so it was left in English on every Dutch page.
+    assert.strictEqual(localizePath('/blog', '/nl', PAGES), '/nl/blog');
+    assert.strictEqual(localizePath('/blog/', '/nl', PAGES), '/nl/blog/');
+    assert.strictEqual(localizePath('/blog/customer-data-in-ai-chat', '/nl', PAGES), '/nl/blog/customer-data-in-ai-chat');
+    assert.strictEqual(localizePath('/blog?tag=privacy#list', '/nl', PAGES), '/nl/blog?tag=privacy#list');
+    assert.strictEqual(localizePath('/blog/feed.xml', '/nl', PAGES), '/nl/blog/feed.xml');
+    assert.strictEqual(localizePath('/nl/blog', '/nl', PAGES), '/nl/blog');
+    assert.strictEqual(localizePath('/blog', '', PAGES), '/blog');
+    // Deeper than the blog's own routes, or merely starting with the letters: not the blog.
+    assert.strictEqual(localizePath('/blog/a/b', '/nl', PAGES), '/blog/a/b');
+    assert.strictEqual(localizePath('/blogs', '/nl', PAGES), '/blogs');
+    assert.strictEqual(localizePath('https://example.com/blog', '/nl', PAGES), 'https://example.com/blog');
+    assert.deepStrictEqual(resolveLink({ kind: 'external', url: '/blog' }, PAGES, '/nl'), { href: '/nl/blog' });
+});
+
 test('external, app and anchor links keep their target and attributes', () => {
     assert.deepStrictEqual(
         resolveLink({ kind: 'external', url: 'https://github.com/Bee-Flow', newTab: true }, PAGES, '/nl'),

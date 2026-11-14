@@ -177,6 +177,7 @@ const OPEN_ROUTES_WALK_ONLY = new Map(/** @type {Array<[string, OpenReason]>} */
     ['GET /^\\/(?:([a-z]{2,3})\\/)?search-index\\.json$/', 'the public site search index, built from published pages (routes/publicSearchIndexRender.js)'],
     ['GET /integrations/directory', 'server-rendered public integrations directory of the marketing site (routes/publicIntegrationsRender.js)'],
     ['GET /integrations/:id', 'server-rendered public page of one integration, same source as the directory (routes/publicIntegrationsRender.js)'],
+    ['GET /^\\/([a-z]{2,3})\\/integrations\\/([a-z0-9][a-z0-9-]*)\\/?$/', 'the same public directory and integration pages in a translation of the site (/nl/integrations/<id>); the locale must be one the site publishes (routes/publicIntegrationsRender.js)'],
 ]));
 
 module.exports = { OPEN_ROUTES, OPEN_ROUTES_WALK_ONLY };

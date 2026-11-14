@@ -163,6 +163,33 @@ describe('nginx: the backend policy reaches the browser', () => {
     });
 });
 
+describe('nginx: the icons and images in public/ are cacheable', () => {
+    // A regex location wins over `location /`, whose no-store is meant for the SPA shell.
+    const regexLocations = locations.filter((l) => l.args[0] === '~');
+    const matching = (uri: string) => regexLocations.filter((l) => new RegExp(l.args[1]).test(uri));
+    const header = (l: Block, name: string) =>
+        directives(l, 'add_header').find((d) => d.args[0].toLowerCase() === name)?.args[1] ?? null;
+
+    it('serves the favicon and the other root images with a cache lifetime and the security headers', () => {
+        for (const uri of ['/app-icon.svg', '/bee-flow-logo.png', '/bee-flow-logo.jpeg', '/n8n-color.png']) {
+            const [location] = matching(uri);
+            expect(location, `${uri} has a location of its own`).toBeDefined();
+            const cache = header(location, 'cache-control') ?? '';
+            expect(cache, uri).not.toMatch(/no-store|no-cache/);
+            expect(Number(/max-age=(\d+)/.exec(cache)?.[1] ?? 0), uri).toBeGreaterThanOrEqual(86400);
+            expect(header(location, 'x-content-type-options'), uri).toBe('nosniff');
+            // An SVG opened on its own is a document: it keeps the SPA policy.
+            expect(header(location, 'content-security-policy'), uri).toBe('$csp');
+        }
+    });
+
+    it('leaves the app shell, the hashed assets and the API to their own locations', () => {
+        for (const uri of ['/', '/index.html', '/assets/index-abc.png', '/api/cms/asset/cms/x.png', '/fonts/inter/x.woff2', '/blog', '/a/b.png']) {
+            expect(matching(uri).map((l) => l.args.join(' ')), uri).toEqual([]);
+        }
+    });
+});
+
 describe('nginx: /p/ is an app path', () => {
     it('has no location of its own, so the SPA answers it with the SPA headers', () => {
         const claims = locations.filter((l) => l.args.some((a) => a === '/p' || a.startsWith('/p/')));

@@ -12,7 +12,7 @@
 
 const express = require('express');
 const cmsStore = require('../stores/cmsStore');
-const { buildLlmsTxt } = require('../core/seo/sitemap');
+const { buildLlmsTxt, publicSiteName } = require('../core/seo/sitemap');
 const log = require('../telemetry/log');
 
 /**
@@ -39,7 +39,7 @@ function createLlmsRouter({ resolveOrigin, getLiveSiteId, isIndexableHost }) {
             res.type('text/plain').set('Cache-Control', 'public, max-age=3600');
             return res.send(buildLlmsTxt(pages, {
                 origin,
-                siteName: snapshot.site?.name || 'Bee Flow',
+                siteName: publicSiteName(snapshot.site),
                 summary: String(home?.seo?.metaDescription || '').trim(),
             }));
         } catch (err) {

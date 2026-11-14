@@ -1,3 +1,4 @@
+import './postCard.css';
 import './blog.css';
 import BlogIndex from './BlogIndex';
 import BlogPostView from './BlogPostView';

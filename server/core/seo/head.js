@@ -44,18 +44,49 @@ function absolute(origin, urlOrPath) {
 }
 
 /**
+ * The generated share card of a published page (routes/cmsOgImage.js). The
+ * ?v= publish time makes every publish a new, long-cacheable URL.
+ * @param {string} origin
+ * @param {string} locale
+ * @param {string} slug a page slug (one segment)
+ * @param {string} version
+ */
+function shareCardUrl(origin, locale, slug, version) {
+    return `${origin}/api/cms/og/${encodeURIComponent(locale)}/${encodeURIComponent(slug)}.png?v=${encodeURIComponent(version)}`;
+}
+
+/**
+ * The image a page is shared with. A page without its own share image gets the
+ * generated card (routes/cmsOgImage.js) when the caller says the site is
+ * published; without either it falls back to the site logo.
+ * @param {{ origin: string, locale: string, shareImageVersion?: string, shareCardSlug?: string }} ctx
+ * @param {CmsDoc} page
+ * @param {CmsDoc} design
+ * @returns {{ image: string, generated: boolean }} `generated`: the image is the generated card
+ */
+function shareImage(ctx, page, design) {
+    const seo = page.seo || {};
+    const cardSlug = ctx.shareCardSlug || page.slug;
+    if (!seo.ogImage && ctx.shareImageVersion && cardSlug) {
+        return { image: shareCardUrl(ctx.origin, ctx.locale, cardSlug, ctx.shareImageVersion), generated: true };
+    }
+    return { image: absolute(ctx.origin, seo.ogImage || design.logo || ''), generated: false };
+}
+
+/**
  * @param {{ origin: string, slug: string, locale: string, defaultLocale: string, locales: string[],
  *   page: CmsDoc, design: CmsDoc, siteName: string, ogType?: string,
  *   article?: { publishedTime: string, modifiedTime: string, author: string, tags?: string[] },
  *   extraJsonLd?: any[], breadcrumbTrail?: Array<{ name: string, path: string }>, extraLinks?: string[],
- *   shareImageVersion?: string }} ctx
+ *   shareImageVersion?: string, shareCardSlug?: string }} ctx
  *   `origin`: e.g. https://beeflow.nl (no trailing slash); `slug`: '' for the homepage; `locale`: the
  *   locale being served; `locales`: every locale the site publishes; `page`: the resolved CMS page;
  *   `design`: site design (favicon, logo); `ogType`: 'website' (default) or 'article' (blog post);
  *   `article`: → article:* tags; `extraJsonLd`: extra graph nodes (BlogPosting, Blog);
  *   `breadcrumbTrail`: replaces the Home › page crumbs; `extraLinks`: pre-built <link> tags (the blog's
  *   RSS alternate); `shareImageVersion`: publish-time token: pages without an og:image get the
- *   generated card (/api/cms/og/…)
+ *   generated card (/api/cms/og/…); `shareCardSlug`: the page whose generated card stands in when this
+ *   URL has none of its own (the blog uses the homepage's)
  * @returns {string} tags to splice into <head>
  */
 function buildHead(ctx) {
@@ -66,13 +97,7 @@ function buildHead(ctx) {
     const description = clamp(seo.metaDescription || '', DESC_MAX);
     const path = buildPublicPath(locale, slug, defaultLocale);
     const url = `${origin}${path === '/' ? '/' : path}`;
-    // A page without its own share image gets the generated card
-    // (routes/cmsOgImage.js) when the caller says the site is published; the
-    // ?v= publish time makes every publish a new, long-cacheable URL.
-    const generated = !seo.ogImage && ctx.shareImageVersion && page.slug
-        ? `${origin}/api/cms/og/${encodeURIComponent(locale)}/${encodeURIComponent(page.slug)}.png?v=${encodeURIComponent(ctx.shareImageVersion)}`
-        : '';
-    const image = generated || absolute(origin, seo.ogImage || design.logo || '');
+    const { image, generated } = shareImage(ctx, page, design);
     const favicon = absolute(origin, design.favicon || '/app-icon.svg');
 
     /** @type {string[]} */
@@ -158,4 +183,4 @@ function buildHead(ctx) {
     return out.filter(Boolean).join('\n    ');
 }
 
-module.exports = { buildHead, absolute, TITLE_MAX, DESC_MAX };
+module.exports = { buildHead, absolute, shareCardUrl, TITLE_MAX, DESC_MAX };

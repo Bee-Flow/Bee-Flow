@@ -8,53 +8,75 @@
       xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
     <id>bee_flow</id>
     <name>Bee Flow</name>
-    <summary>AI assistant for your Nextcloud — chat with Files, Mail, Calendar, Deck, Notes, Tasks, Contacts and Talk.</summary>
+    <summary>AI assistant in your Nextcloud: summarise files, draft mail replies, plan meetings and automate work in your own apps.</summary>
+    <summary lang="nl">AI-assistent in je Nextcloud: vat bestanden samen, schrijf mailantwoorden, plan afspraken en automatiseer werk in je apps.</summary>
     <description><![CDATA[
-> **Requires AppAPI with a Docker deploy daemon** (HaRP recommended). Nextcloud All-in-One offers HaRP as an optional container. Bee Flow cannot be installed on managed or shared hosting without Docker. The short [install guide](https://docs.beeflow.ai/getting-started/nextcloud) shows what your Nextcloud needs.
+> **Requires AppAPI with a Docker deploy daemon** (HaRP recommended). It cannot be installed on managed or shared hosting without Docker. The [install guide](https://docs.beeflow.ai/getting-started/nextcloud) shows what your Nextcloud needs.
 
-**Bee Flow turns your Nextcloud into an AI workspace.**
+Bee Flow adds an AI assistant to your Nextcloud. Open it with the bee icon in the top bar and ask it to summarise a file, draft a reply to an email, create a calendar event or find a discussion in Talk. It works on the items you point it at, in the apps you already use.
 
-Click the bee icon in your top bar and chat with an assistant that already knows your files, mail, calendar and team. Ask it to summarise a long PDF, draft a reply to an email, find that document from last quarter, or schedule a meeting — Bee Flow does the work in the apps you already use.
+## What it does
 
-## What you get
+- **Works with your Nextcloud apps:** Files, Mail, Calendar, Contacts, Deck, Notes, Tasks, Talk, Activity, Notifications and User Status.
+- **Your Nextcloud account is the login.** Bee Flow uses your Nextcloud session, also when you sign in through LDAP, SAML, OpenID Connect or with two-factor authentication. There is no second login.
+- **Users and groups come from Nextcloud.** The administrator chooses which groups are synchronised. Per group, an organisation administrator can switch integrations off, for example no Talk for interns or no Mail for finance.
+- **Privacy Shield.** Before a prompt leaves the connector, e-mail addresses, phone numbers, IBANs, BSNs and other sensitive data are replaced with placeholders. The model only sees the placeholders; the original values are restored in the reply, only on your screen.
+- **Automations on Nextcloud events.** A new or changed file, a tag, a calendar change, and a Forms submission, Tables row or Deck card when those apps are installed, can start an automation.
 
-- **You choose where Bee Flow runs.** After installing, an administrator chooses once where Bee Flow runs: **Bee Flow Cloud** — our hosted service, which runs on **Scaleway** with all servers located in **the Netherlands (EU)** — or your own server. Until then nothing leaves your Nextcloud. Sign in with your existing Nextcloud account — no second password, no app-passwords, no API keys to paste anywhere.
-- **An AI agent with context.** Bee Flow can read and act on **Files, Mail, Calendar, Contacts, Deck, Notes, Tasks, Talk, Activity** and **Notifications** — only on the items you explicitly point it at.
-- **Built-in privacy shield.** Detects emails, phone numbers, IBANs, BSNs and other sensitive data in your prompts and replaces them with placeholders before anything reaches the language model. The original values are restored in the reply, only on your screen.
-- **Multi-user from day one.** Mirrors your Nextcloud users and groups automatically. Admins decide which groups get which Bee Flow integrations — disable Talk for interns, enable everything for the leadership team.
-- **Self-service for organisation admins.** A 4-step onboarding wizard walks the admin through user-sync mode, default permissions and privacy settings the first time they open Bee Flow. Re-configure anytime under Settings → Organisation.
+## You choose where Bee Flow runs
 
-## How it works
+After installing, the connector has no Bee Flow server. A Nextcloud administrator opens Bee Flow and chooses once: **Bee Flow Cloud** (hosted by Bee Flow B.V. in the Netherlands) or **your own Bee Flow server** ([self-hosting guide](https://docs.beeflow.ai/self-hosting)). Until that choice, nothing is sent to any Bee Flow server.
 
-This Nextcloud app is a thin connector. It runs as an ExApp container next to your Nextcloud and connects the embedded Bee Flow web client (an open-source React SPA) to the Bee Flow server an administrator chooses: **Bee Flow Cloud**, our hosted service running on **Scaleway** with all servers located in **the Netherlands (EU)**, or your own server. Browser → Nextcloud → connector → Bee Flow server. Your Nextcloud session is the only credential.
+## What is sent, and when
 
-**Prefer to keep everything on your own infrastructure?** You can also run Bee Flow fully self-hosted on your own servers — the connector, the SPA and the Bee Flow server are all open source ([Bee-Flow on GitHub](https://github.com/Bee-Flow)), and Bee Flow Cloud runs the very same code. Follow the [self-hosting guide](https://docs.beeflow.ai/self-hosting) to deploy your own Bee Flow server, then choose "Self-hosted" when you open Bee Flow for the first time and enter its address.
+- **Before a server is chosen:** nothing.
+- **When the administrator connects:** the names and e-mail addresses of this Nextcloud's administrators, its address, instance id and version. The chosen server creates an organisation for this Nextcloud.
+- **After that:** the user id, e-mail address, display name and group memberships of the synchronised accounts.
+- **On demand:** only the items you point the assistant at, at the moment it fetches them.
 
-## Data flow disclosure
-
-Nothing is sent to any Bee Flow server until an administrator has chosen one. When the administrator connects, the names and e-mail addresses of this Nextcloud's administrators, its address, instance id and version are sent to the chosen server and an organisation is created there. Users and groups are synchronised afterwards.
-
-When you act on a Nextcloud item, the connector sends the item to the chosen Bee Flow server. Specifically:
-
-- **Always** — your Nextcloud user ID, email, display name and group memberships (used to identify your tenant and apply group-based permissions).
-- **On demand** — the contents of items you explicitly point the assistant at (e.g. an email you ask it to summarise, a file you ask it to read).
-
-Bee Flow **does not** bulk-export file contents, mail bodies, calendars or contacts. The connector forwards individual requests; nothing is copied, mirrored or indexed by default.
-
-When you choose Bee Flow Cloud: it is hosted on **Scaleway**, with all servers located in **the Netherlands (EU)** — your data is processed and stored within the EU. When you choose your own server, it goes there and nowhere else.
-
-Full privacy policy: <https://beeflow.nl/privacy>.
+Nothing is bulk-exported, and nothing is copied, mirrored or indexed by default. The full list is in [Privacy & data flow](https://docs.beeflow.ai/connector/privacy).
 
 ## Getting started
 
-1. Install this app from the Nextcloud App Store.
-2. As a Nextcloud administrator, open Bee Flow from the top bar and choose where it runs: Bee Flow Cloud or your own server.
-3. The onboarding wizard then runs — pick your user-sync mode and privacy settings.
-4. Other users see a "not set up yet" notice, and then a "Setup in progress" screen, until the administrator has finished — then the chat opens for everyone in the chosen sync scope.
+1. Install this app.
+2. As a Nextcloud administrator, open Bee Flow from the top bar and choose Bee Flow Cloud or your own server.
+3. Finish the onboarding wizard, which sets among other things which groups are synchronised. Until then, other users see a notice that Bee Flow is not set up yet.
 
-## Support
+Documentation: [docs.beeflow.ai/connector](https://docs.beeflow.ai/connector). Questions: **info@beeflow.nl**.
+        ]]></description>
+    <description lang="nl"><![CDATA[
+> **Vereist AppAPI met een Docker deploy daemon** (HaRP aanbevolen). Installeren op managed of shared hosting zonder Docker kan niet. De [installatiegids](https://docs.beeflow.ai/getting-started/nextcloud) laat zien wat je Nextcloud nodig heeft.
 
-Questions, or want a hand getting set up? Email us at **info@beeflow.nl**. We support Bee Flow Cloud and can also help you get Bee Flow running on a self-managed or self-hosted Nextcloud.
+Bee Flow voegt een AI-assistent toe aan je Nextcloud. Open hem met het bij-icoon in de bovenbalk en vraag hem een bestand samen te vatten, een antwoord op een e-mail op te stellen, een agenda-afspraak te maken of een gesprek in Talk terug te vinden. Hij werkt met de items die je aanwijst, in de apps die je al gebruikt.
+
+## Wat het doet
+
+- **Werkt met je Nextcloud-apps:** Bestanden, Mail, Agenda, Contactpersonen, Deck, Notities, Taken, Talk, Activiteiten, Meldingen en Gebruikersstatus.
+- **Je Nextcloud-account is de login.** Bee Flow gebruikt je Nextcloud-sessie, ook als je inlogt via LDAP, SAML, OpenID Connect of met tweestapsverificatie. Er is geen tweede login.
+- **Gebruikers en groepen komen uit Nextcloud.** De beheerder kiest welke groepen worden gesynchroniseerd. Per groep kan een organisatiebeheerder integraties uitzetten, bijvoorbeeld geen Talk voor stagiairs of geen Mail voor financiën.
+- **Privacy Shield.** Voordat een prompt de connector verlaat, worden e-mailadressen, telefoonnummers, IBAN's, BSN's en andere gevoelige gegevens vervangen door plaatshouders. Het model ziet alleen de plaatshouders; de echte waarden komen terug in het antwoord, alleen op jouw scherm.
+- **Automatiseringen op Nextcloud-gebeurtenissen.** Een nieuw of gewijzigd bestand, een tag, een agendawijziging, en een Forms-inzending, Tables-rij of Deck-kaart als die apps zijn geïnstalleerd, kunnen een automatisering starten.
+
+## Jij kiest waar Bee Flow draait
+
+Na de installatie heeft de connector nog geen Bee Flow-server. Een Nextcloud-beheerder opent Bee Flow en kiest één keer: **Bee Flow Cloud** (gehost door Bee Flow B.V. in Nederland) of **je eigen Bee Flow-server** ([handleiding voor zelf hosten](https://docs.beeflow.ai/self-hosting)). Tot die keuze wordt er niets naar een Bee Flow-server gestuurd.
+
+## Wat wordt verstuurd, en wanneer
+
+- **Voordat er een server is gekozen:** niets.
+- **Als de beheerder verbinding maakt:** de namen en e-mailadressen van de beheerders van deze Nextcloud, het adres, de instance-id en de versie. De gekozen server maakt een organisatie aan voor deze Nextcloud.
+- **Daarna:** de gebruikers-id, het e-mailadres, de weergavenaam en de groepen van de gesynchroniseerde accounts.
+- **Op verzoek:** alleen de items die je de assistent aanwijst, op het moment dat hij ze ophaalt.
+
+Er wordt niets in bulk geëxporteerd, en standaard wordt niets gekopieerd, gespiegeld of geïndexeerd. De volledige lijst staat in [Privacy & data flow](https://docs.beeflow.ai/connector/privacy) (Engels).
+
+## Aan de slag
+
+1. Installeer deze app.
+2. Open als Nextcloud-beheerder Bee Flow vanuit de bovenbalk en kies Bee Flow Cloud of je eigen server.
+3. Rond de onboarding-wizard af; daarin stel je onder meer in welke groepen worden gesynchroniseerd. Tot die tijd zien andere gebruikers een melding dat Bee Flow nog niet is ingesteld.
+
+Documentatie (Engels): [docs.beeflow.ai/connector](https://docs.beeflow.ai/connector). Vragen: **info@beeflow.nl**.
         ]]></description>
     <version>2.0.0</version>
     <licence>AGPL-3.0-or-later</licence>
@@ -78,7 +100,7 @@ Questions, or want a hand getting set up? Email us at **info@beeflow.nl**. We su
     <category>integration</category>
     <category>workflow</category>
     <category>office</category>
-    <website>https://beeflow.nl/</website>
+    <website>https://beeflow.nl/nextcloud</website>
     <bugs>https://github.com/Bee-Flow/connector/issues</bugs>
     <repository type="git">https://github.com/Bee-Flow/connector</repository>
     <!--

@@ -125,6 +125,26 @@ function buildSitemap(pages, { origin, defaultLocale = 'en', locales = ['en'] })
     ].join('\n');
 }
 
+// The open, read-only, published-only GETs the public pages load (images,
+// share cards and the reads behind content blocks). Without them a crawler
+// renders a page with no images and /plans with no prices. Each is exact: a
+// longer Allow beats `Disallow: /api/`, so a bare prefix such as
+// `/api/cms/site` would also open the admin routes under `/api/cms/sites/`.
+// `$` closes a path the page requests without a query, `?` one it requests
+// with one. Gates: server/auth/routes.contract.json (all `open`).
+const PUBLIC_API_READS = [
+    '# Public reads the marketing pages load: no session, published content only.',
+    'Allow: /api/cms/asset/',
+    'Allow: /api/cms/og/',
+    'Allow: /api/cms/site?',
+    'Allow: /api/cms/blog/posts?',
+    'Allow: /api/cms/stories?',
+    'Allow: /api/billing/public-plans$',
+    'Allow: /api/languages/public/',
+    'Allow: /api/public/github-stats$',
+    'Allow: /api/release-notes/public$',
+];
+
 /**
  * @typedef {{ origin: string, allow?: boolean }} BuildRobotsArgs
  */
@@ -149,6 +169,8 @@ function buildRobots({ origin, allow = true }) {
         'Disallow: /app$',
         'Disallow: /app/',
         'Disallow: /api/',
+        '',
+        ...PUBLIC_API_READS,
         '',
         '# Playable demos. They are real UI on fixtures, linked from the',
         '# marketing pages in an iframe; indexed they would be a set of',
@@ -210,4 +232,15 @@ function buildLlmsTxt(pages, { origin, siteName = 'Bee Flow', summary = '' }) {
     return out.join('\n');
 }
 
-module.exports = { buildSitemap, buildRobots, buildLlmsTxt };
+/**
+ * The site's name as visitors see it: the header brand, as on every page,
+ * then the site's own name, which is an admin label ("<name> (imported)"
+ * after an import).
+ * @param {{ name?: string, header?: { logoText?: string } } | null | undefined} site
+ */
+function publicSiteName(site) {
+    const brand = String(site?.header?.logoText || '').trim();
+    return brand || String(site?.name || '').trim() || 'Bee Flow';
+}
+
+module.exports = { buildSitemap, buildRobots, buildLlmsTxt, publicSiteName };

@@ -68,6 +68,18 @@ function imageSrc(src) {
     return '';
 }
 
+// A video (the hero tour, a clip) has the `{ src, alt }` shape of an image but
+// is never one: as an <img> or an image preload the browser fetches the whole
+// file at high priority and then throws it away.
+const VIDEO_EXTENSIONS = ['.mp4', '.webm', '.mov', '.m4v', '.ogv', '.mkv'];
+
+/** @param {string} src a resolved src */
+function isVideoSrc(src) {
+    const cut = [src.indexOf('?'), src.indexOf('#')].filter((i) => i >= 0);
+    const path = (cut.length ? src.slice(0, Math.min(...cut)) : src).toLowerCase();
+    return VIDEO_EXTENSIONS.some((ext) => path.endsWith(ext));
+}
+
 /**
  * `{ kind: 'image', src, alt }` (block media, logos) as an <img>. An empty alt
  * stays `alt=""` — a decorative image — instead of being dropped, so the
@@ -81,7 +93,7 @@ function imageSrc(src) {
 function imageTag(node, state = {}) {
     if (node.kind !== undefined && node.kind !== 'image') return '';
     const src = imageSrc(node.src);
-    if (!src) return '';
+    if (!src || isVideoSrc(src)) return '';
     if (node.kind === undefined && typeof node.alt !== 'string') return '';
     // Publish stores the intrinsic size (utils/mediaDims.js); stating it keeps the
     // page from shifting when the image arrives. Only positive integers pass.
@@ -172,6 +184,11 @@ function walk(node, out, depth, state) {
         for (const child of node) walk(child, out, depth, state);
         return;
     }
+
+    // A switched-off part of a block (hero badge, mockup, tour) is not on the
+    // page the visitor sees, so it is not in this one either: no text, no image,
+    // no preload. The block itself is filtered by renderBlocksWithHints.
+    if (depth > 1 && node.enabled === false) return;
 
     // Pure CTAs become real anchors — otherwise the server-rendered page
     // contains no <a> at all, so internal link structure only exists after
