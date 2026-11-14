@@ -4,6 +4,7 @@ const componentManager = require('./cms/componentManager');
 const watcherStateStore = require('../stores/watcherStateStore');
 const { buildMcpChildEnv } = require('./mcpChildEnv');
 const log = require('../telemetry/log');
+const { assertPublicTargets } = require('./cms/componentInputGuard');
 // @typecheck
 /**
  * Variables a component child gets on top of the MCP child allow-list.
@@ -106,18 +107,10 @@ async function executeWorkflow(workflow, userAuth = {}) {
         const inputs = { ...(node.data?.inputs || {}), ...(node.data?.inputValues || {}) };
 
         // Inject user auth info for components that need it
-        if (userAuth.accessToken) {
-            inputs._accessToken = userAuth.accessToken;
-        }
-        if (userAuth.nextcloudUrl) {
-            inputs._nextcloudUrl = userAuth.nextcloudUrl;
-        }
-        if (userAuth.appPasswordUsername) {
-            inputs._appPasswordUsername = userAuth.appPasswordUsername;
-        }
-        if (userAuth.appPassword) {
-            inputs._appPassword = userAuth.appPassword;
-        }
+        if (userAuth.accessToken) inputs._accessToken = userAuth.accessToken;
+        if (userAuth.nextcloudUrl) inputs._nextcloudUrl = userAuth.nextcloudUrl;
+        if (userAuth.appPasswordUsername) inputs._appPasswordUsername = userAuth.appPasswordUsername;
+        if (userAuth.appPassword) inputs._appPassword = userAuth.appPassword;
 
         // Find incoming edges to this node and map connected values
         const incomingEdges = workflow.edges.filter(e => e.target === node.id);
@@ -197,10 +190,13 @@ async function executeWorkflow(workflow, userAuth = {}) {
             }
         });
 
-        log.info(`Node ${node.id} inputs:`, inputs);
+        // Input NAMES only: `inputs` carries the caller's access token and app
+        // password (the `_`-prefixed keys set above), and values are user content.
+        log.info(`Node ${node.id} inputs: ${Object.keys(inputs).filter(k => !k.startsWith('_')).join(', ')}`);
 
         // Run Component
         try {
+            await assertPublicTargets(inputs);
             let output = await runComponent(componentPath, inputs);
 
             // Special handling for watcher trigger - also execute the watch component
@@ -220,6 +216,7 @@ async function executeWorkflow(workflow, userAuth = {}) {
                 const watchComponentPath = componentManager.getComponentPath(watchComponentId);
                 if (watchComponentPath) {
                     try {
+                        await assertPublicTargets(watchInputs);
                         const watchResult = await runComponent(watchComponentPath, watchInputs);
                         // Extract items from watch result
                         let currentItems = [];

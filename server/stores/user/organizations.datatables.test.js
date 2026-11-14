@@ -259,7 +259,9 @@ test('the per-org consent keys die with the organisation', async () => {
     // The convention-following family still goes by pattern.
     const like = runCalls.find(c => /DELETE FROM config WHERE key LIKE/i.test(c.sql));
     assert.ok(like);
-    assert.deepStrictEqual(like.params, [`org_${ORG}_%`]);
+    // `_` is a LIKE wildcard: escaped, or `org_acme_%` also deletes `org_acme-corp_…`.
+    assert.deepStrictEqual(like.params, [`org\\_${ORG}\\_%`]);
+    assert.match(like.sql, /ESCAPE/);
 });
 
 test('cached third-party answers are purged through the store, not by hand', async () => {

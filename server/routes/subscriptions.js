@@ -13,6 +13,15 @@
 const express = require('express');
 
 const router = express.Router();
+
+/**
+ * A path segment the way Express hands it to a handler in req.params.
+ * @param {string} raw
+ * @returns {string | null} null when the segment is not valid percent-encoding
+ */
+function decodedSegment(raw) {
+    try { return decodeURIComponent(raw); } catch (e) { return null; }
+}
 const {
     isSuperAdmin,
     requireAdmin,
@@ -49,14 +58,19 @@ router.use(async (req, res, next) => {
     const orgLifecycle = req.path.match(/^\/orgs\/([^/]+)\/(upgrade|cancel|reactivate)$/);
     if (req.method === 'POST' && orgLifecycle) {
         if (!req.session?.isAuthenticated) return res.status(401).json({ error: 'Not authenticated' });
-        if (await isOrgAdminForOrg(req, orgLifecycle[1])) return next();
+        const orgId = decodedSegment(orgLifecycle[1]);
+        if (orgId !== null && await isOrgAdminForOrg(req, orgId)) return next();
         return res.status(403).json({ error: 'Org admin access required' });
     }
     // POST /consumer/:userId/{upgrade|cancel|reactivate} — the owner only
     const consumerLifecycle = req.path.match(/^\/consumer\/([^/]+)\/(upgrade|cancel|reactivate)$/);
     if (req.method === 'POST' && consumerLifecycle) {
         if (!req.session?.isAuthenticated) return res.status(401).json({ error: 'Not authenticated' });
-        if (req.session.user?.id === consumerLifecycle[1]) return next();
+        // The handler acts on req.params.userId, which Express decodes: compare
+        // the decoded segment, or `vic%74im` passes here as itself and is
+        // handled as `victim`.
+        const ownerId = decodedSegment(consumerLifecycle[1]);
+        if (ownerId !== null && req.session.user?.id === ownerId) return next();
         if (await isSuperAdmin(req)) return next();
         return res.status(403).json({ error: 'Owner access required' });
     }

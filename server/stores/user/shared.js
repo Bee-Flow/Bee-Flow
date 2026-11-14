@@ -27,4 +27,14 @@ function dynamicUpdate(table, id, updates, columnMapping, whereCol = 'id') {
 }
 
 
-module.exports = { dynamicUpdate, parseJSON };
+/**
+ * A literal for a LIKE pattern: `_` and `%` in an org id are wildcards unless
+ * escaped, and org ids are slugs, so `org_acme_%` also matched `org_acme-corp_…`.
+ * @param {string} text
+ * @returns {string}
+ */
+function escapeLike(text) {
+    return String(text).replace(/[\\%_]/g, '\\$&');
+}
+
+module.exports = { dynamicUpdate, parseJSON, escapeLike };

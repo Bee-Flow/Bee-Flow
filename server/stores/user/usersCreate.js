@@ -7,6 +7,7 @@ const log = require('../../telemetry/log');
 const { unavailable } = require('../../shared/httpErrors');
 const { syncSeatQuantity } = require('./seatSyncPort');
 const { bestEffort } = require('../../utils/bestEffort');
+const { userIdProblem } = require('../../utils/userIdRules');
 
 /**
  * Strip markup from the three free-text name fields on a user row.
@@ -80,6 +81,13 @@ async function createUser(userData) {
     // organisation fields on the very same request were already clean.
     // A display name is not markup on any code path, so this loses nothing.
     const { displayName, firstName, lastName } = sanitizeUserNames(userData);
+    // The id becomes a path segment, a storage prefix and a URL segment: see
+    // utils/userIdRules.js. Checked here because every creation path ends here.
+    const idProblem = userIdProblem(id);
+    if (idProblem) {
+        log.warn(`createUser refused an id (${idProblem})`);
+        return false;
+    }
     const existing = await getOne('SELECT id FROM users WHERE id = $1', [id]);
     if (existing) return false;
     try {

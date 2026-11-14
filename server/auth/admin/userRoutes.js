@@ -13,6 +13,7 @@ const { receiveImage } = require('../../middleware/uploadedImage');
 const log = require('../../telemetry/log');
 const { bestEffort, fallback } = require('../../utils/bestEffort');
 const { isPlatformOperator } = require('../platformOperator');
+const { isAllowedUserId } = require('../../utils/userIdRules');
 const { costLimitRefusal, imageLimitsRefusal, stripKeyMaterial, CreateUserBody, ChangePasswordBody, isKnownRoleId, needsAdminPasswordFloor, unknownFieldsRefusal, endSessionsFor, leavesServerWithoutPlatformAdmin, refusedDelete } = require('./userSupportRoutes');
 const router = express.Router();
 
@@ -159,6 +160,9 @@ router.post('/users', requireOrgAdminForUser, validate({ body: CreateUserBody })
 
     if (isPlatformOperator(username)) {
         return res.status(400).json({ error: 'Cannot create user "admin"' });
+    }
+    if (!isAllowedUserId(username)) {
+        return res.status(400).json({ error: 'This username is not available' });
     }
 
     // Same two rules as the update path. The platform role is an operator's to
@@ -428,9 +432,13 @@ router.post('/users/:id/avatar', requireOrgAdminForUser, receiveAvatar, async (r
 });
 
 router.delete('/users/:id/avatar', requireOrgAdminForUser, async (req, res) => {
-    const user = await userStore.getUser(req.params.id); // nosemgrep: ajinabraham.njsscan.traversal.resolve_path_traversal.join_resolve_path_traversal -- user.avatar is the server-generated upload path, never request input
+    const user = await userStore.getUser(req.params.id);
     if (user && user.avatar && user.avatarType === 'image') {
-        const filePath = path.join(__dirname, '..', '..', 'data', user.avatar); // nosemgrep: javascript.express.security.audit.express-path-join-resolve-traversal.express-path-join-resolve-traversal -- user.avatar is the server-generated upload path stored by the avatar upload route, never request input
+        // user.avatar is NOT only the upload route's `/uploads/<file>`: the
+        // profile and user-create routes store whatever text the request sent.
+        // Only ever unlink a file directly under data/uploads, like the org logo.
+        // nosemgrep: javascript.express.security.audit.express-path-join-resolve-traversal.express-path-join-resolve-traversal, ajinabraham.njsscan.traversal.resolve_path_traversal.join_resolve_path_traversal
+        const filePath = path.join(__dirname, '..', '..', 'data', 'uploads', path.basename(String(user.avatar)));
         if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     }
     // Use PostgreSQL to set NULL

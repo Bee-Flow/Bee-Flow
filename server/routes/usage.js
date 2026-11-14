@@ -90,10 +90,13 @@ function aboutAnotherPerson(req) {
 const PERSON_ROUTES = new Set(['/guardrails/recent', '/guardrails/by-user', '/integrations/recent', '/integrations/egress']);
 
 router.use((req, res, next) => {
-    if (!req.path.startsWith('/guardrails/') && !req.path.startsWith('/integrations/')) return next();
+    // The router matches paths case-insensitively; compare the same way, or
+    // `/Guardrails/by-user` reaches the handler past this guard.
+    const routePath = req.path.toLowerCase();
+    if (!routePath.startsWith('/guardrails/') && !routePath.startsWith('/integrations/')) return next();
     if (!isSpecialCategory(req.query.pii) || ownRowsOnly(req)) return next();
-    const listsPeople = PERSON_ROUTES.has(req.path)
-        || (req.path === '/integrations/sovereignty' && (req.query.dimension || 'user') === 'user');
+    const listsPeople = PERSON_ROUTES.has(routePath)
+        || (routePath === '/integrations/sovereignty' && (req.query.dimension || 'user') === 'user');
     if (aboutAnotherPerson(req) || listsPeople) {
         return next(new HttpError(400, 'special_category_per_person',
             'Health categories are shown as organisation totals only, never per person. Remove the person or the category filter.'));
