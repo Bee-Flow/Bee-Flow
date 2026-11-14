@@ -103,6 +103,48 @@ export function formatPostDate(iso: string | null | undefined, locale: string): 
     }
 }
 
+/** Day and short month, and the year apart: the date column of the index list. */
+export function formatPostDay(iso: string | null | undefined, locale: string): { day: string; year: string } {
+    if (!iso) return { day: '', year: '' };
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return { day: '', year: '' };
+    try {
+        const day = new Intl.DateTimeFormat(locale || 'en', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(d);
+        return { day, year: String(d.getUTCFullYear()) };
+    } catch {
+        return { day: d.toISOString().slice(5, 10), year: String(d.getUTCFullYear()) };
+    }
+}
+
+/** Same id rule as the server's headingId(), so #section links survive hydration. */
+export function headingSlug(text: string): string {
+    return text.normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'section';
+}
+
+export interface PostSection { id: string; text: string }
+
+/** Inline Markdown marks off a heading line: a link keeps its text, emphasis and code marks go. */
+function plainInline(s: string): string {
+    return s.replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/[`*_]/g, '').trim();
+}
+
+/**
+ * The `##` sections of a post body, in order, with the ids the renderer gives
+ * their headings: the list of sections next to the article. Fenced code is skipped.
+ */
+export function postSections(markdown: string | null | undefined): PostSection[] {
+    const out: PostSection[] = [];
+    let fenced = false;
+    for (const line of String(markdown || '').split('\n')) {
+        if (line.startsWith('```') || line.startsWith('~~~')) { fenced = !fenced; continue; }
+        if (fenced || !line.startsWith('## ')) continue;
+        const text = plainInline(line.slice(3));
+        if (text) out.push({ id: headingSlug(text), text });
+    }
+    return out;
+}
+
 export function postHref(basePath: string, slug: string): string {
     return `${basePath}/${encodeURIComponent(slug)}`;
 }

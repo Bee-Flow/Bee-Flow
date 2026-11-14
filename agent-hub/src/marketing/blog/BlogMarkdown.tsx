@@ -1,7 +1,7 @@
 import { Children, isValidElement, type ComponentPropsWithoutRef, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { isExternalUrl, safeBlogUrl } from './blogFormat';
+import { headingSlug, isExternalUrl, safeBlogUrl } from './blogFormat';
 
 /**
  * A blog post body, Markdown → React, with the same rules as the server
@@ -46,12 +46,6 @@ function textOf(node: ReactNode): string {
         else if (isValidElement<{ children?: ReactNode }>(child)) out += textOf(child.props.children);
     });
     return out;
-}
-
-/** Same id rule as the server's headingId(), so #section links survive hydration. */
-function headingSlug(text: string): string {
-    return text.normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'section';
 }
 
 const shift = (Tag: 'h2' | 'h3' | 'h4' | 'h5' | 'h6') => function Heading({ children }: HeadingProps) {

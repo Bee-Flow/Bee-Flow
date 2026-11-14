@@ -1,13 +1,14 @@
 /**
- * The public blog renderer: index (featured post, tag filter, paging), post
- * page (meta, draft badge, neighbours, feed link) and the URL gate of the
+ * The public blog renderer: index (newest post in its panel, the dated list,
+ * topic links, paging), post page (meta, sections, draft badge, neighbours,
+ * feed link) and the URL gate of the
  * Markdown body — a stored javascript: link must never become a link.
  */
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import BlogView from './BlogView';
 import BlogMarkdown from './BlogMarkdown';
-import { indexHref, label, safeBlogUrl, type BlogIndexPayload, type BlogPostPayload, type BlogPostSummary } from './blogFormat';
+import { formatPostDay, indexHref, label, postSections, safeBlogUrl, type BlogIndexPayload, type BlogPostPayload, type BlogPostSummary } from './blogFormat';
 
 const summary = (i: number, extra: Partial<BlogPostSummary> = {}): BlogPostSummary => ({
     id: `po_${i}`, slug: `post-${i}`, title: `Post ${i}`, excerpt: `Excerpt ${i}`, coverImage: i === 0 ? 'cms/cover.jpg' : '',
@@ -25,12 +26,14 @@ describe('BlogView — index', () => {
         };
         const { container } = render(<BlogView blog={blog} />);
         expect(screen.getByRole('heading', { level: 1, name: 'Journal' })).toBeInTheDocument();
-        expect(container.querySelector('.blog-card--featured')?.textContent).toContain('Post 0');
-        expect(container.querySelectorAll('.blog-grid .blog-card')).toHaveLength(2);
+        expect(container.querySelector('.blog-feature')?.textContent).toContain('Post 0');
+        expect(container.querySelectorAll('.blog-list .blog-row')).toHaveLength(2);
+        expect(container.querySelector('.blog-row time')).toHaveAttribute('datetime', '2026-10-01T09:00:00Z');
+        expect(screen.getByRole('link', { name: 'All posts' })).toHaveAttribute('aria-current', 'page');
         expect(screen.getByRole('link', { name: 'Product' })).toHaveAttribute('href', '/blog?tag=product');
         expect(screen.getByRole('link', { name: 'Older posts' })).toHaveAttribute('href', '/blog?page=2');
         expect(screen.getByRole('link', { name: 'Post 1' })).toHaveAttribute('href', '/blog/post-1');
-        expect(container.querySelector('.blog-card--featured img')).toHaveAttribute('src', '/api/cms/asset/cms/cover.jpg');
+        expect(container.querySelector('.blog-feature img')).toHaveAttribute('src', '/api/cms/asset/cms/cover.jpg');
     });
 
     it('shows the tag heading and the empty state', () => {
@@ -54,6 +57,18 @@ describe('BlogView — post', () => {
         expect(screen.getByText('Draft — not visible to visitors')).toBeInTheDocument();
         expect(screen.getByRole('link', { name: /Previous post/ })).toHaveAttribute('href', '/blog/post-4');
         expect(screen.getByRole('link', { name: 'RSS feed' })).toHaveAttribute('href', '/blog/feed.xml');
+        expect(screen.getByRole('link', { name: 'Journal' })).toHaveAttribute('href', '/blog');
+    });
+
+    it('lists the sections beside a post that has at least three, and none for a short one', () => {
+        const body = '## One\n\ntext\n\n## Two *again*\n\ntext\n\n## [Three](/x)\n\ntext';
+        const blog: BlogPostPayload = { ...common, view: 'post', post: { ...summary(6), body } };
+        const { container, unmount } = render(<BlogView blog={blog} />);
+        const links = [...container.querySelectorAll('.blog-toc a')].map(a => [a.textContent, a.getAttribute('href')]);
+        expect(links).toEqual([['One', '#one'], ['Two again', '#two-again'], ['Three', '#three']]);
+        unmount();
+        const short: BlogPostPayload = { ...common, view: 'post', post: { ...summary(7), body: '## One\n\ntext\n\n## Two' } };
+        expect(render(<BlogView blog={short} />).container.querySelector('.blog-toc')).toBeNull();
     });
 });
 
@@ -84,6 +99,15 @@ describe('blogFormat', () => {
         expect(safeBlogUrl('mailto:a@b.c', 'image')).toBe('');
         expect(safeBlogUrl('/pricing')).toBe('/pricing');
         expect(safeBlogUrl('cms/x.png')).toBe('/api/cms/asset/cms/x.png');
+    });
+    it('postSections reads the ## headings and skips fenced code', () => {
+        const md = 'intro\n\n## First part\n\n```\n## not a heading\n```\n\n### deeper\n\n## `code` and Été';
+        expect(postSections(md)).toEqual([{ id: 'first-part', text: 'First part' }, { id: 'code-and-ete', text: 'code and Été' }]);
+        expect(postSections(null)).toEqual([]);
+    });
+    it('formatPostDay splits the date for the list column', () => {
+        expect(formatPostDay('2026-11-13T09:00:00Z', 'en')).toEqual({ day: 'Nov 13', year: '2026' });
+        expect(formatPostDay('nonsense', 'en')).toEqual({ day: '', year: '' });
     });
     it('labels interpolate and fall back to English', () => {
         expect(label({ min_read: '{n} min. lezen' }, 'min_read', { n: 3 })).toBe('3 min. lezen');
