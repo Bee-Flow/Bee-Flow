@@ -90,6 +90,10 @@ async function createUser(userData) {
     }
     const existing = await getOne('SELECT id FROM users WHERE id = $1', [id]);
     if (existing) return false;
+    // Login looks an identifier up by id first and by e-mail second: an id that
+    // is another account's address would answer for that address from then on.
+    const shadowed = await getOne('SELECT id FROM users WHERE LOWER(email) = LOWER($1) AND id <> $1 LIMIT 1', [id]);
+    if (shadowed) { log.warn('createUser refused an id that is another account\'s e-mail address'); return false; }
     try {
         const mwDek = userData.masterWrappedDEK ? (typeof userData.masterWrappedDEK === 'string' ? userData.masterWrappedDEK : JSON.stringify(userData.masterWrappedDEK)) : null;
         const wDek = userData.wrappedDEK ? (typeof userData.wrappedDEK === 'string' ? userData.wrappedDEK : JSON.stringify(userData.wrappedDEK)) : null;

@@ -25,3 +25,8 @@ test('the owner ids of the built-in agents cannot be registered', () => {
 test('nothing that is not a non-empty string is an id', () => {
     for (const id of ['', null, undefined, 42]) assert.strictEqual(userIdProblem(id), 'empty');
 });
+
+test('names that collide with shared owners or per-user key markers are reserved', () => {
+    for (const id of ['anonymous', 'alice_revoked', 'alice_issued']) assert.strictEqual(userIdProblem(id), 'reserved', id);
+    assert.strictEqual(userIdProblem('revoked'), null);
+});

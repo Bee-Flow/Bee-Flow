@@ -694,7 +694,7 @@ async function finalizeAccount({ userId, email, displayName, intent, placement, 
 function assertUserCreated(result) {
     if (result?.created) return result.created;
     if (result?.reason === 'duplicate_id') throw new SignupError('DUPLICATE_ID', 'Username already taken');
-    throw new SignupError('CREATE_FAILED', result?.error || 'Failed to create user');
+    throw new SignupError('CREATE_FAILED', 'Failed to create user'); // never result.error: that is the database's own text
 }
 
 /**

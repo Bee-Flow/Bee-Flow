@@ -521,7 +521,8 @@ describe('assertUserCreated', () => {
 
     test('any other failure surfaces the store error', () => {
         assert.throws(() => ap.assertUserCreated({ created: null, error: 'boom' }),
-            (e) => e.status === 400 && e.message === 'boom');
+            // the store's own error text (a database message) never reaches the caller
+            (e) => e.status === 400 && e.message === 'Failed to create user');
     });
 
     test('success returns the created user', () => {

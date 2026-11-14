@@ -46,7 +46,9 @@ router.use(async (req, res, next) => {
     // GET /orgs/:orgId and /orgs/:orgId/usage — allow org members
     const orgMatch = req.path.match(/^\/orgs\/([^/]+)(\/usage)?$/);
     if (req.method === 'GET' && orgMatch) {
-        req.params.orgId = req.params.orgId || orgMatch[1];
+        const orgId = decodedSegment(orgMatch[1]);
+        if (orgId === null) return res.status(400).json({ error: 'Invalid organisation id' });
+        req.params.orgId = req.params.orgId || orgId;
         return requireAuthOrOrgMember(req, res, next);
     }
     // GET /consumer/usage — allow any authenticated user (consumer accounts)

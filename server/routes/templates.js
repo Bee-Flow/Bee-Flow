@@ -150,6 +150,7 @@ router.post('/upload', requireAuth, templateAiLimiter, upload.single('file'), va
     } else {
         // Fallback: store on local disk
         const path = require('path');
+        if (!isAllowedUserId(userId)) return res.status(400).json({ error: 'Templates are not available for this account' });
         const dir = path.join(__dirname, '..', 'data', 'templates', userId);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
         const localPath = path.join(dir, storageName);
@@ -349,6 +350,7 @@ router.post('/:id/fill-and-store', requireAuth, validate({ body: FillBody }), as
     } else {
         // Fallback: store locally
         const path = require('path');
+        if (!isAllowedUserId(userId)) return res.status(400).json({ error: 'Templates are not available for this account' });
         const dir = path.join(__dirname, '..', 'data', 'templates_filled', userId);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
         // safeFileName leaves no separator or leading dot to climb out of dir.

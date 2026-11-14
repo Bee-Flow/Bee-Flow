@@ -11,13 +11,17 @@
  * `vic%74im` decodes to `victim` after a gate compared the raw text.
  *
  * `system` and `swarm` are the owner ids of the built-in agents every
- * organisation shares; an account with that id would own them.
+ * organisation shares; an account with that id would own them. `anonymous`
+ * is the owner written for content that has no user.
  *
  * Plain string operations on purpose: the username is request text.
  */
 
 const FORBIDDEN_CHARS = ['/', '\\', '%', '?', '#'];
-const RESERVED_OWNER_IDS = ['system', 'swarm'];
+const RESERVED_OWNER_IDS = ['system', 'swarm', 'anonymous'];
+// Per-user config keys are `<family>_<userId>` with these suffixes for their
+// markers, so the id `alice_revoked` would share a key with alice's marker.
+const RESERVED_SUFFIXES = ['_revoked', '_issued'];
 
 /**
  * @param {unknown} id
@@ -30,7 +34,8 @@ function userIdProblem(id) {
         const code = ch.codePointAt(0) ?? 0;
         if (code < 0x20 || code === 0x7f || FORBIDDEN_CHARS.includes(ch)) return 'character';
     }
-    if (RESERVED_OWNER_IDS.includes(id.trim().toLowerCase())) return 'reserved';
+    const lower = id.trim().toLowerCase();
+    if (RESERVED_OWNER_IDS.includes(lower) || RESERVED_SUFFIXES.some(s => lower.endsWith(s))) return 'reserved';
     return null;
 }
 
