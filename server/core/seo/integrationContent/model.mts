@@ -1,6 +1,6 @@
 /**
  * model.mts: what one public integration page shows, in one language, built
- * from the hand-written prose (en.mts, nl.mts), the language-neutral facts
+ * from the hand-written prose (en/, nl/), the language-neutral facts
  * (facts.mts) and the shipped catalogues the caller hands in: the toolsets,
  * the trigger-source registry and the side-effect classification.
  *
@@ -12,8 +12,8 @@
  */
 
 import { FACTS, type IntegrationFacts } from './facts.mts';
-import { EN } from './en.mts';
-import { NL } from './nl.mts';
+import { EN } from './en/index.mts';
+import { NL } from './nl/index.mts';
 import type { ContentLocale, Effect, LocaleContent, Prose } from './types.mts';
 
 export type { ContentLocale, Effect, LocaleContent, Prose, Ui } from './types.mts';

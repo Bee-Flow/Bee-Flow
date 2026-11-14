@@ -1,6 +1,6 @@
 /**
  * types.mts: the shapes shared by the integration page content (facts.mts, the
- * per-language prose in en.mts / nl.mts) and the model built from them
+ * per-language prose in en/ and nl/) and the model built from them
  * (model.mts). Types only, so the language modules depend on nothing.
  */
 

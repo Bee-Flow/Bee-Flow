@@ -7,8 +7,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { FACTS, CONTENT_LOCALES, buildPageModel } = require('./model.mts');
-const { EN } = require('./en.mts');
-const { NL } = require('./nl.mts');
+const { EN } = require('./en/index.mts');
+const { NL } = require('./nl/index.mts');
 const { listGalleryItems } = require('../integrationsDirectory');
 const { integrationCatalog } = require('../../../routes/publicIntegrationsRender');
 
@@ -67,7 +67,7 @@ test('every event rule matches events the registry offers, and every shown event
             assert.ok(source, `${id}: trigger provider ${rule.provider} is not offered`);
             const hits = source.events.filter(e => !e.hidden && (!rule.prefix || e.id.startsWith(rule.prefix)));
             assert.ok(hits.length, `${id}: no event of ${rule.provider} starts with ${rule.prefix}`);
-            for (const e of hits) assert.ok(NL.eventLabels[`${rule.provider}:${e.id}`], `nl.mts: no Dutch name for ${rule.provider}:${e.id}`);
+            for (const e of hits) assert.ok(NL.eventLabels[`${rule.provider}:${e.id}`], `nl/index.mts: no Dutch name for ${rule.provider}:${e.id}`);
         }
     }
 });

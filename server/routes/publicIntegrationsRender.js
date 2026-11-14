@@ -29,6 +29,12 @@ const log = require('../telemetry/log');
 const LOCALISED = /^\/([a-z]{2,3})\/integrations\/([a-z0-9][a-z0-9-]*)\/?$/;
 const NAV_SLUGS = ['integrations', 'deployment', 'plans'];
 
+/**
+ * The parts of the published snapshot these pages read.
+ * @typedef {NonNullable<Parameters<typeof localesForPage>[0]> & { posts?: Record<string, unknown>,
+ *   site?: { name?: string, header?: { logoText?: string }, pages?: Array<{ id: string, slug?: string }> } }} PublishedSnapshot
+ */
+
 /** @type {import('../core/seo/integrationContent/model.mts').Catalog | null} */
 let cachedCatalog = null;
 
@@ -55,20 +61,21 @@ function integrationCatalog() {
 
 /**
  * Which site pages the integration pages link to, and in which locales each is published.
- * @param {any} snapshot @param {string} defaultLocale @param {string[]} locales
- * @returns {import('../core/seo/integrationsDirectory').Nav}
+ * @param {PublishedSnapshot} snapshot @param {string} defaultLocale @param {string[]} locales
+ * @returns {import('../core/seo/integrationsShell').Nav}
  */
 function navFor(snapshot, defaultLocale, locales) {
-    /** @type {import('../core/seo/integrationsDirectory').Nav} */
+    /** @type {import('../core/seo/integrationsShell').Nav} */
     const nav = { blog: Object.keys(snapshot.posts || {}).length > 0 };
     for (const p of snapshot.site?.pages || []) {
-        if (NAV_SLUGS.includes(p?.slug)) nav[p.slug] = localesForPage(snapshot, p.id, defaultLocale, locales);
+        const slug = p?.slug;
+        if (slug && NAV_SLUGS.includes(slug)) nav[slug] = localesForPage(snapshot, p.id, defaultLocale, locales);
     }
     return nav;
 }
 
 /** The query string as sent, for a redirect that keeps it. @param {import('express').Request} req */
-function queryOf(req) {
+function rawQueryString(req) {
     const url = String(req.originalUrl || '');
     const at = url.indexOf('?');
     return at === -1 ? '' : url.slice(at);
@@ -107,7 +114,7 @@ function createIntegrationsRouter({
     async function directory(req, res, next, asked) {
         const ctx = await context(req, asked);
         if (!ctx) return next();
-        if (asked && !hasPageIn(null, asked)) return res.redirect(301, `${dir.directoryPath(ctx.defaultLocale, ctx.defaultLocale)}${queryOf(req)}`);
+        if (asked && !hasPageIn(null, asked)) return res.redirect(301, `${dir.directoryPath(ctx.defaultLocale, ctx.defaultLocale)}${rawQueryString(req)}`);
         // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- q is written only as esc(query) in the search input's value, category only when it is a known slug; neither reaches the JSON-LD
         const q = typeof req.query.q === 'string' ? req.query.q : '';
         // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- category is only written when it equals a known category slug, and then through esc()
@@ -128,7 +135,7 @@ function createIntegrationsRouter({
             return shell ? sendNotFound(res, shell, ctx.locale, false) : next();
         }
         // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- the target is detailPath(<a catalogue id>), a same-site path
-        if (asked && !hasPageIn(item.id, asked)) return res.redirect(301, `${dir.detailPath(item.id, ctx.defaultLocale, ctx.defaultLocale)}${queryOf(req)}`);
+        if (asked && !hasPageIn(item.id, asked)) return res.redirect(301, `${dir.detailPath(item.id, ctx.defaultLocale, ctx.defaultLocale)}${rawQueryString(req)}`);
         res.type('html').set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=86400');
         // nosemgrep: javascript.express.security.audit.xss.direct-response-write.direct-response-write, ajinabraham.njsscan.xss.xss_node.express_xss -- every interpolated string goes through esc() in renderDetailPage
         return res.send(dir.renderDetailPage({ ...ctx, item, related: ctx.items, catalog: catalog() }));
