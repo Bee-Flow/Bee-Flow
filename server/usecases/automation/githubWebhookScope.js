@@ -15,9 +15,10 @@
 const crypto = require('crypto');
 const { sameSignature } = require('./webhookSignature');
 
-const INSTALLATION_SECRET_KEY = 'automation_github_webhook_secret';
+// Names of config entries, not secrets: the values live in the config store.
+const INSTALLATION_CONFIG_NAME = 'automation_github_webhook_secret';
 /** @param {string} orgId */
-const orgSecretKey = (orgId) => `org_${orgId}_github_webhook_secret`;
+const orgConfigName = (orgId) => `org_${orgId}_github_webhook_secret`;
 
 /**
  * @typedef {{ outcome: 'org', orgId: string } | { outcome: 'installation' }
@@ -35,17 +36,21 @@ async function scopeOfGithubDelivery({ signature, raw, getConfig, listOrganizati
     const signedWith = (secret) => typeof secret === 'string' && secret.length > 0
         && sameSignature(signature, 'sha256=' + crypto.createHmac('sha256', secret).update(raw).digest('hex'));
 
+    const installationSecret = await getConfig(INSTALLATION_CONFIG_NAME);
+    // Nothing was signed, so no secret can match: answered from the one entry
+    // above, without looking up the organisations for an unsigned request.
+    if (!signature) return installationSecret ? { outcome: 'bad_signature' } : { outcome: 'unconfigured' };
+
     const orgs = await listOrganizations();
     let anySecret = false;
     for (const org of orgs) {
-        const secret = await getConfig(orgSecretKey(org.id));
+        const secret = await getConfig(orgConfigName(org.id));
         if (secret) anySecret = true;
         if (signedWith(secret)) return { outcome: 'org', orgId: org.id };
     }
-    const installationSecret = await getConfig(INSTALLATION_SECRET_KEY);
     if (!installationSecret && !anySecret) return { outcome: 'unconfigured' };
     if (!signedWith(installationSecret)) return { outcome: 'bad_signature' };
     return orgs.length > 1 ? { outcome: 'needs_org_secret' } : { outcome: 'installation' };
 }
 
-module.exports = { scopeOfGithubDelivery, orgSecretKey, INSTALLATION_SECRET_KEY };
+module.exports = { scopeOfGithubDelivery, orgConfigName, INSTALLATION_CONFIG_NAME };

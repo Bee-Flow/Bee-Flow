@@ -24,7 +24,11 @@ const monaco = {
     },
 };
 
+// Kept outside vi.fn(): the module is loaded once per file, and beforeEach clears mocks.
+const loaderConfigs = vi.hoisted(() => []);
 vi.mock('@monaco-editor/react', () => ({
+    // The editor points the loader at this app's own copy before it mounts.
+    loader: { config: (c) => { loaderConfigs.push(c); } },
     // Mount once, one `onMount` — like the real editor. A stub that reports at every
     // render that it has been mounted would here test something that never happens.
     default: function MonacoStub({ onMount }) {
@@ -82,5 +86,12 @@ describe('WebpageEditor', () => {
         const { getByTestId } = render(<WebpageEditor value="a" decorations={[deco(1)]} />);
         await waitFor(() => expect(getByTestId('monaco-stub')).toBeInTheDocument());
         editor.createDecorationsCollection = vi.fn(() => collection);
+    });
+
+    it('loads the editor runtime from this app, never from the loader\'s CDN default', async () => {
+        const { getByTestId } = render(<WebpageEditor value="<p>x</p>" language="html" decorations={[]} />);
+        await waitFor(() => expect(getByTestId('monaco-stub')).toBeInTheDocument());
+        expect(loaderConfigs.length).toBeGreaterThan(0);
+        expect(loaderConfigs[0].paths.vs).toBe(`${window.location.origin}/monaco/vs`);
     });
 });

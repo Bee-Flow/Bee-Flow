@@ -432,12 +432,12 @@ router.post('/users/:id/avatar', requireOrgAdminForUser, receiveAvatar, async (r
 });
 
 router.delete('/users/:id/avatar', requireOrgAdminForUser, async (req, res) => {
-    const user = await userStore.getUser(req.params.id);
+    const user = await userStore.getUser(req.params.id); // nosemgrep: ajinabraham.njsscan.traversal.resolve_path_traversal.join_resolve_path_traversal -- the stored avatar is reduced to its basename under data/uploads below
     if (user && user.avatar && user.avatarType === 'image') {
         // user.avatar is NOT only the upload route's `/uploads/<file>`: the
         // profile and user-create routes store whatever text the request sent.
         // Only ever unlink a file directly under data/uploads, like the org logo.
-        // nosemgrep: javascript.express.security.audit.express-path-join-resolve-traversal.express-path-join-resolve-traversal, ajinabraham.njsscan.traversal.resolve_path_traversal.join_resolve_path_traversal
+        // nosemgrep: javascript.express.security.audit.express-path-join-resolve-traversal.express-path-join-resolve-traversal
         const filePath = path.join(__dirname, '..', '..', 'data', 'uploads', path.basename(String(user.avatar)));
         if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     }

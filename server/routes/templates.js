@@ -365,7 +365,7 @@ router.post('/:id/fill-and-store', requireAuth, validate({ body: FillBody }), as
 // Serves files stored locally when RustFS is not available.
 router.get('/download-filled/:filename', requireAuth, (req, res) => {
     const path = require('path');
-    const userId = String(req.session.user.id);
+    const userId = String(req.session.user.id); // nosemgrep: ajinabraham.njsscan.traversal.resolve_path_traversal.join_resolve_path_traversal -- filename reduced to its basename, userId checked as one plain segment and the result confined to baseDir below
     const filename = req.params.filename;
 
     // Sanitize filename to prevent directory traversal
@@ -374,7 +374,7 @@ router.get('/download-filled/:filename', requireAuth, (req, res) => {
     // safe as a folder name by itself: an id shaped like `../../x` climbed out
     // of templates_filled. One plain segment, and the result must stay inside.
     const baseDir = path.join(__dirname, '..', 'data', 'templates_filled');
-    const filePath = path.join(baseDir, userId, sanitized); // nosemgrep: javascript.express.security.audit.express-path-join-resolve-traversal.express-path-join-resolve-traversal, ajinabraham.njsscan.traversal.resolve_path_traversal.join_resolve_path_traversal -- filename reduced to its basename, userId checked as one segment and the result confined to baseDir below
+    const filePath = path.join(baseDir, userId, sanitized); // nosemgrep: javascript.express.security.audit.express-path-join-resolve-traversal.express-path-join-resolve-traversal -- filename reduced to its basename, userId checked as one plain segment and the result confined to baseDir below
     if (!isAllowedUserId(userId) || path.dirname(filePath) !== path.join(baseDir, userId) || !filePath.startsWith(baseDir + path.sep)) {
         return res.status(404).json({ error: 'File not found' });
     }
