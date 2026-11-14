@@ -42,6 +42,13 @@ test('CMS asset keys become asset URLs; headings shift down and get ids', () => 
     assert.ok(!/<h1/.test(html), 'the post title is the only h1');
 });
 
+test('a ## section is an h2 and ### an h3: the outline under the title h1 has no gap', () => {
+    const html = renderPostMarkdown('## Why\n\n### Detail\n\n#### Small');
+    assert.match(html, /<h2 id="why">Why<\/h2>/);
+    assert.match(html, /<h3 id="detail">Detail<\/h3>/);
+    assert.match(html, /<h4 id="small">Small<\/h4>/);
+});
+
 test('safeUrl: images never take mailto or anchors', () => {
     assert.strictEqual(safeUrl('mailto:x@y.z', { kind: 'image' }), '');
     assert.strictEqual(safeUrl('#a', { kind: 'image' }), '');

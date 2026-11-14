@@ -11,7 +11,8 @@ import { isExternalUrl, safeBlogUrl } from './blogFormat';
  *   - every link and image URL passes safeBlogUrl(): unsafe schemes are
  *     removed, CMS asset keys become asset URLs;
  *   - external links open without referrer or opener;
- *   - headings shift down one level — the post title is the page's h1.
+ *   - headings keep their level from h2 on (`##` → h2); a `#` also becomes
+ *     an h2, because the post title is the page's only h1.
  *
  * Loaded lazily by BlogPostView, so react-markdown never weighs on a page
  * that is not a blog post.
@@ -61,10 +62,10 @@ const COMPONENTS = {
     a: Anchor,
     img: Img,
     h1: shift('h2'),
-    h2: shift('h3'),
-    h3: shift('h4'),
-    h4: shift('h5'),
-    h5: shift('h6'),
+    h2: shift('h2'),
+    h3: shift('h3'),
+    h4: shift('h4'),
+    h5: shift('h5'),
     h6: shift('h6'),
 };
 

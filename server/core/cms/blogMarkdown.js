@@ -18,7 +18,9 @@
  *      future marked change or renderer bug still cannot emit a <script>, an
  *      event handler or an <iframe>.
  *
- * Headings shift one level down (`#` → <h2>): the post title is the page's h1.
+ * Headings keep their level from h2 on (`##` → <h2>, `###` → <h3>); a `#`
+ * also becomes an <h2>, because the post title is the page's only h1. The
+ * client renderer (agent-hub/src/marketing/blog/BlogMarkdown.tsx) maps the same.
  */
 
 'use strict';
@@ -148,7 +150,7 @@ function renderPostMarkdown(markdown, { origin = '' } = {}) {
             html(token) { return esc(token.text || token.raw || ''); },
             heading(token) {
                 const inner = this.parser.parseInline(token.tokens);
-                const level = Math.min(6, Math.max(2, token.depth + 1));
+                const level = Math.min(6, Math.max(2, token.depth));
                 return `<h${level} id="${esc(headingId(inner, used))}">${inner}</h${level}>\n`;
             },
             link(token) {

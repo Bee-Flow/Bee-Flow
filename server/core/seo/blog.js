@@ -13,7 +13,7 @@
 'use strict';
 
 const { esc, clamp, clampTitle } = require('./html');
-const { buildHead, absolute, TITLE_MAX, DESC_MAX } = require('./head');
+const { buildHead, absolute, shareCardUrl, TITLE_MAX, DESC_MAX } = require('./head');
 const { buildPublicPath, BLOG_BASE } = require('./publicPath');
 const { renderPostMarkdown } = require('../cms/blogMarkdown');
 
@@ -79,60 +79,131 @@ function indexQuery({ tag, page = undefined }) {
 }
 
 /**
- * <head> for a blog URL.
- * @param {{ origin: string, eff: CmsDoc, locale: string, defaultLocale: string, locales: string[], siteName: string }} ctx
+ * A title with the site name after it ("Blog | Bee Flow"), unless it already
+ * names the site or is the site name.
+ * @param {string} title
+ * @param {string} siteName
  */
-function buildBlogHead({ origin, eff, locale, defaultLocale, locales, siteName }) {
+function withSiteName(title, siteName) {
+    const t = String(title || '').trim();
+    const name = String(siteName || '').trim();
+    if (!name || !t) return t || name;
+    return t.toLowerCase().includes(name.toLowerCase()) ? t : `${t} | ${name}`;
+}
+
+/**
+ * The share image of a blog URL without one of its own (a post without a
+ * cover, the index): the homepage's generated card, the same one the other
+ * pages fall back to. Without it the head fell back to the design's logo,
+ * a 64 px favicon under `summary_large_image`.
+ * @param {{ origin: string, eff: CmsDoc, locale: string, shareImageVersion?: string }} ctx
+ * @returns {{ url: string, slug: string, version: string } | null} null when the site has no published homepage card
+ */
+function fallbackShareCard({ origin, eff, locale, shareImageVersion }) {
+    const home = (eff.pages || []).find((/** @type {CmsDoc} */ p) => p && p.isHomepage);
+    if (!shareImageVersion || !home || !home.slug) return null;
+    const slug = String(home.slug);
+    return { url: shareCardUrl(origin, locale, slug, shareImageVersion), slug, version: shareImageVersion };
+}
+
+/**
+ * JSON-LD author: an author named like the site is the organisation itself.
+ * Free-text display name only — never an account, e-mail or profile link.
+ * @param {string} authorName
+ * @param {string} siteName
+ * @param {string} origin
+ */
+function authorNode(authorName, siteName, origin) {
+    const name = String(authorName || '').trim();
+    if (!name || name.toLowerCase() === String(siteName || '').trim().toLowerCase()) return { '@id': `${origin}/#organization` };
+    return { '@type': 'Person', name: authorName };
+}
+
+/**
+ * <head> for a blog URL.
+ * @param {{ origin: string, eff: CmsDoc, locale: string, defaultLocale: string, locales: string[], siteName: string,
+ *   shareImageVersion?: string }} ctx
+ *   `shareImageVersion`: the publish-time token of the homepage's generated share card
+ */
+function buildBlogHead(ctx) {
+    const { origin, eff, locale, defaultLocale, siteName } = ctx;
     const blog = eff.blog;
     const rss = `<link rel="alternate" type="application/rss+xml" title="${esc(`${siteName} — ${blog.title}`)}" href="${esc(`${origin}${feedPath(locale, defaultLocale)}`)}">`;
     const blogPath = buildPublicPath(locale, BLOG_BASE, defaultLocale);
     const atom = `<link rel="alternate" type="application/atom+xml" title="${esc(`${siteName} — ${blog.title}`)}" href="${esc(`${origin}${blogPath}/atom.xml`)}">`;
     const homePath = buildPublicPath(locale, '', defaultLocale);
     const home = blog.labels?.home || 'Home';
+    const shared = { blogPath, homePath, home, links: [rss, atom], card: fallbackShareCard(ctx) };
+    return blog.view === 'post' && blog.post ? buildPostHead(ctx, shared) : buildIndexHead(ctx, shared);
+}
 
-    if (blog.view === 'post' && blog.post) {
-        const p = blog.post;
-        const url = `${origin}${postPath(locale, p.slug, defaultLocale)}`;
-        const title = clampTitle(eff.page.seo.metaTitle || p.title, TITLE_MAX, siteName);
-        const description = clamp(eff.page.seo.metaDescription || p.excerpt || '', DESC_MAX);
-        const image = absolute(origin, eff.page.seo.ogImage || p.coverImage || '');
-        const posting = {
-            '@type': 'BlogPosting',
-            '@id': `${url}#article`,
-            mainEntityOfPage: { '@id': `${url}#webpage` },
-            headline: clamp(p.title, 110),
-            ...(description ? { description } : {}),
-            ...(image ? { image } : {}),
-            ...(p.publishedAt ? { datePublished: p.publishedAt } : {}),
-            ...((p.updatedAt || p.publishedAt) ? { dateModified: p.updatedAt || p.publishedAt } : {}),
-            inLanguage: locale,
-            // Free-text display name only — never an account, e-mail or profile link.
-            ...(p.authorName ? { author: { '@type': 'Person', name: p.authorName } } : { author: { '@id': `${origin}/#organization` } }),
-            publisher: { '@id': `${origin}/#organization` },
-            ...(p.tags?.length ? { keywords: p.tags.map((/** @type {BlogTag} */ t) => t.label).join(', ') } : {}),
-            isPartOf: { '@type': 'Blog', '@id': `${origin}${blogPath}#blog`, name: blog.title },
-        };
-        return buildHead({
-            origin, slug: eff.page.slug, locale, defaultLocale, locales,
-            page: { ...eff.page, seo: { ...eff.page.seo, metaTitle: title, metaDescription: description } },
-            design: eff.design || {}, siteName,
-            ogType: 'article',
-            article: {
-                publishedTime: p.publishedAt || '',
-                modifiedTime: p.updatedAt || '',
-                author: p.authorName || '',
-                tags: (p.tags || []).map((/** @type {BlogTag} */ t) => t.label),
-            },
-            extraJsonLd: [posting],
-            breadcrumbTrail: [
-                { name: home, path: homePath },
-                { name: blog.title, path: blogPath },
-                { name: clamp(p.title, 80), path: postPath(locale, p.slug, defaultLocale) },
-            ],
-            extraLinks: [rss, atom],
-        });
-    }
+/**
+ * @typedef {{ blogPath: string, homePath: string, home: string, links: string[],
+ *   card: { url: string, slug: string, version: string } | null }} BlogHeadShared
+ */
 
+/**
+ * buildHead's share-card arguments: the homepage card stands in when the URL has no image of its own.
+ * @param {BlogHeadShared['card']} card
+ */
+function cardArgs(card) {
+    return card ? { shareImageVersion: card.version, shareCardSlug: card.slug } : {};
+}
+
+/**
+ * @param {{ origin: string, eff: CmsDoc, locale: string, defaultLocale: string, locales: string[], siteName: string }} ctx
+ * @param {BlogHeadShared} shared
+ */
+function buildPostHead({ origin, eff, locale, defaultLocale, locales, siteName }, { blogPath, homePath, home, links, card }) {
+    const blog = eff.blog;
+    const p = blog.post;
+    const url = `${origin}${postPath(locale, p.slug, defaultLocale)}`;
+    const title = clampTitle(eff.page.seo.metaTitle || withSiteName(p.title, siteName), TITLE_MAX, siteName);
+    const description = clamp(eff.page.seo.metaDescription || p.excerpt || '', DESC_MAX);
+    const ownImage = eff.page.seo.ogImage || p.coverImage || '';
+    const image = ownImage ? absolute(origin, ownImage) : (card ? card.url : '');
+    const posting = {
+        '@type': 'BlogPosting',
+        '@id': `${url}#article`,
+        mainEntityOfPage: { '@id': `${url}#webpage` },
+        headline: clamp(p.title, 110),
+        ...(description ? { description } : {}),
+        ...(image ? { image } : {}),
+        ...(p.publishedAt ? { datePublished: p.publishedAt } : {}),
+        ...((p.updatedAt || p.publishedAt) ? { dateModified: p.updatedAt || p.publishedAt } : {}),
+        inLanguage: locale,
+        author: authorNode(p.authorName, siteName, origin),
+        publisher: { '@id': `${origin}/#organization` },
+        ...(p.tags?.length ? { keywords: p.tags.map((/** @type {BlogTag} */ t) => t.label).join(', ') } : {}),
+        isPartOf: { '@type': 'Blog', '@id': `${origin}${blogPath}#blog`, name: blog.title },
+    };
+    return buildHead({
+        origin, slug: eff.page.slug, locale, defaultLocale, locales,
+        page: { ...eff.page, seo: { ...eff.page.seo, ogImage: ownImage, metaTitle: title, metaDescription: description } },
+        design: eff.design || {}, siteName, ...cardArgs(card),
+        ogType: 'article',
+        article: {
+            publishedTime: p.publishedAt || '',
+            modifiedTime: p.updatedAt || '',
+            author: p.authorName || '',
+            tags: (p.tags || []).map((/** @type {BlogTag} */ t) => t.label),
+        },
+        extraJsonLd: [posting],
+        breadcrumbTrail: [
+            { name: home, path: homePath },
+            { name: blog.title, path: blogPath },
+            { name: clamp(p.title, 80), path: postPath(locale, p.slug, defaultLocale) },
+        ],
+        extraLinks: links,
+    });
+}
+
+/**
+ * @param {{ origin: string, eff: CmsDoc, locale: string, defaultLocale: string, locales: string[], siteName: string }} ctx
+ * @param {BlogHeadShared} shared
+ */
+function buildIndexHead({ origin, eff, locale, defaultLocale, locales, siteName }, { blogPath, homePath, home, links, card }) {
+    const blog = eff.blog;
     const blogNode = {
         '@type': 'Blog',
         '@id': `${origin}${blogPath}#blog`,
@@ -148,12 +219,14 @@ function buildBlogHead({ origin, eff, locale, defaultLocale, locales, siteName }
             ...(p.publishedAt ? { datePublished: p.publishedAt } : {}),
         })),
     };
+    const seo = eff.page.seo || {};
     return buildHead({
         origin, slug: BLOG_BASE, locale, defaultLocale, locales,
-        page: eff.page, design: eff.design || {}, siteName,
+        page: { ...eff.page, seo: { ...seo, metaTitle: seo.metaTitle || withSiteName(eff.page.title, siteName) } },
+        design: eff.design || {}, siteName, ...cardArgs(card),
         extraJsonLd: [blogNode],
         breadcrumbTrail: [{ name: home, path: homePath }, { name: blog.title, path: blogPath }],
-        extraLinks: [rss, atom],
+        extraLinks: links,
     });
 }
 

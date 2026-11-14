@@ -68,6 +68,12 @@ describe('BlogMarkdown', () => {
         expect(container.querySelector('img[onerror]')).toBeNull();
         expect(container.querySelector('img')).toHaveAttribute('src', '/api/cms/asset/cms/a.png');
     });
+
+    it('renders ## as h2 and ### as h3, like the server', () => {
+        const { container } = render(<BlogMarkdown markdown={'## Why\n\n### Detail'} />);
+        expect(container.querySelector('h2#why')).toHaveTextContent('Why');
+        expect(container.querySelector('h3#detail')).toHaveTextContent('Detail');
+    });
 });
 
 describe('blogFormat', () => {
