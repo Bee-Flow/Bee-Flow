@@ -282,6 +282,27 @@ server {
         add_header Permissions-Policy      "camera=(), microphone=(self), geolocation=(), clipboard-read=(self), clipboard-write=(self)" always;
     }
 
+    # ── Icons and images from public/ at the root ────────────────────────────────
+    #
+    # Same story as the fonts: /app-icon.svg (the favicon of every page, about
+    # 250 KB) fell into `location /` and was fetched again, no-store, on every
+    # pageview. 30 days for the same reason as above: these files are not
+    # content-hashed. A regex location wins over the `location /` prefix; one
+    # path segment only, so /assets/, /fonts/ and the API never match. A missing
+    # file still goes to @render, exactly as before.
+    #
+    # An SVG opened on its own is a document, so it keeps the SPA's CSP.
+    location ~ ^/[^/]+\.(?:svg|png|jpe?g|webp|gif|ico)$ {
+        try_files $uri @render;
+        add_header Cache-Control "public, max-age=2592000" always;
+        add_header X-Content-Type-Options  "nosniff" always;
+        add_header X-Frame-Options         "SAMEORIGIN" always;
+        add_header X-XSS-Protection        "0" always;
+        add_header Referrer-Policy         "strict-origin-when-cross-origin" always;
+        add_header Permissions-Policy      "camera=(), microphone=(self), geolocation=(), clipboard-read=(self), clipboard-write=(self)" always;
+        add_header Content-Security-Policy $csp always;
+    }
+
     # Public agent chat embed (/chat/<agentId>) — must be framable from any
     # origin so the "Web embed" iframe snippet works on third-party sites
     # AND inside Bee Flow's own Webpages preview (whose sandbox makes the
