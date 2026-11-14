@@ -7,6 +7,9 @@ const { initDB } = require('./schema');
 const log = require('../../telemetry/log');
 
 // ── Trial gate ─────────────────────────────
+/** The table that carries the one-time trial marker of each target type. @type {Record<string, string>} */
+const TRIAL_TABLE = { organization: 'organizations', consumer: 'users', user: 'users' };
+
 // Marks an org or user as having used its one-time trial. Idempotent —
 // callers can re-invoke safely; the column only moves forward in time.
 /**
@@ -16,16 +19,10 @@ const log = require('../../telemetry/log');
 async function markTrialUsed(targetType, targetId) {
     await initDB();
     if (!targetId) return false;
-    const now = new Date().toISOString();
-    if (targetType === 'organization') {
-        const r = await run('UPDATE organizations SET trial_used_at = $1 WHERE id = $2 AND trial_used_at IS NULL', [now, targetId]);
-        return (r.rowCount || 0) > 0;
-    }
-    if (targetType === 'consumer' || targetType === 'user') {
-        const r = await run('UPDATE users SET trial_used_at = $1 WHERE id = $2 AND trial_used_at IS NULL', [now, targetId]);
-        return (r.rowCount || 0) > 0;
-    }
-    return false;
+    const table = Object.hasOwn(TRIAL_TABLE, targetType) ? TRIAL_TABLE[targetType] : null;
+    if (!table) return false;
+    const r = await run(`UPDATE ${table} SET trial_used_at = $1 WHERE id = $2 AND trial_used_at IS NULL`, [new Date().toISOString(), targetId]);
+    return (r.rowCount || 0) > 0;
 }
 
 /** @param {string} orgId */
@@ -54,7 +51,7 @@ async function hasEmailUsedTrial(scope, email) {
     return !!row;
 }
 
-/** @param {{ scope?: string, email?: string, subscriberId?: string, planId?: string, stripeCustomerId?: string, stripeSubscriptionId?: string, trialEndDate?: string|Date }} [opts] */
+/** @param {{ scope?: string, email?: string, subscriberId?: string, planId?: string, stripeCustomerId?: string, stripeSubscriptionId?: string, trialEndDate?: string|Date|null }} [opts] */
 async function recordTrialHistory({ scope, email, subscriberId, planId, stripeCustomerId, stripeSubscriptionId, trialEndDate } = {}) {
     await initDB();
     if (!email || !scope) return;

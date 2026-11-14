@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * An AI step that is run by an AGENT (R2, part B).
  *
@@ -159,7 +160,7 @@ function stepAgentPermissions(step) {
  * @param {string} errorClass
  */
 function _fail(message, errorClass) {
-    const err = new Error(message);
+    const err = /** @type {Error & { errorClass?: unknown }} */ (new Error(message));
     err.errorClass = errorClass;
     return err;
 }

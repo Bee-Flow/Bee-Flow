@@ -12,110 +12,37 @@
  *   3. THE 1-ON-1 DEFAULT. At two participants or fewer, recording defaults to OFF,
  *      and "count unknown" does NOT count as "more than two" — unknown narrows.
  *
- * DB-free: ../db and ./configStore are replaced via require.cache. The fake db is
- * not a dumb recorder but a mini-Postgres for exactly this table: it knows the
- * primary key, the CHECK on the scope and ON CONFLICT DO NOTHING/DO UPDATE, and it
- * REJECTS a WHERE form it does not recognise — so a changed scoping shows up
- * instead of slipping through silently.
+ * On a real Postgres: PGlite behind db.js's pool (testUtils/pglitePool.js),
+ * with the table, its primary key and its CHECK from the store's own DDL. The
+ * OLD exclusion documents come from configStore, whose three methods the
+ * backfill calls are replaced on the store object by an in-memory map.
  *
- * Run: cd server && node --test --test-force-exit stores/meetingPrefsStore.test.js
+ * Run: cd server && node --test stores/meetingPrefsStore.test.js
  */
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const path = require('path');
 
 process.env.NODE_ENV = 'test';
 
-// ── nep-Postgres voor meeting_prefs ──────────────────────────────────
-const PK = ['provider', 'id_kind', 'external_id', 'user_id', 'org_id'];
-const db = {
-    ddl: [],        // via exec uitgevoerde DDL (runDdl's stub-pad)
-    queries: [],    // { sql, params }
-    table: [],      // de rijen
-};
+const { usePglitePool } = require('../testUtils/pglitePool');
+const { pg, close } = usePglitePool();
+test.after(close);
 
-function reset() {
-    db.queries.length = 0;
-    db.table.length = 0;
+/** The rows of meeting_prefs, as the database holds them. */
+const table = async () => (await pg.query('SELECT * FROM meeting_prefs ORDER BY provider, id_kind, external_id, user_id, org_id')).rows;
+const reset = () => pg.exec('DELETE FROM meeting_prefs');
+
+/** The statements db.js sends while `fn` runs. @param {() => Promise<unknown>} fn */
+async function recordStatements(fn) {
+    const db = require('../db');
+    const saved = db.pool.query;
+    /** @type {string[]} */
+    const sent = [];
+    db.pool.query = /** @type {any} */ ((/** @type {any} */ sql, /** @type {any} */ params) => { sent.push(String(sql)); return saved(sql, params); });
+    try { await fn(); } finally { db.pool.query = saved; }
+    return sent;
 }
-
-const norm = (sql) => String(sql).replace(/\s+/g, ' ').trim();
-const pkOf = (row) => JSON.stringify(PK.map(c => row[c]));
-
-function applyInsert(sql, params) {
-    // NOW() draagt zelf haakjes; tokeniseer die weg vóór het splitsen.
-    const flat = sql.replace(/NOW\(\)/gi, 'NOW_TS');
-    const cols = flat.match(/INSERT INTO meeting_prefs\s*\(([^)]+)\)/)[1].split(',').map(s => s.trim());
-    const vals = flat.match(/VALUES\s*\(([^)]+)\)/)[1].split(',').map(s => s.trim());
-    const row = { provider: null, id_kind: null, external_id: null, user_id: '', org_id: '', tags: '[]', record: null, updated_at: null, updated_by: null };
-    cols.forEach((col, i) => {
-        const v = vals[i];
-        const ph = v.match(/^\$(\d+)/);
-        if (ph) row[col] = params[Number(ph[1]) - 1];
-        else if (/^NOW_TS$/i.test(v)) row[col] = new Date().toISOString();
-        else if (/^TRUE$/i.test(v)) row[col] = true;
-        else if (/^FALSE$/i.test(v)) row[col] = false;
-        else row[col] = null;
-    });
-    // CHECK meeting_prefs_one_scope — precies één scope gevuld.
-    const okScope = (row.user_id !== '' && row.org_id === '') || (row.user_id === '' && row.org_id !== '');
-    if (!okScope) { const e = new Error('new row violates check constraint "meeting_prefs_one_scope"'); e.code = '23514'; e.severity = 'ERROR'; throw e; }
-
-    const existing = db.table.find(r => pkOf(r) === pkOf(row));
-    if (!existing) { db.table.push(row); return { rowCount: 1, rows: [] }; }
-    if (/DO NOTHING/i.test(sql)) return { rowCount: 0, rows: [] };
-    const setPart = flat.match(/DO UPDATE SET (.+?)(?:RETURNING|$)/i);
-    if (!setPart) throw new Error(`onbekende ON CONFLICT-vorm: ${sql}`);
-    for (const assign of setPart[1].split(',')) {
-        const [lhs, rhs] = assign.split('=').map(s => s.trim());
-        if (/^EXCLUDED\./i.test(rhs)) existing[lhs] = row[rhs.split('.')[1]];
-        else if (/^NOW_TS$/i.test(rhs)) existing[lhs] = new Date().toISOString();
-    }
-    return { rowCount: 1, rows: [] };
-}
-
-function applySelect(sql, params) {
-    // Only the two scope forms the store is supposed to write. Anything
-    // else is a changed scoping and must stand out, not pass.
-    const userClause = sql.match(/user_id = \$(\d+)/);
-    const orgClause = sql.match(/\(user_id = '' AND org_id = \$(\d+)\)/);
-    if (!userClause && !orgClause) throw new Error(`onverwachte WHERE — scoping veranderd: ${sql}`);
-    return db.table.filter((r) => {
-        if (r.provider !== params[0]) return false;
-        if (userClause && r.user_id === params[Number(userClause[1]) - 1]) return true;
-        if (orgClause && r.user_id === '' && r.org_id === params[Number(orgClause[1]) - 1]) return true;
-        return false;
-    }).map(r => ({ ...r }));
-}
-
-const dbPath = require.resolve(path.join(__dirname, '..', 'db.js'));
-require.cache[dbPath] = {
-    id: dbPath, filename: dbPath, loaded: true,
-    exports: {
-        exec: async (sql) => { db.ddl.push(norm(sql)); },
-        run: async (sql, params = []) => {
-            const s = norm(sql);
-            db.queries.push({ sql: s, params });
-            if (/^INSERT INTO meeting_prefs/.test(s)) return applyInsert(s, params);
-            return { rowCount: 0, rows: [] };
-        },
-        getAll: async (sql, params = []) => {
-            const s = norm(sql);
-            db.queries.push({ sql: s, params });
-            if (/FROM meeting_prefs/.test(s)) return applySelect(s, params);
-            return [];
-        },
-        getOne: async () => null,
-        makeStoreInit: (tag, fn) => {
-            let p = null;
-            return () => {
-                if (!p) p = Promise.resolve().then(fn).catch((e) => { p = null; throw e; });
-                return p;
-            };
-        },
-    },
-};
 
 // ── fake configStore with the OLD exclusion documents ───────────────────
 // Filled before the require: the store runs its backfill in initDB, and initDB
@@ -128,25 +55,25 @@ cfg.set('org_talk_notes_orgA', { autoRecord: true, excludedRoomTokens: ['room-or
 cfg.set('user_gmeet_notes_u1', { autoImport: true, excludedEventIds: ['ev-excl'], excludedMeetingCodes: ['zzz-zzzz-zzz'] });
 cfg.set('user_talk_notes_u2', { excludedRoomTokens: ['room-van-u2'] });
 
-const cfgPath = require.resolve(path.join(__dirname, 'configStore.js'));
-require.cache[cfgPath] = {
-    id: cfgPath, filename: cfgPath, loaded: true,
-    exports: {
-        getConfig: async (k) => { cfgReads.push(k); return cfg.has(k) ? cfg.get(k) : null; },
-        setConfig: async (k, v) => { cfg.set(k, v); },
-        listKeysWithPrefix: async (prefix) => Array.from(cfg.keys()).filter(k => k.startsWith(prefix)),
-    },
-};
+const configStore = require('./configStore');
+const savedConfig = { getConfig: configStore.getConfig, setConfig: configStore.setConfig, listKeysWithPrefix: configStore.listKeysWithPrefix };
+Object.assign(configStore, {
+    getConfig: async (/** @type {string} */ k) => { cfgReads.push(k); return cfg.has(k) ? cfg.get(k) : null; },
+    setConfig: async (/** @type {string} */ k, /** @type {unknown} */ v) => { cfg.set(k, v); },
+    listKeysWithPrefix: async (/** @type {string} */ prefix) => Array.from(cfg.keys()).filter(k => k.startsWith(prefix)),
+});
+test.after(() => { Object.assign(configStore, savedConfig); });
 
 const store = require('./meetingPrefsStore');
 
-// ═══ 1. de backfill ══════════════════════════════════════════════════
+// ═══ 1. the backfill ═════════════════════════════════════════════════
 
 test('backfill: een uitsluiting in de OUDE vorm wordt record=false in de nieuwe store', async () => {
     await store.initDB();
 
     // Talk, per gebruiker: ruimte én occurrence, elk in hun eigen id-ruimte.
-    const mine = db.table.filter(r => r.user_id === 'u1' && r.provider === 'talk');
+    const rows = await table();
+    const mine = rows.filter(r => r.user_id === 'u1' && r.provider === 'talk');
     assert.deepEqual(
         mine.map(r => [r.id_kind, r.external_id, r.record]).sort(),
         [['event', 'uid-1op1', false], ['room', 'room-geheim', false]],
@@ -154,13 +81,13 @@ test('backfill: een uitsluiting in de OUDE vorm wordt record=false in de nieuwe 
     );
 
     // Talk, org-breed: user_id leeg, org_id gevuld.
-    const org = db.table.find(r => r.org_id === 'orgA');
+    const org = rows.find(r => r.org_id === 'orgA');
     assert.equal(org.user_id, '', 'org-brede regel heeft geen user_id');
     assert.equal(org.external_id, 'room-org');
     assert.equal(org.record, false);
 
-    // Meet: eventId → event, meetingCode → code (de serie).
-    const meet = db.table.filter(r => r.provider === 'gmeet');
+    // Meet: eventId → event, meetingCode → code (the series).
+    const meet = rows.filter(r => r.provider === 'gmeet');
     assert.deepEqual(
         meet.map(r => [r.id_kind, r.external_id, r.record]).sort(),
         [['code', 'zzz-zzzz-zzz', false], ['event', 'ev-excl', false]],
@@ -176,21 +103,22 @@ test('backfill: een uitsluiting in de OUDE vorm wordt record=false in de nieuwe 
 
 test('backfill: schrijft ALLEEN uitsluitingen — geen record=true voor de rest', async () => {
     await store.initDB();
-    assert.equal(db.table.some(r => r.record === true), false,
+    const rows = await table();
+    assert.equal(rows.some(r => r.record === true), false,
         'een true-rij zou de globale autoRecord/autoImport-schakelaar bevriezen op zijn stand van nu');
-    assert.equal(db.table.every(r => r.record === false), true);
+    assert.equal(rows.every(r => r.record === false), true);
 });
 
 test('backfill: idempotent en niet destructief — een tweede pas overschrijft een nieuwere keuze niet', async () => {
     await store.initDB();
-    // De gebruiker zet opnemen sindsdien bewust weer AAN voor die ruimte.
+    // Since then the user deliberately turned recording back ON for that room.
     await store.setRecord({ provider: 'talk', ids: store.talkIds({ roomToken: 'room-geheim' }), userId: 'u1', record: true });
-    const before = db.table.length;
+    const before = (await table()).length;
 
     const res = await store.backfillFromExclusions({ force: true });
 
-    assert.equal(db.table.length, before, 'geen dubbele rijen');
-    const row = db.table.find(r => r.user_id === 'u1' && r.external_id === 'room-geheim');
+    assert.equal((await table()).length, before, 'geen dubbele rijen');
+    const row = (await table()).find(r => r.user_id === 'u1' && r.external_id === 'room-geheim');
     assert.equal(row.record, true, 'ON CONFLICT DO NOTHING: de nieuwe keuze blijft staan');
     assert.equal(res.inserted, 0);
 });
@@ -221,7 +149,7 @@ test('backfill: een ONLEESBAAR document faalt luid — het telt niet als leeg', 
     cfg.delete('user_talk_notes_kapot');
 });
 
-// ═══ 2. de scope: nooit de rij van iemand anders ═════════════════════
+// ═══ 2. the scope: never someone else's row ═══════════════════════════
 
 test('lezen is per gebruiker: u1 ziet zijn eigen rijen plus die van zijn org, nooit die van u2', async () => {
     await store.initDB();
@@ -230,13 +158,13 @@ test('lezen is per gebruiker: u1 ziet zijn eigen rijen plus die van zijn org, no
     assert.deepEqual(ids, ['room-geheim', 'room-org', 'uid-1op1']);
     assert.equal(rows.some(r => r.externalId === 'room-van-u2'), false, 'de rij van u2 hoort hier niet');
 
-    // en andersom: u2 ziet niets van u1
+    // and the other way round: u2 sees nothing of u1's
     const other = await store.listPrefs({ provider: 'talk', userId: 'u2' });
     assert.deepEqual(other.map(r => r.externalId), ['room-van-u2']);
 });
 
 test('twee deelnemers aan dezelfde vergadering mogen verschillend beslissen', async () => {
-    reset();
+    await reset();
     await store.setRecord({ provider: 'gmeet', ids: store.gmeetIds({ eventId: 'ev-samen' }), userId: 'u1', record: false });
     await store.setRecord({ provider: 'gmeet', ids: store.gmeetIds({ eventId: 'ev-samen' }), userId: 'u2', record: true });
 
@@ -248,17 +176,18 @@ test('twee deelnemers aan dezelfde vergadering mogen verschillend beslissen', as
 });
 
 test('een lees zonder scope levert NIETS in plaats van alles', async () => {
-    reset();
+    await reset();
     await store.setRecord({ provider: 'talk', ids: store.talkIds({ roomToken: 'r1' }), userId: 'u1', record: false });
-    db.queries.length = 0;
-    assert.deepEqual(await store.listPrefs({ provider: 'talk' }), []);
-    assert.deepEqual(await store.listPrefs({ provider: 'talk', userId: '  ' }), []);
-    assert.deepEqual(await store.listPrefs({ userId: 'u1' }), [], 'onbekende provider levert ook niets');
-    assert.equal(db.queries.length, 0, 'zonder scope wordt de tabel niet eens bevraagd');
+    const sent = await recordStatements(async () => {
+        assert.deepEqual(await store.listPrefs({ provider: 'talk' }), []);
+        assert.deepEqual(await store.listPrefs({ provider: 'talk', userId: '  ' }), []);
+        assert.deepEqual(await store.listPrefs({ userId: 'u1' }), [], 'onbekende provider levert ook niets');
+    });
+    assert.ok(!sent.some(q => /\bmeeting_prefs\b/.test(q)), 'zonder scope wordt de tabel niet eens bevraagd');
 });
 
 test('een org-brede uitsluiting versmalt ook de gebruiker die zelf ja zei', async () => {
-    reset();
+    await reset();
     await store.setRecord({ provider: 'talk', ids: store.talkIds({ roomToken: 'r-org' }), orgId: 'orgA', record: false });
     await store.setRecord({ provider: 'talk', ids: store.talkIds({ roomToken: 'r-org' }), userId: 'u1', record: true });
     const prefs = await store.loadMeetingPrefs({ provider: 'talk', userId: 'u1', orgId: 'orgA' });
@@ -266,7 +195,7 @@ test('een org-brede uitsluiting versmalt ook de gebruiker die zelf ja zei', asyn
         'zoals de oude unie van org- en user-arrays: één FALSE wint');
 });
 
-// ═══ 3. de 1-op-1-standaard ══════════════════════════════════════════
+// ═══ 3. the one-on-one default ═══════════════════════════════════════
 
 test('zonder mening: ten hoogste twee deelnemers → record FALSE, ook met de globale schakelaar AAN', () => {
     const call = (participantCount) => store.decideRecord({ rows: [], ids: store.talkIds({ roomToken: 'r' }), participantCount, fallback: true });
@@ -282,7 +211,7 @@ test('zonder mening: ONBEKEND aantal telt NIET als "meer dan twee" — het versm
         assert.equal(d.record, false, `onbekend (${String(onbekend)}) mag niet als groot gelden`);
         assert.equal(d.reason, 'unknown_size');
     }
-    // ... en zonder het argument helemaal.
+    // ... and without the argument at all.
     assert.equal(store.decideRecord({ rows: [], ids: store.talkIds({ roomToken: 'r' }), fallback: true }).record, false);
 });
 
@@ -318,35 +247,38 @@ test('participantCountOf: deelnemerslijst + organisator, leeg is ONBEKEND en nie
 // ═══ schrijven ═══════════════════════════════════════════════════════
 
 test('setRecord: upsert op de volledige sleutel, en NULL wist de mening', async () => {
-    reset();
+    await reset();
     const ids = store.talkIds({ eventUid: 'uid-9', roomToken: 'room-9' });
     await store.setRecord({ provider: 'talk', ids, userId: 'u1', record: false });
-    assert.equal(db.table.length, 2, 'één rij per identiteit');
+    assert.equal((await table()).length, 2, 'één rij per identiteit');
 
     await store.setRecord({ provider: 'talk', ids, userId: 'u1', record: true });
-    assert.equal(db.table.length, 2, 'geen nieuwe rijen — dezelfde sleutel');
-    assert.equal(db.table.every(r => r.record === true), true);
+    assert.equal((await table()).length, 2, 'geen nieuwe rijen — dezelfde sleutel');
+    assert.equal((await table()).every(r => r.record === true), true);
+
+    // The key holds user_id: a second participant does not overwrite the first.
+    await store.setRecord({ provider: 'talk', ids, userId: 'u2', record: false });
+    const rows = await table();
+    assert.equal(rows.length, 4);
+    assert.equal(rows.filter(r => r.user_id === 'u1').every(r => r.record === true), true,
+        'de sleutel moet user_id bevatten, anders overschrijft de ene deelnemer de ander');
 
     await store.setRecord({ provider: 'talk', ids, userId: 'u1', record: null });
-    assert.equal(db.table.every(r => r.record === null), true, 'NULL = geen mening, terug naar erven');
-
-    const ins = db.queries.find(q => /INSERT INTO meeting_prefs/.test(q.sql));
-    assert.match(ins.sql, /ON CONFLICT \(provider, id_kind, external_id, user_id, org_id\)/,
-        'de sleutel moet user_id bevatten, anders overschrijft de ene deelnemer de ander');
+    assert.equal((await table()).filter(r => r.user_id === 'u1').every(r => r.record === null), true, 'NULL = geen mening, terug naar erven');
 });
 
 test('setTags raakt de opnamekeuze niet aan', async () => {
-    reset();
+    await reset();
     const ids = store.gmeetIds({ eventId: 'ev-tags' });
     await store.setTags({ provider: 'gmeet', ids, userId: 'u1', tags: ['klant', 'klant', ' offerte '] });
-    let row = db.table[0];
+    let [row] = await table();
     assert.equal(row.record, null, 'tags zetten mag nooit stilletjes een opnamekeuze maken');
-    assert.deepEqual(JSON.parse(row.tags), ['klant', 'offerte'], 'ontdubbeld en getrimd');
+    assert.deepEqual(row.tags, ['klant', 'offerte'], 'ontdubbeld en getrimd');
 
     await store.setRecord({ provider: 'gmeet', ids, userId: 'u1', record: false });
-    row = db.table[0];
+    [row] = await table();
     assert.equal(row.record, false);
-    assert.deepEqual(JSON.parse(row.tags), ['klant', 'offerte'], 'en de tags blijven staan');
+    assert.deepEqual(row.tags, ['klant', 'offerte'], 'en de tags blijven staan');
 
     const prefs = await store.loadMeetingPrefs({ provider: 'gmeet', userId: 'u1' });
     assert.deepEqual(prefs.tagsFor(ids), ['klant', 'offerte']);
@@ -360,7 +292,7 @@ test('een schrijf zonder user én zonder org wordt geweigerd', async () => {
 });
 
 test('de tabel dwingt precies één scope af (CHECK meeting_prefs_one_scope)', async () => {
-    reset();
+    await reset();
     // _scopeOf does not allow this; the table must not allow it either, or
     // the same preference could exist as two rows.
     await assert.rejects(async () => {
@@ -375,16 +307,20 @@ test('de tabel dwingt precies één scope af (CHECK meeting_prefs_one_scope)', a
 
 // ═══ schema ══════════════════════════════════════════════════════════
 
-test('DDL: driewaardige record-kolom, tags als JSONB, sleutel inclusief user_id', () => {
-    const create = db.ddl.find(s => /CREATE TABLE IF NOT EXISTS meeting_prefs/.test(s));
-    assert.ok(create, 'de DDL loopt via runDdl in de store zelf, niet via bootMigrations');
-    assert.match(create, /record\s+BOOLEAN(?!\s+NOT NULL)/, 'record moet NULL kunnen zijn: "geen mening" is een derde toestand');
-    assert.match(create, /tags\s+JSONB NOT NULL DEFAULT '\[\]'::jsonb/);
-    assert.match(create, /PRIMARY KEY \(provider, id_kind, external_id, user_id, org_id\)/);
-    assert.match(create, /CHECK \(\(user_id <> '' AND org_id = ''\) OR \(user_id = '' AND org_id <> ''\)\)/);
+test('DDL: driewaardige record-kolom, tags als JSONB, sleutel inclusief user_id', async () => {
+    await store.initDB();
+    const { rows } = await pg.query(`SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns
+        WHERE table_name = 'meeting_prefs' AND column_name IN ('record', 'tags') ORDER BY column_name`);
+    assert.deepEqual(rows, [
+        { column_name: 'record', data_type: 'boolean', is_nullable: 'YES', column_default: null },
+        { column_name: 'tags', data_type: 'jsonb', is_nullable: 'NO', column_default: "'[]'::jsonb" },
+    ], 'record moet NULL kunnen zijn: "geen mening" is een derde toestand');
+    const { rows: [pk] } = await pg.query(`SELECT pg_get_constraintdef(c.oid) AS def FROM pg_constraint c
+        JOIN pg_class t ON t.oid = c.conrelid WHERE t.relname = 'meeting_prefs' AND c.contype = 'p'`);
+    assert.equal(pk.def, 'PRIMARY KEY (provider, id_kind, external_id, user_id, org_id)');
 });
 
-// ═══ de sluitronde ═══════════════════════════════════════════════════
+// ═══ the closing round ═══════════════════════════════════════════════
 
 test('backfill: een LEGE scan zet GEEN marker — niets gezien is niets bewezen', async () => {
     // The race this closes: `migrateConfigJson()` in configStore is
@@ -401,12 +337,12 @@ test('backfill: een LEGE scan zet GEEN marker — niets gezien is niets bewezen'
         assert.equal(res.marked, false, 'geen marker op een lege scan');
         assert.equal(cfg.has(store.BACKFILL_KEY), false);
 
-        // …en zodra de documenten er WEL zijn, pakt de volgende poging ze op.
+        // …and once the documents ARE there, the next attempt picks them up.
         cfg.set('user_talk_notes_u9', { excludedRoomTokens: ['room-laat'] });
         const again = await store.backfillFromExclusions({ force: true });
         assert.equal(again.scanned, 1);
         assert.equal(again.marked, true);
-        assert.ok(db.table.some(r => r.user_id === 'u9' && r.external_id === 'room-laat' && r.record === false));
+        assert.ok((await table()).some(r => r.user_id === 'u9' && r.external_id === 'room-laat' && r.record === false));
     } finally {
         cfg.clear();
         for (const [k, v] of saved) cfg.set(k, v);
@@ -433,7 +369,7 @@ test('tags volgen dezelfde kind-scheiding als record', async () => {
         { idKind: 'event', externalId: 'x', record: null, tags: ['van-de-afspraak'] },
     ];
     assert.deepEqual(store.resolvePrefs(rows, [{ kind: 'room', id: 'x' }]).tags, ['van-de-ruimte']);
-    // Meest specifieke eerst bepaalt de volgorde van de unie.
+    // Most specific first decides the order of the union.
     assert.deepEqual(
         store.resolvePrefs(rows, [{ kind: 'event', id: 'x' }, { kind: 'room', id: 'x' }]).tags,
         ['van-de-afspraak', 'van-de-ruimte'],

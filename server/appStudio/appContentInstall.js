@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Put an app archive's CONTENT into a freshly created app: the rows, and the
  * files the rows are about.
@@ -62,6 +63,10 @@ const { splitSeedLinks, resolveLinks } = require('./seedLinks.mts');
 /**
  * @param {object | null} v
  */
+/**
+ * @param {unknown} v
+ * @returns {v is Record<string, unknown>}
+ */
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
 
 /** How many individual failures are worth naming before a count will do. */
@@ -103,12 +108,12 @@ function splitFileValues(values) {
  * `deps` the injectable edges, appDryRun-style, so the tests run DB- and
  * storage-free.
  *
- * @param {{
+ * @param {Partial<{
  *   app: Awaited<ReturnType<typeof import('../stores/studioAppStore').getStudioApp>>,
  *   model: unknown,
  *   content: unknown,
  *   deps?: { writeRecord?: typeof actionExecutor.writeRecord, storeDerivedFile?: typeof mailboxAttachments.storeDerivedFile },
- * }} [opts]
+ * }>} [opts]
  * @returns {Promise<{ok:boolean, rows:number, files:number, skipped:string[], error?:string}>}
  */
 async function installAppContent({ app, model, content, deps = {} } = {}) {
@@ -137,7 +142,7 @@ async function installAppContent({ app, model, content, deps = {} } = {}) {
 
     // ── Pass 1: the rows, file columns held back ──────────────────────
     for (const table of orderTablesByDependency(model)) {
-        const list = Array.isArray(records[table.id]) ? records[table.id] : [];
+        const list = /** @type {unknown[]} */ (Array.isArray(records[table.id]) ? records[table.id] : []);
         for (const row of list) {
             const { alias, values: resolved } = resolveSeedRow(row, refMap);
             // Many-relation links wait for pass 3 too: they may point at a row written later.

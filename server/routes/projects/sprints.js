@@ -254,7 +254,7 @@ function makeProjectSprintsRouter(deps = {}) {
         res.json({ ok: true });
     });
 
-    router.post('/:id/sprints/:sprintId/start', requireRole('editor'), async (req, res) => {
+    router.post('/:id/sprints/:sprintId/start', requireRole('editor'), validate({ body: S.NoBody }), async (req, res) => {
         const userId = userIdOf(req);
         const project = await loadProject(req);
         const sprint = await loadSprint(project, req.params.sprintId);
@@ -266,7 +266,7 @@ function makeProjectSprintsRouter(deps = {}) {
         res.json({ sprint: presentSprint(box, started) });
     });
 
-    router.post('/:id/sprints/:sprintId/complete', requireRole('editor'), async (req, res) => {
+    router.post('/:id/sprints/:sprintId/complete', requireRole('editor'), validate({ body: S.NoBody }), async (req, res) => {
         const userId = userIdOf(req);
         const project = await loadProject(req);
         const sprint = await loadSprint(project, req.params.sprintId);

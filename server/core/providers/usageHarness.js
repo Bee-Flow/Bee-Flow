@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Test doubles for the usage-accounting tests: the REAL Claude and Gemini
  * adapters with only the SDK client stubbed, so a test drives a genuine
@@ -6,6 +7,7 @@
  * (Before core/providers/usageNormalizer.js those two returned the raw provider
  * block, which every consumer read as zero tokens.)
  */
+/** @typedef {{ text?: string, toolUse?: { name: string, input?: Record<string, unknown> }, usage?: object }} ScriptStep  one scripted SDK answer */
 const assert = require('node:assert');
 const ClaudeProvider = require('./claude');
 const GoogleProvider = require('./google');
@@ -33,13 +35,13 @@ const GEMINI_RAW_USAGE = Object.freeze({
 /**
  * The real ClaudeProvider whose SDK answers from `script`. An entry is
  * `{ text?, toolUse?: { name, input }, usage? }`; the last entry repeats.
- * @param {{ text: string; }[]} [script]
+ * @param {ScriptStep[]} [script]
  */
 function realClaudeAdapter(script = [{ text: 'ok' }]) {
     const p = new ClaudeProvider();
     let i = 0;
     p._resolveAuth = async (key) => ({ token: key, oauth: false });
-    p.createClient = () => ({
+    p.createClient = /** @type {typeof p.createClient} */ (/** @type {unknown} */ (() => ({
         messages: {
             create: async (params) => {
                 const step = script[Math.min(i++, script.length - 1)];
@@ -57,7 +59,7 @@ function realClaudeAdapter(script = [{ text: 'ok' }]) {
                 };
             },
         },
-    });
+    })));
     return p;
 }
 
@@ -68,7 +70,7 @@ function realClaudeAdapter(script = [{ text: 'ok' }]) {
 function realClaudeStreamAdapter(text = 'hello', usage = CLAUDE_RAW_USAGE) {
     const p = new ClaudeProvider();
     p._resolveAuth = async (key) => ({ token: key, oauth: false });
-    p.createClient = () => ({
+    p.createClient = /** @type {typeof p.createClient} */ (/** @type {unknown} */ (() => ({
         messages: {
             stream: async () => ({
                 async *[Symbol.asyncIterator]() {
@@ -77,19 +79,19 @@ function realClaudeStreamAdapter(text = 'hello', usage = CLAUDE_RAW_USAGE) {
                 finalMessage: async () => ({ content: [{ type: 'text', text }], stop_reason: 'end_turn', usage }),
             }),
         },
-    });
+    })));
     return p;
 }
 
 /**
  * The real GoogleProvider (or Vertex) answering from `script`; same entry shape.
- * @param {{ text: string; }[]} [script]
+ * @param {ScriptStep[]} [script]
  */
 function realGeminiAdapter(script = [{ text: 'ok' }], { vertex = false } = {}) {
     const p = vertex ? new GoogleVertexProvider() : new GoogleProvider();
     let i = 0;
     p._supportsExplicitCache = () => false;
-    p.createClient = () => ({
+    p.createClient = /** @type {typeof p.createClient} */ (/** @type {unknown} */ (() => ({
         models: {
             generateContent: async (params) => {
                 const step = script[Math.min(i++, script.length - 1)];
@@ -105,7 +107,7 @@ function realGeminiAdapter(script = [{ text: 'ok' }], { vertex = false } = {}) {
                 };
             },
         },
-    });
+    })));
     return p;
 }
 

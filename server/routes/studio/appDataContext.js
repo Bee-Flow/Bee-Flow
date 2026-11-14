@@ -1,5 +1,5 @@
 /** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * App Studio data routes (routes/studioAppData.js): what every handler
  * shares. The rate limits and the batch and body budgets, the app
@@ -25,6 +25,7 @@ const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { sessionUser } = require('../../core/http/sessionUser');
 const { withViewerAttributes } = require('../../appStudio/viewerAttributes.mts');
 const { parseListQuery, optionalListQuery } = require('./appListQuery');
+const { envInt } = require('../../utils/envNumber.mts');
 
 /**
  * @typedef {import('../../appStudio/builderTools/dataTools').DataTable} DataTable
@@ -36,8 +37,8 @@ const { parseListQuery, optionalListQuery } = require('./appListQuery');
 // ── Rate limits (per viewer + app) ──────────────────────────────────
 // Reads are cheaper than writes; both keyed userId:appId so one noisy viewer
 // can't drain another's budget for the same app (mirrors studioAppRateLimits).
-const DATA_READ_RPM = parseInt(process.env.STUDIO_APP_DATA_READ_RPM, 10) || 60;
-const DATA_WRITE_RPM = parseInt(process.env.STUDIO_APP_DATA_WRITE_RPM, 10) || 20;
+const DATA_READ_RPM = envInt('STUDIO_APP_DATA_READ_RPM', 60, { min: 1 });
+const DATA_WRITE_RPM = envInt('STUDIO_APP_DATA_WRITE_RPM', 20, { min: 1 });
 /** @param {import('express').Request<{ id: string }>} req */
 function dataKey(req) {
     return `${req.session?.user?.id || 'anon'}:${req.params?.id || 'unknown'}`;
@@ -55,7 +56,7 @@ const writeLimiter = perUserRateLimit({ windowMs: 60_000, max: DATA_WRITE_RPM, k
 // well above the request one: a screen with 19 bindings opened repeatedly is
 // normal use, while 300 reads a minute is not a UI any more.
 const MAX_BATCH_READS = 25;
-const DATA_READ_DESCRIPTOR_RPM = parseInt(process.env.STUDIO_APP_DATA_READ_DESCRIPTOR_RPM, 10) || 300;
+const DATA_READ_DESCRIPTOR_RPM = envInt('STUDIO_APP_DATA_READ_DESCRIPTOR_RPM', 300, { min: 1 });
 const readDescriptorLimiter = perUserRateLimit({
     windowMs: 60_000,
     max: DATA_READ_DESCRIPTOR_RPM,
@@ -198,7 +199,7 @@ function handleErr(res, err, _where) {
 // Resolves app → data model → viewer role → (optional) table. Responds + null
 // on any failure. The per-app DB is owned by app.userId (ownerScope).
 /**
- * @param {import('express').Request<{ id: string }>} req
+ * @param {import('express').Request<{ id: string }, any, any, any>} req
  * @param {import('express').Response} res
  * @param {{ tableId?: string }} [opts]
  */
@@ -217,7 +218,7 @@ async function resolveDataContext(req, res, { tableId } = {}) {
     const { userGroups } = await audienceFor(req);
     const role = await rlsGateway.resolveViewerRole(app, viewerId, model, { userGroups });
     // email / groups / orgId, from the user's own row, and only for a model whose row rules read them.
-    const viewer = await withViewerAttributes(buildViewer(req.session.user, role), model);
+    const viewer = await withViewerAttributes(buildViewer(sessionUser(req), role), model);
 
     /** @type {DataContext} */
     const ctx = { app, ownerScope: app.userId, viewerId, model, role, viewer };
@@ -301,7 +302,7 @@ function publicTable(t, role) {
 function kickStaleSync(ctx) {
     const model = ctx.model;
     const connectors = Array.isArray(model?.connectors) ? model.connectors : [];
-    const feeding = connectors.filter((c) => c && c.sync && c.sync.tableId === ctx.table.id && c.sync.refreshOnView !== false);
+    const feeding = connectors.filter((c) => c && c.sync && c.sync.tableId === /** @type {NonNullable<DataContext['table']>} */ (ctx.table).id && c.sync.refreshOnView !== false);
     if (!feeding.length) return;
 
     setImmediate(async () => {

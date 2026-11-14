@@ -15,16 +15,9 @@
 
 'use strict';
 
-const { sortedKeysJson } = require('../../utils/stableJson');
-
-/**
- * JSON with object keys sorted at every depth — "is this the same call?"
- * must answer yes when the model only serialised its keys in another order.
- */
-function canonicalJson(value) {
-    const out = sortedKeysJson(value);
-    return out === undefined ? 'undefined' : out;
-}
+// "Is this the same call?" must answer yes when the model only serialised its
+// keys in another order.
+const { canonicalJson } = require('../../utils/stableJson');
 
 /**
  * @param {string} name
@@ -83,4 +76,4 @@ function noteRepeatedRejection(name, args, result, state, { mutating } = {}) {
     return result;
 }
 
-module.exports = { noteRepeatedRejection, isRepeat, canonicalJson };
+module.exports = { noteRepeatedRejection, isRepeat };

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * POST /agents/:id/publish-version — copy the concept into the published
  * columns (A1 concept/live split).
@@ -36,8 +37,8 @@
 const express = require('express');
 const agentStore = require('../../stores/agentStore');
 const { requireActiveOrgForMutations } = require('../../auth');
-const { getEffectiveUserId } = require('../../utils/routeHelpers');
-const { canModifyAgent, validateAgentConfigReferences, applyConfigValidation } = require('./crud');
+const { requireAgentGrade, validateAgentConfigReferences, applyConfigValidation } = require('./crud');
+const { agentAccessOf } = require('../../auth/agentAccess.mts');
 const publishable = require('../../agents/publishableConfig');
 const log = require('../../telemetry/log');
 const { validate } = require('../../core/http/validate');
@@ -67,17 +68,8 @@ function callerRefusal(e) {
 // Same write gate as the CRUD router: a suspended/archived org publishes nothing.
 router.use(requireActiveOrgForMutations());
 
-router.post('/:id/publish-version', validate({ body: NoBody, query: NoQuery }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof NoBody>, import('zod').infer<typeof NoQuery>>} */ req, res) => {
-    const userId = getEffectiveUserId(req);
-    const agent = await agentStore.getAgent(req.params.id);
-    if (!agent) return res.status(404).json({ error: 'Agent not found' });
-
-    if (!(await canModifyAgent(agent, userId, req))) {
-        return res.status(403).json({
-            error: 'You do not have permission to edit this agent.',
-            code: 'agent_not_editable',
-        });
-    }
+router.post('/:id/publish-version', requireAgentGrade('edit'), validate({ body: NoBody, query: NoQuery }), async (req, res) => {
+    const { agent, userId } = agentAccessOf(req);
 
     if (agent.owner_id === 'system' || agent.owner_id === 'swarm') {
         return res.status(409).json({
@@ -103,6 +95,7 @@ router.post('/:id/publish-version', validate({ body: NoBody, query: NoQuery }), 
 
     // Guard on the rev we validated. One retry on a concurrent save: the
     // second attempt re-reads and re-validates through the same path.
+    /** @type {Record<string, any>} */
     let result = await agentStore.publishAgentVersion(agent.id, { expectedRev: Number(agent.rev) || 1, config: checked.config });
     if (result.conflict) {
         const fresh = await agentStore.getAgent(agent.id);

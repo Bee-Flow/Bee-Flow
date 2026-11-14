@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/cms`
 
-81 routes, 37 with a request schema. Back to the [endpoint reference](../reference.md).
+81 routes, 42 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `admin`
 
@@ -170,7 +170,7 @@ No request schema.
 
 ### `PUT /api/cms/admin/pages/:id`
 
-**Access:** Platform admin · the handler also checks who the caller is
+**Access:** Platform admin
 
 **Body**
 
@@ -198,11 +198,11 @@ No request schema.
 
 **Access:** Platform admin
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `PUT /api/cms/admin/pages/:id/locale/:locale`
 
-**Access:** Platform admin · the handler also checks who the caller is
+**Access:** Platform admin
 
 **Body**
 
@@ -245,7 +245,7 @@ No request schema.
 
 **Access:** Platform admin
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `GET /api/cms/admin/site`
 
@@ -446,7 +446,7 @@ No request schema.
 
 **Access:** Platform admin · middleware `attachSiteIdFromParam`
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `GET /api/cms/sites/:siteId/export`
 
@@ -501,7 +501,7 @@ No request schema.
 
 ### `PUT /api/cms/sites/:siteId/pages/:id`
 
-**Access:** Platform admin · middleware `attachSiteIdFromParam` · the handler also checks who the caller is
+**Access:** Platform admin · middleware `attachSiteIdFromParam`
 
 **Body**
 
@@ -529,11 +529,11 @@ No request schema.
 
 **Access:** Platform admin · middleware `attachSiteIdFromParam`
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `PUT /api/cms/sites/:siteId/pages/:id/locale/:locale`
 
-**Access:** Platform admin · middleware `attachSiteIdFromParam` · the handler also checks who the caller is
+**Access:** Platform admin · middleware `attachSiteIdFromParam`
 
 **Body**
 
@@ -666,7 +666,7 @@ No request schema.
 
 **Access:** Platform admin · middleware `attachSiteIdFromParam`
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `GET /api/cms/sites/:siteId/redirects`
 

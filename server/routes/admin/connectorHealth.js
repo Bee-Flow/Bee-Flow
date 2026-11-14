@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Connector-health admin read API — surfaces the org_health_* capture layer
  * (server/stores/orgHealthStore.js, fed by server/services/orgHealth.js).
@@ -294,7 +295,7 @@ router.get('/admin/connector-health/mine', requireAuth, async (req, res) => {
     });
 });
 
-router.get('/admin/connector-health/:orgId/problems', requireAuth, checkOrgAdmin, validate({ query: ProblemsQuery }), async (/** @type {import('express').Request<{ orgId: string }, any, any, import('zod').infer<typeof ProblemsQuery>>} */ req, res) => {
+router.get('/admin/connector-health/:orgId/problems', requireAuth, checkOrgAdmin, validate({ query: ProblemsQuery }), async (req, res) => {
     const includeResolved = req.query.includeResolved === '1' || req.query.includeResolved === 'true';
     const problems = await orgHealthStore.listProblems({
         organizationId: req.params.orgId,
@@ -303,7 +304,7 @@ router.get('/admin/connector-health/:orgId/problems', requireAuth, checkOrgAdmin
     res.json({ problems });
 });
 
-router.get('/admin/connector-health/:orgId/events', requireAuth, checkOrgAdmin, validate({ query: EventsQuery }), async (/** @type {import('express').Request<{ orgId: string }, any, any, { limit?: number }>} */ req, res) => {
+router.get('/admin/connector-health/:orgId/events', requireAuth, checkOrgAdmin, validate({ query: EventsQuery }), async (req, res) => {
     const limit = Math.min(Math.max(req.query.limit || 50, 1), 100);
     const result = await orgHealthStore.listEvents({
         organizationId: req.params.orgId,

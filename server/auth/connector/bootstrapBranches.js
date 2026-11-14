@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Nextcloud Connector: the branches of POST /auth/connector/bootstrap once
  * the caller's Nextcloud has been verified (auth/connectorBootstrap.js does the
@@ -270,7 +270,8 @@ async function startEmailVerification(ctx, verifyOrg) {
     // actually opens the embedded view (see /retarget), so it reaches the
     // person doing the setup — who also becomes the org admin on success.
     const code = generateVerificationCode();
-    const pending = await userStore.createPendingNcVerification({
+    // The insert returns the row it wrote (or throws), so there is always one.
+    const pending = /** @type {NonNullable<Awaited<ReturnType<typeof userStore.createPendingNcVerification>>>} */ (await userStore.createPendingNcVerification({
         orgId: verifyOrg.id,
         ncInstanceId,
         ncBaseUrl,
@@ -281,7 +282,7 @@ async function startEmailVerification(ctx, verifyOrg) {
         themingName: nc.themingName,
         ncVersion: nc.ncVersion,
         verificationEmail: ncAdminEmail,
-    }, { code });
+    }, { code }));
     log.info(`[ConnectorBootstrap] email_verification_required org=${verifyOrg.id} pendingId=${pending.id} ncInstance=${ncInstanceId} expiresAt=${pending.expiresAt}`);
     orgHealth.problem('bootstrap.verification_pending', {
         orgId: verifyOrg.id, source: 'connectorBootstrap', req,

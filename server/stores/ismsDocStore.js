@@ -15,7 +15,8 @@
  */
 
 const crypto = require('crypto');
-const { run, getOne, getAll, exec } = require('../db');
+const { run, getOne, getAll, exec, withTransaction } = require('../db');
+const { rollback } = require('../utils/txRollback');
 const { makeStoreInit } = require('./lib/storeInit');
 
 const initDB = makeStoreInit('IsmsDocStore', _initDB);
@@ -106,7 +107,14 @@ async function getDoc(orgId, slug) {
     return { ...doc, published };
 }
 
-/** Save the working draft. Marks `edited` once the body diverges from the seed. */
+/**
+ * Save the working draft. Marks `edited` once the body diverges from the seed.
+ * @param orgId
+ * @param slug
+ * @param draft  the title and body
+ * @param actorId
+ * @param {{ seedBody?: string | null }} [opts]
+ */
 async function saveDraft(orgId, slug, { title, body }, actorId, { seedBody = null } = {}) {
     await initDB();
     const existing = await getOne(`SELECT * FROM isms_documents WHERE organization_id = $1 AND slug = $2`, [orgId, slug]);
@@ -148,25 +156,35 @@ async function setMeta(orgId, slug, patch = {}) {
     return getDoc(orgId, slug);
 }
 
-/** Freeze the current draft as the next immutable published version. */
+/**
+ * Freeze the current draft as the next immutable published version. The
+ * version row and the document's pointer to it commit together, under a lock
+ * on the document row, so two publishes cannot pick the same number.
+ */
 async function publish(orgId, slug, actorId) {
     await initDB();
-    const doc = await getOne(`SELECT * FROM isms_documents WHERE organization_id = $1 AND slug = $2`, [orgId, slug]);
-    if (!doc) return null;
-    const body = doc.draft_body || '';
-    if (!body.trim()) throw new Error('Cannot publish an empty document');
-    const version = (doc.current_version || 0) + 1;
-    const hash = sha256For(body);
-    await run(`
-        INSERT INTO isms_document_versions
-            (organization_id, slug, version, title, body, sha256, published_by)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-    `, [orgId, slug, version, doc.title, body, hash, actorId || null]);
-    await run(`
-        UPDATE isms_documents
-        SET current_version = $3, status = 'published', updated_at = NOW()
-        WHERE organization_id = $1 AND slug = $2
-    `, [orgId, slug, version]);
+    const hash = await withTransaction(async (client) => {
+        const { rows } = await client.query(`SELECT * FROM isms_documents WHERE organization_id = $1 AND slug = $2 FOR UPDATE`, [orgId, slug]);
+        const doc = rows[0];
+        if (!doc) return rollback(null);
+        const body = doc.draft_body || '';
+        if (!body.trim()) throw new Error('Cannot publish an empty document');
+        const version = (doc.current_version || 0) + 1;
+        const sha = sha256For(body);
+        await client.query(`
+            INSERT INTO isms_document_versions
+                (organization_id, slug, version, title, body, sha256, published_by)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+        `, [orgId, slug, version, doc.title, body, sha, actorId || null]);
+        await client.query(`
+            UPDATE isms_documents
+            SET current_version = $3, status = 'published', updated_at = NOW()
+            WHERE organization_id = $1 AND slug = $2
+        `, [orgId, slug, version]);
+        return sha;
+    });
+    // nosemgrep: ajinabraham.njsscan.crypto.timing_attack_node.node_timing_attack -- a null check on the transaction's answer (no such document); the value is a content hash, not a secret
+    if (hash === null) return null;
     return { ...(await getDoc(orgId, slug)), published_hash: hash };
 }
 
@@ -192,7 +210,7 @@ async function seedMissing(orgId, seeds) {
  * @param slug
  * @param version
  * @param userId
- * @param {{ ip?: string, userAgent?: string }} [opts]
+ * @param {{ ip?: string | null, userAgent?: string | null }} [opts]
  */
 async function acknowledge(orgId, slug, version, userId, { ip, userAgent } = {}) {
     await initDB();

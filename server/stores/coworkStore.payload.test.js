@@ -1,261 +1,234 @@
+// @typecheck
 /**
- * The cowork payload: the fields that the Cowork screen newly reads, against a
- * stubbed db. This file pins the SQL and value contract; the real
- * Postgres round trip is in coworkStore.test.js and skips without a database,
- * so what is here runs everywhere.
+ * The cowork payload: the fields the Cowork screen reads, against a real
+ * Postgres (PGlite behind db.js's pool, testUtils/pglitePool.js) with the
+ * store's own schema and NOW() pinned (testUtils/pgliteClock.js).
  *
  * Three properties, each with its own wound:
  *
- *   - CW-13 `produced_output`. A run that had nothing to report is SUCCESSFUL, and
- *     that judgement should be made once (at closing) and stored — not
- *     guessed again each time from the result text.
- *     NULL is a third value: rows from before the column do not know, and reading
- *     them as "nothing produced" invents a statement about the past.
+ *   - CW-13 `produced_output`. A run that had nothing to report is SUCCESSFUL,
+ *     and that judgement is made once (at closing) and stored, not guessed
+ *     again each time from the result text. NULL is a third value: rows from
+ *     before the column do not know, and reading them as "nothing produced"
+ *     invents a statement about the past.
  *
  *   - CW-06 `currentRunStartedAt`. The source is the row that is open
- *     (`finished_at IS NULL`), not `last_status = 'running'`: those two drift apart
- *     as soon as reapStaleRuns cleans up a stuck attempt.
+ *     (`finished_at IS NULL`), not `last_status = 'running'`: those two drift
+ *     apart as soon as reapStaleRuns cleans up a stuck attempt.
  *
- *   - CW-11 the aggregate. `failed` is "closed and not successful", so that a
- *     status name added later does not silently fall through the gap, and a running run
- *     counts in neither outcome.
+ *   - CW-11 the aggregate. `failed` is "closed and not successful", so a
+ *     status name added later does not fall through the gap, and a running
+ *     run counts in neither outcome.
  *
- * Run: cd server && node --test --test-reporter=tap stores/coworkStore.payload.test.js
+ * Run: cd server && node --test stores/coworkStore.payload.test.js
  */
 
-const { test } = require('node:test');
+'use strict';
+
+const { test, before, beforeEach, after } = require('node:test');
 const assert = require('node:assert');
-const { installResolveStub } = require('../testUtils/stubRequire');
 
-const runCalls = [];
-const execCalls = [];
-let getOneHandler = () => null;
-let getAllHandler = () => [];
+const { usePglitePool } = require('../testUtils/pglitePool');
+const { pinPgliteNow } = require('../testUtils/pgliteClock');
+const { insertRow } = require('../testUtils/pgliteSeed');
 
-const dbDouble = {
-        run: async (sql, params) => { runCalls.push({ sql, params }); return { rowCount: 1, rows: [] }; },
-        getOne: async (sql, params) => getOneHandler(sql, params),
-        getAll: async (sql, params) => getAllHandler(sql, params),
-        exec: async (sql) => { execCalls.push(sql); },
-        pool: { query: async () => ({ rows: [], rowCount: 0 }) },
-    };
-
-const restore = installResolveStub({
-    '../db': dbDouble, '../../db': dbDouble,
-});
-
+const { pg, close } = usePglitePool();
 const coworkStore = require('./coworkStore');
 const { deriveProducedOutput } = coworkStore;
 
-function reset() {
-    runCalls.length = 0;
-    getOneHandler = () => null;
-    getAllHandler = () => [];
+const NOW = new Date('2026-09-10T08:00:10.000Z');
+const SEC = 1000;
+const at = (ms) => new Date(NOW.getTime() + ms);
+
+/** @type {{ set: (at: Date | string) => Promise<void> }} */
+let clock;
+before(async () => {
+    await coworkStore.initDB();
+    clock = await pinPgliteNow(pg, NOW);
+});
+after(close);
+beforeEach(async () => {
+    await pg.exec('TRUNCATE cowork_schedules CASCADE');
+    await clock.set(NOW);
+});
+
+const schedule = (over = {}) => insertRow(pg, 'cowork_schedules', { id: 'cw-1', user_id: 'u1', title: 'Quotes', prompt: 'p', ...over });
+const runRow = (over = {}) => insertRow(pg, 'cowork_runs', { id: `r-${Math.random().toString(36).slice(2)}`, schedule_id: 'cw-1', user_id: 'u1', ...over });
+const storedRun = async (id) => (await pg.query('SELECT * FROM cowork_runs WHERE id = $1', [id])).rows[0];
+const storedSchedule = async (id = 'cw-1') => (await pg.query('SELECT * FROM cowork_schedules WHERE id = $1', [id])).rows[0];
+
+/** A schedule with one open run that started four seconds before NOW. */
+async function withOpenRun() {
+    await schedule({ last_status: 'running' });
+    return runRow({ id: 'run-open', status: 'running', started_at: at(-4 * SEC) });
 }
 
-/** De UPDATE waarmee _closeOpenRun een open run afsluit. */
-function closingUpdate() {
-    return runCalls.find(c => /UPDATE cowork_runs/.test(c.sql) && /finished_at = NOW\(\)/.test(c.sql));
-}
+// ── CW-13: "was there anything to report" ─────────────────────────────
 
-/** Doe alsof er precies één open run klaarstaat om afgesloten te worden. */
-function withOpenRun() {
-    getOneHandler = (sql) => (/SELECT id, started_at FROM cowork_runs/.test(sql)
-        ? { id: 'run-open', started_at: '2026-09-10T08:00:04.000Z' }
-        : null);
-}
-
-// ── CW-13: het oordeel "was er iets te melden" ──────────────────────
-
-test('leeg en de "geen tekstresultaat"-markering tellen als niets geproduceerd', () => {
+test('empty and the "no text result" marker count as nothing produced', () => {
     assert.strictEqual(deriveProducedOutput(null), false);
     assert.strictEqual(deriveProducedOutput(undefined), false);
     assert.strictEqual(deriveProducedOutput(''), false);
     assert.strictEqual(deriveProducedOutput('   \n  '), false);
-    // De letterlijke vorm die aiTaskRunner neerzet als het model niets schreef.
+    // The literal shape aiTaskRunner writes when the model wrote nothing.
     assert.strictEqual(
         deriveProducedOutput('_(Deze cowork is uitgevoerd, maar er is geen tekstresultaat geproduceerd.)_'),
         false);
-    // Dezelfde vorm, andere taal/copy: de afleiding hangt aan de VORM, niet aan
-    // de Nederlandse zin — anders breekt hij zodra iemand de tekst vertaalt.
+    // The same shape in other words: the inference hangs on the SHAPE, not on
+    // the sentence, or it breaks as soon as the text is translated.
     assert.strictEqual(deriveProducedOutput('_(Nothing to report.)_'), false);
 });
 
-test('een echt resultaat telt mee, ook als het cursief begint', () => {
+test('a real result counts, even when it starts in italics', () => {
     assert.strictEqual(deriveProducedOutput('3 offertes klaargezet'), true);
-    assert.strictEqual(deriveProducedOutput('_(let op)_ en dan 3 offertes'), true,
-        'een markering met tekst eromheen is gewoon een antwoord');
-    assert.strictEqual(deriveProducedOutput('0'), true,
-        'het cijfer nul is een uitkomst, geen leegte');
+    assert.strictEqual(deriveProducedOutput('_(let op)_ en dan 3 offertes'), true, 'a marker with text around it is an answer');
+    assert.strictEqual(deriveProducedOutput('0'), true, 'the digit zero is an outcome, not emptiness');
 });
 
-test('markCompleted schrijft het oordeel mee in dezelfde UPDATE die de run sluit', async () => {
-    reset();
-    withOpenRun();
+test('markCompleted stores the judgement with the closing of the run, and its duration', async () => {
+    await withOpenRun();
     await coworkStore.markCompleted('cw-1', '3 offertes klaargezet');
-    const upd = closingUpdate();
-    assert.ok(upd, 'de sluitende UPDATE hoort te lopen');
-    assert.match(upd.sql, /produced_output = \$4/);
-    assert.strictEqual(upd.params[3], true);
+    const r = await storedRun('run-open');
+    assert.strictEqual(r.status, 'success');
+    assert.strictEqual(r.result, '3 offertes klaargezet');
+    assert.strictEqual(r.produced_output, true);
+    assert.strictEqual(r.finished_at.toISOString(), NOW.toISOString());
+    assert.strictEqual(r.duration_ms, 4000);
+    const s = await storedSchedule();
+    assert.strictEqual(s.last_status, 'success');
+    assert.strictEqual(s.run_count, 1);
 });
 
-test('"niets te melden" wordt een GESLAAGDE run met produced_output false', async () => {
-    reset();
-    withOpenRun();
+test('"nothing to report" is a SUCCESSFUL run with produced_output false', async () => {
+    await withOpenRun();
     await coworkStore.markCompleted('cw-1', '_(Deze cowork is uitgevoerd, maar er is geen tekstresultaat geproduceerd.)_');
-    const upd = closingUpdate();
-    assert.strictEqual(upd.params[0], 'success', 'de status blijft geslaagd — dat is de hele bevinding');
-    assert.strictEqual(upd.params[3], false);
+    const r = await storedRun('run-open');
+    assert.strictEqual(r.status, 'success', 'the status stays successful — that is the whole finding');
+    assert.strictEqual(r.produced_output, false);
 });
 
-test('een aanroeper die het zeker weet overstemt de afleiding', async () => {
-    reset();
-    withOpenRun();
-    // The runner knows whether there was tool output; that knowledge may not be lost
-    // to a text inference.
-    await coworkStore.markCompleted('cw-1', 'ziet er leeg uit', { producedOutput: false });
-    assert.strictEqual(closingUpdate().params[3], false);
+test('a caller that knows for certain overrides the inference', async () => {
+    await withOpenRun();
+    // The runner knows whether there was tool output; that must not be lost to a text inference.
+    await coworkStore.markCompleted('cw-1', 'looks empty', { producedOutput: false });
+    assert.strictEqual((await storedRun('run-open')).produced_output, false);
 
-    reset();
-    withOpenRun();
+    await runRow({ id: 'run-2', status: 'running', started_at: at(-SEC) });
     await coworkStore.markCompleted('cw-1', '', { producedOutput: true });
-    assert.strictEqual(closingUpdate().params[3], true);
+    assert.strictEqual((await storedRun('run-2')).produced_output, true);
 });
 
-// HONESTLY: this test cannot fail on the contract it names. markError
-// passes no `result`, so deriveProducedOutput(undefined) is already false —
-// removing the explicit `producedOutput: false` in markError is an
-// EQUIVALENT mutation and stays green. The test is worth the value assertion
-// (produced_output = false on a failed row) but does not prove that the
-// caller says so itself. Whoever wants to prove that needs a markError
-// that carries a result, and that does not exist today.
-test('een mislukte run heeft per definitie niets opgeleverd', async () => {
-    reset();
-    withOpenRun();
+// markError passes no `result`, so deriveProducedOutput(undefined) is already
+// false: this pins the stored value on a failed row, not that markError says so itself.
+test('a failed run by definition produced nothing', async () => {
+    await withOpenRun();
     await coworkStore.markError('cw-1', new Error('provider exploded'));
-    const upd = closingUpdate();
-    assert.strictEqual(upd.params[0], 'error');
-    assert.strictEqual(upd.params[3], false);
+    const r = await storedRun('run-open');
+    assert.strictEqual(r.status, 'error');
+    assert.strictEqual(r.produced_output, false);
+    assert.strictEqual((await storedSchedule()).last_status, 'error');
 });
 
-test('een opgeruimde vastgelopen run wordt ook op false gezet', async () => {
-    reset();
-    await coworkStore.reapStaleRuns();
-    const reap = runCalls.find(c => /UPDATE cowork_runs/.test(c.sql) && /finished_at IS NULL/.test(c.sql));
-    assert.ok(reap);
-    assert.match(reap.sql, /produced_output = FALSE/);
+test('only the open run is closed; nothing open means nothing written', async () => {
+    await schedule();
+    const done = await runRow({ id: 'run-done', status: 'success', started_at: at(-60 * SEC), finished_at: at(-50 * SEC), result: 'old' });
+    await coworkStore.markCompleted('cw-1', 'new');
+    assert.deepStrictEqual(await storedRun('run-done'), done);
 });
 
-test('de kolom komt uit de runDdl-ladder van deze store, niet uit een stille catch', async () => {
-    // A new column belongs in the idempotent boot DDL of its own store
-    // (boot/bootMigrations.test.js explains that rule). IF NOT EXISTS carries the
-    // idempotency, so every boot of every replica may run it again.
-    const alter = execCalls.find(sql => /ADD COLUMN IF NOT EXISTS produced_output BOOLEAN/.test(sql));
-    assert.ok(alter, `geen ALTER voor produced_output gezien; wel: ${execCalls.join(' | ')}`);
-    assert.match(alter, /ALTER TABLE cowork_runs/);
+test('a reaped stuck run is closed as an error with produced_output false, and its schedule released', async () => {
+    await schedule({ last_status: 'running' });
+    await schedule({ id: 'cw-moved', last_status: 'success' });
+    await runRow({ id: 'stuck', status: 'running', started_at: at(-31 * 60 * SEC) });
+    await runRow({ id: 'stuck-2', schedule_id: 'cw-moved', status: 'running', started_at: at(-40 * 60 * SEC) });
+    await runRow({ id: 'young', status: 'running', started_at: at(-29 * 60 * SEC) });
+
+    assert.strictEqual(await coworkStore.reapStaleRuns(), 2);
+    const r = await storedRun('stuck');
+    assert.strictEqual(r.status, 'error');
+    assert.strictEqual(r.produced_output, false);
+    assert.strictEqual(r.finished_at.toISOString(), NOW.toISOString());
+    assert.strictEqual(r.duration_ms, 31 * 60 * 1000);
+    assert.strictEqual((await storedRun('young')).finished_at, null, 'a run inside the window is left alone');
+    assert.strictEqual((await storedSchedule()).last_status, 'error');
+    assert.strictEqual((await storedSchedule('cw-moved')).last_status, 'success', 'a schedule that moved on is not overwritten');
 });
 
-test('listRuns geeft true, false en null door — null blijft null', async () => {
-    reset();
-    getAllHandler = () => [
-        { id: 'r1', schedule_id: 'cw-1', status: 'success', produced_output: true },
-        { id: 'r2', schedule_id: 'cw-1', status: 'success', produced_output: false },
-        { id: 'r3', schedule_id: 'cw-1', status: 'success', produced_output: null },
-    ];
+test('the column comes from this store\'s boot DDL, nullable', async () => {
+    const { rows } = await pg.query(`SELECT data_type, is_nullable, column_default FROM information_schema.columns
+        WHERE table_name = 'cowork_runs' AND column_name = 'produced_output'`);
+    assert.deepStrictEqual(rows, [{ data_type: 'boolean', is_nullable: 'YES', column_default: null }]);
+});
+
+test('listRuns passes true, false and null through — null stays null', async () => {
+    await schedule();
+    await runRow({ id: 'r1', status: 'success', produced_output: true, started_at: at(-3 * SEC) });
+    await runRow({ id: 'r2', status: 'success', produced_output: false, started_at: at(-2 * SEC) });
+    await runRow({ id: 'r3', status: 'success', produced_output: null, started_at: at(-1 * SEC) });
     const runs = await coworkStore.listRuns('cw-1');
-    assert.deepStrictEqual(runs.map(r => r.producedOutput), [true, false, null],
-        'een rij van vóór de kolom weet het niet, en dat is geen "nee"');
+    assert.deepStrictEqual(runs.map((r) => [r.id, r.producedOutput]), [['r3', null], ['r2', false], ['r1', true]],
+        'a row from before the column does not know, and that is not a "no"');
 });
 
-// ── CW-06: de starttijd van de lopende run ──────────────────────────
+// ── CW-06: the start time of the running run ──────────────────────────
 
-test('de open run wordt gezocht op finished_at IS NULL, niet op een status', async () => {
-    reset();
-    let seen;
-    getOneHandler = (sql, params) => { seen = { sql, params }; return { started_at: '2026-09-10T08:00:04.000Z' }; };
-    const at = await coworkStore.getOpenRunStart('cw-1');
-    assert.strictEqual(at, '2026-09-10T08:00:04.000Z');
-    assert.match(seen.sql, /finished_at IS NULL/);
-    // NO status column, in whatever spelling. The previous version of this
-    // rule forbade only `last_status`, so `AND status = 'running'` —
-    // precisely the error that the doc comment describes — slipped through unseen:
-    // after a reap the row is open and the status is no longer 'running'.
-    assert.ok(!/\bstatus\b/.test(seen.sql), 'een status in de WHERE loopt uiteen met de open rij');
-    assert.deepStrictEqual(seen.params, ['cw-1']);
+test('the open run is found by finished_at IS NULL, not by a status', async () => {
+    await schedule({ last_status: 'error' });
+    // After a reap of an older attempt a new one opened: the row is open, its
+    // status is no longer 'running'.
+    await runRow({ id: 'open', status: 'queued', started_at: at(-4 * SEC) });
+    await runRow({ id: 'closed', status: 'running', started_at: at(-2 * SEC), finished_at: at(-SEC) });
+    assert.strictEqual(await coworkStore.getOpenRunStart('cw-1'), at(-4 * SEC).toISOString());
 });
 
-test('niets open → null, geen verzonnen tijd', async () => {
-    reset();
-    getOneHandler = () => null;
+test('nothing open → null, no invented time', async () => {
+    await schedule();
+    await runRow({ status: 'success', finished_at: NOW });
     assert.strictEqual(await coworkStore.getOpenRunStart('cw-1'), null);
 });
 
-test('de lijstvariant vraagt het in ÉÉN query voor de hele gebruiker', async () => {
-    reset();
-    let seen;
-    getAllHandler = (sql, params) => {
-        seen = { sql, params };
-        return [{ schedule_id: 'cw-a', started_at: '2026-09-10T08:00:04.000Z' }];
-    };
-    const map = await coworkStore.getOpenRunStarts('u1');
-    assert.deepStrictEqual(map, { 'cw-a': '2026-09-10T08:00:04.000Z' });
-    assert.deepStrictEqual(seen.params, ['u1'], 'op user_id — de bestaande index');
-    assert.match(seen.sql, /finished_at IS NULL/);
-    assert.ok(!/\bstatus\b/.test(seen.sql), 'dezelfde bron als de losse variant: de open rij, geen status');
-    assert.match(seen.sql, /GROUP BY schedule_id/);
+test('the list variant answers for the whole user in one go: the newest open run per schedule', async () => {
+    await schedule({ id: 'cw-a' });
+    await schedule({ id: 'cw-b' });
+    await schedule({ id: 'cw-c', user_id: 'u2' });
+    await runRow({ schedule_id: 'cw-a', status: 'running', started_at: at(-9 * SEC) });
+    await runRow({ schedule_id: 'cw-a', status: 'queued', started_at: at(-4 * SEC) });
+    await runRow({ schedule_id: 'cw-b', status: 'running', started_at: at(-2 * SEC), finished_at: at(-SEC) });
+    await runRow({ schedule_id: 'cw-c', user_id: 'u2', status: 'running', started_at: at(-SEC) });
+    assert.deepStrictEqual(await coworkStore.getOpenRunStarts('u1'), { 'cw-a': at(-4 * SEC).toISOString() });
 });
 
-// ── CW-11: het aggregaat ────────────────────────────────────────────
+// ── CW-11: the aggregate ──────────────────────────────────────────────
 
-test('het aggregaat telt geslaagd apart en rekent "mislukt" als gesloten-en-niet-geslaagd', async () => {
-    reset();
-    let seen;
-    getOneHandler = (sql, params) => {
-        seen = { sql, params };
-        return { total: 12, success: 10, failed: 2, avg_duration_ms: '71999.6' };
-    };
-    const stats = await coworkStore.getRunStats('cw-1');
-    assert.deepStrictEqual(stats, { total: 12, success: 10, failed: 2, avgDurationMs: 72000 });
-    assert.deepStrictEqual(seen.params, ['cw-1']);
-    // Without a database, SQL text is the only thing that can be measured here, so these
-    // three lines check the CONDITIONS and not the way of writing them: a
-    // semantically identical SUM(CASE WHEN …) should not turn red, a
-    // changed condition should. The real round trip belongs in
-    // coworkStore.test.js and skips here without Postgres.
-    assert.match(seen.sql, /success[\s\S]{0,80}status = 'success'|status = 'success'[\s\S]{0,80}success/);
-    // Not a list of error statuses: 'needs_reauth' already exists and one more
-    // will come someday. "Closed and not successful" covers all of them.
-    assert.match(seen.sql, /finished_at IS NOT NULL AND status <> 'success'/);
-    assert.ok(!/status = 'error'/.test(seen.sql), 'een lijst foutstatussen laat een nieuwe status wegvallen');
-    // A running run has no duration yet; it should not dilute the average.
-    assert.match(seen.sql, /AVG\(duration_ms\)[\s\S]{0,60}finished_at IS NOT NULL/);
+test('the aggregate counts success apart and "failed" as closed-and-not-successful', async () => {
+    await schedule();
+    for (let i = 0; i < 3; i++) await runRow({ status: 'success', finished_at: NOW, duration_ms: 1000 * (i + 1) });
+    await runRow({ status: 'error', finished_at: NOW, duration_ms: 6000 });
+    // A status added later still counts as failed: no list of error statuses.
+    await runRow({ status: 'needs_reauth', finished_at: NOW, duration_ms: 8000 });
+    await runRow({ status: 'some_future_status', finished_at: NOW, duration_ms: 4000 });
+    // A running run has no duration yet: in the total, in neither outcome, not in the average.
+    await runRow({ status: 'running', duration_ms: 999999 });
+    await schedule({ id: 'cw-other' });
+    await runRow({ schedule_id: 'cw-other', status: 'error', finished_at: NOW, duration_ms: 1 });
+    assert.deepStrictEqual(await coworkStore.getRunStats('cw-1'), { total: 7, success: 3, failed: 3, avgDurationMs: 4000 });
 });
 
-test('nog nooit een poging afgerond geeft null, niet 0 ms', async () => {
-    reset();
-    getOneHandler = () => ({ total: 1, success: 0, failed: 0, avg_duration_ms: null });
+test('never a finished attempt gives null, not 0 ms', async () => {
+    await schedule();
+    await runRow({ status: 'running' });
     const stats = await coworkStore.getRunStats('cw-1');
-    assert.strictEqual(stats.avgDurationMs, null, '"nog niets gemeten" is geen "gemiddeld 0 ms"');
+    assert.strictEqual(stats.avgDurationMs, null, '"nothing measured yet" is not "0 ms on average"');
     assert.strictEqual(stats.total, 1);
 });
 
-test('een GEMETEN 0 blijft 0 — de andere helft van dezelfde regel', async () => {
-    // The distinction stood in three comment blocks and in zero fixtures: not a
-    // single test ever passed 0, so `avg ? … : null` instead of a
-    // null check stayed green everywhere. A run that rounds below a millisecond
-    // IS finished, and 0 is then a measurement.
-    reset();
-    getOneHandler = () => ({ total: 3, success: 3, failed: 0, avg_duration_ms: '0' });
+test('a MEASURED 0 stays 0 — the other half of the same rule', async () => {
+    await schedule();
+    for (let i = 0; i < 3; i++) await runRow({ status: 'success', finished_at: NOW, duration_ms: 0 });
     const stats = await coworkStore.getRunStats('cw-1');
     assert.strictEqual(stats.avgDurationMs, 0);
-    assert.notStrictEqual(stats.avgDurationMs, null);
 });
 
-test('een schema zonder historie geeft nullen terug in plaats van te vallen', async () => {
-    reset();
-    getOneHandler = () => null;
-    assert.deepStrictEqual(await coworkStore.getRunStats('cw-1'),
-        { total: 0, success: 0, failed: 0, avgDurationMs: null });
+test('a schedule without history gives zeros instead of failing', async () => {
+    assert.deepStrictEqual(await coworkStore.getRunStats('cw-1'), { total: 0, success: 0, failed: 0, avgDurationMs: null });
 });
-
-test.after(() => restore());

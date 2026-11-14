@@ -12,8 +12,10 @@ const agentStore = require('../../stores/agentStore');
 const { normalizeTierModel } = require('../../core/llm/modelResolver');
 const { getEffectiveUserId } = require('../../utils/routeHelpers');
 const { assertAgentToolsWrite } = require('../../stores/agent/agentCrud');
-const { storedFlag, FLAG_DEFAULTS } = require('./storedFlag');
+const { storedFlag, FLAG_DEFAULTS } = require('../../usecases/agents/storedFlag');
 const { resolvePersonaWrite } = require('./agentPersonaWrite');
+const { HttpError } = require('../../core/http/errors');
+const { agentAccessOf } = require('../../auth/agentAccess.mts');
 
 /**
  * Tier gate: a `tier:<key>` model must be a tier this user may use. Both
@@ -203,8 +205,9 @@ async function answerAfterWrite(req, /** @type {import('express').Response} */ r
             agent: fresh,
         });
     }
+    // Not a conflict and not ok: updateAgent found no row for this id and owner (deleted meanwhile).
     if (!result.ok) {
-        throw new Error('Failed to update agent');
+        throw new HttpError(404, 'agent_not_found', 'This agent no longer exists. Reload the page.');
     }
     if (hasTools) {
         await agentStore.setAgentTools(req.params.id, tools, transformedParams);
@@ -222,9 +225,8 @@ async function answerAfterWrite(req, /** @type {import('express').Response} */ r
 /**
  * PUT /:id. `organizationId` and `sharedGroups` are intentionally NOT read:
  * the organisation is set on creation, and sharedGroups belongs to
- * PATCH /:id/publish. `deps`: canModifyAgent, sendAgentNotEditable,
- * rejectUnsafeConfigKeys, validateAgentConfigReferences,
- * applyConfigValidation, resolveUserOrgIds.
+ * PATCH /:id/publish. `deps`: rejectUnsafeConfigKeys,
+ * validateAgentConfigReferences, applyConfigValidation, resolveUserOrgIds.
  */
 function makeUpdateAgentHandler(deps) {
     return async function updateAgent(req, /** @type {import('express').Response} */ res) {
@@ -242,9 +244,8 @@ function makeUpdateAgentHandler(deps) {
         const unsafe = deps.rejectUnsafeConfigKeys(config) || deps.rejectUnsafeConfigKeys(persona);
         if (unsafe) return res.status(400).json({ error: unsafe });
 
-        const agent = await agentStore.getAgent(req.params.id);
-        if (!agent) return res.status(404).json({ error: 'Agent not found' });
-        if (!(await deps.canModifyAgent(agent, userId, req))) return deps.sendAgentNotEditable(res);
+        // The route's requireAgentGrade('edit') loaded the agent and decided access.
+        const { agent } = agentAccessOf(req);
         if (!(await checkTierAllowed(req, res, model, userId))) return undefined;
 
         const { existingStarterPrompts, existingSharedGroups } = storedLists(agent);
@@ -273,9 +274,7 @@ module.exports = { makeUpdateAgentHandler };
 
 /**
  * @typedef {import('./crud').AgentRow} LoadedAgent
- * @typedef {{ canModifyAgent: import('./crud').CrudRouter['canModifyAgent'],
- *   sendAgentNotEditable: (res: import('express').Response) => unknown,
- *   rejectUnsafeConfigKeys: (config: unknown) => string|null,
+ * @typedef {{ rejectUnsafeConfigKeys: (config: unknown) => string|null,
  *   validateAgentConfigReferences: import('./crud').CrudRouter['validateAgentConfigReferences'],
  *   applyConfigValidation: import('./crud').CrudRouter['applyConfigValidation'],
  *   resolveUserOrgIds: typeof import('../../auth').resolveUserOrgIds }} UpdateDeps

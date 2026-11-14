@@ -193,7 +193,7 @@ function gradeForPrincipal(table, grants, principal) {
  * runUserGroupIds). The two must keep agreeing: if they drift, an automation can
  * write rows its author cannot see.
  *
- * @returns {Promise<{userId, orgId, organizationId, orgRole, groupIds, orgIds}>}
+ * @returns {Promise<{userId, orgId, organizationId, orgRole, groupIds, orgIds, identityError: string | null}>}
  *   `orgId` is the tenant being acted in and is what `gradeForPrincipal` isolates
  *   on; `organizationId` is the user's HOME org and is what anchors an org-admin
  *   role. They differ for a member who reaches an org only through a group — and

@@ -6,7 +6,7 @@
 
 const memoryStore = require('../../stores/memoryStore');
 const { writeMemory } = require('./memoryWriter');
-const { isTaskLike, isQuestion } = require('./contentRules');
+const { isTaskLike, isQuestion } = require('../../core/memory/contentRules');
 const agentStore = require('../../stores/agentStore');
 const { resolveMemoryExtractionModel, EXTRACTION_CHAT_OPTIONS, EXTRACTION_MAX_CHARS } = require('../../core/memory/extractionModel');
 const { isAnonymousUserId } = require('../../utils/anonymousUser');

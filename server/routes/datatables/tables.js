@@ -265,7 +265,7 @@ function register(router) {
      * window, so jobs/datatableRetention is what removes an old answer. One
      * mechanism, two features: there is no second, invisible clock to reason about.
      */
-    router.post('/managed', validate({ body: ManagedBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof ManagedBody>, import('qs').ParsedQs>} */ req, /** @type {import('express').Response} */ res) => {
+    router.post('/managed', validate({ body: ManagedBody }), async (req, /** @type {import('express').Response} */ res) => {
         /** @type {{ kind: 'org'; id: string; } | { kind: 'user'; id: string; } | null} */
         let scope = null;
         try {

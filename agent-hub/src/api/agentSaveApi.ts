@@ -13,7 +13,22 @@
 
 import { API_BASE, authFetch, parseSaveError } from '../utils/helpers';
 import type { EditorSnapshot } from './agentSaveTypes';
+import { apiRequest } from './typedRequest';
 import { logger } from '../utils/logger';
+
+/** The fields the closing tab's last save sends: the text the user may still be typing. */
+export type UnloadSnapshot = Pick<EditorSnapshot, 'name' | 'description' | 'systemPrompt' | 'config'>;
+
+/**
+ * The last save of a closing tab: the same `PUT /agents/:id` the autosave uses, as a fetch that
+ * outlives the page (keepalive), with the session headers authFetch adds. A beacon cannot send
+ * PUT. No baseVersion, so it lands without the version check: during unload there is no UI to
+ * reconcile a 409 against. Best effort: a refusal or a network error is dropped.
+ */
+export function saveAgentOnUnload(id: string | number, snapshot: UnloadSnapshot): void {
+    apiRequest('PUT /agents/{id}', { params: { id }, body: snapshot, init: { keepalive: true } })
+        .catch((err: unknown) => { logger.debug('unload save dropped', err); });
+}
 
 /** The agent row `PUT /agents/:id` answers with; the editor reads these fields only. */
 export interface SavedAgent {

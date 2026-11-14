@@ -9,6 +9,7 @@ const { newPglite } = require('./pgliteTemplate');
 
 const { makeProjectStore, applyProjectSchema } = require('../stores/projectStore');
 const { pgliteDb } = require('./pgliteDb');
+const { withTransactionVia } = require('./txFake');
 
 async function openPgliteProjectStore() {
     const pg = newPglite();
@@ -21,11 +22,13 @@ async function openPgliteProjectStore() {
         for (const stmt of statements) await pg.exec(typeof stmt === 'string' ? stmt : stmt.sql);
     };
     await applyProjectSchema({ exec: (sql) => pg.exec(sql), runDdl });
+    const getClient = async () => ({ query: db.query, release() {} });
     const store = makeProjectStore({
         run: db.query,
         getOne: async (sql, params) => (await db.query(sql, params)).rows[0] || null,
         getAll: async (sql, params) => (await db.query(sql, params)).rows,
-        getClient: async () => ({ query: db.query, release() {} }),
+        getClient,
+        withTransaction: withTransactionVia(getClient),
     });
     return { pg, store };
 }

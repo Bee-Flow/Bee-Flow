@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 // Academy Custom Courses — org-admin authoring routes (draft CRUD + publish).
 //
 // Mounted at /ai/learning/admin behind requireCapability('learning_custom_content')
@@ -37,7 +37,7 @@
 const express = require('express');
 const router = express.Router();
 const { z, typeError } = require('../../utils/zod');
-const { orEmpty: bodyOf } = require('../../core/http/schemaParts');
+const { orEmpty: bodyOf, bodyOf: closedBodyOf } = require('../../core/http/schemaParts');
 
 const { requirePrimaryOrgAdmin } = require('../../auth/permissions');
 const store = require('../../stores/learningContentStore');
@@ -57,9 +57,10 @@ const ICON_TEXT = 'is one emoji (at most 8 characters).';
 
 /**
  * "Step 3: " for an issue inside steps[2] — the editor shows only the message, so it has to say where.
- * @param {PropertyKey[]} path
+ * @param {PropertyKey[] | undefined} issuePath  zod hands every issue it words its path
  */
-function stepPrefix(path) {
+function stepPrefix(issuePath) {
+    const path = /** @type {PropertyKey[]} */ (issuePath);
     return path[0] === 'steps' && Number.isInteger(path[1]) ? `Step ${/** @type {number} */ (path[1]) + 1}: ` : '';
 }
 
@@ -215,10 +216,10 @@ router.get('/courses/:courseId', async (req, res) => {
 
 // POST /courses → create. The id is always minted by the validator (a client
 // can never choose its own course id — the schema has no `id` to send).
-router.post('/courses', validate({ body: NewCourseBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof NewCourseBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/courses', validate({ body: NewCourseBody }), async (req, res) => {
     const { doc, error } = store.validateCourseDoc({ ...req.body, id: undefined });
     if (error) return res.status(400).json({ error });
-    const saved = await store.saveCourse(req.primaryOrgId, doc);
+    const saved = await store.saveCourse(req.primaryOrgId, /** @type {NonNullable<typeof doc>} */ (doc)); // set whenever error is not
     if (saved.error) return res.status(400).json({ error: saved.error });
     res.json({ course: saved.doc });
 });
@@ -227,11 +228,11 @@ router.post('/courses', validate({ body: NewCourseBody }), async (/** @type {imp
 // a valid org course id is the course written, whatever else happens. A
 // non-org param (e.g. 'new') makes the validator mint a fresh id — an
 // effective create.
-router.put('/courses/:courseId', validate({ body: CourseBody }), async (/** @type {import('express').Request<{ courseId: string }, any, import('zod').infer<typeof CourseBody>, import('qs').ParsedQs>} */ req, res) => {
+router.put('/courses/:courseId', validate({ body: CourseBody }), async (req, res) => {
     const id = store.isOrgCourseId(req.params.courseId) ? req.params.courseId : undefined;
     const { doc, error } = store.validateCourseDoc({ ...req.body, id });
     if (error) return res.status(400).json({ error });
-    const saved = await store.saveCourse(req.primaryOrgId, doc);
+    const saved = await store.saveCourse(req.primaryOrgId, /** @type {NonNullable<typeof doc>} */ (doc)); // set whenever error is not
     if (saved.error) return res.status(400).json({ error: saved.error });
     res.json({ course: saved.doc });
 });
@@ -252,17 +253,17 @@ router.delete('/courses/:courseId', async (req, res) => {
 // up with PUT /courses/:courseId whose body lessonIds includes the returned
 // lesson.id (in the desired position), otherwise the lesson is orphaned and
 // will never publish.
-router.put('/lessons/:lessonId', validate({ body: LessonBody }), async (/** @type {import('express').Request<{ lessonId: string }, any, import('zod').infer<typeof LessonBody>, import('qs').ParsedQs>} */ req, res) => {
+router.put('/lessons/:lessonId', validate({ body: LessonBody }), async (req, res) => {
     const id = store.isOrgLessonId(req.params.lessonId) ? req.params.lessonId : undefined;
     const { doc, error } = store.validateLessonDoc({ ...req.body, id });
     if (error) return res.status(400).json({ error });
-    const saved = await store.saveLesson(req.primaryOrgId, doc);
+    const saved = await store.saveLesson(req.primaryOrgId, /** @type {NonNullable<typeof doc>} */ (doc)); // set whenever error is not
     res.json({ lesson: saved.doc });
 });
 
 // POST /courses/:courseId/publish → copy the draft course + all its lessons to
 // the published snapshot keys members read from.
-router.post('/courses/:courseId/publish', async (req, res) => {
+router.post('/courses/:courseId/publish', validate({ body: closedBodyOf({}, 'Publishing a course') }), async (req, res) => {
     const result = await store.publishCourse(req.primaryOrgId, req.params.courseId);
     if (result.error) return res.status(400).json({ error: result.error });
     res.json({ success: true, course: result.course });
@@ -270,7 +271,7 @@ router.post('/courses/:courseId/publish', async (req, res) => {
 
 // POST /courses/:courseId/unpublish → remove the published snapshots; the
 // drafts are untouched.
-router.post('/courses/:courseId/unpublish', async (req, res) => {
+router.post('/courses/:courseId/unpublish', validate({ body: closedBodyOf({}, 'Unpublishing a course') }), async (req, res) => {
     await store.unpublishCourse(req.primaryOrgId, req.params.courseId);
     res.json({ success: true });
 });

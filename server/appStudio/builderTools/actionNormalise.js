@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Tolerant reading of an app_set_action call — the repairs that are
  * unambiguous, done BEFORE the validator so a small model's near-miss lands
@@ -36,16 +37,16 @@
  *
  * Pure: no draft, no I/O.
  */
-
 'use strict';
 
 const { suggestTableId } = require('./tableHints');
+// The refusal wording lives in actionRefusal.js; it is re-exported here.
+const { describeActionRefusal, CREATE_RECIPE, getAt, isObject, fieldBindingFromName, IDENT_RE } = require('./actionRefusal');
 const { hasEffects, finishEffects, walkHandler, envelopeNeedsSequence } = require('./stepEnvelopeRepair.mts');
 const { parseGemmaArgs } = require('../../core/llm/leakedToolCalls');
 
 const RECORD_KINDS = new Set(['create_record', 'update_record', 'delete_record']);
 const VALUE_BEARING = new Set(['create_record', 'update_record']);
-const IDENT_RE = /^[A-Za-z_$][\w$]*$/;
 // What a SERVER step can read (actionExecutor/shared.js buildServerScope):
 // `form` is the submitted form; `forms`, `screen`, `actions`, `records`,
 // `datasets` exist but are empty there.
@@ -59,7 +60,6 @@ const GARBLED_NAME_RE = /\bname\b\s*\\{0,2}"?\s*:\s*\\{0,2}"?([A-Za-z_$][\w$]*)/
 const MAX_DEPTH = require('../componentSpecs/limits').LIMITS.MAX_ACTION_DEPTH;
 const { extraChildSlots } = require('../../shared/appDefinition/stepFlow.mjs');
 
-function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
 /**
  * `{kind:\"field\",name:\"x\"}\`,email:` — a binding that became a string.
  * @param {string} s
@@ -71,13 +71,6 @@ function clone(v) { return v === undefined ? v : JSON.parse(JSON.stringify(v)); 
 
 class Refusal extends Error {
     constructor(result) { super(result.error); this.result = result; }
-}
-
-/**
- * @param {string} name
- */
-function fieldBindingFromName(name) {
-    return { kind: 'formula', expr: `form.${name}` };
 }
 
 /**
@@ -414,7 +407,7 @@ function repairApprovalStep(step, at, notes) {
 /**
  * @param {unknown} action  the model's action object (any shape)
  * @param {{ tables?: Array }} ctx  the app's data-model tables, for the id handle lookup
- * @returns {{ action: object, notes: string[], refusal: object|null }}
+ * @returns {{ action: unknown, notes: string[], refusal: object|null }}
  */
 function repairAction(action, ctx = {}) {
     /** @type {string[]} */
@@ -459,123 +452,6 @@ function repairAction(action, ctx = {}) {
         throw e;
     }
     return { action: out, notes, refusal: null };
-}
-
-// ── Refusal wording from the validator's records ────────────────────────────
-
-/**
- * @param {string} path
- */
-function getAt(root, path) {
-    if (!path) return root;
-    const tokens = String(path).replace(/\[(\d+)\]/g, '.$1').split('.').filter(Boolean);
-    let cur = root;
-    for (const t of tokens) {
-        if (cur === null || cur === undefined) return undefined;
-        cur = cur[t];
-    }
-    return cur;
-}
-
-function didYouMean(record) {
-    const m = /Did you mean "([^"]+)"/.exec(String(record && record.hint || ''));
-    return m ? m[1] : null;
-}
-
-const CREATE_RECIPE = 'create_record takes only tableId, values, resultVar. To save a form: {kind:"sequence", steps:[{kind:"create_record", tableId, values:{<fieldKey>:{kind:"formula",expr:"form.<inputName>"}}}, {kind:"refresh", tableId}, {kind:"toast", message}]}, then app_bind_action {nodeId:<form id>, event:"onSubmit", actionId}.';
-
-/**
- * The validator's records for ONE action → { _fixHint, _suggestedPatch? }.
- * Paths are rewritten `actions.<id>.X` → `action.X` (the patch path in the
- * single form). The first group that matches wins the sentence; every
- * mechanical fix is merged into one patch.
- */
-function describeActionRefusal(errors, { actionId, action, tables } = {}) {
-    const list = Array.isArray(errors) ? errors.filter(Boolean) : [];
-    const rel = (p) => String(p || '').replace(`actions.${actionId}`, 'action');
-    const ops = [];
-    /** @type {string[]} */
-    const reasons = [];
-    const tableList = Array.isArray(tables) ? tables : [];
-    const zeroTables = tableList.length === 0;
-
-    for (const e of list) {
-        const code = String(e.code || '');
-        const path = rel(e.path);
-        if (/\.unknown_table$/.test(code)) {
-            const m = /references table "([^"]+)"/.exec(String(e.message || ''));
-            const bad = m ? m[1] : getAt(action, path.replace(/^action\.?/, ''));
-            const dym = didYouMean(e) || (suggestTableId(bad, tableList) || {}).table?.id || null;
-            reasons.push(`table ${JSON.stringify(bad)} is not in the app${zeroTables ? ' (it has no tables yet)' : ''}. ${dym ? `Did you mean "${dym}"? ` : ''}Create it first with app_upsert_table {name, fields:[{key,type}]} — or link an existing Studio table with app_link_datatable {name} — and use the tbl_ id from the result; never invent a tbl_ id. Then resend this action unchanged`);
-            if (dym) ops.push({ op: 'set', path, value: dym });
-            continue;
-        }
-        if (/^(step|binding)\.unknown_field$/.test(code)) {
-            const dym = didYouMean(e);
-            const m = /field "([^"]+)" which is not on table "([^"]+)"/.exec(String(e.message || ''));
-            const table = m ? tableList.find((t) => t && (t.id === m[2] || t.key === m[2])) : null;
-            const keys = table ? (table.fields || []).map((f) => f.key).join(', ') : '';
-            reasons.push(`${path} names a field the table does not have${keys ? ` (its keys: ${keys})` : ''}${dym ? ` — did you mean "${dym}"` : ''}`);
-            if (dym && /\.values\.[^.]+$/.test(path)) ops.push({ op: 'move', from: path, to: path.replace(/\.values\.[^.]+$/, `.values.${dym}`) });
-            continue;
-        }
-        if (code === 'binding.kind_invalid' || code === 'binding.invalid') {
-            const bindingPath = code === 'binding.kind_invalid' ? path.replace(/\.kind$/, '') : path;
-            const current = getAt(action, bindingPath.replace(/^action\.?/, ''));
-            const name = isObject(current) && typeof current.name === 'string' && IDENT_RE.test(current.name) ? current.name : null;
-            reasons.push(`${bindingPath} must be a binding object: {kind:"formula", expr:"form.<inputName>"} for a submitted value, or {kind:"static", value}`);
-            if (name) ops.push({ op: 'set', path: bindingPath, value: fieldBindingFromName(name) });
-            continue;
-        }
-        if (code === 'action.unknown_field' || code === 'action.step_unknown_field') {
-            reasons.push(`${String(e.message || '').replace(/\.$/, '')}. ${CREATE_RECIPE}`);
-            continue;
-        }
-        if (code === 'action.step_field_required') {
-            const m = /missing required `([^`]+)`/.exec(String(e.message || ''));
-            const tableId = getAt(action, 'tableId');
-            const table = tableList.find((t) => t && t.id === tableId);
-            const keys = table ? (table.fields || []).map((f) => f.key).join(', ') : '';
-            reasons.push(`${path} is missing ${m ? `\`${m[1]}\`` : 'a required field'}${m && m[1] === 'values' ? ` — values: {<fieldKey>: binding}${keys ? `, keys of ${table.key}: ${keys}` : ''}` : ''}`);
-            continue;
-        }
-        if (code === 'action.navigate_missing') {
-            reasons.push(`${path.replace(/\.screenId$/, '')} (navigate) needs screenId at the top level — {kind:"navigate", screenId:"scr_…", params:{…}} — with a scr_ id from the draft state, never a guessed one`);
-            continue;
-        }
-        if (code === 'action.unknown_field' && /has unknown fields for kind/.test(String(e.message || ''))) {
-            const m = /unknown fields for kind "([^"]+)": (.+?)\. *$/.exec(String(e.message || ''));
-            const fields = m ? m[2].split(',').map((x) => x.trim()) : [];
-            reasons.push(`${path} (${m ? m[1] : 'action'}) has fields the kind does not take: ${fields.join(', ')}. ${String(e.hint || '').replace(/\.$/, '')}`);
-            for (const f of fields) ops.push({ op: 'remove', path: `${path}.${f}` });
-            continue;
-        }
-        if (code === 'action.step_unknown_field') {
-            reasons.push(`${path} is not a field of that step. ${String(e.hint || '').replace(/\.$/, '')}`);
-            ops.push({ op: 'remove', path });
-            continue;
-        }
-        if (code === 'action.approval_stages_invalid') {
-            reasons.push(`${path}: ${String(e.message || '').replace(/\.$/, '')} — a stage is {key, name, approvers:[{userId:"…"}|{groupId:"…"}], rule:"first"|"all"|"quorum"}`);
-            continue;
-        }
-        if (code === 'action.approval_hook_invalid') {
-            reasons.push(`${path}: ${String(e.message || '').replace(/\.$/, '')} — onDecided is {tableId:"tbl_…", recordId:{kind:"formula", expr:"screen.params.recordId"}, set:{approved:{<statusKey>:"…"}, rejected:{<statusKey>:"…"}}}`);
-            continue;
-        }
-        if (code === 'action.navigate_unresolved' || code === 'action.step_navigate_unresolved' || code === 'action.effects_navigate_unresolved') {
-            const dym = didYouMean(e);
-            reasons.push(`${path} navigates to a screen the app does not have${dym ? ` — did you mean "${dym}"` : ''}; use a scr_ id from the draft state`);
-            if (dym) ops.push({ op: 'set', path, value: dym });
-            continue;
-        }
-    }
-    const _fixHint = reasons.length
-        ? `Reject reason: ${[...new Set(reasons)].join(' | ')}.`
-        : 'Fix the fields the errors name and call app_set_action again with the whole action.';
-    const out = { _fixHint };
-    if (ops.length) out._suggestedPatch = { ops, why: 'the validator named the exact fix' };
-    return out;
 }
 
 module.exports = {

@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 const { bestEffort } = require('../utils/bestEffort');
@@ -41,7 +42,7 @@ function bridgeCore(B) {
     }
 
     function bodyContent() {
-        var copy = document.body.cloneNode(true);
+        var copy = /** @type {HTMLElement} */ (document.body.cloneNode(true));
         copy.querySelectorAll('[data-doc-token]').forEach(function (/** @type {{ replaceWith: (arg0: Text) => void; textContent: string; }} */ el) { el.replaceWith(document.createTextNode(el.textContent)); });
         return copy.innerHTML.replace(/<!--bf-template:([A-Za-z0-9+/=]+)-->/g, function (_m, encoded) { return window.atob(encoded); });
     }
@@ -51,9 +52,9 @@ function bridgeCore(B) {
      */
     function protectTokens(root) {
         var walker = document.createTreeWalker(root || document.body, NodeFilter.SHOW_TEXT);
-        /** @type {Node[]} */
+        /** @type {ChildNode[]} */
         var nodes = [];
-        while (walker.nextNode()) nodes.push(walker.currentNode);
+        while (walker.nextNode()) nodes.push(/** @type {ChildNode} */ (walker.currentNode));
         nodes.forEach(function (node) {
             if (!node.parentElement || node.parentElement.closest('[data-doc-token]')) return;
             var re = /\{\{[^{}]+\}\}/g;
@@ -79,7 +80,7 @@ function bridgeCore(B) {
      * @param {Node | null} node
      */
     function sectionOf(node) {
-        var el = node && (node.nodeType === 1 ? node : node.parentElement);
+        var el = /** @type {Element | null} */ (node && (node.nodeType === 1 ? node : node.parentElement));
         var section = el && el.closest ? el.closest('[data-doc-section]') : null;
         return section ? section.getAttribute('data-doc-section') : null;
     }
@@ -121,7 +122,7 @@ function bridgeCore(B) {
      * @param {Node} node
      */
     function blockIndexOf(node) {
-        var el = node && (node.nodeType === 1 ? node : node.parentElement);
+        var el = /** @type {Element | null} */ (node && (node.nodeType === 1 ? node : node.parentElement));
         while (el && el.parentElement && el.parentElement !== document.body) el = el.parentElement;
         return el && el.parentElement === document.body ? Array.prototype.indexOf.call(document.body.children, el) : 0;
     }

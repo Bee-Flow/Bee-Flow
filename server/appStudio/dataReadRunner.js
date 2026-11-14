@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio — the shared READ runner.
  *
@@ -294,6 +295,9 @@ async function runBatchRead(ctx, read) {
  * A refusal is reported with the status the dedicated endpoint would have
  * used, because the client's fail-soft rules key off exactly that (a 404 on a
  * records read degrades to an empty list, as it always has).
+ * @param {Parameters<typeof runRecordList>[0]} ctx
+ * @param {Array<{ id?: string, [k: string]: unknown }>} reads
+ * @param {{ onTable?: (table: unknown) => void }} [opts]
  */
 async function runBatch(ctx, reads, { onTable } = {}) {
     const results = [];

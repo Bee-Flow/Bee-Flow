@@ -24,6 +24,13 @@ const {
 } = require("./claude/errors");
 const { buildThinking, buildSdkParams, requestOptionsFor } = require("./claude/params");
 const { fallback } = require('../../utils/bestEffort');
+const {
+    newStreamState,
+    handleStreamEvent,
+    finishFromFinalMessage,
+    streamRetryFor,
+    enrichStreamError,
+} = require("./claude/streamSteps.mts");
 
 // Explicit SDK request timeout. Passing ANY constructor `timeout` disables the
 // SDK's pre-flight "Streaming is required for operations that may take longer
@@ -559,202 +566,29 @@ class ClaudeProvider extends BaseProvider {
             messageCount: params.messages?.length || 0,
         }));
 
-        let textChunks = 0;
-        let thinkingChunks = 0;
-        let eventCount = 0;
-        /** @type {{ id: string; name: string; arguments: string; } | null} */
-        let currentToolUse = null; // Track in-progress tool_use block
-        /** @type {{ partId: string, redacted: boolean, signature: string|null, redactedData?: string } | null} */
-        let currentThinking = null; // Track in-progress thinking / redacted_thinking block
-        let thinkingPartCounter = 0;
-        /** @type {Record<string, any> | null} */
-        let streamUsage = null;
-        /** @type {string | null} */
-        let stopReason = null;
-        /** @type {RefusalStopDetails | null} */
-        let stopDetails = null;
+        const state = newStreamState();
+        /** @type {import('./claude/streamSteps.mts').StreamOutcome} */
+        let outcome = { streamUsage: null, stopReason: null, stopDetails: null };
 
         try {
             const stream = await client.messages.stream(params, this._requestOptionsFor(params, oauth));
-
-            for await (const event of stream) {
-                eventCount++;
-                if (event.type === 'content_block_delta') {
-                    if (event.delta?.type === 'text_delta' && event.delta?.text) {
-                        textChunks++;
-                        onEvent('text', { text: event.delta.text });
-                    } else if (event.delta?.type === 'thinking_delta' && event.delta?.thinking) {
-                        thinkingChunks++;
-                        onEvent('thinking', {
-                            text: event.delta.thinking,
-                            partId: currentThinking?.partId,
-                        });
-                    } else if (event.delta?.type === 'signature_delta' && event.delta?.signature) {
-                        // Server-side only — signature is persisted onto the thinking block
-                        // and echoed back to Anthropic on multi-turn tool flows. Never shown to UI.
-                        if (currentThinking) {
-                            currentThinking.signature = event.delta.signature;
-                            onEvent('thinking_signature', {
-                                partId: currentThinking.partId,
-                                signature: event.delta.signature,
-                            });
-                        }
-                    } else if (event.delta?.type === 'input_json_delta' && event.delta?.partial_json) {
-                        // Accumulate tool call JSON arguments
-                        if (currentToolUse) {
-                            currentToolUse.arguments += event.delta.partial_json;
-                            // Surface the in-progress arguments so callers can live-
-                            // stream a tool arg (e.g. notebook_write content) as it is
-                            // generated. Consumers that don't handle it ignore it.
-                            onEvent('tool_args_delta', { name: currentToolUse.name, partial: currentToolUse.arguments });
-                        }
-                    }
-                } else if (event.type === 'content_block_start') {
-                    const blockType = event.content_block?.type;
-                    if (blockType === 'tool_use') {
-                        // Start accumulating a new tool call
-                        currentToolUse = {
-                            id: event.content_block.id,
-                            name: event.content_block.name,
-                            arguments: '',
-                        };
-                        log.info('[Claude] Tool use block start:', event.content_block.name);
-                    } else if (blockType === 'thinking') {
-                        currentThinking = {
-                            partId: `claude-${thinkingPartCounter++}`,
-                            redacted: false,
-                            signature: null,
-                        };
-                        onEvent('thinking_start', { partId: currentThinking.partId });
-                    } else if (blockType === 'redacted_thinking') {
-                        currentThinking = {
-                            partId: `claude-${thinkingPartCounter++}`,
-                            redacted: true,
-                            signature: null,
-                        };
-                        onEvent('thinking_start', { partId: currentThinking.partId, redacted: true });
-                        // The opaque payload is the ONLY thing that can be
-                        // replayed for a redacted block — there is no readable
-                        // text and no signature delta. Persist it the same way
-                        // a signature is persisted, or the block is lost for
-                        // every later turn.
-                        if (event.content_block.data) {
-                            currentThinking.redactedData = event.content_block.data;
-                            onEvent('thinking_signature', {
-                                partId: currentThinking.partId,
-                                redactedData: event.content_block.data,
-                            });
-                        }
-                    }
-                } else if (event.type === 'content_block_stop') {
-                    // Emit accumulated tool call when block ends. Drop a nameless
-                    // block, or one whose accumulated arguments aren't valid JSON,
-                    // instead of emitting input:{} — a poisoned tool call echoed back
-                    // next round can trigger an upstream 400 / spin loop (BFSF-143).
-                    if (currentToolUse) {
-                        let input;
-                        let _drop = false;
-                        if (!currentToolUse.name || !String(currentToolUse.name).trim()) {
-                            log.warn('[Claude] Dropping nameless streamed tool call');
-                            _drop = true;
-                        } else {
-                            try { input = JSON.parse(currentToolUse.arguments || '{}'); }
-                            catch (e) { log.warn(`[Claude] Dropping tool_use ${currentToolUse.name}: invalid JSON args (${/** @type {Error} */ (e).message})`); _drop = true; }
-                        }
-                        if (!_drop) {
-                            onEvent('tool_use', {
-                                id: currentToolUse.id,
-                                name: currentToolUse.name,
-                                input,
-                            });
-                            log.info(`[Claude] Stream tool_use: ${currentToolUse.name}`);
-                        }
-                        currentToolUse = null;
-                    } else if (currentThinking) {
-                        onEvent('thinking_stop', {
-                            partId: currentThinking.partId,
-                            redacted: currentThinking.redacted || undefined,
-                        });
-                        currentThinking = null;
-                    }
-                } else if (event.type === 'message_start') {
-                    // normal start
-                } else if (event.type === 'message_delta') {
-                    // normal delta
-                } else if (event.type === 'message_stop') {
-                    // normal stop
-                } else if (/** @type {{ type?: string }} */ (event).type === 'error') { // not in the SDK's event union; defensive
-                    log.error('[Claude] Stream error event:', JSON.stringify(event));
-                    onEvent('error', { error: /** @type {{ error?: { message?: string } }} */ (event).error?.message || 'Unknown stream error' });
-                }
-            }
-
-            // Try to get the final message for usage info
+            for await (const event of stream) handleStreamEvent(state, event, onEvent);
+            // The final message carries the usage; a stream already consumed has none.
             try {
-                const finalMessage = await stream.finalMessage();
-                log.info('[Claude] Final message — stop_reason:', finalMessage.stop_reason,
-                    'usage:', JSON.stringify(finalMessage.usage));
-                // A refused turn streams no text at all. Without this the UI
-                // just stops, with no message and no error.
-                if (textChunks === 0 && finalMessage.stop_reason === 'refusal') {
-                    log.warn('[Claude] stream refused —',
-                        JSON.stringify(finalMessage.stop_details || null));
-                    onEvent('text', { text: refusalMessage(finalMessage) });
-                } else if (textChunks === 0 && isContextWindowStop(finalMessage)) {
-                    onEvent('text', { text: 'This conversation no longer fits in the model context window.' });
-                }
-                stopReason = finalMessage.stop_reason || null;
-                stopDetails = finalMessage.stop_details || null;
-                if (finalMessage.usage) {
-                    // Same normaliser as the non-streaming chat(): input_tokens
-                    // stays the uncached remainder (usageNormalizer header), the
-                    // 5m/1h cache-write split is carried instead of one
-                    // "dominant" TTL, and tier/geo/server-tool counts ride along.
-                    streamUsage = {
-                        ...normalizeUsage('claude', finalMessage.usage),
-                        stop_reason: finalMessage.stop_reason || null,
-                    };
-                    if (streamUsage.cached_tokens > 0) {
-                        log.info(`[Claude] ⚡ Cache hit: ${streamUsage.cached_tokens} cached input tokens (saved ~${Math.round(streamUsage.cached_tokens * 0.9)} token-equivalents)`);
-                    }
-                    if (streamUsage.cache_creation_tokens > 0) {
-                        log.info(`[Claude] 📦 Cache created: ${streamUsage.cache_creation_tokens} tokens (5m=${streamUsage.cache_creation_5m_tokens}, 1h=${streamUsage.cache_creation_1h_tokens})`);
-                    }
-                }
+                outcome = finishFromFinalMessage(await stream.finalMessage(), state.textChunks, onEvent);
             } catch (e) { fallback('core/providers/claude:ClaudeProvider.stream', e); /* already consumed */ }
         } catch (err) {
-            // A rejection of the context-management beta would otherwise loop
-            // forever in upstream retries (the 400 is permanent for identical
-            // params). Safe to restart here: a connect-time 400 fires before
-            // any event was emitted downstream.
-            if (params.context_management && eventCount === 0 && this._isContextManagementRejection(err)) {
-                log.warn('[Claude] context_management rejected — retrying stream without it:', /** @type {Error} */ (err).message);
-                return this.stream(apiKey, baseUrl, model, messages, { ...options, _noContextEditing: true }, onEvent);
+            const retry = streamRetryFor(err, params, options, state.eventCount, model);
+            if (retry) {
+                log.warn(retry.warning, /** @type {Error} */ (err).message);
+                return this.stream(apiKey, baseUrl, model, messages, { ...options, [retry.option]: true }, onEvent);
             }
-            // Same connect-time-only guard for an unverifiable thinking block:
-            // safe to restart because nothing has been emitted downstream yet.
-            if (eventCount === 0 && !options._noThinkingReplay && isThinkingReplayRejection(err)) {
-                log.warn('[Claude] thinking replay rejected — retrying stream without stored thinking blocks:', /** @type {Error} */ (err).message);
-                return this.stream(apiKey, baseUrl, model, messages, { ...options, _noThinkingReplay: true }, onEvent);
-            }
-            // See chat(): a forced tool_choice the model refuses reruns with
-            // `auto` — safe here for the same connect-time reason.
-            if (eventCount === 0 && !options._noForcedToolChoice && isForcedToolChoiceRejection(err)
-                && ['tool', 'any'].includes(params.tool_choice?.type)) {
-                log.warn(`[Claude] forced tool_choice rejected for ${model} — retrying stream with auto:`, /** @type {Error} */ (err).message);
-                return this.stream(apiKey, baseUrl, model, messages, { ...options, _noForcedToolChoice: true }, onEvent);
-            }
-            log.error('[Claude] Stream error:', /** @type {Error} */ (err).message);
-            if (err.status) log.error('[Claude] Error status:', err.status);
-            if (err.error) log.error('[Claude] API error body:', JSON.stringify(err.error));
-            // Enrich the error with status info for upstream retry classification
-            if (err.status && !/** @type {Error} */ (err).message.includes(`API error ${err.status}`)) {
-                /** @type {Error} */ (err).message = `API error ${err.status}: ${JSON.stringify(err.error || /** @type {Error} */ (err).message)}`;
-            }
+            enrichStreamError(err);
             throw err;  // Let retryStreamCall handle retry/classify
         }
 
-        log.info(`[Claude] Stream complete — ${eventCount} events, ${textChunks} text chunks, ${thinkingChunks} thinking chunks`);
+        log.info(`[Claude] Stream complete — ${state.eventCount} events, ${state.textChunks} text chunks, ${state.thinkingChunks} thinking chunks`);
+        const { streamUsage, stopReason, stopDetails } = outcome;
         onEvent('done', { ...(streamUsage || {}), stopReason, stopDetails });
     }
 

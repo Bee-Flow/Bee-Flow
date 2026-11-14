@@ -27,7 +27,7 @@
 
 'use strict';
 
-const crypto = require('crypto');
+const { hashDefinition } = require('../core/packaging/definitionHash.mts');
 const stableJson = require('../utils/stableJson');
 const registry = require('./templates');
 const log = require('../telemetry/log');
@@ -37,10 +37,6 @@ function stableStringify(value) {
     return stableJson.stableStringify(value, { undefined: 'drop' });
 }
 
-/** sha256 hex of the canonical JSON of a definition object. */
-function hashDefinition(definition) {
-    return crypto.createHash('sha256').update(stableStringify(definition ?? {}), 'utf8').digest('hex');
-}
 
 /** The version an app row was installed at — missing/invalid counts as 1. */
 function installedTemplateVersion(app) {
@@ -57,6 +53,8 @@ function installedTemplateVersion(app) {
  *
  * `template` may be passed explicitly (tests / callers with a mocked
  * registry); leave it undefined to look the id up in the real registry.
+ * @param {{ templateId?: string | null, templateInstallHash?: string | null, [key: string]: unknown } | null} app
+ * @param {{ [key: string]: unknown } | null} [template]
  */
 function upgradeCandidate(app, template = undefined) {
     if (!app || !app.templateId || !app.templateInstallHash) return null;
@@ -118,7 +116,6 @@ async function annotateTemplateUpgrades(apps, /** @type {{loadApp?: Function, ge
 
 module.exports = {
     stableStringify,
-    hashDefinition,
     installedTemplateVersion,
     upgradeCandidate,
     isPristine,

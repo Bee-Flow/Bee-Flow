@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Microsoft Calendar Tools — Built-in tools for AI to manage Outlook Calendar
  * 
@@ -34,7 +34,7 @@ function containsFilter(field, text) {
 /**
  * A Graph calendar event, as far as this file reads or writes it.
  * @typedef {{ id?: string, subject?: string, start?: { dateTime?: string, timeZone?: string },
- *   end?: { dateTime?: string, timeZone?: string }, location?: { displayName?: string },
+ *   end?: { dateTime?: string, timeZone?: string }, location?: { displayName?: string | null },
  *   organizer?: { emailAddress?: { address?: string, name?: string } },
  *   attendees?: Array<{ emailAddress?: { address?: string, name?: string }, status?: { response?: string }, type?: string }>,
  *   isOnlineMeeting?: boolean, onlineMeeting?: { joinUrl?: string }, onlineMeetingProvider?: string,
@@ -84,8 +84,8 @@ async function executeMsCalendarTool(toolName, args, session) {
     }
 
     if (toolName === 'ms_calendar_list_events') {
-        const daysAhead = Math.min(Math.max(parseInt(args.daysAhead) || 7, 1), 90);
-        const maxResults = Math.min(Math.max(parseInt(args.maxResults) || 20, 1), 50);
+        const daysAhead = Math.min(Math.max(parseInt(String(args.daysAhead)) || 7, 1), 90);
+        const maxResults = Math.min(Math.max(parseInt(String(args.maxResults)) || 20, 1), 50);
 
         const now = new Date();
         const end = new Date(now);
@@ -105,7 +105,7 @@ async function executeMsCalendarTool(toolName, args, session) {
         const { query } = args;
         if (!query) throw new Error('query is required');
 
-        const daysAhead = Math.min(Math.max(parseInt(args.daysAhead) || 30, 1), 90);
+        const daysAhead = Math.min(Math.max(parseInt(String(args.daysAhead)) || 30, 1), 90);
         const now = new Date();
         const end = new Date(now);
         end.setDate(end.getDate() + daysAhead);

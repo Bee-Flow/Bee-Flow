@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
-import { API_BASE, authFetch } from '@/utils/helpers';
 import type { GroupSyncSettings, GroupSyncStatus, SyncResult } from './SSOSection.types';
 import { SSOSectionSection } from './SSOSectionSection';
+import { apiFetch } from '@/api/typedRequest';
 
 export interface GroupSyncBlockProps {
     orgId: string;
@@ -44,10 +44,7 @@ export default function GroupSyncBlock({ orgId, connected, groupSyncSettings, gr
         setSyncResult(null);
         setSyncError(null);
         try {
-            const res = await authFetch(`${API_BASE}/api/org-azure-config/${orgId}/sync-groups`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-            });
+            const res = await apiFetch('POST /api/org-azure-config/{orgId}/sync-groups', { params: { orgId }, init: { headers: { 'Content-Type': 'application/json' } } });
             const data = await res.json();
             if (data.ok) {
                 setSyncResult(data);
@@ -71,11 +68,7 @@ export default function GroupSyncBlock({ orgId, connected, groupSyncSettings, gr
     const handleSyncSetting = async (key: string, value: number | boolean) => {
         if (!orgId) return;
         try {
-            const res = await authFetch(`${API_BASE}/api/org-azure-config/${orgId}/sync-groups/settings`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ [key]: value }),
-            });
+            const res = await apiFetch('PUT /api/org-azure-config/{orgId}/sync-groups/settings', { params: { orgId }, body: { [key]: value } });
             const data = await res.json();
             if (data.ok) onSyncSettingsChange(data.settings);
         } catch (err) {

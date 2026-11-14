@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 /**
@@ -39,6 +40,7 @@ const readableCustomer = (id) => { const c = customerOf(id); return c && c.segme
  * Fills `engines` ({ sqlite, pg }: (sql, params) => rows), `seeded` (every order as
  * { id, ...values, owner }) and `closers`; `onSql(dialect, sql, params)` sees every statement.
  */
+/** @param {{ customers: { id: string, key: string, [k: string]: any }, orders: { id: string, key: string, [k: string]: any }, orderRows: any[], engines: Record<string, any>, seeded: Record<string, any>, closers: Array<() => unknown>, onSql?: (engine: string, sql: string, params?: unknown[]) => void }} world */
 async function seedRelationEngines({ customers, orders, orderRows, engines, seeded, closers, onSql = () => {} }) {
     const Database = require('better-sqlite3');
     const lite = new Database(':memory:');

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio — the SECOND kind of table: a model table whose rows are in a
  * STUDIO DATATABLE (`model.tables[].source = {kind:'datatable', …}`).
@@ -99,7 +100,6 @@
  *     app role) and on the DATATABLE (the grade) asks the question again for precisely
  *     this action.
  */
-
 'use strict';
 
 // Pure modules: de vocabulaire en de compiler-helft van de access-laag.
@@ -214,7 +214,7 @@ function rowFilterForRole(table, role) {
  * The principal of one user, fresh from the database — or a refusal.
  *
  * `resolveDatatablePrincipalForUser` itself swallows a failed user read
- * (`try { … } catch (_) { }`) and then delivers a principal without organisation, without
+ * (an empty catch around the read) and then delivers a principal without organisation, without
  * orgRole and without groups. That degrades to "no grade", and that is fine as an ANSWER
  * (unknown narrows) but wrong as a MESSAGE: it would tell the viewer that he has no access
  * while in reality nobody could check it. Hence a failure here gets its own refusal, with the
@@ -256,7 +256,7 @@ const WRITE_ACTIONS = Object.freeze(['create', 'update', 'delete']);
  * @param {DataTable} table the MODEL table (with `source`), not the datatable
  * @param {{ datatableStore?: typeof import('../stores/datatableStore'), datatableDbStore?: typeof import('../stores/datatableDbStore'), resolveDatatablePrincipalForUser?: typeof resolveDatatablePrincipalForUser }} [deps] injectable edges for tests
  * @param {'read'|'create'|'update'|'delete'} [action]
- * @returns {Promise<{tableMeta, grade, scopeKey, viewer, dialect, datatable}>}
+ * @returns {Promise<{tableMeta, grade, scopeKey, viewer, dialect, datatable, scope?}>}
  * @throws  a client-safe refusal (readError) with a reason
  */
 async function resolveDatatableSource(ctx, table, deps = {}, action = 'read') {

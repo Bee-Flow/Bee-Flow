@@ -1,3 +1,4 @@
+// @typecheck
 const path = require('node:path');
 const configStore = require('../../stores/configStore');
 const log = require('../../telemetry/log');
@@ -118,7 +119,7 @@ async function extractFileContentWithMeta(buffer, mime, filename) {
         XLSX_MIMES.has(mime) ||
         filename?.match(/\.(docx|pptx|csv|xlsx|xls)$/i)
     ) {
-        const { parseDocument } = require('../documents/documentParser');
+        const { parseDocument } = /** @type {typeof import('../documents/documentParser')} */ (require('../documents/documentParser'));
         const ext = path.extname(filename).slice(1).toLowerCase();
         log.info(`[KBHelpers] Extraction: documentParser (${ext})`);
         if (isSpreadsheetFile(mime, filename)) meta.sheetNames = readSheetNames(buffer);
@@ -127,7 +128,7 @@ async function extractFileContentWithMeta(buffer, mime, filename) {
 
     // Generic fallback via documentParser
     try {
-        const { parseDocument, isSupportedDocument } = require('../documents/documentParser');
+        const { parseDocument, isSupportedDocument } = /** @type {typeof import('../documents/documentParser')} */ (require('../documents/documentParser'));
         if (isSupportedDocument && isSupportedDocument(mime, filename)) {
             log.info(`[KBHelpers] Extraction: documentParser (generic)`);
             return { text: await parseDocument(buffer, mime, filename), meta };

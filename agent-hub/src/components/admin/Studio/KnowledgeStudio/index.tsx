@@ -1,14 +1,15 @@
 import React, { useCallback, useEffect, useEffectEvent, useRef, useState, type Dispatch, type SetStateAction } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { knowledgeApi, type KbSource, type KbSuggestion, type KbUsageSummary } from './knowledgeApi';
 import KnowledgeDetail, { TABS } from './KnowledgeDetail';
 import KnowledgeOverview from './KnowledgeOverview';
 import SourceDetail from './SourceDetail';
-import { readOrgGroups, type OrgGroup } from '@/api/queries/orgGroups';
+import { useOrgGroupsQuery, type OrgGroup } from '@/api/queries/orgGroups';
 import useTranslation from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
 import scopedStorage from '@/utils/scopedStorage';
 import type { TranslateFn } from '@/hooks/useTranslation';
-import { mutate, ApiError, request, RefusedError } from '@/api/mutate';
+import { ApiError, RefusedError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 /**
  * Studio → Knowledge. Three screens behind one route
@@ -90,25 +91,80 @@ function useAdoptDeepLink({ initialKbId, initialKbTab, initialSourceId, setKbId,
  * `KnowledgeOverview` reads to draw nothing rather than "used by nothing"
  * — the two are opposite claims and only one of them is safe to guess.
  */
-function useOverviewExtras(
-    kbId: string | null,
-    setUsageByKb: (summary: Record<string, KbUsageSummary> | null) => void,
-    setSuggestions: (suggestions: KbSuggestion[]) => void,
-) {
-    const loadOverviewExtras = useCallback(() => {
-        knowledgeApi.usageSummary()
-            .then(body => setUsageByKb(body?.summary || {}))
-            .catch(() => setUsageByKb(null));
-        knowledgeApi.suggestions()
-            .then(body => setSuggestions(Array.isArray(body?.suggestions) ? body.suggestions : []))
-            .catch(() => setSuggestions([]));
-    }, [setUsageByKb, setSuggestions]);
+function useOverviewExtras(kbId: string | null) {
+    // Only the overview needs them; each visit to it reads them again.
+    const usage = useQuery<Record<string, KbUsageSummary> | null>({
+        ...KNOWLEDGE_READ,
+        queryKey: ['knowledgeStudio', 'usageSummary'],
+        enabled: !kbId,
+        queryFn: async () => {
+            try { return (await knowledgeApi.usageSummary())?.summary || {}; } catch { return null; }
+        },
+    });
+    const nudges = useQuery<KbSuggestion[]>({
+        ...KNOWLEDGE_READ,
+        queryKey: ['knowledgeStudio', 'suggestions'],
+        enabled: !kbId,
+        queryFn: async () => {
+            try {
+                const body = await knowledgeApi.suggestions();
+                return Array.isArray(body?.suggestions) ? body.suggestions : [];
+            } catch { return []; }
+        },
+    });
+    const { refetch: refetchUsage } = usage;
+    const { refetch: refetchNudges } = nudges;
+    const loadOverviewExtras = useCallback(() => { void refetchUsage(); void refetchNudges(); }, [refetchUsage, refetchNudges]);
+    return { usageByKb: usage.data ?? null, suggestions: nudges.data ?? NO_SUGGESTIONS, loadOverviewExtras };
+}
 
-    useEffect(() => {
-        if (kbId) return;      // only the overview needs them
-        loadOverviewExtras();
-    }, [kbId, loadOverviewExtras]);
-    return loadOverviewExtras;
+/** Every read here is asked again on each visit and never retried: a failure is an answer (null or empty). */
+const KNOWLEDGE_READ = { staleTime: 0, retry: false, refetchOnReconnect: false, structuralSharing: false } as const;
+const NO_SUGGESTIONS: KbSuggestion[] = [];
+const NO_GROUPS: OrgGroup[] = [];
+
+/**
+ * The row of the open source, read by id so a hard refresh straight onto
+ * `…/<kb>/sources/<sid>` has it too. Each answer seeds the studio's copy (a
+ * rename or reschedule then edits it); a source id that no longer resolves
+ * drops back to the CURRENT tab rather than rendering a header with no name.
+ */
+function useOpenSource(kbId: string | null, sourceId: string | null, dropToTab: () => void): [KbSource | null, Dispatch<SetStateAction<KbSource | null>>] {
+    const [source, setSource] = useState<KbSource | null>(null);
+    const open = !!kbId && !!sourceId;
+    const list = useQuery<KbSource[] | null>({
+        ...KNOWLEDGE_READ,
+        queryKey: ['knowledgeStudio', 'sources', kbId, sourceId],
+        enabled: open,
+        queryFn: async () => {
+            try { return (await knowledgeApi.listSources(kbId as string))?.sources || []; } catch { return null; }
+        },
+    });
+    const [seeded, setSeeded] = useState<KbSource[] | null | undefined>(undefined);
+    if (!open) {
+        if (source !== null) setSource(null);
+        if (seeded !== undefined) setSeeded(undefined);
+    } else if (list.data !== undefined && list.data !== seeded) {
+        setSeeded(list.data);
+        setSource(list.data?.find((s: KbSource) => s.id === sourceId) || null);
+    }
+    const missing = open && Array.isArray(list.data) && !list.data.some((s: KbSource) => s.id === sourceId);
+    const drop = useEffectEvent(dropToTab);
+    useEffect(() => { if (missing) drop(); }, [missing]);
+    return [source, setSource];
+}
+
+/** The name of the open knowledge base, for the breadcrumb on the source screen. */
+function useKbName(kbId: string | null): string | null {
+    const kb = useQuery<string | null>({
+        ...KNOWLEDGE_READ,
+        queryKey: ['knowledgeStudio', 'kbName', kbId],
+        enabled: !!kbId,
+        queryFn: async () => {
+            try { return (await knowledgeApi.get(kbId as string))?.name || null; } catch { return null; }
+        },
+    });
+    return kbId ? (kb.data ?? null) : null;
 }
 
 /**
@@ -186,12 +242,8 @@ export default function KnowledgeStudio({
     const [kbId, setKbId] = useState(initialKbId && initialKbId !== 'new' ? initialKbId : null);
     const [tab, setTab] = useState(initialKbTab && TABS.includes(initialKbTab) ? initialKbTab : 'sources');
     const [sourceId, setSourceId] = useState(initialSourceId || null);
-    const [source, setSource] = useState<KbSource | null>(null);
     const [creating, setCreating] = useState(initialKbId === 'new');
     const [createError, setCreateError] = useState<string | null>(null);
-    const [orgGroups, setOrgGroups] = useState<OrgGroup[]>([]);
-    const [usageByKb, setUsageByKb] = useState<Record<string, KbUsageSummary> | null>(null);
-    const [suggestions, setSuggestions] = useState<KbSuggestion[]>([]);
     const [hidden, setHidden] = useState(() => new Set<string>(scopedStorage.getJSON<string[]>(HIDDEN_SUGGESTIONS_KEY, []) || []));
 
     const canManage = hasPermission('manage_knowledge');
@@ -201,15 +253,9 @@ export default function KnowledgeStudio({
     // The audience capsule needs the org's groups to offer any. A failure
     // here costs the group list and nothing else — the capsule still offers
     // personal and organisation-wide.
-    useEffect(() => {
-        let alive = true;
-        readOrgGroups()
-            .then(g => { if (alive) setOrgGroups(g ?? []); })
-            .catch(() => {});
-        return () => { alive = false; };
-    }, []);
+    const { data: orgGroups = NO_GROUPS } = useOrgGroupsQuery();
 
-    const loadOverviewExtras = useOverviewExtras(kbId, setUsageByKb, setSuggestions);
+    const { usageByKb, suggestions, loadOverviewExtras } = useOverviewExtras(kbId);
 
     /** "Not this one." Per person, per browser — never a shared decision. */
     const hideSuggestion = useCallback((suggestion: KbSuggestion & { text: string }) => {
@@ -234,7 +280,7 @@ export default function KnowledgeStudio({
         try {
             let res: Response;
             try {
-                res = await request(`${API_BASE}/api/agents/${encodeURIComponent(suggestion.agentId)}`);
+                res = await apiRequest('GET /agents/{id}', { params: { id: suggestion.agentId } });
             } catch (apiErr) {
                 if (!(apiErr instanceof RefusedError)) throw apiErr;
                 throw new Error('agent');
@@ -245,11 +291,7 @@ export default function KnowledgeStudio({
             if (current.includes(suggestion.kbId)) { loadOverviewExtras(); return; }
             config.knowledge_base_ids = [...current, suggestion.kbId];
             try {
-                await mutate(`${API_BASE}/api/agents/${encodeURIComponent(suggestion.agentId)}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ config }),
-            });
+                await apiRequest('PUT /agents/{id}', { params: { id: suggestion.agentId }, body: { config } });
             } catch (err) {
                 if (!(err instanceof ApiError)) throw err;
                 throw new Error('save');
@@ -275,25 +317,7 @@ export default function KnowledgeStudio({
         onNavigate(parts.join('/'));
     }, [onNavigate]);
 
-    // The source row the detail screen draws its header from. Fetched by id
-    // so a hard refresh straight onto `…/<kb>/sources/<sid>` has it too.
-    // A source id that no longer resolves drops back to the tab rather than
-    // rendering a header with no name in it — the CURRENT tab, not the one
-    // this load started on.
-    const dropToTab = useEffectEvent(() => go(kbId, tab, null));
-    useEffect(() => {
-        let alive = true;
-        if (!kbId || !sourceId) { setSource(null); return undefined; }
-        knowledgeApi.listSources(kbId)
-            .then(body => {
-                if (!alive) return;
-                const found = (body?.sources || []).find((s: KbSource) => s.id === sourceId) || null;
-                setSource(found);
-                if (!found) dropToTab();
-            })
-            .catch(() => { if (alive) setSource(null); });
-        return () => { alive = false; };
-    }, [kbId, sourceId]);
+    const [source, setSource] = useOpenSource(kbId, sourceId, () => go(kbId, tab, null));
 
     const create = useCallback(async () => {
         setCreating(true);
@@ -315,15 +339,7 @@ export default function KnowledgeStudio({
     // The breadcrumb on the source screen names the knowledge base it sits
     // in. That name lives on the KB, not on the source row, so a hard
     // refresh straight onto a source has to ask for it.
-    const [kbName, setKbName] = useState<string | null>(null);
-    useEffect(() => {
-        let alive = true;
-        if (!kbId) { setKbName(null); return undefined; }
-        knowledgeApi.get(kbId)
-            .then(k => { if (alive) setKbName(k?.name || null); })
-            .catch(() => { if (alive) setKbName(null); });
-        return () => { alive = false; };
-    }, [kbId]);
+    const kbName = useKbName(kbId);
 
     if (kbId && sourceId && source) {
         return <KbSourceScreen kbId={kbId} kbName={kbName} source={source} canManage={canManage} onBack={() => go(kbId, tab, null)} setSource={setSource} />;

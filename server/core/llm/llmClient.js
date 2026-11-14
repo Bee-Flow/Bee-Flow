@@ -8,7 +8,7 @@
 
 const { getAdapter, GoogleProvider, LocalProvider } = require('../providers/index');
 const { getProviderForModel } = require('../aiAgent');
-const { parseGemmaArgs, recoverLeakedToolCalls, hasLeakedToolCallSyntax } = require('./leakedToolCalls');
+const { parseGemmaArgs, hasLeakedToolCallSyntax, forcedCallWrittenAsText } = require('./leakedToolCalls');
 const { looksGarbled } = require('./partialJsonScan');
 const log = require('../../telemetry/log');
 const { createUsageAccumulator } = require('../providers/usageNormalizer');
@@ -201,60 +201,55 @@ function sumUsage(a, b) {
  *             stopReason: string|null, rawArguments: string|null }}
  */
 function extractForcedResult(result, toolName, { modelId = '?' } = {}) {
-    const calls = Array.isArray(result?.toolCalls) ? result.toolCalls : [];
-    const named = calls.find(tc => (tc?.function?.name || tc?.name) === toolName) || calls[0] || null;
     const stopReason = readStopReason(result);
-
-    let { structured, rawArguments, repaired } = parseToolCallArgsDetailed(named);
-    let source = structured ? (repaired ? 'tool_call (loose parse)' : 'tool_call') : null;
-
-    if (!structured) {
-        const content = typeof result?.content === 'string' ? result.content : null;
-        const thinking = typeof result?.thinking === 'string' ? result.thinking : '';
-        // Only when there is a call to find: the wire syntax, or a bare JSON
-        // reply that names the tool. A plain JSON answer body with its own
-        // `name` field is step 3's business, not a call wrapper to reject.
-        const worthScanning = hasLeakedToolCallSyntax(content) || hasLeakedToolCallSyntax(thinking)
-            || (!!content && !!toolName && content.trim().startsWith('{') && content.includes(toolName));
-        if (worthScanning) {
-            const thinkingParts = thinking ? [{ text: thinking }] : [];
-            const recovered = recoverLeakedToolCalls({ content, thinkingParts }, { toolNames: new Set(toolName ? [toolName] : []) });
-            const call = recovered.toolCalls.find(tc => tc.function?.name === toolName) || null;
-            if (call) {
-                try { structured = JSON.parse(call.function.arguments); } catch { structured = null; }
-                if (structured) {
-                    source = `written as text in the ${call._recoveredFrom}`;
-                    if (rawArguments == null) rawArguments = call.function.arguments;
-                }
-            }
-        }
-    }
-    if (!structured) {
-        structured = _parseJsonContent(result?.content);
-        if (structured) source = 'content';
-    }
-
-    if (!structured) {
-        if (typeof rawArguments === 'string' && rawArguments.trim()) {
-            log.warn(`[LLMClient] forced tool ${toolName} on ${modelId}: arguments unparsable (stop=${stopReason || '?'}, ${rawArguments.length} chars): ${rawArguments.slice(0, UNPARSABLE_LOG_CHARS)}`);
-        }
-    } else {
-        if (source !== 'tool_call') {
-            log.warn(`[LLMClient] forced tool ${toolName} on ${modelId}: answer read from ${source} (stop=${stopReason || '?'})`);
-        }
-        if (argsLookGarbled(structured)) {
-            log.warn(`[LLMClient] forced tool ${toolName} on ${modelId}: args look garbled — a string value swallowed structure (llama.cpp Gemma parser, #21384); stop=${stopReason || '?'}`);
-        }
-    }
-
+    const fromCall = parseToolCallArgsDetailed(_forcedCall(result, toolName));
+    const read = fromCall.structured
+        ? { structured: fromCall.structured, source: fromCall.repaired ? 'tool_call (loose parse)' : 'tool_call', rawArguments: fromCall.rawArguments }
+        : _readWithoutCall(result, toolName, fromCall.rawArguments);
+    _logForcedRead(read, `[LLMClient] forced tool ${toolName} on ${modelId}`, stopReason || '?');
     return {
-        structured: structured || null,
+        structured: read.structured || null,
         content: result?.content ?? null,
         usage: result?.usage,
         raw: result?.raw,
         stopReason,
-        rawArguments: typeof rawArguments === 'string' ? rawArguments : null,
+        rawArguments: typeof read.rawArguments === 'string' ? read.rawArguments : null,
     };
+}
+
+/** The call named `toolName`, else the first call, else null. @param {{ toolCalls?: unknown } | null | undefined} result @param {string} toolName */
+function _forcedCall(result, toolName) {
+    const calls = Array.isArray(result?.toolCalls) ? result.toolCalls : [];
+    return calls.find(tc => (tc?.function?.name || tc?.name) === toolName) || calls[0] || null;
+}
+
+/**
+ * No parsable tool call: a call written as text, then a JSON answer body.
+ * The raw arguments of the real call, when there were any, stay the raw.
+ * @param {{ content?: unknown, thinking?: unknown } | null | undefined} result @param {string} toolName @param {string | null} rawArguments
+ */
+function _readWithoutCall(result, toolName, rawArguments) {
+    const written = forcedCallWrittenAsText(result, toolName);
+    if (written) return { structured: written.structured, source: `written as text in the ${written.from}`, rawArguments: rawArguments ?? written.rawArguments };
+    const structured = _parseJsonContent(result?.content);
+    return { structured, source: structured ? 'content' : null, rawArguments };
+}
+
+/**
+ * @param {{ structured: unknown, source: string | null, rawArguments: string | null }} read
+ * @param {string} where @param {string} stop
+ */
+function _logForcedRead({ structured, source, rawArguments }, where, stop) {
+    if (!structured) {
+        if (typeof rawArguments === 'string' && rawArguments.trim()) {
+            log.warn(`${where}: arguments unparsable (stop=${stop}, ${rawArguments.length} chars): ${rawArguments.slice(0, UNPARSABLE_LOG_CHARS)}`);
+        }
+        return;
+    }
+    if (source !== 'tool_call') log.warn(`${where}: answer read from ${source} (stop=${stop})`);
+    if (argsLookGarbled(structured)) {
+        log.warn(`${where}: args look garbled — a string value swallowed structure (llama.cpp Gemma parser, #21384); stop=${stop}`);
+    }
 }
 
 class LLMClient {

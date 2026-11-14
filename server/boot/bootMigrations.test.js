@@ -184,7 +184,7 @@ function runtimeSources() {
             out.push(fs.readFileSync(p, 'utf8'));
         }
     };
-    for (const dir of ['stores', 'core', 'routes', 'modules', 'automation', 'boot']) {
+    for (const dir of ['stores', 'core', 'routes', 'usecases', 'modules', 'automation', 'boot']) {
         const p = path.join(SERVER, dir);
         if (fs.existsSync(p)) walk(p);
     }

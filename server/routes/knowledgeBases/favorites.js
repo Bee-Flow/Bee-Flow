@@ -8,7 +8,14 @@ const router = express.Router();
 const kbStore = require('../../stores/knowledgeBases');
 const { requireAuth } = require('../../auth');
 const { getUserId } = require('./shared');
+// Favouriting needs read access to the base (support/kbAccess.js, the one
+// place that decides it): a published or shared base stays favouritable, an
+// unknown or foreign id answers the same 404. Removing a favourite is the
+// caller's own list, so it takes any id: a base unshared since must still be
+// removable.
+const { canAccessKB, requireKbGrade } = require('../../support/kbAccess');
 const { validate } = require('../../core/http/validate');
+const { bodyOf } = require('../../core/http/schemaParts');
 const { z, typeError } = require('../../utils/zod');
 const { bestEffort } = require('../../utils/bestEffort');
 
@@ -31,16 +38,18 @@ router.get('/favorites', requireAuth, async (req, res) => {
     res.json(ids);
 });
 
-router.post('/favorites/bulk', requireAuth, validate({ body: BulkFavoritesBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof BulkFavoritesBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/favorites/bulk', requireAuth, validate({ body: BulkFavoritesBody }), async (req, res) => {
     const userId = getUserId(req);
     for (const id of req.body.kbIds) {
+        const kb = await kbStore.getKB(id).catch((/** @type {unknown} */ err) => { bestEffort('routes/knowledgeBases/favorites:bulk#getKB', err); return null; });
+        if (!kb || !(await canAccessKB(req, kb))) continue;
         try { await kbStore.addFavorite(userId, id); } catch (err) { bestEffort('routes/knowledgeBases/favorites:anon', err); /* skip invalid */ }
     }
     const ids = await kbStore.listFavorites(userId);
     res.json(ids);
 });
 
-router.put('/:id/favorite', requireAuth, async (req, res) => {
+router.put('/:id/favorite', requireAuth, requireKbGrade('read'), validate({ body: bodyOf({}, 'Marking a favourite') }), async (req, res) => {
     const userId = getUserId(req);
     await kbStore.addFavorite(userId, req.params.id);
     res.json({ success: true });

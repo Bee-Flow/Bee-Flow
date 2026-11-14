@@ -1640,9 +1640,9 @@
   "opts": null
  },
  {
-  "via": "log.debug",
+  "via": "log.warn",
   "args": [
-   "telemetry is best-effort",
+   "[best-effort] stores/usage/logUsage:llmMetric failed, carrying on",
    {}
   ]
  },

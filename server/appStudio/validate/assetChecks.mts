@@ -3,7 +3,7 @@
  * appAssets.mts) against the app's asset store.
  *
  * Only when the caller passes the list (opts.assetIds: the save and publish routes, through
- * routes/studioApps/appHelpers.js loadDataRefs). Without a list nothing is said: a missing
+ * usecases/studioApps/appHelpers.js loadDataRefs). Without a list nothing is said: a missing
  * list is "not checked", not "no assets". A missing asset is a warning on save and publish
  * alike: the image or logo shows its neutral placeholder, nothing else breaks.
  */

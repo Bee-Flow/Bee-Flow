@@ -3,13 +3,13 @@
 // ProductWebsitePanel.jsx. State stays owned by the panel (threaded in).
 import { useCallback, useEffect } from 'react';
 import { toast } from '@/components/shared/Toast';
-import { cmsApi } from '../cmsApi';
 import { setLocalePath } from '../localeMerge';
 import type useCmsPanelState from './useCmsPanelState';
 import type useCmsAutosave from './useCmsAutosave';
 import type useCmsHistory from './useCmsHistory';
 import type { CmsPageDoc, CmsBlock } from './cmsPanelTypes';
-import { mutate, errorBody, RefusedError } from '@/api/mutate';
+import { errorBody, RefusedError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 type PanelState = ReturnType<typeof useCmsPanelState>;
 type History = ReturnType<typeof useCmsHistory>;
@@ -162,16 +162,12 @@ export default function useCmsContentMutations({
         aiRunningRef.current = true;
         setAiStatus({ state: 'running', scope });
         try {
-            const url = scope === 'site'
-                ? cmsApi.siteAiTranslate(siteId, activeLocale)
-                : cmsApi.pageAiTranslate(siteId, (activePage as CmsPageDoc).id, activeLocale);
+            const body = { modelTier: tier || 'fast' };
             let res: Response;
             try {
-                res = await mutate(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ modelTier: tier || 'fast' }),
-            });
+                res = scope === 'site'
+                    ? await apiRequest('POST /api/cms/sites/{siteId}/site/ai-translate/{locale}', { params: { siteId, locale: activeLocale }, body })
+                    : await apiRequest('POST /api/cms/sites/{siteId}/pages/{id}/ai-translate/{locale}', { params: { siteId, id: (activePage as CmsPageDoc).id, locale: activeLocale }, body });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const data = errorBody(err) ?? {};
@@ -239,11 +235,9 @@ export default function useCmsContentMutations({
         if (!ok) return;
         await drainPendingSaves();
         try {
-            const url = scope === 'site'
-                ? cmsApi.siteLocaleOverride(siteId, activeLocale)
-                : cmsApi.pageLocaleOverride(siteId, (activePage as CmsPageDoc).id, activeLocale);
             try {
-                await mutate(url, { method: 'DELETE' });
+                if (scope === 'site') await apiRequest('DELETE /api/cms/sites/{siteId}/site/locale/{locale}', { params: { siteId, locale: activeLocale } });
+                else await apiRequest('DELETE /api/cms/sites/{siteId}/pages/{id}/locale/{locale}', { params: { siteId, id: (activePage as CmsPageDoc).id, locale: activeLocale } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const d = errorBody(err) ?? {};

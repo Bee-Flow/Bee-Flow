@@ -3,8 +3,8 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { BillingPlan, ChangePreview, OrgSubscription, SubMessage } from './licenseShared';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { cloudFetch } from '@/api/cloudFetch';
-import { API_BASE } from '@/utils/helpers';
 import { errorMessage } from '@/utils/caughtError';
+import { apiUrl } from '@/api/typedRequest';
 
 export interface SubscriptionActions {
     checkoutLoading: string | null;
@@ -48,16 +48,18 @@ interface ApiError {
 const errorText = (e: unknown) => errorMessage(e);
 
 /** POST without a body; the answer is the updated subscription. Throws the server's wording on refusal. */
-async function postSubscriptionAction(deploymentMode: string, orgId: string, action: string, fallback: string): Promise<OrgSubscription> {
-    const res = await cloudFetch(deploymentMode, `${API_BASE}/api/subscriptions/orgs/${orgId}/${action}`, { method: 'POST' });
+type SubscriptionAction = 'cancel' | 'cancel-downgrade' | 'reactivate';
+
+async function postSubscriptionAction(deploymentMode: string, orgId: string, action: SubscriptionAction, fallback: string): Promise<OrgSubscription> {
+    const res = await cloudFetch(deploymentMode, apiUrl(`POST /api/subscriptions/orgs/{orgId}/${action}`, { params: { orgId } }), { method: 'POST' });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error((data as ApiError).message || (data as ApiError).error || fallback);
     return data;
 }
 
 /** POST to a Stripe redirect endpoint and follow the URL it answers with. */
-async function redirectThroughStripe(deploymentMode: string, path: string, body: Record<string, unknown>): Promise<string | null> {
-    const res = await cloudFetch(deploymentMode, `${API_BASE}${path}`, {
+async function redirectThroughStripe(deploymentMode: string, key: 'POST /api/stripe/checkout' | 'POST /api/stripe/portal', body: Record<string, unknown>): Promise<string | null> {
+    const res = await cloudFetch(deploymentMode, apiUrl(key), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -78,7 +80,7 @@ function useStripeRedirects({ deploymentMode, t, setSubMessage }: Pick<UseSubscr
     const handleCheckout = async (planId: string) => {
         setCheckoutLoading(planId);
         try {
-            const err = await redirectThroughStripe(deploymentMode, '/api/stripe/checkout', { planId, origin: window.location.origin });
+            const err = await redirectThroughStripe(deploymentMode, 'POST /api/stripe/checkout', { planId, origin: window.location.origin });
             if (err !== null) setSubMessage({ type: 'error', text: err || t('org.checkout_failed', 'Failed to start checkout') });
         } catch {
             setSubMessage({ type: 'error', text: t('org.payment_service_unreachable', 'Failed to connect to payment service') });
@@ -90,7 +92,7 @@ function useStripeRedirects({ deploymentMode, t, setSubMessage }: Pick<UseSubscr
     const handleManageBilling = async () => {
         setPortalLoading(true);
         try {
-            const err = await redirectThroughStripe(deploymentMode, '/api/stripe/portal', { origin: window.location.origin });
+            const err = await redirectThroughStripe(deploymentMode, 'POST /api/stripe/portal', { origin: window.location.origin });
             if (err !== null) setSubMessage({ type: 'error', text: err || t('org.billing_portal_failed', 'Failed to open billing portal') });
         } catch {
             setSubMessage({ type: 'error', text: t('org.billing_portal_unreachable', 'Failed to connect to billing portal') });
@@ -118,7 +120,7 @@ function usePlanChange({ orgId, deploymentMode, t, setSubscription, setSubMessag
         setChangePreview(null);
         setPreviewLoading(true);
         try {
-            const res = await cloudFetch(deploymentMode, `${API_BASE}/api/subscriptions/orgs/${orgId}/preview-change`, {
+            const res = await cloudFetch(deploymentMode, apiUrl('POST /api/subscriptions/orgs/{orgId}/preview-change', { params: { orgId } }), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ planId: plan.id }),
@@ -140,7 +142,7 @@ function usePlanChange({ orgId, deploymentMode, t, setSubscription, setSubMessag
         if (!orgId || !changeTarget) return;
         setChangeBusy(true);
         try {
-            const res = await cloudFetch(deploymentMode, `${API_BASE}/api/subscriptions/orgs/${orgId}/upgrade`, {
+            const res = await cloudFetch(deploymentMode, apiUrl('POST /api/subscriptions/orgs/{orgId}/upgrade', { params: { orgId } }), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ planId: changeTarget.id }),
@@ -183,7 +185,7 @@ function useCancellation({ orgId, deploymentMode, t, setSubscription, setSubMess
     // In-app cancel confirmation (replaces the native window.confirm dialog).
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
-    const run = async (action: string, fallback: string, success: string, after?: () => void) => {
+    const run = async (action: SubscriptionAction, fallback: string, success: string, after?: () => void) => {
         if (!orgId) return;
         setCancelBusy(true);
         try {

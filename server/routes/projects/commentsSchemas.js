@@ -114,6 +114,9 @@ const FeedbackBody = bodyOf({
     helpful: flag('helpful is false for "not helpful", or true to take that back.'),
 }, 'Feedback on an answer');
 
+// Resolving and reopening act on the thread in the path and take no fields.
+const StatusBody = bodyOf({}, 'Resolving or reopening a thread');
+
 module.exports = {
     TARGET_TYPES,
     AI_MODES,
@@ -128,4 +131,5 @@ module.exports = {
     EditCommentBody,
     UpdateThreadBody,
     FeedbackBody,
+    StatusBody,
 };

@@ -17,8 +17,8 @@
 // blocked or failed, leave a note on the thread (commentAi.ts).
 
 import { useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { invalidateCommentThreads, type CommentAiResult, type CommentTarget, type CommentThread } from '../../api/queries/comments';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { commentKeys, type CommentAiResult, type CommentTarget, type CommentThread } from '../../api/queries/comments';
 import { useProjectLive, type ProjectLiveEvent } from '../projects/workspace/ProjectLiveContext';
 import { aiFinishedNote, aiOutcomeOf, type CommentAiNote } from './commentAi';
 
@@ -73,6 +73,8 @@ export function useCommentsLive(target: CommentTarget): CommentsLive {
     const [aiRunning, setAiRunning] = useState<Map<string, AiRun>>(() => new Map());
     const [aiNotes, setAiNotes] = useState<Map<string, CommentAiNote>>(() => new Map());
     const { projectId, targetType, targetId } = target;
+    // The item's comment queries, whole threads included: a live event about the item marks them stale.
+    const threadsKey = useMemo(() => commentKeys.target({ projectId, targetType, targetId }), [projectId, targetType, targetId]);
 
     useEffect(() => subscribe((kind, event) => {
         lastEventAt.current = Date.now();
@@ -90,8 +92,8 @@ export function useCommentsLive(target: CommentTarget): CommentsLive {
             setAiRunning(prev => withKey(prev, threadId, null));
             setAiNotes(prev => withKey(prev, threadId, aiFinishedNote(event.payload?.status)));
         }
-        void invalidateCommentThreads(qc, scope);
-    }), [subscribe, qc, projectId, targetType, targetId]);
+        void qc.invalidateQueries({ queryKey: threadsKey });
+    }), [subscribe, qc, projectId, targetType, targetId, threadsKey]);
 
     // Fall back to polling when the feed goes quiet, and drop stale indicators.
     useEffect(() => {

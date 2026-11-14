@@ -24,12 +24,12 @@ const router = express.Router();
 // requirePrimaryOrgAdmin reads it (and refuses it from anyone else).
 const ORG_QUERY = z.object({ orgId: z.string().optional() }, { error: onUnknownKeys('This route takes only the orgId query parameter.') }).strict();
 
-router.get('/', requirePrimaryOrgAdmin(), validate({ query: ORG_QUERY }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof ORG_QUERY>>} */ req, res) => {
+router.get('/', requirePrimaryOrgAdmin(), validate({ query: ORG_QUERY }), async (req, res) => {
     const policy = await getOrgMcpPolicy(req.primaryOrgId);
     res.json({ policy, callerIp: req.ip || null });
 });
 
-router.put('/', requirePrimaryOrgAdmin(), validate({ body: PolicySchema }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof PolicySchema>, import('qs').ParsedQs>} */ req, res) => {
+router.put('/', requirePrimaryOrgAdmin(), validate({ body: PolicySchema }), async (req, res) => {
     const policy = await saveOrgMcpPolicy(req.primaryOrgId, req.body, sessionUser(req).id);
     res.json({ policy });
 });

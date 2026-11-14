@@ -13,6 +13,9 @@
  *     precisely the trap in the finding, and it is not visible in the answer: zero is a valid
  *     number.
  *
+ * The counts run against a real Postgres (PGlite behind db.js's pool,
+ * testUtils/pglitePool.js, with the usage store's own schema).
+ *
  * Run: cd server && node --test stores/usageStore.studioAppRuns.test.js
  */
 
@@ -21,21 +24,18 @@ const assert = require('node:assert');
 const fs = require('node:fs');
 const path = require('node:path');
 
+const { usePglitePool } = require('../testUtils/pglitePool');
+
+const { pg, query, close } = usePglitePool();
 const usageStore = require('./usageStore');
 
 const RUN_ROUTE = fs.readFileSync(path.join(__dirname, '..', 'routes', 'studioAppsRun.js'), 'utf8');
-// The row itself is built in one place now (routes/studioAppsRunUsage.js); the
+// The row itself is built in one place now (usecases/studioAppsRunUsage.js); the
 // route's two action endpoints call it.
-const USAGE_MODULE = fs.readFileSync(path.join(__dirname, '..', 'routes', 'studioAppsRunUsage.js'), 'utf8');
-
-function fakeDb(rows, capture = []) {
-    return {
-        async query(sql, params) { capture.push({ sql, params }); return { rows }; },
-    };
-}
+const USAGE_MODULE = fs.readFileSync(path.join(__dirname, '..', 'usecases', 'studioAppsRunUsage.js'), 'utf8');
 
 test('the store and the run bridge name the SAME source', () => {
-    // Genuinely textual: routes/studioAppsRunUsage.js hardcodes the literal
+    // Genuinely textual: usecases/studioAppsRunUsage.js hardcodes the literal
     // string on purpose (the default `source` of actionUsageRow) rather than
     // importing usageStore.STUDIO_APP_ACTION_SOURCE — so a store does not need
     // to pull anything from the runtime. There is no shared reference to check
@@ -54,66 +54,43 @@ test('the store and the run bridge name the SAME source', () => {
     assert.strictEqual(callSites.length, 2, 'both action endpoints of the run route write their row through the builder');
 });
 
-test('counts action runs of the asked apps, and NEVER filters on the viewer', async () => {
-    const seen = [];
-    const db = fakeDb([{ agent_id: 'app-1', runs: 12 }], seen);
-    const out = await usageStore.getStudioAppRunCounts(['app-1', 'app-2'], { db });
+/** One ai_usage_log row. */
+async function usage(agentId, source, userId, when = 'NOW()') {
+    await pg.query(
+        `INSERT INTO ai_usage_log (timestamp, user_id, agent_id, model, prompt_tokens, completion_tokens, total_tokens, source)
+         VALUES (${when}, $1, $2, 'm', 1, 1, 2, $3)`, [userId, agentId, source]);
+}
 
-    assert.strictEqual(out.get('app-1'), 12);
-    assert.strictEqual(out.get('app-2'), 0, 'een app waar niemand op drukte is een feit, geen gat');
+test.before(async () => {
+    await usageStore.initDB();
+    // Every row is on the OWNER of the app, whoever pressed the button.
+    for (let i = 0; i < 12; i++) await usage('app-1', 'studio_app_action', 'owner');
+    await usage('app-1', 'chat', 'owner');
+    await usage('app-1', 'studio_app_action', 'owner', "date_trunc('month', NOW()) - INTERVAL '1 day'");
+    await usage('someone-elses-app', 'studio_app_action', 'other');
+});
+test.after(close);
 
-    const { sql, params } = seen[0];
-    assert.doesNotMatch(sql, /user_id/,
-        'de rijen staan op de EIGENAAR: filteren op user_id zet de teller voor elke andere kijker op nul');
-    assert.match(sql, /agent_id = ANY\(\$1::text\[\]\)/);
-    assert.match(sql, /source = \$2/, 'gewone chats en andere bronnen horen niet in dit getal');
-    assert.deepStrictEqual(params, [['app-1', 'app-2'], 'studio_app_action']);
+test('counts action runs of the asked apps this month, whoever is looking', async () => {
+    const out = await usageStore.getStudioAppRunCounts(['app-1', 'app-2'], { db: { query } });
+    assert.strictEqual(out.get('app-1'), 12, 'not the chat row, not last month');
+    assert.strictEqual(out.get('app-2'), 0, 'an app nobody pressed is a fact, not a gap');
+    assert.strictEqual((await usageStore.getStudioAppRunCounts(['app-1'])).get('app-1'), 12, 'the default path reads the same');
 });
 
-test('the window is a real time bound, and it is the calendar month', async () => {
-    const seen = [];
-    await usageStore.getStudioAppRunCounts(['app-1'], { db: fakeDb([], seen) });
-    assert.match(seen[0].sql, /timestamp >= date_trunc\('month', NOW\(\)\)/,
-        'zonder tijdgrens telt het getal alles sinds de installatie, niet "deze maand"');
-    assert.deepStrictEqual(Object.keys(usageStore.RUN_COUNT_WINDOWS), ['month'],
-        'de vensterlijst is gesloten: de waarde is een SQL-fragment');
+test('the window list is closed: an unknown window is refused, never answered as a month', async () => {
+    assert.deepStrictEqual(Object.keys(usageStore.RUN_COUNT_WINDOWS), ['month']);
+    await assert.rejects(() => usageStore.getStudioAppRunCounts(['app-1'], { window: 'week', db: { query } }), /unknown window/);
+    await assert.rejects(() => usageStore.getStudioAppRunCounts(['app-1'], { window: "x') OR true --", db: { query } }), /unknown window/,
+        'the window is a key in a closed list, never text that goes into the query');
 });
 
-test('an unknown window is refused, never silently answered as a month', async () => {
-    const seen = [];
-    await assert.rejects(
-        () => usageStore.getStudioAppRunCounts(['app-1'], { window: 'week', db: fakeDb([], seen) }),
-        /unknown window/,
-    );
-    await assert.rejects(
-        () => usageStore.getStudioAppRunCounts(['app-1'], { window: "x') OR true --", db: fakeDb([], seen) }),
-        /unknown window/,
-        'het venster is een sleutel in een gesloten lijst, nooit tekst die de query in gaat',
-    );
-    assert.strictEqual(seen.length, 0, 'een afgewezen venster vraagt de database niets');
-});
-
-test('an empty or junk id list asks the database nothing', async () => {
-    const seen = [];
-    const db = fakeDb([], seen);
+test('an empty or junk id list answers an empty map', async () => {
     for (const ids of [[], null, undefined, [null, '', false]]) {
-        const out = await usageStore.getStudioAppRunCounts(ids, { db });
-        assert.strictEqual(out.size, 0);
+        assert.strictEqual((await usageStore.getStudioAppRunCounts(/** @type {any} */ (ids), { db: { query } })).size, 0);
     }
-    assert.strictEqual(seen.length, 0);
 });
 
-test('a row for an app nobody asked about is ignored', async () => {
-    const db = fakeDb([
-        { agent_id: 'app-1', runs: 3 },
-        { agent_id: 'someone-elses-app', runs: 99 },
-    ]);
-    const out = await usageStore.getStudioAppRunCounts(['app-1'], { db });
-    assert.deepStrictEqual([...out.entries()], [['app-1', 3]]);
-});
-
-test('duplicate ids are asked once and answered once', async () => {
-    const seen = [];
-    await usageStore.getStudioAppRunCounts(['app-1', 'app-1', 'app-1'], { db: fakeDb([], seen) });
-    assert.deepStrictEqual(seen[0].params[0], ['app-1']);
+test('an app nobody asked about stays out, and duplicate ids are answered once', async () => {
+    assert.deepStrictEqual([...(await usageStore.getStudioAppRunCounts(['app-1', 'app-1'], { db: { query } })).entries()], [['app-1', 12]]);
 });

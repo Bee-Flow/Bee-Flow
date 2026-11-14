@@ -21,142 +21,141 @@
  *   3. DETACHING NEVER DELETES. A project delete clears the reference. Nothing
  *      else.
  *
- * No database: `../../db` is stubbed, and every assertion is about the SQL and
- * the parameters that reach it.
+ * Against a real Postgres (PGlite behind db.js's pool, testUtils/pglitePool.js)
+ * with the agent store's own schema. The pool notes the columns of every
+ * answer, which is how "the listing is narrow" is read off the database.
  *
- * Run: cd server && node --test --test-force-exit stores/agent/agentCrud.project.test.js
+ * Run: cd server && node --test stores/agent/agentCrud.project.test.js
  */
 
 const test = require('node:test');
 const assert = require('node:assert');
-const Module = require('module');
 
-const sql = { run: [], getAll: [], getOne: [] };
-let nextRunResult = { rowCount: 1 };
-let nextRows = [];
+process.env.NODE_ENV = 'test';
 
-const mockDb = {
-    async exec() {},
-    async run(text, params) { sql.run.push({ text, params }); return nextRunResult; },
-    async getAll(text, params) { sql.getAll.push({ text, params }); return nextRows; },
-    async getOne(text, params) { sql.getOne.push({ text, params }); return null; },
-};
+const { usePglitePool } = require('../../testUtils/pglitePool');
+const db = require('../../db');
 
-const MOCKS = {
-    '../../db': mockDb,
-    './initSchema': { initDB: async () => {} },
-    './agentTools': {
-        getAgentTools: async () => [],
-        getAgentToolsWithParams: async () => [],
-        getAgentToolsBatch: async () => new Map(),
-        getAgentToolsWithParamsBatch: async () => new Map(),
-    },
-};
-const MOCK_IDS = {};
-for (const [request, exportsObj] of Object.entries(MOCKS)) {
-    const mockId = `mock:agentProject:${request}`;
-    MOCK_IDS[request] = mockId;
-    require.cache[mockId] = { id: mockId, filename: mockId, loaded: true, exports: exportsObj };
-}
-const originalResolve = Module._resolveFilename;
-Module._resolveFilename = function (request, parent, ...rest) {
-    if (parent && /agent[\\/]agent(?:Crud|Reads|RuntimeView|Rows|Publishing|Categories|OrgMaintenance|Projects|Sync)\.js$/.test(parent.filename)
-        && Object.prototype.hasOwnProperty.call(MOCK_IDS, request)) {
-        return MOCK_IDS[request];
-    }
-    return originalResolve.call(this, request, parent, ...rest);
-};
-
+const { pg, close } = usePglitePool();
+/** The column names of every answer the database gave, in order. */
+const answered = [];
+const query = db.pool.query;
+db.pool.query = /** @type {any} */ (async (...args) => {
+    const r = await query(...args);
+    answered.push((r.fields || []).map((f) => f.name));
+    return r;
+});
+const agentSchema = require('./initSchema');
 const store = require('./agentCrud');
-test.after(() => { Module._resolveFilename = originalResolve; });
 
-function reset() {
-    sql.run.length = 0; sql.getAll.length = 0; sql.getOne.length = 0;
-    nextRunResult = { rowCount: 1 };
-    nextRows = [];
+test.before(async () => {
+    await pg.exec(`CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, "organizationId" TEXT)`);
+    await agentSchema.initDB();
+});
+test.after(close);
+
+async function reset() {
+    await pg.exec('DELETE FROM agents');
+    answered.length = 0;
 }
+/** @param {string} id @param {string} owner @param {string | null} projectId @param {string} [updatedAt] */
+const agent = (id, owner, projectId, updatedAt = '2026-01-01T00:00:00Z') => pg.query(
+    `INSERT INTO agents (id, name, description, owner_id, project_id, system_prompt, config, rev, updated_at)
+     VALUES ($1, $1, 'd', $2, $3, 'secret instructions', '{"tools":["x"]}', 4, $4)`, [id, owner, projectId, updatedAt]);
+const agentRow = async (id) => (await pg.query('SELECT project_id, rev, updated_at FROM agents WHERE id = $1', [id])).rows[0];
 
 // ═══ Listing ═════════════════════════════════════════════════════════
 
 test('the listing asks for one project and orders by recency', async () => {
-    reset();
-    nextRows = [{ id: 'ag1', name: 'Helper', description: 'd', avatar: null, owner_id: 'alice', project_id: 'p1', updated_at: 'T' }];
+    await reset();
+    await agent('ag_old', 'alice', 'p1', '2026-01-01T00:00:00Z');
+    await agent('ag_new', 'bob', 'p1', '2026-02-01T00:00:00Z');
+    await agent('ag_other', 'alice', 'p2');
+    await agent('ag_loose', 'alice', null);
 
     const list = await store.listProjectAgents('p1');
 
-    assert.strictEqual(sql.getAll.length, 1);
-    assert.match(sql.getAll[0].text, /WHERE project_id = \$1/);
-    assert.deepStrictEqual(sql.getAll[0].params, ['p1']);
-    assert.deepStrictEqual(list, [{
-        id: 'ag1', name: 'Helper', description: 'd', avatar: null,
-        ownerId: 'alice', projectId: 'p1', updatedAt: 'T',
-    }]);
+    assert.deepStrictEqual(list.map(a => a.id), ['ag_new', 'ag_old']);
+    assert.deepStrictEqual(Object.keys(list[0]).sort(), ['avatar', 'description', 'id', 'name', 'ownerId', 'projectId', 'updatedAt']);
+    assert.deepStrictEqual({ ...list[0], updatedAt: undefined }, {
+        id: 'ag_new', name: 'ag_new', description: 'd', avatar: null,
+        ownerId: 'bob', projectId: 'p1', updatedAt: undefined,
+    });
 });
 
 test('the listing names its columns instead of starring them', async () => {
     // A `SELECT *` here would put every column added to `agents` next year into
     // a payload every project member reads, without anyone deciding to. The
-    // three below are the ones that must never be in it today.
-    reset();
+    // ones below are the ones that must never be in it today.
+    await reset();
+    await agent('ag1', 'alice', 'p1');
+    answered.length = 0;
     await store.listProjectAgents('p1');
-    const text = sql.getAll[0].text;
-    assert.ok(!/SELECT \*/.test(text), 'the columns are named');
+    const columns = answered.at(-1);
+    assert.deepStrictEqual([...columns].sort(), ['avatar', 'description', 'id', 'name', 'owner_id', 'project_id', 'updated_at']);
     for (const forbidden of ['config', 'system_prompt', 'shared_groups', 'published_config']) {
-        assert.ok(!new RegExp(`\\b${forbidden}\\b`).test(text), `${forbidden} is not in the listing`);
+        assert.ok(!columns.includes(forbidden), `${forbidden} is not in the listing`);
     }
 });
 
-test('no project id means no query at all, and an empty list', async () => {
-    reset();
+test('no project id means an empty list, never the agents without a project', async () => {
+    await reset();
+    await agent('ag_loose', 'alice', null);
     assert.deepStrictEqual(await store.listProjectAgents(null), []);
     assert.deepStrictEqual(await store.listProjectAgents(''), []);
-    assert.strictEqual(sql.getAll.length, 0, 'a missing id must not become WHERE project_id = NULL');
 });
 
 // ═══ Filing in and out ═══════════════════════════════════════════════
 
 test('filing in matches on the OWNER, not just the id', async () => {
-    reset();
-    const ok = await store.setAgentProject('ag1', 'alice', 'p1');
-
-    assert.strictEqual(ok, true);
-    assert.strictEqual(sql.run.length, 1);
-    assert.match(sql.run[0].text, /UPDATE agents SET project_id = \$1/);
-    assert.match(sql.run[0].text, /WHERE id = \$2 AND owner_id = \$3/);
-    assert.deepStrictEqual(sql.run[0].params, ['p1', 'ag1', 'alice']);
+    await reset();
+    await agent('ag1', 'alice', null);
+    assert.strictEqual(await store.setAgentProject('ag1', 'alice', 'p1'), true);
+    assert.strictEqual((await agentRow('ag1')).project_id, 'p1');
 });
 
 test('a write that matched nothing is reported as false, never as success', async () => {
-    reset();
-    nextRunResult = { rowCount: 0 };
+    await reset();
+    await agent('ag1', 'alice', null);
     assert.strictEqual(await store.setAgentProject('ag1', 'mallory', 'p1'), false);
+    assert.strictEqual((await agentRow('ag1')).project_id, null, 'someone else\'s agent stays where it was');
+    assert.strictEqual(await store.setAgentProject('ag_missing', 'alice', 'p1'), false);
 });
 
 test('taking an agent out writes a real NULL', async () => {
-    reset();
-    await store.setAgentProject('ag1', 'alice', null);
-    assert.strictEqual(sql.run[0].params[0], null);
+    await reset();
+    await agent('ag1', 'alice', 'p1');
+    assert.strictEqual(await store.setAgentProject('ag1', 'alice', null), true);
+    assert.strictEqual((await agentRow('ag1')).project_id, null);
+    await store.setAgentProject('ag1', 'alice', 'p1');
+    await store.setAgentProject('ag1', 'alice', '');
+    assert.strictEqual((await agentRow('ag1')).project_id, null, 'an empty id is no project, not a project called ""');
 });
 
 test('filing does NOT bump rev', async () => {
     // `rev` is the editor's optimistic-concurrency token over the agent's
     // concept. Membership changes no part of that, and bumping it would make an
     // open editor's next save collide with a change it cannot even see.
-    reset();
+    await reset();
+    await agent('ag1', 'alice', null);
     await store.setAgentProject('ag1', 'alice', 'p1');
-    assert.ok(!/rev/.test(sql.run[0].text), 'membership is not a concept edit');
+    assert.strictEqual((await agentRow('ag1')).rev, 4, 'membership is not a concept edit');
 });
 
 // ═══ Detaching ═══════════════════════════════════════════════════════
 
 test('a deleted project clears the reference and nothing else', async () => {
-    reset();
-    nextRunResult = { rowCount: 3 };
+    await reset();
+    await agent('a1', 'alice', 'p1');
+    await agent('a2', 'bob', 'p1');
+    await agent('a3', 'carol', 'p1');
+    await agent('keep', 'alice', 'p2');
     const cleared = await store.clearProjectFromAgents('p1');
 
     assert.strictEqual(cleared, 3);
-    assert.strictEqual(sql.run.length, 1);
-    assert.match(sql.run[0].text, /UPDATE agents SET project_id = NULL WHERE project_id = \$1/);
-    assert.ok(!/DELETE/i.test(sql.run[0].text), 'deleting a project must never destroy an agent');
-    assert.deepStrictEqual(sql.run[0].params, ['p1']);
+    const { rows } = await pg.query('SELECT id, project_id FROM agents ORDER BY id');
+    assert.deepStrictEqual(rows, [
+        { id: 'a1', project_id: null }, { id: 'a2', project_id: null }, { id: 'a3', project_id: null },
+        { id: 'keep', project_id: 'p2' },
+    ], 'deleting a project must never destroy an agent');
 });

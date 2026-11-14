@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Shared set-up for the tests of an app's uploaded files in a copy (appStudio/portableAssets.mts,
  * portableAssetStore.mts and the doors that use them): real picture bytes, entries as a copy

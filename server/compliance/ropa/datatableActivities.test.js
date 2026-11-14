@@ -1,11 +1,16 @@
 /**
- * Studio tables in the processing register.
+ * Studio tables in the processing register. Which tables are read is checked
+ * on a real Postgres (the boot ladder's schema on PGlite, testUtils/pgliteDb.js);
+ * the sentences built from a row get the row handed in.
  *
- * Run: node --test --test-force-exit compliance/ropa/datatableActivities.test.js
+ * Run: node --test compliance/ropa/datatableActivities.test.js
  */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const R = require('./datatableActivities');
+const { pgliteDb } = require('../../testUtils/pgliteDb');
+const { ladderPglite } = require('../../testUtils/pgliteTemplate');
+const { insertRow } = require('../../testUtils/pgliteSeed');
 
 const ROW = {
     id: 'tbl_1', name: 'Invoices', description: null,
@@ -15,7 +20,7 @@ const ROW = {
 };
 const FIELDS = [{ key: 'supplier', name: 'Leverancier' }, { key: 'email', name: 'E-mail' }, { key: 'total', name: 'Total' }];
 const deps = (rows, fields = FIELDS) => ({
-    getAll: async (sql, params) => { deps.last = { sql, params }; return rows; },
+    getAll: async () => rows,
     getTableMeta: async () => ({ fields }),
 });
 
@@ -29,10 +34,24 @@ test('a registered table becomes an activity with a real retention sentence and 
     assert.deepEqual(a.data_categories, ['E-mail addresses'], 'from the columns, not from a constant');
     assert.match(a.data_subjects[0], /identified by "supplier"/);
     assert.equal(a.recipients, 'Everyone in this organisation');
-    // The query only asks for THIS organisation, and only for rows someone recorded something about.
-    assert.match(deps.last.sql, /organization_id = \$1/);
-    assert.match(deps.last.sql, /lawful_basis IS NOT NULL OR retention_days IS NOT NULL/);
-    assert.deepEqual(deps.last.params, ['org1']);
+});
+
+test('only THIS organisation\'s tables, and only those someone recorded something about, oldest first', async () => {
+    const { pg, db } = pgliteDb(ladderPglite());
+    try {
+        /** @param {Record<string, unknown>} over */
+        const table = (over) => insertRow(pg, 'datatables', {
+            scope_kind: 'org', scope_id: 'org1', owner_user_id: 'u1', organization_id: 'org1', key: String(over.id), name: String(over.id), ...over });
+        await table({ id: 'tbl_new', lawful_basis: 'consent', created_at: '2026-02-01T00:00:00Z' });
+        await table({ id: 'tbl_old', retention_days: 30, created_at: '2026-01-01T00:00:00Z' });
+        await table({ id: 'tbl_nothing' });
+        await table({ id: 'tbl_other_org', organization_id: 'org2', scope_id: 'org2', lawful_basis: 'contract' });
+        const getAll = async (/** @type {string} */ sql, /** @type {unknown[]} */ params) => (await db.query(sql, params)).rows;
+        const activities = await R.datatableActivities('org1', { getAll, getTableMeta: async () => ({ fields: FIELDS }) });
+        assert.deepEqual(activities.map((x) => x.source.id), ['tbl_old', 'tbl_new']);
+    } finally {
+        await pg.close();
+    }
 });
 
 test('no retention recorded says exactly that — never a promise nothing enforces', async () => {

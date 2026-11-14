@@ -38,7 +38,8 @@ const path = require('path');
 const configStore = require('../../stores/configStore');
 const log = require('../../telemetry/log');
 const { buildAudioArgs, runFfmpeg } = require('../media/ffmpeg');
-const { bestEffort, fallback } = require('../../utils/bestEffort');
+const { bestEffort, fallback, ignoreGone } = require('../../utils/bestEffort');
+const { envInt, envNumber } = require('../../utils/envNumber.mts');
 
 // The server runs in Docker; the NPU service is a host systemd unit
 // (flm-npu.service), so the default reaches back out to the host.
@@ -51,16 +52,16 @@ const BYTES_PER_SEC = SAMPLE_RATE * BYTES_PER_SAMPLE;
 
 // Window length for one NPU request. Each window becomes one segment, so this
 // trades segment granularity against request overhead.
-const WINDOW_SEC = Number(process.env.NPU_WHISPER_WINDOW_SEC) || 60;
+const WINDOW_SEC = envNumber('NPU_WHISPER_WINDOW_SEC', 60, { positive: true });
 // How far from an exact window boundary we may move the cut to land on silence.
-const CUT_SEARCH_SEC = Number(process.env.NPU_WHISPER_CUT_SEARCH_SEC) || 8;
-const MAX_DURATION_SEC = Number(process.env.NPU_WHISPER_MAX_DURATION_SEC) || 7200; // 2 h
+const CUT_SEARCH_SEC = envNumber('NPU_WHISPER_CUT_SEARCH_SEC', 8, { positive: true });
+const MAX_DURATION_SEC = envNumber('NPU_WHISPER_MAX_DURATION_SEC', 7200, { positive: true }); // 2 h
 // A trailing window shorter than this is merged into the previous one.
-const MIN_TAIL_SEC = Number(process.env.NPU_WHISPER_MIN_TAIL_SEC) || 5;
+const MIN_TAIL_SEC = envNumber('NPU_WHISPER_MIN_TAIL_SEC', 5, { positive: true });
 // Chunks quieter than this are never sent. Digital silence is 0; a quiet
 // speaker still runs well above 100, so this only catches genuine silence.
-const SILENCE_RMS = Number(process.env.NPU_WHISPER_SILENCE_RMS) || 25;
-const REQUEST_TIMEOUT_MS = Number(process.env.NPU_WHISPER_TIMEOUT_MS) || 300_000;
+const SILENCE_RMS = envNumber('NPU_WHISPER_SILENCE_RMS', 25, { positive: true });
+const REQUEST_TIMEOUT_MS = envInt('NPU_WHISPER_TIMEOUT_MS', 300_000, { min: 1 });
 const PROBE_TIMEOUT_MS = 2000;
 
 // BCP-47 -> the 2-letter code the endpoint expects. Anything unknown is sent
@@ -332,7 +333,7 @@ async function transcribeWithNpu(audioPath, options = {}) {
         _probe = { at: 0, ok: false, base: null };
         return null;
     } finally {
-        if (wavPath) { try { fs.unlinkSync(wavPath); } catch (err) { log.debug('already gone', err); } }
+        if (wavPath) { try { fs.unlinkSync(wavPath); } catch (err) { ignoreGone('voice/npuWhisper:unlinkWav', err); } }
     }
 }
 

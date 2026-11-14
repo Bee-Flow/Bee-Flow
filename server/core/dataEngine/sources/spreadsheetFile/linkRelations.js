@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The relations a link request declares between the sheets it links (and the
  * sheets linked earlier in the same scope), turned into per-mirror declared
@@ -30,11 +30,11 @@ function resolveDeclared(relations, created, siblings) {
      * @param {{ provider?: string, fileId?: string, driveId?: string, path?: string, sheet?: unknown, col?: number }} side
      */
     function sideOf(side) {
-        if (!side || !PROVIDERS.includes(side.provider) || !Number.isInteger(side.col)) return null;
+        if (!side || !PROVIDERS.includes(/** @type {string} */ (side.provider)) || !Number.isInteger(side.col)) return null;
         let ref;
-        try { ref = reading.fileRefOf(side.provider, { fileId: side.fileId, driveId: side.driveId, path: side.path }); } catch (_) { return null; }
+        try { ref = reading.fileRefOf(/** @type {string} */ (side.provider), { fileId: side.fileId, driveId: side.driveId, path: side.path }); } catch (_) { return null; }
         const sheet = side.sheet === undefined || side.sheet === null || side.sheet === '' ? '' : String(side.sheet);
-        const refKey = `${reading.fileKeyOf(side.provider, { id: ref.fileId, path: ref.path })}|${sheet}`;
+        const refKey = `${reading.fileKeyOf(/** @type {string} */ (side.provider), { id: /** @type {string | undefined} */ (ref.fileId), path: /** @type {string | undefined} */ (ref.path) })}|${sheet}`;
         const made = createdByRef.get(refKey);
         if (made) {
             const d = made.plan.described.find(x => x.col === side.col);

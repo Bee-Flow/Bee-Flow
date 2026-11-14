@@ -23,11 +23,12 @@
 
 const configStore = require('../../stores/configStore');
 const log = require('../../telemetry/log');
+const { envInt } = require('../../utils/envNumber.mts');
 
 // The server runs in Docker; llama.cpp is a host process.
 const DEFAULT_URL = 'http://host.docker.internal:8080';
 const DEFAULT_MODEL = 'bge-reranker-v2-m3';
-const TIMEOUT_MS = Number(process.env.LLAMACPP_RERANK_TIMEOUT_MS) || 15_000;
+const TIMEOUT_MS = envInt('LLAMACPP_RERANK_TIMEOUT_MS', 15_000, { min: 1 });
 
 /** @param {number} x */
 function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }

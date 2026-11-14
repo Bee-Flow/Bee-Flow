@@ -1,10 +1,10 @@
 import { useId, useState } from 'react';
 import { usePolicyBodyQuery, usePublishedPoliciesQuery } from '../../api/queries/complianceReads';
 import { FileText, Check, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
-import { API_BASE } from '../../utils/helpers';
 import { useTranslation } from '../../hooks/useTranslation';
-import { mutate, ApiError } from '../../api/mutate';
+import { ApiError } from '../../api/mutate';
 import { ALERT_ERROR } from '../../components/mcpLibrary/ui';
+import { apiRequest } from '@/api/typedRequest';
 
 /** The body of the open policy while it is not there: on its way, or failed with a way to ask again. */
 function PolicyBodyPending({ failed, onRetry }: { failed: boolean; onRetry: () => void }) {
@@ -75,9 +75,7 @@ export default function PolicyAcknowledgements() {
     const confirm = async (slug: string) => {
         setBusySlug(slug);
         try {
-            const r = await mutate(`${API_BASE}/api/compliance/iso/docs/${encodeURIComponent(slug)}/acknowledge`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
-            }).catch((err: unknown) => {
+            const r = await apiRequest('POST /api/compliance/iso/docs/{slug}/acknowledge', { params: { slug }, init: { headers: { 'Content-Type': 'application/json' }, body: '{}' } }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });

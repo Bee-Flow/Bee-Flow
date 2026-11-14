@@ -7,8 +7,8 @@ import { BillingCard, PlanLimitsCard, UsageCard } from './SubscriptionCards';
 import { HighestPlanNotice, ScheduledCancelBanner, ScheduledDowngradeBanner, UsageUpgradeCta } from './SubscriptionNotices';
 import type { OrgSubscriptionState } from './useOrgSubscription';
 import { cloudFetch } from '@/api/cloudFetch';
-import { API_BASE } from '@/utils/helpers';
 import InvoicesPanel from '@/components/billing/InvoicesPanel';
+import { apiUrl } from '@/api/typedRequest';
 
 interface ActiveSubscriptionViewProps {
     sub: OrgSubscription;
@@ -71,12 +71,12 @@ export default function ActiveSubscriptionView({ sub, billing, isCloud, deployme
                 <InvoicesPanel
                     title={undefined}
                     fetcher={async () => {
-                        const res = await cloudFetch(deploymentMode, `${API_BASE}/api/stripe/invoices`);
+                        const res = await cloudFetch(deploymentMode, apiUrl('GET /api/stripe/invoices'));
                         if (!res.ok) throw new Error(t('billing.invoices_load_failed', 'Failed to load invoices'));
                         const data = await res.json();
                         return data.invoices || [];
                     }}
-                    pdfFetcher={(invoiceId: string) => cloudFetch(deploymentMode, `${API_BASE}/api/stripe/invoices/${invoiceId}/pdf`) as Promise<Response>}
+                    pdfFetcher={(invoiceId: string) => cloudFetch(deploymentMode, apiUrl('GET /api/stripe/invoices/{id}/pdf', { params: { id: invoiceId } })) as Promise<Response>}
                 />
             )}
 

@@ -28,7 +28,7 @@ const REF_ROOTS = new Set(['trigger', 'steps', 'vars', 'secrets', 'loop']);
  * The head is read even when the tail does not parse, so a broken path still
  * names the step it reads — that step is checked like any other.
  *
- * @returns {{ valid: boolean, root: string|null, second: string|null, tokens: object[] }}
+ * @returns {{ valid: boolean, root: string|null, second: string|null, tokens: PathTokens }}
  * @param {string} path
  */
 function refHead(path) {

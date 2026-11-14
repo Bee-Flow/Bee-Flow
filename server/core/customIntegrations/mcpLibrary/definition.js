@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Turning "install this MCP server" into an mcp_remote custom-integration
  * definition, and checking an endpoint before anything is stored.
@@ -41,7 +41,9 @@ const HEADER_NAME_RE = /^[A-Za-z0-9-]{1,64}$/;
 function authFromCatalog(entry) {
     const a = entry.auth || { style: 'none' };
     if (a.style === 'none') return { authStyle: 'none', credential: null };
-    const credential = { key: a.credential.key, label: a.credential.label };
+    // Every catalogue entry with an auth style other than 'none' names its credential.
+    const cred = /** @type {NonNullable<typeof a.credential>} */ (a.credential);
+    const credential = { key: cred.key, label: cred.label };
     if (a.style === 'bearer') {
         return { authStyle: 'bearer', valueTemplate: `Bearer {{credential.${credential.key}}}`, credential };
     }
@@ -103,7 +105,8 @@ function mcpBlock({ url, auth, toolAllowList = null, discoveredTools = null }) {
     const mcp = { url, authStyle: auth.authStyle };
     if (auth.authStyle !== 'none') {
         mcp.valueTemplate = auth.valueTemplate;
-        mcp.credentials = [{ key: auth.credential.key, label: auth.credential.label }];
+        const cred = /** @type {NonNullable<LibraryAuth['credential']>} */ (auth.credential); // set for every style but 'none'
+        mcp.credentials = [{ key: cred.key, label: cred.label }];
         if (auth.authStyle === 'header') mcp.header = auth.header;
     }
     if (Array.isArray(toolAllowList)) mcp.toolAllowList = toolAllowList;

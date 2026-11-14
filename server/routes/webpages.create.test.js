@@ -104,7 +104,7 @@ test('creates through create_webpage and writes the framework/runtime tier', asy
         assert.strictEqual(calls.created[0].toolName, 'create_webpage');
         assert.strictEqual(calls.created[0].args.name, 'Status page');
 
-        const { DEFAULT_NEW_FRAMEWORK, DEFAULT_RUNTIME } = require('../integrations/webpageFramework');
+        const { DEFAULT_NEW_FRAMEWORK, DEFAULT_RUNTIME } = require('../core/webpages/frameworkModel.mts');
         assert.deepStrictEqual(calls.meta[0].updates.settings, {
             framework: DEFAULT_NEW_FRAMEWORK,
             runtime: DEFAULT_RUNTIME,

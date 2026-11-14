@@ -6,9 +6,7 @@ import useProjectsAvailable from '../../hooks/useProjectsAvailable';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useViewport } from '../../hooks/useViewport';
 import { Check, ChevronDown } from 'lucide-react';
-import { API_BASE } from '../../utils/helpers';
 import { useUiLocales } from '../../api/queries/settingsLocales';
-import { mutate } from '../../api/mutate';
 import scopedStorage from '../../utils/scopedStorage';
 import MeetingNotesSection from './MeetingNotesSection';
 import GoogleMeetNotesSection from './GoogleMeetNotesSection';
@@ -17,6 +15,7 @@ import SummaryTemplatesSection from './SummaryTemplatesSection';
 import VoiceprintSection from './VoiceprintSection';
 import EditorPreferencesSection from './EditorPreferencesSection';
 import type { PreferencesUser, PreferencesAgent, PreferencesSectionProps, RowProps, DropdownOption, DropdownProps, ToggleProps, UiLocale } from './PreferencesSection.types';
+import { apiRequest } from '@/api/typedRequest';
 
 const NO_LOCALES: UiLocale[] = [];
 
@@ -170,11 +169,7 @@ const PreferencesSection = ({
         if (onUpdateUser) onUpdateUser({ simpleMode: newVal });
         setSimpleSaving(true);
         try {
-            await mutate(`${API_BASE}/ai/user-settings`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ simpleMode: newVal }),
-            });
+            await apiRequest('POST /ai/user-settings', { body: { simpleMode: newVal } });
         } catch {
             setLocalUser(prev => ({ ...prev, simpleMode: !newVal }));
             if (onUpdateUser) onUpdateUser({ simpleMode: !newVal });

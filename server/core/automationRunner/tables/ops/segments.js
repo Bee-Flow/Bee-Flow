@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * groups: how many rows fall in each answer of the chosen columns. The table
@@ -110,14 +110,15 @@ async function apply(op, input, ctx) {
         let entries = [...counters[i].values()];
         if (s.def.values) {
             const order = new Map(s.def.values.map((v, k) => [foldText(v), k]));
-            entries.sort((a, b) => order.get(foldText(a.value)) - order.get(foldText(b.value)));
+            // count() keeps only the declared values, so every entry has a rank here.
+            entries.sort((a, b) => /** @type {number} */ (order.get(foldText(a.value))) - /** @type {number} */ (order.get(foldText(b.value))));
         } else entries = entries.sort((a, b) => b.n - a.n);
         const heading = s.def.label || s.col.label || s.col.key;
         for (const e of entries) {
             const rule = s.def.separator
                 ? { column: s.col.key, test: 'contains_item', value: e.value, separator: s.def.separator || DEFAULT_SEPARATOR }
                 : { column: s.col.key, test: 'equals', value: e.value };
-            consider(idFor(slug(`${s.col.key}=${e.value}`)), `${heading}: ${e.value}`, s.col.key, e.value, e.n, [rule]);
+            consider(idFor(slug(`${s.col.key}=${e.value}`)), `${heading}: ${e.value}`, s.col.key, e.value, e.n, [/** @type {Record<string, string>} */ (rule)]);
         }
     });
     const cap = ctx.limits.maxSegments;

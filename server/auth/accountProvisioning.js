@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * accountProvisioning.js — the one path every web signup takes.
  *
@@ -38,7 +38,7 @@ const { bestEffort } = require('../utils/bestEffort');
 
 /**
  * @typedef {{ organization_id?: string, role?: string, org_role?: string, orgRole?: string, id?: string, email?: string, invited_by?: string, groups?: string[], organizationId?: string }} InviteData
- * @typedef {{ accountType: 'organization'|'join_existing'|'consumer', channel: string, provider: string|null, invite: { token: string|null, data: InviteData, claimed?: boolean }|null, newOrgName: string|null, organizationId: string|null, orgDetails: Record<string, any>, privacyShield: Record<string, any>|undefined, authMethod: string|null, email: string|null, locale: string|null, selectedPlanId: string|null }} SignupIntent
+ * @typedef {{ accountType: 'organization'|'join_existing'|'consumer', channel: string, provider: string|null, invite: { token: string|null, data: InviteData, claimed?: boolean }|null, newOrgName: string|null, organizationId: string|null, orgDetails: Record<string, any>, privacyShield: Record<string, any>|null|undefined, authMethod: string|null, email: string|null, locale: string|null, selectedPlanId: string|null }} SignupIntent
  * @typedef {{ organizationId: string|null, orgRole: string, groups: string[], status: string, orgCreated?: boolean, needsVerification?: boolean }} Placement
  * @typedef {import('express').Request} Request
  */
@@ -104,13 +104,13 @@ class SignupError extends Error {
  * always a join_existing that bypasses the gates and forces 'active'. Folding
  * it into the enum would duplicate the join logic.
  *
- * @param {{ newOrgName?: string, organizationId?: string, orgDetails?: Record<string, any>, privacyShield?: Record<string, any>, authMethod?: string, email?: string, locale?: string, selectedPlanId?: string }} [source]
+ * @param {{ newOrgName?: string, organizationId?: string, orgDetails?: Record<string, any>, privacyShield?: Record<string, any>|null, authMethod?: string, email?: string, locale?: string|null, selectedPlanId?: string|null }} [source]
  * @param {{ inviteData?: InviteData|null, inviteToken?: string|null, provider?: string|null, channel?: string }} [opts]
  * @returns {SignupIntent}
  */
 function normalizeSignupIntent(source = {}, { inviteData = null, inviteToken = null, provider = null, channel = 'password' } = {}) {
     const newOrgName = source.newOrgName || null;
-    const organizationId = inviteData ? inviteData.organization_id : (source.organizationId || null);
+    const organizationId = inviteData ? /** @type {string} */ (inviteData.organization_id) : (source.organizationId || null);
 
     /** @type {'organization'|'join_existing'|'consumer'} */
     let accountType;
@@ -349,7 +349,7 @@ async function createOrgPlacement(intent) {
         throw new SignupError('ORG_SIGNUPS_DISABLED', 'Organization registration is currently disabled.');
     }
 
-    const orgId = slugifyOrgId(intent.newOrgName);
+    const orgId = slugifyOrgId(/** @type {string} */ (intent.newOrgName)); // accountType 'organization' means newOrgName is set
     const od = intent.orgDetails || {};
     const orgEmail = od.email || intent.email || '';
     // Format-check the company registration BEFORE the domain lookup: it is
@@ -546,7 +546,7 @@ async function writePrivacyShield(intent, placement, userId) {
 }
 
 /**
- * @param {{ userId: string, displayName: string, email: string, organizationId: string|null, locale: string }} opts
+ * @param {{ userId: string, displayName: string|undefined, email: string, organizationId: string|null, locale: string }} opts
  */
 async function issueVerificationToken({ userId, displayName, email, organizationId, locale }) {
     const token = crypto.randomBytes(32).toString('hex');
@@ -594,7 +594,7 @@ async function markInviteAccepted(intent, placement, userId) {
     const invite = intent.invite;
     if (!invite) return;
     try {
-        if (!invite.claimed) await require('../stores/invitationStore').markAccepted(invite.token); // signupRoutes claims before the row exists
+        if (!invite.claimed) await require('../stores/invitationStore').markAccepted(/** @type {string} */ (invite.token)); // signupRoutes claims before the row exists
         log.info(`[Signup] Invitation accepted for ${log.textForLog(intent.email)} → org ${placement.organizationId}`);
         try {
             await userStore.logAccessAudit('invitation.redeem', 'user', userId, userId, null, {
@@ -618,7 +618,7 @@ async function markInviteAccepted(intent, placement, userId) {
 // field this refactor removed came to exist in the first place.
 
 /**
- * @param {{ email: string, displayName: string, userId: string, organizationId: string|null, locale: string }} opts
+ * @param {{ email: string|null|undefined, displayName: string|undefined, userId: string, organizationId: string|null, locale: string }} opts
  */
 function sendWelcomeEmailLater({ email, displayName, userId, organizationId, locale }) {
     if (!email) return;
@@ -641,8 +641,8 @@ function sendWelcomeEmailLater({ email, displayName, userId, organizationId, loc
  * types; the org/consumer difference is confined to shieldKey and trialTarget.
  * Every step is best-effort — a failed welcome email must never fail a signup.
  *
- * @returns {Promise<{preferredLocale:string, needsVerification:boolean}>}
- * @param {{ userId: string, email: string, displayName: string, intent: SignupIntent, placement: Placement, req: Request }} opts
+ * @returns {Promise<{preferredLocale:string, needsVerification:boolean|undefined}>}
+ * @param {{ userId: string, email: string|null|undefined, displayName: string|undefined, intent: SignupIntent, placement: Placement, req: Request }} opts
  */
 async function finalizeAccount({ userId, email, displayName, intent, placement, req }) {
     await writePrivacyShield(intent, placement, userId);
@@ -653,7 +653,7 @@ async function finalizeAccount({ userId, email, displayName, intent, placement, 
 
     if (placement.needsVerification) {
         try {
-            await issueVerificationToken({ userId, displayName, email, organizationId: placement.organizationId, locale: preferredLocale });
+            await issueVerificationToken({ userId, displayName, email: /** @type {string} */ (email), organizationId: placement.organizationId, locale: preferredLocale }); // verified signups have an address
         } catch (e) { log.error('[Signup] failed to issue verification token:', /** @type {Error} */ (e).message); }
     }
 
@@ -666,7 +666,7 @@ async function finalizeAccount({ userId, email, displayName, intent, placement, 
         setImmediate(() => {
             const trialService = require('../services/trialService');
             if (target.organizationId) trialService.maybeAutoGrantOrgTrial(target.organizationId);
-            else trialService.maybeAutoGrantConsumerTrial(target.userId);
+            else trialService.maybeAutoGrantConsumerTrial(/** @type {string} */ (target.userId)); // no organisation means a user
         });
     }
 

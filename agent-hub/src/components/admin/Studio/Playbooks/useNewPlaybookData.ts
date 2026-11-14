@@ -1,5 +1,6 @@
-import { useCallback, useEffect, type Dispatch, type RefObject, type SetStateAction } from 'react';
-import { readOrgGroups, type OrgGroup } from '@/api/queries/orgGroups';
+import { useCallback, useEffect, type RefObject } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useOrgGroupsQuery, type OrgGroup } from '@/api/queries/orgGroups';
 import { DEPTH_TIER_KEYS, configuredTierKeys } from '@/components/licensing/tierMeta';
 import { datatablesApi } from '../Datatables/datatablesApi';
 import { DESCRIBE_MAX_PX, DESCRIBE_MIN_PX, type PickableTable } from './NewPlaybookDialogParts';
@@ -34,34 +35,28 @@ export function useGrowDescribe(describeRef: RefObject<HTMLTextAreaElement | nul
     return growDescribe;
 }
 
-/** The person's datatables, read once the existing-table mode is picked. */
-export function useExistingTables(
-    hasTable: boolean,
-    tableMode: string,
-    tables: PickableTable[] | null,
-    setTables: Dispatch<SetStateAction<PickableTable[] | null>>,
-) {
-    useEffect(() => {
-        if (!hasTable || tableMode !== 'existing' || tables) return;
-        let alive = true;
-        datatablesApi.list().then((b) => { if (alive) setTables(Array.isArray(b?.datatables) ? b.datatables : []); }).catch(() => { if (alive) setTables([]); });
-        return () => { alive = false; };
-    }, [hasTable, tableMode, tables, setTables]);
+/** The person's datatables, read once the existing-table mode is picked (once per dialog: no cache across mounts). A failure reads as []. */
+export function useExistingTables(hasTable: boolean, tableMode: string): PickableTable[] | null {
+    const query = useQuery<PickableTable[]>({
+        queryKey: ['datatables', 'playbookPicker'],
+        enabled: hasTable && tableMode === 'existing',
+        staleTime: Infinity,
+        gcTime: 0,
+        retry: false,
+        queryFn: async () => {
+            try {
+                const b = await datatablesApi.list();
+                return Array.isArray(b?.datatables) ? b.datatables : [];
+            } catch {
+                return [];
+            }
+        },
+    });
+    return query.data ?? null;
 }
 
-/** The org's groups, read once a phase needs an approver and approvals are allowed. */
-export function useApproverGroups(
-    approvalsAllowed: boolean | null,
-    wantsApprover: boolean,
-    groups: OrgGroup[] | null,
-    setGroups: Dispatch<SetStateAction<OrgGroup[] | null>>,
-) {
-    useEffect(() => {
-        if (!approvalsAllowed || !wantsApprover || groups) return;
-        let alive = true;
-        readOrgGroups().then((list) => {
-            if (alive) setGroups(list ?? []);
-        }).catch(() => { if (alive) setGroups([]); });
-        return () => { alive = false; };
-    }, [approvalsAllowed, wantsApprover, groups, setGroups]);
+/** The org's groups, read once a phase needs an approver and approvals are allowed. A failure reads as []. */
+export function useApproverGroups(approvalsAllowed: boolean | null, wantsApprover: boolean): OrgGroup[] | null {
+    const query = useOrgGroupsQuery(!!approvalsAllowed && wantsApprover);
+    return query.data ?? (query.isError ? [] : null);
 }

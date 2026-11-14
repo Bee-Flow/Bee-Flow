@@ -75,7 +75,8 @@ const db = {
     getOne: async (sql, params) => { rec('getOne', sql, params); return shape(sql, 'getOne', params); },
     getAll: async (sql, params) => { rec('getAll', sql, params); return shape(sql, 'getAll', params); },
     exec: async (sql) => { rec('exec', sql); return undefined; },
-    getClient: async () => null,
+    // The store's own transactions (a category delete, a move between organisations).
+    getClient: async () => ({ query: async (sql, params) => { rec('tx', sql, params); return shape(sql, 'run', params); }, release() {} }),
 };
 let managed = null; // { contentMode, stageProjectId } for every base, or null
 const partsStub = {

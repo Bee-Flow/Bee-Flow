@@ -6,7 +6,7 @@ import SolutionCardSkeleton from './SolutionCardSkeleton';
 import { Strip, sectionNames } from './solutionNotices';
 import useRemote from './useRemote';
 import { useTranslation } from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
+import { apiUrl } from '@/api/typedRequest';
 import EmptyState from '@/components/shared/EmptyState';
 import FilterPills from '@/components/shared/FilterPills';
 import { kindTileStyle } from '@/components/shared/kindColors';
@@ -61,7 +61,7 @@ export function GridSkeleton() {
  */
 export function CatalogueTab({ onInstall }: { onInstall: (id: string) => void }) {
     const { t } = useTranslation();
-    const catalogue = useRemote(`${API_BASE}/api/projects/package/blueprints`, true);
+    const catalogue = useRemote(apiUrl('GET /api/projects/package/blueprints'), true);
     const blueprints: Row[] = (catalogue.data as { blueprints?: Row[] } | null)?.blueprints || [];
 
     if (catalogue.status === 'loading' || catalogue.status === 'idle') {

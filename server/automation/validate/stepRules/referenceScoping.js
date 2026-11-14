@@ -21,7 +21,8 @@
  * here reads best after the step's own shape has been reported.
  */
 
-const { isObject, collectLiteralBraces, pickClosestId } = require('../helpers');
+const { isObject, collectLiteralBraces } = require('../helpers');
+const { pickClosestId } = require('../../../utils/closestId.mts');
 const { LOOP_RUNTIME_KEYS } = require('../constants');
 const { TOPIC_HOST_SPEC } = require('../../expr');
 const {
@@ -88,7 +89,7 @@ function checkReferences(ctx, step, at) {
     // leaveUnresolved:true), but it is excluded from THIS error-level pass:
     // a `{{from}}` placeholder naming the step's own inputs.from key is
     // legitimate, and a typo can never crash a run. The dedicated
-    // WARNING-only prompt lint lives in modelStepRules (ref.prompt_unknown_step
+    // WARNING-only prompt lint lives in aiStepRules (ref.prompt_unknown_step
     // / ref.prompt_unknown_root — C28).
     const refs = collectStepRefs(step);
     if (step.type === 'untokenize' && !step.sourceRef) {

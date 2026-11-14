@@ -1,6 +1,7 @@
 import { Database, Table2, Play, RefreshCw, Trash2, AlertTriangle, Loader2 } from 'lucide-react';
 import type { DbRow, DbSchema, Props, SqlResult, SqlTabProps, TabDef } from './WebpageDbViewer.types';
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { nOf, pluralKey } from '../../components/admin/Studio/KnowledgeStudio/plural';
 import useConfirm from '../../components/shared/useConfirm';
 import useTranslation from '../../hooks/useTranslation';
@@ -189,41 +190,44 @@ function SqlTab({ webpageId, onError, onSchemaChanged }: SqlTabProps) {
 
 export default function WebpageDbViewer({ webpageId }: Props) {
     const { t } = useTranslation();
-    const tRef = useRef(t);
-    tRef.current = t;
     const [tab, setTab] = useState('schema'); // 'schema' | 'browse' | 'sql'
     const [schema, setSchema] = useState<DbSchema | null>(null);
     // "The scan has failed" — a different state from "there are no tables".
     const [unreadable, setUnreadable] = useState(false);
-    const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null | undefined>(null);
 
-    const loadSchema = useCallback(async () => {
-        if (!webpageId) return;
-        setBusy(true);
-        setError(null);
-        try {
-            const r = await api(webpageId, '/db/schema');
-            const data = await r.json();
-            if (!r.ok) {
-                setError(data.error || tRef.current('webpages.db.err_schema', 'Schema lookup failed'));
-                // DELIBERATELY no `setSchema({ tables: [] })`: that turned "I could not look"
-                // into an empty list, and the empty list carries a sentence that is a claim.
-                // `unreadable` keeps the two apart.
+    // The read fills the schema and says when it could not look; a refresh reads again.
+    const schemaQuery = useQuery({
+        queryKey: ['webpages', 'dbSchema', webpageId],
+        enabled: !!webpageId,
+        staleTime: 0,
+        gcTime: 0,
+        retry: false,
+        queryFn: async () => {
+            setError(null);
+            try {
+                const r = await api(webpageId, '/db/schema');
+                const data = await r.json();
+                if (!r.ok) {
+                    setError(data.error || t('webpages.db.err_schema', 'Schema lookup failed'));
+                    // DELIBERATELY no `setSchema({ tables: [] })`: that turned "I could not look"
+                    // into an empty list, and the empty list carries a sentence that is a claim.
+                    // `unreadable` keeps the two apart.
+                    setUnreadable(true);
+                } else {
+                    setSchema(data);
+                    setUnreadable(false);
+                }
+            } catch (e) {
+                setError(errorMessage(e));
                 setUnreadable(true);
-            } else {
-                setSchema(data);
-                setUnreadable(false);
             }
-        } catch (e) {
-            setError(errorMessage(e));
-            setUnreadable(true);
-        } finally {
-            setBusy(false);
-        }
-    }, [webpageId]);
-
-    useEffect(() => { loadSchema(); }, [loadSchema]);
+            return true;
+        },
+    });
+    const busy = schemaQuery.isFetching;
+    const { refetch } = schemaQuery;
+    const loadSchema = useCallback(() => { if (webpageId) void refetch(); }, [webpageId, refetch]);
 
     // Listen for AI-driven DB updates broadcast over the chat SSE stream so the
     // viewer refreshes when the model mutates the DB mid-conversation.

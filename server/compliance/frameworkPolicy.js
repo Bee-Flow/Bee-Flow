@@ -266,6 +266,7 @@ function _entry(fw, settings, snap) {
  * Throws EntitlementsUnavailableError when the licence cannot be resolved —
  * a runner must then skip the org, not run with an empty set.
  * @param {string} orgId
+ * @param {{ req?: import('express').Request | null }} [opts]
  */
 async function resolve(orgId, { req = null } = {}) {
     const org = orgId || 'default';

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * core/datasets — gene catalog sanity against the generated data files.
  *
@@ -15,10 +15,12 @@ const { resolveGene, normalizeBuild } = require('./geneCatalog');
 
 test('BRCA1 resolves to its known locus on both builds', () => {
     const g38 = resolveGene('BRCA1', 'GRCh38');
+    assert.ok(g38);
     assert.strictEqual(g38.chrom, 'chr17');
     assert.ok(g38.start <= 43_100_000 && g38.end >= 43_100_000, `GRCh38 span ${g38.start}-${g38.end} should contain 43.1 Mb`);
 
     const g37 = resolveGene('BRCA1', 'GRCh37');
+    assert.ok(g37);
     assert.strictEqual(g37.chrom, 'chr17');
     assert.ok(g37.start <= 41_220_000 && g37.end >= 41_220_000, `GRCh37 span ${g37.start}-${g37.end} should contain 41.22 Mb`);
 });
@@ -43,5 +45,5 @@ test('the catalog is broad — tens of thousands of genes, common ones present',
         assert.ok(resolveGene(sym, 'GRCh37'), `${sym} missing from GRCh37 catalog`);
     }
     // APOE is the chr19 locus every consumer-genomics user asks about first.
-    assert.strictEqual(resolveGene('APOE', 'GRCh38').chrom, 'chr19');
+    assert.strictEqual(/** @type {any} */ (resolveGene('APOE', 'GRCh38')).chrom, 'chr19');
 });

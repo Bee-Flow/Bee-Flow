@@ -21,6 +21,7 @@ import { useSettingsData } from './settings/shell/useSettingsData';
 import { useSettingsTab } from './settings/shell/useSettingsTab';
 import type { SettingsUser } from './settings/shell/settingsShellTypes';
 import type { MemoryView } from '../components/knowledge/memory/memoryTypes';
+import { useShellProps } from '@/authedApp/useShellProps';
 
 export { AvatarDisplay } from './settings/shell/AvatarDisplay';
 
@@ -81,16 +82,24 @@ const STATUS_BACKED_KEYS = ['fireflies', 'youtrack', 'signrequest', 'gamma', 'af
 
 /* ── Main component ──────────────────────────────────────────────────────── */
 interface AdvancedSettingsProps {
-    onNavigate: (path: string, opts?: { replace?: boolean }) => void;
+    onNavigate?: (path: string, opts?: { replace?: boolean }) => void;
     onLogout?: () => void;
-    user: SettingsUser | null;
+    user?: SettingsUser | null;
     onUpdateUser?: (patch: Partial<SettingsUser>) => void;
     onClose?: () => void;
     onBack?: (() => void) | null;
 }
 
-const AdvancedSettings = ({ onNavigate, onLogout, user, onUpdateUser, onClose }: AdvancedSettingsProps) => {
+/** A host without navigation (a bare render in a test): the settings stay where they are. */
+const noNavigate = () => {};
+
+const AdvancedSettings = ({ onNavigate: onNavigateProp, onLogout, user: userProp, onUpdateUser, onClose }: AdvancedSettingsProps) => {
     const { t } = useTranslation();
+    // Inside the app shell the signed-in person and the navigation come from
+    // context; a host outside it (a test) still hands them as props.
+    const shell = useShellProps({ user: userProp, onNavigate: onNavigateProp });
+    const user = shell.user;
+    const onNavigate = shell.onNavigate ?? noNavigate;
     // Phones show a trimmed, user-only settings surface (see MOBILE_VISIBLE_TOP_TABS).
     const { isMobile } = useViewport();
     // Orgs with no active plan are routed to the License tab by SubscriptionGate —

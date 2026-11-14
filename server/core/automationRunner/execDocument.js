@@ -9,7 +9,7 @@ const crypto = require('crypto');
 const automationStore = require('../../stores/automationStore');
 const { interpolateTemplate } = require('../automationModel/bind');
 const { runnerPort } = require('./featurePorts');
-// automation/automationGraph (a feature), through ./featurePorts.js.
+// core/automationModel/automationGraph, read through ./featurePorts.js.
 const automationGraph = () => runnerPort('automationGraph');
 const { deckThemeFor } = require('../documents/documentHouseStyle');
 const log = require('../../telemetry/log');
@@ -298,6 +298,8 @@ async function execGenerateDocument(step, ctx, runState, mode) {
  * file (generate_document, fill_document, presentation) so the three agree
  * on what "kept" means — one cap, one key scheme, one TTL clamp.
  *
+ * @param {{ ctx: { userId: string, automationId: string, runId: string, [k: string]: unknown }, step: { id: string | null, [k: string]: unknown },
+ *   buffer: Buffer, contentType: string, filename: string, ttlDays?: number, stepLabel?: string }} file  `ttlDays` absent: the default retention
  * @returns {Promise<any>} the automation_generated_files row
  */
 async function keepGeneratedFile({ ctx, step, buffer, contentType, filename, ttlDays, stepLabel = 'generate_document' }) {

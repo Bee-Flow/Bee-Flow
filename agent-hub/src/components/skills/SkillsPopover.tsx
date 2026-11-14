@@ -4,12 +4,13 @@ import { deriveCompletedSkillIds, classifySessionSkill, type SessionSkill } from
 import SkillFormModal from './SkillFormModal';
 import { useSkills, type SkillForm } from '../../hooks/useSkills';
 import useTranslation from '../../hooks/useTranslation';
-import { API_BASE } from '../../utils/helpers';
 import { toast } from '../shared/Toast';
 import useConfirm from '../shared/useConfirm';
 import type { SessionSkillView, SkillsPopoverProps } from './SkillsPopover.types';
 import { logger } from '../../utils/logger';
-import { request, RefusedError, mutate, errorBody } from '../../api/mutate';
+import { RefusedError, errorBody } from '../../api/mutate';
+import { apiRequest } from '@/api/typedRequest';
+import { useSessionSkillsRead } from '@/api/queries/sessionSkills';
 export type { SkillsPopoverProps } from './SkillsPopover.types';
 
 const SKILL_CAP = 5;
@@ -116,18 +117,12 @@ export default function SkillsPopover({
 
     const canActivateMore = activeCount < SKILL_CAP;
 
+    const readSessionSkills = useSessionSkillsRead<SessionSkillView>();
     const refreshSessionSkills = async () => {
         if (!directMode || !directConversationId) return;
         try {
-            let res: Response;
-            try {
-                res = await request(`${API_BASE}/ai/direct/conversations/${directConversationId}/session-skills`);
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                return;
-            }
-            const data = await res.json();
-            setSessionSkills(Array.isArray(data.skills) ? data.skills : []);
+            const list = await readSessionSkills(directConversationId);
+            if (list) setSessionSkills(list);
         } catch (err) { logger.debug('ignore', err); }
     };
 
@@ -175,11 +170,7 @@ export default function SkillsPopover({
         try {
             let res: Response;
             try {
-                res = await mutate(`${API_BASE}/ai/direct/conversations/${directConversationId}/session-skills/regenerate`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({}),
-            });
+                res = await apiRequest('POST /ai/direct/conversations/{id}/session-skills/regenerate', { params: { id: directConversationId }, body: {} });
             } catch (apiErr) {
                 if (!(apiErr instanceof RefusedError)) throw apiErr;
                 const err = errorBody(apiErr) ?? {};
@@ -201,9 +192,7 @@ export default function SkillsPopover({
         try {
             let res: Response;
             try {
-                res = await mutate(`${API_BASE}/ai/direct/conversations/${directConversationId}/session-skills/${skillId}`, {
-                method: 'DELETE',
-            });
+                res = await apiRequest('DELETE /ai/direct/conversations/{id}/session-skills/{skillId}', { params: { id: directConversationId, skillId } });
             } catch (apiErr) {
                 if (!(apiErr instanceof RefusedError)) throw apiErr;
                 const err = errorBody(apiErr) ?? {};
@@ -224,11 +213,10 @@ export default function SkillsPopover({
         setImportingSkillId(skillId);
         try {
             try {
-                await mutate(`${API_BASE}/ai/direct/conversations/${directConversationId}/session-skills/${skillId}/import`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ isShared: false, dynamicActivation: true }),
-            });
+                await apiRequest('POST /ai/direct/conversations/{id}/session-skills/{skillId}/import', {
+                    params: { id: directConversationId, skillId },
+                    body: { isShared: false, dynamicActivation: true },
+                });
             } catch (apiErr) {
                 if (!(apiErr instanceof RefusedError)) throw apiErr;
                 const err = errorBody(apiErr) ?? {};

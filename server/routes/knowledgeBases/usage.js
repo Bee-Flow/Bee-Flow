@@ -28,7 +28,7 @@ const log = require('../../telemetry/log');
 const router = express.Router();
 const kbStore = require('../../stores/knowledgeBases');
 const { requireAuth } = require('../../auth');
-const { canAccessKB, getUserId } = require('./shared');
+const { requireKbGrade, kbAccessOf, getUserId } = require('./shared');
 const { usageForKb, usageSummary } = require('../../core/kb/kbUsage');
 
 /**
@@ -54,10 +54,8 @@ function redactForeign(rows, userId) {
 
 // ── GET /:id/usage ──────────────────────────────────────────────────
 
-router.get('/:id/usage', requireAuth, async (req, res) => {
-    const kb = await kbStore.getKB(req.params.id);
-    if (!kb) return res.status(404).json({ error: 'KB not found' });
-    if (!(await canAccessKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
+router.get('/:id/usage', requireAuth, requireKbGrade('read'), async (req, res) => {
+    const { kb } = kbAccessOf(req);
 
     const { rows, partial } = await usageForKb(kb.id);
     res.json({

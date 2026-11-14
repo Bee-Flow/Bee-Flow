@@ -181,7 +181,7 @@ async function getActiveLicenseForOrg(organizationId) {
 }
 
 /**
- * @param {string} userId
+ * @param {string | null} userId  null finds none
  */
 async function getActiveLicenseForUser(userId) {
     if (!userId) return null;

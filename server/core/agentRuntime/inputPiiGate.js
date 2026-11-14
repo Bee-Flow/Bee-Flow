@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The PII step of the agent input guardrails (./guardrailsRunner): scan the
  * last messages, tokenise the user message in place on a redact verdict, or
@@ -37,7 +37,7 @@ const PRIVACY_MODE_RULES = `
  * `{ moderationViolation, processedUserMessage, userPrivacyMeta, assistantTokenisationInfo }`
  * (each null/unchanged when the gate had nothing to say). `piiReport` is
  * filled in place (validate.js `options.report`).
- * @param {{ messages: import('./chatStream/turnState').ChatMessage[], orgShield: Shield, orgPiiEnabled: boolean, onEvent: import('./chatStream/turnState').OnEvent, userId: string, conversationId: string | null, model: string | null, eventCtx: GuardrailEventCtx, piiReport: import('../privacy/piiDetection/validate').PiiGateReport, processedUserMessage: string, globalFailureMode?: string | null }} opts
+ * @param {{ messages: import('./chatStream/turnState').ChatMessage[], orgShield: Shield, orgPiiEnabled: boolean, onEvent: import('./chatStream/turnState').OnEvent, userId: string, conversationId?: string | null, model?: string | null, eventCtx: GuardrailEventCtx, piiReport: import('../privacy/piiDetection/validate').PiiGateReport, processedUserMessage: string, globalFailureMode?: string | null }} opts
  * @param {PiiGateDeps} d
  * @returns {Promise<PiiGateOut>}
  */
@@ -88,7 +88,7 @@ async function runInputPiiGate({ messages, orgShield, orgPiiEnabled, onEvent, us
 /**
  * Redact/tokenise mode: rewrite the user message, tell the model and the client, keep the persistence meta.
  * @param {PiiGateOut} out
- * @param {{ piiResult: PiiResult, messages: import('./chatStream/turnState').ChatMessage[], orgShield: Shield, onEvent: import('./chatStream/turnState').OnEvent, conversationId: string | null, model: string | null, eventCtx: GuardrailEventCtx }} opts
+ * @param {{ piiResult: PiiResult, messages: import('./chatStream/turnState').ChatMessage[], orgShield: Shield, onEvent?: import('./chatStream/turnState').OnEvent, conversationId?: string | null, model?: string | null, eventCtx: GuardrailEventCtx }} opts
  * @param {PiiGateDeps} d
  */
 function applyPiiTokenisation(out, { piiResult, messages, orgShield, onEvent, conversationId, model, eventCtx }, d) {
@@ -159,7 +159,7 @@ function applyPiiTokenisation(out, { piiResult, messages, orgShield, onEvent, co
 }
 
 /**
- * @param {{ piiResult: PiiResult, orgShield: Shield, onEvent: import('./chatStream/turnState').OnEvent, model: string | null }} opts
+ * @param {{ piiResult: PiiResult, orgShield: Shield, onEvent: import('./chatStream/turnState').OnEvent, model?: string | null }} opts
  */
 function emitTokenisationEvents({ piiResult, orgShield, onEvent, model }) {
     onEvent('pii_tokenized', {

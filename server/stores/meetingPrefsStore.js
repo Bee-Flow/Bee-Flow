@@ -388,8 +388,8 @@ function resolvePrefs(rows, ids) {
  *
  * @param {number | null | undefined | {
  *   participantCount?: number | null,
- *   attendees?: Array<string | { email?: string, cn?: string, displayName?: string, name?: string } | null>,
- *   organizerEmail?: string,
+ *   attendees?: Array<string | { email?: string | null, cn?: string, displayName?: string | null, name?: string } | null>,
+ *   organizerEmail?: string | null,
  *   organizer?: string | { email?: string, cn?: string },
  * }} meeting
  */

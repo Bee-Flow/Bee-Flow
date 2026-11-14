@@ -1,4 +1,3 @@
-import { API_BASE, authFetch } from '../utils/helpers';
 import { normalizeLoadedMessages } from '../utils/messageShape';
 import scopedStorage from '../utils/scopedStorage';
 import { loadWorkspaceNotebook } from '../api/workspaceNotebook';
@@ -9,7 +8,8 @@ import type { SessionSkill } from '../components/skills/sessionSkillState';
 import type { ConversationRow } from './useConversationMeta';
 import type { AgentLike, IdRef } from './useAgentHubData';
 import type { UseAgentHubActionsArgs } from './useAgentHubActions.types';
-import { mutate, ApiError, request, RefusedError } from '../api/mutate';
+import { ApiError, RefusedError } from '../api/mutate';
+import { apiFetch, apiRequest, apiUrl } from '@/api/typedRequest';
 
 // Navigation-level handlers of the hub: selecting agents and conversations,
 // entering direct chat, new chat / delete, search-result routing, favourites,
@@ -104,7 +104,7 @@ const useAgentHubActions = ({
 
     const handleSelectDirectConversation = async (conv: { id: string }) => {
         try {
-            const res = await request(`${API_BASE}/ai/direct/conversations/${conv.id}`).catch((err: unknown) => {
+            const res = await apiRequest('GET /ai/direct/conversations/{id}', { params: { id: conv.id } }).catch((err: unknown) => {
                 if (err instanceof RefusedError) return null;
                 throw err;
             });
@@ -130,7 +130,7 @@ const useAgentHubActions = ({
 
                 // Fetch notebook content — always swap to match the selected conversation
                 await loadWorkspaceNotebook(
-                    `${API_BASE}/ai/direct/conversations/${conv.id}/workspace`,
+                    apiUrl('GET /ai/direct/conversations/{id}/workspace', { params: { id: conv.id } }),
                     { setNotebookLinkedId, setNotebookContent, setShowNotebook },
                     { logLabel: 'Failed to fetch direct notebook' },
                 );
@@ -140,7 +140,7 @@ const useAgentHubActions = ({
 
     const handleDeleteDirectConversation = async (convId: string) => {
         try {
-            const res = await authFetch(`${API_BASE}/ai/direct/conversations/${convId}`, { method: 'DELETE' });
+            const res = await apiFetch('DELETE /ai/direct/conversations/{id}', { params: { id: convId } });
             if (res && res.ok === false) return false;
             setDirectConversations(prev => prev.filter(c => c.id !== convId));
             setAllAgentConversations(prev => prev.filter(c => c.id !== convId));
@@ -208,7 +208,7 @@ const useAgentHubActions = ({
                 return false;
             }
             try {
-                await mutate(`${API_BASE}/agents/${agentId}/conversations/${convId}`, { method: 'DELETE' });
+                await apiRequest('DELETE /agents/{id}/conversations/{convId}', { params: { id: agentId, convId } });
             } catch (err) {
                 if (!(err instanceof ApiError)) throw err;
                 console.error('Delete failed with status:', err.status);
@@ -272,9 +272,7 @@ const useAgentHubActions = ({
         setFavorites(newFavs);
         try {
             try {
-                await mutate(`${API_BASE}/agents/${id}/favorite`, {
-                method: wasFav ? 'DELETE' : 'PUT',
-            });
+                await apiRequest(wasFav ? 'DELETE /agents/{id}/favorite' : 'PUT /agents/{id}/favorite', { params: { id } });
             } catch (err) {
                 if (!(err instanceof ApiError)) throw err;
                 throw new Error(`HTTP ${err.status}`);
@@ -288,11 +286,7 @@ const useAgentHubActions = ({
     const handleUnpublishAgent = async (agentId: string) => {
         if (!(await confirm({ title: 'Unpublish this agent?', description: 'It will no longer be visible in the Agent Store, but its configuration will be preserved.', confirmLabel: 'Unpublish', destructive: true }))) return;
         try {
-            const res = await mutate(`${API_BASE}/agents/${agentId}/publish`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ isPublished: false })
-            }).catch((err: unknown) => {
+            const res = await apiRequest('PATCH /agents/{id}/publish', { params: { id: agentId }, body: { isPublished: false } }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });
@@ -317,17 +311,15 @@ const useAgentHubActions = ({
         try {
             if (directChatMode && currentDirectConversation?.id) {
                 // Direct chat notebook save
-                await authFetch(`${API_BASE}/ai/direct/conversations/${currentDirectConversation.id}/workspace`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ content, notebookId: notebookIdToSave })
+                await apiFetch('PUT /ai/direct/conversations/{id}/workspace', {
+                    params: { id: currentDirectConversation.id },
+                    body: { content: content as string, notebookId: notebookIdToSave },
                 });
             } else if (selectedAgent && currentConversation?.id) {
                 // Agent chat notebook save
-                await authFetch(`${API_BASE}/agents/${selectedAgent.id}/conversations/${currentConversation.id}/workspace`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ content, notebookId: notebookIdToSave })
+                await apiFetch('PUT /agents/{id}/conversations/{convId}/workspace', {
+                    params: { id: selectedAgent.id, convId: currentConversation.id },
+                    body: { content: content as string, notebookId: notebookIdToSave },
                 });
             }
         } catch (err) {
@@ -343,11 +335,7 @@ const useAgentHubActions = ({
             if (!nbId) {
                 let createRes: Response;
                 try {
-                    createRes = await mutate(`${API_BASE}/api/notebooks`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: `Chat Notebook – ${new Date().toLocaleDateString()}` }),
-                });
+                    createRes = await apiRequest('POST /api/notebooks', { body: { name: `Chat Notebook – ${new Date().toLocaleDateString()}` } });
                 } catch (err) {
                     if (!(err instanceof ApiError)) throw err;
                     throw new Error('Failed to create notebook');
@@ -357,11 +345,7 @@ const useAgentHubActions = ({
             }
 
             // Sync markdown content to the notebook's document field
-            await authFetch(`${API_BASE}/api/notebooks/${nbId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ documentContent: markdownContent }),
-            });
+            await apiFetch('PUT /api/notebooks/{id}', { params: { id: String(nbId) }, body: { documentContent: markdownContent } });
 
             // Navigate to the notebook
             if (onNavigate) onNavigate(`notebooks/${nbId}`);

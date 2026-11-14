@@ -99,7 +99,7 @@ const SERVICE_NAMES = {
     withings: 'Withings', linkedin: 'LinkedIn', maps: 'Google Maps', slack: 'Slack',
 };
 
-// Same set as automation/automationGraph.js AI_STEP_TYPES (summarize is not one).
+// Same set as core/automationModel/automationGraph.js AI_STEP_TYPES (summarize is not one).
 const AI_STEP_TYPES = new Set(['ai_step', 'data_extraction', 'ai_tool']);
 
 /** Who the step talks to, in words: 'Nextcloud', 'Gmail', 'The AI model', ... */

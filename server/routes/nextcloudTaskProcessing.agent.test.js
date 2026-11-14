@@ -68,7 +68,8 @@ test('the agent turn refuses to run without a mapped Bee Flow user', async () =>
     // Running as "the organisation" would hand one person another user's data.
     const mod = require('./nextcloudTaskProcessing');
     await assert.rejects(
-        () => mod.runAgentTurn({ input: {}, org: { id: 'org-1' }, user: null, ncUid: 'alice' }),
-        /No Bee Flow user is linked/,
+        () => mod.runAgentTurn({ input: {}, org: { id: 'org-1' }, user: null }),
+        // A 403 the connector can read, not a 500: the account is not linked yet.
+        { status: 403, code: 'nc_user_not_linked' },
     );
 });

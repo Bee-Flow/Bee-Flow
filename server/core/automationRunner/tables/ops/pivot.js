@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * pivot: rows by columns, each cell a count, a sum or an average, optionally
@@ -35,12 +35,12 @@ function baseValue(fn, c) {
 /**
  * Column order: the listed ones first (in that order), then first-seen.
  * @param {ColEntry[]} all
- * @param {string[]} columnOrder
+ * @param {string[] | null} columnOrder
  */
 function orderColumns(all, columnOrder) {
     if (!columnOrder || !columnOrder.length) return all;
     const rank = new Map(columnOrder.map((v, i) => [foldText(v), i]));
-    const listed = all.filter((/** @type {{ fold: string; }} */ c) => rank.has(c.fold)).sort((/** @type {{ fold: string; }} */ a, /** @type {{ fold: string; }} */ b) => rank.get(a.fold) - rank.get(b.fold));
+    const listed = all.filter((/** @type {{ fold: string; }} */ c) => rank.has(c.fold)).sort((/** @type {{ fold: string; }} */ a, /** @type {{ fold: string; }} */ b) => /** @type {number} */ (rank.get(a.fold)) - /** @type {number} */ (rank.get(b.fold))); // both passed rank.has
     return [...listed, ...all.filter((/** @type {{ fold: string; }} */ c) => !rank.has(c.fold))];
 }
 

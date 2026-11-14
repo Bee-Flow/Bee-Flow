@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Compliance PDF builders — auditor-facing documents rendered server-side with
  * pdfkit (English; the canonical compliance language of the defaults catalog).
@@ -30,8 +30,8 @@ const { INK, MUTED, LINE, newDoc: _newDoc, collect: _collect, table: _table, foo
  * @typedef {{ regulation?: string, status?: string, title?: string, article?: string, severity?: string, verification?: string, scope_id?: string | null, details?: string | null, evidence_hash?: string | null }} ComplianceRow
  * @typedef {{ total?: number, pass?: number }} VerificationCount
  * @typedef {{ orgName?: string, generatedAt?: DocDate,
- *   overall?: { score?: number, pass?: number, warn?: number, fail?: number, na?: number },
- *   gdpr?: { score?: number }, aia?: { score?: number }, iso?: { total?: number, score?: number },
+ *   overall?: { score?: number | null, pass?: number, warn?: number, fail?: number, na?: number },
+ *   gdpr?: { score?: number | null }, aia?: { score?: number | null }, iso?: { total?: number, score?: number | null },
  *   verificationSummary?: { automated?: VerificationCount, hybrid?: VerificationCount, attestation?: VerificationCount },
  *   rows?: ComplianceRow[] }} ComplianceReportData
  * @typedef {{ name?: string, purpose?: string, data_categories?: string[], data_subjects?: string[], retention?: string, transfers?: string[], security_measures?: string[] }} RopaActivity
@@ -44,7 +44,7 @@ const { INK, MUTED, LINE, newDoc: _newDoc, collect: _collect, table: _table, foo
  *   expires_at?: string | number | Date | null, answers?: Record<string, unknown>, mitigations?: unknown[] }} DpiaData
  * @typedef {{ applicable?: string, source?: string, status?: string }} SoaRow
  * @typedef {{ approved?: number, reviewed?: number, todo?: number, excluded?: number }} SoaStats
- * @typedef {{ clause?: string | number, title?: string, status?: string, evidence?: string[], gap?: string | null }} ClauseRow
+ * @typedef {{ clause?: string | number, title?: string, status?: string, evidence?: (string | null)[], gap?: string | null }} ClauseRow
  * @typedef {{ score_num?: number | string }} RiskRow
  * @typedef {{ open?: number, high?: number, accepted?: number, closed?: number }} RiskStats
  * @typedef {{ slug?: string, version?: string | number, sha256?: string, title?: string, published_at?: string | number | Date | null, body?: string }} PolicyDoc
@@ -142,7 +142,7 @@ async function buildComplianceReport(data) {
     _kv(doc, 'Overall', `${data.overall?.score ?? '—'} / 100   (${data.overall?.pass ?? 0} pass · ${data.overall?.warn ?? 0} warn · ${data.overall?.fail ?? 0} fail · ${data.overall?.na ?? 0} n/a)`);
     _kv(doc, 'GDPR', `${data.gdpr?.score ?? '—'} / 100`);
     _kv(doc, 'EU AI Act', `${data.aia?.score ?? '—'} / 100`);
-    if (data.iso && data.iso.total > 0) _kv(doc, 'ISO 27001 (automated controls)', `${data.iso.score ?? '—'} / 100`);
+    if (data.iso && (data.iso.total ?? 0) > 0) _kv(doc, 'ISO 27001 (automated controls)', `${data.iso.score ?? '—'} / 100`);
     const vs = data.verificationSummary || {};
     const auto = (vs.automated?.total || 0) + (vs.hybrid?.total || 0);
     const autoPass = (vs.automated?.pass || 0) + (vs.hybrid?.pass || 0);
@@ -160,7 +160,7 @@ async function buildComplianceReport(data) {
         _sectionTitle(doc, REG_LABEL[regulation]);
         for (const r of rows) {
             if (doc.y > doc.page.height - doc.page.margins.bottom - 70) doc.addPage();
-            const color = STATUS_COLOR[r.status] || MUTED;
+            const color = STATUS_COLOR[String(r.status)] || MUTED;
             doc.fontSize(10).font('Helvetica-Bold').fillColor(color)
                 .text(String(r.status || 'pending').toUpperCase(), { continued: true, width: 480 });
             doc.fillColor(INK).text(`  ${r.title}`, { continued: true });
@@ -208,7 +208,7 @@ async function buildRopaPdf(ropa) {
         _kv(doc, 'Data categories', (a.data_categories || []).join(', '));
         _kv(doc, 'Data subjects', (a.data_subjects || []).join(', '));
         _kv(doc, 'Retention', a.retention);
-        _kv(doc, 'Third-country transfers', (a.transfers || []).length ? a.transfers.join(', ') : 'none');
+        _kv(doc, 'Third-country transfers', (a.transfers || []).length ? (a.transfers || []).join(', ') : 'none');
         _kv(doc, 'Security measures', (a.security_measures || []).join('; '));
         doc.moveDown(0.5);
     }
@@ -297,7 +297,7 @@ async function buildSoaPdf({ orgName, generatedAt, rows, stats }) {
             { key: 'ref', label: 'Ref', width: 40, bold: true },
             { key: 'title', label: 'Control', width: 130 },
             { key: 'applicable', label: 'Applicable', width: 48, color: r => (r.applicable === 'no' ? '#dc2626' : INK) },
-            { key: 'source', label: 'Source', width: 52, color: r => SRC_COLOR[r.source] || INK },
+            { key: 'source', label: 'Source', width: 52, color: r => SRC_COLOR[String(r.source)] || INK },
             { key: 'status', label: 'Decision', width: 52, color: r => (r.status === 'approved' ? '#059669' : r.status === 'reviewed' ? '#0369a1' : '#d97706') },
             { key: 'check', label: 'Live check', width: 80 },
             { key: 'owner', label: 'Owner', width: 78 },
@@ -338,7 +338,7 @@ async function buildClauseConformityPdf({ orgName, generatedAt, clauses }) {
     };
     for (const c of clauses || []) {
         if (doc.y > doc.page.height - doc.page.margins.bottom - 90) doc.addPage();
-        const st = ST[c.status] || ST.not_recorded;
+        const st = ST[String(c.status)] || ST.not_recorded;
         doc.fontSize(11).font('Helvetica-Bold').fillColor(INK)
             .text(`Clause ${c.clause} — ${c.title}`, { continued: true });
         doc.fontSize(9).fillColor(st.color).text(`   ${st.label}`);

@@ -41,6 +41,7 @@ async function getSlaPolicy(organizationId, priority) {
     return rows[0] || null;
 }
 
+/** @param {string | null} [organizationId] */
 async function listSlaPolicies(organizationId = null) {
     await initDB();
     const { rows } = await pool.query(
@@ -53,6 +54,7 @@ async function listSlaPolicies(organizationId = null) {
     return rows;
 }
 
+/** @param {{ organizationId?: string | null, priority: string, firstResponseMinutes: number, resolutionMinutes: number, enabled?: boolean }} policy */
 async function upsertSlaPolicy({ organizationId = null, priority, firstResponseMinutes, resolutionMinutes, enabled = true }) {
     await initDB();
     if (!['low', 'normal', 'high', 'urgent'].includes(priority)) throw new Error('invalid priority');

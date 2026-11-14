@@ -112,6 +112,7 @@ async function getById(id) {
  * templates, org-scope templates for any org they belong to, and group-scope
  * templates for any group they're in. Empty arrays match nothing (`= ANY('{}')`
  * is false), so passing [] is safe.
+ * @param {{ userId: string | null, orgIds?: string[], groupIds?: string[] }} q
  */
 async function listVisible({ userId, orgIds = [], groupIds = [] }) {
     await initDB();

@@ -19,7 +19,7 @@ const path = require('node:path');
 const Module = require('module');
 const http = require('http');
 
-const { CUSTOMER_FIELDS, OPERATOR_ONLY_FIELDS, redactRow, redactRows } = require('./usageCustomerView');
+const { CUSTOMER_FIELDS, OPERATOR_ONLY_FIELDS, redactRow, redactRows } = require('../usecases/usageCustomerView');
 
 // ── State and stubs for the router tests ───────────────────────────────
 let governsOrgs = false;
@@ -184,6 +184,6 @@ test('guard: every column a usage query selects is classified', () => {
         if (!CUSTOMER_FIELDS.has(col) && !OPERATOR_ONLY_FIELDS.has(col)) unclassified.push(`${col} (routes/usage.js)`);
     }
     assert.deepStrictEqual(unclassified, [],
-        'Classify each new column in routes/usageCustomerView.js: CUSTOMER_FIELDS if a customer may see it, '
+        'Classify each new column in usecases/usageCustomerView.js: CUSTOMER_FIELDS if a customer may see it, '
         + 'OPERATOR_ONLY_FIELDS if it is a token count, raw cost or price.');
 });

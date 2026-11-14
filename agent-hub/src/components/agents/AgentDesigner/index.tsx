@@ -46,7 +46,6 @@ export interface AgentDesignerProps {
   /** Accepted for the callers that still pass it; the designer has no back button. */
   onBack?: (() => void) | null;
   systemMode?: boolean;
-  securityMode?: boolean;
   hasPermission?: (perm: string) => boolean;
   initialAgentId?: string | null;
   user?: DesignerUser | null;
@@ -59,7 +58,6 @@ export interface AgentDesignerProps {
 
 const AgentDesigner = ({
   systemMode = false,
-  securityMode = false,
   hasPermission = () => true,
   initialAgentId = null,
   user = null,
@@ -73,7 +71,7 @@ const AgentDesigner = ({
   const { selectedAgent, isCreating } = state;
 
   // API operations
-  const api = useAgentApi(state, { systemMode, securityMode, initialAgentId, orgId });
+  const api = useAgentApi(state, { systemMode, initialAgentId, orgId });
 
   // Chat (its hooks keep running for the sections that read the state it fills)
   useAgentChat(state);
@@ -93,7 +91,7 @@ const AgentDesigner = ({
     checkCapability,
     toggleCapability,
     isReadonly,
-    adminOrgId: systemMode || securityMode ? null : orgId,
+    adminOrgId: systemMode ? null : orgId,
   };
   return (
     <div className="h-full flex flex-col bg-[var(--bg-primary)]">

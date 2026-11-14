@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Admin Routes — organisation invitations: create + email, list, revoke,
  * with the invite flood-control state. Split out of auth/adminRoutes.js;
@@ -178,7 +178,7 @@ router.post('/invitations', requireAuth, invitationInviterLimiter, validate({ bo
     const invitation = await invitationStore.createInvitation({
         email,
         organizationId: orgId,
-        invitedBy: userId,
+        invitedBy: /** @type {string} */ (userId), // getUser found a user for it above
         role: role || 'user',
     });
     if (!invitation) throw new Error(`Failed to create an invitation for organisation '${orgId}'`);

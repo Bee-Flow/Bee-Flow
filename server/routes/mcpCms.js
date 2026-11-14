@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The product website (CMS) as an MCP server — edit the whole site from an
  * external coding agent.
@@ -97,7 +98,7 @@ function buildRuntime() {
             const project = await cmsStore.getProject(siteId).catch((e) => fallback('routes/mcpCms:afterPublish', e, null));
             await require('./cmsAnalytics').provisionAnalyticsForSite(siteId, {
                 name: project?.name || 'CMS site',
-                domain: ctx.host || undefined,
+                domain: /** @type {{ host?: string }} */ (ctx).host || undefined,
             });
         },
         tickets,
@@ -141,12 +142,12 @@ function buildRuntime() {
 }
 
 /**
- * @param {{ runtime?: () => { mcp: object, receiver: object }, gate?: { gateRequest: Function, rpcDenied: Function },
+ * @param {{ runtime?: () => ReturnType<typeof buildRuntime>, gate?: { gateRequest: Function, rpcDenied: Function },
  *           publicBaseUrl?: (req: object) => string }} [injected] test seams
  */
 function makeRouter(injected = {}) {
     const router = express.Router();
-    /** @type {{ mcp: object; receiver: object; } | null} */
+    /** @type {ReturnType<typeof buildRuntime> | null} */
     let runtime = null;
     const getRuntime = () => {
         if (!runtime) runtime = (injected.runtime || buildRuntime)();
@@ -232,6 +233,4 @@ function makeRouter(injected = {}) {
     return router;
 }
 
-module.exports = makeRouter();
-module.exports.makeRouter = makeRouter;
-module.exports.isCmsAdmin = isCmsAdmin;
+module.exports = Object.assign(makeRouter(), { makeRouter, isCmsAdmin });

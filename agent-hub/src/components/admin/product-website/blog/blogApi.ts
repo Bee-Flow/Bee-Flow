@@ -1,7 +1,5 @@
 // Admin API + types for blog posts (server/routes/cmsBlog.js).
-import { API_BASE } from '@/utils/helpers';
-
-const root = `${API_BASE}/api/cms`;
+import { apiUrl } from '@/api/typedRequest';
 
 export type PostStatus = 'draft' | 'scheduled' | 'published';
 
@@ -53,10 +51,10 @@ export interface PostTranslation {
 }
 
 export const blogApi = {
-    posts: (siteId: string) => `${root}/sites/${siteId}/posts`,
-    post: (siteId: string, postId: string) => `${root}/sites/${siteId}/posts/${encodeURIComponent(postId)}`,
+    posts: (siteId: string) => apiUrl('GET /api/cms/sites/{siteId}/posts', { params: { siteId } }),
+    post: (siteId: string, postId: string) => apiUrl('GET /api/cms/sites/{siteId}/posts/{postId}', { params: { siteId, postId } }),
     postLocale: (siteId: string, postId: string, locale: string) =>
-        `${root}/sites/${siteId}/posts/${encodeURIComponent(postId)}/locale/${encodeURIComponent(locale)}`,
+        apiUrl('PUT /api/cms/sites/{siteId}/posts/{postId}/locale/{locale}', { params: { siteId, postId, locale } }),
 };
 
 /** The fields the editor may send in a PUT (everything but ids and timestamps). */

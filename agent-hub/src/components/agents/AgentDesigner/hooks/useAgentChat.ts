@@ -1,8 +1,7 @@
 import { useEffect } from 'react';
-import { API_BASE, authFetch } from '@/utils/helpers';
-import { mutate } from '@/api/mutate';
 import { logger } from '@/utils/logger';
 import type useAgentState from './useAgentState';
+import { apiFetch, apiRequest } from '@/api/typedRequest';
 
 /**
  * Chat test functionality for the AgentDesigner.
@@ -26,11 +25,7 @@ export default function useAgentChat(state: ReturnType<typeof useAgentState>) {
         setChatLoading(true);
 
         try {
-            const res = await authFetch(`${API_BASE}/agents/${selectedAgent.id}/chat/stream`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: userMessage })
-            });
+            const res = await apiFetch('POST /agents/{id}/chat/stream', { params: { id: selectedAgent.id }, body: { message: userMessage } });
 
             if (!res.ok) {
                 const error = await res.json();
@@ -137,7 +132,7 @@ export default function useAgentChat(state: ReturnType<typeof useAgentState>) {
     const clearHistory = async () => {
         if (!selectedAgent) return;
         try {
-            await mutate(`${API_BASE}/agents/${selectedAgent.id}/history`, { method: 'DELETE' });
+            await apiRequest('DELETE /agents/{id}/history', { params: { id: selectedAgent.id } });
             setMessages([]);
         } catch (err) {
             console.error('Failed to clear history:', err);

@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useSupportSlaPoliciesQuery } from '@/api/queries/supportPanels';
 import { Save } from 'lucide-react';
-import { API_BASE } from '@/utils/helpers';
 import { useTranslation } from '@/hooks/useTranslation';
 import { errorMessage } from '@/utils/caughtError';
-import { RefusedError, mutate, errorBody } from '@/api/mutate';
+import { RefusedError, errorBody } from '@/api/mutate';
 import SectionHeader from '@/components/shared/SectionHeader';
 import { FIELD_INPUT, QUIET_BUTTON, SettingsList } from '@/components/shared/SettingsList';
 import { ALERT_ERROR } from '@/components/mcpLibrary/ui';
+import { type ApiBody, apiRequest } from '@/api/typedRequest';
 
 interface SlaPolicy {
     priority: string;
@@ -54,11 +54,7 @@ export default function SupportSlaPoliciesTab() {
         setError(null);
         try {
             try {
-                await mutate(`${API_BASE}/api/support/sla-policies`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ priority, first_response_minutes: firstMin, resolution_minutes: resMin, enabled }),
-            });
+                await apiRequest('PUT /api/support/sla-policies', { body: { priority: priority as ApiBody<'PUT /api/support/sla-policies'>['priority'], first_response_minutes: firstMin, resolution_minutes: resMin, enabled } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const e = errorBody(err) ?? {};

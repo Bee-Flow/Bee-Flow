@@ -8,7 +8,7 @@ Every rule below follows from that.
 1. A rejection the server could have repaired deterministically is a server bug, not a
    model bug. Repair, and say so in `_warnings`. Reject only on real ambiguity.
 2. Every rejection with a mechanical fix carries it machine-readably: `_suggestedPatch`
-   (`suggestedPatch.js` ops) and, for a batch, `resendAs`. The prose error is for humans.
+   (`core/llm/suggestedPatch.js` ops) and, for a batch, `resendAs`. The prose error is for humans.
 3. A batch keeps what was valid. `builder_add_steps` applies entries in order, keeps the
    built prefix, and a resend never builds the same entry twice (`addSteps.js`: `_tempIds`,
    `_builtThisTurn`). The repeat ladder in `../builderTools.js` does the rest:

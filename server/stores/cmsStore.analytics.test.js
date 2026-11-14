@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Store tests for the site-level Google Analytics field (site.analytics)
  * and the per-page noAnalytics flag.
@@ -57,13 +57,14 @@ test('sanitizePageIndexEntry: noAnalytics round-trips like hideHeader', () => {
         noAnalytics: true, isNotFound: false,
     };
     const once = cmsStore.sanitizePageIndexEntry(entry);
+    assert.ok(once);
     assert.strictEqual(once.noAnalytics, true);
     assert.strictEqual(once.hideHeader, true);
     // Round-trip: sanitizing its own output is a fixpoint.
     assert.deepStrictEqual(cmsStore.sanitizePageIndexEntry(once), once);
     // Missing / truthy-coerced values behave like the sibling flags.
-    assert.strictEqual(cmsStore.sanitizePageIndexEntry({ id: 'pg_2' }).noAnalytics, false);
-    assert.strictEqual(cmsStore.sanitizePageIndexEntry({ id: 'pg_3', noAnalytics: 1 }).noAnalytics, true);
+    assert.strictEqual(/** @type {any} */ (cmsStore.sanitizePageIndexEntry({ id: 'pg_2' })).noAnalytics, false);
+    assert.strictEqual(/** @type {any} */ (cmsStore.sanitizePageIndexEntry({ id: 'pg_3', noAnalytics: 1 })).noAnalytics, true);
 });
 
 // ── Store round-trips (real setProject/getProject on the mock table) ─
@@ -120,7 +121,7 @@ test('site analytics persistence + per-page noAnalytics', async (t) => {
         const eff = await cmsStore.getEffective(siteId, null, 'en');
         assert.strictEqual(eff.found, true);
         assert.deepStrictEqual(eff.analytics, { gaMeasurementId: 'G-TEST1234' });
-        assert.strictEqual(eff.page.noAnalytics, true);
+        assert.strictEqual(/** @type {any} */ (eff.page).noAnalytics, true);
     });
 
     await t.test('getEffectivePublished carries analytics and page.noAnalytics through the snapshot', async () => {
@@ -129,7 +130,7 @@ test('site analytics persistence + per-page noAnalytics', async (t) => {
         assert.ok(eff, 'expected a published snapshot');
         assert.strictEqual(eff.found, true);
         assert.deepStrictEqual(eff.analytics, { gaMeasurementId: 'G-TEST1234' });
-        assert.strictEqual(eff.page.noAnalytics, true);
+        assert.strictEqual(/** @type {any} */ (eff.page).noAnalytics, true);
     });
 
     await t.test('duplicateProject copies analytics', async () => {

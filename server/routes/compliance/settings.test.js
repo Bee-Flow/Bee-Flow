@@ -94,6 +94,7 @@ test.before(async () => {
     app.use(express.json());
     app.use((req, _res, next) => { req.session = req.headers['x-test-user'] ? { isAuthenticated: true, user: { id: req.headers['x-test-user'] } } : {}; next(); });
     app.use('/api/compliance', router);
+    app.use(require('../../core/http/terminalErrorHandler').terminalErrorHandler);
     server = http.createServer(app);
     await new Promise(r => server.listen(0, '127.0.0.1', r));
     baseUrl = `http://127.0.0.1:${server.address().port}`;
@@ -273,6 +274,20 @@ test('POST /settings/scc re-runs every check that reads the attestation list', a
     ]) {
         assert.ok(calls.runOne.includes(id), `${id} is re-run`);
     }
+});
+
+test('POST /settings/scc and /auto-detect-settings take only their own fields: the rest is refused by name', async () => {
+    const post = (p, body) => fetch(`${baseUrl}/api/compliance${p}`, { method: 'POST', headers: hdrs, body: JSON.stringify(body) });
+    const missing = await post('/settings/scc', { confirmed: true });
+    assert.equal(missing.status, 400);
+    assert.equal((await missing.json()).error, 'operator is required');
+    for (const [p, body, field] of [['/settings/scc', { operator: 'openai', confirmd: true }, 'confirmd'], ['/auto-detect-settings', { orgId: 'other' }, 'orgId']]) {
+        const res = await post(p, body);
+        assert.equal(res.status, 400, p);
+        assert.match((await res.json()).error, new RegExp(`does not take "${field}"`));
+    }
+    assert.deepEqual(calls.runOne, [], 'nothing was re-run');
+    assert.equal((await post('/auto-detect-settings', {})).status, 200);
 });
 
 test('PUT: an AI-literacy save re-runs the Art. 4 check; an unrelated save does not', async () => {

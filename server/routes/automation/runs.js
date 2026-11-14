@@ -11,7 +11,7 @@ require('../../automation/triggerBus');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
-const { entryDefinitionOf, resolveTriggerStepId } = require('./runEntry');
+const { entryDefinitionOf, resolveTriggerStepId } = require('../../usecases/automation/runEntry');
 const { resolveRunPolicy } = require('../../core/automationRunner/runPolicy');
 const { describeNoticeFor } = require('../../core/automationRunner/callerNotice');
 // Handoff 5 sharing: who may start, test and read the runs of an automation.
@@ -19,19 +19,20 @@ const { makeAutomationAccess, roleSatisfies, mayStartRun } = require('../../auto
 const automationAccess = makeAutomationAccess({ store: automationStore });
 
 const { startCapped, pendingRunBody } = require('../../core/automationRunner/startCapped.mts');
-const { refuseUnpublished, sampleTriggerPayload, eventIsFor } = require('./runStart.mts');
+const { refuseUnpublished, sampleTriggerPayload, eventIsFor } = require('../../usecases/automation/runStart.mts');
 const { SeenBody, RunBody, DryRunBody, PartialRunBody, RerunPlanQuery, RunsQuery, FacetsQuery, StreamQuery, SchedulePreviewBody } = require('./runSchemas');
 const { answersFromRun } = require('./dryRunAnswers.mts');
 const { dryRunWarnings } = require('../../automation/testing/dryRunWarnings.mts');
+const { envInt } = require('../../utils/envNumber.mts');
 
 // Per-user throttle for the expensive run-trigger endpoints (each spins up a
 // full automation execution / LLM + tool calls). Keyed by session user id via
 // the limiter's default. Generous enough for normal manual testing, low enough
 // that a stuck client or a script can't flood the runner. Tunable via env.
-const RUN_TRIGGER_RPM = parseInt(process.env.AUTOMATION_RUN_TRIGGER_RPM, 10) || 30;
+const RUN_TRIGGER_RPM = envInt('AUTOMATION_RUN_TRIGGER_RPM', 30, { min: 1 });
 const runTriggerLimiter = perUserRateLimit({ windowMs: 60_000, max: RUN_TRIGGER_RPM });
 
-router.post('/:id/run', runTriggerLimiter, validate({ body: RunBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof RunBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/:id/run', runTriggerLimiter, validate({ body: RunBody }), async (req, res) => {
     const userId = req.session.user.id;
     const isTest = req.body.test === true;
     // The copy this run executes (handoff 5), resolved up front so the
@@ -113,7 +114,7 @@ router.get('/:id/caller-notice', async (req, res) => {
 
 // Body { items }: the items the person was SHOWN. Only what is still part of the notice is recorded, and a
 // notice that changed since it was shown is refused (409), so nothing is ever acknowledged unseen.
-router.post('/:id/caller-notice/seen', validate({ body: SeenBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof SeenBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/:id/caller-notice/seen', validate({ body: SeenBody }), async (req, res) => {
     const a = await automationStore.getAutomation(req.params.id);
     if (!a) return res.status(404).json({ error: 'Not found' });
     const access = await automationAccess.guard(req, res, a, 'run');
@@ -144,7 +145,7 @@ router.post('/:id/caller-notice/seen', validate({ body: SeenBody }), async (/** 
  * The 200 reply's `run.warnings` says what the run did without a person
  * (automation/testing/dryRunWarnings.mts).
  */
-router.post('/:id/dry-run', runTriggerLimiter, validate({ body: DryRunBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof DryRunBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/:id/dry-run', runTriggerLimiter, validate({ body: DryRunBody }), async (req, res) => {
     const userId = req.session.user.id;
     const a = await automationStore.getAutomation(req.params.id);
     if (!a) return res.status(404).json({ error: 'Not found' });
@@ -183,7 +184,7 @@ router.post('/:id/dry-run', runTriggerLimiter, validate({ body: DryRunBody }), a
  * the canvas's "run up to here", where the steps before it execute for real
  * unless they carry a pinned output.
  */
-router.post('/:id/steps/:stepId/run', runTriggerLimiter, validate({ body: PartialRunBody }), async (/** @type {import('express').Request<{ id: string, stepId: string }, any, import('zod').infer<typeof PartialRunBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/:id/steps/:stepId/run', runTriggerLimiter, validate({ body: PartialRunBody }), async (req, res) => {
     const userId = req.session.user.id;
     const a = await automationStore.getAutomation(req.params.id);
     if (!a) return res.status(404).json({ error: 'Not found' });
@@ -230,26 +231,20 @@ router.post('/:id/steps/:stepId/run', runTriggerLimiter, validate({ body: Partia
  * Query: seedRunId (required), mode ('only' | 'from', default 'only'),
  * triggerStepId. Answers `{ rerunPlan }`, see core/automationRunner/partialRuns.js.
  */
-router.get('/:id/steps/:stepId/rerun-plan', validate({ query: RerunPlanQuery }), async (/** @type {import('express').Request<{ id: string, stepId: string }, any, any, import('zod').infer<typeof RerunPlanQuery>>} */ req, res) => {
+router.get('/:id/steps/:stepId/rerun-plan', validate({ query: RerunPlanQuery }), async (req, res) => {
     const a = await automationStore.getAutomation(req.params.id);
     if (!a) return res.status(404).json({ error: 'Not found' });
     if (!await automationAccess.guard(req, res, a, 'edit')) return;
     const runner = require('../../core/automationRunner');
     const entered = resolveTriggerStepId(await entryDefinitionOf(a), req.query.triggerStepId);
     if (entered.error) return res.status(400).json({ error: entered.error });
-    let rerunPlan;
-    try {
-        rerunPlan = await runner.planPartialRun(a, req.params.stepId, {
-            mode: req.query.mode,
-            rootStepId: entered.rootStepId,
-            startedByUserId: req.session.user.id,
-            seedRunId: req.query.seedRunId,
-        });
-    } catch (e) {
-        // runPartial names a step it cannot find in a plain Error.
-        if (/not found in definition/.test(/** @type {Error} */ (e)?.message || '')) throw new HttpError(404, 'step_not_found', 'Step not found in this automation.');
-        throw e;
-    }
+    // A step the definition does not hold is runPartial's own 404 (step_not_found).
+    const rerunPlan = await runner.planPartialRun(a, req.params.stepId, {
+        mode: req.query.mode,
+        rootStepId: entered.rootStepId,
+        startedByUserId: req.session.user.id,
+        seedRunId: req.query.seedRunId,
+    });
     res.json({ rerunPlan });
 });
 
@@ -283,7 +278,7 @@ router.get('/_runs/active', async (req, res) => {
  * this was the one route in the file with no limiter at all. The cap is 5
  * because the only caller (ScheduleBuilder) asks for 3.
  */
-router.post('/_schedule/preview', runTriggerLimiter, validate({ body: SchedulePreviewBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof SchedulePreviewBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/_schedule/preview', runTriggerLimiter, validate({ body: SchedulePreviewBody }), async (req, res) => {
     const { cron: cronExpr, tz, count } = req.body;
     const skipHolidays = req.body.skipHolidays === true;
     try {
@@ -352,7 +347,7 @@ const runRows = makeRunRowDecorator({
     getUsersByIds: (ids) => require('../../stores/userStore').getUserAvatarsByIds(ids),
 });
 
-router.get('/:id/runs', validate({ query: RunsQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof RunsQuery>>} */ req, res) => {
+router.get('/:id/runs', validate({ query: RunsQuery }), async (req, res) => {
     const userId = req.session.user.id;
     const a = await automationStore.getAutomation(req.params.id);
     if (!a) return res.status(404).json({ error: 'Not found' });
@@ -406,7 +401,7 @@ router.get('/:id/runs', validate({ query: RunsQuery }), async (/** @type {import
  * useRunStream, the approvals backfill — one query-string away from returning
  * somebody else's runs.
  */
-router.get('/_runs/recent', validate({ query: RunsQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof RunsQuery>>} */ req, res) => {
+router.get('/_runs/recent', validate({ query: RunsQuery }), async (req, res) => {
     const userId = req.session.user.id;
     // Cursor-paginated + filterable. `limit` kept for back-compat (old
     // callers read `runs`); `nextCursor` is additive.
@@ -424,7 +419,7 @@ router.get('/_runs/recent', validate({ query: RunsQuery }), async (/** @type {im
  * automation / kind "context" as the list, but NOT by the status/trigger
  * filters themselves, so the chips show the full breakdown you can switch to.
  */
-router.get('/_runs/facets', validate({ query: FacetsQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof FacetsQuery>>} */ req, res) => {
+router.get('/_runs/facets', validate({ query: FacetsQuery }), async (req, res) => {
     const userId = req.session.user.id;
     const range = Math.min(Math.max(req.query.range || 24, 1), 720);
     const sinceTs = new Date(Date.now() - range * 3600 * 1000).toISOString();
@@ -502,7 +497,7 @@ function refuseOrgScope(viewer) {
  * client checks FOR TRUE before offering to open the run: every per-run route
  * is still scoped to the run's owner and 403s for anybody else.
  */
-router.get('/_runs/org', validate({ query: RunsQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof RunsQuery>>} */ req, res) => {
+router.get('/_runs/org', validate({ query: RunsQuery }), async (req, res) => {
     const viewer = await resolveOrgRunViewer(req);
     const refusal = refuseOrgScope(viewer);
     if (refusal) return res.status(refusal.status).json({ error: refusal.error });
@@ -528,7 +523,7 @@ router.get('/_runs/org', validate({ query: RunsQuery }), async (/** @type {impor
  * allowed" would hand a refused caller the shape of the organisation's
  * activity — which automations exist, how often they run, what breaks.
  */
-router.get('/_runs/org/facets', validate({ query: FacetsQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof FacetsQuery>>} */ req, res) => {
+router.get('/_runs/org/facets', validate({ query: FacetsQuery }), async (req, res) => {
     const viewer = await resolveOrgRunViewer(req);
     const refusal = refuseOrgScope(viewer);
     if (refusal) return res.status(refusal.status).json({ error: refusal.error });
@@ -551,7 +546,7 @@ router.get('/_runs/org/facets', validate({ query: FacetsQuery }), async (/** @ty
  * Consumed via fetch streaming (authFetch), so the normal X-Session-Token /
  * cookie auth applies — no query-string token needed.
  */
-router.get('/_runs/stream', validate({ query: StreamQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof StreamQuery>>} */ req, res) => {
+router.get('/_runs/stream', validate({ query: StreamQuery }), async (req, res) => {
     const me = req.session.user.id;
     const scopeAutomationId = req.query.automationId || null;
     const { onAny } = require('../../core/runEventBus');

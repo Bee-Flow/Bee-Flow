@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Field-level diff between two automation definitions, and the plain-language
  * description of it (Studio → Automations handoff 5, artboard 5d).
@@ -26,7 +27,6 @@
  *
  * Pure: no store, no network.
  */
-
 'use strict';
 
 const { replaceTemplate } = require('./expr');
@@ -267,8 +267,7 @@ const BINDING_KINDS = new Set(['literal', 'ref', 'template', 'expr']);
 function isBinding(v) { return isObject(v) && BINDING_KINDS.has(v.kind) && ('value' in v || 'path' in v); }
 
 /**
- * @typedef MakeRendererArgs
- * @property {{ agent?: Record<string, string>; datatable?: Record<string, string>; knowledgeBase?: Record<string, string>; } | undefined} [names]
+ * @typedef {{ labels?: Map<string, string>, names?: { agent?: Record<string, string>; datatable?: Record<string, string>; knowledgeBase?: Record<string, string>; } }} MakeRendererArgs
  */
 /**
  * @param {MakeRendererArgs} [param0]

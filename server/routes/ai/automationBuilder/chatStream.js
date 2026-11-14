@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Automation Builder — conversational SSE endpoint.
  *
@@ -74,14 +74,15 @@
 
 const express = require('express');
 const log = require('../../../telemetry/log');
+const { ignoreGone } = require('../../../utils/bestEffort');
 const router = express.Router();
 
 const automationStore = require('../../../stores/automationStore');
 const { effortForIteration } = require('../../../core/automationModel/builderModelProfiles');
 const { openSse } = require('../../../core/http/sseHelpers');
 const { systemPrefixFingerprint, toolSetFingerprint, toolBytesFingerprint } = require('../../../core/llm/promptCacheStability');
-const { builderRateLimit } = require('./rateLimits');
-const { createThoughtNarrator } = require('./thoughtNarrator');
+const { builderRateLimit } = require('../../../usecases/ai/automationBuilder/rateLimits');
+const { createThoughtNarrator } = require('../../../usecases/ai/automationBuilder/thoughtNarrator');
 const { TurnBody, TurnQuery, setupTurn } = require('./turnSetup');
 const { resolveTurnModel } = require('./modelSelection');
 const { assembleTurnPrompt } = require('./promptAssembly');
@@ -203,7 +204,7 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
         res.on('close', () => {
             if (res.writableEnded) return;
             turn.clientGone = true;
-            try { clientAbort.abort(); } catch (err) { log.debug('already aborted', err); }
+            try { clientAbort.abort(); } catch (err) { ignoreGone('routes/ai/automationBuilder/chatStream:abortOnClose', err); }
         });
 
         turn.lastFinalized = false;
@@ -241,7 +242,8 @@ router.post('/stream', requireAuth, builderRateLimit, validate({ query: TurnQuer
         if (narrationModelId) {
             const narrator = createThoughtNarrator({ send: sendRaw, modelId: narrationModelId });
             turn.narrator = narrator;
-            turn.send = narrator.wrap(sendRaw);
+            // wrap() hands back a function whenever it is given one.
+            turn.send = /** @type {(event: string, data: unknown) => void} */ (narrator.wrap(sendRaw));
         }
         turn.iter = await runBuildLoop(turn);
 

@@ -35,7 +35,7 @@ const router = express.Router();
 const _deps = { reminderStore: require('../stores/reminderStore') };
 const { validate } = require('../core/http/validate');
 const { z, datetimeWithOffset } = require('../utils/zod');
-const { worded } = require('../core/http/schemaParts');
+const { worded, bodyOf } = require('../core/http/schemaParts');
 const { sessionUser } = require('../core/http/sessionUser');
 
 const TITLE_TEXT = 'A reminder needs a title.';
@@ -73,7 +73,7 @@ function requireSignedIn(req, res, next) {
 router.use(requireSignedIn);
 
 // GET / — list reminders
-router.get('/', validate({ query: ListQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof ListQuery>>} */ req, res) => {
+router.get('/', validate({ query: ListQuery }), async (req, res) => {
     const userId = sessionUser(req).id;
     const includeCompleted = req.query.completed === 'true' || req.query.completed === '1';
     const reminders = await _deps.reminderStore.getReminders(userId, { includeCompleted });
@@ -81,7 +81,7 @@ router.get('/', validate({ query: ListQuery }), async (/** @type {import('expres
 });
 
 // POST / — create reminder
-router.post('/', validate({ body: CreateBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CreateBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/', validate({ body: CreateBody }), async (req, res) => {
     const userId = sessionUser(req).id;
     const { title, message, remindAt, repeatInterval } = req.body;
     const reminder = await _deps.reminderStore.createReminder({
@@ -123,7 +123,7 @@ router.delete('/:id', async (req, res) => {
 });
 
 // POST /:id/complete — mark completed
-router.post('/:id/complete', async (req, res) => {
+router.post('/:id/complete', validate({ body: bodyOf({}, 'Completing a reminder') }), async (req, res) => {
     const userId = sessionUser(req).id;
 
     const existing = await _deps.reminderStore.getReminder(req.params.id);

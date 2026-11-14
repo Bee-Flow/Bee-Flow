@@ -21,6 +21,7 @@
  */
 import { ArrowUpRight, Plus, RefreshCw, Search, Timer } from 'lucide-react';
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import { useNow } from '@/components/shared/DeadlineClock';
 import FilterPills from '@/components/shared/FilterPills';
@@ -103,22 +104,27 @@ const dsrUrl = (id: string | number | boolean, tail: string = '') => `${API_DSR}
 function useDsrSource(dsr: DsrHookData | null | undefined, enabled: boolean = true) {
     const hasList = Boolean(dsr && 'requests' in dsr);
     // `undefined` = not asked yet, `null` = the read failed, array = loaded.
-    const [local, setLocal] = useState<DsrRow[] | null | undefined>(undefined);
+    const localList = useQuery<DsrRow[] | null>({
+        queryKey: ['compliance', 'dsr', 'requests'],
+        enabled: !hasList && enabled,
+        // Read once per mount, then on refresh(): no cached copy, no reread on its own.
+        staleTime: Infinity,
+        gcTime: 0,
+        retry: false,
+        refetchOnReconnect: false,
+        queryFn: async () => {
+            try {
+                const body = await fetchJson(`${API_DSR}/requests`);
+                return asArray(body) ?? asArray(body?.requests) ?? asArray(body?.items);   // junk body → null → "could not read"
+            } catch {
+                return null;
+            }
+        },
+    });
+    const local = localList.data;
     const [localBusy, setLocalBusy] = useState<number | string | null>(null);
-
-    const localRefresh = useCallback(async () => {
-        try {
-            const body = await fetchJson(`${API_DSR}/requests`);
-            const rows = asArray(body) ?? asArray(body?.requests) ?? asArray(body?.items);
-            setLocal(rows);                       // junk body → null → "could not read"
-        } catch {
-            setLocal(null);
-        }
-    }, []);
-
-    useEffect(() => {
-        if (!hasList && enabled && local === undefined) localRefresh();
-    }, [hasList, enabled, local, localRefresh]);
+    const { refetch: refetchLocal } = localList;
+    const localRefresh = useCallback(async () => { await refetchLocal(); }, [refetchLocal]);
 
     const refresh = dsr?.refresh ?? localRefresh;
 

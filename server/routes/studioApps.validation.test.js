@@ -52,3 +52,12 @@ test('a valid publish reaches the app lookup and answers as before', async () =>
     assert.deepStrictEqual(res.body, { error: 'App not found' });
     assert.ok(db.queries.some((q) => /studio_apps/.test(q)));
 });
+
+test('the actions on an app take no fields: one sent is refused by name before the app is looked up', async () => {
+    for (const path of ['/template-upgrade', '/public-pages', '/versions/v1/restore']) {
+        h.assertRefused(assert, await api.call('POST', `/api/studio-apps/app1${path}`, { body: { force: true } }), 'body', /does not take "force"/);
+    }
+    assert.deepStrictEqual(db.queries, []);
+    const res = await api.call('POST', '/api/studio-apps/app1/template-upgrade');
+    assert.strictEqual(res.status, 404, 'without a body the action runs as before');
+});

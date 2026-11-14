@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Trial Service — orchestrates one-time Stripe trial creation for orgs
  * and consumers. Exposes the imperative "start trial" path used by admin

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * One tool-call round of a swarm worker (runWorker in ./swarmRuntime.js):
  * the stream callback that forwards text, collects tool calls and logs
@@ -79,7 +79,7 @@ function makeRoundCallback(w, round) {
                 id: data.id || `call_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
                 type: 'function',
                 function: {
-                    name: data.name,
+                    name: /** @type {string} */ (data.name), // a tool_use event names its tool
                     arguments: typeof data.input === 'string'
                         ? data.input
                         : JSON.stringify(data.input || {}),

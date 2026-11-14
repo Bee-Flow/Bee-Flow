@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react';
-import { API_BASE } from '../../api/mutate';
+import { apiUrl } from '../../api/typedRequest';
 import { errorMessage } from '../../utils/caughtError';
 import { logger } from '../../utils/logger';
+
+const STREAM_URL = apiUrl('GET /api/support/stream');
 
 interface StreamDeps {
     selectedId: string | null;
@@ -16,7 +18,7 @@ export function useSupportStream({ selectedId, setSelectedId, fetchThreads, fetc
     const esRef = useRef<EventSource | null>(null);
     useEffect(() => {
         try {
-            const es = new EventSource(`${API_BASE}/api/support/stream`, { withCredentials: true });
+            const es = new EventSource(STREAM_URL, { withCredentials: true });
             esRef.current = es;
             const refresh = () => fetchThreads();
             const refreshOpen = (e: MessageEvent) => {

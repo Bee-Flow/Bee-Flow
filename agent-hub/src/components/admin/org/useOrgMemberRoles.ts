@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
-import { API_BASE, authFetch } from '@/utils/helpers';
-import { mutate, ApiError } from '@/api/mutate';
+import { ApiError } from '@/api/mutate';
 import { toast } from '@/components/shared/Toast';
+import { apiFetch, apiRequest } from '@/api/typedRequest';
 import type { ImageLimits } from '@/utils/imageLimits';
 import { saveImageLimits } from './imageLimits/saveImageLimits';
 
@@ -50,11 +50,7 @@ export interface UseOrgMemberRolesOptions {
 /** PUT a member's self-hosted monthly AI budget (null = none), then re-read the directory. */
 async function updateUserCostLimit(fetchData: UseOrgMemberRolesOptions['fetchData'], userId: string, value: number | null) {
     try {
-        const res = await mutate(`${API_BASE}/auth/users/${userId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ monthlyCostLimit: value }),
-        }).catch((err: unknown) => {
+        const res = await apiRequest('PUT /auth/users/{id}', { params: { id: userId }, body: { monthlyCostLimit: value } }).catch((err: unknown) => {
             if (!(err instanceof ApiError)) throw err;
             // A refused save must not pass for a saved one: the editor closes on the old value.
             toast.error(`Failed to update the budget (${err.status})`);
@@ -70,11 +66,7 @@ async function updateUserCostLimit(fetchData: UseOrgMemberRolesOptions['fetchDat
 /** Let a pending account in: it becomes an active member. True when the server accepted it. */
 export async function approvePendingUser(userId: string): Promise<boolean> {
     try {
-        const res = await mutate(`${API_BASE}/auth/users/${userId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: 'active', orgRole: 'user' }),
-        }).catch((err: unknown) => {
+        const res = await apiRequest('PUT /auth/users/{id}', { params: { id: userId }, body: { status: 'active', orgRole: 'user' } }).catch((err: unknown) => {
             if (err instanceof ApiError) return null;
             throw err;
         });
@@ -111,11 +103,7 @@ export default function useOrgMemberRoles({ fetchData, confirm }: UseOrgMemberRo
     const handleUserRoleChange = async (userId: string, newRole: string, opts: Record<string, unknown> = {}) => {
         setRoleChangeError('');
         try {
-            const res = await authFetch(`${API_BASE}/auth/users/${userId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ orgRole: newRole, ...opts }),
-            });
+            const res = await apiFetch('PUT /auth/users/{id}', { params: { id: userId }, body: { orgRole: newRole, ...opts } });
             if (res.ok) {
                 setEditingUserRole(null);
                 setPendingSelfDemotion(null);
@@ -138,7 +126,7 @@ export default function useOrgMemberRoles({ fetchData, confirm }: UseOrgMemberRo
 
     const handleUpdateUserCostLimit = (userId: string, value: number | null) => updateUserCostLimit(fetchData, userId, value);
 
-    const handleUpdateUserImageLimits = (userId: string, limits: ImageLimits | null) => saveImageLimits(`/auth/users/${userId}`, 'imageLimits', limits, {
+    const handleUpdateUserImageLimits = (userId: string, limits: ImageLimits | null) => saveImageLimits({ user: userId }, limits, {
         fetchData, failText: t('image_limits.save_failed', 'The image limits could not be saved.'),
     });
 
@@ -149,7 +137,7 @@ export default function useOrgMemberRoles({ fetchData, confirm }: UseOrgMemberRo
     const handleRejectUser = async (userId: string) => {
         if (!(await confirm({ title: 'Reject and remove this user?', description: 'They can sign up again later.', confirmLabel: 'Reject', destructive: true }))) return;
         try {
-            const res = await mutate(`${API_BASE}/auth/users/${userId}`, { method: 'DELETE' }).catch((err: unknown) => {
+            const res = await apiRequest('DELETE /auth/users/{id}', { params: { id: userId } }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });

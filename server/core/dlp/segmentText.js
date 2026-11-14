@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Content-defined segmentation for cacheable PII scans.
  *
@@ -49,9 +49,9 @@ const BOUNDARY_MASK = (1 << 12) - 1;
  */
 function segmentText(/** @type {string | null | undefined} */ text, opts = {}) {
     const str = typeof text === 'string' ? text : '';
-    const overlapChars = Number.isFinite(opts.overlapChars) ? opts.overlapChars : 256;
-    const maxChars = Number.isFinite(opts.maxChars) ? opts.maxChars : 8000;
-    const minChars = Number.isFinite(opts.minChars) ? opts.minChars : MIN_SEGMENT_CHARS;
+    const overlapChars = Number.isFinite(opts.overlapChars) ? /** @type {number} */ (opts.overlapChars) : 256;
+    const maxChars = Number.isFinite(opts.maxChars) ? /** @type {number} */ (opts.maxChars) : 8000;
+    const minChars = Number.isFinite(opts.minChars) ? /** @type {number} */ (opts.minChars) : MIN_SEGMENT_CHARS;
     // The segment itself must leave room for the overlap that gets prepended.
     const maxSegment = Math.max(1, maxChars - overlapChars);
     if (!str) return [];

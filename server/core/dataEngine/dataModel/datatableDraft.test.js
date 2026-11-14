@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 
 /**
@@ -87,8 +87,8 @@ test('revise, guard ON: a kept key survives a rename; a fresh key never replaces
     assert.deepStrictEqual(out.changes.retyped, []);
     assert.deepStrictEqual(out.changes.renamed, [{ key: 'email', from: 'E-mail', to: 'E-mail address' }]);
     assert.deepStrictEqual(out.changes.added, ['phone']);
-    assert.match(out.notes, /Kept the type of “Stage” \(select\)/);
-    assert.match(out.notes, /Kept a column the draft left out \(Notes\)/);
+    assert.match(/** @type {any} */ (out.notes), /Kept the type of “Stage” \(select\)/);
+    assert.match(/** @type {any} */ (out.notes), /Kept a column the draft left out \(Notes\)/);
 });
 
 test('revise, guard ON: a retype keeps the type and says so; select options only grow', () => {
@@ -99,8 +99,9 @@ test('revise, guard ON: a retype keeps the type and says so; select options only
             { key: 'notes', name: 'Notes', type: 'richtext' },
         ],
     }, { mode: 'revise', current: CURRENT });
+    assert.ok(out);
     assert.strictEqual(out.fields[0].type, 'text');
-    assert.match(out.notes, /Kept the type of “E-mail” \(text\)/);
+    assert.match(/** @type {any} */ (out.notes), /Kept the type of “E-mail” \(text\)/);
     assert.deepStrictEqual(out.fields[1].options, ['lead', 'won'], 'an option a row may hold is never dropped');
     assert.deepStrictEqual(out.changes.retyped, []);
 });
@@ -112,6 +113,7 @@ test('revise, guard OFF: removed and retyped pass through and are reported for t
             { key: 'stage', name: 'Stage', type: 'text' },
         ],
     }, { mode: 'revise', current: CURRENT, allowDestructive: true });
+    assert.ok(out);
     assert.deepStrictEqual(out.fields.map(f => f.key), ['email', 'stage']);
     assert.strictEqual(out.fields[1].type, 'text');
     assert.deepStrictEqual(out.changes.removed, ['notes']);

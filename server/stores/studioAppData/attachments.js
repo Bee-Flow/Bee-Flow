@@ -15,7 +15,7 @@ const { mapAttachmentRow } = require('./rowMappers');
 /**
  * @param appId
  * @param ownerId
- * @param {{ recordId?: string, fieldKey?: string, mimeType?: string, sha256?: string, size?: number }} [opts]
+ * @param {{ recordId?: string | null, fieldKey?: string | null, mimeType?: string, sha256?: string, size?: number }} [opts]
  */
 async function addAttachment(appId, ownerId, { recordId, fieldKey, mimeType, sha256, size } = {}) {
     await initDB();

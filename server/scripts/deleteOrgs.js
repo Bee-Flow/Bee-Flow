@@ -49,6 +49,7 @@ const userStore = require('../stores/userStore');
 require('../boot/lateBoundPorts');
 
 const { parseOpsArgsOrExit } = require('./lib/opsArgs');
+const { ignoreGone } = require('../utils/bestEffort');
 
 const ARGS = parseOpsArgsOrExit({
     orgs: { type: 'string' },
@@ -176,6 +177,6 @@ async function main() {
 
 main().catch(err => {
     console.error('deleteOrgs failed:', err);
-    pool.end().catch(() => {});
+    pool.end().catch((err) => ignoreGone('scripts/deleteOrgs:poolEnd', err));
     process.exit(1);
 });

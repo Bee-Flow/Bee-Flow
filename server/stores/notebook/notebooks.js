@@ -30,7 +30,7 @@ const { resolveNotebookRole, notebookRoleForProjectRole } = require('./membershi
  * caller's role on that project first). `organizationId` stamps the owner's
  * organisation; without it the row is stamped by the boot-time backfill, as
  * standalone notebooks always were.
- * @param {{ userId: string, name?: string, description?: string, instructions?: string,
+ * @param {{ userId: string, name?: string, description?: string | null, instructions?: string | null,
  *   knowledgeBaseIds?: string[], settings?: object, type?: string, projectId?: string|null,
  *   organizationId?: string|null }} input  every member but userId is optional (defaults in the body)
  */

@@ -1,0 +1,2705 @@
+{
+  "notAnObject": null,
+  "noFields": null,
+  "junkColumns": {
+    "name": "Untitled table",
+    "key": "untitled_table",
+    "description": "",
+    "fields": [
+      {
+        "key": "real",
+        "name": "Real",
+        "type": "text"
+      }
+    ],
+    "notes": null,
+    "changes": {
+      "added": [
+        "real"
+      ],
+      "renamed": [],
+      "retyped": [],
+      "removed": []
+    }
+  },
+  "createIgnoresKeys": {
+    "name": "Orders",
+    "key": "orders",
+    "description": "One row per order.",
+    "fields": [
+      {
+        "key": "e_mail",
+        "name": "E-mail",
+        "type": "text"
+      },
+      {
+        "key": "c_created_at",
+        "name": "created_at",
+        "type": "date"
+      },
+      {
+        "key": "secret",
+        "name": "__secret",
+        "type": "text"
+      }
+    ],
+    "notes": "Assumed EUR.",
+    "changes": {
+      "added": [
+        "e_mail",
+        "c_created_at",
+        "secret"
+      ],
+      "renamed": [],
+      "retyped": [],
+      "removed": [
+        "email",
+        "stage",
+        "notes",
+        "tags",
+        "score"
+      ]
+    }
+  },
+  "cap": {
+    "name": "Untitled table",
+    "key": "untitled_table",
+    "description": "",
+    "fields": [
+      {
+        "key": "col_0",
+        "name": "Col 0",
+        "type": "text"
+      },
+      {
+        "key": "col_1",
+        "name": "Col 1",
+        "type": "text"
+      },
+      {
+        "key": "col_2",
+        "name": "Col 2",
+        "type": "text"
+      },
+      {
+        "key": "col_3",
+        "name": "Col 3",
+        "type": "text"
+      },
+      {
+        "key": "col_4",
+        "name": "Col 4",
+        "type": "text"
+      },
+      {
+        "key": "col_5",
+        "name": "Col 5",
+        "type": "text"
+      },
+      {
+        "key": "col_6",
+        "name": "Col 6",
+        "type": "text"
+      },
+      {
+        "key": "col_7",
+        "name": "Col 7",
+        "type": "text"
+      },
+      {
+        "key": "col_8",
+        "name": "Col 8",
+        "type": "text"
+      },
+      {
+        "key": "col_9",
+        "name": "Col 9",
+        "type": "text"
+      },
+      {
+        "key": "col_10",
+        "name": "Col 10",
+        "type": "text"
+      },
+      {
+        "key": "col_11",
+        "name": "Col 11",
+        "type": "text"
+      },
+      {
+        "key": "col_12",
+        "name": "Col 12",
+        "type": "text"
+      },
+      {
+        "key": "col_13",
+        "name": "Col 13",
+        "type": "text"
+      },
+      {
+        "key": "col_14",
+        "name": "Col 14",
+        "type": "text"
+      },
+      {
+        "key": "col_15",
+        "name": "Col 15",
+        "type": "text"
+      },
+      {
+        "key": "col_16",
+        "name": "Col 16",
+        "type": "text"
+      },
+      {
+        "key": "col_17",
+        "name": "Col 17",
+        "type": "text"
+      },
+      {
+        "key": "col_18",
+        "name": "Col 18",
+        "type": "text"
+      },
+      {
+        "key": "col_19",
+        "name": "Col 19",
+        "type": "text"
+      },
+      {
+        "key": "col_20",
+        "name": "Col 20",
+        "type": "text"
+      },
+      {
+        "key": "col_21",
+        "name": "Col 21",
+        "type": "text"
+      },
+      {
+        "key": "col_22",
+        "name": "Col 22",
+        "type": "text"
+      },
+      {
+        "key": "col_23",
+        "name": "Col 23",
+        "type": "text"
+      },
+      {
+        "key": "col_24",
+        "name": "Col 24",
+        "type": "text"
+      },
+      {
+        "key": "col_25",
+        "name": "Col 25",
+        "type": "text"
+      },
+      {
+        "key": "col_26",
+        "name": "Col 26",
+        "type": "text"
+      },
+      {
+        "key": "col_27",
+        "name": "Col 27",
+        "type": "text"
+      },
+      {
+        "key": "col_28",
+        "name": "Col 28",
+        "type": "text"
+      },
+      {
+        "key": "col_29",
+        "name": "Col 29",
+        "type": "text"
+      },
+      {
+        "key": "col_30",
+        "name": "Col 30",
+        "type": "text"
+      },
+      {
+        "key": "col_31",
+        "name": "Col 31",
+        "type": "text"
+      },
+      {
+        "key": "col_32",
+        "name": "Col 32",
+        "type": "text"
+      },
+      {
+        "key": "col_33",
+        "name": "Col 33",
+        "type": "text"
+      },
+      {
+        "key": "col_34",
+        "name": "Col 34",
+        "type": "text"
+      },
+      {
+        "key": "col_35",
+        "name": "Col 35",
+        "type": "text"
+      },
+      {
+        "key": "col_36",
+        "name": "Col 36",
+        "type": "text"
+      },
+      {
+        "key": "col_37",
+        "name": "Col 37",
+        "type": "text"
+      },
+      {
+        "key": "col_38",
+        "name": "Col 38",
+        "type": "text"
+      },
+      {
+        "key": "col_39",
+        "name": "Col 39",
+        "type": "text"
+      },
+      {
+        "key": "col_40",
+        "name": "Col 40",
+        "type": "text"
+      },
+      {
+        "key": "col_41",
+        "name": "Col 41",
+        "type": "text"
+      },
+      {
+        "key": "col_42",
+        "name": "Col 42",
+        "type": "text"
+      },
+      {
+        "key": "col_43",
+        "name": "Col 43",
+        "type": "text"
+      },
+      {
+        "key": "col_44",
+        "name": "Col 44",
+        "type": "text"
+      },
+      {
+        "key": "col_45",
+        "name": "Col 45",
+        "type": "text"
+      },
+      {
+        "key": "col_46",
+        "name": "Col 46",
+        "type": "text"
+      },
+      {
+        "key": "col_47",
+        "name": "Col 47",
+        "type": "text"
+      },
+      {
+        "key": "col_48",
+        "name": "Col 48",
+        "type": "text"
+      },
+      {
+        "key": "col_49",
+        "name": "Col 49",
+        "type": "text"
+      },
+      {
+        "key": "col_50",
+        "name": "Col 50",
+        "type": "text"
+      },
+      {
+        "key": "col_51",
+        "name": "Col 51",
+        "type": "text"
+      },
+      {
+        "key": "col_52",
+        "name": "Col 52",
+        "type": "text"
+      },
+      {
+        "key": "col_53",
+        "name": "Col 53",
+        "type": "text"
+      },
+      {
+        "key": "col_54",
+        "name": "Col 54",
+        "type": "text"
+      },
+      {
+        "key": "col_55",
+        "name": "Col 55",
+        "type": "text"
+      },
+      {
+        "key": "col_56",
+        "name": "Col 56",
+        "type": "text"
+      },
+      {
+        "key": "col_57",
+        "name": "Col 57",
+        "type": "text"
+      },
+      {
+        "key": "col_58",
+        "name": "Col 58",
+        "type": "text"
+      },
+      {
+        "key": "col_59",
+        "name": "Col 59",
+        "type": "text"
+      },
+      {
+        "key": "col_60",
+        "name": "Col 60",
+        "type": "text"
+      },
+      {
+        "key": "col_61",
+        "name": "Col 61",
+        "type": "text"
+      },
+      {
+        "key": "col_62",
+        "name": "Col 62",
+        "type": "text"
+      },
+      {
+        "key": "col_63",
+        "name": "Col 63",
+        "type": "text"
+      },
+      {
+        "key": "col_64",
+        "name": "Col 64",
+        "type": "text"
+      },
+      {
+        "key": "col_65",
+        "name": "Col 65",
+        "type": "text"
+      },
+      {
+        "key": "col_66",
+        "name": "Col 66",
+        "type": "text"
+      },
+      {
+        "key": "col_67",
+        "name": "Col 67",
+        "type": "text"
+      },
+      {
+        "key": "col_68",
+        "name": "Col 68",
+        "type": "text"
+      },
+      {
+        "key": "col_69",
+        "name": "Col 69",
+        "type": "text"
+      },
+      {
+        "key": "col_70",
+        "name": "Col 70",
+        "type": "text"
+      },
+      {
+        "key": "col_71",
+        "name": "Col 71",
+        "type": "text"
+      },
+      {
+        "key": "col_72",
+        "name": "Col 72",
+        "type": "text"
+      },
+      {
+        "key": "col_73",
+        "name": "Col 73",
+        "type": "text"
+      },
+      {
+        "key": "col_74",
+        "name": "Col 74",
+        "type": "text"
+      },
+      {
+        "key": "col_75",
+        "name": "Col 75",
+        "type": "text"
+      },
+      {
+        "key": "col_76",
+        "name": "Col 76",
+        "type": "text"
+      },
+      {
+        "key": "col_77",
+        "name": "Col 77",
+        "type": "text"
+      },
+      {
+        "key": "col_78",
+        "name": "Col 78",
+        "type": "text"
+      },
+      {
+        "key": "col_79",
+        "name": "Col 79",
+        "type": "text"
+      },
+      {
+        "key": "col_80",
+        "name": "Col 80",
+        "type": "text"
+      },
+      {
+        "key": "col_81",
+        "name": "Col 81",
+        "type": "text"
+      },
+      {
+        "key": "col_82",
+        "name": "Col 82",
+        "type": "text"
+      },
+      {
+        "key": "col_83",
+        "name": "Col 83",
+        "type": "text"
+      },
+      {
+        "key": "col_84",
+        "name": "Col 84",
+        "type": "text"
+      },
+      {
+        "key": "col_85",
+        "name": "Col 85",
+        "type": "text"
+      },
+      {
+        "key": "col_86",
+        "name": "Col 86",
+        "type": "text"
+      },
+      {
+        "key": "col_87",
+        "name": "Col 87",
+        "type": "text"
+      },
+      {
+        "key": "col_88",
+        "name": "Col 88",
+        "type": "text"
+      },
+      {
+        "key": "col_89",
+        "name": "Col 89",
+        "type": "text"
+      },
+      {
+        "key": "col_90",
+        "name": "Col 90",
+        "type": "text"
+      },
+      {
+        "key": "col_91",
+        "name": "Col 91",
+        "type": "text"
+      },
+      {
+        "key": "col_92",
+        "name": "Col 92",
+        "type": "text"
+      },
+      {
+        "key": "col_93",
+        "name": "Col 93",
+        "type": "text"
+      },
+      {
+        "key": "col_94",
+        "name": "Col 94",
+        "type": "text"
+      },
+      {
+        "key": "col_95",
+        "name": "Col 95",
+        "type": "text"
+      },
+      {
+        "key": "col_96",
+        "name": "Col 96",
+        "type": "text"
+      },
+      {
+        "key": "col_97",
+        "name": "Col 97",
+        "type": "text"
+      },
+      {
+        "key": "col_98",
+        "name": "Col 98",
+        "type": "text"
+      },
+      {
+        "key": "col_99",
+        "name": "Col 99",
+        "type": "text"
+      }
+    ],
+    "notes": "5 more columns left out: a table holds at most 100.",
+    "changes": {
+      "added": [
+        "col_0",
+        "col_1",
+        "col_2",
+        "col_3",
+        "col_4",
+        "col_5",
+        "col_6",
+        "col_7",
+        "col_8",
+        "col_9",
+        "col_10",
+        "col_11",
+        "col_12",
+        "col_13",
+        "col_14",
+        "col_15",
+        "col_16",
+        "col_17",
+        "col_18",
+        "col_19",
+        "col_20",
+        "col_21",
+        "col_22",
+        "col_23",
+        "col_24",
+        "col_25",
+        "col_26",
+        "col_27",
+        "col_28",
+        "col_29",
+        "col_30",
+        "col_31",
+        "col_32",
+        "col_33",
+        "col_34",
+        "col_35",
+        "col_36",
+        "col_37",
+        "col_38",
+        "col_39",
+        "col_40",
+        "col_41",
+        "col_42",
+        "col_43",
+        "col_44",
+        "col_45",
+        "col_46",
+        "col_47",
+        "col_48",
+        "col_49",
+        "col_50",
+        "col_51",
+        "col_52",
+        "col_53",
+        "col_54",
+        "col_55",
+        "col_56",
+        "col_57",
+        "col_58",
+        "col_59",
+        "col_60",
+        "col_61",
+        "col_62",
+        "col_63",
+        "col_64",
+        "col_65",
+        "col_66",
+        "col_67",
+        "col_68",
+        "col_69",
+        "col_70",
+        "col_71",
+        "col_72",
+        "col_73",
+        "col_74",
+        "col_75",
+        "col_76",
+        "col_77",
+        "col_78",
+        "col_79",
+        "col_80",
+        "col_81",
+        "col_82",
+        "col_83",
+        "col_84",
+        "col_85",
+        "col_86",
+        "col_87",
+        "col_88",
+        "col_89",
+        "col_90",
+        "col_91",
+        "col_92",
+        "col_93",
+        "col_94",
+        "col_95",
+        "col_96",
+        "col_97",
+        "col_98",
+        "col_99"
+      ],
+      "renamed": [],
+      "retyped": [],
+      "removed": []
+    }
+  },
+  "capOne": {
+    "name": "Untitled table",
+    "key": "untitled_table",
+    "description": "",
+    "fields": [
+      {
+        "key": "col_0",
+        "name": "Col 0",
+        "type": "text"
+      },
+      {
+        "key": "col_1",
+        "name": "Col 1",
+        "type": "text"
+      },
+      {
+        "key": "col_2",
+        "name": "Col 2",
+        "type": "text"
+      },
+      {
+        "key": "col_3",
+        "name": "Col 3",
+        "type": "text"
+      },
+      {
+        "key": "col_4",
+        "name": "Col 4",
+        "type": "text"
+      },
+      {
+        "key": "col_5",
+        "name": "Col 5",
+        "type": "text"
+      },
+      {
+        "key": "col_6",
+        "name": "Col 6",
+        "type": "text"
+      },
+      {
+        "key": "col_7",
+        "name": "Col 7",
+        "type": "text"
+      },
+      {
+        "key": "col_8",
+        "name": "Col 8",
+        "type": "text"
+      },
+      {
+        "key": "col_9",
+        "name": "Col 9",
+        "type": "text"
+      },
+      {
+        "key": "col_10",
+        "name": "Col 10",
+        "type": "text"
+      },
+      {
+        "key": "col_11",
+        "name": "Col 11",
+        "type": "text"
+      },
+      {
+        "key": "col_12",
+        "name": "Col 12",
+        "type": "text"
+      },
+      {
+        "key": "col_13",
+        "name": "Col 13",
+        "type": "text"
+      },
+      {
+        "key": "col_14",
+        "name": "Col 14",
+        "type": "text"
+      },
+      {
+        "key": "col_15",
+        "name": "Col 15",
+        "type": "text"
+      },
+      {
+        "key": "col_16",
+        "name": "Col 16",
+        "type": "text"
+      },
+      {
+        "key": "col_17",
+        "name": "Col 17",
+        "type": "text"
+      },
+      {
+        "key": "col_18",
+        "name": "Col 18",
+        "type": "text"
+      },
+      {
+        "key": "col_19",
+        "name": "Col 19",
+        "type": "text"
+      },
+      {
+        "key": "col_20",
+        "name": "Col 20",
+        "type": "text"
+      },
+      {
+        "key": "col_21",
+        "name": "Col 21",
+        "type": "text"
+      },
+      {
+        "key": "col_22",
+        "name": "Col 22",
+        "type": "text"
+      },
+      {
+        "key": "col_23",
+        "name": "Col 23",
+        "type": "text"
+      },
+      {
+        "key": "col_24",
+        "name": "Col 24",
+        "type": "text"
+      },
+      {
+        "key": "col_25",
+        "name": "Col 25",
+        "type": "text"
+      },
+      {
+        "key": "col_26",
+        "name": "Col 26",
+        "type": "text"
+      },
+      {
+        "key": "col_27",
+        "name": "Col 27",
+        "type": "text"
+      },
+      {
+        "key": "col_28",
+        "name": "Col 28",
+        "type": "text"
+      },
+      {
+        "key": "col_29",
+        "name": "Col 29",
+        "type": "text"
+      },
+      {
+        "key": "col_30",
+        "name": "Col 30",
+        "type": "text"
+      },
+      {
+        "key": "col_31",
+        "name": "Col 31",
+        "type": "text"
+      },
+      {
+        "key": "col_32",
+        "name": "Col 32",
+        "type": "text"
+      },
+      {
+        "key": "col_33",
+        "name": "Col 33",
+        "type": "text"
+      },
+      {
+        "key": "col_34",
+        "name": "Col 34",
+        "type": "text"
+      },
+      {
+        "key": "col_35",
+        "name": "Col 35",
+        "type": "text"
+      },
+      {
+        "key": "col_36",
+        "name": "Col 36",
+        "type": "text"
+      },
+      {
+        "key": "col_37",
+        "name": "Col 37",
+        "type": "text"
+      },
+      {
+        "key": "col_38",
+        "name": "Col 38",
+        "type": "text"
+      },
+      {
+        "key": "col_39",
+        "name": "Col 39",
+        "type": "text"
+      },
+      {
+        "key": "col_40",
+        "name": "Col 40",
+        "type": "text"
+      },
+      {
+        "key": "col_41",
+        "name": "Col 41",
+        "type": "text"
+      },
+      {
+        "key": "col_42",
+        "name": "Col 42",
+        "type": "text"
+      },
+      {
+        "key": "col_43",
+        "name": "Col 43",
+        "type": "text"
+      },
+      {
+        "key": "col_44",
+        "name": "Col 44",
+        "type": "text"
+      },
+      {
+        "key": "col_45",
+        "name": "Col 45",
+        "type": "text"
+      },
+      {
+        "key": "col_46",
+        "name": "Col 46",
+        "type": "text"
+      },
+      {
+        "key": "col_47",
+        "name": "Col 47",
+        "type": "text"
+      },
+      {
+        "key": "col_48",
+        "name": "Col 48",
+        "type": "text"
+      },
+      {
+        "key": "col_49",
+        "name": "Col 49",
+        "type": "text"
+      },
+      {
+        "key": "col_50",
+        "name": "Col 50",
+        "type": "text"
+      },
+      {
+        "key": "col_51",
+        "name": "Col 51",
+        "type": "text"
+      },
+      {
+        "key": "col_52",
+        "name": "Col 52",
+        "type": "text"
+      },
+      {
+        "key": "col_53",
+        "name": "Col 53",
+        "type": "text"
+      },
+      {
+        "key": "col_54",
+        "name": "Col 54",
+        "type": "text"
+      },
+      {
+        "key": "col_55",
+        "name": "Col 55",
+        "type": "text"
+      },
+      {
+        "key": "col_56",
+        "name": "Col 56",
+        "type": "text"
+      },
+      {
+        "key": "col_57",
+        "name": "Col 57",
+        "type": "text"
+      },
+      {
+        "key": "col_58",
+        "name": "Col 58",
+        "type": "text"
+      },
+      {
+        "key": "col_59",
+        "name": "Col 59",
+        "type": "text"
+      },
+      {
+        "key": "col_60",
+        "name": "Col 60",
+        "type": "text"
+      },
+      {
+        "key": "col_61",
+        "name": "Col 61",
+        "type": "text"
+      },
+      {
+        "key": "col_62",
+        "name": "Col 62",
+        "type": "text"
+      },
+      {
+        "key": "col_63",
+        "name": "Col 63",
+        "type": "text"
+      },
+      {
+        "key": "col_64",
+        "name": "Col 64",
+        "type": "text"
+      },
+      {
+        "key": "col_65",
+        "name": "Col 65",
+        "type": "text"
+      },
+      {
+        "key": "col_66",
+        "name": "Col 66",
+        "type": "text"
+      },
+      {
+        "key": "col_67",
+        "name": "Col 67",
+        "type": "text"
+      },
+      {
+        "key": "col_68",
+        "name": "Col 68",
+        "type": "text"
+      },
+      {
+        "key": "col_69",
+        "name": "Col 69",
+        "type": "text"
+      },
+      {
+        "key": "col_70",
+        "name": "Col 70",
+        "type": "text"
+      },
+      {
+        "key": "col_71",
+        "name": "Col 71",
+        "type": "text"
+      },
+      {
+        "key": "col_72",
+        "name": "Col 72",
+        "type": "text"
+      },
+      {
+        "key": "col_73",
+        "name": "Col 73",
+        "type": "text"
+      },
+      {
+        "key": "col_74",
+        "name": "Col 74",
+        "type": "text"
+      },
+      {
+        "key": "col_75",
+        "name": "Col 75",
+        "type": "text"
+      },
+      {
+        "key": "col_76",
+        "name": "Col 76",
+        "type": "text"
+      },
+      {
+        "key": "col_77",
+        "name": "Col 77",
+        "type": "text"
+      },
+      {
+        "key": "col_78",
+        "name": "Col 78",
+        "type": "text"
+      },
+      {
+        "key": "col_79",
+        "name": "Col 79",
+        "type": "text"
+      },
+      {
+        "key": "col_80",
+        "name": "Col 80",
+        "type": "text"
+      },
+      {
+        "key": "col_81",
+        "name": "Col 81",
+        "type": "text"
+      },
+      {
+        "key": "col_82",
+        "name": "Col 82",
+        "type": "text"
+      },
+      {
+        "key": "col_83",
+        "name": "Col 83",
+        "type": "text"
+      },
+      {
+        "key": "col_84",
+        "name": "Col 84",
+        "type": "text"
+      },
+      {
+        "key": "col_85",
+        "name": "Col 85",
+        "type": "text"
+      },
+      {
+        "key": "col_86",
+        "name": "Col 86",
+        "type": "text"
+      },
+      {
+        "key": "col_87",
+        "name": "Col 87",
+        "type": "text"
+      },
+      {
+        "key": "col_88",
+        "name": "Col 88",
+        "type": "text"
+      },
+      {
+        "key": "col_89",
+        "name": "Col 89",
+        "type": "text"
+      },
+      {
+        "key": "col_90",
+        "name": "Col 90",
+        "type": "text"
+      },
+      {
+        "key": "col_91",
+        "name": "Col 91",
+        "type": "text"
+      },
+      {
+        "key": "col_92",
+        "name": "Col 92",
+        "type": "text"
+      },
+      {
+        "key": "col_93",
+        "name": "Col 93",
+        "type": "text"
+      },
+      {
+        "key": "col_94",
+        "name": "Col 94",
+        "type": "text"
+      },
+      {
+        "key": "col_95",
+        "name": "Col 95",
+        "type": "text"
+      },
+      {
+        "key": "col_96",
+        "name": "Col 96",
+        "type": "text"
+      },
+      {
+        "key": "col_97",
+        "name": "Col 97",
+        "type": "text"
+      },
+      {
+        "key": "col_98",
+        "name": "Col 98",
+        "type": "text"
+      },
+      {
+        "key": "col_99",
+        "name": "Col 99",
+        "type": "text"
+      }
+    ],
+    "notes": "1 more column left out: a table holds at most 100.",
+    "changes": {
+      "added": [
+        "col_0",
+        "col_1",
+        "col_2",
+        "col_3",
+        "col_4",
+        "col_5",
+        "col_6",
+        "col_7",
+        "col_8",
+        "col_9",
+        "col_10",
+        "col_11",
+        "col_12",
+        "col_13",
+        "col_14",
+        "col_15",
+        "col_16",
+        "col_17",
+        "col_18",
+        "col_19",
+        "col_20",
+        "col_21",
+        "col_22",
+        "col_23",
+        "col_24",
+        "col_25",
+        "col_26",
+        "col_27",
+        "col_28",
+        "col_29",
+        "col_30",
+        "col_31",
+        "col_32",
+        "col_33",
+        "col_34",
+        "col_35",
+        "col_36",
+        "col_37",
+        "col_38",
+        "col_39",
+        "col_40",
+        "col_41",
+        "col_42",
+        "col_43",
+        "col_44",
+        "col_45",
+        "col_46",
+        "col_47",
+        "col_48",
+        "col_49",
+        "col_50",
+        "col_51",
+        "col_52",
+        "col_53",
+        "col_54",
+        "col_55",
+        "col_56",
+        "col_57",
+        "col_58",
+        "col_59",
+        "col_60",
+        "col_61",
+        "col_62",
+        "col_63",
+        "col_64",
+        "col_65",
+        "col_66",
+        "col_67",
+        "col_68",
+        "col_69",
+        "col_70",
+        "col_71",
+        "col_72",
+        "col_73",
+        "col_74",
+        "col_75",
+        "col_76",
+        "col_77",
+        "col_78",
+        "col_79",
+        "col_80",
+        "col_81",
+        "col_82",
+        "col_83",
+        "col_84",
+        "col_85",
+        "col_86",
+        "col_87",
+        "col_88",
+        "col_89",
+        "col_90",
+        "col_91",
+        "col_92",
+        "col_93",
+        "col_94",
+        "col_95",
+        "col_96",
+        "col_97",
+        "col_98",
+        "col_99"
+      ],
+      "renamed": [],
+      "retyped": [],
+      "removed": []
+    }
+  },
+  "selectOptions": {
+    "name": "Untitled table",
+    "key": "untitled_table",
+    "description": "",
+    "fields": [
+      {
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "a",
+          "b",
+          "c",
+          "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        ]
+      },
+      {
+        "key": "many",
+        "name": "Many",
+        "type": "multiselect",
+        "options": [
+          "o0",
+          "o1",
+          "o2",
+          "o3",
+          "o4",
+          "o5",
+          "o6",
+          "o7",
+          "o8",
+          "o9",
+          "o10",
+          "o11",
+          "o12",
+          "o13",
+          "o14",
+          "o15",
+          "o16",
+          "o17",
+          "o18",
+          "o19",
+          "o20",
+          "o21",
+          "o22",
+          "o23",
+          "o24",
+          "o25",
+          "o26",
+          "o27",
+          "o28",
+          "o29",
+          "o30",
+          "o31",
+          "o32",
+          "o33",
+          "o34",
+          "o35",
+          "o36",
+          "o37",
+          "o38",
+          "o39",
+          "o40",
+          "o41",
+          "o42",
+          "o43",
+          "o44",
+          "o45",
+          "o46",
+          "o47",
+          "o48",
+          "o49",
+          "o50",
+          "o51",
+          "o52",
+          "o53",
+          "o54",
+          "o55",
+          "o56",
+          "o57",
+          "o58",
+          "o59",
+          "o60",
+          "o61",
+          "o62",
+          "o63",
+          "o64",
+          "o65",
+          "o66",
+          "o67",
+          "o68",
+          "o69",
+          "o70",
+          "o71",
+          "o72",
+          "o73",
+          "o74",
+          "o75",
+          "o76",
+          "o77",
+          "o78",
+          "o79",
+          "o80",
+          "o81",
+          "o82",
+          "o83",
+          "o84",
+          "o85",
+          "o86",
+          "o87",
+          "o88",
+          "o89",
+          "o90",
+          "o91",
+          "o92",
+          "o93",
+          "o94",
+          "o95",
+          "o96",
+          "o97",
+          "o98",
+          "o99"
+        ]
+      },
+      {
+        "key": "empty",
+        "name": "Empty",
+        "type": "text"
+      },
+      {
+        "key": "empty_multi",
+        "name": "Empty multi",
+        "type": "text"
+      },
+      {
+        "key": "text_with_options",
+        "name": "Text with options",
+        "type": "text"
+      }
+    ],
+    "notes": null,
+    "changes": {
+      "added": [
+        "status",
+        "many",
+        "empty",
+        "empty_multi",
+        "text_with_options"
+      ],
+      "renamed": [],
+      "retyped": [],
+      "removed": []
+    }
+  },
+  "reviseKeepsAll": {
+    "name": "Customers",
+    "key": "customers",
+    "description": "Customers we onboarded.",
+    "fields": [
+      {
+        "key": "email",
+        "name": "E-mail",
+        "type": "text",
+        "required": true,
+        "unique": true
+      },
+      {
+        "key": "stage",
+        "name": "Stage",
+        "type": "select",
+        "options": [
+          "lead",
+          "won",
+          "lost",
+          "new"
+        ]
+      },
+      {
+        "key": "notes",
+        "name": "Notes",
+        "type": "richtext"
+      },
+      {
+        "key": "tags",
+        "name": "tags",
+        "type": "multiselect",
+        "options": [
+          "a",
+          "new"
+        ]
+      },
+      {
+        "key": "score",
+        "name": "Score",
+        "type": "number"
+      }
+    ],
+    "notes": null,
+    "changes": {
+      "added": [],
+      "renamed": [],
+      "retyped": [],
+      "removed": []
+    }
+  },
+  "reviseUnknownAndRepeatedKey": {
+    "name": "Customers",
+    "key": "customers",
+    "description": "Customers we onboarded.",
+    "fields": [
+      {
+        "key": "email",
+        "name": "Mail",
+        "type": "text",
+        "required": true,
+        "unique": true
+      },
+      {
+        "key": "mail_two",
+        "name": "Mail two",
+        "type": "text"
+      },
+      {
+        "key": "stage",
+        "name": "Stage",
+        "type": "select",
+        "options": [
+          "lead",
+          "won",
+          "lost"
+        ]
+      },
+      {
+        "key": "notes",
+        "name": "Notes",
+        "type": "richtext"
+      },
+      {
+        "key": "tags",
+        "name": "tags",
+        "type": "multiselect",
+        "options": [
+          "a"
+        ]
+      },
+      {
+        "key": "score",
+        "name": "Score",
+        "type": "number"
+      }
+    ],
+    "notes": "Kept the type of “Stage” (select) — retyping is off. Kept 3 columns the draft left out (Notes, tags, Score) — removing is off.",
+    "changes": {
+      "added": [
+        "mail_two"
+      ],
+      "renamed": [
+        {
+          "key": "email",
+          "from": "E-mail",
+          "to": "Mail"
+        }
+      ],
+      "retyped": [],
+      "removed": []
+    }
+  },
+  "reviseRetypeGuardOn": {
+    "name": "Customers",
+    "key": "customers",
+    "description": "Customers we onboarded.",
+    "fields": [
+      {
+        "key": "email",
+        "name": "E-mail",
+        "type": "text",
+        "required": true,
+        "unique": true
+      },
+      {
+        "key": "stage",
+        "name": "Stage",
+        "type": "select",
+        "options": [
+          "lead",
+          "won",
+          "lost"
+        ]
+      },
+      {
+        "key": "notes",
+        "name": "Notes",
+        "type": "richtext"
+      },
+      {
+        "key": "tags",
+        "name": "tags",
+        "type": "multiselect",
+        "options": [
+          "a"
+        ]
+      },
+      {
+        "key": "score",
+        "name": "Score",
+        "type": "number"
+      }
+    ],
+    "notes": "Kept the type of “E-mail” (text) — retyping is off. Kept the type of “Stage” (select) — retyping is off. Kept the type of “Notes” (richtext) — retyping is off. Kept 2 columns the draft left out (tags, Score) — removing is off.",
+    "changes": {
+      "added": [],
+      "renamed": [],
+      "retyped": [],
+      "removed": []
+    }
+  },
+  "reviseRetypeGuardOff": {
+    "name": "Customers",
+    "key": "customers",
+    "description": "Customers we onboarded.",
+    "fields": [
+      {
+        "key": "email",
+        "name": "E-mail",
+        "type": "number",
+        "unique": true
+      },
+      {
+        "key": "stage",
+        "name": "Stage",
+        "type": "multiselect",
+        "options": [
+          "m"
+        ]
+      },
+      {
+        "key": "tags",
+        "name": "Tags",
+        "type": "multiselect",
+        "options": [
+          "a",
+          "b"
+        ]
+      }
+    ],
+    "notes": null,
+    "changes": {
+      "added": [],
+      "renamed": [
+        {
+          "key": "tags",
+          "from": "tags",
+          "to": "Tags"
+        }
+      ],
+      "retyped": [
+        {
+          "key": "email",
+          "from": "text",
+          "to": "number"
+        },
+        {
+          "key": "stage",
+          "from": "select",
+          "to": "multiselect"
+        }
+      ],
+      "removed": [
+        "notes",
+        "score"
+      ]
+    }
+  },
+  "reviseRequiredGuardOff": {
+    "name": "Customers",
+    "key": "customers",
+    "description": "Customers we onboarded.",
+    "fields": [
+      {
+        "key": "email",
+        "name": "E-mail",
+        "type": "text",
+        "unique": true
+      },
+      {
+        "key": "score",
+        "name": "Score",
+        "type": "number",
+        "required": true
+      }
+    ],
+    "notes": null,
+    "changes": {
+      "added": [],
+      "renamed": [],
+      "retyped": [],
+      "removed": [
+        "stage",
+        "notes",
+        "tags"
+      ]
+    }
+  },
+  "reviseLeftOutPlacement": {
+    "name": "Customers",
+    "key": "customers",
+    "description": "Customers we onboarded.",
+    "fields": [
+      {
+        "key": "email",
+        "name": "E-mail",
+        "type": "text",
+        "required": true,
+        "unique": true
+      },
+      {
+        "key": "score",
+        "name": "Score",
+        "type": "number"
+      },
+      {
+        "key": "phone",
+        "name": "Phone",
+        "type": "text"
+      },
+      {
+        "key": "stage",
+        "name": "Stage",
+        "type": "select",
+        "options": [
+          "lead",
+          "won",
+          "lost"
+        ]
+      },
+      {
+        "key": "notes",
+        "name": "Notes",
+        "type": "richtext"
+      },
+      {
+        "key": "tags",
+        "name": "tags",
+        "type": "multiselect",
+        "options": [
+          "a"
+        ]
+      }
+    ],
+    "notes": "Kept 3 columns the draft left out (E-mail, Notes, tags) — removing is off.",
+    "changes": {
+      "added": [
+        "phone"
+      ],
+      "renamed": [],
+      "retyped": [],
+      "removed": []
+    }
+  },
+  "reviseAllLeftOut": {
+    "name": "Customers",
+    "key": "customers",
+    "description": "Customers we onboarded.",
+    "fields": [
+      {
+        "key": "email",
+        "name": "E-mail",
+        "type": "text",
+        "required": true,
+        "unique": true
+      },
+      {
+        "key": "stage",
+        "name": "Stage",
+        "type": "select",
+        "options": [
+          "lead",
+          "won",
+          "lost"
+        ]
+      },
+      {
+        "key": "notes",
+        "name": "Notes",
+        "type": "richtext"
+      },
+      {
+        "key": "tags",
+        "name": "tags",
+        "type": "multiselect",
+        "options": [
+          "a"
+        ]
+      },
+      {
+        "key": "score",
+        "name": "Score",
+        "type": "number"
+      },
+      {
+        "key": "phone",
+        "name": "Phone",
+        "type": "text"
+      }
+    ],
+    "notes": "Kept 5 columns the draft left out (E-mail, Stage, Notes, tags, Score) — removing is off.",
+    "changes": {
+      "added": [
+        "phone"
+      ],
+      "renamed": [],
+      "retyped": [],
+      "removed": []
+    }
+  },
+  "reviseOneLeftOut": {
+    "name": "Customers",
+    "key": "customers",
+    "description": "Customers we onboarded.",
+    "fields": [
+      {
+        "key": "email",
+        "name": "E-mail",
+        "type": "text",
+        "required": true,
+        "unique": true
+      },
+      {
+        "key": "stage",
+        "name": "Stage",
+        "type": "select",
+        "options": [
+          "lead",
+          "won",
+          "lost"
+        ]
+      },
+      {
+        "key": "notes",
+        "name": "Notes",
+        "type": "richtext"
+      },
+      {
+        "key": "tags",
+        "name": "tags",
+        "type": "multiselect",
+        "options": [
+          "a"
+        ]
+      },
+      {
+        "key": "score",
+        "name": "Score",
+        "type": "number"
+      }
+    ],
+    "notes": "Kept a column the draft left out (E-mail) — removing is off.",
+    "changes": {
+      "added": [],
+      "renamed": [],
+      "retyped": [],
+      "removed": []
+    }
+  },
+  "reviseEmptyDraftRestores": {
+    "name": "Customers",
+    "key": "customers",
+    "description": "Customers we onboarded.",
+    "fields": [
+      {
+        "key": "email",
+        "name": "E-mail",
+        "type": "text",
+        "required": true,
+        "unique": true
+      },
+      {
+        "key": "stage",
+        "name": "Stage",
+        "type": "select",
+        "options": [
+          "lead",
+          "won",
+          "lost"
+        ]
+      },
+      {
+        "key": "notes",
+        "name": "Notes",
+        "type": "richtext"
+      },
+      {
+        "key": "tags",
+        "name": "tags",
+        "type": "multiselect",
+        "options": [
+          "a"
+        ]
+      },
+      {
+        "key": "score",
+        "name": "Score",
+        "type": "number"
+      }
+    ],
+    "notes": "Kept 5 columns the draft left out (E-mail, Stage, Notes, tags, Score) — removing is off.",
+    "changes": {
+      "added": [],
+      "renamed": [],
+      "retyped": [],
+      "removed": []
+    }
+  },
+  "reviseEmptyDraftGuardOff": null,
+  "reviseNoCurrent": {
+    "name": "Untitled table",
+    "key": "untitled_table",
+    "description": "",
+    "fields": [
+      {
+        "key": "e_mail",
+        "name": "E-mail",
+        "type": "text"
+      }
+    ],
+    "notes": null,
+    "changes": {
+      "added": [
+        "e_mail"
+      ],
+      "renamed": [],
+      "retyped": [],
+      "removed": []
+    }
+  },
+  "reviseCurrentJunk": {
+    "name": "Untitled table",
+    "key": "untitled_table",
+    "description": "",
+    "fields": [
+      {
+        "key": "email",
+        "name": "E-mail",
+        "type": "text"
+      }
+    ],
+    "notes": null,
+    "changes": {
+      "added": [],
+      "renamed": [
+        {
+          "key": "email",
+          "from": "email",
+          "to": "E-mail"
+        }
+      ],
+      "retyped": [],
+      "removed": []
+    }
+  },
+  "namesAndDescription": {
+    "name": "Customers",
+    "key": "customers",
+    "description": "Customers we onboarded.",
+    "fields": [
+      {
+        "key": "email",
+        "name": "E-mail",
+        "type": "text",
+        "required": true,
+        "unique": true
+      },
+      {
+        "key": "stage",
+        "name": "Stage",
+        "type": "select",
+        "options": [
+          "lead",
+          "won",
+          "lost"
+        ]
+      },
+      {
+        "key": "notes",
+        "name": "Notes",
+        "type": "richtext"
+      },
+      {
+        "key": "tags",
+        "name": "tags",
+        "type": "multiselect",
+        "options": [
+          "a"
+        ]
+      },
+      {
+        "key": "score",
+        "name": "Score",
+        "type": "number"
+      },
+      {
+        "key": "a",
+        "name": "A",
+        "type": "text"
+      }
+    ],
+    "notes": "Kept 5 columns the draft left out (E-mail, Stage, Notes, tags, Score) — removing is off.",
+    "changes": {
+      "added": [
+        "a"
+      ],
+      "renamed": [],
+      "retyped": [],
+      "removed": []
+    }
+  },
+  "noNameAnywhere": {
+    "name": "Untitled table",
+    "key": "untitled_table",
+    "description": "",
+    "fields": [
+      {
+        "key": "a",
+        "name": "A",
+        "type": "text"
+      }
+    ],
+    "notes": null,
+    "changes": {
+      "added": [
+        "a"
+      ],
+      "renamed": [],
+      "retyped": [],
+      "removed": []
+    }
+  },
+  "longNotes": {
+    "name": "Untitled table",
+    "key": "untitled_table",
+    "description": "",
+    "fields": [
+      {
+        "key": "col_0",
+        "name": "Col 0",
+        "type": "text"
+      },
+      {
+        "key": "col_1",
+        "name": "Col 1",
+        "type": "text"
+      },
+      {
+        "key": "col_2",
+        "name": "Col 2",
+        "type": "text"
+      },
+      {
+        "key": "col_3",
+        "name": "Col 3",
+        "type": "text"
+      },
+      {
+        "key": "col_4",
+        "name": "Col 4",
+        "type": "text"
+      },
+      {
+        "key": "col_5",
+        "name": "Col 5",
+        "type": "text"
+      },
+      {
+        "key": "col_6",
+        "name": "Col 6",
+        "type": "text"
+      },
+      {
+        "key": "col_7",
+        "name": "Col 7",
+        "type": "text"
+      },
+      {
+        "key": "col_8",
+        "name": "Col 8",
+        "type": "text"
+      },
+      {
+        "key": "col_9",
+        "name": "Col 9",
+        "type": "text"
+      },
+      {
+        "key": "col_10",
+        "name": "Col 10",
+        "type": "text"
+      },
+      {
+        "key": "col_11",
+        "name": "Col 11",
+        "type": "text"
+      },
+      {
+        "key": "col_12",
+        "name": "Col 12",
+        "type": "text"
+      },
+      {
+        "key": "col_13",
+        "name": "Col 13",
+        "type": "text"
+      },
+      {
+        "key": "col_14",
+        "name": "Col 14",
+        "type": "text"
+      },
+      {
+        "key": "col_15",
+        "name": "Col 15",
+        "type": "text"
+      },
+      {
+        "key": "col_16",
+        "name": "Col 16",
+        "type": "text"
+      },
+      {
+        "key": "col_17",
+        "name": "Col 17",
+        "type": "text"
+      },
+      {
+        "key": "col_18",
+        "name": "Col 18",
+        "type": "text"
+      },
+      {
+        "key": "col_19",
+        "name": "Col 19",
+        "type": "text"
+      },
+      {
+        "key": "col_20",
+        "name": "Col 20",
+        "type": "text"
+      },
+      {
+        "key": "col_21",
+        "name": "Col 21",
+        "type": "text"
+      },
+      {
+        "key": "col_22",
+        "name": "Col 22",
+        "type": "text"
+      },
+      {
+        "key": "col_23",
+        "name": "Col 23",
+        "type": "text"
+      },
+      {
+        "key": "col_24",
+        "name": "Col 24",
+        "type": "text"
+      },
+      {
+        "key": "col_25",
+        "name": "Col 25",
+        "type": "text"
+      },
+      {
+        "key": "col_26",
+        "name": "Col 26",
+        "type": "text"
+      },
+      {
+        "key": "col_27",
+        "name": "Col 27",
+        "type": "text"
+      },
+      {
+        "key": "col_28",
+        "name": "Col 28",
+        "type": "text"
+      },
+      {
+        "key": "col_29",
+        "name": "Col 29",
+        "type": "text"
+      },
+      {
+        "key": "col_30",
+        "name": "Col 30",
+        "type": "text"
+      },
+      {
+        "key": "col_31",
+        "name": "Col 31",
+        "type": "text"
+      },
+      {
+        "key": "col_32",
+        "name": "Col 32",
+        "type": "text"
+      },
+      {
+        "key": "col_33",
+        "name": "Col 33",
+        "type": "text"
+      },
+      {
+        "key": "col_34",
+        "name": "Col 34",
+        "type": "text"
+      },
+      {
+        "key": "col_35",
+        "name": "Col 35",
+        "type": "text"
+      },
+      {
+        "key": "col_36",
+        "name": "Col 36",
+        "type": "text"
+      },
+      {
+        "key": "col_37",
+        "name": "Col 37",
+        "type": "text"
+      },
+      {
+        "key": "col_38",
+        "name": "Col 38",
+        "type": "text"
+      },
+      {
+        "key": "col_39",
+        "name": "Col 39",
+        "type": "text"
+      },
+      {
+        "key": "col_40",
+        "name": "Col 40",
+        "type": "text"
+      },
+      {
+        "key": "col_41",
+        "name": "Col 41",
+        "type": "text"
+      },
+      {
+        "key": "col_42",
+        "name": "Col 42",
+        "type": "text"
+      },
+      {
+        "key": "col_43",
+        "name": "Col 43",
+        "type": "text"
+      },
+      {
+        "key": "col_44",
+        "name": "Col 44",
+        "type": "text"
+      },
+      {
+        "key": "col_45",
+        "name": "Col 45",
+        "type": "text"
+      },
+      {
+        "key": "col_46",
+        "name": "Col 46",
+        "type": "text"
+      },
+      {
+        "key": "col_47",
+        "name": "Col 47",
+        "type": "text"
+      },
+      {
+        "key": "col_48",
+        "name": "Col 48",
+        "type": "text"
+      },
+      {
+        "key": "col_49",
+        "name": "Col 49",
+        "type": "text"
+      },
+      {
+        "key": "col_50",
+        "name": "Col 50",
+        "type": "text"
+      },
+      {
+        "key": "col_51",
+        "name": "Col 51",
+        "type": "text"
+      },
+      {
+        "key": "col_52",
+        "name": "Col 52",
+        "type": "text"
+      },
+      {
+        "key": "col_53",
+        "name": "Col 53",
+        "type": "text"
+      },
+      {
+        "key": "col_54",
+        "name": "Col 54",
+        "type": "text"
+      },
+      {
+        "key": "col_55",
+        "name": "Col 55",
+        "type": "text"
+      },
+      {
+        "key": "col_56",
+        "name": "Col 56",
+        "type": "text"
+      },
+      {
+        "key": "col_57",
+        "name": "Col 57",
+        "type": "text"
+      },
+      {
+        "key": "col_58",
+        "name": "Col 58",
+        "type": "text"
+      },
+      {
+        "key": "col_59",
+        "name": "Col 59",
+        "type": "text"
+      },
+      {
+        "key": "col_60",
+        "name": "Col 60",
+        "type": "text"
+      },
+      {
+        "key": "col_61",
+        "name": "Col 61",
+        "type": "text"
+      },
+      {
+        "key": "col_62",
+        "name": "Col 62",
+        "type": "text"
+      },
+      {
+        "key": "col_63",
+        "name": "Col 63",
+        "type": "text"
+      },
+      {
+        "key": "col_64",
+        "name": "Col 64",
+        "type": "text"
+      },
+      {
+        "key": "col_65",
+        "name": "Col 65",
+        "type": "text"
+      },
+      {
+        "key": "col_66",
+        "name": "Col 66",
+        "type": "text"
+      },
+      {
+        "key": "col_67",
+        "name": "Col 67",
+        "type": "text"
+      },
+      {
+        "key": "col_68",
+        "name": "Col 68",
+        "type": "text"
+      },
+      {
+        "key": "col_69",
+        "name": "Col 69",
+        "type": "text"
+      },
+      {
+        "key": "col_70",
+        "name": "Col 70",
+        "type": "text"
+      },
+      {
+        "key": "col_71",
+        "name": "Col 71",
+        "type": "text"
+      },
+      {
+        "key": "col_72",
+        "name": "Col 72",
+        "type": "text"
+      },
+      {
+        "key": "col_73",
+        "name": "Col 73",
+        "type": "text"
+      },
+      {
+        "key": "col_74",
+        "name": "Col 74",
+        "type": "text"
+      },
+      {
+        "key": "col_75",
+        "name": "Col 75",
+        "type": "text"
+      },
+      {
+        "key": "col_76",
+        "name": "Col 76",
+        "type": "text"
+      },
+      {
+        "key": "col_77",
+        "name": "Col 77",
+        "type": "text"
+      },
+      {
+        "key": "col_78",
+        "name": "Col 78",
+        "type": "text"
+      },
+      {
+        "key": "col_79",
+        "name": "Col 79",
+        "type": "text"
+      },
+      {
+        "key": "col_80",
+        "name": "Col 80",
+        "type": "text"
+      },
+      {
+        "key": "col_81",
+        "name": "Col 81",
+        "type": "text"
+      },
+      {
+        "key": "col_82",
+        "name": "Col 82",
+        "type": "text"
+      },
+      {
+        "key": "col_83",
+        "name": "Col 83",
+        "type": "text"
+      },
+      {
+        "key": "col_84",
+        "name": "Col 84",
+        "type": "text"
+      },
+      {
+        "key": "col_85",
+        "name": "Col 85",
+        "type": "text"
+      },
+      {
+        "key": "col_86",
+        "name": "Col 86",
+        "type": "text"
+      },
+      {
+        "key": "col_87",
+        "name": "Col 87",
+        "type": "text"
+      },
+      {
+        "key": "col_88",
+        "name": "Col 88",
+        "type": "text"
+      },
+      {
+        "key": "col_89",
+        "name": "Col 89",
+        "type": "text"
+      },
+      {
+        "key": "col_90",
+        "name": "Col 90",
+        "type": "text"
+      },
+      {
+        "key": "col_91",
+        "name": "Col 91",
+        "type": "text"
+      },
+      {
+        "key": "col_92",
+        "name": "Col 92",
+        "type": "text"
+      },
+      {
+        "key": "col_93",
+        "name": "Col 93",
+        "type": "text"
+      },
+      {
+        "key": "col_94",
+        "name": "Col 94",
+        "type": "text"
+      },
+      {
+        "key": "col_95",
+        "name": "Col 95",
+        "type": "text"
+      },
+      {
+        "key": "col_96",
+        "name": "Col 96",
+        "type": "text"
+      },
+      {
+        "key": "col_97",
+        "name": "Col 97",
+        "type": "text"
+      },
+      {
+        "key": "col_98",
+        "name": "Col 98",
+        "type": "text"
+      },
+      {
+        "key": "col_99",
+        "name": "Col 99",
+        "type": "text"
+      }
+    ],
+    "notes": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn 1 more column left out: a table holds at most 100.",
+    "changes": {
+      "added": [
+        "col_0",
+        "col_1",
+        "col_2",
+        "col_3",
+        "col_4",
+        "col_5",
+        "col_6",
+        "col_7",
+        "col_8",
+        "col_9",
+        "col_10",
+        "col_11",
+        "col_12",
+        "col_13",
+        "col_14",
+        "col_15",
+        "col_16",
+        "col_17",
+        "col_18",
+        "col_19",
+        "col_20",
+        "col_21",
+        "col_22",
+        "col_23",
+        "col_24",
+        "col_25",
+        "col_26",
+        "col_27",
+        "col_28",
+        "col_29",
+        "col_30",
+        "col_31",
+        "col_32",
+        "col_33",
+        "col_34",
+        "col_35",
+        "col_36",
+        "col_37",
+        "col_38",
+        "col_39",
+        "col_40",
+        "col_41",
+        "col_42",
+        "col_43",
+        "col_44",
+        "col_45",
+        "col_46",
+        "col_47",
+        "col_48",
+        "col_49",
+        "col_50",
+        "col_51",
+        "col_52",
+        "col_53",
+        "col_54",
+        "col_55",
+        "col_56",
+        "col_57",
+        "col_58",
+        "col_59",
+        "col_60",
+        "col_61",
+        "col_62",
+        "col_63",
+        "col_64",
+        "col_65",
+        "col_66",
+        "col_67",
+        "col_68",
+        "col_69",
+        "col_70",
+        "col_71",
+        "col_72",
+        "col_73",
+        "col_74",
+        "col_75",
+        "col_76",
+        "col_77",
+        "col_78",
+        "col_79",
+        "col_80",
+        "col_81",
+        "col_82",
+        "col_83",
+        "col_84",
+        "col_85",
+        "col_86",
+        "col_87",
+        "col_88",
+        "col_89",
+        "col_90",
+        "col_91",
+        "col_92",
+        "col_93",
+        "col_94",
+        "col_95",
+        "col_96",
+        "col_97",
+        "col_98",
+        "col_99"
+      ],
+      "renamed": [],
+      "retyped": [],
+      "removed": []
+    }
+  },
+  "duplicateNameKeys": {
+    "name": "Untitled table",
+    "key": "untitled_table",
+    "description": "",
+    "fields": [
+      {
+        "key": "naam",
+        "name": "Naam",
+        "type": "text"
+      },
+      {
+        "key": "naam_2",
+        "name": "naam",
+        "type": "text"
+      },
+      {
+        "key": "naam_3",
+        "name": "NAAM!",
+        "type": "text"
+      }
+    ],
+    "notes": null,
+    "changes": {
+      "added": [
+        "naam",
+        "naam_2",
+        "naam_3"
+      ],
+      "renamed": [],
+      "retyped": [],
+      "removed": []
+    }
+  },
+  "nonLatinName": {
+    "name": "Untitled table",
+    "key": "untitled_table",
+    "description": "",
+    "fields": [
+      {
+        "key": "column",
+        "name": "名前",
+        "type": "text"
+      },
+      {
+        "key": "c_123",
+        "name": "123",
+        "type": "number"
+      }
+    ],
+    "notes": null,
+    "changes": {
+      "added": [
+        "column",
+        "c_123"
+      ],
+      "renamed": [],
+      "retyped": [],
+      "removed": []
+    }
+  }
+}

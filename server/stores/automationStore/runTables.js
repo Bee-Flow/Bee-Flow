@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * runTables.js - the ledger for tables a RUN produced.
  *
@@ -21,8 +21,9 @@ const core = require('./core');
  * Every function takes an optional last argument `{ initDB, run, getOne, getAll }`
  * so a test can hand in its own database; production passes nothing.
  * @param {Partial<typeof core> | null} [deps]
+ * @returns {typeof core}
  */
-const dbOf = (deps) => deps || core;
+const dbOf = (deps) => /** @type {typeof core} */ (deps || core); // a test hands in the functions it calls
 
 /** @param {DbRow.AutomationRunTables | null} r */
 function rowToRunTable(r) {
@@ -144,7 +145,7 @@ async function listExpiredRunTables(limit = 200, deps) {
           ORDER BY expires_at LIMIT $1`,
         [limit],
     );
-    return rows.map(rowToRunTable);
+    return rows.map((r) => /** @type {NonNullable<ReturnType<typeof rowToRunTable>>} */ (rowToRunTable(r))); // a selected row maps, never to null
 }
 
 /**

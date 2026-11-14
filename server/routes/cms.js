@@ -173,6 +173,7 @@ const enabledBody = cmsBody({
     siteId: cmsText('siteId is the id of a site.', 200).nullish(),
 }, 'Switching the site on or off');
 const defaultLocaleBody = cmsBody({ locale: cmsText('locale required', 20) }, 'Setting the default language');
+const noBody = (/** @type {string} */ subject) => cmsBody({}, subject); // an action on the site or page in the path takes no fields
 
 // The per-route JSON parser for /sites/import (2 MB cap) and the .zip
 // uploader live in ./cmsSitesAdmin.js with the import handler.
@@ -327,14 +328,14 @@ router.put('/admin/pages/:id/locale/:locale', overrideBody, putPageLocale);
 router.delete('/admin/pages/:id/locale/:locale', deletePageLocale);
 router.post('/admin/pages/:id/ai-translate/:locale', aiTranslateLimiter, translateBody, postPageAiTranslate);
 router.put('/admin/pages/:id/meta', pageMetaBody, putPageMeta);
-router.put('/admin/pages/:id/homepage', putPageHomepage);
+router.put('/admin/pages/:id/homepage', noBody('Setting the homepage'), putPageHomepage);
 router.delete('/admin/pages/:id', deletePageHandler);
 router.get('/admin/pages/:id', getPageById);
 router.put('/admin/pages/:id', pageDocBody, putPage);
 
 // Publish — same handler as the multi-site route, scoped to the bridge's
 // default site.
-router.post('/admin/publish', publishLimiter, postSitePublish);
+router.post('/admin/publish', publishLimiter, noBody('Publishing a site'), postSitePublish);
 
 // Org-wide flags (not per-site — only available here).
 router.put('/admin/enabled', enabledBody, putEnabled);
@@ -383,7 +384,7 @@ router.put('/sites/:siteId/pages/:id/locale/:locale', overrideBody, putPageLocal
 router.delete('/sites/:siteId/pages/:id/locale/:locale', deletePageLocale);
 router.post('/sites/:siteId/pages/:id/ai-translate/:locale', aiTranslateLimiter, translateBody, postPageAiTranslate);
 router.put('/sites/:siteId/pages/:id/meta', pageMetaBody, putPageMeta);
-router.put('/sites/:siteId/pages/:id/homepage', putPageHomepage);
+router.put('/sites/:siteId/pages/:id/homepage', noBody('Setting the homepage'), putPageHomepage);
 router.delete('/sites/:siteId/pages/:id', deletePageHandler);
 router.get('/sites/:siteId/pages/:id', getPageById);
 router.put('/sites/:siteId/pages/:id', pageDocBody, putPage);
@@ -409,12 +410,12 @@ router.put('/sites/:siteId/live', liveBody, putSiteLive);
 
 // Duplicate a site into a new version (same versionGroupId, next "v{n}"
 // name). Returns the new site's { id, name, versionGroupId, versionName }.
-router.post('/sites/:siteId/duplicate', duplicateLimiter, duplicateSiteHandler);
+router.post('/sites/:siteId/duplicate', duplicateLimiter, noBody('Duplicating a site'), duplicateSiteHandler);
 
 // Publish — snapshot the current draft into cms_published_{siteId}. The
 // public /api/cms/site route reads from this snapshot, so visitors only
 // see content the user has explicitly published.
-router.post('/sites/:siteId/publish', publishLimiter, postSitePublish);
+router.post('/sites/:siteId/publish', publishLimiter, noBody('Publishing a site'), postSitePublish);
 
 // Site-level operations on the SiteDoc itself.
 router.get('/sites/:siteId', getSitePayload);

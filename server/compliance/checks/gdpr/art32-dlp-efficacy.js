@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * GDPR Art. 32(1)(d) — "regularly testing, assessing and evaluating the
  * effectiveness" of security measures.
@@ -303,8 +303,9 @@ module.exports = {
         // evidence and was never judged. Saying not_applicable or pass on top
         // of it would be exactly the silence this check exists to break.
         // (In the bucket there is no such hole — that traffic is counted above.)
-        const attributionBroken = strayTraffic >= MIN_TRAFFIC;
-        if (attributionBroken && traffic < MIN_TRAFFIC) {
+        // Both counts were read: the failed and absent cases returned above.
+        const attributionBroken = /** @type {number} */ (strayTraffic) >= MIN_TRAFFIC;
+        if (attributionBroken && /** @type {number} */ (traffic) < MIN_TRAFFIC) {
             return {
                 status: 'warn',
                 evidence: { ...evidence, attribution_complete: false },
@@ -316,7 +317,7 @@ module.exports = {
             ? ` A further ${strayTraffic} request(s) in the window carry no organisation and no resolvable user, so they belong to no organisation this check can name.`
             : '';
 
-        if (traffic < MIN_TRAFFIC) {
+        if (/** @type {number} */ (traffic) < MIN_TRAFFIC) {
             return {
                 // Not a pass: the subject of this check is whether the shield
                 // demonstrably works, and below this volume that has not been

@@ -245,6 +245,7 @@ export default function WebpageChat({
                             onClick={onSelectionClear}
                             className="shrink-0 p-0.5 rounded hover:bg-black/10"
                             title={t('webpages.chat.selection_remove', 'Remove selection')}
+                            aria-label={t('webpages.chat.selection_remove', 'Remove selection')}
                         >
                             <X size={11} />
                         </button>

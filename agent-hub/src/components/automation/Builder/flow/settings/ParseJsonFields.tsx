@@ -287,7 +287,7 @@ export default function ParseJsonFields({ step, draft, set, groups = [], onFocus
                                 <button
                                     type="button"
                                     onClick={() => removeField(i)}
-                                    title={t('automations.parse_json_fields.remove_field', 'Remove field')}
+                                    title={t('automations.parse_json_fields.remove_field', 'Remove field')} aria-label={t('automations.parse_json_fields.remove_field', 'Remove field')}
                                     className="p-1.5 rounded text-[var(--text-tertiary)] hover:text-red-500 hover:bg-[var(--bg-tertiary)] transition"
                                 >
                                     <X size={14} />

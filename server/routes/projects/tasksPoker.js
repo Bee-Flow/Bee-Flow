@@ -10,7 +10,7 @@
 'use strict';
 
 const { conflict } = require('../../core/http/errors');
-const { taskEvent, presentTask } = require('./tasksPresent');
+const { taskEvent, presentTask } = require('../../usecases/projects/tasksPresent');
 
 function pokerEvent(ctx, projectId, actorId, session) {
     const publish = ctx.publishTransient();

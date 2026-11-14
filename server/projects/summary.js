@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * One card per Solution: what is in it, whether it is healthy, whether it ran
  * today, and whether the Blueprint it came from has moved on.

@@ -18,7 +18,9 @@ const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 const { CHAT_MONITORING_DPIA_KEY } = require('../../stores/lib/chatMonitoringVocab');
-const { fallback, bestEffort } = require('../../utils/bestEffort');
+const { bestEffort } = require('../../utils/bestEffort');
+const { HttpError } = require('../../core/http/errors');
+const { orgMatch } = require('../../compliance/projects/projectData');
 
 /**
  * Chat signals keep their org-wide DPIA under the key 'chat_monitoring'. A
@@ -33,6 +35,34 @@ const { fallback, bestEffort } = require('../../utils/bestEffort');
 function chatMonitoringDpiaHook(req, res, next) {
     if (req.params?.agentId !== CHAT_MONITORING_DPIA_KEY) return next();
     return require('./chatMonitoring').chatMonitoringDpiaHook(req, res, next);
+}
+
+/**
+ * The name of the agent a DPIA is about, when it is an agent of the caller's
+ * organisation: the population of the Art-35 check, where an agent without an
+ * organisation counts for the 'default' bucket (projectData.orgMatch). Null
+ * for an agent of another organisation. The org-wide chat-monitoring DPIA has
+ * no agent row and answers its own key.
+ * @param {string} orgId
+ * @param {string} agentId
+ * @returns {Promise<string | null>}
+ */
+async function orgAgentName(orgId, agentId) {
+    if (agentId === CHAT_MONITORING_DPIA_KEY) return agentId;
+    const [agent] = await getAll(`SELECT name FROM agents WHERE id = $2 AND ${orgMatch('organization_id')} LIMIT 1`, [orgId, agentId]);
+    return agent ? (agent.name || agentId) : null;
+}
+
+const NO_AGENT = () => new HttpError(404, 'not_found', 'There is no such agent in your organisation.');
+
+/**
+ * An assessment is recorded only for an agent of the caller's organisation.
+ * @param {import('express').Request<{ agentId: string }>} req
+ * @param {import('express').Response} _res
+ * @param {import('express').NextFunction} next
+ */
+async function requireOrgAgent(req, _res, next) {
+    return next((await orgAgentName(await resolveOrgId(req), req.params.agentId)) ? undefined : NO_AGENT());
 }
 
 // ── What a caller may send ────────────────────────────────────────
@@ -111,11 +141,8 @@ router.get('/dpia/:agentId/pdf', requireAuth, requirePermission('admin_complianc
     const actorId = req.session?.user?.id || null;
     const dpia = await dpiaStore.getLatestForAgent(orgId, req.params.agentId);
     if (!dpia) return res.status(404).json({ error: 'no DPIA on record for this agent' });
-    let agentName = req.params.agentId;
-    try {
-        const row = await getAll(`SELECT name FROM agents WHERE id = $1 LIMIT 1`, [req.params.agentId]);
-        if (row?.[0]?.name) agentName = row[0].name;
-    } catch (err) { fallback('routes/compliance/dpia:anon', err); /* keep id */ }
+    // A DPIA kept after its agent was removed still prints, under the id.
+    const agentName = (await orgAgentName(orgId, req.params.agentId)) || req.params.agentId;
     const { buildDpiaPdf } = require('../../utils/compliancePdf');
     const { buffer, hash } = await buildDpiaPdf({ agentName, dpia });
     // The PDF goes out either way, but a lost stamp makes the trail say the
@@ -137,10 +164,11 @@ router.get('/dpia/:agentId/pdf', requireAuth, requirePermission('admin_complianc
 router.get('/dpia/:agentId', requireAuth, requirePermission('admin_compliance'), async (/** @type {import('express').Request<{ agentId: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     const row = await dpiaStore.getLatestForAgent(orgId, req.params.agentId);
+    if (!row && !(await orgAgentName(orgId, req.params.agentId))) throw NO_AGENT();
     res.json(row || null);
 });
 
-router.post('/dpia/:agentId', requireAuth, requirePermission('admin_compliance'), validate({ body: DpiaBody }), chatMonitoringDpiaHook, async (/** @type {import('express').Request<{ agentId: string }>} */ req, /** @type {import('express').Response} */ res) => {
+router.post('/dpia/:agentId', requireAuth, requirePermission('admin_compliance'), validate({ body: DpiaBody }), requireOrgAgent, chatMonitoringDpiaHook, async (/** @type {import('express').Request<{ agentId: string }>} */ req, /** @type {import('express').Response} */ res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
     const saved = await dpiaStore.upsertAssessment(orgId, req.params.agentId, {

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio — pure, immutable operations over an app definition, shared by
  * the server (AI builder tools, through server/appStudio/definitionOps.js) and
@@ -76,15 +77,19 @@ export function updateNodeStyle(def, nodeId, patch) {
  * `screenId` is an optional scope hint (ids are globally unique anyway).
  * Returns { def, nodeId }; on failure (missing/non-container parent) the
  * original def reference comes back with nodeId null.
+ * A node is any component object the caller built (its type, props, style,
+ * children...); only its `id` is read here, so the type names that and `type`.
+ * @param def
+ * @param {{ screenId?: string | null, parentId?: string | null, index?: number | null, node?: { id?: string, type?: string } | null }} [opts]
  */
 export function insertNode(def, { screenId, parentId, index, node } = {}) {
     if (!node || typeof node !== 'object') return { def, nodeId: null };
     // Keep the global-uniqueness invariant: a missing or already-taken id
     // gets a fresh one (the caller reads the real id from the return value).
     const taken = collectIds(def);
-    const toInsert = node.id && !taken.has(node.id)
+    const toInsert = /** @type {{ id: string, type?: string }} */ (node.id && !taken.has(node.id)
         ? node
-        : { ...node, id: uniqueId('component', taken) };
+        : { ...node, id: uniqueId('component', taken) });
 
     // Section parent?
     const screens = def.screens || [];
@@ -119,6 +124,9 @@ export function insertNode(def, { screenId, parentId, index, node } = {}) {
  * AFTER the node is lifted out. Moving a node into itself or its own
  * descendant is a no-op (same reference), as is a move that lands the node
  * where it already is.
+ * @param def
+ * @param nodeId
+ * @param {{ toParentId?: string | null, index?: number | null }} [opts]
  */
 export function moveNode(def, nodeId, { toParentId, index } = {}) {
     const found = findNode(def, nodeId);
@@ -190,7 +198,11 @@ export function updateNav(def, patch) {
 // Screen / section ops
 // ---------------------------------------------------------------------------
 
-/** Append a new screen (with one empty section). Returns { def, screenId }. */
+/**
+ * Append a new screen (with one empty section). Returns { def, screenId }.
+ * @param def
+ * @param {{ name?: string }} [opts]
+ */
 export function addScreen(def, { name } = {}) {
     const taken = collectIds(def);
     const screenId = uniqueId('screen', taken);

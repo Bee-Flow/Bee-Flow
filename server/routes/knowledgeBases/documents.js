@@ -28,8 +28,8 @@ const router = express.Router();
 const kbStore = require('../../stores/knowledgeBases');
 const { requireAuth, requirePermission } = require('../../auth');
 const { deleteDocumentChunks } = require('../../core/kb/kbIngestionHelpers');
-const { getUserId, canAccessKB, canManageKB, blockIfSystemKB } = require('./shared');
-const { statusFilter, piiFilter } = require('./docFilters');
+const { getUserId, requireKbGrade, kbAccessOf, blockIfSystemKB } = require('./shared');
+const { statusFilter, piiFilter } = require('../../usecases/knowledgeBases/docFilters');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded, orEmpty } = require('../../core/http/schemaParts');
@@ -104,10 +104,8 @@ const ChunksQuery = orEmpty(z.object({
 /**
  * List documents for a KB
  */
-router.get('/:id/documents', requireAuth, validate({ query: DocumentsQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof DocumentsQuery>>} */ req, res) => {
-    const kb = await kbStore.getKB(req.params.id);
-    if (!kb) return res.status(404).json({ error: 'KB not found' });
-    if (!(await canAccessKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
+router.get('/:id/documents', requireAuth, requireKbGrade('read'), validate({ query: DocumentsQuery }), async (req, res) => {
+    const { kb } = kbAccessOf(req);
 
     const { limit, offset } = req.query;
     const filters = {
@@ -135,11 +133,8 @@ router.get('/:id/documents', requireAuth, validate({ query: DocumentsQuery }), a
 /**
  * Bulk-delete documents (up to 200 per call).
  */
-router.post('/:id/documents/bulk-delete', requireAuth, requirePermission('manage_knowledge'), validate({ body: BulkDeleteBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof BulkDeleteBody>, import('qs').ParsedQs>} */ req, res) => {
-    const kb = await kbStore.getKB(req.params.id);
-    if (!kb) return res.status(404).json({ error: 'KB not found' });
-    // Deleting content is managing the base (manage_knowledge in its own organisation).
-    if (!(await canManageKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
+router.post('/:id/documents/bulk-delete', requireAuth, requirePermission('manage_knowledge'), requireKbGrade('manage'), validate({ body: BulkDeleteBody }), async (req, res) => {
+    const { kb } = kbAccessOf(req);
     if (blockIfSystemKB(kb, res)) return;
 
     const ids = req.body.documentIds;
@@ -168,10 +163,8 @@ router.post('/:id/documents/bulk-delete', requireAuth, requirePermission('manage
 /**
  * List unique thread IDs for the KB (for the thread explorer).
  */
-router.get('/:id/threads', requireAuth, validate({ query: ThreadsQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof ThreadsQuery>>} */ req, res) => {
-    const kb = await kbStore.getKB(req.params.id);
-    if (!kb) return res.status(404).json({ error: 'KB not found' });
-    if (!(await canAccessKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
+router.get('/:id/threads', requireAuth, requireKbGrade('read'), validate({ query: ThreadsQuery }), async (req, res) => {
+    const { kb } = kbAccessOf(req);
 
     const { limit } = req.query;
     const threads = kbStore.listThreads ? await kbStore.listThreads(kb.id, { limit }) : [];
@@ -181,10 +174,8 @@ router.get('/:id/threads', requireAuth, validate({ query: ThreadsQuery }), async
 /**
  * List documents in a specific thread, sorted by date.
  */
-router.get('/:id/threads/:threadId/documents', requireAuth, validate({ query: NoQuery }), async (/** @type {import('express').Request<{ id: string, threadId: string }, any, any, import('zod').infer<typeof NoQuery>>} */ req, res) => {
-    const kb = await kbStore.getKB(req.params.id);
-    if (!kb) return res.status(404).json({ error: 'KB not found' });
-    if (!(await canAccessKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
+router.get('/:id/threads/:threadId/documents', requireAuth, requireKbGrade('read'), validate({ query: NoQuery }), async (req, res) => {
+    const { kb } = kbAccessOf(req);
 
     const docs = kbStore.listDocumentsByThread ? await kbStore.listDocumentsByThread(kb.id, req.params.threadId) : [];
     res.json({ documents: docs });
@@ -195,10 +186,8 @@ router.get('/:id/threads/:threadId/documents', requireAuth, validate({ query: No
  * stored only in the remote search-service won't appear here, so we
  * surface that as a soft empty state in the UI.
  */
-router.get('/:id/documents/:docId/chunks', requireAuth, validate({ query: ChunksQuery }), async (/** @type {import('express').Request<{ id: string, docId: string }, any, any, import('zod').infer<typeof ChunksQuery>>} */ req, res) => {
-    const kb = await kbStore.getKB(req.params.id);
-    if (!kb) return res.status(404).json({ error: 'KB not found' });
-    if (!(await canAccessKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
+router.get('/:id/documents/:docId/chunks', requireAuth, requireKbGrade('read'), validate({ query: ChunksQuery }), async (req, res) => {
+    const { kb } = kbAccessOf(req);
 
     const doc = await kbStore.getDocument(req.params.docId);
     if (!doc || doc.knowledge_base_id !== kb.id) {
@@ -247,10 +236,8 @@ router.get('/:id/documents/:docId/chunks', requireAuth, validate({ query: Chunks
  * search-service, we cannot show the text from here" so the UI can explain the
  * empty state instead of implying the document is empty.
  */
-router.get('/:id/documents/:docId/content', requireAuth, validate({ query: NoQuery }), async (/** @type {import('express').Request<{ id: string, docId: string }, any, any, import('zod').infer<typeof NoQuery>>} */ req, res) => {
-    const kb = await kbStore.getKB(req.params.id);
-    if (!kb) return res.status(404).json({ error: 'KB not found' });
-    if (!(await canAccessKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
+router.get('/:id/documents/:docId/content', requireAuth, requireKbGrade('read'), validate({ query: NoQuery }), async (req, res) => {
+    const { kb } = kbAccessOf(req);
 
     const doc = await kbStore.getDocument(req.params.docId);
     if (!doc || doc.knowledge_base_id !== kb.id) {
@@ -285,10 +272,8 @@ router.get('/:id/documents/:docId/content', requireAuth, validate({ query: NoQue
  * decrypted here and never leave under their storage key. PDFs and (non-SVG) images may open in the
  * browser; everything else is an attachment, and nothing is sniffed.
  */
-router.get('/:id/documents/:docId/original', requireAuth, validate({ query: NoQuery }), async (/** @type {import('express').Request<{ id: string, docId: string }, any, any, import('zod').infer<typeof NoQuery>>} */ req, res) => {
-    const kb = await kbStore.getKB(req.params.id);
-    if (!kb) throw new HttpError(404, 'kb_not_found', 'KB not found');
-    if (!(await canAccessKB(req, kb))) throw new HttpError(403, 'access_denied', 'Access denied');
+router.get('/:id/documents/:docId/original', requireAuth, requireKbGrade('read'), validate({ query: NoQuery }), async (req, res) => {
+    const { kb } = kbAccessOf(req);
 
     const doc = await kbStore.getDocument(req.params.docId);
     if (!doc || String(doc.knowledge_base_id) !== String(kb.id) || String(doc.tenant_id) !== String(kb.tenant_id)) {
@@ -311,10 +296,8 @@ router.get('/:id/documents/:docId/original', requireAuth, validate({ query: NoQu
 /**
  * Delete a document (and its chunks)
  */
-router.delete('/:id/documents/:docId', requireAuth, requirePermission('manage_knowledge'), validate({ query: NoQuery, body: NoBody }), async (/** @type {import('express').Request<{ id: string, docId: string }, any, import('zod').infer<typeof NoBody>, import('zod').infer<typeof NoQuery>>} */ req, res) => {
-    const kb = await kbStore.getKB(req.params.id);
-    if (!kb) return res.status(404).json({ error: 'KB not found' });
-    if (!(await canManageKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
+router.delete('/:id/documents/:docId', requireAuth, requirePermission('manage_knowledge'), requireKbGrade('manage'), validate({ query: NoQuery, body: NoBody }), async (req, res) => {
+    const { kb } = kbAccessOf(req);
     if (blockIfSystemKB(kb, res)) return;
 
     const doc = await kbStore.getDocument(req.params.docId);

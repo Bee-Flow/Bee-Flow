@@ -7,7 +7,7 @@
  * cmsAnalytics.js). The websiteId is resolved server-side from siteId, so
  * nothing here can address another install's data.
  */
-import { API_BASE } from '@/utils/helpers';
+import { apiUrl } from '@/api/typedRequest';
 import type { SeriesPoint } from './analytics/window';
 import type { StatField, XYRow } from './analytics/ui.types';
 import { logger } from '@/utils/logger';
@@ -92,8 +92,6 @@ export type AnalyticsResponse = {
     partialErrors?: AnalyticsPartialError[];
 } | null;
 
-const root = `${API_BASE}/api/cms/admin/analytics`;
-
 // Range/filter params shared by every data call.
 function commonParams(p: URLSearchParams, { siteId, range, timezone, start, end, filters, fresh }: AnalyticsRequestOpts = {}): URLSearchParams {
     if (siteId) p.set('siteId', siteId);
@@ -111,15 +109,12 @@ function commonParams(p: URLSearchParams, { siteId, range, timezone, start, end,
 }
 
 export const analyticsApi = {
-    settings: () => `${root}/settings`,
-    sites:    () => `${root}/sites`,
-    status:   () => `${root}/status`,
-    diagnose: () => `${root}/diagnose`,
-    recorder: () => `${root}/recorder`,
-    overview: (opts: AnalyticsRequestOpts = {}) => {
-        const qs = commonParams(new URLSearchParams(), opts).toString();
-        return `${root}/overview${qs ? `?${qs}` : ''}`;
-    },
+    settings: () => apiUrl('GET /api/cms/admin/analytics/settings'),
+    sites:    () => apiUrl('GET /api/cms/admin/analytics/sites'),
+    status:   () => apiUrl('GET /api/cms/admin/analytics/status'),
+    diagnose: () => apiUrl('GET /api/cms/admin/analytics/diagnose'),
+    recorder: () => apiUrl('PUT /api/cms/admin/analytics/recorder'),
+    overview: (opts: AnalyticsRequestOpts = {}) => apiUrl('GET /api/cms/admin/analytics/overview', { query: commonParams(new URLSearchParams(), opts) }),
     /** GET proxy: resource ∈ stats|pageviews|metrics|realtime|events|sessions|… */
     query: (resource: string, { params, ...opts }: AnalyticsRequestOpts & { params?: Record<string, unknown> | null } = {}) => {
         const p = new URLSearchParams();
@@ -127,11 +122,10 @@ export const analyticsApi = {
             if (v !== undefined && v !== null && v !== '') p.set(k, String(v));
         }
         commonParams(p, opts);
-        const qs = p.toString();
-        return `${root}/query/${resource}${qs ? `?${qs}` : ''}`;
+        return apiUrl('GET /api/cms/admin/analytics/query/{resource}', { params: { resource }, query: p });
     },
     /** POST proxy: type ∈ funnel|retention|journey|performance|heatmap|utm|… */
-    report: (type: string) => `${root}/report/${type}`,
+    report: (type: string) => apiUrl('POST /api/cms/admin/analytics/report/{type}', { params: { type } }),
 };
 
 /** Body builder for report POSTs — keeps range plumbing in one place. */

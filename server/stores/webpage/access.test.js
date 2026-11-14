@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * userHasAnyWebpageAccess on real Postgres (@electric-sql/pglite behind db.js's
  * pool, testUtils/pglitePool.js — no module-system mocking), with the table the
@@ -30,7 +30,8 @@ const webpageSchema = require('./schema');
 const { userHasAnyWebpageAccess } = require('./access');
 
 let seq = 0;
-async function page({ owner = 'someone', org = 'org1', published = true, groups = '[]' } = {}) {
+/** @param {{ owner?: string, org?: string | null, published?: boolean, groups?: string | null }} [opts] */
+async function page({ owner = 'someone', org = /** @type {string | null} */ ('org1'), published = true, groups = /** @type {string | null} */ ('[]') } = {}) {
     seq += 1;
     await rawQuery(
         `INSERT INTO webpages (id, user_id, organization_id, is_published, shared_groups) VALUES ($1, $2, $3, $4, $5)`,

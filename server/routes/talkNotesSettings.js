@@ -41,7 +41,7 @@ const talkNotes = require('../core/meetingNotes/talkNotesSettings');
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
 const { choice } = require('../core/http/schemaParts');
-const log = require('../telemetry/log');
+const { fallback } = require('../utils/bestEffort');
 
 /**
  * A real boolean, never the text "false" — which is true.
@@ -115,11 +115,11 @@ router.get('/user/me', requireAuth, async (req, res) => {
             const talk = require('../integrations/nextcloudTalkTools');
             recordingEnabled = (await talk.getTalkRecordingCapability(req.session, sessionUser(req).id)).recordingEnabled;
         }
-    } catch (err) { log.debug('treat as not connected', err); }
+    } catch (err) { fallback('routes/talkNotesSettings:nextcloudStatus', err); /* reported as not connected */ }
     res.json({ ...config, nextcloudConnected, recordingEnabled });
 });
 
-router.put('/user/me', requireAuth, validate({ body: UserSettingsBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof UserSettingsBody>, import('qs').ParsedQs>} */ req, res) => {
+router.put('/user/me', requireAuth, validate({ body: UserSettingsBody }), async (req, res) => {
     const config = await talkNotes.saveUserSettings(sessionUser(req).id, req.body);
     res.json({ ok: true, config });
 });

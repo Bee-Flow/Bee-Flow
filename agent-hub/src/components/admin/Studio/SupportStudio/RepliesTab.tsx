@@ -4,15 +4,15 @@ import type { SupportInbox } from './supportStudio.types';
 import { INPUT_FIELD, PRIMARY_BTN, PRIMARY_BTN_STYLE } from './supportStyles';
 import { getIntegrationById } from '@/config/integrationCatalog';
 import useTranslation from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
 import { useAvailableIntegrations } from '@/api/queries/studioSupport';
-import { mutate, errorBody, RefusedError } from '@/api/mutate';
+import { errorBody, RefusedError } from '@/api/mutate';
 import ConfigToggle from '@/components/shared/ConfigToggle';
 import Disclosure from '@/components/shared/Disclosure';
 import FormField from '@/components/shared/FormField';
 import Section from '@/components/shared/Section';
 import Slider from '@/components/shared/Slider';
 import { toast } from '@/components/shared/Toast';
+import { type ApiBody, apiRequest } from '@/api/typedRequest';
 
 const REPLY_MODE_IDS = ['draft', 'auto_confident', 'autonomous'];
 
@@ -50,10 +50,10 @@ export default function RepliesTab({ inbox, teammates = [], onChanged }: Replies
         if (!inbox) return;
         setSaving(true);
         try {
-            await mutate(`${API_BASE}/api/support-inbox/inboxes/${inbox.id}`, {
-                method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    reply_mode: form.reply_mode,
+            await apiRequest('PATCH /api/support-inbox/inboxes/{id}', {
+                params: { id: inbox.id },
+                body: {
+                    reply_mode: form.reply_mode as ApiBody<'PATCH /api/support-inbox/inboxes/{id}'>['reply_mode'],
                     autoresolve_threshold: Number(form.autoresolve_threshold),
                     signature: form.signature,
                     enabled_tool_ids: form.enabled_tool_ids,
@@ -62,7 +62,7 @@ export default function RepliesTab({ inbox, teammates = [], onChanged }: Replies
                     classify_non_support_enabled: form.classify_non_support_enabled,
                     classify_sensitivity: Number(form.classify_sensitivity),
                     classify_suppress_autoreply: form.classify_suppress_autoreply,
-                }),
+                },
             });
             onChanged?.();
         } catch (err) {

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio builder tools — app_add_components, the one tool that grows the
  * component tree: normalise, guard the data references, then land every whole
@@ -13,7 +14,7 @@ const { getSpec } = require('../../componentSpecs');
 const { LIMITS } = require('../../componentSpecs/limits');
 const ops = require('../../definitionOps');
 const { checkComponentDataRefs, guardResult } = require('../bindingGuard');
-const { canonicalJson } = require('../../../automation/builderTools/suggestedPatch');
+const { canonicalJson } = require('../../../utils/stableJson');
 const { MAX_COMPONENTS_PER_CALL } = require('../schemas');
 const { adoptCanonical } = require('../shared');
 const { resolveParent } = require('./componentPlacement');

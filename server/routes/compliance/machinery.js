@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Compliance — Machinery Regulation (EU) 2023/1230: the detected industrial
  * integrations (Art. 3 relevance) and the per-subject Art. 18 safety-component
@@ -150,7 +150,7 @@ router.post('/machinery/subjects/:id/attest', ...guard, validate({ body: AttestB
             subjectId,
             outcome: 'compliant',
             statement: `[${outcome}]${statement ? ` ${statement}` : ''}`,
-            evidenceRefs: body.evidence_refs,
+            evidenceRefs: /** @type {any[]} */ (body.evidence_refs),
             attestedBy: actorId,
             expiresAt,
         });

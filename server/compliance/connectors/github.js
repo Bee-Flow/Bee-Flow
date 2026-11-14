@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * GitHub evidence connector — repository security posture for the org's
  * source repositories. Config-state depth only: counts, booleans and ages —
@@ -195,7 +195,7 @@ module.exports = {
     credential: { provider: 'github', kinds: ['bearer', 'api_key'] },
     settingsHint: 'repos: ["owner/repo"]',
 
-    /** @param {import('./index').CollectArgs} args */
+    /** @param {import('./index').FetchingCollectArgs} args */
     async collect({ secret, settings, safeFetch }) {
         const token = secret?.token || secret?.apiKey || secret?.api_key || null;
         if (!token) throw new Error('GitHub connection has no token');

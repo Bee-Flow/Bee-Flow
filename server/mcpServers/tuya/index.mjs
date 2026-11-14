@@ -502,7 +502,7 @@ const handlers = {
         const specification = await getSpecification(deviceId);
         const functions = specification.functions || [];
         /** @param {...string} codes */
-        const find = (...codes) => functions.find((f) => codes.includes(f.code));
+        const find = (...codes) => functions.find((f) => codes.includes(/** @type {string} */ (f.code)));
 
         /** @type {{ code: string | undefined, value: unknown }[]} */
         const commands = [];

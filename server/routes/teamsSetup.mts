@@ -64,6 +64,7 @@ const { HttpError } = nodeRequire('../core/http/errors.js') as { HttpError: Http
 const { validate } = nodeRequire('../core/http/validate.js') as { validate: (schemas: Record<string, unknown>) => Handler };
 const { z } = nodeRequire('../utils/zod.js') as { z: typeof import('zod').z };
 const { NO_QUERY } = nodeRequire('./transcriptions/schemas.js') as { NO_QUERY: unknown };
+const { bodyOf } = nodeRequire('../core/http/schemaParts.js') as { bodyOf: (shape: Record<string, never>, subject: string) => unknown };
 const { tagGate } = nodeRequire('../auth/gateMeta.js') as { tagGate: <T>(fn: T, meta: Record<string, unknown>) => T };
 const { sessionUser } = nodeRequire('../core/http/sessionUser.js') as { sessionUser: (req: Request) => { id: string; organizationId?: string } };
 
@@ -123,6 +124,9 @@ const AppImportBody = z.object({
     coverage: z.enum(['all', 'selected'], { error: "coverage must be 'all' or 'selected'." }),
     selectedUserIds: z.array(MEMBER_ID, { error: 'selectedUserIds must be a list of member ids.' }).max(10000, 'At most 10000 members can be sent.'),
 }).strict();
+
+// The connection test and the consent link read only the session and the configuration.
+const NO_BODY = bodyOf({}, 'This request');
 
 // A POST without a body tests with the caller.
 const AppImportDiagBody = z.object({ probeUserId: MEMBER_ID.optional() }).strict().optional();
@@ -246,9 +250,9 @@ async function appImportDiagnostics(req: Request, res: Response) {
 
 export const teamsSetupRouter = express.Router();
 teamsSetupRouter.get('/requirements', perms.requireAuth, validate({ query: NO_QUERY }), requirements);
-teamsSetupRouter.post('/me/diagnostics', perms.requireAuth, validate({ query: NO_QUERY }), requireDiagnosticsSlot, myDiagnostics);
+teamsSetupRouter.post('/me/diagnostics', perms.requireAuth, validate({ body: NO_BODY, query: NO_QUERY }), requireDiagnosticsSlot, myDiagnostics);
 teamsSetupRouter.get('/org/overview', perms.requireAuth, requireSessionOrgAdmin, validate({ query: OverviewQuery }), orgOverview);
-teamsSetupRouter.post('/org/consent-link', perms.requireAuth, requireSessionOrgAdmin, validate({ query: NO_QUERY }), consentLink);
+teamsSetupRouter.post('/org/consent-link', perms.requireAuth, requireSessionOrgAdmin, validate({ body: NO_BODY, query: NO_QUERY }), consentLink);
 teamsSetupRouter.get('/org/app-import', perms.requireAuth, requireSessionOrgAdmin, validate({ query: NO_QUERY }), getAppImport);
 teamsSetupRouter.put('/org/app-import', perms.requireAuth, requireSessionOrgAdmin, validate({ body: AppImportBody, query: NO_QUERY }), putAppImport);
 teamsSetupRouter.post('/org/app-import/diagnostics', perms.requireAuth, requireSessionOrgAdmin, validate({ body: AppImportDiagBody, query: NO_QUERY }),

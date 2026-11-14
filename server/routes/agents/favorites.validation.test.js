@@ -23,6 +23,7 @@ process.env.NODE_ENV = 'test';
 const test = require('node:test');
 const assert = require('node:assert');
 const Module = require('module');
+const { fakeAgentGates } = require('./agentGate.testkit');
 
 // Every store call lands in `touched`. A refused request must leave it empty.
 const touched = [];
@@ -34,8 +35,8 @@ const MOCKS = {
         removeAgentFavorite: async (...a) => { touched.push({ what: 'removeAgentFavorite', args: a }); return true; },
         getAgent: async (id) => ({ id, owner_id: 'u1' }),
     },
-    './crud': { canReadAgent: async () => true },
 };
+MOCKS['./crud'] = fakeAgentGates({ agentStore: MOCKS['../../stores/agentStore'] });
 
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
@@ -92,4 +93,11 @@ test('too many ids is still a 413 — a size, not a shape', async () => {
     const res = await dispatch({ method: 'POST', url: '/favorites/bulk', body: { agentIds: Array.from({ length: 201 }, (_, i) => `a${i}`) } });
     assert.strictEqual(res.statusCode, 413);
     assert.deepStrictEqual(touched, []);
+});
+
+test('Marking an agent as a favourite takes no fields: one sent is refused by name', async () => {
+    const res = await dispatch({ method: 'PUT', url: '/a1/favorite', body: { favorite: true } });
+    assert.strictEqual(res.statusCode, 400, JSON.stringify(res.body));
+    assert.strictEqual(res.body.code, 'invalid_request');
+    assert.match(res.body.error, /Marking a favourite does not take "favorite"/);
 });

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Webpage DB Tools
  *
@@ -111,7 +111,8 @@ async function executeDbTool(toolName, args, { webpageId, userId }) {
         const sql = args?.sql;
         const params = Array.isArray(args?.params) ? args.params : [];
         try {
-            const result = await webpageDbStore.query(userId, webpageId, sql, params);
+            // The store refuses a missing statement with an error this catch reports.
+            const result = await webpageDbStore.query(userId, webpageId, /** @type {string} */ (sql), params);
             return {
                 ...result,
                 message: `Returned ${result.rows.length} row${result.rows.length === 1 ? '' : 's'}${result.truncated ? ' (truncated at 10000)' : ''}.`,
@@ -125,7 +126,7 @@ async function executeDbTool(toolName, args, { webpageId, userId }) {
         const sql = args?.sql;
         const params = Array.isArray(args?.params) ? args.params : [];
         try {
-            const result = await webpageDbStore.exec(userId, webpageId, sql, params);
+            const result = await webpageDbStore.exec(userId, webpageId, /** @type {string} */ (sql), params);
             const msg = result.multi
                 ? 'Multi-statement script executed.'
                 : `OK — ${result.changes} row${result.changes === 1 ? '' : 's'} affected${result.lastInsertRowid ? `, lastInsertRowid=${result.lastInsertRowid}` : ''}.`;

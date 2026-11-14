@@ -187,6 +187,8 @@ ${templatePrompt}`;
  *
  * `templates` are camelCase rows as returned by the store's mapRow
  * ({ scope, isDefault, userId, organizationId, groupId, ... }).
+ * @param templates
+ * @param {{ userId?: string | null, orgIds?: string[], groupIds?: string[] }} [viewer]
  */
 function pickDefaultTemplate(templates, { userId = null, orgIds = [], groupIds = [] } = {}) {
     const list = Array.isArray(templates) ? templates.filter(t => t && t.isDefault) : [];

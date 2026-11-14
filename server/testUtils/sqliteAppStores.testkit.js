@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 /**
@@ -16,6 +17,7 @@ const Database = require('better-sqlite3');
 
 const norm = (params) => params.map((v) => (typeof v === 'boolean' ? (v ? 1 : 0) : v));
 
+/** @param test @param {{ onSql?: (sql: string) => void, dataStore?: Record<string, unknown> }} [opts] */
 function useSqliteAppStores(test, { onSql = () => {}, dataStore: dataStandIns = {} } = {}) {
     const db = new Database(':memory:');
     const dbStore = require('../stores/studioAppDbStore');

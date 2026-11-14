@@ -54,6 +54,7 @@ async function listTags(organizationId = null) {
     return rows;
 }
 
+/** @param {{ organizationId?: string | null, name: string, color?: string | null, description?: string | null }} tag */
 async function createTag({ organizationId = null, name, color = null, description = null }) {
     await initDB();
     if (!name || !name.trim()) throw new Error('tag name required');
@@ -65,6 +66,7 @@ async function createTag({ organizationId = null, name, color = null, descriptio
     return rows[0];
 }
 
+/** @param {string} id @param {string | null} [organizationId] */
 async function deleteTag(id, organizationId = null) {
     await initDB();
     const { rowCount } = await pool.query(

@@ -27,6 +27,7 @@ const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 const log = require('../../telemetry/log');
+const { HttpError } = require('../../core/http/errors');
 
 const SUPPORT_AGENT_ID = 'system-bee-flow-support';
 
@@ -36,7 +37,7 @@ function requireSuperAdmin(/** @type {import('express').Request} */ req, /** @ty
     return next();
 }
 
-/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
+/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. @template {import('zod').ZodRawShape} S @param {S} shape */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 const idList = (name) => z.array(worded(`${name} is a list of ids.`), { error: `${name} is a list of ids.` });
@@ -174,8 +175,9 @@ function register(router) {
             [],                      // sharedGroups — never published
             null                     // categoryId
         );
+        // Without an expectedRev the update only fails when no system-owned row has this id.
         if (!ok) {
-            throw new Error('Update failed (agent not owned by system?)');
+            throw new HttpError(404, 'support_agent_not_found', 'The support agent was not found. Reload the page.');
         }
         // Mirror knowledge_base_ids into the legacy configStore key so the
         // existing supportAiResponder fallback path keeps working without a

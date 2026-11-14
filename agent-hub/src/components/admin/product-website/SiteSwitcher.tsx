@@ -233,6 +233,7 @@ function IconBtn({ name, title, onClick, danger }: IconBtnProps) {
         <button
             type="button"
             title={title}
+            aria-label={title}
             onClick={onClick}
             className={`p-1 rounded hover:bg-[var(--bg-primary)]
                 ${danger ? 'text-[var(--text-muted)] hover:text-red-400' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}

@@ -103,7 +103,7 @@ test('every tool the prompt\'s step list names as creating a type exists', () =>
     const prompt = buildFullSystemPrompt({ catalog: { apps: [] }, codeStepEnabled: true });
     // builder_ask_questions and builder_write_plan are handled by the chat route
     // in a work mode (workMode.QUESTIONS_TOOL / PLAN_TOOL), not by builderTools.
-    const { QUESTIONS_TOOL, PLAN_TOOL } = require('../../routes/ai/automationBuilder/workMode');
+    const { QUESTIONS_TOOL, PLAN_TOOL } = require('../../usecases/ai/automationBuilder/workMode');
     const modeTools = [QUESTIONS_TOOL, PLAN_TOOL].map(t => (typeof t === 'string' ? t : t.function.name));
     const names = new Set([...TOOL_SCHEMAS.map(t => t.function.name), ...modeTools]);
     const named = [...new Set(prompt.match(/builder_[a-z_]*[a-z](?![a-z_<])/g) || [])];

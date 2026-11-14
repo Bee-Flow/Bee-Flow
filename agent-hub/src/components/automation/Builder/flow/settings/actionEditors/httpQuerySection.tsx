@@ -132,6 +132,7 @@ export function HttpQuerySection({ draft, set, onFocusField, previewSample, erro
                                         type="button"
                                         onClick={() => patch({ items: items.filter((_, j) => j !== i) })}
                                         title={t('http_query.remove', 'Remove parameter')}
+                                        aria-label={t('http_query.remove', 'Remove parameter')}
                                         className="p-1.5 rounded text-[var(--text-tertiary)] hover:text-red-500 hover:bg-[var(--bg-tertiary)] transition"
                                     >
                                         <X size={14} />

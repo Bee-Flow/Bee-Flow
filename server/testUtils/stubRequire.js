@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Require-interception for tests (H2).
  *
@@ -19,14 +20,15 @@
  * restore() and delete the module-under-test from require.cache between them.
  */
 
-const Module = require('module');
+const Module = /** @type {typeof import('module') & { _resolveFilename: (request: string, parent: NodeJS.Module | null | undefined, ...rest: unknown[]) => string }} */ (require('module'));
 const { registerFeatureModules, _featureModuleGetter, _clearFeatureModulesForTests } = require('../core/featureModules');
 const log = require('../telemetry/log');
 
-// A key that names a feature module core looks up by name (core/featureModules.js)
-// is stubbed there too: core no longer `require`s it by that string, so the
-// resolve hook alone would never see the call. Same stub, same meaning.
-const FEATURE_KEY = /^(?:\.\.?\/)+((?:integrations|services|automation|agents|projects)\/[\w/.-]+?)(?:\.js)?$/;
+// A key that names a feature module core (or another feature) looks up by name
+// (core/featureModules.js) is stubbed there too: the caller no longer
+// `require`s it by that string, so the resolve hook alone would never see the
+// call. Same stub, same meaning.
+const FEATURE_KEY = /^(?:\.\.?\/)+((?:integrations|services|automation|agents|projects|appStudio)\/[\w/.-]+?)(?:\.js|\.mts)?$/;
 
 /**
  * Redirect the given require requests to in-memory stub exports.
@@ -40,14 +42,14 @@ function installResolveStub(map) {
     for (const [request, exportsObj] of Object.entries(map)) {
         const id = `stub:${request}`;
         idFor.set(request, id);
-        require.cache[id] = {
+        require.cache[id] = /** @type {NodeJS.Module} */ (/** @type {unknown} */ ({
             id,
             filename: id,
             loaded: true,
             exports: exportsObj,
             children: [],
             paths: [],
-        };
+        }));
     }
 
     Module._resolveFilename = function (request, parent, ...rest) {

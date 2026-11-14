@@ -35,16 +35,14 @@ import {
     pageFromPath,
     isApprovalsPageArg,
     isApprovalsStudioPath,
-    parseCoworkUrl,
-    parseDocumentUrl,
-    documentRoutePath,
-    parseAgentUrl,
-    parseDirectChatUrl,
-    parseAdminPath,
     usesStudioRail,
     usesProjectRail,
+    matchAppRoute,
+    matchPattern,
+    APP_ROUTES,
 } from './appRoutes';
 import { parseStudioUrl } from '../components/admin/Studio/studioRoutes';
+import { documentRoutePath, parseAdminPath, parseAgentUrl, parseCoworkUrl, parseDirectChatUrl, parseDocumentUrl } from './urlParsers';
 
 const MOVE_HINT = 'Moving a route = ONE commit across PAGE_ROUTES + a pageFromPath alias '
     + 'for the old path + MOBILE_ALLOWED_PAGES/guards + mobile route.ts + this freeze. '
@@ -368,5 +366,57 @@ describe('parseAdminPath — the query is never a segment', () => {
         expect(parseAdminPath('/app/admin/compliance/gdpr/GDPR-Art30?tab=checks#x')).toEqual({ seg1: 'compliance', seg2: 'gdpr', seg3: 'GDPR-Art30' });
         expect(parseAdminPath('/app/admin?tab=support')).toEqual({ seg1: '', seg2: '', seg3: '' });
         expect(parseAdminPath('/app/agents')).toEqual({ seg1: '', seg2: '', seg3: '' });
+    });
+});
+
+describe('the route table', () => {
+    it('matches literal, named, optional and rest segments, ignoring a trailing slash', () => {
+        const seg = (p: string) => p.split('/').filter(Boolean);
+        expect(matchPattern('/app/apps/:appId/*', seg('/app/apps/a1'))).toEqual({ appId: 'a1', '*': '' });
+        expect(matchPattern('/app/apps/:appId/*', seg('/app/apps/a1/screen/2/'))).toEqual({ appId: 'a1', '*': 'screen/2' });
+        expect(matchPattern('/app/a/:agentId/:conversationId?', seg('/app/a/ag1'))).toEqual({ agentId: 'ag1' });
+        expect(matchPattern('/app/a/:agentId/:conversationId?', seg('/app/a/ag1/c1'))).toEqual({ agentId: 'ag1', conversationId: 'c1' });
+        expect(matchPattern('/app/a/:agentId/:conversationId?', seg('/app/a/ag1/c1/x'))).toBeNull();
+        expect(matchPattern('/app/apps', seg('/app/apps/a1'))).toBeNull();
+        expect(matchPattern('/app/apps', seg('/app/apps/'))).toEqual({});
+        expect(matchPattern('/', seg('/'))).toEqual({});
+    });
+
+    it('gives every canonical page one row and reads the params the pages are opened with', () => {
+        for (const page of Object.keys(PAGE_ROUTES)) {
+            expect(APP_ROUTES.some(r => r.page === page), page).toBe(true);
+        }
+        expect(matchAppRoute('/app/apps/a1/')).toMatchObject({ page: 'appRun', params: { appId: 'a1' } });
+        expect(matchAppRoute('/app/forms/tok1')).toMatchObject({ page: 'formView', params: { token: 'tok1' } });
+        expect(matchAppRoute('/app/agent-designer/ag1/extra')).toMatchObject({ page: 'agentDesigner', params: { agentId: 'ag1' } });
+        expect(matchAppRoute('/app/cowork/cw1')).toMatchObject({ page: 'cowork', params: { coworkId: 'cw1' }, redirect: null });
+    });
+
+    it('forwards the pages that moved and the desktop hand-over addresses to their one address', () => {
+        expect(matchAppRoute('/app/billing').redirect).toBe('billing');
+        expect(matchAppRoute('/app/agent-designer').redirect).toBe('/app/studio/agents');
+        expect(matchAppRoute('/app/agent-designer/ag1').redirect).toBeNull();
+        expect(matchAppRoute('/app/webpages').redirect).toBe('/app/studio/webpages');
+        expect(matchAppRoute('/app/webpages/w1').redirect).toBeNull();
+        expect(matchAppRoute('/app/notebooks').redirect).toBe('/app/studio/documents');
+        expect(matchAppRoute('/app/meeting-notes').redirect).toBe('/app/studio/meeting-notes');
+        expect(matchAppRoute('/app/knowledge/kb1')).toMatchObject({ page: 'studio', redirect: '/app/studio/knowledge/kb1' });
+        expect(matchAppRoute('/app/chat/c1')).toMatchObject({ page: 'agents', redirect: '/app/d/c1' });
+        expect(matchAppRoute('/app/chat')).toMatchObject({ page: 'agents', redirect: '/app' });
+        expect(matchAppRoute('/app/tasks/t1')).toMatchObject({ page: 'cowork', redirect: '/app/cowork/t1' });
+    });
+
+    it('reads the legacy ?page= only from the query it is given', () => {
+        expect(matchAppRoute('/x/y', '?page=settings').page).toBe('settings');
+        expect(matchAppRoute('/x/y', '?page=nope').page).toBe('agents');
+        expect(matchAppRoute('/login', '?page=settings').page).toBe('agents');
+    });
+
+    it('names who may open the pages that refuse members', () => {
+        const access = (path: string) => APP_ROUTES.find(r => r.page === matchAppRoute(path).page && r.access)?.access;
+        expect(access('/app/admin/ai-config')).toBe('admin');
+        expect(access('/app/org-settings')).toBe('orgAdmin');
+        expect(access('/app/agent-designer/ag1')).toBe('manageAgents');
+        expect(access('/app/agent-wizard')).toBe('manageAgents');
     });
 });

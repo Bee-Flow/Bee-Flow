@@ -22,7 +22,7 @@ const os = require('os');
 const path = require('path');
 const { pipeline: streamPipeline } = require('stream/promises');
 const log = require('../../telemetry/log');
-const { bestEffort } = require('../../utils/bestEffort');
+const { bestEffort, ignoreGone } = require('../../utils/bestEffort');
 
 /** @type {Record<string, string>} */
 const MIME_BY_EXT = {
@@ -204,7 +204,7 @@ async function resolveSavedAudio({ audioPath, audioStorageKey } = {}) {
         }
         return {
             path: dest,
-            cleanup: () => { try { fs.unlinkSync(dest); } catch (err) { log.debug('already gone', err); } },
+            cleanup: () => { try { fs.unlinkSync(dest); } catch (err) { ignoreGone('meetingNotes/savedAudioStore:cleanup', err); } },
             fromStorage: true,
             cached: false,
         };

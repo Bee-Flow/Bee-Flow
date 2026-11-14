@@ -33,6 +33,7 @@ process.env.NODE_ENV = 'test';
 const test = require('node:test');
 const assert = require('node:assert');
 const Module = require('module');
+const { fakeAgentGates } = require('./agents/agentGate.testkit');
 
 const pass = (req, res, next) => next();
 
@@ -53,8 +54,8 @@ const MOCKS = {
     },
     '../auth': { requireAuth: pass },
     '../utils/routeHelpers': { getEffectiveUserId: (req) => req.session?.user?.id },
-    './agents/crud': { canModifyAgent: async () => true },
 };
+MOCKS['./agents/crud'] = fakeAgentGates({ agentStore: MOCKS['../stores/agentStore'], userId: (req) => req.session?.user?.id });
 
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {

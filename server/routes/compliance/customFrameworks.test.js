@@ -331,4 +331,6 @@ test('computeExpiresAt clamps to the last day of the target month and rejects ou
     assert.equal(computeExpiresAt('2026-01-15T00:00:00Z', null), null);
     assert.throws(() => computeExpiresAt('2026-01-15T00:00:00Z', 0), /1\.\.120/);
     assert.throws(() => computeExpiresAt('2026-01-15T00:00:00Z', 'abc'), /1\.\.120/);
+    // The caller's value: a 400 with a code, not a 500.
+    assert.throws(() => computeExpiresAt('2026-01-15T00:00:00Z', 121), { status: 400, code: 'invalid_expires_in_months' });
 });

@@ -22,6 +22,7 @@ import { useAdminOrgIdParam } from '@/components/admin/dashboard/useAdminOrg';
 import { isHomeOrgAdmin, isPlatformAdmin } from '@/utils/adminAccess';
 import { useLicenseContext } from '@/components/licensing/LicenseContext';
 import { UsageReportPage } from './UsageReportPage';
+import { useShellProps } from '@/authedApp/useShellProps';
 
 /** Change against the previous period, in percent (null where the previous period had none). */
 function usageDeltas(summary: UsageSummary | null, prevSummary: UsageSummary | null): UsageDeltas {
@@ -122,8 +123,11 @@ function MonitoringPage({ page, data, range, customStart, customEnd, refreshKey,
  * per URL (admin/monitoring/<page>; bare admin/monitoring is Overview), with
  * the period chosen once for all of them in the page header.
  */
-export default function MonitoringPanel({ activeSection = '', onNavigate, user }: MonitoringPanelProps) {
+export default function MonitoringPanel({ activeSection = '', onNavigate: onNavigateProp, user: userProp }: MonitoringPanelProps) {
     const { t } = useTranslation();
+    // Inside the app shell the signed-in person and the navigation come from
+    // context; a host outside it (a test, a kit) still hands them as props.
+    const { user, onNavigate } = useShellProps({ user: userProp, onNavigate: onNavigateProp });
     // Feedback is for a platform admin and an organisation admin of their home organisation
     // (the `/org` route refuses anyone else); a hidden page falls back to Overview.
     const viewer = { isPlatformAdmin: isPlatformAdmin(user), isHomeOrgAdmin: isHomeOrgAdmin(user) };

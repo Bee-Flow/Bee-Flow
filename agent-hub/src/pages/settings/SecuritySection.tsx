@@ -1,6 +1,7 @@
 import { AuthenticationResponseJSON } from '@simplewebauthn/browser';
 import { ShieldCheck, ShieldOff, Loader2, RefreshCw, KeyRound, AlertCircle, Smartphone, Usb } from 'lucide-react';
-import { useEffect, useId, useState } from 'react';
+import { useId, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import ChangePassword from './ChangePassword';
 import PolicyAcknowledgements from './PolicyAcknowledgements';
 import TokenVaultSection from './TokenVaultSection';
@@ -15,8 +16,8 @@ import LinkNextcloudAccount from '../../components/mfa/LinkNextcloudAccount';
 import { securityKeyMessage } from '../../components/mfa/securityKeyMessages';
 import SecurityKeysCard from '../../components/mfa/SecurityKeysCard';
 import { useTranslation } from '../../hooks/useTranslation';
-import { API_BASE } from '../../utils/helpers';
-import { request, RefusedError, mutate, errorBody } from '../../api/mutate';
+import { RefusedError, errorBody } from '../../api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 interface MfaStatus {
     enabled: boolean;
@@ -33,14 +34,29 @@ interface ApiError { code?: string; message?: string }
  * Personal security settings — TOTP MFA enrollment & management.
  * Talks to /auth/mfa/{status,setup,enable,disable,recovery-codes/regenerate}.
  */
+const NO_MFA: MfaStatus = { enabled: false, recoveryCodesRemaining: 0 };
+
 export default function SecuritySection() {
     const { t } = useTranslation();
     const disarmId = useId();
-    const [loading, setLoading] = useState(true);
-    const [status, setStatus] = useState<MfaStatus>({ enabled: false, recoveryCodesRemaining: 0 });
+    const statusQuery = useQuery<MfaStatus>({
+        queryKey: ['auth', 'mfaStatus'],
+        staleTime: 0,
+        retry: false,
+        queryFn: async () => {
+            try {
+                return await (await apiRequest('GET /auth/mfa/status')).json();
+            } catch (err) {
+                if (!(err instanceof RefusedError)) throw err;
+                throw new Error(`HTTP ${err.status}`, { cause: err });
+            }
+        },
+    });
+    const loading = statusQuery.isPending;
+    const status = statusQuery.data ?? NO_MFA;
     // The status read failed: we do not know whether 2FA is on, so the screen
     // must not say "off" and offer Enable. It shows an error with a retry.
-    const [statusError, setStatusError] = useState(false);
+    const statusError = statusQuery.isError;
     const [statusRetrying, setStatusRetrying] = useState(false);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
@@ -58,21 +74,8 @@ export default function SecuritySection() {
     // security key works on this address: a recovery code.
     const [enableProof, setEnableProof] = useState('');
 
-    const loadStatus = async () => {
-        try {
-            let res: Response;
-            try {
-                res = await request(`${API_BASE}/auth/mfa/status`);
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                throw new Error(`HTTP ${err.status}`);
-            }
-            setStatus(await res.json());
-            setStatusError(false);
-        } catch (_) { setStatusError(true); }
-        finally { setLoading(false); }
-    };
-    useEffect(() => { loadStatus(); }, []);
+    const { refetch: refetchStatus } = statusQuery;
+    const loadStatus = async () => { await refetchStatus(); };
 
     const retryStatus = async () => {
         setStatusRetrying(true);
@@ -94,13 +97,12 @@ export default function SecuritySection() {
         }
     };
 
-    const post = async (path: string, body?: { securityKey: AuthenticationResponseJSON; }|{ code: string; }|undefined) => {
+    const post = async (path: 'setup' | 'enable' | 'disable' | 'recovery-codes/regenerate', body?: { securityKey: AuthenticationResponseJSON; }|{ code: string; }|undefined) => {
         let res: Response;
         try {
-            res = await mutate(`${API_BASE}/auth/mfa/${path}`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body || {}),
-        });
+            res = await apiRequest(`POST /auth/mfa/${path}` as const, {
+                init: { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) },
+            });
         } catch (apiErr) {
             if (!(apiErr instanceof RefusedError)) throw apiErr;
             const data = errorBody(apiErr) ?? {};

@@ -112,6 +112,7 @@ export default function NotificationRow({ n, index, isExpanded, actions }: {
                     onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = '#ef4444'; }}
                     onMouseLeave={(e) => { e.currentTarget.style.opacity = '0'; e.currentTarget.style.color = 'var(--text-muted, #94a3b8)'; }}
                     title={t('common.delete', 'Delete')}
+                    aria-label={t('common.delete', 'Delete')}
                     className="notif-delete-btn [background:none] [border:none] [cursor:pointer] [padding:4px] [border-radius:6px] [color:var(--text-muted,#94a3b8)] [opacity:0] [flex-shrink:0]"
                 >
                     <X className="w-[14px] h-[14px]" />

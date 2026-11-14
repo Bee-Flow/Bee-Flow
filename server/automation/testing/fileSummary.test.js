@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * The file fingerprint run compare uses: synthetic decks and sheets only.
@@ -47,6 +47,7 @@ test('a deck gives one part per slide, in numeric order, with title, length and 
     assert.strictEqual(out.name, 'deck.pptx');
     assert.strictEqual(out.size, buffer.length);
     assert.strictEqual(out.sha256, crypto.createHash('sha256').update(buffer).digest('hex'));
+    assert.ok(out.parts, 'the deck is read into parts');
     assert.strictEqual(out.parts.length, 11);
     assert.deepStrictEqual(out.parts.slice(0, 2).map(p => [p.kind, p.index, p.title]), [['slide', 0, 'Overview'], ['slide', 1, 'Details']]);
     assert.strictEqual(out.parts[10].title, 'Slide 11');
@@ -58,6 +59,7 @@ test('a deck gives one part per slide, in numeric order, with title, length and 
 test('two decks that differ in one slide differ in that slide\'s hash only', async () => {
     const a = await summarizeFile({ file: fileOf('a.pptx', PPTX), readBytes: async () => deck([['T', 'same'], ['U', 'old']]) }, { fileMaxBytes: 0 });
     const b = await summarizeFile({ file: fileOf('b.pptx', PPTX), readBytes: async () => deck([['T', 'same'], ['U', 'new']]) }, { fileMaxBytes: 0 });
+    assert.ok(a.parts && b.parts, 'both decks are read into parts');
     assert.strictEqual(a.parts[0].textHash, b.parts[0].textHash);
     assert.notStrictEqual(a.parts[1].textHash, b.parts[1].textHash);
     assert.notStrictEqual(a.sha256, b.sha256);
@@ -66,6 +68,7 @@ test('two decks that differ in one slide differ in that slide\'s hash only', asy
 test('a csv gives one sheet with rows and columns', async () => {
     const buffer = Buffer.from('id,name,score\n1,a,10\n2,b,20\n');
     const out = await summarizeFile({ file: fileOf('data.csv', 'text/csv'), readBytes: async () => buffer }, { fileMaxBytes: 0 });
+    assert.ok(out.parts, 'the csv is read into parts');
     assert.strictEqual(out.parts.length, 1);
     assert.strictEqual(out.parts[0].kind, 'sheet');
     assert.strictEqual(out.parts[0].cols, 3);
@@ -79,6 +82,7 @@ test('an xlsx gives its worksheets by name', async () => {
     wb.addWorksheet('Beta').addRows([['x'], [1], [2], [3]]);
     const buffer = Buffer.from(await wb.xlsx.writeBuffer());
     const out = await summarizeFile({ file: fileOf('book.xlsx', 'application/octet-stream'), readBytes: async () => buffer }, { fileMaxBytes: 0 });
+    assert.ok(out.parts, 'the workbook is read into parts');
     assert.deepStrictEqual(out.parts.map(p => p.name), ['Alpha', 'Beta']);
     assert.strictEqual(out.parts[0].cols, 2);
     assert.strictEqual(out.parts[1].rows, 4);

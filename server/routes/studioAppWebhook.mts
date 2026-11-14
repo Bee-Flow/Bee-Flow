@@ -32,7 +32,7 @@ const express = nodeRequire('express') as typeof import('express');
 const { HttpError } = nodeRequire('../core/http/errors.js') as { HttpError: new (status: number, code: string, message: string) => Error };
 const { perUserRateLimit } = nodeRequire('../utils/perUserRateLimit.js') as { perUserRateLimit: (o: Record<string, unknown>) => Handler };
 // The primitives of the automation webhook: the `sha256=<hex>` header and its constant-time compare.
-const { hmacHeader, sameSignature } = nodeRequire('./automation/webhookSignature.js') as {
+const { hmacHeader, sameSignature } = nodeRequire('../usecases/automation/webhookSignature.js') as {
     hmacHeader: (secret: string, message: string) => string;
     sameSignature: (given: string, expected: string) => boolean;
 };

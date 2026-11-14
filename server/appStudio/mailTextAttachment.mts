@@ -52,7 +52,6 @@ export function textOnlyKind(mime: unknown, name: unknown): 'xml' | 'mail' | nul
 }
 
 function stripControl(s: string): string {
-    // eslint-disable-next-line no-control-regex
     return s.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '');
 }
 

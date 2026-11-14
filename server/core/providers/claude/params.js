@@ -126,37 +126,160 @@ function buildThinking(provider, model, options = {}) {
     return { thinking: { type: "adaptive", display: THINKING_DISPLAY }, effort };
 }
 
+/**
+ * Which tool choice the caller forces, and whether it has to run unforced.
+ *
+ * Sonnet 5.5, Opus 5.5 and Fable/Mythos 5.1 refuse a forced choice outright
+ * (400 `tool_choice: type "tool" and "any" are not supported for this
+ * model.`). There the call runs with `auto` plus an explicit instruction
+ * naming the tool (forcedToolFallback).
+ * @param {import('../claude')} provider @param {string} model @param {import('../claude').ClaudeOptions} options
+ * @returns {ForcedChoice}
+ */
+function forcedChoiceOf(provider, model, options) {
+    const tc = /** @type {string | { name?: string, function?: { name?: string } } | undefined} */ (options.toolChoice);
+    const forcedName = tc && typeof tc === 'object' ? (tc.name || tc.function?.name || null) : null;
+    const forced = tc === 'any' || tc === 'required' || !!forcedName;
+    const unforced = forced && (options._noForcedToolChoice || !provider.supportsForcedToolChoice(model));
+    return { forcedName, forced, unforced };
+}
+
+/**
+ * The thinking config once the tool choice is known.
+ *
+ * Extended thinking is incompatible with a forced tool choice: per
+ * https://docs.claude.com/en/docs/agents-and-tools/tool-use/implement-tool-use
+ * only `auto` and `none` are allowed while thinking is enabled; `any`/`tool`
+ * get a 400 and the whole call fails. Forced choice is the mechanical
+ * structured-output path (llmClient.chatForcedTool), where reasoning adds
+ * nothing, so thinking yields to the force, never the other way around.
+ * Where the call runs unforced, thinking STAYS on: it cannot be switched off
+ * on those models anyway, and dropping the config would only lose the effort
+ * and the max_tokens headroom.
+ * @param {string} model @param {ThinkingConfig | undefined} thinkingConfig @param {ForcedChoice} choice
+ * @returns {ThinkingConfig | undefined}
+ */
+function thinkingUnderChoice(model, thinkingConfig, choice) {
+    if (!choice.forced || choice.unforced) return thinkingConfig;
+    // Omitting `thinking` means adaptive on the models that think by default,
+    // and adaptive + forced choice is a 400: those must send an explicit off.
+    if (describeClaudeModel(model).thinkingOnByDefault) return THINKING_DISABLED;
+    return undefined;
+}
+
+/**
+ * Tools and tool_choice. Tools come before system in Anthropic's wire format.
+ * Per the mixed-TTL rule ("longer TTL must appear first"), a 5-min breakpoint
+ * on tools while system has a 1-hour breakpoint would violate ordering. The
+ * system block-1 1h breakpoint already caches "tools + system" as a single
+ * prefix, so tools get no breakpoint of their own.
+ * @param {import('../claude')} provider @param {DraftParams} params @param {import('../claude').ClaudeOptions} options @param {ForcedChoice} choice
+ */
+function applyTools(provider, params, options, choice) {
+    if (!options.tools || options.tools.length === 0) return;
+    params.tools = provider.normalizeTools(options.tools);
+    if (options.toolChoice === "auto") params.tool_choice = { type: "auto" };
+    if (choice.unforced) {
+        params.tool_choice = { type: "auto" };
+        params.system = [...(params.system || []), { type: "text", text: forcedToolInstruction(choice.forcedName) }];
+    } else if (options.toolChoice === "any" || options.toolChoice === "required") {
+        params.tool_choice = { type: "any" };
+    } else if (choice.forcedName) {
+        // Force a single named tool. Accept BOTH the bare `{name}` form and
+        // the OpenAI wire shape `{type:'function',function:{name}}` that
+        // openai-style callers and llmClient.forcedToolChoice emit; Anthropic's
+        // SDK only understands `{type:'tool',name}`, so a caller passing the
+        // OpenAI shape would otherwise run with tool_choice unset (auto),
+        // breaking every forced-structured-output call routed to a Claude model.
+        params.tool_choice = { type: "tool", name: choice.forcedName };
+    }
+}
+
+/**
+ * The server-side context-management edits, or null for none.
+ *
+ * This is the LOSSLESS half of context handling and, since local
+ * compaction is opt-in (core/llm/contextPolicy.js), the one that normally
+ * runs. Anthropic edits the request server-side; our stored conversation is
+ * never rewritten, so nothing is destroyed for later turns the way a
+ * fast-tier summary destroys it.
+ *
+ * Two edits, and ORDER MATTERS: `clear_thinking_20251015` must come first
+ * when combined, per Anthropic's docs.
+ *
+ *   1. clear_thinking_20251015, `keep: all`. Not a no-op: on Opus 4.6 /
+ *      Sonnet 4.6 and earlier the API's DEFAULT is to keep only the last
+ *      turn's thinking and silently drop the rest, which is half of "the
+ *      model loses its reasoning in long chats". We replay the blocks
+ *      (replayThinkingBlocks) and this stops the server from throwing them
+ *      away again. Opus 4.5+/Sonnet 4.6+ already default to keeping
+ *      everything, so there it just pins the behaviour.
+ *      CLAUDE_KEEP_THINKING_TURNS=<n> caps it for cost-sensitive deployments.
+ *
+ *   2. clear_tool_uses_20250919, only meaningful with tools in play. Fires
+ *      on genuinely heavy tool turns, keeps the recent pairs the model is
+ *      actively reasoning about, and clears enough per activation to justify
+ *      the cache invalidation at the clear point. `clear_tool_inputs` stays
+ *      false so the model still sees WHAT it called even once the result is
+ *      gone.
+ *
+ * Native server-side compaction (compact_20260112) is deliberately NOT
+ * enabled: its compaction blocks must be replayed verbatim on later
+ * requests, and our flattened message persistence cannot round-trip them.
+ * @param {import('../claude')} provider @param {string} model @param {import('../claude').ClaudeOptions} options @param {boolean} thinkingActive @param {boolean} hasTools
+ * @returns {{ edits: Array<Record<string, unknown>> } | null}
+ */
+function contextManagementFor(provider, model, options, thinkingActive, hasTools) {
+    if (CONTEXT_EDITING_DISABLED || options._noContextEditing || !provider.supportsContextEditing(model)) return null;
+    const edits = [];
+    if (thinkingActive && KEEP_THINKING_TURNS !== 'off') {
+        edits.push({
+            type: 'clear_thinking_20251015',
+            keep: KEEP_THINKING_TURNS === 'all'
+                ? { type: 'all' }
+                : { type: 'thinking_turns', value: KEEP_THINKING_TURNS },
+        });
+    }
+    if (hasTools) {
+        edits.push({
+            type: 'clear_tool_uses_20250919',
+            trigger: { type: 'input_tokens', value: 30000 },
+            keep: { type: 'tool_uses', value: 5 },
+            clear_at_least: { type: 'input_tokens', value: 5000 },
+        });
+    }
+    return edits.length > 0 ? { edits } : null;
+}
+
+/**
+ * The thinking param and what it implies for temperature, effort and
+ * max_tokens.
+ * @param {DraftParams} params @param {ThinkingConfig} thinkingConfig @param {boolean} adaptiveOnly @param {boolean} thinkingActive
+ */
+function applyThinking(params, thinkingConfig, adaptiveOnly, thinkingActive) {
+    params.thinking = thinkingConfig.thinking;
+    // Legacy 4.x require temperature=1 when thinking is enabled; the
+    // adaptive-only family rejects sampling params, so leave it unset.
+    if (!adaptiveOnly && thinkingActive) params.temperature = 1;
+    if (thinkingConfig.thinking.type === 'adaptive') {
+        // effort belongs inside output_config per SDK v0.78.0 OutputConfig interface
+        if (thinkingConfig.effort) params.output_config = { effort: thinkingConfig.effort };
+        // Enough room for thinking + answer
+        if (params.max_tokens < 16384) params.max_tokens = 16384;
+    } else if (thinkingConfig.thinking.budget_tokens && params.max_tokens < thinkingConfig.thinking.budget_tokens + 1024) {
+        // Legacy budget_tokens mode
+        params.max_tokens = thinkingConfig.thinking.budget_tokens + 1024;
+    }
+}
+
 /** @param {import('../claude')} provider @param {string} model @param {any[]} messages @param {any} [options] */
 function buildSdkParams(provider, model, messages, options = {}) {
-    // Resolved first: whether thinking is on decides whether stored
-    // thinking blocks are worth replaying into the history at all.
-    let thinkingConfig = provider.buildThinking(model, options);
-
-    // Extended thinking is incompatible with a forced tool choice: per
-    // https://docs.claude.com/en/docs/agents-and-tools/tool-use/implement-tool-use
-    // only `auto` and `none` are allowed while thinking is enabled —
-    // `any`/`tool` get a 400 and the whole call fails. Forced choice is the
-    // mechanical structured-output path (llmClient.chatForcedTool), where
-    // reasoning adds nothing, so thinking yields to the force, never the
-    // other way around. Skipping replay too: thinking blocks without a
-    // thinking param are dead weight in the history.
-    //
-    // Sonnet 5.5, Opus 5.5 and Fable/Mythos 5.1 refuse a forced choice
-    // outright (400 `tool_choice: type "tool" and "any" are not supported
-    // for this model.`). There the call runs with `auto` plus an explicit
-    // instruction naming the tool (forcedToolFallback), and thinking STAYS
-    // on: it cannot be switched off on those models anyway, and dropping
-    // the config would only lose the effort and the max_tokens headroom.
-    const tc = options.toolChoice;
-    const forcedName = tc && typeof tc === 'object' ? (tc.name || tc.function?.name || null) : null;
-    const forcedChoice = tc === 'any' || tc === 'required' || !!forcedName;
-    const unforced = forcedChoice && (options._noForcedToolChoice || !provider.supportsForcedToolChoice(model));
-    if (forcedChoice && !unforced) {
-        // Omitting `thinking` means adaptive on the models that think by default,
-        // and adaptive + forced choice is a 400: those must send an explicit off.
-        if (describeClaudeModel(model).thinkingOnByDefault) thinkingConfig = THINKING_DISABLED;
-        else if (thinkingConfig) thinkingConfig = undefined;
-    }
+    // Resolved before the history: whether thinking is on decides whether
+    // stored thinking blocks are worth replaying at all. Without a thinking
+    // param they are dead weight.
+    const requested = provider.buildThinking(model, options);
+    const choice = forcedChoiceOf(provider, model, options);
+    const thinkingConfig = thinkingUnderChoice(model, requested, choice);
     const thinkingActive = !!thinkingConfig && thinkingConfig.thinking.type !== 'disabled';
     const keepThinking = thinkingActive && !options._noThinkingReplay;
 
@@ -170,110 +293,16 @@ function buildSdkParams(provider, model, messages, options = {}) {
     if (system) params.system = system;
 
     // The adaptive-only family (Opus 4.7/4.8, Sonnet 5, Fable/Mythos 5) rejects
-    // sampling params with a 400 — never forward a caller-supplied temperature.
+    // sampling params with a 400: a caller-supplied temperature is never forwarded.
     const adaptiveOnly = provider.isAdaptiveOnlyReasoning(model);
     if (options.temperature !== undefined && !adaptiveOnly && describeClaudeModel(model).temperature) params.temperature = options.temperature;
 
-    if (options.tools && options.tools.length > 0) {
-        const normalizedTools = provider.normalizeTools(options.tools);
-        // Tools come before system in Anthropic's wire format. Per the
-        // mixed-TTL rule ("longer TTL must appear first"), placing a
-        // 5-min breakpoint on tools while system has a 1-hour breakpoint
-        // would violate ordering. The system block-1 1h breakpoint
-        // already caches "tools + system" as a single prefix, so the
-        // standalone tools breakpoint is redundant — drop it.
-        params.tools = normalizedTools;
-        if (options.toolChoice === "auto") params.tool_choice = { type: "auto" };
-        if (unforced) {
-            params.tool_choice = { type: "auto" };
-            params.system = [...(params.system || []), { type: "text", text: forcedToolInstruction(forcedName) }];
-        } else if (options.toolChoice === "any" || options.toolChoice === "required") {
-            params.tool_choice = { type: "any" };
-        } else if (forcedName) {
-            // Force a single named tool. Accept BOTH the bare `{name}` form
-            // and the OpenAI wire shape `{type:'function',function:{name}}`
-            // that openai-style callers and llmClient.forcedToolChoice emit —
-            // Anthropic's SDK only understands `{type:'tool',name}`, so a
-            // caller passing the OpenAI shape would fall through here and
-            // silently run with tool_choice unset (auto), breaking every
-            // forced-structured-output call routed to a Claude model.
-            params.tool_choice = { type: "tool", name: forcedName };
-        }
-    }
+    applyTools(provider, params, options, choice);
 
-    // ─── Server-side context management ──────────────────────────
-    //
-    // This is the LOSSLESS half of context handling and, since local
-    // compaction became opt-in (core/llm/contextPolicy.js), the one that
-    // normally runs. Anthropic edits the request server-side; our stored
-    // conversation is never rewritten, so nothing is destroyed for later
-    // turns the way a fast-tier summary destroys it.
-    //
-    // Two edits, and ORDER MATTERS — `clear_thinking_20251015` must come
-    // first when combined, per Anthropic's docs.
-    //
-    //   1. clear_thinking_20251015 — `keep: all`. Not a no-op: on Opus 4.6
-    //      / Sonnet 4.6 and earlier the API's DEFAULT is to keep only the
-    //      last turn's thinking and silently drop the rest, which is half
-    //      of "the model loses its reasoning in long chats". We replay the
-    //      blocks (replayThinkingBlocks) and this stops the server from
-    //      throwing them away again. Opus 4.5+/Sonnet 4.6+ already default
-    //      to keeping everything, so there it just pins the behaviour.
-    //      CLAUDE_KEEP_THINKING_TURNS=<n> caps it for cost-sensitive
-    //      deployments.
-    //
-    //   2. clear_tool_uses_20250919 — only meaningful with tools in play.
-    //      Fires on genuinely heavy tool turns, keeps the recent pairs the
-    //      model is actively reasoning about, and clears enough per
-    //      activation to justify the cache invalidation at the clear point.
-    //      `clear_tool_inputs` stays false so the model still sees WHAT it
-    //      called even once the result is gone.
-    //
-    // Native server-side compaction (compact_20260112) is deliberately NOT
-    // enabled: its compaction blocks must be replayed verbatim on later
-    // requests, and our flattened message persistence cannot round-trip
-    // them.
-    if (!CONTEXT_EDITING_DISABLED && !options._noContextEditing && provider.supportsContextEditing(model)) {
-        const edits = [];
+    const contextManagement = contextManagementFor(provider, model, options, thinkingActive, !!params.tools);
+    if (contextManagement) params.context_management = contextManagement;
 
-        if (thinkingActive && KEEP_THINKING_TURNS !== 'off') {
-            edits.push({
-                type: 'clear_thinking_20251015',
-                keep: KEEP_THINKING_TURNS === 'all'
-                    ? { type: 'all' }
-                    : { type: 'thinking_turns', value: KEEP_THINKING_TURNS },
-            });
-        }
-
-        if (params.tools) {
-            edits.push({
-                type: 'clear_tool_uses_20250919',
-                trigger: { type: 'input_tokens', value: 30000 },
-                keep: { type: 'tool_uses', value: 5 },
-                clear_at_least: { type: 'input_tokens', value: 5000 },
-            });
-        }
-
-        if (edits.length > 0) params.context_management = { edits };
-    }
-
-    if (thinkingConfig) {
-        params.thinking = thinkingConfig.thinking;
-        // Legacy 4.x require temperature=1 when thinking is enabled; the
-        // adaptive-only family rejects sampling params, so leave it unset.
-        if (!adaptiveOnly && thinkingActive) params.temperature = 1;
-        if (thinkingConfig.thinking.type === 'adaptive') {
-            // effort belongs inside output_config per SDK v0.78.0 OutputConfig interface
-            if (thinkingConfig.effort) {
-                params.output_config = { effort: thinkingConfig.effort };
-            }
-            // Ensure enough room for thinking + answer
-            if (params.max_tokens < 16384) params.max_tokens = 16384;
-        } else if (thinkingConfig.thinking.budget_tokens && params.max_tokens < thinkingConfig.thinking.budget_tokens + 1024) {
-            // Legacy budget_tokens mode
-            params.max_tokens = thinkingConfig.thinking.budget_tokens + 1024;
-        }
-    }
+    if (thinkingConfig) applyThinking(params, thinkingConfig, adaptiveOnly, thinkingActive);
 
     if (options.responseFormat?.type === 'json_schema' && options.responseFormat.json_schema?.schema) {
         params.output_config = { ...params.output_config,
@@ -311,4 +340,16 @@ module.exports = {
 /**
  * `context_management` is a beta param the SDK's types do not carry yet.
  * @typedef {import('@anthropic-ai/sdk/resources/messages.js').MessageCreateParamsNonStreaming & { context_management?: { edits: Array<Record<string, unknown>> } }} SdkParams
+ */
+
+/**
+ * The caller's tool choice: the tool it names, whether it forces one, and
+ * whether the force has to run as `auto` plus an instruction.
+ * @typedef {{ forcedName: string | null, forced: boolean, unforced: boolean }} ForcedChoice
+ */
+
+/**
+ * The request while buildSdkParams fills it in.
+ * @typedef {{ max_tokens: number, system?: unknown[], tools?: unknown[], tool_choice?: { type: string, name?: string },
+ *   temperature?: number, thinking?: ThinkingConfig['thinking'], output_config?: { effort?: string } }} DraftParams
  */

@@ -27,6 +27,7 @@ const { exec, getAll, run } = require('../../db');
 
 const OAUTH_PROVIDERS = ['google', 'microsoft', 'nextcloud'];
 
+// stepwise: a boot migration; every statement is idempotent and the next boot re-runs what a failed one left
 async function up() {
     // ── 1. Widen the resource_type CHECK ────────────────────────────
     // This runs on every store init, so the list is the CURRENT one: an

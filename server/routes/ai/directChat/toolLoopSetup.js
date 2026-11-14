@@ -74,7 +74,7 @@ function addTokenPreservationAddendum(turn) {
  * canUseNotebooks (the authoritative entitlement/permission gate, also used
  * to inject WORKSPACE_TOOLS) and non-empty live content.
  * @param {Turn} turn
- * @param {string} notebookspaceContent
+ * @param {string | null | undefined} notebookspaceContent
  */
 async function seedNotebook(turn, notebookspaceContent) {
     if (!(turn.canUseNotebooks && typeof notebookspaceContent === 'string' && notebookspaceContent.trim() !== '' && turn.convId)) return;
@@ -92,7 +92,7 @@ async function seedNotebook(turn, notebookspaceContent) {
  * factory exists). Returns what the rounds need: the round cap, the tool
  * context factory and the volatile-block helpers.
  * @param {Turn} turn
- * @param {{ notebookspaceContent: string, armInterruptedTurnHook: () => void }} opts
+ * @param {{ notebookspaceContent?: string | null, armInterruptedTurnHook: () => void }} opts
  */
 async function prepareToolLoop(turn, { notebookspaceContent, armInterruptedTurnHook }) {
     // Skipping the non-streaming tool pre-check per provider is decided per

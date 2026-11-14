@@ -28,7 +28,7 @@ function whisperxTimeoutMs() {
  * @param {fs.PathLike} filePath
  * @param {string} fileName
  * @param {string | Blob} language
- * @param {string | Blob} contextTerms
+ * @param {string | Blob} [contextTerms]  none: no context terms are sent
  */
 async function transcribeWithWhisperX(filePath, fileName, language, contextTerms) {
     // Deployment wiring (compose/k8s) wins; otherwise honour the URL an admin

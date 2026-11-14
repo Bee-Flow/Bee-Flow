@@ -2,17 +2,17 @@ import InvoicesPanel from '../../components/billing/InvoicesPanel';
 import { useDeploymentMode } from '../../hooks/useDeploymentMode';
 import { useTranslation } from '../../hooks/useTranslation';
 import { hasPaidBillingRelationship } from '../../utils/billing';
-import { API_BASE, authFetch } from '../../utils/helpers';
 import { daysUntil } from './consumerLicense/consumerBilling';
 import ConsumerPlanPicker from './consumerLicense/ConsumerPlanPicker';
 import { CheckoutBanner, ConsumerLicenseSkeleton, PlanLimitsGrid, PlanSummaryCard, UpgradeCta, UsageThisPeriod } from './consumerLicense/ConsumerUsageParts';
 import useConsumerBilling from './consumerLicense/useConsumerBilling';
-import { request, RefusedError } from '../../api/mutate';
+import { RefusedError } from '../../api/mutate';
+import { apiFetch, apiRequest } from '@/api/typedRequest';
 
 async function fetchInvoices() {
     let res: Response;
     try {
-        res = await request(`${API_BASE}/api/stripe/invoices`);
+        res = await apiRequest('GET /api/stripe/invoices');
     } catch (err) {
         if (!(err instanceof RefusedError)) throw err;
         throw new Error('Failed to load invoices');
@@ -21,7 +21,7 @@ async function fetchInvoices() {
     return data.invoices || [];
 }
 
-const fetchInvoicePdf = (invoiceId: string) => authFetch(`${API_BASE}/api/stripe/invoices/${invoiceId}/pdf`);
+const fetchInvoicePdf = (invoiceId: string) => apiFetch('GET /api/stripe/invoices/{id}/pdf', { params: { id: invoiceId } });
 
 function scrollToPlans() {
     const el = document.getElementById('consumer-plan-picker');

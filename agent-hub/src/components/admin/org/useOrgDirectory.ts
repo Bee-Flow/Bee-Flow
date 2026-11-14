@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import type { Dispatch, SetStateAction } from 'react';
-import { API_BASE } from '@/utils/helpers';
 import { settled } from '@/api/settled';
 import { useDeploymentMode } from '@/hooks/useDeploymentMode';
 import useCustomTiersMeta from './useCustomTiersMeta';
+import { apiUrl } from '@/api/typedRequest';
 import type { ImageLimits } from '@/utils/imageLimits';
 
 /**
@@ -107,6 +108,68 @@ export interface UseOrgDirectoryOptions {
     user?: { organizationId?: string | null } | null;
 }
 
+/** The four lists as one read; a list that was refused is null, so the panel keeps what it showed. */
+interface DirectoryRead {
+    users: OrgMember[] | null;
+    notOrgAdmin: boolean;
+    groups: OrgGroupRow[] | null;
+    orgRoles: { roles?: OrgRolePermissions[]; editablePermissions?: string[] } | null;
+    organizations: Organization[] | null;
+}
+
+/**
+ * /auth/roles (the install-wide SYSTEM role table) is not read here: the panel
+ * is about ORG roles. The three lists are the admin dashboard's
+ * (`?scope=admin`): the viewer's home organisation, the one its writes are
+ * accepted for (every organisation for a platform admin).
+ */
+async function readOrgDirectory(): Promise<DirectoryRead> {
+    const [usersRes, groupsRes, orgsRes, orgRolesRes] = await Promise.all([
+        settled(apiUrl('GET /auth/users', { query: { scope: 'admin' } }), undefined, 'empty'),
+        settled(apiUrl('GET /auth/groups', { query: { scope: 'admin' } }), undefined, 'empty'),
+        settled(apiUrl('GET /auth/organizations', { query: { scope: 'admin' } }), undefined, 'empty'),
+        settled(apiUrl('GET /auth/org-roles'), undefined, 'empty'),
+    ]);
+    return {
+        users: usersRes.ok ? await usersRes.res.json() : null,
+        notOrgAdmin: !usersRes.ok && usersRes.status === 403,
+        groups: groupsRes.ok ? await groupsRes.res.json() : null,
+        orgRoles: orgRolesRes.ok ? ((await orgRolesRes.res.json()) ?? {}) : null,
+        organizations: orgsRes.ok ? await orgsRes.res.json() : null,
+    };
+}
+
+/**
+ * Self-hosted reads the calendar month, the period the monthly AI budget is
+ * enforced on (core/entitlements/selfHostedBudget.mts), so the figure next to a
+ * member's budget is the one the limit compares against; cloud keeps the last
+ * 30 days. A refusal rejects (the panel keeps what it showed).
+ */
+async function readUsageByUser(isSelfHosted: boolean): Promise<Map<string, MemberUsage>> {
+    const now = new Date();
+    const query = isSelfHosted
+        ? { startDate: new Date(now.getFullYear(), now.getMonth(), 1).toISOString(), endDate: now.toISOString() }
+        : { days: 30 };
+    const res = await settled(apiUrl('GET /api/usage/by-user', { query }), undefined, 'empty');
+    if (!res.ok) throw new UsageRefused(res.status);
+    const rows: Array<{ user_id: string; calls?: unknown; estimated_cost?: unknown }> = await res.res.json();
+    const map = new Map<string, MemberUsage>();
+    for (const r of rows) {
+        map.set(r.user_id, {
+            calls: Number(r.calls) || 0,
+            cost: Number(r.estimated_cost) || 0,
+        });
+    }
+    return map;
+}
+
+const NO_USAGE = new Map<string, MemberUsage>();
+
+/** A refused usage read: kept quiet, like an install without the usage routes. */
+class UsageRefused extends Error {
+    constructor(status: number) { super(`usage ${status}`); }
+}
+
 /**
  * What the organisation IS: its members, its groups, the permissions its
  * roles grant, the tiers it may spend and what it has spent. One fetch feeds
@@ -116,107 +179,113 @@ export interface UseOrgDirectoryOptions {
  * Server scoping is trusted: GET /auth/users?scope=admin returns the members
  * of the caller's home organisation (every user for a platform admin).
  */
-export default function useOrgDirectory({ user }: UseOrgDirectoryOptions): OrgDirectory {
-    const { isSelfHosted } = useDeploymentMode();
+interface DirectorySetters {
+    setUsers(v: OrgMember[]): void;
+    setNotOrgAdmin(v: boolean): void;
+    setGroups(v: OrgGroupRow[]): void;
+    setOrgRolePerms(v: OrgRolePermissions[]): void;
+    setEditablePermissions(v: string[]): void;
+    setOrganizations(v: Organization[]): void;
+    setMyOrgId(v: string): void;
+    setOrgAuthMethod(v: string | null): void;
+    setAutoApprove(v: boolean): void;
+}
+
+/** One answer into the panel's lists; a refused list keeps what it showed. */
+function applyDirectory(d: DirectoryRead, homeOrgId: string | null, set: DirectorySetters) {
+    if (d.users) set.setUsers(d.users);
+    set.setNotOrgAdmin(d.notOrgAdmin);
+    if (d.groups) set.setGroups(d.groups);
+    // An install running an older server has no /auth/org-roles; the
+    // Roles tab then says so rather than inventing a list.
+    if (d.orgRoles) {
+        set.setOrgRolePerms(d.orgRoles.roles || []);
+        set.setEditablePermissions(d.orgRoles.editablePermissions || []);
+    }
+    if (!d.organizations) return;
+    set.setOrganizations(d.organizations);
+    const myOrg = homeOrgId ? d.organizations.find(o => o.id === homeOrgId) : d.organizations[0];
+    if (myOrg) {
+        set.setMyOrgId(myOrg.id);
+        set.setOrgAuthMethod(myOrg.authMethod || null);
+        set.setAutoApprove(!!myOrg.autoApproveSSO);
+    }
+}
+
+/** The directory read and the lists it fills; every answer is applied as it lands. */
+function useDirectoryLists(user: UseOrgDirectoryOptions['user']) {
     const [users, setUsers] = useState<OrgMember[]>([]);
     const [groups, setGroups] = useState<OrgGroupRow[]>([]);
     const [orgRolePerms, setOrgRolePerms] = useState<OrgRolePermissions[]>([]);
     const [editablePermissions, setEditablePermissions] = useState<string[]>([]);
     const [organizations, setOrganizations] = useState<Organization[]>([]);
-    const [loading, setLoading] = useState(true);
     const [notOrgAdmin, setNotOrgAdmin] = useState(false);
-
-    // Custom tier metadata, for the group's Allowed-tiers editor.
-    const customTiersMeta = useCustomTiersMeta();
-
-    // Per-user AI usage (last 30 days)
-    const [usageByUser, setUsageByUser] = useState<Map<string, MemberUsage>>(new Map());
-
     // Org auto-approve toggle. Only meaningful for orgs whose sign-in method is
     // an external provider (Google/Microsoft) — for password-login orgs we hide
     // the toggle entirely because new accounts are admin-created anyway.
     const [orgAuthMethod, setOrgAuthMethod] = useState<string | null>(null);
     const [autoApprove, setAutoApprove] = useState(false);
-    const [savingAutoApprove, setSavingAutoApprove] = useState(false);
     const [myOrgId, setMyOrgId] = useState<string | null>(null);
 
-    const fetchData = useCallback(async () => {
-        setLoading(true);
-        try {
-            // /auth/roles (the install-wide SYSTEM role table) is no longer
-            // fetched here: the only thing left reading it was a badge that
-            // counted three of its rows, and the panel is about ORG roles.
-            // The three lists are the admin dashboard's (`?scope=admin`): the
-            // viewer's home organisation, the one its writes are accepted for
-            // (every organisation for a platform admin).
-            const [usersRes, groupsRes, orgsRes, orgRolesRes] = await Promise.all([
-                settled(`${API_BASE}/auth/users?scope=admin`, undefined, 'empty'),
-                settled(`${API_BASE}/auth/groups?scope=admin`, undefined, 'empty'),
-                settled(`${API_BASE}/auth/organizations?scope=admin`, undefined, 'empty'),
-                settled(`${API_BASE}/auth/org-roles`, undefined, 'empty'),
-            ]);
-            if (usersRes.ok) setUsers(await usersRes.res.json());
-            setNotOrgAdmin(!usersRes.ok && usersRes.status === 403);
-            if (groupsRes.ok) setGroups(await groupsRes.res.json());
-            // An install running an older server has no /auth/org-roles; the
-            // Roles tab then says so rather than inventing a list.
-            if (orgRolesRes.ok) {
-                const body: { roles?: OrgRolePermissions[]; editablePermissions?: string[] } | null = await orgRolesRes.res.json();
-                setOrgRolePerms(body?.roles || []);
-                setEditablePermissions(body?.editablePermissions || []);
-            }
-            if (orgsRes.ok) {
-                const orgs: Organization[] = await orgsRes.res.json();
-                setOrganizations(orgs);
-                const myOrg = user?.organizationId
-                    ? orgs.find(o => o.id === user.organizationId)
-                    : orgs[0];
-                if (myOrg) {
-                    setMyOrgId(myOrg.id);
-                    setOrgAuthMethod(myOrg.authMethod || null);
-                    setAutoApprove(!!myOrg.autoApproveSSO);
-                }
-            }
-        } catch (err) {
-            console.error('Failed to fetch org data:', err);
-        } finally {
-            setLoading(false);
-        }
-    }, [user?.organizationId]);
-
-    useEffect(() => { fetchData(); }, [fetchData]);
-
-    // Fetch per-user AI usage once; non-blocking for the panel. Self-hosted
-    // reads the calendar month, the period the monthly AI budget is enforced
-    // on (core/entitlements/selfHostedBudget.mts), so the figure next to a
-    // member's budget is the one the limit compares against; cloud keeps the
-    // last 30 days.
-    useEffect(() => {
-        let cancelled = false;
-        (async () => {
+    const directory = useQuery<DirectoryRead>({
+        queryKey: ['orgAdmin', 'directory'],
+        staleTime: 0,
+        retry: false,
+        // Every answer is applied, even one equal to the last: a reload after a write resets the tabs.
+        structuralSharing: false,
+        queryFn: async () => {
             try {
-                const now = new Date();
-                const window = isSelfHosted
-                    ? `startDate=${encodeURIComponent(new Date(now.getFullYear(), now.getMonth(), 1).toISOString())}&endDate=${encodeURIComponent(now.toISOString())}`
-                    : 'days=30';
-                const res = await settled(`${API_BASE}/api/usage/by-user?${window}`, undefined, 'empty');
-                if (!res.ok) return;
-                const rows: Array<{ user_id: string; calls?: unknown; estimated_cost?: unknown }> = await res.res.json();
-                if (cancelled) return;
-                const map = new Map<string, MemberUsage>();
-                for (const r of rows) {
-                    map.set(r.user_id, {
-                        calls: Number(r.calls) || 0,
-                        cost: Number(r.estimated_cost) || 0,
-                    });
-                }
-                setUsageByUser(map);
+                return await readOrgDirectory();
             } catch (err) {
-                console.warn('[OrgUsers] Failed to load usage:', err instanceof Error ? err.message : err);
+                console.error('Failed to fetch org data:', err);
+                throw err;
             }
-        })();
-        return () => { cancelled = true; };
-    }, [isSelfHosted]);
+        },
+    });
+    const loading = directory.isFetching;
+    const [applied, setApplied] = useState<DirectoryRead | undefined>(undefined);
+    if (directory.data && directory.data !== applied) {
+        setApplied(directory.data);
+        applyDirectory(directory.data, user?.organizationId ?? null, {
+            setUsers, setNotOrgAdmin, setGroups, setOrgRolePerms, setEditablePermissions,
+            setOrganizations, setMyOrgId, setOrgAuthMethod, setAutoApprove,
+        });
+    }
+    const { refetch } = directory;
+    const fetchData = useCallback(async () => { await refetch(); }, [refetch]);
+
+    return {
+        users, groups, orgRolePerms, setOrgRolePerms, editablePermissions, organizations, notOrgAdmin,
+        orgAuthMethod, autoApprove, setAutoApprove, myOrgId, loading, fetchData,
+    };
+}
+
+export default function useOrgDirectory({ user }: UseOrgDirectoryOptions): OrgDirectory {
+    const { isSelfHosted } = useDeploymentMode();
+    const {
+        users, groups, orgRolePerms, setOrgRolePerms, editablePermissions, organizations, notOrgAdmin,
+        orgAuthMethod, autoApprove, setAutoApprove, myOrgId, loading, fetchData,
+    } = useDirectoryLists(user);
+
+    // Custom tier metadata, for the group's Allowed-tiers editor.
+    const customTiersMeta = useCustomTiersMeta();
+    const [savingAutoApprove, setSavingAutoApprove] = useState(false);
+
+    // Per-user AI usage, read once; non-blocking for the panel, and a failed read keeps what was shown.
+    const usage = useQuery<Map<string, MemberUsage>>({
+        queryKey: ['orgAdmin', 'usageByUser', isSelfHosted],
+        staleTime: 0,
+        retry: false,
+        queryFn: async () => {
+            try {
+                return await readUsageByUser(isSelfHosted);
+            } catch (err) {
+                if (!(err instanceof UsageRefused)) console.warn('[OrgUsers] Failed to load usage:', err instanceof Error ? err.message : err);
+                throw err;
+            }
+        },
+    });
+    const usageByUser = usage.data ?? NO_USAGE;
 
     const handleToggleAutoApprove = async () => {
         if (!myOrgId) return;
@@ -224,7 +293,7 @@ export default function useOrgDirectory({ user }: UseOrgDirectoryOptions): OrgDi
         setAutoApprove(next);
         setSavingAutoApprove(true);
         try {
-            const res = await settled(`${API_BASE}/auth/organizations/${myOrgId}`, {
+            const res = await settled(apiUrl('PUT /auth/organizations/{id}', { params: { id: myOrgId } }), {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ autoApproveSSO: next }),

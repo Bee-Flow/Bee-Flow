@@ -5,7 +5,6 @@ import { useAutomationRows } from './automationTitles';
 import logicRows, { assignNotices, collectBoundTableIds, derivedAutomationRows } from './logicRows';
 import { toSaveNotices, type SavePayload, type SaveNotice } from './saveNotices';
 import useTranslation from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
 import { nOf } from '../../KnowledgeStudio/plural';
 import AutomationPicker from '../inspector/AutomationPicker';
 import { setAction } from '../state/definitionOps';
@@ -13,11 +12,12 @@ import type { AppDefinition } from '../inspector/appDefinition';
 import type { WiredAutomation } from '../inspector/useEventWiring';
 import type { TranslateParams } from '@/hooks/useTranslation';
 import type { LogicTableRow, RowStatus, LogicaTabProps } from './LogicaTab.types';
-import { request, RefusedError } from '@/api/mutate';
+import { RefusedError } from '@/api/mutate';
 import { LogicTable } from './LogicTable';
 import NewActionMenu from './NewActionMenu';
 import WatchersPanel from './WatchersPanel';
 import ServerTriggersSlot from './ServerTriggersSlot';
+import { apiRequest } from '@/api/typedRequest';
 
 /**
  * The Logic tab — When · Happens · Status · ↗, across all screens.
@@ -55,7 +55,7 @@ const RANGE_HOURS = 24;
 async function fetchRunFacets() {
     let res: Response;
     try {
-        res = await request(`${API_BASE}/api/automation/_runs/facets?range=${RANGE_HOURS}`);
+        res = await apiRequest('GET /api/automation/_runs/facets', { query: { range: RANGE_HOURS } });
     } catch (err) {
         if (!(err instanceof RefusedError)) throw err;
         return null;
@@ -67,7 +67,7 @@ async function fetchRunFacets() {
 async function fetchApprovalFacets(appId: string) {
     let res: Response;
     try {
-        res = await request(`${API_BASE}/api/automation/approvals/facets?scope=mine&appId=${encodeURIComponent(appId)}`);
+        res = await apiRequest('GET /api/automation/approvals/facets', { query: { scope: 'mine', appId } });
     } catch (err) {
         if (!(err instanceof RefusedError)) throw err;
         return null;

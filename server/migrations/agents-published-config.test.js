@@ -1,83 +1,56 @@
+// @typecheck
 /**
  * agents-published-config: the schema half is replay-safe, the backfill half
- * is idempotent, skips system agents, and writes nothing on --dry-run.
- * The pg layer is mocked via require.cache.
+ * is idempotent, skips system agents, and writes nothing on --dry-run. On a
+ * real Postgres (PGlite behind db.js's pool, testUtils/pglitePool.js) over the
+ * agents columns the migration reads.
  *
- * Run: cd server && node --test --test-force-exit migrations/agents-published-config.test.js
+ * Run: cd server && node --test migrations/agents-published-config.test.js
  */
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const path = require('path');
+const { usePglitePool } = require('../testUtils/pglitePool');
+const { insertRows } = require('../testUtils/pgliteSeed');
 
-const ddl = [];
-const writes = [];
-let rows = [];
-const flat = (sql) => String(sql).replace(/\s+/g, ' ').trim();
-
-// The migration destructures `getAll` at load time, so a per-test override
-// has to go through this hook rather than by reassigning fakeDb.getAll.
-let afterSelect = null;
-
-const fakeDb = {
-    async exec(sql) { ddl.push(flat(sql)); },
-    async getAll(sql) {
-        const s = flat(sql);
-        assert.match(s, /owner_id NOT IN \('system', 'swarm'\)/);
-        assert.match(s, /published_version = 0/);
-        const out = rows
-            .filter(r => !['system', 'swarm'].includes(r.owner_id) && r.published_version === 0 && r.published_config == null)
-            .map(r => ({ id: r.id, config: r.config, rev: r.rev }));
-        if (afterSelect) afterSelect();
-        return out;
-    },
-    async run(sql, params) {
-        const s = flat(sql);
-        writes.push({ sql: s, params });
-        const [cfg, id, rev] = params;
-        const r = rows.find(x => x.id === id);
-        if (!r || r.rev !== rev || r.published_version !== 0 || ['system', 'swarm'].includes(r.owner_id)) return { rowCount: 0 };
-        r.published_config = JSON.parse(cfg);
-        r.published_system_prompt = r.system_prompt;
-        r.published_version = 1;
-        r.published_rev = r.rev;
-        return { rowCount: 1 };
-    },
-    async getOne() { return null; },
-};
-
-const dbPath = require.resolve(path.join(__dirname, '..', 'db.js'));
-require.cache[dbPath] = { id: dbPath, filename: dbPath, loaded: true, exports: fakeDb };
-
+const { pg, close } = usePglitePool();
 const migration = require('./agents-published-config');
+test.after(close);
 
-test.beforeEach(() => {
-    ddl.length = 0; writes.length = 0;
-    rows = [
-        { id: 'a1', owner_id: 'u1', rev: 3, system_prompt: 'p1', config: '{"knowledge_base_ids":["kb1"]}', published_version: 0, published_config: null },
-        { id: 'a2', owner_id: 'u2', rev: 1, system_prompt: 'p2', config: 'not json', published_version: 0, published_config: null },
-        { id: 'sys', owner_id: 'system', rev: 1, system_prompt: 'sup', config: '{}', published_version: 0, published_config: null },
+const PUBLISHED = ['published_config', 'published_system_prompt', 'published_version', 'published_rev', 'published_at'];
+
+test.beforeEach(async () => {
+    await pg.exec(`DROP TABLE IF EXISTS agents;
+        CREATE TABLE agents (id TEXT PRIMARY KEY, owner_id TEXT NOT NULL, rev INTEGER NOT NULL DEFAULT 1, system_prompt TEXT, config TEXT)`);
+    await migration.up();
+    await insertRows(pg, 'agents', [
+        { id: 'a1', owner_id: 'u1', rev: 3, system_prompt: 'p1', config: '{"knowledge_base_ids":["kb1"]}' },
+        { id: 'a2', owner_id: 'u2', rev: 1, system_prompt: 'p2', config: 'not json' },
+        { id: 'sys', owner_id: 'system', rev: 1, system_prompt: 'sup', config: '{}' },
+        { id: 'swarm', owner_id: 'swarm', rev: 1, system_prompt: 'sw', config: '{}' },
         { id: 'done', owner_id: 'u1', rev: 5, system_prompt: 'p', config: '{}', published_version: 2, published_config: { a: 1 }, published_rev: 5 },
-    ];
+    ]);
 });
+
+/** @param {string} id */
+const agent = async (id) => (await pg.query('SELECT * FROM agents WHERE id = $1', [id])).rows[0];
 
 test('up() is schema only and survives a replay', async () => {
     await migration.up();
     await migration.up();
-    assert.equal(ddl.length, 2);
-    assert.equal(writes.length, 0, 'up() never writes rows');
-    for (const s of ddl) {
-        assert.match(s, /^ALTER TABLE agents/);
-        const adds = s.match(/ADD COLUMN[^,;]*/g) || [];
-        assert.equal(adds.length, 5);
-        for (const a of adds) assert.match(a, /ADD COLUMN IF NOT EXISTS/);
-    }
-    const s = ddl[0];
-    assert.match(s, /published_config JSONB/);
-    assert.match(s, /published_system_prompt TEXT/);
-    assert.match(s, /published_version INTEGER NOT NULL DEFAULT 0/);
-    assert.match(s, /published_rev INTEGER/);
-    assert.match(s, /published_at TIMESTAMPTZ/);
+    const { rows } = await pg.query(`SELECT column_name, data_type, is_nullable, column_default FROM information_schema.columns
+        WHERE table_name = 'agents' AND column_name LIKE 'published%' ORDER BY column_name`);
+    assert.deepEqual(rows.map(r => [r.column_name, r.data_type]), [
+        ['published_at', 'timestamp with time zone'],
+        ['published_config', 'jsonb'],
+        ['published_rev', 'integer'],
+        ['published_system_prompt', 'text'],
+        ['published_version', 'integer'],
+    ]);
+    const version = rows.find(r => r.column_name === 'published_version');
+    assert.deepEqual([version.is_nullable, version.column_default], ['NO', '0']);
+    assert.equal((await agent('a1')).published_version, 0, 'up() never writes rows');
+    assert.equal((await agent('a1')).published_config, null);
 });
 
 test('backfill exports exist and are NOT part of up()', () => {
@@ -88,40 +61,45 @@ test('backfill exports exist and are NOT part of up()', () => {
 test('--dry-run counts candidates and writes nothing', async () => {
     const r = await migration.backfillPublished({ dryRun: true });
     assert.deepEqual(r, { dryRun: true, candidates: 2, updated: 0, invalidConfig: ['a2'] });
-    assert.equal(writes.length, 0);
-    assert.equal(rows.find(x => x.id === 'a1').published_version, 0);
+    for (const id of ['a1', 'a2']) assert.equal((await agent(id)).published_version, 0);
 });
 
 test('backfill copies the concept, skips system agents and already-published rows, is idempotent', async () => {
     const r = await migration.backfillPublished();
-    assert.equal(r.dryRun, false);
-    assert.equal(r.candidates, 2);
-    assert.equal(r.updated, 2);
-    assert.deepEqual(r.invalidConfig, ['a2']);
-    const a1 = rows.find(x => x.id === 'a1');
+    assert.deepEqual(r, { dryRun: false, candidates: 2, updated: 2, invalidConfig: ['a2'] });
+    const a1 = await agent('a1');
     assert.deepEqual(a1.published_config, { knowledge_base_ids: ['kb1'] });
     assert.equal(a1.published_system_prompt, 'p1');
     assert.equal(a1.published_version, 1);
     assert.equal(a1.published_rev, 3);
-    assert.deepEqual(rows.find(x => x.id === 'a2').published_config, {}, 'invalid JSON publishes as {} and is reported');
-    const sys = rows.find(x => x.id === 'sys');
-    assert.equal(sys.published_version, 0, 'system agents always follow live');
-    assert.equal(sys.published_config, null);
-    const done = rows.find(x => x.id === 'done');
+    assert.ok(a1.published_at);
+    assert.deepEqual((await agent('a2')).published_config, {}, 'invalid JSON publishes as {} and is reported');
+    for (const id of ['sys', 'swarm']) {
+        const sys = await agent(id);
+        assert.equal(sys.published_version, 0, 'system agents always follow live');
+        assert.equal(sys.published_config, null);
+    }
+    const done = await agent('done');
     assert.equal(done.published_version, 2, 'an agent already in split mode is left alone');
-    for (const w of writes) assert.match(w.sql, /AND rev = \$3 AND published_version = 0 AND owner_id NOT IN \('system', 'swarm'\)/);
+    assert.deepEqual(done.published_config, { a: 1 });
 
-    writes.length = 0;
     const again = await migration.backfillPublished();
     assert.deepEqual(again, { dryRun: false, candidates: 0, updated: 0, invalidConfig: [] });
-    assert.equal(writes.length, 0);
 });
 
 test('a concept saved between SELECT and UPDATE is skipped, not frozen at the stale snapshot', async () => {
-    afterSelect = () => { rows.find(x => x.id === 'a1').rev = 4; }; // a save lands after the read
+    const db = require('../db');
+    const saved = db.pool.query;
+    db.pool.query = /** @type {any} */ (async (/** @type {any} */ sql, /** @type {any} */ params) => {
+        const out = await saved(sql, params);
+        if (/^\s*SELECT id, config, rev/.test(String(sql))) await pg.query("UPDATE agents SET rev = 4, system_prompt = 'p1 new' WHERE id = 'a1'");
+        return out;
+    });
     try {
         const r = await migration.backfillPublished();
         assert.equal(r.updated, 1, 'only a2 was written');
-        assert.equal(rows.find(x => x.id === 'a1').published_version, 0);
-    } finally { afterSelect = null; }
+    } finally { db.pool.query = saved; }
+    const a1 = await agent('a1');
+    assert.equal(a1.published_version, 0);
+    assert.deepEqual(PUBLISHED.map(c => a1[c]).slice(0, 2), [null, null], 'nothing frozen from the stale read');
 });

@@ -1,3 +1,5 @@
+// @typecheck
+/** @typedef {import('./model').StageRow} StageRow @typedef {import('./stageRows').DeploymentRow} DeploymentRow */
 /**
  * The PRD approval gate of a deployment (design 6.6, D8, D9, D19).
  *
@@ -25,6 +27,10 @@
  */
 
 'use strict';
+
+// What this needs of automation/ and appStudio/ (features) is looked up by name
+// (core/featureModules.js, registered in boot/featureModules.js).
+const { featureModule } = require('../../core/featureModules');
 
 const { HttpError } = require('../../core/http/errors');
 const log = require('../../telemetry/log');
@@ -82,7 +88,7 @@ async function validatePolicy(policy, { orgId = null, ownerId } = /** @type {Pol
     return stages;
 }
 
-/** @typedef {{ deleteData?: boolean, kind: unknown, releaseSeq: unknown, solutionName: unknown, stage: unknown }} TitleForArgs */
+/** @typedef {{ deleteData?: boolean, kind: string, releaseSeq: number | null, solutionName: string | null, stage: string }} TitleForArgs */
 /**
  * @param {TitleForArgs} param0
  */
@@ -119,7 +125,7 @@ function detailsFor(plan) {
     return lines.join('\n') || null;
 }
 
-/** @typedef {{ deployment: object, stage: object, plan?: object, actor: { id: string } }} ApprovalRequest */
+/** @typedef {{ deployment: DeploymentRow, stage: StageRow, plan?: { planHash?: any, release?: any }, actor: { id: string } }} ApprovalRequest */
 /**
  * Open the approval of an `awaiting_approval` deployment.
  *
@@ -188,13 +194,13 @@ async function request({ deployment, stage, plan = null, actor } = /** @type {Ap
         log.warn(`[SolutionStages] approval audit for ${deployment.id} failed: ${/** @type {Error} */ (err).message}`);
     }
     try {
-        dep(deps, 'approvalEvents', () => require('../../automation/approvalEvents')).dispatchApprovalRequested(approval);
+        dep(deps, 'approvalEvents', () => featureModule('automation/approvalEvents')).dispatchApprovalRequested(approval);
     } catch (err) {
         log.warn(`[SolutionStages] approval event for ${deployment.id} failed: ${/** @type {Error} */ (err).message}`);
     }
     try {
         const recipients = await dep(deps, 'panelRecipientIds', () => lifecycle().panelRecipientIds)(first.approvers);
-        const notify = dep(deps, 'notifyApproval', () => require('../../automation/approvalNotify').notifyApproval);
+        const notify = dep(deps, 'notifyApproval', () => featureModule('automation/approvalNotify').notifyApproval);
         await notify({ approval, recipientIds: recipients, title: `Approval needed: ${title}`, message: title });
     } catch (err) {
         log.warn(`[SolutionStages] approval notification for ${deployment.id} failed: ${/** @type {Error} */ (err).message}`);

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Transcriptions — Microsoft Teams meetings & imports.
  *
@@ -24,6 +24,7 @@ const {
 } = require('./teamsHelpers');
 const { fallback: fallbackSwallowed } = require('../../utils/bestEffort');
 const { sessionUser } = require('../../core/http/sessionUser');
+const { envInt } = require('../../utils/envNumber.mts');
 
 /** @type {import('express').RequestHandler} */
 const requireAuth = (req, res, next) => d.permissions.requireAuth(req, res, next);
@@ -158,7 +159,7 @@ router.patch('/teams-meetings/:eventId', requireAuth, validate({ body: TeamsPref
 });
 
 router.get('/teams-imports', requireAuth, validate({ query: NO_QUERY }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
-    const jobs = await d.importStore.listRecentJobsForUser(sessionUser(req).id, 7);
+    const jobs = /** @type {Array<NonNullable<Awaited<ReturnType<typeof d.importStore.listRecentJobsForUser>>[number]>>} */ (await d.importStore.listRecentJobsForUser(sessionUser(req).id, 7)); // rows mapped one to one
     res.json({
         items: jobs.map(j => ({
             id: j.id,
@@ -214,7 +215,7 @@ router.get('/teams-recordings', requireAuth, validate({ query: NO_QUERY }), asyn
     res.json({ connection, items });
 });
 
-const INGEST_LEASE_MINUTES = Number(process.env.TEAMS_INGEST_LEASE_MINUTES) || 120;
+const INGEST_LEASE_MINUTES = envInt('TEAMS_INGEST_LEASE_MINUTES', 120, { min: 1 });
 
 /**
  * Session + scope gate shared by the request and the background run: the

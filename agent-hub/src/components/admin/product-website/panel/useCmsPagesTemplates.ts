@@ -10,7 +10,9 @@ import { HEADER_VIRTUAL_ID } from '../sentinels';
 import type { CmsLocale, CmsLocaleOverrides, CmsPageDoc, CmsPageIndexEntry, CmsSiteDoc } from './cmsPanelTypes';
 import type { CmsTemplateSummary } from './useCmsPanelState';
 import { logger } from '@/utils/logger';
-import { request, RefusedError, errorBody, mutate } from '@/api/mutate';
+import { RefusedError, errorBody } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
+import { useCmsSitePayloadRead, useCmsTemplatesQuery } from '@/api/queries/cmsTemplatesAndPayload';
 
 /** The template-save dialog's page: the page plus the blocks resolved for it. */
 type PendingTemplatePage = { id: string; blocks?: unknown[]; [key: string]: unknown };
@@ -67,7 +69,7 @@ function useReloadOnVisible({ saveStatus, reloadPayload, activeSiteIdRef, builde
 async function fetchPageBlocks(siteId: string, pageId: string): Promise<unknown[] | null> {
     let res: Response;
     try {
-        res = await request(cmsApi.page(siteId, pageId));
+        res = await apiRequest('GET /api/cms/sites/{siteId}/pages/{id}', { params: { siteId, id: pageId } });
     } catch (err) {
         if (!(err instanceof RefusedError)) throw err;
         const data = errorBody(err) ?? {};
@@ -81,11 +83,7 @@ async function fetchPageBlocks(siteId: string, pageId: string): Promise<unknown[
 async function postTemplate(body: { name: string; description?: string; blocks: unknown[] }) {
     let res: Response;
     try {
-        res = await mutate(cmsApi.templates(), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-    });
+        res = await apiRequest('POST /api/cms/admin/templates', { body });
     } catch (err) {
         if (!(err instanceof RefusedError)) throw err;
         const data = errorBody(err) ?? {};
@@ -98,23 +96,15 @@ type PageTemplatesArgs = Pick<UseCmsPagesTemplatesArgs, 'activeSiteIdRef' | 'pag
 
 /** Page templates (global, shared across sites): the list, save-as-template (dialog + submit) and delete. */
 function usePageTemplates({ activeSiteIdRef, pages, setTemplates, pendingTemplatePage, setPendingTemplatePage }: PageTemplatesArgs) {
-    const refreshTemplates = useCallback(async () => {
-        try {
-            let res: Response;
-            try {
-                res = await request(cmsApi.templates());
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                return;
-            }
-            const data = await res.json();
-            setTemplates(Array.isArray(data.templates) ? data.templates : []);
-        } catch (err) { logger.debug('non-fatal — manager + picker just stay empty', err); }
-    }, [setTemplates]);
-
-    // Initial load — runs once when the panel mounts. Templates are
-    // org-wide so they don't need to re-fetch on site switches.
-    useEffect(() => { refreshTemplates(); }, [refreshTemplates]);
+    // Read when the panel mounts and after a save or delete. Templates are
+    // org-wide so they don't need to be read again on site switches.
+    const templatesQuery = useCmsTemplatesQuery<CmsTemplateSummary>();
+    const { refetch: refetchTemplates } = templatesQuery;
+    useEffect(() => { if (templatesQuery.data) setTemplates(templatesQuery.data); }, [templatesQuery.data, setTemplates]);
+    useEffect(() => {
+        if (templatesQuery.error) logger.debug('non-fatal — manager + picker just stay empty', templatesQuery.error);
+    }, [templatesQuery.error]);
+    const refreshTemplates = useCallback(async () => { await refetchTemplates(); }, [refetchTemplates]);
 
     // Resolve the page's blocks BEFORE opening the dialog. The panel's
     // `pages` state caches every PageDoc for the active site, so the
@@ -180,7 +170,7 @@ function usePageTemplates({ activeSiteIdRef, pages, setTemplates, pendingTemplat
         try {
             let res: Response;
             try {
-                res = await mutate(cmsApi.template(id), { method: 'DELETE' });
+                res = await apiRequest('DELETE /api/cms/admin/templates/{id}', { params: { id } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const data = errorBody(err) ?? {};
@@ -198,23 +188,27 @@ function usePageTemplates({ activeSiteIdRef, pages, setTemplates, pendingTemplat
     return { handleSaveAsTemplate, submitTemplate, handleDeleteTemplate };
 }
 
+/** GET /api/cms/sites/:siteId, as far as a reload applies it. */
+interface ReloadedPayload {
+    site?: CmsSiteDoc | null;
+    pages?: CmsPageDoc[];
+    locales?: CmsLocale[];
+    localeOverrides?: CmsLocaleOverrides;
+    publishedAt?: string | null;
+}
+
 export default function useCmsPagesTemplates({
     activeSiteIdRef, drainPendingSaves, setActivePageId, pages, updatePage, confirm,
     historyResetRef, setSiteDoc, setPages, locales, setLocales, setLocaleOverrides,
     setPublishedAt, setDirtySincePublish, pendingSaves, inFlightSaveRef,
     builderRunningRef, saveStatus, setTemplates, pendingTemplatePage, setPendingTemplatePage,
 }: UseCmsPagesTemplatesArgs) {
+    const readPayload = useCmsSitePayloadRead<ReloadedPayload>();
     const reloadPayload = useCallback(async () => {
         const siteId = activeSiteIdRef.current;
         if (!siteId) return;
-        let res: Response;
-        try {
-            res = await request(cmsApi.site(siteId));
-        } catch (err) {
-            if (!(err instanceof RefusedError)) throw err;
-            return;
-        }
-        const data = await res.json();
+        const data = await readPayload(siteId);
+        if (!data) return;
         // Re-check guards AFTER the round-trip: the user may have switched
         // sites or started a new edit while this GET was in flight. Applying a
         // now-stale server payload here would yank state out from under a live
@@ -230,7 +224,7 @@ export default function useCmsPagesTemplates({
         setLocaleOverrides(data.localeOverrides || { siteByLocale: {}, pagesByLocale: {} });
         if (data.publishedAt !== undefined) setPublishedAt(data.publishedAt || null);
         historyResetRef.current(); // server-confirmed load — undo across it would clobber
-    }, [locales, activeSiteIdRef, pendingSaves, inFlightSaveRef, builderRunningRef, setSiteDoc, setPages, setLocales, setLocaleOverrides, setPublishedAt, historyResetRef]);
+    }, [locales, activeSiteIdRef, pendingSaves, inFlightSaveRef, builderRunningRef, setSiteDoc, setPages, setLocales, setLocaleOverrides, setPublishedAt, historyResetRef, readPayload]);
 
     // ── page CRUD (round-trips — no optimistic debounce needed here) ─
 

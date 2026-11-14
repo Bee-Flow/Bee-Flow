@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * One source row → one mirror row: `{ id, values }`, in two passes.
  *
@@ -21,11 +21,12 @@
 'use strict';
 
 /**
+ * @template {{ derived?: string, localFieldId?: string, forFieldId?: string }} E   a columnMap entry of the adapter's kind
  * @param {string} id                     the mirror row id the adapter derived
- * @param {{ columnMap: Record<string, { derived?: string, localFieldId?: string, forFieldId?: string, [k: string]: unknown }>,
+ * @param {{ columnMap?: Record<string, E>,
  *   fieldsById: Map<string,{ key: string, type?: string }>,
- *   readCell: (entry:{ derived?: string, localFieldId?: string, forFieldId?: string, [k: string]: unknown }, field:{ key: string, type?: string }) => unknown,
- *   relationIndexes?: Map<string,Map<string,string>>, labelIndexes?: Map<string,Map<string,string>> }} ctx
+ *   readCell: (entry: E, field:{ key: string, type?: string }) => unknown,
+ *   relationIndexes?: Map<string,Map<string,string>>, labelIndexes?: Map<string,Map<string,string|null>> }} ctx
  *   `columnMap`: source.columnMap; `fieldsById`: mirror fields by id; `readCell`: the adapter's cell
  *   reader; `relationIndexes`: fieldId → (value → target id) for 'match'; `labelIndexes`: fieldId →
  *   (target id → label) for 'nc'
@@ -46,15 +47,15 @@ function deriveRow(id, { columnMap, fieldsById, readCell, relationIndexes = new 
         const field = fieldsById.get(fieldId);
         if (!field) continue;
         if (entry.derived === 'match') {
-            const localField = fieldsById.get(entry.localFieldId);
+            const localField = fieldsById.get(/** @type {string} */ (entry.localFieldId));
             const localValue = localField ? values[localField.key] : null;
             const index = relationIndexes.get(fieldId);
             values[field.key] = (index && localValue !== null && localValue !== undefined)
                 ? (index.get(String(localValue)) ?? null) : null;
         } else if (entry.derived === 'label') {
-            const relField = fieldsById.get(entry.forFieldId);
+            const relField = fieldsById.get(/** @type {string} */ (entry.forFieldId));
             const targetId = relField ? values[relField.key] : null;
-            const index = labelIndexes.get(entry.forFieldId);
+            const index = labelIndexes.get(/** @type {string} */ (entry.forFieldId));
             values[field.key] = (index && targetId !== null && targetId !== undefined)
                 ? (index.get(String(targetId)) ?? null) : null;
         }
@@ -67,7 +68,8 @@ function deriveRow(id, { columnMap, fieldsById, readCell, relationIndexes = new 
  * @param {{ fields?: Array<{ id?: string, key: string, type?: string }> } | null | undefined} meta
  */
 function fieldsByIdOf(meta) {
-    return new Map(((meta && meta.fields) || []).filter(f => f && f.id).map(f => [f.id, f]));
+    // The filter keeps only fields with an id.
+    return new Map(((meta && meta.fields) || []).filter(f => f && f.id).map(f => [/** @type {string} */ (f.id), f]));
 }
 
 module.exports = { deriveRow, fieldsByIdOf };

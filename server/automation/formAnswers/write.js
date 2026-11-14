@@ -149,7 +149,7 @@ async function recordSubmission({ automation, definition, values, submitterId = 
 
 /**
  * A later page: the same row gains that page's answers.
- * @param {{ automation: AutomationRef, datatableId: string, rowId: string, pageStepId: string, values: Record<string, Answer> | null }} p
+ * @param {{ automation: AutomationRef, datatableId: string | null, rowId: string, pageStepId: string, values: Record<string, Answer> | null }} p
  */
 async function recordPageAnswers({ automation, datatableId, rowId, pageStepId, values }) {
     if (!rowId || !pageStepId) return false;

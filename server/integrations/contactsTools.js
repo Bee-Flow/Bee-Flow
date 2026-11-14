@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Google Contacts Tools — AI tools for managing Google Contacts
  * 
@@ -172,9 +172,9 @@ async function executeContactsTool(toolName, args, session) {
                 pageSize: limit,
             });
 
-            const contacts = (response.data.results || [])
+            const contacts = /** @type {GooglePerson[]} */ ((response.data.results || [])
                 .map(r => r.person)
-                .filter(Boolean)
+                .filter(Boolean))
                 .map(formatContact);
 
             return {
@@ -272,7 +272,7 @@ async function executeContactsAction(action, session) {
 
     if (action.action === 'create') {
         /** @type {GooglePerson} */
-        const body = { names: [{ givenName: action.firstName, familyName: action.lastName || '' }] };
+        const body = { names: [{ givenName: /** @type {string | undefined} */ (action.firstName), familyName: action.lastName || '' }] };
 
         if (action.email) body.emailAddresses = [{ value: action.email }];
         if (action.phone) body.phoneNumbers = [{ value: action.phone }];

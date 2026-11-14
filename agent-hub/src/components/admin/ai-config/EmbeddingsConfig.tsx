@@ -5,10 +5,10 @@ import { useToastOnMessage } from './ui/useToastOnMessage';
 import { useAiConfigQuery } from '@/api/queries/aiConfigRead';
 import useDraftOverServer from '@/hooks/useDraftOverServer';
 import { useTranslation } from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
 import type { StatusMessage } from './chatModelTiers/tierTypes';
-import { mutate, ApiError } from '@/api/mutate';
+import { ApiError } from '@/api/mutate';
 import { expectedEmbeddingDims, exceedsVectorIndex, type EmbeddingModelShape } from './embeddingOutputDims';
+import { apiRequest } from '@/api/typedRequest';
 
 interface EmbeddingProvider {
     id: string;
@@ -84,11 +84,7 @@ const EmbeddingsConfig = ({ providers, allModels, fetchAllModels }: EmbeddingsCo
     const handleSave = async () => {
         setSaving(true);
         try {
-            const res = await mutate(`${API_BASE}/ai/config`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(config)
-            }).catch((err: unknown) => {
+            const res = await apiRequest('POST /ai/config', { body: config }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });

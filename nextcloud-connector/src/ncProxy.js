@@ -197,7 +197,7 @@ function bodyHashOf(req) {
 // it cannot substitute different content. Adding true replay protection means
 // a client nonce in the signed message, not deduping the signature itself.
 
-// Canonical form: the connector's copy of server/integrations/ncSigning.js
+// Canonical form: the connector's copy of server/auth/connector/ncSigning.js
 // (canonicalQuery, canonicalSignedPath; cross-repo vector in test/ncProxy.test.js
 // pins both). The AppAPI/HaRP hop re-encodes the query (`%20` -> `+`), so the
 // raw string can't be compared: decode each pair as form data and re-emit with
@@ -397,7 +397,7 @@ function verifyHmac(req) {
     //
     // REMOVAL CRITERION: the SaaS side no longer signs v1 anywhere — the last
     // v1 signer was services/ncUserGroupSync.js, which now uses the shared
-    // integrations/ncSigning.js helper. Drop the trailing '' suffix (and this
+    // auth/connector/ncSigning.js helper. Drop the trailing '' suffix (and this
     // comment) once every deployed SaaS is at or past that build; the
     // cross-repo vector in test/ncProxy.test.js pins the v2 form that stays.
     const suffixes = [`\n${bodyHashOf(req)}`, ''];

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Going live, without HTTP: the decisions and side effects behind POST
  * /automations/:id/activate, /publish and /deactivate, moved out of
@@ -22,9 +23,7 @@
  * lazily, so a route test that swaps a module through require.cache still
  * reaches the real call path.
  */
-
 'use strict';
-
 const log = require('../telemetry/log');
 const { HttpError } = require('../core/http/errors');
 const { fallback } = require('../utils/bestEffort');
@@ -36,6 +35,8 @@ const DEFAULT_TZ = 'Europe/Amsterdam';
  * @param {number} status
  * @param {string} code
  * @param {string} message
+ * @param {{ error?: string, [k: string]: unknown }} [body]
+ * @returns {GoLiveResult}
  */
 function refuse(status, code, message, body) {
     return { ok: false, status, code: code || null, message, body: body || { error: message, ...(code ? { code } : {}) } };
@@ -74,7 +75,10 @@ const SCHEDULE_MESSAGES = {
  * runPolicy sets run_timeout_ms (the stuck-run reaper's window), and the
  * automation stops being a draft.
  *
- * @returns {{ok: true, columns: object}|{ok: false, status: unknown, code: unknown, message: string, body: unknown}}
+ * @param {GoLiveAutomation} automation
+ * @param {import('../core/automationModel/automationGraph').AutomationDefinition} definition
+ * @param {{ now?: number, willBeActive?: boolean, verb?: string, deps?: Record<string, any> }} [opts]
+ * @returns {GoLiveResult}
  */
 function planGoLive(automation, definition, { now = Date.now(), willBeActive, verb = 'publish', deps = {} } = {}) {
     const { nextScheduledRunAt, scheduleSkipsHolidays } = deps.holidays || require('./holidays');
@@ -228,7 +232,9 @@ const pinPath = (pin) => `${pin.layerKey ? `layers.${pin.layerKey}.` : ''}${pin.
  * (the AI Act gate; a caller without it is not gated), and the validator's
  * collaborators for tests.
  *
- * @returns {Promise<{ok: true, warnings: object[]}|{ok: false, status, code, message, body}|{ok: false, raise: true, status, code, message, details}>}
+ * @param {{ automation: GoLiveAutomation | null, definition: import('../core/automationModel/automationGraph').AutomationDefinition | null, ownerId?: string | null,
+ *   organizationId?: string | null, session?: Express.Session | null, deps?: Record<string, any> }} input
+ * @returns {Promise<GoLiveResult>}
  */
 async function checkBeforeLiveCore({ automation, definition, ownerId, organizationId = null, session = null, deps = {} }) {
     const a = automation || {};
@@ -360,7 +366,8 @@ function writers(deps) {
  * `actorId` is who switches it on (the write's actor, and the owner fallback);
  * `session` and `organizationId` feed checkBeforeLiveCore.
  *
- * @returns {Promise<{ok: true, automation: { isActive: unknown; }, warnings}|{ok: false, status, code, message, body, raise?, details?}>}
+ * @param {{ automation: GoLiveAutomation, actorId: string, session?: Express.Session | null, organizationId?: string | null, deps?: Record<string, any> }} input
+ * @returns {Promise<GoLiveResult>}
  */
 async function activateCore({ automation, actorId, session = null, organizationId = null, deps = {} }) {
     const a = automation;
@@ -408,10 +415,7 @@ async function activateCore({ automation, actorId, session = null, organizationI
     return { ok: true, automation: u, warnings: verdict.warnings };
 }
 
-/**
- * @typedef DeactivateCoreArgs
- * @property {string} actorId
- */
+/** @typedef {{ automation: NonNullable<Awaited<ReturnType<typeof import('../stores/automationStore').getAutomation>>>, actorId: string, deps?: Record<string, any> }} DeactivateCoreArgs */
 /**
  * Switch an automation off — POST /:id/deactivate after its access check.
  *
@@ -434,12 +438,7 @@ async function deactivateCore({ automation, actorId, deps = {} }) {
     return { ok: true, automation: u };
 }
 
-/**
- * @typedef ConvergeAfterPublishArgs
- * @property {boolean} [isActive]
- * @property {string} [reason]
- * @property {boolean} [saveSyncs]
- */
+/** @typedef {{ automation: GoLiveAutomation, definition: import('../core/automationModel/automationGraph').AutomationDefinition, previousLive?: import('../core/automationModel/automationGraph').AutomationDefinition | null, isActive?: boolean, ownerId?: string | null, organizationId?: string | null, reason?: string, saveSyncs?: boolean, deps?: Record<string, any> }} ConvergeAfterPublishArgs */
 /**
  * The side effects after a definition went live — idempotent, retriable, and
  * never throwing (each failure is logged and returned as a warning).
@@ -588,6 +587,7 @@ module.exports = {
 /** @typedef {{ ok: false, status: number, code: string|null, message: string, body: object }} Refusal */
 
 /** @typedef {{ ok: false, status: number, code: string|null, message: string, body: object|null, raise?: boolean, details?: object }} GoLiveFailure */
+/** @typedef {{ ok: boolean, status?: number, code?: string | null, message?: string, body?: any, raise?: boolean, details?: object, warnings?: object[], columns?: Record<string, any>, automation?: any }} GoLiveResult  one shape for every core's answer, read by `ok` */
 
 /**
  * @typedef GoLiveAutomation  the parts of a store row the go-live cores read
@@ -602,7 +602,7 @@ module.exports = {
  * @property {number|null} [liveVersion]
  * @property {number} [version]
  * @property {string} [kind]
- * @property {import('./automationGraph').AutomationDefinition} [definition]
+ * @property {import('../core/automationModel/automationGraph').AutomationDefinition} [definition]
  */
 
 /** @typedef {{ kind?: string, id?: string, layerKey?: string, pinnedSource?: string }} Pin  a pinned (sample-serving) node of a definition */

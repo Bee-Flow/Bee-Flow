@@ -3,6 +3,8 @@ import { findNameMentions } from '../lib/insightsData';
 import { parseTimestampToSeconds } from '../lib/format';
 import { buildMentionMarkers, buildTimelineMarkers } from '../lib/timelineMarkers';
 import * as api from '@/api/transcriptionsApi';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useSummaryTemplatesQuery } from '@/api/queries/meetingLibrary';
 import { TABS } from './MeetingHeader';
 import type { MeetingNote, SeriesPrevious } from './meetingDetailTypes';
 import type { CustomTemplate, SummaryTemplates } from './summaryTemplates.types';
@@ -14,13 +16,12 @@ import type { CustomTemplate, SummaryTemplates } from './summaryTemplates.types'
  * template editor's open state.
  */
 function useSummaryTemplates() {
-    const [templates, setTemplates] = useState<SummaryTemplates | null>(null);
+    const templatesQuery = useSummaryTemplatesQuery();
+    const templates = (templatesQuery.data as SummaryTemplates | undefined) ?? null;
     const [templateEditorOpen, setTemplateEditorOpen] = useState(false);
     const [editingTemplate, setEditingTemplate] = useState<CustomTemplate | null>(null);
-    const reloadTemplates = useCallback(() => {
-        api.listSummaryTemplates().then(setTemplates).catch(() => {});
-    }, []);
-    useEffect(() => { reloadTemplates(); }, [reloadTemplates]);
+    const { refetch } = templatesQuery;
+    const reloadTemplates = useCallback(() => { void refetch(); }, [refetch]);
     const openNewTemplate = useCallback(() => { setEditingTemplate(null); setTemplateEditorOpen(true); }, []);
     const openEditTemplate = useCallback((tpl: CustomTemplate) => { setEditingTemplate(tpl); setTemplateEditorOpen(true); }, []);
     return { templates, reloadTemplates, templateEditorOpen, setTemplateEditorOpen, editingTemplate, openNewTemplate, openEditTemplate };
@@ -31,16 +32,19 @@ function useSummaryTemplates() {
  * room. Only fetched for completed notes that carry a series link.
  */
 function useSeriesPrevious(data: MeetingNote | null) {
-    const [seriesPrevious, setSeriesPrevious] = useState<SeriesPrevious | null>(null);
-    useEffect(() => {
-        if (!data?.id || data.status === 'processing' || data.status === 'failed') return undefined;
-        if (!data.meetMeetingCode && !data.talkRoomToken) return undefined;
-        let cancelled = false;
-        api.getSeriesPrevious(data.id)
-            .then((prev: SeriesPrevious | null) => { if (!cancelled) setSeriesPrevious(prev); })
-            .catch(() => { /* context card is best-effort */ });
-        return () => { cancelled = true; };
-    }, [data?.id, data?.status, data?.meetMeetingCode, data?.talkRoomToken]);
+    const queryClient = useQueryClient();
+    const linked = !!data?.id && data.status !== 'processing' && data.status !== 'failed' && !!(data.meetMeetingCode || data.talkRoomToken);
+    const key = useMemo(() => ['meetingNotes', 'seriesPrevious', data?.id ?? null, data?.meetMeetingCode ?? null, data?.talkRoomToken ?? null] as const, [data?.id, data?.meetMeetingCode, data?.talkRoomToken]);
+    // The context card is best-effort: a failure shows none.
+    const query = useQuery<SeriesPrevious | null>({
+        queryKey: key,
+        enabled: linked,
+        staleTime: 0,
+        retry: false,
+        queryFn: () => api.getSeriesPrevious(data?.id as string),
+    });
+    const seriesPrevious = query.data ?? null;
+    const setSeriesPrevious = useCallback((next: SeriesPrevious | null) => { queryClient.setQueryData(key, next); }, [queryClient, key]);
     return { seriesPrevious, setSeriesPrevious };
 }
 

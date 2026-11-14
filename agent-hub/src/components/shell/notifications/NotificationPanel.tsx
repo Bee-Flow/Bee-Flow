@@ -155,6 +155,7 @@ function PanelHeader({ unreadCount, filter, setFilter, onMarkAllRead }: {
                     onClick={onMarkAllRead}
                     className="[background:none] [border:none] [cursor:pointer] [font-size:11px] [color:#3b82f6] [font-weight:500] [display:flex] [align-items:center] [gap:4px] [padding:4px_8px] [border-radius:6px]"
                     title={t('notifications.mark_all_read_title', 'Mark all as read')}
+                    aria-label={t('notifications.mark_all_read_title', 'Mark all as read')}
                 >
                     <CheckCheck className="w-[13px] h-[13px]" />
                 </button>

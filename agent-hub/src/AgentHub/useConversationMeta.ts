@@ -1,10 +1,10 @@
 import type { Dispatch, SetStateAction } from 'react';
 import { projectErrorText } from '../components/projects/workspace/projectErrorText';
 import { toast } from '../components/shared/Toast';
-import { API_BASE, authFetch } from '../utils/helpers';
-import { mutate, ApiError, errorBody, RefusedError } from '../api/mutate';
+import { ApiError, errorBody, RefusedError } from '../api/mutate';
 import type { TranslateFn } from '../hooks/useTranslation';
 import { errorMessage } from '../utils/caughtError';
+import { apiFetch, apiRequest } from '@/api/typedRequest';
 
 /** One row of a conversation list, as the hub's lists carry it. */
 export interface ConversationRow {
@@ -86,14 +86,9 @@ const useConversationMeta = ({
         }
 
         try {
-            const url = `${API_BASE}/api/projects/${projectId}/threads`;
             const res = currentlyShared
-                ? await authFetch(`${url}/${conv.id}?type=${type}`, { method: 'DELETE' })
-                : await authFetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ conversationId: conv.id, type }),
-                });
+                ? await apiFetch('DELETE /api/projects/{id}/threads/{convId}', { params: { id: projectId, convId: conv.id }, query: { type } })
+                : await apiFetch('POST /api/projects/{id}/threads', { params: { id: projectId }, body: { conversationId: conv.id, type } });
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
                 // 403 = not the owner, 503 = the project key is unavailable.
@@ -120,18 +115,14 @@ const useConversationMeta = ({
      * out loud instead of leaving the row where it was without a word.
      */
     const handleMoveToProject = async (conv: ConversationRow, targetProject: { id: string } | null) => {
-        const type = conv.agent_id ? 'agent' : 'direct';
+        const type: 'agent' | 'direct' = conv.agent_id ? 'agent' : 'direct';
         const projectId = targetProject ? targetProject.id : conv.project_id;
         if (!projectId) return;
         const change = targetProject ? { assign: [{ id: conv.id, type }] } : { unassign: [{ id: conv.id, type }] };
         const failed = t('sidebar.project_move_failed', 'Could not move this chat. It is still where it was.');
         try {
             try {
-                await mutate(`${API_BASE}/api/projects/${encodeURIComponent(projectId)}/conversations`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(change),
-            });
+                await apiRequest('PUT /api/projects/{id}/conversations', { params: { id: projectId }, body: change });
             } catch (apiErr) {
                 if (!(apiErr instanceof RefusedError)) throw apiErr;
                 const err = errorBody(apiErr) ?? {};
@@ -149,19 +140,11 @@ const useConversationMeta = ({
     const handleRenameConversation = async (conv: ConversationRow, newTitle: string) => {
         try {
             if (directChatMode) {
-                await mutate(`${API_BASE}/ai/direct/conversations/${conv.id}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ title: newTitle }),
-                });
+                await apiRequest('PATCH /ai/direct/conversations/{id}', { params: { id: conv.id }, body: { title: newTitle } });
                 setDirectConversations(prev => prev.map(c => c.id === conv.id ? { ...c, title: newTitle } : c));
             } else {
                 const agentId = conv.agent_id || selectedAgent?.id;
-                await mutate(`${API_BASE}/agents/${agentId}/conversations/${conv.id}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ title: newTitle }),
-                });
+                await apiRequest('PATCH /agents/{id}/conversations/{convId}', { params: { id: String(agentId), convId: conv.id }, body: { title: newTitle } });
                 setConversations(prev => prev.map(c => c.id === conv.id ? { ...c, title: newTitle } : c));
             }
         } catch (e) {
@@ -174,19 +157,11 @@ const useConversationMeta = ({
         const newPinned = !conv.pinned;
         try {
             if (directChatMode) {
-                await mutate(`${API_BASE}/ai/direct/conversations/${conv.id}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ pinned: newPinned }),
-                });
+                await apiRequest('PATCH /ai/direct/conversations/{id}', { params: { id: conv.id }, body: { pinned: newPinned } });
                 setDirectConversations(prev => prev.map(c => c.id === conv.id ? { ...c, pinned: newPinned } : c));
             } else {
                 const agentId = conv.agent_id || selectedAgent?.id;
-                await mutate(`${API_BASE}/agents/${agentId}/conversations/${conv.id}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ pinned: newPinned }),
-                });
+                await apiRequest('PATCH /agents/{id}/conversations/{convId}', { params: { id: String(agentId), convId: conv.id }, body: { pinned: newPinned } });
                 setConversations(prev => prev.map(c => c.id === conv.id ? { ...c, pinned: newPinned } : c));
             }
         } catch (e) {
@@ -203,19 +178,11 @@ const useConversationMeta = ({
             : [...currentLabels, label];
         try {
             if (directChatMode) {
-                await mutate(`${API_BASE}/ai/direct/conversations/${conv.id}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ labels: newLabels }),
-                });
+                await apiRequest('PATCH /ai/direct/conversations/{id}', { params: { id: conv.id }, body: { labels: newLabels } });
                 setDirectConversations(prev => prev.map(c => c.id === conv.id ? { ...c, labels_json: JSON.stringify(newLabels) } : c));
             } else {
                 const agentId = conv.agent_id || selectedAgent?.id;
-                await mutate(`${API_BASE}/agents/${agentId}/conversations/${conv.id}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ labels: newLabels }),
-                });
+                await apiRequest('PATCH /agents/{id}/conversations/{convId}', { params: { id: String(agentId), convId: conv.id }, body: { labels: newLabels } });
                 setConversations(prev => prev.map(c => c.id === conv.id ? { ...c, labels_json: JSON.stringify(newLabels) } : c));
             }
         } catch (e) {
@@ -226,11 +193,7 @@ const useConversationMeta = ({
 
     const handleCreateLabel = async (name: string, color: string) => {
         try {
-            const res = await mutate(`${API_BASE}/ai/labels`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, color }),
-            }).catch((err: unknown) => {
+            const res = await apiRequest('POST /ai/labels', { body: { name, color } }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });
@@ -246,7 +209,7 @@ const useConversationMeta = ({
 
     const handleDeleteLabel = async (labelId: string) => {
         try {
-            await mutate(`${API_BASE}/ai/labels/${labelId}`, { method: 'DELETE' });
+            await apiRequest('DELETE /ai/labels/{id}', { params: { id: labelId } });
             setConversationLabels(prev => prev.filter(l => l.id !== labelId));
         } catch (e) {
             console.error('Failed to delete label:', e);
@@ -256,11 +219,7 @@ const useConversationMeta = ({
 
     const handleEditLabel = async (labelId: string, updates: Partial<ConversationLabel>) => {
         try {
-            const res = await mutate(`${API_BASE}/ai/labels/${labelId}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(updates),
-            }).catch((err: unknown) => {
+            const res = await apiRequest('PATCH /ai/labels/{id}', { params: { id: labelId }, body: updates }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });

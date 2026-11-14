@@ -25,7 +25,7 @@
  *                        marks; functions in stores/projectChanges.js)
  *
  * The functions are built by `makeProjectStore(db, { ready })` over a facade
- * with db.js's shape (`run`, `getOne`, `getAll`, `getClient`), so a test can
+ * with db.js's shape (`run`, `getOne`, `getAll`, `getClient`, `withTransaction`), so a test can
  * run them against pglite without replacing any module. The default instance
  * (the module's own exports) wraps db.js behind the store's schema init.
  *
@@ -56,6 +56,7 @@ const { makeStageLinkFns } = require('./project/stageLink');
  *   getOne: (sql: string, params?: any[]) => Promise<any>,
  *   getAll: (sql: string, params?: any[]) => Promise<any[]>,
  *   getClient: () => Promise<{ query: (sql: string, params?: any[]) => Promise<{ rows: any[] }>, release: () => void }>,
+ *   withTransaction: (fn: (client: any) => Promise<any>) => Promise<any>,
  * }} db  db.js, or a facade of the same shape (pglite in the store test)
  * @param {{ ready?: () => Promise<unknown>, managedParts?: { assertManagedWrite: Function } }} [opts]
  *        `ready`: the schema init every function awaits first; `managedParts`:
@@ -79,8 +80,10 @@ function makeProjectStore(db, { ready = async () => {}, managedParts = null } = 
      */
     const getAll = (sql, params) => db.getAll(sql, params);
     const getClient = () => db.getClient();
+    /** @param {(client: any) => Promise<any>} fn */
+    const withTransaction = (fn) => db.withTransaction(fn);
 
-    const ctx = { run, getOne, getAll, getClient, initDB };
+    const ctx = { run, getOne, getAll, getClient, withTransaction, initDB };
     const { stageOfProject, stageOfProjectFresh, refuseStageBound, createStageProject, detachStage } = makeStageLinkFns(ctx);
     const {
         createProject, getProject, listUserProjects, setProjectKind, setArchived, setInstalledVersion,
@@ -99,7 +102,7 @@ function makeProjectStore(db, { ready = async () => {}, managedParts = null } = 
     } = makeEventFns(ctx);
 
     // The change feed: editing sessions, visits and seen marks.
-    const changes = makeProjectChangeFns({ getOne, getAll, run, getClient, ready: initDB });
+    const changes = makeProjectChangeFns({ getOne, getAll, run, withTransaction, ready: initDB });
 
     return {
         ...changes,

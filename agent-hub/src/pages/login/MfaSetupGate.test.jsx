@@ -1,8 +1,9 @@
 import { browserSupportsWebAuthn } from '@simplewebauthn/browser';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ok, fail } from '@/test/http';
+import { renderWithClient } from '@/test/render';
 import MfaSetupGate from './MfaSetupGate';
 import { authFetch } from '../../utils/helpers';
 
@@ -61,7 +62,7 @@ afterEach(() => { vi.restoreAllMocks(); });
 const renderGate = () => {
     const onDone = vi.fn();
     const onLogout = vi.fn();
-    return { ...render(<MfaSetupGate onDone={onDone} onLogout={onLogout} />), onDone, onLogout };
+    return { ...renderWithClient(<MfaSetupGate onDone={onDone} onLogout={onLogout} />), onDone, onLogout };
 };
 
 describe('landing on the gate', () => {
@@ -77,7 +78,7 @@ describe('landing on the gate', () => {
     // even if the screen is mounted twice at once (a remount, or the double effect of
     // StrictMode in dev).
     it('fires a single /auth/mfa/setup when two gates mount at the same time', async () => {
-        render(
+        renderWithClient(
             <>
                 <MfaSetupGate onDone={vi.fn()} onLogout={vi.fn()} />
                 <MfaSetupGate onDone={vi.fn()} onLogout={vi.fn()} />

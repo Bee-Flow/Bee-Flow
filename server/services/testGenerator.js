@@ -23,6 +23,8 @@
 const fs = require('fs');
 const path = require('path');
 const log = require('../telemetry/log');
+// GitHub and YouTrack are integrations/' (a feature), reached through the client registry.
+const { integrationClient } = require('../core/integrations/integrationClients');
 
 const TEST_GENERATOR_PROMPT_PATH = path.join(__dirname, '..', 'prompts', 'test-generator-prompt.md');
 const DEFAULT_MAX_TOKENS = 8000;
@@ -61,7 +63,7 @@ async function _fetchConversationSource({ conversationId }, userId) {
 }
 
 async function _fetchGithubFileSource({ owner, repo, filePath, ref }, userId) {
-    const { executeGitHubTool } = require('../integrations/githubTools');
+    const { executeGitHubTool } = integrationClient('github');
     const r = await executeGitHubTool('github_get_file', { owner, repo, path: filePath, branch: ref }, userId);
     if (r?.error) {
         if (/no github token|not configured/i.test(r.error)) {
@@ -77,7 +79,7 @@ async function _fetchGithubFileSource({ owner, repo, filePath, ref }, userId) {
 }
 
 async function _fetchGithubCommitSource({ owner, repo, sha }, userId) {
-    const { executeGitHubTool } = require('../integrations/githubTools');
+    const { executeGitHubTool } = integrationClient('github');
     const r = await executeGitHubTool('github_get_commits', { owner, repo, sha }, userId);
     if (r?.error) {
         if (/no github token|not configured/i.test(r.error)) {
@@ -93,7 +95,7 @@ async function _fetchGithubCommitSource({ owner, repo, sha }, userId) {
 }
 
 async function _fetchYouTrackSource(src, userId) {
-    const { executeYouTrackTool } = require('../integrations/youtrackTools');
+    const { executeYouTrackTool } = integrationClient('youtrack');
     if (src.issueId) {
         const r = await executeYouTrackTool('youtrack_get_issue', { issueId: src.issueId }, userId);
         if (r?.error) {

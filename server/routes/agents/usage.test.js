@@ -21,6 +21,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const Module = require('module');
+const { fakeAgentGates } = require('./agentGate.testkit');
 
 const fx = {
     userId: 'me',
@@ -59,11 +60,10 @@ const MOCKS = {
         },
     },
     '../../utils/routeHelpers': { getEffectiveUserId: () => fx.userId },
-    './crud': {
-        canReadAgent: async () => fx.canRead,
-        canModifyAgent: async () => fx.canModify,
-    },
 };
+MOCKS['./crud'] = fakeAgentGates({
+    agentStore: MOCKS['../../stores/agentStore'], canRead: () => fx.canRead, canModify: () => fx.canModify, userId: () => fx.userId,
+});
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
     const mockId = `mock:agent-usage:${request}`;
@@ -125,8 +125,9 @@ test('an agent that is not there is a 404', async () => {
     assert.strictEqual(res.statusCode, 404);
 });
 
-test('someone who may not read the agent gets 404, not 403 — existence is not disclosed', async () => {
+test('someone who may neither read nor edit the agent gets 404, not 403 — existence is not disclosed', async () => {
     fx.canRead = false;
+    fx.canModify = false;
     const res = await dispatch({ url: '/a1/usage' });
     assert.strictEqual(res.statusCode, 404);
     assert.ok(!res.body.usage);

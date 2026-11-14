@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Icon Routes — Appearance / icon-pack management.
  *
@@ -82,6 +82,7 @@ const { EMOJI_CATEGORIES, ALL_EMOJI_IDS, EMOJI_BY_ID } = require('../core/cms/em
 const { z, typeError } = require('../utils/zod');
 const { worded } = require('../core/http/schemaParts');
 const { validate } = require('../core/http/validate');
+const { sessionUser } = require('../core/http/sessionUser');
 const { perUserRateLimit } = require('../utils/perUserRateLimit');
 
 // ── Storage ─────────────────────────────────────────────────────
@@ -145,7 +146,7 @@ const TYPE_TEXT = "An icon's type is 'emoji' or 'image'.";
 const iconType = z.enum(['emoji', 'image'], { error: () => TYPE_TEXT });
 const iconValue = worded('An icon needs a value.').min(1, 'An icon needs a value.');
 /**
- * @param {{ type?: 'emoji' | 'image', value?: string }} icon
+ * @param {{ type?: 'emoji' | 'image', value: string }} icon
  * @param {import('zod').RefinementCtx} ctx
  */
 function checkIconValue(icon, ctx) {
@@ -176,7 +177,7 @@ const SetIconBody = bodyOf({ type: iconType.optional(), value: iconValue.optiona
             ctx.addIssue({ code: 'custom', path: [b.type === undefined ? 'type' : 'value'], message: HALF_ICON_TEXT });
             return;
         }
-        if (b.type !== undefined) checkIconValue(b, ctx);
+        if (b.type !== undefined) checkIconValue(/** @type {{ type: 'emoji' | 'image', value: string }} */ (b), ctx); // both halves, checked above
     })
     .transform((b) => (b.type === undefined ? null : { type: b.type, value: b.value }));
 const IconParams = z.object({ id: z.string(), key: iconKey });
@@ -241,7 +242,7 @@ router.get('/catalog', (req, res) => {
 // ── List + active pack ──────────────────────────────────────────
 
 router.get('/', async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const packs = await iconStore.getIconPacks(userId);
     const user = await userStore.getUser(userId);
     res.json({
@@ -254,15 +255,15 @@ router.get('/', async (req, res) => {
 
 // ── Pack CRUD ───────────────────────────────────────────────────
 
-router.post('/', validate({ body: CreateBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CreateBody>, import('qs').ParsedQs>} */ req, res) => {
-    const userId = req.session.user.id;
+router.post('/', validate({ body: CreateBody }), async (req, res) => {
+    const userId = sessionUser(req).id;
     const { name, icons } = req.body;
     const newPack = await iconStore.createIconPack(userId, name, icons);
     res.status(201).json(newPack);
 });
 
 router.put('/:id', validate({ body: UpdateBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const ok = await iconStore.updateIconPack(req.params.id, userId, req.body);
     if (ok) res.json({ success: true });
     else res.status(404).json({ error: 'Pack not found or access denied' });
@@ -270,7 +271,7 @@ router.put('/:id', validate({ body: UpdateBody }), async (/** @type {import('exp
 
 // PATCH /api/icons/:id/icons/:key — single-icon edit (no full-pack PUT race)
 router.patch('/:id/icons/:key', validate({ params: IconParams, body: SetIconBody }), async (/** @type {import('express').Request<{ id: string, key: string }>} */ req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     // null clears the override (see SetIconBody).
     const data = req.body;
     const next = await iconStore.setIcon(req.params.id, userId, req.params.key, data);
@@ -279,7 +280,7 @@ router.patch('/:id/icons/:key', validate({ params: IconParams, body: SetIconBody
 });
 
 router.delete('/:id', async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const ok = await iconStore.deleteIconPack(req.params.id, userId);
     if (!ok) return res.status(404).json({ error: 'Pack not found or access denied' });
     const user = await userStore.getUser(userId);
@@ -290,7 +291,7 @@ router.delete('/:id', async (/** @type {import('express').Request<{ id: string }
 });
 
 router.post('/:id/activate', validate({ body: NoBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const packId = req.params.id;
 
     if (packId === 'default' || packId === 'null') {
@@ -299,9 +300,7 @@ router.post('/:id/activate', validate({ body: NoBody }), async (/** @type {impor
     }
 
     const pack = await iconStore.getIconPack(packId);
-    if (!pack || pack.user_id !== userId) {
-        return res.status(404).json({ error: 'Pack not found or access denied' });
-    }
+    if (!pack || pack.user_id !== userId) return res.status(404).json({ error: 'Pack not found or access denied' });
     await userStore.updateUser(userId, { activeIconPackId: packId });
     res.json({ success: true, activeIconPackId: packId });
 });
@@ -312,11 +311,11 @@ router.post('/upload', uploadIcon, async (req, res) => {
     // uploadGuard already answered 400/413/415 for anything it rejected, so
     // reaching here means the bytes matched an allowed image type (and an
     // SVG has been replaced by its sanitized rendering).
-    const ext = /** @type {Record<string, string>} */ (ICON_MIME_EXT)[String(req.file.mimetype || '').toLowerCase()];
+    const ext = /** @type {Record<string, string>} */ (ICON_MIME_EXT)[String(/** @type {NonNullable<typeof req.file>} */ (req.file).mimetype || '').toLowerCase()]; // uploadGuard let a file through
     if (!ext) return res.status(415).json({ error: 'Unsupported image type' });
 
     const filename = `icon-${Date.now()}-${crypto.randomBytes(8).toString('hex')}${ext}`;
-    await fs.promises.writeFile(path.join(uploadDir, filename), req.file.buffer);
+    await fs.promises.writeFile(path.join(uploadDir, filename), /** @type {NonNullable<typeof req.file>} */ (req.file).buffer);
     res.json({ url: `/api/icons/data/${filename}` });
 });
 
@@ -337,7 +336,7 @@ function buildIconPrompt(userPrompt, opts = {}) {
 
 /**
  * @param {string} base64
- * @param {string | undefined} mimeType
+ * @param {string | null | undefined} mimeType
  */
 async function saveBase64Png(base64, mimeType) {
     const ext = (mimeType || '').includes('jpeg') ? 'jpg' : 'png';
@@ -360,7 +359,7 @@ const generateIconImage = (req, prompt, { aspectRatio, model }) => generateImage
 );
 
 // POST /api/icons/generate — single-icon generation, returns the saved URL
-router.post('/generate', imageGenLimiter, validate({ body: GenerateBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof GenerateBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/generate', imageGenLimiter, validate({ body: GenerateBody }), async (req, res) => {
     const { prompt, style, aspectRatio, model } = req.body;
 
     const fullPrompt = buildIconPrompt(prompt, { style });
@@ -373,11 +372,9 @@ router.post('/generate', imageGenLimiter, validate({ body: GenerateBody }), asyn
 // POST /api/icons/:id/bulk-generate — generate every missing icon in a pack
 //   body: { style?: string, model?: string, overwrite?: boolean, only?: string[] }
 router.post('/:id/bulk-generate', imageGenLimiter, validate({ body: BulkGenerateBody }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const pack = await iconStore.getIconPack(req.params.id);
-    if (!pack || pack.user_id !== userId) {
-        return res.status(404).json({ error: 'Pack not found or access denied' });
-    }
+    if (!pack || pack.user_id !== userId) return res.status(404).json({ error: 'Pack not found or access denied' });
 
     if (!(await isImageGenerationAvailable())) {
         throw new HttpError(503, 'image_generation_unavailable', 'Image generation unavailable — no image model is configured.');
@@ -436,11 +433,9 @@ router.post('/:id/bulk-generate', imageGenLimiter, validate({ body: BulkGenerate
 // ── Import / Export ─────────────────────────────────────────────
 
 router.get('/:id/export', async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const pack = await iconStore.getIconPack(req.params.id);
-    if (!pack || pack.user_id !== userId) {
-        return res.status(404).json({ error: 'Pack not found or access denied' });
-    }
+    if (!pack || pack.user_id !== userId) return res.status(404).json({ error: 'Pack not found or access denied' });
     const bundle = {
         kind: 'beeflow.iconpack',
         version: 1,
@@ -453,8 +448,8 @@ router.get('/:id/export', async (req, res) => {
     res.json(bundle);
 });
 
-router.post('/import', validate({ body: ImportBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof ImportBody>, import('qs').ParsedQs>} */ req, res) => {
-    const userId = req.session.user.id;
+router.post('/import', validate({ body: ImportBody }), async (req, res) => {
+    const userId = sessionUser(req).id;
     const { name, icons } = req.body;
     const newPack = await iconStore.createIconPack(userId, name, icons);
     res.status(201).json(newPack);

@@ -272,11 +272,11 @@ test('the list descriptor is CLOSED — resolved against the table, never passed
     // routes/datatables.integration.test.js.
     const fn = SRC.slice(SRC.indexOf('function readFilters'), SRC.indexOf('function readListDescriptor'));
     assert.match(fn, /filterableKeys\(meta\)/, 'field keys come from the table, not from the caller');
-    assert.match(fn, /dataModel\.FILTER_OPS\.includes\(f\.op\)/, "operators come from the compiler's own list");
+    assert.match(fn, /dataModel\.FILTER_OPS\.includes\(\s*\(?f\.op\)?\s*\)/, "operators come from the compiler's own list");
     assert.match(fn, /'unknown_filter_field'/);
     assert.match(fn, /'unknown_sort_field'/);
     // `q` builds its own column list server-side; the caller never names one.
-    assert.match(fn, /SEARCHABLE_TYPES\.has\(f\.type\)/);
+    assert.match(fn, /SEARCHABLE_TYPES\.has\(\s*\(?f\.type\)?\s*\)/);
     // And the descriptor never reaches the compiler as a raw object.
     assert.doesNotMatch(SRC, /filters: req\.query\.filters/);
 });

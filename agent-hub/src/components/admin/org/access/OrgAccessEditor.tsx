@@ -2,12 +2,13 @@ import { Lock } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getIntegrationIcon } from '@/config/integrationIcons';
 import { useTranslation } from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
 import { messageOf } from '@/utils/caughtError';
 import { ACCESS_KIND_SECTIONS } from './accessTypes';
 import type { AccessCapability, AccessData, AccessMessage } from './accessTypes';
 import { AccessStatus, CapabilityGroup, CapabilityRow } from './AccessParts';
-import { mutate, ApiError, request, RefusedError } from '@/api/mutate';
+import { ApiError } from '@/api/mutate';
+import { apiRequest, apiUrl } from '@/api/typedRequest';
+import { useAccessRead } from '@/api/queries/accessEditorRead';
 import { SettingRow, SettingsGroup, SettingsList } from '@/components/shared/SettingsList';
 import Spinner from '@/components/shared/Spinner';
 import Toggle from '@/components/shared/Toggle';
@@ -31,36 +32,24 @@ interface OrgAccessEditorProps {
 
 export default function OrgAccessEditor({ orgId, onChanged }: OrgAccessEditorProps) {
     const { t } = useTranslation();
-    const [loading, setLoading] = useState(true);
-    const [data, setData] = useState<AccessData | null>(null);
     const [available, setAvailable] = useState<Set<string>>(() => new Set());
     const [unrestricted, setUnrestricted] = useState(true);
     const [message, setMessage] = useState<AccessMessage | null>(null);
     const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const path = `${API_BASE}/auth/organizations/${encodeURIComponent(orgId)}/org-availability`;
+    const path = apiUrl('GET /auth/organizations/{orgId}/org-availability', { params: { orgId } });
 
-    const load = useCallback(async () => {
-        setLoading(true);
-        try {
-            let res: Response;
-            try {
-                res = await request(path);
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                setMessage({ type: 'error', text: t('admin_org.access_matrix_failed_load_status', 'Failed to load ({status})', { status: err.status }) });
-                return;
-            }
-            const j = await res.json();
-            setData(j);
-            setUnrestricted(!!j.unrestricted);
-            setAvailable(new Set(j.unrestricted ? (j.ceiling || []) : (j.available || [])));
-        } catch (e) {
-            setMessage({ type: 'error', text: messageOf(e, t('admin_org.access_matrix_failed_load', 'Failed to load')) });
-        } finally { setLoading(false); }
-    }, [path, t]);
+    const { data = null, isFetching: loading, refetch } = useAccessRead<AccessData>('orgAvailability', path, setMessage);
+    const load = useCallback(() => { void refetch(); }, [refetch]);
 
-    useEffect(() => { load(); }, [load]);
+    // Every answer seeds the switches; a toggle then edits them until the next answer.
+    const [seeded, setSeeded] = useState<AccessData | null>(null);
+    if (data && data !== seeded) {
+        setSeeded(data);
+        setUnrestricted(!!data.unrestricted);
+        setAvailable(new Set(data.unrestricted ? (data.ceiling || []) : (data.available || [])));
+    }
+
     useEffect(() => { if (!message) return; const timer = setTimeout(() => setMessage(null), 3000); return () => clearTimeout(timer); }, [message]);
     useEffect(() => () => { if (saveTimer.current) clearTimeout(saveTimer.current); }, []);
 
@@ -80,7 +69,7 @@ export default function OrgAccessEditor({ orgId, onChanged }: OrgAccessEditorPro
         saveTimer.current = setTimeout(async () => {
             try {
                 try {
-                    await mutate(path, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    await apiRequest('PUT /auth/organizations/{orgId}/org-availability', { params: { orgId }, body: payload });
                 } catch (err) {
                     if (!(err instanceof ApiError)) throw err;
                     throw new Error(t('admin_org.access_matrix_save_failed', 'Save failed'));

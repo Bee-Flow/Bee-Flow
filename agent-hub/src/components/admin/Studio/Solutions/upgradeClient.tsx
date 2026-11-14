@@ -1,9 +1,11 @@
 import { ArrowUpCircle, HelpCircle } from 'lucide-react';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { Strip } from './solutionNotices';
 import { useTranslation } from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
-import { mutate, errorBody, RefusedError } from '@/api/mutate';
+import { errorBody, RefusedError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
+import type { ApiBody } from '@/api/typedRequest';
 import Modal from '@/components/shared/Modal';
 import { PRIMARY_ACTION_STYLE } from '@/components/shared/StudioSectionHeader';
 import type { IsNewerArgs, UpdateAvailabilityArgs, PlanItem, PlanManifest, PlanRow, PlanRows, UpgradeBody, UpgradeReport, ReadReport, PlanOutcome, UpgradeOutcome, FetchUpgradePlanArgs, RunUpgradeArgs, UpdateBannerProps, PlanState, DialogFooterProps, UpgradeDialogProps } from './upgradeClient.types';
@@ -160,13 +162,12 @@ export function planTouchesNothing(rows: PlanRows | undefined) {
 
 // ── De twee requests ───────────────────────────────────────────────────────
 
-async function post(url: string, body: { blueprintId: string | null | undefined }) {
+type UpgradeKey = 'POST /api/projects/{id}/package/upgrade/plan' | 'POST /api/projects/{id}/package/upgrade';
+
+async function post(key: UpgradeKey, projectId: string, body: { blueprintId: string | null | undefined }) {
     try {
-        const res = await mutate(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body),
-        });
+        // The id the gallery gave, null included: the server answers a missing one in its own words.
+        const res = await apiRequest(key, { params: { id: projectId }, body: body as ApiBody<UpgradeKey> });
         const parsed = await res.json().catch(() => null);
         return { ok: true, body: parsed };
     } catch (err) {
@@ -177,7 +178,7 @@ async function post(url: string, body: { blueprintId: string | null | undefined 
 
 export async function fetchUpgradePlan({ projectId, blueprintId }: FetchUpgradePlanArgs): Promise<PlanOutcome> {
     try {
-        const { ok, body } = await post(`${API_BASE}/api/projects/${projectId}/package/upgrade/plan`, { blueprintId });
+        const { ok, body } = await post('POST /api/projects/{id}/package/upgrade/plan', projectId, { blueprintId });
         if (!ok || !body || body.ok !== true) return { status: 'error', error: body?.error || null };
         return { status: 'ok', rows: planRows(body), toVersion: body.toVersion ?? null };
     } catch {
@@ -187,7 +188,7 @@ export async function fetchUpgradePlan({ projectId, blueprintId }: FetchUpgradeP
 
 export async function runUpgrade({ projectId, blueprintId }: RunUpgradeArgs): Promise<UpgradeOutcome> {
     try {
-        const { ok, body } = await post(`${API_BASE}/api/projects/${projectId}/package/upgrade`, { blueprintId });
+        const { ok, body } = await post('POST /api/projects/{id}/package/upgrade', projectId, { blueprintId });
         if (!ok || !body || body.ok !== true) return { status: 'error', error: body?.error || null };
         return { status: 'ok', report: readReport(body.report), toVersion: body.toVersion ?? null };
     } catch {
@@ -272,33 +273,37 @@ function DialogFooter({ done, canConfirm, applying, onClose, onConfirm }: Dialog
 
 export default function UpgradeDialog({ open, onClose, projectId, blueprintId, latestVersion = null, onDone }: UpgradeDialogProps) {
     const { t } = useTranslation();
-    const [plan, setPlan] = useState<PlanState>({ status: 'loading' });
-    const [applying, setApplying] = useState(false);
     const [result, setResult] = useState<UpgradeOutcome | null>(null);
 
-    const load = useCallback(async () => {
-        setPlan({ status: 'loading' });
-        setResult(null);
-        setPlan(await fetchUpgradePlan({ projectId, blueprintId }));
-    }, [projectId, blueprintId]);
+    // The dialog stays mounted while closed, so the plan from the previous time
+    // would still be there. Every opening is a read of its own (nothing is kept
+    // for an earlier one), and clears the outcome: an old plan next to a new
+    // button is precisely the mistake this screen must prevent.
+    const [openings, setOpenings] = useState(open ? 1 : 0);
+    const [wasOpen, setWasOpen] = useState(open);
+    if (open !== wasOpen) {
+        setWasOpen(open);
+        if (open) { setOpenings(n => n + 1); setResult(null); }
+    }
+    const planQuery = useQuery<PlanState>({
+        queryKey: ['solutions', 'upgradePlan', projectId, blueprintId, openings],
+        enabled: open && !!projectId && !!blueprintId,
+        staleTime: Infinity,
+        gcTime: 0,
+        retry: false,
+        queryFn: () => fetchUpgradePlan({ projectId, blueprintId }),
+    });
+    const plan: PlanState = planQuery.data ?? { status: 'loading' };
 
-    // The dialog stays mounted while closed, so the plan from the previous time is
-    // still there. Opening MUST clear that — an old plan next to a new button is
-    // precisely the mistake this screen must prevent. Same exception, and for the same
-    // reason, as the name draft in SolutionDetail.
-    useEffect(() => {
-        if (!open || !projectId || !blueprintId) return;
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        load();
-    }, [open, projectId, blueprintId, load]);
-
-    const confirm = async () => {
-        setApplying(true);
-        const outcome = await runUpgrade({ projectId, blueprintId });
-        setApplying(false);
-        setResult(outcome);
-        if (outcome.status === 'ok') onDone?.();
-    };
+    const upgrade = useMutation({
+        mutationFn: () => runUpgrade({ projectId, blueprintId }),
+        onSuccess: (outcome) => {
+            setResult(outcome);
+            if (outcome.status === 'ok') onDone?.();
+        },
+    });
+    const applying = upgrade.isPending;
+    const confirm = async () => { await upgrade.mutateAsync(); };
 
     const ready = plan.status === 'ok' && !result;
     const empty = ready && planTouchesNothing(plan.rows);

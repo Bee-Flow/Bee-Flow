@@ -159,8 +159,8 @@ const SETTINGS_CHANGED = Object.freeze([{ code: 'settings_changed', params: {} }
  * Never throws: a description that cannot be built leaves the row without
  * one, and a diff that cannot be computed counts as structural.
  *
- * @param {import('./automationGraph').AutomationDefinition} prevDef
- * @param {import('./automationGraph').AutomationDefinition} nextDef
+ * @param {import('../core/automationModel/automationGraph').AutomationDefinition} prevDef
+ * @param {import('../core/automationModel/automationGraph').AutomationDefinition} nextDef
  * @param {{ versionMeta?: { name?: string|null, description?: string|null, descriptionJson?: any, isLayoutOnly?: boolean }|null,
  *           forceVersion?: boolean }} [opts]
  * @returns {{ createVersion: boolean, isLayoutOnly: boolean, name: string|null, description: string|null,
@@ -212,4 +212,4 @@ module.exports = {
     planVersionWrite,
 };
 
-/** @typedef {import('./automationGraph').AutomationDefinition} AutomationDefinition */
+/** @typedef {import('../core/automationModel/automationGraph').AutomationDefinition} AutomationDefinition */

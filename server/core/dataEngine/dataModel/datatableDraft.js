@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * "Build it with AI" for a datatable — the schema the model fills in, the
  * prompts, and the clamps that turn its answer into a column list the model
@@ -35,6 +35,7 @@
 
 const { normalizeFields, DATATABLE_FIELD_TYPES } = require('./datatableFields');
 const { DATA_LIMITS, KEY_RE, RESERVED_KEY_PREFIX_RE, SYSTEM_COLUMNS } = require('./vocabulary');
+const { isList, optionValues, restoreLeftOut, draftChanges } = require('./datatableDraftGuard');
 
 const MAX_BRIEF_CHARS = 12000;
 const MAX_NOTE_CHARS = 2000;
@@ -92,10 +93,9 @@ const SYSTEM_COMMON = [
 ].join('\n');
 
 /**
- * A column of the table as it is now.
- * @typedef {{ key: string, id?: string, name?: string, type?: string, required?: boolean, unique?: boolean, options?: unknown }} CurrentField
+ * @typedef {import('./datatableDraftGuard').CurrentField} CurrentField
  * @typedef {{ name?: unknown, description?: unknown, rowCount?: unknown, fields?: unknown }} CurrentTable
- * @typedef {{ key: string, name: string, type: string, options?: string[], required?: boolean, unique?: boolean }} DraftField
+ * @typedef {import('./datatableDraftGuard').DraftField} DraftField
  */
 
 /**
@@ -235,11 +235,69 @@ function parseOptions(raw) {
     return out;
 }
 
-/** @param {{ options?: unknown } | null | undefined} field */
-function optionValues(field) {
-    return Array.isArray(field?.options)
-        ? field.options.map(o => (typeof o === 'string' ? o : o?.value ?? o?.label)).filter(v => typeof v === 'string' && v)
-        : [];
+/**
+ * @typedef {{ mode: string, allowDestructive: boolean, byKey: Map<string, CurrentField>, taken: Set<string>, notes: string[] }} DraftPass
+ */
+
+/**
+ * The column's key: the model's only in revise mode and only when the table
+ * already has it (so a fresh key can never stand in for an old column's
+ * data), else derived from the name. Null when no key is free.
+ * @param {Record<string, any>} raw
+ * @param {string} name
+ * @param {DraftPass} pass
+ */
+function columnKey(raw, name, pass) {
+    const wanted = typeof raw.key === 'string' ? raw.key.trim() : '';
+    const trusted = pass.mode === 'revise' && wanted && pass.byKey.has(wanted) && !pass.taken.has(wanted);
+    return trusted ? wanted : freeKey(keyFromName(name), pass.taken);
+}
+
+/**
+ * The column's type and options: an unknown type is text, a retype is
+ * refused while the guard is on, options only ever grow (a value a row holds
+ * must stay a choice), and a list without options is text.
+ * @param {Record<string, any>} raw
+ * @param {CurrentField | null} prev
+ * @param {DraftPass} pass
+ */
+function columnType(raw, prev, pass) {
+    let type = DATATABLE_FIELD_TYPES.includes(raw.type) ? raw.type : 'text';
+    let options = isList(type) ? parseOptions(raw.options) : [];
+    if (prev && type !== prev.type && !pass.allowDestructive) {
+        pass.notes.push(`Kept the type of “${prev.name || prev.key}” (${prev.type}) — retyping is off.`);
+        type = prev.type;
+        options = optionValues(prev);
+    }
+    if (isList(type) && prev && prev.type === type) {
+        const merged = [...optionValues(prev)];
+        for (const o of options) if (!merged.includes(o)) merged.push(o);
+        options = merged.slice(0, DATA_LIMITS.MAX_SELECT_OPTIONS);
+    }
+    return isList(type) && !options.length ? { type: 'text', options } : { type, options };
+}
+
+/**
+ * One column of the model's answer, clamped (columnKey, columnType), with
+ * required kept while the guard is on and unique always kept. Null when no
+ * key is free.
+ * @param {Record<string, any>} raw
+ * @param {DraftPass} pass
+ * @returns {DraftField | null}
+ */
+function draftColumn(raw, pass) {
+    const name = clean(raw.name, DATA_LIMITS.MAX_NAME_LEN);
+    const key = columnKey(raw, name, pass);
+    if (!key) return null;
+    pass.taken.add(key);
+    const prev = pass.byKey.get(key) || null;
+    const { type, options } = columnType(raw, prev, pass);
+    /** @type {DraftField} */
+    const field = { key, name, type };
+    if (isList(type)) field.options = options;
+    if (raw.required === true || (prev && prev.required === true && !pass.allowDestructive)) field.required = true;
+    if (prev && prev.unique === true) field.unique = true;
+    return field;
 }
 
 /**
@@ -255,98 +313,50 @@ function optionValues(field) {
  */
 function parseDatatableDraft(structured, { mode = 'create', current = null, allowDestructive = false } = {}) {
     if (!structured || typeof structured !== 'object') return null;
-    const rawFields = Array.isArray(structured.fields) ? structured.fields : [];
     const before = currentFields(current);
-    const byKey = new Map(before.map(f => [f.key, f]));
-    /** @type {Set<string>} */
-    const taken = new Set();
+    /** @type {DraftPass} */
+    const pass = { mode, allowDestructive, byKey: new Map(before.map(f => [f.key, f])), taken: new Set(), notes: [] };
+    const { fields, dropped } = draftColumns(structured.fields, pass);
+    if (mode === 'revise' && !allowDestructive) restoreLeftOut(before, fields, pass.taken, pass.notes);
+    if (!fields.length) return null;
+    // The model's own verdict: the same normaliser the save runs.
+    if (!normalizeFields(fields.map(f => ({ ...f, id: pass.byKey.get(f.key)?.id })), before).ok) return null;
+    const { name, description } = draftTitle(structured, current);
+    if (dropped) pass.notes.push(`${dropped} more column${dropped === 1 ? '' : 's'} left out: a table holds at most ${DATA_LIMITS.MAX_FIELDS_PER_TABLE}.`);
+    const text = [clean(structured.notes, MAX_NOTES_OUT_CHARS), ...pass.notes].filter(Boolean).join(' ').slice(0, 1000);
+    return { name, key: keyFromName(name), description, fields, notes: text || null, changes: draftChanges(fields, before, pass.byKey) };
+}
+
+/**
+ * The answer's columns, clamped, up to the table's cap; `dropped` counts the
+ * named columns past it.
+ * @param {unknown} rawFields
+ * @param {DraftPass} pass
+ */
+function draftColumns(rawFields, pass) {
     /** @type {DraftField[]} */
     const fields = [];
-    /** @type {string[]} */
-    const notes = [];
     let dropped = 0;
-
-    for (const raw of rawFields) {
-        if (!raw || typeof raw !== 'object') continue;
-        const name = clean(raw.name, DATA_LIMITS.MAX_NAME_LEN);
-        if (!name) continue;
+    for (const raw of Array.isArray(rawFields) ? rawFields : []) {
+        if (!raw || typeof raw !== 'object' || !clean(raw.name, DATA_LIMITS.MAX_NAME_LEN)) continue;
         if (fields.length >= DATA_LIMITS.MAX_FIELDS_PER_TABLE) { dropped += 1; continue; }
-        const wanted = typeof raw.key === 'string' ? raw.key.trim() : '';
-        // A key is trusted only when the table already has it (revise) —
-        // anything else is derived from the name, so a fresh key can never
-        // stand in for an old column's data.
-        let key = mode === 'revise' && wanted && byKey.has(wanted) && !taken.has(wanted) ? wanted : null;
-        if (!key) key = freeKey(keyFromName(name), taken);
-        if (!key) continue;
-        taken.add(key);
-        const prev = byKey.get(key) || null;
-        let type = DATATABLE_FIELD_TYPES.includes(raw.type) ? raw.type : 'text';
-        let options = type === 'select' || type === 'multiselect' ? parseOptions(raw.options) : [];
-        if (prev && type !== prev.type && !allowDestructive) {
-            // Guard: the type stays; the person did not allow a retype.
-            notes.push(`Kept the type of “${prev.name || prev.key}” (${prev.type}) — retyping is off.`);
-            type = prev.type;
-            options = optionValues(prev);
-        }
-        if ((type === 'select' || type === 'multiselect') && prev && prev.type === type) {
-            // Options only ever grow: a value a row holds must stay a choice.
-            const merged = [...optionValues(prev)];
-            for (const o of options) if (!merged.includes(o)) merged.push(o);
-            options = merged.slice(0, DATA_LIMITS.MAX_SELECT_OPTIONS);
-        }
-        if ((type === 'select' || type === 'multiselect') && !options.length) type = 'text';
-        /** @type {DraftField} */
-        const field = { key, name, type };
-        if (type === 'select' || type === 'multiselect') field.options = options;
-        if (raw.required === true || (prev && prev.required === true && !allowDestructive)) field.required = true;
-        if (prev && prev.unique === true) field.unique = true;
-        fields.push(field);
+        const field = draftColumn(raw, pass);
+        if (field) fields.push(field);
     }
+    return { fields, dropped };
+}
 
-    // Guard: a current column the model left out comes back, at its place —
-    // right after the nearest column that precedes it today and is in the
-    // draft, else at the front.
-    if (mode === 'revise' && !allowDestructive) {
-        const missing = before.filter(f => !taken.has(f.key));
-        for (const f of missing) {
-            const idx = before.indexOf(f);
-            let at = 0;
-            for (let i = idx - 1; i >= 0; i -= 1) {
-                const pos = fields.findIndex(x => x.key === before[i].key);
-                if (pos >= 0) { at = pos + 1; break; }
-            }
-            /** @type {DraftField} */
-            const kept = { key: f.key, name: f.name || f.key, type: f.type };
-            if (f.type === 'select' || f.type === 'multiselect') kept.options = optionValues(f);
-            if (f.required === true) kept.required = true;
-            if (f.unique === true) kept.unique = true;
-            fields.splice(at, 0, kept);
-            taken.add(f.key);
-        }
-        if (missing.length) notes.push(`Kept ${missing.length === 1 ? 'a column' : `${missing.length} columns`} the draft left out (${missing.map(f => f.name || f.key).join(', ')}) — removing is off.`);
-    }
-    if (!fields.length) return null;
-
-    // The model's own verdict: the same normaliser the save runs.
-    const check = normalizeFields(fields.map(f => ({ ...f, id: byKey.get(f.key)?.id })), before);
-    if (!check.ok) return null;
-
+/**
+ * The draft's name and description: the answer's when it gave one, else the table's.
+ * @param {Record<string, unknown>} structured
+ * @param {CurrentTable | null} current
+ */
+function draftTitle(structured, current) {
     const cur = current && typeof current === 'object' ? current : {};
     const keep = (/** @type {string} */ k, /** @type {number} */ max) => (typeof structured[k] === 'string' && structured[k].trim() ? clean(structured[k], max) : null);
     const name = keep('name', DATA_LIMITS.MAX_NAME_LEN) || (typeof cur.name === 'string' && cur.name) || 'Untitled table';
     const description = keep('description', MAX_DESCRIPTION_CHARS) ?? (typeof cur.description === 'string' ? cur.description : '');
-
-    const after = new Map(fields.map(f => [f.key, f]));
-    const changes = {
-        added: fields.filter(f => !byKey.has(f.key)).map(f => f.key),
-        renamed: fields.filter(f => byKey.has(f.key) && (byKey.get(f.key).name || f.key) !== f.name).map(f => ({ key: f.key, from: byKey.get(f.key).name || f.key, to: f.name })),
-        retyped: fields.filter(f => byKey.has(f.key) && byKey.get(f.key).type !== f.type).map(f => ({ key: f.key, from: byKey.get(f.key).type, to: f.type })),
-        removed: before.filter(f => !after.has(f.key)).map(f => f.key),
-    };
-    let text = clean(structured.notes, MAX_NOTES_OUT_CHARS);
-    if (dropped) notes.push(`${dropped} more column${dropped === 1 ? '' : 's'} left out: a table holds at most ${DATA_LIMITS.MAX_FIELDS_PER_TABLE}.`);
-    text = [text, ...notes].filter(Boolean).join(' ').slice(0, 1000);
-    return { name, key: keyFromName(name), description, fields, notes: text || null, changes };
+    return { name, description };
 }
 
 module.exports = {

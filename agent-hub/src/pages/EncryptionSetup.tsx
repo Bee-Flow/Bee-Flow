@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { Shield, Key, Copy, Check, Eye, EyeOff, AlertTriangle, Lock, ArrowLeft } from 'lucide-react';
-import { API_BASE, authFetch } from '../utils/helpers';
 import { opaquePinLogin } from '../lib/opaque';
 import { useTranslation } from '../hooks/useTranslation';
 import { errorMessage } from '../utils/caughtError';
 import ReauthNotice from '../components/mfa/ReauthNotice';
 import { setupPinWithOpaque } from './encryptionPinSetup';
+import { apiFetch } from '@/api/typedRequest';
 
 /**
  * EncryptionSetup — Intercepts SSO login when encryption PIN is needed.
@@ -50,11 +50,7 @@ const EncryptionSetup = ({ mode, onComplete, recoveryKeyProp }: { mode: 'setup' 
 
         // Legacy fallback — PIN sent to server (for users without OPAQUE support)
         try {
-            const res = await authFetch(`${API_BASE}/auth/sso-encryption-setup`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ pin })
-            });
+            const res = await apiFetch('POST /auth/sso-encryption-setup', { body: { pin } });
             const data = await res.json();
             if (res.ok && data.success) {
                 setRecoveryKey(data.recoveryKey);
@@ -99,11 +95,7 @@ const EncryptionSetup = ({ mode, onComplete, recoveryKeyProp }: { mode: 'setup' 
 
         // Legacy fallback
         try {
-            const res = await authFetch(`${API_BASE}/auth/sso-encryption-unlock`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ pin })
-            });
+            const res = await apiFetch('POST /auth/sso-encryption-unlock', { body: { pin } });
             const data = await res.json();
             if (res.ok && data.success) {
                 onComplete();
@@ -136,11 +128,7 @@ const EncryptionSetup = ({ mode, onComplete, recoveryKeyProp }: { mode: 'setup' 
 
         setIsLoading(true);
         try {
-            const res = await authFetch(`${API_BASE}/auth/sso-recovery`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ recoveryKey: recoveryInput.trim(), newPin })
-            });
+            const res = await apiFetch('POST /auth/sso-recovery', { body: { recoveryKey: recoveryInput.trim(), newPin } });
             const data = await res.json();
             if (res.ok && data.success) {
                 setRecoveryKey(data.recoveryKey);

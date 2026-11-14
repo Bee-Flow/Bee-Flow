@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * forms.js — automationStore aggregate for the `form` trigger.
  *
@@ -99,7 +99,7 @@ function rowToPage(r) {
         submissions: Number(r.submissions || 0),
         // Who may fill it in (automation-form-audience-2026-09). A row from
         // before the column reads as 'org' — the rule it was made under.
-        audience: AUDIENCES.includes(r.audience) ? r.audience : 'org',
+        audience: AUDIENCES.includes(/** @type {string} */ (r.audience)) ? r.audience : 'org',
         sharedGroups: idList(r.shared_groups),
         sharedUserIds: idList(r.shared_user_ids),
         // A test link (formTestPageStore.mts): its own audience, the working copy.
@@ -306,7 +306,7 @@ async function rotateFormPage(id, automationId) {
     if (!existing) return null;
     await run(`DELETE FROM automation_form_pages WHERE id = $1`, [id]);
     // A new token, the same audience: rotating the link is not un-sharing.
-    const prev = rowToPage(existing);
+    const prev = /** @type {NonNullable<ReturnType<typeof rowToPage>>} */ (rowToPage(existing));
     return createFormPage(automationId, existing.trigger_step_id ?? null, {
         audience: prev.audience, sharedGroups: prev.sharedGroups, sharedUserIds: prev.sharedUserIds,
     });
@@ -403,7 +403,7 @@ async function listExpiredFormUploads(limit = 200) {
           ORDER BY expires_at LIMIT $1`,
         [limit],
     );
-    return rows.map(rowToUpload);
+    return rows.map((r) => /** @type {NonNullable<ReturnType<typeof rowToUpload>>} */ (rowToUpload(r))); // a selected row maps, never to null
 }
 
 /** @param {string[]} ids */

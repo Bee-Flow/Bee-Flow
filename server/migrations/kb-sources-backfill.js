@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: give every existing knowledge-base document a SOURCE (K1).
  *
@@ -186,9 +186,9 @@ async function up({ dryRun = false, db = require('../db'), log = console.log } =
                FROM automations a,
                     LATERAL jsonb_path_query(a.definition_json, '$.**.knowledgeBaseIds[*]') AS x`,
         );
-        const ids = Array.from(new Set((rows || [])
+        const ids = /** @type {string[]} */ (Array.from(new Set((rows || [])
             .map(r => (r && r.kb_id ? String(r.kb_id) : null))
-            .filter(id => id && /^[0-9a-f-]{36}$/i.test(id))));
+            .filter(id => id && /^[0-9a-f-]{36}$/i.test(id))))); // the filter drops the nulls
         stats.automationKbIds = ids;
         if (ids.length > 0) {
             if (dryRun) {

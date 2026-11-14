@@ -1,4 +1,5 @@
-import { act, renderHook } from '@testing-library/react';
+import { act } from '@testing-library/react';
+import { renderHookWithClient as renderHook } from '@/test/render';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/api/notebookApi', () => ({

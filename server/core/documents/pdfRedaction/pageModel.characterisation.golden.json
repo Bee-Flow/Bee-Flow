@@ -1,0 +1,2011 @@
+{
+  "paths.0": {
+    "content": "0 0 m 10 0 l 10 10 l h S",
+    "objects": [
+      {
+        "kind": "path",
+        "start": 0,
+        "end": 24,
+        "bbox": [
+          0,
+          0,
+          10,
+          10
+        ],
+        "fill": null,
+        "stroke": [
+          0,
+          0,
+          0
+        ],
+        "lineWidth": 1,
+        "segments": 3,
+        "clip": false,
+        "form": null,
+        "removable": true,
+        "id": 0
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 24,
+    "refs": 1
+  },
+  "paths.1": {
+    "content": "1 0 0 rg 5 5 20 10 re f",
+    "objects": [
+      {
+        "kind": "path",
+        "start": 9,
+        "end": 23,
+        "bbox": [
+          5,
+          5,
+          25,
+          15
+        ],
+        "fill": [
+          255,
+          0,
+          0
+        ],
+        "stroke": null,
+        "lineWidth": 1,
+        "segments": 4,
+        "clip": false,
+        "form": null,
+        "removable": true,
+        "id": 0
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 23,
+    "refs": 1
+  },
+  "paths.2": {
+    "content": "0 0 1 RG 2 w 0 0 m 1 2 3 4 5 6 c 7 8 9 10 v 11 12 13 14 y B",
+    "objects": [
+      {
+        "kind": "path",
+        "start": 13,
+        "end": 59,
+        "bbox": [
+          0,
+          0,
+          13,
+          14
+        ],
+        "fill": [
+          0,
+          0,
+          0
+        ],
+        "stroke": [
+          0,
+          0,
+          255
+        ],
+        "lineWidth": 2,
+        "segments": 3,
+        "clip": false,
+        "form": null,
+        "removable": true,
+        "id": 0
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 59,
+    "refs": 1
+  },
+  "paths.3": {
+    "content": "0 0 m 5 5 l b*",
+    "objects": [
+      {
+        "kind": "path",
+        "start": 0,
+        "end": 14,
+        "bbox": [
+          0,
+          0,
+          5,
+          5
+        ],
+        "fill": [
+          0,
+          0,
+          0
+        ],
+        "stroke": [
+          0,
+          0,
+          0
+        ],
+        "lineWidth": 1,
+        "segments": 1,
+        "clip": false,
+        "form": null,
+        "removable": true,
+        "id": 0
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 14,
+    "refs": 1
+  },
+  "paths.4": {
+    "content": "0 0 m 5 5 l n",
+    "objects": [],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 13,
+    "refs": 1
+  },
+  "paths.5": {
+    "content": "0 0 10 10 re W n",
+    "objects": [],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 16,
+    "refs": 1
+  },
+  "paths.6": {
+    "content": "0 0 10 10 re W* f*",
+    "objects": [
+      {
+        "kind": "path",
+        "start": 0,
+        "end": 18,
+        "bbox": [
+          0,
+          0,
+          10,
+          10
+        ],
+        "fill": [
+          0,
+          0,
+          0
+        ],
+        "stroke": null,
+        "lineWidth": 1,
+        "segments": 4,
+        "clip": true,
+        "form": null,
+        "removable": false,
+        "id": 0
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 18,
+    "refs": 1
+  },
+  "paths.7": {
+    "content": "0 0 m s",
+    "objects": [
+      {
+        "kind": "path",
+        "start": 0,
+        "end": 7,
+        "bbox": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "fill": null,
+        "stroke": [
+          0,
+          0,
+          0
+        ],
+        "lineWidth": 1,
+        "segments": 0,
+        "clip": false,
+        "form": null,
+        "removable": true,
+        "id": 0
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 7,
+    "refs": 1
+  },
+  "paths.8": {
+    "content": "f",
+    "objects": [],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 1,
+    "refs": 1
+  },
+  "paths.9": {
+    "content": "1 0 0 0 k 0 0 0 1 K 3 3 3 3 re B*",
+    "objects": [
+      {
+        "kind": "path",
+        "start": 20,
+        "end": 33,
+        "bbox": [
+          3,
+          3,
+          6,
+          6
+        ],
+        "fill": [
+          0,
+          255,
+          255
+        ],
+        "stroke": [
+          0,
+          0,
+          0
+        ],
+        "lineWidth": 1,
+        "segments": 4,
+        "clip": false,
+        "form": null,
+        "removable": true,
+        "id": 0
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 33,
+    "refs": 1
+  },
+  "paths.10": {
+    "content": "0.5 g 0.25 G 0 0 4 4 re F",
+    "objects": [
+      {
+        "kind": "path",
+        "start": 13,
+        "end": 25,
+        "bbox": [
+          0,
+          0,
+          4,
+          4
+        ],
+        "fill": [
+          128,
+          128,
+          128
+        ],
+        "stroke": null,
+        "lineWidth": 1,
+        "segments": 4,
+        "clip": false,
+        "form": null,
+        "removable": true,
+        "id": 0
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 25,
+    "refs": 1
+  },
+  "paths.11": {
+    "content": "/Pattern cs 0 0 4 4 re f /Pattern CS 0 0 4 4 re S",
+    "objects": [
+      {
+        "kind": "path",
+        "start": 12,
+        "end": 24,
+        "bbox": [
+          0,
+          0,
+          4,
+          4
+        ],
+        "fill": [
+          0,
+          0,
+          0
+        ],
+        "stroke": null,
+        "lineWidth": 1,
+        "segments": 4,
+        "clip": false,
+        "form": null,
+        "removable": true,
+        "id": 0
+      },
+      {
+        "kind": "path",
+        "start": 37,
+        "end": 49,
+        "bbox": [
+          0,
+          0,
+          4,
+          4
+        ],
+        "fill": null,
+        "stroke": [
+          0,
+          0,
+          0
+        ],
+        "lineWidth": 1,
+        "segments": 4,
+        "clip": false,
+        "form": null,
+        "removable": true,
+        "id": 1
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 49,
+    "refs": 1
+  },
+  "paths.12": {
+    "content": "/P1 scn 0 0 4 4 re f 0.2 0.4 0.6 SCN 0 0 4 4 re s 0.1 0.2 sc 0 0 4 4 re f",
+    "objects": [
+      {
+        "kind": "path",
+        "start": 8,
+        "end": 20,
+        "bbox": [
+          0,
+          0,
+          4,
+          4
+        ],
+        "fill": null,
+        "stroke": null,
+        "lineWidth": 1,
+        "segments": 4,
+        "clip": false,
+        "form": null,
+        "removable": true,
+        "id": 0
+      },
+      {
+        "kind": "path",
+        "start": 37,
+        "end": 49,
+        "bbox": [
+          0,
+          0,
+          4,
+          4
+        ],
+        "fill": null,
+        "stroke": [
+          51,
+          102,
+          153
+        ],
+        "lineWidth": 1,
+        "segments": 4,
+        "clip": false,
+        "form": null,
+        "removable": true,
+        "id": 1
+      },
+      {
+        "kind": "path",
+        "start": 61,
+        "end": 73,
+        "bbox": [
+          0,
+          0,
+          4,
+          4
+        ],
+        "fill": null,
+        "stroke": null,
+        "lineWidth": 1,
+        "segments": 4,
+        "clip": false,
+        "form": null,
+        "removable": true,
+        "id": 2
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 73,
+    "refs": 1
+  },
+  "paths.13": {
+    "content": "0 0 m 1 l 2 3 4 l S",
+    "objects": [
+      {
+        "kind": "path",
+        "start": 0,
+        "end": 19,
+        "bbox": [
+          0,
+          0,
+          2,
+          3
+        ],
+        "fill": null,
+        "stroke": [
+          0,
+          0,
+          0
+        ],
+        "lineWidth": 1,
+        "segments": 2,
+        "clip": false,
+        "form": null,
+        "removable": true,
+        "id": 0
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 19,
+    "refs": 1
+  },
+  "paths.14": {
+    "content": "1 0 0 rg 0 1 0 RG /DeviceRGB cs /DeviceRGB CS 0 0 4 4 re B",
+    "objects": [
+      {
+        "kind": "path",
+        "start": 46,
+        "end": 58,
+        "bbox": [
+          0,
+          0,
+          4,
+          4
+        ],
+        "fill": [
+          0,
+          0,
+          0
+        ],
+        "stroke": [
+          0,
+          0,
+          0
+        ],
+        "lineWidth": 1,
+        "segments": 4,
+        "clip": false,
+        "form": null,
+        "removable": true,
+        "id": 0
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 58,
+    "refs": 1
+  },
+  "stateStack.0": {
+    "content": "q 2 0 0 2 10 10 cm 0 0 5 5 re f Q 0 0 5 5 re f",
+    "objects": [
+      {
+        "kind": "path",
+        "start": 19,
+        "end": 31,
+        "bbox": [
+          10,
+          10,
+          20,
+          20
+        ],
+        "fill": [
+          0,
+          0,
+          0
+        ],
+        "stroke": null,
+        "lineWidth": 2,
+        "segments": 4,
+        "clip": false,
+        "form": null,
+        "removable": true,
+        "id": 0
+      },
+      {
+        "kind": "path",
+        "start": 34,
+        "end": 46,
+        "bbox": [
+          0,
+          0,
+          5,
+          5
+        ],
+        "fill": [
+          0,
+          0,
+          0
+        ],
+        "stroke": null,
+        "lineWidth": 1,
+        "segments": 4,
+        "clip": false,
+        "form": null,
+        "removable": true,
+        "id": 1
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 46,
+    "refs": 1
+  },
+  "stateStack.1": {
+    "content": "Q Q 0 0 1 1 re f",
+    "objects": [
+      {
+        "kind": "path",
+        "start": 4,
+        "end": 16,
+        "bbox": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "fill": [
+          0,
+          0,
+          0
+        ],
+        "stroke": null,
+        "lineWidth": 1,
+        "segments": 4,
+        "clip": false,
+        "form": null,
+        "removable": true,
+        "id": 0
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 16,
+    "refs": 1
+  },
+  "stateStack.2": {
+    "content": "q 1 0 0 1 5 5 cm q 0 1 -1 0 0 0 cm 0 0 1 2 re S Q 0 0 1 2 re S Q",
+    "objects": [
+      {
+        "kind": "path",
+        "start": 35,
+        "end": 47,
+        "bbox": [
+          3,
+          5,
+          5,
+          6
+        ],
+        "fill": null,
+        "stroke": [
+          0,
+          0,
+          0
+        ],
+        "lineWidth": 1,
+        "segments": 4,
+        "clip": false,
+        "form": null,
+        "removable": true,
+        "id": 0
+      },
+      {
+        "kind": "path",
+        "start": 50,
+        "end": 62,
+        "bbox": [
+          5,
+          5,
+          6,
+          7
+        ],
+        "fill": null,
+        "stroke": [
+          0,
+          0,
+          0
+        ],
+        "lineWidth": 1,
+        "segments": 4,
+        "clip": false,
+        "form": null,
+        "removable": true,
+        "id": 1
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 64,
+    "refs": 1
+  },
+  "stateStack.3": {
+    "content": "1 2 3 cm 0 0 1 1 re f",
+    "objects": [
+      {
+        "kind": "path",
+        "start": 9,
+        "end": 21,
+        "bbox": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "fill": [
+          0,
+          0,
+          0
+        ],
+        "stroke": null,
+        "lineWidth": 1,
+        "segments": 4,
+        "clip": false,
+        "form": null,
+        "removable": true,
+        "id": 0
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 21,
+    "refs": 1
+  },
+  "stateStack.4": {
+    "content": "0 w 0 0 1 1 re S x w 0 0 1 1 re S",
+    "objects": [
+      {
+        "kind": "path",
+        "start": 4,
+        "end": 16,
+        "bbox": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "fill": null,
+        "stroke": [
+          0,
+          0,
+          0
+        ],
+        "lineWidth": 0,
+        "segments": 4,
+        "clip": false,
+        "form": null,
+        "removable": true,
+        "id": 0
+      },
+      {
+        "kind": "path",
+        "start": 21,
+        "end": 33,
+        "bbox": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "fill": null,
+        "stroke": [
+          0,
+          0,
+          0
+        ],
+        "lineWidth": 0,
+        "segments": 4,
+        "clip": false,
+        "form": null,
+        "removable": true,
+        "id": 1
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 33,
+    "refs": 1
+  },
+  "text.0": {
+    "content": "BT /F1 12 Tf 100 700 Td (Hello) Tj ET",
+    "objects": [
+      {
+        "kind": "text",
+        "start": 24,
+        "end": 34,
+        "text": "Hello",
+        "bbox": [
+          100,
+          697.6,
+          130,
+          709.6
+        ],
+        "origin": [
+          100,
+          700
+        ],
+        "size": 12,
+        "form": null,
+        "removable": true,
+        "id": 0
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 37,
+    "refs": 1
+  },
+  "text.1": {
+    "content": "BT /F1 10 Tf 1 0 0 1 50 50 Tm [(A) -500 (B) 250 (C)] TJ ET",
+    "objects": [
+      {
+        "kind": "text",
+        "start": 30,
+        "end": 55,
+        "text": "ABC",
+        "bbox": [
+          50,
+          48,
+          67.5,
+          58
+        ],
+        "origin": [
+          50,
+          50
+        ],
+        "size": 10,
+        "form": null,
+        "removable": true,
+        "id": 0
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 58,
+    "refs": 1
+  },
+  "text.2": {
+    "content": "BT /F1 10 Tf 2 Tc 5 Tw 50 Tz 3 Ts 14 TL 10 20 Td (a b) Tj T* (c) Tj (d) ' ET",
+    "objects": [
+      {
+        "kind": "text",
+        "start": 49,
+        "end": 57,
+        "text": "a b",
+        "bbox": [
+          10,
+          21,
+          23,
+          31
+        ],
+        "origin": [
+          10,
+          23
+        ],
+        "size": 10,
+        "form": null,
+        "removable": true,
+        "id": 0
+      },
+      {
+        "kind": "text",
+        "start": 61,
+        "end": 67,
+        "text": "c",
+        "bbox": [
+          10,
+          7,
+          13.5,
+          17
+        ],
+        "origin": [
+          10,
+          9
+        ],
+        "size": 10,
+        "form": null,
+        "removable": true,
+        "id": 1
+      },
+      {
+        "kind": "text",
+        "start": 68,
+        "end": 73,
+        "text": "d",
+        "bbox": [
+          10,
+          -7,
+          13.5,
+          3
+        ],
+        "origin": [
+          10,
+          -5
+        ],
+        "size": 10,
+        "form": null,
+        "removable": true,
+        "id": 2
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 76,
+    "refs": 1
+  },
+  "text.3": {
+    "content": "BT /F1 8 Tf 12 TL 0 0 TD 1 2 (e f) \" 0 -20 TD (g) Tj ET",
+    "objects": [
+      {
+        "kind": "text",
+        "start": 25,
+        "end": 36,
+        "text": "e f",
+        "bbox": [
+          0,
+          -1.6,
+          19,
+          6.4
+        ],
+        "origin": [
+          0,
+          0
+        ],
+        "size": 8,
+        "form": null,
+        "removable": true,
+        "id": 0
+      },
+      {
+        "kind": "text",
+        "start": 46,
+        "end": 52,
+        "text": "g",
+        "bbox": [
+          0,
+          -21.6,
+          6,
+          -13.6
+        ],
+        "origin": [
+          0,
+          -20
+        ],
+        "size": 8,
+        "form": null,
+        "removable": true,
+        "id": 1
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 55,
+    "refs": 1
+  },
+  "text.4": {
+    "content": "BT /Missing 9 Tf (x) Tj ET",
+    "objects": [
+      {
+        "kind": "text",
+        "start": 17,
+        "end": 23,
+        "text": "x",
+        "bbox": [
+          0,
+          -1.8,
+          4.5,
+          7.2
+        ],
+        "origin": [
+          0,
+          0
+        ],
+        "size": 9,
+        "form": null,
+        "removable": true,
+        "id": 0
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 26,
+    "refs": 1
+  },
+  "text.5": {
+    "content": "BT 9 Tf (no font) Tj ET",
+    "objects": [
+      {
+        "kind": "text",
+        "start": 8,
+        "end": 20,
+        "text": "no font",
+        "bbox": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "origin": [
+          0,
+          0
+        ],
+        "size": 0,
+        "form": null,
+        "removable": true,
+        "id": 0
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 23,
+    "refs": 1
+  },
+  "text.6": {
+    "content": "BT /F1 x Tf (bad size) Tj ET",
+    "objects": [
+      {
+        "kind": "text",
+        "start": 12,
+        "end": 25,
+        "text": "bad size",
+        "bbox": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "origin": [
+          0,
+          0
+        ],
+        "size": 0,
+        "form": null,
+        "removable": true,
+        "id": 0
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 28,
+    "refs": 1
+  },
+  "text.7": {
+    "content": "BT (no Tf) Tj ET",
+    "objects": [
+      {
+        "kind": "text",
+        "start": 3,
+        "end": 13,
+        "text": "no Tf",
+        "bbox": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "origin": [
+          0,
+          0
+        ],
+        "size": 0,
+        "form": null,
+        "removable": true,
+        "id": 0
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 16,
+    "refs": 1
+  },
+  "text.8": {
+    "content": "BT /F1 10 Tf 1 0 0 1 0 0 cm 3 0 0 3 0 0 cm (scaled) Tj ET",
+    "objects": [
+      {
+        "kind": "text",
+        "start": 43,
+        "end": 54,
+        "text": "scaled",
+        "bbox": [
+          0,
+          -6,
+          90,
+          24
+        ],
+        "origin": [
+          0,
+          0
+        ],
+        "size": 30,
+        "form": null,
+        "removable": true,
+        "id": 0
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 57,
+    "refs": 1
+  },
+  "text.9": {
+    "content": "BT /F1 10 Tf [] TJ [(z)] TJ ET",
+    "objects": [
+      {
+        "kind": "text",
+        "start": 13,
+        "end": 18,
+        "text": "",
+        "bbox": [
+          0,
+          -2,
+          0,
+          8
+        ],
+        "origin": [
+          0,
+          0
+        ],
+        "size": 10,
+        "form": null,
+        "removable": true,
+        "id": 0
+      },
+      {
+        "kind": "text",
+        "start": 19,
+        "end": 27,
+        "text": "z",
+        "bbox": [
+          0,
+          -2,
+          5,
+          8
+        ],
+        "origin": [
+          0,
+          0
+        ],
+        "size": 10,
+        "form": null,
+        "removable": true,
+        "id": 1
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 30,
+    "refs": 1
+  },
+  "text.10": {
+    "content": "BT /F1 10 Tf Tz (default scale) Tj ET",
+    "objects": [
+      {
+        "kind": "text",
+        "start": 16,
+        "end": 34,
+        "text": "default scale",
+        "bbox": [
+          0,
+          -2,
+          65,
+          8
+        ],
+        "origin": [
+          0,
+          0
+        ],
+        "size": 10,
+        "form": null,
+        "removable": true,
+        "id": 0
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 37,
+    "refs": 1
+  },
+  "text.11": {
+    "content": "BT /F1 10 Tf 0 Tz (zero scale) Tj /x Tz (nan scale) Tj ET",
+    "objects": [
+      {
+        "kind": "text",
+        "start": 18,
+        "end": 33,
+        "text": "zero scale",
+        "bbox": [
+          0,
+          -2,
+          0,
+          8
+        ],
+        "origin": [
+          0,
+          0
+        ],
+        "size": 10,
+        "form": null,
+        "removable": true,
+        "id": 0
+      },
+      {
+        "kind": "text",
+        "start": 40,
+        "end": 54,
+        "text": "nan scale",
+        "bbox": [
+          0,
+          -2,
+          0,
+          8
+        ],
+        "origin": [
+          0,
+          0
+        ],
+        "size": 10,
+        "form": null,
+        "removable": true,
+        "id": 1
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 57,
+    "refs": 1
+  },
+  "text.12": {
+    "content": "BT /F1 10 Tf 1 2 3 Tm (Tm needs six) Tj 1 0 0 1 9 9 Tm (six) Tj ET",
+    "objects": [
+      {
+        "kind": "text",
+        "start": 22,
+        "end": 39,
+        "text": "Tm needs six",
+        "bbox": [
+          0,
+          -2,
+          60,
+          8
+        ],
+        "origin": [
+          0,
+          0
+        ],
+        "size": 10,
+        "form": null,
+        "removable": true,
+        "id": 0
+      },
+      {
+        "kind": "text",
+        "start": 55,
+        "end": 63,
+        "text": "six",
+        "bbox": [
+          9,
+          7,
+          24,
+          17
+        ],
+        "origin": [
+          9,
+          9
+        ],
+        "size": 10,
+        "form": null,
+        "removable": true,
+        "id": 1
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 66,
+    "refs": 1
+  },
+  "text.13": {
+    "content": "BT /F1 10 Tf 5 Td (one operand) Tj ET",
+    "objects": [
+      {
+        "kind": "text",
+        "start": 18,
+        "end": 34,
+        "text": "one operand",
+        "bbox": [
+          5,
+          -2,
+          60,
+          8
+        ],
+        "origin": [
+          5,
+          0
+        ],
+        "size": 10,
+        "form": null,
+        "removable": true,
+        "id": 0
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 37,
+    "refs": 1
+  },
+  "text.14": {
+    "content": "BT /F1 10 Tf (first) Tj (second) Tj BT (reset) Tj ET",
+    "objects": [
+      {
+        "kind": "text",
+        "start": 13,
+        "end": 23,
+        "text": "first",
+        "bbox": [
+          0,
+          -2,
+          25,
+          8
+        ],
+        "origin": [
+          0,
+          0
+        ],
+        "size": 10,
+        "form": null,
+        "removable": true,
+        "id": 0
+      },
+      {
+        "kind": "text",
+        "start": 24,
+        "end": 35,
+        "text": "second",
+        "bbox": [
+          25,
+          -2,
+          55,
+          8
+        ],
+        "origin": [
+          25,
+          0
+        ],
+        "size": 10,
+        "form": null,
+        "removable": true,
+        "id": 1
+      },
+      {
+        "kind": "text",
+        "start": 39,
+        "end": 49,
+        "text": "reset",
+        "bbox": [
+          0,
+          -2,
+          25,
+          8
+        ],
+        "origin": [
+          0,
+          0
+        ],
+        "size": 10,
+        "form": null,
+        "removable": true,
+        "id": 2
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 52,
+    "refs": 1
+  },
+  "text.15": {
+    "content": "BT /F1 10 Tf 0 1 -1 0 300 300 Tm (rotated) Tj ET",
+    "objects": [
+      {
+        "kind": "text",
+        "start": 33,
+        "end": 45,
+        "text": "rotated",
+        "bbox": [
+          292,
+          300,
+          302,
+          335
+        ],
+        "origin": [
+          300,
+          300
+        ],
+        "size": 10,
+        "form": null,
+        "removable": true,
+        "id": 0
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 48,
+    "refs": 1
+  },
+  "images.0": {
+    "content": "q 100 0 0 50 10 20 cm BI /W 1 /H 1 /BPC 8 /CS /G ID \u0000 EI Q",
+    "objects": [
+      {
+        "kind": "image",
+        "start": 22,
+        "end": 56,
+        "bbox": [
+          10,
+          20,
+          110,
+          70
+        ],
+        "name": null,
+        "inline": true,
+        "form": null,
+        "removable": true,
+        "id": 0
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 58,
+    "refs": 1
+  },
+  "images.1": {
+    "content": "q 30 0 0 30 5 5 cm /Im1 Do Q",
+    "objects": [
+      {
+        "kind": "image",
+        "start": 19,
+        "end": 26,
+        "bbox": [
+          5,
+          5,
+          35,
+          35
+        ],
+        "name": "Im1",
+        "inline": false,
+        "form": null,
+        "removable": true,
+        "id": 0
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 28,
+    "refs": 1
+  },
+  "images.2": {
+    "content": "/Nope Do",
+    "objects": [],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 8,
+    "refs": 1
+  },
+  "images.3": {
+    "content": "Do",
+    "objects": [],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 2,
+    "refs": 1
+  },
+  "images.4": {
+    "content": "q 2 0 0 2 0 0 cm /Fm1 Do Q",
+    "objects": [
+      {
+        "kind": "text",
+        "start": 12,
+        "end": 24,
+        "text": "in form",
+        "bbox": [
+          14,
+          15.6,
+          56,
+          27.6
+        ],
+        "origin": [
+          14,
+          18
+        ],
+        "size": 12,
+        "form": "Fm1",
+        "removable": false,
+        "id": 0
+      },
+      {
+        "kind": "path",
+        "start": 28,
+        "end": 40,
+        "bbox": [
+          14,
+          18,
+          20,
+          24
+        ],
+        "fill": [
+          0,
+          0,
+          0
+        ],
+        "stroke": null,
+        "lineWidth": 2,
+        "segments": 4,
+        "clip": false,
+        "form": "Fm1",
+        "removable": false,
+        "id": 1
+      },
+      {
+        "kind": "image",
+        "start": 41,
+        "end": 48,
+        "bbox": [
+          14,
+          18,
+          16,
+          20
+        ],
+        "name": "Img",
+        "inline": false,
+        "form": "Fm1",
+        "removable": false,
+        "id": 2
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 26,
+    "refs": 1
+  },
+  "images.5": {
+    "content": "/Loop Do",
+    "objects": [
+      {
+        "kind": "path",
+        "start": 0,
+        "end": 12,
+        "bbox": [
+          1,
+          1,
+          3,
+          3
+        ],
+        "fill": [
+          0,
+          0,
+          0
+        ],
+        "stroke": null,
+        "lineWidth": 2,
+        "segments": 4,
+        "clip": false,
+        "form": "Loop",
+        "removable": false,
+        "id": 0
+      },
+      {
+        "kind": "path",
+        "start": 0,
+        "end": 12,
+        "bbox": [
+          3,
+          3,
+          7,
+          7
+        ],
+        "fill": [
+          0,
+          0,
+          0
+        ],
+        "stroke": null,
+        "lineWidth": 4,
+        "segments": 4,
+        "clip": false,
+        "form": "Loop",
+        "removable": false,
+        "id": 1
+      },
+      {
+        "kind": "path",
+        "start": 0,
+        "end": 12,
+        "bbox": [
+          7,
+          7,
+          15,
+          15
+        ],
+        "fill": [
+          0,
+          0,
+          0
+        ],
+        "stroke": null,
+        "lineWidth": 8,
+        "segments": 4,
+        "clip": false,
+        "form": "Loop",
+        "removable": false,
+        "id": 2
+      },
+      {
+        "kind": "path",
+        "start": 0,
+        "end": 12,
+        "bbox": [
+          15,
+          15,
+          31,
+          31
+        ],
+        "fill": [
+          0,
+          0,
+          0
+        ],
+        "stroke": null,
+        "lineWidth": 16,
+        "segments": 4,
+        "clip": false,
+        "form": "Loop",
+        "removable": false,
+        "id": 3
+      },
+      {
+        "kind": "path",
+        "start": 0,
+        "end": 12,
+        "bbox": [
+          31,
+          31,
+          63,
+          63
+        ],
+        "fill": [
+          0,
+          0,
+          0
+        ],
+        "stroke": null,
+        "lineWidth": 32,
+        "segments": 4,
+        "clip": false,
+        "form": "Loop",
+        "removable": false,
+        "id": 4
+      },
+      {
+        "kind": "path",
+        "start": 0,
+        "end": 12,
+        "bbox": [
+          63,
+          63,
+          127,
+          127
+        ],
+        "fill": [
+          0,
+          0,
+          0
+        ],
+        "stroke": null,
+        "lineWidth": 64,
+        "segments": 4,
+        "clip": false,
+        "form": "Loop",
+        "removable": false,
+        "id": 5
+      },
+      {
+        "kind": "path",
+        "start": 0,
+        "end": 12,
+        "bbox": [
+          127,
+          127,
+          255,
+          255
+        ],
+        "fill": [
+          0,
+          0,
+          0
+        ],
+        "stroke": null,
+        "lineWidth": 128,
+        "segments": 4,
+        "clip": false,
+        "form": "Loop",
+        "removable": false,
+        "id": 6
+      },
+      {
+        "kind": "path",
+        "start": 0,
+        "end": 12,
+        "bbox": [
+          255,
+          255,
+          511,
+          511
+        ],
+        "fill": [
+          0,
+          0,
+          0
+        ],
+        "stroke": null,
+        "lineWidth": 256,
+        "segments": 4,
+        "clip": false,
+        "form": "Loop",
+        "removable": false,
+        "id": 7
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 8,
+    "refs": 1
+  },
+  "images.6": {
+    "content": "/Bare Do",
+    "objects": [
+      {
+        "kind": "text",
+        "start": 12,
+        "end": 21,
+        "text": "bare",
+        "bbox": [
+          0,
+          -1,
+          10,
+          4
+        ],
+        "origin": [
+          0,
+          0
+        ],
+        "size": 5,
+        "form": "Bare",
+        "removable": false,
+        "id": 0
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 8,
+    "refs": 1
+  },
+  "malformed.0": {
+    "content": "0 0 m 10 ( l S",
+    "objects": [],
+    "malformed": 1,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 14,
+    "refs": 1
+  },
+  "malformed.1": {
+    "content": "] 0 0 m 5 5 l S",
+    "objects": [
+      {
+        "kind": "path",
+        "start": 2,
+        "end": 15,
+        "bbox": [
+          0,
+          0,
+          5,
+          5
+        ],
+        "fill": null,
+        "stroke": [
+          0,
+          0,
+          0
+        ],
+        "lineWidth": 1,
+        "segments": 1,
+        "clip": false,
+        "form": null,
+        "removable": true,
+        "id": 0
+      }
+    ],
+    "malformed": 1,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 15,
+    "refs": 1
+  },
+  "malformed.2": {
+    "content": "<< /A 1 >> 0 0 m 5 5 l S",
+    "objects": [
+      {
+        "kind": "path",
+        "start": 0,
+        "end": 24,
+        "bbox": [
+          5,
+          5,
+          5,
+          5
+        ],
+        "fill": null,
+        "stroke": [
+          0,
+          0,
+          0
+        ],
+        "lineWidth": 1,
+        "segments": 1,
+        "clip": false,
+        "form": null,
+        "removable": true,
+        "id": 0
+      }
+    ],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 24,
+    "refs": 1
+  },
+  "malformed.3": {
+    "content": "",
+    "objects": [],
+    "malformed": 0,
+    "box": [
+      0,
+      0,
+      300,
+      200
+    ],
+    "bytes": 0,
+    "refs": 1
+  }
+}

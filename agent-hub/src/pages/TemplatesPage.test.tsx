@@ -1,4 +1,5 @@
-import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, screen, waitFor, within } from '@testing-library/react';
+import { renderWithClient } from '@/test/render';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -93,7 +94,7 @@ function setup(templates: Tpl[] = [T1, T2]) {
     });
     api.mutate.mockResolvedValue({});
     const onBack = vi.fn();
-    const utils = render(<TemplatesPage user={{ id: 'u' }} onBack={onBack} />);
+    const utils = renderWithClient(<TemplatesPage user={{ id: 'u' }} onBack={onBack} />);
     return { onBack, ...utils };
 }
 

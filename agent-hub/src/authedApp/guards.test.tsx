@@ -1,11 +1,12 @@
 // The subscription gate: where an organisation without a plan is sent, and the
 // licence pages it lets render so the admin can subscribe.
-import { render } from '@testing-library/react';
+
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import LicenseContext from '@/components/licensing/LicenseContext';
 import { SubscriptionProvider } from '@/components/licensing/SubscriptionContext';
 import { SubscriptionGate } from './guards';
+import { renderWithClient } from '@/test/render';
 
 type LicenseValue = React.ComponentProps<typeof LicenseContext.Provider>['value'];
 
@@ -30,7 +31,7 @@ async function gate(path: string, { phone = false } = {}) {
     window.history.replaceState(null, '', path);
     const navigateToPage = vi.fn();
     const license = { loading: false, serverOverride: false } as LicenseValue;
-    render(
+    renderWithClient(
         <LicenseContext.Provider value={license}>
             <SubscriptionProvider user={member}>
                 <SubscriptionGate user={member} currentPage="agents" deploymentMode="cloud" navigateToPage={navigateToPage} />

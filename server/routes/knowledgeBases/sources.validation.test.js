@@ -36,6 +36,7 @@ const SOURCE = { id: 's1', knowledgeBaseId: 'kb1', kind: 'webpage', name: 'Docs'
 
 const pass = (req, res, next) => next();
 
+const { fakeKbGates } = require('./kbGate.testkit');
 const MOCKS = {
     '../../stores/knowledgeBases': {
         // Real vocabularies — a schema that validated against an empty
@@ -43,7 +44,7 @@ const MOCKS = {
         // store actually accepts.
         DOC_STATUSES: ['processed', 'redacted', 'skipped', 'error', 'duplicate'],
         PII_STATUSES: ['none', 'found', 'redacted', 'unscanned'],
-        getKB: async (id) => { touched.push({ what: 'getKB', args: [id] }); return { ...KB, ...(adopt.kb || {}) }; },
+        getKB: async () => ({ ...KB, ...(adopt.kb || {}) }),
         isSystemKB: () => adopt.system,
         countsBySource: async (ids) => Object.fromEntries(ids.filter((i) => adopt.counts[i]).map((i) => [i, adopt.counts[i]])),
         listDocuments: async (...a) => { touched.push({ what: 'listDocuments', args: a }); return []; },
@@ -78,8 +79,7 @@ const MOCKS = {
     '../../auth': { requireAuth: pass, requirePermission: () => pass },
     './shared': {
         getUserId: (req) => req.session?.user?.id || null,
-        canAccessKB: async () => true,
-        canManageKB: async () => true,
+        ...fakeKbGates({ kbStore: { getKB: (id) => MOCKS['../../stores/knowledgeBases'].getKB(id) }, canRead: () => true }),
         blockIfSystemKB: () => false,
         guardedFetch: async () => { throw new Error('the network is not part of this test'); },
     },

@@ -89,6 +89,7 @@ export default function SideWebpagePanel({
                     <button
                         onClick={openInEditor}
                         title={t('webpages.side_panel.open_in_editor', 'Open in editor')}
+                        aria-label={t('webpages.side_panel.open_in_editor', 'Open in editor')}
                         className="p-1 rounded hover:bg-[var(--bg-secondary)]"
                     >
                         <Pencil className="w-4 h-4 text-[var(--text-secondary)]" />
@@ -97,6 +98,7 @@ export default function SideWebpagePanel({
                 <button
                     onClick={onClose}
                     title={t('common.close', 'Close')}
+                    aria-label={t('common.close', 'Close')}
                     className="p-1 rounded hover:bg-[var(--bg-secondary)]"
                 >
                     <X className="w-4 h-4 text-[var(--text-secondary)]" />

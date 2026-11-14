@@ -2,9 +2,8 @@
 
 /**
  * The per-user image count, against a REAL Postgres (@electric-sql/pglite,
- * in-process). The sibling suite pins the parameters; this one proves the SQL
- * counts the right rows: this user's, of the image source, inside each rolling
- * window.
+ * in-process): the SQL counts the right rows: this user's, of the image
+ * source, inside each rolling window ending at "now".
  *
  * Run: cd server && node --test stores/usageStore.imageCounts.pg.test.js
  */
@@ -18,6 +17,7 @@ const pg = newPglite();
 const db = { query: pgliteQuery(pg) };
 
 const { getUserImageCounts } = require('./usage/counts');
+const usageStore = require('./usageStore');
 
 const WINDOWS = { hour: 3_600_000, day: 86_400_000, week: 604_800_000, month: 2_592_000_000 };
 const NOW = new Date('2026-11-13T12:00:00.000Z');
@@ -47,6 +47,10 @@ before(async () => {
 });
 
 after(async () => { await pg.close(); });
+
+test('the count is taken under the source every image generation logs', () => {
+    assert.strictEqual(usageStore.IMAGE_GENERATION_SOURCE, 'image_generation');
+});
 
 test('counts this user\'s images inside each rolling window', async () => {
     assert.deepStrictEqual(await getUserImageCounts('u1', WINDOWS, { now: NOW, db }), { hour: 2, day: 3, week: 4, month: 5 });

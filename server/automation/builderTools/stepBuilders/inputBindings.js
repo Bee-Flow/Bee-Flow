@@ -193,7 +193,7 @@ function boundInputNote(b, res, forEach) {
  * has; an upstream same-name field is offered with its caveat; an upstream
  * list is offered with the forEach to add. Anything else is the plain
  * message the 2026-09-12 check has always given. A rejection that knows
- * the one exact edit carries it as _suggestedPatch (suggestedPatch.js) —
+ * the one exact edit carries it as _suggestedPatch (core/llm/suggestedPatch.js) —
  * except on a side-effect action: the build loop applies that patch on an
  * identical resend, which would bind for a delete by the back door.
  */

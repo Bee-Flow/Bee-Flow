@@ -193,7 +193,8 @@ test('field service: the lookups and the rollups read back from the installed ro
 });
 
 test('field service: read back from the database in its key order, the app still counts as unchanged since install', async () => {
-    const { hashDefinition, isPristine } = require('../templateUpgrade');
+    const { isPristine } = require('../templateUpgrade');
+    const { hashDefinition } = require('../../core/packaging/definitionHash.mts');
     const res = await api.call('POST', '/api/studio-apps', { body: { templateId: 'app-field-service' } });
     assert.equal(res.status, 200, res.text.slice(0, 400));
     const app = await require('../../stores/studioAppStore').getStudioApp(JSON.parse(res.text).app.id);

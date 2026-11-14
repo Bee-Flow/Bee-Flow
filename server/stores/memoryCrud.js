@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * stores/memoryCrud.js — writing memories: create (with canonical dedupe
  * through the blind index), update, confirm, provenance, and the delete and
@@ -66,11 +66,11 @@ const WRITABLE_STATUSES = Object.freeze(['active', 'pending_review']);
  */
 async function createMemory(userId, agentId, type, content, summary = null, importance = 0.5, subject = null, attribute = null, value = null, evidenceQuote = null, projectId = null, options = {}) {
     await initDB();
-    const confidence = Number.isFinite(options?.confidence) ? Math.min(1, Math.max(0, options.confidence)) : 1.0;
+    const confidence = Number.isFinite(options?.confidence) ? Math.min(1, Math.max(0, /** @type {number} */ (options.confidence))) : 1.0;
     const meta = {
-        origin: ORIGINS.includes(options?.origin) ? options.origin : 'inferred',
-        sensitivity: SENSITIVITIES.includes(options?.sensitivity) ? options.sensitivity : 'none',
-        status: WRITABLE_STATUSES.includes(options?.status) ? options.status : 'active',
+        origin: ORIGINS.includes(/** @type {string} */ (options?.origin)) ? options.origin : 'inferred',
+        sensitivity: SENSITIVITIES.includes(/** @type {string} */ (options?.sensitivity)) ? options.sensitivity : 'none',
+        status: WRITABLE_STATUSES.includes(/** @type {string} */ (options?.status)) ? options.status : 'active',
         sourceConversationId: options?.sourceConversationId || null,
         replacesId: options?.replacesId || null,
     };

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Data Act Art. 23(c) / Art. 25(2)(a),(e) / Art. 30(5) — all exportable data
  * can be ported. (Art. 30(1) is functional equivalence for IaaS providers and
@@ -165,6 +166,5 @@ module.exports = {
             details: `All ${held.length} held data kind(s) have a mounted export route.` + (unknown.length ? ` ${unknown.length} kind(s) could not be counted on this install (${unknown.join(', ')}).` : ''),
         };
     },
+    _test: { PER_ITEM_BULK_THRESHOLD },
 };
-
-module.exports._test = { PER_ITEM_BULK_THRESHOLD };

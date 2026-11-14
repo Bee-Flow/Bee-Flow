@@ -341,6 +341,8 @@ module.exports = {
  */
 
 /**
- * The round context the ./toolRound/ steps read: the round's inputs plus the per-round state.
- * @typedef {Omit<ToolRoundInput, 'currentToolCalls' | 'persistDurable' | '_failingToolCounts'> & { _lentByToolCall: Map<string, LentConnection>, _heldThisRound: Set<string>, _isTestChatRound: boolean, _toolDecisions: Map<string, 'approve'|'decline'>, pendingLoopDetected: boolean }} ToolRoundContext
+ * The round context the ./toolRound/ steps read: the round's inputs (the three lists defaulted) plus the per-round state.
+ * @typedef {Omit<ToolRoundInput, 'currentToolCalls' | 'persistDurable' | '_failingToolCounts' | '_generatedFiles' | '_pendingToolCalls' | '_pendingToolCounts'>
+ *   & { _generatedFiles: Record<string, unknown>[], _pendingToolCalls: Record<string, unknown>[], _pendingToolCounts: Map<string, number> }
+ *   & { _lentByToolCall: Map<string, LentConnection>, _heldThisRound: Set<string>, _isTestChatRound: boolean, _toolDecisions: Map<string, 'approve'|'decline'>, pendingLoopDetected: boolean }} ToolRoundContext
  */

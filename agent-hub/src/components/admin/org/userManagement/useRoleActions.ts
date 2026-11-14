@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import type { TranslateFn } from '@/hooks/useTranslation';
-import { API_BASE, authFetch } from '@/utils/helpers';
 import type { AdminMessage, AdminRole, AskConfirm, RoleFormData } from './types';
+import { apiFetch } from '@/api/typedRequest';
 
 const EMPTY_ROLE: RoleFormData = { id: '', name: '', description: '', permissions: [] };
 
@@ -46,10 +46,7 @@ export default function useRoleActions({ loadData, setMessage, askConfirm, t }: 
     const handleAddRole = async () => {
         if (!roleData.name) return;
         try {
-            const res = await authFetch(`${API_BASE}/auth/roles`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(roleData),
-            });
+            const res = await apiFetch('POST /auth/roles', { body: roleData });
             if (res.ok) {
                 setMessage({ type: 'success', text: 'Role created successfully' });
                 setShowAddRole(false);
@@ -63,10 +60,7 @@ export default function useRoleActions({ loadData, setMessage, askConfirm, t }: 
 
     const handleUpdateRole = async () => {
         try {
-            const res = await authFetch(`${API_BASE}/auth/roles/${roleData.id}`, {
-                method: 'PUT', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(roleData),
-            });
+            const res = await apiFetch('PUT /auth/roles/{id}', { params: { id: roleData.id }, body: roleData });
             if (res.ok) {
                 setMessage({ type: 'success', text: 'Role updated successfully' });
                 setShowEditRole(false);
@@ -90,7 +84,7 @@ export default function useRoleActions({ loadData, setMessage, askConfirm, t }: 
 
     const doDeleteRole = async (roleId: string) => {
         try {
-            const res = await authFetch(`${API_BASE}/auth/roles/${roleId}`, { method: 'DELETE' });
+            const res = await apiFetch('DELETE /auth/roles/{id}', { params: { id: roleId } });
             if (res.ok) { setMessage({ type: 'success', text: 'Role deleted' }); loadData(); }
             else { const d = await res.json(); setMessage({ type: 'error', text: d.error || 'Failed' }); }
         } catch (err) { setMessage({ type: 'error', text: 'Connection error' }); }

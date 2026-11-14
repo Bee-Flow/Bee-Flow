@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * The test-bench assistant: what leaves the server, and what comes back.
@@ -52,7 +52,7 @@ function buildOutbound({ type, examples, keepFixed, key, orgId }) {
     const list = (Array.isArray(examples) ? examples : []).filter((e) => typeof e === 'string' && e);
     const keep = acceptedKeepFixed(keepFixed, list, method);
     const pairs = maskExamples(list, { key, orgId, typeId: type?.id, keepFixed: keep })
-        .filter((p) => p.lookalike);
+        .filter(/** @type {(p: { example: string, lookalike: string | null }) => p is { example: string, lookalike: string }} */ ((p) => Boolean(p.lookalike)));
     const lookalikeOf = new Map(pairs.map((p) => [p.example, p.lookalike]));
     return {
         outbound: {
@@ -115,7 +115,7 @@ function buildAssistMessages({ name, description, lookalikes, method }) {
         '<kind_of_data>',
         `Name: ${String(name || '')}`,
         `Description: ${String(description || '')}`,
-        `Recognition method chosen so far: ${METHODS.includes(method) ? method : 'not chosen'}`,
+        `Recognition method chosen so far: ${METHODS.includes(/** @type {string} */ (method)) ? /** @type {string} */ (method) : 'not chosen'}`,
         '</kind_of_data>',
         '<example_values>',
         ...values,
@@ -323,6 +323,7 @@ async function sanitizeAssistOutput(structured, { pairs, examples, validatePatte
 /**
  * Did the cleaned answer leave anything to show?
  * @param {AssistResult | null} result
+ * @returns {result is AssistResult}
  */
 function hasUsableOutput(result) {
     return !!result && (result.sentences.length + result.nearMisses.length

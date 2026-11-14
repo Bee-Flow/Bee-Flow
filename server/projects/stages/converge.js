@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * CONVERGE, the third phase of a release deployment (design 6.4): the side
  * effects after the commit made the release live. Idempotent and retriable;
@@ -32,6 +33,10 @@
 
 'use strict';
 
+// What this needs of automation/ and appStudio/ (features) is looked up by name
+// (core/featureModules.js, registered in boot/featureModules.js).
+const { featureModule } = require('../../core/featureModules');
+
 const log = require('../../telemetry/log');
 const { storesOf } = require('./journal');
 
@@ -65,7 +70,7 @@ async function previousLiveOf(s, steps, automationId) {
 /** The task that makes an app's armed triggers follow its published copy; it throws when the sync failed, so it is retried. */
 function appTriggersTask(deps, st) {
     return { name: 'app_triggers', ref: st.ref, run: async () => {
-        const sync = dep(deps, 'syncAppTriggers', () => require('../../appStudio/triggers/deploySync.mts').syncAfterStageChange);
+        const sync = dep(deps, 'syncAppTriggers', () => featureModule('appStudio/triggers/deploySync').syncAfterStageChange);
         const out = await sync(st.entityId);
         if (out && 'synced' in out && out.synced === null) throw Object.assign(new Error('trigger sync failed'), { code: 'trigger_sync_failed' });
     } };
@@ -74,7 +79,7 @@ function appTriggersTask(deps, st) {
 /** The converge tasks of one deployment, each `{ name, ref, run }`; `run` throws on failure. */
 async function tasksFor({ deployment, stage }, deps) {
     const s = storesOf(deps);
-    const goLive = dep(deps, 'goLive', () => require('../../automation/goLive'));
+    const goLive = dep(deps, 'goLive', () => featureModule('automation/goLive'));
     const steps = await s.stageStore.listSteps(deployment.id);
     const commitSteps = steps.filter(st => st.phase === 'commit');
     const managedWrite = { deploymentId: deployment.id };
@@ -86,7 +91,7 @@ async function tasksFor({ deployment, stage }, deps) {
                 const a = await s.automationStore.getAutomation(st.entityId);
                 if (!a || a.kind !== 'automation') return;
                 const out = await goLive.convergeAfterPublish({
-                    automation: a, definition: a.liveDefinition || a.definition,
+                    automation: a, definition: /** @type {{ liveDefinition?: unknown }} */ (a).liveDefinition || a.definition,
                     previousLive: await previousLiveOf(s, steps, st.entityId), isActive: a.isActive === true,
                     ownerId: stage.runAsUserId, organizationId: stage.organizationId || null,
                     reason: 'deployment', saveSyncs: true, deps: deps.goLiveDeps || {},
@@ -105,7 +110,7 @@ async function tasksFor({ deployment, stage }, deps) {
             } });
         } else if (st.kind === 'app') {
             tasks.push({ name: 'app_usage', ref: st.ref, run: async () => {
-                const sync = dep(deps, 'reconcileAppUsage', () => require('../../appStudio/automationUsageSync').reconcileAppAutomationUsageDetached);
+                const sync = dep(deps, 'reconcileAppUsage', () => featureModule('appStudio/automationUsageSync').reconcileAppAutomationUsageDetached);
                 await sync(st.entityId);
             } });
             tasks.push(appTriggersTask(deps, st));
@@ -116,7 +121,7 @@ async function tasksFor({ deployment, stage }, deps) {
     }
     for (const st of commitSteps.filter((/** @type {{ action: string; kind: string; }} */ x) => x.action === 'retire' && x.kind === 'automation')) {
         tasks.push({ name: 'automation_off', ref: st.ref, run: async () => {
-            const revoke = dep(deps, 'revokeRemoteSubscriptions', () => require('../../automation/subscriptionSync').revokeRemoteSubscriptions);
+            const revoke = dep(deps, 'revokeRemoteSubscriptions', () => featureModule('automation/subscriptionSync').revokeRemoteSubscriptions);
             await revoke(st.entityId, stage.runAsUserId);
             await s.automationStore.deleteSubscriptionsForAutomation(st.entityId);
         } });
@@ -153,11 +158,11 @@ async function feedEvent({ deployment, stage }, report, deps) {
  * Run the side effects of a committed deployment and close it: `succeeded`,
  * or `succeeded_with_warnings` when a task still failed after MAX_ATTEMPTS.
  *
- * @param {{ deployment: object, stage: object }} input  the row is `converging`
+ * @param {{ deployment: DeploymentRow, stage: StageRow }} input  the row is `converging`
  * @param {Record<string, unknown> & { sleep?: (ms: number) => Promise<void>, maxAttempts?: number, tasks?: unknown[] }} [deps]
  *   stores (journal.storesOf), `goLive`, `goLiveDeps`, `reconcileAppUsage`, `syncAppTriggers`,
  *   `revokeRemoteSubscriptions`, `emitProjectEvent`, `sleep(ms)`, `maxAttempts`, `tasks` (a test's own list)
- * @returns {Promise<{ deployment: object|null, report: { warnings: object[], attempts: number } }>}
+ * @returns {Promise<{ deployment: DeploymentRow|null, report: { warnings: object[], attempts: number } }>}
  */
 async function converge({ deployment, stage }, deps = {}) {
     const s = storesOf(deps);
@@ -194,7 +199,7 @@ async function converge({ deployment, stage }, deps = {}) {
 
 module.exports = { converge, tasksFor, MAX_ATTEMPTS, BACKOFF_MS };
 
-/** @typedef {import('./model').DeploymentRow} DeploymentRow */
+/** @typedef {import('./stageRows').DeploymentRow} DeploymentRow */
 
 /** @typedef {import('./model').StageRow} StageRow */
 

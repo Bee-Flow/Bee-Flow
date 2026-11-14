@@ -23,8 +23,9 @@
 
 const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
+const { envInt } = require('../../utils/envNumber.mts');
 
-const DEFAULT_DEADLINE_MS = Number(process.env.AUTO_TIER_CLASSIFIER_DEADLINE_MS) || 800;
+const DEFAULT_DEADLINE_MS = envInt('AUTO_TIER_CLASSIFIER_DEADLINE_MS', 800, { min: 1 });
 /** Below this top score the model is guessing. */
 const MIN_TOP_SCORE = 0.4;
 /** The winning tier must score this many times the runner-up. */

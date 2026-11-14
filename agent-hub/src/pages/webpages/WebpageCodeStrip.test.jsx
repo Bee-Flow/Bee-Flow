@@ -1,6 +1,7 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { renderWithClient } from '@/test/render';
 
 /**
  * The strip + the legend of the Code tab.
@@ -59,7 +60,7 @@ beforeEach(() => { api.mockReset(); });
 describe('de bestandenstrip', () => {
     it('toont een vak per bestand met de bytes erbij', async () => {
         api.mockResolvedValue(elements());
-        render(<Harness />);
+        renderWithClient(<Harness />);
 
         expect(await screen.findByText('index.html')).toBeInTheDocument();
         expect(screen.getByText('style.css')).toBeInTheDocument();
@@ -72,7 +73,7 @@ describe('de bestandenstrip', () => {
 
     it('BIJT — een react-mui-pagina toont zijn eigen bestanden, niet drie lege vakjes', async () => {
         api.mockResolvedValue(elements({ marks: [] }));
-        render(
+        renderWithClient(
             <Harness
                 framework="react-mui"
                 html="" css="" js=""
@@ -87,7 +88,7 @@ describe('de bestandenstrip', () => {
 
     it('verzwijgt een extra bestand naast de drie slots niet', async () => {
         api.mockResolvedValue(elements({ marks: [] }));
-        render(<Harness extraFiles={[{ path: 'modules/state.js', size: 40, isText: true }]} />);
+        renderWithClient(<Harness extraFiles={[{ path: 'modules/state.js', size: 40, isText: true }]} />);
 
         expect(await screen.findByText('modules/state.js')).toBeInTheDocument();
         expect(screen.getByText(/4 files/)).toBeInTheDocument();
@@ -97,7 +98,7 @@ describe('de bestandenstrip', () => {
 describe('de legenda', () => {
     it('zegt wat de markering betekent, met de families die er echt zijn', async () => {
         api.mockResolvedValue(elements());
-        render(<Harness />);
+        renderWithClient(<Harness />);
 
         expect(await screen.findByText('Highlighted = Studio link')).toBeInTheDocument();
         expect(screen.getByText(/Data table · 1/)).toBeInTheDocument();
@@ -108,7 +109,7 @@ describe('de legenda', () => {
 
     it('zolang de lezing loopt, staat er "aan het uitzoeken"', () => {
         api.mockReturnValue(new Promise(() => {}));
-        render(<Harness />);
+        renderWithClient(<Harness />);
 
         expect(screen.getByText(/Working out the Studio links/)).toBeInTheDocument();
         expect(screen.queryByText(/could not be worked out/)).not.toBeInTheDocument();
@@ -116,7 +117,7 @@ describe('de legenda', () => {
 
     it('BIJT — een mislukte lezing zegt dat de markering niet kon worden berekend', async () => {
         api.mockRejectedValue(new Error('API 500'));
-        render(<Harness />);
+        renderWithClient(<Harness />);
 
         expect(await screen.findByText(/could not be worked out/)).toBeInTheDocument();
         // And NOT the sentence that belongs to a page that simply has no bindings:
@@ -126,14 +127,14 @@ describe('de legenda', () => {
 
     it('BIJT — onleesbare bestanden op de server geven diezelfde melding, niet stilte', async () => {
         api.mockResolvedValue(elements({ scanned: false, marks: [], counts: { total: 0, known: 0, unknown: 0 } }));
-        render(<Harness />);
+        renderWithClient(<Harness />);
 
         expect(await screen.findByText(/could not be worked out/)).toBeInTheDocument();
     });
 
     it('een gelezen pagina zonder koppelingen zegt dat er geen zijn', async () => {
         api.mockResolvedValue(elements({ marks: [], counts: { total: 0, known: 0, unknown: 0 } }));
-        render(<Harness />);
+        renderWithClient(<Harness />);
 
         expect(await screen.findByText(/Nothing in this code links to Studio/)).toBeInTheDocument();
         expect(screen.queryByText(/could not be worked out/)).not.toBeInTheDocument();
@@ -145,21 +146,21 @@ describe('de legenda', () => {
             counts: { total: 1, known: 0, unknown: 1 },
             unknownTags: ['bf-widget'],
         }));
-        render(<Harness />);
+        renderWithClient(<Harness />);
 
         expect(await screen.findByText(/Not recognised · 1/)).toBeInTheDocument();
     });
 
     it('zegt erbij dat de markering van de laatst opgeslagen versie komt', async () => {
         api.mockResolvedValue(elements());
-        render(<Harness dirtyFiles={{ html: true }} />);
+        renderWithClient(<Harness dirtyFiles={{ html: true }} />);
 
         expect(await screen.findByText(/from the last saved version/)).toBeInTheDocument();
     });
 
     it('een lezer krijgt de eigenaar-only-zin, niet "er zijn geen koppelingen"', async () => {
         api.mockResolvedValue(elements());
-        render(<Harness readOnly />);
+        renderWithClient(<Harness readOnly />);
 
         expect(await screen.findByText(/Only the page owner/)).toBeInTheDocument();
         expect(screen.queryByText(/Nothing in this code links to Studio/)).not.toBeInTheDocument();
@@ -167,7 +168,7 @@ describe('de legenda', () => {
 
     it('meldt wat er niet meer bij kon', async () => {
         api.mockResolvedValue(elements({ truncated: 12 }));
-        render(<Harness />);
+        renderWithClient(<Harness />);
 
         expect(await screen.findByText(/12 more are not highlighted/)).toBeInTheDocument();
     });
@@ -176,7 +177,7 @@ describe('de legenda', () => {
 describe('useBfMarks', () => {
     it('haalt de markeringen op bij /bindings — dezelfde parser als de rest van W4', async () => {
         api.mockResolvedValue(elements());
-        render(<Harness />);
+        renderWithClient(<Harness />);
         await waitFor(() => expect(api).toHaveBeenCalledWith('/wp1/bindings'));
     });
 
@@ -193,7 +194,7 @@ describe('useBfMarks', () => {
             if (seen.length === 0) seen.push(state);
             return null;
         }
-        render(<Probe />);
+        renderWithClient(<Probe />);
 
         expect(seen[0].loading).toBe(true);
         expect(seen[0].available).toBe(false);
@@ -203,7 +204,7 @@ describe('useBfMarks', () => {
         // The Code tab is closed: fetch nothing. But "do not fetch" may not become an
         // eternal loading state — then the strip would keep spinning when a page
         // without an id is opened.
-        render(<Harness enabled={false} />);
+        renderWithClient(<Harness enabled={false} />);
 
         expect(api).not.toHaveBeenCalled();
         expect(screen.queryByText(/Working out the Studio links/)).not.toBeInTheDocument();
@@ -265,7 +266,7 @@ describe('WebpageCodeStrip — niet elke koppeling overleeft het publiceren', ()
         // This screen is the only one that shows the bindings, so it must also show
         // that difference, instead of drawing everything as an equal "Studio link".
         api.mockResolvedValue(elements({ marks: [MARK, BUTTON], counts: { total: 2, known: 2, unknown: 0 } }));
-        render(<Harness />);
+        renderWithClient(<Harness />);
         const note = await screen.findByTestId('legend-inert-on-publish');
         expect(note).toHaveTextContent('1');
         expect(note).toHaveTextContent(/stop working once the page is published/i);
@@ -273,7 +274,7 @@ describe('WebpageCodeStrip — niet elke koppeling overleeft het publiceren', ()
 
     it('zegt er niets over als alles het publiceren overleeft', async () => {
         api.mockResolvedValue(elements());
-        render(<Harness />);
+        renderWithClient(<Harness />);
         await screen.findByText(/Studio link/);
         expect(screen.queryByTestId('legend-inert-on-publish')).not.toBeInTheDocument();
     });

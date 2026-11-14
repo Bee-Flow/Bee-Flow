@@ -3,30 +3,29 @@
  * Data Act Art. 25 exit procedure: relevance gate, document unpublished →
  * fail, published but never exercised → warn, stale attested test → warn,
  * recent real export (portable kinds only) or fresh test → pass, missing
- * tables → warn "not provisioned yet", evidence without personal data.
+ * tables → warn "not provisioned yet", evidence without personal data. The
+ * export stamps are read from a real Postgres.
  *
- * Run: cd server && node --test --test-force-exit compliance/checks/data-act/art25-exit-procedure.test.js
+ * Run: cd server && node --test compliance/checks/data-act/art25-exit-procedure.test.js
  */
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { installResolveStub } = require('../../../testUtils/stubRequire');
 
-const DAY = 86400e3;
-const state = { settings: {}, doc: null, docError: null, stamps: [], stampsError: null, lastSql: null, lastParams: null };
-const flat = (s) => String(s).replace(/\s+/g, ' ').trim();
+const { usePglitePool } = require('../../../testUtils/pglitePool');
+const { ladderPglite } = require('../../../testUtils/pgliteTemplate');
+const { failReads } = require('../../../testUtils/pgliteFaults');
+const { insertRow } = require('../../../testUtils/pgliteSeed');
 
-const fakeDb = {
-    async getAll(sql, params) {
-        state.lastSql = flat(sql);
-        state.lastParams = params;
-        if (state.stampsError) throw state.stampsError;
-        return state.stamps;
-    },
-    async getOne() { return null; },
-    async run() { return { rowCount: 0 }; },
-    async exec() {},
-};
+const DAY = 86400e3;
+const state = { settings: {}, doc: null, docError: null };
+
+// The export stamps are read from compliance_evidence on the boot ladder's
+// schema on PGlite (testUtils/pgliteTemplate.js) behind db.js's pool. The
+// settings, the published document and the export registry are stubbed: they
+// are this check's inputs, with stores and tests of their own.
+const { pg, close } = usePglitePool(ladderPglite());
 const fakeComplianceStore = { async getSettings() { return state.settings; } };
 const fakeIsmsDocStore = {
     async getPublishedBody(orgId, slug) {
@@ -39,23 +38,35 @@ const fakeIsmsDocStore = {
 const fakeRegistry = { portableKinds: () => ['automations', 'datatables', 'cms_sites', 'memories'] };
 
 const restore = installResolveStub({
-    '../../../db': fakeDb,
     '../../../stores/complianceStore': fakeComplianceStore,
     '../../../stores/ismsDocStore': fakeIsmsDocStore,
     '../../dataPortability/exportRegistry': fakeRegistry,
 });
 const check = require('./art25-exit-procedure');
-test.after(() => restore());
+test.after(async () => { restore(); await close(); });
+
+/**
+ * `n` export stamps of `kind`, the newest `msAgo` old.
+ * @param {string} kind @param {number} n @param {number} msAgo @param {Record<string, unknown>} [over]
+ */
+async function stamps(kind, n, msAgo, over = {}) {
+    for (let i = 0; i < n; i++) {
+        await insertRow(pg, 'compliance_evidence', {
+            organization_id: 'org-1', check_id: 'DATA_ACT-Art25-exit-procedure', subject_type: 'export',
+            payload: { action: 'data_export_performed', kind }, payload_hash: 'h', hash: 'h',
+            captured_at: new Date(Date.now() - msAgo - i * DAY).toISOString(), ...over,
+        });
+    }
+}
 
 const PUBLISHED = { version: 2, title: 'Exit procedure', body: 'Step 1: export everything. Contact dpo@example.org.', sha256: 'abc123', published_at: '2026-03-01T10:00:00Z' };
 const iso = (msAgo) => new Date(Date.now() - msAgo).toISOString();
 
-test.beforeEach(() => {
+test.beforeEach(async () => {
     state.settings = { framework_relevance: {}, exit_procedure_tested_at: null, exit_procedure_tested_by: null };
     state.doc = PUBLISHED;
     state.docError = null;
-    state.stamps = [];
-    state.stampsError = null;
+    await pg.exec('DELETE FROM compliance_evidence');
 });
 
 test('module shape and the DORA re-tag', () => {
@@ -82,7 +93,6 @@ test('document not published (or seed missing) → fail before anything else is 
     const r = await check.evaluate('org-1');
     assert.equal(r.status, 'fail');
     assert.deepEqual(r.evidence.document, { slug: 'exit-procedure', published: false });
-    assert.equal(state.lastSql, null, 'no evidence query when the document is missing');
     assert.match(r.details, /No published exit-procedure document/);
 });
 
@@ -93,21 +103,29 @@ test('missing ISMS or evidence tables → warn "not provisioned yet", never a th
     assert.match(r.details, /not provisioned yet/);
     assert.equal(r.evidence.documents_provisioned, false);
     state.docError = null;
-    state.stampsError = Object.assign(new Error('no such column'), { code: '42703' });
-    r = await check.evaluate('org-1');
+    let undo = await failReads(pg, 'compliance_evidence', '42703', 'no such column');
+    try { r = await check.evaluate('org-1'); } finally { await undo(); }
     assert.equal(r.status, 'warn');
     assert.match(r.details, /not provisioned yet/);
     assert.equal(r.evidence.exports_provisioned, false);
-    state.stampsError = new Error('connection reset');
-    await assert.rejects(() => check.evaluate('org-1'), /connection reset/, 'other errors surface to the runner');
+    undo = await failReads(pg, 'compliance_evidence', '08006', 'connection reset');
+    try {
+        await assert.rejects(() => check.evaluate('org-1'), /connection reset/, 'other errors surface to the runner');
+    } finally { await undo(); }
 });
 
-test('the stamp query is org-scoped, filtered on this check id, the export subject and the action, inside the window', async () => {
-    await check.evaluate('org-1');
-    assert.deepEqual(state.lastParams, ['org-1', 'DATA_ACT-Art25-exit-procedure', 'data_export_performed']);
-    assert.match(state.lastSql, /FROM compliance_evidence WHERE organization_id = \$1 AND check_id = \$2 AND subject_type = 'export' AND payload->>'action' = \$3/);
-    assert.match(state.lastSql, /INTERVAL '365 days'/);
-    assert.match(state.lastSql, /GROUP BY payload->>'kind'/);
+test('only this org\'s export stamps of this check, subject and action, inside the window, count', async () => {
+    await stamps('automations', 1, 2 * DAY, { organization_id: 'org-2' });
+    await stamps('automations', 1, 2 * DAY, { check_id: 'OTHER-check' });
+    await stamps('automations', 1, 2 * DAY, { subject_type: 'file' });
+    await stamps('automations', 1, 2 * DAY, { payload: { action: 'something_else', kind: 'automations' } });
+    await stamps('automations', 1, 400 * DAY);
+    let r = await check.evaluate('org-1');
+    assert.equal(r.evidence.portable_exports, 0);
+    await stamps('datatables', 2, 2 * DAY);
+    r = await check.evaluate('org-1');
+    assert.equal(r.evidence.portable_exports, 2);
+    assert.deepEqual(r.evidence.exports_by_kind, { datatables: 2 }, 'grouped by kind');
 });
 
 test('published but never exercised → warn; PDF renders do not count as an export', async () => {
@@ -116,7 +134,7 @@ test('published but never exercised → warn; PDF renders do not count as an exp
     assert.match(r.details, /published but never exercised/);
     assert.equal(r.evidence.portable_exports, 0);
     assert.equal(r.evidence.last_export_at, null);
-    state.stamps = [{ kind: 'ai_webpages', exports: 3, last_at: iso(2 * DAY) }];
+    await stamps('ai_webpages', 3, 2 * DAY);
     r = await check.evaluate('org-1');
     assert.equal(r.status, 'warn');
     assert.equal(r.evidence.render_only_exports, 3);
@@ -135,11 +153,9 @@ test('published, attested test older than a year and no export → warn (stale)'
 });
 
 test('a real export of a portable kind within the window → pass, with the latest timestamp', async () => {
-    state.stamps = [
-        { kind: 'automations', exports: 2, last_at: new Date(Date.now() - 30 * DAY) },
-        { kind: 'datatables', exports: '5', last_at: iso(3 * DAY) },
-        { kind: 'ai_webpages', exports: 1, last_at: iso(1 * DAY) },
-    ];
+    await stamps('automations', 2, 30 * DAY);
+    await stamps('datatables', 5, 3 * DAY);
+    await stamps('ai_webpages', 1, 1 * DAY);
     const r = await check.evaluate('org-1');
     assert.equal(r.status, 'pass');
     assert.equal(r.evidence.portable_exports, 7);
@@ -154,7 +170,7 @@ test('a fresh attested test alone → pass; both → both named', async () => {
     let r = await check.evaluate('org-1');
     assert.equal(r.status, 'pass');
     assert.match(r.details, /a full export test attested 10 day\(s\) ago/);
-    state.stamps = [{ kind: 'memories', exports: 1, last_at: iso(1 * DAY) }];
+    await stamps('memories', 1, 1 * DAY);
     r = await check.evaluate('org-1');
     assert.equal(r.status, 'pass');
     assert.match(r.details, /1 real export\(s\).* and a full export test attested 10 day\(s\) ago/);
@@ -163,7 +179,7 @@ test('a fresh attested test alone → pass; both → both named', async () => {
 test('evidence names the document version and hash, never its body, the attester or an e-mail address', async () => {
     state.settings.exit_procedure_tested_at = iso(10 * DAY);
     state.settings.exit_procedure_tested_by = 'dpo@example.org';
-    state.stamps = [{ kind: 'automations', exports: 1, last_at: iso(1 * DAY) }];
+    await stamps('automations', 1, 1 * DAY);
     const r = await check.evaluate('org-1');
     const blob = JSON.stringify(r);
     assert.ok(!/@/.test(blob), `no e-mail address: ${blob}`);

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Run-event notifications: the automation's policy
  * (automation/notificationDefaults.js) turned into messages.
@@ -161,8 +162,8 @@ function lazyNcContext(dep, automation) {
  * @param {{ id?: string, title?: string, userId?: string, organizationId?: string | null, runsLiveVersion?: boolean,
  *   definition?: { notificationSettings?: unknown }, [key: string]: unknown }} automation the automation (a run's view of it is fine)
  * @param {'onError'|'onApproval'|'onSuccess'} event
- * @param {{ title: string, message?: string, link?: string, runId?: string, code?: string, approverIds?: string[],
- *   approval?: { id?: string, [key: string]: unknown }, userIds?: string[] }} payload  title and message are the
+ * @param {Partial<{ title: string, message?: string, link?: string, runId?: string, code?: string, approverIds?: string[],
+ *   approval?: { id?: string, [key: string]: unknown }, userIds?: string[] }>} payload  title and message are the
  *   bell / e-mail subject and body; link the SPA path (default: the run, else the automation); code the
  *   notificationMessages code for Nextcloud/Talk; approverIds the resolved approvers (onApproval); approval
  *   the approval row (Talk posts its card); userIds explicit recipients, replacing the policy's
@@ -183,7 +184,7 @@ async function notifyRunEvent(dep, automation, event, payload = {}, policy = nul
         const orgId = await organisationOf(dep, automation);
         const recipients = Array.isArray(payload.userIds) && payload.userIds.length
             ? [...new Set(payload.userIds.filter(Boolean).map(String))]
-            : await resolveRecipientIds(ev, { automation, orgId, approverIds: payload.approverIds || null }, {
+            : await resolveRecipientIds(ev, /** @type {Parameters<typeof resolveRecipientIds>[1]} */ ({ automation, orgId, approverIds: payload.approverIds || null }), {
                 listUsers: () => dep('listUsers')(),
             });
         report.recipients = recipients;

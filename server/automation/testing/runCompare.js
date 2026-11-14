@@ -42,7 +42,7 @@ const log = require('../../telemetry/log');
 const { envCap } = require('../mcpRunReadCaps');
 const { canReadRunData } = require('../../core/automationModel/callerRunVisibility');
 const { isTruncatedOutput, fullOutputRefOf } = require('../../core/automationModel/payloadTruncation');
-const { AI_STEP_TYPES } = require('../automationGraph');
+const { AI_STEP_TYPES } = require('../../core/automationModel/automationGraph');
 const outputDiffers = require('./outputDiffers');
 const { diffJson } = require('./jsonDiff');
 const { summarizeFile, readCapped } = require('./fileSummary');
@@ -66,7 +66,8 @@ async function aiStepIds(store, run) {
         const def = await store.getVersionDefinition?.(run.automationId, run.version);
         if (def) for (const s of require('../aiActDetect').detectAiUse(def).steps) if (s.stepId) ids.add(s.stepId);
     } catch (e) {
-        log.debug(`[automation/runCompare] version definition unavailable, AI classification by step type only: ${/** @type {Error} */ (e).message}`);
+        // Without the definition, AI steps are told apart by step type only.
+        fallback('automation/runCompare:aiStepIds', e);
     }
     return ids;
 }

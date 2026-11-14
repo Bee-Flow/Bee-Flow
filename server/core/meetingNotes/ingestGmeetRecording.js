@@ -31,6 +31,7 @@ const { ingestLocalRecording, IngestError, assertDedupHitReadable } = require('.
 const { downloadRecordingToFile, extractAudioTrack, listParticipantNames } = require('./gmeetArtifacts');
 const { AUDIO_SCRATCH_DIR: uploadsDir } = require('./savedAudioStore');
 const log = require('../../telemetry/log');
+const { ignoreGone } = require('../../utils/bestEffort');
 
 // Hard ceiling — matches the manual-upload multer limit. Applied to the
 // extracted AUDIO, not the downloaded video (see module doc).
@@ -41,8 +42,8 @@ const MAX_SHARED_WITH = 50;
 
 /**
  * @param {{ accessCtx?: import('../../stores/transcription/acl').ReadAclCtx, userId: string,
- *   session: import('./gmeetArtifacts').GoogleSession, orgId?: string, conferenceRecordName: string,
- *   driveFileId: string, meetingCode?: string, title?: string, language?: string, contextTerms?: string,
+ *   session: import('./gmeetArtifacts').GoogleSession, orgId?: string | null, conferenceRecordName: string,
+ *   driveFileId: string, meetingCode?: string | null, title?: string | null, language?: string, contextTerms?: string,
  *   attendees?: Array<{ email?: string, displayName?: string | null, responseStatus?: string | null, resource?: boolean }>,
  *   meetingStart?: string | Date | null, extraRecordings?: number }} opts `accessCtx`: the
  *   caller's access context, for a dedup hit it must be able to read; `userId`: Bee Flow user who owns
@@ -236,7 +237,7 @@ async function resolveSharedWith(ownerId, orgId, attendees) {
 }
 
 /** @param {string} p */
-function safeUnlink(p) { try { fs.unlinkSync(p); } catch (_) { log.debug('file already gone', _); } }
+function safeUnlink(p) { try { fs.unlinkSync(p); } catch (_) { ignoreGone('meetingNotes/ingestGmeetRecording:unlinkTemp', _); } }
 
 module.exports = {
     ingestGmeetRecording,

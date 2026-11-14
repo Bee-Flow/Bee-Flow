@@ -11,6 +11,7 @@ import { ServerWideMark, serverWideLast } from '@/components/admin/dashboard/ser
 import type { AgentDesignerProps } from './AgentDesigner/index';
 import { resolveAgentSection } from './agentSections';
 import type { AgentSectionUser } from './agentSections';
+import { useShellProps } from '@/authedApp/useShellProps';
 
 interface AgentConfigHubProps {
     hasPermission?: AgentDesignerProps['hasPermission'];
@@ -32,7 +33,10 @@ const SECTIONS = [
 
 const AgentConfigHub = ({ hasPermission = () => true, user, activeSection = '', onNavigate }: AgentConfigHubProps) => {
     const { t } = useTranslation();
-    const { visible, active } = resolveAgentSection(user, activeSection);
+    // Inside the app shell the signed-in person and the navigation come from
+    // context; a host outside it (a test, a kit) still hands them as props.
+    const { user: viewer, onNavigate: go } = useShellProps({ user, onNavigate });
+    const { visible, active } = resolveAgentSection(viewer, activeSection);
     // System agents are server-wide: listed last, under "Whole server", with the server icon.
     const visibleSections = serverWideLast(SECTIONS.filter(sec => visible.includes(sec.id)), sec => adminSectionScope('agents', sec.id) === 'instance');
     // The scope follows the section that is rendered, which the URL may not name.
@@ -41,7 +45,7 @@ const AgentConfigHub = ({ hasPermission = () => true, user, activeSection = '', 
     // agent's: all of them for a platform admin, and the union GET /agents/all gives anyone in several.
     const orgChoice = useAdminOrgChoice();
     const orgId = orgChoice?.orgId ?? null;
-    const showOrgNames = orgId === null && (!!orgChoice?.isPlatformAdmin || (user?.organizations?.length ?? 0) > 1);
+    const showOrgNames = orgId === null && (!!orgChoice?.isPlatformAdmin || (viewer?.organizations?.length ?? 0) > 1);
 
     return (
         <StudioShell
@@ -57,7 +61,7 @@ const AgentConfigHub = ({ hasPermission = () => true, user, activeSection = '', 
                         ...(sec.serverWide ? { group: t('admin.scope_instance', 'Whole server'), groupDivider: true, mark: <ServerWideMark /> } : {}),
                     }))}
                     activeId={active}
-                    onSelect={(id) => { if (onNavigate) onNavigate(`admin/${id}`); }}
+                    onSelect={(id) => { if (go) go(`admin/${id}`); }}
                 />
             )}
         >

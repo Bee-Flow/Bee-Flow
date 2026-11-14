@@ -66,7 +66,7 @@ const restore = installResolveStub({
     '../core/webpages/webpageBridgeAuth': { loadAuthorContext: async () => CTX },
     '../core/tools/toolDispatcher': { executeTool: async () => ({}) },
     '../automation/toolRegistry': { findOwnerOfTool: () => null, loadTools: () => [] },
-    '../integrations/webpageFramework': { resolveRuntime: () => 'static' },
+    '../core/webpages/frameworkModel.mts': { resolveRuntime: () => 'static' },
     '../integrations/webpageApiRuntime': { executeApiHandler: async () => ({}) },
     './webpagesPreviewAi': { chat: pass, stream: pass },
     './webpagesPreviewAsk': { ask: pass },

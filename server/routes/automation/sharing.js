@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Who may do what with one automation (Studio → Automations handoff 5).
  *
@@ -66,7 +67,9 @@ const nameOf = (u) => (u ? (u.displayName || u.username || null) : null);
  *   validateGroups?: typeof import('../../auth/permissions').validateSharedGroupsForOrg, // throws 400
  *   sharingGate?: import('express').RequestHandler, // for `automation_sharing`
  *   sharingAvailable?: (req: import('express').Request) => Promise<boolean>,
- *   subscriptions?: Pick<typeof import('../../automation/subscriptionSync'), 'revokeRemoteSubscriptions'|'syncAppEventSubscription'|'hasAppEventTrigger'> }} [overrides]
+ *   subscriptions?: Pick<typeof import('../../automation/subscriptionSync'), 'revokeRemoteSubscriptions'|'syncAppEventSubscription'|'hasAppEventTrigger'>,
+ *   agentBinding?: typeof import('../../automation/agentBinding'),
+ *   listMembers?: (orgId: string) => Promise<Array<{ id: string, name?: string }>>, listGroups?: () => Promise<Array<{ id: string, name?: string }>> }} [overrides]
  */
 function makeSharingRouter(overrides = {}) {
     const router = express.Router();
@@ -103,7 +106,7 @@ function makeSharingRouter(overrides = {}) {
     /**
      * @param {string} need
      */
-    async function loadAutomation(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, need) {
+    async function loadAutomation(/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res, need) {
         const a = await store().getAutomation(req.params.id);
         if (!a) { res.status(404).json({ error: 'Not found' }); return null; }
         const acc = await access.guard(req, res, a, need);
@@ -218,7 +221,7 @@ function makeSharingRouter(overrides = {}) {
         });
 
     // ── POST /:id/transfer-owner ────────────────────────────────────────
-    router.post('/:id/transfer-owner', validate({ body: TransferBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof TransferBody>, import('qs').ParsedQs>} */ req, res) => {
+    router.post('/:id/transfer-owner', validate({ body: TransferBody }), async (req, res) => {
         const loaded = await loadAutomation(req, res, 'owner');
         if (!loaded) return;
         const { a } = loaded;

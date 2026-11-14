@@ -107,5 +107,11 @@ describe('after a successful reset', () => {
         expect(screen.queryByTestId('reset-new-password')).toBeNull();
         await user.click(screen.getByText('Go to sign in'));
         expect(p.onDone).toHaveBeenCalled();
+        expect(screen.queryByTestId('reset-key-reset')).toBeNull();
+    });
+
+    it('says so when the account had to start a fresh encryption key', () => {
+        renderStep({ done: true, keyReset: true });
+        expect(screen.getByTestId('reset-key-reset')).toHaveTextContent(/cannot be opened any more/);
     });
 });

@@ -42,7 +42,7 @@
  */
 
 const crypto = require('crypto');
-const { run, getOne, getAll, exec } = require('../db');
+const { run, getOne, getAll, exec, withTransaction } = require('../db');
 const { makeStoreInit } = require('./lib/storeInit');
 const { encryptField, decryptField } = require('./lib/fieldEnvelope');
 const log = require('../telemetry/log');
@@ -427,6 +427,7 @@ async function _evictIfOverCap(userId) {
  * The user's own vault, decrypted, for the settings screen.
  * @returns {Promise<{entries: Array, total: number}>}
  * @param {string} userId
+ * @param {{ search?: string, limit?: number, offset?: number, orgId?: string }} [opts]
  */
 async function listForUser(userId, { search = '', limit = 200, offset = 0, orgId = undefined } = {}) {
     if (!userId) return { entries: [], total: 0 };
@@ -498,15 +499,14 @@ async function clearForUser(userId) {
 }
 
 /**
- * Full erasure — GDPR right-to-erasure and user deletion. Unlike clearForUser
- * this DOES drop the counters, because the user and every message that could
+ * Full erasure — GDPR right-to-erasure and user deletion. Unlike clearForUser this DOES drop the
+ * counters, in the same transaction as the entries: the user and every message that could
  * reference a token are going away together.
  */
 async function purgeUser(userId) {
     if (!userId) return;
     await initVaultTables();
-    await run('DELETE FROM pii_vault_entries WHERE user_id = $1', [userId]);
-    await run('DELETE FROM pii_vault_counters WHERE user_id = $1', [userId]);
+    await withTransaction(async (client) => { for (const t of ['pii_vault_entries', 'pii_vault_counters']) await client.query(`DELETE FROM ${t} WHERE user_id = $1`, [userId]); });
 }
 
 module.exports = {

@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/languages`
 
-27 routes, 11 with a request schema. Back to the [endpoint reference](../reference.md).
+27 routes, 12 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -71,7 +71,7 @@ No request schema.
 
 **Access:** Platform admin
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `GET /api/languages/:code/email-templates`
 

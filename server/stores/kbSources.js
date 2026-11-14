@@ -270,7 +270,7 @@ const KbSourcesStore = {
             `SELECT * FROM kb_sources WHERE knowledge_base_id = $1 ORDER BY created_at ASC, id ASC`,
             [kbId],
         );
-        return (rows || []).map(mapRow);
+        return (rows || []).map((r) => /** @type {NonNullable<ReturnType<typeof mapRow>>} */ (mapRow(r))); // a stored row maps, never to null
     },
 
     /**

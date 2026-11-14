@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * "Tune automatically": measure candidate settings on the admin's marked test
@@ -56,6 +56,9 @@ const FLOOR_SWEEP = Object.freeze(Array.from({ length: 15 }, (_, i) => Math.roun
 
 const listOf = (/** @type {unknown} */ v) => (Array.isArray(v) ? v : []);
 
+/** An AI candidate's wording and floor: tuneAi builds every one with both. @param {TuneCandidate} t */
+const aiOf = (t) => /** @type {NonNullable<TuneConfig['ai']>} */ (t.config.ai);
+
 /**
  * @param {number} floor
  */
@@ -109,7 +112,7 @@ const promptOk = (/** @type {unknown} */ p) => typeof p === 'string' && p.trim()
  * @param {TuneInput} input
  */
 async function tuneWords({ engine, spec, sentences }) {
-    const cur = spec.words || /** @type {Partial<CustomDataType['words']>} */ ({});
+    const cur = spec.words || /** @type {Partial<NonNullable<CustomDataType['words']>>} */ ({});
     const combos = [[!!cur.caseSensitive, !!cur.wholeWord]];
     for (const cs of [false, true]) {
         for (const ww of [true, false]) {
@@ -138,7 +141,9 @@ async function tuneAi({ engine, spec, sentences, candidates, orgTypes }) {
         if (wordings.some((w) => w.toLowerCase() === text.toLowerCase()) || wordings.length >= MAX_AI_WORDINGS) return;
         wordings.push(text);
     };
-    add(spec.ai.prompt, false);
+    // tuneAi runs for method 'ai', which customTypes/spec validates together with its `ai` block.
+    const ai = /** @type {NonNullable<CustomDataType['ai']>} */ (spec.ai);
+    add(ai.prompt, false);
     add(spec.name, true);
     for (const l of listOf(candidates?.aiLabels)) add(l, true);
 
@@ -148,11 +153,11 @@ async function tuneAi({ engine, spec, sentences, candidates, orgTypes }) {
     /** @type {TuneCandidate | null} */
     let before = null;
     for (const prompt of wordings) {
-        const { labelSet, floors } = aiGroup(spec, prompt, spec.ai.floor, orgTypes);
+        const { labelSet, floors } = aiGroup(spec, prompt, ai.floor, orgTypes);
         const raw = await probeAll(engine, texts, labelSet);
-        const floorsToTry = prompt === spec.ai.prompt ? [spec.ai.floor, ...FLOOR_SWEEP] : FLOOR_SWEEP;
+        const floorsToTry = prompt === ai.prompt ? [ai.floor, ...FLOOR_SWEEP] : FLOOR_SWEEP;
         for (const floor of floorsToTry) {
-            if (tried.some((t) => t.config.ai.prompt === prompt && Math.abs(t.config.ai.floor - floor) <= EPS)) continue;
+            if (tried.some((t) => aiOf(t).prompt === prompt && Math.abs(aiOf(t).floor - floor) <= EPS)) continue;
             const spans = decodeAi(raw, { ...floors, [spec.id]: floor }, spec.id, texts.length);
             /** @type {TuneCandidate} */
             const entry = {
@@ -163,7 +168,7 @@ async function tuneAi({ engine, spec, sentences, candidates, orgTypes }) {
                 order: tried.length,
             };
             tried.push(entry);
-            if (!before && prompt === spec.ai.prompt && floor === spec.ai.floor) before = entry;
+            if (!before && prompt === ai.prompt && floor === ai.floor) before = entry;
         }
     }
     if (!before) throw badRequest('invalid_request', 'This type has no description for the AI that can be tuned.');
@@ -185,12 +190,12 @@ function markMargins(tried) {
     /** @type {Map<string, TuneCandidate[]>} */
     const byPrompt = new Map();
     for (const t of tried) {
-        const list = byPrompt.get(t.config.ai.prompt) || [];
+        const list = byPrompt.get(aiOf(t).prompt) || [];
         list.push(t);
-        byPrompt.set(t.config.ai.prompt, list);
+        byPrompt.set(aiOf(t).prompt, list);
     }
     for (const list of byPrompt.values()) {
-        list.sort((a, b) => a.floor - b.floor);
+        list.sort((a, b) => /** @type {number} */ (a.floor) - /** @type {number} */ (b.floor)); // every AI candidate has a floor
         let start = 0;
         for (let i = 1; i <= list.length; i++) {
             if (i < list.length && sameOutcome(list[i], list[start])) continue;
@@ -204,17 +209,17 @@ function markMargins(tried) {
  * @param {TuneInput} input
  */
 async function tunePattern({ engine, spec, sentences, examples, candidates, validatePattern }) {
-    const cur = spec.pattern || /** @type {Partial<CustomDataType['pattern']>} */ ({});
+    const cur = spec.pattern || /** @type {Partial<NonNullable<CustomDataType['pattern']>>} */ ({});
     const caseSensitive = !!cur.caseSensitive;
     const texts = sentences.map((s) => s.text);
     /**
-     * @param {Partial<CustomDataType['pattern']>} pattern
+     * @param {Partial<NonNullable<CustomDataType['pattern']>>} pattern
      * @param {number} order
      * @returns {Promise<TuneCandidate>}
      */
     const evaluate = async (pattern, order) => {
         const { spans } = await predictLocal(engine, { ...spec, pattern }, texts);
-        return { config: { pattern }, summary: scoreAll(sentences, spans).summary, length: pattern.source.length, order };
+        return { config: { pattern }, summary: scoreAll(sentences, spans).summary, length: /** @type {string} */ (pattern.source).length, order };
     };
     const before = await evaluate(cur, 0);
     /** @type {TuneCandidate[]} */
@@ -242,12 +247,14 @@ async function tunePattern({ engine, spec, sentences, examples, candidates, vali
  * @param {TuneConfig} config
  */
 function describeBest(method, config) {
-    if (method === 'ai') return { label: config.ai.prompt, sensitivity: sensitivityFor(config.ai.floor) };
+    // The best config of a method carries that method's block.
+    if (method === 'ai') return { label: /** @type {NonNullable<TuneConfig['ai']>} */ (config.ai).prompt, sensitivity: sensitivityFor(/** @type {NonNullable<TuneConfig['ai']>} */ (config.ai).floor) };
     if (method === 'pattern') {
-        const words = describePattern(config.pattern.source);
+        const words = describePattern(/** @type {NonNullable<TuneConfig['pattern']>} */ (config.pattern).source);
         return words ? { patternWords: words } : {};
     }
-    return { flags: { caseSensitive: !!config.words.caseSensitive, wholeWord: !!config.words.wholeWord } };
+    const words = /** @type {NonNullable<TuneConfig['words']>} */ (config.words);
+    return { flags: { caseSensitive: !!words.caseSensitive, wholeWord: !!words.wholeWord } };
 }
 
 /**

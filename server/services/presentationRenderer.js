@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Presentation Renderer — a deck in, a real .pptx (or a PDF deck) out.
  *
@@ -272,7 +273,7 @@ async function renderPresentation({
     const input = deck !== null && deck !== undefined ? deck : content;
     let normalized;
     try {
-        normalized = input && typeof input === 'object' && input.normalized ? input : normalizeDeck(input);
+        normalized = input && typeof input === 'object' && /** @type {{ normalized?: boolean }} */ (input).normalized ? input : normalizeDeck(input);
     } catch (e) {
         if (e instanceof DeckError) throw Object.assign(new Error(/** @type {Error} */ (e).message), { errorClass: e.errorClass === 'deck_empty' ? 'document_empty' : e.errorClass, cause: e });
         throw e;

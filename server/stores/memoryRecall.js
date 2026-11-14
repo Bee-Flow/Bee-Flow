@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * stores/memoryRecall.js — which memories reach this turn's prompt:
  * findRelevantMemories (hybrid retrieval in SQL, or scoring in JS when the
@@ -38,6 +38,7 @@ const _keywordHits = (content, lowerMsg) => {
 /**
  * A caller-supplied query vector, if it is usable.
  * @param {number[] | null} v
+ * @returns {v is number[]}
  */
 function _usableVector(v) {
     return Array.isArray(v) && validateDim(v.length) && v.every(n => typeof n === 'number' && Number.isFinite(n));

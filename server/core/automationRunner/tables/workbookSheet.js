@@ -187,7 +187,7 @@ function csvWidth(records, headerIndex) {
  * A CSV as a table, or null when it has no header and no data.
  *
  * @param {Buffer} buffer
- * @param {{ csv: typeof import('../../dataEngine/sources/spreadsheetFile/formats/csv'), name: string, headerRow: number, delimiter: string, limits: any }} o
+ * @param {{ csv: typeof import('../../dataEngine/sources/spreadsheetFile/formats/csv'), name: string, headerRow: number, delimiter?: string, limits: any }} o
  * @returns {Promise<{ columns: any[], rows: any[] } | null>}
  */
 async function readCsvTable(buffer, { csv, name, headerRow, delimiter, limits }) {

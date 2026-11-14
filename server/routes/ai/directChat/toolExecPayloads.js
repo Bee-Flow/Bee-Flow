@@ -80,14 +80,6 @@ function buildDispatchOptions(ctx, tierOverrides) {
         timezone: ctx.timezone || 'Europe/Amsterdam',
         onImageGenerated: ctx.onImageGenerated,
         onSkillsActivated: ctx.onSkillsActivated,
-        terminalCtx: {
-            agentId: `user-${ctx.userId}`,
-            containerKey: `direct-${ctx.convId}`,
-            timeout: 60000,
-            blockedCommands: /** @type {string[]} */ ([]),
-            onEvent: /** @param {string} type @param {unknown} data */ (type, data) => { ctx.send(type, data); },
-            signal: /** @type {AbortSignal | undefined} */ (undefined),
-        },
     };
 }
 

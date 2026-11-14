@@ -73,7 +73,7 @@ export interface WebpageDetail {
  *
  * `url` is null whenever the raw token is no longer recoverable — revoked,
  * expired, or a legacy row stored before tokens were encrypted at rest
- * (server/routes/webpageShareUrls.js attachShareUrls). That is not an error
+ * (server/usecases/webpageShareUrls.js attachShareUrls). That is not an error
  * state to retry: the link genuinely cannot be shown again, and the fix is a
  * new one.
  *

@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle, ChevronRight, Loader2 } from 'lucide-react';
 import { API_BASE, authFetch } from '@/utils/helpers';
 import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
@@ -12,8 +13,9 @@ import DocProcessingSection from './DocProcessingSection';
 import loadChatModels from './loadChatModels';
 import type { ProviderModel } from './loadChatModels';
 import { errorMessage } from '@/utils/caughtError';
-import { request, RefusedError } from '@/api/mutate';
+import { RefusedError } from '@/api/mutate';
 import { panelOrgId } from '@/utils/adminAccess';
+import { apiFetch, apiRequest } from '@/api/typedRequest';
 
 interface GroupSyncSettings {
     destructiveSync: boolean;
@@ -49,7 +51,6 @@ interface OrgAzureConfigPanelProps {
 export default function OrgAzureConfigPanel({ user, orgId: orgIdProp }: OrgAzureConfigPanelProps) {
     const { t } = useTranslation();
     const [activeSection, setActiveSection] = useState('openai');
-    const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
     const [error, setError] = useState<string | null | undefined>(null);
@@ -94,11 +95,10 @@ export default function OrgAzureConfigPanel({ user, orgId: orgIdProp }: OrgAzure
 
     const orgId = panelOrgId(orgIdProp, user) || '';
 
-    const fetchConfig = useCallback(async () => {
-        if (!orgId) return;
-        setLoading(true);
+    // Each answer fills the form, as the read lands (a save reads again).
+    const applyConfig = async () => {
         try {
-            const res = await request(`${API_BASE}/api/org-azure-config/${orgId}`).catch((err: unknown) => {
+            const res = await apiRequest('GET /api/org-azure-config/{orgId}', { params: { orgId } }).catch((err: unknown) => {
                 if (err instanceof RefusedError) return null;
                 throw err;
             });
@@ -131,10 +131,20 @@ export default function OrgAzureConfigPanel({ user, orgId: orgIdProp }: OrgAzure
         // Every connected provider's chat models: the tiers saved here are the
         // platform's, which any provider may serve, not only Azure.
         setAllModels(await loadChatModels(authFetch, API_BASE));
-        setLoading(false);
-    }, [orgId]);
+        return true;
+    };
+    const configQuery = useQuery({
+        queryKey: ['orgAdmin', 'azureConfig', orgId],
+        enabled: !!orgId,
+        staleTime: 0,
+        gcTime: 0,
+        retry: false,
+        queryFn: applyConfig,
+    });
+    const loading = configQuery.isPending || configQuery.isFetching;
+    const { refetch } = configQuery;
+    const fetchConfig = () => { void refetch(); };
 
-    useEffect(() => { fetchConfig(); }, [fetchConfig]);
 
     const handleSave = async (section: string, body: Record<string, unknown>) => {
         if (!orgId) return;
@@ -142,11 +152,7 @@ export default function OrgAzureConfigPanel({ user, orgId: orgIdProp }: OrgAzure
         setSaved(false);
         setError(null);
         try {
-            const res = await authFetch(`${API_BASE}/api/org-azure-config/${orgId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ section, ...body }),
-            });
+            const res = await apiFetch('PUT /api/org-azure-config/{orgId}', { params: { orgId }, init: { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ section, ...body }) } });
             if (res.ok) {
                 setSaved(true);
                 setTimeout(() => setSaved(false), 3000);

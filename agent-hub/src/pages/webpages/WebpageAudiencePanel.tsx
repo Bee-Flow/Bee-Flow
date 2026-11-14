@@ -3,9 +3,9 @@ import React, { useMemo, useState } from 'react';
 import { Card } from './WebpageDataCards';
 import AudienceRows from '../../components/shared/AudienceRows';
 import useTranslation from '../../hooks/useTranslation';
-import { API_BASE } from '../../utils/helpers';
 import { useWebpageAudienceQuery } from '../../api/queries/webpagesPanels';
-import { mutate, RefusedError, errorBody } from '../../api/mutate';
+import { RefusedError, errorBody } from '../../api/mutate';
+import { apiRequest } from '../../api/typedRequest';
 import type { TranslateParams } from '../../hooks/useTranslation';
 import type { OrgGroup } from '../../components/shared/VisibilityCapsule.types';
 import type { WebpageRow } from '../../api/webpagesWebpageRow.types';
@@ -15,7 +15,6 @@ import { PublicRow } from './PublicRow';
 ;
 ;
 
-const PUBLIC_URL = (id: string | number | boolean) => `${API_BASE}/api/webpages/${encodeURIComponent(id)}/audience/public`;
 
 /**
  * The column choice with which the form OPENS.
@@ -193,10 +192,9 @@ export default function WebpageAudiencePanel({
         try {
             let out: AudienceModel | null;
             try {
-                const res = await mutate(PUBLIC_URL(webpageId), {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body),
+                const res = await apiRequest('PUT /api/webpages/{id}/audience/public', {
+                    params: { id: String(webpageId) },
+                    init: { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
                 });
                 try { out = await res.json(); } catch { out = null; }
             } catch (err) {

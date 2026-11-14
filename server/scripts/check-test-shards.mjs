@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * CI guard behind the "Server tests" aggregate: the file lists the shards wrote
  * (`run-tests.mjs --files-out`) must be exactly the full list of test files
@@ -31,7 +31,7 @@ if (full.status !== 0) {
     console.error(`check-test-shards: could not list the test files:\n${full.stderr}`);
     process.exit(1);
 }
-const all = JSON.parse(full.stdout.trim().split('\n').pop());
+const all = JSON.parse(/** @type {string} */ (full.stdout.trim().split('\n').pop())); // split always gives one part
 const lists = files.map((f) => JSON.parse(readFileSync(f, 'utf8')));
 const problems = compareShardLists(all, lists);
 if (problems.length > 0) {

@@ -11,7 +11,7 @@
  */
 
 const { randomUUID } = require('crypto');
-const { run, getOne, getAll } = require('../../db');
+const { run, getOne, getAll, withTransaction } = require('../../db');
 const { initDB } = require('./initSchema');
 const { encryptMessages, decryptMessages } = require('./messageEncryption');
 const { resolveCrypto, conversationKey } = require('./messageCrypto');
@@ -21,7 +21,7 @@ const convMessages = require('./conversationMessages');
 const log = require('../../telemetry/log');
 const { searchConversationRows, byUpdatedDesc, AGENT_SEARCH } = require('../lib/conversationSearch');
 const { bestEffort } = require('../../utils/bestEffort');
-const { isMissingTable } = require('../../utils/isMissingTable');
+const { deleteConversationsWhere } = require('./agentConversationsDelete.mts');
 
 /** What the shared search needs from this store's db and crypto modules. */
 const SEARCH_DEPS = {
@@ -128,7 +128,7 @@ async function _appendNewMessages(id, type, messages, ctx) {
 
 // ============ Basic Conversation CRUD ============
 
-async function getConversation(agentId, userId, encryptionKey = null) {
+async function getConversation(agentId, userId, encryptionKey = /** @type {string | null | undefined} */ (null)) {
     await initDB();
     const row = await getOne('SELECT * FROM agent_conversations WHERE agent_id = $1 AND user_id = $2 ORDER BY updated_at DESC LIMIT 1', [agentId, userId]);
     if (!row) return null;
@@ -277,7 +277,7 @@ async function getConversationMeta(conversationId, options) {
     return _parseMeta(row.meta_json, conversationId, ctx);
 }
 
-async function getOrCreateConversation(agentId, userId, encryptionKey = null) {
+async function getOrCreateConversation(agentId, userId, encryptionKey = /** @type {string | null | undefined} */ (null)) {
     let conv = await getConversation(agentId, userId, encryptionKey);
     if (!conv) {
         const id = randomUUID();
@@ -345,11 +345,7 @@ async function updateConversation(conversationId, messages, encryptionKey = /** 
 
 async function clearConversation(agentId, userId) {
     await initDB();
-    const rows = await getAll('SELECT id FROM agent_conversations WHERE agent_id = $1 AND user_id = $2', [agentId, userId]);
-    for (const row of rows) {
-        await run('DELETE FROM conversation_messages WHERE conversation_id = $1', [row.id]).catch((e) => { if (!isMissingTable(e)) throw e; });
-    }
-    await run('DELETE FROM agent_conversations WHERE agent_id = $1 AND user_id = $2', [agentId, userId]);
+    await deleteConversationsWhere(withTransaction, 'agent_conversations', 'agent_id = $1 AND user_id = $2', [agentId, userId]);
 }
 
 async function updateConversationWorkspace(conversationId, content, notebookId = null) {
@@ -493,8 +489,7 @@ async function updateThreadTitles(conversationId, threadTitles) {
  */
 async function deleteConversationById(conversationId) {
     await initDB();
-    await run('DELETE FROM conversation_messages WHERE conversation_id = $1', [conversationId]).catch((e) => { if (!isMissingTable(e)) throw e; });
-    await run('DELETE FROM agent_conversations WHERE id = $1', [conversationId]);
+    await deleteConversationsWhere(withTransaction, 'agent_conversations', 'id = $1', [conversationId], 'conversation_id = $1');
     // Drop the DLP token map / remembered choice so a reused conversation ID starts clean.
     try { require('../../core/dlp/dlpRunner').clearConversationState(conversationId); } catch (err) { bestEffort('stores/agent/agentConversations:deleteConversationById', err); /* module not loaded yet */ }
 }

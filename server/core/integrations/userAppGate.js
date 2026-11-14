@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 /**
@@ -51,7 +52,7 @@ function createUserAppGate({ configStore, resolveOrgAllowList, webpageToolsAllow
      * webpage-access lookups that only `webpages` needs are skipped unless that
      * app is `webpages` (a gate built for another app answers no for it).
      */
-    async function buildUserAppGate({ userId, session, isAdmin, onlyAppId = null } = {}) {
+    async function buildUserAppGate(/** @type {{ userId?: string, session?: Partial<Express.Session> | null, isAdmin?: boolean, onlyAppId?: string | null }} */ { userId, session, isAdmin, onlyAppId = null } = {}) {
         // A config-lookup failure here must not propagate: the caller
         // (automationBuilder.js's catalog builder) treats a thrown exception as
         // "couldn't resolve permissions" and falls back to permit-ALL apps —
@@ -76,6 +77,7 @@ function createUserAppGate({ configStore, resolveOrgAllowList, webpageToolsAllow
         // failure drops back to the legacy inline gate rather than stripping
         // everything.
         let effectiveIntegrations = null;
+        /** @type {(appId: string) => boolean} */
         let isKnownIntegration = () => false;
         try {
             const entitlements = lazy.entitlements();
@@ -181,7 +183,7 @@ function createUserAppGate({ configStore, resolveOrgAllowList, webpageToolsAllow
      * canvas", and an app with no tools array has nothing to put there. Do NOT use
      * it to authorise one specific integration — see isIntegrationPermittedForUser.
      */
-    async function getUserPermittedApps({ userId, session, isAdmin } = {}) {
+    async function getUserPermittedApps(/** @type {{ userId?: string | null, session?: Partial<Express.Session> | null, isAdmin?: boolean }} */ { userId, session, isAdmin } = {}) {
         if (!userId) return new Set();
         const isAppOn = await buildUserAppGate({ userId, session, isAdmin });
         const out = new Set();
@@ -202,7 +204,7 @@ function createUserAppGate({ configStore, resolveOrgAllowList, webpageToolsAllow
      *
      * This is the authorisation question. getUserPermittedApps is the discovery one.
      */
-    async function isIntegrationPermittedForUser({ userId, appId, session, isAdmin } = {}) {
+    async function isIntegrationPermittedForUser(/** @type {{ userId?: string | null, session?: Partial<Express.Session> | null, isAdmin?: boolean, appId?: string }} */ { userId, appId, session, isAdmin } = {}) {
         if (!userId || !appId) return false;
         const isAppOn = await buildUserAppGate({ userId, session, isAdmin, onlyAppId: appId });
         return isAppOn(appId);

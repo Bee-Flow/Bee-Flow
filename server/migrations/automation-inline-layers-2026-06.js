@@ -45,6 +45,7 @@
 
 const crypto = require('crypto');
 const { run, getAll, exec, getClient } = require('../db');
+const { bestEffort } = require('../utils/bestEffort');
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -223,7 +224,7 @@ async function up() {
             await client.query('COMMIT');
             migrated++;
         } catch (e) {
-            await client.query('ROLLBACK').catch(() => {});
+            await client.query('ROLLBACK').catch((err) => bestEffort('migrations/automation-inline-layers:rollback', err));
             console.error(`[inline-layers] failed to migrate automation ${id}: ${/** @type {Error} */ (e).message}`);
         } finally {
             client.release();

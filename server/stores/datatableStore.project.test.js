@@ -1,161 +1,143 @@
+// @typecheck
 /**
- * Filing a table into a Solution.
+ * Filing a table into a Solution, against a real Postgres (PGlite behind
+ * db.js's pool, testUtils/pglitePool.js): the store runs its own schema init
+ * and its own SQL.
  *
- * `datatables.project_id` and its partial index shipped with nothing that read
- * or wrote them. Wiring them up is only safe if TWO doors stay shut, and both
- * are pinned here:
+ * Wiring `datatables.project_id` up is only safe if TWO doors stay shut:
  *
  *   1. THE METADATA PATCH STAYS CLOSED. `META_COLUMNS` is the list of things
  *      `PATCH /api/datatables/:id/meta` may write. Adding `projectId` to it
  *      would let anyone who may edit a table's label file it into any project
- *      by id, with no check on their role in that project. Membership is its
- *      own act with its own gate, so it gets its own statement — and this file
- *      fails if somebody takes the shortcut.
+ *      by id, with no check on their role in that project.
  *   2. OWNERSHIP IS A PREDICATE, NOT A PRIOR CHECK. Filing a table into a
- *      project shows it to every member without it being published or granted.
- *      `AND owner_user_id = $3` is what makes that the owner's decision.
+ *      project shows it to every member without it being published or granted;
+ *      only the owner's call may move it.
  *
- * And one thing that must never happen: a project delete detaches. It does not
- * drop a table, and it does not touch a single row.
+ * And a project delete detaches: it drops no table and touches no other row.
  *
- * No database: `../db` is stubbed and every assertion is about the SQL and the
- * parameters that reach it.
- *
- * Run: cd server && node --test --test-force-exit stores/datatableStore.project.test.js
+ * Run: cd server && node --test stores/datatableStore.project.test.js
  */
 
-const test = require('node:test');
+'use strict';
+
+const { test, before, after } = require('node:test');
 const assert = require('node:assert');
-const Module = require('module');
 
-const sql = { run: [], getAll: [], getOne: [] };
-let nextRunResult = { rowCount: 1 };
-let nextRows = [];
+const { usePglitePool } = require('../testUtils/pglitePool');
 
-const mockDb = {
-    async exec() {},
-    async run(text, params) { sql.run.push({ text, params }); return nextRunResult; },
-    async getAll(text, params) { sql.getAll.push({ text, params }); return nextRows; },
-    async getOne(text, params) { sql.getOne.push({ text, params }); return null; },
-    withTransaction: async (fn) => fn({ query: async () => ({ rows: [] }) }),
-    makeStoreInit: () => async () => {},
-};
-
-const mockId = 'mock:datatableProject:db';
-require.cache[mockId] = { id: mockId, filename: mockId, loaded: true, exports: mockDb };
-const originalResolve = Module._resolveFilename;
-Module._resolveFilename = function (request, parent, ...rest) {
-    // The seam sits on '../db' in the FACADE (stores/datatableStore.js) and on
-    // '../../db' in every part (stores/datatableStore/*.js) — after the
-    // split the second does the real work. If the pattern no longer matches,
-    // then the real db module loads and this test dies on a live
-    // Postgres connection, far from the cause.
-    if (parent && /datatableStore([\\/][^\\/]+)?\.js$/.test(parent.filename)
-        && (request === '../db' || request === '../../db')) return mockId;
-    return originalResolve.call(this, request, parent, ...rest);
-};
-
+const { pg, close } = usePglitePool();
 const store = require('./datatableStore');
-test.after(() => { Module._resolveFilename = originalResolve; });
 
-function reset() {
-    sql.run.length = 0; sql.getAll.length = 0; sql.getOne.length = 0;
-    nextRunResult = { rowCount: 1 };
-    nextRows = [];
+const ORG = { kind: 'org', id: 'org1' };
+
+before(async () => {
+    await store.initDB();
+});
+after(close);
+
+let seq = 0;
+async function make(extra = {}) {
+    seq += 1;
+    return store.createDatatable({ scope: ORG, ownerUserId: 'alice', key: `t_${seq}`, name: `T ${seq}`, ...extra });
 }
 
-const ROW = {
-    id: 'tbl_1', scope_kind: 'org', scope_id: 'org1', organization_id: 'org1',
-    owner_user_id: 'alice', project_id: 'p1', key: 'invoices', name: 'Invoices',
-    description: 'what we billed', is_published: false, shared_groups: '[]',
-    write_mode: 'grants', row_scope: 'all', retention_field: 'created_at',
-    row_count: 12, data_version: 3,
-};
+/** project_id, data_version and updated_at of one table, read straight from the database. */
+async function rowOf(id) {
+    const { rows } = await pg.query('SELECT project_id, data_version, updated_at FROM datatables WHERE id = $1', [id]);
+    return rows[0];
+}
 
 // ═══ The door that must stay shut ════════════════════════════════════
 
 test('projectId is NOT something the metadata PATCH may write', async () => {
-    // The shortcut this rejects: adding `projectId` to META_COLUMNS would open
-    // PATCH /api/datatables/:id/meta to filing a table into a project the
-    // caller has no role on at all.
     assert.ok(!Object.hasOwn(store.META_COLUMNS, 'projectId'), 'not in the map');
-    reset();
+    const t = await make();
     await assert.rejects(
-        () => store.updateDatatableMeta('tbl_1', { kind: 'org', id: 'org1' }, { projectId: 'p1' }),
-        (err) => err.status === 400 && err.code === 'unknown_field',
+        () => store.updateDatatableMeta(t.id, ORG, { projectId: 'p1' }),
+        (/** @type {any} */ err) => err.status === 400 && err.code === 'unknown_field',
         'and the store refuses it loudly rather than skipping the field',
     );
-    assert.strictEqual(sql.run.length, 0, 'nothing was written');
+    assert.strictEqual((await rowOf(t.id)).project_id, null, 'nothing was written');
 });
 
 // ═══ Listing ═════════════════════════════════════════════════════════
 
-test('the listing asks for one project and maps the store shape', async () => {
-    reset();
-    nextRows = [ROW];
-    const list = await store.listDatatablesForProject('p1');
+test('the listing returns the tables of one project, by name, in the store shape', async () => {
+    const b = await make({ name: 'B invoices', projectId: 'p-list' });
+    const a = await make({ name: 'A orders', projectId: 'p-list' });
+    await make({ name: 'Elsewhere', projectId: 'p-other' });
+    await make({ name: 'Loose' });
 
-    assert.strictEqual(sql.getAll.length, 1);
-    assert.match(sql.getAll[0].text, /WHERE project_id = \$1/);
-    assert.deepStrictEqual(sql.getAll[0].params, ['p1']);
-    assert.strictEqual(list.length, 1);
-    assert.strictEqual(list[0].id, 'tbl_1');
-    assert.strictEqual(list[0].projectId, 'p1');
+    const list = await store.listDatatablesForProject('p-list');
+    assert.deepStrictEqual(list.map((t) => t.id), [a.id, b.id]);
+    assert.strictEqual(list[0].projectId, 'p-list');
     assert.strictEqual(list[0].ownerUserId, 'alice');
+    assert.strictEqual(list[0].name, 'A orders');
 });
 
-test('no project id means no query at all, and an empty list', async () => {
-    reset();
+test('no project id means an empty list, never the tables without a project', async () => {
+    await make({ name: 'No project' });
     assert.deepStrictEqual(await store.listDatatablesForProject(null), []);
     assert.deepStrictEqual(await store.listDatatablesForProject(''), []);
-    assert.strictEqual(sql.getAll.length, 0, 'a missing id must not become WHERE project_id = NULL');
+});
+
+test('the count is one number per project, and a project with no tables is absent', async () => {
+    await make({ projectId: 'p-count-a' });
+    await make({ projectId: 'p-count-a' });
+    await make({ projectId: 'p-count-b' });
+    const counts = await store.countDatatablesForProject(['p-count-a', 'p-count-b', 'p-count-none']);
+    assert.deepStrictEqual([...counts.entries()].sort(), [['p-count-a', 2], ['p-count-b', 1]]);
+    assert.strictEqual((await store.countDatatablesForProject([])).size, 0);
 });
 
 // ═══ Filing in and out ═══════════════════════════════════════════════
 
-test('filing in matches on the OWNER, not just the id', async () => {
-    reset();
-    const ok = await store.setDatatableProject('tbl_1', 'alice', 'p1');
-
-    assert.strictEqual(ok, true);
-    assert.strictEqual(sql.run.length, 1);
-    assert.match(sql.run[0].text, /UPDATE datatables SET project_id = \$1/);
-    assert.match(sql.run[0].text, /WHERE id = \$2 AND owner_user_id = \$3/);
-    assert.deepStrictEqual(sql.run[0].params, ['p1', 'tbl_1', 'alice']);
+test('the owner files a table in; the row now carries the project, its data version untouched', async () => {
+    const t = await make();
+    const before = await rowOf(t.id);
+    assert.strictEqual(await store.setDatatableProject(t.id, 'alice', 'p-file'), true);
+    const now = await rowOf(t.id);
+    assert.strictEqual(now.project_id, 'p-file');
+    assert.strictEqual(now.data_version, before.data_version, 'membership changes no rows');
+    assert.deepStrictEqual((await store.listDatatablesForProject('p-file')).map((x) => x.id), [t.id]);
 });
 
-test('a write that matched nothing is reported as false, never as success', async () => {
-    reset();
-    nextRunResult = { rowCount: 0 };
-    assert.strictEqual(await store.setDatatableProject('tbl_1', 'mallory', 'p1'), false);
+test('anyone but the owner matches nothing: false, and the row keeps its project', async () => {
+    const t = await make({ projectId: 'p-kept' });
+    assert.strictEqual(await store.setDatatableProject(t.id, 'mallory', 'p-stolen'), false);
+    assert.strictEqual((await rowOf(t.id)).project_id, 'p-kept');
+    assert.strictEqual(await store.setDatatableProject('tbl_missing', 'alice', 'p-stolen'), false);
 });
 
 test('taking a table out writes a real NULL', async () => {
-    reset();
-    await store.setDatatableProject('tbl_1', 'alice', null);
-    assert.strictEqual(sql.run[0].params[0], null);
+    const t = await make({ projectId: 'p-out' });
+    assert.strictEqual(await store.setDatatableProject(t.id, 'alice', null), true);
+    assert.strictEqual((await rowOf(t.id)).project_id, null);
 });
 
-test('a caller with no user id is refused before any SQL runs', async () => {
+test('a caller with no user id, or no table id, is refused and nothing moves', async () => {
     // `owner_user_id = undefined` binds as NULL, matches nothing and reads as
-    // "not yours" — the right answer for the wrong reason. Refuse it here so a
-    // caller that lost its session cannot look like a caller who lost a race.
-    reset();
-    assert.strictEqual(await store.setDatatableProject('tbl_1', undefined, 'p1'), false);
+    // "not yours": the right answer for the wrong reason. Refused up front.
+    const t = await make({ projectId: 'p-session' });
+    assert.strictEqual(await store.setDatatableProject(t.id, undefined, 'p1'), false);
     assert.strictEqual(await store.setDatatableProject('', 'alice', 'p1'), false);
-    assert.strictEqual(sql.run.length, 0);
+    assert.strictEqual((await rowOf(t.id)).project_id, 'p-session');
 });
 
 // ═══ Detaching ═══════════════════════════════════════════════════════
 
 test('a deleted project detaches its tables and destroys nothing', async () => {
-    reset();
-    nextRunResult = { rowCount: 2 };
-    const cleared = await store.clearProjectFromDatatables('p1');
+    const one = await make({ projectId: 'p-gone' });
+    const two = await make({ projectId: 'p-gone' });
+    const other = await make({ projectId: 'p-stays' });
+    const tablesBefore = (await pg.query('SELECT COUNT(*)::int AS n FROM datatables')).rows[0].n;
 
-    assert.strictEqual(cleared, 2);
-    assert.strictEqual(sql.run.length, 1);
-    assert.match(sql.run[0].text, /UPDATE datatables SET project_id = NULL WHERE project_id = \$1/);
-    assert.ok(!/DROP|DELETE/i.test(sql.run[0].text), 'not one table and not one row');
-    assert.deepStrictEqual(sql.run[0].params, ['p1']);
+    assert.strictEqual(await store.clearProjectFromDatatables('p-gone'), 2);
+
+    assert.strictEqual((await rowOf(one.id)).project_id, null);
+    assert.strictEqual((await rowOf(two.id)).project_id, null);
+    assert.strictEqual((await rowOf(other.id)).project_id, 'p-stays', 'another project keeps its tables');
+    assert.strictEqual((await pg.query('SELECT COUNT(*)::int AS n FROM datatables')).rows[0].n, tablesBefore, 'not one table dropped');
+    assert.ok(await store.getDatatable(one.id, ORG), 'the table itself is still there');
 });

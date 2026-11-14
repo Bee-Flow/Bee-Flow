@@ -1,0 +1,300 @@
+{
+  "nullResult": {
+    "out": {
+      "structured": null,
+      "content": null,
+      "stopReason": null,
+      "rawArguments": null
+    },
+    "warnings": []
+  },
+  "namedCallWins": {
+    "out": {
+      "structured": {
+        "ok": true
+      },
+      "content": "prose",
+      "usage": {
+        "total_tokens": 3
+      },
+      "raw": {
+        "id": "r"
+      },
+      "stopReason": "tool_use",
+      "rawArguments": "{\"ok\":true}"
+    },
+    "warnings": []
+  },
+  "firstCallFallback": {
+    "out": {
+      "structured": {
+        "a": 1
+      },
+      "content": null,
+      "stopReason": "stop",
+      "rawArguments": "{\"a\":1}"
+    },
+    "warnings": []
+  },
+  "bareNameCall": {
+    "out": {
+      "structured": {
+        "via": "input"
+      },
+      "content": null,
+      "stopReason": null,
+      "rawArguments": null
+    },
+    "warnings": []
+  },
+  "objectArguments": {
+    "out": {
+      "structured": {
+        "already": "object"
+      },
+      "content": null,
+      "stopReason": null,
+      "rawArguments": null
+    },
+    "warnings": []
+  },
+  "jsonNotObject": {
+    "out": {
+      "structured": null,
+      "content": null,
+      "stopReason": null,
+      "rawArguments": "42"
+    },
+    "warnings": [
+      "[LLMClient] forced tool emit_result on ?: arguments unparsable (stop=?, 2 chars): 42"
+    ]
+  },
+  "numberArguments": {
+    "out": {
+      "structured": null,
+      "content": null,
+      "stopReason": null,
+      "rawArguments": null
+    },
+    "warnings": []
+  },
+  "looseGemma": {
+    "out": {
+      "structured": {
+        "ok": true,
+        "note": "done"
+      },
+      "content": null,
+      "stopReason": null,
+      "rawArguments": "{ok:true,note:<|\">done<|\">}<tool_call|>trailing"
+    },
+    "warnings": [
+      "[LLMClient] forced tool emit_result on ?: answer read from tool_call (loose parse) (stop=?)"
+    ]
+  },
+  "unparsableLogged": {
+    "out": {
+      "structured": null,
+      "content": null,
+      "stopReason": "length",
+      "rawArguments": "{\"ok\":true,\"text\":\"cut"
+    },
+    "warnings": [
+      "[LLMClient] forced tool emit_result on local-x: arguments unparsable (stop=length, 22 chars): {\"ok\":true,\"text\":\"cut"
+    ]
+  },
+  "unparsableBlank": {
+    "out": {
+      "structured": {},
+      "content": null,
+      "stopReason": null,
+      "rawArguments": "   "
+    },
+    "warnings": [
+      "[LLMClient] forced tool emit_result on ?: answer read from tool_call (loose parse) (stop=?)"
+    ]
+  },
+  "garbledButReturned": {
+    "out": {
+      "structured": {
+        "text": "a},b:{c"
+      },
+      "content": null,
+      "stopReason": "end_turn",
+      "rawArguments": "{\"text\":\"a},b:{c\"}"
+    },
+    "warnings": [
+      "[LLMClient] forced tool emit_result on ?: args look garbled — a string value swallowed structure (llama.cpp Gemma parser, #21384); stop=end_turn"
+    ]
+  },
+  "garbledControlToken": {
+    "out": {
+      "structured": {
+        "text": "x}]}<tool_call|>y"
+      },
+      "content": null,
+      "stopReason": null,
+      "rawArguments": "{\"text\":\"x}]}<tool_call|>y\"}"
+    },
+    "warnings": [
+      "[LLMClient] forced tool emit_result on ?: args look garbled — a string value swallowed structure (llama.cpp Gemma parser, #21384); stop=?"
+    ]
+  },
+  "writtenInContent": {
+    "out": {
+      "structured": {
+        "ok": false
+      },
+      "content": "Sure.\n<tool_call>{\"name\":\"emit_result\",\"arguments\":{\"ok\":false}}</tool_call>",
+      "stopReason": null,
+      "rawArguments": "{\"ok\":false}"
+    },
+    "warnings": [
+      "[LLMClient] forced tool emit_result on ?: answer read from written as text in the content (stop=?)"
+    ]
+  },
+  "writtenInThinking": {
+    "out": {
+      "structured": {
+        "ok": true,
+        "note": "done"
+      },
+      "content": null,
+      "stopReason": "stop",
+      "rawArguments": "{\"ok\":true,\"note\":\"done\"}"
+    },
+    "warnings": [
+      "[LLMClient] forced tool emit_result on ?: answer read from written as text in the thinking (stop=stop)"
+    ]
+  },
+  "writtenOtherTool": {
+    "out": {
+      "structured": null,
+      "content": "<tool_call>{\"name\":\"not_it\",\"arguments\":{\"x\":1}}</tool_call>",
+      "stopReason": null,
+      "rawArguments": null
+    },
+    "warnings": [
+      "[leakedToolCalls] rejected not_it:unknown_tool in content (hermes): <tool_call>{\"name\":\"not_it\",\"arguments\":{\"x\":1}}</tool_call>"
+    ]
+  },
+  "writtenBadArgs": {
+    "out": {
+      "structured": null,
+      "content": "<tool_call>{\"name\":\"emit_result\",\"arguments\":\"{broken\"}</tool_call>",
+      "stopReason": null,
+      "rawArguments": null
+    },
+    "warnings": [
+      "[leakedToolCalls] rejected ?:unparsable in content (hermes): <tool_call>{\"name\":\"emit_result\",\"arguments\":\"{broken\"}</tool_call>"
+    ]
+  },
+  "bareJsonNamingTool": {
+    "out": {
+      "structured": {
+        "ok": "named"
+      },
+      "content": "{\"name\":\"emit_result\",\"arguments\":{\"ok\":\"named\"}}",
+      "stopReason": null,
+      "rawArguments": "{\"ok\":\"named\"}"
+    },
+    "warnings": [
+      "[LLMClient] forced tool emit_result on ?: answer read from written as text in the content (stop=?)"
+    ]
+  },
+  "bareJsonBody": {
+    "out": {
+      "structured": {
+        "name": "invoices",
+        "ok": true
+      },
+      "content": "{\"name\":\"invoices\",\"ok\":true}",
+      "stopReason": null,
+      "rawArguments": null
+    },
+    "warnings": [
+      "[LLMClient] forced tool emit_result on ?: answer read from content (stop=?)"
+    ]
+  },
+  "fencedJsonBody": {
+    "out": {
+      "structured": {
+        "fenced": true
+      },
+      "content": "```json\n{\"fenced\":true}\n```",
+      "stopReason": null,
+      "rawArguments": null
+    },
+    "warnings": [
+      "[LLMClient] forced tool emit_result on ?: answer read from content (stop=?)"
+    ]
+  },
+  "proseOnly": {
+    "out": {
+      "structured": null,
+      "content": "I cannot do that.",
+      "stopReason": "end_turn",
+      "rawArguments": null
+    },
+    "warnings": []
+  },
+  "unparsableThenWritten": {
+    "out": {
+      "structured": {
+        "ok": "text"
+      },
+      "content": "<tool_call>{\"name\":\"emit_result\",\"arguments\":{\"ok\":\"text\"}}</tool_call>",
+      "stopReason": null,
+      "rawArguments": "nope"
+    },
+    "warnings": [
+      "[LLMClient] forced tool emit_result on ?: answer read from written as text in the content (stop=?)"
+    ]
+  },
+  "writtenNullArgs": {
+    "out": {
+      "structured": {},
+      "content": "<tool_call>{\"name\":\"emit_result\",\"arguments\":null}</tool_call>",
+      "stopReason": null,
+      "rawArguments": "{}"
+    },
+    "warnings": [
+      "[LLMClient] forced tool emit_result on ?: answer read from written as text in the content (stop=?)"
+    ]
+  },
+  "unparsableThenContent": {
+    "out": {
+      "structured": {
+        "from": "content"
+      },
+      "content": "{\"from\":\"content\"}",
+      "stopReason": null,
+      "rawArguments": "nope"
+    },
+    "warnings": [
+      "[LLMClient] forced tool emit_result on ?: answer read from content (stop=?)"
+    ]
+  },
+  "noToolName": {
+    "out": {
+      "structured": {
+        "x": 1
+      },
+      "content": "{\"x\":1}",
+      "stopReason": null,
+      "rawArguments": null
+    },
+    "warnings": [
+      "[LLMClient] forced tool  on ?: answer read from content (stop=?)"
+    ]
+  },
+  "thinkingNotString": {
+    "out": {
+      "structured": null,
+      "content": null,
+      "stopReason": null,
+      "rawArguments": null
+    },
+    "warnings": []
+  }
+}

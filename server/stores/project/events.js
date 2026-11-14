@@ -7,6 +7,7 @@
 
 const crypto = require('crypto');
 const log = require('../../telemetry/log');
+const { rollback } = require('../../utils/txRollback');
 const { mapActivityRow } = require('../projectChanges');
 
 // How many events a reconnecting client may replay in one go. Beyond this the
@@ -19,11 +20,11 @@ const EVENT_REPLAY_LIMIT = 500;
  *   run: (sql: string, params?: any[]) => Promise<any>,
  *   getOne: (sql: string, params?: any[]) => Promise<any>,
  *   getAll: (sql: string, params?: any[]) => Promise<any[]>,
- *   getClient: () => Promise<any>,
+ *   withTransaction: (fn: (client: any) => Promise<any>) => Promise<any>,
  *   initDB: () => Promise<unknown>,
  * }} ctx  the store's db facade and schema init (built by makeProjectStore)
  */
-function makeEventFns({ run, getAll, getOne, getClient, initDB }) {
+function makeEventFns({ run, getAll, getOne, withTransaction, initDB }) {
     // ── Activity feed ────────────────────────────────────────
 
     async function logActivity(projectId, actorId, action, details = {}) {
@@ -68,32 +69,25 @@ function makeEventFns({ run, getAll, getOne, getClient, initDB }) {
         await initDB();
         if (!projectId || !kind) return null;
 
-        const client = await getClient();
         try {
-            await client.query('BEGIN');
-            const { rows } = await client.query(
-                'UPDATE projects SET event_seq = event_seq + 1 WHERE id = $1 RETURNING event_seq',
-                [projectId]
-            );
-            if (rows.length === 0) {          // project vanished mid-flight
-                await client.query('ROLLBACK');
-                return null;
-            }
-            const seq = Number(rows[0].event_seq);
-            const id = crypto.randomUUID();
-            await client.query(
-                `INSERT INTO project_events (id, project_id, seq, kind, actor_id, target_type, target_id, payload)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-                [id, projectId, seq, kind, actorId, targetType, targetId, JSON.stringify(payload || {})]
-            );
-            await client.query('COMMIT');
-            return { seq, id };
+            return await withTransaction(async (client) => {
+                const { rows } = await client.query(
+                    'UPDATE projects SET event_seq = event_seq + 1 WHERE id = $1 RETURNING event_seq',
+                    [projectId]
+                );
+                if (rows.length === 0) return rollback(null);   // project vanished mid-flight
+                const seq = Number(rows[0].event_seq);
+                const id = crypto.randomUUID();
+                await client.query(
+                    `INSERT INTO project_events (id, project_id, seq, kind, actor_id, target_type, target_id, payload)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+                    [id, projectId, seq, kind, actorId, targetType, targetId, JSON.stringify(payload || {})]
+                );
+                return { seq, id };
+            });
         } catch (err) {
-            try { await client.query('ROLLBACK'); } catch (err) { log.debug('connection already gone', err); }
             log.warn('[ProjectStore] appendProjectEvent failed:', /** @type {Error} */ (err).message);
             return null;
-        } finally {
-            client.release();
         }
     }
 

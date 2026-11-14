@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Topics: the `isAbout(text, "topic"[, threshold])` host function.
  *
@@ -118,7 +119,7 @@ export function makeTopicHost(scoresByText, { defaultThreshold = 0.75 } = {}) {
         const scores = scoresByText.get(text);
         const score = scores && Object.prototype.hasOwnProperty.call(scores, label) ? scores[label] : undefined;
         if (typeof score !== 'number') {
-            const err = new Error(`No topic score for "${label}"`);
+            const err = /** @type {Error & { topicFatal?: boolean }} */ (new Error(`No topic score for "${label}"`));
             err.topicFatal = true;
             throw err;
         }

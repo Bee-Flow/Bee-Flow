@@ -139,3 +139,12 @@ test('an empty body is still a valid no-op save', async () => {
     assert.strictEqual(res.statusCode, 200);
     assert.deepStrictEqual(touched.filter((t) => t.what === 'setConfig'), []);
 });
+
+test('a waitlist decision takes no fields: one sent is refused by name before the person is looked up', async () => {
+    for (const action of ['approve', 'reject']) {
+        const res = await dispatch({ method: 'POST', url: `/admin/waitlist/u9/${action}`, body: { status: 'active' } });
+        assert.strictEqual(res.statusCode, 400, action);
+        assert.strictEqual(res.body.code, 'invalid_request');
+        assert.match(res.body.error, /does not take "status"/);
+    }
+});

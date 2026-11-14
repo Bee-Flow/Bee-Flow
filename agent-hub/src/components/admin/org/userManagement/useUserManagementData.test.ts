@@ -1,6 +1,7 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import { waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import useUserManagementData from './useUserManagementData';
+import { renderHookWithClient } from '@/test/render';
 
 const fetchMock = vi.fn();
 
@@ -41,7 +42,7 @@ afterEach(() => {
 
 describe('useUserManagementData', () => {
     it('without options asks the unscoped lists and the role table', async () => {
-        const { result } = renderHook(() => useUserManagementData());
+        const { result } = renderHookWithClient(() => useUserManagementData());
         await waitFor(() => expect(result.current.roles).toHaveLength(1));
         expect(requested()).toEqual([
             '/auth/groups', '/auth/organizations', '/auth/permissions', '/auth/roles', '/auth/users',
@@ -50,7 +51,7 @@ describe('useUserManagementData', () => {
 
     it('for a platform admin asks the admin-scoped lists and the role table', async () => {
         const currentUser = { id: 'root', role: 'admin', permissions: [] };
-        const { result } = renderHook(() => useUserManagementData({ currentUser }));
+        const { result } = renderHookWithClient(() => useUserManagementData({ currentUser }));
         await waitFor(() => expect(result.current.roles).toHaveLength(1));
         expect(requested()).toEqual([
             '/auth/groups?scope=admin', '/auth/organizations?scope=admin', '/auth/permissions', '/auth/roles', '/auth/users?scope=admin',
@@ -61,7 +62,7 @@ describe('useUserManagementData', () => {
     it('for an organisation admin never asks the role table and leaves roles empty', async () => {
         // 'all' is not a platform layer: it does not open the role table either.
         const currentUser = { id: 'me', role: 'user', isAdmin: false, permissions: ['all', 'manage_users'] };
-        const { result } = renderHook(() => useUserManagementData({ currentUser }));
+        const { result } = renderHookWithClient(() => useUserManagementData({ currentUser }));
         await waitFor(() => expect(result.current.organizations).toHaveLength(1));
         await waitFor(() => expect(result.current.loading).toBe(false));
         expect(requested()).toEqual([
@@ -78,7 +79,7 @@ describe('useUserManagementData', () => {
             if (path === '/auth/users') return json({ error: 'Organization admin access required', code: 'org_admin_required' }, 403);
             return path in ROWS ? json(ROWS[path]) : json({ error: 'not found' }, 404);
         });
-        const { result } = renderHook(() => useUserManagementData({ currentUser: { id: 'me', role: 'user' } }));
+        const { result } = renderHookWithClient(() => useUserManagementData({ currentUser: { id: 'me', role: 'user' } }));
         await waitFor(() => expect(result.current.groups).toHaveLength(1));
         await waitFor(() => expect(result.current.loading).toBe(false));
         expect(result.current.users).toEqual([]);
@@ -87,12 +88,12 @@ describe('useUserManagementData', () => {
     });
 
     it('a user list that loads, or an unscoped one, is not a refusal', async () => {
-        const scoped = renderHook(() => useUserManagementData({ currentUser: { id: 'me', role: 'user' } }));
+        const scoped = renderHookWithClient(() => useUserManagementData({ currentUser: { id: 'me', role: 'user' } }));
         await waitFor(() => expect(scoped.result.current.users).toHaveLength(1));
         expect(scoped.result.current.notOrgAdmin).toBe(false);
 
         fetchMock.mockImplementation(async () => json({ error: 'Permission required to view users' }, 403));
-        const unscoped = renderHook(() => useUserManagementData());
+        const unscoped = renderHookWithClient(() => useUserManagementData());
         await waitFor(() => expect(requested().filter(u => u === '/auth/users')).toHaveLength(1));
         await waitFor(() => expect(unscoped.result.current.loading).toBe(false));
         expect(unscoped.result.current.notOrgAdmin).toBe(false);

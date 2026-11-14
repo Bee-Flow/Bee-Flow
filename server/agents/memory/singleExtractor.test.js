@@ -51,9 +51,10 @@ function stripComments(/** @type {string} */ src) {
  * once" is a property of that whole directory, not of the mounter file.
  */
 function directChatSource() {
-    const dir = path.join(SERVER_ROOT, 'routes', 'ai', 'directChat');
     const files = [path.join(SERVER_ROOT, 'routes', 'ai', 'directChat.js')];
-    if (fs.existsSync(dir)) {
+    // The route bodies, and the use cases they call (usecases/ keeps the sub-folder).
+    for (const dir of [path.join(SERVER_ROOT, 'routes', 'ai', 'directChat'), path.join(SERVER_ROOT, 'usecases', 'ai', 'directChat')]) {
+        if (!fs.existsSync(dir)) continue;
         for (const name of fs.readdirSync(dir).sort()) {
             if (name.endsWith('.js') && !name.endsWith('.test.js')) files.push(path.join(dir, name));
         }

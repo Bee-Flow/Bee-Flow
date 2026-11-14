@@ -1,3 +1,4 @@
+// @typecheck
 /** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
 const express = require('express');
 const router = express.Router();
@@ -337,7 +338,7 @@ router.get('/tools', async (req, res) => {
 
 // 10. Recent calls
 router.get('/recent', async (req, res) => {
-    const limit = Math.min(parseInt(req.query.limit, 10) || 100, RECENT_MAX);
+    const limit = Math.min(parseInt(/** @type {string} */ (req.query.limit), 10) || 100, RECENT_MAX);
     const data = await usageStore.getRecentCalls(limit, req.usageFilters);
     res.json(await maybeRedact(req, data || [], 'rows'));
 });
@@ -442,9 +443,10 @@ router.get('/guardrails/by-category', async (req, res) => {
 
 // 20. Recent Guardrail Events
 router.get('/guardrails/recent', async (req, res) => {
-    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
+    const limit = Math.min(parseInt(/** @type {string} */ (req.query.limit), 10) || 50, 200);
+    /** @type {NonNullable<import('express').Request['usageFilters']> & { beforeId?: number }} */
     const filters = { ...req.usageFilters };
-    const beforeId = parseInt(req.query.cursor, 10);
+    const beforeId = parseInt(/** @type {string} */ (req.query.cursor), 10);
     if (Number.isFinite(beforeId)) filters.beforeId = beforeId;
     if (req.query.type) filters.violationType = req.query.type;
     // Art. 9: every row carries a person, so no health categories on it
@@ -539,7 +541,7 @@ router.get('/integrations/servers', async (req, res) => {
 
 // 27. Recent Integration Activity (geo data is pre-resolved in the DB)
 router.get('/integrations/recent', async (req, res) => {
-    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
+    const limit = Math.min(parseInt(/** @type {string} */ (req.query.limit), 10) || 50, 200);
     const raw = await integrationActivityStore.getRecentIntegrationActivity(limit, req.usageFilters);
     // Art. 9: no health categories on a row that carries a person.
     const data = ownRowsOnly(req) ? raw : withholdSpecialCategories(raw, 'pii_categories_detected');
@@ -556,14 +558,15 @@ router.get('/integrations/recent', async (req, res) => {
 // actually went to (core/http/egressCapture.js), and the location fields say
 // where that is (core/http/geo/locate.js).
 router.get('/integrations/egress', async (req, res) => {
-    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
+    const limit = Math.min(parseInt(/** @type {string} */ (req.query.limit), 10) || 50, 200);
     const euOnly = req.query.eu === 'true' ? true : req.query.eu === 'false' ? false : undefined;
     const localOnly = req.query.local === 'true';
     // ?state=local|eu|outside|via_network|unknown (the store ignores anything else).
     const locationState = typeof req.query.state === 'string' ? req.query.state : undefined;
+    /** @type {NonNullable<import('express').Request['usageFilters']> & { beforeId?: number }} */
     const filters = { ...req.usageFilters, euOnly, localOnly, locationState };
     // Keyset paging: ?cursor=<last row id> returns strictly older rows.
-    const beforeId = parseInt(req.query.cursor, 10);
+    const beforeId = parseInt(/** @type {string} */ (req.query.cursor), 10);
     if (Number.isFinite(beforeId)) filters.beforeId = beforeId;
     const raw = await integrationActivityStore.getEgressLog(filters, limit);
     // Art. 9: no health categories on a row that carries a person.
@@ -595,7 +598,7 @@ router.get('/integrations-health', requireMonitoringScope, async (req, res) => {
 // Sovereignty breakdown by dimension (user / integration / agent / pii).
 // Each row shape is uniform — the frontend renders all four with one template.
 router.get('/integrations/sovereignty', async (req, res) => {
-    const dimension = req.query.dimension || 'user';
+    const dimension = /** @type {string} */ (req.query.dimension) || 'user';
     if (!['user', 'integration', 'agent', 'pii'].includes(dimension)) {
         return res.status(400).json({ error: `Invalid dimension. Use one of: user, integration, agent, pii` });
     }
@@ -657,7 +660,7 @@ router.get('/azure-services/timeline', async (req, res) => {
 
 // 32. Recent Azure Service Usage
 router.get('/azure-services/recent', async (req, res) => {
-    const limit = Math.min(parseInt(req.query.limit, 10) || 50, RECENT_MAX);
+    const limit = Math.min(parseInt(/** @type {string} */ (req.query.limit), 10) || 50, RECENT_MAX);
     const data = await azureCostsInPlanCurrency(await azureServiceUsageStore.getRecentAzureServiceUsage(limit, req.usageFilters) || [], req.usageFilters);
     const userMap = await getUserMap();
     res.json(data.map(row => withUser(row, userMap)));

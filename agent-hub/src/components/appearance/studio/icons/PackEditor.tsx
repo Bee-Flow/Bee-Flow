@@ -1,7 +1,8 @@
 import { Check, Pencil, Search, Download, AlertCircle, Loader2 } from 'lucide-react';
-import React, { useState, useEffect, useCallback, useId, useMemo } from 'react';
+import React, { useState, useCallback, useId, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { iconPackKeys, useIconPackListQuery, type IconPackList } from '@/api/queries/iconPacks';
 import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
-import { API_BASE, authFetch } from '@/utils/helpers';
 import { loadSettings } from '@/components/chat/NanoBananaSettings';
 import IconPickerModal from '@/components/icons/IconPickerModal';
 import Modal from '@/components/shared/Modal';
@@ -9,16 +10,23 @@ import useConfirm from '@/components/shared/useConfirm';
 import type { CustomIcon } from '@/hooks/useIconPack';
 import type { BulkGenerateModalProps, BulkOptions, BulkResult, IconCategory, IconCellProps, IconEntry, IconPack, PackEditorProps } from './IconsEditor.types';
 import { errorMessage } from '@/utils/caughtError';
-import { logger } from '@/utils/logger';
-import { mutate, ApiError } from '@/api/mutate';
+import { ApiError } from '@/api/mutate';
+import { apiFetch, apiRequest } from '@/api/typedRequest';
 import { ALERT_ERROR, ALERT_SUCCESS, CHIP_SUCCESS, DANGER_BTN, INPUT, PRIMARY_BTN, SECONDARY_BTN } from '@/components/mcpLibrary/ui';
-
-export const API = `${API_BASE}/api/icons`;
 
 export const PackEditor = ({ packId, categories, isActive, onActivate, onExport, onPackChanged }: PackEditorProps) => {
     const { t } = useTranslation();
     const { confirm, confirmDialog } = useConfirm();
-    const [pack, setPack] = useState<IconPack | null>(null);
+    const packsQuery = useIconPackListQuery<IconPack>();
+    const qc = useQueryClient();
+    const pack = packsQuery.data?.packs?.find((p: IconPack) => p.id === packId) || null;
+    // An edit shows at once: the pack is changed in the list the editors share, a failure reads it again.
+    const setPack = useCallback((change: (prev: IconPack | null) => IconPack | null) => {
+        qc.setQueryData<IconPackList<IconPack, unknown>>(iconPackKeys.list(), (prev) => prev && {
+            ...prev,
+            packs: (prev.packs || []).map((p: IconPack) => (p.id === packId ? (change(p) ?? p) : p)),
+        });
+    }, [qc, packId]);
     const [search, setSearch] = useState('');
     const [showOnly, setShowOnly] = useState('all');
     const [editingIconKey, setEditingIconKey] = useState<string | null>(null);
@@ -27,15 +35,8 @@ export const PackEditor = ({ packId, categories, isActive, onActivate, onExport,
     const [bulkRunning, setBulkRunning] = useState(false);
     const [bulkResult, setBulkResult] = useState<BulkResult | null>(null);
 
-    const fetchPack = useCallback(async () => {
-        try {
-            const res = await authFetch(API);
-            const data = await res.json();
-            setPack(data.packs?.find((p: IconPack) => p.id === packId) || null);
-        } catch (err) { logger.debug('swallowed', err); }
-    }, [packId]);
-
-    useEffect(() => { fetchPack(); }, [fetchPack]);
+    const refetchPacks = packsQuery.refetch;
+    const fetchPack = useCallback(async () => { await refetchPacks(); }, [refetchPacks]);
 
     const allEntries = useMemo(() => categories.flatMap((c: IconCategory) => c.entries || []), [categories]);
     const stats = useMemo(() => {
@@ -58,24 +59,22 @@ export const PackEditor = ({ packId, categories, isActive, onActivate, onExport,
         onPackChanged({ icons: optimistic });
 
         try {
-            const res = await authFetch(`${API}/${pack.id}/icons/${encodeURIComponent(iconKey)}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(iconData || {}),
+            const res = await apiFetch('PATCH /api/icons/{id}/icons/{key}', {
+                params: { id: pack.id, key: iconKey },
+                body: iconData || {},
             });
             if (!res.ok) await fetchPack();
         } catch {
             await fetchPack();
         }
-    }, [pack, onPackChanged, fetchPack]);
+    }, [pack, onPackChanged, fetchPack, setPack]);
 
     const handleResetAll = async () => {
         if (!(await confirm({ title: 'Remove ALL custom icons from this pack?', confirmLabel: 'Remove all', destructive: true }))) return;
         try { // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- browser-side console log of a failed request; nothing reaches another user or a response
-            const res = await mutate(`${API}/${(pack as IconPack).id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ icons: {} }),
+            const res = await apiRequest('PUT /api/icons/{id}', {
+                params: { id: (pack as IconPack).id },
+                body: { icons: {} },
             }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
@@ -93,10 +92,9 @@ export const PackEditor = ({ packId, categories, isActive, onActivate, onExport,
         setBulkRunning(true);
         setBulkResult(null);
         try {
-            const res = await authFetch(`${API}/${(pack as IconPack).id}/bulk-generate`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ style, model, overwrite }),
+            const res = await apiFetch('POST /api/icons/{id}/bulk-generate', {
+                params: { id: (pack as IconPack).id },
+                body: { style, model, overwrite },
             });
             const data = await res.json();
             if (res.ok) {

@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/agents`
 
-76 routes, 56 with a request schema. Back to the [endpoint reference](../reference.md).
+76 routes, 57 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -27,13 +27,13 @@ No request schema.
 
 ### `GET /agents/:id`
 
-**Access:** middleware `trainingGate`
+**Access:** Resource role `read` or higher · middleware `trainingGate`
 
 No request schema.
 
 ### `PUT /agents/:id`
 
-**Access:** Permission `manage_agents` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Permission `manage_agents` · Resource role `edit` or higher · middleware `trainingGate` · the handler also checks who the caller is
 
 **Body**
 
@@ -60,13 +60,13 @@ No request schema.
 
 ### `DELETE /agents/:id`
 
-**Access:** middleware `trainingGate`
+**Access:** Resource role `edit` or higher · middleware `trainingGate`
 
 No request schema.
 
 ### `POST /agents/:id/chat`
 
-**Access:** middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Resource role `chat` or higher · middleware `trainingGate` · the handler also checks who the caller is
 
 **Body**
 
@@ -76,7 +76,7 @@ No request schema.
 
 ### `POST /agents/:id/chat/stream`
 
-**Access:** middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Resource role `chat` or higher · middleware `trainingGate` · the handler also checks who the caller is
 
 **Body**
 
@@ -116,13 +116,13 @@ No request schema.
 
 ### `GET /agents/:id/conversations`
 
-**Access:** middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Resource role `read` or higher · middleware `trainingGate`
 
 No request schema.
 
 ### `POST /agents/:id/conversations`
 
-**Access:** middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Resource role `read` or higher · middleware `trainingGate`
 
 **Body**
 
@@ -189,9 +189,9 @@ No request schema.
 
 ### `PUT /agents/:id/favorite`
 
-**Access:** middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Resource role `read` or higher · middleware `trainingGate` · the handler also checks who the caller is
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `DELETE /agents/:id/favorite`
 
@@ -201,19 +201,19 @@ No request schema.
 
 ### `GET /agents/:id/history`
 
-**Access:** middleware `trainingGate`
+**Access:** Resource role `chat` or higher · middleware `trainingGate`
 
 No request schema.
 
 ### `DELETE /agents/:id/history`
 
-**Access:** middleware `trainingGate`
+**Access:** Resource role `chat` or higher · middleware `trainingGate`
 
 No request schema.
 
 ### `POST /agents/:id/persona/parse`
 
-**Access:** Permission `manage_agents` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Permission `manage_agents` · Resource role `edit` or higher · middleware `trainingGate` · the handler also checks who the caller is
 
 **Body**
 
@@ -223,7 +223,7 @@ No request schema.
 
 ### `PATCH /agents/:id/publish`
 
-**Access:** middleware `trainingGate`
+**Access:** Resource role `edit` or higher · middleware `trainingGate`
 
 **Body**
 
@@ -234,7 +234,7 @@ No request schema.
 
 ### `POST /agents/:id/publish-version`
 
-**Access:** middleware `trainingGate`
+**Access:** Resource role `edit` or higher · middleware `trainingGate`
 
 **Query:** object (no other keys)
 
@@ -242,13 +242,13 @@ No request schema.
 
 ### `GET /agents/:id/tests`
 
-**Access:** Permission `manage_agents` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Permission `manage_agents` · Resource role `edit` or higher · middleware `trainingGate` · the handler also checks who the caller is
 
 No request schema.
 
 ### `POST /agents/:id/tests`
 
-**Access:** Permission `manage_agents` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Permission `manage_agents` · Resource role `edit` or higher · middleware `trainingGate`
 
 **Body**
 
@@ -263,7 +263,7 @@ No request schema.
 
 ### `PUT /agents/:id/tests/:testId`
 
-**Access:** Permission `manage_agents` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Permission `manage_agents` · Resource role `edit` or higher · middleware `trainingGate`
 
 **Body**
 
@@ -275,13 +275,13 @@ No request schema.
 
 ### `DELETE /agents/:id/tests/:testId`
 
-**Access:** Permission `manage_agents` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Permission `manage_agents` · Resource role `edit` or higher · middleware `trainingGate`
 
 No request schema.
 
 ### `POST /agents/:id/tests/run`
 
-**Access:** Permission `manage_agents` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Permission `manage_agents` · Resource role `edit` or higher · middleware `trainingGate` · the handler also checks who the caller is
 
 **Body**
 
@@ -293,7 +293,7 @@ No request schema.
 
 ### `GET /agents/:id/tests/runs`
 
-**Access:** Permission `manage_agents` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Permission `manage_agents` · Resource role `edit` or higher · middleware `trainingGate`
 
 **Query**
 
@@ -303,7 +303,7 @@ No request schema.
 
 ### `POST /agents/:id/tests/suggest`
 
-**Access:** Permission `manage_agents` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Permission `manage_agents` · Resource role `edit` or higher · middleware `trainingGate` · the handler also checks who the caller is
 
 **Body**
 
@@ -315,19 +315,19 @@ No request schema.
 
 ### `GET /agents/:id/tool-lending`
 
-**Access:** middleware `trainingGate`
+**Access:** Resource role `edit` or higher · middleware `trainingGate`
 
 **Query:** object (no other keys)
 
 ### `GET /agents/:id/tools`
 
-**Access:** middleware `trainingGate`
+**Access:** Resource role `read` or higher · middleware `trainingGate`
 
 No request schema.
 
 ### `PUT /agents/:id/tools/:componentId/params`
 
-**Access:** Permission `manage_agents` · middleware `trainingGate`
+**Access:** Permission `manage_agents` · Resource role `edit` or higher · middleware `trainingGate`
 
 **Body**
 
@@ -337,7 +337,7 @@ No request schema.
 
 ### `PUT /agents/:id/transfer`
 
-**Access:** Permission `manage_agents` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Permission `manage_agents` · Resource role `manage` or higher · middleware `trainingGate`
 
 **Body**
 
@@ -347,7 +347,7 @@ No request schema.
 
 ### `GET /agents/:id/usage`
 
-**Access:** middleware `trainingGate`
+**Access:** Resource role `edit` or higher · middleware `trainingGate`
 
 **Query:** object (no other keys)
 
@@ -523,6 +523,8 @@ No request schema.
 
 **Query:** object (no other keys)
 
+**Body:** object (no other keys)
+
 ### `POST /agents/memory/bulk-delete`
 
 **Access:** Signed-in user
@@ -606,11 +608,15 @@ No request schema.
 
 **Query:** object (no other keys)
 
+**Body:** object (no other keys)
+
 ### `POST /agents/memory/review/:id/reject`
 
 **Access:** Signed-in user
 
 **Query:** object (no other keys)
+
+**Body:** object (no other keys)
 
 ### `GET /agents/memory/stats`
 

@@ -22,6 +22,7 @@
 'use strict';
 
 const { validate } = require('../../core/http/validate');
+const { bodyOf } = require('../../core/http/schemaParts');
 const { HttpError } = require('../../core/http/errors');
 const { sessionUser } = require('../../core/http/sessionUser');
 const { publicAudience } = require('../../automation/formAudience');
@@ -108,7 +109,7 @@ function registerFormTestLinkRoutes(router, deps = {}) {
         res.json({ testLink: page ? describeTestLink(page) : null });
     });
 
-    router.post('/forms/:automationId/test-link', editGate, async (req, res) => {
+    router.post('/forms/:automationId/test-link', editGate, validate({ body: bodyOf({}, 'Making a test link') }), async (req, res) => {
         const { testLinkExpiresAt } = require('../../stores/automationStore/formTestPageStore.mts');
         const issuer = sessionUser(req).id;
         const page = await automationStore.createTestFormPage(res.locals.automation.id, {

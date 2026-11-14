@@ -12,6 +12,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { useQueryClient } from '@tanstack/react-query';
 import useProjectStream, { type ProjectStreamReady, type ProjectStreamStatus } from '@/hooks/useProjectStream';
 import { apiClient } from '@/api/client';
+import { usePresenceBeatMutation } from '@/api/queries/projectPresence';
 import { changeKeys } from '@/api/queries/projectChanges';
 import { projectKeys } from '@/api/queries/projects';
 import { logger } from '@/utils/logger';
@@ -206,11 +207,10 @@ function useViewers(currentUserId?: string | null) {
 function usePresenceHeartbeat(projectId: string | null | undefined, enabled: boolean) {
     const target = useRef<ViewTarget | null>(null);
     const beatNow = useRef<() => void>(() => {});
+    const { mutate: sendBeat } = usePresenceBeatMutation();
     useEffect(() => {
         if (!enabled || !projectId) return undefined;
-        const beat = () => {
-            apiClient.post(`/api/projects/${encodeURIComponent(projectId)}/presence`, target.current ? { target: target.current } : {}).catch(() => {});
-        };
+        const beat = () => sendBeat({ projectId, target: target.current });
         // A hidden tab is not "here": it must not beat when the open item changes either.
         beatNow.current = () => { if (!document.hidden) beat(); };
         // The stream is closed while the tab is hidden, and so is the beat.
@@ -221,7 +221,7 @@ function usePresenceHeartbeat(projectId: string | null | undefined, enabled: boo
         if (!document.hidden) start();
         document.addEventListener('visibilitychange', onVisibility);
         return () => { stop(); beatNow.current = () => {}; document.removeEventListener('visibilitychange', onVisibility); };
-    }, [projectId, enabled]);
+    }, [projectId, enabled, sendBeat]);
     return useCallback((next: ViewTarget | null) => {
         const prev = target.current;
         if (prev?.type === next?.type && prev?.id === next?.id) return;

@@ -239,7 +239,7 @@ function stripEnvironmentRefs(def, warnings) {
  * file. Refusing would be too harsh there — it is a label, not a right, and the rest of the file is perfectly
  * importable — so: remove it and say so.
  *
- * @param {import('./automationGraph').AutomationDefinition} definition  is modified IN PLACE
+ * @param {import('../core/automationModel/automationGraph').AutomationDefinition} definition  is modified IN PLACE
  * @param {string[]} warnings  receives a sentence per removed pointer
  * @returns {number} how many were removed
  */
@@ -373,7 +373,7 @@ function sanitizeImport(envelope) {
  *
  * Mutates `definition`.
  *
- * @param {import('./automationGraph').AutomationDefinition} definition
+ * @param {import('../core/automationModel/automationGraph').AutomationDefinition} definition
  * @param {Array<{id: string, key: string, name?: string}>} tables  tables the importer may use
  * @returns {{ relinked: number, entries: Array<any> }}
  */
@@ -621,8 +621,8 @@ module.exports = { stripAppRefs,
     collectPinnedNodes,
 };
 
-/** @typedef {import('./automationGraph').AutomationStep} AutomationStep */
+/** @typedef {import('../core/automationModel/automationGraph').AutomationStep} AutomationStep */
 
-/** @typedef {import('./automationGraph').AutomationGraph} AutomationGraph */
+/** @typedef {import('../core/automationModel/automationGraph').AutomationGraph} AutomationGraph */
 
-/** @typedef {import('./automationGraph').AutomationDefinition} AutomationDefinition */
+/** @typedef {import('../core/automationModel/automationGraph').AutomationDefinition} AutomationDefinition */

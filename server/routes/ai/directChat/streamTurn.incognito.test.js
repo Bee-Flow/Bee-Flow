@@ -2,10 +2,10 @@
  * An incognito direct chat (POST /ai/chat/direct/stream, `incognito: true`)
  * stores nothing of the conversation (core/conversation/incognito.mts).
  *
- * The real route, the real turn pipeline and the real stores, behind the
- * recording database of testUtils/routeHarness: every statement the turn
- * sends is recorded, so "no row in direct_conversations" is read off what was
- * actually asked of the database, not off a stub that was never called.
+ * The real route, the real turn pipeline and the real stores, on a real
+ * Postgres (the boot ladder's schema on PGlite, testUtils/routeHarness `pg`):
+ * every statement the turn sends is recorded AND run, so "no row in
+ * direct_conversations" is read off the database and off what was asked of it.
  * Swapped on their module objects: the provider (a fake adapter that answers
  * and reports usage), the tool stack builder (so the memory tools are on
  * offer) and the memory extractor (counted).
@@ -17,6 +17,9 @@
  *     `conversation_created` and `done` carries no conversation id;
  *   - the memory and notebook tools are not offered, whatever the client sent;
  *   - the usage row IS written, without a conversation id;
+ *   - a tokenised message: the model gets the token preservation note and the
+ *     stream restores the token live, from the turn's own map (there is no
+ *     conversation map to read);
  *   - the same turn without `incognito` still creates its conversation (the
  *     control: the recorder sees writes when there are writes).
  *
@@ -32,15 +35,18 @@ const assert = require('node:assert');
 const h = require('../../../testUtils/routeHarness');
 const { makeSwaps } = require('../../../testUtils/swaps');
 const { parseSse } = require('../../../testUtils/builderStreamHarness');
+const { ladderPglite } = require('../../../testUtils/pgliteTemplate');
 
 /** What the fake provider saw, per stream call; every memory extraction asked for. */
 const seen = { streams: [], extractions: 0 };
+/** The chunks the fake provider streams back; a test may set its own. */
+const reply = { chunks: ['Hello from the model.'] };
 
 const fakeAdapter = {
     name: 'fake',
     async stream(_key, _url, _model, messages, options, cb) {
         seen.streams.push({ messages, tools: (options?.tools || []).map((t) => t.function?.name || t.name) });
-        cb('text', { text: 'Hello from the model.' });
+        for (const text of reply.chunks) cb('text', { text });
         cb('done', { usage: { input_tokens: 11, output_tokens: 5 } });
     },
     async chat() { return { content: 'Hello from the model.' }; },
@@ -70,7 +76,10 @@ function swapSeams() {
     swaps.swap(require('../../../agents/memory/extractor'), 'extractFromConversation', async () => { seen.extractions++; return []; });
 }
 
-const { db, api } = h.routeUnderTest(test, '/ai', () => { swapSeams(); return require('./streamTurn'); });
+const pg = ladderPglite();
+const { db, api } = h.routeUnderTest(test, '/ai', () => { swapSeams(); return require('./streamTurn'); }, { pg });
+/** @param {string} sql */
+const count = async (sql) => Number((await pg.query(sql)).rows[0].n);
 const post = (body) => api.call('POST', '/ai/chat/direct/stream', { body });
 
 /** The SSE events of a response, in order. */
@@ -86,7 +95,7 @@ const contentReads = () => db.queries.filter((q) => /^\s*SELECT\b/i.test(q) && /
 /** Usage rows are written fire-and-forget; give them a moment to land. */
 const settled = () => new Promise((resolve) => setTimeout(resolve, 200));
 
-test.beforeEach(() => { seen.streams.length = 0; seen.extractions = 0; });
+test.beforeEach(() => { seen.streams.length = 0; seen.extractions = 0; reply.chunks = ['Hello from the model.']; });
 
 test('incognito refusals: a conversation id, attachments and Swarm are a 400 with their code, before anything is read', async () => {
     const cases = [
@@ -136,19 +145,56 @@ test('an incognito turn answers and stores nothing of the conversation', async (
     }
 
     // The cost row is kept, and it names no conversation.
-    const usage = db.calls.filter((c) => /INSERT INTO ai_usage_log/i.test(c.sql));
-    assert.strictEqual(usage.length, 1, `expected one usage row, got: ${db.queries.filter((q) => /usage/i.test(q)).join('\n')}`);
-    const cols = /INSERT INTO ai_usage_log\s*\(([^)]*)\)/i.exec(usage[0].sql)[1].split(',').map((c) => c.trim());
-    const at = cols.indexOf('conversation_id');
-    assert.ok(at >= 0, 'the usage row has no conversation_id column');
-    assert.strictEqual(usage[0].params[at], null, 'the usage row names a conversation');
+    const { rows: usage } = await pg.query("SELECT conversation_id FROM ai_usage_log WHERE user_id = 'u1'");
+    assert.strictEqual(usage.length, 1, 'expected one usage row');
+    assert.strictEqual(usage[0].conversation_id, null, 'the usage row names a conversation');
+    assert.strictEqual(await count('SELECT COUNT(*) AS n FROM direct_conversations'), 0, 'no conversation row');
+});
+
+test('an incognito turn whose message is tokenised tells the model about the tokens and restores them while streaming', async () => {
+    // The Privacy Shield tokenises the message; the guard call itself is the seam.
+    const turnSwaps = makeSwaps();
+    try {
+        turnSwaps.swap(require('../../../core/privacy/orgShield'), 'resolveShieldFor', async () => ({
+            enabled: true, dlpEnabled: false, piiDetectionAction: 'tokenize',
+        }));
+        turnSwaps.swap(require('../../../core/privacy/piiDetection'), 'validateInputForPii', async () => ({
+            entities: [{ label: 'person', category: 'person' }],
+            tokenMap: { '[person_1]': 'Ada Example' },
+            tokenizedText: 'Write a greeting for [person_1].',
+        }));
+        // The token arrives split over two chunks, as a provider may send it.
+        reply.chunks = ['Dear [pers', 'on_1], welcome.'];
+
+        const res = await post({ message: 'Write a greeting for Ada Example.', incognito: true, modelTier: 'fast' });
+        await settled();
+        assert.strictEqual(res.status, 200, res.text);
+        const events = eventsOf(res.text);
+
+        // The model was told to keep the placeholder.
+        assert.strictEqual(seen.streams.length, 1);
+        const system = seen.streams[0].messages.filter((m) => m.role === 'system').map((m) => String(m.content)).join('\n');
+        assert.ok(system.includes('PII TOKEN PRESERVATION') && system.includes('`[person_1]`'), 'the token preservation note is missing from the prompt');
+        const userText = seen.streams[0].messages.filter((m) => m.role === 'user').map((m) => String(m.content)).join('\n');
+        assert.ok(userText.includes('[person_1]') && !userText.includes('Ada Example'), 'the model got the untokenised message');
+
+        // The live stream (the `content` frames, before any final replace) carries the value, not the token.
+        const streamed = events.filter((e) => e.event === 'content').map((e) => e.data.text).join('');
+        assert.strictEqual(streamed, 'Dear Ada Example, welcome.');
+
+        assert.deepStrictEqual(contentWrites(), [], 'a conversation, message or memory was written');
+        assert.strictEqual(await count('SELECT COUNT(*) AS n FROM direct_conversations'), 0, 'no conversation row');
+    } finally {
+        turnSwaps.restore();
+    }
 });
 
 test('control: the same turn without incognito creates its conversation', async () => {
     const res = await post({ message: 'What is the capital of France?', modelTier: 'fast' });
     await settled();
     assert.strictEqual(res.status, 200, res.text);
-    assert.ok(contentWrites().some((q) => /INSERT INTO direct_conversations/i.test(q)), `the recorder saw no conversation insert: ${db.queries.join('\n')}`);
+    assert.strictEqual(await count("SELECT COUNT(*) AS n FROM direct_conversations WHERE user_id = 'u1'"), 1, 'the conversation row exists');
+    assert.ok(contentWrites().length > 0, 'the recorder sees writes when there are writes');
     assert.ok(seen.streams[0].tools.includes('memory_search'), 'without incognito the memory tools are offered');
     assert.strictEqual(seen.extractions, 1, 'without incognito the turn goes to memory extraction');
     assert.ok(contentReads().some((q) => /\buser_memories\b/i.test(q)), 'without incognito the memories are read for the prompt');

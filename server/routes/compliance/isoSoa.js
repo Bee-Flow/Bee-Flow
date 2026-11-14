@@ -113,7 +113,7 @@ router.get('/iso/soa', requireAuth, requirePermission('admin_compliance'), async
 // decision (INSERT … DO NOTHING in the store). Physical controls get the
 // inherited-from-IaaS justification template pre-filled — still editable, and
 // excluding a control remains an explicit human decision on the row.
-router.post('/iso/soa/seed', requireAuth, requirePermission('admin_compliance'), validate({ body: SeedBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof SeedBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/iso/soa/seed', requireAuth, requirePermission('admin_compliance'), validate({ body: SeedBody }), async (req, res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
     const provider = String(req.body?.provider || 'our IaaS provider').slice(0, 120);
@@ -136,7 +136,7 @@ router.post('/iso/soa/seed', requireAuth, requirePermission('admin_compliance'),
     res.json({ inserted, total: isoControls.CONTROLS.length });
 });
 
-router.put('/iso/soa/:ref', requireAuth, requirePermission('admin_compliance'), validate({ body: SoaPatch }), async (/** @type {import('express').Request<{ ref: string }, any, import('zod').infer<typeof SoaPatch>, import('qs').ParsedQs>} */ req, res) => {
+router.put('/iso/soa/:ref', requireAuth, requirePermission('admin_compliance'), validate({ body: SoaPatch }), async (req, res) => {
     const orgId = await resolveOrgId(req);
     const actorId = req.session?.user?.id || null;
     const ref = String(req.params.ref);

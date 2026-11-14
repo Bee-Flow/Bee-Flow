@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Structured query parameters of an http_request step (`step.query`).
  *
@@ -36,7 +37,7 @@ const MAX_PAIRS = 500;
  * @param {string} reason
  */
 function queryError(reason) {
-    const err = new Error(`http_request: the query parameters cannot be used: ${reason}`);
+    const err = /** @type {Error & { stepErrorCode?: string, userReason?: unknown }} */ (new Error(`http_request: the query parameters cannot be used: ${reason}`));
     err.stepErrorCode = 'http_query_invalid';
     err.userReason = reason;
     return err;
@@ -115,7 +116,7 @@ function resolveQueryPairs(query, runState) {
     const mode = query.mode === undefined ? 'fields' : query.mode;
     if (!QUERY_MODES.includes(mode)) throw queryError(`the mode "${String(mode)}" is unknown, use "fields" or "json".`);
     const format = ARRAY_FORMATS.includes(query.arrayFormat) ? query.arrayFormat : 'indices';
-    const asData = { listAs: 'json' };
+    const asData = { listAs: /** @type {'json'} */ ('json') };
     let pairs;
 
     if (mode === 'json') {
@@ -231,10 +232,6 @@ function splitQueryFromUrl(url) {
     return { url: base + fragment, query: { mode: 'json', json, arrayFormat: format } };
 }
 
-/**
- * @param {string[]} path
- * @param {string} value
- */
 // Own properties only, for reading and for writing: `?__proto__[x]=1` would
 // otherwise walk into Object.prototype and write `x` onto every object in the
 // process, and a plain assignment to `__proto__` sets the prototype, not a key.
@@ -242,6 +239,11 @@ const ownOf = (node, key) => (Object.prototype.hasOwnProperty.call(node, key) ? 
 const isContainer = (v) => v !== undefined && v !== null && typeof v === 'object';
 const setOwn = (node, key, value) => { Object.defineProperty(node, key, { value, enumerable: true, writable: true, configurable: true }); };
 
+/**
+ * @param {Record<string, any>} root
+ * @param {string[]} path
+ * @param {string} value
+ */
 function assign(root, path, value) {
     let node = root;
     for (let i = 0; i < path.length; i++) {
@@ -311,7 +313,7 @@ function withStepQuery(baseUrl, query, runState) {
 function parseStepUrl(url) {
     try { return new URL(url); }
     catch (e) {
-        const err = new Error(`http_request: invalid URL: not a valid web address (${/** @type {Error} */ (e).message}). Check the URL setting and any value inserted into it.`);
+        const err = /** @type {Error & { stepErrorCode?: string, userReason?: string }} */ (new Error(`http_request: invalid URL: not a valid web address (${/** @type {Error} */ (e).message}). Check the URL setting and any value inserted into it.`));
         err.stepErrorCode = 'http_url_invalid';
         // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_username -- a sentence shown to the user, not a credential
         err.userReason = 'it is not a valid web address. Check the URL and any value inserted into it (a domain or path that came out empty is a common cause).';
@@ -356,7 +358,7 @@ function joinShieldedUrl(url, guarded) {
     const joined = parts.base + guarded;
     try { new URL(joined); return joined; }
     catch {
-        const err = new Error('http_request: the Privacy Shield replaced part of the address, and the result is not a valid web address.');
+        const err = /** @type {Error & { stepErrorCode?: string, userReason?: string }} */ (new Error('http_request: the Privacy Shield replaced part of the address, and the result is not a valid web address.'));
         err.stepErrorCode = 'http_url_invalid';
         // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_username -- a sentence shown to the user, not a credential
         err.userReason = 'the Privacy Shield replaced personal data in the address with a placeholder. Keep personal data out of the URL, or adjust the Privacy Shield for this organisation.';

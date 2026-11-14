@@ -1,3 +1,4 @@
+// @typecheck
 function _stringify(v) {
     if (v == null) return '';
     if (typeof v === 'string') return v;
@@ -94,11 +95,11 @@ function applyStringLeaves(value, replacements, cursor = { i: 0 }) {
 function _vaultOf(ctx) {
     if (ctx && ctx.tokenVault) return ctx.tokenVault;
     if (!ctx) {
-        const { createTokenVault } = require('./tokenVault');
+        const { createTokenVault } = /** @type {typeof import('./tokenVault')} */ (require('./tokenVault'));
         return createTokenVault({});
     }
     if (!ctx._ephemeralTokenVault) {
-        const { createTokenVault } = require('./tokenVault');
+        const { createTokenVault } = /** @type {typeof import('./tokenVault')} */ (require('./tokenVault'));
         ctx._ephemeralTokenVault = createTokenVault({});
     }
     return ctx._ephemeralTokenVault;

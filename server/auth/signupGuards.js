@@ -131,6 +131,7 @@ const GEO_MSG = 'Account creation is not available in your region.';
  * policy against the end user's IP. Invited users should bypass this (call it
  * only when there is no invite). Returns { ok } or { ok, status, error, code }.
  * @param {import('express').Request} req
+ * @returns {Promise<{ ok: true } | { ok: false, status: number, error: string, code: string, country?: string | null }>}
  */
 async function checkWebSignupAllowed(req) {
     const cfg = await getSignupAccessConfig();
@@ -173,7 +174,7 @@ async function checkConnectorSignupAllowed(req) {
 // English per field if the locale has no overrides.
 /**
  * @param {import('express').Request} req
- * @param {string} [explicitLocale]
+ * @param {string | null} [explicitLocale]
  */
 async function resolveSignupLocale(req, explicitLocale) {
     try {

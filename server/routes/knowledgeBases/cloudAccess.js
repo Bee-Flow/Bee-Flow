@@ -30,7 +30,7 @@ const ACCEPT = 'documents';
  * @typedef {{
  *   callerApi: (session: unknown, principal: Principal, provider: string, opts: { accept: string }) => Promise<{ api: ListApi }>,
  *   providerFor: (provider: string) => { integrationAppIds: string[], isConnected: (opts: { userId?: string | null, session?: unknown }) => Promise<{ connected: boolean, reason?: string | null }> },
- *   isIntegrationPermittedForUser: (opts: { userId?: string | null, appId: string, session: unknown, isAdmin: boolean }) => Promise<boolean>,
+ *   isIntegrationPermittedForUser: (opts: { userId?: string | null, appId: string, session: Partial<Express.Session> | null, isAdmin: boolean }) => Promise<boolean>,
  *   resolvePrincipal: (req: import('express').Request) => Promise<Principal>,
  *   checkToolCall: (call: { toolName: string, toolArgs: object, userId?: string | null, orgId?: string | null }) => Promise<object | null>,
  *   friendlyError: (e: unknown, provider: string) => Error,

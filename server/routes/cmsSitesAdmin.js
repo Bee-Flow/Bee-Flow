@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * CMS site management (the /sites routes with no /admin equivalent): list,
  * create, rename, duplicate and delete sites, and export / import a site as a
@@ -74,7 +74,8 @@ async function exportSiteHandler(/** @type {import('express').Request} */ req, /
         return res.status(400).json({ error: "format must be 'zip' or 'json'" });
     }
 
-    const payload = await cmsStore.exportSite(req.siteId);
+    // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- the response is a JSON or zip attachment (application/json, application/zip), never HTML
+    const payload = await cmsStore.exportSite(/** @type {string} */ (req.siteId)); // set by the :siteId gate
     const safeName = (payload.site?.name || 'site')
         .toLowerCase()
         .replace(/[^a-z0-9-]+/g, '-')

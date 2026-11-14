@@ -15,11 +15,11 @@
 const express = require('express');
 const router = express.Router();
 
-const { isTransientChatError, applyBuilderTierFloor } = require('./builderShared');
+const { isTransientChatError, applyBuilderTierFloor } = require('../../usecases/ai/builderShared');
 const layerSummary = require('./automationBuilder/layerSummary');
 const mapJsonFields = require('./automationBuilder/mapJsonFields');
-const chatTurnLoop = require('./automationBuilder/chatTurnLoop');
-const { chatWithRetry } = require('./automationBuilder/modelStream');
+const chatTurnLoop = require('../../usecases/ai/automationBuilder/chatTurnLoop');
+const { chatWithRetry } = require('../../usecases/ai/automationBuilder/modelStream');
 
 // ─── Persisted builder-session snapshot ──────────────────────────
 router.use(require('./automationBuilder/sessionSnapshot'));

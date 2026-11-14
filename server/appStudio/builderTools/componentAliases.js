@@ -2,7 +2,7 @@
 /**
  * Names a model reaches for that are NOT App Studio component types, mapped
  * to the type it means. Read by the batch normaliser (definitionTools) and by
- * the live tool-draft scanner (routes/ai/appStudioBuilder/toolDraft.js), so a
+ * the live tool-draft scanner (usecases/ai/appStudioBuilder/toolDraft.js), so a
  * card being typed previews as the type it will land as.
  *
  * Only names that are not real types may appear here — `table` IS a type

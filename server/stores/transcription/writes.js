@@ -35,6 +35,7 @@ function createWrites({ transcriptCrypto }) {
     // Adding a column means adding it in THREE places: here, the column list, and
     // the values array. A column holding CONTENT means a fourth: the list in
     // stores/transcriptCrypto.js, or it goes to disk in plaintext.
+    /** @param {{ userId: string, [field: string]: any }} fields */
     async function createTranscription({ userId, organizationId, title, fileName, language, durationSeconds, speakerCount, segmentCount, fullText, transcript, segments, speakers, summary, status, audioPath, provider, actionItems, source, sourceUri, talkRoomToken, meetMeetingCode, attendees, chapters, numSpeakers, audioStorageKey, decisions, questions, tags, sharedWith, client, summaryTemplateId, summaryTemplateVersion, projectId }) {
         await initDB();
         const id = crypto.randomUUID();

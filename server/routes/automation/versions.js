@@ -1,3 +1,4 @@
+// @typecheck
 // §WS5 #4 — automation version history endpoints, extracted verbatim from
 // routes/automation.js. summariseDefinitionDiff (used only here) moved in.
 //
@@ -91,7 +92,7 @@ async function provisionForm(automation, definition) {
 
 // Handoff 5 (artboard 5d): the history with live/editing flags and run
 // counts, the read-only view, the per-field diff and milestone names.
-const { makeVersionHistoryHandlers } = require('./versionHistory');
+const { makeVersionHistoryHandlers, NameBody } = require('./versionHistory');
 const history = makeVersionHistoryHandlers({ store: automationStore, access: automationAccess });
 
 router.get('/:id/versions', readsNothing, history.list);
@@ -131,7 +132,7 @@ router.get('/:id/versions/:versionId', readsNothing, history.getOne);
  * removed since), then writes it back through the regular updateAutomation
  * path so a new version row gets stamped with this user as the author.
  */
-router.post('/:id/versions/:versionId/restore', validate({ body: NoBody, query: NoQuery }), async (/** @type {import('express').Request<{ id: string, versionId: string }, any, import('zod').infer<typeof NoBody>, import('zod').infer<typeof NoQuery>>} */ req, res) => {
+router.post('/:id/versions/:versionId/restore', validate({ body: NoBody, query: NoQuery }), async (req, res) => {
     const userId = req.session.user.id;
     const a = await automationStore.getAutomation(req.params.id);
     if (!a) return res.status(404).json({ error: 'Not found' });
@@ -231,7 +232,7 @@ router.post('/:id/versions/:versionId/restore', validate({ body: NoBody, query: 
 // Per-field differences (5d's table) and milestone names. Five segments, so
 // neither can collide with the routes above.
 router.get('/:id/versions/:versionId/fielddiff/:other', readsNothing, history.diff);
-router.put('/:id/versions/:versionId/name', validate({ query: NoQuery }), history.rename);
+router.put('/:id/versions/:versionId/name', validate({ query: NoQuery, body: NameBody }), history.rename);
 
 /**
  * Coarse structural diff between two automation definitions. Builds a

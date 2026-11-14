@@ -7,6 +7,7 @@
  */
 
 import { createRequire } from 'node:module';
+import { pickClosestId } from '../../utils/closestId.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -16,7 +17,6 @@ type Entry = Record<string, unknown>;
 type GuardError = { index: number; path: string; suggestion: string | null; message: string; hint: string };
 type FieldCheck = (index: number, path: string, table: Table, key: unknown, what: string) => void;
 
-const { pickClosestId } = nodeRequire('../../automation/validate/helpers') as { pickClosestId(id: unknown, ids: string[]): string | null };
 const { expandAlias } = nodeRequire('../validate/relationReadChecks.mts') as { expandAlias(entry: Entry): string | null };
 const { EXPAND_LABEL_KEY } = nodeRequire('../../core/dataEngine/dataModel/vocabulary') as { EXPAND_LABEL_KEY: string };
 

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Install the SKILLS, and the fields a skill is written with.
  */
@@ -61,11 +62,11 @@ function skillFieldsOf(entity, refMap, unresolved = []) {
         }
         return { ...step, refs };
     });
-    for (const [structured, text, camel, value] of [
+    for (const [structured, text, camel, value] of /** @type {Array<[string, string, string, unknown]>} */ ([
         ['steps', 'workflow', 'steps', steps],
         ['rules_v2', 'rules', 'rulesV2', entity.rules_v2],
         ['examples_v2', 'examples', 'examplesV2', entity.examples_v2],
-    ]) {
+    ])) {
         if (Array.isArray(value) && value.length) fields[camel] = clone(value);
         else if (typeof entity[text] === 'string' && entity[text].trim()) fields[text] = entity[text];
         else if (entity[structured] !== undefined && !Array.isArray(entity[structured])) fields[camel] = entity[structured];

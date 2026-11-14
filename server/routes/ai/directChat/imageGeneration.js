@@ -39,7 +39,7 @@ const GenerateImageBody = z.preprocess((v) => (v === undefined || v === null ? {
 // Images per user per minute, each a paid generation. IMAGE_GEN_RPM sets it (0 = no limit).
 const imageGenLimiter = spendLimiter({ env: 'IMAGE_GEN_RPM', fallback: 30, name: 'chat-image-gen' });
 
-router.post('/chat/generate-image', requireAuth, imageGenLimiter, validate({ body: GenerateImageBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof GenerateImageBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/chat/generate-image', requireAuth, imageGenLimiter, validate({ body: GenerateImageBody }), async (req, res) => {
     const { prompt, aspectRatio, conversationId } = req.body;
     const userId = sessionUser(req).id;
 

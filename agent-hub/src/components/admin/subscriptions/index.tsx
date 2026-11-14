@@ -11,6 +11,7 @@ import type { SubscriptionsSectionId } from './subscriptionsSections';
 import SectionNav from '@/components/shared/SectionNav';
 import StudioShell from '@/components/shared/StudioShell';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useShellProps } from '@/authedApp/useShellProps';
 
 interface SubscriptionsPanelProps {
     /** The section from the URL (admin/subscriptions/<section>); Plans when missing or unknown. */
@@ -28,8 +29,11 @@ const VIEWS: Record<SubscriptionsSectionId, ComponentType> = {
     audit: AuditView,
 };
 
-function SubscriptionsPanel({ activeSection, onNavigate }: SubscriptionsPanelProps) {
+function SubscriptionsPanel({ activeSection, onNavigate: onNavigateProp }: SubscriptionsPanelProps) {
     const { t } = useTranslation();
+    // Inside the app shell the navigation comes from context; a host outside
+    // it (a test, a kit) still hands it as a prop.
+    const { onNavigate } = useShellProps({ onNavigate: onNavigateProp });
     const section = subscriptionsSectionOf(activeSection);
     const View = VIEWS[section];
     const title = t('admin_subscriptions.shell_title', 'Subscriptions');

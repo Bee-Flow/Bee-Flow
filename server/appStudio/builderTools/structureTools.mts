@@ -12,6 +12,7 @@
  */
 
 import { createRequire } from 'node:module';
+import { pickClosestId } from '../../utils/closestId.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
@@ -28,7 +29,6 @@ const ops = nodeRequire('../definitionOps') as {
     moveSection: (def: Def, id: string, index: number) => Def;
 };
 const { adoptCanonical, idHint } = nodeRequire('./shared') as { adoptCanonical: (d: Draft, next: Def, r: Result) => Result; idHint: (def: Def) => string };
-const { pickClosestId } = nodeRequire('../../automation/validate/helpers') as { pickClosestId: (t: unknown, c: string[]) => string | null };
 
 const MAX_LISTED = 12;
 

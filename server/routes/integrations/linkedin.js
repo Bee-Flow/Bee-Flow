@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * LinkedIn Integration Routes
  *
@@ -11,7 +11,9 @@
  * /auth-url, /status and /disconnect read nothing but the session.
  */
 
+const { fetchFixedEndpoint } = require('../../utils/fixedEndpointFetch.mts');
 const express = require('express');
+const { bodyOf } = require('../../core/http/schemaParts');
 const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
 const router = express.Router();
@@ -38,7 +40,7 @@ async function getLinkedInConfig() {
     if (!clientSecret) clientSecret = process.env.LINKEDIN_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
-        throw new Error('LinkedIn not configured. Ask your admin to set Client ID and Secret in Admin → Integrations.');
+        throw new HttpError(503, 'linkedin_not_configured', 'LinkedIn is not set up. Ask your admin to set the Client ID and Secret in Admin → Integrations.');
     }
     return { clientId, clientSecret };
 }
@@ -103,12 +105,12 @@ router.get('/callback', /** @param {import('express').Request<{}, any, any, { co
         const redirectUri = req.session.linkedinRedirectUri;
 
         // Exchange code for access token
-        const tokenRes = await fetch('https://www.linkedin.com/oauth/v2/accessToken', {
+        const tokenRes = await fetchFixedEndpoint('https://www.linkedin.com/oauth/v2/accessToken', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({
                 grant_type: 'authorization_code',
-                code,
+                code: String(code), // what URLSearchParams would make of it
                 redirect_uri: redirectUri,
                 client_id: clientId,
                 client_secret: clientSecret
@@ -124,7 +126,7 @@ router.get('/callback', /** @param {import('express').Request<{}, any, any, { co
         const accessToken = tokenData.access_token;
 
         // Fetch person ID (sub) from userinfo
-        const profileRes = await fetch('https://api.linkedin.com/v2/userinfo', {
+        const profileRes = await fetchFixedEndpoint('https://api.linkedin.com/v2/userinfo', {
             headers: { Authorization: `Bearer ${accessToken}` }
         });
 
@@ -182,7 +184,7 @@ router.post('/post', requireSessionUser, validate({ body: PostBody }), async (/*
 
     const { text } = req.body;
 
-    const postRes = await fetch('https://api.linkedin.com/rest/posts', {
+    const postRes = await fetchFixedEndpoint('https://api.linkedin.com/rest/posts', {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${accessToken}`,
@@ -236,7 +238,7 @@ router.get('/status', async (req, res) => {
 });
 
 // ─── Disconnect ──────────────────────────────────────────────────
-router.post('/disconnect', async (req, res) => {
+router.post('/disconnect', validate({ body: bodyOf({}, 'Disconnecting LinkedIn') }), async (req, res) => {
     const userId = req.session?.user?.id;
     if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 

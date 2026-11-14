@@ -1,3 +1,4 @@
+// @typecheck strict
 /** @typedef {import('qs').ParsedQs} ParsedQs */
 const express = require('express');
 const agentStore = require('../../stores/agentStore');
@@ -64,7 +65,7 @@ router.get('/conversations/all', async (req, res) => {
 // Search all conversations (agent + direct)
 const SEARCH_MAX_LIMIT = 200;
 const SEARCH_DEFAULT_LIMIT = 50;
-router.get('/conversations/search', validate({ query: SearchQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof SearchQuery>>} */ req, res) => {
+router.get('/conversations/search', validate({ query: SearchQuery }), async (req, res) => {
     const userId = getEffectiveUserId(req);
     const { q, agentId, startDate, endDate, source } = req.query;
 
@@ -102,15 +103,16 @@ router.get('/conversations/search', validate({ query: SearchQuery }), async (/**
         ...directResults,
     ];
 
-    tagged.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+    tagged.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
 
     // Backwards-compatible: still return a plain array (the existing
     // SearchOverlay consumer expects this). Pagination is surfaced via
     // X-Total-Count / X-Has-More headers for new callers.
     const rawLimit = req.query.limit;
     const rawOffset = req.query.offset;
-    const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, SEARCH_MAX_LIMIT) : SEARCH_DEFAULT_LIMIT;
-    const offset = Number.isFinite(rawOffset) && rawOffset >= 0 ? rawOffset : 0;
+    // typeof first: Number.isFinite is true only for a number, but does not narrow.
+    const limit = typeof rawLimit === 'number' && Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, SEARCH_MAX_LIMIT) : SEARCH_DEFAULT_LIMIT;
+    const offset = typeof rawOffset === 'number' && Number.isFinite(rawOffset) && rawOffset >= 0 ? rawOffset : 0;
     const items = tagged.slice(offset, offset + limit);
     res.set('X-Total-Count', String(tagged.length));
     res.set('X-Has-More', String(offset + items.length < tagged.length));

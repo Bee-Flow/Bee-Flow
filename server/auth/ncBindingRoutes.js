@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Authenticated NC binding endpoints: approving or denying a pending binding,
  * pairing codes, and removing an organisation's Nextcloud link.
@@ -26,7 +26,7 @@ const orgHealth = require('../services/orgHealth'); // fire-and-forget lifecycle
 const { ensureOrgAdminUser, bindOrgToNcInstance, getOrMintTenantKey } = bootstrapHelpers;
 const { validate } = require('../core/http/validate');
 const { z } = require('../utils/zod');
-const { worded } = require('../core/http/schemaParts');
+const { worded, bodyOf } = require('../core/http/schemaParts');
 const { redeemLinkTicket } = require('./connector/ncLinkTicket.mts');
 
 /** @param {{ expiresAt?: string | Date | null }} row */
@@ -114,7 +114,7 @@ async function loadAndAuthorize(req, res) {
 // row inline; this endpoint exists for direct refreshes.
 router.get('/admin/nc-bindings/pending', requireAuth, async (req, res) => {
     const orgId = req.session.user?.organizationId
-        || (await userStore.getUser(req.session.user.id))?.organizationId;
+        || (await userStore.getUser(/** @type {NonNullable<typeof req.session.user>} */ (req.session.user).id))?.organizationId;
     if (!orgId) return res.json({ pending: null });
     const row = await userStore.getPendingNcBindingForOrg(orgId);
     if (!row || isExpired(row)) return res.json({ pending: null });
@@ -132,7 +132,7 @@ router.get('/admin/nc-bindings/pending', requireAuth, async (req, res) => {
     });
 });
 
-router.post('/admin/nc-bindings/:id/approve', requireAuth, async (req, res) => {
+router.post('/admin/nc-bindings/:id/approve', requireAuth, validate({ body: bodyOf({}, 'Approving a Nextcloud binding') }), async (req, res) => {
     const ctx = await loadAndAuthorize(req, res);
     if (!ctx) return;
     const { row, freshUser } = ctx;
@@ -271,7 +271,8 @@ router.get('/admin/nc-bindings/pairing-codes', requireAuth, async (req, res) => 
     if (!orgId) return res.json({ codes: [] });
     const codes = await userStore.getActivePairingCodesForOrg(orgId);
     return res.json({
-        codes: codes.map(c => ({
+        // parsePendingBinding of a read row is never null
+        codes: /** @type {NonNullable<(typeof codes)[number]>[]} */ (codes).map(c => ({
             id: c.id,
             code: c.pairingCode,
             expiresAt: c.expiresAt,
@@ -293,7 +294,7 @@ router.delete('/admin/nc-bindings/pairing-codes/:id', requireAuth, async (req, r
     return res.json({ ok: true });
 });
 
-router.post('/admin/nc-bindings/:id/deny', requireAuth, async (req, res) => {
+router.post('/admin/nc-bindings/:id/deny', requireAuth, validate({ body: bodyOf({}, 'Denying a Nextcloud binding') }), async (req, res) => {
     const ctx = await loadAndAuthorize(req, res);
     if (!ctx) return;
     const { row, freshUser } = ctx;

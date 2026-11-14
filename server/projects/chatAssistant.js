@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The AI member of a team chat: when it answers, what it reads, and how its
  * answer gets back into the chat.
@@ -225,7 +225,8 @@ function makeChatAssistant(deps = {}) {
         loadTagged, listAudience, emit, logUsage, reasonText, timeoutMs, newId,
         announce, namesFor, noteExplicitReply,
     };
-    /** @param {Parameters<typeof writeAnswerSteps>[1]} p */
+    /** One answer turn, the fields chatAnswerSteps.writeAnswer reads. @param {{ project: import('./chatAnswerSteps').ProjectRef, chat: import('./chatAnswerSteps').ChatRef, trigger: import('./chatAnswerSteps').TriggerRef,
+     *   triggerText: string, userId: string, orgId: string | null, session: unknown, model: unknown, runId: string, aiTrigger: string, reasonCode: string | null, gateLastSeq: number | null }} p */
     const writeAnswer = (p) => writeAnswerSteps(answerCtx, p);
 
     /**

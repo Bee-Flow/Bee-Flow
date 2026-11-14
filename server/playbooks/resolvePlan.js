@@ -618,7 +618,7 @@ async function planResolve({ code, finding, facts, locale = 'en', directory = {}
 
     // The model's answer is narrowed to what really exists before it is used.
     const asked = {
-        lawfulBasis: LAWFUL_BASES.includes(chose.lawfulBasis) ? chose.lawfulBasis : null,
+        lawfulBasis: LAWFUL_BASES.includes(/** @type {string} */ (chose.lawfulBasis)) ? /** @type {string} */ (chose.lawfulBasis) : null,
         retentionDays: Number.isFinite(Number(chose.retentionDays)) && Number(chose.retentionDays) >= 1 && Number(chose.retentionDays) <= MAX_RETENTION_DAYS ? Math.round(Number(chose.retentionDays)) : null,
         groupIds: matchByName(chose.groupNames, directory.groups || [], (g) => g.name),
         userIds: matchByName(chose.personNames, directory.people || [], (p) => p.name || p.email),

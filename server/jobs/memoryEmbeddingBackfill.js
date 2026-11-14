@@ -57,13 +57,14 @@ const { ENVELOPE_LIKE } = require('../stores/memoryCrypto');
 const { recordJobRun } = require('../telemetry/metrics');
 const log = require('../telemetry/log');
 const { fallback, bestEffort } = require('../utils/bestEffort');
+const { envInt } = require('../utils/envNumber.mts');
 
 // Namespaced so it cannot collide with another job's advisory lock.
 const LOCK_KEY = 887401;
 
-const INTERVAL_MS = Number(process.env.MEMORY_BACKFILL_INTERVAL_MS) || 15 * 60 * 1000;
-const MAX_RUN_MS = Number(process.env.MEMORY_BACKFILL_MAX_RUN_MS) || 4 * 60 * 1000;
-const EMBED_BATCH = Number(process.env.MEMORY_BACKFILL_BATCH) || 25;
+const INTERVAL_MS = envInt('MEMORY_BACKFILL_INTERVAL_MS', 15 * 60 * 1000, { min: 1 });
+const MAX_RUN_MS = envInt('MEMORY_BACKFILL_MAX_RUN_MS', 4 * 60 * 1000, { min: 1 });
+const EMBED_BATCH = envInt('MEMORY_BACKFILL_BATCH', 25, { min: 1 });
 const LEXICAL_BATCH = 500;
 const MAX_EMBED_ATTEMPTS = 5;
 

@@ -1,17 +1,45 @@
 // @typecheck
 /**
  * compliance/calendar — MILESTONES + per-org relevance + "affects" counts.
+ * The counts run on a real Postgres (the boot ladder's schema on PGlite,
+ * through the injected db) over seeded agents, webpages and form pages.
  *
- * Run: cd server && node --test --test-force-exit compliance/calendar.test.js
+ * Run: cd server && node --test compliance/calendar.test.js
  */
 
 'use strict';
 
-const { test, beforeEach } = require('node:test');
+const { test, beforeEach, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 
 const calendar = require('./calendar');
 const { MILESTONES } = require('./frameworks');
+const { pgliteDb, dbFacade } = require('../testUtils/pgliteDb');
+const { ladderPglite, newPglite } = require('../testUtils/pgliteTemplate');
+const { insertRow } = require('../testUtils/pgliteSeed');
+
+const { pg, db: rawDb } = pgliteDb(ladderPglite());
+const facade = dbFacade(rawDb);
+// An empty database: every count query fails with "relation does not exist".
+const bare = pgliteDb(newPglite());
+const bareFacade = dbFacade(bare.db);
+after(async () => { await pg.close(); await bare.pg.close(); });
+
+before(async () => {
+    await insertRow(pg, 'users', { id: 'cal-u1', username: 'cal-u1', organizationId: 'org1' });
+    await insertRow(pg, 'users', { id: 'cal-u2', username: 'cal-u2', organizationId: 'org2' });
+    for (let i = 0; i < 4; i++) await insertRow(pg, 'agents', { id: `cal-ag${i}`, name: 'a', owner_id: 'cal-u1', organization_id: 'org1', is_published: true });
+    await insertRow(pg, 'agents', { id: 'cal-draft', name: 'a', owner_id: 'cal-u1', organization_id: 'org1', is_published: false });
+    await insertRow(pg, 'agents', { id: 'cal-other', name: 'a', owner_id: 'cal-u2', organization_id: 'org2', is_published: true });
+    for (let i = 0; i < 6; i++) await insertRow(pg, 'webpages', { id: `cal-wp${i}`, user_id: 'cal-u1', organization_id: 'org1', is_published: true });
+    await insertRow(pg, 'webpages', { id: 'cal-wp-draft', user_id: 'cal-u1', organization_id: 'org1', is_published: false });
+    const automation = (id, over) => insertRow(pg, 'automations', { id, user_id: 'cal-u1', title: id, definition_json: {}, is_active: true, is_draft: false, ...over });
+    await automation('cal-live', {});                                       // org from the owner
+    await automation('cal-stamped', { user_id: 'cal-u2', organization_id: 'org1' });
+    await automation('cal-off', { is_active: false });
+    await automation('cal-draft-aut', { is_draft: true });
+    for (const a of ['cal-live', 'cal-stamped', 'cal-off', 'cal-draft-aut']) await insertRow(pg, 'automation_form_pages', { id: `fp-${a}`, automation_id: a });
+});
 
 function policy(overrides = {}) {
     const base = {
@@ -38,13 +66,9 @@ function deps(over = {}) {
             ? { listGeneratingAutomations: async () => [{ id: 'a1' }, { id: 'a2' }, { id: 'a3' }] }
             : over.signals,
         db: {
-            getOne: async (sql) => {
+            getOne: async (/** @type {string} */ sql, /** @type {unknown[]} */ params) => {
                 queries.push(sql);
-                if (over.dbThrows) throw new Error('relation does not exist');
-                if (/FROM agents/.test(sql)) return { n: 4 };
-                if (/FROM webpages/.test(sql)) return { n: 6 };
-                if (/automation_form_pages/.test(sql)) return { n: 2 };
-                return { n: 0 };
+                return (over.dbThrows ? bareFacade : facade).getOne(sql, params);
             },
         },
         now: () => 1_000_000,
@@ -95,8 +119,8 @@ test('affects: marking milestones count generating automations + published agent
     assert.equal(rows.find(m => m.id === 'pld_in_force').affects, null, 'releases → no count here');
     assert.equal(rows.find(m => m.id === 'nis2_in_force').affects, null);
     // each count query ran once, not once per milestone
-    assert.equal(queries.filter(q => /FROM agents/.test(q)).length, 1);
-    assert.equal(queries.filter(q => /FROM webpages/.test(q)).length, 1);
+    assert.equal(queries.filter(q => q.includes('FROM agents')).length, 1);
+    assert.equal(queries.filter(q => q.includes('FROM webpages')).length, 1);
 });
 
 test('a count that cannot be read is null, never 0; a missing signals module leaves automations null', async () => {
@@ -107,7 +131,7 @@ test('a count that cannot be read is null, never 0; a missing signals module lea
 
 test('affects are not computed for a milestone the org does not care about', async () => {
     await calendar.list('org1', { all: true, deps: deps({ policy: { eaa: { enabled: false, relevance: 'not_relevant' } } }) });
-    assert.equal(queries.filter(q => /FROM webpages/.test(q)).length, 0);
+    assert.equal(queries.filter(q => q.includes('FROM webpages')).length, 0);
 });
 
 test('60 s memo per org; invalidate(orgId) drops it; fresh:true bypasses it', async () => {

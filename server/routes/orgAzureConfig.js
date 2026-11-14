@@ -23,7 +23,7 @@ const { loadConfig, saveConfig, isSuperAdmin } = require('../auth/permissions');
 const { tagGate } = require('../auth/gateMeta');
 const { PLATFORM_GATE } = require('../auth/requirePlatformAdmin');
 const { syncAzureGroupsToOrg, getSyncSettings, setSyncSettings, getSyncStatus, getSyncBinding, assertSyncBinding } = require('../integrations/azureGroupSync');
-const { groupSyncView } = require('./orgAzureSyncView');
+const { groupSyncView } = require('../usecases/orgAzureSyncView');
 const { validate } = require('../core/http/validate');
 const { forbidden } = require('../core/http/errors');
 const { z, typeError } = require('../utils/zod');
@@ -77,10 +77,7 @@ tagGate(platformConfigGate, PLATFORM_GATE);
 // reasoning knobs): it is the model-tier config the admin dashboard owns too.
 // An empty or absent secret keeps the stored one, as the screens rely on.
 
-/**
- * A body that also accepts no body: Express 5 leaves `req.body` undefined then.
- * @param {import('zod').ZodRawShape} shape
- */
+/** A body that also accepts no body: Express 5 leaves `req.body` undefined then. @template {import('zod').ZodRawShape} S @param {S} shape */
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object(shape, { error: typeError({ invalid: 'Send the settings as a JSON object.' }) }).strict(),

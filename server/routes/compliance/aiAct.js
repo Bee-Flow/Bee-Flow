@@ -41,7 +41,7 @@ const router = express.Router();
 
 const aiActAssessmentStore = require('../../stores/aiActAssessmentStore');
 const signals = require('../../compliance/aiAct/signals');
-const assess = require('../../compliance/aiAct/assess');
+const assess = require('../../core/aiAct/assess');
 const { attest } = require('../../compliance/aiAct/attest');
 const { requireAuth, requirePermission } = require('../../auth/permissions');
 const { requireOrgId } = require('./shared');

@@ -1,3 +1,4 @@
+// @typecheck
 /** @typedef {import('qs').ParsedQs} ParsedQs */
 /**
  * Google Drive Integration Routes
@@ -55,7 +56,7 @@ const ExportParams = z.object({
  * which is enough to step outside the
  * `(<workspace mime types>) and trashed=false` prefix the listing is pinned
  * to.
- * @param {string | ParsedQs | (string | ParsedQs)[]} text
+ * @param {string} text
  */
 const driveLiteral = (text) => text.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
@@ -102,7 +103,7 @@ router.get('/status', requireAuth, async (req, res) => {
 
 // ─── List / Search Files ─────────────────────────────────────────
 
-router.get('/files', validate({ query: FilesQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof FilesQuery>>} */ req, res, next) => {
+router.get('/files', validate({ query: FilesQuery }), async (req, res, next) => {
     try {
         const drive = await createDriveClient(req);
         const { query, pageToken, pageSize = 20 } = req.query;

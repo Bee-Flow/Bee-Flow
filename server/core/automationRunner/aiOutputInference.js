@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The output schema of a schemaless AI step, read off how later steps use it.
  *
@@ -40,7 +41,6 @@
  * its warning shows the schema the run will really ask for.
  */
 'use strict';
-
 const { parsePath, readPath, scanTemplate, parseExpr, formatPath } = require('./expr');
 
 // Keys whose path names a LIST the step iterates or splits.
@@ -184,7 +184,7 @@ function scanAst(node, report, listCtx) {
          * @param {string} name
          */
         const hint = (name) => (name === 'count' ? 'weak' : LIST_FUNCTIONS.has(name));
-        (node.args || []).forEach((a, i) => visit(a, i === 0 && hint(node.name)));
+        (node.args || []).forEach((a, i) => visit(a, /** @type {'weak' | boolean} */ (i === 0 && hint(node.name))));
         return;
     }
     for (const k of ['cond', 'a', 'b', 'expr']) if (node[k]) visit(node[k], false);

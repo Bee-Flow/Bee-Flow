@@ -2,10 +2,10 @@ import React, { useState, useRef, useCallback } from 'react';
 import { toast } from '../../components/shared/Toast';
 import useOutsideDismiss from '../../hooks/useOutsideDismiss';
 import { useTranslation } from '../../hooks/useTranslation';
-import { API_BASE } from '../../utils/helpers';
 import { AvatarDisplay } from '../AdvancedSettings';
 import type { PreferencesUser } from './PreferencesSection.types';
-import { mutate, ApiError } from '../../api/mutate';
+import { ApiError } from '../../api/mutate';
+import { type ApiBody, apiRequest } from '@/api/typedRequest';
 
 // ── Emoji picker data ────────────────────────────────────────────────────────
 const EMOJI_CATEGORIES = [
@@ -40,11 +40,7 @@ const AvatarPicker = ({ user, onSaved }: AvatarPickerProps) => {
         setSaving(true);
         try {
             try {
-                await mutate(`${API_BASE}/auth/update-profile`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ avatar, avatarType }),
-            });
+                await apiRequest('POST /auth/update-profile', { body: { avatar, avatarType: avatarType as ApiBody<'POST /auth/update-profile'>['avatarType'] } });
             } catch (err) {
                 if (!(err instanceof ApiError)) throw err;
                 throw new Error(`HTTP ${err.status}`);

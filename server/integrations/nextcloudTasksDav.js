@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * CalDAV plumbing for the Nextcloud tasks tools: multistatus parsing, list
  * discovery (supportsTasks / writable) and readable errors for failed writes.
@@ -65,7 +65,7 @@ function supportsVTodo(props) {
     if (!set) return true;
     if (!set.comp) return false;
     const comps = Array.isArray(set.comp) ? set.comp : [set.comp];
-    return comps.some((/** @type {{ [x: string]: string; name: string; }} */ c) => c && (c['@_name'] === 'VTODO' || c.name === 'VTODO'));
+    return comps.some((/** @type {DavComp} */ c) => c && (c['@_name'] === 'VTODO' || c.name === 'VTODO'));
 }
 
 /** @param {DavProps} props */
@@ -108,7 +108,7 @@ async function fetchLists(ncFetch, root, uid, authError) {
     });
     if (res.status === 401) return { error: authError };
     if (!res.ok) return { error: `Task list enumeration failed (${res.status})` };
-    return { lists: parsePropfindLists(await res.text(), uid) };
+    return { lists: parsePropfindLists(await res.text(), /** @type {string} */ (uid)) };
 }
 
 /**

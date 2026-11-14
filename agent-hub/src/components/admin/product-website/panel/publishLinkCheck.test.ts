@@ -3,7 +3,8 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { mutate } from '@/api/mutate';
 import { confirmPublishDespiteBrokenLinks, describeLinkErrors, fetchLinkErrors } from './publishLinkCheck';
 
-vi.mock('@/api/mutate', () => ({ mutate: vi.fn() }));
+// typedRequest reaches the transport through this module, so the mock names all it re-exports.
+vi.mock('@/api/mutate', () => ({ mutate: vi.fn(), authFetch: vi.fn(), API_BASE: '' }));
 
 const reply = (body: unknown, ok = true) => ({ ok, json: async () => body }) as unknown as Response;
 const error = { where: 'site > footer', url: '/terms', code: 'path_not_found', problem: 'No page.', severity: 'error' };

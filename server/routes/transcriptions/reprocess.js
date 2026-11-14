@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Transcriptions — reprocess.
  *
@@ -21,8 +22,8 @@ const { applySpeakerSummaries } = require('../../core/meetingNotes/summaryHelper
 const { transcribeStoredAudio, analyseTranscript, keepClaim } = require('./reprocessPipeline');
 const { validate } = require('../../core/http/validate');
 const { NOTHING, NO_QUERY } = require('./schemas');
-const { bestEffort } = require('../../utils/bestEffort');
-const { failureSummary } = require('./noteText.mts');
+const { bestEffort, ignoreGone } = require('../../utils/bestEffort');
+const { failureSummary } = require('../../usecases/transcriptions/noteText.mts');
 const { artifactColumnSql } = require('../../stores/transcription/artifactWindow');
 const { parseJsonArray } = require('../../stores/transcription/jsonArrays');
 
@@ -74,7 +75,7 @@ function audioGoneAnswer(transcription) {
 // the request. A body key that looks as if it could send that (`provider`,
 // `language`) should get a 400 and not be ignored — the previous run chose that
 // service, and that choice stands.
-router.post('/:id/reprocess', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof NOTHING>, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
+router.post('/:id/reprocess', requireAuth, validate({ body: NOTHING, query: NO_QUERY }), async (req, res) => {
     // Set once the note is flipped to 'processing' and the 202 sent; from then
     // on all outcomes are written to the note, never to the HTTP response.
     let transcriptionId = null;
@@ -84,10 +85,10 @@ router.post('/:id/reprocess', requireAuth, validate({ body: NOTHING, query: NO_Q
     let hadContent = false;
     /** @type {string | null} */
     let userId = null;
-    /** @type {{ path: string | null; cleanup?: () => void; fromStorage?: boolean; cached?: boolean; reason?: string; }} */
+    /** @type {{ path: string | null; cleanup?: () => void; fromStorage?: boolean; cached?: boolean; reason?: string; } | null} */
     let audioSource = null; // { path, cleanup } — may be a temp file streamed from object storage
     try {
-        userId = req.session.user.id;
+        userId = /** @type {NonNullable<typeof req.session.user>} */ (req.session.user).id; // behind requireAuth
         const userOrgId = await resolveUserOrgFromReq(req);
         const { orgIds, userGroupIds, isSuperAdmin } = await resolveAccessContext(req);
         const transcription = await transcriptionStore.getTranscription(req.params.id, userId, { orgIds, userGroupIds, isSuperAdmin });
@@ -200,7 +201,7 @@ router.post('/:id/reprocess', requireAuth, validate({ body: NOTHING, query: NO_Q
               RETURNING tags`,
             // speaker_count is the count of identified people, not of raw
             // diarizer IDs — those collapse many-to-one onto the same person.
-            ['completed', Math.round(totalDuration), speakers.length, merged.length, sealed.full_text, sealed.transcript, sealed.segments, sealed.speakers, sealed.summary, sealed.chapters, JSON.stringify(mergedActionItems), JSON.stringify(mergedDecisions), JSON.stringify(mergedQuestions), JSON.stringify(usable ? artifacts.tags : []), JSON.stringify(voiceprintInfo?.detail || []), summaryStamp.summaryTemplateId, summaryStamp.summaryTemplateVersion, transcriptCrypto.buildSnippet(req.params.id, response.text || '', cryptoCtx), transcriptCrypto.buildSummarySnippet(req.params.id, finalSummary || '', cryptoCtx), req.params.id, userId,
+            ['completed', Math.round(totalDuration), speakers.length, merged.length, sealed.full_text, sealed.transcript, sealed.segments, sealed.speakers, sealed.summary, sealed.chapters, JSON.stringify(mergedActionItems), JSON.stringify(mergedDecisions), JSON.stringify(mergedQuestions), JSON.stringify(usable ? /** @type {{ tags?: string[] }} */ (artifacts).tags : []), JSON.stringify(voiceprintInfo?.detail || []), summaryStamp.summaryTemplateId, summaryStamp.summaryTemplateVersion, transcriptCrypto.buildSnippet(req.params.id, response.text || '', cryptoCtx), transcriptCrypto.buildSummarySnippet(req.params.id, finalSummary || '', cryptoCtx), req.params.id, userId,
                 ...(since ? [transcription.readAt] : [])]
         );
         if (!written) {
@@ -219,7 +220,7 @@ router.post('/:id/reprocess', requireAuth, validate({ body: NOTHING, query: NO_Q
         // meeting-tag knowledge sources) decide on these.
         const storedTags = writtenRows && writtenRows[0] && 'tags' in writtenRows[0]
             ? parseJsonArray(writtenRows[0].tags)
-            : (Array.isArray(transcription.tags) && transcription.tags.length ? transcription.tags : (usable ? artifacts.tags : []));
+            : (Array.isArray(transcription.tags) && transcription.tags.length ? transcription.tags : (usable ? /** @type {{ tags?: string[] }} */ (artifacts).tags : []));
         require('../../core/meetingNotes/ingestRecordingCore').emitMeetingProcessed({
             transcriptionId,
             tags: storedTags,
@@ -232,7 +233,7 @@ router.post('/:id/reprocess', requireAuth, validate({ body: NOTHING, query: NO_Q
         // Reaped or deleted while it ran: nothing to write, nothing to announce.
         if (/** @type {{ code?: string }} */ (err)?.code === 'claim_lost') return log.warn(`[Transcriptions] ${/** @type {Error} */ (err).message} — stopping`);
         log.error('[Transcriptions] Reprocess error:', /** @type {Error} */ (err).message);
-        /** @type {HttpError | null} */
+        /** @type {InstanceType<typeof HttpError> | null} */
         let failure = null;
         try {
             if (transcriptionId) {
@@ -265,7 +266,7 @@ router.post('/:id/reprocess', requireAuth, validate({ body: NOTHING, query: NO_Q
         if (failure) throw failure;
     } finally {
         // Remove the temp file if the audio was streamed from object storage.
-        try { audioSource?.cleanup?.(); } catch (_) { log.debug('temp audio already gone', _); }
+        try { audioSource?.cleanup?.(); } catch (_) { ignoreGone('routes/transcriptions/reprocess:cleanupAudio', _); }
     }
 });
 

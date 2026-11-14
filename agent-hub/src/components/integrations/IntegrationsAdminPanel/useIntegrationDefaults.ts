@@ -4,9 +4,8 @@
 import { useMemo } from 'react';
 import { ALL_INTEGRATIONS } from './sections';
 import { orderCategories } from '@/config/integrationCatalog';
-import { API_BASE } from '@/utils/helpers';
-import { mutate } from '@/api/mutate';
 import type { DefaultIntegration, SetMessage } from './adminPanel.types';
+import { apiRequest } from '@/api/typedRequest';
 
 interface McpServerRow {
     id: string;
@@ -29,11 +28,7 @@ export default function useIntegrationDefaults({ defaults, setDefaults, setSavin
         setDefaults(newDefaults);
         setSaving(true);
         try {
-            await mutate(`${API_BASE}/auth/default-integrations`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ defaults: newDefaults }),
-            });
+            await apiRequest('PUT /auth/default-integrations', { body: { defaults: newDefaults } });
             setMessage({ type: 'success', text: 'Default integrations updated' });
         } catch (e) {
             setMessage({ type: 'error', text: 'Failed to save' });

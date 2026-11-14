@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { ExternalLink, RefreshCw, X } from 'lucide-react';
-import { API_BASE } from '../../utils/helpers';
 import useTranslation from '../../hooks/useTranslation';
 import type { GammaPreview } from '../../hooks/useChatEngine/sse/gammaPreview';
 import { messageOf } from '../../utils/caughtError';
-import { request, errorBody, RefusedError } from '../../api/mutate';
+import { errorBody, RefusedError } from '../../api/mutate';
+import { apiRequest } from '../../api/typedRequest';
 
 function toGammaEmbedUrl(url: unknown): string | null {
     if (!url || typeof url !== 'string') return null;
@@ -34,8 +35,6 @@ interface Props {
 
 export default function GammaPreviewPanel({ preview, onClose, onUpdate }: Props) {
     const { t } = useTranslation();
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
     const [iframeFailed, setIframeFailed] = useState(false);
     const generationId = preview?.generationId || '';
     const status = (preview?.status || (generationId ? 'pending' : '')).toLowerCase();
@@ -57,41 +56,41 @@ export default function GammaPreviewPanel({ preview, onClose, onUpdate }: Props)
         onUpdateRef.current = onUpdate;
     }, [preview, onUpdate]);
 
-    const refreshStatus = useCallback(async () => {
-        if (!generationId) return;
-        setLoading(true);
-        setError('');
-        try {
+    // Asked while the generation is pending, again every 7 s and on each status
+    // change; every answer is merged into the preview the parent holds.
+    const statusQuery = useQuery({
+        queryKey: ['gamma', 'generation', generationId, status],
+        enabled: !!isPending,
+        staleTime: 0,
+        gcTime: 0,
+        retry: false,
+        refetchInterval: 7000,
+        refetchIntervalInBackground: true,
+        queryFn: async () => {
             let res: Response;
             try {
-                res = await request(`${API_BASE}/integrations/gamma/generations/${encodeURIComponent(generationId)}`);
+                res = await apiRequest('GET /api/integrations/gamma/generations/{generationId}', { params: { generationId } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const data = errorBody(err) ?? {};
-                throw new Error(data.error || `Gamma status check failed (${err.status})`);
+                throw new Error(data.error || `Gamma status check failed (${err.status})`, { cause: err });
             }
             const data = await res.json().catch(() => ({}));
             onUpdateRef.current?.({ ...previewRef.current, ...data });
-        } catch (err) {
-            setError(messageOf(err, 'Could not refresh Gamma status'));
-        } finally {
-            setLoading(false);
-        }
-    }, [generationId]);
+            return true;
+        },
+    });
+    const loading = statusQuery.isFetching;
+    const error = !loading && statusQuery.error ? messageOf(statusQuery.error, 'Could not refresh Gamma status') : '';
+    const { refetch } = statusQuery;
+    const refreshStatus = useCallback(() => { if (generationId) void refetch(); }, [generationId, refetch]);
 
-    useEffect(() => {
-        if (!isPending) return undefined;
-        const id = setInterval(refreshStatus, 7000);
-        return () => clearInterval(id);
-    }, [isPending, refreshStatus]);
-
-    useEffect(() => {
-        if (isPending) refreshStatus();
-    }, [isPending, status, refreshStatus]);
-
-    useEffect(() => {
+    // A new address gets its own chance to embed.
+    const [iframeFor, setIframeFor] = useState(embedUrl);
+    if (iframeFor !== embedUrl) {
+        setIframeFor(embedUrl);
         setIframeFailed(false);
-    }, [embedUrl]);
+    }
 
     return (
         <section className="flex flex-col h-full bg-[var(--bg-primary)] border-l border-[var(--border-subtle)]">
@@ -125,6 +124,7 @@ export default function GammaPreviewPanel({ preview, onClose, onUpdate }: Props)
                             disabled={loading}
                             className="p-2 rounded-md hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] disabled:opacity-50"
                             title={t('chat.gamma.refresh', 'Refresh Gamma status')}
+                            aria-label={t('chat.gamma.refresh', 'Refresh Gamma status')}
                         >
                             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                         </button>
@@ -134,6 +134,7 @@ export default function GammaPreviewPanel({ preview, onClose, onUpdate }: Props)
                         onClick={onClose}
                         className="p-2 rounded-md hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"
                         title={t('chat.gamma.close_preview', 'Close preview')}
+                        aria-label={t('chat.gamma.close_preview', 'Close preview')}
                     >
                         <X className="w-4 h-4" />
                     </button>

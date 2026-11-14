@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder tools — builder_add_action: the integration_action step. Resolves
  * the tool, gates it, binds and repairs its inputs, redirects a datatable
@@ -43,132 +44,170 @@ function datatableStepFromActionArgs(args) {
     return merged;
 }
 
-function applyAddAction(draft, rawArgs, draftWrap) {
-    let args = rawArgs || {};
-    const asDatatable = datatableStepFromActionArgs(args);
-    if (asDatatable) {
-        const r = applyAddDatatable(draft, asDatatable, draftWrap);
-        const note = 'this step names a datatable, so it was built as a `datatable` step — builder_add_action is for integration tools only. Use builder_add_datatable (or type:"datatable" in builder_add_steps) next time.';
-        if (r && r.error) return { ...r, _fixHint: `${r._fixHint ? `${r._fixHint} ` : ''}Note: ${note}` };
-        return { ...r, _warnings: [...(r._warnings || []), note] };
-    }
-    /** @type {string | null} */
-    let toolNote = null;
-    /** @type {string | null} */
-    let removedNote = null;
-    if (!args.tool || typeof args.tool !== 'string' || (draftWrap?._availableToolNames && !draftWrap._availableToolNames.has(args.tool))) {
-        const r = resolveToolName(args, draftWrap);
-        if (r.tool) {
-            args = { ...args, tool: r.tool };
-            toolNote = r.note;
-            // Only the key the name was READ from leaves the inputs map, and
-            // the removal is said. Deleting every TOOL_NAME_KEYS string
-            // dropped a literal name:"Q3" on nextcloud_create_folder when the
-            // tool came from top-level `toolName`, then refused the step for
-            // the very key it had removed — a resend loop the repeat ladder
-            // ends with _stop (2026-09-13).
-            const m = /^inputs\.([^.]+)/.exec(r.from || '');
-            if (m && args.inputs && typeof args.inputs === 'object' && !Array.isArray(args.inputs) && Object.hasOwn(args.inputs, m[1])) {
-                const inputs = { ...args.inputs };
-                delete inputs[m[1]];
-                args.inputs = inputs;
-                removedNote = `inputs.${m[1]} was removed from the inputs — it carried the tool name, not a value for ${r.tool}.`;
-            }
-        }
-    }
-    const unknown = unknownToolError(args.tool, draftWrap, { label: typeof args.label === 'string' ? args.label : null });
-    if (unknown) return unknown;
-    const gate = inspectGateError(args.tool, args.inputs, draftWrap);
-    if (gate) return gate;
-    const bindings = validateAndFixBindings(args.inputs || {}, draft, { draftWrap });
-    // A suggested path is never auto-applied to an action that changes data.
-    if (bindings.error) return { error: bindings.error, ...(bindings._suggestedPatch && !isSideEffect(args.tool) ? { _suggestedPatch: bindings._suggestedPatch } : {}) };
-    let inputs = bindings.inputs;
-    const { forEach, error: feErr, notes: feNotes } = sanitizeForEach(args.forEach, draft, draftWrap);
-    if (feErr) return { error: feErr };
-    const loopErr = unboundLoopVarError(inputs, forEach);
-    if (loopErr) return loopErr;
-    // Every server-side repair lands here as a sentence on the success result
-    // — a path read differently, or one the tool's description cannot find.
-    const warnings = [toolNote, removedNote, ...(bindings.notes || []), ...(feNotes || [])].filter(Boolean);
-    // Required inputs left unbound. The builder's validator is not handed the
-    // tool schemas, so a read step with no `path` finalised clean and failed
-    // only at run time with "path is required" — one live run per missing
-    // binding (measured 2026-09-12, then again from a small model that wrote
-    // a forEach'd nextcloud_read_file with no inputs at all). The §B3 gate
-    // above only fires until the tool has been inspected once; this is the
-    // check that stays. What the draft can answer for is bound and said
-    // (autoBindRequiredInputs); what is left is refused with the binding to
-    // add — and nothing else about the step was wrong, so the hint says that.
+/**
+ * A datatable step sent here is built by its own tool, and the redirect said.
+ * @param {DraftGraph} draft @param {ActionArgs} asDatatable @param {BuilderWrap} draftWrap
+ */
+function addAsDatatable(draft, asDatatable, draftWrap) {
+    const r = /** @type {Record<string, any>} */ (applyAddDatatable(draft, asDatatable, draftWrap));
+    const note = 'this step names a datatable, so it was built as a `datatable` step — builder_add_action is for integration tools only. Use builder_add_datatable (or type:"datatable" in builder_add_steps) next time.';
+    if (r && r.error) return { ...r, _fixHint: `${r._fixHint ? `${r._fixHint} ` : ''}Note: ${note}` };
+    return { ...r, _warnings: [...(r._warnings || []), note] };
+}
+
+/**
+ * The tool, read from the call (resolveToolName) when it is missing or not one
+ * the user can run. Only the key the name was READ from leaves the inputs map,
+ * and the removal is said: deleting every TOOL_NAME_KEYS string dropped a
+ * literal name:"Q3" on nextcloud_create_folder when the tool came from
+ * top-level `toolName`, then refused the step for the very key it had removed
+ * — a resend loop the repeat ladder ends with _stop (2026-09-13).
+ * @param {ActionArgs} args @param {BuilderWrap} draftWrap
+ * @returns {{ args: ActionArgs, notes: (string|null)[] }}
+ */
+function resolveActionTool(args, draftWrap) {
+    const known = typeof args.tool === 'string' && args.tool && !(draftWrap?._availableToolNames && !draftWrap._availableToolNames.has(args.tool));
+    if (known) return { args, notes: [null, null] };
+    // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- the pattern below is an anchored literal prefix then one negated class, on the resolver's own path text: linear
+    const r = resolveToolName(args, draftWrap);
+    if (!r.tool) return { args, notes: [null, null] };
+    const next = { ...args, tool: r.tool };
+    const m = /^inputs\.([^.]+)/.exec(r.from || '');
+    if (!m || !next.inputs || typeof next.inputs !== 'object' || Array.isArray(next.inputs) || !Object.hasOwn(next.inputs, m[1])) return { args: next, notes: [r.note, null] };
+    const inputs = { ...next.inputs };
+    delete inputs[m[1]];
+    next.inputs = inputs;
+    return { args: next, notes: [r.note, `inputs.${m[1]} was removed from the inputs — it carried the tool name, not a value for ${r.tool}.`] };
+}
+
+/**
+ * Required inputs left unbound. The builder's validator is not handed the
+ * tool schemas, so a read step with no `path` finalised clean and failed only
+ * at run time with "path is required" — one live run per missing binding
+ * (measured 2026-09-12, then again from a small model that wrote a forEach'd
+ * nextcloud_read_file with no inputs at all). The §B3 gate only fires until the
+ * tool has been inspected once; this is the check that stays. What the draft
+ * can answer for is bound and said (autoBindRequiredInputs); what is left is
+ * refused with the binding to add — and nothing else about the step was wrong,
+ * so the hint says that.
+ * @returns {{ inputs: any } | { refusal: any }}
+ */
+function bindRequiredInputs(draft, args, draftWrap, { inputs, forEach, warnings }) {
     let missing = unboundRequiredInputs(args.tool, inputs, draftWrap);
-    let candidates = [];
-    if (missing.length) {
-        const auto = autoBindRequiredInputs({ graph: draft, tool: args.tool, inputs, forEach, missing, afterStepId: args.afterStepId, draftWrap });
-        if (auto.bound.length) {
-            inputs = auto.inputs;
-            const res = forEach ? fieldsAtRef(draft, forEach.overRef, draftWrap) : null;
-            for (const b of auto.bound) warnings.push(boundInputNote(b, res, forEach));
-            missing = unboundRequiredInputs(args.tool, inputs, draftWrap);
-        }
-        candidates = auto.candidates;
+    if (!missing.length) return { inputs };
+    const auto = autoBindRequiredInputs({ graph: draft, tool: args.tool, inputs, forEach, missing, afterStepId: args.afterStepId, draftWrap });
+    let bound = inputs;
+    if (auto.bound.length) {
+        bound = auto.inputs;
+        const res = forEach ? fieldsAtRef(draft, forEach.overRef, draftWrap) : null;
+        for (const b of auto.bound) warnings.push(boundInputNote(b, res, forEach));
+        missing = unboundRequiredInputs(args.tool, bound, draftWrap);
     }
-    if (missing.length) return requiredInputError(args.tool, missing, forEach, candidates, draft, draftWrap);
-    // A loop.<var>.<field> binding checked against the item's shape. A
-    // fan-out field bound without its envelope is repaired (the measured
-    // `loop.r.content` for `loop.r.output.content`); a field the item does
-    // not have is only WARNED about here — an integration_action's inputs
-    // are not the one binding a data_extraction's source is, and a tool may
-    // read a field the curated shape does not list.
-    if (forEach) {
-        const prefix = `loop.${forEach.itemVar}.`;
-        let res = null;
-        for (const [k, b] of Object.entries(inputs)) {
-            if (!b || b.kind !== 'ref' || typeof b.path !== 'string' || !b.path.startsWith(prefix)) continue;
-            const chk = checkLoopRef(draft, b.path, forEach, draftWrap);
-            if (chk.ok && chk.path) {
-                inputs = { ...inputs, [k]: { ...b, path: chk.path } };
-                warnings.push(`input "${k}": ${chk.note}`);
-            } else if (!chk.ok) {
-                res = res || fieldsAtRef(draft, forEach.overRef, draftWrap);
-                const phrase = describeItem(res);
-                const dym = chk.suggestions && chk.suggestions.length ? ` Did you mean ${chk.suggestions.join(' or ')}?` : '';
-                if (phrase) warnings.push(`input "${k}" reads ${b.path} but ${phrase} — it will be empty at run time.${dym}`);
-                else if (chk.message) warnings.push(`input "${k}": ${chk.message}`);
-            }
-        }
-    }
-    // Hallucinated-param check: a bound input the tool doesn't declare is
-    // silently ignored at run time — surface it as a warning (not a reject:
-    // catalog inputSchemas may legitimately under-declare).
-    const declared = draftWrap?._inputSchemasByTool?.[args.tool]?.properties;
-    if (declared && typeof declared === 'object') {
-        const unknown = Object.keys(inputs || {}).filter(k => !(k in declared));
-        if (unknown.length) {
-            warnings.push(...unknown.map(k => `input "${k}" is not declared on ${args.tool} (declared: ${Object.keys(declared).join(', ')}) — it will likely be ignored at runtime`));
+    if (missing.length) return { refusal: requiredInputError(args.tool, missing, forEach, auto.candidates, draft, draftWrap) };
+    return { inputs: bound };
+}
+
+/**
+ * A loop.<var>.<field> binding checked against the item's shape. A fan-out
+ * field bound without its envelope is repaired (the measured `loop.r.content`
+ * for `loop.r.output.content`); a field the item does not have is only WARNED
+ * about here — an integration_action's inputs are not the one binding a
+ * data_extraction's source is, and a tool may read a field the curated shape
+ * does not list.
+ */
+function checkLoopInputs(draft, draftWrap, { inputs, forEach, warnings }) {
+    if (!forEach) return inputs;
+    const prefix = `loop.${forEach.itemVar}.`;
+    let out = inputs;
+    let res = null;
+    for (const [k, b] of Object.entries(inputs)) {
+        if (!b || b.kind !== 'ref' || typeof b.path !== 'string' || !b.path.startsWith(prefix)) continue;
+        const chk = checkLoopRef(draft, b.path, forEach, draftWrap);
+        if (chk.ok && chk.path) {
+            out = { ...out, [k]: { ...b, path: chk.path } };
+            warnings.push(`input "${k}": ${chk.note}`);
+        } else if (!chk.ok) {
+            res = res || fieldsAtRef(draft, forEach.overRef, draftWrap);
+            const phrase = describeItem(res);
+            const dym = chk.suggestions && chk.suggestions.length ? ` Did you mean ${chk.suggestions.join(' or ')}?` : '';
+            if (phrase) warnings.push(`input "${k}" reads ${b.path} but ${phrase} — it will be empty at run time.${dym}`);
+            else if (chk.message) warnings.push(`input "${k}": ${chk.message}`);
         }
     }
-    // Mutually exclusive paths are NOT duplicates: the same action on a
-    // condition's `then` and `else`, or on two switch cases, is a normal shape
-    // — only one of them ever runs. Skip the check whenever this append is
-    // explicitly a branch, or the anchor is a brancher (which auto-assigns
-    // then/else). Everything else on one linear path is a real duplicate.
+    return out;
+}
+
+/**
+ * Hallucinated-param check: a bound input the tool doesn't declare is silently
+ * ignored at run time, so it is a warning (not a reject: catalog inputSchemas
+ * may legitimately under-declare).
+ * @param {string} tool @param {Record<string, unknown>} inputs @param {BuilderWrap} draftWrap
+ */
+function undeclaredInputWarnings(tool, inputs, draftWrap) {
+    const declared = draftWrap?._inputSchemasByTool?.[tool]?.properties;
+    if (!declared || typeof declared !== 'object') return [];
+    return Object.keys(inputs || {}).filter(k => !(k in declared))
+        .map(k => `input "${k}" is not declared on ${tool} (declared: ${Object.keys(declared).join(', ')}) — it will likely be ignored at runtime`);
+}
+
+/**
+ * A second identical call on one linear path. Mutually exclusive paths are NOT
+ * duplicates: the same action on a condition's `then` and `else`, or on two
+ * switch cases, is a normal shape — only one of them ever runs — so the check
+ * skips an append that is explicitly a branch or hangs off a brancher (which
+ * auto-assigns then/else). It only runs when the call carries inputs: a
+ * parameterless action is a stub shape (and a legitimate one — "list my rooms"
+ * twice is odd but not wrong), whereas every real duplicate observed in builds
+ * carried the same bound inputs. A re-read after a step that changed something
+ * is not a duplicate: the guard looks at the graph between the two calls.
+ * @param {Parameters<typeof findDuplicateAction>[0]} draft @param {ActionArgs} args @param {Record<string, unknown>} inputs
+ */
+function duplicateRefusal(draft, args, inputs) {
     const anchor = args.afterStepId ? (draft.steps || []).find(x => x && x.id === args.afterStepId) : null;
     const onOwnBranch = !!args.branch || !!args.caseName
         || (anchor && (anchor.type === 'condition' || anchor.type === 'guard' || anchor.type === 'switch'));
-    // Only when the call actually carries inputs. A parameterless action is a
-    // stub shape (and a legitimate one — "list my rooms" twice is odd but not
-    // wrong), whereas every real duplicate observed in builds carried the same
-    // bound inputs: the same folder listed twice, the same spreadsheet written
-    // twice. Requiring inputs keeps the guard on the cases where "identical"
-    // provably means "the same call".
     const hasInputs = inputs && Object.keys(inputs).length > 0;
-    // A re-read after a step that changed something is not a duplicate:
-    // the guard looks at the graph between the existing call and this one.
-    const dup = (onOwnBranch || !hasInputs) ? null
-        : findDuplicateAction(draft, args.tool, inputs, { anchorId: args.afterStepId || (draft.trigger ? lastStepId(draft) : null) });
-    if (dup) {
-        return { error: `This draft already has step "${dup.id}" calling ${args.tool} with identical inputs, and nothing between the two changes anything — adding it again would run the same call twice. Reference "${dup.id}" downstream (steps.${dup.id}.output.…) instead. A re-read after a step that writes is allowed: append it after that step (afterStepId).` };
-    }
+    if (onOwnBranch || !hasInputs) return null;
+    const dup = findDuplicateAction(draft, args.tool, inputs, { anchorId: args.afterStepId || (draft.trigger ? lastStepId(draft) : null) });
+    if (!dup) return null;
+    return { error: `This draft already has step "${dup.id}" calling ${args.tool} with identical inputs, and nothing between the two changes anything — adding it again would run the same call twice. Reference "${dup.id}" downstream (steps.${dup.id}.output.…) instead. A re-read after a step that writes is allowed: append it after that step (afterStepId).` };
+}
+
+/**
+ * The tool's gates and the inputs' bindings, in order: availability, inspect,
+ * the binding check (a suggested path is never auto-applied to an action that
+ * changes data), forEach and its loop variables. Every server-side repair
+ * lands as a sentence on the success result.
+ * @returns {{ refusal: any } | { inputs: any, forEach: any, warnings: string[] }}
+ */
+function gateAndBind(draft, args, draftWrap, toolNotes) {
+    const unknown = unknownToolError(args.tool, draftWrap, { label: typeof args.label === 'string' ? args.label : null });
+    if (unknown) return { refusal: unknown };
+    const gate = inspectGateError(args.tool, args.inputs, draftWrap);
+    if (gate) return { refusal: gate };
+    const bindings = validateAndFixBindings(args.inputs || {}, draft, { draftWrap });
+    if (bindings.error) return { refusal: { error: bindings.error, ...(bindings._suggestedPatch && !isSideEffect(args.tool) ? { _suggestedPatch: bindings._suggestedPatch } : {}) } };
+    const { forEach, error: feErr, notes: feNotes } = sanitizeForEach(args.forEach, draft, draftWrap);
+    if (feErr) return { refusal: { error: feErr } };
+    const loopErr = unboundLoopVarError(bindings.inputs, forEach);
+    if (loopErr) return { refusal: loopErr };
+    const warnings = [...toolNotes, ...(bindings.notes || []), ...(feNotes || [])].filter(Boolean);
+    return { inputs: bindings.inputs, forEach, warnings };
+}
+
+function applyAddAction(draft, rawArgs, draftWrap) {
+    const asDatatable = datatableStepFromActionArgs(rawArgs || {});
+    if (asDatatable) return addAsDatatable(draft, asDatatable, draftWrap);
+    const { args, notes } = resolveActionTool(rawArgs || {}, draftWrap);
+    const bound = gateAndBind(draft, args, draftWrap, notes);
+    if ('refusal' in bound) return bound.refusal;
+    const { forEach, warnings } = bound;
+    const required = bindRequiredInputs(draft, args, draftWrap, bound);
+    if ('refusal' in required) return required.refusal;
+    const inputs = checkLoopInputs(draft, draftWrap, { inputs: required.inputs, forEach, warnings });
+    warnings.push(...undeclaredInputWarnings(args.tool, inputs, draftWrap));
+    const dup = duplicateRefusal(draft, args, inputs);
+    if (dup) return dup;
     const step = {
         id: newId('a'),
         type: 'integration_action',

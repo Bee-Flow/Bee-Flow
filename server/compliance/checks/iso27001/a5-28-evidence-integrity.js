@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * ISO 27001 A.5.28 / A.5.36 — Collection of evidence & compliance with the
  * organisation's own monitoring.
@@ -56,7 +56,7 @@ module.exports = {
     remediationLink: null,
     /**
      * @param {string} orgId
-     * @returns {Promise<{ status: 'pass'|'warn'|'fail', details: string, evidence: Partial<Awaited<ReturnType<typeof verifyChain>>> & { window_rows: number, ledger_reachable?: boolean, error_name?: string, error_code?: string, age_days?: number, fresh_days?: number } }>}
+     * @returns {Promise<{ status: 'pass'|'warn'|'fail', details: string, evidence: Partial<Awaited<ReturnType<typeof verifyChain>>> & { window_rows: number, ledger_reachable?: boolean, error_name?: string, error_code?: string | null, age_days?: number, fresh_days?: number } }>}
      */
     async evaluate(orgId) {
         const org = orgId || 'default';
@@ -106,7 +106,7 @@ module.exports = {
                     + 'The first sweep after this release seeds the chain — nothing to do unless this persists past the next sweep.',
             };
         }
-        if (report.pre_chain_invalid > 0) {
+        if ((report.pre_chain_invalid ?? 0) > 0) {
             return {
                 status: 'warn',
                 evidence,
@@ -123,10 +123,11 @@ module.exports = {
                 details: `Evidence chain intact (${report.verified_rows} linked row(s) verified), but the newest row is ${Math.floor(ageDays)} days old — the 6-hourly compliance sweep appears to have stopped.`,
             };
         }
+        // Linked rows verified (chained_rows > 0 above), so the chain has a head.
         return {
             status: 'pass',
             evidence,
-            details: `Evidence chain intact: ${report.verified_rows} linked row(s) verified (${report.pre_chain_rows} pre-chain row(s) fingerprinted), head #${report.head.seq}.`,
+            details: `Evidence chain intact: ${report.verified_rows} linked row(s) verified (${report.pre_chain_rows} pre-chain row(s) fingerprinted), head #${/** @type {NonNullable<typeof report.head>} */ (report.head).seq}.`,
         };
     },
 };

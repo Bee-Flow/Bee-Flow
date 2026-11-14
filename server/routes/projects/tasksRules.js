@@ -11,7 +11,7 @@
 'use strict';
 
 const { badRequest, conflict } = require('../../core/http/errors');
-const { taskEvent, sealList, checkDates, canContain } = require('./tasksPresent');
+const { taskEvent, sealList, checkDates, canContain } = require('../../usecases/projects/tasksPresent');
 const { fallback } = require('../../utils/bestEffort');
 
 /** Assignees must be on the project right now. */

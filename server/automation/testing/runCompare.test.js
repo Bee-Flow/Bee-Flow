@@ -289,12 +289,13 @@ test('files of another automation in the same runs are not summarised', async ()
     assert.strictEqual(stepOf(res, 'doc').files, undefined);
 });
 
-test('a version definition that cannot be read is logged and the step type alone decides', async () => {
+test('a version definition that cannot be read is warned and the step type alone decides', async () => {
     const log = require('../../telemetry/log');
-    const original = log.debug;
+    require('../../utils/bestEffort').resetBestEffort();
+    const original = log.warn;
     /** @type {string[]} */
     const lines = [];
-    log.debug = (line) => { lines.push(String(line)); };
+    log.warn = (line, err) => { lines.push(`${line} ${/** @type {Error} */ (err)?.message}`); };
     try {
         const store = {
             ...fakeStore({ steps: {
@@ -305,8 +306,8 @@ test('a version definition that cannot be read is logged and the step type alone
         };
         const res = await compare(store);
         assert.strictEqual(stepOf(res, 'ai1').verdict, 'soft');
-        assert.ok(lines.some(l => l.includes('[automation/runCompare]') && l.includes('definition store down')), lines.join('\n'));
+        assert.ok(lines.some(l => l.includes('automation/runCompare:aiStepIds') && l.includes('definition store down')), lines.join('\n'));
     } finally {
-        log.debug = original;
+        log.warn = original;
     }
 });

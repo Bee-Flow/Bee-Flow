@@ -11,7 +11,7 @@ const { loadConfig } = require('../auth/permissions');
 const configStore = require('../stores/configStore');
 const { assertAllowedNextcloudHost, isMetadataHost, nextcloudFetch, nextcloudOAuthUrl } = require('./nextcloudTarget');
 const { resolveBasicUid } = require('./nextcloudBasicUid');
-const { signedConnectorHeaders, connectorWireUrl } = require('./ncSigning');
+const { signedConnectorHeaders, connectorWireUrl } = require('../auth/connector/ncSigning');
 const log = require('../telemetry/log');
 const { DOWNLOAD_TOO_LARGE, refuseDeclaredOversize, writeBodyToFile } = require('./nextcloudDownload');
 
@@ -434,7 +434,7 @@ async function resolveConnectorAuth(session, userId) {
         const needsTunnel = !RAW_METHODS.has(method);
         const wireMethod = needsTunnel ? 'POST' : method;
         // Signing (decoded path, real method, body hash) lives in
-        // integrations/ncSigning.js — one implementation shared with the
+        // auth/connector/ncSigning.js — one implementation shared with the
         // service-level signer in services/ncUserGroupSync.js, so the v2
         // wire format cannot drift between them.
         //

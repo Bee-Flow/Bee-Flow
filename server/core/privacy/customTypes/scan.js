@@ -40,6 +40,15 @@ const { mergeEntities, spansToEntities } = require('./merge');
 const log = require('../../../telemetry/log');
 
 /**
+ * @typedef {NonNullable<Awaited<ReturnType<typeof import('./plan').planScan>>>} ScanPlan
+ * @typedef {{ text: string, plan: ScanPlan, threshold: number, priority: 'interactive'|'bulk', onProgress: Function|null, aiIds: string[], customDegraded: Map<string, string> }} ScanContext
+ *   `customDegraded`: the degraded ids and why, in the order they were found
+ * @typedef {{ entities?: any[], customEntities?: any[], degraded?: boolean, degradedReason?: string | null, degradedCategories?: string[] | null, processedChars?: unknown, totalChars?: unknown, tierMode?: string | null, engineFingerprint?: string | null }} GuardAnswer
+ *   the guard's answer as _callGuard returns it (or a degraded stand-in)
+ * @typedef {{ hasPii: boolean, entities: any[], redactedText: string, degraded: boolean, degradedReason: string | null, degradedCategories: string[] | null, processedChars: number | null, totalChars: number | null, tierMode: string | null, engineFingerprint: string | null, guardAbsent?: boolean }} ScanResult
+ */
+
+/**
  * @param {string} text
  * @param {string[]} builtIns
  * @param {number} threshold
@@ -54,142 +63,197 @@ function _callGuard(text, builtIns, threshold, endpoint, priority, onProgress, c
         : detectPiiViaCpuModel(text, builtIns, threshold, endpoint, priority, custom ? custom.labels : null);
 }
 
+/** @param {string} reason */
+const guardDegraded = (reason) => ({ entities: [], degraded: true, degradedReason: reason, degradedCategories: null });
+
+/**
+ * The ids degraded by what the Node matchers ran into. A partial scan never
+ * replaces a reason found before it.
+ * @param {ReturnType<typeof matchNode>} node
+ * @param {Map<string, string>} customDegraded
+ */
+function noteNodeDegraded(node, customDegraded) {
+    for (const id of node.failed) customDegraded.set(id, 'custom_type_invalid');
+    for (const id of node.timedOut) customDegraded.set(id, 'custom_pattern_timeout');
+    for (const id of node.partialIds) if (!customDegraded.has(id)) customDegraded.set(id, 'custom_scan_partial');
+}
+
+/**
+ * The custom_labels of the `ai` types, or null when there are none or the
+ * guard is too old for them (then the ai ids are degraded).
+ * @param {ScanContext} ctx
+ * @param {{ url: string, apiKey?: string }} endpoint
+ */
+async function customLabelsFor(ctx, endpoint) {
+    if (!ctx.aiIds.length) return null;
+    if (!(await guardCapabilities.supportsCustomLabels(endpoint))) {
+        for (const id of ctx.aiIds) ctx.customDegraded.set(id, 'custom_labels_unsupported');
+        return null;
+    }
+    // Saved lists never repeat a prompt (spec.js); types passed in directly
+    // might, and the guard refuses the request.
+    const seenPrompts = new Set();
+    const labels = [];
+    for (const t of ctx.plan.aiTypes) {
+        const p = String(t.ai.prompt).trim().toLowerCase();
+        if (seenPrompts.has(p)) { ctx.customDegraded.set(t.id, 'custom_labels_duplicate'); continue; }
+        seenPrompts.add(p);
+        labels.push({ id: t.id, prompt: t.ai.prompt, floor: t.ai.floor });
+    }
+    return { labels, key: ctx.plan.digest };
+}
+
+/**
+ * One guard call, counted by the breaker. A failure answers degraded, except
+ * the guard refusing the custom labels (a 422), which is rethrown: the guard
+ * is up, it does not know the field.
+ * @param {ScanContext} ctx
+ * @param {{ url: string, apiKey?: string }} endpoint
+ * @param {{ labels: object[], key: string } | null} custom
+ */
+async function callGuardCounted(ctx, endpoint, custom) {
+    try {
+        const res = await _callGuard(ctx.text, ctx.plan.builtIns, ctx.threshold, endpoint, ctx.priority, ctx.onProgress, custom);
+        noteGuardSuccess();
+        return res;
+    } catch (err) {
+        if (custom && err?.status === 422) throw err;
+        noteGuardFailure();
+        log.warn('[PiiDetection] guard-service unavailable:', /** @type {Error} */ (err)?.message);
+        return guardDegraded(`guard_unreachable: ${/** @type {Error} */ (err)?.message}`);
+    }
+}
+
+/**
+ * The guard scan. A guard that refuses custom_labels gets its version memo
+ * cleared and ONE retry without them (only when built-ins remain to scan);
+ * the breaker is not tripped for it.
+ * @param {ScanContext} ctx
+ * @param {{ url: string, apiKey?: string }} endpoint
+ * @param {{ labels: object[], key: string } | null} custom
+ */
+async function scanWithGuard(ctx, endpoint, custom) {
+    try {
+        return await callGuardCounted(ctx, endpoint, custom);
+    } catch (err) {
+        guardCapabilities.clearGuardCapabilities(endpoint.url);
+        for (const id of ctx.aiIds) ctx.customDegraded.set(id, 'custom_labels_rejected');
+        log.warn(`[PiiDetection] guard refused custom_labels (${/** @type {Error} */ (err).message}); retrying without them`);
+        return ctx.plan.builtIns.length ? callGuardCounted(ctx, endpoint, null) : null;
+    }
+}
+
+/**
+ * The guard's answer, when the list needs the guard: built-in categories or
+ * `ai` types. `guardAbsent` when none is installed.
+ * @param {ScanContext} ctx
+ * @returns {Promise<{ guardRes: GuardAnswer | null, guardAbsent: boolean }>}
+ */
+async function askGuard(ctx) {
+    const { plan } = ctx;
+    if (!plan.builtIns.length && !ctx.aiIds.length) return { guardRes: null, guardAbsent: false };
+    const endpoint = await getGuardEndpoint();
+    if (!endpoint.url) return { guardRes: null, guardAbsent: true };
+    if (circuitIsOpen()) {
+        log.warn('[PiiDetection] guard circuit open — short-circuiting to degraded');
+        return { guardRes: guardDegraded('guard_circuit_open'), guardAbsent: false };
+    }
+    const custom = await customLabelsFor(ctx, endpoint);
+    if (!plan.builtIns.length && !custom) return { guardRes: null, guardAbsent: false };
+    return { guardRes: await scanWithGuard(ctx, endpoint, custom), guardAbsent: false };
+}
+
+/**
+ * The ids and categories a degraded answer did not cover, or null for an
+ * unknown scope.
+ * @param {GuardAnswer | null} guardRes
+ * @param {ScanContext} ctx
+ * @returns {string[] | null}
+ */
+function affectedCategories(guardRes, ctx) {
+    // A partial guard scan (oversize) leaves an unscanned tail that can hide
+    // anything: keep the guard's "unknown scope" answer.
+    if (guardRes?.degraded && typeof guardRes.processedChars === 'number') return null;
+    const affected = new Set(ctx.customDegraded.keys());
+    if (guardRes?.degraded) {
+        // The guard names what it lost when it can; otherwise it lost
+        // everything it was asked for: the built-ins and the ai types.
+        const lost = Array.isArray(guardRes.degradedCategories) ? guardRes.degradedCategories : [...ctx.plan.builtIns, ...ctx.aiIds];
+        lost.forEach(c => affected.add(c));
+    }
+    return affected.size ? [...affected] : null;
+}
+
+/**
+ * Whether the answer is degraded, the first reason (the guard's before the
+ * custom ids'), and what it did not cover.
+ * @param {GuardAnswer | null} guardRes
+ * @param {ScanContext} ctx
+ */
+function degradedSummary(guardRes, ctx) {
+    const { customDegraded } = ctx;
+    const degraded = !!guardRes?.degraded || customDegraded.size > 0;
+    let degradedReason = guardRes?.degraded ? (guardRes.degradedReason || null) : null;
+    if (!degradedReason && customDegraded.size) degradedReason = customDegraded.values().next().value || null;
+    return { degraded, degradedReason, degradedCategories: degraded ? affectedCategories(guardRes, ctx) : null };
+}
+
+/**
+ * Memoising callers (scanLedger) may only store an answer from an identified
+ * engine. Mixed with Node matchers the identity also has to cover their
+ * specs; a Node-only or degraded answer carries none and is never stored.
+ * @param {GuardAnswer | null} guardRes
+ * @param {string} digest
+ */
+function combinedFingerprint(guardRes, digest) {
+    if (!guardRes || guardRes.degraded || !guardRes.engineFingerprint) return null;
+    const fp = guardRes.engineFingerprint;
+    return `${fp}+c${crypto.createHash('sha256').update(`${fp}|${digest}`).digest('hex').slice(0, 12)}`;
+}
+
+/** @param {unknown} v */
+const numberOrNull = (v) => (typeof v === 'number' ? v : null);
+
 /**
  * @param {string} text
- * @param {NonNullable<Awaited<ReturnType<typeof import('./plan').planScan>>>} plan
+ * @param {ScanPlan} plan
  * @param {number} threshold
  * @param {{ priority?: string, onProgress?: Function }} opts
  */
 async function _scanOnce(text, plan, threshold, opts) {
-    const priority = opts?.priority === 'bulk' ? 'bulk' : 'interactive';
-    const onProgress = typeof opts?.onProgress === 'function' ? opts.onProgress : null;
+    /** @type {ScanContext} */
+    const ctx = {
+        text, plan, threshold,
+        priority: opts?.priority === 'bulk' ? 'bulk' : 'interactive',
+        onProgress: typeof opts?.onProgress === 'function' ? opts.onProgress : null,
+        aiIds: plan.aiTypes.map(t => t.id),
+        customDegraded: new Map(),
+    };
+    for (const id of plan.unknown) ctx.customDegraded.set(id, 'custom_type_unknown');
+    for (const id of plan.conflicted || []) ctx.customDegraded.set(id, 'custom_type_conflict');
 
-    // Degraded ids and why, in the order they were found.
-    /** @type {Map<string, string>} */
-    const customDegraded = new Map();
-    for (const id of plan.unknown) customDegraded.set(id, 'custom_type_unknown');
-    for (const id of plan.conflicted || []) customDegraded.set(id, 'custom_type_conflict');
-
-    // ── 1. Node matchers ──────────────────────────────────────────────
+    // 1. Node matchers, 2. the guard when the list needs it, 3. the merge.
     const node = matchNode(text, plan.compiled);
-    for (const id of node.failed) customDegraded.set(id, 'custom_type_invalid');
-    for (const id of node.timedOut) customDegraded.set(id, 'custom_pattern_timeout');
-    for (const id of node.partialIds) if (!customDegraded.has(id)) customDegraded.set(id, 'custom_scan_partial');
+    noteNodeDegraded(node, ctx.customDegraded);
     const nodeEntities = spansToEntities(node.spans, text);
+    const { guardRes, guardAbsent } = await askGuard(ctx);
+    const entities = mergeEntities([...(guardRes?.entities || []), ...(guardRes?.customEntities || []), ...nodeEntities], text, plan);
 
-    // ── 2. Guard, when the list needs it ──────────────────────────────
-    const aiIds = plan.aiTypes.map(t => t.id);
-    const guardNeeded = plan.builtIns.length > 0 || aiIds.length > 0;
-    /** @type {any} */
-    let guardRes = null;
-    let guardAbsent = false;
-    if (guardNeeded) {
-        const endpoint = await getGuardEndpoint();
-        if (!endpoint.url) {
-            guardAbsent = true;
-        } else if (circuitIsOpen()) {
-            log.warn('[PiiDetection] guard circuit open — short-circuiting to degraded');
-            guardRes = { entities: [], degraded: true, degradedReason: 'guard_circuit_open', degradedCategories: null };
-        } else {
-            let custom = null;
-            if (aiIds.length) {
-                if (await guardCapabilities.supportsCustomLabels(endpoint)) {
-                    // Saved lists never repeat a prompt (spec.js); types passed
-                    // in directly might, and the guard refuses the request.
-                    const seenPrompts = new Set();
-                    const labels = [];
-                    for (const t of plan.aiTypes) {
-                        const p = String(t.ai.prompt).trim().toLowerCase();
-                        if (seenPrompts.has(p)) { customDegraded.set(t.id, 'custom_labels_duplicate'); continue; }
-                        seenPrompts.add(p);
-                        labels.push({ id: t.id, prompt: t.ai.prompt, floor: t.ai.floor });
-                    }
-                    custom = { labels, key: plan.digest };
-                } else {
-                    for (const id of aiIds) customDegraded.set(id, 'custom_labels_unsupported');
-                }
-            }
-            if (plan.builtIns.length || custom) {
-                try {
-                    guardRes = await _callGuard(text, plan.builtIns, threshold, endpoint, priority, onProgress, custom);
-                    noteGuardSuccess();
-                } catch (err) {
-                    if (custom && err?.status === 422) {
-                        // The guard is up; it does not know the field. Not a
-                        // guard failure, so the breaker stays shut.
-                        guardCapabilities.clearGuardCapabilities(endpoint.url);
-                        for (const id of aiIds) customDegraded.set(id, 'custom_labels_rejected');
-                        log.warn(`[PiiDetection] guard refused custom_labels (${/** @type {Error} */ (err).message}); retrying without them`);
-                        if (plan.builtIns.length) {
-                            try {
-                                guardRes = await _callGuard(text, plan.builtIns, threshold, endpoint, priority, onProgress, null);
-                                noteGuardSuccess();
-                            } catch (err2) {
-                                noteGuardFailure();
-                                log.warn('[PiiDetection] guard-service unavailable:', /** @type {Error} */ (err2).message);
-                                guardRes = { entities: [], degraded: true, degradedReason: `guard_unreachable: ${/** @type {Error} */ (err2).message}`, degradedCategories: null };
-                            }
-                        }
-                    } else {
-                        noteGuardFailure();
-                        log.warn('[PiiDetection] guard-service unavailable:', /** @type {Error} */ (err)?.message);
-                        guardRes = { entities: [], degraded: true, degradedReason: `guard_unreachable: ${/** @type {Error} */ (err)?.message}`, degradedCategories: null };
-                    }
-                }
-            }
-        }
-    }
-
-    // ── 3. Merge ──────────────────────────────────────────────────────
-    const all = [
-        ...(guardRes?.entities || []),
-        ...(guardRes?.customEntities || []),
-        ...nodeEntities,
-    ];
-    const entities = mergeEntities(all, text, plan);
-
-    const degraded = !!guardRes?.degraded || customDegraded.size > 0;
-    let degradedReason = guardRes?.degraded ? (guardRes.degradedReason || null) : null;
-    if (!degradedReason && customDegraded.size) degradedReason = customDegraded.values().next().value || null;
-    /** @type {string[] | null} */
-    let degradedCategories = null;
-    if (degraded) {
-        const affected = new Set(customDegraded.keys());
-        if (guardRes?.degraded) {
-            // The guard names what it lost when it can; otherwise it lost
-            // everything it was asked for: the built-ins and the ai types.
-            const lost = Array.isArray(guardRes.degradedCategories) ? guardRes.degradedCategories : [...plan.builtIns, ...aiIds];
-            lost.forEach(c => affected.add(c));
-        }
-        degradedCategories = affected.size ? [...affected] : null;
-        // A partial guard scan (oversize) leaves an unscanned tail that can
-        // hide anything: keep the guard's "unknown scope" answer.
-        if (guardRes?.degraded && typeof guardRes.processedChars === 'number') degradedCategories = null;
-    }
-
-    // Memoising callers (scanLedger) may only store an answer from an
-    // identified engine. Mixed with Node matchers the identity also has to
-    // cover their specs; a Node-only answer carries none and is never stored.
-    const fp = guardRes && !guardRes.degraded && guardRes.engineFingerprint
-        ? `${guardRes.engineFingerprint}+c${crypto.createHash('sha256').update(`${guardRes.engineFingerprint}|${plan.digest}`).digest('hex').slice(0, 12)}`
-        : null;
-
+    /** @type {ScanResult} */
     const result = {
         hasPii: entities.length > 0,
         entities,
         redactedText: text,
-        degraded,
-        degradedReason,
-        degradedCategories,
-        processedChars: typeof guardRes?.processedChars === 'number' ? guardRes.processedChars : null,
-        totalChars: typeof guardRes?.totalChars === 'number' ? guardRes.totalChars : null,
+        ...degradedSummary(guardRes, ctx),
+        processedChars: numberOrNull(guardRes?.processedChars),
+        totalChars: numberOrNull(guardRes?.totalChars),
         tierMode: guardRes?.tierMode || null,
-        engineFingerprint: fp,
+        engineFingerprint: combinedFingerprint(guardRes, plan.digest),
     };
     if (guardAbsent) result.guardAbsent = true;
     // Ids and counts only, never names or matches.
-    if (customDegraded.size) {
-        log.warn(`[PiiDetection] custom types degraded: ${[...customDegraded].map(([id, why]) => `${id}=${why}`).join(' ')}`);
+    if (ctx.customDegraded.size) {
+        log.warn(`[PiiDetection] custom types degraded: ${[...ctx.customDegraded].map(([id, why]) => `${id}=${why}`).join(' ')}`);
     }
     return result;
 }
@@ -200,7 +264,7 @@ async function _scanOnce(text, plan, threshold, opts) {
  * @param {string} text
  * @param {string[]} enabledCategories
  * @param {number} threshold
- * @param {NonNullable<Awaited<ReturnType<typeof import('./plan').planScan>>>} plan  planScan() result
+ * @param {ScanPlan} plan  planScan() result
  * @param {Parameters<typeof _scanOnce>[3]} [opts]
  */
 async function detectWithCustomTypes(text, enabledCategories, threshold, plan, opts = {}) {

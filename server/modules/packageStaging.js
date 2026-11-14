@@ -1,3 +1,4 @@
+// @typecheck noImplicitAny
 /** @typedef {import('./packageVerify').PackageManifest} PackageManifest */
 /**
  * Package loader: paths, verify-and-stage and the atomic extract.
@@ -53,7 +54,7 @@ function packagePath(id, version) { return path.join(moduleRoot(id), 'pkg', `${_
  * @param {string} reason
  */
 function _incompatible(reason) {
-    const e = new Error(reason);
+    const e = /** @type {Error & { compat?: boolean }} */ (new Error(reason));
     e.compat = true;
     return e;
 }
@@ -161,7 +162,7 @@ function _manifestSummary(m) {
  * @param {string} moduleId
  * @param {string} version
  * @param {{ buffer?: Buffer | null, download?: boolean, expectedSha256?: string | null, redownloadSha?: string | null }} [opts]
- * @returns {Promise<{ manifest, dir, sha256, kid }>}
+ * @returns {Promise<{ manifest: PackageManifest, dir: string, sha256: string | null, kid: string | null, signedPayload: unknown, requiresRestart: boolean }>}
  */
 async function verifyAndStage(moduleId, version, { buffer = null, download = false, expectedSha256 = null, redownloadSha = null } = {}) {
     /** @type {string | null} */

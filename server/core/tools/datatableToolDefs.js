@@ -1,3 +1,4 @@
+// @typecheck
 const log = require('../../telemetry/log');
 
 /** The one tool this module owns. */
@@ -315,6 +316,7 @@ function toolDefinitionFor(tables, { unavailable = 0 } = {}) {
  * Never throws and never rejects: it is called from inside `getIntegrationTools`,
  * where an exception costs the agent its entire toolbelt — a datatable that
  * cannot be resolved must cost it one tool, not all of them.
+ * @param {{ userId?: string, agentConfig?: any, deps?: Record<string, any> }} [opts]
  */
 async function buildDatatableTools({ userId, agentConfig, deps: injected } = {}) {
     try {

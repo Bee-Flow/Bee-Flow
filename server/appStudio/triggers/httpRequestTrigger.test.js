@@ -17,7 +17,7 @@ const { validateAppDefinition } = require('../validate');
 const { emptyDefinition } = require('../componentSpecs');
 const { _withTriggerKinds } = require('./triggerKinds.mts');
 const { runsUnattended } = require('./unattendedPolicy.mts');
-const { publicStepRefusal } = require('../../routes/studioAppPublicStepGate.mts');
+const { publicStepRefusal } = require('../../usecases/studioAppPublicStepGate.mts');
 const schedule = require('./kinds/schedule.mts').default;
 
 const h = triggerHarness({ before, after, beforeEach });

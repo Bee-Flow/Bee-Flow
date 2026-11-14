@@ -1,413 +1,334 @@
+// @typecheck
 /**
- * Unit tests for gmeetImportStore — SQL shape + error handling. A fake `db`
- * module is injected into require.cache so the store's `require('../db')`
- * captures every query's text + params instead of hitting Postgres.
- * No real database needed.
+ * gmeetImportStore — the Google Meet import queue, against a real Postgres
+ * (PGlite behind db.js's pool, recorded by testUtils/routeHarness.js recordDb)
+ * with the store's own schema and NOW() pinned (testUtils/pgliteClock.js): the
+ * seed dedupe on the partial uniques, the leased claim, the failure backoff and
+ * the sibling wake-ups, read back from the table.
  *
  * Run: node --test server/stores/gmeetImportStore.test.js
  */
 
-const { test, beforeEach } = require('node:test');
+'use strict';
+
+const { test, before, beforeEach, after } = require('node:test');
 const assert = require('node:assert');
-const path = require('path');
 
-// ── Fake of server/db.js: captures SQL + params, replays scripted results ──
-const state = {
-    calls: [],           // { fn, sql, params }
-    runResult: { rowCount: 1, rows: [] },
-    runError: null,      // one-shot: thrown by the next run() then cleared
-    allRows: [],
-    claimIds: [],        // ids returned by the claim SELECT
-    claimRows: [],       // rows returned by the claim UPDATE
-    selectError: null,   // one-shot: thrown by the claim SELECT
-    lastClient: null,
-};
+const { newPglite } = require('../testUtils/pgliteTemplate');
+const { pinPgliteNow } = require('../testUtils/pgliteClock');
+const { insertRow } = require('../testUtils/pgliteSeed');
+const { failReads } = require('../testUtils/pgliteFaults');
+const { recordDb } = require('../testUtils/routeHarness');
 
-function resetState() {
-    state.calls = [];
-    state.runResult = { rowCount: 1, rows: [] };
-    state.runError = null;
-    state.allRows = [];
-    state.claimIds = [];
-    state.claimRows = [];
-    state.selectError = null;
-    state.lastClient = null;
-}
-
-function makeClient() {
-    const client = {
-        calls: [],
-        released: false,
-        query: async (sql, params) => {
-            client.calls.push({ sql, params });
-            if (/^(BEGIN|COMMIT|ROLLBACK)/.test(sql)) return { rows: [], rowCount: 0 };
-            if (/SELECT id FROM gmeet_import_jobs/.test(sql)) {
-                if (state.selectError) { const e = state.selectError; state.selectError = null; throw e; }
-                return { rows: state.claimIds.map(id => ({ id })), rowCount: state.claimIds.length };
-            }
-            if (/UPDATE gmeet_import_jobs/.test(sql)) {
-                return { rows: state.claimRows, rowCount: state.claimRows.length };
-            }
-            return { rows: [], rowCount: 0 };
-        },
-        release: () => { client.released = true; },
-    };
-    state.lastClient = client;
-    return client;
-}
-
-const mockDb = {
-    exec: async (sql) => { state.calls.push({ fn: 'exec', sql, params: [] }); },
-    run: async (sql, params = []) => {
-        state.calls.push({ fn: 'run', sql, params });
-        if (state.runError) { const e = state.runError; state.runError = null; throw e; }
-        return state.runResult;
-    },
-    getOne: async (sql, params = []) => {
-        state.calls.push({ fn: 'getOne', sql, params });
-        return state.allRows[0] || null;
-    },
-    getAll: async (sql, params = []) => {
-        state.calls.push({ fn: 'getAll', sql, params });
-        return state.allRows;
-    },
-    getClient: async () => makeClient(),
-    // Same COMMIT/ROLLBACK/release discipline as db.withTransaction.
-    withTransaction: async (fn) => {
-        const client = makeClient();
-        try {
-            await client.query('BEGIN');
-            const result = await fn(client);
-            await client.query('COMMIT');
-            return result;
-        } catch (e) {
-            try { await client.query('ROLLBACK'); } catch (_) { /* connection may be dead */ }
-            throw e;
-        } finally {
-            client.release();
-        }
-    },
-};
-
-const dbResolved = require.resolve(path.join(__dirname, '..', 'db.js'));
-require.cache[dbResolved] = { id: dbResolved, filename: dbResolved, loaded: true, exports: mockDb };
-
+const pg = newPglite();
+const rec = recordDb(undefined, { pg });
 const store = require('./gmeetImportStore');
 
-const norm = (sql) => String(sql).replace(/\s+/g, ' ').trim();
-const lastRun = () => state.calls.filter(c => c.fn === 'run').at(-1);
+const NOW = new Date('2026-07-17T10:00:00.000Z');
+const MIN = 60 * 1000;
+const at = (ms) => new Date(NOW.getTime() + ms);
+const iso = (d) => (d == null ? null : new Date(d).toISOString());
 
-function jobRow(overrides = {}) {
-    return {
-        id: '11111111-1111-1111-1111-111111111111',
-        user_id: 'u1',
-        org_id: 'org1',
-        calendar_event_id: 'ev1',
-        ical_uid: null,
-        meeting_code: 'abc-defg-hij',
-        space_name: null,
-        conference_record: null,
-        title: 'Standup',
-        meeting_start: new Date('2026-07-17T09:00:00Z'),
-        meeting_end: new Date('2026-07-17T09:30:00Z'),
-        preferred: true,
-        status: 'pending',
-        error_code: null,
-        last_error: null,
-        attempts: 0,
-        next_attempt_at: new Date('2026-07-17T09:30:00Z'),
-        transcription_id: null,
-        created_at: new Date('2026-07-17T08:00:00Z'),
-        updated_at: new Date('2026-07-17T08:00:00Z'),
-        ...overrides,
-    };
-}
+/** @type {{ set: (at: Date | string) => Promise<void> }} */
+let clock;
+before(async () => {
+    await store.initDB();
+    clock = await pinPgliteNow(pg, NOW);
+});
+after(() => pg.close());
+beforeEach(async () => {
+    await pg.exec('TRUNCATE gmeet_import_jobs');
+    await clock.set(NOW);
+    rec.reset();
+});
 
-beforeEach(() => resetState());
+const stored = async (id) => (await pg.query('SELECT * FROM gmeet_import_jobs WHERE id = $1', [id])).rows[0];
+/** A job row as another writer left it. */
+const job = (over = {}) => insertRow(pg, 'gmeet_import_jobs', { user_id: 'u1', org_id: 'org1', meeting_code: 'abc-defg-hij', ...over });
 
 // ── seedJob ─────────────────────────────────────────────────────────────
 
-test('seedJob inserts with the (user_id, calendar_event_id) ON CONFLICT clause and returns the mapped row', async () => {
-    state.runResult = { rowCount: 1, rows: [jobRow()] };
+test('seedJob inserts the job and returns the mapped row', async () => {
     const row = await store.seedJob({
         userId: 'u1', orgId: 'org1', calendarEventId: 'ev1', meetingCode: 'abc-defg-hij',
         title: 'Standup', meetingStart: '2026-07-17T09:00:00Z', meetingEnd: '2026-07-17T09:30:00Z', preferred: true,
     });
-    const call = lastRun();
-    const sql = norm(call.sql);
-    assert.match(sql, /INSERT INTO gmeet_import_jobs/);
-    assert.match(sql, /ON CONFLICT \(user_id, calendar_event_id\) WHERE calendar_event_id IS NOT NULL DO NOTHING/);
-    assert.match(sql, /RETURNING \*/);
-    assert.strictEqual(call.params[0], 'u1');
-    assert.strictEqual(call.params[2], 'ev1');
-    assert.strictEqual(call.params[4], 'abc-defg-hij');
-    assert.strictEqual(call.params[10], true, 'preferred flag passed');
     assert.strictEqual(row.userId, 'u1');
+    assert.strictEqual(row.orgId, 'org1');
+    assert.strictEqual(row.calendarEventId, 'ev1');
     assert.strictEqual(row.meetingCode, 'abc-defg-hij');
     assert.strictEqual(row.preferred, true);
     assert.strictEqual(row.status, 'pending');
     assert.strictEqual(row.meetingStart, '2026-07-17T09:00:00.000Z');
+    assert.strictEqual(row.nextAttemptAt, NOW.toISOString(), 'due at once unless told otherwise');
+    const later = await store.seedJob({ userId: 'u1', calendarEventId: 'ev2', meetingCode: 'x', nextAttemptAt: at(5 * MIN).toISOString() });
+    assert.strictEqual(later.nextAttemptAt, at(5 * MIN).toISOString());
 });
 
-test('seedJob returns null when the event was already seeded (conflict → no row)', async () => {
-    state.runResult = { rowCount: 0, rows: [] };
-    const row = await store.seedJob({ userId: 'u1', calendarEventId: 'ev1', meetingCode: 'abc-defg-hij' });
-    assert.strictEqual(row, null);
+test('seedJob returns null when the event was already seeded for that user (conflict → no row)', async () => {
+    const first = await store.seedJob({ userId: 'u1', calendarEventId: 'ev1', meetingCode: 'abc-defg-hij', title: 'first' });
+    assert.strictEqual(await store.seedJob({ userId: 'u1', calendarEventId: 'ev1', meetingCode: 'abc-defg-hij', title: 'again' }), null);
+    assert.strictEqual((await stored(first.id)).title, 'first', 'the first seed stands');
+    assert.ok(await store.seedJob({ userId: 'u2', calendarEventId: 'ev1', meetingCode: 'abc-defg-hij' }), 'another attendee seeds their own');
+    assert.ok(await store.seedJob({ userId: 'u1', meetingCode: 'abc-defg-hij' }), 'no calendar event: the unique does not apply');
+    assert.ok(await store.seedJob({ userId: 'u1', meetingCode: 'abc-defg-hij' }));
 });
 
-test('seedJob swallows a 23505 from the conference-record uniques as null', async () => {
-    state.runError = Object.assign(new Error('duplicate key value violates unique constraint'), { code: '23505' });
-    const row = await store.seedJob({ userId: 'u1', meetingCode: 'abc-defg-hij', conferenceRecord: 'conferenceRecords/x' });
-    assert.strictEqual(row, null);
+test('seedJob answers a clash on the conference-record uniques with null', async () => {
+    assert.ok(await store.seedJob({ userId: 'u1', orgId: 'org1', meetingCode: 'm', conferenceRecord: 'conferenceRecords/x' }));
+    assert.strictEqual(await store.seedJob({ userId: 'u1', meetingCode: 'm', conferenceRecord: 'conferenceRecords/x' }), null, 'same user');
+    assert.strictEqual(await store.seedJob({ userId: 'u2', orgId: 'org1', meetingCode: 'm', conferenceRecord: 'conferenceRecords/x' }), null, 'same organisation');
+    assert.ok(await store.seedJob({ userId: 'u2', orgId: 'org2', meetingCode: 'm', conferenceRecord: 'conferenceRecords/x' }), 'another organisation has its own claim');
 });
 
 // ── claimDueJobs ────────────────────────────────────────────────────────
 
-test('claimDueJobs selects due rows with FOR UPDATE SKIP LOCKED, preferred-first ordering, and bumps the lease', async () => {
-    state.claimIds = ['id-a', 'id-b'];
-    state.claimRows = [jobRow({ id: 'id-a' }), jobRow({ id: 'id-b', preferred: false, status: 'awaiting_artifacts' })];
+test('claimDueJobs takes the due rows preferred-first, under a lock, and bumps their lease', async () => {
+    const a = await job({ preferred: false, next_attempt_at: at(-30 * MIN) });
+    const b = await job({ preferred: true, next_attempt_at: at(-5 * MIN), status: 'awaiting_artifacts' });
+    const c = await job({ preferred: false, next_attempt_at: at(-10 * MIN) });
+    await job({ next_attempt_at: at(MIN) });                         // not yet due
+    await job({ next_attempt_at: at(-60 * MIN), status: 'ingested' }); // done
+    await job({ next_attempt_at: at(-60 * MIN), status: 'duplicate' }); // parked
 
     const jobs = await store.claimDueJobs(2);
-    const client = state.lastClient;
-    const seq = client.calls.map(c => norm(c.sql));
+    // Which rows the limit admits is the order's job: the preferred one, then
+    // the longest-waiting. (The batch itself comes back in RETURNING order; the
+    // worker claims one job at a time.)
+    assert.deepStrictEqual(jobs.map((j) => j.id).sort(), [a.id, b.id].sort(), 'preferred first, then the longest-waiting');
+    assert.strictEqual(jobs.find((j) => j.id === b.id).status, 'awaiting_artifacts');
+    for (const j of jobs) assert.strictEqual(iso((await stored(j.id)).next_attempt_at), at(10 * MIN).toISOString(), 'leased for ten minutes');
+    assert.strictEqual(iso((await stored(c.id)).next_attempt_at), at(-10 * MIN).toISOString(), 'beyond the limit: untouched');
 
-    assert.strictEqual(seq[0], 'BEGIN');
-    assert.strictEqual(seq.at(-1), 'COMMIT');
-    assert.strictEqual(client.released, true, 'client released');
+    const verbs = rec.all.map((s) => s.trim().split(/\s+/)[0]);
+    assert.deepStrictEqual(verbs, ['BEGIN', 'SELECT', 'UPDATE', 'COMMIT']);
+    assert.match(rec.all[1], /FOR UPDATE SKIP LOCKED/, 'concurrent workers skip each other\'s rows');
 
-    const sel = client.calls.find(c => /SELECT id FROM gmeet_import_jobs/.test(c.sql));
-    const selSql = norm(sel.sql);
-    assert.match(selSql, /FOR UPDATE SKIP LOCKED/);
-    assert.match(selSql, /ORDER BY preferred DESC, next_attempt_at ASC/);
-    assert.match(selSql, /status IN \('pending', 'awaiting_artifacts'\)/);
-    assert.match(selSql, /next_attempt_at <= NOW\(\)/);
-    assert.deepStrictEqual(sel.params, [2]);
-
-    const upd = client.calls.find(c => /UPDATE gmeet_import_jobs/.test(c.sql));
-    const updSql = norm(upd.sql);
-    assert.match(updSql, /next_attempt_at = NOW\(\) \+ INTERVAL '10 minutes'/, 'lease bump');
-    assert.deepStrictEqual(upd.params, [['id-a', 'id-b']]);
-
-    assert.strictEqual(jobs.length, 2);
-    assert.strictEqual(jobs[0].id, 'id-a');
-    assert.strictEqual(jobs[1].status, 'awaiting_artifacts');
+    // A second worker right after finds only the third due row.
+    assert.deepStrictEqual((await store.claimDueJobs(5)).map((j) => j.id), [c.id]);
+    assert.deepStrictEqual(await store.claimDueJobs(5), [], 'everything is leased now');
 });
 
 test('claimDueJobs commits and returns [] when nothing is due (no lease UPDATE)', async () => {
-    state.claimIds = [];
-    const jobs = await store.claimDueJobs(5);
-    const client = state.lastClient;
-    assert.deepStrictEqual(jobs, []);
-    assert.ok(!client.calls.some(c => /UPDATE gmeet_import_jobs/.test(c.sql)), 'no update issued');
-    assert.strictEqual(norm(client.calls.at(-1).sql), 'COMMIT');
-    assert.strictEqual(client.released, true);
+    await job({ next_attempt_at: at(MIN) });
+    assert.deepStrictEqual(await store.claimDueJobs(5), []);
+    assert.deepStrictEqual(rec.all.map((s) => s.trim().split(/\s+/)[0]), ['BEGIN', 'SELECT', 'COMMIT']);
 });
 
-test('claimDueJobs rolls back, releases, and rethrows on query failure', async () => {
-    state.selectError = new Error('boom');
-    await assert.rejects(() => store.claimDueJobs(2), /boom/);
-    const client = state.lastClient;
-    assert.ok(client.calls.some(c => /^ROLLBACK/.test(c.sql)), 'rollback issued');
-    assert.strictEqual(client.released, true);
+test('claimDueJobs rolls back and rethrows when the read fails', async () => {
+    await job({ next_attempt_at: at(-MIN) });
+    const restore = await failReads(pg, 'gmeet_import_jobs', '57014', 'canceling statement due to statement timeout');
+    try {
+        await assert.rejects(() => store.claimDueJobs(2), { code: '57014' });
+    } finally {
+        await restore();
+    }
+    assert.strictEqual(rec.all.at(-1).trim(), 'ROLLBACK');
+    assert.strictEqual((await store.claimDueJobs(2)).length, 1, 'the session is usable again and the row still due');
 });
 
 // ── failJob ─────────────────────────────────────────────────────────────
 
-test('failJob terminal bumps attempts and freezes status on the error code', async () => {
-    await store.failJob('id-a', { errorCode: 'no_drive_access', lastError: '403 from Drive', terminal: true });
-    const call = lastRun();
-    const sql = norm(call.sql);
-    assert.match(sql, /attempts = attempts \+ 1/);
-    assert.ok(!/next_attempt_at/.test(sql), 'terminal failure does not reschedule');
-    assert.deepStrictEqual(call.params, ['id-a', 'no_drive_access', 'no_drive_access', '403 from Drive']);
+test('failJob terminal bumps attempts and freezes status on the error code, without rescheduling', async () => {
+    const j = await job({ attempts: 2, next_attempt_at: at(-MIN) });
+    await store.failJob(j.id, { errorCode: 'no_drive_access', lastError: '403 from Drive', terminal: true });
+    const row = await stored(j.id);
+    assert.strictEqual(row.attempts, 3);
+    assert.strictEqual(row.status, 'no_drive_access');
+    assert.strictEqual(row.error_code, 'no_drive_access');
+    assert.strictEqual(row.last_error, '403 from Drive');
+    assert.strictEqual(iso(row.next_attempt_at), at(-MIN).toISOString(), 'a terminal failure does not reschedule');
 });
 
 test('failJob terminal without errorCode falls back to status failed', async () => {
-    await store.failJob('id-a', { lastError: 'whisperx exploded', terminal: true });
-    assert.deepStrictEqual(lastRun().params, ['id-a', 'failed', null, 'whisperx exploded']);
+    const j = await job();
+    await store.failJob(j.id, { lastError: 'whisperx exploded', terminal: true });
+    const row = await stored(j.id);
+    assert.strictEqual(row.status, 'failed');
+    assert.strictEqual(row.error_code, null);
+    assert.strictEqual(row.last_error, 'whisperx exploded');
 });
 
-test('failJob non-terminal reschedules via backoffMs and restores the passed status', async () => {
-    await store.failJob('id-a', { errorCode: 'artifacts_pending', lastError: 'not ready', backoffMs: 300000, status: 'awaiting_artifacts' });
-    const call = lastRun();
-    const sql = norm(call.sql);
-    assert.match(sql, /attempts = attempts \+ 1/);
-    assert.match(sql, /status = COALESCE\(\$2, status\)/);
-    assert.match(sql, /next_attempt_at = NOW\(\) \+ \(\$5 \* INTERVAL '1 millisecond'\)/);
-    assert.deepStrictEqual(call.params, ['id-a', 'awaiting_artifacts', 'artifacts_pending', 'not ready', 300000]);
+test('failJob non-terminal reschedules by backoffMs and restores the passed status', async () => {
+    const j = await job({ status: 'pending' });
+    await store.failJob(j.id, { errorCode: 'artifacts_pending', lastError: 'not ready', backoffMs: 300000, status: 'awaiting_artifacts' });
+    const row = await stored(j.id);
+    assert.strictEqual(row.attempts, 1);
+    assert.strictEqual(row.status, 'awaiting_artifacts');
+    assert.strictEqual(row.error_code, 'artifacts_pending');
+    assert.strictEqual(iso(row.next_attempt_at), at(5 * MIN).toISOString());
 });
 
-test('failJob non-terminal without status keeps the current status (COALESCE with null)', async () => {
-    await store.failJob('id-a', { errorCode: 'transient', backoffMs: 120000 });
-    assert.deepStrictEqual(lastRun().params, ['id-a', null, 'transient', null, 120000]);
+test('failJob non-terminal without status keeps the current status', async () => {
+    const j = await job({ status: 'awaiting_artifacts' });
+    await store.failJob(j.id, { errorCode: 'transient', backoffMs: 120000 });
+    const row = await stored(j.id);
+    assert.strictEqual(row.status, 'awaiting_artifacts');
+    assert.strictEqual(iso(row.next_attempt_at), at(2 * MIN).toISOString());
 });
 
 // ── attachConferenceRecord ──────────────────────────────────────────────
 
 test('attachConferenceRecord updates space + record and returns the mapped row', async () => {
-    state.runResult = { rowCount: 1, rows: [jobRow({ space_name: 'spaces/x', conference_record: 'conferenceRecords/y' })] };
-    const row = await store.attachConferenceRecord('id-a', { spaceName: 'spaces/x', conferenceRecord: 'conferenceRecords/y' });
-    const call = lastRun();
-    const sql = norm(call.sql);
-    assert.match(sql, /conference_record = \$3/);
-    assert.deepStrictEqual(call.params, ['id-a', 'spaces/x', 'conferenceRecords/y']);
-    assert.strictEqual(row.spaceName, 'spaces/x');
+    const j = await job({ space_name: 'spaces/old' });
+    const row = /** @type {any} */ (await store.attachConferenceRecord(j.id, { conferenceRecord: 'conferenceRecords/y' }));
+    assert.strictEqual(row.spaceName, 'spaces/old', 'no space given keeps the stored one');
     assert.strictEqual(row.conferenceRecord, 'conferenceRecords/y');
+    const again = /** @type {any} */ (await store.attachConferenceRecord(j.id, { spaceName: 'spaces/x', conferenceRecord: 'conferenceRecords/y' }));
+    assert.strictEqual(again.spaceName, 'spaces/x');
+    assert.strictEqual((await stored(j.id)).space_name, 'spaces/x');
 });
 
-test('attachConferenceRecord returns { duplicate: true } on the org-claim unique violation', async () => {
-    state.runError = Object.assign(new Error('duplicate key value violates unique constraint "uq_gmeet_jobs_org_conference"'), { code: '23505' });
-    const res = await store.attachConferenceRecord('id-a', { conferenceRecord: 'conferenceRecords/y' });
-    assert.deepStrictEqual(res, { duplicate: true });
+test('attachConferenceRecord returns { duplicate: true } when the organisation already claimed the record', async () => {
+    await job({ user_id: 'u2', conference_record: 'conferenceRecords/y' });
+    const mine = await job();
+    assert.deepStrictEqual(await store.attachConferenceRecord(mine.id, { conferenceRecord: 'conferenceRecords/y' }), { duplicate: true });
+    assert.strictEqual((await stored(mine.id)).conference_record, null);
 });
 
-test('attachConferenceRecord rethrows non-unique-violation errors', async () => {
-    state.runError = Object.assign(new Error('connection refused'), { code: 'ECONNREFUSED' });
-    await assert.rejects(
-        () => store.attachConferenceRecord('id-a', { conferenceRecord: 'conferenceRecords/y' }),
-        /connection refused/,
-    );
+test('attachConferenceRecord rethrows anything that is not a unique violation', async () => {
+    const restore = await failReads(pg, 'gmeet_import_jobs', '08006', 'connection failure');
+    try {
+        await assert.rejects(
+            () => store.attachConferenceRecord('11111111-1111-1111-1111-111111111111', { conferenceRecord: 'conferenceRecords/y' }),
+            (e) => /** @type {any} */ (e).code !== '23505',
+        );
+    } finally {
+        await restore();
+    }
 });
 
 // ── completeJob / parkNeedsReauth / updateJob / listRecentJobsForUser ───
 
-test('completeJob marks ingested, links the transcription, and clears error fields', async () => {
-    resetState();
-    assert.strictEqual(await store.completeJob('id-a', 't-123'), true);
-    const runs = state.calls.filter(c => c.fn === 'run');
-    const call = runs[0];
-    const sql = norm(call.sql);
-    assert.match(sql, /status = 'ingested'/);
-    assert.match(sql, /transcription_id = \$2/);
-    assert.match(sql, /error_code = NULL/);
-    assert.match(sql, /last_error = NULL/);
-    assert.deepStrictEqual(call.params, ['id-a', 't-123']);
+test('completeJob marks ingested, links the transcription, clears the error, and wakes the parked org siblings', async () => {
+    const mine = await job({ error_code: 'artifacts_pending', last_error: 'x', conference_record: 'conferenceRecords/c', space_name: 'spaces/s' });
+    const sibling = await job({ user_id: 'u2', status: 'duplicate', next_attempt_at: at(60 * MIN) });
+    const sameSpace = await job({ user_id: 'u3', status: 'duplicate', meeting_code: 'other', space_name: 'spaces/s' });
+    const otherOrg = await job({ user_id: 'u4', org_id: 'org2', status: 'duplicate' });
+    const otherMeeting = await job({ user_id: 'u5', status: 'duplicate', meeting_code: 'zzz' });
+    const hasNote = await job({ user_id: 'u6', status: 'duplicate', transcription_id: 't-old' });
 
-    // The org siblings parked behind this job go back to the queue, so
-    // resolveDuplicate decides per sibling whether it may read the note.
-    const wake = norm(runs[1].sql);
-    assert.match(wake, /SET status = 'pending'/);
-    assert.match(wake, /next_attempt_at = NOW\(\)/);
-    assert.match(wake, /status = 'duplicate'/, 'only parked siblings');
-    assert.match(wake, /transcription_id IS NULL/);
-    assert.match(wake, /id <> \$1/, 'never wakes itself');
-    assert.match(wake, /org_id = \(SELECT org_id FROM gmeet_import_jobs WHERE id = \$1\)/, 'same organisation only');
-    assert.ok(!/transcription_id = /.test(wake), 'the note id is never copied onto a sibling');
-    assert.deepStrictEqual(runs[1].params, ['id-a']);
+    assert.strictEqual(await store.completeJob(mine.id, 't-123'), true);
+    const row = await stored(mine.id);
+    assert.strictEqual(row.status, 'ingested');
+    assert.strictEqual(row.transcription_id, 't-123');
+    assert.strictEqual(row.error_code, null);
+    assert.strictEqual(row.last_error, null);
+
+    // The siblings go back to the queue, so resolveDuplicate decides per
+    // sibling whether it may read the note; the note id is never copied.
+    const s = await stored(sibling.id);
+    assert.strictEqual(s.status, 'pending');
+    assert.strictEqual(iso(s.next_attempt_at), NOW.toISOString(), 'claimable immediately');
+    assert.strictEqual(s.transcription_id, null);
+    assert.strictEqual((await stored(sameSpace.id)).status, 'pending', 'the same meeting by its space');
+    for (const other of [otherOrg, otherMeeting, hasNote]) assert.strictEqual((await stored(other.id)).status, 'duplicate');
 });
 
 test('completeJob on a job that is gone wakes nobody', async () => {
-    resetState();
-    state.runResult = { rowCount: 0, rows: [] };
-    assert.strictEqual(await store.completeJob('id-gone', 't-1'), false);
-    assert.strictEqual(state.calls.filter(c => c.fn === 'run').length, 1);
+    const parked = await job({ status: 'duplicate' });
+    assert.strictEqual(await store.completeJob('11111111-1111-1111-1111-111111111111', 't-1'), false);
+    assert.strictEqual((await stored(parked.id)).status, 'duplicate');
 });
 
 test('a manual request is kept on the job: requested_by_user, language, context terms', async () => {
-    resetState();
-    await store.updateJob('id-a', { requestedByUser: true, requestedLanguage: 'en', contextTerms: 'Foo' });
-    const call = lastRun();
-    const sql = norm(call.sql);
-    assert.match(sql, /requested_by_user = \$1/);
-    assert.match(sql, /requested_language = \$2/);
-    assert.match(sql, /context_terms = \$3/);
-    assert.deepStrictEqual(call.params, [true, 'en', 'Foo', 'id-a']);
-
-    state.allRows = [jobRow({ requested_by_user: true, requested_language: 'en', context_terms: 'Foo' })];
-    const [job] = await store.listRecentJobsForUser('u1', 3);
-    assert.strictEqual(job.requestedByUser, true);
-    assert.strictEqual(job.requestedLanguage, 'en');
-    assert.strictEqual(job.contextTerms, 'Foo');
-    state.allRows = [jobRow()];
-    const [plain] = await store.listRecentJobsForUser('u1', 3);
-    assert.strictEqual(plain.requestedByUser, false);
-    assert.strictEqual(plain.requestedLanguage, null);
-    assert.strictEqual(plain.contextTerms, null);
+    const j = await job();
+    assert.strictEqual(await store.updateJob(j.id, { requestedByUser: true, requestedLanguage: 'en', contextTerms: 'Foo' }), true);
+    const plain = await job({ user_id: 'u1', meeting_code: 'other' });
+    await pg.query('UPDATE gmeet_import_jobs SET created_at = $2 WHERE id = $1', [plain.id, at(-MIN)]);
+    const [manual, auto] = await store.listRecentJobsForUser('u1', 3);
+    assert.strictEqual(manual.requestedByUser, true);
+    assert.strictEqual(manual.requestedLanguage, 'en');
+    assert.strictEqual(manual.contextTerms, 'Foo');
+    assert.strictEqual(auto.requestedByUser, false);
+    assert.strictEqual(auto.requestedLanguage, null);
+    assert.strictEqual(auto.contextTerms, null);
 });
 
 test('parkNeedsReauth parks the job with the given resume time', async () => {
-    await store.parkNeedsReauth('id-a', '2026-07-18T00:00:00Z');
-    const call = lastRun();
-    const sql = norm(call.sql);
-    assert.match(sql, /status = 'needs_reauth'/);
-    assert.match(sql, /next_attempt_at = \$2/);
-    assert.deepStrictEqual(call.params, ['id-a', '2026-07-18T00:00:00Z']);
+    const j = await job();
+    assert.strictEqual(await store.parkNeedsReauth(j.id, '2026-07-18T00:00:00Z'), true);
+    const row = await stored(j.id);
+    assert.strictEqual(row.status, 'needs_reauth');
+    assert.strictEqual(row.error_code, 'needs_reauth');
+    assert.strictEqual(iso(row.next_attempt_at), '2026-07-18T00:00:00.000Z');
 });
 
-test('updateJob builds a SET clause from only the passed fields', async () => {
-    await store.updateJob('id-a', { status: 'awaiting_artifacts', attempts: 3, transcriptionId: 't-1' });
-    const call = lastRun();
-    const sql = norm(call.sql);
-    assert.match(sql, /status = \$1/);
-    assert.match(sql, /attempts = \$2/);
-    assert.match(sql, /transcription_id = \$3/);
-    assert.match(sql, /updated_at = NOW\(\)/);
-    assert.ok(!/error_code/.test(sql), 'untouched columns stay out of the SET clause');
-    assert.deepStrictEqual(call.params, ['awaiting_artifacts', 3, 't-1', 'id-a']);
+test('updateJob writes only the passed fields', async () => {
+    const j = await job({ error_code: 'keep-me', title: 'keep' });
+    await clock.set(at(MIN));
+    assert.strictEqual(await store.updateJob(j.id, { status: 'awaiting_artifacts', attempts: 3, transcriptionId: 't-1' }), true);
+    const row = await stored(j.id);
+    assert.strictEqual(row.status, 'awaiting_artifacts');
+    assert.strictEqual(row.attempts, 3);
+    assert.strictEqual(row.transcription_id, 't-1');
+    assert.strictEqual(row.error_code, 'keep-me', 'untouched columns keep their value');
+    assert.strictEqual(row.title, 'keep');
+    assert.strictEqual(iso(row.updated_at), at(MIN).toISOString());
+    assert.strictEqual(await store.updateJob('11111111-1111-1111-1111-111111111111', { status: 'x' }), false, 'no such job');
 });
 
 test('updateJob with no known fields is a no-op returning false', async () => {
-    const before = state.calls.filter(c => c.fn === 'run').length;
-    const res = await store.updateJob('id-a', { bogus: 1 });
-    assert.strictEqual(res, false);
-    assert.strictEqual(state.calls.filter(c => c.fn === 'run').length, before, 'no query issued');
+    const j = await job();
+    rec.reset();
+    assert.strictEqual(await store.updateJob(j.id, { bogus: 1 }), false);
+    assert.deepStrictEqual(rec.queries, [], 'no query issued');
 });
 
-test('listRecentJobsForUser filters by user + window and maps rows', async () => {
-    state.allRows = [jobRow({ status: 'ingested', transcription_id: 't-9' })];
+test('listRecentJobsForUser returns the user\'s jobs inside the window, newest first', async () => {
+    const recent = await job({ status: 'ingested', transcription_id: 't-9' });
+    const older = await job({ meeting_code: 'b' });
+    const old = await job({ meeting_code: 'c' });
+    await job({ user_id: 'u2', meeting_code: 'd' });
+    await pg.query('UPDATE gmeet_import_jobs SET created_at = $2 WHERE id = $1', [older.id, at(-2 * 24 * 60 * MIN)]);
+    await pg.query('UPDATE gmeet_import_jobs SET created_at = $2 WHERE id = $1', [old.id, at(-4 * 24 * 60 * MIN)]);
     const jobs = await store.listRecentJobsForUser('u1', 3);
-    const call = state.calls.filter(c => c.fn === 'getAll').at(-1);
-    const sql = norm(call.sql);
-    assert.match(sql, /WHERE user_id = \$1 AND created_at >= NOW\(\) - \(\$2 \* INTERVAL '1 day'\)/);
-    assert.match(sql, /ORDER BY created_at DESC/);
-    assert.deepStrictEqual(call.params, ['u1', 3]);
+    assert.deepStrictEqual(jobs.map((j) => j.id), [recent.id, older.id]);
     assert.strictEqual(jobs[0].transcriptionId, 't-9');
     assert.strictEqual(jobs[0].status, 'ingested');
 });
 
 // ── releaseConferenceClaim ───────────────────────────────────────────
 //
-// A terminally-failed claim owner used to hold the (org_id, conference_record)
-// slot forever, leaving every other attendee's job parked at `duplicate` with
-// no note and no error — the meeting silently produced nothing for anyone.
+// A terminally-failed claim owner must not hold the (org_id, conference_record)
+// slot forever, or every other attendee's job stays parked at `duplicate` with
+// no note and no error.
 
-test('releaseConferenceClaim frees the slot and returns the org siblings to pending', async () => {
-    resetState();
-    state.allRows = [{ org_id: 'org1', conference_record: 'conferenceRecords/cr1' }];
-    state.runResult = { rowCount: 2, rows: [] };
+test('releaseConferenceClaim frees the slot and returns the parked siblings of the same meeting to pending', async () => {
+    const owner = await job({ conference_record: 'conferenceRecords/cr1', status: 'failed' });
+    const s1 = await job({ user_id: 'u2', status: 'duplicate', error_code: 'duplicate', next_attempt_at: at(60 * MIN) });
+    const s2 = await job({ user_id: 'u3', status: 'duplicate' });
+    const otherOrg = await job({ user_id: 'u4', org_id: 'org2', status: 'duplicate' });
+    const madeNote = await job({ user_id: 'u5', status: 'duplicate', transcription_id: 't-1' });
 
-    const woken = await store.releaseConferenceClaim('id-a');
-    assert.strictEqual(woken, 2);
-
-    const runs = state.calls.filter(c => c.fn === 'run');
-    const clear = norm(runs[0].sql);
-    assert.match(clear, /SET conference_record = NULL/, 'the index slot is freed');
-    assert.deepStrictEqual(runs[0].params, ['id-a']);
-
-    const wake = norm(runs[1].sql);
-    assert.match(wake, /SET status = 'pending'/);
-    assert.match(wake, /error_code = NULL/);
-    assert.match(wake, /next_attempt_at = NOW\(\)/, 'woken siblings are claimable immediately');
-    assert.match(wake, /status = 'duplicate'/, 'only parked siblings');
-    assert.match(wake, /transcription_id IS NULL/, 'never re-run a job that already made a note');
-    assert.match(wake, /id <> \$2/, 'never wakes itself');
-    assert.deepStrictEqual(runs[1].params, ['org1', 'id-a']);
+    assert.strictEqual(await store.releaseConferenceClaim(owner.id), 2);
+    assert.strictEqual((await stored(owner.id)).conference_record, null, 'the index slot is freed');
+    assert.strictEqual((await stored(owner.id)).status, 'failed', 'the owner itself is not woken');
+    for (const s of [s1, s2]) {
+        const row = await stored(s.id);
+        assert.strictEqual(row.status, 'pending');
+        assert.strictEqual(row.error_code, null);
+        assert.strictEqual(iso(row.next_attempt_at), NOW.toISOString(), 'woken siblings are claimable immediately');
+    }
+    assert.strictEqual((await stored(otherOrg.id)).status, 'duplicate');
+    assert.strictEqual((await stored(madeNote.id)).status, 'duplicate', 'never re-run a job that already made a note');
+    // The freed slot can be claimed by a sibling now.
+    assert.ok(!('duplicate' in (await store.attachConferenceRecord(s1.id, { conferenceRecord: 'conferenceRecords/cr1' }))));
 });
 
 test('releaseConferenceClaim is a no-op when the job holds no claim', async () => {
-    resetState();
-    state.allRows = [{ org_id: 'org1', conference_record: null }];
-    const woken = await store.releaseConferenceClaim('id-a');
-    assert.strictEqual(woken, 0);
-    assert.strictEqual(state.calls.filter(c => c.fn === 'run').length, 0, 'no query issued');
+    const owner = await job();
+    const parked = await job({ user_id: 'u2', status: 'duplicate' });
+    rec.reset();
+    assert.strictEqual(await store.releaseConferenceClaim(owner.id), 0);
+    assert.strictEqual(rec.queries.filter((q) => /^\s*UPDATE/i.test(q)).length, 0, 'nothing is written');
+    assert.strictEqual((await stored(parked.id)).status, 'duplicate');
 });
 
 test('releaseConferenceClaim on a personal job frees the slot but wakes nobody', async () => {
-    resetState();
-    state.allRows = [{ org_id: null, conference_record: 'conferenceRecords/cr1' }];
-    const woken = await store.releaseConferenceClaim('id-a');
-    assert.strictEqual(woken, 0);
-    const runs = state.calls.filter(c => c.fn === 'run');
-    assert.strictEqual(runs.length, 1, 'only the claim-clearing update');
-    assert.match(norm(runs[0].sql), /SET conference_record = NULL/);
+    const owner = await job({ org_id: null, conference_record: 'conferenceRecords/cr1' });
+    const parked = await job({ org_id: null, user_id: 'u2', status: 'duplicate' });
+    assert.strictEqual(await store.releaseConferenceClaim(owner.id), 0);
+    assert.strictEqual((await stored(owner.id)).conference_record, null);
+    assert.strictEqual((await stored(parked.id)).status, 'duplicate');
 });

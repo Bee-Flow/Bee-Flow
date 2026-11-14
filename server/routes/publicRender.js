@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Server-rendered marketing pages.
  *
@@ -59,7 +59,7 @@ const { synthesizeLegacyContent } = require('../core/cms/legacyContent');
 const { buildBlogHead, renderBlogBody, buildFeed } = require('../core/seo/blog');
 const { buildAtomFeed } = require('../core/seo/blogAtom');
 const { listGalleryItems, integrationSitemapEntries } = require('../core/seo/integrationsDirectory');
-const { blogSitemap } = require('./publicRenderBlogSitemap');
+const { blogSitemap } = require('../usecases/publicRenderBlogSitemap');
 const log = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
 
@@ -261,21 +261,21 @@ router.get(/^\/(?:([a-z]{2,3})\/)?blog\/(feed|atom)\.xml$/, async (/** @type {im
  * @returns {Promise<boolean>}
  */
 async function renderBlog(req, res, { origin, siteId, parsed, defaultLocale, locales }) {
+    const blog = /** @type {NonNullable<typeof parsed.blog>} */ (parsed.blog); // called for a blog path only
     const locale = parsed.locale || defaultLocale;
     const q = rawQuery(req);
     const eff = await cmsStore.getEffectiveBlog(siteId, {
         state: 'published',
-        view: parsed.blog.view,
-        postSlug: parsed.blog.postSlug,
+        view: blog.view,
+        postSlug: blog.postSlug,
         tag: q.get('tag') || '',
         page: Number.parseInt(q.get('page') || '1', 10) || 1,
         locale,
         siteLocales: locales,
     });
     if (!eff) return false;
-    if (parsed.blog.view === 'index' && (eff.pages || []).some(/** @param {import('../stores/cms/shared').PageIndexEntry} p */ p => p.slug === 'blog')) return false;
-
-    if (!eff.found || (!eff.blog?.post && parsed.blog.view === 'post')) {
+    if (blog.view === 'index' && (eff.pages || []).some(/** @param {import('../stores/cms/shared').PageIndexEntry} p */ p => p.slug === 'blog')) return false;
+    if (!eff.found || (!eff.blog?.post && blog.view === 'post')) {
         const notFoundShell = await getShell();
         if (!notFoundShell) return false;
         sendNotFound(res, notFoundShell, locale, false);

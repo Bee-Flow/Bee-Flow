@@ -1,16 +1,16 @@
 /**
  * Route tests for GET /api/studio/counts (routes/studio/counts.js).
  *
- * Every dependency is injected through createCountsRouter(deps), so no DB or
- * pool is opened; requests go over real HTTP against express app.listen(0).
- * What is pinned is the CONTRACT, not the SQL: a gated key is omitted rather
+ * Every dependency is injected through createCountsRouter(deps); requests go
+ * over real HTTP against express app.listen(0).
+ * The two SQL COUNTs run on PGlite (see below). What is pinned is the CONTRACT: a gated key is omitted rather
  * than 403'd, a failing store drops one number rather than the response (and
  * that partial body is not cached), scoping arguments reach the stores the
  * way the list routes pass them — the org filter of the agents COUNT and its
  * super-admin no-filter path included — makers is the distinct-owner count
  * across kinds, the 60s cache, and the no-store response header.
  *
- * Run: node --test --test-force-exit routes/studio/counts.test.js
+ * Run: node --test routes/studio/counts.test.js
  */
 
 const test = require('node:test');
@@ -18,6 +18,8 @@ const assert = require('node:assert');
 
 const { createCountsRouter, KIND_KEYS, CACHE_TTL_MS, ownerOf } = require('./counts');
 const { studioApp, studioServer } = require('./studioServer.testkit');
+const { ladderPglite } = require('../../testUtils/pgliteTemplate');
+const { insertRow } = require('../../testUtils/pgliteSeed');
 
 // ── A fully-open, fully-populated fake dependency set ───────────────────────
 function makeDeps(overrides = {}) {
@@ -155,86 +157,100 @@ test('a runs count that cannot be read drops that ONE number, not the response',
     assert.strictEqual(body.counts.automations, 9, 'the other numbers survive');
 });
 
+// ── The two COUNTs that run SQL, on a real Postgres ─────────────────────────
+// The boot ladder's schema on PGlite (testUtils/pgliteTemplate.js), handed in
+// through the `db` dependency; the statements are recorded so "no query" is a fact.
+
+const pg = ladderPglite();
+test.after(() => pg.close());
+const sqlSeen = [];
+const realDb = { getOne: async (sql, params) => { sqlSeen.push(sql); return (await pg.query(sql, params)).rows[0] || null; } };
+async function resetCountTables() {
+    await pg.exec('TRUNCATE agents, transcriptions CASCADE');
+    sqlSeen.length = 0;
+}
+const transcription = (over) => insertRow(pg, 'transcriptions', { id: `t-${Math.random().toString(36).slice(2)}`, user_id: 'u9', shared_with: [], is_published: false, shared_groups: [], ...over });
+const agentRow = (id, over) => insertRow(pg, 'agents', { id, name: id, owner_id: 'u1', ...over });
+
 test('the transcriptions COUNT uses the store\'s predicate and the KB count the route\'s default filter', async () => {
-    let seen = null;
+    await resetCountTables();
+    await transcription({ user_id: 'u1' });                                                     // own
+    await transcription({ shared_with: ['u1'] });                                               // shared with me
+    await transcription({ is_published: true, organization_id: 'orgA' });                     // published to my org, no groups
+    await transcription({ is_published: true, organization_id: 'orgA', shared_groups: ['g1'] }); // my group
+    await transcription({ is_published: true, organization_id: 'orgA', shared_groups: ['g2'] }); // another group
+    await transcription({ is_published: false, organization_id: 'orgA' });                    // not published
+    await transcription({ is_published: true, organization_id: 'orgB' });                     // another org
+    await transcription({ shared_with: ['u2'] });                                               // shared with someone else
     let kbArgs = null;
-    const d = makeDeps({
-        db: { getOne: async (sql, params) => { if (/FROM transcriptions/.test(sql)) seen = { sql, params }; return { n: 1, owners: ['u1'] }; } },
-    });
+    const d = makeDeps({ db: realDb });
     d.kbStore.listKBs = async (userId, orgIds, opts) => { kbArgs = { userId, orgIds, opts }; return []; };
     await listen(mount(d));
-    await get();
-    assert.match(seen.sql, /COUNT\(\*\)/);
-    assert.match(seen.sql, /user_id = \$1 OR shared_with @> \$2::jsonb OR \(is_published = true AND organization_id = ANY\(\$3::text\[\]\) AND \(shared_groups = '\[\]'::jsonb OR shared_groups \?\| \$4::text\[\]\)\)/);
-    assert.deepStrictEqual(seen.params, ['u1', JSON.stringify(['u1']), ['orgA'], ['g1']]);
+    const body = await (await get()).json();
+    assert.strictEqual(body.counts.meetingNotes, 4);
     assert.strictEqual(kbArgs.userId, 'u1');
     assert.deepStrictEqual(kbArgs.opts, { sourceKind: 'manual', usageContext: null, excludeContext: null, systemSlugs: [], adminOrgIds: new Set() });
 });
 
 test('a super admin counts every transcription', async () => {
-    let seen = null;
+    await resetCountTables();
+    for (const org of ['orgA', 'orgB', null]) await transcription({ organization_id: org });
     const d = makeDeps({
         transcriptionsShared: { resolveAccessContext: async () => ({ orgIds: [], userGroupIds: [], isSuperAdmin: true }) },
-        db: { getOne: async (sql, params) => { if (/FROM transcriptions/.test(sql)) seen = { sql, params }; return { n: 400, owners: [] }; } },
+        db: realDb,
     });
     await listen(mount(d));
     const body = await (await get()).json();
-    assert.strictEqual(body.counts.meetingNotes, 400);
-    assert.doesNotMatch(seen.sql, /WHERE/);
-    assert.deepStrictEqual(seen.params, []);
+    assert.strictEqual(body.counts.meetingNotes, 3);
 });
 
-test('agents are COUNTed in SQL with the /all predicate and the caller\'s orgs in the WHERE', async () => {
-    // The old shape loaded every agent row in the database (all orgs, config
-    // and tools) and filtered in JS — on every 30s poll of every
-    // manage_agents user. The count must be ONE org-scoped query.
-    let seen = null;
+test('agents are COUNTed in SQL with the /all predicate and the caller\'s orgs', async () => {
+    // The count must be ONE org-scoped query, not every agent row in JS.
+    await resetCountTables();
+    await agentRow('a1', { organization_id: 'orgA', owner_id: 'u1' });
+    await agentRow('a2', { organization_id: 'orgA', owner_id: 'u6' });
+    await agentRow('a3', { organization_id: 'orgC', owner_id: 'u6' });
+    await agentRow('a4', { organization_id: 'orgB', owner_id: 'u12' });
+    await agentRow('a5', { organization_id: 'orgA', owner_id: 'system' });
+    await agentRow('a6', { organization_id: 'orgA', owner_id: 'swarm' });
     const d = makeDeps({
         auth: { resolveUserOrgIds: async () => new Set(['orgA', 'orgC']), resolveUserGroups: async () => ['g1'] },
-        db: { getOne: async (sql, params) => {
-            if (/FROM agents/.test(sql)) { seen = { sql, params }; return { n: 5, owners: ['u1', 'u6', 'u6'] }; }
-            return { n: 0, owners: [] };
-        } },
+        db: realDb,
     });
     await listen(mount(d));
     const body = await (await get()).json();
-    assert.strictEqual(body.counts.agents, 5);
-    assert.match(seen.sql, /COUNT\(\*\)/);
-    assert.match(seen.sql, /array_agg\(DISTINCT owner_id\)/, 'makers come from the same query');
-    assert.match(seen.sql, /owner_id NOT IN \('system', 'swarm'\)/, 'the getAllAgents predicate');
-    assert.match(seen.sql, /organization_id = ANY\(\$1::text\[\]\)/);
-    assert.deepStrictEqual(seen.params, [['orgA', 'orgC']]);
+    assert.strictEqual(body.counts.agents, 3, 'system and swarm stay out, another org too');
+    assert.strictEqual(sqlSeen.filter((q) => q.includes('agents')).length, 1, 'one query');
     // u6 counted once as a maker, alongside u1 and the other kinds' owners.
     assert.strictEqual(body.makers, 8);
 });
 
 test('a super admin (resolveUserOrgIds → null) counts agents with no org filter', async () => {
-    let seen = null;
+    await resetCountTables();
+    await agentRow('a1', { organization_id: 'orgA' });
+    await agentRow('a2', { organization_id: 'orgB' });
+    await agentRow('a3', { organization_id: null });
+    await agentRow('a4', { owner_id: 'system' });
     const d = makeDeps({
         auth: { resolveUserOrgIds: async () => null, resolveUserGroups: async () => ['g1'] },
-        db: { getOne: async (sql, params) => {
-            if (/FROM agents/.test(sql)) { seen = { sql, params }; return { n: 250, owners: [] }; }
-            return { n: 0, owners: [] };
-        } },
+        db: realDb,
     });
     await listen(mount(d));
     const body = await (await get()).json();
-    assert.strictEqual(body.counts.agents, 250);
-    assert.doesNotMatch(seen.sql, /organization_id/);
-    assert.match(seen.sql, /owner_id NOT IN \('system', 'swarm'\)/, 'system and swarm rows stay out even for a super admin');
-    assert.deepStrictEqual(seen.params, []);
+    assert.strictEqual(body.counts.agents, 3, 'system and swarm rows stay out even for a super admin');
 });
 
 test('a member of no organisation gets agents 0 without a query — as /all shows nothing', async () => {
-    let queried = false;
+    await resetCountTables();
+    await agentRow('a1', { organization_id: 'orgA' });
     const d = makeDeps({
         auth: { resolveUserOrgIds: async () => new Set(), resolveUserGroups: async () => ['g1'] },
-        db: { getOne: async (sql) => { if (/FROM agents/.test(sql)) queried = true; return { n: 0, owners: [] }; } },
+        db: realDb,
     });
     await listen(mount(d));
     const body = await (await get()).json();
     assert.strictEqual(body.counts.agents, 0);
-    assert.strictEqual(queried, false);
+    assert.strictEqual(sqlSeen.filter((q) => q.includes('agents')).length, 0);
 });
 
 test('a key the caller may not see is OMITTED — never a 403 for the whole response', async () => {

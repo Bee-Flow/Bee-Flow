@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Notebook Knowledge Search — shared utility for all notebook KB retrieval.
  *
@@ -91,7 +91,7 @@ async function getAzureSearchParams() {
  * substring first would attach "Report" to "Annual Report 2024".
  *
  * @param {{source_uri?: string, title?: string}} chunk
- * @param {Array<{id: string, name: string}>} sources
+ * @param {Array<{id: string, name: string}> | null} sources
  * @returns {{id: string, name: string}|null}
  */
 function findSourceForChunk(chunk, sources) {
@@ -422,7 +422,7 @@ function stableChunkRef(c) {
  * @param {{ query?: string, top_k?: number }} args
  * @param {string} userId
  * @param {string[]} kbIds
- * @param {Array<{id: string, name: string}>} [sources] - notebook sources, to show names instead of ids
+ * @param {Array<{id: string, name: string}> | null} [sources] - notebook sources, to show names instead of ids
  * @param {import('./queryLog/hook.mts').LogOption | null} [queryLog] - record the search (its `carrier` collects the handle)
  * @returns {Promise<object>}  - tool result for the AI
  */
@@ -437,7 +437,7 @@ async function executeNotebookKBSearchTool(args, userId, kbIds, sources = null, 
         };
     }
 
-    const topK = Math.min(Math.max(parseInt(top_k) || 5, 1), 10);
+    const topK = Math.min(Math.max(parseInt(String(top_k)) || 5, 1), 10);
     log.info(`[NotebookKBSearch] Tool search: query ${String(query).length} chars (top_k=${topK})`);
 
     const result = await searchNotebookKB({

@@ -326,7 +326,7 @@ function getProfile(modelClass) {
  * rather than to a missing profile.
  * @param {string | null} modelId
  */
-function getProfileForModel(modelId, overrides = null) {
+function getProfileForModel(modelId, overrides = /** @type {unknown} */ (null)) {
     const forced = overrides && typeof overrides === 'object' && !Array.isArray(overrides)
         ? overrides[String(modelId || '')]
         : null;

@@ -10,16 +10,16 @@ function validId(value) {
     return ID_RE.test(String(value || '').trim());
 }
 
-/** @param {string} value a year as the model sent it (parseInt also takes a number) */
+/** @param {unknown} value a year as the model sent it (a string or a number) */
 function parseYear(value) {
-    const y = parseInt(value, 10);
+    const y = parseInt(String(value), 10);
     return (Number.isInteger(y) && y >= 1900 && y <= 2100) ? y : null;
 }
 
-/** @param {string} value a period as the model sent it (parseInt also takes a number) */
+/** @param {unknown} value a period as the model sent it (a string or a number) */
 function parsePeriod(value) {
     if (value === undefined || value === null || value === '') return null;
-    const p = parseInt(value, 10);
+    const p = parseInt(String(value), 10);
     return (Number.isInteger(p) && p >= 1 && p <= 13) ? p : 'invalid';
 }
 

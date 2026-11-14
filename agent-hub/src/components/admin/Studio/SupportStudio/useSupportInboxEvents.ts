@@ -1,6 +1,10 @@
 import { useEffect } from 'react';
-import { API_BASE, isDemoMode } from '@/utils/helpers';
+import { isDemoMode } from '@/utils/helpers';
+import { apiUrl } from '@/api/typedRequest';
 import { logger } from '@/utils/logger';
+
+/** A subscription, not a read: an EventSource stays open for the life of the hook. */
+const STREAM_URL = apiUrl('GET /api/support-inbox/stream');
 
 /**
  * Subscribe to /api/support-inbox/stream (SSE). Calls onEvent(type, data) for
@@ -18,7 +22,7 @@ export default function useSupportInboxEvents(onEvent?: ((type: string, data: un
         if (isDemoMode()) return undefined;
         let es: EventSource;
         try {
-            es = new EventSource(`${API_BASE}/api/support-inbox/stream`, { withCredentials: true });
+            es = new EventSource(STREAM_URL, { withCredentials: true });
         } catch (_) { return undefined; }
         const handle = (e: MessageEvent<string>) => {
             try { onEvent?.(e.type, JSON.parse(e.data)); } catch (err) { logger.debug('ignore', err); }

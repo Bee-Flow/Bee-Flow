@@ -2,17 +2,13 @@
 /**
  * Request-level knowledge-base access checks.
  *
- * `KnowledgeBasesStore.canUserAccessKB` is the pure policy function; this module
- * is the request-shaped wrapper around it — it resolves the caller's org ids,
- * group ids and org-admin status from `req` and then applies that policy.
- *
- * It lives here (rather than inside routes/knowledgeBases.js) because more than
- * one router needs it: any route that lets a client NAME a kb id must authorize
- * that id before it is persisted or searched. The KB retrieval layer
- * (core/localKBIngest) deliberately performs no tenant filtering of its own —
- * its access boundary IS the kb id list, on the documented assumption that every
- * caller authorized those ids upstream. Notebooks did not, which is what this
- * module exists to fix.
+ * The rules are auth/kbAccess.mts (read and manage, a ladder, and the tagged
+ * gate `requireKbGrade`); this module wires them to the real stores and auth
+ * once (`defaultKbAccess`) and hands them to every router that lets a client
+ * NAME a kb id: the knowledge-base routers, notebooks, favourites, projects.
+ * The KB retrieval layer (core/localKBIngest) deliberately performs no tenant
+ * filtering of its own: its access boundary IS the kb id list, on the
+ * documented assumption that every caller authorized those ids upstream.
  *
  * Mirrors the shape of support/access.js (the same pattern for inboxes).
  */
@@ -21,12 +17,16 @@ const kbStore = require('../stores/knowledgeBases');
 const permissions = require('../auth/permissions');
 const { resolveUserOrgIds } = permissions;
 const { resolveUserGroups: resolveUserGroupsById } = require('../auth/audience');
+const { makeKbAccess, kbAccessOf } = require('../auth/kbAccess.mts');
 const log = require('../telemetry/log');
 
-const getUserId = (req) => req.session?.user?.id || null;
+/** @typedef {import('../auth/kbAccess.mts').KbRequest} KbRequest */
+/** @typedef {import('../auth/kbAccess.mts').KbRow} KbRow */
+
+const getUserId = (/** @type {KbRequest} */ req) => req.session?.user?.id || null;
 
 /** Resolve the caller's group ids via the audience home (single source of truth). */
-const resolveUserGroups = (req) => resolveUserGroupsById(getUserId(req));
+const resolveUserGroups = (/** @type {KbRequest} */ req) => resolveUserGroupsById(getUserId(req) || '');
 
 /**
  * The organisations the caller administers (auth/permissions
@@ -34,35 +34,65 @@ const resolveUserGroups = (req) => resolveUserGroupsById(getUserId(req));
  * the organisation that carries admin rights). The KB admin shortcut (drafts,
  * group-restricted bases) applies in these organisations only. An unreadable
  * answer is no organisation.
- * @param {import('express').Request} req
+ * @param {KbRequest} req
  * @returns {Promise<Set<string>>}
  */
 async function resolveAdminOrgIds(req) {
     if (!getUserId(req)) return new Set();
     try {
-        const set = await permissions.resolveAdminOrgIds(req);
+        const set = await permissions.resolveAdminOrgIds(/** @type {import('express').Request} */ (req));
         return set instanceof Set ? set : new Set();
     } catch (_) { return new Set(); }
 }
 
-/**
- * Centralized KB access check.
- * - Owner (tenant_id) always has access
- * - Super admin (resolveUserOrgIds returns null) always has access
- * - Org admin: every KB of the organisation they administer (incl. drafts +
- *   group-restricted); in another organisation they read as a member
- * - Org member: KB must be in their org AND published AND, if shared_groups
- *   is set, the user must belong to at least one of those groups
- */
-async function canAccessKB(req, kb) {
-    const userId = getUserId(req);
-    if (!kb) return false;
-    if (kb.tenant_id === userId) return true;
-    const orgIds = await resolveUserOrgIds(req);
-    const userGroups = await resolveUserGroups(req);
-    const adminOrgIds = await resolveAdminOrgIds(req);
-    return kbStore.canUserAccessKB(kb, userId, orgIds, userGroups, { adminOrgIds });
+/** @type {import('../auth/kbAccess.mts').KbAccessInstance | null} */
+let defaultInstance = null;
+
+/** The rules and the gate over the real stores and auth, built once. */
+function defaultKbAccess() {
+    if (!defaultInstance) {
+        defaultInstance = makeKbAccess({
+            getKB: (id) => kbStore.getKB(id),
+            getUserId,
+            // The rules type the request structurally; the real helpers want express's Request.
+            resolveUserOrgIds: (req) => resolveUserOrgIds(/** @type {import('express').Request} */ (req)),
+            resolveUserGroups: (userId) => resolveUserGroupsById(userId),
+            resolveAdminOrgIds,
+            resolvePermissionsByOrg: (userId, session) => permissions.resolvePermissionsByOrg(userId, session),
+            canUserAccessKB: (kb, userId, orgIds, userGroups, opts) => kbStore.canUserAccessKB(kb, userId, orgIds, userGroups, opts),
+            canUserManageKB: (kb, userId, orgIds, holds) => kbStore.canUserManageKB(kb, userId, orgIds, holds),
+            fallback: (where, err, value) => require('../utils/bestEffort').fallback(where, err, value),
+        });
+    }
+    return defaultInstance;
 }
+
+/**
+ * May the caller READ this base's content: the owner, the super admin, an
+ * admin of the base's organisation, or a member of it once the base is
+ * published (in a shared group when it names any). A management right alone
+ * is not a reason: that is the gate's ladder, not this question.
+ * @param {KbRequest} req
+ * @param {KbRow | null | undefined} kb
+ */
+const canAccessKB = (req, kb) => defaultKbAccess().canReadKb(req, kb);
+
+/**
+ * May the caller MANAGE this base: the owner, the super admin, or
+ * manage_knowledge held IN the base's organisation. Grants no content read
+ * by itself; a project's files base is managed from its project.
+ * @param {KbRequest} req
+ * @param {KbRow | null | undefined} kb
+ */
+const canManageKB = (req, kb) => defaultKbAccess().canManageKb(req, kb);
+
+/**
+ * The route gate: loads the base behind `:id` (or `param`), refuses below
+ * `minGrade`, leaves `req.kbAccess` for the handler (`kbAccessOf`).
+ * @param {import('../auth/kbAccess.mts').KbGrade} minGrade
+ * @param {import('../auth/kbAccess.mts').KbGateOptions} [options]
+ */
+const requireKbGrade = (minGrade, options) => defaultKbAccess().requireKbGrade(minGrade, options);
 
 /**
  * Authorize a client-supplied list of kb ids.
@@ -76,13 +106,18 @@ async function canAccessKB(req, kb) {
  * Unknown/deleted ids count as denied: they can't be authorized, and letting
  * them through would re-create the same trust-the-client hole.
  *
+ * @param {KbRequest} req
+ * @param {unknown} ids
  * @returns {Promise<{allowed: string[], denied: string[]}>}
  */
 async function partitionAccessibleKBIds(req, ids) {
     const list = Array.isArray(ids) ? ids.filter(id => typeof id === 'string' && id) : [];
+    /** @type {string[]} */
     const allowed = [];
+    /** @type {string[]} */
     const denied = [];
     for (const id of list) {
+        /** @type {KbRow | null} */
         let kb = null;
         try { kb = await kbStore.getKB(id); } catch (_) { kb = null; }
         if (kb && await canAccessKB(req, kb)) allowed.push(id);
@@ -123,13 +158,15 @@ async function partitionAccessibleKBIds(req, ids) {
  */
 async function usableKbIdsForRequest(req, ids, { surface = 'direct_chat' } = {}) {
     const userId = getUserId(req);
+    /** @type {Set<string> | null} */
     let orgIds = null;
+    /** @type {string[]} */
     let userGroups = [];
     try {
         orgIds = await resolveUserOrgIds(req);
         userGroups = await resolveUserGroups(req);
     } catch (err) {
-        log.error('[kbAccess] could not resolve the caller — treating as NO knowledge bases:', err.message);
+        log.error('[kbAccess] could not resolve the caller — treating as NO knowledge bases:', /** @type {Error} */ (err).message);
         return [];
     }
     const { resolveUsableKbIds } = require('../core/kb/kbSelection');
@@ -146,4 +183,7 @@ async function usableKbIdsForRequest(req, ids, { surface = 'direct_chat' } = {})
     });
 }
 
-module.exports = { canAccessKB, partitionAccessibleKBIds, usableKbIdsForRequest, resolveAdminOrgIds, resolveUserGroups };
+module.exports = {
+    canAccessKB, canManageKB, requireKbGrade, kbAccessOf, defaultKbAccess,
+    partitionAccessibleKBIds, usableKbIdsForRequest, resolveAdminOrgIds, resolveUserGroups,
+};

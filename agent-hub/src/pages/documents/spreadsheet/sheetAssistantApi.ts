@@ -1,11 +1,11 @@
 // Client for POST /api/studio-documents/:id/sheet/assistant. The server runs
 // the model (5 to 60 s) and SAVES the cell changes before it answers.
 
-import { API_BASE, authFetch } from '@/utils/helpers';
 import { SheetApiError } from '@/api/sheetApi';
 import type { SelectionKind } from './sheetModel';
 import type { SheetChartConfig } from './sheetCharts';
 import { logger } from '@/utils/logger';
+import { apiFetch } from '@/api/typedRequest';
 
 export interface AssistantTurn { role: 'user' | 'assistant'; content: string }
 
@@ -32,12 +32,7 @@ export interface AssistantAnswer {
 }
 
 export async function askSheetAssistant(id: string, request: AssistantRequest, signal?: AbortSignal): Promise<AssistantAnswer> {
-    const res = await authFetch(`${API_BASE}/api/studio-documents/${encodeURIComponent(id)}/sheet/assistant`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(request),
-        signal,
-    });
+    const res = await apiFetch('POST /api/studio-documents/{id}/sheet/assistant', { params: { id }, init: { signal, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) } });
     let body: any = null;
     try { body = await res.json(); } catch (err) { logger.debug('empty or non-JSON body', err); }
     if (!res.ok) throw new SheetApiError((body && body.error) || 'The assistant could not answer.', res.status, body?.code);

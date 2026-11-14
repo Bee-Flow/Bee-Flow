@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Document compose — the stripped-down sibling of the webpage composer.
  *
@@ -10,7 +11,7 @@
  *   • No JavaScript slot at all. The model cannot author script for a
  *     document, and any script that arrives in the markup anyway is removed.
  *   • No bridges, so no token, so nothing to act as the author with.
- *   • No network. Every remote url — <img src>, CSS url(), @import — is
+ *   • No network. Every remote url — <img src>, CSS url(), a CSS import — is
  *     stripped, in the markup AND in the stylesheet. This matters twice over:
  *     the PDF path loads this HTML into a real Chromium ON THE SERVER, where a
  *     remote fetch is an SSRF primitive, and this is a privacy product, where

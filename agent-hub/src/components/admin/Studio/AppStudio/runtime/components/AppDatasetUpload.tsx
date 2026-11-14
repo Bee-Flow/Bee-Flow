@@ -1,7 +1,6 @@
 import { Dna, Loader2, UploadCloud, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import useTranslation from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
 import { useStudioLargeDatasets } from '@/api/queries/studioApps';
 import { useDataContext } from '../DataContext';
 import { useFormField } from '../formContext';
@@ -11,7 +10,8 @@ import useDatasetUpload from '../useDatasetUpload';
 import useInputChange from '../useInputChange';
 import type { NodeProps } from './appNode.types';
 import { logger } from '@/utils/logger';
-import { request, errorBody, RefusedError } from '@/api/mutate';
+import { errorBody, RefusedError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 /**
  * App Studio runtime — 'input_dataset'. Spec: server/appStudio/componentSpecs.js.
@@ -89,7 +89,7 @@ export default function AppDatasetUpload({ node }: NodeProps<DatasetUploadProps>
             try {
                 let res: Response;
                 try {
-                    res = await request(`${API_BASE}/api/studio-apps/${encodeURIComponent(appId as string)}/large-datasets/${encodeURIComponent(datasetId)}`);
+                    res = await apiRequest('GET /api/studio-apps/{id}/large-datasets/{datasetId}', { params: { id: appId as string, datasetId } });
                 } catch (err) {
                     if (!(err instanceof RefusedError)) throw err;
                     const ds = errorBody(err) ?? {};

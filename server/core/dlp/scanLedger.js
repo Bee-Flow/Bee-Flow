@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Memoises exactly one pure function: the guard's verdict for one segment,
  * under one detection policy, from one identified engine.
@@ -73,7 +73,7 @@ function categoryTableDigest() {
 }
 
 /**
- * @typedef {{ text: string, categories?: string[] | undefined, threshold: number | undefined,
+ * @typedef {{ text: string, categories?: string[] | null | undefined, threshold: number | undefined,
  *   engineFingerprint: string, scope?: string | undefined }} ScanKeyArgs
  */
 /**
@@ -126,13 +126,13 @@ const _unpack = (r, shift) => ({
 /**
  * Detect PII over `text`, reusing previously memoised segment verdicts.
  *
- * @returns {Promise<{entities:LedgerEntity[], degraded:boolean, degradedReason:string|null,
+ * @returns {Promise<{entities:LedgerEntity[], degraded:boolean, degradedReason:string|null|undefined,
  *                    stats:{segments:number,hits:number,fresh:number}}>}
  *   Entity offsets are absolute against `text`. `degraded` is true when any
  *   segment could not be scanned — the caller applies its own failure policy,
  *   exactly as it does for a direct detectPii call.
  * @param {string} text
- * @param {{ categories?: string[], threshold?: number, scope?: string, detect?: Function }} [opts]
+ * @param {{ categories?: string[] | null, threshold?: number, scope?: string, detect?: Function }} [opts]
  */
 async function detectWithLedger(text, { categories, threshold, scope, detect } = {}) {
     const detectPii = detect || require('../privacy/piiDetection').detectPii;
@@ -153,6 +153,7 @@ async function detectWithLedger(text, { categories, threshold, scope, detect } =
     const entities = [];
     let degraded = false;
     /** @type {string | null} */
+    /** @type {string | null | undefined} */
     let degradedReason = null;
 
     /**

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The pre-pass that lets a condition, filter or switch step use
  * `isAbout(text, "topic")` (shared/expr/topics.mjs).
@@ -25,16 +26,17 @@ const {
 } = require('./expr');
 
 /** Distinct texts one step invocation may classify. */
-const MAX_TEXTS_PER_STEP = Number(process.env.AUTOMATION_TOPIC_MAX_TEXTS) || 500;
+const { envInt } = require('../../utils/envNumber.mts');
+const MAX_TEXTS_PER_STEP = envInt('AUTOMATION_TOPIC_MAX_TEXTS', 500, { min: 1 });
 /** Distinct texts one run may classify, across every step and loop pass. */
-const MAX_TEXTS_PER_RUN = Number(process.env.AUTOMATION_TOPIC_MAX_TEXTS_PER_RUN) || 5_000;
+const MAX_TEXTS_PER_RUN = envInt('AUTOMATION_TOPIC_MAX_TEXTS_PER_RUN', 5_000, { min: 1 });
 
 /**
  * @param {string} errorClass
  * @param {string} message
  */
 function topicError(errorClass, message) {
-    const err = new Error(message);
+    const err = /** @type {Error & { errorClass?: unknown, topicFatal?: boolean }} */ (new Error(message));
     err.errorClass = errorClass;
     err.topicFatal = true;
     return err;

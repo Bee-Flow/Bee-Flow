@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Automation notifications that do not go out the moment they happen
  * (Studio → Automations handoff 5):
@@ -228,7 +228,7 @@ async function dueDigests(deps, now) {
         const ids = await resolveDigestRecipientIds(settings, { automation: a, orgId }, { listUsers });
         for (const id of ids) {
             if (!byRecipient.has(id)) byRecipient.set(id, []);
-            byRecipient.get(id).push({ automation: a, settings, slot });
+            byRecipient.get(id)?.push({ automation: a, settings, slot }); // set on the line above
         }
     }
     return byRecipient;
@@ -272,7 +272,7 @@ async function sendDigest(deps, now, nc, recipient, entries) {
     const createdAt = new Date(now);
     const rows = [];
     if (digest) {
-        const url = deps.absoluteUrl(digest.link);
+        const url = deps.absoluteUrl(/** @type {string} */ (digest.link)); // the link handed in above
         const first = entries[0].automation;
         let bellOk = false;
         try {

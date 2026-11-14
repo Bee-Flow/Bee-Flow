@@ -4,6 +4,7 @@ import { NewMenuButton, type NewMenuSection } from './NewMenu';
 import DescribeItPanel from './studioAi/DescribeItPanel';
 import { useStudioCounts } from '@/hooks/useStudioCounts';
 import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
+import { useShellProps } from '@/authedApp/useShellProps';
 
 /**
  * The header of the Studio Start screen (Track H3, artboard 1b).
@@ -119,9 +120,12 @@ interface StudioHomeHeaderProps {
 }
 
 export default function StudioHomeHeader({
-    user = null, sections = null, onNavigate = null, makers: makersProp,
+    user: userProp = null, sections = null, onNavigate: onNavigateProp = null, makers: makersProp,
 }: StudioHomeHeaderProps) {
     const { t } = useTranslation();
+    // Inside the app shell the signed-in person and the navigation come from
+    // context; a host outside it (a test) still hands them as props.
+    const { user, onNavigate } = useShellProps({ user: userProp, onNavigate: onNavigateProp });
     // `undefined` = nobody above us owns the number, so we read it ourselves: once,
     // no timer (the rail already polls this endpoint — see the hook). If the parent DOES
     // pass it along, there is ONE read on this screen instead of two that can diverge;

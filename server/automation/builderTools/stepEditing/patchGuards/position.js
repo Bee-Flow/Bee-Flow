@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * builder_update_step — the position and branch-wiring keys of a patch
  * (afterStepId/branch/caseName, thenStepId/elseStepId), applied BEFORE the
@@ -28,7 +29,7 @@ function applyPositionPatch(graph, stepId, step, patch) {
     const moved = [];
     if (MOVE_KEYS.some(k => k in patch) || WIRE_KEYS.some(k => k in patch)) {
         if ('afterStepId' in patch) {
-            const r = moveStepAfter(graph, stepId, { afterStepId: patch.afterStepId, branch: patch.branch, caseName: patch.caseName });
+            const r = /** @type {Record<string, any>} */ (moveStepAfter(graph, stepId, { afterStepId: patch.afterStepId, branch: patch.branch, caseName: patch.caseName }));
             if (r.error) return { error: r.error };
             moved.push(r.now + (r.note ? ` — ${r.note}` : ''));
         } else if ('branch' in patch || 'caseName' in patch) {
@@ -41,7 +42,7 @@ function applyPositionPatch(graph, stepId, step, patch) {
             }
             const target = patch[k];
             if (typeof target !== 'string' || !target) return { error: `${k} must be the id of an existing step.` };
-            const r = moveStepAfter(graph, target, { afterStepId: stepId, branch: k === 'thenStepId' ? 'then' : 'else' });
+            const r = /** @type {Record<string, any>} */ (moveStepAfter(graph, target, { afterStepId: stepId, branch: k === 'thenStepId' ? 'then' : 'else' }));
             if (r.error) return { error: r.error };
             moved.push(r.now + (r.note ? ` — ${r.note}` : ''));
         }

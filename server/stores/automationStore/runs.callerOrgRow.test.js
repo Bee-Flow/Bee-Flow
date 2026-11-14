@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 
 /**
@@ -23,7 +23,7 @@ const ROW = (over = {}) => ({
 
 test('a caller-mode run: summary, error and outcome are hidden from the organisation log, even for the owner', () => {
     for (const viewer of ['owner', 'colleague', null]) {
-        const out = rowToOrgRunRow(ROW(), viewer);
+        const out = rowToOrgRunRow(ROW(), /** @type {any} */ (viewer));
         assert.strictEqual(out.status, 'error');
         assert.strictEqual(out.errorClass, 'x');
         assert.strictEqual(out.summary, null, String(viewer));

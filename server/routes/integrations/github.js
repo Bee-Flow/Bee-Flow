@@ -9,7 +9,9 @@
  * a schema.
  */
 
+const { fetchFixedEndpoint } = require('../../utils/fixedEndpointFetch.mts');
 const express = require('express');
+const { bodyOf } = require('../../core/http/schemaParts');
 const log = require('../../telemetry/log');
 const router = express.Router();
 const configStore = require('../../stores/configStore');
@@ -52,7 +54,7 @@ router.post('/connect', requireSessionUser, validate({ body: ConnectBody }), asy
     const { token } = req.body;
 
     // Validate token by fetching user profile
-    const userRes = await fetch('https://api.github.com/user', {
+    const userRes = await fetchFixedEndpoint('https://api.github.com/user', {
         headers: {
             'Authorization': `Bearer ${token}`,
             'Accept': 'application/vnd.github+json',
@@ -77,7 +79,7 @@ router.post('/connect', requireSessionUser, validate({ body: ConnectBody }), asy
 });
 
 // ─── Disconnect ──────────────────────────────────────────────────
-router.post('/disconnect', async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
+router.post('/disconnect', validate({ body: bodyOf({}, 'Disconnecting GitHub') }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const userId = req.session?.user?.id;
     if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 

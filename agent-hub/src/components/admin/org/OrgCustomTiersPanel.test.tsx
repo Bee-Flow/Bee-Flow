@@ -5,6 +5,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import { setDemoTransport } from '@/utils/helpers';
+import { withQueryClient } from '@/test/queryWrapper';
 import OrgCustomTiersPanel from './OrgCustomTiersPanel';
 
 const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
@@ -22,7 +23,7 @@ async function mountWithFast() {
         }
         return json({ providers: [] });
     });
-    render(<OrgCustomTiersPanel />);
+    render(withQueryClient(<OrgCustomTiersPanel />));
     await screen.findByDisplayValue('Fast');
     return saved;
 }

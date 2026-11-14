@@ -453,3 +453,34 @@ test('a period written the way Europe writes one is refused, not silently widene
 test('a repair takes no body, and says so rather than ignoring one', async () => {
     await refuses({ method: 'POST', url: '/tbl_1/repair', body: { onlyTableIds: ['tbl_2'] } }, 'body');
 });
+
+// ═══ POST /:id/aggregate ════════════════════════════════════════════
+
+test('an aggregate takes the descriptor parts only: a misspelled one is refused by name', async () => {
+    await refuses({ method: 'POST', url: '/tbl_1/aggregate', body: { groupby: [{ field: 'naam' }], aggregates: [{ fn: 'count' }] } }, 'body');
+    const res = await dispatch({ method: 'POST', url: '/tbl_1/aggregate', body: { aggregates: [{ fn: 'count' }], having: [] } });
+    assert.match(res.body.error, /An aggregate does not take "having"/);
+});
+
+test('an aggregate with the parts it reads goes on to the descriptor check', async () => {
+    const res = await dispatch({ method: 'POST', url: '/tbl_1/aggregate', body: { groupBy: [{ field: 'naam' }], aggregates: [{ fn: 'count' }] } });
+    assert.notStrictEqual(res.body?.code, 'invalid_request', JSON.stringify(res.body));
+});
+
+// ═══ The mirror's refresh and relations ═════════════════════════════
+
+test('a mirror refresh takes no body, and its relations take only `relations`: other keys are refused by name', async () => {
+    const sources = require(path.join(SERVER, 'core/dataEngine/sources'));
+    const was = sources.isSourceMirror;
+    sources.isSourceMirror = () => true;
+    try {
+        for (const family of ['source', 'nextcloud']) {
+            await refuses({ method: 'POST', url: `/tbl_1/${family}/refresh`, body: { force: true } }, 'body');
+            const res = await dispatch({ method: 'PUT', url: `/tbl_1/${family}/relations`, body: { relatons: [] } });
+            assert.strictEqual(res.statusCode, 400);
+            assert.match(res.body.error, /Saving the relations does not take "relatons"/);
+        }
+    } finally {
+        sources.isSourceMirror = was;
+    }
+});

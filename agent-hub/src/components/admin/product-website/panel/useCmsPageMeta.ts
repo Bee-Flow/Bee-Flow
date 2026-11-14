@@ -6,9 +6,9 @@ import type useCmsAutosave from './useCmsAutosave';
 import type useCmsPanelState from './useCmsPanelState';
 import { errorMessage, messageOf } from '@/utils/caughtError';
 import { toast } from '@/components/shared/Toast';
-import { cmsApi } from '../cmsApi';
 import { noteSavedRev } from './cmsRevisions';
-import { mutate, errorBody, RefusedError } from '@/api/mutate';
+import { errorBody, RefusedError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 type PanelState = ReturnType<typeof useCmsPanelState>;
 
@@ -49,11 +49,7 @@ export default function useCmsPageMeta({
         try {
             let res: Response;
             try {
-                res = await mutate(cmsApi.pageMeta(siteId, pageId), {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(patch),
-            });
+                res = await apiRequest('PUT /api/cms/sites/{siteId}/pages/{id}/meta', { params: { siteId, id: pageId }, body: patch });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const d = errorBody(err) ?? {};

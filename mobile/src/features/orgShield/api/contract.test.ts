@@ -17,7 +17,8 @@ const read = (rel: string) => fs.readFileSync(path.join(SERVER, rel), 'utf8');
 const shield = read('routes/orgPrivacyShield.js');
 const orgShieldCore = read('core/privacy/orgShield.js');
 const shieldDoc = read('core/privacy/customTypes/shieldDoc.js');
-const usage = read('routes/usage.js');
+// A JSDoc cast (`/** @type {string} */ (x)`) is read as the bare `x`.
+const usage = read('routes/usage.js').replace(/\/\*\* @type \{[^}]*\} \*\/ \(([\w.]+)\)/g, '$1');
 const guardStore = read('stores/guardrailEventStore.js');
 const integStore = read('stores/integrationActivityStore.js');
 const integOverview = read('stores/integrationOverview.js');

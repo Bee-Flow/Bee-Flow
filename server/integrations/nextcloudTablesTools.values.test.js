@@ -151,3 +151,21 @@ test('a failed re-read is reported as a warning', async () => {
     assert.ok(out.warnings.includes('Could not re-read the stored row; values are as sent.'));
     assert.ok(calls.length);
 });
+
+test('the dispatcher: an unknown name, a table title resolved for update, a missing title, and a bad filter', async () => {
+    const calls = installFakeNc(({ url, method }) => {
+        if (url.endsWith('/tables') && method === 'GET') return json(200, [{ id: 7, title: 'Facturen' }]);
+        if (url.endsWith('/columns')) return json(200, [{ id: 1, title: 'Name', type: 'text' }]);
+        if (url.includes('/rows')) return json(200, [{ id: 1, data: [{ columnId: 1, value: 'a' }] }]);
+        return json(200, { id: 7, title: 'Invoices' });
+    });
+    assert.deepEqual(await executeNextcloudTablesTool('nextcloud_tables_nope', {}, 'u', {}), { error: 'Unknown Nextcloud Tables tool: nextcloud_tables_nope' });
+    const updated = await executeNextcloudTablesTool('nextcloud_tables_update', { tableId: 'facturen', title: 'Invoices' }, 'u', {});
+    assert.equal(updated.success, true);
+    assert.deepEqual(calls.map((c) => `${c.method} ${c.url.split('/api/1')[1]}`), ['GET /tables', 'PUT /tables/7']);
+    assert.deepEqual(await executeNextcloudTablesTool('nextcloud_tables_create', {}, 'u', {}), { error: 'title is required' });
+    const bad = await executeNextcloudTablesTool('nextcloud_tables_list_rows', { tableId: 7, filterColumn: 'Name', filterOperator: 'like' }, 'u', {});
+    assert.match(bad.error, /Unknown filterOperator "like"/);
+    const hit = await executeNextcloudTablesTool('nextcloud_tables_list_rows', { tableId: 7, filterColumn: 'name', filterValue: 'a' }, 'u', {});
+    assert.equal(hit.count, 1);
+});

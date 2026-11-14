@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Chat signals: the recorder.
  *
@@ -56,7 +56,7 @@ const ORG_RE = /^[A-Za-z0-9._:-]{1,128}$/;
 const LOCAL_TYPES = new Set(LOCAL_PROVIDER_TYPES);
 const MAX_KEYS = 5000;
 const FLUSH_MS = (() => {
-    const n = parseInt(process.env.CHAT_SIGNALS_FLUSH_MS, 10);
+    const n = parseInt(/** @type {string} */ (process.env.CHAT_SIGNALS_FLUSH_MS), 10);
     return Number.isFinite(n) && n > 0 ? n : 60_000;
 })();
 
@@ -95,8 +95,8 @@ function outcomeFromPiiReport(report) {
         case 'failed_closed':
             return 'scan_failed_closed';
         case 'found':
-            if (report.decision === 'tokenised') return 'protected';
-            if (report.decision === 'blocked') return 'blocked';
+            if (/** @type {{ decision?: string }} */ (report).decision === 'tokenised') return 'protected'; // a status means a report object
+            if (/** @type {{ decision?: string }} */ (report).decision === 'blocked') return 'blocked';
             return 'unscanned';
         case 'deferred_to_dlp':
             return null;
@@ -281,7 +281,7 @@ function flush() {
 /**
  * One decided turn as counter keys. Synchronous; returns whether it counted.
  * @param {{ orgKey: string, surface: string, outcome: string, categories?: string[],
- *   providerConfig?: { providerType?: string, url?: string }|null, allowlistedHosts?: string[], signals?: readonly string[] }} turn
+ *   providerConfig?: { providerType?: string | null, url?: string | null }|null, allowlistedHosts?: string[], signals?: readonly string[] }} turn
  */
 function recordChatTurn({ orgKey, surface, outcome, categories, providerConfig, allowlistedHosts, signals }) {
     try {
@@ -333,7 +333,7 @@ async function _countTurnAsync(args) {
  * returns undefined, never throws, never awaited by the caller.
  *
  * @param {{ orgKey: string, surface: string, userId?: string|null, optOut?: boolean, notice?: string|null,
- *   outcome: string, categories?: string[], providerConfig?: { providerType?: string, url?: string }|null,
+ *   outcome: string, categories?: string[], providerConfig?: { providerType?: string | null, url?: string | null }|null,
  *   allowlistedHosts?: string[], dryRun?: boolean }} args
  * @returns {undefined}
  */

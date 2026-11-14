@@ -9,6 +9,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const Module = require('module');
+const { fakeAgentGates } = require('./agentGate.testkit');
 
 const fx = {
     userId: 'owner',
@@ -29,7 +30,6 @@ const MOCKS = {
     '../../auth': { requireActiveOrgForMutations: () => (req, res, next) => next() },
     '../../utils/routeHelpers': { getEffectiveUserId: () => fx.userId },
     './crud': {
-        canModifyAgent: async () => fx.canModify,
         validateAgentConfigReferences: (agent, cfg) => fx.validate(agent, cfg),
         // Stand-in for the real fold (unit-tested in crud.tools.test.js): the
         // route's job is to apply the verdict to the copy it publishes, and
@@ -49,6 +49,8 @@ const MOCKS = {
     '../../stores/versionStore': { createVersion: async (...a) => { fx.versions.push(a); } },
     '../../compliance/events': { EVENTS: { AGENT_PUBLISHED: 'agent_published' }, emit: (n, p) => fx.events.push([n, p]) },
 };
+Object.assign(MOCKS['./crud'], fakeAgentGates({ agentStore: MOCKS['../../stores/agentStore'], canModify: () => fx.canModify, userId: () => fx.userId }));
+
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
     const mockId = `mock:publish-version:${request}`;

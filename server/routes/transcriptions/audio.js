@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Transcriptions — audio playback.
  *
@@ -28,7 +28,7 @@ const AudioQuery = z.object({ download: flag(DOWNLOAD_TEXT) }).strict();
 
 // ── Serve audio file for playback ────────────────────────
 
-router.get('/:id/audio', requireAuth, validate({ query: AudioQuery }), async (/** @type {import('express').Request<{ id: string }>} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
+router.get('/:id/audio', requireAuth, validate({ query: AudioQuery }), async (req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
     const userId = sessionUser(req).id;
     const { orgIds, userGroupIds, isSuperAdmin } = await resolveAccessContext(req);
     const transcription = await transcriptionStore.getTranscription(req.params.id, userId, { orgIds, userGroupIds, isSuperAdmin });

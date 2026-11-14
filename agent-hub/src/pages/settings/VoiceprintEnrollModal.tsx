@@ -3,9 +3,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { passageFor } from './voiceprintPassages';
 import Modal from '../../components/shared/Modal';
 import { useTranslation } from '../../hooks/useTranslation';
-import { API_BASE } from '../../utils/helpers';
 import useAudioRecorder from '../meeting-notes/hooks/useAudioRecorder';
-import { mutate, errorBody, RefusedError } from '../../api/mutate';
+import { errorBody, RefusedError } from '../../api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 /**
  * Voice-profile enrollment.
@@ -63,7 +63,7 @@ export default function VoiceprintEnrollModal({ open, onClose, limits, onEnrolle
             form.append('duration_seconds', String(seconds));
             let res: Response;
             try {
-                res = await mutate(`${API_BASE}/api/voiceprints/me`, { method: 'POST', body: form });
+                res = await apiRequest('POST /api/voiceprints/me', { init: { body: form } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const data = errorBody(err) ?? {};

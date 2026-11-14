@@ -17,6 +17,7 @@ import {
     notebookApi, uploadSourceFile, getSourceContent, renameSource as renameSourceApi,
     reorderSourcesApi, bulkDeleteSourcesApi,
 } from '@/api/notebookApi';
+import { useDeleteNotebookSourceMutation, useNotebookSourcesRead } from '@/api/queries/notebookSources';
 import useTranslation from '@/hooks/useTranslation';
 import { errorMessage } from '@/utils/caughtError';
 
@@ -79,16 +80,18 @@ export default function useSourcesPolling({ entityId, onError, onChanged }: Opti
     const onChangedRef = useRef(onChanged);
     useEffect(() => { onErrorRef.current = onError; onChangedRef.current = onChanged; }, [onError, onChanged]);
 
+    const readSources = useNotebookSourcesRead<NotebookSource>();
+    const { mutateAsync: deleteSource } = useDeleteNotebookSourceMutation();
     const refreshSources = useCallback(async () => {
         if (!entityId) return;
         try {
-            const data = await notebookApi(`/${entityId}/sources`);
+            const data = await readSources(entityId);
             if (entityRef.current !== entityId) return;
             const pending = pendingDeleteRef.current?.source.id;
             setSources((data.sources || []).filter((s: NotebookSource) => s.id !== pending));
             setSourcesKnown(true);
         } catch (e) { onErrorRef.current?.(errorMessage(e)); }
-    }, [entityId, setSources]);
+    }, [entityId, setSources, readSources]);
 
     /** The list the notebook read already carried: it counts as an answer. */
     const seedSources = useCallback((list: NotebookSource[] | null | undefined) => {
@@ -111,7 +114,7 @@ export default function useSourcesPolling({ entityId, onError, onChanged }: Opti
         pendingDeleteRef.current = null;
         setPendingDelete(null);
         if (!pending || !forId) return;
-        notebookApi(`/${forId}/sources/${pending.source.id}`, { method: 'DELETE' })
+        deleteSource({ notebookId: forId, sourceId: pending.source.id })
             .then(() => onChangedRef.current?.())
             .catch((e: Error) => {
                 // The source is still there: put it back where it was.
@@ -121,7 +124,7 @@ export default function useSourcesPolling({ entityId, onError, onChanged }: Opti
                     onErrorRef.current?.(t('notebooks.source_remove_failed', 'The source could not be removed: {message}', { message: e.message }));
                 }
             });
-    }, [setSources, t]);
+    }, [setSources, t, deleteSource]);
 
     const handleDeleteSource = useCallback((sid: string) => {
         if (!entityId) return;

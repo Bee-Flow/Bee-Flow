@@ -33,7 +33,8 @@ const {
     staleSuccessors, isListRoute, wholeRunListReads, loopsAfterWholeRun,
 } = require('../../expr');
 const { OUTPUT_SCHEMAS } = require('../../outputSchemas');
-const { isObject, levenshtein } = require('../helpers');
+const { isObject } = require('../helpers');
+const { levenshtein } = require('../../../utils/closestId.mts');
 const { rulePaths } = require('../../../core/automationRunner/ruleMisses');
 
 const TOPICS = { host: TOPIC_HOST_SPEC };

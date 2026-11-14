@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { readSseFrames } from '../api/readEventStream';
-import { API_BASE, authFetch } from '../utils/helpers';
 import { logger } from '../utils/logger';
+import { apiFetch, apiUrl } from '@/api/typedRequest';
+import { authFetch } from '../utils/helpers';
 
 /**
  * Live subscription to a project's event feed.
@@ -180,13 +181,10 @@ export default function useProjectStream({
         };
 
         const streamUrl = () => {
-            let url = `${API_BASE}/api/projects/${projectId}/stream?since=${cursorRef.current}`;
-            if (doc) {
-                const raw = typeof docSinceRef.current === 'function' ? docSinceRef.current() : docSinceRef.current;
-                const since = Number.isFinite(raw) && (raw as number) > 0 ? Math.floor(raw as number) : 0;
-                url += `&doc=${encodeURIComponent(doc)}&docSince=${since}`;
-            }
-            return url;
+            if (!doc) return apiUrl('GET /api/projects/{id}/stream', { params: { id: projectId }, query: { since: cursorRef.current } });
+            const raw = typeof docSinceRef.current === 'function' ? docSinceRef.current() : docSinceRef.current;
+            const docSince = Number.isFinite(raw) && (raw as number) > 0 ? Math.floor(raw as number) : 0;
+            return apiUrl('GET /api/projects/{id}/stream', { params: { id: projectId }, query: { since: cursorRef.current, doc, docSince } });
         };
 
         // ── Polling fallback ────────────────────────────────────────────
@@ -195,7 +193,7 @@ export default function useProjectStream({
         // delivered are not delivered again on the next tick.
         const pollOnce = async () => {
             try {
-                const res = await authFetch(`${API_BASE}/api/projects/${projectId}/activity?limit=25`);
+                const res = await apiFetch('GET /api/projects/{id}/activity', { params: { id: projectId }, query: { limit: 25 } });
                 if (!res.ok) return;
                 const data = await res.json();
                 const items: ActivityItem[] = Array.isArray(data?.items) ? data.items : [];

@@ -10,7 +10,8 @@
  *
  * Run: cd agent-hub && npx vitest run src/components/appearance/ThemeContext.userOverride.test.tsx
  */
-import { render, waitFor } from '@testing-library/react';
+import { waitFor } from '@testing-library/react';
+import { renderWithClient } from '@/test/render';
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { ThemeProvider, useTheme } from './ThemeContext';
 
@@ -26,7 +27,7 @@ function renderWithTheme(): { current: () => Theme } {
         latest = useTheme();
         return null;
     }
-    render(<ThemeProvider><Probe /></ThemeProvider>);
+    renderWithClient(<ThemeProvider><Probe /></ThemeProvider>);
     return { current: () => latest as unknown as Theme };
 }
 

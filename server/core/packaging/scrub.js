@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What never leaves this installation.
  *
@@ -29,7 +30,6 @@
  * it was captured from on the next round-trip. It is reported in `requires`
  * instead — told, not guessed.
  */
-
 'use strict';
 const { scrubStageSeats } = require('./stageSeats');
 // The walkers are a leaf beside this module (walkers.js), so templateCapture
@@ -48,7 +48,6 @@ const APP_SEAT_FIELDS = [
     'escalateToUserId', 'escalateToGroupId',
 ];
 const APP_SEAT_LISTS = ['approverUserIds', 'approverGroupIds'];
-
 /** The same seats on an automation's `approval` step, where they are objects. */
 const AUTOMATION_SEAT_FIELDS = ['assignee', 'approvers', 'escalateTo', 'finalApprover'];
 
@@ -141,6 +140,7 @@ const literalUrlHost = (url) => require('./pointers').literalUrlHost(url);
  * Record a binding slot for a hole (design 4.1). Only a pipeline release
  * carries the Dev value as `suggested`: it never leaves the instance, a gallery
  * file does, and the value names a person, a credential or a table.
+ * @param {CaptureOpts} opts @param {{ slot: string, kind: string, stepId?: string | null, actionId?: string, layerKey?: string, label?: string, suggested?: BindingSlot['suggested'] }} s
  */
 function emitSlot(opts, { slot, kind, stepId, actionId, layerKey, label, suggested }) {
     if (!opts || !Array.isArray(opts.slots)) return;

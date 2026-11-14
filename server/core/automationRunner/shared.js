@@ -60,7 +60,7 @@ function resolveApprovalTtlMs(step) {
 // aggregate/summarize). execFilter runs evaluate() per item and execDedupe
 // JSON.stringifies per item, so an unbounded upstream array pins the event
 // loop for the whole pod. Per-step `maxItems` may tighten but never raise it.
-const COLLECTION_OP_MAX_ITEMS = parseInt(process.env.AUTOMATION_COLLECTION_MAX_ITEMS, 10) || 10_000;
+const COLLECTION_OP_MAX_ITEMS = require('../../utils/envNumber.mts').envInt('AUTOMATION_COLLECTION_MAX_ITEMS', 10_000, { min: 1 });
 
 function clampRunTimeout(automation) {
     const ms = automation?.runTimeoutMs;

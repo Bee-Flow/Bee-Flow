@@ -130,7 +130,7 @@ async function getAudit(orgId, id) {
     return getOne(`SELECT * FROM iso_audits WHERE organization_id = $1 AND id = $2`, [orgId, id]);
 }
 
-async function createAudit(orgId, input, actorId = null) {
+async function createAudit(orgId, input, actorId = /** @type {string | null} */ (null)) {
     await initDB();
     if (!orgId) throw new Error('organization_id is required');
     if (!input?.title) throw new Error('title is required');
@@ -205,11 +205,10 @@ async function addFinding(orgId, auditId, input) {
     if (!auditId) throw new Error('audit_id is required');
     if (!input?.description) throw new Error('description is required');
     const severity = FINDING_SEVERITIES.has(input.severity) ? input.severity : 'observation';
+    // Only onto an audit of this organisation: no row (null) otherwise.
     const { rows } = await run(`
-        INSERT INTO iso_audit_findings
-            (organization_id, audit_id, control_ref, clause, severity, description,
-             evidence_ref, nonconformity_id)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        INSERT INTO iso_audit_findings (organization_id, audit_id, control_ref, clause, severity, description, evidence_ref, nonconformity_id)
+        SELECT a.organization_id, a.id, $3, $4, $5, $6, $7, $8 FROM iso_audits a WHERE a.organization_id = $1 AND a.id = $2
         RETURNING *
     `, [
         orgId,
@@ -221,7 +220,7 @@ async function addFinding(orgId, auditId, input) {
         input.evidence_ref || null,
         input.nonconformity_id || null,
     ]);
-    return rows?.[0];
+    return rows?.[0] || null;
 }
 
 // --------------------------------------------------- 9.3 management reviews
@@ -243,7 +242,7 @@ async function listReviews(orgId) {
  * the route auto-built (score trend, incidents, NCs, audit results…);
  * `decisions` are the HUMAN minutes — never generated here.
  */
-async function createReview(orgId, input, actorId = null) {
+async function createReview(orgId, input, actorId = /** @type {string | null} */ (null)) {
     await initDB();
     if (!orgId) throw new Error('organization_id is required');
     if (!input?.held_at) throw new Error('held_at is required');
@@ -289,7 +288,7 @@ async function getNonconformity(orgId, id) {
     return getOne(`SELECT * FROM iso_nonconformities WHERE organization_id = $1 AND id = $2`, [orgId, id]);
 }
 
-async function createNonconformity(orgId, input, actorId = null) {
+async function createNonconformity(orgId, input, actorId = /** @type {string | null} */ (null)) {
     await initDB();
     if (!orgId) throw new Error('organization_id is required');
     if (!input?.title) throw new Error('title is required');
@@ -321,7 +320,7 @@ async function createNonconformity(orgId, input, actorId = null) {
  *   patch.confirm_effectiveness  → effectiveness_confirmed_by/_at = actor/NOW()
  *                                  (first time only — a human pressed confirm)
  */
-async function updateNonconformity(orgId, id, patch = {}, actorId = null) {
+async function updateNonconformity(orgId, id, patch = {}, actorId = /** @type {string | null} */ (null)) {
     await initDB();
     const existing = await getNonconformity(orgId, id);
     if (!existing) return null;
@@ -374,7 +373,7 @@ async function getObjective(orgId, id) {
     return getOne(`SELECT * FROM iso_objectives WHERE organization_id = $1 AND id = $2`, [orgId, id]);
 }
 
-async function createObjective(orgId, input, actorId = null) {
+async function createObjective(orgId, input, actorId = /** @type {string | null} */ (null)) {
     await initDB();
     if (!orgId) throw new Error('organization_id is required');
     if (!input?.title) throw new Error('title is required');

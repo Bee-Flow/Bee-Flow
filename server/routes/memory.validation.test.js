@@ -277,3 +277,24 @@ test('the reads and the export take no query options', async () => {
     }
     assert.deepStrictEqual(touched, []);
 });
+
+test('Approving a memory takes no fields: one sent is refused by name', async () => {
+    const res = await dispatch({ method: 'POST', url: '/review/m1/approve', body: { note: true } });
+    assert.strictEqual(res.statusCode, 400, JSON.stringify(res.body));
+    assert.strictEqual(res.body.code, 'invalid_request');
+    assert.match(res.body.error, /Approving a memory does not take "note"/);
+});
+
+test('Rejecting a memory takes no fields: one sent is refused by name', async () => {
+    const res = await dispatch({ method: 'POST', url: '/review/m1/reject', body: { note: true } });
+    assert.strictEqual(res.statusCode, 400, JSON.stringify(res.body));
+    assert.strictEqual(res.body.code, 'invalid_request');
+    assert.match(res.body.error, /Rejecting a memory does not take "note"/);
+});
+
+test('Restoring a memory takes no fields: one sent is refused by name', async () => {
+    const res = await dispatch({ method: 'POST', url: '/m1/restore', body: { note: true } });
+    assert.strictEqual(res.statusCode, 400, JSON.stringify(res.body));
+    assert.strictEqual(res.body.code, 'invalid_request');
+    assert.match(res.body.error, /Restoring a memory does not take "note"/);
+});

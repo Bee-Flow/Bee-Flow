@@ -15,7 +15,7 @@ file a `description` (what the step does): its first sentence is the gloss in th
 72 characters, no `;`), and the whole of it follows the field list in the full entry.
 
 A server kind is refused on the anonymous step route of a public page unless its policy says
-`public: 'step'` (`routes/studioAppPublicStepGate.mts`): 'refuse', 'browser' and 'stream' all keep
+`public: 'step'` (`usecases/studioAppPublicStepGate.mts`): 'refuse', 'browser' and 'stream' all keep
 it out of the plain step executor.
 
 `../../catalogContract.test.js` holds every file here to the rules (an answer for every execution

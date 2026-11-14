@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 // Internal page links (`{kind:'page', pageId}`) in a CMS content tree.
 
 const { isRecord } = require('./shared');

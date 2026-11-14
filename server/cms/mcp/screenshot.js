@@ -76,8 +76,8 @@ function isHubAssetPath(pathname) {
         && !pathname.includes('//');
 }
 
-/** @param {{ origin?: string, fetchImpl?: typeof fetch, now?: () => number }} [opts] */
-function createHubFetcher({ origin, fetchImpl = (/** @type {Parameters<typeof fetch>} */ ...a) => fetch(...a), now = Date.now } = {}) {
+/** @param {{ origin?: string, fetchImpl?: (url: string, init: RequestInit) => Promise<Response>, now?: () => number }} [opts] */
+function createHubFetcher({ origin, fetchImpl = (url, init) => require('../../utils/fixedEndpointFetch.mts').fetchFixedEndpoint(url, init), now = Date.now } = {}) {
     const cache = new Map();
     return async function fetchHubAsset(pathname) {
         if (!isHubAssetPath(pathname)) return null;
@@ -157,7 +157,7 @@ function isFakeOrigin(href) {
 }
 
 /** The default browser edge: run `serve` as the whole network of a page and capture it. */
-async function captureWithBrowser({ serve, url, viewport, fullPage, offsetY }, browserProvider = require('../../services/browserProvider')) {
+async function captureWithBrowser({ serve, url, viewport, fullPage, offsetY }, browserProvider = require('../../core/featureModules').featureModule('services/browserProvider')) {
     const consoleErrors = [];
     return browserProvider.withContext(
         { viewport, deviceScaleFactor: 1, javaScriptEnabled: true, reducedMotion: 'reduce', colorScheme: 'light' },

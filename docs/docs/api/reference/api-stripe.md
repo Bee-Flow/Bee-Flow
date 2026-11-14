@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/stripe`
 
-12 routes, 5 with a request schema. Back to the [endpoint reference](../reference.md).
+12 routes, 7 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `checkout`
 
@@ -101,13 +101,13 @@ No request schema.
 
 **Access:** middleware `requireCloud`, `requireAdmin`
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `PUT /api/stripe/promo-codes/:id/deactivate`
 
 **Access:** middleware `requireCloud`, `requireAdmin`
 
-No request schema.
+**Body:** object (no other keys)
 
 ## `sessions`
 

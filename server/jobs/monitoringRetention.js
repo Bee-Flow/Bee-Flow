@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Monitoring-ledger retention.
  *
@@ -135,7 +135,7 @@ function _purgeChatSignals() {
  * real ones. Tests pass their own pool, SQL runner, purge and windows instead
  * of reaching into the module system.
  * @param {{ pool: { connect: () => Promise<any> }, run: (sql: string, params?: any[]) => Promise<any>,
- *   purgeChatSignals: () => Promise<number>, recordJobRun: (row: object) => void,
+ *   purgeChatSignals: () => Promise<number>, recordJobRun: (row: { job: string, status: string, durationMs: number }) => void,
  *   retentionDays: number, accessAuditRetentionDays: number }} deps
  */
 function makeMonitoringRetentionPass(deps) {

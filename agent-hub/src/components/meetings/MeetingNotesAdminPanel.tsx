@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { MessageSquare, Loader2 } from 'lucide-react';
-import { API_BASE } from '../../utils/helpers';
 import { useOrgNotesSettingsQuery } from '../../api/queries/meetingNotesSettings';
 import { NC_BLUE, languageOptions, Toggle, Row } from '@/components/settings/shared/settingsPrimitives';
 import { InheritHint, InheritSelect, InheritSwitch, OrgSettingsLoadError, orgFormFromAnswer } from '@/components/settings/shared/orgSettingFields';
 import { useTranslation } from '../../hooks/useTranslation';
 import { errorMessage } from '../../utils/caughtError';
-import { mutate, errorBody, RefusedError } from '../../api/mutate';
+import { errorBody, RefusedError } from '../../api/mutate';
 import { panelOrgId } from '@/utils/adminAccess';
+import { apiRequest } from '@/api/typedRequest';
 
 interface MeetingNotesAdminPanelProps {
     user?: { organizationId?: string } | null;
@@ -61,9 +61,7 @@ export default function MeetingNotesAdminPanel({ user, orgId: orgIdProp }: Meeti
         try {
             let res: Response | undefined;
             try {
-                res = await mutate(`${API_BASE}/api/talk-notes-settings/${orgId}`, {
-                method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cfg),
-            });
+                res = await apiRequest('PUT /api/talk-notes-settings/{orgId}', { params: { orgId: String(orgId) }, init: { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cfg) } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const e = errorBody(err) ?? {};

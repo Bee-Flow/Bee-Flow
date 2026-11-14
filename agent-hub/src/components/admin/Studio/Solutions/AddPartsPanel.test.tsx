@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -9,6 +9,7 @@ vi.mock('@/utils/helpers', () => ({
 }));
 
 import AddPartsPanel from './AddPartsPanel';
+import { renderWithClient } from '@/test/render';
 
 /**
  * "Add to this Solution". Pinned: the counts on the tiles are real before a
@@ -57,7 +58,7 @@ function wire({ failList = '', refuse = {} as Record<string, Json>, lists = LIST
     });
 }
 
-const renderPanel = (props: Partial<React.ComponentProps<typeof AddPartsPanel>> = {}) => render(
+const renderPanel = (props: Partial<React.ComponentProps<typeof AddPartsPanel>> = {}) => renderWithClient(
     <AddPartsPanel projectId="sol1" alreadyIn={new Set()} currentUserId="u1" {...props} />,
 );
 

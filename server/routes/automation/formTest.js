@@ -37,7 +37,7 @@ const { validate } = require('../../core/http/validate');
 const { z, worded, typeError } = require('../../core/http/schemaParts');
 const { makeAutomationAccess } = require('../../automation/access');
 const { makeGuarded } = require('./guardedAutomation');
-const { entryDefinitionOf, resolveTriggerStepId } = require('./runEntry');
+const { entryDefinitionOf, resolveTriggerStepId } = require('../../usecases/automation/runEntry');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { uploadGuard } = require('../../middleware/uploadGuard');
 const { MAX_UPLOAD_MB, formTriggerFields } = require('../../automation/formTriggerContract');
@@ -137,7 +137,7 @@ function makeFormTestRouter(overrides = {}) {
         next();
     };
 
-    router.post('/:id/form-test', limiter, validate({ body: FormTestBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof FormTestBody>, import('qs').ParsedQs>} */ req, res) => {
+    router.post('/:id/form-test', limiter, validate({ body: FormTestBody }), async (req, res) => {
         const a = await guarded(req, res, 'edit');
         if (!a) return undefined;
         const mode = req.body.mode;

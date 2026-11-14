@@ -12,7 +12,7 @@
 
 const { LIMITS, SCREEN_SPEC } = require('../../componentSpecs');
 const ops = require('../../definitionOps');
-const { pickClosestId } = require('../../../automation/validate/helpers');
+const { pickClosestId } = require('../../../utils/closestId.mts');
 const { isBinding: screenRuleBinds, describeScreenConstraints } = require('../../../core/llm/screenConstraints');
 const { idHint, adoptCanonical } = require('../shared');
 const { sectionKeyPatch, SECTION_KEY_NAMES } = require('./sectionKeyArgs.mts');

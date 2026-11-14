@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The steps of ONE FULL PASS over a mirror, for ./syncPipeline.js (which
  * documents the order — it is the correctness — and the adapter contract).
@@ -39,17 +39,19 @@ const { fallback } = require('../../../../utils/bestEffort');
 /**
  * What `adapter.deriveFields` answers.
  * @typedef {{ fields: Parameters<typeof reconcileMirrorSchema>[2], columnMap?: unknown, relations?: unknown[], warnings?: string[],
- *             changes: string[], retyped?: Parameters<typeof reconcileMirrorSchema>[3]['retyped'], sourcePatch?: Record<string, unknown> }} DerivedColumns
+ *             changes: string[], retyped?: NonNullable<Parameters<typeof reconcileMirrorSchema>[3]>['retyped'], sourcePatch?: Record<string, unknown> }} DerivedColumns
  */
 /**
- * The adapter members one pass calls (the contract is in ./syncPipeline.js).
- * @typedef {{ resolveLinker: (source: MirrorRow['source'], opts: { orgId: string | null }) => Promise<{ auth?: unknown }>,
- *             apiFor: (auth: unknown, source: MirrorRow['source']) => unknown,
- *             siblingsOf: (scope: MirrorRow['scope']) => Promise<MirrorSiblings>,
- *             open: (api: unknown, table: MirrorRow, opts: { prev: Record<string, unknown>, mustFetch: boolean, rowCap: number }) => Promise<OpenedSource>,
- *             deriveFields: (columns: unknown, ctx: { existingFields?: unknown[], siblings?: unknown, declaredRelations?: unknown[], source?: unknown }) => DerivedColumns | Promise<DerivedColumns>,
- *             rowFromSource: (raw: unknown, ctx: RowCtx) => { id: unknown, values: object } | null,
- *             labelFieldFor?: Parameters<typeof buildRelationIndexes>[2]['labelFieldFor'] }} PassAdapter
+ * The adapter members one pass calls (the contract is in ./syncPipeline.js). Method signatures, so each
+ * kind's adapter names the auth, api, column and row shapes it hands itself: the pass only carries them
+ * (deriveFields' ctx is optional because an adapter may default it).
+ * @typedef {{ resolveLinker(source: MirrorRow['source'], opts: { orgId: string | null }): Promise<{ auth?: unknown }>,
+ *             apiFor(auth: unknown, source: MirrorRow['source']): unknown,
+ *             siblingsOf(scope: MirrorRow['scope']): Promise<MirrorSiblings>,
+ *             open(api: unknown, table: MirrorRow, opts: { prev: Record<string, unknown>, mustFetch: boolean, rowCap: number }): Promise<OpenedSource>,
+ *             deriveFields(columns: unknown, ctx?: { existingFields?: unknown[], siblings?: unknown, declaredRelations?: unknown[], source?: unknown }): DerivedColumns | Promise<DerivedColumns>,
+ *             rowFromSource(raw: unknown, ctx: RowCtx): { id: unknown, values: object } | null,
+ *             labelFieldFor?: NonNullable<Parameters<typeof buildRelationIndexes>[2]>['labelFieldFor'] }} PassAdapter
  */
 /** @typedef {{ prev: Record<string, any>, schedule: Parameters<typeof staleness.nextRunAtFor>[0], reason: string, startedAt: number, warnings: string[] }} FinishCtx */
 
@@ -62,7 +64,7 @@ function declaredOf(source, siblings) {
     return ((source && source.relations) || [])
         .filter(r => r && r.kind === 'match')
         .map((r) => {
-            const target = /** @type {{ id: string, key?: string, name?: string } | undefined} */ (siblings.byId.get(r.targetDatatableId));
+            const target = /** @type {{ id: string, key?: string, name?: string } | undefined} */ (siblings.byId.get(/** @type {string} */ (r.targetDatatableId))); // a relation without a target finds none
             return { ...r, targetKey: target ? target.key : null, targetName: target ? target.name : null };
         });
 }
@@ -170,10 +172,12 @@ async function fetchRows(adapter, opened, rowCtx, { rowCap, PAGE }) {
     let offset = 0;
     let truncated = opened.truncated === true;
     let skippedRows = 0;
+    // Only a source that is not 'unchanged' gets here, and open() hands such a source its page reader.
+    const pageOf = /** @type {NonNullable<OpenedSource['page']>} */ (opened.page);
     for (;;) {
         const want = Math.min(PAGE, rowCap - fetched.length);
         if (want <= 0) { truncated = true; break; }
-        const page = await opened.page(want, offset);
+        const page = await pageOf.call(opened, want, offset);
         for (const raw of page) {
             const row = adapter.rowFromSource(raw, rowCtx);
             if (row && row.id !== undefined && row.id !== null) fetched.push(row);
@@ -183,7 +187,7 @@ async function fetchRows(adapter, opened, rowCtx, { rowCap, PAGE }) {
         offset += page.length;
         if (fetched.length >= rowCap) {
             // One more probe tells "exactly at the cap" from "more behind it".
-            const probe = await opened.page(1, offset);
+            const probe = await pageOf.call(opened, 1, offset);
             truncated = truncated || probe.length > 0;
             break;
         }

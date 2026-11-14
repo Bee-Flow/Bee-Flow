@@ -1,8 +1,9 @@
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DAY_MS } from '@/components/shared/deadlineMath';
+import { renderWithClient } from '@/test/render';
 import { capturePayload, validateCapture } from './dsr/DsrCaptureModal';
 import DsrPage, { dsrHeaderSpec } from './DsrPage';
 
@@ -55,7 +56,7 @@ const listOnly = (rows = ROWS) => fetchJson.mockImplementation((url, init) => {
 describe('DsrPage — without data.dsr it talks to /api/dsr itself', () => {
     it('reads the list, shows the open filter by default with counts, sorts by deadline', async () => {
         listOnly();
-        render(<DsrPage />);
+        renderWithClient(<DsrPage />);
         expect(screen.getAllByTestId('table-skeleton-row').length).toBeGreaterThan(0);
         await screen.findByTestId('dsr-table-row-2038');
         expect(fetchJson).toHaveBeenCalledWith(expect.stringMatching(/\/api\/dsr\/requests$/));
@@ -80,7 +81,7 @@ describe('DsrPage — without data.dsr it talks to /api/dsr itself', () => {
     it('server-shaped rows: Completed counts the fulfilled row and a closed row never reads as open', async () => {
         listOnly([...ROWS, { id: 2030, request_type: 'objection', status: 'rejected', state: 'none', subject_email_masked: 'k.•••@ziggo.nl', channel: 'letter', created_at: iso(NOW - 60 * DAY_MS), due_at: iso(NOW - 30 * DAY_MS), fulfilled_at: iso(NOW - 58 * DAY_MS) }]);
         const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-        render(<DsrPage />);
+        renderWithClient(<DsrPage />);
         await screen.findByTestId('dsr-table-row-2038');
         expect(screen.getByTestId('dsr-filter-fulfilled')).toHaveTextContent('Completed1');
         expect(screen.getByTestId('dsr-filter-rejected')).toHaveTextContent('Rejected1');
@@ -91,7 +92,7 @@ describe('DsrPage — without data.dsr it talks to /api/dsr itself', () => {
 
     it('filter pills and the search narrow the list; the overdue pill is the error tone', async () => {
         listOnly();
-        render(<DsrPage />);
+        renderWithClient(<DsrPage />);
         await screen.findByTestId('dsr-table-row-2038');
         fireEvent.click(screen.getByTestId('dsr-filter-fulfilled'));
         expect(screen.queryByTestId('dsr-table-row-2038')).toBeNull();
@@ -108,7 +109,7 @@ describe('DsrPage — without data.dsr it talks to /api/dsr itself', () => {
 
     it('a failed read is its own state — not an empty register — and the pills carry no counts', async () => {
         fetchJson.mockRejectedValue(new Error('500 Internal Server Error'));
-        render(<DsrPage />);
+        renderWithClient(<DsrPage />);
         await screen.findByTestId('dsr-table-failed-text');
         expect(screen.queryByTestId('dsr-table-empty-text')).toBeNull();
         expect(screen.getByTestId('dsr-filter-open')).toHaveTextContent(/^Open$/);
@@ -116,7 +117,7 @@ describe('DsrPage — without data.dsr it talks to /api/dsr itself', () => {
 
     it('row click opens the inline drawer; Fulfil posts to /requests/:id/fulfil and re-reads the list; toast on success', async () => {
         listOnly();
-        render(<DsrPage />);
+        renderWithClient(<DsrPage />);
         fireEvent.click(await screen.findByTestId('dsr-table-row-2041'));
         const drawer = await screen.findByTestId('dsr-drawer');
         expect(drawer).toHaveAttribute('data-mode', 'inline');
@@ -136,7 +137,7 @@ describe('DsrPage — without data.dsr it talks to /api/dsr itself', () => {
 
     it('Extend posts { reason } to /extend; Start posts to /start; a failing write toasts an error', async () => {
         listOnly();
-        render(<DsrPage />);
+        renderWithClient(<DsrPage />);
         fireEvent.click(await screen.findByTestId('dsr-table-row-2041'));
         fireEvent.click(await screen.findByTestId('dsr-drawer-extend'));
         fireEvent.change(screen.getByTestId('dsr-drawer-extend-reason'), { target: { value: 'Three systems' } });
@@ -154,7 +155,7 @@ describe('DsrPage — without data.dsr it talks to /api/dsr itself', () => {
             if (/\/start$/.test(url)) return Promise.reject(new Error('409 Conflict'));
             return Promise.reject(new Error('404 Not Found'));
         });
-        render(<DsrPage focusId={2041} />);
+        renderWithClient(<DsrPage focusId={2041} />);
         fireEvent.click(await screen.findByTestId('dsr-drawer-start'));
         await waitFor(() => expect(fetchJson).toHaveBeenCalledWith(expect.stringMatching(/\/api\/dsr\/requests\/2041\/start$/), expect.objectContaining({ method: 'POST' })));
         await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Could not update the request'));
@@ -165,7 +166,7 @@ describe('DsrPage — without data.dsr it talks to /api/dsr itself', () => {
         vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} });
         vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ width: 952, height: 600, top: 0, left: 0, right: 952, bottom: 600, x: 0, y: 0, toJSON() {} });
         listOnly();
-        render(<DsrPage focusId={2041} />);
+        renderWithClient(<DsrPage focusId={2041} />);
         const drawer = await screen.findByTestId('dsr-drawer');
         await waitFor(() => expect(drawer).toHaveAttribute('data-mode', 'overlay'));
         expect(screen.getByTestId('dsr-page')).toHaveAttribute('data-drawer-mode', 'overlay');
@@ -174,7 +175,7 @@ describe('DsrPage — without data.dsr it talks to /api/dsr itself', () => {
 
     it('a phone opens the drawer as a dialog', async () => {
         listOnly();
-        render(<DsrPage focusId={2041} isMobile />);
+        renderWithClient(<DsrPage focusId={2041} isMobile />);
         await screen.findByRole('dialog');
         expect(screen.getByTestId('dsr-drawer')).toHaveAttribute('data-mode', 'modal');
     });
@@ -182,7 +183,7 @@ describe('DsrPage — without data.dsr it talks to /api/dsr itself', () => {
     it('Confirm identity… posts { method: "manual", note } to /verify-identity and toasts', async () => {
         listOnly();
         const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-        render(<DsrPage focusId={2041} />);
+        renderWithClient(<DsrPage focusId={2041} />);
         await user.click(await screen.findByRole('button', { name: /Confirm identity…/ }));
         await user.type(screen.getByLabelText('How was the identity checked?'), 'Called back on the number in the CRM');
         await user.click(screen.getByTestId('dsr-drawer-identity-save'));
@@ -195,7 +196,7 @@ describe('DsrPage — without data.dsr it talks to /api/dsr itself', () => {
 
     it('a completed row opens read-only', async () => {
         listOnly();
-        render(<DsrPage focusId="2036" />);
+        renderWithClient(<DsrPage focusId="2036" />);
         const drawer = await screen.findByTestId('dsr-drawer-body');
         expect(drawer).toHaveAttribute('data-state', 'done');
         expect(drawer).toHaveAttribute('data-readonly', 'true');
@@ -213,7 +214,7 @@ describe('DsrPage — with data.dsr it uses the hook', () => {
             exportUrlFor: (id) => `/x/${id}/export`,
         };
         const dl = vi.fn((url) => `${url}?signed`);
-        render(<DsrPage data={{ dsr }} dl={dl} focusId={2038} />);
+        renderWithClient(<DsrPage data={{ dsr }} dl={dl} focusId={2038} />);
         expect(fetchJson).not.toHaveBeenCalled();
         const drawer = await screen.findByTestId('dsr-drawer-body');
         expect(drawer).toHaveAttribute('data-state', 'in_progress');
@@ -237,7 +238,7 @@ describe('DsrPage — with data.dsr it uses the hook', () => {
             extend: vi.fn().mockRejectedValue(new Error('500')),
             start: vi.fn().mockResolvedValue({}),
         };
-        const { rerender } = render(<DsrPage data={{ dsr }} focusId={2038} />);
+        const { rerender } = renderWithClient(<DsrPage data={{ dsr }} focusId={2038} />);
         await screen.findByTestId('dsr-drawer-body');
         fireEvent.click(screen.getByTestId('dsr-drawer-fulfil'));
         await waitFor(() => expect(dsr.fulfil).toHaveBeenCalled());
@@ -261,14 +262,14 @@ describe('DsrPage — with data.dsr it uses the hook', () => {
 
     it('without the hook the page owns the message: its own fulfil toasts success, a failure toasts the error', async () => {
         listOnly();
-        render(<DsrPage focusId={2038} />);
+        renderWithClient(<DsrPage focusId={2038} />);
         await screen.findByTestId('dsr-drawer-body');
         fireEvent.click(screen.getByTestId('dsr-drawer-fulfil'));
         await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Request fulfilled — the data subject has been e-mailed'));
     });
 
     it('requests === null is loading, dl === null (demo) hides Export', async () => {
-        const { rerender } = render(<DsrPage data={{ dsr: { requests: null } }} />);
+        const { rerender } = renderWithClient(<DsrPage data={{ dsr: { requests: null } }} />);
         expect(screen.getAllByTestId('table-skeleton-row').length).toBeGreaterThan(0);
         rerender(<DsrPage data={{ dsr: { requests: ROWS } }} dl={() => null} focusId={2038} />);
         await screen.findByTestId('dsr-drawer');
@@ -280,7 +281,7 @@ describe('DsrPage — the header primary is registered with the hub', () => {
     it('setHeaderActions gets onCaptureRequest on mount, opens the modal, and is cleared on unmount', async () => {
         listOnly();
         const setHeaderActions = vi.fn();
-        const { unmount } = render(<DsrPage setHeaderActions={setHeaderActions} />);
+        const { unmount } = renderWithClient(<DsrPage setHeaderActions={setHeaderActions} />);
         await screen.findByTestId('dsr-table-row-2038');
         expect(setHeaderActions).toHaveBeenCalledTimes(1);
         const registered = setHeaderActions.mock.calls[0][0];
@@ -297,7 +298,7 @@ describe('DsrPage — capture modal', () => {
     it('opens through the handle, validates, then posts the allow-listed body to /requests/manual and toasts', async () => {
         listOnly();
         const ref = React.createRef();
-        render(<DsrPage ref={ref} />);
+        renderWithClient(<DsrPage ref={ref} />);
         await screen.findByTestId('dsr-table-row-2038');
         expect(screen.queryByTestId('dsr-capture-form')).toBeNull();
         act(() => ref.current.openCapture());
@@ -333,7 +334,7 @@ describe('DsrPage — capture modal', () => {
 
     it('captureSignal opens it too, and the e-mail channel goes out as email_dpo', async () => {
         listOnly();
-        const { rerender } = render(<DsrPage captureSignal={0} />);
+        const { rerender } = renderWithClient(<DsrPage captureSignal={0} />);
         await screen.findByTestId('dsr-table-row-2038');
         rerender(<DsrPage captureSignal={1} />);
         expect(await screen.findByTestId('dsr-capture-form')).toBeTruthy();
@@ -353,7 +354,7 @@ describe('DsrPage — capture modal', () => {
 describe('DsrPage — tabs and header spec', () => {
     it('public_form shows the URL with a copy button and links to the settings section; there is no Settings tab', async () => {
         const navigate = vi.fn();
-        const { rerender } = render(<DsrPage tab="public_form" navigate={navigate} data={{ core: { overview: { settings: { public_dsr_url: 'https://acme.example/dsr' } } } }} />);
+        const { rerender } = renderWithClient(<DsrPage tab="public_form" navigate={navigate} data={{ core: { overview: { settings: { public_dsr_url: 'https://acme.example/dsr' } } } }} />);
         expect(screen.getByTestId('dsr-public-form-url')).toHaveTextContent('https://acme.example/dsr');
         expect(screen.getByTestId('dsr-public-form-open')).toHaveAttribute('href', 'https://acme.example/dsr');
         expect(screen.getByTestId('dsr-public-form')).toHaveTextContent('Rate-limited');

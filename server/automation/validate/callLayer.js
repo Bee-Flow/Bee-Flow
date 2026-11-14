@@ -4,7 +4,8 @@
  * from validate.js).
  */
 
-const { isObject, pickClosestId } = require('./helpers');
+const { isObject } = require('./helpers');
+const { pickClosestId } = require('../../utils/closestId.mts');
 
 /**
  * @param {string} [pathPrefix]

@@ -69,7 +69,7 @@ const MOCKS = {
     },
     '../../../core/integrations/integrationTools': { buildToolHint: async () => '' },
     '../../../core/agentRuntime/phaseEvents': { emitPhase: noop, emitPhaseEnd: noop, withPhase: async (s, p, fn) => fn() },
-    './systemPrompt': { DEFAULT_SYSTEM_PROMPT: 'You are a helpful assistant.' },
+    '../../../usecases/ai/directChat/systemPrompt': { DEFAULT_SYSTEM_PROMPT: 'You are a helpful assistant.' },
     './shared': { encryptionOpts: () => ({}) },
     '../../../core/llm/promptStyle': { buildWritingStyleAddendum: () => '', buildResponseLanguageRule: () => '' },
     '../../../auth/projectAccess': {
@@ -99,7 +99,7 @@ const MOCKS = {
         resolveMemoryPolicy: async (opts) => { fx.memoryPolicyCalls.push(opts); return fx.memoryPolicy; },
     },
     '../../../core/memory/scrubMemoryContext': { scrubMemoryContext: async (t) => ({ scrubbed: t, replacedCategories: [] }) },
-    './memoryProtection': { protectMemoryContext: async ({ memoryContext }) => ({ memoryContext, memorySwap: null }) },
+    '../../../usecases/ai/directChat/memoryProtection': { protectMemoryContext: async ({ memoryContext }) => ({ memoryContext, memorySwap: null }) },
     '../../../stores/houseStyleStore': { getDefaultForOrg: async () => null },
     '../../../core/webpages/sidePanelWebpageContext': { buildSidePanelWebpageContext: async () => '' },
     '../../../core/documents/sidePanelDocumentContext': {

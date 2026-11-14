@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useOrgInvitationsQuery } from '@/api/queries/orgAdminReads';
 import { useAdminOrgScope, withOrgIdParam } from '@/api/adminOrgScope';
 import type { Dispatch, SetStateAction } from 'react';
-import { API_BASE } from '@/utils/helpers';
-import { mutate, ApiError, RefusedError, errorBody } from '@/api/mutate';
+import { ApiError, RefusedError, errorBody } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 /** One pending invitation, as GET /auth/invitations returns it. */
 export interface Invitation {
@@ -86,10 +86,9 @@ export default function useOrgInvitations(): OrgInvitations {
                 emailSent?: boolean; inviteUrl?: string;
             };
             try {
-                const res = await mutate(withOrgIdParam(`${API_BASE}/auth/invitations`, orgId), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: inviteEmail.trim(), role: inviteRole }),
+                const res = await apiRequest('POST /auth/invitations', {
+                    query: { orgId: orgId || undefined },
+                    body: { email: inviteEmail.trim(), role: inviteRole },
                 });
                 data = await res.json();
             } catch (err) {
@@ -127,7 +126,7 @@ export default function useOrgInvitations(): OrgInvitations {
 
     const handleRevokeInvite = async (invitationId: string) => {
         try {
-            const res = await mutate(withOrgIdParam(`${API_BASE}/auth/invitations/${invitationId}`, orgId), { method: 'DELETE' }).catch((err: unknown) => {
+            const res = await apiRequest('DELETE /auth/invitations/{id}', { params: { id: invitationId }, query: { orgId: orgId || undefined } }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });

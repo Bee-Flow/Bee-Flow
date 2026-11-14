@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Custom Integration Runner — hardened generic executor for org-scoped
  * custom integrations (AI Integration Builder).
@@ -280,7 +281,7 @@ async function readBodyCapped(response, capBytes) {
         total += value.byteLength;
         if (total > capBytes) {
             await reader.cancel().catch((e) => bestEffort('integrations/customIntegrationRunner:readBodyCapped', e));
-            const err = new Error('Response exceeded the size limit.');
+            const err = /** @type {Error & { tooLarge?: boolean }} */ (new Error('Response exceeded the size limit.'));
             err.tooLarge = true;
             throw err;
         }
@@ -524,7 +525,7 @@ module.exports = {
 /**
  * One tool of a 'rest' definition.
  * @typedef {{ name?: string, method?: string, pathTemplate?: string, query?: Record<string, unknown>,
- *   headers?: Record<string, unknown>, body?: { mode?: string, template?: unknown }, parameters?: ArgSchema,
+ *   headers?: Record<string, unknown>, body?: { mode?: string, template?: unknown }, parameters?: Record<string, unknown>,
  *   resultPath?: string }} RestTool
  */
 

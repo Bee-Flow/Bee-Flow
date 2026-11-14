@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The bookkeeping behind the AI that decides by itself when to take part
  * (projects/participation/): a queue of debounced "watches", an audit log of
@@ -270,7 +270,7 @@ function makeWatches(db, ready, newId) {
         // One per container, even if two kinds came due in the same instant.
         const seen = new Set();
         const out = [];
-        for (const row of r.rows.map(rowToWatch).sort((a, b) => String(a.dueAt).localeCompare(String(b.dueAt)))) {
+        for (const row of /** @type {NonNullable<ReturnType<typeof rowToWatch>>[]} */ (r.rows.map(rowToWatch)).sort((a, b) => String(a.dueAt).localeCompare(String(b.dueAt)))) {
             if (seen.has(row.containerId)) {
                 await q.query(`UPDATE project_ai_watch SET state = 'pending', claim_id = NULL, claimed_at = NULL, updated_at = NOW()
                                  WHERE id = $1 AND claim_id = $2`, [row.id, claimId]);
@@ -377,7 +377,7 @@ function makeDecisions(db, ready, newId) {
              ON CONFLICT (surface, container_id, last_seq, trigger_kind) WHERE gate_called DO NOTHING
              RETURNING *`,
             [newId(), d.projectId, d.orgId || null, d.surface, d.containerId, d.triggerMessageId || null,
-                d.triggerKind, Number.isFinite(d.lastSeq) ? d.lastSeq : 0],
+                d.triggerKind, Number.isFinite(d.lastSeq) ? /** @type {number} */ (d.lastSeq) : 0],
         );
         return rowToDecision(r.rows[0] || null);
     }
@@ -396,7 +396,7 @@ function makeDecisions(db, ready, newId) {
                     model = COALESCE($6, model), reply_message_id = $7, decided_at = NOW()
               WHERE id = $1
               RETURNING *`,
-            [id, decision, code(skipReason), code(reasonCode), Number.isFinite(confidence) ? confidence : null,
+            [id, decision, code(skipReason), code(reasonCode), Number.isFinite(confidence) ? /** @type {number} */ (confidence) : null,
                 typeof model === 'string' ? model.slice(0, 200) : null, replyMessageId || null],
         );
         return rowToDecision(r.rows[0] || null);

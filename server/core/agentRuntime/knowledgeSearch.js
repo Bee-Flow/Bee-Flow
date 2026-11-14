@@ -205,7 +205,7 @@ async function performKnowledgeSearch({ agent, userId, userMessage, isStrictKnow
  * @param {{ topK?: number, contentCap?: number, session?: Express.Session | null, log?: import('../kb/queryLog/hook.mts').LogOption | null }} [options]
  *   topK (default 6): max results to return; contentCap (default 3000): max chars per chunk;
  *   log: the query-log channel to record this search under, the handle comes back as `._queryLog` on the array
- * @returns {Promise<Array<{title: string, content: string, score: number}>>}
+ * @returns {Promise<Array<{title: string, content: string, score: number, document_id?: string, kb_id?: string, source_uri?: string}>>}
  */
 async function quickKBSearch(userId, kbIds, query, options = {}) {
     const { topK = 6, contentCap = 3000, session = null, log: queryLog = null } = options;

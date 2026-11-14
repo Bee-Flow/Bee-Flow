@@ -176,7 +176,8 @@ const TRIGGER_META_FIELDS = Object.freeze([
     { key: 'schedule.scheduledFor', path: 'trigger.schedule.scheduledFor', sample: '2026-09-03T07:00:00.000Z', note: 'Additional schedules only: the slot that fired.' },
 ]);
 
-const api = { triggerFieldsFor, declaredTriggerFields, buildTriggerOutputsCatalog, TRIGGER_META_FIELDS };
+/** @typedef {{ triggerFieldsFor: typeof triggerFieldsFor, declaredTriggerFields: typeof declaredTriggerFields, buildTriggerOutputsCatalog: typeof buildTriggerOutputsCatalog, TRIGGER_META_FIELDS: typeof TRIGGER_META_FIELDS, readonly TRIGGER_FIELDS_BY_EVENT: ReturnType<typeof fieldsByEvent>, readonly TRIGGER_OUTPUT_SAMPLES: ReturnType<typeof outputSamples> }} TriggerCatalogApi  the two maps are getters (below) */
+const api = /** @type {TriggerCatalogApi} */ ({ triggerFieldsFor, declaredTriggerFields, buildTriggerOutputsCatalog, TRIGGER_META_FIELDS });
 module.exports = api;
 
 // Back-compat surface: both maps were plain objects and are still re-exported

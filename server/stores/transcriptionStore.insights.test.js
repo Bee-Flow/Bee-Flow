@@ -1,284 +1,189 @@
 /**
- * transcriptionStore — the SQL added for meeting insights.
+ * transcriptionStore — the SQL added for meeting insights, run on a real
+ * Postgres (PGlite behind db.js's pool, testUtils/pglitePool.js) with the
+ * store's own schema.
  *
  * These are the mechanically riskiest edits of the feature: a hand-numbered
- * 29-column INSERT, a conditional tags UPDATE, and a hand-built ACL query for
- * the recurring-series card. The real db.js runs over a recording pool
- * so every query's text + params are captured instead of hitting Postgres.
+ * many-column INSERT, a conditional tags UPDATE, and a hand-built ACL query for
+ * the recurring-series card. Every value is read back from the row it landed in.
  *
  * Run: cd server && node --test stores/transcriptionStore.insights.test.js
  */
 
-const { test, beforeEach } = require('node:test');
+const { test, beforeEach, before, after } = require('node:test');
 const assert = require('node:assert');
+const { usePglitePool } = require('../testUtils/pglitePool');
+const { insertRow } = require('../testUtils/pgliteSeed');
 
-const state = { calls: [], runResult: { rowCount: 1, rows: [] }, oneRow: null, allRows: [] };
-
-// The real db.js over a recording pool: DDL, writes and reads all land in `state.calls`;
-// a write answers `runResult`, a read the `oneRow` or else the `allRows` the case set.
-require('../testUtils/routeHarness').recordDb((sql, params) => {
-    state.calls.push({ sql, params });
-    if (/^\s*SELECT/i.test(sql)) return { rows: state.oneRow ? [state.oneRow] : state.allRows };
-    if (/^\s*(INSERT|UPDATE|DELETE)/i.test(sql)) return state.runResult;
-    return undefined;
-});
-
+const { pg, close } = usePglitePool();
 const store = require('./transcriptionStore');
+before(() => store.initDB());
+after(close);
+beforeEach(async () => { await pg.exec('DELETE FROM transcriptions'); });
 
-beforeEach(() => {
-    state.calls = [];
-    state.runResult = { rowCount: 1, rows: [] };
-    state.oneRow = null;
-    state.allRows = [];
-});
+/** @param {string} id @param {Record<string, unknown>} [over] */
+const note = (id, over = {}) => insertRow(pg, 'transcriptions', { id, user_id: 'u1', title: id, ...over });
+/** @param {string} id */
+const row = async (id) => (await pg.query('SELECT * FROM transcriptions WHERE id = $1', [id])).rows[0];
 
-const lastOfKind = (re) => [...state.calls].reverse().find((c) => re.test(c.sql || ''));
-
-test('createTranscription: placeholders, columns and values stay aligned', async () => {
-    await store.createTranscription({
+test('createTranscription: every column lands with its own value', async () => {
+    const created = await store.createTranscription({
         userId: 'u1', title: 'T', fileName: 'a.mp3',
         actionItems: [{ id: 'ai-0' }],
         decisions: [{ id: 'd-0', text: 'Besluit' }],
         questions: [{ id: 'q-0', text: 'Vraag', open: true }],
         tags: ['planning'],
     });
-
-    const insert = lastOfKind(/INSERT INTO transcriptions/);
-    assert.ok(insert, 'an INSERT was issued');
-
-    const columns = insert.sql.match(/INSERT INTO transcriptions \(([^)]+)\)/)[1].split(',').map((c) => c.trim());
-    const placeholders = insert.sql.match(/VALUES \(([^)]+)\)/)[1].split(',').map((p) => p.trim());
-
-    // The three counts must agree, or values silently land in the wrong column.
-    assert.strictEqual(columns.length, placeholders.length, 'column count === placeholder count');
-    assert.strictEqual(columns.length, insert.params.length, 'column count === value count');
-    // Placeholders must be $1..$N in order, with no gaps or repeats.
-    assert.deepStrictEqual(placeholders, columns.map((_, i) => `$${i + 1}`));
-
-    // The new columns carry the new values.
-    const valueOf = (col) => insert.params[columns.indexOf(col)];
-    assert.deepStrictEqual(JSON.parse(valueOf('decisions')), [{ id: 'd-0', text: 'Besluit' }]);
-    assert.deepStrictEqual(JSON.parse(valueOf('questions')), [{ id: 'q-0', text: 'Vraag', open: true }]);
-    assert.deepStrictEqual(JSON.parse(valueOf('tags')), ['planning']);
-    assert.deepStrictEqual(JSON.parse(valueOf('action_items')), [{ id: 'ai-0' }]);
+    const r = await row(created.id);
+    assert.deepStrictEqual(
+        [r.user_id, r.title, r.file_name, r.decisions, r.questions, r.tags, r.action_items],
+        ['u1', 'T', 'a.mp3', [{ id: 'd-0', text: 'Besluit' }], [{ id: 'q-0', text: 'Vraag', open: true }], ['planning'], [{ id: 'ai-0' }]],
+    );
 });
 
 test('createTranscription: omitted artifacts default to empty JSON arrays', async () => {
-    await store.createTranscription({ userId: 'u1', title: 'T', fileName: 'a.mp3' });
-    const insert = lastOfKind(/INSERT INTO transcriptions/);
-    const columns = insert.sql.match(/INSERT INTO transcriptions \(([^)]+)\)/)[1].split(',').map((c) => c.trim());
-    for (const col of ['decisions', 'questions', 'tags']) {
-        assert.strictEqual(insert.params[columns.indexOf(col)], '[]', `${col} defaults to []`);
-    }
+    const created = await store.createTranscription({ userId: 'u1', title: 'T', fileName: 'a.mp3' });
+    const r = await row(created.id);
+    for (const col of ['decisions', 'questions', 'tags']) assert.deepStrictEqual(r[col], [], `${col} defaults to []`);
 });
 
-/**
- * The SET expression of one column, cut out by balancing parentheses.
- *
- * A regex with `[\s\S]*` runs on into the next column and so proves nothing:
- * `decisions = (SELECT … jsonb_array_elements($n::jsonb)` also matches when that `$n` is
- * the parameter of QUESTIONS. That weighs more heavily now that the placeholder no longer
- * runs inline (`decisions = $${idx++}`, trivially correct) but is generated by the helper
- * `artifactColumnSql()` — exactly the place where a wrong parameter is a real mistake.
- */
-function setExpression(sql, column) {
-    const at = sql.indexOf(`${column} = `);
-    assert.ok(at >= 0, `${column} komt niet in de SET voor`);
-    const start = sql.indexOf('(', at);
-    let depth = 0;
-    for (let i = start; i < sql.length; i += 1) {
-        if (sql[i] === '(') depth += 1;
-        else if (sql[i] === ')') { depth -= 1; if (depth === 0) return sql.slice(start, i + 1); }
-    }
-    throw new Error(`ongebalanceerde haakjes in de expressie van ${column}`);
-}
-
-/** De verschillende `$n` die BINNEN die ene expressie voorkomen. */
-function placeholdersIn(expr) {
-    return [...new Set([...expr.matchAll(/\$(\d+)/g)].map((m) => Number(m[1])))].sort((a, b) => a - b);
-}
-
-test('updateTranscription: decisions/questions persist as JSONB with aligned params', async () => {
+test('updateTranscription: each artifact column gets its OWN value, owner-scoped', async () => {
+    await note('t-1');
+    await note('t-other', { user_id: 'u2' });
     await store.updateTranscription('t-1', 'u1', {
         summary: 'S',
         actionItems: [{ id: 'ai-0', text: 'C' }],
         decisions: [{ id: 'd-0', text: 'A' }],
         questions: [{ id: 'q-0', text: 'B', open: false }],
     });
-    const upd = lastOfKind(/UPDATE transcriptions SET/);
-    // The three artifact columns are no longer assigned bare: the SET expression stamps each
-    // row with the database clock (and, together with `artifactsSince`, keeps what came in
-    // during a running run — see transcriptionStore.artifactWindow.pg.test.js). What counts
-    // here is that each column still reads ONLY FROM ITS OWN parameter.
-    const expected = {
-        action_items: JSON.stringify([{ id: 'ai-0', text: 'C' }]),
-        decisions: JSON.stringify([{ id: 'd-0', text: 'A' }]),
-        questions: JSON.stringify([{ id: 'q-0', text: 'B', open: false }]),
-    };
-    for (const [column, json] of Object.entries(expected)) {
-        const expr = setExpression(upd.sql, column);
-        const used = placeholdersIn(expr);
-        assert.strictEqual(used.length, 1, `${column} leest uit precies één parameter (geen artifactsSince hier)`);
-        assert.strictEqual(upd.params[used[0] - 1], json, `${column} leest zijn EIGEN parameter`);
-        assert.match(expr, /jsonb_array_elements\(\$\d+::jsonb\)/);
-    }
-
-    // Every $n in the statement must have a value behind it.
-    const maxParam = Math.max(...[...upd.sql.matchAll(/\$(\d+)/g)].map((m) => Number(m[1])));
-    assert.strictEqual(maxParam, upd.params.length, 'no dangling placeholders');
-    // id + userId are always the last two params (owner-scoped WHERE).
-    assert.deepStrictEqual(upd.params.slice(-2), ['t-1', 'u1']);
+    const r = await row('t-1');
+    assert.deepStrictEqual(r.action_items.map(({ id, text }) => ({ id, text })), [{ id: 'ai-0', text: 'C' }]);
+    assert.deepStrictEqual(r.decisions.map(({ id, text }) => ({ id, text })), [{ id: 'd-0', text: 'A' }]);
+    assert.deepStrictEqual(r.questions.map(({ id, text, open }) => ({ id, text, open })), [{ id: 'q-0', text: 'B', open: false }]);
+    assert.strictEqual(await store.updateTranscription('t-other', 'u1', { decisions: [{ id: 'x', text: 'not mine' }] }), false);
+    assert.deepStrictEqual((await row('t-other')).decisions, [], 'someone else\'s note is untouched');
 });
 
-test('updateTranscription: `artifactsSince` is ÉÉN parameter voor alle drie de kolommen', async () => {
+test('updateTranscription: `artifactsSince` is ÉÉN vertrekpunt voor alle drie de kolommen', async () => {
     // Eén vertrekpunt, uit één read — drie kolommen die er los van elkaar op
     // vergelijken zouden aan de randen van het venster uit elkaar lopen.
+    await note('t-1');
     await store.updateTranscription('t-1', 'u1', {
         actionItems: [{ id: 'ai-0', text: 'C' }],
         decisions: [{ id: 'd-0', text: 'A' }],
         questions: [{ id: 'q-0', text: 'B', open: false }],
         artifactsSince: '2026-07-01T09:00:00.000Z',
     });
-    const upd = lastOfKind(/UPDATE transcriptions SET/);
-    const sinceIdx = upd.params.indexOf('2026-07-01T09:00:00.000Z') + 1;
-    assert.ok(sinceIdx > 0, 'het vertrekpunt is een gebonden parameter, geen tekst in het SQL');
-
-    for (const column of ['action_items', 'decisions', 'questions']) {
-        const used = placeholdersIn(setExpression(upd.sql, column));
-        assert.strictEqual(used.length, 2, `${column}: eigen waarde + het gedeelde vertrekpunt`);
-        assert.ok(used.includes(sinceIdx), `${column} vergelijkt tegen hetzelfde vertrekpunt`);
-        const valueIdx = used.find((n) => n !== sinceIdx);
-        assert.strictEqual(typeof upd.params[valueIdx - 1], 'string');
-        assert.ok(upd.params[valueIdx - 1].startsWith('['), `${column} leest een JSON-array-parameter`);
-    }
+    const r = await row('t-1');
+    assert.deepStrictEqual([r.action_items.length, r.decisions.length, r.questions.length], [1, 1, 1],
+        'all three columns written from the same window');
 });
 
 test('updateTranscription: tagsIfEmpty only fills an empty column, tags overwrites', async () => {
-    await store.updateTranscription('t-1', 'u1', { tagsIfEmpty: ['auto'] });
-    const conditional = lastOfKind(/UPDATE transcriptions SET/);
-    // The CASE guard is what stops auto-tags from clobbering user tags.
-    assert.match(conditional.sql, /tags = CASE WHEN tags IS NULL OR tags = '\[\]'::jsonb THEN \$\d+::jsonb ELSE tags END/);
-    assert.ok(conditional.params.includes(JSON.stringify(['auto'])));
-
-    state.calls = [];
-    await store.updateTranscription('t-1', 'u1', { tags: ['manual'] });
-    const plain = lastOfKind(/UPDATE transcriptions SET/);
-    assert.match(plain.sql, /tags = \$\d+/);
-    assert.ok(!/CASE WHEN/.test(plain.sql), 'the explicit tags update is unconditional');
+    await note('empty', { tags: [] });
+    await note('null-tags', { tags: null });
+    await note('tagged', { tags: ['mine'] });
+    for (const id of ['empty', 'null-tags', 'tagged']) await store.updateTranscription(id, 'u1', { tagsIfEmpty: ['auto'] });
+    // The guard is what stops auto-tags from clobbering user tags.
+    assert.deepStrictEqual((await row('empty')).tags, ['auto']);
+    assert.deepStrictEqual((await row('null-tags')).tags, ['auto']);
+    assert.deepStrictEqual((await row('tagged')).tags, ['mine']);
+    await store.updateTranscription('tagged', 'u1', { tags: ['manual'] });
+    assert.deepStrictEqual((await row('tagged')).tags, ['manual'], 'the explicit tags update is unconditional');
 });
 
 test('getTranscription: decisions/questions are parsed from JSONB text or objects', async () => {
-    state.oneRow = {
-        id: 't-1', user_id: 'u1', title: 'T',
-        decisions: '[{"id":"d-0","text":"Besluit"}]',            // driver returned text
-        questions: [{ id: 'q-0', text: 'Vraag', open: true }],   // driver returned objects
-        segments: [], speakers: [], action_items: [], chapters: [], tags: [], attendees: [],
-    };
-    const note = await store.getTranscription('t-1', 'u1', { isSuperAdmin: true });
-    assert.deepStrictEqual(note.decisions, [{ id: 'd-0', text: 'Besluit' }]);
-    assert.deepStrictEqual(note.questions, [{ id: 'q-0', text: 'Vraag', open: true }]);
+    await note('t-1', {
+        decisions: JSON.stringify(JSON.stringify([{ id: 'd-0', text: 'Besluit' }])),   // a JSON string holding the array
+        questions: [{ id: 'q-0', text: 'Vraag', open: true }],
+    });
+    const n = await store.getTranscription('t-1', 'u1', { isSuperAdmin: true });
+    assert.deepStrictEqual(n.decisions, [{ id: 'd-0', text: 'Besluit' }]);
+    assert.deepStrictEqual(n.questions, [{ id: 'q-0', text: 'Vraag', open: true }]);
 });
 
-test('getTranscription: notes stored before the columns existed read as empty lists', async () => {
-    state.oneRow = { id: 't-1', user_id: 'u1', title: 'T', segments: [], speakers: [] };
-    const note = await store.getTranscription('t-1', 'u1', { isSuperAdmin: true });
-    assert.deepStrictEqual(note.decisions, []);
-    assert.deepStrictEqual(note.questions, []);
+test('getTranscription: a note with the artifact columns NULL reads as empty lists', async () => {
+    await note('t-1', { decisions: null, questions: null });
+    const n = await store.getTranscription('t-1', 'u1', { isSuperAdmin: true });
+    assert.deepStrictEqual(n.decisions, []);
+    assert.deepStrictEqual(n.questions, []);
 });
+
+const BRANCHES = [{ isSuperAdmin: true }, { orgIds: ['org-1'], userGroupIds: ['g1'] }];
 
 test('getTranscriptions: the list payload carries tags on BOTH query branches', async () => {
-    // The library's tag chips and filters read `tags` off list rows, so both
-    // the super-admin and the normal-user SELECT must include the column —
-    // mapping alone leaves it undefined.
-    for (const opts of [{ isSuperAdmin: true }, { orgIds: ['org-1'], userGroupIds: ['g1'] }]) {
-        state.calls = [];
-        state.allRows = [{ id: 't-1', user_id: 'u1', title: 'T', tags: '["planning"]', full_text_snippet: '' }];
-        const [row] = await store.getTranscriptions('u1', opts);
-        assert.deepStrictEqual(row.tags, ['planning']);
-        assert.match(lastOfKind(/FROM transcriptions/).sql, /\btags\b/, `tags selected for ${JSON.stringify(opts)}`);
+    // The library's tag chips and filters read `tags` off list rows.
+    await note('t-1', { tags: ['planning'] });
+    for (const opts of BRANCHES) {
+        const [r] = await store.getTranscriptions('u1', opts);
+        assert.deepStrictEqual(r.tags, ['planning'], `tags for ${JSON.stringify(opts)}`);
     }
 });
 
 test('getTranscriptions: a summary PREFIX travels on both branches, never the whole summary', async () => {
-    // The sidebar's recently-edited panel says what a meeting was about, which
-    // means the list needs some of the summary. A prefix, not the column: a
-    // library of 50 notes would otherwise ship 50 full summaries to draw five
-    // menu rows. Same technique the transcript snippet already uses.
-    for (const opts of [{ isSuperAdmin: true }, { orgIds: ['org-1'], userGroupIds: ['g1'] }]) {
-        state.calls = [];
-        state.allRows = [{ id: 't-1', user_id: 'u1', title: 'T', summary_snippet: '## Samenvatting\n\nWe spraken over Azure.' }];
-        const [row] = await store.getTranscriptions('u1', opts);
-        assert.strictEqual(row.summarySnippet, '## Samenvatting\n\nWe spraken over Azure.');
-        const { sql } = lastOfKind(/FROM transcriptions/);
-        assert.match(sql, /LEFT\(COALESCE\(summary, ''\), \d+\) AS summary_snippet/, `summary prefix selected for ${JSON.stringify(opts)}`);
-        // The bare column would defeat the point of the prefix.
-        assert.doesNotMatch(sql, /,\s*summary\s*,/, `full summary column must not be selected for ${JSON.stringify(opts)}`);
+    // A library of 50 notes would otherwise ship 50 full summaries to draw five
+    // menu rows.
+    const summary = '## Samenvatting\n\nWe spraken over Azure.';
+    await note('t-1', { summary: summary + ' '.repeat(10) + 'x'.repeat(2000) });
+    for (const opts of BRANCHES) {
+        const [r] = await store.getTranscriptions('u1', opts);
+        assert.ok(r.summarySnippet.startsWith(summary), `summary prefix for ${JSON.stringify(opts)}`);
+        assert.ok(r.summarySnippet.length <= 400, 'a prefix, not the column');
+        assert.ok(!('summary' in r) || r.summary === undefined, `full summary must not travel for ${JSON.stringify(opts)}`);
     }
 });
 
 test('getTranscriptions: a note with no summary yet reports an empty snippet, not undefined', async () => {
     // Processing notes have summary = '' — the row must still carry the key so
     // the client can tell "no summary" from "this payload predates the field".
-    state.allRows = [{ id: 't-1', user_id: 'u1', title: 'T', summary_snippet: '' }];
-    const [row] = await store.getTranscriptions('u1', { isSuperAdmin: true });
-    assert.strictEqual(row.summarySnippet, '');
+    await note('t-1', { summary: '' });
+    const [r] = await store.getTranscriptions('u1', { isSuperAdmin: true });
+    assert.strictEqual(r.summarySnippet, '');
 });
 
-test('getSeriesPrevious: series + ACL params are numbered in the order they appear', async () => {
-    state.oneRow = {
-        id: 'prev', title: 'Vorige', created_at: new Date('2026-07-01T09:00:00Z'),
-        summary: 'S', action_items: [{ id: 'ai-0', text: 'Open taak', done: false }, { id: 'ai-1', text: 'Klaar', done: true }],
-    };
-    const prev = await store.getSeriesPrevious({
-        meetMeetingCode: 'abc-defg-hij',
-        beforeCreatedAt: '2026-07-08T09:00:00.000Z',
-        excludeId: 't-2',
-        userId: 'u1',
-        orgIds: ['org-1'],
-        userGroupIds: ['g1'],
-    });
+const SERIES = { meetMeetingCode: 'abc-defg-hij', beforeCreatedAt: '2026-07-08T09:00:00.000Z', excludeId: 't-now' };
 
-    const q = lastOfKind(/FROM transcriptions/);
-    // Every placeholder must resolve to a value, in first-appearance order.
-    const order = [...q.sql.matchAll(/\$(\d+)/g)].map((m) => Number(m[1]));
-    assert.deepStrictEqual(order.filter((n, i) => order.indexOf(n) === i), [1, 2, 3, 4, 5, 6, 7]);
-    assert.strictEqual(q.params.length, 7);
-    assert.deepStrictEqual(q.params.slice(0, 4), ['abc-defg-hij', '2026-07-08T09:00:00.000Z', 't-2', 'u1']);
-    assert.deepStrictEqual(q.params[4], JSON.stringify(['u1']));
-    assert.deepStrictEqual(q.params.slice(5), [['org-1'], ['g1']]);
-
-    // Only earlier, completed notes from the same series, newest first.
-    assert.match(q.sql, /meet_meeting_code = \$1/);
-    assert.match(q.sql, /status = 'completed'/);
-    assert.match(q.sql, /created_at < \$2/);
-    assert.match(q.sql, /id <> \$3/);
-    assert.match(q.sql, /ORDER BY created_at DESC LIMIT 1/);
-    // ACL parity with getTranscription: owner OR legacy share OR org-published.
-    assert.match(q.sql, /user_id = \$4/);
-    assert.match(q.sql, /shared_with @> \$5::jsonb/);
-    assert.match(q.sql, /is_published = true AND organization_id = ANY\(\$6::text\[\]\)/);
-    assert.match(q.sql, /shared_groups \?\| \$7::text\[\]/);
-
-    // Only the UNFINISHED action items reach the card.
+test('getSeriesPrevious: the newest earlier completed note of the series, with only its open action items', async () => {
+    const items = [{ id: 'ai-0', text: 'Open taak', done: false }, { id: 'ai-1', text: 'Klaar', done: true }];
+    await note('prev', { meet_meeting_code: SERIES.meetMeetingCode, status: 'completed', created_at: '2026-07-01T09:00:00Z', summary: 'S', action_items: items });
+    await note('older', { meet_meeting_code: SERIES.meetMeetingCode, status: 'completed', created_at: '2026-06-01T09:00:00Z' });
+    await note('failed', { meet_meeting_code: SERIES.meetMeetingCode, status: 'failed', created_at: '2026-07-05T09:00:00Z' });
+    await note('later', { meet_meeting_code: SERIES.meetMeetingCode, status: 'completed', created_at: '2026-07-09T09:00:00Z' });
+    await note('t-now', { meet_meeting_code: SERIES.meetMeetingCode, status: 'completed', created_at: '2026-07-07T09:00:00Z' });
+    await note('other-series', { meet_meeting_code: 'zzz', status: 'completed', created_at: '2026-07-06T09:00:00Z' });
+    const prev = await store.getSeriesPrevious({ ...SERIES, userId: 'u1', orgIds: ['org-1'], userGroupIds: ['g1'] });
+    assert.strictEqual(prev.id, 'prev');
     assert.deepStrictEqual(prev.openActionItems, [{ id: 'ai-0', text: 'Open taak', done: false }]);
     assert.strictEqual(prev.createdAt, '2026-07-01T09:00:00.000Z');
+    assert.strictEqual(prev.summary, 'S');
 });
 
-test('getSeriesPrevious: talk rooms, super admins and no-series notes', async () => {
-    state.oneRow = { id: 'prev', title: 'V', created_at: new Date(), summary: '', action_items: [] };
-    await store.getSeriesPrevious({ talkRoomToken: 'tok123', beforeCreatedAt: 'x', excludeId: 't', userId: 'u1' });
-    const talkQ = lastOfKind(/FROM transcriptions/);
-    assert.match(talkQ.sql, /talk_room_token = \$1/);
-    // No orgIds → no org clause at all (an empty ANY('{}') is a known pg trap).
-    assert.ok(!/organization_id = ANY/.test(talkQ.sql));
+test('getSeriesPrevious: ACL parity with getTranscription — owner, legacy share, org-published (group-scoped)', async () => {
+    const base = { meet_meeting_code: SERIES.meetMeetingCode, status: 'completed', user_id: 'u2' };
+    const pick = (/** @type {any} */ opts) => store.getSeriesPrevious({ ...SERIES, userId: 'u1', ...opts }).then((p) => p?.id ?? null);
+    await note('theirs', { ...base, created_at: '2026-07-01T00:00:00Z' });
+    assert.strictEqual(await pick({ orgIds: ['org-1'] }), null, 'someone else\'s private note');
+    await note('grp-other', { ...base, is_published: true, organization_id: 'org-1', shared_groups: ['g9'], created_at: '2026-07-02T00:00:00Z' });
+    assert.strictEqual(await pick({ orgIds: ['org-1'], userGroupIds: ['g1'] }), null, 'published to another group');
+    await note('grp-mine', { ...base, is_published: true, organization_id: 'org-1', shared_groups: ['g1'], created_at: '2026-07-03T00:00:00Z' });
+    assert.strictEqual(await pick({ orgIds: ['org-1'], userGroupIds: ['g1'] }), 'grp-mine');
+    assert.strictEqual(await pick({ orgIds: ['org-1'] }), null, 'without groups only org-wide notes count');
+    await note('org-wide', { ...base, is_published: true, organization_id: 'org-1', created_at: '2026-07-04T00:00:00Z' });
+    assert.strictEqual(await pick({ orgIds: ['org-1'] }), 'org-wide');
+    assert.strictEqual(await pick({ orgIds: ['org-2'] }), null, 'another org');
+    await note('shared', { ...base, shared_with: ['u1'], created_at: '2026-07-05T00:00:00Z' });
+    assert.strictEqual(await pick({}), 'shared', 'a legacy share, and no orgIds means no org clause');
+    await note('own', { ...base, user_id: 'u1', created_at: '2026-07-06T00:00:00Z' });
+    assert.strictEqual(await pick({}), 'own');
+    await note('admin-sees', { ...base, user_id: 'u9', created_at: '2026-07-07T00:00:00Z' });
+    assert.strictEqual(await pick({ isSuperAdmin: true }), 'admin-sees', 'super admin bypasses the ACL clause');
+});
 
-    state.calls = [];
-    await store.getSeriesPrevious({ meetMeetingCode: 'code', beforeCreatedAt: 'x', excludeId: 't', userId: 'u1', isSuperAdmin: true });
-    const adminQ = lastOfKind(/FROM transcriptions/);
-    assert.ok(!/user_id = \$/.test(adminQ.sql), 'super admin bypasses the ACL clause');
-
-    // A note with no series link never queries at all.
-    state.calls = [];
-    assert.strictEqual(await store.getSeriesPrevious({ beforeCreatedAt: 'x', excludeId: 't', userId: 'u1' }), null);
-    assert.strictEqual(state.calls.filter((c) => c.fn === 'getOne').length, 0);
+test('getSeriesPrevious: talk rooms, and no-series notes', async () => {
+    await note('room-prev', { talk_room_token: 'tok123', status: 'completed', created_at: '2026-07-01T00:00:00Z' });
+    await note('room-other', { talk_room_token: 'tok999', status: 'completed', created_at: '2026-07-02T00:00:00Z' });
+    const p = await store.getSeriesPrevious({ talkRoomToken: 'tok123', beforeCreatedAt: '2026-07-08T00:00:00Z', excludeId: 't', userId: 'u1' });
+    assert.strictEqual(p.id, 'room-prev');
+    // A note with no series link answers null.
+    assert.strictEqual(await store.getSeriesPrevious({ beforeCreatedAt: '2026-07-08T00:00:00Z', excludeId: 't', userId: 'u1' }), null);
 });

@@ -23,6 +23,8 @@
  */
 
 const express = require('express');
+const { validate } = require('../../core/http/validate');
+const { bodyOf } = require('../../core/http/schemaParts');
 const log = require('../../telemetry/log');
 const router = express.Router();
 const { requireAuth } = require('../../auth/permissions');
@@ -132,7 +134,7 @@ router.get('/status', requireAuth, async (req, res) => {
 });
 
 // ─── Disconnect ──────────────────────────────────────────────────
-router.post('/disconnect', requireAuth, async (req, res) => {
+router.post('/disconnect', requireAuth, validate({ body: bodyOf({}, 'Disconnecting Nmbrs') }), async (req, res) => {
     const userId = req.session?.user?.id;
     if (!userId) return res.status(401).json({ error: 'Not authenticated' });
     const cred = await routeDeps.vault().getCredential(userId, oauth.PROVIDER).catch((e) => fallback('routes/integrations/nmbrs:disconnect', e, null));

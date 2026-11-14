@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * group: one row per combination of the `by` columns with counts, sums,
@@ -37,13 +37,14 @@ function newAcc(fn) {
  * @param {unknown} cell
  */
 function feed(fn, acc, cell, w, hasColumn) {
+    const slot = /** @type {Required<AggAcc>} */ (acc); // newAcc(fn) set the fields this fn reads
     if (fn === 'share') return;
     if (fn === 'count') {
-        if (!hasColumn || !isBlankCell(cell)) acc.sw += w;
+        if (!hasColumn || !isBlankCell(cell)) slot.sw += w;
         return;
     }
     if (isBlankCell(cell)) return;
-    if (fn === 'count_distinct') { acc.set.add(foldText(cell)); return; }
+    if (fn === 'count_distinct') { slot.set.add(foldText(cell)); return; }
     const x = toNumber(cell);
     if (fn === 'min' || fn === 'max') {
         /**
@@ -51,16 +52,16 @@ function feed(fn, acc, cell, w, hasColumn) {
          * @param {string | number} b
          */
         const better = (a, b) => (fn === 'min' ? a < b : a > b);
-        if (x !== null) { if (acc.num === null || better(x, acc.num)) acc.num = x; return; }
+        if (x !== null) { if (slot.num === null || better(x, slot.num)) slot.num = x; return; }
         const d = typeof cell === 'string' && parseIsoUtc(cell) ? cell.trim() : null;
-        if (d !== null && (acc.text === null || better(d, acc.text))) acc.text = d;
+        if (d !== null && (slot.text === null || better(d, slot.text))) slot.text = d;
         return;
     }
     if (x === null) return;
-    if (fn === 'median') { acc.values.push(x); return; }
-    acc.any = true;
-    acc.swx += w * x;
-    acc.sw += w;
+    if (fn === 'median') { slot.values.push(x); return; }
+    slot.any = true;
+    slot.swx += w * x;
+    slot.sw += w;
 }
 
 /** @param {number[]} values */
@@ -78,13 +79,14 @@ function median(values) {
  * @param {number} totalW
  */
 function result(fn, acc, g, totalW) {
+    const slot = /** @type {Required<AggAcc>} */ (acc); // newAcc(fn) set the fields this fn reads
     switch (fn) {
-        case 'count': return acc.sw;
-        case 'sum': return acc.any ? acc.swx : null;
-        case 'mean': return acc.sw > 0 ? acc.swx / acc.sw : null;
-        case 'median': return median(acc.values);
-        case 'min': case 'max': return acc.num !== null ? acc.num : acc.text;
-        case 'count_distinct': return acc.set.size;
+        case 'count': return slot.sw;
+        case 'sum': return slot.any ? slot.swx : null;
+        case 'mean': return slot.sw > 0 ? slot.swx / slot.sw : null;
+        case 'median': return median(slot.values);
+        case 'min': case 'max': return slot.num !== null ? slot.num : slot.text;
+        case 'count_distinct': return slot.set.size;
         case 'share': return totalW > 0 ? (100 * g.w) / totalW : null;
         default: return null;
     }

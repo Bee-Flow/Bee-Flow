@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * OneDrive / Graph vocabulary for ./oneDrive.js and ./oneDriveWorkbook.js:
  * the select lists and limits, A1 addresses, the driveItem -> FileRef
@@ -187,7 +187,7 @@ function workbookValue(value, type) {
         case 'date':
         case 'datetime': {
             const n = Number(value);
-            return Number.isFinite(n) ? n : String(value);
+            return Number.isFinite(n) ? /** @type {number} */ (n) : String(value);
         }
         case 'bool':
             return value === true || value === 'true' || value === 1;

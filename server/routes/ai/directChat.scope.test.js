@@ -119,7 +119,7 @@ const MOCKS = {
             sessionSkillsCompletions: {}, isStandardTier: true,
         }),
     },
-    './directChat/stageModelSwap': { swapModelForActiveStage: async () => {} },
+    '../../../usecases/ai/directChat/stageModelSwap': { swapModelForActiveStage: async () => {} },
     './directChat/attachmentIntake': {
         processAttachmentsAndUserMessage: async () => ({ convId: 'c1', persistedAttachments: [], tokenizedMessage: 'hi' }),
     },
@@ -150,7 +150,7 @@ const MOCKS = {
     './directChat/finalizeTurn': { finalizeDirectChatTurn: async () => ({}) },
 
     // ── Lazily required inside the handler ───────────────────────────
-    './directChat/interruptedTurn': { buildInterruptedTurnMessages: ({ errorNote }) => [{ role: 'assistant', content: errorNote }] },
+    '../../../usecases/ai/directChat/interruptedTurn': { buildInterruptedTurnMessages: ({ errorNote }) => [{ role: 'assistant', content: errorNote }] },
     '../../../stores/conversationLockStore': {
         releaseTurn: async (lock) => {
             if (fx.releaseError) throw fx.releaseError;

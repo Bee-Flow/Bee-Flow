@@ -5,7 +5,7 @@
 //   const secret = useWebhookSecret(api, appId, triggerId);        // .mutate('reveal' | 'rotate'): the secret, once
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { API_BASE, request } from '@/api/mutate';
+import { apiJson } from '@/api/typedRequest';
 
 export interface WebhookDelivery {
     id: string;
@@ -38,15 +38,16 @@ export interface WebhookApi {
     secret(appId: string, triggerId: string, how: 'reveal' | 'rotate'): Promise<WebhookSecret>;
 }
 
-const base = (appId: string, triggerId: string) => `${API_BASE}/api/studio-apps/${encodeURIComponent(appId)}/triggers/${encodeURIComponent(triggerId)}/webhook`;
-
 export const webhookApi: WebhookApi = {
     async view(appId, triggerId) {
-        return (await (await request(base(appId, triggerId))).json()) as WebhookView;
+        return apiJson<'GET /api/studio-apps/{id}/triggers/{triggerId}/webhook', WebhookView>(
+            'GET /api/studio-apps/{id}/triggers/{triggerId}/webhook', { params: { id: appId, triggerId } });
     },
     async secret(appId, triggerId, how) {
-        const res = await request(`${base(appId, triggerId)}/${how === 'rotate' ? 'rotate' : 'secret'}`, { method: 'POST' });
-        return (await res.json()) as WebhookSecret;
+        const key = how === 'rotate'
+            ? 'POST /api/studio-apps/{id}/triggers/{triggerId}/webhook/rotate' as const
+            : 'POST /api/studio-apps/{id}/triggers/{triggerId}/webhook/secret' as const;
+        return apiJson<typeof key, WebhookSecret>(key, { params: { id: appId, triggerId } });
     },
 };
 

@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 /**
@@ -19,7 +20,7 @@ const { makeWebhookTriggerStore } = require('../stores/studioAppData/webhookTrig
 const { webhookLimits } = require('../stores/studioAppData/webhookPolicy.mts');
 const endpoints = require('../appStudio/triggers/webhook/webhookEndpoints.mts');
 const { receiveWebhook, _resetRefusedLog } = require('../appStudio/triggers/webhook/webhookReceive.mts');
-const { hmacHeader, sameSignature } = require('../routes/automation/webhookSignature');
+const { hmacHeader, sameSignature } = require('../usecases/automation/webhookSignature');
 
 const SEAL = 'sealed:';
 const seal = (secret) => SEAL + Buffer.from(secret).toString('base64');
@@ -31,7 +32,7 @@ const hook = (over = {}) => ({ id: 'hook', kind: 'webhook', actionId: 'act_job',
 function webhookHarness(hooks) {
     const h = triggerHarness(hooks);
     const store = makeWebhookTriggerStore(h.db);
-    const w = { limits: {}, n: 0, taken: new Map() };
+    const w = { limits: /** @type {ReturnType<typeof webhookLimits>} */ ({}), n: 0, taken: new Map() };
     const quiet = { info() {}, warn() {}, error() {} };
 
     hooks.before(async () => { await h.pg.exec(studioRunTableDdl('studio_app_webhook_endpoints')); });
@@ -52,7 +53,7 @@ function webhookHarness(hooks) {
         take: async (key, max) => {
             const used = (w.taken.get(key) || 0) + 1;
             w.taken.set(key, used);
-            return !max || used <= max ? { ok: true } : { ok: false, retryAfterSecs: 30 };
+            return !max || used <= max ? { ok: /** @type {const} */ (true) } : { ok: /** @type {const} */ (false), retryAfterSecs: 30 };
         },
         fire: () => h.fireDeps(), now: () => h.s.clock, limits: () => w.limits,
         newDeliveryId: () => `whd_${hex(++w.n, 32)}`, log: quiet,

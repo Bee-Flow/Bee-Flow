@@ -8,7 +8,7 @@
  *   POST   /:id/ai-fill         — fill the document's {{parameters}} (SSE)
  *
  * Moved here unchanged from routes/notebooks.js. Both need an editor
- * (routes/notebooksAccess.js) and go through the Privacy Shield on the
+ * (auth/notebookAccess.mts) and go through the Privacy Shield on the
  * notebook chat's path (agents/notebooks/notebookAiShield.js).
  */
 
@@ -39,7 +39,7 @@ const { requireAuth } = require('../auth/permissions');
 const { spendLimiter } = require('../utils/perUserRateLimit');
 const { sessionUser } = require('../core/http/sessionUser');
 // The adapter's stream with one usage row per call (notebooksGenerateStream.js).
-const { meteredStream } = require('./notebooksGenerateStream');
+const { meteredStream } = require('../usecases/notebooksGenerateStream');
 
 // ── What a caller may send ─────────────────────────────────────────
 // Closed bodies (see routes/notebooksShared.js).
@@ -169,7 +169,7 @@ Wrap your output in \`\`\`mermaid ... \`\`\` tags. Focus on hierarchical relatio
         if (!modelId) {
             const config = await getAIConfig();
             modelId = config.model;
-            if (!modelId) throw new Error(`No model configured for tier "${resolvedTier}". Set up model tiers in Settings.`);
+            if (!modelId) throw new HttpError(503, 'no_model', 'No AI model is configured for this workspace. Ask an admin to set up the model tiers in Settings.');
         }
         const config = await getProviderForModel(modelId);
         const apiKey = config.apiKey;
@@ -324,7 +324,7 @@ router.post('/:id/ai-fill', requireAuth, notebookAiLimiter, validate({ body: AiF
         if (!modelId) {
             const config = await getAIConfig();
             modelId = config.model;
-            if (!modelId) throw new Error(`No model configured for tier "${resolvedTier}". Set up model tiers in Settings.`);
+            if (!modelId) throw new HttpError(503, 'no_model', 'No AI model is configured for this workspace. Ask an admin to set up the model tiers in Settings.');
         }
         const config = await getProviderForModel(modelId);
         const apiKey = config.apiKey;

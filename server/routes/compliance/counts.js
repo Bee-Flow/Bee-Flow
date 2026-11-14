@@ -1,5 +1,5 @@
 /** @typedef {import('qs').ParsedQs} ParsedQs */
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * GET /api/compliance/counts[?keys=a,b] — the numbers on the Compliance rail.
  *
@@ -192,7 +192,7 @@ const needs = (/** @type {Record<string, unknown>} */ ctx, /** @type {string[]} 
 // count(ctx, d) → the value for the key
 /**
  * @typedef {{ key: string,
- *   gate: (ctx: Record<string, any>, d: Record<string, any>) => boolean | Promise<boolean>,
+ *   gate: (ctx: CountsContext, d: Record<string, any>) => boolean | Promise<boolean>,
  *   count: (ctx: Record<string, any>, d: Record<string, any>) => unknown }} CountKind
  */
 /** @type {CountKind[]} */

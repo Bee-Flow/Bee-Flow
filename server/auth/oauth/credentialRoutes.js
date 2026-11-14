@@ -9,6 +9,7 @@
  * make the next one unrevocable from this route.
  */
 
+const { fetchFixedEndpoint } = require('../../utils/fixedEndpointFetch.mts');
 const express = require('express');
 const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
@@ -73,7 +74,7 @@ async function _revokeAtProvider(provider, token) {
     if (!token) return { ok: false, reason: 'no_token' };
     try {
         if (provider === 'google') {
-            const r = await fetch('https://oauth2.googleapis.com/revoke', {
+            const r = await fetchFixedEndpoint('https://oauth2.googleapis.com/revoke', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: new URLSearchParams({ token }).toString(),

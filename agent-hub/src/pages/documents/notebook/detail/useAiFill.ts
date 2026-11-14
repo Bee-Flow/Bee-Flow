@@ -7,11 +7,11 @@
  * instead of quietly doing nothing.
  */
 import { useCallback, useState, type MutableRefObject } from 'react';
-import { API_BASE, authFetch } from '@/utils/helpers';
 import useTranslation from '@/hooks/useTranslation';
 import type { NotebookEditorHandle } from './editorHandle';
 import { editorHtml } from './editorHandle';
 import { errorMessage } from '@/utils/caughtError';
+import { apiFetch } from '@/api/typedRequest';
 
 interface Options {
     notebookId: string;
@@ -61,11 +61,7 @@ export default function useAiFill({ notebookId, modelTier, editorRef, onError, o
         }
         setAiFilling(true);
         try {
-            const res = await authFetch(`${API_BASE}/api/notebooks/${notebookId}/ai-fill`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ documentContent: html, modelTier }),
-            });
+            const res = await apiFetch('POST /api/notebooks/{id}/ai-fill', { params: { id: notebookId }, body: { documentContent: html, modelTier } });
             if (!res.ok || !res.body) {
                 const err = await res.json().catch(() => ({}));
                 throw new Error((err as { error?: string }).error || t('notebooks.ai_fill_failed', 'AI Fill failed'));

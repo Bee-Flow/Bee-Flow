@@ -12,8 +12,9 @@
  * and a touched chip is never overwritten by the composer — the AI fills in
  * the blanks, it does not overrule a decision the user already made.
  */
-import { useCallback, useEffect, useState } from 'react';
-import { composeCowork, createCowork, listCoworkAgents } from '../../api/coworkApi';
+import { useCallback, useState } from 'react';
+import { useCoworkAgents } from '@/api/queries/coworkReads';
+import { composeCowork, createCowork } from '../../api/coworkApi';
 import type { CoworkRequestError } from '../../api/coworkApi';
 import { isMailTriggerReady, normaliseMailTrigger, describeMailTrigger } from './mailTrigger';
 import {
@@ -77,7 +78,6 @@ export default function useCoworkComposer({ enabled = true, onCreated }: UseCowo
     // distinct from "I chose nothing" (an empty array, a real answer).
     const [enabledApps, setEnabledApps] = useState<string[] | null>(null);
     const [mailTrigger, setMailTrigger] = useState<MailTrigger | null>(null);
-    const [agents, setAgents] = useState<CoworkAgent[]>([]);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     // Which chips the user (or the surrounding chat) decided for themselves.
@@ -88,14 +88,7 @@ export default function useCoworkComposer({ enabled = true, onCreated }: UseCowo
     // point offering the picker if the create call would 403.
     const canPickAgent = !!ent && !ent.loading && typeof ent.can === 'function' && ent.can('agent_routines');
 
-    useEffect(() => {
-        if (!enabled || !canPickAgent) { setAgents([]); return undefined; }
-        let cancelled = false;
-        listCoworkAgents()
-            .then(list => { if (!cancelled) setAgents(list); })
-            .catch(() => { if (!cancelled) setAgents([]); });
-        return () => { cancelled = true; };
-    }, [enabled, canPickAgent]);
+    const agents = useCoworkAgents(enabled && canPickAgent);
 
     // Every setter the UI calls marks its chip as the user's choice. Seeding
     // the agent from an agent chat goes through setAgentId too, and that is

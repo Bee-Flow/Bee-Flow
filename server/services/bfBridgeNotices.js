@@ -161,7 +161,7 @@ function buildBfNoticeScript(surface) {
           CE.define(tag, class extends HTMLElement {
             connectedCallback(){ bfDecorate(this); }
           });
-        } catch (e) {}
+        } catch (e) { console.warn(e); }
       });
     }
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function(){ bfSweep(); });

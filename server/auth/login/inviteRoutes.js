@@ -16,6 +16,8 @@ const log = require('../../telemetry/log');
 const router = express.Router();
 
 const userStore = require('../../stores/userStore');
+const { validate } = require('../../core/http/validate');
+const { bodyOf } = require('../../core/http/schemaParts');
 const { maskEmail } = require('../connector/verificationCode');
 
 // ═══════════════════════════════════════════════════════════
@@ -97,7 +99,7 @@ router.get('/pending-invite', async (req, res) => {
     });
 });
 
-router.post('/pending-invite/clear', async (req, res) => {
+router.post('/pending-invite/clear', validate({ body: bodyOf({}, 'Clearing a pending invitation') }), async (req, res) => {
     if (req.session?.pendingInviteToken) delete req.session.pendingInviteToken;
     req.session.save(() => res.json({ ok: true }));
 });

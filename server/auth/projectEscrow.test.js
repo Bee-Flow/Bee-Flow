@@ -14,31 +14,30 @@
  *   - Rotation is REFUSED while shared conversations exist, because project keys
  *     are derived from the ORK and rotating it orphans their ciphertext.
  *
+ * The rotation guard counts real rows: the boot ladder's schema on PGlite
+ * (testUtils/pgliteTemplate.js) behind db.js's pool.
+ *
  * Run: cd server && node --test auth/projectEscrow.test.js
  */
+
+'use strict';
 
 const test = require('node:test');
 const assert = require('node:assert');
 const crypto = require('node:crypto');
 const Module = require('module');
+const { usePglitePool } = require('../testUtils/pglitePool');
+const { ladderPglite } = require('../testUtils/pgliteTemplate');
+const { insertRow } = require('../testUtils/pgliteSeed');
+const { hideTable, failReads } = require('../testUtils/pgliteFaults');
+
+const { pg, close } = usePglitePool(ladderPglite());
 
 const DEFAULT_SENTINEL = '__default__';
 
 const fx = {
     orks: {},            // orgId -> Buffer
     orkCalls: [],
-    sharedCount: 0,
-    dbError: null,
-    // Team chats (projects/chatCrypto.js) are sealed under the project key too.
-    chatTable: false,     // does `project_chats` exist on this install?
-    chatCount: 0,
-    // Co-edited documents (core/collab) are sealed under the project key too.
-    collabTable: false,   // does `collab_docs` exist on this install?
-    collabCount: 0,
-    // Comment threads (projects/comments/commentCrypto.js) are sealed under the project key too.
-    commentTable: false,  // does `project_comment_threads` exist on this install?
-    commentCount: 0,
-    queries: [],
 };
 
 const MOCKS = {
@@ -52,19 +51,6 @@ const MOCKS = {
             fx.orkCalls.push(orgId);
             if (!fx.orks[orgId]) fx.orks[orgId] = crypto.randomBytes(32);
             return fx.orks[orgId];
-        },
-    },
-    '../db': {
-        getOne: async (sql, params) => {
-            fx.queries.push({ sql, params });
-            if (fx.dbError) throw fx.dbError;
-            if (/to_regclass\('project_chats'\)/.test(sql)) return { present: fx.chatTable };
-            if (/FROM project_chats/.test(sql)) return { n: fx.chatCount };
-            if (/to_regclass\('collab_docs'\)/.test(sql)) return { present: fx.collabTable };
-            if (/FROM collab_docs/.test(sql)) return { n: fx.collabCount };
-            if (/to_regclass\('project_comment_threads'\)/.test(sql)) return { present: fx.commentTable };
-            if (/FROM project_comment_threads/.test(sql)) return { n: fx.commentCount };
-            return { n: fx.sharedCount };
         },
     },
 };
@@ -85,20 +71,11 @@ Module._resolveFilename = function (request, parent, ...rest) {
 
 const projectEscrow = require('./projectEscrow');
 
-test.after(() => { Module._resolveFilename = originalResolve; });
+test.after(async () => { Module._resolveFilename = originalResolve; await close(); });
 
 function resetFx() {
     fx.orks = {};
     fx.orkCalls.length = 0;
-    fx.sharedCount = 0;
-    fx.dbError = null;
-    fx.chatTable = false;
-    fx.chatCount = 0;
-    fx.collabTable = false;
-    fx.collabCount = 0;
-    fx.commentTable = false;
-    fx.commentCount = 0;
-    fx.queries.length = 0;
     projectEscrow.invalidateProjectKeyCache();
 }
 
@@ -263,128 +240,125 @@ test('a key handed out survives invalidation and FIFO eviction', async () => {
 
 // ═══ Rotation guard ══════════════════════════════════════════════════
 
-test('rotation is refused while shared conversations exist', async () => {
-    resetFx();
-    fx.sharedCount = 3;
+const SEALED_TABLES = ['direct_conversations', 'agent_conversations', 'project_chats', 'collab_docs', 'project_comment_threads', 'kb_query_log'];
+const guard = (org = 'org1') => projectEscrow.assertNoSharedConversations(org);
+const refused = (re) => (err) => { assert.match(err.message, /Refusing to rotate/); assert.match(err.message, re); return true; };
 
-    await assert.rejects(
-        () => projectEscrow.assertNoSharedConversations('org1'),
-        (err) => {
-            assert.match(err.message, /Refusing to rotate/);
-            assert.match(err.message, /3 shared project conversation/);
-            return true;
-        }
-    );
+/** org1 owns p1, org2 owns p2, an org-less project is p0. */
+async function resetDb() {
+    resetFx();
+    await pg.exec(`TRUNCATE ${SEALED_TABLES.join(', ')}, projects, agents CASCADE`);
+    await insertRow(pg, 'projects', { id: 'p1', name: 'P1', owner_id: 'u1', organization_id: 'org1' });
+    await insertRow(pg, 'projects', { id: 'p2', name: 'P2', owner_id: 'u2', organization_id: 'org2' });
+    await insertRow(pg, 'projects', { id: 'p0', name: 'P0', owner_id: 'u3', organization_id: '' });
+    await insertRow(pg, 'agents', { id: 'ag', name: 'A', owner_id: 'u1' });
+}
+let seq = 0;
+const sharedConversation = (projectId, table = 'direct_conversations') => insertRow(pg, table, {
+    id: `c${++seq}`, user_id: 'u1', project_id: projectId, crypto_scope: 'project', shared_scope: 'project',
+    ...(table === 'agent_conversations' ? { agent_id: 'ag' } : {}),
+});
+
+test('rotation is refused while shared conversations exist, counted for THIS org only', async () => {
+    await resetDb();
+    await sharedConversation('p1');
+    await sharedConversation('p1', 'agent_conversations');
+    await sharedConversation('p1');
+    await sharedConversation('p2');
+    await assert.rejects(() => guard('org1'), refused(/3 shared project conversation/));
+    await assert.rejects(() => guard('org2'), refused(/1 shared project conversation/));
+    await assert.doesNotReject(() => guard('org3'));
+});
+
+test('an org-less install counts the org-less projects under the shared sentinel', async () => {
+    await resetDb();
+    await sharedConversation('p0');
+    await assert.rejects(() => guard(null), refused(/1 shared project conversation/));
+    await assert.rejects(() => guard(''), refused(/1 shared project conversation/));
+    await assert.doesNotReject(() => guard('org1'));
 });
 
 test('rotation is allowed when no shared conversations exist', async () => {
-    resetFx();
-    fx.sharedCount = 0;
-
-    await assert.doesNotReject(() => projectEscrow.assertNoSharedConversations('org1'));
+    await resetDb();
+    // A private conversation inside a project is the owner's, not the project's.
+    await insertRow(pg, 'direct_conversations', { id: 'own', user_id: 'u1', project_id: 'p1', crypto_scope: 'user' });
+    await assert.doesNotReject(() => guard('org1'));
 });
 
 test('a pre-migration schema does not block rotation', async () => {
-    resetFx();
+    await resetDb();
     // An install that never ran the Phase-1 migration has no crypto_scope column
     // and therefore cannot have shared conversations to strand.
-    fx.dbError = new Error('column "crypto_scope" does not exist');
-
-    await assert.doesNotReject(() => projectEscrow.assertNoSharedConversations('org1'));
+    await pg.exec('ALTER TABLE direct_conversations RENAME COLUMN crypto_scope TO crypto_scope_aside');
+    try {
+        await assert.doesNotReject(() => guard('org1'));
+    } finally {
+        await pg.exec('ALTER TABLE direct_conversations RENAME COLUMN crypto_scope_aside TO crypto_scope');
+    }
 });
 
 test('an unrelated DB failure is NOT swallowed', async () => {
-    resetFx();
-    fx.dbError = new Error('connection terminated unexpectedly');
-
-    await assert.rejects(
-        () => projectEscrow.assertNoSharedConversations('org1'),
-        /connection terminated/,
-        'only a missing-column error means "nothing to protect"'
-    );
+    await resetDb();
+    const restore = await failReads(pg, 'direct_conversations', '08006', 'connection terminated unexpectedly');
+    try {
+        await assert.rejects(() => guard('org1'), /connection terminated/, 'only a missing column or table means "nothing to protect"');
+    } finally { await restore(); }
 });
 
-test('team chats block a rotation too: their titles and messages are sealed under the project key', async () => {
-    resetFx();
-    fx.chatTable = true;
-    fx.chatCount = 2;
+/** Rows of `table` under project `projectId`. */
+async function sealed(table, projectId, n, over = {}) {
+    const base = {
+        project_chats: () => ({ created_by: 'u1', title: 'x' }),
+        collab_docs: () => ({ key_scope: 'project', resource_kind: 'notebook', resource_id: `r${seq}` }),
+        project_comment_threads: () => ({ created_by: 'u1', target_type: 'notebook', target_id: 'n1' }),
+    }[table];
+    for (let i = 0; i < n; i++) await insertRow(pg, table, { id: `${table}-${++seq}`, project_id: projectId, ...base(), ...over });
+}
 
-    await assert.rejects(
-        () => projectEscrow.assertNoSharedConversations('org1'),
-        (err) => {
-            assert.match(err.message, /Refusing to rotate/);
-            assert.match(err.message, /2 project team chat/);
-            return true;
-        }
-    );
-    const counted = fx.queries.find(q => /FROM project_chats/.test(q.sql));
-    assert.deepStrictEqual(counted.params, ['org1', DEFAULT_SENTINEL], 'counted for THIS org only');
+test('team chats block a rotation too, counted for THIS org only', async () => {
+    await resetDb();
+    await sealed('project_chats', 'p1', 2);
+    await sealed('project_chats', 'p2', 5);
+    await assert.rejects(() => guard('org1'), refused(/2 project team chat/));
 });
 
 test('an install without the team chat table is not asked to count it', async () => {
-    resetFx();
-    fx.chatTable = false;
-    fx.chatCount = 5;   // would block, if the count ran against a missing table
-
-    await assert.doesNotReject(() => projectEscrow.assertNoSharedConversations('org1'));
-    assert.ok(!fx.queries.some(q => /FROM project_chats/.test(q.sql)));
+    await resetDb();
+    const restore = await hideTable(pg, 'project_chats');
+    try {
+        await assert.doesNotReject(() => guard('org1'));
+    } finally { await restore(); }
 });
 
-test('an org with a team chat table but no chats may rotate', async () => {
-    resetFx();
-    fx.chatTable = true;
-    fx.chatCount = 0;
-    await assert.doesNotReject(() => projectEscrow.assertNoSharedConversations('org1'));
-});
-
-test('co-edited documents block a rotation too: their update logs are sealed under the project key', async () => {
-    resetFx();
-    fx.chatTable = true;
-    fx.collabTable = true;
-    fx.collabCount = 3;
-
-    await assert.rejects(
-        () => projectEscrow.assertNoSharedConversations('org1'),
-        (err) => {
-            assert.match(err.message, /Refusing to rotate/);
-            assert.match(err.message, /3 co-edited project document/);
-            return true;
-        }
-    );
-    const counted = fx.queries.find(q => /FROM collab_docs/.test(q.sql));
-    assert.deepStrictEqual(counted.params, ['org1', DEFAULT_SENTINEL], 'counted for THIS org only');
-    assert.match(counted.sql, /key_scope = 'project'/);
+test('co-edited documents block a rotation too, but only the project-keyed ones', async () => {
+    await resetDb();
+    await sealed('collab_docs', 'p1', 2, { key_scope: 'none' });
+    await assert.doesNotReject(() => guard('org1'), 'a document under no project key is not counted');
+    await sealed('collab_docs', 'p1', 3);
+    await sealed('collab_docs', 'p2', 1);
+    await assert.rejects(() => guard('org1'), refused(/3 co-edited project document/));
 });
 
 test('an install without the co-editing table is not asked to count it', async () => {
-    resetFx();
-    fx.collabTable = false;
-    fx.collabCount = 9;
-    await assert.doesNotReject(() => projectEscrow.assertNoSharedConversations('org1'));
-    assert.ok(!fx.queries.some(q => /FROM collab_docs/.test(q.sql)));
+    await resetDb();
+    const restore = await hideTable(pg, 'collab_docs');
+    try {
+        await assert.doesNotReject(() => guard('org1'));
+    } finally { await restore(); }
 });
 
-test('comment threads block a rotation too: their anchors and comments are sealed under the project key', async () => {
-    resetFx();
-    fx.commentTable = true;
-    fx.commentCount = 4;
-
-    await assert.rejects(
-        () => projectEscrow.assertNoSharedConversations('org1'),
-        (err) => {
-            assert.match(err.message, /Refusing to rotate/);
-            assert.match(err.message, /4 project comment thread/);
-            return true;
-        }
-    );
-    const counted = fx.queries.find(q => /FROM project_comment_threads/.test(q.sql));
-    assert.deepStrictEqual(counted.params, ['org1', DEFAULT_SENTINEL], 'counted for THIS org only');
+test('comment threads block a rotation too, counted for THIS org only', async () => {
+    await resetDb();
+    await sealed('project_comment_threads', 'p1', 4);
+    await sealed('project_comment_threads', 'p2', 1);
+    await assert.rejects(() => guard('org1'), refused(/4 project comment thread/));
+    await assert.rejects(() => guard('org2'), refused(/1 project comment thread/));
 });
 
 test('an install without the comment table is not asked to count it', async () => {
-    resetFx();
-    fx.commentTable = false;
-    fx.commentCount = 9;
-    await assert.doesNotReject(() => projectEscrow.assertNoSharedConversations('org1'));
-    assert.ok(!fx.queries.some(q => /FROM project_comment_threads/.test(q.sql)));
+    await resetDb();
+    const restore = await hideTable(pg, 'project_comment_threads');
+    try {
+        await assert.doesNotReject(() => guard('org1'));
+    } finally { await restore(); }
 });

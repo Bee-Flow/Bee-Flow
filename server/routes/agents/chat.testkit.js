@@ -1,3 +1,4 @@
+// @typecheck
 // Test kit for the agent chat door's test suites (chat.testAs / chat.testChat):
 // the mocked requires of ./chat and of core/agentRuntime/testAs, the resolve hook,
 // the router and a `dispatch(body)` that runs one POST through it.
@@ -16,7 +17,8 @@
 'use strict';
 
 const test = require('node:test');
-const Module = require('module');
+const { fakeAgentGates } = require('./agentGate.testkit');
+const Module = /** @type {typeof import('module') & { _resolveFilename: (request: string, parent: NodeJS.Module | null | undefined, ...rest: unknown[]) => string }} */ (require('module'));
 
 function installChatKit(fx, { prefix, terminalErrors = false }) {
     const MOCKS = {
@@ -64,14 +66,17 @@ function installChatKit(fx, { prefix, terminalErrors = false }) {
             persistAndTitle: async () => {},
             getOrCreateAgentConversation: async () => ({ id: 'c1' }),
         },
-        './crud': {
-            canModifyAgent: async () => {
-                if (fx.modifyThrows) throw new Error('permission store down');
-                return fx.canModify;
-            },
-            canReadAgent: async () => true,
-        },
     };
+    // The gates over the fixture's verdicts; the chat gate admits everyone (the
+    // audience rule is auth/agentAccess.test.js's), the edit rule is the fixture's.
+    MOCKS['./crud'] = fakeAgentGates({
+        agentStore: MOCKS['../../stores/agentStore'],
+        canModify: () => {
+            if (fx.modifyThrows) throw new Error('permission store down');
+            return fx.canModify;
+        },
+        userId: () => fx.userId,
+    });
 
     const realAudience = require('../../auth/audience');
     const TEST_AS_MOCKS = {
@@ -91,13 +96,13 @@ function installChatKit(fx, { prefix, terminalErrors = false }) {
     for (const [request, exportsObj] of Object.entries(MOCKS)) {
         const mockId = `mock:${prefix}:${request}`;
         MOCK_IDS[request] = mockId;
-        require.cache[mockId] = { id: mockId, filename: mockId, loaded: true, exports: exportsObj };
+        require.cache[mockId] = /** @type {NodeJS.Module} */ ({ id: mockId, filename: mockId, loaded: true, exports: exportsObj });
     }
     const TEST_AS_IDS = {};
     for (const [request, exportsObj] of Object.entries(TEST_AS_MOCKS)) {
         const mockId = `mock:${prefix}:inner:${request}`;
         TEST_AS_IDS[request] = mockId;
-        require.cache[mockId] = { id: mockId, filename: mockId, loaded: true, exports: exportsObj };
+        require.cache[mockId] = /** @type {NodeJS.Module} */ ({ id: mockId, filename: mockId, loaded: true, exports: exportsObj });
     }
 
     const originalResolve = Module._resolveFilename;
@@ -119,12 +124,12 @@ function installChatKit(fx, { prefix, terminalErrors = false }) {
 
     function dispatch(body) {
         return new Promise((resolve, reject) => {
-            const request = {
+            const request = /** @type {import('express').Request} */ (/** @type {unknown} */ ({
                 method: 'POST', url: '/a1/chat/stream', originalUrl: '/a1/chat/stream',
                 path: '/a1/chat/stream', body, query: {}, headers: {},
                 session: { user: { id: fx.userId } },
                 get() { return undefined; },
-            };
+            }));
             const res = {
                 statusCode: 200, events: [], writableEnded: false,
                 status(c) { this.statusCode = c; return this; },
@@ -133,9 +138,9 @@ function installChatKit(fx, { prefix, terminalErrors = false }) {
                 end() { this.writableEnded = true; resolve(this); return this; },
                 setHeader() {}, flushHeaders() {}, write() {}, on() {},
             };
-            router(request, res, (err) => {
+            router(request, /** @type {import('express').Response} */ (/** @type {unknown} */ (res)), (err) => {
                 if (err && terminalErrors) {
-                    require('../../core/http/terminalErrorHandler').terminalErrorHandler(err, request, res, reject);
+                    require('../../core/http/terminalErrorHandler').terminalErrorHandler(err, request, /** @type {import('express').Response} */ (/** @type {unknown} */ (res)), reject);
                 } else {
                     reject(err || new Error('fell through router'));
                 }

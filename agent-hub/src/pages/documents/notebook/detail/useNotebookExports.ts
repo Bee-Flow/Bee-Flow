@@ -8,7 +8,7 @@
  * to its folder. Signing reports inside its own dialog.
  */
 import { useCallback, useState } from 'react';
-import { API_BASE, authFetch } from '@/utils/helpers';
+import { apiFetch } from '@/api/typedRequest';
 import { embedImagesAsBase64 } from '@/utils/imageEmbedding';
 import { renderMermaidToSVG, svgToPngDataUrl } from '../MermaidBlock';
 import useTranslation, { type TranslateFn } from '@/hooks/useTranslation';
@@ -63,6 +63,13 @@ async function readError(res: Response, t: TranslateFn, fallback: string): Promi
     return new Error(exportErrorText(body, t, fallback));
 }
 
+/** The notebook's export routes; each takes the content as a raw JSON body. */
+type ExportKey =
+    | 'POST /api/notebooks/{id}/export/pdf'
+    | 'POST /api/notebooks/{id}/export/docx'
+    | 'POST /api/notebooks/{id}/export/signrequest'
+    | 'POST /api/notebooks/{id}/export/nextcloud';
+
 export default function useNotebookExports({ notebookId, title, getContent, onNotice }: Options) {
     const { t } = useTranslation();
     const [exporting, setExporting] = useState<string | null>(null);
@@ -70,10 +77,9 @@ export default function useNotebookExports({ notebookId, title, getContent, onNo
     const [signError, setSignError] = useState<string | null | undefined>(null);
     const [nextcloudExporting, setNextcloudExporting] = useState(false);
 
-    const post = useCallback((path: string, body: unknown) => authFetch(`${API_BASE}/api/notebooks/${notebookId}${path}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+    const post = useCallback((key: ExportKey, body: unknown) => apiFetch(key, {
+        params: { id: notebookId },
+        init: { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
     }), [notebookId]);
 
     const handleExport = useCallback(async (format: 'pdf' | 'docx') => {
@@ -96,7 +102,7 @@ export default function useNotebookExports({ notebookId, title, getContent, onNo
                 }
             }
             content = await embedImagesAsBase64(content);
-            const res = await post(`/export/${format}`, { content, title });
+            const res = await post(format === 'pdf' ? 'POST /api/notebooks/{id}/export/pdf' : 'POST /api/notebooks/{id}/export/docx', { content, title });
             if (!res.ok) throw await readError(res, t, t('notebooks.export_failed_status', 'Export failed ({status})', { status: res.status }));
             const blob = await res.blob();
             const url = URL.createObjectURL(blob);
@@ -125,7 +131,7 @@ export default function useNotebookExports({ notebookId, title, getContent, onNo
         setSignSending(true);
         try {
             const content = await embedImagesAsBase64(raw);
-            const res = await post('/export/signrequest', { content, title, signers, subject, message });
+            const res = await post('POST /api/notebooks/{id}/export/signrequest', { content, title, signers, subject, message });
             if (!res.ok) throw await readError(res, t, t('notebooks.sign_failed_status', 'Sending for signing failed ({status})', { status: res.status }));
             return await res.json();
         } catch (e) {
@@ -144,7 +150,7 @@ export default function useNotebookExports({ notebookId, title, getContent, onNo
         onNotice(null);
         try {
             const content = await embedImagesAsBase64(raw);
-            const res = await post('/export/nextcloud', { content, title });
+            const res = await post('POST /api/notebooks/{id}/export/nextcloud', { content, title });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(exportErrorText(data, t, t('notebooks.nextcloud_failed_status', 'Saving to Nextcloud failed ({status})', { status: res.status })));
             onNotice({

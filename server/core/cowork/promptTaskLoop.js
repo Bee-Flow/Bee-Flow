@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The tool-calling loop of a plain-prompt Cowork run (executeTask in
  * core/aiTaskRunner.js): model round, tool calls through the shield gate and
@@ -19,7 +19,8 @@ const log = require('../../telemetry/log');
 const MAX_TOOL_ITERATIONS = 20;
 
 /**
- * @typedef {{ id?: string, function?: { name?: string, arguments?: unknown }, _thought_signature?: string, _raw_content_parts?: unknown }} LoopToolCall
+ * A tool call as the adapters emit it: always a named function.
+ * @typedef {{ id?: string, function: { name: string, arguments?: unknown }, _thought_signature?: string, _raw_content_parts?: unknown }} LoopToolCall
  * @typedef {{ content?: string | null, toolCalls?: LoopToolCall[] | null, usage?: unknown, stop_reason?: string, stopReason?: string, finish_reason?: string }} LoopReply
  * @typedef {ReturnType<typeof import('../privacy/toolPiiGate').toolLoopGate>} ShieldGate
  * @typedef {(toolName: string, toolArgs: Record<string, unknown>) => Promise<unknown>} DispatchTool
@@ -34,7 +35,7 @@ function toolCallMessage(response) {
     return {
         role: 'assistant',
         content: response.content || null,
-        tool_calls: response.toolCalls.map(tc => ({
+        tool_calls: /** @type {LoopToolCall[]} */ (response.toolCalls).map(tc => ({ // asked only for a reply with tool calls
             id: tc.id,
             type: 'function',
             function: {
@@ -98,7 +99,7 @@ async function runToolCalls(toolCalls, { messages, shieldGate, dispatchTool }) {
  * termination rows read it); `logTermination(type)` writes a termination row.
  * Resolves to `{ finalResponse, lastAssistantContent, hitIterationCap }`.
  * @param {{
- *   adapter: { chat: (apiKey: string, baseUrl: string, model: string, messages: object[], options: object) => Promise<LoopReply> },
+ *   adapter: { chat: (apiKey: string | undefined, baseUrl: string, model: string, messages: object[], options: object) => Promise<LoopReply> },
  *   config: { apiKey?: string, url: string },
  *   modelId: string,
  *   messages: object[],

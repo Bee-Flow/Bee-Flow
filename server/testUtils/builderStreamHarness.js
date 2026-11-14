@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Drive one whole turn of the Automation Builder's SSE endpoint
  * (routes/ai/automationBuilder/chatStream.js) in a unit test.
@@ -39,7 +40,6 @@
  * directory required a collaborator FIRST — and several modules in
  * routes/ai/automationBuilder/ share the same relative paths.
  */
-
 'use strict';
 
 const path = require('node:path');
@@ -88,7 +88,7 @@ function silentDb() {
 
 /**
  * Stand the route up with every collaborator a test needs to steer.
- * @returns {{ run: Function, restore: Function, router: Function }}
+ * @returns {{ run: Function, restore: Function, router: Function, realApplyToolCall: typeof import('../automation/builderTools').applyToolCall }}
  */
 function createBuilderStream() {
     // The stubs below are `require.cache` entries, so anything that already
@@ -101,7 +101,7 @@ function createBuilderStream() {
     if (Object.prototype.hasOwnProperty.call(require.cache, storeFile)) {
         throw new Error('createBuilderStream() must run before the test file requires anything that loads stores/automationStore — move the call above those requires');
     }
-    /** @type {() => void[]} */
+    /** @type {Array<() => void>} */
     const undo = [];
     /**
      * Replace a module's exports for the lifetime of this harness.
@@ -111,7 +111,7 @@ function createBuilderStream() {
         const file = resolveInServer(rel);
         const had = Object.prototype.hasOwnProperty.call(require.cache, file);
         const prev = require.cache[file];
-        require.cache[file] = { id: file, filename: file, loaded: true, exports, children: [], paths: [] };
+        require.cache[file] = /** @type {NodeJS.Module} */ ({ id: file, filename: file, loaded: true, exports, children: [], paths: [] });
         undo.push(() => { if (had) require.cache[file] = prev; else delete require.cache[file]; });
         return file;
     };
@@ -156,12 +156,12 @@ function createBuilderStream() {
     swap('automation/flowletAgent', { async resolveLayerAgentModel() { return script.thinkingModelId; } });
     // The delegation ctx rides along as the handler's third argument: it is
     // where the route says which model a flowlet sub-agent runs on.
-    swap('routes/ai/automationBuilder/layerDelegation', {
+    swap('usecases/ai/automationBuilder/layerDelegation', {
         async runDelegationTool(name, args, ctx) { return script.dispatch(name, args, ctx.draftWrap, ctx); },
     });
     // A 10s ping interval would outlive the turn and hold the test process.
     swap('core/http/sseHelpers', require('./quietSse').quietSse());
-    swap('routes/ai/automationBuilder/rateLimits', { builderRateLimit: (_req, _res, next) => next() });
+    swap('usecases/ai/automationBuilder/rateLimits', { builderRateLimit: (_req, _res, next) => next() });
 
     // The real gate verifies the session against the database; the harness
     // owns req.session, so it only has to step aside.
@@ -200,9 +200,9 @@ function createBuilderStream() {
      * a tool name to its handler (onTool answers every tool); `body` holds extra request-body fields
      * (seedMetadata, history, …); `draft` the automations row an automationId resolves to; `pickers`
      * what buildPickerCatalogsForUser answers (agents, knowledgeBases, …); `config` configStore's answers.
-     * @param {{ message?: string, rounds?: Array<unknown>, body?: Record<string, unknown>,
-     *   tools?: Record<string, (args: unknown, draftWrap: unknown, delegation: unknown) => unknown>,
-     *   onTool?: ((name: string, args: unknown, draftWrap: unknown, delegation: unknown) => unknown) | null,
+     * @param {{ message?: string, rounds?: RoundSpec[], body?: Record<string, unknown>,
+     *   tools?: Record<string, (args: unknown, draftWrap: unknown, delegation?: unknown) => unknown>,
+     *   onTool?: ((name: string, args: unknown, draftWrap: unknown, delegation?: unknown) => unknown) | null,
      *   draft?: ({ id: string } & Record<string, unknown>) | null, builderSession?: unknown, betaFeatures?: string[],
      *   tiers?: Record<string, { modelId: string }>, modelId?: string, surfacesRawReasoning?: boolean, supportsVision?: boolean, runs?: unknown[], runSteps?: Record<string, unknown[]>,
      *   providerConfig?: { apiKey?: string, url?: string, providerType?: string }, datatables?: unknown,
@@ -345,7 +345,7 @@ function toEvents(spec) {
     return out;
 }
 
-/** @typedef {{ body: { message: string; } }} FakeExchangeArgs */
+/** @typedef {{ body: { message: string; }, query?: any, userId?: any, userOrgId?: any }} FakeExchangeArgs */
 /**
  * A request/response pair the Express router can serve, minus the socket.
  * @param {FakeExchangeArgs} param0

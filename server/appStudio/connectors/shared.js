@@ -14,6 +14,7 @@
 // viewer connect-prompt UI and the rate limits for free.
 
 const { bestEffort } = require('../../utils/bestEffort');
+const { envInt } = require('../../utils/envNumber.mts');
 
 const CONNECTOR_KINDS = Object.freeze(['integration_tool', 'automation', 'rest', 'mailbox']);
 
@@ -32,7 +33,7 @@ function readMaxRows(raw) {
     return n === 0 ? Infinity : n;
 }
 const MAX_CONNECTOR_ROWS = readMaxRows(process.env.STUDIO_APP_CONNECTOR_MAX_ROWS);
-const REST_TIMEOUT_MS = parseInt(process.env.STUDIO_APP_CONNECTOR_TIMEOUT_MS, 10) || 10_000;
+const REST_TIMEOUT_MS = envInt('STUDIO_APP_CONNECTOR_TIMEOUT_MS', 10_000, { min: 1 });
 const MAX_REST_BYTES = 4 * 1024 * 1024;
 
 // ── Chain budget ────────────────────────────────────────────────────
@@ -43,7 +44,7 @@ const MAX_REST_BYTES = 4 * 1024 * 1024;
 // on the owner's account. MAX_CHAIN_STEPS mirrors the persisted-model cap in
 // dataModel.js (kept in lockstep by connectors.chain.test.js).
 const MAX_CHAIN_STEPS = 3;
-const MAX_CHAIN_CALLS = parseInt(process.env.STUDIO_APP_CHAIN_CALL_BUDGET, 10) || 200;
+const MAX_CHAIN_CALLS = envInt('STUDIO_APP_CHAIN_CALL_BUDGET', 200, { min: 1 });
 const MAX_CHAIN_CONCURRENCY = 4;
 
 /**

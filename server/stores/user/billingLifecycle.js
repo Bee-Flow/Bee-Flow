@@ -164,7 +164,7 @@ async function resetPaymentFailureForConsumer(userId) {
 /**
  * @param {number} [graceDays]
  */
-async function suspendPastDueSubscriptions(graceDays = 7) {
+async function suspendPastDueSubscriptions(graceDays = 7) { // stepwise: a per-row sweep; each row's update stands alone, a failed row is logged and the next tick retries it
     await initDB();
     const graceMs = Math.max(0, Number(graceDays)) * 86400 * 1000;
     const cutoffIso = new Date(Date.now() - graceMs).toISOString();
@@ -227,7 +227,7 @@ async function suspendPastDueSubscriptions(graceDays = 7) {
 // Persist trial-end transitions. Called by the trial-expiry scheduler.
 // Subs whose trial_end_date has passed and that aren't paid get flipped to
 // status='suspended', payment_status='trial_expired'. Idempotent.
-async function expireOverdueTrials() {
+async function expireOverdueTrials() { // stepwise: a per-row sweep; each row's update stands alone, a failed row is logged and the next tick retries it
     await initDB();
     const nowIso = new Date().toISOString();
 

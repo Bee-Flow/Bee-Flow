@@ -148,6 +148,6 @@ test('runPartial still throws for a genuinely unknown namespaced id', async () =
     reset();
     await assert.rejects(
         () => runner.runPartial(automationWithLoop(), 'lp1/nope', { mode: 'only' }),
-        /not found in definition/i,
+        (e) => e.status === 404 && e.code === 'step_not_found',
     );
 });

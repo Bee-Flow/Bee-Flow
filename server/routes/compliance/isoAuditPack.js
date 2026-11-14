@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Compliance — the auditor hand-over exports: the risk register PDF, the ISMS
  * policy pack PDF and the hash-stamped evidence bundle ZIP that carries every

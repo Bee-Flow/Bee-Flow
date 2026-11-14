@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What a declared parameter means at run time, applied before the sandbox
  * sees the inputs (core/automationRunner/codeStepGuard.js and POST /code/test).
@@ -20,14 +21,15 @@
 const { bestEffort } = require('../../../utils/bestEffort');
 
 /**
- * @param {string | null | undefined} v
+ * @param {unknown} v
  */
 function isEmpty(v) {
     return v === undefined || v === null || (typeof v === 'string' && v.trim() === '');
 }
 
 /**
- * @param {string | object | null} v
+ * @param {unknown} v
+ * @returns {v is Record<string, unknown>}
  */
 function isPlainObject(v) {
     return v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -76,7 +78,7 @@ const EXPECTED = {
 };
 
 /**
- * @param {string} v
+ * @param {unknown} v
  */
 function describe(v) {
     if (typeof v === 'string') return JSON.stringify(v.length > 60 ? `${v.slice(0, 57)}...` : v);
@@ -88,7 +90,7 @@ function describe(v) {
 
 /**
  * Convert one value to the declared type, or answer `{ error }`.
- * @param {string} value
+ * @param {unknown} value
  */
 function coerce(value, param) {
     const t = param.type;
@@ -151,7 +153,7 @@ function coerce(value, param) {
 }
 
 /**
- * @param {string} value
+ * @param {unknown} value
  */
 function checkEnum(value, param) {
     if (!Array.isArray(param.enum) || !param.enum.length) return { value };
@@ -167,9 +169,9 @@ function checkEnum(value, param) {
 /**
  * Apply the declared parameters to resolved inputs.
  *
- * @param {object[]} params  CodeParam[] from analyzeCode
- * @param {object}   inputs  resolved values (never bindings)
- * @returns {{ inputs: object, error: null | { message, messageKey, messageParams } }}
+ * @param {CodeParam[]} params  from analyzeCode
+ * @param {Record<string, unknown>} inputs  resolved values (never bindings)
+ * @returns {{ inputs: Record<string, unknown>, error: null | { message, messageKey, messageParams } }}
  */
 function applyParamValues(params, inputs) {
     const out = isPlainObject(inputs) ? { ...inputs } : {};

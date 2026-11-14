@@ -12,6 +12,9 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 const { makeResources } = require('./resources');
+const { pgliteDb } = require('../../testUtils/pgliteDb');
+const { ladderPglite } = require('../../testUtils/pgliteTemplate');
+const { insertRow } = require('../../testUtils/pgliteSeed');
 
 const quiet = { warn() {} };
 
@@ -68,32 +71,44 @@ test('an owner that refuses the content is an outcome, not a failure; the page c
     assert.strictEqual(r.maxContentBytes('notebook'), null, 'a notebook body has no cap');
 });
 
+// The seed reads run on a real Postgres: the boot ladder's schema on PGlite
+// (testUtils/pgliteTemplate.js), through the injected getOne.
+const { pg, db } = pgliteDb(ladderPglite());
+test.after(() => pg.close());
+test.before(() => insertRow(pg, 'projects', { id: 'p1', name: 'P', owner_id: 'u1', organization_id: 'o1' }));
+
+/** getOne over the PGlite, recording each statement it sends. @param {string[]} [seen] */
+const realGetOne = (seen = []) => async (/** @type {string} */ sql, /** @type {unknown[]} */ params) => {
+    seen.push(sql.replace(/\s+/g, ' ').trim());
+    return (await db.query(sql, params)).rows[0] || null;
+};
+
 test('the seed reads the resource with its share lock, so a save in flight is waited for and imported', async () => {
+    await insertRow(pg, 'notebooks', { id: 'n1', user_id: 'u1', name: 'N', project_id: 'p1', organization_id: 'o1', document_content: '<p>x</p>', document_md: 'x' });
+    await insertRow(pg, 'studio_documents', { id: 'd1', user_id: 'u1', name: 'D', project_id: 'p1', organization_id: 'o1', doc_type: 'page', kind: 'document', archived: false, body_html: '<p>y</p>' });
     const seen = [];
-    const r = makeResources({
-        getOne: async (sql, params) => {
-            seen.push(sql.replace(/\s+/g, ' ').trim());
-            return /notebooks/.test(sql)
-                ? { id: params[0], user_id: 'u1', project_id: 'p1', organization_id: 'o1', document_content: '<p>x</p>', document_md: 'x' }
-                : { id: params[0], user_id: 'u1', project_id: 'p1', organization_id: 'o1', doc_type: 'page', kind: 'document', archived: false, body_html: '<p>x</p>' };
-        },
-        log: quiet,
-    });
-    await r.load('notebook', 'n1', { lock: true });
-    await r.load('document', 'd1', { lock: true });
+    const r = makeResources({ getOne: realGetOne(seen), log: quiet });
+    const nb = await r.load('notebook', 'n1', { lock: true });
+    const doc = await r.load('document', 'd1', { lock: true });
     await r.load('notebook', 'n1');
-    assert.match(seen[0], /FROM notebooks WHERE id = \$1 FOR SHARE$/);
-    assert.match(seen[1], /FROM studio_documents WHERE id = \$1 FOR SHARE$/);
-    assert.doesNotMatch(seen[2], /FOR SHARE/, 'every other read stays a plain read');
+    assert.strictEqual(nb.supported, true);
+    assert.strictEqual(doc.supported, true);
+    assert.strictEqual(nb.projectId, 'p1');
+    // One PGlite session cannot hold a lock against a second writer, so the
+    // lock is pinned on the statements that ran.
+    assert.ok(seen[0].endsWith('FROM notebooks WHERE id = $1 FOR SHARE'), seen[0]);
+    assert.ok(seen[1].endsWith('FROM studio_documents WHERE id = $1 FOR SHARE'), seen[1]);
+    assert.ok(!seen[2].includes('FOR SHARE'), 'every other read stays a plain read');
+    assert.strictEqual(await r.load('notebook', 'missing', { lock: true }), null, 'a missing row is gone');
 });
 
 test('an archived page is still a row to fold back into: not co-edited, but never read as gone', async () => {
-    const row = { id: 'd1', user_id: 'u1', project_id: 'p1', organization_id: 'o1', doc_type: 'page', kind: 'document', archived: true, body_html: '<p>x</p>' };
-    const r = makeResources({ getOne: async () => row, log: quiet });
-    const archived = await r.load('document', 'd1');
+    await insertRow(pg, 'studio_documents', { id: 'd-arch', user_id: 'u1', name: 'A', project_id: 'p1', organization_id: 'o1', doc_type: 'page', kind: 'document', archived: true, body_html: '<p>x</p>' });
+    await insertRow(pg, 'studio_documents', { id: 'd-tpl', user_id: 'u1', name: 'T', project_id: 'p1', doc_type: 'page', kind: 'template', archived: false, body_html: '<p>x</p>' });
+    const r = makeResources({ getOne: realGetOne(), log: quiet });
+    const archived = await r.load('document', 'd-arch');
     assert.strictEqual(archived.supported, false, 'nobody edits it live');
     assert.strictEqual(archived.archived, true);
     assert.strictEqual(archived.projectId, 'p1');
-    const template = makeResources({ getOne: async () => ({ ...row, kind: 'template', archived: false }), log: quiet });
-    assert.strictEqual(await template.load('document', 'd1'), null, 'a template is never project content');
+    assert.strictEqual(await r.load('document', 'd-tpl'), null, 'a template is never project content');
 });

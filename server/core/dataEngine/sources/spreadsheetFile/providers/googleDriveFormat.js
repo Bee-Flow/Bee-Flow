@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Google Drive / Sheets vocabulary for ./googleDrive.js and
  * ./googleSheetsCells.js: the field lists, the Drive query quoting, the
@@ -107,12 +107,16 @@ function colLetter(col) {
     return s;
 }
 
-/** @param {GoogleError} err */
+/**
+ * Number.isInteger does not narrow, so each checked value is cast.
+ * @param {GoogleError} err
+ * @returns {number}
+ */
 function statusOf(err) {
     if (!err) return 0;
-    if (Number.isInteger(err.code)) return err.code;
-    if (Number.isInteger(err.status)) return err.status;
-    if (err.response && Number.isInteger(err.response.status)) return err.response.status;
+    if (Number.isInteger(err.code)) return /** @type {number} */ (err.code);
+    if (Number.isInteger(err.status)) return /** @type {number} */ (err.status);
+    if (err.response && Number.isInteger(err.response.status)) return /** @type {number} */ (err.response.status);
     return 0;
 }
 

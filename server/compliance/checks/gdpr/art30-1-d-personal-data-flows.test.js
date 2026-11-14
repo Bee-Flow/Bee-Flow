@@ -9,11 +9,21 @@
  * The third one is a pass in every product that has this bug, and it is the
  * one this check refuses to give.
  *
- * Run: node --test --test-force-exit compliance/checks/gdpr/art30-1-d-personal-data-flows.test.js
+ * The database the check reads (automations, users, datatables, the activity
+ * ledger) is the boot ladder's schema on PGlite, through the injected getAll.
+ *
+ * Run: node --test compliance/checks/gdpr/art30-1-d-personal-data-flows.test.js
  */
 const test = require('node:test');
 const assert = require('node:assert');
 const CHK = require('./art30-1-d-personal-data-flows');
+const { pgliteDb, dbFacade } = require('../../../testUtils/pgliteDb');
+const { ladderPglite } = require('../../../testUtils/pgliteTemplate');
+const { insertRow } = require('../../../testUtils/pgliteSeed');
+
+const { pg, db: rawDb } = pgliteDb(ladderPglite());
+const facade = dbFacade(rawDb);
+test.after(() => pg.close());
 const dataFlow = require('../../../core/privacy/dataFlow');
 
 const flowOf = (steps, personal, observed = null) =>
@@ -119,14 +129,23 @@ test('the ledger acquits only the exits it saw, and only calls that were scanned
 });
 
 test('the ledger query says whether each group was scanned', async () => {
-    let sql = '';
-    await CHK._egressFor('orgA', 'aut_1', { getAll: async (q) => { sql = q; return []; } });
-    assert.match(sql, /COALESCE\(pii_scan_enabled, FALSE\) AS scanned/);
-    assert.match(sql, /GROUP BY tool_name, pii_categories_detected, COALESCE\(pii_scan_enabled, FALSE\)/);
+    const at = new Date().toISOString();
+    const log = (/** @type {Record<string, unknown>} */ over) => insertRow(pg, 'integration_activity_log', { tool_name: 'gmail_compose', organization_id: 'orgL', automation_id: 'aut_L', timestamp: at, ...over });
+    await log({ pii_categories_detected: 'Email', pii_scan_enabled: true });
+    await log({ pii_categories_detected: null, pii_scan_enabled: true });
+    await log({ pii_categories_detected: null, pii_scan_enabled: null });                 // the scan was off
+    await log({ pii_categories_detected: 'Email', is_dry_run: true });                    // a simulated send moved nothing
+    await log({ pii_categories_detected: 'Email', timestamp: new Date(Date.now() - 400 * 86400e3).toISOString() });
+    await log({ automation_id: 'aut_other' });
+    await log({ organization_id: 'orgX' });
+    const seen = await CHK._egressFor('orgL', 'aut_L', facade);
+    assert.equal(seen.unscanned_calls, 1, 'the NULL scan flag groups as not scanned');
     // A single-tenant install writes its ledger rows with no organisation,
     // and the scheduler sweeps it as 'default'.
-    await CHK._egressFor('default', 'aut_1', { getAll: async (q) => { sql = q; return []; } });
-    assert.match(sql, /organization_id IS NULL/);
+    await log({ organization_id: null, automation_id: 'aut_D', pii_categories_detected: 'Email', pii_scan_enabled: true });
+    const dflt = await CHK._egressFor('default', 'aut_D', facade);
+    assert.ok(JSON.stringify(dflt).includes('email'), `the org-less row is the default bucket's: ${JSON.stringify(dflt)}`);
+    assert.ok(!JSON.stringify(await CHK._egressFor('orgL', 'aut_D', facade)).includes('email'), 'and no tenant\'s');
 });
 
 test('an automation that sends nothing, and one whose columns hold nothing personal', () => {
@@ -191,16 +210,29 @@ test('a step is projected through an allow-list, so its configuration cannot rea
 const ROWS = [
     { id: 'aut_1', title: 'Klantmailer', definition_json: { steps: [{ type: 'integration_action', tool: 'gmail_compose', datatableId: 'tbl_1' }] } },
     { id: 'aut_2', title: 'Rijen bijwerken', definition_json: { steps: [{ type: 'datatable', datatableId: 'tbl_1' }] } },
-    { id: 'aut_3', title: 'Kapotte import', definition_json: 'not json at all' },
-    { id: 'aut_4', title: null, definition_json: { steps: [] } },
+    { id: 'aut_3', title: 'Kapotte import', definition_json: JSON.stringify('not json at all') },
+    { id: 'aut_4', title: '', definition_json: { steps: [] } },
 ];
-const depsFor = (rows = ROWS, over = {}) => ({
-    getAll: async (sql) => {
-        if (/FROM automations/.test(sql)) return rows;
-        if (/FROM datatables/.test(sql)) return [{ id: 'tbl_1', name: 'Klanten', scope_kind: 'org', scope_id: 'orgA' }];
-        if (/integration_activity_log/.test(sql)) return [];
-        return [];
-    },
+test.before(async () => {
+    await insertRow(pg, 'users', { id: 'pd-owner', username: 'pd-owner', organizationId: 'orgA' });
+    await insertRow(pg, 'users', { id: 'pd-other', username: 'pd-other', organizationId: 'orgB' });
+    const live = { user_id: 'pd-owner', kind: 'automation', is_active: true, is_draft: false };
+    await insertRow(pg, 'automations', { ...ROWS[0], ...live, organization_id: 'orgA' });
+    // Rows created before organization_id was stamped resolve through the owner.
+    for (const r of ROWS.slice(1)) await insertRow(pg, 'automations', { ...r, ...live });
+    // Not live, or not this org's: never in the population.
+    const step = { steps: [{ type: 'integration_action', tool: 'gmail_compose' }] };
+    await insertRow(pg, 'automations', { id: 'aut_off', title: 'Uit', definition_json: step, ...live, is_active: false });
+    await insertRow(pg, 'automations', { id: 'aut_draft', title: 'Concept', definition_json: step, ...live, is_draft: true });
+    await insertRow(pg, 'automations', { id: 'aut_step', title: 'Herbruikbare stap', definition_json: step, ...live, kind: 'step' });
+    await insertRow(pg, 'automations', { id: 'aut_theirs', title: 'Van B', definition_json: step, ...live, user_id: 'pd-other' });
+    // An organisation whose every live automation is unreadable.
+    await insertRow(pg, 'users', { id: 'pd-unread', username: 'pd-unread', organizationId: 'orgUnreadable' });
+    for (const r of ROWS) await insertRow(pg, 'automations', { ...r, id: `${r.id}_u`, ...live, user_id: 'pd-unread', definition_json: JSON.stringify('not json') });
+    await insertRow(pg, 'datatables', { id: 'tbl_1', key: 'klanten', name: 'Klanten', scope_kind: 'org', scope_id: 'orgA', owner_user_id: 'pd-owner', organization_id: 'orgA' });
+});
+const depsFor = (/** @type {Record<string, unknown>} */ over = {}) => ({
+    getAll: facade.getAll,
     getTableMeta: async () => ({ fields: [{ key: 'email', name: 'E-mail', type: 'text' }, { key: 'total', name: 'Total', type: 'number' }] }),
     ...over,
 });
@@ -228,7 +260,7 @@ test('a table whose columns are named in snake_case is not thereby free of perso
     // `email_address` has no \b before "address" or after "email", so the
     // name detector read it as nothing and the automation passed with "none of
     // the columns it reads holds personal data".
-    const deps = depsFor(ROWS, { getTableMeta: async () => ({ fields: [{ key: 'email_address', name: 'email_address', type: 'text' }] }) });
+    const deps = depsFor({ getTableMeta: async () => ({ fields: [{ key: 'email_address', name: 'email_address', type: 'text' }] }) });
     const v = await CHK.evaluate('orgA', { id: 'automation:aut_1' }, deps);
     assert.equal(v.status, 'warn');
     assert.deepEqual(v.evidence.carries, ['email']);
@@ -238,7 +270,7 @@ test('an automation list that cannot be read is not "no longer switched on"', as
     // not_applicable drops the automation out of the score, so a transient
     // read error between listSubjects and evaluate used to hide a failing
     // automation. Only the SQLSTATE travels, never the error message.
-    const deps = depsFor(ROWS, { getAll: async () => { throw Object.assign(new Error('terminating connection due to administrator command'), { code: '57P01' }); } });
+    const deps = depsFor({ getAll: async () => { throw Object.assign(new Error('terminating connection due to administrator command'), { code: '57P01' }); } });
     const v = await CHK.evaluate('orgA', { id: 'automation:aut_1' }, deps);
     assert.equal(v.status, 'warn');
     assert.equal(v.evidence.sqlstate, '57P01');
@@ -247,23 +279,17 @@ test('an automation list that cannot be read is not "no longer switched on"', as
 });
 
 test('an automation whose tables cannot be opened is not thereby clean', async () => {
-    const deps = depsFor(ROWS, { getTableMeta: async () => { throw new Error('datatable store unavailable'); } });
+    const deps = depsFor({ getTableMeta: async () => { throw new Error('datatable store unavailable'); } });
     const v = await CHK.evaluate('orgA', { id: 'automation:aut_1' }, deps);
     assert.equal(v.status, 'warn');
     assert.equal(v.evidence.carries, null, 'nobody looked — not "nothing is there"');
 });
 
-test('"live" is one sentence, and the SQL still says it', async () => {
-    let sql = '';
-    await CHK._liveAutomations('orgA', { getAll: async (q) => { sql = q; return []; } });
-    assert.match(sql, /a\.is_active = TRUE/);
-    assert.match(sql, /COALESCE\(a\.is_draft, FALSE\) = FALSE/);
-    assert.match(sql, /a\.kind = 'automation'/, 'a reusable Step is not an automation');
-    // Rows created before organization_id was stamped resolve through the
-    // owner — the filter aiAct/signals.js and the detectors already use. A
-    // plain a.organization_id = $1 loses every automation older than that column,
-    // and a check that loses automations scores the ones it happened to keep.
-    assert.match(sql, /COALESCE\(a\.organization_id, u\."organizationId"\) = \$1/);
+test('"live" is one sentence: active, not a draft, an automation and not a reusable Step, this org\'s through the owner', async () => {
+    const rows = await CHK._liveAutomations('orgA', depsFor());
+    // A plain a.organization_id = $1 would lose every automation older than that
+    // column, and a check that loses automations scores the ones it kept.
+    assert.deepEqual(rows.map((/** @type {any} */ r) => r.id), ['aut_4', 'aut_3', 'aut_1', 'aut_2']);
 });
 
 test('it reports the whole live population and names the ones it could not open', async () => {
@@ -272,9 +298,9 @@ test('it reports the whole live population and names the ones it could not open'
     assert.equal(cov.total, 4);
     assert.equal(cov.examined, 2);
     assert.deepEqual(cov.unexamined, [
-        { id: 'aut_3', label: 'Kapotte import' },
         // An automation with no title is still named by something clickable.
         { id: 'aut_4', label: 'aut_4' },
+        { id: 'aut_3', label: 'Kapotte import' },
     ]);
     assert.equal(cov.link, 'admin/compliance/ropa');
     assert.equal(cov.examined_as, 'read for where its data goes');
@@ -301,7 +327,7 @@ test('the subject list is the whole live population, so a switched-off automatio
 });
 
 test('an organisation running nothing reports an empty population, not a gap', async () => {
-    const cov = await CHK.listCoverage('orgA', depsFor([]));
+    const cov = await CHK.listCoverage('orgEmpty', depsFor());
     assert.equal(cov.total, 0);
     assert.equal(cov.examined, 0);
     assert.deepEqual(cov.unexamined, []);
@@ -315,18 +341,18 @@ test('the sentence an admin actually reads names the automations and where to go
     assert.equal(row.status, 'warn');
     assert.match(row.details, /2 of this organisation's 4 live automations have never been read for where its data goes/);
     assert.match(row.details, /the score covers only the other 2/);
-    assert.match(row.details, /"Kapotte import", "aut_4"/);
+    assert.match(row.details, /"aut_4", "Kapotte import"/);
 
     // NOTHING readable while automations are running: the verdicts above are
     // about nothing at all, and that is the bug this contract was added for —
     // a workspace nobody had looked at used to score the checks that happened
     // to run, often 100.
-    const none = _coverageVerdict(CHK, await CHK.listCoverage('orgA', depsFor(ROWS.map((r) => ({ ...r, definition_json: 'not json' })))));
+    const none = _coverageVerdict(CHK, await CHK.listCoverage('orgUnreadable', depsFor()));
     assert.equal(none.status, 'fail');
     assert.match(none.details, /this check examined nothing at all/);
 
     // And an organisation with nothing switched on is not accused of a gap.
-    assert.equal(_coverageVerdict(CHK, await CHK.listCoverage('orgA', depsFor([]))).status, 'not_applicable');
+    assert.equal(_coverageVerdict(CHK, await CHK.listCoverage('orgEmpty', depsFor())).status, 'not_applicable');
 });
 
 test('the registry gets a check it will accept, with the coverage contract on it', () => {

@@ -220,3 +220,17 @@ test('an empty create is refused in words, not with "Required"', async () => {
     assert.strictEqual(res.body.error, 'Course title is required');
     assert.deepStrictEqual(writes, []);
 });
+
+test('Publishing a course takes no fields: one sent is refused by name', async () => {
+    const res = await dispatch({ method: 'POST', url: '/courses/c1/publish', body: { force: true } });
+    assert.strictEqual(res.statusCode, 400, JSON.stringify(res.body));
+    assert.strictEqual(res.body.code, 'invalid_request');
+    assert.match(res.body.error, /Publishing a course does not take "force"/);
+});
+
+test('Unpublishing a course takes no fields: one sent is refused by name', async () => {
+    const res = await dispatch({ method: 'POST', url: '/courses/c1/unpublish', body: { force: true } });
+    assert.strictEqual(res.statusCode, 400, JSON.stringify(res.body));
+    assert.strictEqual(res.body.code, 'invalid_request');
+    assert.match(res.body.error, /Unpublishing a course does not take "force"/);
+});

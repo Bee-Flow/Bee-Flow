@@ -303,6 +303,22 @@ test('een verkeerd gespeld pad geeft geen inhoudsopgave meer terug', async () =>
     await refuses('GET', '/wp1/files?paht=src%2FApp.jsx', undefined, 'query');
 });
 
+test('a path the store refuses is a 400 with its sentence, whatever the wording', async () => {
+    // The real path check (it runs before the store reads the database). A primary-slot name
+    // was a 500: its sentence did not match the wording the route used to look for.
+    const real = require('../../stores/webpage/extraFiles').upsertExtraFile;
+    const stubbed = webpageStore.upsertExtraFile;
+    webpageStore.upsertExtraFile = real;
+    try {
+        for (const path of ['index.html', '../escape.js', 'a/b c?.js']) {
+            const res = await call('PUT', '/wp1/files', { path, content: 'x' });
+            assert.strictEqual(res.statusCode, 400, `${path} → ${JSON.stringify(res.body)}`);
+            assert.strictEqual(res.body.code, 'invalid_path', path);
+            assert.ok(res.body.error, path);
+        }
+    } finally { webpageStore.upsertExtraFile = stubbed; }
+});
+
 test('een onbekende querysleutel op NO_QUERY krijgt een zin, niet zods eigen "Unrecognized key(s)"', async () => {
     // GET /:id/sources carries `query: NO_QUERY` (routes/webpages/sources.js) —
     // unlike the /files route above, which uses its own FileQuery.

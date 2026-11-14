@@ -1,0 +1,1198 @@
+{
+  "digests": {
+    "step:navigate": "ea89ee755f5ed04a3285516e4e696cade8ff737e881f0bf48060061ab6480aab",
+    "step:toast": "b320fba4c534d99baeec66aab052e67a2fc6a430a6f75bca038bae3719e077f1",
+    "step:open_url": "662786458c9001a2c2264cbe4aeef110823092184da869bf38427ab8451a3025",
+    "step:open_modal": "db0322822d922475d7de9e8717985a68c484fc66f3db1ee56fe1fb59a7445904",
+    "step:close_modal": "93c08dedf9020a028f3afe50dc00a43ec4551050d63095fb47c98a6ff1a5f1dd",
+    "step:reset_form": "d9a71939aaaa62332aaf0c253bb2d37f8b7dc93bcd34e8da9286a333001f436f",
+    "step:download_file": "80119412e1fda8365ca63afe4ae68a598fc71308eb4991187aad65ce2b4f96a7",
+    "step:confirm": "ad5023d28f3a10f03ebef6232ad92a7aa750e73ee8db041cd11da7995e2143f6",
+    "step:set_variable": "c874f959d9181eb7555b2971ea1344ff848bcf5acc64027e01e97fa48843e327",
+    "step:refresh": "94f5be0e44a42d086d21af9df2ead664bae47afd3ac1e424e09ae23be6ad6866",
+    "step:run_automation": "1bebfbb3ebc5f66033c27a53d77783f9aafd96961f5e701102bd4c43acb3e1fd",
+    "step:create_record": "7e969f4557bd4748f2a7b5e4b6a1ace591d90a2a5c091fcde169e8694bb0fbf4",
+    "step:update_record": "6701f57c67ff322e67dc0d2d95a1c1085f5a07160aa84ef110556195ac6f4817",
+    "step:delete_record": "26a8faf48006a9a6e0365143bd0a786467e6cfa9bfd576d5717c9948c336d828",
+    "step:request_approval": "c89ff6a5287a949f051872180228965260f7c57c8348df0d21a1208d1b554faf",
+    "step:ai_extract": "4708c00ed8649439cf0be53914eb12e661fd91b7c168319ae173d7968341edda",
+    "step:ai_generate": "00febb242463aa0a2464510f0acf1f493e9315b08422c3673cae7126e94f7209",
+    "step:kb_query": "98f535cad4f2a49bcabcb134d9d09080d644428b8b0359a17cb5fd13d64e42e1",
+    "step:send_email": "9d163b374549d1002627a5f9a71fce23a830ba831f0fa2d31d702c511535716a",
+    "step:generate_file": "44434598ac8af1db29c388980dc9eb6481475be3d8b9d96926e80e32e38d3864",
+    "step:fill_document": "443b7118496bce221ac5aff2ee0c1326584c3c31688a2f5f97900696e109d023",
+    "step:generate_presentation": "7fb36654811805ac01da1589f9c2dd29e0310611dd9fb4e2f82bf3d3352fed62",
+    "step:redact_pdf": "3a5fe7a0899ae486bc1201cb9368d8e6cd0f1b31a437bca5b641aaa463aaefbe",
+    "step:file_intake": "db30e2cef0e3fcd713ff7a795291c009f80d4b328340474a257627a4301e2c77",
+    "step:dataset_query": "dbd8710569c3f7ee26d7fc43fcce0f005bc2c51a6cb5015073dc00db50945670",
+    "step:ai_browse": "74926515c9be92d2e3f0b2d68043eb4f219fbd985f8408e940f80bda88d37472",
+    "step:copy_document": "0d8aee1d1e7d7ec2f24617d6f163c6b62273ecd82fc9718035ad60a6e1153651",
+    "step:kb_log_query": "703d8fb07726d0334f951e282a288132131aae659308335b1323e88d75e0cac2",
+    "step:kb_log_review": "c18c6e52db9d800558f765e1d104ac9e99e96067e969956c04abafcf367602f6",
+    "step:condition": "beab4a66cea1794146ff340b4e2228539e0321392ec30a0a82b35d8adfe62793",
+    "step:loop": "387561750527a4632d8b4c70d9bb71780470fa70ff79c701430f97f1038ce60a",
+    "step:switch": "2e300dfb62a0d9c0ca3669fa4f85b668d38cd01d898340151ce4fd7dcdaacce8",
+    "step:call_action": "ea3c27a8b1ee87486c04f299e2d1ac52c4cd0eee23eba3b216cf0f22487caf03",
+    "step:transaction": "7b51999f1c3fb1ffc216e14c56e9025718a6efa7f7bf19f65348d8e63f5ac1ef",
+    "step:await_approval": "26e46d8eb5964e2c3de704bc887182be687e3225760a0548c00e92ebdf25ea69",
+    "step:back": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "step:break": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "step:code": "5f4f2e94c2c95ecff144bdad4cde77f62df3dbdf9a90473239c8705230ab8da5",
+    "step:continue": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "step:copy_to_clipboard": "f327e5f21a3d72540b953888aee9a9341d147a240663716885a3829f1872e3b5",
+    "step:focus": "2efac3963deff261aff777bb1aa9b55ed922cb6a05cbcb01e7f7ccbe91d8f361",
+    "step:http_request": "d43c765ebc040afef32e27fc8bc0b0d10eac475ecf8721cdb6c2d32847ff8498",
+    "step:parallel": "866fb22293a712b3718c77833219e35fcd6ee3875574ee8e0eca0aaab911411b",
+    "step:raise_error": "7b96b5738901f08877ec838ccc71e847a53c828a0b896859c174d3c436a04502",
+    "step:return": "896c90d992636b84bcfe7f09e26703114672b5a25fa2a589502de8bf9835a3d9",
+    "step:scroll_to": "36907a561390d7e038695ecdd2a7db7cc7f79a9bdc9905e18d42933c94195823",
+    "step:set_form_field": "bdeb7879ed8af91fe2a0d81f907fca571abc7e178f36805698750f845f568308",
+    "step:set_ui": "c3c1677360fb83b3ac4211b69427acfa75e8184e6a7869019dadb2f326e885b6",
+    "step:try": "b1c4a4d247be9bf3f5a5c375dedbe99808bdd0872bd12486bb8336a02331cdf2",
+    "step:wait": "dc9b4ce820efc4ae4a3f0b54b59542fa584bb00790b6ea6f754f8ca509600f1d",
+    "step:while": "eaae08214df39d2caf2f672d8104bb5966babaf077da3893d776a4ebd1310d2a",
+    "action:ai_extract": "a700f1c16a96be5cb3fbea735aa25b5fe333f8c7bd464df4e41a43344b2bad83",
+    "action:ai_generate": "f0462212de0a92d1857ffd041fe93c779f569ef0dabce6ab17d46971069146a6",
+    "action:kb_query": "abad6c1f52779de02078373acda27904645439de8705227a8518b3cebd560354",
+    "action:create_record": "073093d48d082c007b0b0a804e57dd33743c476bd93a688630394d1938b4c652",
+    "action:call_action": "5deeae6f07f5f3ccf7c133f97f7208ffac4d30e2d3cf47a6f98cd106ef6f9be7"
+  },
+  "sample": {
+    "navigate.screenId (string) #0": [
+      "E action.step_navigate_unresolved @actions.act_1.steps[0].screenId: Step \"navigate\" navigates to unknown screen undefine"
+    ],
+    "navigate.screenId (string) #1": [
+      "E action.step_navigate_unresolved @actions.act_1.steps[0].screenId: Step \"navigate\" navigates to unknown screen null. | "
+    ],
+    "navigate.screenId (string) #2": [
+      "E action.step_navigate_unresolved @actions.act_1.steps[0].screenId: Step \"navigate\" navigates to unknown screen \"text\". "
+    ],
+    "navigate.screenId (string) #4": [
+      "E action.step_navigate_unresolved @actions.act_1.steps[0].screenId: Step \"navigate\" navigates to unknown screen \"xxxxxxx"
+    ],
+    "navigate.screenId (string) #6": [
+      "E action.step_navigate_unresolved @actions.act_1.steps[0].screenId: Step \"navigate\" navigates to unknown screen \"http://"
+    ],
+    "navigate.screenId (string) #8": [
+      "E action.step_navigate_unresolved @actions.act_1.steps[0].screenId: Step \"navigate\" navigates to unknown screen 7. | Use"
+    ],
+    "navigate.screenId (string) #13": [
+      "E action.step_navigate_unresolved @actions.act_1.steps[0].screenId: Step \"navigate\" navigates to unknown screen true. | "
+    ],
+    "navigate.screenId (string) #15": [
+      "E action.step_navigate_unresolved @actions.act_1.steps[0].screenId: Step \"navigate\" navigates to unknown screen [\"a\",\"b\""
+    ],
+    "navigate.screenId (string) #19": [
+      "E action.step_navigate_unresolved @actions.act_1.steps[0].screenId: Step \"navigate\" navigates to unknown screen {\"kind\":"
+    ],
+    "navigate.screenId (string) #22": [
+      "E action.step_navigate_unresolved @actions.act_1.steps[0].screenId: Step \"navigate\" navigates to unknown screen [{\"value"
+    ],
+    "navigate.params (navParams) #0": [
+      "E action.step_navigate_unresolved @actions.act_1.steps[0].screenId: Step \"navigate\" navigates to unknown screen undefine"
+    ],
+    "navigate.params (navParams) #1": [
+      "E action.step_navigate_unresolved @actions.act_1.steps[0].screenId: Step \"navigate\" navigates to unknown screen undefine"
+    ],
+    "navigate.params (navParams) #2": [
+      "E action.step_navigate_unresolved @actions.act_1.steps[0].screenId: Step \"navigate\" navigates to unknown screen undefine",
+      "E action.params_invalid @actions.act_1.steps[0].params: Step \"navigate\" `params` must be an object map. | Use { key: {ki"
+    ],
+    "navigate.params (navParams) #4": [
+      "E action.step_navigate_unresolved @actions.act_1.steps[0].screenId: Step \"navigate\" navigates to unknown screen undefine",
+      "E action.params_invalid @actions.act_1.steps[0].params: Step \"navigate\" `params` must be an object map. | Use { key: {ki"
+    ],
+    "navigate.params (navParams) #6": [
+      "E action.step_navigate_unresolved @actions.act_1.steps[0].screenId: Step \"navigate\" navigates to unknown screen undefine",
+      "E action.params_invalid @actions.act_1.steps[0].params: Step \"navigate\" `params` must be an object map. | Use { key: {ki"
+    ],
+    "navigate.params (navParams) #8": [
+      "E action.step_navigate_unresolved @actions.act_1.steps[0].screenId: Step \"navigate\" navigates to unknown screen undefine",
+      "E action.params_invalid @actions.act_1.steps[0].params: Step \"navigate\" `params` must be an object map. | Use { key: {ki"
+    ],
+    "navigate.params (navParams) #13": [
+      "E action.step_navigate_unresolved @actions.act_1.steps[0].screenId: Step \"navigate\" navigates to unknown screen undefine",
+      "E action.params_invalid @actions.act_1.steps[0].params: Step \"navigate\" `params` must be an object map. | Use { key: {ki"
+    ],
+    "navigate.params (navParams) #15": [
+      "E action.step_navigate_unresolved @actions.act_1.steps[0].screenId: Step \"navigate\" navigates to unknown screen undefine",
+      "E action.params_invalid @actions.act_1.steps[0].params: Step \"navigate\" `params` must be an object map. | Use { key: {ki"
+    ],
+    "navigate.params (navParams) #19": [
+      "E action.step_navigate_unresolved @actions.act_1.steps[0].screenId: Step \"navigate\" navigates to unknown screen undefine",
+      "E action.param_kind_invalid @actions.act_1.steps[0].params.kind: Step \"navigate\" param \"kind\" must be {kind:'static',val",
+      "E action.param_kind_invalid @actions.act_1.steps[0].params.value: Step \"navigate\" param \"value\" must be {kind:'static',v"
+    ],
+    "navigate.params (navParams) #22": [
+      "E action.step_navigate_unresolved @actions.act_1.steps[0].screenId: Step \"navigate\" navigates to unknown screen undefine",
+      "E action.params_invalid @actions.act_1.steps[0].params: Step \"navigate\" `params` must be an object map. | Use { key: {ki"
+    ],
+    "navigate.screenExpr (formula) #0": [
+      "E action.step_navigate_unresolved @actions.act_1.steps[0].screenId: Step \"navigate\" navigates to unknown screen undefine"
+    ],
+    "navigate.screenExpr (formula) #1": [
+      "E action.step_navigate_unresolved @actions.act_1.steps[0].screenId: Step \"navigate\" navigates to unknown screen undefine"
+    ],
+    "navigate.screenExpr (formula) #2": [
+      "W unknown_formula_root @actions.act_1.steps[0].screenExpr: Formula references unknown root \"text\" — it resolves to undef"
+    ],
+    "navigate.screenExpr (formula) #4": [
+      "E formula.too_long @actions.act_1.steps[0].screenExpr: Formula is 5000 chars — the maximum is 2000. | Shorten the expres"
+    ],
+    "navigate.screenExpr (formula) #6": [
+      "E formula.parse_error @actions.act_1.steps[0].screenExpr: Formula failed to parse at position 4: Trailing tokens in expr"
+    ],
+    "navigate.screenExpr (formula) #8": [
+      "E action.step_navigate_unresolved @actions.act_1.steps[0].screenId: Step \"navigate\" navigates to unknown screen undefine",
+      "E formula.type @actions.act_1.steps[0].screenExpr: A formula `expr` must be a string. | Provide an expression string lik"
+    ],
+    "navigate.screenExpr (formula) #13": [
+      "E action.step_navigate_unresolved @actions.act_1.steps[0].screenId: Step \"navigate\" navigates to unknown screen undefine",
+      "E formula.type @actions.act_1.steps[0].screenExpr: A formula `expr` must be a string. | Provide an expression string lik"
+    ],
+    "navigate.screenExpr (formula) #15": [
+      "E action.step_navigate_unresolved @actions.act_1.steps[0].screenId: Step \"navigate\" navigates to unknown screen undefine",
+      "E formula.type @actions.act_1.steps[0].screenExpr: A formula `expr` must be a string. | Provide an expression string lik"
+    ],
+    "navigate.screenExpr (formula) #19": [
+      "E action.step_navigate_unresolved @actions.act_1.steps[0].screenId: Step \"navigate\" navigates to unknown screen undefine",
+      "E formula.type @actions.act_1.steps[0].screenExpr: A formula `expr` must be a string. | Provide an expression string lik"
+    ],
+    "navigate.screenExpr (formula) #22": [
+      "E action.step_navigate_unresolved @actions.act_1.steps[0].screenId: Step \"navigate\" navigates to unknown screen undefine",
+      "E formula.type @actions.act_1.steps[0].screenExpr: A formula `expr` must be a string. | Provide an expression string lik"
+    ],
+    "toast.tone (enum) #0": [
+      "E action.step_field_required @actions.act_1.steps[0].message: Step \"toast\" is missing required `message`. | Provide a st"
+    ],
+    "toast.tone (enum) #1": [
+      "E action.step_field_required @actions.act_1.steps[0].message: Step \"toast\" is missing required `message`. | Provide a st"
+    ],
+    "toast.tone (enum) #2": [
+      "E action.step_field_required @actions.act_1.steps[0].message: Step \"toast\" is missing required `message`. | Provide a st",
+      "E action.step_field_invalid @actions.act_1.steps[0].tone: `tone` \"text\" is not legal. | Use one of: info, success, warni"
+    ],
+    "toast.tone (enum) #4": [
+      "E action.step_field_required @actions.act_1.steps[0].message: Step \"toast\" is missing required `message`. | Provide a st",
+      "E action.step_field_invalid @actions.act_1.steps[0].tone: `tone` \"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    ],
+    "toast.tone (enum) #6": [
+      "E action.step_field_required @actions.act_1.steps[0].message: Step \"toast\" is missing required `message`. | Provide a st",
+      "E action.step_field_invalid @actions.act_1.steps[0].tone: `tone` \"http://example.com/a\" is not legal. | Use one of: info"
+    ],
+    "toast.tone (enum) #8": [
+      "E action.step_field_required @actions.act_1.steps[0].message: Step \"toast\" is missing required `message`. | Provide a st",
+      "E action.step_field_invalid @actions.act_1.steps[0].tone: `tone` 7 is not legal. | Use one of: info, success, warning, d"
+    ],
+    "toast.tone (enum) #13": [
+      "E action.step_field_required @actions.act_1.steps[0].message: Step \"toast\" is missing required `message`. | Provide a st",
+      "E action.step_field_invalid @actions.act_1.steps[0].tone: `tone` true is not legal. | Use one of: info, success, warning"
+    ],
+    "toast.tone (enum) #15": [
+      "E action.step_field_required @actions.act_1.steps[0].message: Step \"toast\" is missing required `message`. | Provide a st",
+      "E action.step_field_invalid @actions.act_1.steps[0].tone: `tone` [\"a\",\"b\"] is not legal. | Use one of: info, success, wa"
+    ],
+    "toast.tone (enum) #19": [
+      "E action.step_field_required @actions.act_1.steps[0].message: Step \"toast\" is missing required `message`. | Provide a st",
+      "E action.step_field_invalid @actions.act_1.steps[0].tone: `tone` {\"kind\":\"static\",\"value\":1} is not legal. | Use one of:"
+    ],
+    "toast.tone (enum) #22": [
+      "E action.step_field_required @actions.act_1.steps[0].message: Step \"toast\" is missing required `message`. | Provide a st",
+      "E action.step_field_invalid @actions.act_1.steps[0].tone: `tone` [{\"value\":1,\"steps\":[]}] is not legal. | Use one of: in"
+    ],
+    "open_url.url (url) #0": [
+      "E action.step_field_required @actions.act_1.steps[0].url: Step \"open_url\" is missing required `url`. | Provide a url."
+    ],
+    "open_url.url (url) #1": [
+      "E action.step_field_required @actions.act_1.steps[0].url: Step \"open_url\" is missing required `url`. | Provide a url."
+    ],
+    "open_url.url (url) #2": [
+      "E action.step_field_invalid @actions.act_1.steps[0].url: `url` must be an https:// URL. | Only https URLs are allowed."
+    ],
+    "open_url.url (url) #4": [
+      "E action.step_field_invalid @actions.act_1.steps[0].url: `url` must be an https:// URL. | Only https URLs are allowed."
+    ],
+    "open_url.url (url) #6": [
+      "E action.step_field_invalid @actions.act_1.steps[0].url: `url` must be an https:// URL. | Only https URLs are allowed."
+    ],
+    "open_url.url (url) #8": [
+      "E action.step_field_invalid @actions.act_1.steps[0].url: `url` must be a string. | Pass a plain string."
+    ],
+    "open_url.url (url) #13": [
+      "E action.step_field_invalid @actions.act_1.steps[0].url: `url` must be a string. | Pass a plain string."
+    ],
+    "open_url.url (url) #15": [
+      "E action.step_field_invalid @actions.act_1.steps[0].url: `url` must be a string. | Pass a plain string."
+    ],
+    "open_url.url (url) #19": [
+      "E action.step_field_invalid @actions.act_1.steps[0].url: `url` must be a string. | Pass a plain string."
+    ],
+    "open_url.url (url) #22": [
+      "E action.step_field_invalid @actions.act_1.steps[0].url: `url` must be a string. | Pass a plain string."
+    ],
+    "open_url.newTab (boolean) #0": [
+      "E action.step_field_required @actions.act_1.steps[0].url: Step \"open_url\" is missing required `url`. | Provide a url."
+    ],
+    "open_url.newTab (boolean) #1": [
+      "E action.step_field_required @actions.act_1.steps[0].url: Step \"open_url\" is missing required `url`. | Provide a url."
+    ],
+    "open_url.newTab (boolean) #2": [
+      "E action.step_field_required @actions.act_1.steps[0].url: Step \"open_url\" is missing required `url`. | Provide a url.",
+      "E action.step_field_invalid @actions.act_1.steps[0].newTab: `newTab` must be a boolean. | Use true or false."
+    ],
+    "open_url.newTab (boolean) #4": [
+      "E action.step_field_required @actions.act_1.steps[0].url: Step \"open_url\" is missing required `url`. | Provide a url.",
+      "E action.step_field_invalid @actions.act_1.steps[0].newTab: `newTab` must be a boolean. | Use true or false."
+    ],
+    "open_url.newTab (boolean) #6": [
+      "E action.step_field_required @actions.act_1.steps[0].url: Step \"open_url\" is missing required `url`. | Provide a url.",
+      "E action.step_field_invalid @actions.act_1.steps[0].newTab: `newTab` must be a boolean. | Use true or false."
+    ],
+    "open_url.newTab (boolean) #8": [
+      "E action.step_field_required @actions.act_1.steps[0].url: Step \"open_url\" is missing required `url`. | Provide a url.",
+      "E action.step_field_invalid @actions.act_1.steps[0].newTab: `newTab` must be a boolean. | Use true or false."
+    ],
+    "open_url.newTab (boolean) #13": [
+      "E action.step_field_required @actions.act_1.steps[0].url: Step \"open_url\" is missing required `url`. | Provide a url."
+    ],
+    "open_url.newTab (boolean) #15": [
+      "E action.step_field_required @actions.act_1.steps[0].url: Step \"open_url\" is missing required `url`. | Provide a url.",
+      "E action.step_field_invalid @actions.act_1.steps[0].newTab: `newTab` must be a boolean. | Use true or false."
+    ],
+    "open_url.newTab (boolean) #19": [
+      "E action.step_field_required @actions.act_1.steps[0].url: Step \"open_url\" is missing required `url`. | Provide a url.",
+      "E action.step_field_invalid @actions.act_1.steps[0].newTab: `newTab` must be a boolean. | Use true or false."
+    ],
+    "open_url.newTab (boolean) #22": [
+      "E action.step_field_required @actions.act_1.steps[0].url: Step \"open_url\" is missing required `url`. | Provide a url.",
+      "E action.step_field_invalid @actions.act_1.steps[0].newTab: `newTab` must be a boolean. | Use true or false."
+    ],
+    "download_file.file (binding) #0": [
+      "E action.step_field_required @actions.act_1.steps[0].file: Step \"download_file\" is missing required `file`. | Provide a "
+    ],
+    "download_file.file (binding) #1": [
+      "E action.step_field_required @actions.act_1.steps[0].file: Step \"download_file\" is missing required `file`. | Provide a "
+    ],
+    "download_file.file (binding) #2": [
+      "E binding.invalid @actions.act_1.steps[0].file: `file` must be a binding object. | Use one of: {kind:'static', …}, {kind"
+    ],
+    "download_file.file (binding) #4": [
+      "E binding.invalid @actions.act_1.steps[0].file: `file` must be a binding object. | Use one of: {kind:'static', …}, {kind"
+    ],
+    "download_file.file (binding) #6": [
+      "E binding.invalid @actions.act_1.steps[0].file: `file` must be a binding object. | Use one of: {kind:'static', …}, {kind"
+    ],
+    "download_file.file (binding) #8": [
+      "E binding.invalid @actions.act_1.steps[0].file: `file` must be a binding object. | Use one of: {kind:'static', …}, {kind"
+    ],
+    "download_file.file (binding) #13": [
+      "E binding.invalid @actions.act_1.steps[0].file: `file` must be a binding object. | Use one of: {kind:'static', …}, {kind"
+    ],
+    "download_file.file (binding) #15": [
+      "E binding.invalid @actions.act_1.steps[0].file: `file` must be a binding object. | Use one of: {kind:'static', …}, {kind"
+    ],
+    "download_file.file (binding) #19": [],
+    "download_file.file (binding) #22": [
+      "E binding.invalid @actions.act_1.steps[0].file: `file` must be a binding object. | Use one of: {kind:'static', …}, {kind"
+    ],
+    "run_automation.inputMapping (inputMapping) #0": [
+      "W action.automation_unset @actions.act_1.steps[0].automationId: Step \"run_automation\" has no automation selected yet. | "
+    ],
+    "run_automation.inputMapping (inputMapping) #1": [
+      "W action.automation_unset @actions.act_1.steps[0].automationId: Step \"run_automation\" has no automation selected yet. | "
+    ],
+    "run_automation.inputMapping (inputMapping) #2": [
+      "W action.automation_unset @actions.act_1.steps[0].automationId: Step \"run_automation\" has no automation selected yet. | ",
+      "E action.mapping_invalid @actions.act_1.steps[0].inputMapping: inputMapping must be an object map of { param: mapping }."
+    ],
+    "run_automation.inputMapping (inputMapping) #4": [
+      "W action.automation_unset @actions.act_1.steps[0].automationId: Step \"run_automation\" has no automation selected yet. | ",
+      "E action.mapping_invalid @actions.act_1.steps[0].inputMapping: inputMapping must be an object map of { param: mapping }."
+    ],
+    "run_automation.inputMapping (inputMapping) #6": [
+      "W action.automation_unset @actions.act_1.steps[0].automationId: Step \"run_automation\" has no automation selected yet. | ",
+      "E action.mapping_invalid @actions.act_1.steps[0].inputMapping: inputMapping must be an object map of { param: mapping }."
+    ],
+    "run_automation.inputMapping (inputMapping) #8": [
+      "W action.automation_unset @actions.act_1.steps[0].automationId: Step \"run_automation\" has no automation selected yet. | ",
+      "E action.mapping_invalid @actions.act_1.steps[0].inputMapping: inputMapping must be an object map of { param: mapping }."
+    ],
+    "run_automation.inputMapping (inputMapping) #13": [
+      "W action.automation_unset @actions.act_1.steps[0].automationId: Step \"run_automation\" has no automation selected yet. | ",
+      "E action.mapping_invalid @actions.act_1.steps[0].inputMapping: inputMapping must be an object map of { param: mapping }."
+    ],
+    "run_automation.inputMapping (inputMapping) #15": [
+      "W action.automation_unset @actions.act_1.steps[0].automationId: Step \"run_automation\" has no automation selected yet. | ",
+      "E action.mapping_invalid @actions.act_1.steps[0].inputMapping: inputMapping must be an object map of { param: mapping }."
+    ],
+    "run_automation.inputMapping (inputMapping) #19": [
+      "W action.automation_unset @actions.act_1.steps[0].automationId: Step \"run_automation\" has no automation selected yet. | ",
+      "E action.mapping_kind_invalid @actions.act_1.steps[0].inputMapping.kind: Mapping for \"kind\" has invalid kind \"static\". |",
+      "E action.mapping_kind_invalid @actions.act_1.steps[0].inputMapping.value: Mapping for \"value\" has invalid kind 1. | Use "
+    ],
+    "run_automation.inputMapping (inputMapping) #22": [
+      "W action.automation_unset @actions.act_1.steps[0].automationId: Step \"run_automation\" has no automation selected yet. | ",
+      "E action.mapping_invalid @actions.act_1.steps[0].inputMapping: inputMapping must be an object map of { param: mapping }."
+    ],
+    "run_automation.onError (errorHandler) #0": [
+      "W action.automation_unset @actions.act_1.steps[0].automationId: Step \"run_automation\" has no automation selected yet. | "
+    ],
+    "run_automation.onError (errorHandler) #1": [
+      "W action.automation_unset @actions.act_1.steps[0].automationId: Step \"run_automation\" has no automation selected yet. | "
+    ],
+    "run_automation.onError (errorHandler) #2": [
+      "W action.automation_unset @actions.act_1.steps[0].automationId: Step \"run_automation\" has no automation selected yet. | ",
+      "E action.on_error_invalid @actions.act_1.steps[0].onError: onError on a step takes { steps: [...], stop?: true }. | Put "
+    ],
+    "run_automation.onError (errorHandler) #4": [
+      "W action.automation_unset @actions.act_1.steps[0].automationId: Step \"run_automation\" has no automation selected yet. | ",
+      "E action.on_error_invalid @actions.act_1.steps[0].onError: onError on a step takes { steps: [...], stop?: true }. | Put "
+    ],
+    "run_automation.onError (errorHandler) #6": [
+      "W action.automation_unset @actions.act_1.steps[0].automationId: Step \"run_automation\" has no automation selected yet. | ",
+      "E action.on_error_invalid @actions.act_1.steps[0].onError: onError on a step takes { steps: [...], stop?: true }. | Put "
+    ],
+    "run_automation.onError (errorHandler) #8": [
+      "W action.automation_unset @actions.act_1.steps[0].automationId: Step \"run_automation\" has no automation selected yet. | ",
+      "E action.on_error_invalid @actions.act_1.steps[0].onError: onError on a step takes { steps: [...], stop?: true }. | Put "
+    ],
+    "run_automation.onError (errorHandler) #13": [
+      "W action.automation_unset @actions.act_1.steps[0].automationId: Step \"run_automation\" has no automation selected yet. | ",
+      "E action.on_error_invalid @actions.act_1.steps[0].onError: onError on a step takes { steps: [...], stop?: true }. | Put "
+    ],
+    "run_automation.onError (errorHandler) #15": [
+      "W action.automation_unset @actions.act_1.steps[0].automationId: Step \"run_automation\" has no automation selected yet. | ",
+      "E action.on_error_invalid @actions.act_1.steps[0].onError: onError on a step takes { steps: [...], stop?: true }. | Put "
+    ],
+    "run_automation.onError (errorHandler) #19": [
+      "W action.automation_unset @actions.act_1.steps[0].automationId: Step \"run_automation\" has no automation selected yet. | ",
+      "E action.on_error_invalid @actions.act_1.steps[0].onError: onError on a step takes { steps: [...], stop?: true }. | Put "
+    ],
+    "run_automation.onError (errorHandler) #22": [
+      "W action.automation_unset @actions.act_1.steps[0].automationId: Step \"run_automation\" has no automation selected yet. | ",
+      "E action.on_error_invalid @actions.act_1.steps[0].onError: onError on a step takes { steps: [...], stop?: true }. | Put "
+    ],
+    "create_record.values (recordValues) #0": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"create_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_required @actions.act_1.steps[0].values: Step \"create_record\" is missing required `values`. | Provid"
+    ],
+    "create_record.values (recordValues) #1": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"create_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_required @actions.act_1.steps[0].values: Step \"create_record\" is missing required `values`. | Provid"
+    ],
+    "create_record.values (recordValues) #2": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"create_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_invalid @actions.act_1.steps[0].values: `values` must be an object map of { column: binding }. | Use"
+    ],
+    "create_record.values (recordValues) #4": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"create_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_invalid @actions.act_1.steps[0].values: `values` must be an object map of { column: binding }. | Use"
+    ],
+    "create_record.values (recordValues) #6": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"create_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_invalid @actions.act_1.steps[0].values: `values` must be an object map of { column: binding }. | Use"
+    ],
+    "create_record.values (recordValues) #8": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"create_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_invalid @actions.act_1.steps[0].values: `values` must be an object map of { column: binding }. | Use"
+    ],
+    "create_record.values (recordValues) #13": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"create_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_invalid @actions.act_1.steps[0].values: `values` must be an object map of { column: binding }. | Use"
+    ],
+    "create_record.values (recordValues) #15": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"create_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_invalid @actions.act_1.steps[0].values: `values` must be an object map of { column: binding }. | Use"
+    ],
+    "create_record.values (recordValues) #19": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"create_record\" has nothing selected yet. | Connect it befor",
+      "E binding.invalid @actions.act_1.steps[0].values.kind: `kind` must be a binding object. | Use one of: {kind:'static', …}",
+      "E binding.invalid @actions.act_1.steps[0].values.value: `value` must be a binding object. | Use one of: {kind:'static', "
+    ],
+    "create_record.values (recordValues) #22": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"create_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_invalid @actions.act_1.steps[0].values: `values` must be an object map of { column: binding }. | Use"
+    ],
+    "create_record.retry (retry) #0": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"create_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_required @actions.act_1.steps[0].values: Step \"create_record\" is missing required `values`. | Provid"
+    ],
+    "create_record.retry (retry) #1": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"create_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_required @actions.act_1.steps[0].values: Step \"create_record\" is missing required `values`. | Provid"
+    ],
+    "create_record.retry (retry) #2": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"create_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_required @actions.act_1.steps[0].values: Step \"create_record\" is missing required `values`. | Provid",
+      "E action.retry_invalid @actions.act_1.steps[0].retry: retry must be { times, delayMs? }. | Use { times: 1-3, delayMs: 0-"
+    ],
+    "create_record.retry (retry) #4": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"create_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_required @actions.act_1.steps[0].values: Step \"create_record\" is missing required `values`. | Provid",
+      "E action.retry_invalid @actions.act_1.steps[0].retry: retry must be { times, delayMs? }. | Use { times: 1-3, delayMs: 0-"
+    ],
+    "create_record.retry (retry) #6": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"create_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_required @actions.act_1.steps[0].values: Step \"create_record\" is missing required `values`. | Provid",
+      "E action.retry_invalid @actions.act_1.steps[0].retry: retry must be { times, delayMs? }. | Use { times: 1-3, delayMs: 0-"
+    ],
+    "create_record.retry (retry) #8": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"create_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_required @actions.act_1.steps[0].values: Step \"create_record\" is missing required `values`. | Provid",
+      "E action.retry_invalid @actions.act_1.steps[0].retry: retry must be { times, delayMs? }. | Use { times: 1-3, delayMs: 0-"
+    ],
+    "create_record.retry (retry) #13": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"create_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_required @actions.act_1.steps[0].values: Step \"create_record\" is missing required `values`. | Provid",
+      "E action.retry_invalid @actions.act_1.steps[0].retry: retry must be { times, delayMs? }. | Use { times: 1-3, delayMs: 0-"
+    ],
+    "create_record.retry (retry) #15": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"create_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_required @actions.act_1.steps[0].values: Step \"create_record\" is missing required `values`. | Provid",
+      "E action.retry_invalid @actions.act_1.steps[0].retry: retry must be { times, delayMs? }. | Use { times: 1-3, delayMs: 0-"
+    ],
+    "create_record.retry (retry) #19": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"create_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_required @actions.act_1.steps[0].values: Step \"create_record\" is missing required `values`. | Provid",
+      "E action.retry_invalid @actions.act_1.steps[0].retry: retry takes only times and delayMs; found kind, value. | Use { tim",
+      "E action.retry_invalid @actions.act_1.steps[0].retry: retry.times is undefined; it must be a whole number from 0 to 3 (L"
+    ],
+    "create_record.retry (retry) #22": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"create_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_required @actions.act_1.steps[0].values: Step \"create_record\" is missing required `values`. | Provid",
+      "E action.retry_invalid @actions.act_1.steps[0].retry: retry must be { times, delayMs? }. | Use { times: 1-3, delayMs: 0-"
+    ],
+    "update_record.filter (recordFilter) #0": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"update_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_required @actions.act_1.steps[0].values: Step \"update_record\" is missing required `values`. | Provid",
+      "E action.step_field_required @actions.act_1.steps[0].recordId: Step \"update_record\" is missing required `recordId`. | Pr"
+    ],
+    "update_record.filter (recordFilter) #1": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"update_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_required @actions.act_1.steps[0].values: Step \"update_record\" is missing required `values`. | Provid",
+      "E action.step_field_required @actions.act_1.steps[0].recordId: Step \"update_record\" is missing required `recordId`. | Pr"
+    ],
+    "update_record.filter (recordFilter) #2": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"update_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_required @actions.act_1.steps[0].values: Step \"update_record\" is missing required `values`. | Provid",
+      "E binding.filter_invalid @actions.act_1.steps[0].filter: Step \"update_record\" filter must be a list of { field, op, valu"
+    ],
+    "update_record.filter (recordFilter) #4": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"update_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_required @actions.act_1.steps[0].values: Step \"update_record\" is missing required `values`. | Provid",
+      "E binding.filter_invalid @actions.act_1.steps[0].filter: Step \"update_record\" filter must be a list of { field, op, valu"
+    ],
+    "update_record.filter (recordFilter) #6": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"update_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_required @actions.act_1.steps[0].values: Step \"update_record\" is missing required `values`. | Provid",
+      "E binding.filter_invalid @actions.act_1.steps[0].filter: Step \"update_record\" filter must be a list of { field, op, valu"
+    ],
+    "update_record.filter (recordFilter) #8": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"update_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_required @actions.act_1.steps[0].values: Step \"update_record\" is missing required `values`. | Provid",
+      "E binding.filter_invalid @actions.act_1.steps[0].filter: Step \"update_record\" filter must be a list of { field, op, valu"
+    ],
+    "update_record.filter (recordFilter) #13": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"update_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_required @actions.act_1.steps[0].values: Step \"update_record\" is missing required `values`. | Provid",
+      "E binding.filter_invalid @actions.act_1.steps[0].filter: Step \"update_record\" filter must be a list of { field, op, valu"
+    ],
+    "update_record.filter (recordFilter) #15": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"update_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_required @actions.act_1.steps[0].values: Step \"update_record\" is missing required `values`. | Provid",
+      "E binding.filter_invalid @actions.act_1.steps[0].filter[0]: Each filter entry must be an object { field, op, value? }. |",
+      "E binding.filter_invalid @actions.act_1.steps[0].filter[1]: Each filter entry must be an object { field, op, value? }. |"
+    ],
+    "update_record.filter (recordFilter) #19": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"update_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_required @actions.act_1.steps[0].values: Step \"update_record\" is missing required `values`. | Provid",
+      "E binding.filter_invalid @actions.act_1.steps[0].filter: Step \"update_record\" filter must be a list of { field, op, valu"
+    ],
+    "update_record.filter (recordFilter) #22": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"update_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_required @actions.act_1.steps[0].values: Step \"update_record\" is missing required `values`. | Provid",
+      "E binding.filter_invalid @actions.act_1.steps[0].filter[0].field: Each filter entry needs a non-empty string `field`. | ",
+      "E binding.filter_invalid @actions.act_1.steps[0].filter[0].op: Unknown filter op undefined. | Use one of: eq, neq, gt, g"
+    ],
+    "update_record.limit (int) #0": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"update_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_required @actions.act_1.steps[0].values: Step \"update_record\" is missing required `values`. | Provid",
+      "E action.step_field_required @actions.act_1.steps[0].recordId: Step \"update_record\" is missing required `recordId`. | Pr"
+    ],
+    "update_record.limit (int) #1": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"update_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_required @actions.act_1.steps[0].values: Step \"update_record\" is missing required `values`. | Provid",
+      "E action.step_field_required @actions.act_1.steps[0].recordId: Step \"update_record\" is missing required `recordId`. | Pr"
+    ],
+    "update_record.limit (int) #2": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"update_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_invalid @actions.act_1.steps[0].limit: `limit` must be an integer 1..500. | Pass an integer.",
+      "E action.step_field_required @actions.act_1.steps[0].values: Step \"update_record\" is missing required `values`. | Provid",
+      "E action.step_field_required @actions.act_1.steps[0].recordId: Step \"update_record\" is missing required `recordId`. | Pr"
+    ],
+    "update_record.limit (int) #4": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"update_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_invalid @actions.act_1.steps[0].limit: `limit` must be an integer 1..500. | Pass an integer.",
+      "E action.step_field_required @actions.act_1.steps[0].values: Step \"update_record\" is missing required `values`. | Provid",
+      "E action.step_field_required @actions.act_1.steps[0].recordId: Step \"update_record\" is missing required `recordId`. | Pr"
+    ],
+    "update_record.limit (int) #6": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"update_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_invalid @actions.act_1.steps[0].limit: `limit` must be an integer 1..500. | Pass an integer.",
+      "E action.step_field_required @actions.act_1.steps[0].values: Step \"update_record\" is missing required `values`. | Provid",
+      "E action.step_field_required @actions.act_1.steps[0].recordId: Step \"update_record\" is missing required `recordId`. | Pr"
+    ],
+    "update_record.limit (int) #8": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"update_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_required @actions.act_1.steps[0].values: Step \"update_record\" is missing required `values`. | Provid",
+      "E action.step_field_required @actions.act_1.steps[0].recordId: Step \"update_record\" is missing required `recordId`. | Pr"
+    ],
+    "update_record.limit (int) #13": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"update_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_invalid @actions.act_1.steps[0].limit: `limit` must be an integer 1..500. | Pass an integer.",
+      "E action.step_field_required @actions.act_1.steps[0].values: Step \"update_record\" is missing required `values`. | Provid",
+      "E action.step_field_required @actions.act_1.steps[0].recordId: Step \"update_record\" is missing required `recordId`. | Pr"
+    ],
+    "update_record.limit (int) #15": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"update_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_invalid @actions.act_1.steps[0].limit: `limit` must be an integer 1..500. | Pass an integer.",
+      "E action.step_field_required @actions.act_1.steps[0].values: Step \"update_record\" is missing required `values`. | Provid",
+      "E action.step_field_required @actions.act_1.steps[0].recordId: Step \"update_record\" is missing required `recordId`. | Pr"
+    ],
+    "update_record.limit (int) #19": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"update_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_invalid @actions.act_1.steps[0].limit: `limit` must be an integer 1..500. | Pass an integer.",
+      "E action.step_field_required @actions.act_1.steps[0].values: Step \"update_record\" is missing required `values`. | Provid",
+      "E action.step_field_required @actions.act_1.steps[0].recordId: Step \"update_record\" is missing required `recordId`. | Pr"
+    ],
+    "update_record.limit (int) #22": [
+      "W binding.table_unset @actions.act_1.steps[0].tableId: Step \"update_record\" has nothing selected yet. | Connect it befor",
+      "E action.step_field_invalid @actions.act_1.steps[0].limit: `limit` must be an integer 1..500. | Pass an integer.",
+      "E action.step_field_required @actions.act_1.steps[0].values: Step \"update_record\" is missing required `values`. | Provid",
+      "E action.step_field_required @actions.act_1.steps[0].recordId: Step \"update_record\" is missing required `recordId`. | Pr"
+    ],
+    "request_approval.fields (approvalQuestions) #0": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro"
+    ],
+    "request_approval.fields (approvalQuestions) #1": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro"
+    ],
+    "request_approval.fields (approvalQuestions) #2": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro",
+      "E action.approval_questions_invalid @actions.act_1.steps[0].fields: `fields` must be an array of question objects. | Use"
+    ],
+    "request_approval.fields (approvalQuestions) #4": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro",
+      "E action.approval_questions_invalid @actions.act_1.steps[0].fields: `fields` must be an array of question objects. | Use"
+    ],
+    "request_approval.fields (approvalQuestions) #6": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro",
+      "E action.approval_questions_invalid @actions.act_1.steps[0].fields: `fields` must be an array of question objects. | Use"
+    ],
+    "request_approval.fields (approvalQuestions) #8": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro",
+      "E action.approval_questions_invalid @actions.act_1.steps[0].fields: `fields` must be an array of question objects. | Use"
+    ],
+    "request_approval.fields (approvalQuestions) #13": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro",
+      "E action.approval_questions_invalid @actions.act_1.steps[0].fields: `fields` must be an array of question objects. | Use"
+    ],
+    "request_approval.fields (approvalQuestions) #15": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro",
+      "E action.approval_questions_invalid @actions.act_1.steps[0].fields[0]: Each question needs a `name`. | Use { name, label",
+      "E action.approval_questions_invalid @actions.act_1.steps[0].fields[1]: Each question needs a `name`. | Use { name, label"
+    ],
+    "request_approval.fields (approvalQuestions) #19": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro",
+      "E action.approval_questions_invalid @actions.act_1.steps[0].fields: `fields` must be an array of question objects. | Use"
+    ],
+    "request_approval.fields (approvalQuestions) #22": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro",
+      "E action.approval_questions_invalid @actions.act_1.steps[0].fields[0]: Each question needs a `name`. | Use { name, label"
+    ],
+    "request_approval.approverUserIds (stringList) #0": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro"
+    ],
+    "request_approval.approverUserIds (stringList) #1": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro"
+    ],
+    "request_approval.approverUserIds (stringList) #2": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro",
+      "E action.step_field_invalid @actions.act_1.steps[0].approverUserIds: `approverUserIds` must be an array of strings. | Pa"
+    ],
+    "request_approval.approverUserIds (stringList) #4": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro",
+      "E action.step_field_invalid @actions.act_1.steps[0].approverUserIds: `approverUserIds` must be an array of strings. | Pa"
+    ],
+    "request_approval.approverUserIds (stringList) #6": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro",
+      "E action.step_field_invalid @actions.act_1.steps[0].approverUserIds: `approverUserIds` must be an array of strings. | Pa"
+    ],
+    "request_approval.approverUserIds (stringList) #8": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro",
+      "E action.step_field_invalid @actions.act_1.steps[0].approverUserIds: `approverUserIds` must be an array of strings. | Pa"
+    ],
+    "request_approval.approverUserIds (stringList) #13": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro",
+      "E action.step_field_invalid @actions.act_1.steps[0].approverUserIds: `approverUserIds` must be an array of strings. | Pa"
+    ],
+    "request_approval.approverUserIds (stringList) #15": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro"
+    ],
+    "request_approval.approverUserIds (stringList) #19": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro",
+      "E action.step_field_invalid @actions.act_1.steps[0].approverUserIds: `approverUserIds` must be an array of strings. | Pa"
+    ],
+    "request_approval.approverUserIds (stringList) #22": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro",
+      "E action.step_field_invalid @actions.act_1.steps[0].approverUserIds: `approverUserIds` entries must all be strings. | Us"
+    ],
+    "request_approval.stages (approvalStages) #0": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro"
+    ],
+    "request_approval.stages (approvalStages) #1": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro"
+    ],
+    "request_approval.stages (approvalStages) #2": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro",
+      "E action.approval_stages_invalid @actions.act_1.steps[0].stages: `stages` must be an array of approval stages. | Use [{ "
+    ],
+    "request_approval.stages (approvalStages) #4": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro",
+      "E action.approval_stages_invalid @actions.act_1.steps[0].stages: `stages` must be an array of approval stages. | Use [{ "
+    ],
+    "request_approval.stages (approvalStages) #6": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro",
+      "E action.approval_stages_invalid @actions.act_1.steps[0].stages: `stages` must be an array of approval stages. | Use [{ "
+    ],
+    "request_approval.stages (approvalStages) #8": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro",
+      "E action.approval_stages_invalid @actions.act_1.steps[0].stages: `stages` must be an array of approval stages. | Use [{ "
+    ],
+    "request_approval.stages (approvalStages) #13": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro",
+      "E action.approval_stages_invalid @actions.act_1.steps[0].stages: `stages` must be an array of approval stages. | Use [{ "
+    ],
+    "request_approval.stages (approvalStages) #15": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro",
+      "E action.approval_stages_invalid @actions.act_1.steps[0].stages[0]: Each approval stage must be an object. | Use { name,",
+      "E action.approval_stages_invalid @actions.act_1.steps[0].stages[1]: Each approval stage must be an object. | Use { name,"
+    ],
+    "request_approval.stages (approvalStages) #19": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro",
+      "E action.approval_stages_invalid @actions.act_1.steps[0].stages: `stages` must be an array of approval stages. | Use [{ "
+    ],
+    "request_approval.stages (approvalStages) #22": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro",
+      "E action.approval_stages_invalid @actions.act_1.steps[0].stages[0].approvers: Stage 1 names nobody to decide it. | Every"
+    ],
+    "request_approval.onDecided (approvalOnDecided) #0": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro"
+    ],
+    "request_approval.onDecided (approvalOnDecided) #1": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro"
+    ],
+    "request_approval.onDecided (approvalOnDecided) #2": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro",
+      "E action.approval_hook_invalid @actions.act_1.steps[0].onDecided: `onDecided` must be an object { tableId, recordId, set"
+    ],
+    "request_approval.onDecided (approvalOnDecided) #4": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro",
+      "E action.approval_hook_invalid @actions.act_1.steps[0].onDecided: `onDecided` must be an object { tableId, recordId, set"
+    ],
+    "request_approval.onDecided (approvalOnDecided) #6": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro",
+      "E action.approval_hook_invalid @actions.act_1.steps[0].onDecided: `onDecided` must be an object { tableId, recordId, set"
+    ],
+    "request_approval.onDecided (approvalOnDecided) #8": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro",
+      "E action.approval_hook_invalid @actions.act_1.steps[0].onDecided: `onDecided` must be an object { tableId, recordId, set"
+    ],
+    "request_approval.onDecided (approvalOnDecided) #13": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro",
+      "E action.approval_hook_invalid @actions.act_1.steps[0].onDecided: `onDecided` must be an object { tableId, recordId, set"
+    ],
+    "request_approval.onDecided (approvalOnDecided) #15": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro",
+      "E action.approval_hook_invalid @actions.act_1.steps[0].onDecided: `onDecided` must be an object { tableId, recordId, set"
+    ],
+    "request_approval.onDecided (approvalOnDecided) #19": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro",
+      "W binding.table_unset @actions.act_1.steps[0].onDecided.tableId: Step \"request_approval\" onDecided has nothing selected ",
+      "E action.approval_hook_invalid @actions.act_1.steps[0].onDecided.recordId: onDecided needs `recordId` — which row flips ",
+      "E action.approval_hook_invalid @actions.act_1.steps[0].onDecided.set: onDecided writes nothing — `set` needs at least on"
+    ],
+    "request_approval.onDecided (approvalOnDecided) #22": [
+      "E action.step_field_required @actions.act_1.steps[0].prompt: Step \"request_approval\" is missing required `prompt`. | Pro",
+      "E action.approval_hook_invalid @actions.act_1.steps[0].onDecided: `onDecided` must be an object { tableId, recordId, set"
+    ],
+    "ai_extract.schema (aiSchema) #0": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a"
+    ],
+    "ai_extract.schema (aiSchema) #1": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a"
+    ],
+    "ai_extract.schema (aiSchema) #2": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.ai_schema_invalid @actions.act_1.steps[0].schema: `schema` must be an array of { name, type } fields. | Add at "
+    ],
+    "ai_extract.schema (aiSchema) #4": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.ai_schema_invalid @actions.act_1.steps[0].schema: `schema` must be an array of { name, type } fields. | Add at "
+    ],
+    "ai_extract.schema (aiSchema) #6": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.ai_schema_invalid @actions.act_1.steps[0].schema: `schema` must be an array of { name, type } fields. | Add at "
+    ],
+    "ai_extract.schema (aiSchema) #8": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.ai_schema_invalid @actions.act_1.steps[0].schema: `schema` must be an array of { name, type } fields. | Add at "
+    ],
+    "ai_extract.schema (aiSchema) #13": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.ai_schema_invalid @actions.act_1.steps[0].schema: `schema` must be an array of { name, type } fields. | Add at "
+    ],
+    "ai_extract.schema (aiSchema) #15": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.ai_schema_invalid @actions.act_1.steps[0].schema[0]: Each schema field must be an object { name, type }. | Prov",
+      "E action.ai_schema_invalid @actions.act_1.steps[0].schema[1]: Each schema field must be an object { name, type }. | Prov"
+    ],
+    "ai_extract.schema (aiSchema) #19": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.ai_schema_invalid @actions.act_1.steps[0].schema: `schema` must be an array of { name, type } fields. | Add at "
+    ],
+    "ai_extract.schema (aiSchema) #22": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.ai_schema_invalid @actions.act_1.steps[0].schema[0].name: Schema field name undefined must start with a letter "
+    ],
+    "ai_extract.contextSources (contextSources) #0": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a"
+    ],
+    "ai_extract.contextSources (contextSources) #1": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a"
+    ],
+    "ai_extract.contextSources (contextSources) #2": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.step_field_invalid @actions.act_1.steps[0].contextSources: `contextSources` must be a list of { label, source }"
+    ],
+    "ai_extract.contextSources (contextSources) #4": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.step_field_invalid @actions.act_1.steps[0].contextSources: `contextSources` must be a list of { label, source }"
+    ],
+    "ai_extract.contextSources (contextSources) #6": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.step_field_invalid @actions.act_1.steps[0].contextSources: `contextSources` must be a list of { label, source }"
+    ],
+    "ai_extract.contextSources (contextSources) #8": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.step_field_invalid @actions.act_1.steps[0].contextSources: `contextSources` must be a list of { label, source }"
+    ],
+    "ai_extract.contextSources (contextSources) #13": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.step_field_invalid @actions.act_1.steps[0].contextSources: `contextSources` must be a list of { label, source }"
+    ],
+    "ai_extract.contextSources (contextSources) #15": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.step_field_invalid @actions.act_1.steps[0].contextSources[0]: Each context source must be an object { label, so",
+      "E action.step_field_invalid @actions.act_1.steps[0].contextSources[1]: Each context source must be an object { label, so"
+    ],
+    "ai_extract.contextSources (contextSources) #19": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.step_field_invalid @actions.act_1.steps[0].contextSources: `contextSources` must be a list of { label, source }"
+    ],
+    "ai_extract.contextSources (contextSources) #22": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E binding.invalid @actions.act_1.steps[0].contextSources[0].source: `contextSources[0].source` must be a binding object."
+    ],
+    "ai_extract.modelTier (tierChoice) #0": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a"
+    ],
+    "ai_extract.modelTier (tierChoice) #1": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a"
+    ],
+    "ai_extract.modelTier (tierChoice) #2": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a"
+    ],
+    "ai_extract.modelTier (tierChoice) #4": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.step_field_invalid @actions.act_1.steps[0].modelTier: `modelTier` is 5000 chars — the maximum is 60. | Shorten "
+    ],
+    "ai_extract.modelTier (tierChoice) #6": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a"
+    ],
+    "ai_extract.modelTier (tierChoice) #8": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.step_field_invalid @actions.act_1.steps[0].modelTier: `modelTier` is a tier name or {kind:\"formula\",expr}. | Us"
+    ],
+    "ai_extract.modelTier (tierChoice) #13": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.step_field_invalid @actions.act_1.steps[0].modelTier: `modelTier` is a tier name or {kind:\"formula\",expr}. | Us"
+    ],
+    "ai_extract.modelTier (tierChoice) #15": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.step_field_invalid @actions.act_1.steps[0].modelTier: `modelTier` is a tier name or {kind:\"formula\",expr}. | Us"
+    ],
+    "ai_extract.modelTier (tierChoice) #19": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.step_field_invalid @actions.act_1.steps[0].modelTier: `modelTier` is a tier name or {kind:\"formula\",expr}. | Us"
+    ],
+    "ai_extract.modelTier (tierChoice) #22": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.step_field_invalid @actions.act_1.steps[0].modelTier: `modelTier` is a tier name or {kind:\"formula\",expr}. | Us"
+    ],
+    "ai_extract.writeTo (aiWriteTo) #0": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a"
+    ],
+    "ai_extract.writeTo (aiWriteTo) #1": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a"
+    ],
+    "ai_extract.writeTo (aiWriteTo) #2": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.ai_writeto_invalid @actions.act_1.steps[0].writeTo: `writeTo` must be an object { tableId, mapping }. | Pick a "
+    ],
+    "ai_extract.writeTo (aiWriteTo) #4": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.ai_writeto_invalid @actions.act_1.steps[0].writeTo: `writeTo` must be an object { tableId, mapping }. | Pick a "
+    ],
+    "ai_extract.writeTo (aiWriteTo) #6": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.ai_writeto_invalid @actions.act_1.steps[0].writeTo: `writeTo` must be an object { tableId, mapping }. | Pick a "
+    ],
+    "ai_extract.writeTo (aiWriteTo) #8": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.ai_writeto_invalid @actions.act_1.steps[0].writeTo: `writeTo` must be an object { tableId, mapping }. | Pick a "
+    ],
+    "ai_extract.writeTo (aiWriteTo) #13": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.ai_writeto_invalid @actions.act_1.steps[0].writeTo: `writeTo` must be an object { tableId, mapping }. | Pick a "
+    ],
+    "ai_extract.writeTo (aiWriteTo) #15": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.ai_writeto_invalid @actions.act_1.steps[0].writeTo: `writeTo` must be an object { tableId, mapping }. | Pick a "
+    ],
+    "ai_extract.writeTo (aiWriteTo) #19": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "W binding.table_unset @actions.act_1.steps[0].writeTo.tableId: Step \"ai_extract\" writeTo has nothing selected yet. | Con"
+    ],
+    "ai_extract.writeTo (aiWriteTo) #22": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.ai_writeto_invalid @actions.act_1.steps[0].writeTo: `writeTo` must be an object { tableId, mapping }. | Pick a "
+    ],
+    "ai_extract.temperature (number) #0": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a"
+    ],
+    "ai_extract.temperature (number) #1": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a"
+    ],
+    "ai_extract.temperature (number) #2": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.step_field_invalid @actions.act_1.steps[0].temperature: `temperature` must be a number from 0 to 2. | Lower ans"
+    ],
+    "ai_extract.temperature (number) #4": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.step_field_invalid @actions.act_1.steps[0].temperature: `temperature` must be a number from 0 to 2. | Lower ans"
+    ],
+    "ai_extract.temperature (number) #6": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.step_field_invalid @actions.act_1.steps[0].temperature: `temperature` must be a number from 0 to 2. | Lower ans"
+    ],
+    "ai_extract.temperature (number) #8": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.step_field_invalid @actions.act_1.steps[0].temperature: `temperature` must be a number from 0 to 2. | Lower ans"
+    ],
+    "ai_extract.temperature (number) #13": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.step_field_invalid @actions.act_1.steps[0].temperature: `temperature` must be a number from 0 to 2. | Lower ans"
+    ],
+    "ai_extract.temperature (number) #15": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.step_field_invalid @actions.act_1.steps[0].temperature: `temperature` must be a number from 0 to 2. | Lower ans"
+    ],
+    "ai_extract.temperature (number) #19": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.step_field_invalid @actions.act_1.steps[0].temperature: `temperature` must be a number from 0 to 2. | Lower ans"
+    ],
+    "ai_extract.temperature (number) #22": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.step_field_invalid @actions.act_1.steps[0].temperature: `temperature` must be a number from 0 to 2. | Lower ans"
+    ],
+    "ai_extract.checks (aiChecks) #0": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a"
+    ],
+    "ai_extract.checks (aiChecks) #1": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a"
+    ],
+    "ai_extract.checks (aiChecks) #2": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.step_field_invalid @actions.act_1.steps[0].checks: `checks` must be a list of checks { kind, field, ... }. | Pa"
+    ],
+    "ai_extract.checks (aiChecks) #4": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.step_field_invalid @actions.act_1.steps[0].checks: `checks` must be a list of checks { kind, field, ... }. | Pa"
+    ],
+    "ai_extract.checks (aiChecks) #6": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.step_field_invalid @actions.act_1.steps[0].checks: `checks` must be a list of checks { kind, field, ... }. | Pa"
+    ],
+    "ai_extract.checks (aiChecks) #8": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.step_field_invalid @actions.act_1.steps[0].checks: `checks` must be a list of checks { kind, field, ... }. | Pa"
+    ],
+    "ai_extract.checks (aiChecks) #13": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.step_field_invalid @actions.act_1.steps[0].checks: `checks` must be a list of checks { kind, field, ... }. | Pa"
+    ],
+    "ai_extract.checks (aiChecks) #15": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.ai_check_invalid @actions.act_1.steps[0].checks[0]: checks[0] must be an object with a \"kind\" of allowedFrom, n",
+      "E action.ai_check_invalid @actions.act_1.steps[0].checks[1]: checks[1] must be an object with a \"kind\" of allowedFrom, n"
+    ],
+    "ai_extract.checks (aiChecks) #19": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.step_field_invalid @actions.act_1.steps[0].checks: `checks` must be a list of checks { kind, field, ... }. | Pa"
+    ],
+    "ai_extract.checks (aiChecks) #22": [
+      "E action.step_field_required @actions.act_1.steps[0].source: Step \"ai_extract\" is missing required `source`. | Provide a",
+      "E action.step_field_required @actions.act_1.steps[0].schema: Step \"ai_extract\" is missing required `schema`. | Provide a",
+      "E action.ai_check_invalid @actions.act_1.steps[0].checks[0].kind: checks[0].kind must be one of allowedFrom, numbersFrom"
+    ],
+    "condition.then (steps) #0": [
+      "E action.step_field_required @actions.act_1.steps[0].expr: Step \"condition\" is missing required `expr`. | Provide a form",
+      "E action.step_field_required @actions.act_1.steps[0].then: Step \"condition\" is missing required `then`. | Provide a step"
+    ],
+    "condition.then (steps) #1": [
+      "E action.step_field_required @actions.act_1.steps[0].expr: Step \"condition\" is missing required `expr`. | Provide a form",
+      "E action.step_field_required @actions.act_1.steps[0].then: Step \"condition\" is missing required `then`. | Provide a step"
+    ],
+    "condition.then (steps) #2": [
+      "E action.step_field_required @actions.act_1.steps[0].expr: Step \"condition\" is missing required `expr`. | Provide a form",
+      "E action.steps_invalid @actions.act_1.steps[0].then: A sequence `steps` must be an array. | Provide an array of step obj"
+    ],
+    "condition.then (steps) #4": [
+      "E action.step_field_required @actions.act_1.steps[0].expr: Step \"condition\" is missing required `expr`. | Provide a form",
+      "E action.steps_invalid @actions.act_1.steps[0].then: A sequence `steps` must be an array. | Provide an array of step obj"
+    ],
+    "condition.then (steps) #6": [
+      "E action.step_field_required @actions.act_1.steps[0].expr: Step \"condition\" is missing required `expr`. | Provide a form",
+      "E action.steps_invalid @actions.act_1.steps[0].then: A sequence `steps` must be an array. | Provide an array of step obj"
+    ],
+    "condition.then (steps) #8": [
+      "E action.step_field_required @actions.act_1.steps[0].expr: Step \"condition\" is missing required `expr`. | Provide a form",
+      "E action.steps_invalid @actions.act_1.steps[0].then: A sequence `steps` must be an array. | Provide an array of step obj"
+    ],
+    "condition.then (steps) #13": [
+      "E action.step_field_required @actions.act_1.steps[0].expr: Step \"condition\" is missing required `expr`. | Provide a form",
+      "E action.steps_invalid @actions.act_1.steps[0].then: A sequence `steps` must be an array. | Provide an array of step obj"
+    ],
+    "condition.then (steps) #15": [
+      "E action.step_field_required @actions.act_1.steps[0].expr: Step \"condition\" is missing required `expr`. | Provide a form",
+      "E action.step_not_object @actions.act_1.steps[0].then[0]: Each step must be an object { kind, ... }. | Remove the malfor",
+      "E action.step_not_object @actions.act_1.steps[0].then[1]: Each step must be an object { kind, ... }. | Remove the malfor"
+    ],
+    "condition.then (steps) #19": [
+      "E action.step_field_required @actions.act_1.steps[0].expr: Step \"condition\" is missing required `expr`. | Provide a form",
+      "E action.steps_invalid @actions.act_1.steps[0].then: A sequence `steps` must be an array. | Provide an array of step obj"
+    ],
+    "condition.then (steps) #22": [
+      "E action.step_field_required @actions.act_1.steps[0].expr: Step \"condition\" is missing required `expr`. | Provide a form",
+      "E action.step_kind_invalid @actions.act_1.steps[0].then[0].kind: Unknown step kind undefined. | Legal step kinds: naviga"
+    ],
+    "switch.cases (switchCases) #0": [
+      "E action.step_field_required @actions.act_1.steps[0].expr: Step \"switch\" is missing required `expr`. | Provide a formula",
+      "E action.step_field_required @actions.act_1.steps[0].cases: Step \"switch\" is missing required `cases`. | Provide a switc"
+    ],
+    "switch.cases (switchCases) #1": [
+      "E action.step_field_required @actions.act_1.steps[0].expr: Step \"switch\" is missing required `expr`. | Provide a formula",
+      "E action.step_field_required @actions.act_1.steps[0].cases: Step \"switch\" is missing required `cases`. | Provide a switc"
+    ],
+    "switch.cases (switchCases) #2": [
+      "E action.step_field_required @actions.act_1.steps[0].expr: Step \"switch\" is missing required `expr`. | Provide a formula",
+      "E action.step_field_invalid @actions.act_1.steps[0].cases: switch `cases` must be an array. | Use [{ value, steps }]."
+    ],
+    "switch.cases (switchCases) #4": [
+      "E action.step_field_required @actions.act_1.steps[0].expr: Step \"switch\" is missing required `expr`. | Provide a formula",
+      "E action.step_field_invalid @actions.act_1.steps[0].cases: switch `cases` must be an array. | Use [{ value, steps }]."
+    ],
+    "switch.cases (switchCases) #6": [
+      "E action.step_field_required @actions.act_1.steps[0].expr: Step \"switch\" is missing required `expr`. | Provide a formula",
+      "E action.step_field_invalid @actions.act_1.steps[0].cases: switch `cases` must be an array. | Use [{ value, steps }]."
+    ],
+    "switch.cases (switchCases) #8": [
+      "E action.step_field_required @actions.act_1.steps[0].expr: Step \"switch\" is missing required `expr`. | Provide a formula",
+      "E action.step_field_invalid @actions.act_1.steps[0].cases: switch `cases` must be an array. | Use [{ value, steps }]."
+    ],
+    "switch.cases (switchCases) #13": [
+      "E action.step_field_required @actions.act_1.steps[0].expr: Step \"switch\" is missing required `expr`. | Provide a formula",
+      "E action.step_field_invalid @actions.act_1.steps[0].cases: switch `cases` must be an array. | Use [{ value, steps }]."
+    ],
+    "switch.cases (switchCases) #15": [
+      "E action.step_field_required @actions.act_1.steps[0].expr: Step \"switch\" is missing required `expr`. | Provide a formula",
+      "E action.step_field_invalid @actions.act_1.steps[0].cases[0]: Each switch case must be an object { value, steps }. | Pro",
+      "E action.step_field_invalid @actions.act_1.steps[0].cases[1]: Each switch case must be an object { value, steps }. | Pro"
+    ],
+    "switch.cases (switchCases) #19": [
+      "E action.step_field_required @actions.act_1.steps[0].expr: Step \"switch\" is missing required `expr`. | Provide a formula",
+      "E action.step_field_invalid @actions.act_1.steps[0].cases: switch `cases` must be an array. | Use [{ value, steps }]."
+    ],
+    "switch.cases (switchCases) #22": [
+      "E action.step_field_required @actions.act_1.steps[0].expr: Step \"switch\" is missing required `expr`. | Provide a formula"
+    ],
+    "call_action.params (callParams) #0": [
+      "E action.step_field_required @actions.act_1.steps[0].actionId: Step \"call_action\" is missing required `actionId`. | Prov"
+    ],
+    "call_action.params (callParams) #1": [
+      "E action.step_field_required @actions.act_1.steps[0].actionId: Step \"call_action\" is missing required `actionId`. | Prov"
+    ],
+    "call_action.params (callParams) #2": [
+      "E action.step_field_required @actions.act_1.steps[0].actionId: Step \"call_action\" is missing required `actionId`. | Prov",
+      "E action.call_param_invalid @actions.act_1.steps[0].params: `params` must be an object map of { name: binding }. | Use {"
+    ],
+    "call_action.params (callParams) #4": [
+      "E action.step_field_required @actions.act_1.steps[0].actionId: Step \"call_action\" is missing required `actionId`. | Prov",
+      "E action.call_param_invalid @actions.act_1.steps[0].params: `params` must be an object map of { name: binding }. | Use {"
+    ],
+    "call_action.params (callParams) #6": [
+      "E action.step_field_required @actions.act_1.steps[0].actionId: Step \"call_action\" is missing required `actionId`. | Prov",
+      "E action.call_param_invalid @actions.act_1.steps[0].params: `params` must be an object map of { name: binding }. | Use {"
+    ],
+    "call_action.params (callParams) #8": [
+      "E action.step_field_required @actions.act_1.steps[0].actionId: Step \"call_action\" is missing required `actionId`. | Prov",
+      "E action.call_param_invalid @actions.act_1.steps[0].params: `params` must be an object map of { name: binding }. | Use {"
+    ],
+    "call_action.params (callParams) #13": [
+      "E action.step_field_required @actions.act_1.steps[0].actionId: Step \"call_action\" is missing required `actionId`. | Prov",
+      "E action.call_param_invalid @actions.act_1.steps[0].params: `params` must be an object map of { name: binding }. | Use {"
+    ],
+    "call_action.params (callParams) #15": [
+      "E action.step_field_required @actions.act_1.steps[0].actionId: Step \"call_action\" is missing required `actionId`. | Prov",
+      "E action.call_param_invalid @actions.act_1.steps[0].params: `params` must be an object map of { name: binding }. | Use {"
+    ],
+    "call_action.params (callParams) #19": [
+      "E action.step_field_required @actions.act_1.steps[0].actionId: Step \"call_action\" is missing required `actionId`. | Prov",
+      "E binding.invalid @actions.act_1.steps[0].params.kind: `kind` must be a binding object. | Use one of: {kind:'static', …}",
+      "E binding.invalid @actions.act_1.steps[0].params.value: `value` must be a binding object. | Use one of: {kind:'static', "
+    ],
+    "call_action.params (callParams) #22": [
+      "E action.step_field_required @actions.act_1.steps[0].actionId: Step \"call_action\" is missing required `actionId`. | Prov",
+      "E action.call_param_invalid @actions.act_1.steps[0].params: `params` must be an object map of { name: binding }. | Use {"
+    ],
+    "code.code (code) #0": [
+      "E action.step_field_required @actions.act_1.steps[0].code: Step \"code\" is missing required `code`. | Provide a code.",
+      "W action.code_no_result @actions.act_1.steps[0]: This code step has no resultVar, so what it returns is not kept. | Set "
+    ],
+    "code.code (code) #1": [
+      "E action.step_field_required @actions.act_1.steps[0].code: Step \"code\" is missing required `code`. | Provide a code.",
+      "W action.code_no_result @actions.act_1.steps[0]: This code step has no resultVar, so what it returns is not kept. | Set "
+    ],
+    "code.code (code) #2": [
+      "W action.code_no_result @actions.act_1.steps[0]: This code step has no resultVar, so what it returns is not kept. | Set "
+    ],
+    "code.code (code) #4": [
+      "W action.code_no_result @actions.act_1.steps[0]: This code step has no resultVar, so what it returns is not kept. | Set "
+    ],
+    "code.code (code) #6": [
+      "E action.code_syntax @actions.act_1.steps[0].code: The code has a syntax error at line 1, column 21: Unexpected token | ",
+      "W action.code_no_result @actions.act_1.steps[0]: This code step has no resultVar, so what it returns is not kept. | Set "
+    ],
+    "code.code (code) #8": [
+      "E action.step_field_invalid @actions.act_1.steps[0].code: `code` must be a string of JavaScript. | Write `function main(",
+      "W action.code_no_result @actions.act_1.steps[0]: This code step has no resultVar, so what it returns is not kept. | Set "
+    ],
+    "code.code (code) #13": [
+      "E action.step_field_invalid @actions.act_1.steps[0].code: `code` must be a string of JavaScript. | Write `function main(",
+      "W action.code_no_result @actions.act_1.steps[0]: This code step has no resultVar, so what it returns is not kept. | Set "
+    ],
+    "code.code (code) #15": [
+      "E action.step_field_invalid @actions.act_1.steps[0].code: `code` must be a string of JavaScript. | Write `function main(",
+      "W action.code_no_result @actions.act_1.steps[0]: This code step has no resultVar, so what it returns is not kept. | Set "
+    ],
+    "code.code (code) #19": [
+      "E action.step_field_invalid @actions.act_1.steps[0].code: `code` must be a string of JavaScript. | Write `function main(",
+      "W action.code_no_result @actions.act_1.steps[0]: This code step has no resultVar, so what it returns is not kept. | Set "
+    ],
+    "code.code (code) #22": [
+      "E action.step_field_invalid @actions.act_1.steps[0].code: `code` must be a string of JavaScript. | Write `function main(",
+      "W action.code_no_result @actions.act_1.steps[0]: This code step has no resultVar, so what it returns is not kept. | Set "
+    ],
+    "parallel.branches (stepBranches) #0": [
+      "E action.step_field_required @actions.act_1.steps[0].branches: Step \"parallel\" is missing required `branches`. | Provide"
+    ],
+    "parallel.branches (stepBranches) #1": [
+      "E action.step_field_required @actions.act_1.steps[0].branches: Step \"parallel\" is missing required `branches`. | Provide"
+    ],
+    "parallel.branches (stepBranches) #2": [
+      "E action.step_field_invalid @actions.act_1.steps[0].branches: parallel `branches` must be an array. | Use [{ steps: [..."
+    ],
+    "parallel.branches (stepBranches) #4": [
+      "E action.step_field_invalid @actions.act_1.steps[0].branches: parallel `branches` must be an array. | Use [{ steps: [..."
+    ],
+    "parallel.branches (stepBranches) #6": [
+      "E action.step_field_invalid @actions.act_1.steps[0].branches: parallel `branches` must be an array. | Use [{ steps: [..."
+    ],
+    "parallel.branches (stepBranches) #8": [
+      "E action.step_field_invalid @actions.act_1.steps[0].branches: parallel `branches` must be an array. | Use [{ steps: [..."
+    ],
+    "parallel.branches (stepBranches) #13": [
+      "E action.step_field_invalid @actions.act_1.steps[0].branches: parallel `branches` must be an array. | Use [{ steps: [..."
+    ],
+    "parallel.branches (stepBranches) #15": [
+      "E action.step_field_invalid @actions.act_1.steps[0].branches[0]: Each branch must be an object { steps }. | Use [{ steps",
+      "E action.step_field_invalid @actions.act_1.steps[0].branches[1]: Each branch must be an object { steps }. | Use [{ steps"
+    ],
+    "parallel.branches (stepBranches) #19": [
+      "E action.step_field_invalid @actions.act_1.steps[0].branches: parallel `branches` must be an array. | Use [{ steps: [..."
+    ],
+    "parallel.branches (stepBranches) #22": []
+  }
+}

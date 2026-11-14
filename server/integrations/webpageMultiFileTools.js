@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Webpage Multi-File Tools
  *
@@ -24,7 +24,7 @@
  */
 
 const webpageStore = require('../stores/webpageStore');
-const { findAllOccurrences } = require('./webpageDocTools');
+const { findAllOccurrences } = require('../core/text/findReplace');
 
 const WEBPAGE_MULTI_FILE_TOOLS = [
     {
@@ -132,148 +132,186 @@ function rejectReserved(path) {
 }
 
 /**
+ * @typedef {{ path?: string, content?: string, find_text?: string, replace_text?: string, replace_all?: boolean }} MultiFileArgs
+ * @typedef {(args: MultiFileArgs, ctx: { webpageId: string, userId: string }) => Promise<Record<string, any>>} MultiFileHandler
+ */
+
+/** @type {MultiFileHandler} */
+async function listFiles(_args, { webpageId, userId }) {
+    const extras = await webpageStore.listExtraFiles(webpageId);
+    const wp = await webpageStore.getWebpage(webpageId, userId);
+    const primary = [
+        { path: 'index.html', kind: 'primary', size: wp?.htmlSize || 0, isText: true },
+        { path: 'style.css',  kind: 'primary', size: wp?.cssSize  || 0, isText: true },
+        { path: 'script.js',  kind: 'primary', size: wp?.jsSize   || 0, isText: true },
+    ];
+    const extraList = extras.map(e => ({
+        path: e.path, kind: 'extra', size: e.size, isText: e.isText, mimeType: e.mimeType,
+    }));
+    return {
+        files: [...primary, ...extraList],
+        message: `Project has ${primary.length} primary slot${primary.length === 1 ? '' : 's'} + ${extraList.length} extra file${extraList.length === 1 ? '' : 's'}.`,
+    };
+}
+
+/** @type {MultiFileHandler} */
+async function listAssets(_args, { webpageId }) {
+    const extras = await webpageStore.listExtraFiles(webpageId);
+    const assets = extras
+        .filter(e => !e.isText)
+        .map(e => ({ path: e.path, mimeType: e.mimeType, size: e.size }));
+    return {
+        assets,
+        message: assets.length
+            ? `${assets.length} uploaded asset${assets.length === 1 ? '' : 's'}. Reference them at their path; do not invent external image URLs.`
+            : 'No uploaded assets yet. Use inline SVG, CSS, emoji, or https://placehold.co/WIDTHxHEIGHT instead of inventing image URLs.',
+    };
+}
+
+/** @type {MultiFileHandler} */
+async function createFile(args, { webpageId, userId }) {
+    const path = String(args?.path || '').trim();
+    const content = typeof args?.content === 'string' ? args.content : '';
+
+    const reservedErr = rejectReserved(path);
+    if (reservedErr) return { error: reservedErr };
+    const validation = webpageStore.validateExtraPath(path);
+    if (validation) return { error: validation };
+
+    try {
+        const meta = await webpageStore.upsertExtraFile({ webpageId, userId, path, content });
+        return {
+            _action: 'webpage_extra_update',
+            path,
+            meta,
+            message: `Created/updated ${path} (${meta.size} bytes).`,
+        };
+    } catch (err) {
+        return { error: `Failed to create ${path}: ${/** @type {Error} */ (err).message}` };
+    }
+}
+
+/** @type {MultiFileHandler} */
+async function readFile(args, { webpageId, userId }) {
+    const path = String(args?.path || '').trim();
+    const reservedErr = rejectReserved(path);
+    if (reservedErr) return { error: reservedErr };
+    const file = await webpageStore.readExtraFile({ webpageId, userId, path });
+    if (!file) return { error: `File "${path}" not found. Use webpage_list_files to see what exists.` };
+    if (!file.meta.isText) {
+        return {
+            content: '',
+            isBinary: true,
+            size: file.meta.size,
+            mimeType: file.meta.mimeType,
+            message: `${path} is binary (${file.meta.mimeType}, ${file.meta.size} bytes) — content is not displayed inline.`,
+        };
+    }
+    return { content: file.text, mimeType: file.meta.mimeType, size: file.meta.size };
+}
+
+/**
+ * `current` with the occurrences replaced: all of them, or the only one.
+ * @param {string} current @param {ReturnType<typeof findAllOccurrences>} occurrences @param {string} replaceText @param {boolean} replaceAll
+ */
+function replaceOccurrences(current, occurrences, replaceText, replaceAll) {
+    if (!replaceAll) {
+        const o = occurrences[0];
+        return current.slice(0, o.start) + replaceText + current.slice(o.end);
+    }
+    let next = current;
+    for (let i = occurrences.length - 1; i >= 0; i--) {
+        next = next.slice(0, occurrences[i].start) + replaceText + next.slice(occurrences[i].end);
+    }
+    return next;
+}
+
+/**
+ * Why the find_text cannot be applied: no match, or several without replace_all.
+ * @param {ReturnType<typeof findAllOccurrences>} occurrences @param {string} path @param {boolean} replaceAll
+ */
+function occurrenceError(occurrences, path, replaceAll) {
+    if (occurrences.length === 0) {
+        return `find_text not found in ${path}. Call webpage_read_file first to see the exact current contents.`;
+    }
+    if (occurrences.length > 1 && !replaceAll) {
+        const lines = occurrences.map(o => o.line);
+        return `find_text matches ${occurrences.length} places in ${path} (lines ${lines.join(', ')}). Either narrow find_text or set replace_all: true.`;
+    }
+    return null;
+}
+
+/** @type {MultiFileHandler} */
+async function replaceInFile(args, { webpageId, userId }) {
+    const path = String(args?.path || '').trim();
+    const findText = args?.find_text;
+    const replaceText = args?.replace_text ?? '';
+    const replaceAll = args?.replace_all === true;
+
+    const reservedErr = rejectReserved(path);
+    if (reservedErr) return { error: reservedErr };
+    if (!findText) return { error: 'find_text is required.' };
+
+    const file = await webpageStore.readExtraFile({ webpageId, userId, path });
+    if (!file) return { error: `File "${path}" not found.` };
+    if (!file.meta.isText) return { error: `${path} is binary — webpage_replace_in_file only works on text files.` };
+
+    const current = /** @type {string} */ (file.text); // a text file is read with its text
+    const occurrences = findAllOccurrences(current, findText);
+
+    const ambiguous = occurrenceError(occurrences, path, replaceAll);
+    if (ambiguous) return { error: ambiguous };
+
+    const next = replaceOccurrences(current, occurrences, replaceText, replaceAll);
+    try {
+        const meta = await webpageStore.upsertExtraFile({ webpageId, userId, path, content: next });
+        return {
+            _action: 'webpage_extra_update',
+            path,
+            meta,
+            message: `${path} updated (${occurrences.length} replacement${occurrences.length === 1 ? '' : 's'}, line${occurrences.length === 1 ? '' : 's'} ${occurrences.map(o => o.line).join(', ')}).`,
+        };
+    } catch (err) {
+        return { error: `Failed to write ${path}: ${/** @type {Error} */ (err).message}` };
+    }
+}
+
+/** @type {MultiFileHandler} */
+async function deleteFile(args, { webpageId, userId }) {
+    const path = String(args?.path || '').trim();
+    const reservedErr = rejectReserved(path);
+    if (reservedErr) return { error: reservedErr };
+    const ok = await webpageStore.deleteExtraFile({ webpageId, userId, path });
+    if (!ok) return { error: `File "${path}" not found.` };
+    return {
+        _action: 'webpage_extra_deleted',
+        path,
+        message: `Deleted ${path}.`,
+    };
+}
+
+/** @type {Record<string, MultiFileHandler>} */
+const HANDLERS = {
+    webpage_list_files: listFiles,
+    webpage_list_assets: listAssets,
+    webpage_create_file: createFile,
+    webpage_read_file: readFile,
+    webpage_replace_in_file: replaceInFile,
+    webpage_delete_file: deleteFile,
+};
+
+/**
  * Execute a multi-file tool. Returns an envelope similar to the doc-tool
  * executor — `{ ...result, _action?: 'webpage_extra_update' | 'webpage_extra_deleted' }`
  * so the chat handler can emit the matching SSE event for live UI sync.
  * @param {string} toolName
- * @param {{ path?: string, content?: string, find_text?: string, replace_text?: string, replace_all?: boolean }} args
+ * @param {MultiFileArgs} args
  * @param {{ webpageId: string, userId: string }} ctx
  */
 async function executeMultiFileTool(toolName, args, { webpageId, userId }) {
-    if (toolName === 'webpage_list_files') {
-        const extras = await webpageStore.listExtraFiles(webpageId);
-        const wp = await webpageStore.getWebpage(webpageId, userId);
-        const primary = [
-            { path: 'index.html', kind: 'primary', size: wp?.htmlSize || 0, isText: true },
-            { path: 'style.css',  kind: 'primary', size: wp?.cssSize  || 0, isText: true },
-            { path: 'script.js',  kind: 'primary', size: wp?.jsSize   || 0, isText: true },
-        ];
-        const extraList = extras.map(e => ({
-            path: e.path, kind: 'extra', size: e.size, isText: e.isText, mimeType: e.mimeType,
-        }));
-        return {
-            files: [...primary, ...extraList],
-            message: `Project has ${primary.length} primary slot${primary.length === 1 ? '' : 's'} + ${extraList.length} extra file${extraList.length === 1 ? '' : 's'}.`,
-        };
-    }
-
-    if (toolName === 'webpage_list_assets') {
-        const extras = await webpageStore.listExtraFiles(webpageId);
-        const assets = extras
-            .filter(e => !e.isText)
-            .map(e => ({ path: e.path, mimeType: e.mimeType, size: e.size }));
-        return {
-            assets,
-            message: assets.length
-                ? `${assets.length} uploaded asset${assets.length === 1 ? '' : 's'}. Reference them at their path; do not invent external image URLs.`
-                : 'No uploaded assets yet. Use inline SVG, CSS, emoji, or https://placehold.co/WIDTHxHEIGHT instead of inventing image URLs.',
-        };
-    }
-
-    if (toolName === 'webpage_create_file') {
-        const path = String(args?.path || '').trim();
-        const content = typeof args?.content === 'string' ? args.content : '';
-
-        const reservedErr = rejectReserved(path);
-        if (reservedErr) return { error: reservedErr };
-        const validation = webpageStore.validateExtraPath(path);
-        if (validation) return { error: validation };
-
-        try {
-            const meta = await webpageStore.upsertExtraFile({ webpageId, userId, path, content });
-            return {
-                _action: 'webpage_extra_update',
-                path,
-                meta,
-                message: `Created/updated ${path} (${meta.size} bytes).`,
-            };
-        } catch (err) {
-            return { error: `Failed to create ${path}: ${/** @type {Error} */ (err).message}` };
-        }
-    }
-
-    if (toolName === 'webpage_read_file') {
-        const path = String(args?.path || '').trim();
-        const reservedErr = rejectReserved(path);
-        if (reservedErr) return { error: reservedErr };
-        const file = await webpageStore.readExtraFile({ webpageId, userId, path });
-        if (!file) return { error: `File "${path}" not found. Use webpage_list_files to see what exists.` };
-        if (!file.meta.isText) {
-            return {
-                content: '',
-                isBinary: true,
-                size: file.meta.size,
-                mimeType: file.meta.mimeType,
-                message: `${path} is binary (${file.meta.mimeType}, ${file.meta.size} bytes) — content is not displayed inline.`,
-            };
-        }
-        return { content: file.text, mimeType: file.meta.mimeType, size: file.meta.size };
-    }
-
-    if (toolName === 'webpage_replace_in_file') {
-        const path = String(args?.path || '').trim();
-        const findText = args?.find_text;
-        const replaceText = args?.replace_text ?? '';
-        const replaceAll = args?.replace_all === true;
-
-        const reservedErr = rejectReserved(path);
-        if (reservedErr) return { error: reservedErr };
-        if (!findText) return { error: 'find_text is required.' };
-
-        const file = await webpageStore.readExtraFile({ webpageId, userId, path });
-        if (!file) return { error: `File "${path}" not found.` };
-        if (!file.meta.isText) return { error: `${path} is binary — webpage_replace_in_file only works on text files.` };
-
-        const current = file.text;
-        const occurrences = findAllOccurrences(current, findText);
-
-        if (occurrences.length === 0) {
-            return { error: `find_text not found in ${path}. Call webpage_read_file first to see the exact current contents.` };
-        }
-        if (occurrences.length > 1 && !replaceAll) {
-            const lines = occurrences.map(o => o.line);
-            return { error: `find_text matches ${occurrences.length} places in ${path} (lines ${lines.join(', ')}). Either narrow find_text or set replace_all: true.` };
-        }
-
-        /** @type {string | undefined} */
-        let next;
-        if (replaceAll) {
-            next = current;
-            for (let i = occurrences.length - 1; i >= 0; i--) {
-                next = next.slice(0, occurrences[i].start) + replaceText + next.slice(occurrences[i].end);
-            }
-        } else {
-            const o = occurrences[0];
-            next = current.slice(0, o.start) + replaceText + current.slice(o.end);
-        }
-
-        try {
-            const meta = await webpageStore.upsertExtraFile({ webpageId, userId, path, content: next });
-            return {
-                _action: 'webpage_extra_update',
-                path,
-                meta,
-                message: `${path} updated (${occurrences.length} replacement${occurrences.length === 1 ? '' : 's'}, line${occurrences.length === 1 ? '' : 's'} ${occurrences.map(o => o.line).join(', ')}).`,
-            };
-        } catch (err) {
-            return { error: `Failed to write ${path}: ${/** @type {Error} */ (err).message}` };
-        }
-    }
-
-    if (toolName === 'webpage_delete_file') {
-        const path = String(args?.path || '').trim();
-        const reservedErr = rejectReserved(path);
-        if (reservedErr) return { error: reservedErr };
-        const ok = await webpageStore.deleteExtraFile({ webpageId, userId, path });
-        if (!ok) return { error: `File "${path}" not found.` };
-        return {
-            _action: 'webpage_extra_deleted',
-            path,
-            message: `Deleted ${path}.`,
-        };
-    }
-
-    return { error: `Unknown multi-file tool: ${toolName}` };
+    const handler = Object.hasOwn(HANDLERS, toolName) ? HANDLERS[toolName] : null;
+    if (!handler) return { error: `Unknown multi-file tool: ${toolName}` };
+    return handler(args, { webpageId, userId });
 }
 
 module.exports = {

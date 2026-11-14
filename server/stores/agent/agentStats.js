@@ -69,7 +69,7 @@ async function getSystemStats(startDate = null, endDate = null, { orgIds = null 
     return { totalAgents, totalConversations, activeConversations, totalMessages, agentMessageCounts };
 }
 
-/** @param {string} agentId */
+/** @param {string} agentId @param {string | null} [startDate] @param {string | null} [endDate] */
 async function getAgentStats(agentId, startDate = null, endDate = null) {
     await initDB();
     const stats = await getOne(`SELECT

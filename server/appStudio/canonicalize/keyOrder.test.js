@@ -30,7 +30,8 @@ const assert = require('node:assert/strict');
 
 const { corpusNames, readCorpus } = require('../compat/corpus.mts');
 const { canonicalOf } = require('../compat/expectations.mts');
-const { hashDefinition, isPristine } = require('../templateUpgrade');
+const { isPristine } = require('../templateUpgrade');
+const { hashDefinition } = require('../../core/packaging/definitionHash.mts');
 const { hashOf } = require('../../projects/stages/model');
 const { armedTriggersOf } = require('../triggers/triggerSync.mts');
 const { triggerLimits } = require('../triggers/triggerLimits.mts');

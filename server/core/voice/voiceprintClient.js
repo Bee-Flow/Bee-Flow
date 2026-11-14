@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Voiceprint enrollment + selection.
  *
@@ -18,7 +19,6 @@
  * The audio itself is never persisted: it exists as a temp file for the ffmpeg
  * hop and is unlinked by the caller in a `finally`.
  */
-
 'use strict';
 
 const fs = require('fs');
@@ -32,21 +32,21 @@ const log = require('../../telemetry/log');
 // pyannote accepts at most 30s of enrollment audio. 28 leaves a second of
 // slack for a late timer tick and container overhead, and is also what the
 // browser hard-stops at.
-const MAX_ENROLL_SECONDS = Number(process.env.VOICEPRINT_MAX_SECONDS) || 28;
-const MIN_ENROLL_SECONDS = Number(process.env.VOICEPRINT_MIN_SECONDS) || 12;
-const TARGET_ENROLL_SECONDS = Number(process.env.VOICEPRINT_TARGET_SECONDS) || 25;
+const MAX_ENROLL_SECONDS = require('../../utils/envNumber.mts').envNumber('VOICEPRINT_MAX_SECONDS', 28, { positive: true });
+const MIN_ENROLL_SECONDS = require('../../utils/envNumber.mts').envNumber('VOICEPRINT_MIN_SECONDS', 12, { positive: true });
+const TARGET_ENROLL_SECONDS = require('../../utils/envNumber.mts').envNumber('VOICEPRINT_TARGET_SECONDS', 25, { positive: true });
 // This check exists for ONE failure mode: a muted or dead microphone, where
 // enrolling would produce a template that mis-names people for a year. It is
 // deliberately generous about pauses — an earlier "at least half the clip must
 // be voiced" rule rejected normal read-aloud speech, which is roughly half
 // silence. Six seconds of actual speech is plenty to model a voice.
-const MIN_VOICED_SECONDS = Number(process.env.VOICEPRINT_MIN_VOICED_SECONDS) || 6;
+const MIN_VOICED_SECONDS = require('../../utils/envNumber.mts').envNumber('VOICEPRINT_MIN_VOICED_SECONDS', 6, { positive: true });
 // Essentially digital silence — nothing reached the microphone at all.
 const MIN_PEAK_AMPLITUDE = 0.01;
 // The `/identify` request rejects a template longer than this.
 const MAX_VOICEPRINT_CHARS = 20000;
 const MAX_VOICEPRINTS_PER_JOB = 50;
-const VOICEPRINT_POLL_CAP_MS = Number(process.env.PYANNOTE_VOICEPRINT_POLL_TIMEOUT_MS) || 120_000;
+const VOICEPRINT_POLL_CAP_MS = require('../../utils/envNumber.mts').envInt('PYANNOTE_VOICEPRINT_POLL_TIMEOUT_MS', 120_000, { min: 1 });
 
 const LIMITS = {
     minSeconds: MIN_ENROLL_SECONDS,
@@ -96,7 +96,7 @@ async function isVoiceprintAvailable(user = null) {
  * chunk on some builds, and a fixed offset would then read metadata as audio.
  *
  * @param {Buffer} buffer
- * @returns {{seconds: number, voicedFraction: number, peak: number, sampleRate: number}}
+ * @returns {{seconds: number, voicedSeconds: number, voicedFraction: number, peak: number, sampleRate: number}}
  * @throws {Error & {code}} when the buffer isn't a PCM WAV we can read.
  */
 function analyseEnrollmentWav(buffer) {
@@ -185,8 +185,8 @@ function analyseEnrollmentWav(buffer) {
  * Enroll one speaker.
  *
  * @param {string} inputPath  Temp file holding the browser recording.
- * @param {{language?: string}} [opts]
- * @returns {Promise<{voiceprint: string, jobId: string, durationSeconds: number, model: string}>}
+ * @param {{language?: string | null}} [opts]
+ * @returns {Promise<{voiceprint: string, jobId: string, durationSeconds: number, model: string, language?: string | null}>}
  * @throws {Error & {code}} see mapEnrollError for the codes.
  */
 async function createVoiceprint(inputPath, { language = null } = {}) {
@@ -348,7 +348,7 @@ function rankCandidates(rows, { recorderUserId, attendees }) {
  * no extra pyannote cost — whenever the feature is unavailable or nobody in
  * the org has enrolled.
  *
- * @param {{orgId: string|null, recorderUserId?: string|null, attendees?: string[], max?: number}} args
+ * @param {Partial<{orgId: string|null, recorderUserId?: string|null, attendees?: string[], max?: number}>} args
  * @returns {Promise<{voiceprints: Array<{label: string, voiceprint: string}>,
  *                    labelToName: Object<string, {id, name, userId}>,
  *                    ids: string[], total: number, truncated: boolean}>}

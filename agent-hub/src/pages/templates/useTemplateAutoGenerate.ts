@@ -1,7 +1,7 @@
 import { useEffect, useRef, useEffectEvent } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { API_BASE } from '../../api/mutate';
-import { templatesApi } from '../../api/templatesApi';
+import { useFillTemplateMutation, useTemplateFileMutation } from '../../api/queries/templateFill';
 import { errorMessage } from '../../utils/caughtError';
 import { logger } from '../../utils/logger';
 import type { TemplateChatMessage, TemplateRecord } from './templateTypes';
@@ -18,6 +18,8 @@ export function useTemplateAutoGenerate(
     setChatMessages: Dispatch<SetStateAction<TemplateChatMessage[]>>,
 ): void {
     const processedJsonMsgIds = useRef(new Set());
+    const { mutateAsync: fillAndStore } = useFillTemplateMutation();
+    const { mutateAsync: fetchFile } = useTemplateFileMutation();
     const runFillTemplateEffect = useEffectEvent(() => {
         if (!fillTemplate || chatLoading) return;
         const lastMsg = chatMessages[chatMessages.length - 1];
@@ -47,7 +49,7 @@ export function useTemplateAutoGenerate(
                 }]);
 
                 try {
-                    const res = await templatesApi.fillAndStore(fillTemplate.id, values);
+                    const res = await fillAndStore({ templateId: fillTemplate.id, values });
 
                     if (res.ok) {
                         const { downloadUrl, fileName } = await res.json();
@@ -55,7 +57,7 @@ export function useTemplateAutoGenerate(
                         
                         // Trigger authenticated download immediately
                         try {
-                            const dlRes = await templatesApi.file(fullDownloadUrl);
+                            const dlRes = await fetchFile(fullDownloadUrl);
                             if (dlRes.ok) {
                                 const blob = await dlRes.blob();
                                 const blobUrl = URL.createObjectURL(blob);

@@ -2,8 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import type { TranslateFn } from '@/hooks/useTranslation';
-import { API_BASE, authFetch } from '@/utils/helpers';
 import type { TableColumn } from '../inspector/aiFieldMatching';
+import { apiFetch } from '@/api/typedRequest';
 
 /**
  * App Studio BI — the table/field catalogue hook.
@@ -33,7 +33,7 @@ interface TablesBody {
 }
 
 async function fetchTables(appId: string | null | undefined, t: TranslateFn): Promise<AppTable[]> {
-    const res = await authFetch(`${API_BASE}/api/studio-apps/${(encodeURIComponent as (value: string | null | undefined) => string)(appId)}/data/tables`);
+    const res = await apiFetch('GET /api/studio-apps/{id}/data/tables', { params: { id: String(appId) } });
     if (res.status === 404) return [];
     let body: TablesBody | null = null;
     try { body = await res.json(); } catch { body = null; }

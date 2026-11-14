@@ -2,8 +2,9 @@ import { Send, Sparkles } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { MarkdownBlocks } from './AppMarkdown';
 import useTranslation, { type TranslateFn } from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
-import { mutate, errorBody, RefusedError } from '@/api/mutate';
+import { errorBody, RefusedError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
+import type { ApiBody } from '@/api/typedRequest';
 import { useDataContext } from '../DataContext';
 import { useRuntime } from '../RuntimeContext';
 import type { AppNode } from '../../inspector/appDefinition';
@@ -37,11 +38,11 @@ interface AiChatProps {
     knowledgeBaseIds?: string[];
 }
 
-/** One turn of the transcript. */
-interface ChatMessage {
+/** One turn of the transcript (a type alias, so it is a plain record the request body accepts). */
+type ChatMessage = {
     role: 'user' | 'assistant';
     content: string;
-}
+};
 
 /** One event of the answer stream. */
 interface ChatStreamEvent {
@@ -52,10 +53,10 @@ interface ChatStreamEvent {
 
 
 /** POST the turn and hand back the open SSE answer; a refused or body-less answer becomes the Error the bubble shows. */
-async function openChatStream(url: string, payload: unknown, t: TranslateFn): Promise<Response> {
+async function openChatStream(appId: string, draft: boolean, payload: ApiBody<'POST /api/studio-apps/{id}/ai/chat'>, t: TranslateFn): Promise<Response> {
     let res: Response;
     try {
-        res = await mutate(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        res = await apiRequest('POST /api/studio-apps/{id}/ai/chat', { params: { id: appId }, query: draft ? { draft: '1' } : undefined, body: payload });
     } catch (err) {
         if (!(err instanceof RefusedError)) throw err;
         throw new Error((errorBody(err) as { error?: string } | null)?.error || t('studio_apps_runtime.ai_chat.unavailable', 'The assistant is unavailable ({status})', { status: err.status }));
@@ -106,8 +107,7 @@ export default function AppAiChat({ node }: { node: AppNode<AiChatProps> }) {
         setMessages([...outgoing, { role: 'assistant', content: '' }]);
         setBusy(true);
         try {
-            const qs = draft ? '?draft=1' : '';
-            const res = await openChatStream(`${API_BASE}/api/studio-apps/${encodeURIComponent(appId)}/ai/chat${qs}`, { nodeId: node.id, messages: outgoing }, t);
+            const res = await openChatStream(appId, !!draft, { nodeId: node.id, messages: outgoing }, t);
 
             let answer = '';
             await parseSseStream(res, (evt: ChatStreamEvent) => {

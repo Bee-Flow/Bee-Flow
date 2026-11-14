@@ -125,7 +125,8 @@ function recordEmbedCall({ source, status }) {
 }
 
 /** Record a background-job execution. `job` is a stable job name; `status`
- * 'ok'|'error'. Liveness alerts fire on the absence of ok increments. */
+ * 'ok'|'error'. Liveness alerts fire on the absence of ok increments.
+ * @param {{ job?: string, status?: string, durationMs?: number }} run */
 function recordJobRun({ job, status, durationMs }) {
     const attrs = { job: job || 'unknown', status: status || 'ok' };
     jobRuns.add(1, attrs);

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Webhook signature verification.
  */
@@ -15,7 +15,8 @@ const { getClient } = require('./client');
  */
 async function constructWebhookEvent(rawBody, signature) {
     const stripe = await getClient();
-    const secret = await deps.configStore.getSecret('stripe_webhook_secret');
+    // stripeService fills deps in when it loads, before any webhook arrives.
+    const secret = await /** @type {NonNullable<typeof deps.configStore>} */ (deps.configStore).getSecret('stripe_webhook_secret');
     if (!secret) throw new Error('Webhook signing secret not configured');
     return stripe.webhooks.constructEvent(rawBody, signature, secret);
 }

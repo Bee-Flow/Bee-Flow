@@ -1,20 +1,19 @@
 import { useMemo, useRef, useState } from 'react';
-import { API_BASE, authFetch } from '@/utils/helpers';
 import {
     filterConfigured, filterDiscovered, withInputs, workflowFromDiscovered,
     type DiscoveredWorkflow, type FlashMessage, type N8nDiagnostics, type N8nInput, type N8nWorkflow,
     type PermissionSummary, type TestResult,
 } from './n8nModel';
 import { errorMessage } from '@/utils/caughtError';
-import { request, RefusedError, mutate, errorBody } from '@/api/mutate';
-import { withOrgIdParam } from '@/api/adminOrgScope';
+import { RefusedError, errorBody } from '@/api/mutate';
 import { useTranslation } from '@/hooks/useTranslation';
+import { apiFetch, apiRequest } from '@/api/typedRequest';
 
 /**
- * An /ai/n8n address for `orgId`: the organisation a platform admin chose in
- * the admin dashboard (sent as ?orgId=), or null for the caller's own.
+ * The query of an /ai/n8n call for `orgId`: the organisation a platform admin chose in
+ * the admin dashboard (sent as ?orgId=), or none for the caller's own.
  */
-const n8nPath = (path: string, orgId: string | null) => withOrgIdParam(`${API_BASE}/ai/n8n/${path}`, orgId);
+const orgQuery = (orgId: string | null) => (orgId ? { orgId } : undefined);
 
 /** The status line's message, and clearing it after a while. */
 export function useFlashMessage() {
@@ -29,10 +28,12 @@ export function useFlashMessage() {
 }
 export type Flash = ReturnType<typeof useFlashMessage>;
 
-const jsonPut = (url: string, body: unknown, method = 'PUT') => authFetch(url, {
-    method,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+type JsonSendKey = 'PUT /ai/n8n/workflows' | 'PUT /ai/n8n/config' | 'POST /ai/n8n/test' | 'PUT /ai/n8n/permissions' | 'POST /auth/groups';
+
+/** An unchecked JSON write (the caller reads `res.ok`); the body is sent as built, whatever the schema type. */
+const jsonSend = (key: JsonSendKey, orgId: string | null, body: unknown) => apiFetch(key, {
+    query: key === 'POST /auth/groups' ? undefined : orgQuery(orgId),
+    init: { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
 });
 
 /** The configured workflows, discovery on the instance, and their editing. */
@@ -47,7 +48,7 @@ export function useN8nWorkflows({ setMessage, clearAfter }: Flash, orgId: string
     const discoverWorkflows = async () => {
         setDiscovering(true);
         try {
-            const res = await authFetch(n8nPath('workflows', orgId));
+            const res = await apiFetch('GET /ai/n8n/workflows', { query: orgQuery(orgId) });
             if (res.ok) {
                 const data = await res.json();
                 setDiscoveredWorkflows(data.workflows || []);
@@ -65,7 +66,7 @@ export function useN8nWorkflows({ setMessage, clearAfter }: Flash, orgId: string
 
     const persistWorkflows = async (wfs: N8nWorkflow[]) => {
         try {
-            await jsonPut(n8nPath('workflows', orgId), { workflows: wfs });
+            await jsonSend('PUT /ai/n8n/workflows', orgId, { workflows: wfs });
         } catch (e) { console.error('n8n auto-save failed:', e); }
     };
 
@@ -106,7 +107,7 @@ export function useN8nWorkflows({ setMessage, clearAfter }: Flash, orgId: string
     const saveWorkflows = async () => {
         setSaving(true);
         try {
-            const res = await jsonPut(n8nPath('workflows', orgId), { workflows });
+            const res = await jsonSend('PUT /ai/n8n/workflows', orgId, { workflows });
             if (res.ok) setMessage({ type: 'success', text: 'Workflows saved' });
             else {
                 const err = await res.json();
@@ -139,7 +140,7 @@ function useN8nDiagnostics({ setMessage, clearAfter }: Flash, orgId: string | nu
     const loadDiagnostics = async () => {
         setDiagLoading(true);
         try {
-            const res = await request(`${API_BASE}/ai/n8n/diagnostics`).catch((err: unknown) => {
+            const res = await apiRequest('GET /ai/n8n/diagnostics').catch((err: unknown) => {
                 if (err instanceof RefusedError) return null;
                 throw err;
             });
@@ -156,7 +157,7 @@ function useN8nDiagnostics({ setMessage, clearAfter }: Flash, orgId: string | nu
         try {
             let res: Response | undefined;
             try {
-                res = await mutate(n8nPath('enable-for-org', orgId), { method: 'POST' });
+                res = await apiRequest('POST /ai/n8n/enable-for-org', { query: orgQuery(orgId) });
             } catch (apiErr) {
                 if (!(apiErr instanceof RefusedError)) throw apiErr;
                 const err = errorBody(apiErr) ?? {};
@@ -197,7 +198,7 @@ export function useN8nConnection(flash: Flash, wf: Pick<N8nWorkflows, 'setWorkfl
         setLoading(true);
         // nosemgrep: ajinabraham.njsscan.generic.error_disclosure.generic_error_disclosure -- browser-side console log of a failed request; nothing reaches another user or a response
         try {
-            const res = await request(n8nPath('config', orgId)).catch((err: unknown) => {
+            const res = await apiRequest('GET /ai/n8n/config', { query: orgQuery(orgId) }).catch((err: unknown) => {
                 if (err instanceof RefusedError) return null;
                 throw err;
             });
@@ -215,7 +216,7 @@ export function useN8nConnection(flash: Flash, wf: Pick<N8nWorkflows, 'setWorkfl
     const saveConnection = async () => {
         wf.setSaving(true);
         try {
-            const res = await jsonPut(n8nPath('config', orgId), apiKey ? { n8nUrl, apiKey } : { n8nUrl });
+            const res = await jsonSend('PUT /ai/n8n/config', orgId, apiKey ? { n8nUrl, apiKey } : { n8nUrl });
             if (res.ok) {
                 // The server stores a key only when one was sent; another address without one drops the stored key.
                 const { apiKeyCleared } = await res.json().catch(() => ({})) as { apiKeyCleared?: boolean };
@@ -243,10 +244,10 @@ export function useN8nConnection(flash: Flash, wf: Pick<N8nWorkflows, 'setWorkfl
         setTestResult(null);
         try {
             // If the user typed new creds but hasn't hit Save, test those instead.
-            const res = await jsonPut(n8nPath('test', orgId), {
+            const res = await jsonSend('POST /ai/n8n/test', orgId, {
                 ...(n8nUrl ? { n8nUrl } : {}),
                 ...(apiKey ? { apiKey } : {}),
-            }, 'POST');
+            });
             setTestResult(await res.json());
         } catch (e) {
             setTestResult({ ok: false, error: errorMessage(e) });
@@ -269,7 +270,7 @@ export function useN8nPermissions({ setMessage, clearAfter }: Flash, orgId: stri
     const loadPermissions = async () => {
         setPermLoading(true);
         try {
-            const res = await request(n8nPath('permissions', orgId)).catch((err: unknown) => {
+            const res = await apiRequest('GET /ai/n8n/permissions', { query: orgQuery(orgId) }).catch((err: unknown) => {
                 if (err instanceof RefusedError) return null;
                 throw err;
             });
@@ -285,7 +286,7 @@ export function useN8nPermissions({ setMessage, clearAfter }: Flash, orgId: stri
 
     const mutatePermission = async (permission: string, groupId: string, action: 'add' | 'remove') => {
         try {
-            const res = await jsonPut(n8nPath('permissions', orgId), { permission, groupId, action });
+            const res = await jsonSend('PUT /ai/n8n/permissions', orgId, { permission, groupId, action });
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
                 return fail(err.error || 'Failed to update permission');
@@ -305,7 +306,7 @@ export function useN8nPermissions({ setMessage, clearAfter }: Flash, orgId: stri
         const trimmed = (name || '').trim();
         if (!trimmed) return fail('Group name required', 2500);
         try {
-            const res = await jsonPut(`${API_BASE}/auth/groups`, { name: trimmed, permissions: [permission], ...(orgId ? { organizationId: orgId } : {}) }, 'POST');
+            const res = await jsonSend('POST /auth/groups', orgId, { name: trimmed, permissions: [permission], ...(orgId ? { organizationId: orgId } : {}) });
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
                 return fail(err.error || 'Failed to create group');

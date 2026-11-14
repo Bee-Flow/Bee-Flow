@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Automation Builder — a round that ended without a tool call: a truncated
  * reply, unparseable arguments, a blank reply, prose on an empty draft, a
@@ -9,9 +9,9 @@
  */
 
 const log = require('../../../telemetry/log');
-const { isTruncatedStop, truncationRetryMessages, emptyReplyRetryMessages, isBlankReply } = require('./chatTurnLoop');
-const { isBlankDraft } = require('./workMode');
-const { briefGaps, briefText } = require('./briefGaps.mts');
+const { isTruncatedStop, truncationRetryMessages, emptyReplyRetryMessages, isBlankReply } = require('../../../usecases/ai/automationBuilder/chatTurnLoop');
+const { isBlankDraft } = require('../../../usecases/ai/automationBuilder/workMode');
+const { briefGaps, briefText } = require('../../../usecases/ai/automationBuilder/briefGaps.mts');
 
 // A reply that ends by asking the user something waits for the user: a
 // question mark at the end, after closing quotes, brackets or emphasis.
@@ -36,7 +36,7 @@ const INVALID_ARGS_MAX_RETRIES = 2;
  * @param {import('./buildLoop').BuildLoopState} loop
  * @param {{
  *   iter: number,
- *   response: Awaited<ReturnType<typeof import('./modelStream').streamWithRetry>>,
+ *   response: Awaited<ReturnType<typeof import('../../../usecases/ai/automationBuilder/modelStream').streamWithRetry>>,
  *   thinkingForReplay: Parameters<typeof truncationRetryMessages>[1],
  *   recoveredRound: ReturnType<typeof import('../../../core/llm/leakedToolCalls').recoverLeakedToolCalls>|null,
  * }} roundState
@@ -152,7 +152,7 @@ function afterToolLessRound(turn, loop, { iter, response, thinkingForReplay, rec
     // push to finish them, mark them done, or say what blocks it.
     if (approvedPlan && !loop.buildGuardUsed && !turn.lastFinalized && (draftWrap._todos || []).some((/** @type {{ text: string, done: boolean }} */ t) => !t.done)) {
         loop.buildGuardUsed = true;
-        const open = draftWrap._todos.map((/** @type {{ text: string, done: boolean }} */ t, /** @type {number} */ i) => (t.done ? null : `${i}) ${t.text}`)).filter(Boolean).join('; ');
+        const open = (draftWrap._todos || []).map((/** @type {{ text: string, done: boolean }} */ t, /** @type {number} */ i) => (t.done ? null : `${i}) ${t.text}`)).filter(Boolean).join('; ');
         log.warn(`[AutomationBuilder] round ${iter} ended an approved build with open plan steps — nudging once`);
         messages.push({ role: 'assistant', content: response.content });
         messages.push({

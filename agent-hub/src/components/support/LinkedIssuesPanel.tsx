@@ -2,7 +2,6 @@ import { AlertTriangle, ExternalLink, Link2, Plus, RefreshCw, Users, X } from 'l
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import AttachIssuePanel from './AttachIssuePanel';
 import StateChip from './IssueStateChip';
-import { API_BASE } from '../../utils/helpers';
 import { linkedIssuesKey, useLinkedIssuesQuery, useYouTrackStatusQuery } from '../../api/queries/supportPanels';
 import { useQueryClient } from '@tanstack/react-query';
 import type { YouTrackStatus } from '../../api/queries/supportPanels';
@@ -11,7 +10,8 @@ import { useTranslation, type TranslateFn } from '../../hooks/useTranslation';
 import { ALERT_ERROR, ALERT_WARNING, QUIET_BTN, SECONDARY_BTN } from '@/components/mcpLibrary/ui';
 import { errorMessage } from '../../utils/caughtError';
 import { logger } from '../../utils/logger';
-import { mutate, ApiError, request, RefusedError, errorBody } from '../../api/mutate';
+import { ApiError, RefusedError, errorBody } from '../../api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 /**
  * The YouTrack issues attached to one support ticket.
@@ -121,6 +121,7 @@ function IssueRow({ issue, threadId, onDetach, onShowReverse, reverseOpen, rever
                 <button
                     onClick={() => onDetach(issue.issueId)}
                     title={t('support.linked_issues_detach_from_this_ticket', 'Detach from this ticket')}
+                    aria-label={t('support.linked_issues_detach_from_this_ticket', 'Detach from this ticket')}
                     className="shrink-0 rounded p-0.5 text-[var(--text-tertiary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]"
                 >
                     <X className="h-3.5 w-3.5" aria-hidden="true" />
@@ -209,7 +210,7 @@ export default function LinkedIssuesPanel({ thread, onChanged }: LinkedIssuesPan
     const detach = async (issueId: string) => {
         if (!(await confirm({ title: t('support.linked_issues_detach_title', 'Detach {id} from this ticket?', { id: issueId }), description: t('support.linked_issues_detach_description', 'The issue itself stays in YouTrack.'), confirmLabel: t('support.linked_issues_detach', 'Detach'), destructive: true }))) return;
         try {
-            const res = await mutate(`${API_BASE}/api/support/threads/${threadId}/issues/${issueId}`, { method: 'DELETE' }).catch((err: unknown) => {
+            const res = await apiRequest('DELETE /api/support/threads/{id}/issues/{issueId}', { params: { id: String(threadId), issueId } }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });
@@ -225,7 +226,7 @@ export default function LinkedIssuesPanel({ thread, onChanged }: LinkedIssuesPan
         try {
             let res: Response;
             try {
-                res = await mutate(`${API_BASE}/api/support/threads/${threadId}/issues/refresh`, { method: 'POST' });
+                res = await apiRequest('POST /api/support/threads/{id}/issues/refresh', { params: { id: String(threadId) } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const d = errorBody(err) ?? {};
@@ -246,7 +247,7 @@ export default function LinkedIssuesPanel({ thread, onChanged }: LinkedIssuesPan
         setReverseFor(issueId);
         setReverse([]);
         try {
-            const res = await request(`${API_BASE}/api/support/youtrack/issues/${issueId}/threads`).catch((err: unknown) => {
+            const res = await apiRequest('GET /api/support/youtrack/issues/{issueId}/threads', { params: { issueId } }).catch((err: unknown) => {
                 if (err instanceof RefusedError) return null;
                 throw err;
             });
@@ -279,6 +280,7 @@ export default function LinkedIssuesPanel({ thread, onChanged }: LinkedIssuesPan
                             onClick={refresh}
                             disabled={refreshing}
                             title={t('support.linked_issues_pull_the_latest_state_from_youtrack', 'Pull the latest state from YouTrack')}
+                            aria-label={t('support.linked_issues_pull_the_latest_state_from_youtrack', 'Pull the latest state from YouTrack')}
                             className={QUIET_BTN}
                         >
                             <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} aria-hidden="true" />

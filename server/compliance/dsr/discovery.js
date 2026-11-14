@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * DSR discovery — a READ-ONLY scan of where a data subject's e-mail address
  * shows up inside Bee Flow, so an admin fulfilling an Art. 15 / Art. 17
@@ -291,7 +291,8 @@ async function countRowsContaining(meta, needle, scopeKey, deps, { timeoutMs = P
     const where = keys.map(k => `${quoteIdent(k)} ILIKE ?`).join(' OR ');
     const params = keys.map(() => needle);
     const sql = `SELECT COUNT(*)::int AS n FROM ${quoteIdent(meta.key)} WHERE ${where}`;
-    const out = await withTimeout(deps.datatableDbStore.query(scopeKey, scopeKey, sql, params), timeoutMs, `datatable ${meta.id}`);
+    // The caller counts only once it has checked that datatableDbStore.query exists.
+    const out = await withTimeout(/** @type {{ query: NonNullable<NonNullable<DiscoveryDeps['datatableDbStore']>['query']> }} */ (deps.datatableDbStore).query(scopeKey, scopeKey, sql, params), timeoutMs, `datatable ${meta.id}`);
     const row = out?.rows?.[0];
     return Number(row?.n ?? row?.count ?? 0) || 0;
 }
@@ -343,6 +344,7 @@ async function _scanDatatables(orgId, needle, deps, state) {
             const i = nextIndex++;
             if (i >= tables.length) return;
             const t = tables[i];
+            /** @type {Record<string, any> | null | undefined} */
             let meta = metaById.get(t.id);
             if (!meta && datatableStore.getTableMeta) {
                 try { meta = await datatableStore.getTableMeta(scope, t.id); } catch { meta = null; }

@@ -15,7 +15,7 @@ const assert = require('node:assert/strict');
 const T = require('./runTools.mts');
 const { fitToolResult, BUILDER_TOOL_RESULT_CHARS } = require('./resultFit.mts');
 const { defaultDeps, resetRunWindows } = require('../mcpRunAction.mts');
-const { truncateJson } = require('../../routes/ai/appStudioBuilder/turnLoop');
+const { truncateJson } = require('../../usecases/ai/appStudioBuilder/turnLoop');
 
 const OWNER = 'usr_owner';
 const EDITOR = 'usr_editor';

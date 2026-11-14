@@ -37,6 +37,10 @@
  *   (default) a Date becomes its ISO string; with `toJSON: false` the copy is
  *   rebuilt before JSON.stringify sees it, so a Date is `{}`.
  *
+ * canonicalJson(value)
+ *   sortedKeysJson with toJSON, and the text 'undefined' where it would
+ *   return undefined: a call signature that is always a string.
+ *
  * Not covered on purpose (they keep their own serialiser): the evidence hash
  * in compliance/evidence/canonical.js (code-point key order after a JSONB
  * round trip), pollDiff's canonical() (depth-capped) and
@@ -108,4 +112,19 @@ function sortedKeysJson(value, opts) {
     return JSON.stringify(sortDeep(value));
 }
 
-module.exports = { stableStringify, sortedKeysJson };
+/**
+ * sortedKeysJson, always a string: the "is this the same call?" signature
+ * both builders compare a resent tool call by, so a model that only
+ * serialised its keys in another order still sends "the same call".
+ * JSON.stringify(undefined) is undefined, and a signature that is sometimes
+ * not a string is a comparison that sometimes throws, so that case is the
+ * text 'undefined'.
+ * @param {unknown} value
+ * @returns {string}
+ */
+function canonicalJson(value) {
+    const out = sortedKeysJson(value);
+    return out === undefined ? 'undefined' : out;
+}
+
+module.exports = { stableStringify, sortedKeysJson, canonicalJson };

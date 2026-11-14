@@ -29,12 +29,12 @@ const { test, after, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 const { makeSwaps } = require('../../../testUtils/swaps');
 
-const fx = { detect: null, aiConfig: null, asked: [] };
+const fx = { detect: null, aiConfig: null, asked: [], scopes: [] };
 const { swap, restore } = makeSwaps();
 // The gate takes `detectPii` from ./detect when it loads, so swap it before
 // anything that could load the gate is required.
 const detect = require('./detect');
-swap(detect, 'detectPii', async (text, ...rest) => { fx.asked.push(text); return fx.detect(text, ...rest); });
+swap(detect, 'detectPii', async (text, ...rest) => { fx.asked.push(text); fx.scopes.push([rest[0], rest[1]]); return fx.detect(text, ...rest); });
 const aiAgent = require('../../aiAgent');
 swap(aiAgent, 'getAIConfig', async () => fx.aiConfig);
 const { validateInputForPii } = require('./validate');
@@ -59,6 +59,7 @@ beforeEach(() => {
     fx.detect = emailDetector;
     fx.aiConfig = { piiDetectionEnabled: false, piiDetectionAction: 'block' };
     fx.asked = [];
+    fx.scopes = [];
 });
 
 async function reportOf(call) {
@@ -214,4 +215,113 @@ test('categories are category ids: never the value, the span or the token', asyn
     for (const leak of ['frank', 'gina', 'example.org', '[email', 'offset']) {
         assert.ok(!wire.includes(leak), `the report carries "${leak}": ${wire}`);
     }
+});
+
+// ── Which policy the gate applies, and which scan it asks for ─────────────
+
+const status = async (call) => (await reportOf(call)).report.status;
+const DEGRADED = () => ({ hasPii: false, entities: [], degraded: true, degradedReason: 'guard_unreachable' });
+
+test('the gate switches on for the global flag or the agent flag as well as the shield', async () => {
+    fx.aiConfig = { piiDetectionEnabled: true };
+    assert.equal(await status((report) => validateInputForPii(user(fresh('plain words')), false, null, null, null, { report })), 'clean');
+    fx.aiConfig = { piiDetectionEnabled: false };
+    assert.equal(await status((report) => validateInputForPii(user(fresh('plain words')), true, null, null, null, { report })), 'clean');
+    assert.equal(await status((report) => validateInputForPii(user(fresh('plain words')), false, null, null, null, { report })), 'disabled');
+});
+
+test('the action: the per-call override, then the shield, then the AI config, then block', async () => {
+    const decision = async (shield, override, aiAction) => {
+        fx.aiConfig = { piiDetectionEnabled: true, piiDetectionAction: aiAction };
+        return (await reportOf((report) => validateInputForPii(user(fresh('to ann@example.org')), false, shield, override, null, { report }))).report.decision;
+    };
+    assert.equal(await decision(SHIELD({ piiDetectionAction: 'block' }), 'tokenize', 'block'), 'tokenised');
+    assert.equal(await decision(SHIELD({ piiDetectionAction: 'tokenize' }), null, 'block'), 'tokenised');
+    assert.equal(await decision(SHIELD({ piiDetectionAction: undefined }), null, 'tokenize'), 'tokenised');
+    assert.equal(await decision(SHIELD({ piiDetectionAction: undefined }), null, undefined), 'blocked');
+});
+
+test('the failure mode: the shield, then the AI config, then fail_closed', async () => {
+    fx.detect = DEGRADED;
+    fx.aiConfig = { piiDetectionEnabled: false, piiFailureMode: 'fail_open' };
+    assert.equal(await status((report) => validateInputForPii(user(fresh('ann@example.org')), false, SHIELD({ piiFailureMode: undefined }), null, null, { report })), 'failed_open');
+    fx.aiConfig = { piiDetectionEnabled: false, piiFailureMode: 'fail_closed' };
+    assert.equal(await status((report) => validateInputForPii(user(fresh('ann@example.org')), false, SHIELD({ piiFailureMode: 'fail_open' }), null, null, { report })), 'failed_open');
+    fx.aiConfig = { piiDetectionEnabled: false };
+    assert.equal(await status((report) => validateInputForPii(user(fresh('ann@example.org')), false, SHIELD({ piiFailureMode: undefined }), null, null, { report })), 'failed_closed');
+});
+
+test('no guard: refused when the AI config says fail_closed, even under a fail_open shield', async () => {
+    fx.detect = () => null;
+    fx.aiConfig = { piiDetectionEnabled: true, piiFailureMode: 'fail_closed' };
+    const global = await reportOf((report) => validateInputForPii(user(fresh('ann@example.org')), false, null, null, null, { report }));
+    assert.equal(global.threw.degradedReason, 'guard_not_installed');
+    assert.equal(global.threw.privacyUnavailableKind, 'unavailable');
+    const shieldOpen = await reportOf((report) => validateInputForPii(user(fresh('ann@example.org')), false, SHIELD({ piiFailureMode: 'fail_open' }), null, null, { report }));
+    assert.equal(shieldOpen.threw.degradedReason, 'guard_not_installed');
+});
+
+test('own words found without a guard are acted on, and that answer is not cached', async () => {
+    fx.detect = (text) => ({ ...emailDetector(text), guardAbsent: true });
+    const text = fresh('to ann@example.org');
+    const first = await reportOf((report) => validateInputForPii(user(text), false, SHIELD(), null, null, { report }));
+    assert.equal(first.report.decision, 'tokenised');
+    await validateInputForPii(user(text), false, SHIELD());
+    assert.equal(fx.asked.length, 2, 'asked again: nothing was cached');
+});
+
+test('a message in blocks: the first text block is what is scanned; no text block is too short', async () => {
+    const body = fresh('to ann@example.org');
+    await validateInputForPii([{ role: 'user', content: [{ type: 'image' }, { type: 'text', text: body }, { type: 'text', text: 'later block' }] }], false, SHIELD());
+    assert.deepEqual(fx.asked, [body]);
+    assert.equal(await status((report) => validateInputForPii([{ role: 'user', content: [{ type: 'image' }] }], false, SHIELD(), null, null, { report })), 'too_short');
+});
+
+test('the scope asked for: the shield\'s categories and threshold, else the AI config\'s, else everything at the default', async () => {
+    await validateInputForPii(user(fresh('plain')), false, SHIELD({ piiDetectionCategories: ['Email', 'AzureStorageAccountKey', 'NoSuchThing'], piiDetectionConfidenceThreshold: 0.5 }));
+    assert.deepEqual(fx.scopes.pop(), [['Email', 'ApiKeyOrSecret'], 0.5]);
+    await validateInputForPii(user(fresh('plain')), false, SHIELD({ piiDetectionCategories: [], piiDetectionConfidenceThreshold: '0.5' }));
+    const [all, defaultThreshold] = fx.scopes.pop();
+    assert.equal(all.length, 21);
+    assert.equal(defaultThreshold, 0.7);
+
+    // No shield passed and none stored: the AI config's list, legacy ids mapped.
+    const configStore = require('../../../stores/configStore');
+    const undo = swap(configStore, 'getAllConfig', async () => ({}));
+    try {
+        fx.aiConfig = { piiDetectionEnabled: true, piiDetectionCategories: ['EUNationalIdentificationNumber', 'Email', 'Gone'], piiDetectionConfidenceThreshold: 0.8 };
+        await validateInputForPii(user(fresh('plain')), false, null);
+        assert.deepEqual(fx.scopes.pop(), [['NationalIdentificationNumber', 'Email'], 0.8]);
+        fx.aiConfig = { piiDetectionEnabled: true, piiDetectionCategories: [] };
+        await validateInputForPii(user(fresh('plain')), false, null);
+        assert.deepEqual(fx.scopes.pop().map((v) => (Array.isArray(v) ? v.length : v)), [21, 0.7]);
+    } finally { undo(); }
+    // A store that cannot be read: everything, at the AI config's threshold.
+    const undoThrow = swap(configStore, 'getAllConfig', async () => { throw new Error('store down'); });
+    try {
+        fx.aiConfig = { piiDetectionEnabled: true, piiDetectionCategories: ['Email'], piiDetectionConfidenceThreshold: 0.8 };
+        await validateInputForPii(user(fresh('plain')), false, null);
+        assert.deepEqual(fx.scopes.pop().map((v) => (Array.isArray(v) ? v.length : v)), [21, 0.8]);
+    } finally { undoThrow(); }
+});
+
+test('a fail-closed degradation names its kind: too large, a timeout, or unavailable', async () => {
+    for (const [reason, kind, advice] of [
+        ['input_too_large: 9 windows', 'too_large', /too large to scan/],
+        ['guard timeout', 'timeout', /temporarily unavailable/],
+        [undefined, 'unavailable', /temporarily unavailable/],
+    ]) {
+        fx.detect = () => ({ hasPii: false, entities: [], degraded: true, degradedReason: reason, degradedCategories: ['Email'] });
+        const res = await reportOf((report) => validateInputForPii(user(fresh('ann@example.org')), false, SHIELD(), null, null, { report }));
+        assert.equal(res.threw.privacyUnavailableKind, kind, String(reason));
+        assert.match(res.threw.message, advice);
+        assert.equal(res.threw.degradedReason, reason || null);
+        assert.deepEqual(res.threw.degradedCategories, ['Email']);
+    }
+});
+
+test('a block names the categories and carries one violation code per entity', async () => {
+    const res = await reportOf(() => validateInputForPii(user(fresh('cc ann@example.org and bo@example.org')), false, SHIELD({ piiDetectionAction: 'block' })));
+    assert.match(res.threw.message, /^PII Detected: Message contains sensitive personal information \(Email\)\./);
+    assert.deepEqual(res.threw.violationCodes, ['PII:EmailAddress', 'PII:EmailAddress']);
 });

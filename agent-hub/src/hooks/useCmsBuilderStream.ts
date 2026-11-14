@@ -2,8 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { BuilderMessage, BuilderToolCall, BuilderValidation, ThinkingPart } from './builderStream';
 import { errorTextOf as safeText, finalizeStreaming, useAbortOnUnmount, usePatchAssistant } from './builderStream';
 import { readEventStream } from '../api/readEventStream';
-import { API_BASE, authFetch } from '../utils/helpers';
 import { logger } from '../utils/logger';
+import { apiFetch } from '@/api/typedRequest';
 
 // Shown when the build stream drops mid-flight (gateway timeout / network
 // cut). Every mutation is persisted server-side as it lands, so nothing is
@@ -131,7 +131,7 @@ export default function useCmsBuilderStream(
         setLastValidation(null);
         (async () => {
             try {
-                const res = await authFetch(`${API_BASE}/api/cms/builder/session/${encodeURIComponent(siteId)}`);
+                const res = await apiFetch('GET /api/cms/builder/session/{siteId}', { params: { siteId } });
                 if (!res.ok) return; // 404 = no session yet → fresh chat
                 const j = await res.json().catch(() => null);
                 const snap = j?.snapshot;
@@ -264,18 +264,16 @@ export default function useCmsBuilderStream(
         };
 
         try {
-            const resp = await authFetch(`${API_BASE}/api/cms/builder/stream`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+            const resp = await apiFetch('POST /api/cms/builder/stream', {
+                body: {
                     message,
                     siteId,
                     builderSessionId: sessionIdRef.current || undefined,
                     modelTier: options.modelTier || 'auto',
                     context: options.context && typeof options.context === 'object' ? options.context : undefined,
                     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Amsterdam',
-                }),
-                signal: ac.signal,
+                },
+                init: { signal: ac.signal },
             });
             if (!resp.ok || !resp.body) {
                 const isGateway = resp.status === 504 || resp.status === 502 || resp.status === 408;

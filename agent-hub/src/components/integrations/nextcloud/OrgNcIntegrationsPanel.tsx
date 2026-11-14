@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { Cloud, Save, Loader2, Check, AlertTriangle, ChevronRight, Users } from 'lucide-react';
-import { API_BASE } from '@/utils/helpers';
 import { useNcIntegrationsQuery } from '@/api/queries/integrationsAdmin';
 import type { NcCatalogItem, NcGroup, NcIntegrationsConfig } from '@/api/queries/integrationsAdmin';
 import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
 import { errorMessage } from '@/utils/caughtError';
-import { mutate, ApiError } from '@/api/mutate';
+import { ApiError } from '@/api/mutate';
 import { panelOrgId } from '@/utils/adminAccess';
+import { apiRequest } from '@/api/typedRequest';
 
 interface FlashMessage {
     type: 'ok' | 'error';
@@ -60,11 +60,7 @@ const OrgNcIntegrationsPanel = ({ user, orgId: orgIdProp }: OrgNcIntegrationsPan
         setSaving(true);
         try {
             try {
-                await mutate(`${API_BASE}/auth/admin/${orgId}/nc-integrations`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ enabled: config.enabled }),
-            });
+                await apiRequest('PUT /auth/admin/{orgId}/nc-integrations', { params: { orgId: String(orgId) }, body: { enabled: config.enabled } });
             } catch (err) {
                 if (!(err instanceof ApiError)) throw err;
                 throw new Error('Save failed');
@@ -86,11 +82,7 @@ const OrgNcIntegrationsPanel = ({ user, orgId: orgIdProp }: OrgNcIntegrationsPan
         setGroupDraft((d) => ({ ...d, [groupId]: next }));
         try {
             try {
-                await mutate(`${API_BASE}/auth/admin/${orgId}/nc-integrations/groups/${encodeURIComponent(groupId)}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ disabledIntegrations: next }),
-            });
+                await apiRequest('PUT /auth/admin/{orgId}/nc-integrations/groups/{groupId}', { params: { orgId: String(orgId), groupId }, body: { disabledIntegrations: next } });
             } catch (err) {
                 if (!(err instanceof ApiError)) throw err;
                 throw new Error('Save failed');

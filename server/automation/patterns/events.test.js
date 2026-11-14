@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * Run: node --test automation/patterns/events.test.js
@@ -15,15 +15,17 @@ test('makeEvent copies only allow-listed fields', () => {
         ...base, template: 'Factuur <id>', direction: 'in', hasAttachment: true, bulk: false, domainPseudo: 'd1',
         subject: 'Factuur 123 van Pieter', body: 'secret', from: 'pieter@example.org', to: ['x@example.org'], path: '/home/p',
     });
+    assert.ok(ev);
     assert.deepStrictEqual(Object.keys(ev).sort(), [
         'app', 'bulk', 'direction', 'domainPseudo', 'hasAttachment', 'objectType', 'sessionKey', 'source', 'template', 'templateId', 'ts', 'verb',
     ]);
-    assert.match(ev.templateId, /^[0-9a-f]{12}$/);
+    assert.match(/** @type {any} */ (ev.templateId), /^[0-9a-f]{12}$/);
     assert.strictEqual(ev.sessionKey, null);
 });
 
 test('makeEvent masks a template that still holds an address or url', () => {
     const ev = makeEvent({ ...base, template: 'Hi pieter@example.org see https://x.example/a' });
+    assert.ok(ev);
     assert.strictEqual(ev.template, 'Hi <email> see <url>');
 });
 
@@ -38,8 +40,8 @@ test('makeEvent rejects unknown sources, object types and bad timestamps', () =>
 });
 
 test('makeEvent drops a domain that is not a pseudonym', () => {
-    assert.strictEqual(makeEvent({ ...base, domainPseudo: 'example.org' }).domainPseudo, undefined);
-    assert.strictEqual(makeEvent({ ...base, domainPseudo: 'd_3f9a' }).domainPseudo, 'd_3f9a');
+    assert.strictEqual(/** @type {any} */ (makeEvent({ ...base, domainPseudo: 'example.org' })).domainPseudo, undefined);
+    assert.strictEqual(/** @type {any} */ (makeEvent({ ...base, domainPseudo: 'd_3f9a' })).domainPseudo, 'd_3f9a');
 });
 
 test('makeEvents filters invalid rows', () => {
@@ -47,9 +49,9 @@ test('makeEvents filters invalid rows', () => {
 });
 
 test('isUserAction: tools, sent mail and created files count; received mail and meetings do not', () => {
-    assert.strictEqual(isUserAction(makeEvent({ ...base, source: 'ledger', objectType: 'tool', verb: 'gmail_search' })), true);
-    assert.strictEqual(isUserAction(makeEvent({ ...base, direction: 'out', verb: 'mail.sent' })), true);
-    assert.strictEqual(isUserAction(makeEvent({ ...base, direction: 'in' })), false);
-    assert.strictEqual(isUserAction(makeEvent({ ...base, source: 'files', objectType: 'file', verb: 'file.created' })), true);
-    assert.strictEqual(isUserAction(makeEvent({ ...base, source: 'meetings', objectType: 'meeting', verb: 'meeting.held' })), false);
+    assert.strictEqual(isUserAction(/** @type {any} */ (makeEvent({ ...base, source: 'ledger', objectType: 'tool', verb: 'gmail_search' }))), true);
+    assert.strictEqual(isUserAction(/** @type {any} */ (makeEvent({ ...base, direction: 'out', verb: 'mail.sent' }))), true);
+    assert.strictEqual(isUserAction(/** @type {any} */ (makeEvent({ ...base, direction: 'in' }))), false);
+    assert.strictEqual(isUserAction(/** @type {any} */ (makeEvent({ ...base, source: 'files', objectType: 'file', verb: 'file.created' }))), true);
+    assert.strictEqual(isUserAction(/** @type {any} */ (makeEvent({ ...base, source: 'meetings', objectType: 'meeting', verb: 'meeting.held' }))), false);
 });

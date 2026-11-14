@@ -5,7 +5,7 @@ import { NOT_BATCHED, queueRead, unwrapReadResult } from '@/api/dataBatchClient'
 import { useDataContext } from './DataContext';
 import { dataErrorFromResponse, isRateLimited, type DataError } from '@/api/dataErrors';
 import { dataCacheKey } from './resolveBinding';
-import { API_BASE } from '@/utils/helpers';
+import { apiUrl } from '@/api/typedRequest';
 import { studioAppFetch } from '@/api/queries/studioApps';
 import type { ConnectorBinding, DataBinding } from './resolveBinding.types';
 
@@ -188,8 +188,7 @@ async function fetchBinding(appId: string | null, binding: FetchBinding, { sampl
         // Runs server-side with the owner's (or, for runAs:'viewer' connectors,
         // the viewer's) connection; params are already resolved to literals
         // (resolveBindingParams) by the fetcher layer.
-        const connectorId = encodeURIComponent(binding.connectorId ?? '');
-        const res = await studioAppFetch(`${API_BASE}/api/studio-apps/${id}/data/connectors/${connectorId}/run`, {
+        const res = await studioAppFetch(apiUrl('POST /api/studio-apps/{id}/data/connectors/{connectorId}/run', { params: { id: String(appId), connectorId: binding.connectorId ?? '' } }), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ params: (binding.params && typeof binding.params === 'object' && !Array.isArray(binding.params)) ? binding.params : {} }),
@@ -227,7 +226,7 @@ async function fetchBinding(appId: string | null, binding: FetchBinding, { sampl
     if (binding.kind === 'aggregate') {
         // The /data/query endpoint already accepts an INLINE descriptor, so a
         // count-per-status needs no saved dataset and no new route (aggregateQuery).
-        const res = await studioAppFetch(`${API_BASE}/api/studio-apps/${id}/data/query`, {
+        const res = await studioAppFetch(apiUrl('POST /api/studio-apps/{id}/data/query', { params: { id: String(appId) } }), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(aggregateQuery(binding)),
@@ -240,7 +239,7 @@ async function fetchBinding(appId: string | null, binding: FetchBinding, { sampl
     }
     if (binding.kind === 'dataset') {
         const params = datasetParams(binding);
-        const res = await studioAppFetch(`${API_BASE}/api/studio-apps/${id}/data/query`, {
+        const res = await studioAppFetch(apiUrl('POST /api/studio-apps/{id}/data/query', { params: { id: String(appId) } }), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -255,7 +254,6 @@ async function fetchBinding(appId: string | null, binding: FetchBinding, { sampl
         return body && body.result !== undefined ? body.result : body;
     }
 
-    const table = encodeURIComponent(binding.tableId ?? '');
     const query = qs({
         filter: binding.filter,
         match: binding.match,
@@ -265,7 +263,7 @@ async function fetchBinding(appId: string | null, binding: FetchBinding, { sampl
         limit,
         sample: sample ? 1 : undefined,
     });
-    const res = await studioAppFetch(`${API_BASE}/api/studio-apps/${id}/data/tables/${table}/records${query}`);
+    const res = await studioAppFetch(`${apiUrl('GET /api/studio-apps/{id}/data/tables/{tableId}/records', { params: { id: String(appId), tableId: binding.tableId ?? '' } })}${query}`);
     if (res.status === 404) return binding.kind === 'record' ? null : [];
     let body = null;
     try { body = await res.json(); } catch { body = null; }

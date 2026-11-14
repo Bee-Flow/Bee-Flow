@@ -19,6 +19,7 @@ function ActionIcon({ Icon, title, onClick }: ActionIconProps) {
         <button
             type="button"
             title={title}
+            aria-label={title}
             onClick={(e) => { e.stopPropagation(); onClick(e); }}
             className="p-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity [color:var(--vsc-fg-muted)]"
             onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--vsc-fg)')}

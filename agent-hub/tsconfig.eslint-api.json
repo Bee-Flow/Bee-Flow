@@ -1,0 +1,9 @@
+// The program the type-aware eslint rules on src/api run against (eslint.config.js):
+// src/api and the ambient declarations only. The whole-src program (allowJs, the
+// 2 MB generated catalogues) ran eslint out of a 4 GB heap; this one adds about
+// 3 s to linting src/api.
+{
+    "extends": "./tsconfig.json",
+    "include": ["src/api/**/*.ts", "src/**/*.d.ts"],
+    "exclude": ["node_modules", "dist", "coverage", "src/**/*.test.ts"]
+}

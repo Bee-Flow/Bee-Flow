@@ -9,7 +9,6 @@
 
 const {
     LIMITS,
-    FORMULA_SCOPE_ROOTS,
     ACTION_KINDS,
     ACTION_SPECS,
     STEP_KINDS,
@@ -18,28 +17,25 @@ const {
     AI_SCHEMA_FIELD_TYPES,
     TOAST_TONES,
 } = require('../componentSpecs');
-const { pickClosestId } = require('../../automation/validate/helpers');
+const { pickClosestId } = require('../../utils/closestId.mts');
 const { isObject } = require('./shared');
-const { validateFormula, checkServerFormulas } = require('./formulas');
+const { checkServerFormulas } = require('./formulas');
 const {
     checkTableRef,
     checkTableSource,
     checkTableWritable,
     checkFieldRef,
-    checkAutomationRef,
     checkModalRef,
     validateNavigateParams,
     validateInputMapping,
 } = require('./refs');
 const { validateBinding } = require('./bindings');
-const { validateContextSources } = require('./contextSources.mts');
-const { containsSendEmail, KIND_CHECKS, validateStepBranches } = require('./stepKindChecks');
-const { checkCallAction, validateCallParams } = require('./callChecks.mts');
+const { containsSendEmail, KIND_CHECKS } = require('./stepKindChecks');
+const { checkCallAction } = require('./callChecks.mts');
 const { someStepThroughCalls } = require('../actionCalls.mts');
-const { validateTierChoice } = require('./tierChoice.mts');
-const { validateEnvelopeField } = require('./stepEnvelope.mts');
 const { validateAiWriteToKey, validateAiWriteToReplace } = require('./writeToKeyChecks.mts');
 const { DATASET_QUERY_OUTPUTS, KIND_CHECKS: DATA_KIND_CHECKS } = require('./stepDataChecks');
+const { checkReferenceField, FIELD_TYPE_CHECKS, checkOtherType } = require('./stepFieldChecks');
 
 // ---------------------------------------------------------------------------
 // Actions
@@ -246,13 +242,22 @@ function checkRecordValueColumns(kind, tableId, values, path, ctx, label) {
 }
 
 /**
- * The step kinds that CHANGE ROWS — the only ones for which `mode:'read'` is an error and not
- * merely a property. The kinds flagged `writesRecords` in the step catalogue, not `mutatesData`: that flag is ALSO on
- * run_automation and request_approval, which do not write a `tableId` but CAN NAME one.
+ * Field type to its check: the ones stepFieldChecks.js owns, and the ones that
+ * need this file's own validators.
+ * @type {Map<string, (a: import('./stepFieldChecks').FieldCheck) => void>}
  */
-const RECORD_WRITE_STEP_KINDS = new Set(require('../componentSpecs/stepRegistry').STEP_POLICY_LISTS.recordWriteKinds);
+const STEP_FIELD_CHECKS = new Map([
+    ...FIELD_TYPE_CHECKS,
+    ['aiSchema', (a) => validateAiSchema(a.field, a.value, a.path, a.ctx)],
+    ['aiWriteTo', (a) => validateAiWriteTo(a.kind, a.value, a.path, a.ctx)],
+    ['approvalStages', (a) => validateApprovalStages(a.field, a.value, a.path, a.ctx)],
+    ['approvalOnDecided', (a) => validateApprovalOnDecided(a.value, a.path, a.ctx)],
+]);
 
 /**
+ * One field of a step against its field spec: the reference fields first
+ * (they own their null semantics), then the required check, then the check
+ * for the field's type.
  * @param {string} kind
  * @param {string} field
  * @param {string} path
@@ -261,123 +266,13 @@ const RECORD_WRITE_STEP_KINDS = new Set(require('../componentSpecs/stepRegistry'
  * @param {string} [label]
  */
 function validateStepField(kind, field, fs, value, path, depth, counter, ctx, label = `Step "${kind}"`) {
-    const { pushE } = ctx;
-    // Cross-cutting reference fields own their own null/undefined semantics
-    // (an unset table/automation is a soft warning, not a "required" error),
-    // so they run BEFORE the generic missing/required check.
-    if (field === 'automationId') { checkAutomationRef(value, path, ctx, label); return; }
-    if (field === 'tableId') {
-        // An OPTIONAL tableId that was left out is not "unset", it is absent by
-        // design (refresh with no table means "reload everything"). Only the
-        // required variants get the unset warning.
-        if (fs.required || (value !== undefined && value !== null)) {
-            checkTableRef(value, path, ctx, label, 'step');
-            // …and then the second kind of table. checkTableSource was only attached to the READ bindings
-            // (validate/bindings.js), so a step that was the only reference to a linked table published
-            // cleanly while `source.datatableId` pointed to a Studio table that the owner no longer has —
-            // the error then surfaced only when running, on the user's screen instead of in the
-            // publication gate.
-            checkTableSource(value, path, ctx, label, { codePrefix: 'step' });
-            // And for a WRITE step the third question: may writing happen here? A create_record on a read
-            // link got no word at publication and then failed with 403 every time.
-            if (RECORD_WRITE_STEP_KINDS.has(kind)) {
-                checkTableWritable(value, path, ctx, label, { codePrefix: 'step' });
-            }
-        }
+    if (checkReferenceField({ kind, field, fs, value, path, ctx, label })) return;
+    if (value === undefined || value === null) {
+        if (fs.required) ctx.pushE({ code: 'action.step_field_required', severity: 'error', path, message: `${label} is missing required \`${field}\`.`, hint: `Provide a ${fs.type}.` });
         return;
     }
-    if (field === 'modalId') { checkModalRef(value, path, ctx, label); return; }
-    if (field === 'screenId') {
-        if (typeof value !== 'string' || !ctx.screenIds.has(value)) {
-            const suggestion = pickClosestId(value, Array.from(ctx.screenIds));
-            pushE({ code: 'action.step_navigate_unresolved', severity: 'error', path, message: `${label} navigates to unknown screen ${JSON.stringify(value)}.`, hint: suggestion ? `Did you mean "${suggestion}"?` : 'Use a screen id from definition.screens.' });
-        }
-        return;
-    }
-
-    const missing = value === undefined || value === null;
-    if (missing) {
-        if (fs.required) pushE({ code: 'action.step_field_required', severity: 'error', path, message: `${label} is missing required \`${field}\`.`, hint: `Provide a ${fs.type}.` });
-        return;
-    }
-
-    switch (fs.type) {
-        case 'string':
-        case 'url': {
-            if (typeof value !== 'string') { pushE({ code: 'action.step_field_invalid', severity: 'error', path, message: `\`${field}\` must be a string.`, hint: 'Pass a plain string.' }); return; }
-            if (fs.maxLen && value.length > fs.maxLen) pushE({ code: 'action.step_field_invalid', severity: 'error', path, message: `\`${field}\` is ${value.length} chars — the maximum is ${fs.maxLen}.`, hint: 'Shorten it.' });
-            if (fs.type === 'url') {
-                let ok = false; try { ok = new URL(value).protocol === 'https:'; } catch { ok = false; }
-                if (!ok) pushE({ code: 'action.step_field_invalid', severity: 'error', path, message: `\`${field}\` must be an https:// URL.`, hint: 'Only https URLs are allowed.' });
-            }
-            return;
-        }
-        case 'enum':
-            if (!fs.values.includes(value)) pushE({ code: 'action.step_field_invalid', severity: 'error', path, message: `\`${field}\` ${JSON.stringify(value)} is not legal.`, hint: `Use one of: ${fs.values.join(', ')}.` });
-            return;
-        case 'boolean':
-            if (typeof value !== 'boolean') pushE({ code: 'action.step_field_invalid', severity: 'error', path, message: `\`${field}\` must be a boolean.`, hint: 'Use true or false.' });
-            return;
-        case 'int':
-            if (typeof value !== 'number' || !Number.isInteger(value) || (fs.min !== undefined && value < fs.min) || (fs.max !== undefined && value > fs.max)) {
-                pushE({ code: 'action.step_field_invalid', severity: 'error', path, message: `\`${field}\` must be an integer${fs.min !== undefined ? ` ${fs.min}..${fs.max}` : ''}.`, hint: field === 'maxIterations' ? `Loops are capped at ${LIMITS.MAX_ACTION_LOOP_ITERATIONS} iterations.` : 'Pass an integer.' });
-            }
-            return;
-        case 'formula':
-            validateFormula(value, path, ctx, FORMULA_SCOPE_ROOTS);
-            return;
-        case 'binding':
-            validateBinding(field, value, path, ctx);
-            return;
-        case 'inputMapping':
-            validateInputMapping(`${kind}.${field}`, value, path, ctx);
-            return;
-        case 'recordValues': {
-            if (!isObject(value)) { pushE({ code: 'action.step_field_invalid', severity: 'error', path, message: '`values` must be an object map of { column: binding }.', hint: 'Use { col: {kind:"static",value} }.' }); return; }
-            for (const [col, b] of Object.entries(value)) validateBinding(col, b, `${path}.${col}`, ctx);
-            return;
-        }
-        case 'steps': // `errorScope`: the list runs with a failure in scope (a try's catch), so `error` has a value there.
-            validateActionSteps(value, path, depth + 1, counter, fs.errorScope ? { ...ctx, inErrorHandler: true } : ctx);
-            return;
-        case 'switchCases': {
-            if (!Array.isArray(value)) { pushE({ code: 'action.step_field_invalid', severity: 'error', path, message: 'switch `cases` must be an array.', hint: 'Use [{ value, steps }].' }); return; }
-            value.forEach((c, i) => {
-                if (!isObject(c)) { pushE({ code: 'action.step_field_invalid', severity: 'error', path: `${path}[${i}]`, message: 'Each switch case must be an object { value, steps }.', hint: 'Provide value + steps.' }); return; }
-                validateActionSteps(c.steps, `${path}[${i}].steps`, depth + 1, counter, ctx);
-            });
-            return;
-        }
-        case 'stepBranches': validateStepBranches(value, path, (list, at) => validateActionSteps(list, at, depth + 1, counter, ctx), ctx); return;
-        case 'navParams':
-            validateNavigateParams(label, value, path, ctx);
-            return;
-        case 'stringList': {
-            if (!Array.isArray(value)) { pushE({ code: 'action.step_field_invalid', severity: 'error', path, message: `\`${field}\` must be an array of strings.`, hint: 'Pass a list of ids.' }); return; }
-            if (value.length > 50) { pushE({ code: 'action.step_field_invalid', severity: 'error', path, message: `\`${field}\` has too many entries (${value.length}; max 50).`, hint: 'Remove some.' }); return; }
-            if (value.some((v) => typeof v !== 'string')) pushE({ code: 'action.step_field_invalid', severity: 'error', path, message: `\`${field}\` entries must all be strings.`, hint: 'Use string ids.' });
-            return;
-        }
-        case 'aiSchema':
-            validateAiSchema(field, value, path, ctx);
-            return;
-        case 'aiWriteTo':
-            validateAiWriteTo(kind, value, path, ctx);
-            return;
-        case 'contextSources':
-            validateContextSources(field, value, path, ctx);
-            return;
-        case 'approvalQuestions': require('./approvalQuestionChecks.mts').validateApprovalQuestions(field, value, path, ctx); return;
-        case 'approvalStages': validateApprovalStages(field, value, path, ctx); return;
-        case 'approvalOnDecided': validateApprovalOnDecided(value, path, ctx); return;
-        // Checked by stepDataChecks.checkRecordTarget (it needs recordId next to it).
-        case 'recordFilter': return;
-        case 'callParams': validateCallParams(field, value, path, ctx); return;
-        case 'tierChoice': validateTierChoice(field, fs, value, path, ctx); return;
-        case 'errorHandler': case 'retry': validateEnvelopeField(fs.type, value, path, { depth, counter, ctx, validateActionSteps }); return;
-        // temperature and an AI step's answer checks (schema v3): aiReliability.mts, the automation ai_step's rules.
-        default: require('../aiReliability.mts').validateReliabilityField(field, fs, value, path, ctx);
-    }
+    const check = STEP_FIELD_CHECKS.get(fs.type) || checkOtherType;
+    check({ kind, field, fs, value, path, depth, counter, ctx, label, validateSteps: validateActionSteps });
 }
 
 // The stage chain. Caps come from the shared rulebook so the app path and the

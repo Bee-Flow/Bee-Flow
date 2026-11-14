@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 const { resolveShieldFor, mergeWithOrgShield } = require('../privacy/orgShield');
 const { checkRegexPatterns } = require('../privacy/guardrails');
 const { compileUserPattern, replaceUserPattern } = require('../text/userPattern');
@@ -213,7 +213,7 @@ function applyRegexGuardrails({ text, redactBase, regexConfig, scope, emit, audi
 
     if (regexConfig.action === 'redact') {
         let processedText = base;
-        for (const rule of regexConfig.rulesWithNames) {
+        for (const rule of /** @type {NonNullable<RegexGuardConfig['rulesWithNames']>} */ (regexConfig.rulesWithNames)) { // an enabled config has its rules
             // An invalid or undecidable pattern leaves the text as it is (it did not count as a match either).
             const out = replaceUserPattern(compileUserPattern(rule.pattern), processedText, `[REDACTED: ${rule.name}]`);
             if (out !== null) processedText = out;

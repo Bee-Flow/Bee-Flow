@@ -12,7 +12,7 @@
  */
 
 const webpageStore = require('../stores/webpageStore');
-const { resolveFramework } = require('../integrations/webpageFramework');
+const { resolveFramework } = require('../core/webpages/frameworkModel.mts');
 const { composeDoc } = require('../core/webpages/webpageThumbnailGenerator');
 const { composeReactDoc, buildStubBridgeScript } = require('./reactBundleServer');
 const { loadReactFiles } = require('./webpageReactFiles');

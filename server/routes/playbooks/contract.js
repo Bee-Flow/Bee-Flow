@@ -75,7 +75,7 @@ const closedObject = (shape, subject = 'This request') => {
     return z.object(shape, { error }).strict();
 };
 
-/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. */
+/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. @template {import('zod').ZodRawShape} S @param {S} shape */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), closedObject(shape));
 
 const LOCALE_TEXT = 'locale is a language code, like "nl" or "en".';

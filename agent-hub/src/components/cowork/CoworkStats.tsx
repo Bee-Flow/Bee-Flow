@@ -22,7 +22,8 @@
  * Fetched here rather than by the parent so a failure costs the figures and
  * nothing else: the brief, the buttons and the history all still render.
  */
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import * as coworkApi from '../../api/coworkApi';
 import { formatDuration } from './coworkFormat';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -41,8 +42,7 @@ interface CoworkStatsProps {
     reloadKey?: number;
 }
 
-interface StatsState {
-    key: string | null;
+interface StatsRead {
     stats: CoworkStatsData | null;
     failed: boolean;
 }
@@ -142,27 +142,26 @@ export default function CoworkStats({ coworkId, reloadKey }: CoworkStatsProps) {
     // history, for the same reason: switching items must not show the
     // previous item's numbers for a frame. Numbers are worse than rows here —
     // nothing about "42" says which item it belongs to.
-    const key = `${coworkId}:${reloadKey}`;
-    const [state, setState] = useState<StatsState>({ key: null, stats: null, failed: false });
-
-    useEffect(() => {
-        if (!coworkId) return undefined;
-        let cancelled = false;
-        (async () => {
+    const query = useQuery<StatsRead>({
+        queryKey: ['cowork', 'stats', coworkId, reloadKey],
+        enabled: !!coworkId,
+        staleTime: 0,
+        retry: false,
+        queryFn: async () => {
             try {
                 // The call is inside the try on purpose: this block is
                 // supplementary, and neither a rejected promise nor a missing
                 // function may take the detail pane down with it.
-                const stats = await coworkApi.getCoworkStats(coworkId);
-                if (!cancelled) setState({ key, stats, failed: false });
+                return { stats: await coworkApi.getCoworkStats(coworkId as string), failed: false };
             } catch {
-                if (!cancelled) setState({ key, stats: null, failed: true });
+                return { stats: null, failed: true };
             }
-        })();
-        return () => { cancelled = true; };
-    }, [coworkId, key]);
-
-    const settled = state.key === key;
+        },
+    });
+    // The answer belongs to its key (item and reload), so switching items never
+    // shows the previous item's numbers.
+    const state = query.data ?? { stats: null, failed: false };
+    const settled = query.data !== undefined;
 
     if (settled && state.failed) {
         return (

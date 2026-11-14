@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Per-user Nextcloud access scope API — the settings surface behind
  * "What Bee Flow may access" (Settings → Connections → Nextcloud).
@@ -18,7 +19,7 @@
 
 const express = require('express');
 const router = express.Router();
-const rateLimit = require('express-rate-limit');
+const rateLimit = /** @type {typeof import('express-rate-limit').rateLimit & { ipKeyGenerator: typeof import('express-rate-limit').ipKeyGenerator }} */ (/** @type {unknown} */ (require('express-rate-limit')));
 const { ipKeyGenerator } = rateLimit;
 
 const { requireAuth } = require('../auth/permissions');
@@ -140,7 +141,7 @@ router.get('/', requireAuth, async (req, res) => {
     res.json({ integrations: presentScope(doc), updatedAt: doc?.updatedAt || null });
 });
 
-router.put('/', requireAuth, express.json({ limit: '256kb' }), validate({ body: ScopeBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof ScopeBody>, import('qs').ParsedQs>} */ req, res) => {
+router.put('/', requireAuth, express.json({ limit: '256kb' }), validate({ body: ScopeBody }), async (req, res) => {
     const userId = req.session.user.id;
     const doc = await ncScope.saveUserScope(userId, { integrations: req.body.integrations }, {
         orgId: callerOrgId(req),
@@ -151,7 +152,7 @@ router.put('/', requireAuth, express.json({ limit: '256kb' }), validate({ body: 
 });
 
 // One-click offboarding: every integration explicitly off.
-router.post('/revoke-all', requireAuth, validate({ body: NoBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof NoBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/revoke-all', requireAuth, validate({ body: NoBody }), async (req, res) => {
     const userId = req.session.user.id;
     const doc = await ncScope.revokeAll(userId, { orgId: callerOrgId(req), updatedBy: userId });
     _invalidateGuardCache(userId);
@@ -159,7 +160,7 @@ router.post('/revoke-all', requireAuth, validate({ body: NoBody }), async (/** @
 });
 
 // Back to the allow-all default (delete the doc).
-router.post('/reset', requireAuth, validate({ body: NoBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof NoBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/reset', requireAuth, validate({ body: NoBody }), async (req, res) => {
     const userId = req.session.user.id;
     const doc = await ncScope.resetToDefault(userId, { orgId: callerOrgId(req), updatedBy: userId });
     _invalidateGuardCache(userId);

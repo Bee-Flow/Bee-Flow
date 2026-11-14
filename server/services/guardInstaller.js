@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Guard Service Installer
  *
@@ -467,6 +468,7 @@ async function _doUninstall({ removeVolume }) {
  * Kick off an install. Returns immediately with the in-flight promise so
  * the HTTP route can respond 202 while the work continues in the background.
  * Rejects with a 409-style error if another op is already running.
+ * @param {{ apiKey?: string, model?: string }} [opts]
  */
 function install({ apiKey, model } = {}) {
     if (isKubernetes()) {

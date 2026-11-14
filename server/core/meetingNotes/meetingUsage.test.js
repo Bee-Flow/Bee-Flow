@@ -14,7 +14,12 @@
  * decision here goes through the REAL matcher and these tests pin that it
  * still does.
  *
- * Run: node --test --test-force-exit core/meetingNotes/meetingUsage.test.js
+ * The QUERIES themselves (which rows each scan finds, the tag comparison, the
+ * parameter order with and without tags, definitions rather than active
+ * subscriptions) are proven on real Postgres in meetingUsage.pg.test.js; this
+ * file keeps the policy around them.
+ *
+ * Run: node --test core/meetingNotes/meetingUsage.test.js
  */
 
 const test = require('node:test');
@@ -23,7 +28,7 @@ require('../../automation/runnerPorts'); // the injected trigger-bus port (boot 
 const assert = require('node:assert');
 const {
     usageForMeeting, redactForeign, tagsOf, syntheticPayload, triggerFires, triggerLabel,
-    meetingTriggersOf, MEETING_PROVIDER, MEETING_EVENT, MEETING_SOURCE_CONFIG_KEY,
+    meetingTriggersOf, MEETING_PROVIDER, MEETING_EVENT,
 } = require('./meetingUsage');
 
 const ALL_TABLES = ['kb_sources', 'knowledge_bases', 'automations', 'notebook_sources', 'notebooks'];
@@ -44,7 +49,9 @@ function db({
     const queries = [];
     return {
         queries,
-        sqlFor(fragment) { return queries.find(q => q.sql.includes(fragment)); },
+        /** Whether the scan of `kind` (kb | automation | notebook | legacy) was sent. */
+        scanned(kind) { return queries.some(q => q.kind === kind); },
+        paramsOf(kind) { return (queries.find(q => q.kind === kind) || {}).params; },
         query: async (sql, params) => {
             if (/to_regclass\(\$1\) AS t/.test(sql)) {
                 return { rows: [{ t: tables.includes(params[0]) ? params[0] : null }] };
@@ -53,7 +60,9 @@ function db({
                 const has = columns.includes(`${params[0]}.${params[1]}`);
                 return { rows: has ? [{ '?column?': 1 }] : [] };
             }
-            queries.push({ sql, params });
+            const kind = /FROM kb_sources/.test(sql) ? 'kb' : /FROM automations/.test(sql) ? 'automation'
+                : /source_ref_id IS NULL/.test(sql) ? 'legacy' : /FROM notebook_sources/.test(sql) ? 'notebook' : null;
+            queries.push({ sql, params, kind });
             if (/FROM kb_sources/.test(sql)) {
                 if (failOn.includes('kb')) throw new Error('kb_sources is down');
                 return { rows: kb };
@@ -138,7 +147,7 @@ test('a meeting with no owner cannot be scoped, so automations are partial rathe
     const { rows, partial } = await usageForMeeting({ ...MEETING, ownerId: null }, { db: d });
     assert.ok(partial.includes('automation'));
     assert.deepStrictEqual(rows.filter(r => r.kind === 'automation'), []);
-    assert.ok(!d.sqlFor('FROM automations'), 'must not query automations unscoped');
+    assert.ok(!d.scanned('automation'), 'must not query automations unscoped');
 });
 
 test('the notebook link column being absent is partial, not "no notebook uses this"', async () => {
@@ -148,7 +157,7 @@ test('the notebook link column being absent is partial, not "no notebook uses th
     const { rows, partial } = await usageForMeeting(MEETING, { db: d });
     assert.deepStrictEqual(rows.filter(r => r.kind === 'notebook'), []);
     assert.ok(partial.includes('notebook'));
-    assert.ok(!d.sqlFor('ns.source_ref_id = $1'), 'must not query a column that is not there');
+    assert.ok(!d.scanned('notebook'), 'must not query a column that is not there');
 });
 
 test('old notebook rows with no ref keep the kind partial even when the exact scan answers', async () => {
@@ -185,33 +194,9 @@ test('non-string and empty tags never reach the query', async () => {
 test('a meeting with no usable tags never sends an empty array to Postgres', async () => {
     const d = db({ kb: [] });
     await usageForMeeting({ ...MEETING, tags: ['', null] }, { db: d });
-    const q = d.sqlFor('FROM kb_sources');
-    assert.ok(q, 'the per-meeting branch still runs');
-    assert.ok(!/ANY\(\$/.test(q.sql), 'no ANY() clause without tags');
-    assert.ok(!q.params.some(p => Array.isArray(p) && p.length === 0));
+    assert.ok(d.scanned('kb'), 'the per-meeting branch still runs');
+    assert.ok(!d.paramsOf('kb').some(p => Array.isArray(p) && p.length === 0));
 });
-
-test('the kb scan uses the arming query’s comparison, and does not narrow by refresh mode', async () => {
-    const d = db();
-    await usageForMeeting(MEETING, { db: d });
-    const { sql, params } = d.sqlFor('FROM kb_sources');
-    assert.match(sql, /s\.config->>'tag' = ANY\(\$1::text\[\]\)/);
-    assert.deepStrictEqual(params[0], ['sales', 'klant']);
-    // A meeting_tag source on 'schedule' is not armed by the event but still
-    // ingests this meeting on its next pass — it belongs in the list.
-    assert.ok(!/refresh_mode/.test(sql), 'refresh_mode must not narrow the list');
-});
-
-test('the per-meeting source kind is looked for under the key the creator will write', async () => {
-    const d = db();
-    await usageForMeeting(MEETING, { db: d });
-    const { sql, params } = d.sqlFor('FROM kb_sources');
-    assert.match(sql, /s\.kind = 'meeting' AND s\.config->>\$2 = \$3/);
-    assert.strictEqual(params[1], MEETING_SOURCE_CONFIG_KEY);
-    assert.strictEqual(params[2], 'm-1');
-});
-
-// ── the list and the dispatcher may not disagree ────────────────────
 
 test('the filter decision runs through the REAL dispatch matcher', async () => {
     // Whatever the bus decides, this list says. Since M5 the bus HAS a
@@ -291,18 +276,6 @@ test('two meeting triggers on one automation are one row, not two', async () => 
     const d = db({ automations: [automationRow({ definition_json: { trigger: trig(null, 'a'), triggers: [trig(null, 'b')] } })] });
     const { rows } = await usageForMeeting(MEETING, { db: d });
     assert.strictEqual(rows.filter(r => r.kind === 'automation').length, 1);
-});
-
-test('the automation scan reads definitions, so a deactivated automation still guards the delete', async () => {
-    // Subscription rows exist only while an automation is ACTIVE. Deleting a
-    // meeting out from under a paused automation breaks it just the same.
-    const d = db({ automations: [automationRow()] });
-    await usageForMeeting(MEETING, { db: d });
-    const q = d.sqlFor('FROM automations');
-    assert.match(q.sql, /jsonb_path_exists/);
-    assert.ok(!/automation_event_subscriptions/.test(q.sql));
-    assert.match(q.sql, /user_id = \$1/);
-    assert.deepStrictEqual(q.params, ['owner-1', MEETING_PROVIDER, MEETING_EVENT]);
 });
 
 test('a definition stored as text still parses', async () => {
@@ -389,26 +362,6 @@ test('a tag source and a filed line in the SAME base stay two different facts', 
     assert.strictEqual(kb[0].lineCount, undefined, 'a tag source has no filed lines to count');
     assert.strictEqual(kb[1].lineCount, 1);
     assert.strictEqual(kb[1].siteLabel, undefined, 'a filed line watches no tag');
-});
-
-test('the filed-lines predicate reads the allow-listed metadata pair, as a parameter', async () => {
-    const d = db();
-    await usageForMeeting(MEETING, { db: d });
-    const { sql, params } = d.sqlFor('FROM kb_sources');
-    assert.match(sql, /s\.kind = 'text' AND s\.config->'metadata'->>'transcriptionId' = \$4/);
-    assert.strictEqual(params[3], 'm-1');
-});
-
-test('without tags the filed-lines predicate keeps its OWN parameter index', async () => {
-    // The tag clause is the one that may be absent, and every later $n slides
-    // up when it is. A hard-coded index here would read the config key as the
-    // transcription id and quietly find nothing.
-    const d = db();
-    await usageForMeeting({ ...MEETING, tags: [] }, { db: d });
-    const { sql, params } = d.sqlFor('FROM kb_sources');
-    assert.match(sql, /s\.kind = 'text' AND s\.config->'metadata'->>'transcriptionId' = \$3/);
-    assert.strictEqual(params[2], 'm-1');
-    assert.ok(!/ANY\(\$/.test(sql), 'no tags, no tag clause');
 });
 
 test('an unreadable timestamp on a filing never invents one', async () => {

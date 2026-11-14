@@ -5,6 +5,7 @@
  * guards the provider routes.
  */
 
+const { fetchConfiguredEndpoint } = require('../../core/http/configuredEndpointFetch');
 const express = require('express');
 const router = express.Router();
 
@@ -26,7 +27,7 @@ const { tagGate } = require('../gateMeta');
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
 const { z } = require('../../utils/zod');
-const { worded } = require('../../core/http/schemaParts');
+const { worded, bodyOf } = require('../../core/http/schemaParts');
 // The primary Microsoft app plus the additional sign-in connections (each its
 // own tenant, app registration, label and logo): one module decides what a
 // connection is, here and on the login routes.
@@ -190,7 +191,7 @@ router.put('/oauth-config', requireSuperAdmin, validate({ body: OAuthConfigBody 
     });
 });
 
-router.post('/oauth-config/test', requireSuperAdmin, async (req, res) => {
+router.post('/oauth-config/test', requireSuperAdmin, validate({ body: bodyOf({}, 'A connection test') }), async (req, res) => {
     const config = await loadConfig();
     const oauth = config.oauth || {};
 
@@ -199,7 +200,7 @@ router.post('/oauth-config/test', requireSuperAdmin, async (req, res) => {
     }
 
     try {
-        const response = await fetch(`${oauth.nextcloudUrl}/status.php`);
+        const response = await fetchConfiguredEndpoint(`${oauth.nextcloudUrl}/status.php`, { redirect: 'follow' });
         if (response.ok) {
             const data = /** @type {{ productname?: string, versionstring?: string }} */ (await response.json()); // Nextcloud status.php
             res.json({
@@ -345,7 +346,7 @@ router.put('/providers/:provider', requireSuperAdmin, requireSsoProvider, valida
     res.json({ success: true, message: `${provider} configuration saved` });
 });
 
-router.post('/providers/:provider/test', requireSuperAdmin, requireSsoProvider, async (req, res) => {
+router.post('/providers/:provider/test', requireSuperAdmin, requireSsoProvider, validate({ body: bodyOf({}, 'A connection test') }), async (req, res) => {
     const { provider } = req.params;
     const config = await loadConfig();
 
@@ -355,7 +356,7 @@ router.post('/providers/:provider/test', requireSuperAdmin, requireSsoProvider, 
             return res.status(400).json({ error: 'Nextcloud URL not configured' });
         }
         try {
-            const response = await fetch(`${oauth.nextcloudUrl}/status.php`);
+            const response = await fetchConfiguredEndpoint(`${oauth.nextcloudUrl}/status.php`, { redirect: 'follow' });
             if (response.ok) {
                 const data = /** @type {{ productname?: string, versionstring?: string }} */ (await response.json()); // Nextcloud status.php
                 res.json({

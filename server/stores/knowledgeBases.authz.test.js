@@ -10,7 +10,8 @@
  * policy: draft/group-restricted content is visible to the owner, super
  * admins, and admins of the KB's own organisation (opts.adminOrgIds); everyone
  * else, an admin of another organisation included, still needs publish + group
- * membership — locked here so reads can't silently widen.
+ * membership — locked here so reads can't silently widen. listKBs, the SQL
+ * side of the same rule, runs against a real Postgres.
  *
  * Run: node stores/knowledgeBases.authz.test.js
  */
@@ -19,26 +20,12 @@ const assert = require('assert');
 
 process.env.NODE_ENV = 'test';
 
-// ── Mock ../db so requiring the store is side-effect free ─────────
-/** @type {(sql: string, params: unknown[]) => Promise<unknown[]>} */
-let getAllHook = async () => [];
-const mockDb = {
-    run: async () => undefined,
-    getOne: async () => null,
-    // The store destructures getAll when it loads; a test swaps getAllHook.
-    getAll: async (sql, params) => getAllHook(sql, params),
-    exec: async () => undefined,
-    getClient: async () => null,
-};
+// listKBs runs on a real Postgres: the boot ladder's schema on PGlite
+// (testUtils/pgliteTemplate.js ladderPglite) behind db.js's pool.
+const { usePglitePool } = require('../testUtils/pglitePool');
+const { ladderPglite } = require('../testUtils/pgliteTemplate');
 
-const Module = require('module');
-const originalResolve = Module._resolveFilename;
-Module._resolveFilename = function (request, parent, ...rest) {
-    if (request === '../db') return 'mock-db';
-    return originalResolve.call(this, request, parent, ...rest);
-};
-require.cache['mock-db'] = { id: 'mock-db', exports: mockDb };
-
+const { pg, close } = usePglitePool(ladderPglite());
 const kbStore = require('./knowledgeBases');
 
 // ── Fixtures ──────────────────────────────────────────────────────
@@ -173,24 +160,28 @@ async function run() {
     // ── listKBs: the draft clause per organisation ──────────────
     console.log('--- listKBs (drafts only of the organisations administered) ---');
 
-    await t('listKBs: drafts of the administered organisations only, as a bound parameter', async () => {
-        /** @type {{ sql: string, params: unknown[] }[]} */
-        const seen = [];
-        const orig = getAllHook;
-        getAllHook = async (sql, params) => { seen.push({ sql, params }); return []; };
-        try {
-            await kbStore.listKBs('eve', orgAB, { sourceKind: null, adminOrgIds: new Set(['orgB']) });
-            await kbStore.listKBs('eve', orgAB, { sourceKind: null, adminOrgIds: new Set(['orgA', 'orgB']) });
-            await kbStore.listKBs('eve', orgAB, { sourceKind: null });
-        } finally { getAllHook = orig; }
-        const [mixed, all, none] = seen;
-        assert.ok(mixed.sql.includes('AND (kb.is_published = TRUE OR kb.organization_id = ANY($3))'), mixed.sql);
-        assert.deepStrictEqual(mixed.params, ['eve', ['orgA', 'orgB'], ['orgB']]);
-        assert.ok(!all.sql.includes('is_published'), 'admin of every org: no draft clause');
-        assert.ok(none.sql.includes('AND kb.is_published = TRUE))'), 'admin of none: published only');
+    await t('listKBs: drafts of the administered organisations only', async () => {
+        await pg.exec(`
+            INSERT INTO knowledge_bases (tenant_id, name, organization_id, is_published) VALUES
+                ('alice', 'A draft', 'orgA', FALSE),
+                ('alice', 'A published', 'orgA', TRUE),
+                ('bob', 'B draft', 'orgB', FALSE),
+                ('bob', 'B published', 'orgB', TRUE),
+                ('carol', 'C draft', 'orgC', FALSE),
+                ('eve', 'Eve own draft', NULL, FALSE)
+        `);
+        const names = async (opts) => (await kbStore.listKBs('eve', orgAB, { sourceKind: null, ...opts })).map(k => k.name).sort();
+        assert.deepStrictEqual(await names({ adminOrgIds: new Set(['orgB']) }),
+            ['A published', 'B draft', 'B published', 'Eve own draft']);
+        assert.deepStrictEqual(await names({ adminOrgIds: new Set(['orgA', 'orgB']) }),
+            ['A draft', 'A published', 'B draft', 'B published', 'Eve own draft'], 'admin of every org: every draft of those orgs');
+        assert.deepStrictEqual(await names({}), ['A published', 'B published', 'Eve own draft'], 'admin of none: published only');
+        assert.deepStrictEqual(await names({ adminOrgIds: new Set(['orgC']) }), ['A published', 'B published', 'Eve own draft'],
+            'administering an org the caller is not a member of lists nothing of it');
     });
 
     console.log(`\nResults: ${passed} passed, ${failed} failed\n`);
+    await close();
     process.exit(failed === 0 ? 0 : 1);
 }
 

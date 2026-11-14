@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The second half of a tool round, once every call has settled: the
  * concurrent PII pre-scan of the results, then the in-order result loop —
@@ -197,7 +197,7 @@ function logSuccessEgress(rc, deps, result, _preScan) {
     try {
         const { logToolEgress } = deps.integrationLogging();
         const resultText = typeof finalToolResult === 'string' ? finalToolResult : JSON.stringify(finalToolResult || '');
-        const _lent = _lentByToolCall.get(toolCall.id) || null;
+        const _lent = _lentByToolCall.get(/** @type {string} */ (toolCall.id)) || null; // a dispatched call has its id
         logToolEgress({
             toolName,
             toolArgs,
@@ -234,7 +234,7 @@ function logSuccessEgress(rc, deps, result, _preScan) {
             // that is what reaches the MODEL, whereas this row audits what
             // came through the INTEGRATION. Stripped `_`-prefixed / UI-only
             // fields can carry PII that reaches the user but not the model.
-            fullScan: async (/** @type {string} */ _payloadText, /** @type {number} */ threshold) => {
+            fullScan: async (/** @type {string} */ _payloadText, /** @type {number | undefined} */ threshold) => {
                 const logText = resultText.slice(0, 5000);
                 if (_preScan && !_preScan.failed && _preScan.pii
                     && _preScan.threshold === threshold

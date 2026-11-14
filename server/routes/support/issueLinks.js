@@ -52,10 +52,7 @@ const { worded } = require('../../core/http/schemaParts');
 const L = require('./issueLinkHandlers');
 const E = require('./issueEscalation');
 
-/**
- * A body that also accepts no body at all: Express 5 leaves `req.body` undefined then.
- * @param {import('zod').ZodRawShape} shape
- */
+/** A body that also accepts no body at all: Express 5 leaves `req.body` undefined then. @template {import('zod').ZodRawShape} S @param {S} shape */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 /**

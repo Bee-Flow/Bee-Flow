@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Direct Chat prompt assembly: the conversation history. Which history the
  * turn replays (the client's, with the persisted attachment sidecars grafted
@@ -31,7 +31,7 @@ async function resolveHistory({ req, userId, conversationId, history }) {
     // guard: a provider-side chain would replay the pre-edit conversation and
     // ignore the client's truncation.
     const clientHistoryProvided = !!(resolvedHistory && resolvedHistory.length > 0);
-    if (clientHistoryProvided && conversationId) {
+    if (clientHistoryProvided && resolvedHistory && conversationId) {
         // Client copies strip attachment sidecars to {name, type}. Graft the
         // persisted sidecars (extractedText / extractionKey / storageKey) back
         // onto the client history so the hydrator can re-inject real file

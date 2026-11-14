@@ -143,11 +143,15 @@ export function parseAzureImageResponse(payload: unknown): AzureImageResult {
     if (typeof b64 !== 'string' || !b64) {
         throw new AzureImageError('no_image', 'Azure returned no image. Try a different prompt.');
     }
-    const usage = doc?.usage && typeof doc.usage === 'object'
-        ? { inputTokens: count(doc.usage.input_tokens), outputTokens: count(doc.usage.output_tokens) }
-        : null;
     const mimeType = doc?.output_format === 'jpeg' ? 'image/jpeg' : 'image/png';
-    return { imageBase64: b64, mimeType, usage: usage && (usage.inputTokens || usage.outputTokens) ? usage : null };
+    return { imageBase64: b64, mimeType, usage: usageOf(doc?.usage) };
+}
+
+/** The token usage of an answer, or null when it names none (or only zeros). */
+function usageOf(raw: { input_tokens?: unknown; output_tokens?: unknown } | undefined): AzureImageResult['usage'] {
+    if (!raw || typeof raw !== 'object') return null;
+    const usage = { inputTokens: count(raw.input_tokens), outputTokens: count(raw.output_tokens) };
+    return usage.inputTokens || usage.outputTokens ? usage : null;
 }
 
 interface FetchResponse { ok: boolean; status: number; json(): Promise<unknown> }

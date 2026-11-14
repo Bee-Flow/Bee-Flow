@@ -31,12 +31,13 @@ const fs = require('fs');
 const path = require('path');
 const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
+const { envInt } = require('../utils/envNumber.mts');
 
-const INTERVAL_MS = Number(process.env.SAVED_AUDIO_BACKFILL_INTERVAL_MS) || 6 * 60 * 60 * 1000;
+const INTERVAL_MS = envInt('SAVED_AUDIO_BACKFILL_INTERVAL_MS', 6 * 60 * 60 * 1000, { min: 1 });
 // Stagger past boot so it never competes with startup work, and so a fleet of
 // replicas does not all sweep at once.
-const BOOT_DELAY_MS = Number(process.env.SAVED_AUDIO_BACKFILL_BOOT_DELAY_MS) || 3 * 60 * 1000;
-const BATCH = Number(process.env.SAVED_AUDIO_BACKFILL_BATCH) || 25;
+const BOOT_DELAY_MS = envInt('SAVED_AUDIO_BACKFILL_BOOT_DELAY_MS', 3 * 60 * 1000, { min: 0 });
+const BATCH = envInt('SAVED_AUDIO_BACKFILL_BATCH', 25, { min: 1 });
 
 /** @type {NodeJS.Timeout | null} */
 let timer = null;

@@ -144,7 +144,7 @@ function aiActFindings(a, { key, at, C, has }) {
     // match, wrong in both directions (an automation that merely mentions
     // insurance got it; one doing facial recognition got nothing, because
     // five of the ten domains were not in the pattern at all). The pattern
-    // now covers all ten (compliance/aiAct/annexIii.js) and what it
+    // now covers all ten (core/aiAct/annexIii.js) and what it
     // produces is a pointer to the questionnaire, not a verdict: the ten
     // questions decide, and only an admin answers them.
     if (has('AIA') && sig && sig.annex_iii_hint) {

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * GET /api/studio/attention — the "Needs attention" list on Studio Home.
  *
@@ -277,7 +277,7 @@ async function collectAttention(req, d, sources = SOURCES) {
         // unavailable independently, which is exactly what happened.
         once: (key, fn) => {
             if (!memo.has(key)) memo.set(key, fn());
-            return memo.get(key);
+            return /** @type {ReturnType<Parameters<AttentionCtx['once']>[1]>} */ (memo.get(key)); // set just above when missing
         },
     };
 

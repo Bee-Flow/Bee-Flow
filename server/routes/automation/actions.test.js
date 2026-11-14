@@ -82,8 +82,8 @@ beforeEach(() => {
 
 before(() => {
     api = serve('/', makeActionsRouter({
-        store: fakeStore(),
-        access,
+        store: /** @type {any} */ (fakeStore()),
+        access: /** @type {any} */ (access),
         orgOf: async () => 'org1',
         provisionForm: async (a, def) => { calls.provision.push([a.id, def]); return { answers: null, usage: [] }; },
         syncDatatableUsage: async (...args) => { calls.usage.push(args); },

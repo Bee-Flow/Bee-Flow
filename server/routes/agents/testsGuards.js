@@ -1,6 +1,6 @@
+// @typecheck
 /**
- * Agent tests: the gate every route shares (an agent this person may edit),
- * what a run reports about the version it exercised, the three preflights a
+ * Agent tests: what a run reports about the version it exercised, the three preflights a
  * model call shares (workspace, plan ceiling, fast tier), each failing
  * closed, and the usage rows of the model calls. Split out of
  * routes/agents/tests.js; behaviour unchanged.
@@ -9,43 +9,15 @@
 const { usageLogFields } = require('../../core/providers/usageNormalizer');
 const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
-const agentStore = require('../../stores/agentStore');
 const { resolveUserOrgIds } = require('../../auth');
-const { getEffectiveUserId } = require('../../utils/routeHelpers');
 
-/**
- * The gate every route here shares.
- *
- * Returns `{ agent, views }` or null after answering the request. Unreadable
- * is 404 and unreadable-but-not-editable is 403, in that order — the reverse
- * would confirm that an agent exists to someone who may not know it does.
- */
-async function requireEditableAgent(req, /** @type {import('express').Response} */ res) {
-    const userId = getEffectiveUserId(req);
-    const views = await agentStore.getAgentViews(req.params.id);
-    if (!views || !views.draft) {
-        res.status(404).json({ error: 'Agent not found' });
-        return null;
-    }
-    const agent = views.draft;
-    const { canReadAgent, canModifyAgent } = require('./crud');
-    if (!(await canReadAgent(agent, userId, req))) {
-        res.status(404).json({ error: 'Agent not found' });
-        return null;
-    }
-    if (!(await canModifyAgent(agent, userId, req))) {
-        res.status(403).json({
-            error: 'You do not have permission to edit this agent.',
-            code: 'agent_not_editable',
-        });
-        return null;
-    }
-    return { agent, views, userId };
-}
+// The gate every route here shares is requireAgentGrade('edit', { views: true })
+// from ./crud in each route's chain (auth/agentAccess.mts): unreadable is 404,
+// readable but not editable is 403, and the handler reads agentAccessOf(req).
 
 /**
  * What the run reports about the agent it actually exercised.
- * @param {{ draft: object; runtime: object; }} views
+ * @param {{ draft: { published_version?: number, rev?: number, published_rev?: number } | null; runtime: { runtimeSource?: string } | null; }} views
  */
 function versionInfo(views) {
     const agent = views.draft || {};
@@ -86,7 +58,7 @@ function versionInfo(views) {
  * the catch is a dead gate — an unreadable read arrived as an empty Set and
  * became "no org".
  *
- * @returns {{orgId: string|null, orgIdSet: Set|null}|null} null once answered.
+ * @returns {Promise<{orgId: string|null, orgIdSet: Set<string>|null}|null>} null once answered.
  *          `orgId: null` after a SUCCESSFUL resolve means super admin; a failed
  *          resolve never gets here, so the two cannot be confused.
  */
@@ -109,7 +81,7 @@ async function resolveOrgOrRefuse(req) {
  * A check that could not RUN refuses: "I could not read the plan" is not
  * headroom.
  *
- * @returns {boolean} false once answered.
+ * @returns {Promise<boolean>} false once answered.
  */
 async function checkPlanOrRefuse(res, { orgId, userId }) {
     try {
@@ -128,7 +100,7 @@ async function checkPlanOrRefuse(res, { orgId, userId }) {
 
 /**
  * @typedef {{ orgId: string | null,
- *   userId: string }} ResolveFastTierOrRefuseArgs
+ *   userId: string, what?: Readonly<Record<string, string>> }} ResolveFastTierOrRefuseArgs
  */
 /**
  * The fast tier that reads an agent's answers — for grading, or for proposing
@@ -237,6 +209,6 @@ const suggestMaxTokens = () => envPositiveInt('AGENT_TEST_SUGGEST_MAX_TOKENS', 1
 
 module.exports = {
     envPositiveInt, gradeMaxTokens, suggestMaxTokens,
-    requireEditableAgent, versionInfo, resolveOrgOrRefuse, checkPlanOrRefuse, resolveFastTierOrRefuse,
+    versionInfo, resolveOrgOrRefuse, checkPlanOrRefuse, resolveFastTierOrRefuse,
     GRADER_MODEL, SUGGEST_MODEL, logGradeUsage, logSuggestUsage,
 };

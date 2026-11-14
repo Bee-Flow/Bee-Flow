@@ -66,6 +66,10 @@ const UpdateAppBody = z.object({
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth } = require('../auth/permissions');
 const { sessionUser } = require('../core/http/sessionUser');
+const { HttpError } = require('../core/http/errors');
+
+// The store answers false when no row matched: the app was deleted after it was loaded.
+const appGone = () => new HttpError(404, 'app_not_found', 'This app no longer exists. Reload the page.');
 
 // Build the audience entity shape that `canSeePublished` expects, mapping
 // the apps schema (`created_by`) to the generic `owner_id` field.
@@ -183,7 +187,7 @@ router.put('/:id', requireAuth, validate({ body: UpdateAppBody }), async (/** @t
     if (success) {
         res.json({ success: true });
     } else {
-        throw new Error('Failed to update app');
+        throw appGone();
     }
 });
 
@@ -203,7 +207,7 @@ router.delete('/:id', requireAuth, async (/** @type {import('express').Request<{
         log.info(`[Apps] Deleted app: ${appId}`);
         res.json({ success: true });
     } else {
-        throw new Error('Failed to delete app');
+        throw appGone();
     }
 });
 

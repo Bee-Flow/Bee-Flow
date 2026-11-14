@@ -6,7 +6,7 @@
  * whether the transcript it read is still the note's.
  */
 
-const { leadingNotices } = require('./noteText.mts');
+const { leadingNotices } = require('../../usecases/transcriptions/noteText.mts');
 // Built-in summary templates + the shared prompt builder live in
 // core/meetingNotes/summaryTemplates.js; custom (saved) templates come from the store.
 const summaryTemplateStore = require('../../stores/summaryTemplateStore');

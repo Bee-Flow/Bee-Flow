@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * A webpage's current draft as ONE ready-to-run HTML document — what the web
  * editor's preview iframe shows, built on the server so a client that cannot
@@ -15,7 +15,7 @@
  *
  * The caller supplies `headScripts` (the token-carrying bridges from
  * shared/webpage/previewBridges.mjs) and the slots it is allowed to read (a reader gets
- * the published snapshot, see routes/webpages/publishedSnapshot.js). This
+ * the published snapshot, see usecases/webpages/publishedSnapshot.js). This
  * module mints nothing and decides no access.
  *
  * What is left out on purpose: the web's selection relay (it posts to an
@@ -32,7 +32,7 @@
 const crypto = require('crypto');
 
 const webpageStore = require('../stores/webpageStore');
-const { resolveFramework, resolveRuntime } = require('../integrations/webpageFramework');
+const { resolveFramework, resolveRuntime } = require('../core/webpages/frameworkModel.mts');
 const { REACT_ENTRY, buildReactBundle, composeReactDoc } = require('./reactBundleServer');
 const {
     defangScriptClose, inlineStylesheet, inlineScript, inlineExtras,
@@ -131,7 +131,7 @@ function hashFiles(files) {
     const h = crypto.createHash('sha256');
     for (const path of Object.keys(files).sort()) {
         const f = files[path];
-        h.update(path).update('\0').update(f.isText ? f.content : f.dataUrl).update('\0');
+        h.update(path).update('\0').update(/** @type {string} */ (f.isText ? f.content : f.dataUrl)).update('\0'); // an extra carries its content or data URL
     }
     return h.digest('hex');
 }
@@ -146,11 +146,11 @@ function cachedBuilder(webpageId, hash) {
     const key = `${webpageId}:${hash}`;
     return async (/** @type {Parameters<typeof buildReactBundle>[0]} */ opts) => {
         if (bundleCache.has(key)) {
-            const hit = bundleCache.get(key);
+            const hit = /** @type {{ result?: Awaited<ReturnType<typeof buildReactBundle>>, error?: unknown }} */ (bundleCache.get(key)); // has() above
             bundleCache.delete(key);
             bundleCache.set(key, hit);
             if (hit.error) throw hit.error;
-            return hit.result;
+            return /** @type {Awaited<ReturnType<typeof buildReactBundle>>} */ (hit.result); // an entry without an error holds a result
         }
         /** @type {{ result?: Awaited<ReturnType<typeof buildReactBundle>>, error?: unknown }} */
         let entry;
@@ -162,7 +162,7 @@ function cachedBuilder(webpageId, hash) {
         bundleCache.set(key, entry);
         while (bundleCache.size > BUNDLE_CACHE_MAX) bundleCache.delete(bundleCache.keys().next().value);
         if (entry.error) throw entry.error;
-        return entry.result;
+        return /** @type {Awaited<ReturnType<typeof buildReactBundle>>} */ (entry.result);
     };
 }
 
@@ -181,7 +181,7 @@ async function composeReactDraft(webpageId, extras, headScripts) {
         if (f.isText) files[f.path] = { isText: true, content: f.content };
         else {
             files[f.path] = { isText: false, dataUrl: f.dataUrl };
-            assetMap[f.path] = f.dataUrl;
+            assetMap[f.path] = /** @type {string} */ (f.dataUrl); // a binary extra carries its data URL
         }
     }
     if (!files[REACT_ENTRY]) return { status: 'empty' };

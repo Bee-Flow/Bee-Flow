@@ -1,5 +1,5 @@
 {
-  "_comment": "Highest number of files calling authFetch outside src/api agent-hub/src may still carry. Lower it with `node scripts/count-ratchet.mjs authfetch-outside-api agent-hub --update` after a conversion; raising it is a deliberate edit that belongs in a commit message with a reason.",
-  "_generated": "2026-10-28",
-  "count": 74
+  "_comment": "Highest number of files calling authFetch or apiFetch outside src/api agent-hub/src may still carry. Lower it with `node scripts/count-ratchet.mjs authfetch-outside-api agent-hub --update` after a conversion; raising it is a deliberate edit that belongs in a commit message with a reason.",
+  "_generated": "2026-11-14",
+  "count": 71
 }

@@ -522,6 +522,10 @@ test('extend on a closed request is 409 not_open; the store race maps to 409 too
     try {
         const r = await post(`/requests/${id2}/extend`, { session: ADMIN, body: { reason: 'r' } });
         assert.deepStrictEqual([r.status, r.body], [409, { error: 'already_extended' }]);
+        // Closed between the check and the write: the store's code decides, whatever its wording.
+        mockDsrStore.extend = async () => { throw Object.assign(new Error('closed meanwhile'), { code: 'dsr_not_open' }); };
+        const closed = await post(`/requests/${id2}/extend`, { session: ADMIN, body: { reason: 'r' } });
+        assert.deepStrictEqual([closed.status, closed.body], [409, { error: 'not_open' }]);
     } finally { mockDsrStore.extend = orig; }
 });
 

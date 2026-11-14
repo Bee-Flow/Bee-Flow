@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The `trigger` slot of runState: the payload PLUS the facts about WHICH
  * trigger fired and HOW (multi-trigger automations, 2026-09).
@@ -41,7 +42,7 @@ function scheduleMeta(schedule, enteredTrigger) {
 }
 
 /**
- * @param {{ enteredTrigger?: object|null, triggerKind?: string, triggerPayload?: unknown,
+ * @param {{ enteredTrigger?: { id?: string, kind?: string, label?: unknown, appEvent?: { provider?: string, event?: string } | null } | null, triggerKind?: string, triggerPayload?: unknown,
  *   triggerHeaders?: object|null, schedule?: object|null, startedAt?: number }} [opts]
  *   `enteredTrigger`: the trigger node the run entered through (resolveEnteredTrigger); `triggerKind`: how
  *   the run was dispatched: manual | manual_step | dry_run | schedule | app_event | webhook | form |

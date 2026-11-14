@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * App Studio Builder build loop: one round with the model, up to its tool
  * calls. The streamed request (with the card-being-typed and prefill
@@ -12,20 +12,20 @@
  */
 
 const { trackUsageTotals } = require('../../../core/providers/usageNormalizer');
-const { isTransientChatError } = require('../builderShared');
+const { isTransientChatError } = require('../../../usecases/ai/builderShared');
 const { isLocalProviderType } = require('../../../core/providers/localModels');
 const { makeDraftThrottle, makeProgressThrottle } = require('../../../core/llm/partialJsonScan');
-const { scanAppToolDraft, deriveAppDraftKey } = require('./toolDraft');
-const { streamWithRetry } = require('./modelStream');
+const { scanAppToolDraft, deriveAppDraftKey } = require('../../../usecases/ai/appStudioBuilder/toolDraft');
+const { streamWithRetry } = require('../../../usecases/ai/appStudioBuilder/modelStream');
 const {
     truncationRetryMessages, emptyReplyRetryMessages, isTruncatedStop, providerErrorExcerpt, providerErrorStatus,
     accumulateUsage, recoverLeakedToolCalls, isBlankReply,
-} = require('./turnLoop');
+} = require('../../../usecases/ai/appStudioBuilder/turnLoop');
 const log = require('../../../telemetry/log');
 
 /**
  * @typedef {Awaited<ReturnType<typeof streamWithRetry>>} RoundResponse
- * @typedef {Awaited<ReturnType<typeof import('./promptAssembly').assembleTurnPrompt>>} AssembledTurn
+ * @typedef {Awaited<ReturnType<typeof import('../../../usecases/ai/appStudioBuilder/promptAssembly').assembleTurnPrompt>>} AssembledTurn
  * @typedef {Parameters<typeof import('./turnSetup').attachCrossTurnState>[0]} LoopDraft
  * @typedef {{ name: string, error: string, alreadyAdded: { added?: Array<{ type?: string, id?: string }> }|null, streak?: number }} RepeatedStop
  * @typedef {{
@@ -35,7 +35,7 @@ const log = require('../../../telemetry/log');
  *   invalidArgsRetries: number,
  *   repeatedStop: RepeatedStop|null,
  *   toolRefusalStreak: Map<string, number>,
- *   roundTotals: ReturnType<typeof import('./turnLoop').emptyUsageTotals>,
+ *   roundTotals: ReturnType<typeof import('../../../usecases/ai/appStudioBuilder/turnLoop').emptyUsageTotals>,
  *   turnEffort: ReturnType<typeof import('../../../appStudio/builderModelProfiles').effortForIteration>,
  *   pendingVisionImages: string[],
  * }} LoopState
@@ -55,7 +55,7 @@ const log = require('../../../telemetry/log');
  *   draftWrap: LoopDraft,
  *   userId: string,
  *   modelSupportsVision: boolean,
- *   approvedPlanForTurn: import('./turnClosing').ApprovedPlan|null,
+ *   approvedPlanForTurn: import('../../../usecases/ai/appStudioBuilder/turnClosing').ApprovedPlan|null,
  *   writeCheckpoint: (summary: string) => Promise<void>,
  *   workMode?: AssembledTurn['workModeState'],
  *   usageTotals: Parameters<typeof trackUsageTotals>[0],
@@ -118,7 +118,7 @@ async function requestRound(iter, ctx, ls) {
             // llama-server prefill progress; at most 4/s, the completing chunk
             // always passes.
             onPromptProgress: (/** @type {{ total?: number, cache?: number, processed?: number, time_ms?: number }} */ { total, cache, processed, time_ms }) => {
-                const done = total > 0 && processed >= total;
+                const done = /** @type {number} */ (total) > 0 && /** @type {number} */ (processed) >= /** @type {number} */ (total); // undefined compares false
                 if (!progressGate(done)) return;
                 send('prompt_progress', { iter, total, cache, processed, timeMs: time_ms });
             },
@@ -177,7 +177,7 @@ function accountRound(response, iter, ctx, ls) {
     if (response.usage) {
         trackUsageTotals(ctx.usageTotals, response.usage);
         accumulateUsage(ls.roundTotals, response.usage);
-        ctx.send('usage', { ...response.usage, iter, effort: ls.turnEffort, totals: { ...ls.roundTotals }, ...ctx.usageTotals });
+        ctx.send('usage', { .../** @type {Record<string, unknown>} */ (response.usage), iter, effort: ls.turnEffort, totals: { ...ls.roundTotals }, ...ctx.usageTotals });
     }
 }
 
@@ -270,7 +270,7 @@ function assistantToolMessage(response, thinkingForReplay) {
         role: 'assistant',
         content: response.content || null,
         ...(thinkingForReplay.length ? { thinking: thinkingForReplay } : {}),
-        tool_calls: response.toolCalls.map((tc) => ({
+        tool_calls: /** @type {NonNullable<typeof response.toolCalls>} */ (response.toolCalls).map((tc) => ({ // called for a round that made tool calls
             id: tc.id, type: 'function',
             function: {
                 name: tc.function.name,

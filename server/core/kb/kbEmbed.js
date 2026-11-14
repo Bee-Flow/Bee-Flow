@@ -56,6 +56,11 @@ function byteLength(content) {
  * Chunk + embed `content` for an existing documents row. Local dispatcher or
  * the search-service depending on org config. Throws on failure; the caller
  * decides whether the row is deleted (legacy) or marked 'error' (record mode).
+ * @param {string} tenantId
+ * @param {string} kbId
+ * @param {string} docId
+ * @param {string} content
+ * @param {{ title?: string | null, sourceUri?: string | null, lang?: string | null, pages?: import('./kbIngestionHelpers').ExtractedPage[] | null }} opts
  * @returns {Promise<number>} chunks created
  */
 async function embedDocumentContent(tenantId, kbId, docId, content, { title, sourceUri, lang, pages = null }) {

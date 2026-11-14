@@ -1,9 +1,9 @@
 import { Check, Info } from 'lucide-react';
 import { useId, useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
 import { useOrgDefaultLanguage } from '@/api/queries/orgAdminReads';
-import { mutate, ApiError } from '@/api/mutate';
+import { ApiError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 /**
  * The default is ONE value for the whole server (`org_default_locale`), so
@@ -55,11 +55,7 @@ const EditableDefaultLanguage = () => {
         setSaveFailed(false);
         try {
             try {
-                await mutate(`${API_BASE}/api/languages/org/default`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ defaultLocale: code }),
-            });
+                await apiRequest('PUT /api/languages/org/default', { body: { defaultLocale: code } });
             } catch (err) {
                 if (!(err instanceof ApiError)) throw err;
                 throw new Error(`HTTP ${err.status}`);

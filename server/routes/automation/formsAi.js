@@ -40,7 +40,6 @@
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { usageLogFields } = require('../../core/providers/usageNormalizer');
 const { HttpError } = require('../../core/http/errors');
-const { z, typeError } = require('../../utils/zod');
 const { DRAFT_TOOL, MAX_BRIEF_CHARS, MAX_NOTE_CHARS, buildDraftMessages, parseFormDraft } = require('../../automation/formDraft');
 const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
@@ -106,26 +105,8 @@ function readCurrent(raw) {
     return out;
 }
 
-// -- What a caller may send -------------------------------------------
-//
-// `mode` was read as `=== 'revise' ? 'revise' : 'create'`. So `mode: 'Revise'`
-// -- or any other spelling -- DREW A NEW FORM over the one on screen instead
-// of changing it, and answered 200 with a draft that looked plausible. The
-// same class as `mode: 'defenition'` on the automation import route.
-//
-// `current` stays OPEN on purpose: it is the form as the editor holds it, and
-// readCurrent() below is already the allow-list of the parts the prompt
-// quotes. The schema asks only that it be a document, never a list.
-const MODE_TEXT = 'mode is "create" or "revise".';
-const DraftBody = z.preprocess(
-    (v) => (v === undefined || v === null ? {} : v),
-    z.object({
-        mode: z.enum(['create', 'revise'], { error: () => MODE_TEXT }).default('create'),
-        brief: z.string({ error: typeError({ invalid: 'brief must be text.' }) }).optional(),
-        note: z.string({ error: typeError({ invalid: 'note must be text.' }) }).optional(),
-        current: z.record(z.string(), z.unknown()).nullish(),
-    }).strict(),
-);
+// What a caller may send: formDraftBody.mts.
+const { DraftBody } = require('./formDraftBody.mts');
 
 // ── POST /api/automation/forms/ai/draft ──────────────────────────────
 async function draft(req, res) {
@@ -213,7 +194,7 @@ function styleInputsOf(body, savedForm) {
 async function styleAssist(req, res) {
     const a = res.locals.automation;
     const body = req.body;
-    const { resolveTriggerStepId } = require('./runEntry');
+    const { resolveTriggerStepId } = require('../../usecases/automation/runEntry');
     const entered = resolveTriggerStepId(a.definition, body.triggerStepId || null);
     if (entered.error) throw new HttpError(400, 'invalid_trigger_step', entered.error);
     const trigger = /** @type {FormTriggerNode | null | undefined} */ (entered.trigger);

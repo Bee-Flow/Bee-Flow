@@ -255,10 +255,13 @@ function walkRouter(router, base, inherited, isRoot, depth) {
         }
         const use = uses.get(i);
         if (!use) return;
-        if (typeof use.fn.stack !== 'undefined' && Array.isArray(use.fn.stack)) {
+        // A router built on its first request is mounted as a plain function; it says
+        // how to reach the real one with `routerForWalk` (routes/ai/automationBuilder/suggestions.js).
+        const child = typeof use.fn.routerForWalk === 'function' ? use.fn.routerForWalk() : use.fn;
+        if (typeof child.stack !== 'undefined' && Array.isArray(child.stack)) {
             for (const seg of stringPaths(use.mountPath).length ? stringPaths(use.mountPath) : ['/']) {
                 const childBase = joinPath(base, seg);
-                walkRouter(use.fn, childBase, [...inherited, ...local].filter((g) => covers(g.prefix, childBase) || g.prefix.startsWith(`${childBase}/`)), false, depth + 1);
+                walkRouter(child, childBase, [...inherited, ...local].filter((g) => covers(g.prefix, childBase) || g.prefix.startsWith(`${childBase}/`)), false, depth + 1);
             }
             return;
         }

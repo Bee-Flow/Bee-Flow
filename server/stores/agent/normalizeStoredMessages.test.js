@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * BFSF-307 read-path repair.
  *
@@ -167,6 +167,6 @@ test('is idempotent and returns the input untouched when nothing needs repair', 
 
 test('empty and malformed input does not throw', () => {
     for (const input of [[], null, undefined, [null], [{ role: 'user' }]]) {
-        assert.doesNotThrow(() => normalizeStoredMessages(input, { wasCompacted: true }));
+        assert.doesNotThrow(() => normalizeStoredMessages(/** @type {any} */ (input), { wasCompacted: true }));
     }
 });

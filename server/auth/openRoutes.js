@@ -115,10 +115,8 @@ const OPEN_ROUTES = new Map(/** @type {Array<[string, OpenReason]>} */ ([
 
     // ── Gast-chatoppervlak (bewust ontwerp: rijen gescoped op guest-id) ──
     ['GET /agents/:id/embed', 'publieke agent-embed met embedLimiter en 404-vervaging voor ongepubliceerde agents (routes/agents/chat.js:158)'],
-    ['GET /agents/:id/history', 'gast-chat: history gescoped op getEffectiveUserId (guest-cookie-id voor anoniem) — je leest alleen je eigen gastgesprek'],
-    ['DELETE /agents/:id/history', 'als GET /agents/:id/history — wist alleen het eigen (gast)gesprek'],
     ['file:routes/agents/conversations.js', {
-        reden: 'gast-conversaties: elke store-call is gescoped op getEffectiveUserId; agent-leesbaarheid loopt waar relevant via canReadAgent (routes/agents/crud.js:158).',
+        reden: 'gast-conversaties: elke store-call is gescoped op getEffectiveUserId; de lijst- en aanmaakroutes dragen de leespoort van de agent (auth/agentAccess.mts requireAgentGrade via routes/agents/crud.js).',
         bewijs: { file: 'routes/agents/conversations.js', marker: 'getEffectiveUserId' },
     }],
     ['GET /agents/conversations/all', 'gast-conversatieoverzicht — zelfde getEffectiveUserId-scoping als routes/agents/conversations.js'],

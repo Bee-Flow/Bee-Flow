@@ -13,7 +13,7 @@
  *
  * Evidence lines use the server's codes and English texts
  * (server/automation/aiActTexts.js); areas follow Annex III as
- * server/compliance/aiAct/annexIii.js numbers them.
+ * server/core/aiAct/annexIii.js numbers them.
  */
 
 import { daysAgo } from './common';

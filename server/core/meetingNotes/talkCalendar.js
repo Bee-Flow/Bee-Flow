@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Talk calendar helper — find the user's upcoming Nextcloud Talk MEETINGS
  * (calendar events linked to a Talk conversation) so auto-record can scope to
@@ -45,7 +45,7 @@ async function listUpcomingTalkMeetings({ session, userId, orgId = null, windowH
         const startISO = new Date().toISOString();
         const endISO = new Date(Date.now() + windowHours * 3600_000).toISOString();
 
-        const calRes = await guardedNcCall('nextcloud_calendar_list', {}, { userId, orgId, session },
+        const calRes = await guardedNcCall('nextcloud_calendar_list', {}, { userId: /** @type {string} */ (userId), orgId, session },
             () => calendarTools().executeNextcloudCalendarTool('nextcloud_calendar_list', {}, userId, session));
         const calendars = Array.isArray(calRes?.calendars) ? calRes.calendars : [];
         if (!calendars.length) return [];
@@ -60,7 +60,7 @@ async function listUpcomingTalkMeetings({ session, userId, orgId = null, windowH
             // this loop by any other route must still be checked before its
             // events are read.
             const evArgs = { calendar: slug, start: startISO, end: endISO };
-            const evRes = await guardedNcCall('nextcloud_calendar_list_events', evArgs, { userId, orgId, session },
+            const evRes = await guardedNcCall('nextcloud_calendar_list_events', evArgs, { userId: /** @type {string} */ (userId), orgId, session },
                 () => calendarTools().executeNextcloudCalendarTool('nextcloud_calendar_list_events', evArgs, userId, session),
             ).catch((e) => fallback('core/meetingNotes/talkCalendar:listUpcomingTalkMeetings', e, null));
             const events = Array.isArray(evRes?.events) ? evRes.events : [];

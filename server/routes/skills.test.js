@@ -100,7 +100,7 @@ const MOCKS = {
     '../stores/userStore': { getUser: async () => ({ id: fx.userId, organizationId: fx.orgId }) },
     '../stores/agentStore': { scrubSkillFromAllAgents: async () => 0 },
     // Linking an automation is starting it (its own suite: skills/automationLink.test.js).
-    './skills/automationLink': {
+    '../usecases/skills/automationLink': {
         assertMayLinkAutomation: async (automationId, userId, current) => {
             rec('assertMayLinkAutomation', { automationId, userId, current });
             if (!automationId || automationId === (current || null) || ['run', 'edit', 'owner'].includes(fx.linkRole)) return;

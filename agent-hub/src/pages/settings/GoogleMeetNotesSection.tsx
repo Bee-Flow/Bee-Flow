@@ -7,7 +7,8 @@ import { languageOptions, Toggle, Row, Select } from '@/components/settings/shar
 import { openGoogleOAuthPopup } from '../../lib/googleOAuthPopup';
 import { useTranslation, type TranslateFn } from '../../hooks/useTranslation';
 import { errorMessage, messageOf } from '../../utils/caughtError';
-import { RefusedError, mutate, errorBody } from '../../api/mutate';
+import { RefusedError, errorBody } from '../../api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 interface GmeetConfig {
     autoImport: boolean;
@@ -97,9 +98,7 @@ export default function GoogleMeetNotesSection() {
         try {
             let res: Response | undefined;
             try {
-                res = await mutate(`${API_BASE}/api/gmeet-notes-settings/user/me`, {
-                method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cfg),
-            });
+                res = await apiRequest('PUT /api/gmeet-notes-settings/user/me', { init: { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cfg) } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const e = errorBody(err) ?? {};

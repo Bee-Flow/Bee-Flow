@@ -1,4 +1,6 @@
 // @typecheck noImplicitAny
+// Another feature's module, looked up by name (core/featureModules.js).
+const { featureModule } = require('../core/featureModules');
 const { fallback } = require('../utils/bestEffort');
 
 /**
@@ -45,7 +47,7 @@ function resolveDeps(_deps = {}) {
     const d = { ..._deps };
     if (!d.getIntegrationTools) d.getIntegrationTools = require('../core/integrations/integrationTools').getIntegrationTools;
     if (!d.findOwnerOfTool || !d.loadRegistry) {
-        const registry = require('../automation/toolRegistry');
+        const registry = /** @type {typeof import('../automation/toolRegistry')} */ (featureModule('automation/toolRegistry'));
         if (!d.findOwnerOfTool) d.findOwnerOfTool = registry.findOwnerOfTool;
         if (!d.loadRegistry) {
             d.loadRegistry = () => registry.TOOL_REGISTRY.map((entry) => {

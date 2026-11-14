@@ -10,6 +10,7 @@
 const fsp = require('fs/promises');
 const crypto = require('crypto');
 const log = require('../../telemetry/log');
+const { ignoreGone } = require('../../utils/bestEffort');
 
 const FLUSH_DEBOUNCE_MS = 5000;
 const MAX_OPEN_HANDLES = 32;
@@ -155,7 +156,7 @@ function createFlusher({ handles, dbKey, storage, runQuery, metaTable, logPrefix
             } catch (e) {
                 log.warn(`[${logPrefix}] Evict flush failed for ${id}:`, /** @type {Error} */ (e).message);
             }
-            try { entry.db.close(); } catch (_) { log.debug('database handle already closed', _); }
+            try { entry.db.close(); } catch (_) { ignoreGone('stores/sqliteBlobFlush:closeHandle', _); }
             if (entry.flushTimer) clearTimeout(entry.flushTimer);
             handles.delete(id);
         }

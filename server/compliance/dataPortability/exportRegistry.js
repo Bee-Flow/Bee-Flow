@@ -1,5 +1,5 @@
 /** @typedef {import('express-serve-static-core').Express} Express */
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Data Act export registry — every kind of data the platform holds for an
  * organisation, and the export route (if any) that lets the organisation take
@@ -284,10 +284,10 @@ function portableKinds() {
 
 /**
  * Every route the table declares, flattened: primary, extra and render-only.
- * @returns {Array<{kind:string,method:string,path:string,mount:object,role:'primary'|'extra'|'render_only'}>}
+ * @returns {Array<{kind:string,method:string,path:string,mount:ExportKind['mount'],role:'primary'|'extra'|'render_only'}>}
  */
 function declaredRoutes() {
-    /** @type {Array<{kind:string,method:string,path:string,mount:object,role:'primary'|'extra'|'render_only'}>} */
+    /** @type {Array<{kind:string,method:string,path:string,mount:ExportKind['mount'],role:'primary'|'extra'|'render_only'}>} */
     const out = [];
     for (const k of EXPORT_KINDS) {
         if (k.route) out.push({ kind: k.kind, ...k.route, mount: k.mount, role: 'primary' });
@@ -329,7 +329,7 @@ function _appFor(mount) {
 
 /**
  * @param {ExportKind} entry
- * @param {{method:string,path:string}} [route=entry.route]
+ * @param {{method:string,path:string} | null} [route=entry.route]
  * @returns {boolean}
  */
 function resolveMounted(entry, route = entry.route) {
@@ -390,14 +390,14 @@ async function heldCounts(orgId, /** @type {{db?: any}} */ { db } = {}) {
 function _num(v) {
     if (v === null || v === undefined) return null;
     const n = Number(v);
-    return Number.isFinite(n) ? n : null;
+    return Number.isFinite(n) ? /** @type {number} */ (n) : null;
 }
 
 /**
  * The Data Act export matrix for one organisation.
  * @param {string} orgId
  * @param {{db?:HeldCountsDb, probe?:(entry:ExportKind, route:object)=>boolean}} [opts] test seams
- * @returns {Promise<Array<{kind:string,label_key:string,held:number|null,held_scope:string,route:object|null,extra_routes:object[],render_only:object|null,formats:string[],scope:string,mounted:boolean,gap_key:string|null}>>}
+ * @returns {Promise<Array<{kind:string,label_key:string,held:number|null,held_scope:string,route:ExportKind['route'],extra_routes:Array<{method:string,path:string}>,render_only:ExportKind['renderOnly'],formats:string[],scope:string,mounted:boolean,gap_key:string|null}>>}
  */
 async function coverageMatrix(orgId, { db, probe } = {}) {
     const { counts } = await heldCounts(orgId, { db });

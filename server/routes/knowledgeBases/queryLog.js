@@ -13,7 +13,7 @@
  * Mounted BEFORE `detail`, like the other literal paths.
  *
  * ── WHO MAY SEE ANY OF THIS ─────────────────────────────────────────
- * Every KB route needs the licence (`kb_query_log`) and `canManageKB`. A caller who may only READ
+ * Every KB route needs the licence (`kb_query_log`) and the manage grade. A caller who may only READ
  * the base (a published base, a member of the organisation) gets the same 404 as for a base that
  * does not exist: the log holds other people's questions, and its existence is not for them.
  * The notice is the one exception: it tells a reader that THEIR questions to a base they can
@@ -28,15 +28,13 @@
 
 const express = require('express');
 const router = express.Router();
-const kbStore = require('../../stores/knowledgeBases');
 const { requireAuth } = require('../../auth');
-const { tagGate } = require('../../auth/gateMeta');
 const { requireFeature: requireLicenseFeature } = require('../../license/middleware');
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
 const { z, worded, choice, bodyOf, queryOf, wholeNumber } = require('../../core/http/schemaParts');
-const { getUserId, canManageKB, blockIfSystemKB } = require('./shared');
-const { metadataShape, pagingShape, textShape, metadataFilter, auditFirst } = require('./queryLogFilters');
+const { getUserId, requireKbGrade, kbAccessOf, blockIfSystemKB } = require('./shared');
+const { metadataShape, pagingShape, textShape, metadataFilter, auditFirst } = require('../../usecases/knowledgeBases/queryLogFilters');
 const { REVIEW_STATUSES, RETENTION_DAYS, HIGH_RISK_MIN_RETENTION_DAYS } = require('../../core/kb/queryLog/vocab.mts');
 const { invalidateKbQueryLogCache } = require('../../core/kb/queryLog/recorder.mts');
 const { validateAttestation } = require('../../core/kb/queryLog/attestation.mts');
@@ -97,31 +95,11 @@ const ReviewBody = bodyOf({
 // ── Helpers ─────────────────────────────────────────────────────────
 
 /**
- * The base, when the caller manages it and the base may carry a log. Everyone else, including a
- * reader, is told it does not exist.
- * @param {import('express').Request} req
- * @param {string} id
- */
-async function managedKb(req, id) {
-    const kb = await kbStore.getKB(id);
-    if (!kb || !(await canManageKB(req, kb))) throw new HttpError(404, 'kb_not_found', 'KB not found');
-    return kb;
-}
-
-/**
  * Gate of every KB route: the base is loaded and the caller must manage it, BEFORE the body or the
- * query is read, so a reader gets the 404 whatever they send. The base is left on `res.locals.kb`.
- * @param {import('express').Request<{ id: string }>} req
- * @param {import('express').Response} res
- * @param {import('express').NextFunction} next
+ * query is read, so a reader gets the 404 whatever they send (`belowGrade: 404`: everyone else,
+ * a reader included, is told the base does not exist). The base is `kbAccessOf(req).kb`.
  */
-async function loadManagedKb(req, res, next) {
-    try {
-        res.locals.kb = await managedKb(req, req.params.id);
-        next();
-    } catch (err) { next(err); }
-}
-tagGate(loadManagedKb, { axis: 'scope', kind: 'kbManager', param: 'id', paramDependent: true });
+const loadManagedKb = requireKbGrade('manage', { belowGrade: 404 });
 const gates = [requireAuth, requireLicenseFeature(FEATURE), loadManagedKb];
 // Switching off and purging must keep working after the licence ran out: manager-gated, not licence-gated.
 const offGates = [requireAuth, loadManagedKb];
@@ -245,8 +223,8 @@ async function applySettings(kb, actorId, body) {
 
 // ── PUT /:id/query-log/settings ─────────────────────────────────────
 
-router.put('/:id/query-log/settings', ...gates, validate({ body: SettingsBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof SettingsBody>>} */ req, res) => {
-    const kb = res.locals.kb;
+router.put('/:id/query-log/settings', ...gates, validate({ body: SettingsBody }), async (req, res) => {
+    const { kb } = kbAccessOf(req);
     if (blockIfSystemKB(kb, res)) return;
     const actorId = getUserId(req);
     const { enabled } = req.body;
@@ -260,7 +238,7 @@ router.put('/:id/query-log/settings', ...gates, validate({ body: SettingsBody })
 // Purge and switch off. Not licence-gated: after the licence expired a manager can still erase.
 
 router.delete('/:id/query-log', ...offGates, validate({ query: NoQuery }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
-    const kb = res.locals.kb;
+    const { kb } = kbAccessOf(req);
     if (blockIfSystemKB(kb, res)) return;
     res.json(await applySettings(kb, getUserId(req), { enabled: false, deleteExisting: true }));
 });
@@ -269,7 +247,7 @@ router.delete('/:id/query-log', ...offGates, validate({ query: NoQuery }), async
 // Literal path before `:entryId`.
 
 router.get('/:id/query-log/settings', ...gates, validate({ query: NoQuery }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
-    const kb = res.locals.kb;
+    const { kb } = kbAccessOf(req);
     const settings = await queryLogStore.getQueryLogSettings(kb.id);
     if (!settings) throw new HttpError(404, 'kb_not_found', 'KB not found');
     const acks = await queryLogStore.ackCountsByKb([kb.id]);
@@ -279,7 +257,7 @@ router.get('/:id/query-log/settings', ...gates, validate({ query: NoQuery }), as
 // ── GET /:id/query-log ──────────────────────────────────────────────
 
 router.get('/:id/query-log', ...gates, readLimiter, validate({ query: ListQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof ListQuery>>} */ req, res) => {
-    const kb = res.locals.kb;
+    const { kb } = kbAccessOf(req);
     const limit = req.query.limit ?? PAGE_DEFAULT;
     const offset = req.query.offset ?? 0;
     const filter = metadataFilter(req.query);
@@ -300,8 +278,8 @@ router.get('/:id/query-log', ...gates, readLimiter, validate({ query: ListQuery 
 
 const EXPORT_HEADERS = ['createdAt', 'asker', 'channel', 'outcome', 'reviewStatus', 'query', 'answer', 'chunkCount', 'topScore', 'model', 'retrievalMs', 'answerMs', 'errorCode', 'reviewNote', 'reviewedAt'];
 
-router.get('/:id/query-log/export.csv', ...gates, exportLimiter, validate({ query: ExportQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof ExportQuery>>} */ req, res) => {
-    const kb = res.locals.kb;
+router.get('/:id/query-log/export.csv', ...gates, exportLimiter, validate({ query: ExportQuery }), async (req, res) => {
+    const { kb } = kbAccessOf(req);
     const filter = metadataFilter(req.query);
     const q = req.query.q || null;
     const userId = await askerFilter(kb, filter.userId);
@@ -339,7 +317,7 @@ router.get('/:id/query-log/export.csv', ...gates, exportLimiter, validate({ quer
 // ── GET /:id/query-log/:entryId ─────────────────────────────────────
 
 router.get('/:id/query-log/:entryId', ...gates, validate({ query: NoQuery }), async (/** @type {import('express').Request<{ id: string, entryId: string }>} */ req, res) => {
-    const kb = res.locals.kb;
+    const { kb } = kbAccessOf(req);
     const entry = await queryLogStore.getEntry(kb.id, req.params.entryId);
     if (!entry) throw new HttpError(404, 'entry_not_found', 'Entry not found');
     res.json(entryOut(entry, kb));
@@ -347,8 +325,8 @@ router.get('/:id/query-log/:entryId', ...gates, validate({ query: NoQuery }), as
 
 // ── PATCH /:id/query-log/:entryId/review ────────────────────────────
 
-router.patch('/:id/query-log/:entryId/review', ...gates, validate({ body: ReviewBody }), async (/** @type {import('express').Request<{ id: string, entryId: string }, any, import('zod').infer<typeof ReviewBody>>} */ req, res) => {
-    const kb = res.locals.kb;
+router.patch('/:id/query-log/:entryId/review', ...gates, validate({ body: ReviewBody }), async (req, res) => {
+    const { kb } = kbAccessOf(req);
     const entry = await queryLogStore.setReview(kb.id, req.params.entryId, {
         status: req.body.status, note: req.body.note ?? null, reviewedBy: getUserId(req),
     });

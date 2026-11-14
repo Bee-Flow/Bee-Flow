@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { toast } from '@/components/shared/Toast';
 import { useTheme } from '../../ThemeContext';
-import { API_BASE } from '@/utils/helpers';
 import type { Dispatch, SetStateAction } from 'react';
 import type { GlassTier, ThemeSettings } from '../../ThemeContext.types';
 import { messageOf } from '@/utils/caughtError';
-import { request, RefusedError } from '@/api/mutate';
+import { RefusedError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 /** The draft the Look editor edits: the theme knobs minus the uploaded wallpaper and its source. */
 export interface LookForm {
@@ -58,36 +59,38 @@ export interface DraftPayload extends Omit<LookForm, 'wallpaperOverlay'> {
  */
 export function useLookForm() {
     const theme = useTheme();
-    const [orgDefault, setOrgDefault] = useState<ThemeSettings | null>(null);
     const [form, setForm] = useState<LookForm | null>(null);
     const [saving, setSaving] = useState(false);
-    const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
-    const refresh = useCallback(async () => {
-        try {
-            let res: Response;
+    const query = useQuery<ThemeSettings>({
+        queryKey: ['branding', 'admin'],
+        staleTime: 0,
+        retry: false,
+        queryFn: async () => {
             try {
-                res = await request(`${API_BASE}/api/branding/admin`);
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                throw new Error(`HTTP ${err.status}`);
+                try {
+                    return await (await apiRequest('GET /api/branding/admin')).json();
+                } catch (err) {
+                    if (!(err instanceof RefusedError)) throw err;
+                    throw new Error(`HTTP ${err.status}`, { cause: err });
+                }
+            } catch (e) {
+                setError(messageOf(e, 'Could not load org theme'));
+                throw e;
             }
-            const raw = await res.json();
-            setOrgDefault(raw);
-            setForm((prev: LookForm | null) => prev ? prev : buildFormFromTheme(raw));
-            return raw;
-        } catch (e) {
-            setError(messageOf(e, 'Could not load org theme'));
-            throw e;
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        refresh().catch(() => { /* error captured in state */ });
-    }, [refresh]);
+        },
+    });
+    const orgDefault = query.data ?? null;
+    const loading = query.isPending;
+    // The first answer fills the form; later ones only through save, discard or reload.
+    if (!form && query.data) setForm(buildFormFromTheme(query.data));
+    const { refetch } = query;
+    const refresh = useCallback(async () => {
+        const result = await refetch();
+        if (result.error) throw result.error;
+        return result.data as ThemeSettings;
+    }, [refetch]);
 
     const dirty = useMemo(() => {
         if (!form || !orgDefault) return false;

@@ -5,10 +5,11 @@ import {
 } from 'lucide-react';
 import useAutomationApi from '../../hooks/useAutomationApi';
 import useTranslation, { TranslateParams } from '../../hooks/useTranslation';
-import { mutate, request, RefusedError, errorBody } from '../../api/mutate';
+import { RefusedError, errorBody } from '../../api/mutate';
+import { apiRequest } from '../../api/typedRequest';
 import type { CatalogApp } from '../../components/automation/Builder/flow/stepPalette.types';
 import type { AutomationOption, GrantedIntegration, GrantedAutomation, Grants, AutomationApi, StatusPillProps, AddAutomationFormProps, WebpageAppsPanelProps } from './WebpageAppsPanel.types';
-import { GRANTS_BASE, readJson, ConnectLink, AddAppForm } from './AddAppForm';
+import { readJson, ConnectLink, AddAppForm } from './AddAppForm';
 
 // How long a catalog/grants snapshot may be shown stale; a window-focus or a
 // manual refresh re-fetches (the author may have just connected an app).
@@ -50,10 +51,9 @@ function AddAutomationForm({ webpageId, automations, onGranted, onError }: AddAu
         setSubmitting(true);
         try {
             try {
-                await mutate(GRANTS_BASE(webpageId) + '/automations', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ automationId }),
+                await apiRequest('POST /api/webpages/{id}/grants/automations', {
+                    params: { id: String(webpageId) },
+                    init: { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ automationId }) },
                 });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
@@ -131,7 +131,7 @@ export default function WebpageAppsPanel({ webpageId, readOnly = false }: Webpag
         try {
             let body: Grants;
             try {
-                const res = await request(GRANTS_BASE(webpageId));
+                const res = await apiRequest('GET /api/webpages/{id}/grants', { params: { id: webpageId } });
                 body = await readJson(res);
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
@@ -171,11 +171,13 @@ export default function WebpageAppsPanel({ webpageId, readOnly = false }: Webpag
         return () => window.removeEventListener('focus', onFocus);
     }, [load]);
 
-    const revoke = async (kind: string, key: string | number | boolean) => {
+    const revoke = async (kind: 'integrations' | 'automations', key: string | number | boolean) => {
         setError(null);
         try {
             try {
-                await mutate(`${GRANTS_BASE(webpageId)}/${kind}/${encodeURIComponent(key)}`, { method: 'DELETE' });
+                await (kind === 'integrations'
+                    ? apiRequest('DELETE /api/webpages/{id}/grants/integrations/{tool}', { params: { id: webpageId, tool: String(key) } })
+                    : apiRequest('DELETE /api/webpages/{id}/grants/automations/{automationId}', { params: { id: webpageId, automationId: String(key) } }));
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 throw new Error(errorBody(err)?.error || t('webpages.apps.err_remove', 'Could not remove ({status})', { status: err.status }));

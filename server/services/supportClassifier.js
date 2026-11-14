@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Support Classifier — decides whether an inbound email is a genuine customer
  * SUPPORT request for this inbox's organization, so non-support mail (order
@@ -16,7 +16,7 @@
  */
 
 const supportStore = require('../stores/supportStore');
-const { parseAddress } = require('./email/parse');
+const { parseAddress } = require('../utils/emailParse');
 const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 
@@ -58,7 +58,7 @@ async function _orgName(organizationId) {
 /**
  * Has staff previously vouched for this sender as genuine support?
  * @param {Record<string, any>} inbox  support_inboxes row
- * @param {string} fromAddress
+ * @param {string | undefined} fromAddress
  */
 function isKnownGoodSender(inbox, fromAddress) {
     const list = Array.isArray(inbox?.known_good_senders) ? inbox.known_good_senders : [];

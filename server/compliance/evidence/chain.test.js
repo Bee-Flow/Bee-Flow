@@ -1,11 +1,11 @@
 /**
- * verifyChain against an in-memory double of compliance_evidence that behaves
- * like node-postgres does: BIGINT `seq` comes back as a string, JSONB
- * `payload` comes back re-parsed (key order lost), COUNT(*)::int as a number.
- * Rows are built the way complianceStore.addEvidence chains them, then broken
- * one way at a time.
+ * verifyChain against a real compliance_evidence table: the boot ladder's
+ * schema on PGlite (testUtils/pgliteTemplate.js), so BIGINT `seq`, the JSONB
+ * `payload` (Postgres keeps its own key order) and the COUNTs come back the way
+ * the database hands them over. Rows are built the way complianceStore.addEvidence
+ * chains them, inserted, then broken one way at a time.
  *
- * Run: cd server && node --test --test-force-exit compliance/evidence/chain.test.js
+ * Run: cd server && node --test compliance/evidence/chain.test.js
  */
 
 const test = require('node:test');
@@ -14,6 +14,14 @@ const crypto = require('crypto');
 
 const { hashPayload, linkHash, verifyChain } = require('./chain');
 const { canonicalJSON } = require('./canonical');
+const { pgliteDb, dbFacade } = require('../../testUtils/pgliteDb');
+const { ladderPglite } = require('../../testUtils/pgliteTemplate');
+const { insertRow } = require('../../testUtils/pgliteSeed');
+const { failReads } = require('../../testUtils/pgliteFaults');
+
+const { pg, db: rawDb } = pgliteDb(ladderPglite());
+const facade = dbFacade(rawDb);
+test.after(() => pg.close());
 
 const sha256 = (s) => crypto.createHash('sha256').update(s).digest('hex');
 const HEX64 = /^[0-9a-f]{64}$/;
@@ -60,51 +68,32 @@ function preChainRow(org, payload, { hash } = {}) {
     };
 }
 
+/**
+ * A db for verifyChain over the real table holding exactly `rows`. The rows go
+ * in on the first read; `columnsMissing` takes the chain columns away for that
+ * read (42703), `throwError` makes the table fail with that error's SQLSTATE.
+ */
 function fakeDb(rows, { columnsMissing = false, throwError = null } = {}) {
     const calls = { getOne: [], getAll: [] };
-    const fail = () => {
-        if (throwError) throw throwError;
-        if (columnsMissing) {
-            const e = new Error('column "seq" does not exist');
-            e.code = '42703';
-            e.severity = 'ERROR';
-            throw e;
+    let ready = null;
+    const seed = () => (ready ||= (async () => {
+        await pg.exec('TRUNCATE compliance_evidence');
+        for (const r of rows) await insertRow(pg, 'compliance_evidence', r);
+    })());
+    /** Run one read under the requested fault. */
+    async function around(fn) {
+        await seed();
+        if (columnsMissing) await pg.exec('ALTER TABLE compliance_evidence RENAME COLUMN seq TO seq_hidden');
+        const undo = throwError ? await failReads(pg, 'compliance_evidence', throwError.code, throwError.message) : null;
+        try { return await fn(); } finally {
+            if (undo) await undo();
+            if (columnsMissing) await pg.exec('ALTER TABLE compliance_evidence RENAME COLUMN seq_hidden TO seq');
         }
-    };
+    }
     return {
         calls,
-        async getOne(sql, params) {
-            calls.getOne.push({ sql, params });
-            fail();
-            assert.match(sql, /COUNT\(\*\)/);
-            const mine = rows.filter(r => r.organization_id === params[0]);
-            const pre = mine.filter(r => r.seq === null);
-            const latest = mine.reduce((m, r) => (!m || r.captured_at > m ? r.captured_at : m), null);
-            return {
-                rows_total: mine.length,
-                chained_rows: mine.length - pre.length,
-                pre_chain_rows: pre.length,
-                pre_chain_invalid: pre.filter(r => !r.hash || !HEX64.test(r.hash)).length,
-                latest_captured_at: latest,
-            };
-        },
-        async getAll(sql, params) {
-            calls.getAll.push({ sql, params });
-            fail();
-            assert.match(sql, /seq IS NOT NULL/);
-            assert.match(sql, /ORDER BY seq DESC\s+LIMIT \$2/);
-            const limit = params[1];
-            return rows
-                .filter(r => r.organization_id === params[0] && r.seq !== null)
-                .sort((a, b) => b.seq - a.seq)
-                .slice(0, limit)
-                .sort((a, b) => a.seq - b.seq)
-                // node-postgres: int8 → string; JSONB → object (fresh copy).
-                .map(r => ({
-                    seq: String(r.seq), hash: r.hash, prev_hash: r.prev_hash,
-                    payload_hash: r.payload_hash, payload: JSON.parse(JSON.stringify(r.payload)),
-                }));
-        },
+        async getOne(sql, params) { calls.getOne.push({ sql, params }); return around(() => facade.getOne(sql, params)); },
+        async getAll(sql, params) { calls.getAll.push({ sql, params }); return around(() => facade.getAll(sql, params)); },
     };
 }
 
@@ -163,7 +152,7 @@ test('a valid 3-row chain verifies end to end, through the JSONB key reorder', a
     assert.equal(r.verified_rows, 3);
     assert.equal(r.first_break, null);
     assert.deepEqual(r.head, { seq: 3, hash: rows[2].hash });
-    assert.equal(r.latest_captured_at, rows[2].captured_at);
+    assert.deepEqual(r.latest_captured_at, rows[2].captured_at);
     assert.match(r.checked_at, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/, 'checked_at is an ISO timestamp');
 });
 

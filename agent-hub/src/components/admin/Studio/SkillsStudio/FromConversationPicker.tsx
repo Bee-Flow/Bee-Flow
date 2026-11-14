@@ -1,15 +1,73 @@
 import { Loader2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import Modal from '@/components/shared/Modal';
 import { toast } from '@/components/shared/Toast';
 import { skillsApi } from '@/api/skillsApi';
 import type { JsonResourceError } from '@/api/client';
 import type { FromConversationPickerProps, PickerConversation, PickerMessage, BusyProps } from './ExamplesTab.types';
 
+/**
+ * The caller's conversations and, once one is picked, its messages. A failed read
+ * says so through `onError` and reads as `false`, never as "none".
+ */
+function useExampleReads(conversationId: string | null, setError: (m: string | null) => void, setPiiChecked: (v: boolean) => void) {
+    // `false`, not `[]`: an empty array renders as "No conversations of
+    // your own yet.", which is a claim about the account. A read that
+    // failed made that claim AND showed the error line at the same
+    // time — two contradictory sentences in one panel.
+    const conversationsQuery = useQuery<PickerConversation[] | false>({
+        queryKey: ['skills', 'exampleConversations'],
+        staleTime: 0,
+        retry: false,
+        queryFn: async () => {
+            try {
+                const body = await skillsApi.exampleConversations();
+                return body?.conversations || [];
+            } catch (e) {
+                setError((e as Error).message);
+                return false;
+            }
+        },
+    });
+    const conversations = conversationsQuery.data ?? null;
+
+    // Asked again on every pick (nothing is kept for a conversation left behind).
+    const messagesQuery = useQuery<{ messages: PickerMessage[] | false; piiChecked: boolean }>({
+        queryKey: ['skills', 'exampleMessages', conversationId],
+        enabled: !!conversationId,
+        staleTime: 0,
+        gcTime: 0,
+        retry: false,
+        queryFn: async () => {
+            try {
+                const body = await skillsApi.exampleMessages(conversationId as string);
+                // Only an explicit `false` withdraws the promise. An older
+                // server that does not send the field has the guard wired the
+                // way it always was, and the write is the real gate anyway.
+                return { messages: body?.messages || [], piiChecked: body?.piiChecked !== false };
+            } catch (e) {
+                // Same rule as the list above, and one more thing: a failed read
+                // says nothing about the personal-data check either, so the promise
+                // is withdrawn rather than left standing from the PREVIOUS
+                // conversation.
+                setError((e as Error).message);
+                return { messages: false, piiChecked: false };
+            }
+        },
+    });
+    const messages = conversationId ? (messagesQuery.data?.messages ?? null) : null;
+    const [seenMessages, setSeenMessages] = useState(messagesQuery.data);
+    if (messagesQuery.data && messagesQuery.data !== seenMessages) {
+        setSeenMessages(messagesQuery.data);
+        setPiiChecked(messagesQuery.data.piiChecked);
+    }
+
+    return { conversations, messages };
+}
+
 export function FromConversationPicker({ skillId, onClose, onAdded, t }: FromConversationPickerProps) {
-    const [conversations, setConversations] = useState<PickerConversation[] | false | null>(null);
     const [conversationId, setConversationId] = useState<string | null>(null);
-    const [messages, setMessages] = useState<PickerMessage[] | false | null>(null);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
     /**
@@ -24,43 +82,16 @@ export function FromConversationPicker({ skillId, onClose, onAdded, t }: FromCon
      */
     const [piiChecked, setPiiChecked] = useState(true);
 
-    useEffect(() => {
-        let alive = true;
-        skillsApi.exampleConversations()
-            .then((body) => { if (alive) setConversations(body?.conversations || []); })
-            // `false`, not `[]`: an empty array renders as "No conversations of
-            // your own yet.", which is a claim about the account. A read that
-            // failed made that claim AND showed the error line at the same
-            // time — two contradictory sentences in one panel.
-            .catch((e) => { if (alive) { setConversations(false); setError(e.message); } });
-        return () => { alive = false; };
-    }, []);
+    const { conversations, messages } = useExampleReads(conversationId, setError, setPiiChecked);
 
-    useEffect(() => {
-        if (!conversationId) return undefined;
-        let alive = true;
-        setMessages(null);
-        // The previous conversation's answer is not this one's. Left standing,
-        // conversation A's "personal data is removed" sentence sat over
-        // conversation B while B was still loading.
+    // The previous conversation's answer is not this one's. Left standing,
+    // conversation A's "personal data is removed" sentence sat over
+    // conversation B while B was still loading.
+    const pick = (id: string) => {
+        setConversationId(id);
         setPiiChecked(true);
         setError(null);
-        skillsApi.exampleMessages(conversationId)
-            .then((body) => {
-                if (!alive) return;
-                setMessages(body?.messages || []);
-                // Only an explicit `false` withdraws the promise. An older
-                // server that does not send the field has the guard wired the
-                // way it always was, and the write is the real gate anyway.
-                setPiiChecked(body?.piiChecked !== false);
-            })
-            // Same rule as the list above, and one more thing: a failed read
-            // says nothing about the personal-data check either, so the promise
-            // is withdrawn rather than left standing from the PREVIOUS
-            // conversation.
-            .catch((e) => { if (alive) { setMessages(false); setPiiChecked(false); setError(e.message); } });
-        return () => { alive = false; };
-    }, [conversationId]);
+    };
 
     /**
      * The server's `code` is what gets translated, not its English sentence.
@@ -146,7 +177,7 @@ export function FromConversationPicker({ skillId, onClose, onAdded, t }: FromCon
                             <li key={conv.id}>
                                 <button
                                     type="button"
-                                    onClick={() => setConversationId(conv.id)}
+                                    onClick={() => pick(conv.id)}
                                     data-testid="skill-example-conversation"
                                     className="w-full text-left px-3 py-2 rounded-lg text-xs hover:bg-[var(--bg-secondary)] transition"
                                 >
@@ -162,7 +193,7 @@ export function FromConversationPicker({ skillId, onClose, onAdded, t }: FromCon
                     <>
                         <button
                             type="button"
-                            onClick={() => { setConversationId(null); setMessages(null); }}
+                            onClick={() => setConversationId(null)}
                             className="self-start text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] underline"
                         >
                             {t('skills_studio.examples.back_to_chats', 'Back to conversations')}

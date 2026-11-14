@@ -9,7 +9,7 @@
  *   affects  — what in THIS org the date touches, for the milestones that
  *              carry an `affects_kind`:
  *                'marking'  → automations with a document step downstream of an
- *                             AI step (automation/automationGraph via
+ *                             AI step (core/automationModel/automationGraph via
  *                             aiAct/signals.listGeneratingAutomations) and the
  *                             org's published agents (AI Act Art. 50 marking);
  *                'a11y'     → published webpages and live public forms (EAA);
@@ -28,8 +28,9 @@
 'use strict';
 
 const frameworks = require('./frameworks');
+const { envInt } = require('../utils/envNumber.mts');
 
-const MEMO_MS = Number(process.env.COMPLIANCE_CALENDAR_MEMO_MS) || 60_000;
+const MEMO_MS = envInt('COMPLIANCE_CALENDAR_MEMO_MS', 60_000, { min: 1 });
 const _memo = new Map(); // orgId → { at, milestones }
 
 const DEFAULT_LOADERS = {

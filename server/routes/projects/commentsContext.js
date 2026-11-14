@@ -55,7 +55,7 @@ function resolveCommentsDeps(deps) {
         participationStore: () => deps.participationStore || require('../../stores/projectAiParticipationStore'),
         policy: () => deps.policy || require('../../projects/participation/policy').defaultPolicy(),
         // A thread's AI mode is something the project compliance checks read.
-        aiModeChanged: (project) => (deps.signalProjectChanged || require('./complianceSignal').signalProjectChanged)(project, 'ai_mode'),
+        aiModeChanged: (project) => (deps.signalProjectChanged || require('../../usecases/projects/complianceSignal').signalProjectChanged)(project, 'ai_mode'),
         now: deps.now || (() => Date.now()),
         newId: deps.newId || (() => crypto.randomUUID()),
         // A comment that mentions someone rings their bell (the text is never in it): a task through
@@ -210,6 +210,6 @@ module.exports = { makeCommentsContext };
 
 /** @typedef {import('../../projects/comments/commentAssistant').CommentBox} CommentBox */
 
-/** @typedef {ReturnType<typeof import('../../stores/lib/projectCommentRows').rowToComment>} CommentRow */
+/** @typedef {NonNullable<ReturnType<typeof import('../../stores/lib/projectCommentRows').rowToComment>>} CommentRow  a stored comment */
 
 /** @typedef {ReturnType<typeof makeCommentsContext>} CommentsCtx */

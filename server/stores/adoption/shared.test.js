@@ -10,6 +10,9 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const s = require('./shared');
 const { TEST_SOURCES } = require('../../shared/usageAreas');
+const { pgliteDb } = require('../../testUtils/pgliteDb');
+const { ladderPglite } = require('../../testUtils/pgliteTemplate');
+const { insertRow } = require('../../testUtils/pgliteSeed');
 
 const DAY = s.DAY_MS;
 const NOW = Date.parse('2026-10-28T12:00:00Z'); // a Wednesday
@@ -107,26 +110,36 @@ test('members: the org and its groups, without system rows, the operator, pendin
     assert.deepEqual(foreign.allGroups.map((g) => g.id), ['g1']);
 });
 
-test('the ledger WHERE: period, organisation, no tool rows, no guests, no operator, no test runs; actors when narrowed', () => {
-    const w = s.ledgerWhere({ orgId: 'o1', startDate: 'a', endDate: 'b', actors: ['u1'] });
-    assert.match(w.where, /tool_name IS NULL/);
-    assert.match(w.where, /organization_id = \$3/);
-    assert.match(w.where, /NOT LIKE 'guest\\_%'/);
-    assert.match(w.where, /IS DISTINCT FROM \$4/);
-    assert.match(w.where, /source IS NULL OR source <> ALL\(\$5::text\[\]\)/);
-    assert.match(w.where, /= ANY\(\$6::text\[\]\)/);
-    assert.deepEqual(w.params, ['a', 'b', 'o1', 'admin', [...TEST_SOURCES], ['u1']]);
+test('the ledger WHERE: period, organisation, no tool rows, no guests, no operator, no test runs; actors when narrowed', async () => {
+    const w = s.ledgerWhere({ orgId: 'o1', startDate: '2026-10-01T00:00:00Z', endDate: '2026-10-31T00:00:00Z', actors: ['u1', 'u2'] });
+    assert.deepEqual(w.params.slice(0, 3), ['2026-10-01T00:00:00Z', '2026-10-31T00:00:00Z', 'o1']);
+    assert.deepEqual(w.params.slice(4), [[...TEST_SOURCES], ['u1', 'u2']]);
     assert.equal(w.nextIdx, 7);
     assert.equal(s.ledgerWhere({ orgId: 'o1', startDate: 'a', endDate: 'b' }).params.length, 5);
-});
 
-test('the vocabulary drives the area of a kind and the sources of an area', () => {
-    assert.equal(s.areaOfKind('agent'), 'agents');
-    assert.equal(s.areaOfKind('solution'), null);
-    assert.ok(s.sourcesOfArea('apps').includes('studio_app_action'));
-    const [sources, areas] = s.areaMapArrays();
-    assert.equal(sources.length, areas.length);
-    assert.equal(s.percent(1, 3), 33.3);
-    assert.equal(s.deltaPct(15, 10), 50);
-    assert.equal(s.deltaPct(15, 0), null);
+    // Run against the real ledger (the boot ladder's ai_usage_log on PGlite).
+    const { pg, db } = pgliteDb(ladderPglite());
+    try {
+        let n = 0;
+        const row = (/** @type {string} */ label, /** @type {Record<string, unknown>} */ over) => insertRow(pg, 'ai_usage_log', {
+            id: 9000 + n, model: `m-${label}`, user_id: 'u1', organization_id: 'o1', timestamp: '2026-10-10T00:00:00Z', ...over,
+        }).then(() => n++);
+        await row('in', {});
+        await row('actor', { user_id: 'svc', actor_user_id: 'u2' });                 // the acting user counts
+        await row('tool', { tool_name: 'web_search' });
+        await row('before', { timestamp: '2026-09-30T00:00:00Z' });
+        await row('after', { timestamp: '2026-11-02T00:00:00Z' });
+        await row('other-org', { organization_id: 'o2' });
+        await row('guest', { user_id: 'guest_7' });
+        await row('operator', { user_id: w.params[3] });
+        await row('test-run', { source: [...TEST_SOURCES][0] });
+        await row('not-narrowed', { user_id: 'u3' });
+        await row('null-source', { source: null, user_id: 'u2' });
+        const { rows } = await db.query(`SELECT model FROM ai_usage_log ${w.where} ORDER BY model`, w.params);
+        assert.deepEqual(rows.map((r) => r.model), ['m-actor', 'm-in', 'm-null-source']);
+        assert.ok(n === 11);
+        const all = s.ledgerWhere({ orgId: 'o1', startDate: '2026-10-01T00:00:00Z', endDate: '2026-10-31T00:00:00Z' });
+        const { rows: every } = await db.query(`SELECT model FROM ai_usage_log ${all.where} ORDER BY model`, all.params);
+        assert.deepEqual(every.map((r) => r.model), ['m-actor', 'm-in', 'm-not-narrowed', 'm-null-source'], 'not narrowed: everyone but guests, the operator, tools and tests');
+    } finally { await pg.close(); }
 });

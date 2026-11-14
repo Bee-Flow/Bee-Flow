@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * ai_browse — the gated executor behind the streaming browse step.
  *
@@ -19,6 +20,9 @@
  */
 
 'use strict';
+
+// Another feature's module, looked up by name (core/featureModules.js).
+const { featureModule } = require('../core/featureModules');
 
 const usageStore = require('../stores/usageStore');
 const integrationActivityStore = require('../stores/integrationActivityStore');
@@ -77,7 +81,7 @@ async function executeBrowseStep(app, def, step, ctx, helpers) {
 
     // 3) Backend probe — never spins the container up, just checks it can be.
     try {
-        const pwtRunner = require('../services/pwtRunner');
+        const pwtRunner = featureModule('services/pwtRunner');
         const hasBackend = !!process.env.BROWSER_WS_ENDPOINT || await pwtRunner.dockerAvailable();
         if (!hasBackend) {
             return { ok: false, code: 'browse_no_backend', error: 'The browsing engine is not available on this server.' };
@@ -112,7 +116,7 @@ async function executeBrowseStep(app, def, step, ctx, helpers) {
         orgId: app.organizationId || null,
         allowedHosts,
         isCancelled,
-        maxSteps: Number.isInteger(step.maxSteps) ? step.maxSteps : null,
+        maxSteps: Number.isInteger(step.maxSteps) ? /** @type {number} */ (step.maxSteps) : null,
     }));
 
     // executeBrowseWebTool returns a markdown STRING (its own answer/queue/error

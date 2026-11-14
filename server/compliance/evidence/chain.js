@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Evidence hash chain — link computation + verification.
  *
@@ -58,7 +58,7 @@ function linkHash(prevHash, payloadHash) {
 function toInt(v) {
     if (v === null || v === undefined) return null;
     const n = Number(v);
-    return Number.isFinite(n) ? n : null;
+    return Number.isFinite(n) ? /** @type {number} */ (n) : null;
 }
 
 // JSONB is parsed by node-postgres by default; a JSON-typed (not JSONB)
@@ -173,7 +173,7 @@ async function verifyChain(orgId, { limit = 2000, db = require('../../db') } = {
     let prev = null; // previous row in the window, already verified
     for (const raw of window || []) {
         const row = {
-            seq: toInt(raw.seq),
+            seq: /** @type {number} */ (toInt(raw.seq)), // seq is the table's NOT NULL bigserial
             hash: raw.hash || null,
             prev_hash: raw.prev_hash || null,
             payload_hash: raw.payload_hash || null,
@@ -219,8 +219,8 @@ async function verifyChain(orgId, { limit = 2000, db = require('../../db') } = {
         pre_chain_invalid: toInt(totals?.pre_chain_invalid) ?? 0,
         verified_rows: verified,
         first_break: firstBreak,
-        head: last ? { seq: toInt(last.seq), hash: last.hash || null } : null,
-        window: last ? { limit: max, from_seq: toInt(first.seq), to_seq: toInt(last.seq) } : null,
+        head: last ? { seq: /** @type {number} */ (toInt(last.seq)), hash: last.hash || null } : null,
+        window: last ? { limit: max, from_seq: /** @type {number} */ (toInt(first.seq)), to_seq: /** @type {number} */ (toInt(last.seq)) } : null,
         latest_captured_at: totals?.latest_captured_at ?? null,
         write_failures: writeFailureSummary(orgId),
         checked_at,

@@ -12,14 +12,24 @@
 
 const multer = require('multer');
 const { z, worded } = require('../core/http/schemaParts');
-const { requireNotebookRole } = require('./notebooksAccess');
+const { requireNotebookRole } = require('../auth/notebookAccess.mts');
 const notebookCollab = require('../agents/notebooks/notebookCollab');
 const { makeNotebookFeed } = require('../agents/notebooks/notebookFeed');
 
-// Role gates, one per level (see routes/notebooksAccess.js).
+// Role gates, one per level (see auth/notebookAccess.mts).
 const asViewer = requireNotebookRole('viewer');
 const asEditor = requireNotebookRole('editor');
 const asOwner = requireNotebookRole('owner');
+
+/**
+ * Request after requireNotebookRole: the loaded notebook and the caller's role on it.
+ * @typedef {import('express').Request<{ id: string, sid: string }> & {
+ *   notebook: NonNullable<Awaited<ReturnType<typeof import('../stores/notebookStore').getNotebook>>>, notebookRole: string }} NotebookReq
+ */
+/** The notebook a role gate loaded onto the router's request. @param {unknown} req */
+const notebookOf = (req) => /** @type {NotebookReq} */ (req).notebook;
+/** The caller's role on that notebook, as the gate found it. @param {unknown} req */
+const notebookRoleOf = (req) => /** @type {NotebookReq} */ (req).notebookRole;
 
 /**
  * Collaborators a test swaps on this object (testUtils/swaps.js) instead of
@@ -49,4 +59,4 @@ const text = (message, max) => worded(message).max(max, message);
 const NOTEBOOK_ID_TEXT = 'Every id is a non-empty id of at most 200 characters.';
 const ids = (/** @type {string} */ message) => z.array(worded(message).min(1, NOTEBOOK_ID_TEXT).max(200, NOTEBOOK_ID_TEXT), { error: message });
 
-module.exports = { asViewer, asEditor, asOwner, seams, upload, text, ids };
+module.exports = { asViewer, asEditor, asOwner, notebookOf, notebookRoleOf, seams, upload, text, ids };

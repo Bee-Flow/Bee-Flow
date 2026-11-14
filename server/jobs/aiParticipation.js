@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The background half of the AI that decides by itself when to take part:
  * every TICK_MS it claims the watches that came due (projects/participation)
@@ -30,10 +30,11 @@
 const crypto = require('crypto');
 const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
+const { envInt } = require('../utils/envNumber.mts');
 
 const TICK_MS = 5_000;
 const BOOT_DELAY_MS = 20_000;
-const CONCURRENCY = Math.max(1, parseInt(process.env.AI_PARTICIPATION_CONCURRENCY, 10) || 4);
+const CONCURRENCY = Math.max(1, envInt('AI_PARTICIPATION_CONCURRENCY', 4, { min: 1 }));
 const STUCK_MINUTES = 5;
 const PRUNE_EVERY_MS = 60 * 60_000;
 
@@ -65,7 +66,7 @@ function makeParticipationJob(deps = {}) {
 
     /**
      * One watch, to its end; the claim is always closed.
-     * @param {ReturnType<typeof import('../stores/projectAiParticipationStore').rowToWatch>} watch
+     * @param {NonNullable<ReturnType<typeof import('../stores/projectAiParticipationStore').rowToWatch>>} watch
      */
     function launch(watch) {
         inFlight += 1;

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * One tool call, before anything reads its arguments for real: the JSON
  * parse, gate 1 (was this name offered?) and gate 2 (does a person have to
@@ -22,13 +22,15 @@ const log = require('../../../telemetry/log');
  * @returns {{ toolName: string, toolArgs: Record<string, unknown>, refusal: import('../toolRoundExecutor').ToolCallOutcome|null }}
  */
 function parseToolCall(toolCall) {
-    const toolName = toolCall.function.name;
+    // A round dispatches only the calls the adapters emitted, each with a named function.
+    const fn = /** @type {{ name: string, arguments?: string }} */ (toolCall.function);
+    const toolName = fn.name;
     /** @type {Record<string, unknown>} */
     let toolArgs = {};
     /** @type {string | null} */
     let jsonParseError = null;
     try {
-        toolArgs = JSON.parse(toolCall.function.arguments || '{}');
+        toolArgs = JSON.parse(fn.arguments || '{}');
     } catch (e) {
         toolArgs = {};
         jsonParseError = /** @type {Error} */ (e).message || 'invalid JSON';

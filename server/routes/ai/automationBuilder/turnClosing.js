@@ -1,5 +1,5 @@
 /** @typedef {import('./turnSetup').BuilderTurn} BuilderTurn */
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Automation Builder — closing a turn after its rounds: the auto-finalize
  * net, naming an untitled draft, the proposal (approve mode, a buffered
@@ -20,9 +20,9 @@ const { getDeliverableEvents } = require('../../../automation/deliverableEvents'
 const { ensureDraftTitle, UNTITLED_AUTOMATION } = require('../../../automation/builderTools/deriveTitle');
 const { HISTORY_EVICT_BLOCK } = require('../../../core/llm/historyWindow');
 const { persistDraftWrap } = require('./builderDraft');
-const { LARGE_CHANGE_STEPS, changedSteps, pendingProposal } = require('./workMode');
+const { LARGE_CHANGE_STEPS, changedSteps, pendingProposal } = require('../../../usecases/ai/automationBuilder/workMode');
 const { proposalPreviewPayload, clientProposal } = require('./datatableTurn');
-const { sanitizeHistory, collectAssistantTurn } = require('./chatTurnLoop');
+const { sanitizeHistory, collectAssistantTurn } = require('../../../usecases/ai/automationBuilder/chatTurnLoop');
 const { bestEffort } = require('../../../utils/bestEffort');
 const { hintsFromDryRun, mergeDryRunHints, stepIdsOf } = require('../../../automation/builderPrompt/lastTestRun.mts');
 

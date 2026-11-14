@@ -263,6 +263,7 @@ test('authfetch-effect needs both halves, and leaves tests alone', () => {
     const dir = sandbox({
         files: {
             'Hand.jsx': 'useEffect(() => { authFetch(url).then(setX); }, []);\n',
+            'Typed.tsx': "useEffect(() => { apiFetch('GET /api/x').then(setX); }, []);\n",
             'QueryOnly.jsx': 'const q = useQuery({ queryFn: () => authFetch(url) });\n',
             'EffectOnly.jsx': 'useEffect(() => { document.title = t; }, [t]);\n',
             'Hand.test.jsx': 'useEffect(() => {}); vi.mock("authFetch");\nauthFetch.mockResolvedValue(1);\n',
@@ -270,13 +271,15 @@ test('authfetch-effect needs both halves, and leaves tests alone', () => {
         },
     });
     assert.strictEqual(run(dir, 'authfetch-effect').code, 0);
-    assert.strictEqual(budgetOf(dir, 'authfetch-effect'), 1);
+    assert.strictEqual(budgetOf(dir, 'authfetch-effect'), 2);
 });
 
 test('authfetch-outside-api counts files calling authFetch outside src/api, not api/, helpers or tests', () => {
     const dir = sandbox({
         files: {
             'components/Hand.jsx': 'const r = await authFetch(url);\nconst s = await authFetch(other);\n',
+            'components/Typed.tsx': "const r = await apiFetch('GET /api/x');\n",
+            'api/typed.ts': "const r = await apiFetch('GET /api/x');\n",
             'pages/Imports.jsx': "import { authFetch } from '../utils/helpers';\nexport { authFetch };\n",
             'api/client.ts': 'const res = await authFetch(url, init);\n',
             'utils/helpers.ts': 'export async function authFetch(url) { return fetch(url); }\nauthFetch(x);\n',
@@ -285,7 +288,45 @@ test('authfetch-outside-api counts files calling authFetch outside src/api, not 
         },
     });
     assert.strictEqual(run(dir, 'authfetch-outside-api').code, 0);
-    assert.strictEqual(budgetOf(dir, 'authfetch-outside-api'), 1);
+    assert.strictEqual(budgetOf(dir, 'authfetch-outside-api'), 2);
+});
+
+test('url-outside-api counts files outside src/api that build an API_BASE URL or call mutate()/request() with a URL', () => {
+    const tick = '`';
+    const dir = sandbox({
+        files: {
+            // Counted: a template URL, a concatenated one, mutate and an aliased request.
+            'components/Template.tsx': `const res = await authFetch(${tick}\${API_BASE}/api/x${tick});\n`,
+            'components/Concat.js': "const url = API_BASE + '/api/x';\n",
+            'components/Mutates.tsx': "import { mutate } from '../api/mutate';\nawait mutate(url, { method: 'POST' });\n",
+            'pages/Aliased.tsx': "import { API_BASE, request as checked } from '@/api/mutate';\nawait checked(url);\n",
+            // Not counted: api/ itself, tests, comments, a plain string, an import never called,
+            // react-query's mutate, a base without the slash, and the typed calls.
+            'api/things.ts': `const res = await mutate(${tick}\${API_BASE}/api/x${tick});\n`,
+            'components/Template.test.tsx': `expect(url).toBe(${tick}\${API_BASE}/api/x${tick});\n`,
+            'components/Comment.tsx': `// was: ${tick}\${API_BASE}/api/x${tick}\n/* mutate(url) */\nconst a = 1;\n`,
+            'components/Plain.tsx': "const doc = '${API_BASE}/api/x';\n",
+            'components/Imported.tsx': "import { ApiError, mutate } from '../api/mutate';\nexport const isApi = (e) => e instanceof ApiError;\n",
+            'components/Query.tsx': 'const m = useMutation({ mutationFn });\nm.mutate(vars);\n',
+            'components/Bare.tsx': `const u = ${tick}\${API_BASE}\${path}${tick};\n`,
+            'components/Typed.tsx': "import { apiJson } from '@/api/typedRequest';\nawait apiJson('GET /api/x');\n",
+        },
+    });
+    const listed = run(dir, 'url-outside-api', ['--list']).stdout;
+    assert.strictEqual(run(dir, 'url-outside-api').code, 0);
+    assert.strictEqual(budgetOf(dir, 'url-outside-api'), 4, listed);
+    for (const f of ['Template.tsx', 'Concat.js', 'Mutates.tsx', 'Aliased.tsx']) assert.match(listed, new RegExp(f.replace('.', '\\.')));
+});
+
+test('url-outside-api fails a new hand-built URL over the budget and points at the typed request', () => {
+    const dir = sandbox({
+        metric: 'url-outside-api',
+        budget: 0,
+        files: { 'components/New.tsx': 'const u = `${API_BASE}/api/x`;\n' },
+    });
+    const r = run(dir, 'url-outside-api');
+    assert.strictEqual(r.code, 1);
+    assert.match(r.stderr, /api\/typedRequest\.ts/);
 });
 
 test('big-file uses the package limit: 400 lines in agent-hub, 800 in server', () => {
@@ -583,6 +624,8 @@ test('unchecked-mutation counts non-GET authFetch calls nobody checks, and leave
         "export async function del(id) {\n    await authFetch(`/api/x/${id}`, { method: 'DELETE' });\n    setList((l) => l.filter((x) => x.id !== id));\n}\n",
         "export function bg() {\n    authFetch('/api/ping', { method: 'POST' }).catch(() => {});\n}\n",
         "export async function save() {\n    const res = await authFetch('/api/x', { method: 'PUT', body: '{}' });\n    const data = await res.json();\n    console.error(data);\n}\n",
+        // the typed transport: the method is the key's first word
+        "export async function drop(id) {\n    await apiFetch('DELETE /api/x/{id}', { params: { id } });\n}\n",
     ].join('');
     const checked = [
         // .ok read on the name
@@ -603,6 +646,8 @@ test('unchecked-mutation counts non-GET authFetch calls nobody checks, and leave
         "export async function i() {\n    const res = await authFetch('/api/i', { method: 'DELETE' });\n    const data = await res.json();\n    if (data.success) done();\n}\n",
         // a GET, and the definition itself
         "export async function j() {\n    await authFetch('/api/j');\n    await authFetch('/api/j', { method: 'GET' });\n}\nexport const authFetch = async (url, options = {}) => fetch(url, options);\n",
+        // a typed GET, a typed mutation whose .ok is read, and the typed definition
+        "export async function k(id) {\n    await apiFetch('GET /api/k/{id}', { params: { id } });\n    const res = await apiFetch('POST /api/k', { body: {} });\n    if (!res.ok) return;\n}\nexport function apiFetch<K>(key: K): Promise<Response> { return send(authFetch, key); }\n",
     ].join('');
     const dir = sandbox({
         pkg: 'agent-hub',
@@ -616,8 +661,8 @@ test('unchecked-mutation counts non-GET authFetch calls nobody checks, and leave
     run(dir, 'unchecked-mutation', [], 'agent-hub'); // records the first budget; --list alone only reads
     const r = run(dir, 'unchecked-mutation', ['--list'], 'agent-hub');
     assert.strictEqual(r.code, 0);
-    assert.strictEqual(budgetOf(dir, 'unchecked-mutation', 'agent-hub'), 3);
-    assert.match(r.stdout, /3 {2}src\/components\/Bad\.jsx/);
+    assert.strictEqual(budgetOf(dir, 'unchecked-mutation', 'agent-hub'), 4);
+    assert.match(r.stdout, /4 {2}src\/components\/Bad\.jsx/);
     assert.doesNotMatch(r.stdout, /Good|\.test\./);
 });
 
@@ -630,7 +675,7 @@ test('unchecked-mutation fails a new unchecked mutation over the budget and poin
     });
     const r = run(dir, 'unchecked-mutation', [], 'agent-hub');
     assert.strictEqual(r.code, 1);
-    assert.match(r.stderr, /1 non-GET authFetch calls whose Response is not checked under src, budget is 0/);
+    assert.match(r.stderr, /1 non-GET authFetch or apiFetch calls whose Response is not checked under src, budget is 0/);
     assert.match(r.stderr, /mutate\(\) from src\/api\/mutate\.ts/);
 });
 
@@ -664,6 +709,25 @@ test('inline-pglite counts test files with their own PGlite adapter, and leaves 
     });
     assert.strictEqual(run(dir, 'inline-pglite').code, 0);
     assert.strictEqual(budgetOf(dir, 'inline-pglite'), 3);
+});
+
+test('sql-text-test counts test files asserting on SQL text without a database, once each, and leaves engine-backed tests, prose and HTTP verbs alone', () => {
+    const dir = sandbox({
+        src: false,
+        files: {
+            'stores/a.test.js': "assert.match(db.calls[0].sql, /INSERT INTO users/);\nassert.match(db.calls[1].sql, /ON CONFLICT/);\n",
+            'stores/b.test.js': "assert.ok(queries.some((q) => q.includes('DELETE FROM shares')));\n",
+            'stores/c.test.js': "assert.match(\n    sql,\n    /organization_id = \\$1/,\n);\n",
+            'stores/d.test.js': "const { usePglitePool } = x;\nassert.match(sql, /INSERT INTO users/);\n",
+            'appStudio/e.test.js': "const Database = load('better-sqlite3');\nassert.match(sql, /SELECT id FROM t/);\n",
+            'routes/f.test.js': "assert.equal(call.method, 'DELETE');\nassert.match(text, /goes out FROM the shared mailbox/);\n",
+            'stores/g.test.js': "if (/FROM users/.test(sql)) return { rows: [] };\nassert.equal(rows.length, 1);\n",
+            'stores/h.js': "assert.match(sql, /INSERT INTO users/);\n",
+            'testUtils/i.test.js': "assert.match(sql, /INSERT INTO users/);\n",
+        },
+    });
+    assert.strictEqual(run(dir, 'sql-text-test').code, 0);
+    assert.strictEqual(budgetOf(dir, 'sql-text-test'), 3);
 });
 
 test('local-zod-helper counts top-level schema-helper copies in routes/ and auth/, and leaves nested names, other folders and tests alone', () => {
@@ -729,7 +793,7 @@ test('rollback-in-store counts hand-written ROLLBACKs in stores/, and leaves sav
     assert.strictEqual(budgetOf(dir, 'rollback-in-store'), 3);
 });
 
-test('db-in-routes counts every spelling that resolves to db.js from routes/, and leaves other db modules, other folders and tests alone', () => {
+test('db-in-routes counts every spelling that resolves to db.js from routes/ and usecases/, and leaves other db modules, other folders and tests alone', () => {
     const dir = sandbox({
         src: false,
         files: {
@@ -738,11 +802,12 @@ test('db-in-routes counts every spelling that resolves to db.js from routes/, an
             'routes/admin/deep/c.js': "const { pool } = require('../../../db');\n",
             'routes/d.js': "const s = require('../stores/db');\nconst r = require('./db');\nconst k = require('../db/index');\nconst pkg = require('db');\n",
             'core/e.js': "const db = require('../db');\n",
+            'usecases/f.js': "const db = require('../db');\n",
             'routes/a.test.js': "const db = require('../db');\n",
         },
     });
     assert.strictEqual(run(dir, 'db-in-routes').code, 0);
-    assert.strictEqual(budgetOf(dir, 'db-in-routes'), 5);
+    assert.strictEqual(budgetOf(dir, 'db-in-routes'), 6);
 });
 
 test('db-in-routes ignores a JSDoc type import() inside a comment', () => {
@@ -754,6 +819,71 @@ test('db-in-routes ignores a JSDoc type import() inside a comment', () => {
     });
     assert.strictEqual(run(dir, 'db-in-routes').code, 0);
     assert.strictEqual(budgetOf(dir, 'db-in-routes'), 1);
+});
+
+test('plain-error-in-routes counts plain throws outside a try of the same function, and leaves HttpError, local catches, comments, strings, other folders and tests alone', () => {
+    const dir = sandbox({
+        src: false,
+        files: {
+            // Counted: at the top of a handler, in a catch block, in a callback defined inside a try,
+            // and `throw Error(` without new.
+            'routes/a.js': [
+                'async function h(req) {',
+                "    if (!req.x) throw new Error('missing');",
+                '    try { await f(); } catch (e) { throw new Error(`wrapped ${e.message}`); }',
+                '    try { items.map(async (i) => { throw new Error(`no ${i}`); }); } catch { /* sync only */ }',
+                "    if (!req.y) throw Error('bare');",
+                '}',
+            ].join('\n'),
+            // Not counted: caught by a try of the same function (nested blocks included), an
+            // HttpError, a comment and a string that look like one.
+            'routes/b.js': [
+                'async function h(req) {',
+                '    try {',
+                "        if (req.a) { throw new Error('local'); }",
+                '    } catch (e) { return fallback(e); }',
+                "    if (!req.b) throw new HttpError(400, 'bad', 'Bad request.');",
+                "    // throw new Error('in a comment')",
+                "    const s = \"throw new Error('in a string')\";",
+                '}',
+            ].join('\n'),
+            'core/c.js': "function f() { throw new Error('not a route'); }\n",
+            'routes/a.test.js': "throw new Error('a test');\n",
+            'routes/a.testkit.js': "throw new Error('a testkit');\n",
+        },
+    });
+    assert.strictEqual(run(dir, 'plain-error-in-routes').code, 0);
+    assert.strictEqual(budgetOf(dir, 'plain-error-in-routes'), 4);
+});
+
+test('routes-http-free counts routes/ files with no req/res and no route, of every source extension, and leaves HTTP files, request schemas, other folders and tests alone', () => {
+    const dir = sandbox({
+        src: false,
+        files: {
+            // HTTP-free: counted.
+            'routes/a.js': "const x = require('../core/x');\nmodule.exports = { f: (input) => x(input) };\n",
+            'routes/ai/b.mts': "export const requestShape = (resolved: number) => resolved + 1;\n",
+            'routes/c.mjs': "// the router passes req and res here\nconst s = 'res.json(x)';\nexport const g = () => s;\n",
+            'routes/d.cjs': "const cache = new Map();\nmodule.exports = () => cache.get('key');\n",
+            // HTTP: not counted.
+            'routes/e.js': "module.exports = (req, res) => res.json({});\n",
+            'routes/f.js': "const router = require('express').Router();\nmodule.exports = router;\n",
+            'routes/g.js': "module.exports = (r, h) => { r.post('/x', h); };\n",
+            'routes/h.mts': "export function send({ res }: { res: unknown }) { return res; }\n",
+            // Elsewhere, or a test: not counted.
+            'core/i.js': "module.exports = () => 1;\n",
+            'routes/a.test.js': "module.exports = () => 1;\n",
+            'routes/a.testkit.js': "module.exports = () => 1;\n",
+            'routes/types.d.ts': "export type T = number;\n",
+            // A request schema module is the parse step of a route: not counted.
+            'routes/chatSchemas.js': "const { z } = require('zod');\nmodule.exports = z.object({});\n",
+            'routes/ai/turnSchema.js': "module.exports = {};\n",
+            'routes/mailSchemaParts.js': "module.exports = {};\n",
+            'routes/formBody.mts': "export const B = {};\n",
+        },
+    });
+    assert.strictEqual(run(dir, 'routes-http-free').code, 0);
+    assert.strictEqual(budgetOf(dir, 'routes-http-free'), 4);
 });
 
 const longBody = (n) => `${'    x();\n'.repeat(n)}`;

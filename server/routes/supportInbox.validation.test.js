@@ -77,3 +77,9 @@ test('a valid ticket list reaches the store and answers as before', async () => 
     assert.deepStrictEqual(res.body, { threads: [], counts: {} });
     assert.ok(db.queries.length > 0);
 });
+
+test('disconnecting a mailbox and drafting a reply take no fields: one sent is refused by name', async () => {
+    h.assertRefused(assert, await api.call('POST', '/api/support-inbox/inboxes/in1/disconnect', { body: { purge: false } }), 'body', /does not take "purge"/);
+    h.assertRefused(assert, await api.call('POST', '/api/support-inbox/threads/t1/draft', { body: { message: 'x' } }), 'body', /does not take "message"/);
+    assert.deepStrictEqual(writes(), []);
+});

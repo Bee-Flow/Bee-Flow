@@ -331,13 +331,13 @@ test('every relative require() across the facade + sub-routers resolves (catches
         'routes/automation/versions.js',
         'routes/automation/webhooksAndRunOps.js',
         'routes/automation/runFiles.js',
-        'routes/automation/runJourney.js',
+        'usecases/automation/runJourney.js',
         'routes/automation/runTables.js',
         'routes/automation/tablePreview.js',
         'routes/automation/sharing.js',
         'routes/automation/notifications.js',
         'routes/automation/agentStepRoutes.js',
-        'routes/automation/agentStepCatalog.js',
+        'usecases/automation/agentStepCatalog.js',
         'routes/automation/aiAct.js',
         'routes/automation/usage.js',
         'routes/automation/versionHistory.js',
@@ -347,7 +347,7 @@ test('every relative require() across the facade + sub-routers resolves (catches
         'routes/automation/runCompare.js',
         'routes/automation/goldens.js',
         'routes/automation/formScenarios.js',
-        'routes/automation/runEntry.js',
+        'usecases/automation/runEntry.js',
     ];
     const re = /require\((["'])(\.[^"']+)\1\)/g;
     const unresolved = [];

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 
 /**
@@ -24,7 +24,7 @@ function makeFileProcessor(ctx) {
      * the file was deleted while it was being processed.
      * @param {{ id: string, tenant_id: string, organization_id?: string|null }} kb
      * @param {{ id: string, title: string }} doc
-     * @param {{ buffer?: Buffer, mimetype?: string, size?: number }} upload
+     * @param {{ buffer: Buffer, mimetype?: string, size?: number }} upload
      * @param {{ userId: string }} opts
      */
     async function processFile(kb, doc, upload, { userId }) {
@@ -47,7 +47,8 @@ function makeFileProcessor(ctx) {
             /** @type {Partial<Awaited<ReturnType<typeof import('../core/kb/kbIngestionHelpers').extractFileContentWithMeta>>['meta']>} */
             let meta = {};
             try {
-                const extracted = await h.extractFileContentWithMeta(upload.buffer, upload.mimetype, name);
+                // multer sets mimetype on every upload it hands over.
+                const extracted = await h.extractFileContentWithMeta(upload.buffer, /** @type {string} */ (upload.mimetype), name);
                 text = extracted?.text || '';
                 meta = extracted?.meta || {};
             } catch (e) {
@@ -90,7 +91,7 @@ function makeFileProcessor(ctx) {
                 title: name,
                 sizeBytes: upload.size != null ? upload.size : (upload.buffer ? upload.buffer.length : null),
                 mime: upload.mimetype || null,
-                pageCount: Number.isFinite(meta.pageCount) ? meta.pageCount : null,
+                pageCount: Number.isFinite(meta.pageCount) ? /** @type {number} */ (meta.pageCount) : null,
                 sheetCount: Array.isArray(meta.sheetNames) ? meta.sheetNames.length : null,
                 pages,
                 externalId: name,

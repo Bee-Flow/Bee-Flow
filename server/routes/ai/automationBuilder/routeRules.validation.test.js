@@ -37,7 +37,7 @@ const MOCKS = {
         chatForcedTool: async (modelId, messages) => { asked.push(messages); return { structured: modelAnswer }; },
     },
     '../../../auth/permissions': { requireAuth: pass },
-    './rateLimits': { routeRulesRateLimit: pass },
+    '../../../usecases/ai/automationBuilder/rateLimits': { routeRulesRateLimit: pass },
     '../../../core/entitlements/betaFeatures': { userHasBetaFeature: async () => betaOn },
 };
 

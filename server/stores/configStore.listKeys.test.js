@@ -1,69 +1,47 @@
+// @typecheck
 /**
- * configStore.listKeysWithPrefix — key-only prefix listing.
+ * configStore.listKeysWithPrefix against a real Postgres (PGlite behind db.js's
+ * pool, testUtils/pglitePool.js).
  *
  * Contract: returns FULL keys (callers strip the prefix — see
- * auth/connectorJwt._listTenantOrgIds), never reads values, and escapes
- * LIKE metacharacters so a prefix containing % / _ / \ cannot widen the
- * match. Fake pg layer injected into require.cache — no Postgres.
+ * auth/connectorJwt._listTenantOrgIds), and a prefix containing % / _ / \
+ * matches literally, so it cannot widen the match.
  *
- * Run: node --test server/stores/configStore.listKeys.test.js
+ * Run: cd server && node --test stores/configStore.listKeys.test.js
  */
 
-const { test, beforeEach } = require('node:test');
+'use strict';
+
+process.env.NODE_ENV = 'test';
+
+const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
-const path = require('path');
 
-const issued = [];
-let rows = [];
+const { usePglitePool } = require('../testUtils/pglitePool');
 
-const dbResolved = require.resolve(path.join(__dirname, '..', 'db.js'));
-require.cache[dbResolved] = {
-    id: dbResolved, filename: dbResolved, loaded: true,
-    exports: {
-        run: async () => ({ rows: [], rowCount: 0 }),
-        exec: async () => ({ rows: [], rowCount: 0 }),
-        getOne: async () => null,
-        getAll: async (sql, params = []) => {
-            issued.push({ sql: sql.replace(/\s+/g, ' ').trim(), params });
-            if (/SELECT key FROM config WHERE key LIKE/.test(sql)) return rows;
-            return [];
-        },
-        withTransaction: async (fn) => fn({ query: async () => ({ rows: [] }) }),
-        getRedis: () => null,
-        pool: { connect: async () => { throw new Error('no db in tests'); }, query: async () => ({ rows: [] }) },
-    },
-};
-
+const { pg, close } = usePglitePool();
 const configStore = require('./configStore');
 
-beforeEach(() => {
-    issued.length = 0;
-    rows = [];
+before(async () => {
+    await configStore.initDB();
+    await pg.exec(`INSERT INTO config (key, value) VALUES
+        ('connector_tenant_key_org1', 's1'), ('connector_tenant_key_org2', 's2'),
+        ('connectorXtenantXkeyXrogue', 'r'), ('a%b_c\\d-1', 'x'), ('aXbYc\\d-2', 'y'), ('other', 'o')`);
 });
+after(close);
 
-test('returns FULL keys from a key-only query', async () => {
-    rows = [{ key: 'connector_tenant_key_org1' }, { key: 'connector_tenant_key_org2' }];
+test('returns the FULL keys under the prefix', async () => {
     const keys = await configStore.listKeysWithPrefix('connector_tenant_key_');
-    assert.deepEqual(keys, ['connector_tenant_key_org1', 'connector_tenant_key_org2']);
-    const q = issued.find(i => /SELECT key FROM config WHERE key LIKE/.test(i.sql));
-    assert.ok(q, 'must query keys only');
-    assert.ok(!/value/.test(q.sql), 'must not read values — that is what made getAllConfig a per-request table scan');
-    // Underscores are LIKE metacharacters ("any single char") — they must be
-    // escaped or `connector_tenant_key_` would also match rogue keys like
-    // `connectorXtenant…`. The pattern is the escaped prefix plus a trailing %.
-    assert.equal(q.params[0], 'connector\\_tenant\\_key\\_%');
+    assert.deepEqual(keys.sort(), ['connector_tenant_key_org1', 'connector_tenant_key_org2'],
+        'an underscore is not "any single char": connectorXtenant… stays out');
 });
 
-test('escapes LIKE metacharacters in the prefix', async () => {
-    await configStore.listKeysWithPrefix('a%b_c\\d');
-    const q = issued.find(i => /SELECT key FROM config WHERE key LIKE/.test(i.sql));
-    assert.equal(q.params[0], 'a\\%b\\_c\\\\d%');
-    assert.match(q.sql, /ESCAPE/, 'the escape character must be declared');
+test('% , _ and \\ in the prefix match literally', async () => {
+    assert.deepEqual(await configStore.listKeysWithPrefix('a%b_c\\d'), ['a%b_c\\d-1']);
 });
 
-test('empty or non-string prefix returns [] without touching the DB', async () => {
+test('an empty or non-string prefix returns []', async () => {
     assert.deepEqual(await configStore.listKeysWithPrefix(''), []);
-    assert.deepEqual(await configStore.listKeysWithPrefix(null), []);
-    assert.deepEqual(await configStore.listKeysWithPrefix(42), []);
-    assert.equal(issued.filter(i => /WHERE key LIKE/.test(i.sql)).length, 0);
+    assert.deepEqual(await configStore.listKeysWithPrefix(/** @type {any} */ (null)), []);
+    assert.deepEqual(await configStore.listKeysWithPrefix(/** @type {any} */ (42)), []);
 });

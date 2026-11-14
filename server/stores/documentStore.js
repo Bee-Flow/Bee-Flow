@@ -93,7 +93,7 @@ function sanitizePageBody(html) {
     return require('../services/documentCompose').sanitizeDocumentBody(String(html ?? ''));
 }
 
-const initDB = makeStoreInit('DocumentStore', async () => {
+const initDB = makeStoreInit('DocumentStore', async () => { // stepwise: a boot migration; every statement is idempotent and the next boot re-runs what a failed one left
     await exec(`
         CREATE TABLE IF NOT EXISTS studio_documents (
             id TEXT PRIMARY KEY,

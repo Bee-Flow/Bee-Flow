@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The code editor's two helpers, for code that is not saved yet:
  *
@@ -54,7 +55,8 @@ function refuse(res, r) {
 }
 
 /**
- * @param {{ store?: object, access?: object, sandbox?: object, limiter?: Function, now?: () => number }} [overrides]
+ * @param {{ store?: typeof import('../../stores/automationStore'), access?: ReturnType<typeof import('../../automation/access').makeAutomationAccess>,
+ *   sandbox?: typeof import('../../automation/codeSandbox'), limiter?: import('express').RequestHandler, now?: () => number }} [overrides]
  */
 function makeCodeToolsRouter(overrides = {}) {
     const router = express.Router();

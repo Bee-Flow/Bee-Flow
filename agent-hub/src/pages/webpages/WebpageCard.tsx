@@ -8,7 +8,7 @@ import { GROUPS, ORG, PERSONAL } from '../../components/shared/useAudienceAction
 import type { TranslateFn } from '../../hooks/useTranslation';
 import { formatRelativeTime } from '../../utils/dateFormatters';
 import type { DateLike } from '../../utils/dateFormatters';
-import { API_BASE } from '../../utils/helpers';
+import { apiUrl } from '../../api/typedRequest';
 
 /**
  * One card on the Webpages overview (artboard 1a, plan W1): a 150px preview
@@ -117,7 +117,7 @@ function Preview({ webpage }: { webpage: WebpageCardData }) {
     const thumbnailUrl = webpage.thumbnailSha
         // Cache-bust on the sha so a fresh thumbnail replaces a stale one
         // without ever serving long-lived stale bytes.
-        ? `${API_BASE}/api/webpages/${webpage.id}/thumbnail?v=${webpage.thumbnailSha}`
+        ? apiUrl('GET /api/webpages/{id}/thumbnail', { params: { id: webpage.id }, query: { v: webpage.thumbnailSha } })
         : null;
     return (
         <div

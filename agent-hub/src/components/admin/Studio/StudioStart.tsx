@@ -89,7 +89,7 @@ export default function StudioStart({ user, onNavigate, hasPermission = () => tr
                     this screen go along, so the panel offers no kind that is locked
                     below. The makers number is counted on the server — see
                     StudioHomeHeader.jsx. */}
-                <StudioHomeHeader user={user} sections={sections} onNavigate={onNavigate} makers={makers} />
+                <StudioHomeHeader sections={sections} makers={makers} />
 
                 {/* What is asking for a person, above what there is to open.
                     Its own component because it is the one thing on this screen

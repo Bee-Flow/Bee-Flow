@@ -226,6 +226,208 @@ function validateConnectorSync(sync, tableIds, where, errors, kind = null, table
 }
 
 /**
+ * params[] declaration hygiene; returns the declared keys a url or body
+ * template may reference.
+ * @param {unknown} params
+ * @param {string} where
+ * @param {string[]} errors
+ * @returns {Set<string>}
+ */
+function validateConnectorParams(params, where, errors) {
+    const declaredKeys = new Set();
+    if (params === undefined) return declaredKeys;
+    if (!Array.isArray(params)) {
+        errors.push(`${where}.params must be an array of { key, type?, required? }`);
+        return declaredKeys;
+    }
+    if (params.length > MAX_CONNECTOR_PARAMS) {
+        errors.push(`${where} has too many params: ${params.length} > ${MAX_CONNECTOR_PARAMS}`);
+    }
+    for (const [pi, p] of params.entries()) {
+        if (!isPlainObject(p) || typeof p.key !== 'string' || !CONNECTOR_PARAM_KEY_RE.test(p.key)) {
+            errors.push(`${where}.params[${pi}].key must match ${CONNECTOR_PARAM_KEY_RE}`);
+            continue;
+        }
+        if (declaredKeys.has(p.key)) errors.push(`${where}.params[${pi}].key "${p.key}" is duplicated`);
+        declaredKeys.add(p.key);
+        if (p.type !== undefined && typeof p.type !== 'string') errors.push(`${where}.params[${pi}].type must be a string`);
+    }
+    return declaredKeys;
+}
+
+/**
+ * NO inline secrets. Any top-level or header key that reads like a credential
+ * is refused — auth.credentialProvider is the only channel. A chain step's
+ * pinned args are a second place an author could paste a key, so the same
+ * refusal walks them.
+ * @param {ConnectorCfg} c
+ * @param {string} where
+ * @param {string[]} errors
+ */
+function validateNoInlineSecrets(c, where, errors) {
+    for (const key of Object.keys(c)) {
+        if (key !== 'auth' && CONNECTOR_SECRET_KEY_RE.test(key)) {
+            errors.push(`${where}.${key} looks like an inline secret — attach credentials via auth.credentialProvider instead`);
+        }
+    }
+    for (const hk of isPlainObject(c.headers) ? Object.keys(c.headers) : []) {
+        if (CONNECTOR_SECRET_KEY_RE.test(hk)) {
+            errors.push(`${where}.headers["${hk}"] looks like a secret header — use auth.credentialProvider instead of an inline value`);
+        }
+    }
+    for (const [si, step] of Array.isArray(c.chain) ? c.chain.entries() : []) {
+        if (!isPlainObject(step) || !isPlainObject(step.fixedArgs)) continue;
+        for (const ak of Object.keys(step.fixedArgs)) {
+            if (CONNECTOR_SECRET_KEY_RE.test(ak)) {
+                errors.push(`${where}.chain[${si}].fixedArgs.${ak} looks like an inline secret — attach credentials via auth.credentialProvider instead`);
+            }
+        }
+    }
+}
+
+/**
+ * @param {ConnectorCfg["auth"]} auth
+ * @param {string} where
+ * @param {string[]} errors
+ */
+function validateConnectorAuth(auth, where, errors) {
+    if (auth === undefined) return;
+    if (!isPlainObject(auth)) {
+        errors.push(`${where}.auth must be an object { type, header?, credentialProvider }`);
+        return;
+    }
+    for (const ak of Object.keys(auth)) {
+        if (ak !== 'type' && ak !== 'header' && ak !== 'credentialProvider') {
+            errors.push(`${where}.auth.${ak} is not allowed — auth may only carry { type, header?, credentialProvider }`);
+        }
+    }
+    if (auth.credentialProvider !== undefined && typeof auth.credentialProvider !== 'string') {
+        errors.push(`${where}.auth.credentialProvider must be a string provider id`);
+    }
+}
+
+/**
+ * A retention promise the purge cannot keep is worse than no promise: the app
+ * tells its users data is deleted after N days and it is not. Decided with the
+ * SAME pure function the purge runs on, so the gate and the behaviour cannot
+ * drift apart. It lives in ./retentionPlan (a pure leaf), so neither this
+ * module nor connectorSync has to require the other.
+ * @param model the app data model
+ * @param {ConnectorCfg} c
+ * @param {string} where
+ * @param {string[]} errors
+ */
+function validateRetentionPromise(model, c, where, errors) {
+    if (!isPlainObject(c.sync) || !Number.isInteger(c.sync.retentionDays) || c.sync.retentionDays <= 0) return;
+    /** @type {{ days: number; steps: Array<object>; unreachable: string[]; } | null} */
+    let plan = null;
+    try { plan = planRetention(model, c); } catch { plan = null; }
+    if (plan && plan.unreachable.length) {
+        errors.push(`${where}.sync.retentionDays promises data is deleted after ${plan.days} days, but nothing would ever delete rows from ${plan.unreachable.join(', ')} — give the table a date column, or set retentionCascade on the child so it is removed with its parent`);
+    }
+}
+
+/**
+ * @param {ConnectorCfg} c
+ * @param {string} where
+ * @param {string[]} errors
+ */
+function validateToolConnector(c, where, errors) {
+    if (typeof c.tool !== 'string' || !c.tool) errors.push(`${where} (integration_tool) requires a tool name`);
+    if (c.fixedArgs !== undefined && !isPlainObject(c.fixedArgs)) errors.push(`${where}.fixedArgs must be an object`);
+    if (c.integrationId !== undefined && (typeof c.integrationId !== 'string' || !CONNECTOR_INTEGRATION_ID_RE.test(c.integrationId))) { // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- anchored, one class with a bounded count (at most 63), no nesting: linear
+        errors.push(`${where}.integrationId must be a provider id (letters/digits/_/:/-)`);
+    }
+    if (c.runAs !== undefined && c.runAs !== 'owner' && c.runAs !== 'viewer') {
+        errors.push(`${where}.runAs must be 'owner' or 'viewer'`);
+    }
+    // rowsPath is the escape hatch when a response envelope holds more than
+    // one candidate list, so the runtime heuristic can't pick.
+    if (c.rowsPath !== undefined && typeof c.rowsPath !== 'string') {
+        errors.push(`${where}.rowsPath must be a string dot-path`);
+    }
+    validateConnectorChain(c.chain, where, errors);
+}
+
+/**
+ * A rest feed's row cap: a positive integer up to the runtime ceiling.
+ * @param {unknown} maxRows
+ * @param {string} where
+ * @param {string[]} errors
+ */
+function validateMaxRows(maxRows, where, errors) {
+    if (maxRows === undefined) return;
+    if (typeof maxRows !== 'number' || !Number.isInteger(maxRows) || maxRows < 1) {
+        errors.push(`${where}.maxRows must be a positive integer`);
+    } else if (maxRows > MAX_CONNECTOR_ROWS) {
+        errors.push(`${where}.maxRows ${maxRows} exceeds the cap of ${MAX_CONNECTOR_ROWS}`);
+    }
+}
+
+/**
+ * @param {ConnectorCfg} c
+ * @param {string} where
+ * @param {Set<string>} declaredKeys
+ * @param {string[]} errors
+ */
+function validateRestConnector(c, where, declaredKeys, errors) {
+    if (typeof c.url !== 'string' || !c.url) errors.push(`${where} (rest) requires a url template`);
+    else validateConnectorUrl(c.url, declaredKeys, where, errors);
+    validateMaxRows(c.maxRows, where, errors);
+    if (c.method !== undefined && c.method !== 'GET' && c.method !== 'POST') errors.push(`${where}.method must be 'GET' or 'POST'`);
+    if (c.body !== undefined) {
+        if (c.method !== 'POST') errors.push(`${where}.body needs method: 'POST'`);
+        else validateRestBody(c.body, declaredKeys, where, errors);
+    }
+    if (c.rowsPath !== undefined && typeof c.rowsPath !== 'string') errors.push(`${where}.rowsPath must be a string dot-path`);
+    if (c.nextPagePath !== undefined && typeof c.nextPagePath !== 'string') errors.push(`${where}.nextPagePath must be a string dot-path`);
+}
+
+/**
+ * The per-kind required fields, one entry per CONNECTOR_KINDS member.
+ * @type {Record<string, (c: any, where: string, declaredKeys: Set<string>, errors: string[]) => void>}
+ */
+const KIND_RULES = {
+    integration_tool: (c, where, _declared, errors) => validateToolConnector(c, where, errors),
+    automation: (c, where, _declared, errors) => {
+        if (typeof c.automationId !== 'string' || !c.automationId) errors.push(`${where} (automation) requires an automationId`);
+    },
+    rest: validateRestConnector,
+    mailbox: (c, where, _declared, errors) => validateMailboxConnector(c, where, errors),
+};
+
+/**
+ * One connector whose kind is known: everything after the id and the kind.
+ * @param model the app data model
+ * @param {ConnectorCfg} c
+ * @param {string} where
+ * @param {{ tableIds: Set<string>, tablesById: Map<string, any> }} tables
+ * @param {string[]} errors
+ */
+function validateKnownConnector(model, c, where, { tableIds, tablesById }, errors) {
+    if (typeof c.name === 'string' && c.name.length > DATA_LIMITS.MAX_NAME_LEN) {
+        errors.push(`${where}.name exceeds ${DATA_LIMITS.MAX_NAME_LEN} chars`);
+    }
+    const declaredKeys = validateConnectorParams(c.params, where, errors);
+    validateNoInlineSecrets(c, where, errors);
+    validateConnectorAuth(c.auth, where, errors);
+    // Materialisation into a table — available to every kind (a REST feed or
+    // an automation's output is as worth caching as a tool's).
+    validateConnectorSync(c.sync, tableIds, where, errors, c.kind, tablesById);
+    validateRetentionPromise(model, c, where, errors);
+    // Chaining is an integration_tool concept: it binds one tool call's
+    // parameters to the previous call's rows. An automation already owns its
+    // own sequencing, and a REST feed has no second call to make.
+    if (c.chain !== undefined && c.kind !== 'integration_tool') {
+        errors.push(`${where}.chain is only supported for app connectors (integration_tool)`);
+    }
+    if (c.kind !== 'rest' && (c.method !== undefined || c.body !== undefined)) {
+        errors.push(`${where}.method and .body are only supported for rest connectors`);
+    }
+    KIND_RULES[c.kind](c, where, declaredKeys, errors);
+}
+
+/**
  * Validate model.connectors[] — the OWNER-authored external data sources
  * (connectors.js runs them acts-as-owner). Shape is documented in
  * connectors.js's CONNECTOR SHAPE header; this is the persisted-model gate:
@@ -254,7 +456,7 @@ function validateConnectors(model, errors) {
             .filter((t) => isPlainObject(t) && typeof t.id === 'string')
             .map((t) => [t.id, t]),
     );
-    const tableIds = new Set(tablesById.keys());
+    const tables = { tableIds: new Set(tablesById.keys()), tablesById };
     const seenIds = new Set();
     let mailboxCount = 0;
     for (const [ci, c] of model.connectors.entries()) {
@@ -271,142 +473,8 @@ function validateConnectors(model, errors) {
             errors.push(`${where}.kind "${c.kind}" is not a known connector kind`);
             continue;
         }
-        if (typeof c.name === 'string' && c.name.length > DATA_LIMITS.MAX_NAME_LEN) {
-            errors.push(`${where}.name exceeds ${DATA_LIMITS.MAX_NAME_LEN} chars`);
-        }
-
-        // params[] declaration hygiene
-        const declaredKeys = new Set();
-        if (c.params !== undefined) {
-            if (!Array.isArray(c.params)) {
-                errors.push(`${where}.params must be an array of { key, type?, required? }`);
-            } else {
-                if (c.params.length > MAX_CONNECTOR_PARAMS) {
-                    errors.push(`${where} has too many params: ${c.params.length} > ${MAX_CONNECTOR_PARAMS}`);
-                }
-                for (const [pi, p] of c.params.entries()) {
-                    if (!isPlainObject(p) || typeof p.key !== 'string' || !CONNECTOR_PARAM_KEY_RE.test(p.key)) {
-                        errors.push(`${where}.params[${pi}].key must match ${CONNECTOR_PARAM_KEY_RE}`);
-                        continue;
-                    }
-                    if (declaredKeys.has(p.key)) errors.push(`${where}.params[${pi}].key "${p.key}" is duplicated`);
-                    declaredKeys.add(p.key);
-                    if (p.type !== undefined && typeof p.type !== 'string') errors.push(`${where}.params[${pi}].type must be a string`);
-                }
-            }
-        }
-
-        // NO inline secrets. Any top-level or header key that reads like a
-        // credential is refused — auth.credentialProvider is the only channel.
-        for (const key of Object.keys(c)) {
-            if (key === 'auth') continue;
-            if (CONNECTOR_SECRET_KEY_RE.test(key)) {
-                errors.push(`${where}.${key} looks like an inline secret — attach credentials via auth.credentialProvider instead`);
-            }
-        }
-        if (isPlainObject(c.headers)) {
-            for (const hk of Object.keys(c.headers)) {
-                if (CONNECTOR_SECRET_KEY_RE.test(hk)) {
-                    errors.push(`${where}.headers["${hk}"] looks like a secret header — use auth.credentialProvider instead of an inline value`);
-                }
-            }
-        }
-        // A chain step's pinned args are a second place an author could paste a
-        // key, so the same refusal walks them. Missing this would leave a hole in
-        // the "no inline secrets" rule the moment chains shipped.
-        if (Array.isArray(c.chain)) {
-            for (const [si, step] of c.chain.entries()) {
-                if (!isPlainObject(step) || !isPlainObject(step.fixedArgs)) continue;
-                for (const ak of Object.keys(step.fixedArgs)) {
-                    if (CONNECTOR_SECRET_KEY_RE.test(ak)) {
-                        errors.push(`${where}.chain[${si}].fixedArgs.${ak} looks like an inline secret — attach credentials via auth.credentialProvider instead`);
-                    }
-                }
-            }
-        }
-        if (c.auth !== undefined) {
-            if (!isPlainObject(c.auth)) {
-                errors.push(`${where}.auth must be an object { type, header?, credentialProvider }`);
-            } else {
-                for (const ak of Object.keys(c.auth)) {
-                    if (ak !== 'type' && ak !== 'header' && ak !== 'credentialProvider') {
-                        errors.push(`${where}.auth.${ak} is not allowed — auth may only carry { type, header?, credentialProvider }`);
-                    }
-                }
-                if (c.auth.credentialProvider !== undefined && typeof c.auth.credentialProvider !== 'string') {
-                    errors.push(`${where}.auth.credentialProvider must be a string provider id`);
-                }
-            }
-        }
-
-        // Materialisation into a table — available to every kind (a REST feed or
-        // an automation's output is as worth caching as a tool's).
-        validateConnectorSync(c.sync, tableIds, where, errors, c.kind, tablesById);
-
-        // A retention promise the purge cannot keep is worse than no promise: the
-        // app tells its users data is deleted after N days and it is not. Decided
-        // with the SAME pure function the purge runs on, so the gate and the
-        // behaviour cannot drift apart. It lives in ./retentionPlan (a pure leaf),
-        // so neither this module nor connectorSync has to require the other.
-        if (isPlainObject(c.sync) && Number.isInteger(c.sync.retentionDays) && c.sync.retentionDays > 0) {
-            /** @type {{ days: number; steps: Array<object>; unreachable: string[]; } | null} */
-            let plan = null;
-            try { plan = planRetention(model, c); } catch { plan = null; }
-            if (plan && plan.unreachable.length) {
-                errors.push(`${where}.sync.retentionDays promises data is deleted after ${plan.days} days, but nothing would ever delete rows from ${plan.unreachable.join(', ')} — give the table a date column, or set retentionCascade on the child so it is removed with its parent`);
-            }
-        }
-
-        // Chaining is an integration_tool concept: it binds one tool call's
-        // parameters to the previous call's rows. An automation already owns its own
-        // sequencing, and a REST feed has no second call to make.
-        if (c.chain !== undefined && c.kind !== 'integration_tool') {
-            errors.push(`${where}.chain is only supported for app connectors (integration_tool)`);
-        }
-
-        if (c.kind !== 'rest' && (c.method !== undefined || c.body !== undefined)) {
-            errors.push(`${where}.method and .body are only supported for rest connectors`);
-        }
-
-        // Per-kind required fields.
-        if (c.kind === 'integration_tool') {
-            if (typeof c.tool !== 'string' || !c.tool) errors.push(`${where} (integration_tool) requires a tool name`);
-            if (c.fixedArgs !== undefined && !isPlainObject(c.fixedArgs)) errors.push(`${where}.fixedArgs must be an object`);
-            if (c.integrationId !== undefined && (typeof c.integrationId !== 'string' || !CONNECTOR_INTEGRATION_ID_RE.test(c.integrationId))) {
-                errors.push(`${where}.integrationId must be a provider id (letters/digits/_/:/-)`);
-            }
-            if (c.runAs !== undefined && c.runAs !== 'owner' && c.runAs !== 'viewer') {
-                errors.push(`${where}.runAs must be 'owner' or 'viewer'`);
-            }
-            // rowsPath is the escape hatch when a response envelope holds more
-            // than one candidate list, so the runtime heuristic can't pick.
-            if (c.rowsPath !== undefined && typeof c.rowsPath !== 'string') {
-                errors.push(`${where}.rowsPath must be a string dot-path`);
-            }
-            validateConnectorChain(c.chain, where, errors);
-        } else if (c.kind === 'automation') {
-            if (typeof c.automationId !== 'string' || !c.automationId) errors.push(`${where} (automation) requires an automationId`);
-        } else if (c.kind === 'rest') {
-            if (typeof c.url !== 'string' || !c.url) errors.push(`${where} (rest) requires a url template`);
-            else validateConnectorUrl(c.url, declaredKeys, where, errors);
-            if (c.maxRows !== undefined) {
-                if (typeof c.maxRows !== 'number' || !Number.isInteger(c.maxRows) || c.maxRows < 1) {
-                    errors.push(`${where}.maxRows must be a positive integer`);
-                } else if (c.maxRows > MAX_CONNECTOR_ROWS) {
-                    errors.push(`${where}.maxRows ${c.maxRows} exceeds the cap of ${MAX_CONNECTOR_ROWS}`);
-                }
-            }
-            if (c.method !== undefined && c.method !== 'GET' && c.method !== 'POST') errors.push(`${where}.method must be 'GET' or 'POST'`);
-            if (c.body !== undefined) {
-                if (c.method !== 'POST') errors.push(`${where}.body needs method: 'POST'`);
-                else validateRestBody(c.body, declaredKeys, where, errors);
-            }
-            if (c.rowsPath !== undefined && typeof c.rowsPath !== 'string') errors.push(`${where}.rowsPath must be a string dot-path`);
-            if (c.nextPagePath !== undefined && typeof c.nextPagePath !== 'string') errors.push(`${where}.nextPagePath must be a string dot-path`);
-        } else if (c.kind === 'mailbox') {
-            mailboxCount += 1;
-            validateMailboxConnector(c, where, errors);
-        }
+        validateKnownConnector(model, c, where, tables, errors);
+        if (c.kind === 'mailbox') mailboxCount += 1;
     }
 
     if (mailboxCount > MAX_MAILBOX_CONNECTORS) {
@@ -428,64 +496,9 @@ function validateConnectors(model, errors) {
  * @param {string[]} errors
  */
 function validateMailboxConnector(c, where, errors) {
-    if (!MAILBOX_PROVIDERS.includes(c.provider)) {
-        errors.push(`${where}.provider must be one of ${MAILBOX_PROVIDERS.join(', ')}`);
-    }
-    if (c.mode !== undefined && !MAILBOX_MODES.includes(c.mode)) {
-        errors.push(`${where}.mode must be one of ${MAILBOX_MODES.join(', ')}`);
-    }
-    if (c.mode === 'shared') {
-        if (typeof c.address !== 'string' || !MAILBOX_EMAIL_RE.test(c.address)) {
-            errors.push(`${where}.address must be the shared mailbox's e-mail address`);
-        }
-    }
-    if (c.sharedMode !== undefined && c.sharedMode !== null) {
-        // Derived from the provider (Gmail cannot delegate, so its "shared" is a
-        // delivered alias). An author must not be able to claim a capability the
-        // runtime cannot deliver — but canonicalize STAMPS the correct value, so
-        // the rule is "must match what we derive", not "must be absent".
-        // Validating a canonical model has to be a no-op.
-        const derived = c.provider === 'outlook' ? 'delegated_mailbox' : 'delivered_alias';
-        if (c.sharedMode !== derived) {
-            errors.push(`${where}.sharedMode is derived from the provider and must be "${derived}"`);
-        }
-    }
-    if (c.folder !== undefined && (typeof c.folder !== 'string' || !MAILBOX_FOLDER_RE.test(c.folder))) {
-        errors.push(`${where}.folder must be a simple folder or label name`);
-    }
-    if (c.query !== undefined) {
-        if (typeof c.query !== 'string') {
-            errors.push(`${where}.query must be a string`);
-        } else if (c.query.length > MAX_MAILBOX_QUERY_LEN) {
-            errors.push(`${where}.query exceeds ${MAX_MAILBOX_QUERY_LEN} chars`);
-        } else if ([...c.query].some((ch) => (ch.codePointAt(0) ?? 0) < 32)) {
-            errors.push(`${where}.query may not contain control characters`);
-        } else if ((c.query.split('"').length - 1) % 2 !== 0) {
-            // Quotes come in pairs, around a label with a space (label:"Daniel B",
-            // outlookQuery.mts) or a search phrase; an odd one is a typo.
-            errors.push(`${where}.query has an unpaired quote`);
-        } else if (c.provider === 'outlook') {
-            // The same split the sync runs: a query it cannot split is refused now.
-            try { planOutlookQuery(c.query); } catch (e) { errors.push(`${where}.query: ${e.message}`); }
-        }
-    }
-    if (c.lookbackDays !== undefined) {
-        const d = c.lookbackDays;
-        if (typeof d !== 'number' || !Number.isInteger(d) || d < 1 || d > 90) {
-            errors.push(`${where}.lookbackDays must be a whole number between 1 and 90`);
-        }
-    }
-    if (c.maxPerRun !== undefined) {
-        const m = c.maxPerRun;
-        if (typeof m !== 'number' || !Number.isInteger(m) || m < 1 || m > MAX_CONNECTOR_ROWS) {
-            errors.push(`${where}.maxPerRun must be a whole number between 1 and ${MAX_CONNECTOR_ROWS}`);
-        }
-    }
-    for (const flag of ['includeBody', 'includeAttachmentMeta', 'groupIntoThreads']) {
-        if (c[flag] !== undefined && typeof c[flag] !== 'boolean') {
-            errors.push(`${where}.${flag} must be true or false`);
-        }
-    }
+    validateMailboxSource(c, where, errors);
+    validateMailboxQuery(c, where, errors);
+    validateMailboxLimits(c, where, errors);
     // The hook that runs an app action for each new row. Only its shape is checked
     // here; the action lives in the definition, which the app validator reads.
     errors.push(...require('../mailboxHookPolicy.mts').onNewRecordErrors(c.onNewRecord, c, where));
@@ -501,7 +514,96 @@ function validateMailboxConnector(c, where, errors) {
         // unaudited credential path.
         errors.push(`${where}.auth is not used by a mailbox — it runs on the connected account`);
     }
+    validateMailboxSync(c, where, errors);
+}
 
+/**
+ * Which mailbox: the provider, personal or shared (and the shared address),
+ * and the folder.
+ * @param {ConnectorCfg} c
+ * @param {string} where
+ * @param {string[]} errors
+ */
+function validateMailboxSource(c, where, errors) {
+    if (!MAILBOX_PROVIDERS.includes(c.provider)) {
+        errors.push(`${where}.provider must be one of ${MAILBOX_PROVIDERS.join(', ')}`);
+    }
+    if (c.mode !== undefined && !MAILBOX_MODES.includes(c.mode)) {
+        errors.push(`${where}.mode must be one of ${MAILBOX_MODES.join(', ')}`);
+    }
+    if (c.mode === 'shared' && (typeof c.address !== 'string' || !MAILBOX_EMAIL_RE.test(c.address))) { // nosemgrep: ajinabraham.njsscan.dos.regex_dos.regex_dos -- anchored, three classes with bounded counts (64, 255, 24), no nesting
+        errors.push(`${where}.address must be the shared mailbox's e-mail address`);
+    }
+    // Derived from the provider (Gmail cannot delegate, so its "shared" is a
+    // delivered alias). An author must not be able to claim a capability the
+    // runtime cannot deliver — but canonicalize STAMPS the correct value, so
+    // the rule is "must match what we derive", not "must be absent".
+    // Validating a canonical model has to be a no-op.
+    const derived = c.provider === 'outlook' ? 'delegated_mailbox' : 'delivered_alias';
+    if (c.sharedMode !== undefined && c.sharedMode !== null && c.sharedMode !== derived) {
+        errors.push(`${where}.sharedMode is derived from the provider and must be "${derived}"`);
+    }
+    if (c.folder !== undefined && (typeof c.folder !== 'string' || !MAILBOX_FOLDER_RE.test(c.folder))) {
+        errors.push(`${where}.folder must be a simple folder or label name`);
+    }
+}
+
+/**
+ * The search query; the first rule it breaks is the one reported.
+ * @param {ConnectorCfg} c
+ * @param {string} where
+ * @param {string[]} errors
+ */
+function validateMailboxQuery(c, where, errors) {
+    const q = c.query;
+    if (q === undefined) return;
+    if (typeof q !== 'string') {
+        errors.push(`${where}.query must be a string`);
+    } else if (q.length > MAX_MAILBOX_QUERY_LEN) {
+        errors.push(`${where}.query exceeds ${MAX_MAILBOX_QUERY_LEN} chars`);
+    } else if ([...q].some((ch) => (ch.codePointAt(0) ?? 0) < 32)) {
+        errors.push(`${where}.query may not contain control characters`);
+    } else if ((q.split('"').length - 1) % 2 !== 0) {
+        // Quotes come in pairs, around a label with a space (label:"Daniel B",
+        // outlookQuery.mts) or a search phrase; an odd one is a typo.
+        errors.push(`${where}.query has an unpaired quote`);
+    } else if (c.provider === 'outlook') {
+        // The same split the sync runs: a query it cannot split is refused now.
+        try { planOutlookQuery(q); } catch (e) { errors.push(`${where}.query: ${e.message}`); }
+    }
+}
+
+/**
+ * A whole number from 1 to `max` (or absent).
+ * @param {unknown} v
+ * @param {number} max
+ */
+const wholeUpTo = (v, max) => v === undefined || (typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= max);
+
+/**
+ * How far back and how much per run, and the on/off flags.
+ * @param {ConnectorCfg} c
+ * @param {string} where
+ * @param {string[]} errors
+ */
+function validateMailboxLimits(c, where, errors) {
+    if (!wholeUpTo(c.lookbackDays, 90)) errors.push(`${where}.lookbackDays must be a whole number between 1 and 90`);
+    if (!wholeUpTo(c.maxPerRun, MAX_CONNECTOR_ROWS)) errors.push(`${where}.maxPerRun must be a whole number between 1 and ${MAX_CONNECTOR_ROWS}`);
+    for (const flag of ['includeBody', 'includeAttachmentMeta', 'groupIntoThreads']) {
+        if (c[flag] !== undefined && typeof c[flag] !== 'boolean') {
+            errors.push(`${where}.${flag} must be true or false`);
+        }
+    }
+}
+
+/**
+ * Where the messages go: an upsert into a table keyed on what identifies a
+ * row, the message table when threads are grouped, and a bounded retention.
+ * @param {ConnectorCfg} c
+ * @param {string} where
+ * @param {string[]} errors
+ */
+function validateMailboxSync(c, where, errors) {
     // A mailbox that isn't materialised into a table is a poll with nowhere to
     // put the result.
     if (!isPlainObject(c.sync)) {
@@ -527,15 +629,13 @@ function validateMailboxConnector(c, where, errors) {
             errors.push(`${where}.sync.children[0].keyField must be '${MAILBOX_KEY_FIELD}'`);
         }
     }
-    if (c.sync.retentionDays === undefined || c.sync.retentionDays === null) {
+    const r = c.sync.retentionDays;
+    if (r === undefined || r === null) {
         // Ingesting mail copies customer personal data into the app database.
         // An unbounded copy is not defensible, so retention is required.
         errors.push(`${where}.sync.retentionDays is required for a mailbox — set how long messages are kept`);
-    } else {
-        const r = c.sync.retentionDays;
-        if (typeof r !== 'number' || !Number.isInteger(r) || r < 1 || r > MAX_MAILBOX_RETENTION_DAYS) {
-            errors.push(`${where}.sync.retentionDays must be a whole number between 1 and ${MAX_MAILBOX_RETENTION_DAYS}`);
-        }
+    } else if (!wholeUpTo(r, MAX_MAILBOX_RETENTION_DAYS)) {
+        errors.push(`${where}.sync.retentionDays must be a whole number between 1 and ${MAX_MAILBOX_RETENTION_DAYS}`);
     }
 }
 

@@ -32,13 +32,13 @@
 const express = require('express');
 const router = express.Router();
 
-const { isTransientChatError, applyBuilderTierFloor } = require('./builderShared');
-const turnLoop = require('./appStudioBuilder/turnLoop');
-const toolCallEvents = require('./appStudioBuilder/toolCallEvents');
-const turnNotes = require('./appStudioBuilder/turnNotes');
-const dataModelEvents = require('./appStudioBuilder/dataModelEvent');
-const inboundImages = require('./appStudioBuilder/inboundImages');
-const { streamWithRetry } = require('./appStudioBuilder/modelStream');
+const { isTransientChatError, applyBuilderTierFloor } = require('../../usecases/ai/builderShared');
+const turnLoop = require('../../usecases/ai/appStudioBuilder/turnLoop');
+const toolCallEvents = require('../../usecases/ai/appStudioBuilder/toolCallEvents');
+const turnNotes = require('../../usecases/ai/appStudioBuilder/turnNotes');
+const dataModelEvents = require('../../usecases/ai/appStudioBuilder/dataModelEvent');
+const inboundImages = require('../../usecases/ai/appStudioBuilder/inboundImages');
+const { streamWithRetry } = require('../../usecases/ai/appStudioBuilder/modelStream');
 const { MAX_TOKENS_PER_ROUND } = require('./appStudioBuilder/buildLoop');
 
 // ─── Persisted builder-session snapshot ──────────────────────────

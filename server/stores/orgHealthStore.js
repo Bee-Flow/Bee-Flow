@@ -490,7 +490,7 @@ async function getFleetOverview() {
  * spoofable subject keys can't grow the table forever. All DELETEs are
  * idempotent (safe on multi-replica double runs).
  */
-async function pruneOld({ eventRetentionDays = 90, resolvedProblemRetentionDays = 30 } = {}) {
+async function pruneOld({ eventRetentionDays = 90, resolvedProblemRetentionDays = 30 } = {}) { // stepwise: a retention sweep; each DELETE stands alone and is idempotent, the next run repeats it
     await initDB();
     const evDays = Math.max(parseInt(eventRetentionDays, 10) || 90, 1);
     const prDays = Math.max(parseInt(resolvedProblemRetentionDays, 10) || 30, 1);

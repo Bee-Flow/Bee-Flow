@@ -9,7 +9,7 @@
  *   2. archive   inferred rows unused for more than a year (last_used_at, else
  *                created_at) whose importance is below 0.5
  *   3. quality   inferred rows (instructions: strict rules only) that fail the extractor's CURRENT content rules
- *                (agents/memory/contentRules.js: tasks, questions, "Include:",
+ *                (core/memory/contentRules.js: tasks, questions, "Include:",
  *                requests to the assistant, fragments) and exact duplicates in
  *                the same scope are archived (restorable from the panel)
  *   4. review    inferred rows never judged before (reviewed_at IS NULL) go, <= 25 at a
@@ -30,7 +30,7 @@
  */
 
 const log = require('../telemetry/log');
-const { junkReason, strictJunkReason, normaliseText } = require('../agents/memory/contentRules');
+const { junkReason, strictJunkReason, normaliseText } = require('../core/memory/contentRules');
 const telemetryLog = require('../telemetry/log');
 
 const FIRST_RUN_DELAY_MS = 60 * 1000;

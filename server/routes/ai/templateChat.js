@@ -1,3 +1,4 @@
+// @typecheck
 /** @typedef {import('../../core/providers/base')} BaseProvider */
 /**
  * Template Chat Routes — AI-powered chat for filling Word templates.
@@ -48,7 +49,7 @@ const { worded } = require('../../core/http/schemaParts');
 const {
     buildTemplateContext, buildInstructionsContext, formatMeetingNote, buildMeetingContext,
     buildSystemPrompt, buildHistoryMessages,
-} = require('./templateChatPrompt');
+} = require('../../usecases/ai/templateChatPrompt');
 const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
 const router = express.Router();
@@ -111,13 +112,13 @@ require('../../core/serviceAuth');
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth } = require('../../auth/permissions');
-const { fallback } = require('../../utils/bestEffort');
+const { fallback, ignoreGone } = require('../../utils/bestEffort');
 const { finishTurnLogs, failTurnLogs } = require('../../core/kb/queryLog/hook.mts');
 const { searchTemplateKnowledge } = require('./templateChatKnowledge');
 
 // ─── Streaming Template Chat ─────────────────────────────────────
 
-router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof TemplateTurnBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnBody }), async (req, res) => {
     const { message, templateId, conversationId, history, meetingNoteIds, modelTier, timezone, attachments } = req.body;
     const userId = req.session.user.id;
 
@@ -168,8 +169,10 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
     }
 
     // Resolve provider
+    /** @type {import('../../core/llm/modelCache').AIConfig} */
+    let config;
     /** @type {BaseProvider} */
-    let config, adapter;
+    let adapter;
 
     try {
         config = await getProviderForModel(modelId);
@@ -236,6 +239,7 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
         // Build system prompt
         const systemPrompt = buildSystemPrompt({ templateContext, instructionsContext, kbContext, meetingContext, timezone });
 
+        /** @type {Array<{ role: string, content: unknown }>} */
         let messages = [{ role: 'system', content: systemPrompt }];
 
         // ── Privacy Shield for attachments + response restore ──────────────
@@ -259,7 +263,7 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
         const _scanExtracted = async (text, filename) => {
             if (!_dlpActive || !text) return text;
             const r = await _scanAttText({ text, filename, orgShield: _psShield, conversationId: _dlpConvId });
-            if (r.action === 'block') { const e = new Error('attachment blocked'); e.code = 'ATTACHMENT_PII_BLOCKED'; e.filename = filename; e.summary = r.summary; throw e; }
+            if (r.action === 'block') { const e = /** @type {Error & { filename?: string, summary?: unknown }} */ (new Error('attachment blocked')); e.code = 'ATTACHMENT_PII_BLOCKED'; e.filename = filename; e.summary = r.summary; throw e; }
             // Prefer whatever the scanner returned: on an incomplete scan that is
             // the TRUNCATED document, and falling back to `text` would put the
             // unchecked tail straight back into the prompt.
@@ -304,7 +308,7 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
                             const base64Data = att.content.split(',')[1] || att.content;
                             const docBuffer = Buffer.from(base64Data, 'base64');
                             try {
-                                const docText = await require('../templateAi').extractDocxText(docBuffer);
+                                const docText = await require('../../usecases/templateAi').extractDocxText(docBuffer);
                                 if (docText) {
                                     const safe = await _scanExtracted(docText, att.name);
                                     contentParts.push({ type: 'text', text: `[Word Document: ${att.name}]\n---\n${safe}\n---` });
@@ -388,7 +392,7 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
             }
         };
 
-        await require('./templateChatUsage').meteredTemplateStream({ adapter, apiKey, apiUrl, modelId, messages, chatOptions },
+        await require('../../usecases/ai/templateChatUsage').meteredTemplateStream({ adapter, apiKey, apiUrl, modelId, messages, chatOptions },
             { userId, orgId: userOrgId, templateId, conversationId: conversationId || null }, streamCallback);
 
         if (_streamUntok) {
@@ -406,7 +410,7 @@ router.post('/chat/template/stream', requireAuth, validate({ body: TemplateTurnB
         failTurnLogs(queryLogs, err, answerT0, modelId);
         if (isGone() || /** @type {Error} */ (err)?.name === 'AbortError' || clientSignal.aborted) {
             log.info('[TemplateChat] turn cancelled by the client');
-            try { if (!res.writableEnded) res.end(); } catch (err) { log.debug('socket already gone', err); }
+            try { if (!res.writableEnded) res.end(); } catch (err) { ignoreGone('routes/ai/templateChat:endCancelled', err); }
             return;
         }
         log.error('[TemplateChat] Error:', err);

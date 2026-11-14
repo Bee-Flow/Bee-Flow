@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Notebook source routes, mounted by routes/notebooks.js at the same place in
  * its route table.
@@ -19,7 +19,7 @@
  *   DELETE /:id/sources/:sid          — remove source
  *
  * Moved here unchanged from routes/notebooks.js. Viewers read, editors change
- * the sources (routes/notebooksAccess.js).
+ * the sources (auth/notebookAccess.mts).
  */
 
 const express = require('express');
@@ -28,10 +28,6 @@ const router = express.Router();
 
 const notebookStore = require('../stores/notebookStore');
 
-/**
- * Request after requireNotebookRole: the loaded notebook and the caller's role on it.
- * @typedef {import('express').Request<{ id: string, sid: string }> & { notebook: NonNullable<Awaited<ReturnType<typeof notebookStore.getNotebook>>>, notebookRole: string }} NotebookReq
- */
 const storageStore = require('../stores/storageStore');
 const transcriptionStore = require('../stores/transcriptionStore');
 const { ingestFileSource, ingestUrlSource, ingestTextSource, ingestDriveSource, MAX_STORED_TEXT, MAX_SOURCE_TEXT_CHARS, MAX_SOURCES_PER_NOTEBOOK } = require('../agents/notebooks/sourceIngestion');
@@ -42,7 +38,8 @@ const { z, worded, bodyOf, choice, typeError } = require('../core/http/schemaPar
 const { HttpError } = require('../core/http/errors');
 const { friendlyError } = require('../core/kb/friendlyError');
 const { mapWithConcurrency } = require('../core/concurrencyUtil');
-const { asViewer, asEditor, seams, upload, text, ids } = require('./notebooksShared');
+const { asViewer, asEditor, notebookOf, seams, upload, text, ids } = require('./notebooksShared');
+const { sessionUser } = require('../core/http/sessionUser');
 // requireAuth is the canonical gate from auth/permissions (see routes/notebooks.js).
 const { requireAuth } = require('../auth/permissions');
 
@@ -113,11 +110,11 @@ const BulkDeleteBody = bodyOf({ ids: ids('ids is a list of source ids.') }, 'Del
 
 // ── Source: File Upload (PDF, DOCX, XLSX, CSV, TXT…) ────────────
 
-router.post('/:id/sources/file', requireAuth, asEditor, upload.single('file'), /** @param {NotebookReq} req */ async (req, res) => {
-    const userId = req.session.user.id;
+router.post('/:id/sources/file', requireAuth, asEditor, upload.single('file'), async (req, res) => {
+    const userId = sessionUser(req).id;
     const notebookId = req.params.id;
 
-    const nb = req.notebook;
+    const nb = notebookOf(req);
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     await assertSourceRoom(nb.id);
 
@@ -128,7 +125,7 @@ router.post('/:id/sources/file', requireAuth, asEditor, upload.single('file'), /
         const contentCrypto = require('../stores/lib/documentCrypto');
         const resource = contentCrypto.resourceOf(rows[0], 'notebook');
         const context = await contentCrypto.writeContext(resource);
-        const file = await keepUploadedSource(req.file, {
+        const file = await keepUploadedSource(/** @type {NonNullable<typeof req.file>} */ (req.file), { // checked above
             userId, prefix: 'nb', folder: 'notebooks',
             protectBuffer: context ? (bytes, key) => require('../stores/lib/notebookFileCrypto').sealBuffer(resource, key, bytes, context) : null,
         });
@@ -157,13 +154,13 @@ router.post('/:id/sources/file', requireAuth, asEditor, upload.single('file'), /
 
 // ── Source: URL ──────────────────────────────────────────────────
 
-router.post('/:id/sources/url', requireAuth, validate({ body: UrlBody }), asEditor, /** @param {NotebookReq} req */ async (req, res) => {
-    const userId = req.session.user.id;
+router.post('/:id/sources/url', requireAuth, validate({ body: UrlBody }), asEditor, async (req, res) => {
+    const userId = sessionUser(req).id;
     const notebookId = req.params.id;
     const { url } = req.body;
     if (!url) return res.status(400).json({ error: 'URL required' });
 
-    const nb = req.notebook;
+    const nb = notebookOf(req);
     await assertSourceRoom(nb.id);
 
     // Derive name from URL
@@ -188,13 +185,13 @@ router.post('/:id/sources/url', requireAuth, validate({ body: UrlBody }), asEdit
 
 // ── Source: Pasted Text ─────────────────────────────────────────
 
-router.post('/:id/sources/text', requireAuth, validate({ body: TextBody }), asEditor, /** @param {NotebookReq} req */ async (req, res) => {
-    const userId = req.session.user.id;
+router.post('/:id/sources/text', requireAuth, validate({ body: TextBody }), asEditor, async (req, res) => {
+    const userId = sessionUser(req).id;
     const notebookId = req.params.id;
     const { text, name } = req.body;
     if (!text) return res.status(400).json({ error: 'Text content required' });
 
-    const nb = req.notebook;
+    const nb = notebookOf(req);
     assertTextFits(text);
     await assertSourceRoom(nb.id);
 
@@ -216,14 +213,14 @@ router.post('/:id/sources/text', requireAuth, validate({ body: TextBody }), asEd
 
 // ── Source: Meeting Notes ─────────────────────────────────────────
 
-router.post('/:id/sources/meeting', requireAuth, validate({ body: MeetingBody }), asEditor, /** @param {NotebookReq} req */ async (req, res) => {
-    const userId = req.session.user.id;
+router.post('/:id/sources/meeting', requireAuth, validate({ body: MeetingBody }), asEditor, async (req, res) => {
+    const userId = sessionUser(req).id;
     const notebookId = req.params.id;
     const { meetingId, mode } = req.body;
     if (!meetingId) return res.status(400).json({ error: 'Meeting ID required' });
     const ingestMode = mode === 'summary' ? 'summary' : 'full';
 
-    const nb = req.notebook;
+    const nb = notebookOf(req);
     await assertSourceRoom(nb.id);
 
     const meeting = await transcriptionStore.getTranscription(meetingId, userId);
@@ -262,8 +259,8 @@ router.post('/:id/sources/meeting', requireAuth, validate({ body: MeetingBody })
 
 // ── Source: Google Drive / OneDrive ──────────────────────────────
 
-router.post('/:id/sources/drive', requireAuth, validate({ body: DriveBody }), asEditor, /** @param {NotebookReq} req */ async (req, res) => {
-    const userId = req.session.user.id;
+router.post('/:id/sources/drive', requireAuth, validate({ body: DriveBody }), asEditor, async (req, res) => {
+    const userId = sessionUser(req).id;
     const notebookId = req.params.id;
     const { files, provider } = req.body; // provider: 'google' | 'microsoft'
 
@@ -281,7 +278,7 @@ router.post('/:id/sources/drive', requireAuth, validate({ body: DriveBody }), as
         });
     }
 
-    const nb = req.notebook;
+    const nb = notebookOf(req);
 
     // Everything that can refuse the request is checked before the first row
     // is inserted, so a refused import leaves no half-added sources behind.
@@ -335,8 +332,8 @@ router.post('/:id/sources/drive', requireAuth, validate({ body: DriveBody }), as
 
 // ── List Sources ────────────────────────────────────────────────
 
-router.get('/:id/sources', requireAuth, asViewer, /** @param {NotebookReq} req */ async (req, res) => {
-    const nb = req.notebook;
+router.get('/:id/sources', requireAuth, asViewer, async (req, res) => {
+    const nb = notebookOf(req);
 
     await notebookStore.timeoutStuckSources(nb.id).catch((e) => bestEffort('routes/notebooksSources:anon#2', e));
     const sources = await notebookStore.getSources(nb.id);
@@ -351,9 +348,9 @@ router.get('/:id/sources', requireAuth, asViewer, /** @param {NotebookReq} req *
 // Only when no stored content survives does retry fail and the UI falls back
 // to re-adding the source.
 
-router.post('/:id/sources/:sid/retry', requireAuth, asEditor, /** @param {NotebookReq} req */ async (req, res) => {
-    const userId = req.session.user.id;
-    const nb = req.notebook;
+router.post('/:id/sources/:sid/retry', requireAuth, asEditor, async (req, res) => {
+    const userId = sessionUser(req).id;
+    const nb = notebookOf(req);
 
     const source = await notebookStore.getSource(req.params.sid);
     if (!source || source.notebookId !== nb.id) return res.status(404).json({ error: 'Source not found' });
@@ -370,11 +367,11 @@ router.post('/:id/sources/:sid/retry', requireAuth, asEditor, /** @param {Notebo
         try {
             if (source.type === 'url') {
                 const url = source.metadata?.url;
-                if (!url) throw new Error('Source has no URL to retry');
+                if (!url) throw new HttpError(409, 'source_not_retryable', 'Source has no URL to retry');
                 await ingestUrlSource(nb.id, source.id, userId, url);
             } else if (source.storageKey) {
                 // File source — re-fetch bytes from storage, re-ingest.
-                if (!storageStore.isAvailable()) throw new Error('Storage not configured');
+                if (!storageStore.isAvailable()) throw new HttpError(503, 'storage_unavailable', 'Storage not configured');
                 const buffer = await require('../stores/lib/notebookFileCrypto').readBuffer(source.storageKey);
                 const mimeType = source.metadata?.mimeType || 'application/octet-stream';
                 await ingestFileSource(nb.id, source.id, userId, buffer, source.fileName || source.name, mimeType);
@@ -385,7 +382,7 @@ router.post('/:id/sources/:sid/retry', requireAuth, asEditor, /** @param {Notebo
                 if (stored && stored.trim()) {
                     await ingestTextSource(nb.id, source.id, userId, stored, source.name);
                 } else {
-                    throw new Error('This source type cannot be retried — please re-add it.');
+                    throw new HttpError(409, 'source_not_retryable', 'This source type cannot be retried — please re-add it.');
                 }
             }
         } catch (e) {
@@ -405,8 +402,8 @@ router.post('/:id/sources/:sid/retry', requireAuth, asEditor, /** @param {Notebo
 // Useful when a worker silently died and the row is stuck yellow — the user
 // can dismiss without losing the uploaded bytes (retry remains available).
 
-router.post('/:id/sources/:sid/cancel', requireAuth, asEditor, /** @param {NotebookReq} req */ async (req, res) => {
-    const nb = req.notebook;
+router.post('/:id/sources/:sid/cancel', requireAuth, asEditor, async (req, res) => {
+    const nb = notebookOf(req);
 
     const source = await notebookStore.getSource(req.params.sid);
     if (!source || source.notebookId !== nb.id) return res.status(404).json({ error: 'Source not found' });
@@ -434,8 +431,8 @@ const { cleanupSourceArtifacts } = require('../core/kb/notebookCascade');
 const { bestEffort } = require('../utils/bestEffort');
 
 // ── Source content (preview) ────────────────────────────────────
-router.get('/:id/sources/:sid/content', requireAuth, asViewer, /** @param {NotebookReq} req */ async (req, res) => {
-    const nb = req.notebook;
+router.get('/:id/sources/:sid/content', requireAuth, asViewer, async (req, res) => {
+    const nb = notebookOf(req);
     const source = await notebookStore.getSource(req.params.sid);
     if (!source || source.notebookId !== nb.id) return res.status(404).json({ error: 'Source not found' });
     const content = await notebookStore.getSourceContent(source.id);
@@ -443,8 +440,8 @@ router.get('/:id/sources/:sid/content', requireAuth, asViewer, /** @param {Noteb
 });
 
 // ── Reorder sources (must precede the /:sid rename route) ────────
-router.patch('/:id/sources/reorder', requireAuth, validate({ body: ReorderBody }), asEditor, /** @param {NotebookReq} req */ async (req, res) => {
-    const nb = req.notebook;
+router.patch('/:id/sources/reorder', requireAuth, validate({ body: ReorderBody }), asEditor, async (req, res) => {
+    const nb = notebookOf(req);
     const { orderedIds } = req.body || {};
     if (!Array.isArray(orderedIds)) return res.status(400).json({ error: 'orderedIds must be an array' });
     await notebookStore.reorderSources(nb.id, orderedIds);
@@ -452,8 +449,8 @@ router.patch('/:id/sources/reorder', requireAuth, validate({ body: ReorderBody }
 });
 
 // ── Rename a source ─────────────────────────────────────────────
-router.patch('/:id/sources/:sid', requireAuth, validate({ body: RenameBody }), asEditor, /** @param {NotebookReq} req */ async (req, res) => {
-    const nb = req.notebook;
+router.patch('/:id/sources/:sid', requireAuth, validate({ body: RenameBody }), asEditor, async (req, res) => {
+    const nb = notebookOf(req);
     const source = await notebookStore.getSource(req.params.sid);
     if (!source || source.notebookId !== nb.id) return res.status(404).json({ error: 'Source not found' });
     const name = String(req.body?.name || '').replace(/\s+/g, ' ').trim().slice(0, 200);
@@ -463,8 +460,8 @@ router.patch('/:id/sources/:sid', requireAuth, validate({ body: RenameBody }), a
 });
 
 // ── Bulk delete sources ─────────────────────────────────────────
-router.post('/:id/sources/bulk-delete', requireAuth, validate({ body: BulkDeleteBody }), asEditor, /** @param {NotebookReq} req */ async (req, res) => {
-    const nb = req.notebook;
+router.post('/:id/sources/bulk-delete', requireAuth, validate({ body: BulkDeleteBody }), asEditor, async (req, res) => {
+    const nb = notebookOf(req);
     const ids = Array.isArray(req.body?.ids) ? req.body.ids : [];
     if (ids.length > MAX_BULK_DELETE_IDS) {
         return res.status(400).json({ error: `Too many sources — delete at most ${MAX_BULK_DELETE_IDS} at a time` });
@@ -480,8 +477,8 @@ router.post('/:id/sources/bulk-delete', requireAuth, validate({ body: BulkDelete
 
 // ── Delete Source ───────────────────────────────────────────────
 
-router.delete('/:id/sources/:sid', requireAuth, asEditor, /** @param {NotebookReq} req */ async (req, res) => {
-    const nb = req.notebook;
+router.delete('/:id/sources/:sid', requireAuth, asEditor, async (req, res) => {
+    const nb = notebookOf(req);
 
     const source = await notebookStore.deleteSource(req.params.sid, nb.id);
     if (!source) return res.status(404).json({ error: 'Source not found' });

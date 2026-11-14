@@ -1,3 +1,5 @@
+// @typecheck
+/** @typedef {import('./model').StageRow} StageRow @typedef {import('./stageRows').DeploymentRow} DeploymentRow */
 /**
  * The deployment runner (design 6.4, 6.5, 6.7, D9): admission, claim, lease,
  * heartbeat, execution by kind, compensation, and the reconciliation that
@@ -56,7 +58,7 @@ const ELIGIBILITY_CODES = Object.freeze(['release_not_found', 'release_not_pipel
  * What a runner resolves from its deps once, at creation: the stores, this
  * worker's id and lease timing, the planner, the phases (each loaded on first
  * use), the approval and owner lookups and the timers.
- * @param {Record<string, unknown>} deps
+ * @param {RunnerDeps} deps
  */
 function runnerParts(deps) {
     const s = storesOf(deps);
@@ -87,6 +89,7 @@ function runnerParts(deps) {
 }
 
 /** @typedef {ReturnType<typeof runnerParts>} RunnerParts */
+/** @typedef {{ workerId?: string, leaseMs?: number, heartbeatMs?: number, now?: () => Date, planDeps?: unknown, schedule?: (fn: () => void) => unknown, setInterval?: typeof setInterval, clearInterval?: typeof clearInterval, [k: string]: unknown }} RunnerDeps  the stores, phases and timers a test hands in */
 
 /**
  * The admission half of a runner: the request-key replay, the plan check and
@@ -120,7 +123,7 @@ function makeAdmission({ s, deps, planFn, planDeps, phases, solutionOwnerOf }, k
     /**
      * @param {AdmitInput} input  `settingsPatch`: the gate change of a `settings` deployment; `{ deleteData }` asks a
      *   `remove` to drop the stage's data, which only counts once the plan carries it
-     * @returns {Promise<{ deployment: object, replayed: boolean }>}
+     * @returns {Promise<{ deployment: DeploymentRow, replayed: boolean }>}
      */
     async function admit({ solutionId, stage, releaseId = null, kind = 'deploy', planHash, requestKey,
         acknowledgements = [], actor, settingsPatch = null } = /** @type {AdmitInput} */ ({})) {
@@ -162,7 +165,7 @@ function makeAdmission({ s, deps, planFn, planDeps, phases, solutionOwnerOf }, k
             releaseId: plan.release ? plan.release.id : null, releaseSeq: plan.release ? plan.release.seq : null,
             fromReleaseId: stageRow.currentReleaseId || null, kind,
             status: awaiting ? 'awaiting_approval' : 'queued',
-            settingsPatch: storedPatchOf(kind, settingsPatch, plan), plan, planHash: plan.planHash,
+            settingsPatch: /** @type {object | null} */ (storedPatchOf(kind, settingsPatch, plan)), plan, planHash: plan.planHash,
             stageSettingsVersion: plan.settingsVersion ?? stageRow.settingsVersion,
             requestKey, requestedBy: actorId,
             acknowledgements: (Array.isArray(acknowledgements) ? acknowledgements : []).filter(a => isObject(a) || typeof a === 'string'),
@@ -209,7 +212,7 @@ function makeExecution({ s, deps, workerId, leaseMs, heartbeatMs, now, planFn, p
     /**
      * @param {string} from
      * @param {string} to
-     * @param {{ error: { code: string; message: string; }; }} [patch]
+     * @param {{ error?: { code: string; message: string; }; [k: string]: unknown }} [patch]
      */
     async function move(row, from, to, patch = {}) {
         const moved = await s.stageStore.transitionDeployment(row.id, from, to, patch);
@@ -385,7 +388,7 @@ function makeExecution({ s, deps, workerId, leaseMs, heartbeatMs, now, planFn, p
 }
 
 /**
- * @param {Record<string, unknown>} [deps]
+ * @param {RunnerDeps} [deps]
  *   stores (journal.storesOf: solutionStageStore, blueprintStore, ...), `plan(input, planDeps)`,
  *   `planDeps`, `approvalGate` ({ request }), `approvalDeps`, `getApproval(id)`, `solutionOwnerOf(solutionId)`,
  *   `prepare`, `commit`, `commitSettings`, `converge`, `compensate`, `removeStage` ({ prepareRemove,

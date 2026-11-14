@@ -1,54 +1,63 @@
 // @typecheck strict
 /**
- * The retention DELETE on cowork_runs, against a stubbed db: this pins the
- * SQL contract that carries the safety — only closed rows
- * (finished_at stamped, status not 'running'), strictly older than the
- * cutoff, in a subselect-LIMIT batch (the automationStore shape, §WS3.1).
- * The real-Postgres round trip (deletes only old rows, idempotent)
- * is in coworkStore.test.js and skips without a DB; this file runs everywhere.
+ * The retention sweep on cowork_runs, against a real Postgres (PGlite behind
+ * db.js's pool, testUtils/pglitePool.js): only closed rows (finished_at stamped,
+ * status not 'running'), strictly older than the cutoff, at most `limit` per
+ * call (5000 by default), oldest first; a second pass deletes nothing new.
  *
- * Run: node --test --test-force-exit stores/coworkStore.retention.test.js
+ * Run: cd server && node --test stores/coworkStore.retention.test.js
  */
 
-const { test } = require('node:test');
+'use strict';
+
+const { test, before, after } = require('node:test');
 const assert = require('node:assert');
-const { recordDb } = require('../testUtils/routeHarness');
 
-let nextRowCount = 0;
+const { usePglitePool } = require('../testUtils/pglitePool');
 
-// The real db.js over a recording pool; a write matches `nextRowCount` rows.
-const db = recordDb(() => ({ rows: [], rowCount: nextRowCount }));
-const runCalls = db.calls;
-
+const { pg, close } = usePglitePool();
 const coworkStore = require('./coworkStore');
 
-test('de sweep verwijdert uitsluitend gesloten rijen ouder dan de cutoff', async () => {
-    db.reset();
-    nextRowCount = 3;
+const CUTOFF = '2026-06-01T00:00:00.000Z';
 
-    const cutoff = '2026-06-01T00:00:00.000Z';
-    const n = await coworkStore.deleteRunsOlderThan(cutoff);
-    assert.strictEqual(n, 3, 'geeft het aantal verwijderde rijen terug');
+before(async () => {
+    await coworkStore.initDB();
+    await pg.query("INSERT INTO cowork_schedules (id, user_id, title, prompt) VALUES ('sch1', 'u1', 'T', 'P')");
+});
+after(close);
 
-    const del = runCalls.find((c) => /DELETE FROM cowork_runs/.test(c.sql));
-    assert.ok(del, 'er hoort precies deze DELETE te lopen');
-    // De drie randvoorwaarden die een open poging onaantastbaar maken:
-    assert.match(del.sql, /status <> 'running'/, "een 'running'-rij nooit raken");
-    assert.match(del.sql, /finished_at IS NOT NULL/, 'de open rij (geen finished_at) nooit raken');
-    assert.match(del.sql, /finished_at < \$1/, 'strikt ouder dan de cutoff — dat maakt de sweep idempotent');
-    // Batchvorm: subselect met LIMIT, zoals automationStore.deleteRunsOlderThan.
-    assert.match(del.sql, /WHERE id IN \(/);
-    assert.match(del.sql, /LIMIT \$2/);
-    assert.deepStrictEqual(del.params, [cutoff, 5000], 'default batchgrootte 5000');
+/** @param {Array<[string, string, string | null]>} runs id, status, finished_at */
+async function seed(runs) {
+    await pg.exec('DELETE FROM cowork_runs');
+    for (const [id, status, finishedAt] of runs) {
+        await pg.query('INSERT INTO cowork_runs (id, schedule_id, user_id, status, started_at, finished_at) VALUES ($1, $2, $3, $4, $5, $6)',
+            [id, 'sch1', 'u1', status, '2026-01-01T00:00:00Z', finishedAt]);
+    }
+}
+const left = async () => (await pg.query('SELECT id FROM cowork_runs ORDER BY id')).rows.map((r) => r.id);
+
+test('the sweep deletes only closed rows strictly older than the cutoff, and says how many', async () => {
+    await seed([
+        ['old-success', 'success', '2026-05-01T00:00:00Z'],
+        ['old-error', 'error', '2026-05-02T00:00:00Z'],
+        ['old-reauth', 'needs_reauth', '2026-05-03T00:00:00Z'],
+        ['old-running', 'running', '2026-05-01T00:00:00Z'],
+        ['old-open', 'success', null],
+        ['at-cutoff', 'success', CUTOFF],
+        ['new', 'success', '2026-07-01T00:00:00Z'],
+    ]);
+    assert.strictEqual(await coworkStore.deleteRunsOlderThan(CUTOFF), 3);
+    assert.deepStrictEqual(await left(), ['at-cutoff', 'new', 'old-open', 'old-running'],
+        "a 'running' row and an open row (no finished_at) are never touched; strictly older makes it idempotent");
+    assert.strictEqual(await coworkStore.deleteRunsOlderThan(CUTOFF), 0, 'a second pass is a no-op');
 });
 
-test('een expliciete batchlimiet wordt doorgegeven', async () => {
-    db.reset();
-    nextRowCount = 0;
-
-    const n = await coworkStore.deleteRunsOlderThan('2026-06-01T00:00:00.000Z', { limit: 500 });
-    assert.strictEqual(n, 0, 'niets meer te verwijderen → 0 (tweede pass is een no-op)');
-    const del = runCalls.find((c) => /DELETE FROM cowork_runs/.test(c.sql));
-    assert.strictEqual(del.params[1], 500);
+test('an explicit batch limit is honoured, oldest first', async () => {
+    await seed([
+        ['a', 'success', '2026-05-03T00:00:00Z'],
+        ['b', 'success', '2026-05-01T00:00:00Z'],
+        ['c', 'success', '2026-05-02T00:00:00Z'],
+    ]);
+    assert.strictEqual(await coworkStore.deleteRunsOlderThan(CUTOFF, { limit: 2 }), 2);
+    assert.deepStrictEqual(await left(), ['a']);
 });
-

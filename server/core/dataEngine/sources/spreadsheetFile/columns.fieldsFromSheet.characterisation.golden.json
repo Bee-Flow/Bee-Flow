@@ -1,0 +1,3552 @@
+{
+  "fresh": {
+    "fields": [
+      {
+        "id": "fld_ss968c64cf68dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_ss39fd45e124txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss527b2975fftxt",
+        "key": "nummer",
+        "name": "Nummer",
+        "type": "text",
+        "required": true
+      },
+      {
+        "id": "fld_ss99857cb7a3num",
+        "key": "bedrag",
+        "name": "Bedrag",
+        "type": "number"
+      },
+      {
+        "id": "fld_ss9112e80957sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_ss59f382d587num",
+        "key": "totaal",
+        "name": "Totaal",
+        "type": "number",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_ss968c64cf68dat": {
+        "col": 0,
+        "header": "Datum",
+        "headerHash": "968c64cf68",
+        "type": "date",
+        "format": "date"
+      },
+      "fld_ss39fd45e124txt": {
+        "col": 1,
+        "header": "Leverancier",
+        "headerHash": "39fd45e124",
+        "type": "text"
+      },
+      "fld_ss527b2975fftxt": {
+        "col": 2,
+        "header": "Nummer",
+        "headerHash": "527b2975ff",
+        "type": "text",
+        "numFmt": "@",
+        "key": true
+      },
+      "fld_ss99857cb7a3num": {
+        "col": 3,
+        "header": "Bedrag",
+        "headerHash": "99857cb7a3",
+        "type": "number",
+        "numFmt": "#,##0.00"
+      },
+      "fld_ss9112e80957sel": {
+        "col": 4,
+        "header": "Status",
+        "headerHash": "9112e80957",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      "fld_ss59f382d587num": {
+        "col": 5,
+        "header": "Totaal",
+        "headerHash": "59f382d587",
+        "type": "number",
+        "formula": true
+      }
+    },
+    "relations": [],
+    "warnings": [],
+    "changes": [
+      "added:datum",
+      "added:leverancier",
+      "added:nummer",
+      "added:bedrag",
+      "added:status",
+      "added:totaal"
+    ],
+    "retyped": [],
+    "keyFieldId": "fld_ss527b2975fftxt"
+  },
+  "notAList": {
+    "fields": [],
+    "columnMap": {},
+    "relations": [],
+    "warnings": [],
+    "changes": [],
+    "retyped": [],
+    "keyFieldId": null
+  },
+  "noArgs": {
+    "fields": [],
+    "columnMap": {},
+    "relations": [],
+    "warnings": [],
+    "changes": [],
+    "retyped": [],
+    "keyFieldId": null
+  },
+  "invalidColumns": {
+    "fields": [
+      {
+        "id": "fld_ssf7a4ef18c2txt",
+        "key": "ok",
+        "name": "Ok",
+        "type": "text"
+      }
+    ],
+    "columnMap": {
+      "fld_ssf7a4ef18c2txt": {
+        "col": 3,
+        "header": "Ok",
+        "headerHash": "f7a4ef18c2",
+        "type": "text"
+      }
+    },
+    "relations": [],
+    "warnings": [],
+    "changes": [
+      "added:ok"
+    ],
+    "retyped": [],
+    "keyFieldId": null
+  },
+  "capped": [
+    "Only the first 100 of 103 columns are mirrored."
+  ],
+  "undeclarableType": {
+    "fields": [
+      {
+        "id": "fld_ssaf21bac89btxt",
+        "key": "bijlage",
+        "name": "Bijlage",
+        "type": "text"
+      },
+      {
+        "id": "fld_ssa393d62f45txt",
+        "key": "geen",
+        "name": "Geen",
+        "type": "text"
+      }
+    ],
+    "columnMap": {
+      "fld_ssaf21bac89btxt": {
+        "col": 0,
+        "header": "Bijlage",
+        "headerHash": "af21bac89b",
+        "type": "text"
+      },
+      "fld_ssa393d62f45txt": {
+        "col": 1,
+        "header": "Geen",
+        "headerHash": "a393d62f45",
+        "type": "text"
+      }
+    },
+    "relations": [],
+    "warnings": [
+      "\"Bijlage\" cannot be a file column here; it arrives as text."
+    ],
+    "changes": [
+      "added:bijlage",
+      "added:geen"
+    ],
+    "retyped": [],
+    "keyFieldId": null
+  },
+  "undeclarableTypeOverridden": {
+    "fields": [
+      {
+        "id": "fld_ssaf21bac89bnum",
+        "key": "bijlage",
+        "name": "Bijlage",
+        "type": "number"
+      }
+    ],
+    "columnMap": {
+      "fld_ssaf21bac89bnum": {
+        "col": 0,
+        "header": "Bijlage",
+        "headerHash": "af21bac89b",
+        "type": "number"
+      }
+    },
+    "relations": [],
+    "warnings": [],
+    "changes": [
+      "added:bijlage"
+    ],
+    "retyped": [],
+    "keyFieldId": null
+  },
+  "overrideByHash": {
+    "fields": [
+      {
+        "id": "fld_ss968c64cf68dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_ss39fd45e124txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss527b2975fftxt",
+        "key": "nummer",
+        "name": "Nummer",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss99857cb7a3txt",
+        "key": "bedrag",
+        "name": "Bedrag",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss9112e80957sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_ss59f382d587num",
+        "key": "totaal",
+        "name": "Totaal",
+        "type": "number",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_ss968c64cf68dat": {
+        "col": 0,
+        "header": "Datum",
+        "headerHash": "968c64cf68",
+        "type": "date",
+        "format": "date"
+      },
+      "fld_ss39fd45e124txt": {
+        "col": 1,
+        "header": "Leverancier",
+        "headerHash": "39fd45e124",
+        "type": "text"
+      },
+      "fld_ss527b2975fftxt": {
+        "col": 2,
+        "header": "Nummer",
+        "headerHash": "527b2975ff",
+        "type": "text",
+        "numFmt": "@"
+      },
+      "fld_ss99857cb7a3txt": {
+        "col": 3,
+        "header": "Bedrag",
+        "headerHash": "99857cb7a3",
+        "type": "text",
+        "numFmt": "#,##0.00"
+      },
+      "fld_ss9112e80957sel": {
+        "col": 4,
+        "header": "Status",
+        "headerHash": "9112e80957",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      "fld_ss59f382d587num": {
+        "col": 5,
+        "header": "Totaal",
+        "headerHash": "59f382d587",
+        "type": "number",
+        "formula": true
+      }
+    },
+    "relations": [],
+    "warnings": [],
+    "changes": [
+      "added:bedrag",
+      "retyped:bedrag"
+    ],
+    "retyped": [
+      {
+        "id": "fld_ss99857cb7a3num",
+        "key": "bedrag",
+        "name": "Bedrag",
+        "type": "number"
+      }
+    ],
+    "keyFieldId": null
+  },
+  "overrideBareString": {
+    "fields": [
+      {
+        "id": "fld_ss968c64cf68dtm",
+        "key": "datum",
+        "name": "Datum",
+        "type": "datetime"
+      },
+      {
+        "id": "fld_ss39fd45e124txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss527b2975fftxt",
+        "key": "nummer",
+        "name": "Nummer",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss99857cb7a3num",
+        "key": "bedrag",
+        "name": "Bedrag",
+        "type": "number"
+      },
+      {
+        "id": "fld_ss9112e80957sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_ss59f382d587num",
+        "key": "totaal",
+        "name": "Totaal",
+        "type": "number",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_ss968c64cf68dtm": {
+        "col": 0,
+        "header": "Datum",
+        "headerHash": "968c64cf68",
+        "type": "datetime",
+        "format": "date"
+      },
+      "fld_ss39fd45e124txt": {
+        "col": 1,
+        "header": "Leverancier",
+        "headerHash": "39fd45e124",
+        "type": "text"
+      },
+      "fld_ss527b2975fftxt": {
+        "col": 2,
+        "header": "Nummer",
+        "headerHash": "527b2975ff",
+        "type": "text",
+        "numFmt": "@"
+      },
+      "fld_ss99857cb7a3num": {
+        "col": 3,
+        "header": "Bedrag",
+        "headerHash": "99857cb7a3",
+        "type": "number",
+        "numFmt": "#,##0.00"
+      },
+      "fld_ss9112e80957sel": {
+        "col": 4,
+        "header": "Status",
+        "headerHash": "9112e80957",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      "fld_ss59f382d587num": {
+        "col": 5,
+        "header": "Totaal",
+        "headerHash": "59f382d587",
+        "type": "number",
+        "formula": true
+      }
+    },
+    "relations": [],
+    "warnings": [],
+    "changes": [
+      "added:datum",
+      "retyped:datum"
+    ],
+    "retyped": [
+      {
+        "id": "fld_ss968c64cf68dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      }
+    ],
+    "keyFieldId": null
+  },
+  "overrideByLegacyEntry": {
+    "fields": [
+      {
+        "id": "fld_ss968c64cf68dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_ss39fd45e124txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss527b2975ffnum",
+        "key": "nummer",
+        "name": "Nummer",
+        "type": "number"
+      },
+      {
+        "id": "fld_ss99857cb7a3num",
+        "key": "bedrag",
+        "name": "Bedrag",
+        "type": "number"
+      },
+      {
+        "id": "fld_ss9112e80957sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_ss59f382d587num",
+        "key": "totaal",
+        "name": "Totaal",
+        "type": "number",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_ss968c64cf68dat": {
+        "col": 0,
+        "header": "Datum",
+        "headerHash": "968c64cf68",
+        "type": "date",
+        "format": "date"
+      },
+      "fld_ss39fd45e124txt": {
+        "col": 1,
+        "header": "Leverancier",
+        "headerHash": "39fd45e124",
+        "type": "text"
+      },
+      "fld_ss527b2975ffnum": {
+        "col": 2,
+        "header": "Nummer",
+        "headerHash": "527b2975ff",
+        "type": "number",
+        "numFmt": "@"
+      },
+      "fld_ss99857cb7a3num": {
+        "col": 3,
+        "header": "Bedrag",
+        "headerHash": "99857cb7a3",
+        "type": "number",
+        "numFmt": "#,##0.00"
+      },
+      "fld_ss9112e80957sel": {
+        "col": 4,
+        "header": "Status",
+        "headerHash": "9112e80957",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      "fld_ss59f382d587num": {
+        "col": 5,
+        "header": "Totaal",
+        "headerHash": "59f382d587",
+        "type": "number",
+        "formula": true
+      }
+    },
+    "relations": [],
+    "warnings": [],
+    "changes": [
+      "added:nummer",
+      "retyped:nummer"
+    ],
+    "retyped": [
+      {
+        "id": "fld_ss527b2975fftxt",
+        "key": "nummer",
+        "name": "Nummer",
+        "type": "text",
+        "required": true
+      }
+    ],
+    "keyFieldId": null
+  },
+  "overridesIgnored": {
+    "fields": [
+      {
+        "id": "fld_ss968c64cf68dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_ss39fd45e124txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss527b2975fftxt",
+        "key": "nummer",
+        "name": "Nummer",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss99857cb7a3num",
+        "key": "bedrag",
+        "name": "Bedrag",
+        "type": "number"
+      },
+      {
+        "id": "fld_ss9112e80957sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_ss59f382d587num",
+        "key": "totaal",
+        "name": "Totaal",
+        "type": "number",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_ss968c64cf68dat": {
+        "col": 0,
+        "header": "Datum",
+        "headerHash": "968c64cf68",
+        "type": "date",
+        "format": "date"
+      },
+      "fld_ss39fd45e124txt": {
+        "col": 1,
+        "header": "Leverancier",
+        "headerHash": "39fd45e124",
+        "type": "text"
+      },
+      "fld_ss527b2975fftxt": {
+        "col": 2,
+        "header": "Nummer",
+        "headerHash": "527b2975ff",
+        "type": "text",
+        "numFmt": "@"
+      },
+      "fld_ss99857cb7a3num": {
+        "col": 3,
+        "header": "Bedrag",
+        "headerHash": "99857cb7a3",
+        "type": "number",
+        "numFmt": "#,##0.00"
+      },
+      "fld_ss9112e80957sel": {
+        "col": 4,
+        "header": "Status",
+        "headerHash": "9112e80957",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      "fld_ss59f382d587num": {
+        "col": 5,
+        "header": "Totaal",
+        "headerHash": "59f382d587",
+        "type": "number",
+        "formula": true
+      }
+    },
+    "relations": [],
+    "warnings": [],
+    "changes": [],
+    "retyped": [],
+    "keyFieldId": null
+  },
+  "overrideToSelectWithoutOptions": {
+    "fields": [
+      {
+        "id": "fld_ss968c64cf68dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_ss39fd45e124txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss527b2975fftxt",
+        "key": "nummer",
+        "name": "Nummer",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss99857cb7a3num",
+        "key": "bedrag",
+        "name": "Bedrag",
+        "type": "number"
+      },
+      {
+        "id": "fld_ss9112e80957sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_ss59f382d587num",
+        "key": "totaal",
+        "name": "Totaal",
+        "type": "number",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_ss968c64cf68dat": {
+        "col": 0,
+        "header": "Datum",
+        "headerHash": "968c64cf68",
+        "type": "date",
+        "format": "date"
+      },
+      "fld_ss39fd45e124txt": {
+        "col": 1,
+        "header": "Leverancier",
+        "headerHash": "39fd45e124",
+        "type": "text"
+      },
+      "fld_ss527b2975fftxt": {
+        "col": 2,
+        "header": "Nummer",
+        "headerHash": "527b2975ff",
+        "type": "text",
+        "numFmt": "@"
+      },
+      "fld_ss99857cb7a3num": {
+        "col": 3,
+        "header": "Bedrag",
+        "headerHash": "99857cb7a3",
+        "type": "number",
+        "numFmt": "#,##0.00"
+      },
+      "fld_ss9112e80957sel": {
+        "col": 4,
+        "header": "Status",
+        "headerHash": "9112e80957",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      "fld_ss59f382d587num": {
+        "col": 5,
+        "header": "Totaal",
+        "headerHash": "59f382d587",
+        "type": "number",
+        "formula": true
+      }
+    },
+    "relations": [],
+    "warnings": [
+      "\"Leverancier\" is a list column without options, so its values arrive as text."
+    ],
+    "changes": [],
+    "retyped": [],
+    "keyFieldId": null
+  },
+  "selectNoOptions": {
+    "fields": [
+      {
+        "id": "fld_sse81ddfe285txt",
+        "key": "lijst",
+        "name": "Lijst",
+        "type": "text"
+      }
+    ],
+    "columnMap": {
+      "fld_sse81ddfe285txt": {
+        "col": 0,
+        "header": "Lijst",
+        "headerHash": "e81ddfe285",
+        "type": "text"
+      }
+    },
+    "relations": [],
+    "warnings": [
+      "\"Lijst\" is a list column without options, so its values arrive as text."
+    ],
+    "changes": [
+      "added:lijst"
+    ],
+    "retyped": [],
+    "keyFieldId": null
+  },
+  "reservedKey": {
+    "fields": [
+      {
+        "id": "fld_ss968c64cf68dat",
+        "key": "datum_2",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_ss39fd45e124txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss527b2975fftxt",
+        "key": "nummer",
+        "name": "Nummer",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss99857cb7a3num",
+        "key": "bedrag_2",
+        "name": "Bedrag",
+        "type": "number"
+      },
+      {
+        "id": "fld_ss9112e80957sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_ss59f382d587num",
+        "key": "totaal",
+        "name": "Totaal",
+        "type": "number",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_ss968c64cf68dat": {
+        "col": 0,
+        "header": "Datum",
+        "headerHash": "968c64cf68",
+        "type": "date",
+        "format": "date"
+      },
+      "fld_ss39fd45e124txt": {
+        "col": 1,
+        "header": "Leverancier",
+        "headerHash": "39fd45e124",
+        "type": "text"
+      },
+      "fld_ss527b2975fftxt": {
+        "col": 2,
+        "header": "Nummer",
+        "headerHash": "527b2975ff",
+        "type": "text",
+        "numFmt": "@"
+      },
+      "fld_ss99857cb7a3num": {
+        "col": 3,
+        "header": "Bedrag",
+        "headerHash": "99857cb7a3",
+        "type": "number",
+        "numFmt": "#,##0.00"
+      },
+      "fld_ss9112e80957sel": {
+        "col": 4,
+        "header": "Status",
+        "headerHash": "9112e80957",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      "fld_ss59f382d587num": {
+        "col": 5,
+        "header": "Totaal",
+        "headerHash": "59f382d587",
+        "type": "number",
+        "formula": true
+      }
+    },
+    "relations": [],
+    "warnings": [],
+    "changes": [
+      "added:datum_2",
+      "added:leverancier",
+      "added:nummer",
+      "added:bedrag_2",
+      "added:status",
+      "added:totaal"
+    ],
+    "retyped": [],
+    "keyFieldId": null
+  },
+  "reservedKeyKeptField": {
+    "fields": [
+      {
+        "id": "fld_ss968c64cf68dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_ss39fd45e124txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss527b2975fftxt",
+        "key": "nummer",
+        "name": "Nummer",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss99857cb7a3num",
+        "key": "bedrag",
+        "name": "Bedrag",
+        "type": "number"
+      },
+      {
+        "id": "fld_ss9112e80957sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_ss59f382d587num",
+        "key": "totaal",
+        "name": "Totaal",
+        "type": "number",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_ss968c64cf68dat": {
+        "col": 0,
+        "header": "Datum",
+        "headerHash": "968c64cf68",
+        "type": "date",
+        "format": "date"
+      },
+      "fld_ss39fd45e124txt": {
+        "col": 1,
+        "header": "Leverancier",
+        "headerHash": "39fd45e124",
+        "type": "text"
+      },
+      "fld_ss527b2975fftxt": {
+        "col": 2,
+        "header": "Nummer",
+        "headerHash": "527b2975ff",
+        "type": "text",
+        "numFmt": "@"
+      },
+      "fld_ss99857cb7a3num": {
+        "col": 3,
+        "header": "Bedrag",
+        "headerHash": "99857cb7a3",
+        "type": "number",
+        "numFmt": "#,##0.00"
+      },
+      "fld_ss9112e80957sel": {
+        "col": 4,
+        "header": "Status",
+        "headerHash": "9112e80957",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      "fld_ss59f382d587num": {
+        "col": 5,
+        "header": "Totaal",
+        "headerHash": "59f382d587",
+        "type": "number",
+        "formula": true
+      }
+    },
+    "relations": [],
+    "warnings": [],
+    "changes": [],
+    "retyped": [],
+    "keyFieldId": null
+  },
+  "retypeKeepsKey": {
+    "fields": [
+      {
+        "id": "fld_ss968c64cf68dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_ss39fd45e124txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss527b2975fftxt",
+        "key": "nummer",
+        "name": "Nummer",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss99857cb7a3txt",
+        "key": "bedrag",
+        "name": "Bedrag",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss9112e80957sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_ss59f382d587num",
+        "key": "totaal",
+        "name": "Totaal",
+        "type": "number",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_ss968c64cf68dat": {
+        "col": 0,
+        "header": "Datum",
+        "headerHash": "968c64cf68",
+        "type": "date",
+        "format": "date"
+      },
+      "fld_ss39fd45e124txt": {
+        "col": 1,
+        "header": "Leverancier",
+        "headerHash": "39fd45e124",
+        "type": "text"
+      },
+      "fld_ss527b2975fftxt": {
+        "col": 2,
+        "header": "Nummer",
+        "headerHash": "527b2975ff",
+        "type": "text",
+        "numFmt": "@"
+      },
+      "fld_ss99857cb7a3txt": {
+        "col": 3,
+        "header": "Bedrag",
+        "headerHash": "99857cb7a3",
+        "type": "text",
+        "numFmt": "#,##0.00"
+      },
+      "fld_ss9112e80957sel": {
+        "col": 4,
+        "header": "Status",
+        "headerHash": "9112e80957",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      "fld_ss59f382d587num": {
+        "col": 5,
+        "header": "Totaal",
+        "headerHash": "59f382d587",
+        "type": "number",
+        "formula": true
+      }
+    },
+    "relations": [],
+    "warnings": [],
+    "changes": [
+      "added:bedrag",
+      "retyped:bedrag"
+    ],
+    "retyped": [
+      {
+        "id": "fld_ss99857cb7a3num",
+        "key": "bedrag",
+        "name": "Bedrag",
+        "type": "number"
+      }
+    ],
+    "keyFieldId": null
+  },
+  "retypeKeyTaken": {
+    "fields": [
+      {
+        "id": "fld_ss968c64cf68dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_ss39fd45e124txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss527b2975fftxt",
+        "key": "nummer",
+        "name": "Nummer",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss99857cb7a3txt",
+        "key": "bedrag_2",
+        "name": "Bedrag",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss9112e80957sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_ss59f382d587num",
+        "key": "totaal",
+        "name": "Totaal",
+        "type": "number",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_ss968c64cf68dat": {
+        "col": 0,
+        "header": "Datum",
+        "headerHash": "968c64cf68",
+        "type": "date",
+        "format": "date"
+      },
+      "fld_ss39fd45e124txt": {
+        "col": 1,
+        "header": "Leverancier",
+        "headerHash": "39fd45e124",
+        "type": "text"
+      },
+      "fld_ss527b2975fftxt": {
+        "col": 2,
+        "header": "Nummer",
+        "headerHash": "527b2975ff",
+        "type": "text",
+        "numFmt": "@"
+      },
+      "fld_ss99857cb7a3txt": {
+        "col": 3,
+        "header": "Bedrag",
+        "headerHash": "99857cb7a3",
+        "type": "text",
+        "numFmt": "#,##0.00"
+      },
+      "fld_ss9112e80957sel": {
+        "col": 4,
+        "header": "Status",
+        "headerHash": "9112e80957",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      "fld_ss59f382d587num": {
+        "col": 5,
+        "header": "Totaal",
+        "headerHash": "59f382d587",
+        "type": "number",
+        "formula": true
+      }
+    },
+    "relations": [],
+    "warnings": [],
+    "changes": [
+      "added:bedrag_2",
+      "retyped:bedrag"
+    ],
+    "retyped": [
+      {
+        "id": "fld_ss99857cb7a3num",
+        "key": "bedrag",
+        "name": "Bedrag",
+        "type": "number"
+      }
+    ],
+    "keyFieldId": null
+  },
+  "retypeFromFieldsOnly": {
+    "fields": [
+      {
+        "id": "fld_ss968c64cf68txt",
+        "key": "datum",
+        "name": "Datum",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss39fd45e124txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss527b2975fftxt",
+        "key": "nummer",
+        "name": "Nummer",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss99857cb7a3num",
+        "key": "bedrag",
+        "name": "Bedrag",
+        "type": "number"
+      },
+      {
+        "id": "fld_ss9112e80957sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_ss59f382d587num",
+        "key": "totaal",
+        "name": "Totaal",
+        "type": "number",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_ss968c64cf68txt": {
+        "col": 0,
+        "header": "Datum",
+        "headerHash": "968c64cf68",
+        "type": "text"
+      },
+      "fld_ss39fd45e124txt": {
+        "col": 1,
+        "header": "Leverancier",
+        "headerHash": "39fd45e124",
+        "type": "text"
+      },
+      "fld_ss527b2975fftxt": {
+        "col": 2,
+        "header": "Nummer",
+        "headerHash": "527b2975ff",
+        "type": "text",
+        "numFmt": "@"
+      },
+      "fld_ss99857cb7a3num": {
+        "col": 3,
+        "header": "Bedrag",
+        "headerHash": "99857cb7a3",
+        "type": "number",
+        "numFmt": "#,##0.00"
+      },
+      "fld_ss9112e80957sel": {
+        "col": 4,
+        "header": "Status",
+        "headerHash": "9112e80957",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      "fld_ss59f382d587num": {
+        "col": 5,
+        "header": "Totaal",
+        "headerHash": "59f382d587",
+        "type": "number",
+        "formula": true
+      }
+    },
+    "relations": [],
+    "warnings": [],
+    "changes": [
+      "added:datum",
+      "retyped:datum"
+    ],
+    "retyped": [
+      {
+        "id": "fld_ss968c64cf68dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      }
+    ],
+    "keyFieldId": null
+  },
+  "caseRenameAndMove": {
+    "fields": [
+      {
+        "id": "fld_ss39fd45e124txt",
+        "key": "leverancier",
+        "name": "LEVERANCIER",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss968c64cf68dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_ss527b2975fftxt",
+        "key": "nummer",
+        "name": "Nummer",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss99857cb7a3num",
+        "key": "bedrag",
+        "name": "Bedrag",
+        "type": "number"
+      },
+      {
+        "id": "fld_ss9112e80957sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_ss59f382d587num",
+        "key": "totaal",
+        "name": "Totaal",
+        "type": "number",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_ss39fd45e124txt": {
+        "col": 0,
+        "header": "LEVERANCIER",
+        "headerHash": "39fd45e124",
+        "type": "text"
+      },
+      "fld_ss968c64cf68dat": {
+        "col": 1,
+        "header": "Datum",
+        "headerHash": "968c64cf68",
+        "type": "date",
+        "format": "date"
+      },
+      "fld_ss527b2975fftxt": {
+        "col": 2,
+        "header": "Nummer",
+        "headerHash": "527b2975ff",
+        "type": "text",
+        "numFmt": "@"
+      },
+      "fld_ss99857cb7a3num": {
+        "col": 3,
+        "header": "Bedrag",
+        "headerHash": "99857cb7a3",
+        "type": "number",
+        "numFmt": "#,##0.00"
+      },
+      "fld_ss9112e80957sel": {
+        "col": 4,
+        "header": "Status",
+        "headerHash": "9112e80957",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      "fld_ss59f382d587num": {
+        "col": 5,
+        "header": "Totaal",
+        "headerHash": "59f382d587",
+        "type": "number",
+        "formula": true
+      }
+    },
+    "relations": [],
+    "warnings": [],
+    "changes": [
+      "renamed:leverancier",
+      "moved:leverancier",
+      "moved:datum"
+    ],
+    "retyped": [],
+    "keyFieldId": null
+  },
+  "keptKeyNotStolen": {
+    "fields": [
+      {
+        "id": "fld_ssc5e13a826btxt",
+        "key": "supplier_2",
+        "name": "Supplier",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss968c64cf68dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_ss39fd45e124txt",
+        "key": "supplier",
+        "name": "Leverancier",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss527b2975fftxt",
+        "key": "nummer",
+        "name": "Nummer",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss99857cb7a3num",
+        "key": "bedrag",
+        "name": "Bedrag",
+        "type": "number"
+      },
+      {
+        "id": "fld_ss9112e80957sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_ss59f382d587num",
+        "key": "totaal",
+        "name": "Totaal",
+        "type": "number",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_ssc5e13a826btxt": {
+        "col": 0,
+        "header": "Supplier",
+        "headerHash": "c5e13a826b",
+        "type": "text"
+      },
+      "fld_ss968c64cf68dat": {
+        "col": 1,
+        "header": "Datum",
+        "headerHash": "968c64cf68",
+        "type": "date",
+        "format": "date"
+      },
+      "fld_ss39fd45e124txt": {
+        "col": 2,
+        "header": "Leverancier",
+        "headerHash": "39fd45e124",
+        "type": "text"
+      },
+      "fld_ss527b2975fftxt": {
+        "col": 3,
+        "header": "Nummer",
+        "headerHash": "527b2975ff",
+        "type": "text",
+        "numFmt": "@"
+      },
+      "fld_ss99857cb7a3num": {
+        "col": 4,
+        "header": "Bedrag",
+        "headerHash": "99857cb7a3",
+        "type": "number",
+        "numFmt": "#,##0.00"
+      },
+      "fld_ss9112e80957sel": {
+        "col": 5,
+        "header": "Status",
+        "headerHash": "9112e80957",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      "fld_ss59f382d587num": {
+        "col": 6,
+        "header": "Totaal",
+        "headerHash": "59f382d587",
+        "type": "number",
+        "formula": true
+      }
+    },
+    "relations": [],
+    "warnings": [],
+    "changes": [
+      "added:supplier_2",
+      "moved:datum",
+      "moved:supplier",
+      "moved:nummer",
+      "moved:bedrag",
+      "moved:status",
+      "moved:totaal"
+    ],
+    "retyped": [],
+    "keyFieldId": null
+  },
+  "removedAndAdded": {
+    "fields": [
+      {
+        "id": "fld_ss39fd45e124txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss527b2975fftxt",
+        "key": "nummer",
+        "name": "Nummer",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss99857cb7a3num",
+        "key": "bedrag",
+        "name": "Bedrag",
+        "type": "number"
+      },
+      {
+        "id": "fld_ss9112e80957sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_ss59f382d587num",
+        "key": "totaal",
+        "name": "Totaal",
+        "type": "number",
+        "derived": true
+      },
+      {
+        "id": "fld_ss4f8b8750a9txt",
+        "key": "nieuw",
+        "name": "Nieuw",
+        "type": "text"
+      }
+    ],
+    "columnMap": {
+      "fld_ss39fd45e124txt": {
+        "col": 1,
+        "header": "Leverancier",
+        "headerHash": "39fd45e124",
+        "type": "text"
+      },
+      "fld_ss527b2975fftxt": {
+        "col": 2,
+        "header": "Nummer",
+        "headerHash": "527b2975ff",
+        "type": "text",
+        "numFmt": "@"
+      },
+      "fld_ss99857cb7a3num": {
+        "col": 3,
+        "header": "Bedrag",
+        "headerHash": "99857cb7a3",
+        "type": "number",
+        "numFmt": "#,##0.00"
+      },
+      "fld_ss9112e80957sel": {
+        "col": 4,
+        "header": "Status",
+        "headerHash": "9112e80957",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      "fld_ss59f382d587num": {
+        "col": 5,
+        "header": "Totaal",
+        "headerHash": "59f382d587",
+        "type": "number",
+        "formula": true
+      },
+      "fld_ss4f8b8750a9txt": {
+        "col": 6,
+        "header": "Nieuw",
+        "headerHash": "4f8b8750a9",
+        "type": "text"
+      }
+    },
+    "relations": [],
+    "warnings": [],
+    "changes": [
+      "added:nieuw",
+      "removed:datum"
+    ],
+    "retyped": [],
+    "keyFieldId": null
+  },
+  "priorTypeWins": {
+    "fields": [
+      {
+        "id": "fld_ss968c64cf68dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_ss39fd45e124txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss527b2975fftxt",
+        "key": "nummer",
+        "name": "Nummer",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss99857cb7a3num",
+        "key": "bedrag",
+        "name": "Bedrag",
+        "type": "number"
+      },
+      {
+        "id": "fld_ss9112e80957txt",
+        "key": "status",
+        "name": "Status",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss59f382d587num",
+        "key": "totaal",
+        "name": "Totaal",
+        "type": "number"
+      }
+    ],
+    "columnMap": {
+      "fld_ss968c64cf68dat": {
+        "col": 0,
+        "header": "Datum",
+        "headerHash": "968c64cf68",
+        "type": "date",
+        "format": "date"
+      },
+      "fld_ss39fd45e124txt": {
+        "col": 1,
+        "header": "Leverancier",
+        "headerHash": "39fd45e124",
+        "type": "text"
+      },
+      "fld_ss527b2975fftxt": {
+        "col": 2,
+        "header": "Nummer",
+        "headerHash": "527b2975ff",
+        "type": "text"
+      },
+      "fld_ss99857cb7a3num": {
+        "col": 3,
+        "header": "Bedrag",
+        "headerHash": "99857cb7a3",
+        "type": "number"
+      },
+      "fld_ss9112e80957txt": {
+        "col": 4,
+        "header": "Status",
+        "headerHash": "9112e80957",
+        "type": "text"
+      },
+      "fld_ss59f382d587num": {
+        "col": 5,
+        "header": "Totaal",
+        "headerHash": "59f382d587",
+        "type": "number"
+      }
+    },
+    "relations": [],
+    "warnings": [
+      "\"Status\" is a list column without options, so its values arrive as text."
+    ],
+    "changes": [
+      "added:status",
+      "retyped:status"
+    ],
+    "retyped": [
+      {
+        "id": "fld_ss9112e80957sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      }
+    ],
+    "keyFieldId": null
+  },
+  "keyColNotInteger": {
+    "fields": [
+      {
+        "id": "fld_ss968c64cf68dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_ss39fd45e124txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss527b2975fftxt",
+        "key": "nummer",
+        "name": "Nummer",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss99857cb7a3num",
+        "key": "bedrag",
+        "name": "Bedrag",
+        "type": "number"
+      },
+      {
+        "id": "fld_ss9112e80957sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_ss59f382d587num",
+        "key": "totaal",
+        "name": "Totaal",
+        "type": "number",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_ss968c64cf68dat": {
+        "col": 0,
+        "header": "Datum",
+        "headerHash": "968c64cf68",
+        "type": "date",
+        "format": "date"
+      },
+      "fld_ss39fd45e124txt": {
+        "col": 1,
+        "header": "Leverancier",
+        "headerHash": "39fd45e124",
+        "type": "text"
+      },
+      "fld_ss527b2975fftxt": {
+        "col": 2,
+        "header": "Nummer",
+        "headerHash": "527b2975ff",
+        "type": "text",
+        "numFmt": "@"
+      },
+      "fld_ss99857cb7a3num": {
+        "col": 3,
+        "header": "Bedrag",
+        "headerHash": "99857cb7a3",
+        "type": "number",
+        "numFmt": "#,##0.00"
+      },
+      "fld_ss9112e80957sel": {
+        "col": 4,
+        "header": "Status",
+        "headerHash": "9112e80957",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      "fld_ss59f382d587num": {
+        "col": 5,
+        "header": "Totaal",
+        "headerHash": "59f382d587",
+        "type": "number",
+        "formula": true
+      }
+    },
+    "relations": [],
+    "warnings": [],
+    "changes": [
+      "added:datum",
+      "added:leverancier",
+      "added:nummer",
+      "added:bedrag",
+      "added:status",
+      "added:totaal"
+    ],
+    "retyped": [],
+    "keyFieldId": null
+  },
+  "keyColGone": {
+    "fields": [
+      {
+        "id": "fld_ss968c64cf68dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_ss39fd45e124txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss527b2975fftxt",
+        "key": "nummer",
+        "name": "Nummer",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss99857cb7a3num",
+        "key": "bedrag",
+        "name": "Bedrag",
+        "type": "number"
+      },
+      {
+        "id": "fld_ss9112e80957sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_ss59f382d587num",
+        "key": "totaal",
+        "name": "Totaal",
+        "type": "number",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_ss968c64cf68dat": {
+        "col": 0,
+        "header": "Datum",
+        "headerHash": "968c64cf68",
+        "type": "date",
+        "format": "date"
+      },
+      "fld_ss39fd45e124txt": {
+        "col": 1,
+        "header": "Leverancier",
+        "headerHash": "39fd45e124",
+        "type": "text"
+      },
+      "fld_ss527b2975fftxt": {
+        "col": 2,
+        "header": "Nummer",
+        "headerHash": "527b2975ff",
+        "type": "text",
+        "numFmt": "@"
+      },
+      "fld_ss99857cb7a3num": {
+        "col": 3,
+        "header": "Bedrag",
+        "headerHash": "99857cb7a3",
+        "type": "number",
+        "numFmt": "#,##0.00"
+      },
+      "fld_ss9112e80957sel": {
+        "col": 4,
+        "header": "Status",
+        "headerHash": "9112e80957",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      "fld_ss59f382d587num": {
+        "col": 5,
+        "header": "Totaal",
+        "headerHash": "59f382d587",
+        "type": "number",
+        "formula": true
+      }
+    },
+    "relations": [],
+    "warnings": [
+      "The key column (column J) is not in the header any more; rows are identified by row number until the owner picks another."
+    ],
+    "changes": [],
+    "retyped": [],
+    "keyFieldId": null
+  },
+  "formats": {
+    "fields": [
+      {
+        "id": "fld_ss7afe9e7007txt",
+        "key": "a",
+        "name": "A",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss3a4229eb4ddtm",
+        "key": "b",
+        "name": "B",
+        "type": "datetime"
+      },
+      {
+        "id": "fld_ss78767c4032num",
+        "key": "c",
+        "name": "C",
+        "type": "number"
+      },
+      {
+        "id": "fld_ssdaf34b4a24num",
+        "key": "d",
+        "name": "D",
+        "type": "number"
+      }
+    ],
+    "columnMap": {
+      "fld_ss7afe9e7007txt": {
+        "col": 0,
+        "header": "A",
+        "headerHash": "7afe9e7007",
+        "type": "text",
+        "format": "percent",
+        "numFmt": "0%",
+        "dateFormat": "dd-mm"
+      },
+      "fld_ss3a4229eb4ddtm": {
+        "col": 1,
+        "header": "B",
+        "headerHash": "3a4229eb4d",
+        "type": "datetime",
+        "format": "date",
+        "dateFormat": "yyyy"
+      },
+      "fld_ss78767c4032num": {
+        "col": 2,
+        "header": "C",
+        "headerHash": "78767c4032",
+        "type": "number",
+        "format": "currency",
+        "numFmt": "[$€-413] #,##0.00"
+      },
+      "fld_ssdaf34b4a24num": {
+        "col": 3,
+        "header": "D",
+        "headerHash": "daf34b4a24",
+        "type": "number"
+      }
+    },
+    "relations": [],
+    "warnings": [],
+    "changes": [
+      "added:a",
+      "added:b",
+      "added:c",
+      "added:d"
+    ],
+    "retyped": [],
+    "keyFieldId": null
+  },
+  "relationNew": {
+    "fields": [
+      {
+        "id": "fld_ss968c64cf68dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_ss39fd45e124txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss527b2975fftxt",
+        "key": "nummer",
+        "name": "Nummer",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss99857cb7a3num",
+        "key": "bedrag",
+        "name": "Bedrag",
+        "type": "number"
+      },
+      {
+        "id": "fld_ss9112e80957sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_ss59f382d587num",
+        "key": "totaal",
+        "name": "Totaal",
+        "type": "number",
+        "derived": true
+      },
+      {
+        "id": "fld_ssrela7ddb97f63",
+        "key": "leveranciers_ref",
+        "name": "Leveranciers row",
+        "type": "relation",
+        "derived": true,
+        "relation": {
+          "table": "tbl_lev",
+          "fk": false
+        }
+      }
+    ],
+    "columnMap": {
+      "fld_ss968c64cf68dat": {
+        "col": 0,
+        "header": "Datum",
+        "headerHash": "968c64cf68",
+        "type": "date",
+        "format": "date"
+      },
+      "fld_ss39fd45e124txt": {
+        "col": 1,
+        "header": "Leverancier",
+        "headerHash": "39fd45e124",
+        "type": "text"
+      },
+      "fld_ss527b2975fftxt": {
+        "col": 2,
+        "header": "Nummer",
+        "headerHash": "527b2975ff",
+        "type": "text",
+        "numFmt": "@"
+      },
+      "fld_ss99857cb7a3num": {
+        "col": 3,
+        "header": "Bedrag",
+        "headerHash": "99857cb7a3",
+        "type": "number",
+        "numFmt": "#,##0.00"
+      },
+      "fld_ss9112e80957sel": {
+        "col": 4,
+        "header": "Status",
+        "headerHash": "9112e80957",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      "fld_ss59f382d587num": {
+        "col": 5,
+        "header": "Totaal",
+        "headerHash": "59f382d587",
+        "type": "number",
+        "formula": true
+      },
+      "fld_ssrela7ddb97f63": {
+        "derived": "match",
+        "localFieldId": "fld_ss39fd45e124txt",
+        "targetFieldId": "fld_nc20txt"
+      }
+    },
+    "relations": [
+      {
+        "fieldId": "fld_ssrela7ddb97f63",
+        "kind": "match",
+        "targetDatatableId": "tbl_lev",
+        "localFieldId": "fld_ss39fd45e124txt",
+        "targetFieldId": "fld_nc20txt"
+      }
+    ],
+    "warnings": [],
+    "changes": [
+      "added:leveranciers_ref"
+    ],
+    "retyped": [],
+    "keyFieldId": null
+  },
+  "relationKept": {
+    "fields": [
+      {
+        "id": "fld_ss968c64cf68dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_ss39fd45e124txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss527b2975fftxt",
+        "key": "nummer",
+        "name": "Nummer",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss99857cb7a3num",
+        "key": "bedrag",
+        "name": "Bedrag",
+        "type": "number"
+      },
+      {
+        "id": "fld_ss9112e80957sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_ss59f382d587num",
+        "key": "totaal",
+        "name": "Totaal",
+        "type": "number",
+        "derived": true
+      },
+      {
+        "id": "fld_ssrela7ddb97f63",
+        "key": "leveranciers_ref",
+        "name": "Leveranciers row",
+        "type": "relation",
+        "derived": true,
+        "relation": {
+          "table": "tbl_lev",
+          "fk": false
+        }
+      }
+    ],
+    "columnMap": {
+      "fld_ss968c64cf68dat": {
+        "col": 0,
+        "header": "Datum",
+        "headerHash": "968c64cf68",
+        "type": "date",
+        "format": "date"
+      },
+      "fld_ss39fd45e124txt": {
+        "col": 1,
+        "header": "Leverancier",
+        "headerHash": "39fd45e124",
+        "type": "text"
+      },
+      "fld_ss527b2975fftxt": {
+        "col": 2,
+        "header": "Nummer",
+        "headerHash": "527b2975ff",
+        "type": "text",
+        "numFmt": "@"
+      },
+      "fld_ss99857cb7a3num": {
+        "col": 3,
+        "header": "Bedrag",
+        "headerHash": "99857cb7a3",
+        "type": "number",
+        "numFmt": "#,##0.00"
+      },
+      "fld_ss9112e80957sel": {
+        "col": 4,
+        "header": "Status",
+        "headerHash": "9112e80957",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      "fld_ss59f382d587num": {
+        "col": 5,
+        "header": "Totaal",
+        "headerHash": "59f382d587",
+        "type": "number",
+        "formula": true
+      },
+      "fld_ssrela7ddb97f63": {
+        "derived": "match",
+        "localFieldId": "fld_ss39fd45e124txt",
+        "targetFieldId": "fld_nc20txt"
+      }
+    },
+    "relations": [
+      {
+        "fieldId": "fld_ssrela7ddb97f63",
+        "kind": "match",
+        "targetDatatableId": "tbl_lev",
+        "localFieldId": "fld_ss39fd45e124txt",
+        "targetFieldId": "fld_nc20txt"
+      }
+    ],
+    "warnings": [],
+    "changes": [],
+    "retyped": [],
+    "keyFieldId": null
+  },
+  "relationDropped": {
+    "fields": [
+      {
+        "id": "fld_ss968c64cf68dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_ss39fd45e124txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss527b2975fftxt",
+        "key": "nummer",
+        "name": "Nummer",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss99857cb7a3num",
+        "key": "bedrag",
+        "name": "Bedrag",
+        "type": "number"
+      },
+      {
+        "id": "fld_ss9112e80957sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_ss59f382d587num",
+        "key": "totaal",
+        "name": "Totaal",
+        "type": "number",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_ss968c64cf68dat": {
+        "col": 0,
+        "header": "Datum",
+        "headerHash": "968c64cf68",
+        "type": "date",
+        "format": "date"
+      },
+      "fld_ss39fd45e124txt": {
+        "col": 1,
+        "header": "Leverancier",
+        "headerHash": "39fd45e124",
+        "type": "text"
+      },
+      "fld_ss527b2975fftxt": {
+        "col": 2,
+        "header": "Nummer",
+        "headerHash": "527b2975ff",
+        "type": "text",
+        "numFmt": "@"
+      },
+      "fld_ss99857cb7a3num": {
+        "col": 3,
+        "header": "Bedrag",
+        "headerHash": "99857cb7a3",
+        "type": "number",
+        "numFmt": "#,##0.00"
+      },
+      "fld_ss9112e80957sel": {
+        "col": 4,
+        "header": "Status",
+        "headerHash": "9112e80957",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      "fld_ss59f382d587num": {
+        "col": 5,
+        "header": "Totaal",
+        "headerHash": "59f382d587",
+        "type": "number",
+        "formula": true
+      }
+    },
+    "relations": [],
+    "warnings": [],
+    "changes": [
+      "removed:leveranciers_ref"
+    ],
+    "retyped": [],
+    "keyFieldId": null
+  },
+  "relationKeyReservedFromColumn": {
+    "fields": [
+      {
+        "id": "fld_ss968c64cf68dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_ss39fd45e124txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss527b2975fftxt",
+        "key": "nummer",
+        "name": "Nummer",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss99857cb7a3num",
+        "key": "bedrag",
+        "name": "Bedrag",
+        "type": "number"
+      },
+      {
+        "id": "fld_ss9112e80957sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_ss59f382d587num",
+        "key": "totaal",
+        "name": "Totaal",
+        "type": "number",
+        "derived": true
+      },
+      {
+        "id": "fld_ss3322427b84txt",
+        "key": "leveranciers_ref_2",
+        "name": "leveranciers_ref",
+        "type": "text"
+      },
+      {
+        "id": "fld_ssrela7ddb97f63",
+        "key": "leveranciers_ref",
+        "name": "Leveranciers row",
+        "type": "relation",
+        "derived": true,
+        "relation": {
+          "table": "tbl_lev",
+          "fk": false
+        }
+      }
+    ],
+    "columnMap": {
+      "fld_ss968c64cf68dat": {
+        "col": 0,
+        "header": "Datum",
+        "headerHash": "968c64cf68",
+        "type": "date",
+        "format": "date"
+      },
+      "fld_ss39fd45e124txt": {
+        "col": 1,
+        "header": "Leverancier",
+        "headerHash": "39fd45e124",
+        "type": "text"
+      },
+      "fld_ss527b2975fftxt": {
+        "col": 2,
+        "header": "Nummer",
+        "headerHash": "527b2975ff",
+        "type": "text",
+        "numFmt": "@"
+      },
+      "fld_ss99857cb7a3num": {
+        "col": 3,
+        "header": "Bedrag",
+        "headerHash": "99857cb7a3",
+        "type": "number",
+        "numFmt": "#,##0.00"
+      },
+      "fld_ss9112e80957sel": {
+        "col": 4,
+        "header": "Status",
+        "headerHash": "9112e80957",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      "fld_ss59f382d587num": {
+        "col": 5,
+        "header": "Totaal",
+        "headerHash": "59f382d587",
+        "type": "number",
+        "formula": true
+      },
+      "fld_ss3322427b84txt": {
+        "col": 6,
+        "header": "leveranciers_ref",
+        "headerHash": "3322427b84",
+        "type": "text"
+      },
+      "fld_ssrela7ddb97f63": {
+        "derived": "match",
+        "localFieldId": "fld_ss39fd45e124txt",
+        "targetFieldId": "fld_nc20txt"
+      }
+    },
+    "relations": [
+      {
+        "fieldId": "fld_ssrela7ddb97f63",
+        "kind": "match",
+        "targetDatatableId": "tbl_lev",
+        "localFieldId": "fld_ss39fd45e124txt",
+        "targetFieldId": "fld_nc20txt"
+      }
+    ],
+    "warnings": [],
+    "changes": [
+      "added:leveranciers_ref_2"
+    ],
+    "retyped": [],
+    "keyFieldId": null
+  },
+  "relationOnGoneColumn": {
+    "fields": [
+      {
+        "id": "fld_ss968c64cf68dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_ss39fd45e124txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss527b2975fftxt",
+        "key": "nummer",
+        "name": "Nummer",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss99857cb7a3num",
+        "key": "bedrag",
+        "name": "Bedrag",
+        "type": "number"
+      },
+      {
+        "id": "fld_ss9112e80957sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_ss59f382d587num",
+        "key": "totaal",
+        "name": "Totaal",
+        "type": "number",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_ss968c64cf68dat": {
+        "col": 0,
+        "header": "Datum",
+        "headerHash": "968c64cf68",
+        "type": "date",
+        "format": "date"
+      },
+      "fld_ss39fd45e124txt": {
+        "col": 1,
+        "header": "Leverancier",
+        "headerHash": "39fd45e124",
+        "type": "text"
+      },
+      "fld_ss527b2975fftxt": {
+        "col": 2,
+        "header": "Nummer",
+        "headerHash": "527b2975ff",
+        "type": "text",
+        "numFmt": "@"
+      },
+      "fld_ss99857cb7a3num": {
+        "col": 3,
+        "header": "Bedrag",
+        "headerHash": "99857cb7a3",
+        "type": "number",
+        "numFmt": "#,##0.00"
+      },
+      "fld_ss9112e80957sel": {
+        "col": 4,
+        "header": "Status",
+        "headerHash": "9112e80957",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      "fld_ss59f382d587num": {
+        "col": 5,
+        "header": "Totaal",
+        "headerHash": "59f382d587",
+        "type": "number",
+        "formula": true
+      }
+    },
+    "relations": [],
+    "warnings": [
+      "A declared relation names a column this table no longer has (fld_ssdeadbeef00txt); it is skipped."
+    ],
+    "changes": [
+      "added:datum",
+      "added:leverancier",
+      "added:nummer",
+      "added:bedrag",
+      "added:status",
+      "added:totaal"
+    ],
+    "retyped": [],
+    "keyFieldId": null
+  },
+  "relationOnPriorOnlyColumn": {
+    "fields": [
+      {
+        "id": "fld_ss527b2975fftxt",
+        "key": "nummer",
+        "name": "Nummer",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss99857cb7a3num",
+        "key": "bedrag",
+        "name": "Bedrag",
+        "type": "number"
+      },
+      {
+        "id": "fld_ss9112e80957sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_ss59f382d587num",
+        "key": "totaal",
+        "name": "Totaal",
+        "type": "number",
+        "derived": true
+      },
+      {
+        "id": "fld_ssrela7ddb97f63",
+        "key": "leveranciers_ref",
+        "name": "Leveranciers row",
+        "type": "relation",
+        "derived": true,
+        "relation": {
+          "table": "tbl_lev",
+          "fk": false
+        }
+      }
+    ],
+    "columnMap": {
+      "fld_ss527b2975fftxt": {
+        "col": 2,
+        "header": "Nummer",
+        "headerHash": "527b2975ff",
+        "type": "text",
+        "numFmt": "@"
+      },
+      "fld_ss99857cb7a3num": {
+        "col": 3,
+        "header": "Bedrag",
+        "headerHash": "99857cb7a3",
+        "type": "number",
+        "numFmt": "#,##0.00"
+      },
+      "fld_ss9112e80957sel": {
+        "col": 4,
+        "header": "Status",
+        "headerHash": "9112e80957",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      "fld_ss59f382d587num": {
+        "col": 5,
+        "header": "Totaal",
+        "headerHash": "59f382d587",
+        "type": "number",
+        "formula": true
+      },
+      "fld_ssrela7ddb97f63": {
+        "derived": "match",
+        "localFieldId": "fld_ss39fd45e124txt",
+        "targetFieldId": "fld_nc20txt"
+      }
+    },
+    "relations": [
+      {
+        "fieldId": "fld_ssrela7ddb97f63",
+        "kind": "match",
+        "targetDatatableId": "tbl_lev",
+        "localFieldId": "fld_ss39fd45e124txt",
+        "targetFieldId": "fld_nc20txt"
+      }
+    ],
+    "warnings": [],
+    "changes": [
+      "added:leveranciers_ref",
+      "removed:datum",
+      "removed:leverancier"
+    ],
+    "retyped": [],
+    "keyFieldId": null
+  },
+  "relationsInvalid": {
+    "fields": [
+      {
+        "id": "fld_ss968c64cf68dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_ss39fd45e124txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss527b2975fftxt",
+        "key": "nummer",
+        "name": "Nummer",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss99857cb7a3num",
+        "key": "bedrag",
+        "name": "Bedrag",
+        "type": "number"
+      },
+      {
+        "id": "fld_ss9112e80957sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_ss59f382d587num",
+        "key": "totaal",
+        "name": "Totaal",
+        "type": "number",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_ss968c64cf68dat": {
+        "col": 0,
+        "header": "Datum",
+        "headerHash": "968c64cf68",
+        "type": "date",
+        "format": "date"
+      },
+      "fld_ss39fd45e124txt": {
+        "col": 1,
+        "header": "Leverancier",
+        "headerHash": "39fd45e124",
+        "type": "text"
+      },
+      "fld_ss527b2975fftxt": {
+        "col": 2,
+        "header": "Nummer",
+        "headerHash": "527b2975ff",
+        "type": "text",
+        "numFmt": "@"
+      },
+      "fld_ss99857cb7a3num": {
+        "col": 3,
+        "header": "Bedrag",
+        "headerHash": "99857cb7a3",
+        "type": "number",
+        "numFmt": "#,##0.00"
+      },
+      "fld_ss9112e80957sel": {
+        "col": 4,
+        "header": "Status",
+        "headerHash": "9112e80957",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      "fld_ss59f382d587num": {
+        "col": 5,
+        "header": "Totaal",
+        "headerHash": "59f382d587",
+        "type": "number",
+        "formula": true
+      }
+    },
+    "relations": [],
+    "warnings": [],
+    "changes": [
+      "added:datum",
+      "added:leverancier",
+      "added:nummer",
+      "added:bedrag",
+      "added:status",
+      "added:totaal"
+    ],
+    "retyped": [],
+    "keyFieldId": null
+  },
+  "relationNoNames": {
+    "fields": [
+      {
+        "id": "fld_ss968c64cf68dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_ss39fd45e124txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss527b2975fftxt",
+        "key": "nummer",
+        "name": "Nummer",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss99857cb7a3num",
+        "key": "bedrag",
+        "name": "Bedrag",
+        "type": "number"
+      },
+      {
+        "id": "fld_ss9112e80957sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_ss59f382d587num",
+        "key": "totaal",
+        "name": "Totaal",
+        "type": "number",
+        "derived": true
+      },
+      {
+        "id": "fld_ssrel10f9526f25",
+        "key": "related_ref",
+        "name": "Related row",
+        "type": "relation",
+        "derived": true,
+        "relation": {
+          "table": "tbl_x",
+          "fk": false
+        }
+      }
+    ],
+    "columnMap": {
+      "fld_ss968c64cf68dat": {
+        "col": 0,
+        "header": "Datum",
+        "headerHash": "968c64cf68",
+        "type": "date",
+        "format": "date"
+      },
+      "fld_ss39fd45e124txt": {
+        "col": 1,
+        "header": "Leverancier",
+        "headerHash": "39fd45e124",
+        "type": "text"
+      },
+      "fld_ss527b2975fftxt": {
+        "col": 2,
+        "header": "Nummer",
+        "headerHash": "527b2975ff",
+        "type": "text",
+        "numFmt": "@"
+      },
+      "fld_ss99857cb7a3num": {
+        "col": 3,
+        "header": "Bedrag",
+        "headerHash": "99857cb7a3",
+        "type": "number",
+        "numFmt": "#,##0.00"
+      },
+      "fld_ss9112e80957sel": {
+        "col": 4,
+        "header": "Status",
+        "headerHash": "9112e80957",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      "fld_ss59f382d587num": {
+        "col": 5,
+        "header": "Totaal",
+        "headerHash": "59f382d587",
+        "type": "number",
+        "formula": true
+      },
+      "fld_ssrel10f9526f25": {
+        "derived": "match",
+        "localFieldId": "fld_ss39fd45e124txt",
+        "targetFieldId": "fld_y"
+      }
+    },
+    "relations": [
+      {
+        "fieldId": "fld_ssrel10f9526f25",
+        "kind": "match",
+        "targetDatatableId": "tbl_x",
+        "localFieldId": "fld_ss39fd45e124txt",
+        "targetFieldId": "fld_y"
+      }
+    ],
+    "warnings": [],
+    "changes": [
+      "added:datum",
+      "added:leverancier",
+      "added:nummer",
+      "added:bedrag",
+      "added:status",
+      "added:totaal",
+      "added:related_ref"
+    ],
+    "retyped": [],
+    "keyFieldId": null
+  },
+  "relationKeptNoName": {
+    "fields": [
+      {
+        "id": "fld_ss968c64cf68dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_ss39fd45e124txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss527b2975fftxt",
+        "key": "nummer",
+        "name": "Nummer",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss99857cb7a3num",
+        "key": "bedrag",
+        "name": "Bedrag",
+        "type": "number"
+      },
+      {
+        "id": "fld_ss9112e80957sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_ss59f382d587num",
+        "key": "totaal",
+        "name": "Totaal",
+        "type": "number",
+        "derived": true
+      },
+      {
+        "id": "fld_ssrela7ddb97f63",
+        "key": "leveranciers_ref",
+        "name": "Leveranciers row",
+        "type": "relation",
+        "derived": true,
+        "relation": {
+          "table": "tbl_lev",
+          "fk": false
+        }
+      }
+    ],
+    "columnMap": {
+      "fld_ss968c64cf68dat": {
+        "col": 0,
+        "header": "Datum",
+        "headerHash": "968c64cf68",
+        "type": "date",
+        "format": "date"
+      },
+      "fld_ss39fd45e124txt": {
+        "col": 1,
+        "header": "Leverancier",
+        "headerHash": "39fd45e124",
+        "type": "text"
+      },
+      "fld_ss527b2975fftxt": {
+        "col": 2,
+        "header": "Nummer",
+        "headerHash": "527b2975ff",
+        "type": "text",
+        "numFmt": "@"
+      },
+      "fld_ss99857cb7a3num": {
+        "col": 3,
+        "header": "Bedrag",
+        "headerHash": "99857cb7a3",
+        "type": "number",
+        "numFmt": "#,##0.00"
+      },
+      "fld_ss9112e80957sel": {
+        "col": 4,
+        "header": "Status",
+        "headerHash": "9112e80957",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      "fld_ss59f382d587num": {
+        "col": 5,
+        "header": "Totaal",
+        "headerHash": "59f382d587",
+        "type": "number",
+        "formula": true
+      },
+      "fld_ssrela7ddb97f63": {
+        "derived": "match",
+        "localFieldId": "fld_ss39fd45e124txt",
+        "targetFieldId": "fld_nc20txt"
+      }
+    },
+    "relations": [
+      {
+        "fieldId": "fld_ssrela7ddb97f63",
+        "kind": "match",
+        "targetDatatableId": "tbl_lev",
+        "localFieldId": "fld_ss39fd45e124txt",
+        "targetFieldId": "fld_nc20txt"
+      }
+    ],
+    "warnings": [],
+    "changes": [],
+    "retyped": [],
+    "keyFieldId": null
+  },
+  "derivedPriorEntrySkipped": {
+    "fields": [
+      {
+        "id": "fld_ss968c64cf68dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_ss39fd45e124txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss527b2975fftxt",
+        "key": "nummer",
+        "name": "Nummer",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss99857cb7a3txt",
+        "key": "bedrag",
+        "name": "Bedrag",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss9112e80957sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_ss59f382d587num",
+        "key": "totaal",
+        "name": "Totaal",
+        "type": "number"
+      }
+    ],
+    "columnMap": {
+      "fld_ss968c64cf68dat": {
+        "col": 0,
+        "header": "Datum",
+        "headerHash": "968c64cf68",
+        "type": "date",
+        "format": "date"
+      },
+      "fld_ss39fd45e124txt": {
+        "col": 1,
+        "header": "Leverancier",
+        "headerHash": "39fd45e124",
+        "type": "text"
+      },
+      "fld_ss527b2975fftxt": {
+        "col": 2,
+        "header": "Nummer",
+        "headerHash": "527b2975ff",
+        "type": "text"
+      },
+      "fld_ss99857cb7a3txt": {
+        "col": 3,
+        "header": "Bedrag",
+        "headerHash": "99857cb7a3",
+        "type": "text"
+      },
+      "fld_ss9112e80957sel": {
+        "col": 4,
+        "header": "Status",
+        "headerHash": "9112e80957",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      "fld_ss59f382d587num": {
+        "col": 5,
+        "header": "Totaal",
+        "headerHash": "59f382d587",
+        "type": "number"
+      }
+    },
+    "relations": [],
+    "warnings": [],
+    "changes": [
+      "added:bedrag",
+      "retyped:bedrag"
+    ],
+    "retyped": [
+      {
+        "id": "fld_ss99857cb7a3num",
+        "key": "bedrag",
+        "name": "Bedrag",
+        "type": "number"
+      }
+    ],
+    "keyFieldId": null
+  },
+  "priorEntryMissingHash": {
+    "fields": [
+      {
+        "id": "fld_ss968c64cf68dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_ss39fd45e124txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss527b2975fftxt",
+        "key": "nummer",
+        "name": "Nummer",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss99857cb7a3num",
+        "key": "bedrag",
+        "name": "Bedrag",
+        "type": "number"
+      },
+      {
+        "id": "fld_ss9112e80957txt",
+        "key": "status",
+        "name": "Status",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss59f382d587num",
+        "key": "totaal",
+        "name": "Totaal",
+        "type": "number"
+      }
+    ],
+    "columnMap": {
+      "fld_ss968c64cf68dat": {
+        "col": 0,
+        "header": "Datum",
+        "headerHash": "968c64cf68",
+        "type": "date",
+        "format": "date"
+      },
+      "fld_ss39fd45e124txt": {
+        "col": 1,
+        "header": "Leverancier",
+        "headerHash": "39fd45e124",
+        "type": "text"
+      },
+      "fld_ss527b2975fftxt": {
+        "col": 2,
+        "header": "Nummer",
+        "headerHash": "527b2975ff",
+        "type": "text"
+      },
+      "fld_ss99857cb7a3num": {
+        "col": 3,
+        "header": "Bedrag",
+        "headerHash": "99857cb7a3",
+        "type": "number"
+      },
+      "fld_ss9112e80957txt": {
+        "col": 4,
+        "header": "Status",
+        "headerHash": "9112e80957",
+        "type": "text"
+      },
+      "fld_ss59f382d587num": {
+        "col": 5,
+        "header": "Totaal",
+        "headerHash": "59f382d587",
+        "type": "number"
+      }
+    },
+    "relations": [],
+    "warnings": [
+      "\"Status\" is a list column without options, so its values arrive as text."
+    ],
+    "changes": [
+      "added:status",
+      "retyped:status"
+    ],
+    "retyped": [
+      {
+        "id": "fld_ss9112e80957sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      }
+    ],
+    "keyFieldId": null
+  },
+  "priorJunk": {
+    "fields": [
+      {
+        "id": "fld_ss968c64cf68dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_ss39fd45e124txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss527b2975fftxt",
+        "key": "nummer",
+        "name": "Nummer",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss99857cb7a3num",
+        "key": "bedrag",
+        "name": "Bedrag",
+        "type": "number"
+      },
+      {
+        "id": "fld_ss9112e80957sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_ss59f382d587num",
+        "key": "totaal",
+        "name": "Totaal",
+        "type": "number",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_ss968c64cf68dat": {
+        "col": 0,
+        "header": "Datum",
+        "headerHash": "968c64cf68",
+        "type": "date",
+        "format": "date"
+      },
+      "fld_ss39fd45e124txt": {
+        "col": 1,
+        "header": "Leverancier",
+        "headerHash": "39fd45e124",
+        "type": "text"
+      },
+      "fld_ss527b2975fftxt": {
+        "col": 2,
+        "header": "Nummer",
+        "headerHash": "527b2975ff",
+        "type": "text",
+        "numFmt": "@"
+      },
+      "fld_ss99857cb7a3num": {
+        "col": 3,
+        "header": "Bedrag",
+        "headerHash": "99857cb7a3",
+        "type": "number",
+        "numFmt": "#,##0.00"
+      },
+      "fld_ss9112e80957sel": {
+        "col": 4,
+        "header": "Status",
+        "headerHash": "9112e80957",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      "fld_ss59f382d587num": {
+        "col": 5,
+        "header": "Totaal",
+        "headerHash": "59f382d587",
+        "type": "number",
+        "formula": true
+      }
+    },
+    "relations": [],
+    "warnings": [],
+    "changes": [
+      "removed:other"
+    ],
+    "retyped": [],
+    "keyFieldId": null
+  },
+  "priorNotAList": {
+    "fields": [
+      {
+        "id": "fld_ss968c64cf68dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_ss39fd45e124txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss527b2975fftxt",
+        "key": "nummer",
+        "name": "Nummer",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss99857cb7a3num",
+        "key": "bedrag",
+        "name": "Bedrag",
+        "type": "number"
+      },
+      {
+        "id": "fld_ss9112e80957sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_ss59f382d587num",
+        "key": "totaal",
+        "name": "Totaal",
+        "type": "number",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_ss968c64cf68dat": {
+        "col": 0,
+        "header": "Datum",
+        "headerHash": "968c64cf68",
+        "type": "date",
+        "format": "date"
+      },
+      "fld_ss39fd45e124txt": {
+        "col": 1,
+        "header": "Leverancier",
+        "headerHash": "39fd45e124",
+        "type": "text"
+      },
+      "fld_ss527b2975fftxt": {
+        "col": 2,
+        "header": "Nummer",
+        "headerHash": "527b2975ff",
+        "type": "text",
+        "numFmt": "@"
+      },
+      "fld_ss99857cb7a3num": {
+        "col": 3,
+        "header": "Bedrag",
+        "headerHash": "99857cb7a3",
+        "type": "number",
+        "numFmt": "#,##0.00"
+      },
+      "fld_ss9112e80957sel": {
+        "col": 4,
+        "header": "Status",
+        "headerHash": "9112e80957",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      "fld_ss59f382d587num": {
+        "col": 5,
+        "header": "Totaal",
+        "headerHash": "59f382d587",
+        "type": "number",
+        "formula": true
+      }
+    },
+    "relations": [],
+    "warnings": [],
+    "changes": [
+      "added:datum",
+      "added:leverancier",
+      "added:nummer",
+      "added:bedrag",
+      "added:status",
+      "added:totaal"
+    ],
+    "retyped": [],
+    "keyFieldId": null
+  },
+  "keptFieldWithoutKey": {
+    "fields": [
+      {
+        "id": "fld_ss968c64cf68dat",
+        "key": "datum",
+        "name": "Datum",
+        "type": "date"
+      },
+      {
+        "id": "fld_ss39fd45e124txt",
+        "key": "leverancier",
+        "name": "Leverancier",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss527b2975fftxt",
+        "key": "nummer",
+        "name": "Nummer",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss99857cb7a3num",
+        "key": "bedrag",
+        "name": "Bedrag",
+        "type": "number"
+      },
+      {
+        "id": "fld_ss9112e80957sel",
+        "key": "status",
+        "name": "Status",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      {
+        "id": "fld_ss59f382d587num",
+        "key": "totaal",
+        "name": "Totaal",
+        "type": "number",
+        "derived": true
+      }
+    ],
+    "columnMap": {
+      "fld_ss968c64cf68dat": {
+        "col": 0,
+        "header": "Datum",
+        "headerHash": "968c64cf68",
+        "type": "date",
+        "format": "date"
+      },
+      "fld_ss39fd45e124txt": {
+        "col": 1,
+        "header": "Leverancier",
+        "headerHash": "39fd45e124",
+        "type": "text"
+      },
+      "fld_ss527b2975fftxt": {
+        "col": 2,
+        "header": "Nummer",
+        "headerHash": "527b2975ff",
+        "type": "text",
+        "numFmt": "@"
+      },
+      "fld_ss99857cb7a3num": {
+        "col": 3,
+        "header": "Bedrag",
+        "headerHash": "99857cb7a3",
+        "type": "number",
+        "numFmt": "#,##0.00"
+      },
+      "fld_ss9112e80957sel": {
+        "col": 4,
+        "header": "Status",
+        "headerHash": "9112e80957",
+        "type": "select",
+        "options": [
+          "open",
+          "dicht"
+        ]
+      },
+      "fld_ss59f382d587num": {
+        "col": 5,
+        "header": "Totaal",
+        "headerHash": "59f382d587",
+        "type": "number",
+        "formula": true
+      }
+    },
+    "relations": [],
+    "warnings": [],
+    "changes": [],
+    "retyped": [],
+    "keyFieldId": null
+  },
+  "blankAndDuplicates": {
+    "fields": [
+      {
+        "id": "fld_ssf9214ce6f8txt",
+        "key": "col_a",
+        "name": "A",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss7b72ade27ctxt",
+        "key": "x",
+        "name": "X",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss05c5db11aetxt",
+        "key": "x_2",
+        "name": "x #2",
+        "type": "text"
+      },
+      {
+        "id": "fld_ss13c7f3c136txt",
+        "key": "col_aa",
+        "name": "AA",
+        "type": "text"
+      }
+    ],
+    "columnMap": {
+      "fld_ssf9214ce6f8txt": {
+        "col": 0,
+        "header": "",
+        "headerHash": "f9214ce6f8",
+        "type": "text"
+      },
+      "fld_ss7b72ade27ctxt": {
+        "col": 1,
+        "header": "X",
+        "headerHash": "7b72ade27c",
+        "type": "text"
+      },
+      "fld_ss05c5db11aetxt": {
+        "col": 2,
+        "header": "x",
+        "headerHash": "05c5db11ae",
+        "type": "text"
+      },
+      "fld_ss13c7f3c136txt": {
+        "col": 26,
+        "header": "",
+        "headerHash": "13c7f3c136",
+        "type": "text"
+      }
+    },
+    "relations": [],
+    "warnings": [],
+    "changes": [
+      "added:col_a",
+      "added:x",
+      "added:x_2",
+      "added:col_aa"
+    ],
+    "retyped": [],
+    "keyFieldId": null
+  }
+}

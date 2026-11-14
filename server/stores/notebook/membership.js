@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * stores/notebook/membership.js — a notebook's place in a project (the role a
  * user holds on it, filing it in and out, the project listings) and the
@@ -107,7 +107,7 @@ async function setNotebookProject(id, userId, projectId) {
  * notebook out of project B, where it may have moved in the meantime.
  * @param {string} id
  * @param {string} projectId
- * @param {string} userId
+ * @param {string | null} userId
  */
 async function detachNotebookFromProject(id, projectId, userId = null) {
     await initDB();
@@ -128,9 +128,9 @@ async function detachNotebookFromProject(id, projectId, userId = null) {
  */
 function mapProjectNotebookCard(r) {
     const card = mapNotebookCardRow(r);
-    delete card.pinned;
-    delete card.pinnedAt;
-    delete card.messageCount;
+    delete /** @type {Partial<typeof card>} */ (card).pinned;
+    delete /** @type {Partial<typeof card>} */ (card).pinnedAt;
+    delete /** @type {Partial<typeof card>} */ (card).messageCount;
     return { ...card, userId: r.user_id };
 }
 
@@ -225,6 +225,7 @@ async function writeCollabContent(id, content = {}) {
         const resource = contentCrypto.resourceOf(rows[0], 'notebook');
         const rawHtml = typeof content.html === 'string' ? content.html : '';
         const html = rawHtml && looksLikeHtml(rawHtml) ? sanitizeDocumentHtml(rawHtml) : rawHtml;
+        /** @type {string | null | undefined} */
         let markdown = typeof content.markdown === 'string' ? content.markdown : undefined;
         if (markdown === undefined) {
             const r = html.trim() ? tryHtmlToMarkdown(html) : { ok: true, md: '' };
@@ -233,7 +234,7 @@ async function writeCollabContent(id, content = {}) {
         const plain = typeof content.text === 'string'
             ? content.text
             : (!html.trim() ? '' : (looksLikeHtml(html) ? htmlToPlainText(html) : stripMarkdownLite(html)));
-        const words = Number.isFinite(content.wordCount) ? Math.max(0, Math.floor(content.wordCount)) : countWords(plain);
+        const words = Number.isFinite(content.wordCount) ? Math.max(0, Math.floor(/** @type {number} */ (content.wordCount))) : countWords(plain);
         const editedBy = typeof content.editedBy === 'string' && content.editedBy ? content.editedBy : null;
         const stored = await contentCrypto.sealFields({ document_content: html, document_md: markdown, preview: String(plain || '').slice(0, 300) }, resource, contentCrypto.NOTEBOOK_FIELDS);
         const result = await client.query(

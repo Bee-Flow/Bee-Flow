@@ -1,3 +1,4 @@
+// @typecheck strict
 'use strict';
 /**
  * A web search run by a chat that dispatches it itself (webpage chat, notebook
@@ -31,19 +32,21 @@ function defaultDeps() {
  * @param {Partial<ReturnType<typeof defaultDeps>>} [deps]  test seam: a test hands over the functions its call reaches
  */
 async function runAgentSearchWithEgress(toolName, toolArgs, egress, deps = defaultDeps()) {
-    const t0 = deps.now();
+    // A test hands over the functions its call reaches; everything this call reads is among them.
+    const d = /** @type {ReturnType<typeof defaultDeps>} */ (deps);
+    const t0 = d.now();
     // read_url ships with the search tools, so these chats offer it too.
-    const execute = toolName === 'read_url' ? deps.executeReadUrlTool : deps.executeAgentSearchTool;
-    const run = await deps.captureCall(() => execute(toolName, toolArgs));
-    deps.logToolEgress({
+    const execute = toolName === 'read_url' ? d.executeReadUrlTool : d.executeAgentSearchTool;
+    const run = await d.captureCall(() => execute(toolName, toolArgs));
+    d.logToolEgress({
         toolName,
         toolArgs,
         result: run.ok ? run.value : null,
         error: run.ok ? null : run.error,
         probe: run.probe,
         source: egress.source,
-        durationMs: deps.now() - t0,
-        ids: egress.ids || {},
+        durationMs: d.now() - t0,
+        ids: /** @type {Record<string, unknown>} */ (egress.ids || {}),
     });
     if (!run.ok) throw run.error;
     return run.value;

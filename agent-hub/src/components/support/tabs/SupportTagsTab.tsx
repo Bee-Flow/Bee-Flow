@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useSupportTagTaxonomyQuery } from '@/api/queries/supportPanels';
 import { Plus, Trash2 } from 'lucide-react';
-import { API_BASE } from '@/utils/helpers';
 import { useTranslation } from '@/hooks/useTranslation';
 import { errorMessage } from '@/utils/caughtError';
-import { mutate, ApiError, RefusedError, errorBody } from '@/api/mutate';
+import { ApiError, RefusedError, errorBody } from '@/api/mutate';
 import SectionHeader from '@/components/shared/SectionHeader';
 import { FIELD_INPUT } from '@/components/shared/SettingsList';
 import { ALERT_ERROR, CHIP, PRIMARY_BTN } from '@/components/mcpLibrary/ui';
+import { apiRequest } from '@/api/typedRequest';
 
 interface SupportTag {
     id: string;
@@ -35,10 +35,7 @@ export default function SupportTagsTab() {
         setBusy(true); setError(null);
         try {
             try {
-                await mutate(`${API_BASE}/api/support/tags`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: name.trim(), color }),
-            });
+                await apiRequest('POST /api/support/tags', { body: { name: name.trim(), color } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const e = errorBody(err) ?? {};
@@ -51,7 +48,7 @@ export default function SupportTagsTab() {
     };
 
     const remove = async (id: string) => {
-        const res = await mutate(`${API_BASE}/api/support/tags/${id}`, { method: 'DELETE' }).catch((err: unknown) => {
+        const res = await apiRequest('DELETE /api/support/tags/{id}', { params: { id } }).catch((err: unknown) => {
             if (err instanceof ApiError) return null;
             throw err;
         });

@@ -34,7 +34,8 @@ const { HttpError } = require('../shared/httpErrors');
 // through a mutable implementation BEFORE loading the middleware.
 let geoImpl = async () => ({ ok: true });
 signupGuards.checkConnectorSignupAllowed = (...a) => geoImpl(...a);
-const connectorBootstrap = require('./connectorBootstrap');
+// The carve-out provisions its admin through connector/provisioning.
+const provisioning = require('./connector/provisioning');
 const connectorJwtMiddleware = require('./connectorJwt');
 
 const KEY = 'tenant-secret-characterise';
@@ -79,7 +80,7 @@ function reset() {
     orgHealth.touchLiveness = (...a) => { rec.liveness.push(a); };
     log.warn = (m) => { rec.warns.push(String(m)); };
     log.info = (m) => { rec.infos.push(String(m)); };
-    connectorBootstrap.helpers.ensureOrgAdminUser = async () => null;
+    provisioning.ensureOrgAdminUser = async () => null;
     require('./connectorJwtPhases')._linkDeps.hasSsoIdentity = async () => false;
 }
 beforeEach(reset);
@@ -528,7 +529,7 @@ test('auto-provision: user vanishes after create (getUser null) -> TypeError cau
 test('nc_admin claim: ensureOrgAdminUser called with pinned args; its user skips the gates and authenticates', async () => {
     let args;
     const adminUser = { id: `adm${++uid}`, email: 'ann@acme.example', role: 'user', orgRole: 'org_admin', organizationId: ORG };
-    connectorBootstrap.helpers.ensureOrgAdminUser = async (...a) => { args = a; return adminUser; };
+    provisioning.ensureOrgAdminUser = async (...a) => { args = a; return adminUser; };
     userStore.getOrganization = async () => ({ id: ORG, nc_instance_id: 'nc1', nc_onboarding_completed_at: null, nc_sync_mode: 'manual' });
     const req = connectorReq(goodPayload({ nc_admin: true, name: 'Ann A' }));
     assertNextOnce(await run(req));
@@ -541,7 +542,7 @@ test('nc_admin claim: ensureOrgAdminUser called with pinned args; its user skips
 test('org nc_admin_uid matching the signed sub also takes the carve-out', async () => {
     let called = 0;
     const adminUser = { id: `adm${++uid}`, email: 'ann@acme.example', organizationId: ORG };
-    connectorBootstrap.helpers.ensureOrgAdminUser = async () => { called++; return adminUser; };
+    provisioning.ensureOrgAdminUser = async () => { called++; return adminUser; };
     userStore.getOrganization = async () => ({ id: ORG, nc_admin_uid: 'ann', nc_instance_id: 'nc1', nc_onboarding_completed_at: null });
     assertNextOnce(await run(connectorReq(goodPayload())));
     assert.equal(called, 1);
@@ -549,7 +550,7 @@ test('org nc_admin_uid matching the signed sub also takes the carve-out', async 
 
 test('carve-out admin whose row is pending: 403 Account is pending admin approval, no next()', async () => {
     const adminUser = { id: `adm${++uid}`, email: 'ann@acme.example', organizationId: ORG, status: 'pending' };
-    connectorBootstrap.helpers.ensureOrgAdminUser = async () => adminUser;
+    provisioning.ensureOrgAdminUser = async () => adminUser;
     const req = connectorReq(goodPayload({ nc_admin: true }));
     assertRejected(await run(req), 403, { error: 'Account is pending admin approval' });
     assert.equal(req.session.isAuthenticated, undefined);
@@ -558,7 +559,7 @@ test('carve-out admin whose row is pending: 403 Account is pending admin approva
 
 test('carve-out users skip the cross-tenant check (deliberate, today\'s behaviour)', async () => {
     const adminUser = { id: `adm${++uid}`, email: 'ann@acme.example', organizationId: 'otherOrg' };
-    connectorBootstrap.helpers.ensureOrgAdminUser = async () => adminUser;
+    provisioning.ensureOrgAdminUser = async () => adminUser;
     const req = connectorReq(goodPayload({ nc_admin: true }));
     assertNextOnce(await run(req));
     assert.equal(req.session.user.organizationId, 'otherOrg');
@@ -573,7 +574,7 @@ test('carve-out: ensureOrgAdminUser returning null falls into the onboarding gat
 });
 
 test('carve-out: ensureOrgAdminUser throwing is warned and swallowed, the gates still apply', async () => {
-    connectorBootstrap.helpers.ensureOrgAdminUser = async () => { throw new Error('ensure failed'); };
+    provisioning.ensureOrgAdminUser = async () => { throw new Error('ensure failed'); };
     userStore.getOrganization = async () => ({ id: ORG, nc_sync_mode: 'manual' });
     const out = await run(connectorReq(goodPayload({ nc_admin: true })));
     assert.equal(out.statusCode, 403);
@@ -582,7 +583,7 @@ test('carve-out: ensureOrgAdminUser throwing is warned and swallowed, the gates 
 
 test('nc_admin must be exactly true (truthy string does not carve out)', async () => {
     let called = 0;
-    connectorBootstrap.helpers.ensureOrgAdminUser = async () => { called++; return null; };
+    provisioning.ensureOrgAdminUser = async () => { called++; return null; };
     userStore.getOrganization = async () => ({ id: ORG, nc_sync_mode: 'manual' });
     await run(connectorReq(goodPayload({ nc_admin: 'true' })));
     assert.equal(called, 0);

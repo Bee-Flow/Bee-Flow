@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 /**
@@ -39,7 +40,7 @@ const every = (minutes, over = {}) => ({ id: 'tick', kind: 'schedule', actionId:
 function triggerHarness(hooks) {
     const h = backgroundRunHarness(hooks);
     const store = makeTriggerStore(h.db);
-    const t = { app: null, owner: null, capability: true, limits: {} };
+    const t = { app: null, owner: null, capability: true, limits: /** @type {ReturnType<typeof triggerLimits>} */ ({}) };
     const quiet = { info() {}, warn() {}, error() {} };
 
     hooks.before(async () => { await h.pg.exec(studioRunTableDdl('studio_app_triggers')); });

@@ -13,6 +13,7 @@
 
 const express = require('express');
 const log = require('../../../telemetry/log');
+const { ignoreGone } = require('../../../utils/bestEffort');
 const router = express.Router();
 const { z, typeError } = require('../../../utils/zod');
 const { validate } = require('../../../core/http/validate');
@@ -24,7 +25,7 @@ const { buildCatalogForUser } = require('../../../automation/builderCatalog');
 const { buildDatatableCatalogForUser } = require('../../../automation/builderDatatableCatalog');
 const { openSse } = require('../../../core/http/sseHelpers');
 const { requireAuth } = require('../../../auth/permissions');
-const { layerAgentRateLimit } = require('./rateLimits');
+const { layerAgentRateLimit } = require('../../../usecases/ai/automationBuilder/rateLimits');
 const { loadOrCreateDraft, persistDraftWrap } = require('./builderDraft');
 const { sessionUser } = require('../../../core/http/sessionUser');
 
@@ -150,10 +151,10 @@ router.post('/layer-agent', requireAuth, layerAgentRateLimit, validate({ body: L
         res.on('close', () => {
             if (res.writableEnded) return;
             layerClientGone = true;
-            try { layerAbort.abort(); } catch (err) { log.debug('already aborted', err); }
+            try { layerAbort.abort(); } catch (err) { ignoreGone('routes/ai/automationBuilder/layerAgent:abortOnClose', err); }
         });
         const r = await runLayerAgent({
-            draftWrap, layerKey, instruction, mode,
+            draftWrap, layerKey: /** @type {string} */ (layerKey), instruction, mode,
             modelId, userId, userOrgId: userOrgForTiers, session: req.session, catalog, send,
             isAborted: () => layerClientGone || res.writableEnded,
             signal: layerAbort.signal,

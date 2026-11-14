@@ -14,11 +14,25 @@
  * again.
  */
 
-import { gateDefinition } from '../appStudio/definitionGate.mts';
-import { collectAssetRefs } from '../appStudio/appAssets.mts';
-import { triggerCounts } from '../appStudio/portabilityReport.mts';
+import { createRequire } from 'node:module';
 
-export { gateDefinition };
+type DefinitionGate = typeof import('../appStudio/definitionGate.mts');
+type AppAssets = typeof import('../appStudio/appAssets.mts');
+type PortabilityReport = typeof import('../appStudio/portabilityReport.mts');
+
+const nodeRequire = createRequire(import.meta.url);
+// appStudio/ is a feature; its modules are looked up by name (core/featureModules.js,
+// registered in boot/featureModules.js), on first use.
+const appStudio = <T,>(name: string): T =>
+    (nodeRequire('../core/featureModules') as { featureModule: (n: string) => unknown }).featureModule(name) as T;
+
+export function gateDefinition(...args: Parameters<DefinitionGate['gateDefinition']>): ReturnType<DefinitionGate['gateDefinition']> {
+    return appStudio<DefinitionGate>('appStudio/definitionGate').gateDefinition(...args);
+}
+const collectAssetRefs = (definition: unknown): ReturnType<AppAssets['collectAssetRefs']> =>
+    appStudio<AppAssets>('appStudio/appAssets').collectAssetRefs(definition);
+const triggerCounts = (definition: unknown): ReturnType<PortabilityReport['triggerCounts']> =>
+    appStudio<PortabilityReport>('appStudio/portabilityReport').triggerCounts(definition);
 
 /**
  * What a Blueprint, a Solution upgrade or a stage deploy does NOT carry of an app, said to

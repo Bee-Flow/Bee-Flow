@@ -7,7 +7,9 @@
  * What this file pins:
  *
  *   - the 400 NAMES what was wrong (`query`), in a sentence;
- *   - the agent is not even looked up for a refused request;
+ *   - the access gate runs before the schema: an agent the caller cannot
+ *     reach answers 404 whatever the query says, and a refused request reads
+ *     nothing past the gate's lookup;
  *   - the editor's own request (BuilderSplit, no query) still gets through.
  *
  * Run: cd server && node --test routes/agents/usage.validation.test.js
@@ -20,17 +22,20 @@ process.env.NODE_ENV = 'test';
 const test = require('node:test');
 const assert = require('node:assert');
 const Module = require('module');
+const { fakeAgentGates } = require('./agentGate.testkit');
 
 const touched = [];
 
 const MOCKS = {
     '../../stores/agentStore': {
-        // No such agent: a request the schema lets through ends at the 404.
-        getAgent: async (id) => { touched.push({ what: 'getAgent', args: [id] }); return null; },
+        // 'a1' is the caller's own agent; any other id does not exist.
+        getAgent: async (id) => { touched.push({ what: 'getAgent', args: [id] }); return id === 'a1' ? { id: 'a1', owner_id: 'u1' } : null; },
     },
     '../../utils/routeHelpers': { getEffectiveUserId: () => 'u1' },
-    './crud': { canReadAgent: async () => true, canModifyAgent: async () => true },
+    './crud': null,
 };
+
+MOCKS['./crud'] = fakeAgentGates({ agentStore: MOCKS['../../stores/agentStore'], userId: () => 'u1' });
 
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
@@ -81,11 +86,17 @@ test('a filter the usage scan does not have is refused instead of answering with
     assert.strictEqual(res.statusCode, 400);
     assert.strictEqual(res.body.code, 'invalid_request');
     assert.ok(res.body.details.some((d) => d.path === 'query'));
-    assert.deepStrictEqual(touched, [], 'the agent is not looked up');
+    assert.deepStrictEqual(touched, [{ what: 'getAgent', args: ['a1'] }], 'nothing past the access gate is read');
 });
 
-test('the editor\'s own request, without a query, reaches the agent lookup', async () => {
-    const res = await dispatch('/a1/usage');
+test('an agent the caller cannot reach is a 404 before its query is read', async () => {
+    const res = await dispatch('/missing/usage?kind=automation');
     assert.strictEqual(res.statusCode, 404);
-    assert.deepStrictEqual(touched, [{ what: 'getAgent', args: ['a1'] }]);
+    assert.deepStrictEqual(touched, [{ what: 'getAgent', args: ['missing'] }]);
+});
+
+test('a request without a query reaches the agent lookup', async () => {
+    const res = await dispatch('/missing/usage');
+    assert.strictEqual(res.statusCode, 404);
+    assert.deepStrictEqual(touched, [{ what: 'getAgent', args: ['missing'] }]);
 });

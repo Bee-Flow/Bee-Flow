@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Form scenarios: the answers somebody gave to an automation's forms in a real
  * run, saved by name so the automation can be tried again without typing them.
@@ -45,8 +45,9 @@ const { makeGuarded } = require('./guardedAutomation');
 const { answersFromJourney, answersSize, hasAnswers } = require('../../automation/testing/formAnswers');
 const { envCap } = require('../../automation/mcpRunReadCaps');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
-const { entryDefinitionOf, resolveTriggerStepId } = require('./runEntry');
+const { entryDefinitionOf, resolveTriggerStepId } = require('../../usecases/automation/runEntry');
 const { sessionUser } = require('../../core/http/sessionUser');
+const { envInt } = require('../../utils/envNumber.mts');
 
 const NAME_TEXT = 'name is 1 to 80 characters.';
 const CreateBody = bodyOf({
@@ -94,7 +95,7 @@ function makeFormScenariosRouter(overrides = {}) {
         || makeAutomationAccess(overrides.store ? { store: overrides.store } : {});
     const runData = overrides.runDataAccess || makeRunDataAccess({ store: overrides.store, access });
     const execute = /** @param {Parameters<typeof import('../../core/automationRunner').executeAutomation>} args */ (...args) => (overrides.executeAutomation || require('../../core/automationRunner').executeAutomation)(...args);
-    const rpm = parseInt(process.env.AUTOMATION_RUN_TRIGGER_RPM || '', 10) || 30;
+    const rpm = envInt('AUTOMATION_RUN_TRIGGER_RPM', 30, { min: 1 });
     const limiter = overrides.limiter || perUserRateLimit({ windowMs: 60_000, max: rpm });
 
     const guarded = makeGuarded({ store, access });
@@ -125,7 +126,7 @@ function makeFormScenariosRouter(overrides = {}) {
         return res.json({ scenario: { ...describeScenario(row), answers: { trigger: answers.trigger ?? null, pages: answers.pages || {} } } });
     });
 
-    router.post('/:id/form-scenarios', validate({ body: CreateBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof CreateBody>, import('qs').ParsedQs>} */ req, res) => {
+    router.post('/:id/form-scenarios', validate({ body: CreateBody }), async (req, res) => {
         const a = await guarded(req, res, 'edit');
         if (!a) return undefined;
         await runData.assertTestDataAllowed(a);
@@ -141,7 +142,7 @@ function makeFormScenariosRouter(overrides = {}) {
 
         const definition = await store().getVersionDefinition(found.run.automationId, found.run.version) || a.definition;
         const readable = new Set(found.runIds);
-        const rows = (await store().getRunStepsForChain(found.root.id)).filter((/** @type {Awaited<ReturnType<typeof import('../../stores/automationStore').getRunStepsForChain>>[number]} */ s) => readable.has(s.runId));
+        const rows = (await store().getRunStepsForChain(found.root.id)).filter((/** @type {Awaited<ReturnType<typeof import('../../stores/automationStore').getRunStepsForChain>>[number]} */ s) => readable.has(/** @type {NonNullable<typeof s>} */ (s).runId)); // mapped from rows, never null
         const answers = answersFromJourney({ definition, rootRun: found.root, steps: rows });
         if (!hasAnswers(answers)) {
             throw new HttpError(422, 'no_form_answers', 'This run holds no form answers to save. Pick a run where somebody filled in a form.');
@@ -157,7 +158,7 @@ function makeFormScenariosRouter(overrides = {}) {
         return res.status(201).json({ scenario: describeScenario(row) });
     });
 
-    router.put('/:id/form-scenarios/:scenarioId', validate({ body: RenameBody }), async (/** @type {import('express').Request<{ id: string, scenarioId: string }, any, import('zod').infer<typeof RenameBody>, import('qs').ParsedQs>} */ req, res) => {
+    router.put('/:id/form-scenarios/:scenarioId', validate({ body: RenameBody }), async (req, res) => {
         const a = await guarded(req, res, 'edit');
         if (!a) return undefined;
         const row = await testing().renameFormScenario(a.id, req.params.scenarioId, req.body.name);

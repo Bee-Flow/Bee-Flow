@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Tool-time check of the DATA references inside an app_add_components /
  * app_update_component call: does every records/record/aggregate binding
@@ -18,7 +19,7 @@
 
 'use strict';
 
-const { pickClosestId } = require('../../automation/validate/helpers');
+const { pickClosestId } = require('../../utils/closestId.mts');
 const { SYSTEM_COLUMNS } = require('../dataModel');
 const { isDatatableBacked } = require('../datatableSource');
 const { getSpec } = require('../componentSpecs');
@@ -33,10 +34,14 @@ const { relationChecks } = require('./bindingGuardRelations.mts');
 const NO_TABLE_ADVICE = 'Create it first with app_upsert_table {name, fields:[{key,type}]} or link an existing Studio table with app_link_datatable {name}, then use the tbl_ id the result returns — never invent one.';
 
 const DATA_BINDING_KINDS = new Set(['record', 'records', 'aggregate']);
+/**
+ * @param {unknown} v
+ * @returns {v is Record<string, any>}
+ */
 const isObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
 /**
- * @param {object | null} model
+ * @param {{ tables?: any } | null} model
  */
 function tableIndex(model) {
     const tables = (model && Array.isArray(model.tables)) ? model.tables : [];
@@ -52,7 +57,7 @@ function tableIndex(model) {
 /**
  * @param {Array} entries  the call's component entries (nested children walked)
  * @param {object|null|undefined} model  draftWrap.dataModel
- * @returns {{ errors: Array<{ index:number, path:string, message:string, hint:string }>, repairs: string[] }}
+ * @returns {{ errors: GuardError[], repairs: string[] }}
  *   `repairs` — a component's `props.tableId` that named a table by handle
  *   (`tbl_suppliers_01` for the table with key `suppliers`) was rewritten IN
  *   PLACE on the entry to the real id; the note goes to the tool's `_hints`.
@@ -153,6 +158,8 @@ function checkComponentDataRefs(entries, model) {
     /**
      * @param {string} path
      * @param {number} index
+     * @param value
+     * @param [tableForColumns]
      */
     const visit = (index, path, value, tableForColumns) => {
         if (!value || typeof value !== 'object') return;
@@ -219,7 +226,7 @@ function checkComponentDataRefs(entries, model) {
  * small local model cannot edit one field of a call it already sent; it
  * resends it byte-identical, and the ladder in builderTools.js then applies
  * this patch itself.
- * @param {{ errors: Array<{ index: number; path: string; message: string; hint: string; }>; repairs: string[]; }} check
+ * @param {{ errors: GuardError[]; repairs: string[]; }} check
  * @param {string} [at]
  */
 function guardResult(check, at = 'components') {

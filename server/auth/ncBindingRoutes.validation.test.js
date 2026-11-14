@@ -166,3 +166,9 @@ test('an organisation without a binding answers 409 and is left as it is', async
     assert.strictEqual(res.statusCode, 409);
     assert.deepStrictEqual(touched, []);
 });
+
+test('approving or denying a pending binding takes no fields: one sent is refused by name', async () => {
+    for (const action of ['approve', 'deny']) {
+        await refuses({ method: 'POST', url: `/admin/nc-bindings/pb1/${action}`, body: { orgId: 'orgB' } }, 'body');
+    }
+});

@@ -27,6 +27,8 @@ const { pg, db } = pgliteDb();
 
 const { up } = require('../../migrations/automation-handoff5-2026-09');
 const { updateAutomationWith } = require('./automations');
+/** updateAutomationWith on a transaction of its own, the way updateAutomation runs it. */
+const updateWith = (...a) => db.tx((c) => updateAutomationWith(c, ...a));
 const { makeVersionQueries } = require('./versions');
 const { makeTemplateStore } = require('./templates');
 const { makeLifecycleStore } = require('./lifecycle');
@@ -132,14 +134,14 @@ test('a layout-only save writes the working copy but no version; the next real s
     await seed('lay');
     const dragged = clone(DEF);
     dragged.steps[0].position = { x: 640, y: 120 };
-    const a = await updateAutomationWith(db, 'lay', { definition: dragged }, 'u1');
+    const a = await updateWith('lay', { definition: dragged }, 'u1');
     assert.strictEqual(a.version, 1, 'no version bump');
     assert.deepStrictEqual((await row('lay')).definition_json.steps[0].position, { x: 640, y: 120 });
     assert.strictEqual((await versionRows('lay')).length, 1, 'no version row');
 
     const changed = clone(dragged);
     changed.steps[0].code = '2';
-    const b = await updateAutomationWith(db, 'lay', { definition: changed }, 'u1');
+    const b = await updateWith('lay', { definition: changed }, 'u1');
     assert.strictEqual(b.version, 2);
     const rows = await versionRows('lay');
     assert.strictEqual(rows.length, 2);
@@ -153,7 +155,7 @@ test('a forced restore of positions only is a layout-only version, never a pendi
     await seed('rst', { live: 1 });
     const back = clone(DEF);
     back.steps[0].position = { x: 5, y: 5 };
-    const a = await updateAutomationWith(db, 'rst', { definition: back }, 'u1', {
+    const a = await updateWith('rst', { definition: back }, 'u1', {
         forceVersion: true,
         versionMeta: { description: 'Restored from v1', descriptionJson: [{ code: 'restored', params: { version: 1 } }] },
     });
@@ -170,7 +172,7 @@ test('a structural save on a live automation is one pending change; the live cop
     const next = clone(DEF);
     next.steps.push({ id: 'b', type: 'code', code: 'x', label: 'More' });
     next.edges.push({ from: 'a', to: 'b' });
-    const a = await updateAutomationWith(db, 'liv', { definition: next }, 'u1');
+    const a = await updateWith('liv', { definition: next }, 'u1');
     assert.strictEqual(a.version, 2);
     assert.strictEqual(a.liveVersion, 1);
     assert.strictEqual(a.pendingChanges, 1);
@@ -184,7 +186,7 @@ test('a settings-only save on a live automation is a "Settings changed" version,
     next.runPolicy = { retry: { max: 2 } };
     next.notificationSettings = { onFailure: { enabled: true } };
     next.steps[0].position = { x: 40, y: 40 };
-    const a = await updateAutomationWith(db, 'set', { definition: next }, 'u1');
+    const a = await updateWith('set', { definition: next }, 'u1');
     assert.strictEqual(a.version, 2, 'a version is written, so the history shows it');
     assert.strictEqual(a.liveVersion, 1, 'the live copy stays');
     assert.strictEqual(a.pendingChanges, 0);
@@ -197,7 +199,7 @@ test('a settings-only save on a live automation is a "Settings changed" version,
 
 test('a non-definition write never touches versions', async () => {
     await seed('ttl');
-    const a = await updateAutomationWith(db, 'ttl', { title: 'Renamed', icon: 'bell' }, 'u1');
+    const a = await updateWith('ttl', { title: 'Renamed', icon: 'bell' }, 'u1');
     assert.strictEqual(a.version, 1);
     assert.strictEqual(a.title, 'Renamed');
     assert.strictEqual((await versionRows('ttl')).length, 1);
@@ -261,22 +263,22 @@ const modeOfRow = async (id) => (await row(id)).definition_json.runPolicy?.conne
 
 test('a writer acting AS the owner keeps the stored connections mode; the owner-role flag moves it', async () => {
     await seed('cm1', { def: withMode('caller'), live: 1 });
-    await updateAutomationWith(db, 'cm1', { definition: { ...clone(withMode(null)), steps: [...DEF.steps, { id: 'b', type: 'code', code: '2', label: 'More' }] } }, 'u1', { goLive: true });
+    await updateWith('cm1', { definition: { ...clone(withMode(null)), steps: [...DEF.steps, { id: 'b', type: 'code', code: '2', label: 'More' }] } }, 'u1', { goLive: true });
     assert.strictEqual(await modeOfRow('cm1'), 'caller', 'u1 owns cm1, and still may not move it by saving');
-    await updateAutomationWith(db, 'cm1', { definition: withMode(null) }, 'u1', { allowConnectionsChange: true });
+    await updateWith('cm1', { definition: withMode(null) }, 'u1', { allowConnectionsChange: true });
     assert.strictEqual(await modeOfRow('cm1'), 'owner');
 });
 
 test('an evolution rollback (also the automatic canary one) keeps a mode the owner switched on since', async () => {
     // v1 (owner mode) was snapshotted before the evolution; the owner then published 'caller' mode.
     await seed('cm2', { def: withMode(null), live: 1 });
-    await updateAutomationWith(db, 'cm2', { definition: withMode('caller') }, 'u1', { goLive: true, allowConnectionsChange: true });
+    await updateWith('cm2', { definition: withMode('caller') }, 'u1', { goLive: true, allowConnectionsChange: true });
     assert.strictEqual(await modeOfRow('cm2'), 'caller');
     const store = {
         getEvolution: async () => ({ id: 'e1', automationId: 'cm2', status: 'canary', versionBefore: 1, canary: {}, rationale: 'x' }),
         getAutomation: async (id) => ({ id, userId: 'u1', title: 'cm2', version: 2 }),
         getVersionDefinition: async (id, v) => (await versions.getVersionByNumber(id, v)).definition,
-        updateAutomation: (id, updates, by, opts) => updateAutomationWith(db, id, updates, by, opts),
+        updateAutomation: (id, updates, by, opts) => updateWith(id, updates, by, opts),
         updateEvolution: async (id, patch) => ({ id, ...patch }),
     };
     const out = await rollbackEvolution('e1', { reason: 'canary regression' }, { store, notify: async () => {}, now: () => new Date() });

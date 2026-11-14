@@ -269,6 +269,7 @@ function TranslationPanelSection({ total, t, visibleGroups, counted, isCollapsed
                                 onClick={() => onSelectBlock?.(blockId)}
                                 className="shrink-0 text-[var(--text-muted)] hover:text-[var(--accent-primary)]"
                                 title={t('cms_site.site.translation.show_block', 'Show this block in the preview')}
+                                aria-label={t('cms_site.site.translation.show_block', 'Show this block in the preview')}
                             >
                                 <AppIcon name="Crosshair" className="w-3 h-3" />
                             </button>
@@ -280,6 +281,7 @@ function TranslationPanelSection({ total, t, visibleGroups, counted, isCollapsed
                                 disabled={running}
                                 className="shrink-0 text-[var(--text-muted)] hover:text-[var(--accent-primary)] disabled:opacity-40"
                                 title={t('cms_site.site.translation.clear_block', "Clear this block's translations and let AI retranslate them (use after changing the source text)")}
+                                aria-label={t('cms_site.site.translation.clear_block', "Clear this block's translations and let AI retranslate them (use after changing the source text)")}
                             >
                                 <AppIcon name="RefreshCw" className="w-3 h-3" />
                             </button>

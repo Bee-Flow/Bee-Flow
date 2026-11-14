@@ -176,7 +176,7 @@ export async function applyCopiedAssets(opts: {
         return { definition: opts.definition, report: carried.report, ids: carried.ids };
     }
     if (opts.templateVersion !== undefined) {
-        const { hashDefinition } = nodeRequire('./templateUpgrade') as { hashDefinition: (d: unknown) => string };
+        const { hashDefinition } = nodeRequire('../core/packaging/definitionHash.mts') as { hashDefinition: (d: unknown) => string };
         await appStore.setTemplateStamp(opts.app.id, opts.app.userId, { templateVersion: opts.templateVersion, templateInstallHash: hashDefinition(carried.definition) });
     }
     return carried;

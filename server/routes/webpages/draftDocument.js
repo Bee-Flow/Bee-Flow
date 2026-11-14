@@ -35,7 +35,7 @@ const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
 const { buildDraftDocument } = require('../../services/webpageDraftDocument');
 const { buildBridgeHeadScripts } = require('../../shared/webpage/previewBridges.mjs');
-const { readSlotsForReader } = require('./publishedSnapshot');
+const { readSlotsForReader } = require('../../usecases/webpages/publishedSnapshot');
 const { NO_QUERY } = require('./schemas');
 const { sessionUser } = require('../../core/http/sessionUser');
 

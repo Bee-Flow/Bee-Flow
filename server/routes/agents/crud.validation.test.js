@@ -99,6 +99,7 @@ const MOCKS = {
         OrgRoles: { AGENT_EDITOR: 'agent_editor' }, SystemRoles: { SUPER_ADMIN: 'admin' },
         hasPermission: async () => true,
         resolveUserOrgIds: async () => new Set(['orgA']),
+        resolvePermissionsByOrg: async () => ({ holds: () => true }),
         canSeePublished: () => false,
         resolveUserGroups: async () => [],
         assertUserCanUseOrg: async () => {},
@@ -151,7 +152,7 @@ function dispatch({ method, url, body = {} }) {
 
 test.beforeEach(() => { touched.length = 0; stored = { ...STORED_ROW }; });
 
-/** Assert: refused with 400, the named field is in `details`, nothing touched. */
+/** Assert: refused with 400, the named field is in `details`, nothing touched past the access gate's agent read. */
 async function refuses(request, field) {
     const res = await dispatch(request);
     const what = `${request.method} ${request.url} ${JSON.stringify(request.body)}`;
@@ -159,7 +160,7 @@ async function refuses(request, field) {
     assert.strictEqual(res.body.code, 'invalid_request', what);
     assert.ok(res.body.details.some((d) => d.path === field),
         `the 400 must name ${field}; it said ${JSON.stringify(res.body.details)}`);
-    assert.deepStrictEqual(touched, [], 'a refused request must not reach the store');
+    assert.deepStrictEqual(touched.filter((t) => t.what !== 'getAgent'), [], 'a refused request reaches nothing past the access gate');
 }
 
 // ═══ POST /categories ═══════════════════════════════════════════════
@@ -224,11 +225,22 @@ test('a transfer with no new owner is refused in words', async () => {
     assert.strictEqual(res.statusCode, 400);
     assert.strictEqual(res.body.error, 'A transfer needs the id of the new owner.');
     assert.ok(res.body.details.some((d) => d.path === 'body.newOwnerId'));
-    assert.deepStrictEqual(touched, [], 'and the agent is not even read');
+    assert.deepStrictEqual(touched.map((t) => t.what), ['getAgent'], 'only the access gate read the agent');
 });
 
 test('a numeric new owner is refused by name, not turned into "newOwnerId is required"', async () => {
     await refuses({ method: 'PUT', url: '/a1/transfer', body: { newOwnerId: 7 } }, 'body.newOwnerId');
+});
+
+test('a transfer the store no longer applies (agent deleted or moved meanwhile) is a 409, not a 500', async () => {
+    const store = MOCKS['../../stores/agentStore'];
+    const { transferAgentOwner } = store;
+    store.transferAgentOwner = async () => false;
+    try {
+        const res = await dispatch({ method: 'PUT', url: '/a1/transfer', body: { newOwnerId: 'user2' } });
+        assert.strictEqual(res.statusCode, 409);
+        assert.strictEqual(res.body.code, 'agent_changed');
+    } finally { store.transferAgentOwner = transferAgentOwner; }
 });
 
 // ═══ PUT /:id/tools/:componentId/params ═════════════════════════════
@@ -338,7 +350,7 @@ test('a misspelled setting is refused by name instead of saving nothing under a 
     assert.strictEqual(res.statusCode, 400);
     assert.strictEqual(res.body.error, "An agent has no setting called 'embedEnable'.");
     assert.ok(res.body.details.some((d) => d.path === 'body'));
-    assert.deepStrictEqual(touched, []);
+    assert.deepStrictEqual(touched.filter((t) => t.what !== 'getAgent'), [], 'nothing past the access gate is read');
 });
 
 test('config: null is refused rather than written as an empty config', async () => {

@@ -8,7 +8,7 @@
 
 'use strict';
 
-const { canonicalJson } = require('../../../automation/builderTools/suggestedPatch');
+const { canonicalJson } = require('../../../utils/stableJson');
 const { MAX_BATCH_PATCHES_PER_CALL } = require('../schemas');
 
 // ── Batch forms (app_update_component / app_set_action / app_bind_action) ──
@@ -103,7 +103,7 @@ function finishPatchBatch({ ok, failed, hints, allFailed, summary, listKey = 'en
     // Per-entry fixes lifted to the batch: each op's path is prefixed with
     // the entry's index and pinned to the entry's own signature, so rung 2
     // applies it on an identical batch resend and never to whatever now sits
-    // at that index (automation/builderTools/suggestedPatch semantics).
+    // at that index (core/llm/suggestedPatch semantics).
     const liftedOps = [];
     const reasons = [];
     const cleanFailed = failed.map((f) => {

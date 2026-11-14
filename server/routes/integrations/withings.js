@@ -31,7 +31,10 @@
  * The CSRF state check plus the confidential-client secret carry the flow.
  */
 
+const { fetchFixedEndpoint } = require('../../utils/fixedEndpointFetch.mts');
 const express = require('express');
+const { validate } = require('../../core/http/validate');
+const { bodyOf } = require('../../core/http/schemaParts');
 const crypto = require('crypto');
 const log = require('../../telemetry/log');
 const router = express.Router();
@@ -135,7 +138,7 @@ router.get('/callback', async (req, res) => {
         const timer = setTimeout(() => ac.abort(), TOKEN_TIMEOUT_MS);
         let tokenRes;
         try {
-            tokenRes = await fetch(OAUTH_PROVIDERS.withings.tokenUrl, {
+            tokenRes = await fetchFixedEndpoint(OAUTH_PROVIDERS.withings.tokenUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: new URLSearchParams({
@@ -235,7 +238,7 @@ router.get('/status', requireAuth, async (req, res) => {
 });
 
 // ─── Disconnect ──────────────────────────────────────────────────
-router.post('/disconnect', requireAuth, async (req, res) => {
+router.post('/disconnect', requireAuth, validate({ body: bodyOf({}, 'Disconnecting Withings') }), async (req, res) => {
     const userId = req.session?.user?.id;
     if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 

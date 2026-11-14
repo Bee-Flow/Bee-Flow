@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The find/replace engine behind webpage_file_replace and document_edit.
  *
@@ -34,12 +34,12 @@ const OPTS = { label: 'The document body', readHint: 'Call document_read({ docum
 test('rung 1 — one verbatim hit is replaced, and the line number is reported', () => {
     const out = applyFindReplace(DOC, { ...OPTS, findText: '1.140,00', replaceText: '1.320,00' });
     assert.ok(!out.error);
-    assert.match(out.content, /1\.320,00/);
-    assert.ok(!out.content.includes('1.140,00'));
-    assert.match(out.message, /line 3/, 'the user can see WHERE it changed');
+    assert.match(/** @type {any} */ (out.content), /1\.320,00/);
+    assert.ok(!String(out.content).includes('1.140,00'));
+    assert.match(/** @type {any} */ (out.message), /line 3/, 'the user can see WHERE it changed');
     // Everything else is byte-identical — that is the whole point of editing
     // rather than rewriting.
-    assert.strictEqual(out.content.replace('1.320,00', '1.140,00'), DOC);
+    assert.strictEqual(String(out.content).replace('1.320,00', '1.140,00'), DOC);
 });
 
 test('rung 2 — several hits REFUSE rather than guess, and name the lines', () => {
@@ -57,9 +57,9 @@ test('rung 2 — replace_all replaces every occurrence, back to front', () => {
     // every later hit, which silently corrupts the tail of the document.
     const out = applyFindReplace(DOC, { ...OPTS, findText: '<tr><td>', replaceText: '<tr><td class="c">', replaceAll: true });
     assert.ok(!out.error);
-    assert.strictEqual((out.content.match(/class="c"/g) || []).length, 2);
-    assert.match(out.content, /Advies/);
-    assert.match(out.content, /Staal/);
+    assert.strictEqual((String(out.content).match(/class="c"/g) || []).length, 2);
+    assert.match(/** @type {any} */ (out.content), /Advies/);
+    assert.match(/** @type {any} */ (out.content), /Staal/);
 });
 
 test('rung 3 — a snippet that differs only in whitespace still matches', () => {
@@ -70,8 +70,8 @@ test('rung 3 — a snippet that differs only in whitespace still matches', () =>
     const text = `before\n${multiline}\nafter`;
     const out = applyFindReplace(text, { ...OPTS, findText: 'line one line two', replaceText: 'REPLACED' });
     assert.ok(!out.error, out.error);
-    assert.match(out.content, /REPLACED/);
-    assert.match(out.message, /whitespace-normalized/);
+    assert.match(/** @type {any} */ (out.content), /REPLACED/);
+    assert.match(/** @type {any} */ (out.message), /whitespace-normalized/);
 });
 
 test('rung 4 — a near miss returns a diff-style hint, not just "not found"', () => {
@@ -103,9 +103,9 @@ test('rung 4 — nothing even close points at the read tool', () => {
 test('deleting is replace_text: ""', () => {
     const out = applyFindReplace(DOC, { ...OPTS, findText: '  <tr><td>Staal</td><td>4.440,00</td></tr>\n', replaceText: '' });
     assert.ok(!out.error);
-    assert.ok(!out.content.includes('Staal'));
-    assert.match(out.content, /Advies/, 'only that line went');
-    assert.match(out.message, /removed/);
+    assert.ok(!String(out.content).includes('Staal'));
+    assert.match(/** @type {any} */ (out.content), /Advies/, 'only that line went');
+    assert.match(/** @type {any} */ (out.message), /removed/);
 });
 
 test('inserting is anchoring on a snippet and repeating it', () => {
@@ -115,28 +115,28 @@ test('inserting is anchoring on a snippet and repeating it', () => {
         replaceText: '  <tr><td>Transport</td><td>180,00</td></tr>\n</table>',
     });
     assert.ok(!out.error);
-    assert.match(out.content, /Transport/);
-    assert.match(out.content, /<\/table>/);
-    assert.match(out.content, /Staal[\s\S]*Transport/, 'the new row lands in the right place');
+    assert.match(/** @type {any} */ (out.content), /Transport/);
+    assert.match(/** @type {any} */ (out.content), /<\/table>/);
+    assert.match(/** @type {any} */ (out.content), /Staal[\s\S]*Transport/, 'the new row lands in the right place');
 });
 
 // ── Refusals ─────────────────────────────────────────────────────────
 
 test('an empty find_text is refused rather than matching everything', () => {
     const out = applyFindReplace(DOC, { ...OPTS, findText: '', replaceText: 'x' });
-    assert.match(out.error, /find_text is required/);
+    assert.match(/** @type {any} */ (out.error), /find_text is required/);
 });
 
 test('editing an empty slot says so instead of erroring obscurely', () => {
     const out = applyFindReplace('', { ...OPTS, findText: 'a', replaceText: 'b' });
-    assert.match(out.error, /is empty/);
+    assert.match(/** @type {any} */ (out.error), /is empty/);
 });
 
 test('the label the caller supplies is what the user reads', () => {
     // The same engine says "index.html" to a webpage tool and "The stylesheet"
     // to a document tool; neither knows about the other's vocabulary.
     const out = applyFindReplace('.a{}', { label: 'The stylesheet', readHint: 'Call document_read()', findText: 'zzz', replaceText: 'x' });
-    assert.match(out.error, /The stylesheet/);
+    assert.match(/** @type {any} */ (out.error), /The stylesheet/);
 });
 
 // ── The primitives ───────────────────────────────────────────────────
@@ -169,7 +169,7 @@ test('the small helpers behave', () => {
     assert.strictEqual(spliceAt('abcdef', 2, 4, 'XY'), 'abXYef');
     assert.strictEqual(truncate('abcdef', 3), 'abc…');
     assert.strictEqual(truncate('ab', 5), 'ab');
-    assert.strictEqual(truncate(null, 5), '');
+    assert.strictEqual(truncate(/** @type {any} */ (null), 5), '');
     assert.strictEqual(normalizeWhitespace('  a \n\t b  '), 'a b');
 });
 

@@ -207,3 +207,10 @@ test('a run that is found is handed over', async () => {
     assert.strictEqual(res.statusCode, 200);
     assert.strictEqual(decisions()[0].run.id, 'run1');
 });
+
+// ═══ POST /approvals/:id/remind ═════════════════════════════════════
+
+test('a reminder takes no fields: one sent is refused by name', async () => {
+    const res = await refuses({ method: 'POST', url: '/approvals/ap1/remind', body: { to: 'someone@example.org' } }, 'body');
+    assert.match(res.body.error, /Reminding the approvers does not take "to"/);
+});

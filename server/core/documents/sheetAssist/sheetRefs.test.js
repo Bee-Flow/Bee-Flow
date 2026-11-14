@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 
 /**
@@ -15,7 +15,7 @@ test('a range in any corner order, a single cell, and nothing outside the sheet'
     assert.deepStrictEqual(parseRange('D9:b2'), { c0: 1, r0: 1, c1: 3, r1: 8 });
     assert.deepStrictEqual(parseRange('$C$4'), { c0: 2, r0: 3, c1: 2, r1: 3 });
     for (const bad of ['', 'AA1', 'A0', 'A2001', 'A1:B2:C3', 'hello', null]) assert.strictEqual(parseRange(bad), null, String(bad));
-    assert.deepStrictEqual(cellsIn(parseRange('A1:B2')), ['A1', 'B1', 'A2', 'B2']);
+    assert.deepStrictEqual(cellsIn(/** @type {any} */ (parseRange('A1:B2'))), ['A1', 'B1', 'A2', 'B2']);
 });
 
 test('filling shifts relative references and keeps $ anchors', () => {

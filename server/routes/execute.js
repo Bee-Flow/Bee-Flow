@@ -67,7 +67,7 @@ router.post('/execute', requireAuth, validate({ body: ExecuteBody }), async (req
     /** @type {string | null} */
     let executionId = null;
     if (workflowId) {
-        const execution = await workflowStore.createExecution(workflowId, workflowName || 'Workflow', userId, 'manual', workflow);
+        const execution = await workflowStore.createExecution(workflowId, workflowName || 'Workflow', userId, 'manual', /** @type {never} */ (workflow)); // the store's JSDoc reads its default (null) as the type
         executionId = execution.id;
     }
 
@@ -97,7 +97,7 @@ router.post('/execute', requireAuth, validate({ body: ExecuteBody }), async (req
 // agent-to-workflow calls run in-process through the execution engine
 // (core/agentRuntime/agentTools.js, core/tools/toolExecution.js) and never
 // pass through here, so this route only serves signed-in API callers.
-router.post('/subworkflow/:workflowId', requireAuth, validate({ body: SubworkflowBody }), async (/** @type {import('express').Request<{ workflowId: string }, any, import('zod').infer<typeof SubworkflowBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/subworkflow/:workflowId', requireAuth, validate({ body: SubworkflowBody }), async (req, res) => {
     const { workflowId } = req.params;
     const { inputData, callerId } = req.body;
     const userAuth = await getUserAuth(req);

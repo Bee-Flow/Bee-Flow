@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The steps that produce a FILE a person opens: a generated document, a
  * template filled with values, a single slide, and the presentation that
@@ -142,7 +143,7 @@ function checkPresentation(ctx, step, at) {
         }
         // The LOOK: each is optional (the house style decides), each a closed
         // list except `accent`, which is a template ("#RRGGBB" or a binding).
-        for (const [key, table, label] of [['preset', PRESENTATION_PRESETS, 'style'], ['coverStyle', PRESENTATION_COVER_STYLES, 'cover style'], ['tableStyle', PRESENTATION_TABLE_STYLES, 'table style'], ['font', PRESENTATION_FONTS, 'typeface'], ['titleFont', PRESENTATION_FONTS, 'title typeface'], ['logoPlacement', PRESENTATION_LOGO_PLACEMENTS, 'logo placement']]) {
+        for (const [key, table, label] of /** @type {Array<[string, Set<string>, string]>} */ ([['preset', PRESENTATION_PRESETS, 'style'], ['coverStyle', PRESENTATION_COVER_STYLES, 'cover style'], ['tableStyle', PRESENTATION_TABLE_STYLES, 'table style'], ['font', PRESENTATION_FONTS, 'typeface'], ['titleFont', PRESENTATION_FONTS, 'title typeface'], ['logoPlacement', PRESENTATION_LOGO_PLACEMENTS, 'logo placement']])) {
             if (step[key] !== undefined && step[key] !== '' && !table.has(step[key])) {
                 pushE({ code: `presentation.${key}`, severity: 'error', path: `${at}.${key}`, message: `Step ${step.id}: "${step[key]}" is not a deck ${label}.`, hint: `Use one of: ${[...table].join(', ')} — or leave it out to follow the house style.` });
             }

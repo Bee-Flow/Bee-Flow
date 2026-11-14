@@ -21,7 +21,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
+import { apiUrl } from '@/api/typedRequest';
 import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 const PREVIEW_SRC = '/__cms_preview__?preview=1';
@@ -92,7 +92,7 @@ export function usePreviewBackdrop({ urlPath, locale = 'en', width, enabled = tr
         let readyTimer: string|number|NodeJS.Timeout|null|undefined = null;
 
         const slug = pathToSlug(urlPath);
-        const qs = `locale=${encodeURIComponent(locale)}${slug ? `&slug=${encodeURIComponent(slug)}` : ''}`;
+        const query = slug ? { locale, slug } : { locale };
 
         let content: unknown = null;
         let design: unknown = null;
@@ -121,7 +121,7 @@ export function usePreviewBackdrop({ urlPath, locale = 'en', width, enabled = tr
             } catch { return false; }
         };
 
-        fetch(`${API_BASE}/api/cms/site?${qs}`, { credentials: 'include' })
+        fetch(apiUrl('GET /api/cms/site', { query }), { credentials: 'include' })
             .then(r => (r.ok ? r.json() : Promise.reject(new Error(tRef.current('cms_site.analytics.errors.page_fetch', 'Page fetch failed ({status})', { status: r.status })))))
             .then(data => {
                 if (cancelled) return;

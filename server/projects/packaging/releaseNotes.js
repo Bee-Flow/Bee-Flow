@@ -9,7 +9,7 @@
  * ── Two layers, and the distinction between them is the whole point ───────
  *
  * 1. THE BOOLEAN DIFF is exact and always available. Per entity `diffEntities` compares the hash of
- *    the same `hashDefinition` that the upgrade uses (appStudio/templateUpgrade.js) — one hasher in this
+ *    the same `hashDefinition` that the upgrade uses (core/packaging/definitionHash.mts) — one hasher in this
  *    product, because jsonb does not keep key order and a second hasher would sooner or later call an
  *    unchanged entity changed. This layer makes NO model call, does not touch the network and cannot fall over.
  *
@@ -196,7 +196,7 @@ function isObject(v) { return v !== null && typeof v === 'object' && !Array.isAr
  * @param {unknown} payload
  */
 function hashOf(payload) {
-    const { hashDefinition } = require('../../appStudio/templateUpgrade');
+    const { hashDefinition } = require('../../core/packaging/definitionHash.mts');
     return hashDefinition(payload);
 }
 

@@ -1,3 +1,4 @@
+// @typecheck
 const columns = require('./columns');
 const identity = require('./identity');
 const reading = require('./reading');
@@ -34,6 +35,7 @@ async function applySettings(source, body, ctx = {}) {
         }
     }
     const next = { ...source, columnMap: { ...((source && source.columnMap) || {}) } };
+    /** @type {false | 'columns'} */
     let stale = false;
     if (b.refreshOnView !== undefined) next.refreshOnView = b.refreshOnView !== false;
     if (b.headerRow !== undefined) {

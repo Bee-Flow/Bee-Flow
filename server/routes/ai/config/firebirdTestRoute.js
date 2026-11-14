@@ -16,7 +16,7 @@ const { HttpError } = require('../../../core/http/errors');
 const { validate } = require('../../../core/http/validate');
 const { lazyGate } = require('../../../auth/gateMeta');
 const { bodyOf } = require('../../../core/http/schemaParts');
-const { firebirdFields } = require('./firebirdFields');
+const { firebirdFields } = require('../../../usecases/ai/config/firebirdFields');
 
 const FirebirdTestBody = bodyOf(Object.fromEntries(Object.entries(firebirdFields).map(([k, v]) => [k, v.optional()])));
 const FIREBIRD_TEST_TIMEOUT_MS = 10000;
@@ -75,9 +75,9 @@ function createFirebirdTestRouter(deps = {}) {
     const testConnection = deps.testConnection || ((/** @type {TestCreds} */ creds) => require('../../../integrations/firebirdTools').testFirebirdConnection(creds));
 
     // At most INTEGRATION_TEST_MAX_PER_MINUTE tests per user per minute (./integrationTestLimit.mts).
-    const limit = deps.rateLimit || require('./integrationTestLimit.mts').integrationTestLimiter('firebird-test');
+    const limit = deps.rateLimit || require('../../../usecases/ai/config/integrationTestLimit.mts').integrationTestLimiter('firebird-test');
 
-    router.post('/firebird/test', auth, limit, validate({ body: FirebirdTestBody }), /** @param {import('express').Request<{}, unknown, import('zod').infer<typeof FirebirdTestBody>, import('qs').ParsedQs>} req */ async (req, res) => {
+    router.post('/firebird/test', auth, limit, validate({ body: FirebirdTestBody }), async (req, res) => {
         const { passwordNeeded, ...creds } = await credsFor(req, getSecret);
         if (passwordNeeded) return res.json({ ok: false, error: NEW_HOST_CREDENTIAL_HINT });
         if (!creds.host || !creds.database || !creds.user || !creds.password) {

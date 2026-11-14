@@ -62,7 +62,7 @@ const { bestEffort } = require('../../utils/bestEffort');
 const { registerHandle, finishTurnLogs, failTurnLogs } = require('../../core/kb/queryLog/hook.mts');
 
 /** @typedef {NonNullable<Awaited<ReturnType<typeof import('../../stores/projectStore').getProject>>>} CommentProject */
-/** @typedef {ReturnType<typeof import('../../stores/lib/projectCommentRows').rowToThread>} CommentThread */
+/** @typedef {NonNullable<ReturnType<typeof import('../../stores/lib/projectCommentRows').rowToThread>>} CommentThread  a stored thread */
 /** @typedef {Awaited<ReturnType<typeof import('./commentCrypto').forProject>>} CommentBox */
 /** @typedef {Function} LlmChat  `(modelId, messages, options) => { content, usage, stop_reason }`; loose: llmClient.chat declares no `stop_reason`, which the usage log reads */
 

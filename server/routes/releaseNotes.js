@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Release notes routes.
  *
@@ -54,6 +54,7 @@ const { draftReleaseNotes } = require('../core/releaseNotesDrafter');
 const { coerceDraft, KIND_HEADINGS, MAX_TITLE_LEN, MAX_ITEMS } = require('../core/releaseNotesFormat');
 const { requireAdmin } = require('./cmsShared');
 const { validate } = require('../core/http/validate');
+const { bodyOf: closedBodyOf } = require('../core/http/schemaParts');
 const { z, typeError } = require('../utils/zod');
 const { unavailable } = require('../core/http/errors');
 
@@ -149,7 +150,7 @@ function invalidatePublicCache() {
 }
 
 async function _loadPublished() {
-    const entries = await store.listPublished({ limit: 20 });
+    const entries = /** @type {Array<NonNullable<Awaited<ReturnType<typeof store.listPublished>>[number]>>} */ (await store.listPublished({ limit: 20 })); // rows mapped one to one
     // Only fields the public is meant to see. from_sha/to_sha/services are
     // build metadata, not customer content, and never leave the admin surface.
     return entries.map(e => ({
@@ -199,7 +200,7 @@ router.post('/ingest', _requireIngestToken, validate({ body: IngestBody }), asyn
 
     const payload = { ...draft, fromSha, toSha, services };
     const entry = channel === 'prod'
-        ? await store.finaliseRelease({ ...payload, version })
+        ? await store.finaliseRelease({ ...payload, version: /** @type {string} */ (version) }) // a prod ingest without one was refused above
         : await store.upsertUnreleased({ ...payload, channel });
 
     invalidatePublicCache();
@@ -251,14 +252,14 @@ router.put('/admin/:id', requireAdmin, validate({ body: EntryPatch }), /** @para
     res.json({ success: true, entry });
 });
 
-router.post('/admin/:id/publish', requireAdmin, /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
+router.post('/admin/:id/publish', requireAdmin, validate({ body: closedBodyOf({}, 'Publishing a release note') }), async (req, res) => {
     const entry = await store.publishEntry(req.params.id);
     if (!entry) return res.status(404).json({ error: 'Not found' });
     invalidatePublicCache();
     res.json({ success: true, entry });
 });
 
-router.post('/admin/:id/unpublish', requireAdmin, /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
+router.post('/admin/:id/unpublish', requireAdmin, validate({ body: closedBodyOf({}, 'Unpublishing a release note') }), async (req, res) => {
     const entry = await store.unpublishEntry(req.params.id);
     if (!entry) return res.status(404).json({ error: 'Not found' });
     invalidatePublicCache();

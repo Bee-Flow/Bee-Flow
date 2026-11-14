@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Phase `fill` — run the automation once so the table has rows before the app
  * is built on it. Mirrors routes/automation/runs.js: `executeAutomation`
@@ -49,7 +49,7 @@ async function currentRowCount(artifacts, deps) {
  */
 async function startFillPhase({ playbook, automationId, tableArtifacts, onRunCreated }, deps) {
     const { automationStore, runner } = deps;
-    const timeoutMs = Number.isFinite(deps.timeoutMs) ? deps.timeoutMs : RESPONSE_TIMEOUT_MS;
+    const timeoutMs = Number.isFinite(deps.timeoutMs) ? /** @type {number} */ (deps.timeoutMs) : RESPONSE_TIMEOUT_MS;
     if (!automationId) return { ok: false, code: 'automation_missing', error: 'The automation phase produced no automation to run.' };
     const a = await automationStore.getAutomation(automationId);
     if (!a) return { ok: false, code: 'automation_missing', error: 'The automation no longer exists.' };
@@ -61,11 +61,11 @@ async function startFillPhase({ playbook, automationId, tableArtifacts, onRunCre
     const rowsBefore = await currentRowCount(tableArtifacts, deps);
     let runId = null;
     let timedOut = false;
-    /** @type {NodeJS.Timeout} */
+    /** @type {NodeJS.Timeout | undefined} */
     let guardTimer;
     const guard = new Promise((resolve) => { guardTimer = setTimeout(() => { timedOut = true; resolve(null); }, timeoutMs); });
-    /** @type {Error | null} */
-    let runError = null;
+    // Set from the runner's callbacks, so the compiler cannot follow it.
+    let runError = /** @type {Error | null} */ (null);
     // Cleared however this ends (a run that beat the guard, a runner that threw):
     // left armed, the timer would hold this closure for the rest of the minute.
     try {
@@ -118,7 +118,7 @@ async function refreshFillPhase(phase, deps, now = Date.now(), { locale = null }
     if (!art.runId) return stale ? { status: 'failed', artifacts: art, error: copy.runNeverStarted } : null;
     const run = await automationStore.getRun(art.runId).catch((e) => fallback('playbooks/phases/fillPhase:refreshFillPhase', e, null));
     const rowCount = await currentRowCount(art, deps);
-    const rowsBefore = Number.isFinite(art.rowsBefore) ? art.rowsBefore : 0;
+    const rowsBefore = Number.isFinite(art.rowsBefore) ? /** @type {number} */ (art.rowsBefore) : 0;
     const added = rowCount == null ? null : Math.max(0, rowCount - rowsBefore);
     const artifacts = { ...art, runStatus: run ? run.status : art.runStatus || null, ...(rowCount == null ? {} : { rowCount }) };
     if (run && TERMINAL_RUN.has(run.status)) {

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Mapping a retrieved chunk to its notebook source: the source id (stored as the
  * chunk's source_uri) is exact and wins; the fuzzy name match is only a fallback.
@@ -20,23 +20,23 @@ const SOURCES = [
 test('an exact source id beats any name that happens to be a substring', () => {
     // The old fuzzy match could attach this chunk to "Report" or "Annual Report 2024"
     // depending on list order; the id settles it.
-    assert.strictEqual(findSourceForChunk({ source_uri: 'id-annual', title: 'Annual Report 2024' }, SOURCES).id, 'id-annual');
-    assert.strictEqual(findSourceForChunk({ source_uri: 'id-report', title: 'Annual Report 2024' }, SOURCES).id, 'id-report');
+    assert.strictEqual(/** @type {any} */ (findSourceForChunk({ source_uri: 'id-annual', title: 'Annual Report 2024' }, SOURCES)).id, 'id-annual');
+    assert.strictEqual(/** @type {any} */ (findSourceForChunk({ source_uri: 'id-report', title: 'Annual Report 2024' }, SOURCES)).id, 'id-report');
 });
 
 test('an id wins even when the title points at another source', () => {
-    assert.strictEqual(findSourceForChunk({ source_uri: 'id-report', title: 'Annual Report 2024' }, SOURCES).name, 'Report');
+    assert.strictEqual(/** @type {any} */ (findSourceForChunk({ source_uri: 'id-report', title: 'Annual Report 2024' }, SOURCES)).name, 'Report');
 });
 
 test('falls back to the name, then to a substring, only when no id matches', () => {
-    assert.strictEqual(findSourceForChunk({ source_uri: 'Report' }, SOURCES).id, 'id-report');
-    assert.strictEqual(findSourceForChunk({ source_uri: 'unknown', title: 'docs/Annual Report 2024' }, SOURCES).id, 'id-annual');
-    assert.strictEqual(findSourceForChunk({ title: 'My Annual Report 2024 (copy)' }, SOURCES).id, 'id-annual');
+    assert.strictEqual(/** @type {any} */ (findSourceForChunk({ source_uri: 'Report' }, SOURCES)).id, 'id-report');
+    assert.strictEqual(/** @type {any} */ (findSourceForChunk({ source_uri: 'unknown', title: 'docs/Annual Report 2024' }, SOURCES)).id, 'id-annual');
+    assert.strictEqual(/** @type {any} */ (findSourceForChunk({ title: 'My Annual Report 2024 (copy)' }, SOURCES)).id, 'id-annual');
 });
 
 test('no match and bad input give null', () => {
     assert.strictEqual(findSourceForChunk({ source_uri: 'zzz', title: 'zzz' }, SOURCES), null);
     assert.strictEqual(findSourceForChunk({}, SOURCES), null);
     assert.strictEqual(findSourceForChunk({ source_uri: 'id-report' }, []), null);
-    assert.strictEqual(findSourceForChunk(null, SOURCES), null);
+    assert.strictEqual(findSourceForChunk(/** @type {any} */ (null), SOURCES), null);
 });

@@ -158,3 +158,10 @@ test('without a session it is still a 401, before any body is judged', async () 
     assert.strictEqual(res.statusCode, 401);
     assert.deepStrictEqual(touched, []);
 });
+
+test('Completing a reminder takes no fields: one sent is refused by name', async () => {
+    const res = await dispatch({ method: 'POST', url: '/r1/complete', body: { done: true } });
+    assert.strictEqual(res.statusCode, 400, JSON.stringify(res.body));
+    assert.strictEqual(res.body.code, 'invalid_request');
+    assert.match(res.body.error, /Completing a reminder does not take "done"/);
+});

@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 /**
@@ -51,7 +52,7 @@ function countedSteps(definition) {
 
 /**
  * @param {object|null} definition   the copy that ran (null when unknown)
- * @param {Array<object>} stepRows   status rows of every leg of the journey
+ * @param {Array<{ stepId?: string, attempts?: unknown, [k: string]: unknown }>} stepRows   status rows of every leg of the journey
  * @param {string} status            the journey's effective status
  */
 function stepProgress(definition, stepRows, status) {
@@ -98,14 +99,14 @@ function howStartedOf(run, definition = null) {
 const displayName = (u) => (u ? (u.displayName || u.username || null) : null);
 
 /**
- * @param {{
+ * @param {Partial<{
  *   store: {
  *     getJourneyStepStatuses?: (rootIds: string[]) => Promise<Map<string, any[]>>,
  *     getVersionDefinitions?: (pairs: Array<{automationId: string, version: number}>) => Promise<Map<string, any>>,
  *     getPendingApprovalIdsForRuns?: (runIds: string[]) => Promise<Map<string, string>>,
  *   },
  *   getUsersByIds?: (ids: string[]) => Promise<Array<{ id: string, displayName?: string, username?: string }>>,
- * }} deps
+ * }>} deps
  */
 function makeRunRowDecorator(deps = {}) {
     const store = deps.store || {};
@@ -114,8 +115,8 @@ function makeRunRowDecorator(deps = {}) {
     };
 
     /**
-     * @param {Array<object>} runs  rows from listRunsScoped (journey heads)
-     * @param {{ automation?: object|null, withStarter?: boolean, withApprovals?: boolean, viewerId?: string|null, canStart?: boolean, canStartFor?: (automationId: string) => Promise<boolean|null|undefined> }} [opts]
+     * @param {RunRow[]} runs  rows from listRunsScoped (journey heads)
+     * @param {{ automation?: { definition?: any, id?: any }|null, withStarter?: boolean, withApprovals?: boolean, viewerId?: string|null, canStart?: boolean, canStartFor?: (automationId: string) => Promise<boolean|null|undefined> }} [opts]
      *   automation     the automation when the page is one automation's: its
      *                  current definition stands in for a missing snapshot
      *   withStarter    false on the org-wide log, whose rows carry no identity
@@ -222,6 +223,7 @@ module.exports = {
  * @property {boolean} [isTest]
  * @property {{ code?: string|null }|null} [outcome]  the structured outcome (outcome_json)
  * @property {string|null} [approvalId]
+ * @property {boolean} [canStart]
  * @property {string} [callerAgentId]
  * @property {string} [triggerKind]
  * @property {Record<string, unknown>} [triggerPayload]

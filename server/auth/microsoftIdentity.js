@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 
 const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -12,7 +13,7 @@ async function verifyMicrosoftIdentity(token, { clientId, tenantId = 'common', n
     const jose = await import('jose');
     // Only use the untrusted tenant to construct an expected issuer on the
     // fixed Microsoft host, never to fetch an attacker-provided JWKS URL.
-    const untrusted = jose.decodeJwt(token);
+    const untrusted = /** @type {{ tid?: string, oid?: string, [claim: string]: unknown }} */ (jose.decodeJwt(token));
     if (!GUID.test(untrusted.tid) || !GUID.test(untrusted.oid)) throw new Error('Invalid Microsoft identity');
     const tid = untrusted.tid.toLowerCase();
     const configured = tenantId.toLowerCase();
@@ -29,7 +30,7 @@ async function verifyMicrosoftIdentity(token, { clientId, tenantId = 'common', n
     if (typeof payload.iat !== 'number' || !Number.isFinite(payload.iat)
         || payload.iat > Math.floor(Date.now() / 1000) + 30 || payload.exp <= payload.iat || payload.nbf > payload.exp) throw new Error('Invalid Microsoft token lifetime');
     if (payload.nonce !== nonce) throw new Error('Microsoft nonce mismatch');
-    return { azureTenantId: tid, azureUserId: payload.oid.toLowerCase() };
+    return { azureTenantId: tid, azureUserId: /** @type {string} */ (payload.oid).toLowerCase() };
 }
 
 /**

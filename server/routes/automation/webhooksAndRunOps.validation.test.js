@@ -191,3 +191,17 @@ test('a step with no kept copy is a 404, not an empty 200', async () => {
     assert.strictEqual(res.statusCode, 404);
     assert.deepStrictEqual(touched.find((t) => t.what === 'getRunFullOutput').args, ['run1', 'small', 2]);
 });
+
+// ═══ The actions that take nothing but the path ═════════════════════
+
+test('rotating, retrying and the webhook test take no fields: one sent is refused by name', async () => {
+    // Status and words only: a run the tests above started may still be
+    // reaching the recorded store while these are refused.
+    for (const [url, subject] of [['/a1/webhook/hook/rotate', 'Rotating a webhook address'], ['/a1/form/tok/rotate', 'Rotating a form address'],
+        ['/a1/runs/run1/retry', 'Retrying a run'], ['/a1/webhook/hook/test', 'Testing a webhook']]) {
+        const res = await dispatch({ method: 'POST', url, body: { payload: {} } });
+        assert.strictEqual(res.statusCode, 400, url);
+        assert.strictEqual(res.body.code, 'invalid_request', url);
+        assert.match(res.body.error, new RegExp(`${subject} does not take "payload"`));
+    }
+});

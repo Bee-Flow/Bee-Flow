@@ -114,3 +114,14 @@ test('mail_read_attachment still reads a 1 MB text attachment under the default 
     assert.strictEqual(out.error, undefined);
     assert.strictEqual(out.size, 1024 * 1024);
 });
+
+test('the dispatcher: an unknown name, missing arguments, set_flags and save_attachment', async () => {
+    const ok = async () => json(200, {});
+    assert.deepStrictEqual((await run(executeNextcloudMailTool, 'nextcloud_mail_nope', {}, ok)).out, { error: 'Unknown Nextcloud Mail tool: nextcloud_mail_nope' });
+    assert.deepStrictEqual((await run(executeNextcloudMailTool, 'nextcloud_mail_move', { messageId: 1 }, ok)).out, { error: 'messageId and destMailboxId are required' });
+    assert.deepStrictEqual((await run(executeNextcloudMailTool, 'nextcloud_mail_set_flags', { messageId: 1 }, ok)).out, { error: 'at least one flag (seen/flagged/junk) must be provided' });
+    const flagged = await run(executeNextcloudMailTool, 'nextcloud_mail_set_flags', { messageId: 1, seen: 1 }, ok);
+    assert.deepStrictEqual([flagged.out, flagged.calls[0].method], [{ success: true, messageId: 1, flags: { seen: true } }, 'PUT']);
+    const saved = await run(executeNextcloudMailTool, 'nextcloud_mail_save_attachment', { messageId: 1, attachmentId: 'a', targetPath: '/X' }, async () => json(409, {}));
+    assert.match(saved.out.error, /^Target folder doesn't exist: \/X/);
+});

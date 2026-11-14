@@ -1,5 +1,5 @@
 // @typecheck
-const { run, getOne, getClient } = require('../../db');
+const { run, getOne, withTransaction } = require('../../db');
 const { initDB } = require('./schema');
 const { getEffectiveLimits } = require('./subscriptions');
 const { planResourceCapsApply } = require('../../license/planCaps.mts');
@@ -172,61 +172,55 @@ async function createUserWithSeatCheck(userData, { strict = true } = {}) {
     })();
 
     for (let attempt = 0; attempt < 2; attempt++) {
-        const client = await getClient();
         try {
-            await client.query('BEGIN');
-            await client.query("SET LOCAL TRANSACTION ISOLATION LEVEL SERIALIZABLE");
+            // db.withTransaction ends the transaction and gives the client back, once, on every
+            // way out. The two refusals below write nothing, so leaving through a return
+            // (COMMIT) or a throw (ROLLBACK) is the same to the database.
+            const outcome = await withTransaction(async (client) => {
+                await client.query("SET LOCAL TRANSACTION ISOLATION LEVEL SERIALIZABLE");
 
-            if (max != null) {
-                // PG rejects FOR UPDATE alongside aggregate functions
-                // ("FOR UPDATE is not allowed with aggregate functions"),
-                // so we count rows under SERIALIZABLE isolation instead.
-                // Concurrent INSERTs that would push us over the cap raise
-                // a 40001 serialization failure on COMMIT, which the
-                // attempt-retry below already handles.
-                const countRow = await client.query(
-                    `SELECT COUNT(*)::int AS n FROM users WHERE "organizationId" = $1 AND COALESCE(status, 'active') = 'active'`,
-                    [orgId]
-                );
-                const current = countRow.rows[0]?.n ?? 0;
-                if (current >= max) {
-                    await client.query('ROLLBACK');
-                    client.release();
-                    log.warn(`[seat.cap] ${strict ? 'blocked' : 'skipped'} org=${orgId} current=${current} max=${max}`);
-                    if (strict) throw new SeatCapExceededError(current, max, orgId);
-                    return { created: false, reason: 'seat_cap', current, max };
+                if (max != null) {
+                    // PG rejects FOR UPDATE alongside aggregate functions
+                    // ("FOR UPDATE is not allowed with aggregate functions"),
+                    // so we count rows under SERIALIZABLE isolation instead.
+                    // Concurrent INSERTs that would push us over the cap raise
+                    // a 40001 serialization failure on COMMIT, which the
+                    // attempt-retry below already handles.
+                    const countRow = await client.query(
+                        `SELECT COUNT(*)::int AS n FROM users WHERE "organizationId" = $1 AND COALESCE(status, 'active') = 'active'`,
+                        [orgId]
+                    );
+                    const current = countRow.rows[0]?.n ?? 0;
+                    if (current >= max) {
+                        log.warn(`[seat.cap] ${strict ? 'blocked' : 'skipped'} org=${orgId} current=${current} max=${max}`);
+                        if (strict) throw new SeatCapExceededError(current, max, orgId);
+                        return { created: false, reason: 'seat_cap', current, max };
+                    }
                 }
-            }
 
-            const existing = await client.query('SELECT id FROM users WHERE id = $1', [userData.id]);
-            if (existing.rowCount > 0) {
-                await client.query('ROLLBACK');
-                client.release();
-                return { created: false, reason: 'duplicate_id' };
-            }
+                const existing = await client.query('SELECT id FROM users WHERE id = $1', [userData.id]);
+                if (existing.rowCount > 0) return { created: false, reason: 'duplicate_id' };
 
-            await client.query(
-                `INSERT INTO users (id, username, "displayName", "firstName", "lastName", email, phone, avatar, "avatarType", "passwordHash", role, groups, "masterWrappedDEK", "wrappedDEK", "orgRole", "organizationId", "createdAt", status, "azureUserId", "nc_uid", "provider", "auto_provisioned", password_changed_at, "azureTenantId")
-                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)`,
-                insertParams
-            );
-            await client.query('COMMIT');
-            client.release();
+                await client.query(
+                    `INSERT INTO users (id, username, "displayName", "firstName", "lastName", email, phone, avatar, "avatarType", "passwordHash", role, groups, "masterWrappedDEK", "wrappedDEK", "orgRole", "organizationId", "createdAt", status, "azureUserId", "nc_uid", "provider", "auto_provisioned", password_changed_at, "azureTenantId")
+                     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)`,
+                    insertParams
+                );
+                return { created: true, reason: null };
+            });
             // Fire-and-forget Stripe seat-quantity sync. Per-seat plans rebill
             // when the active user count changes; we don't await so a Stripe
             // outage can't block user creation. The webhook will reconcile
             // stripe_seat_quantity once the update is processed.
-            if (orgId) {
+            if (outcome.created && orgId) {
                 Promise.resolve().then(async () => {
                     try {
                         await syncSeatQuantity(orgId);
                     } catch (err) { bestEffort('stores/user/usersCreate:createUserWithSeatCheck#2', err); /* best-effort */ }
                 });
             }
-            return { created: true, reason: null };
+            return outcome;
         } catch (e) {
-            try { await client.query('ROLLBACK'); } catch (_) { bestEffort('stores/user/usersCreate:createUserWithSeatCheck#3', _); /* connection already broken, the original error is handled below */ }
-            client.release();
             if (e && e.code === '40001' && attempt < 1) continue;
             if (e instanceof SeatCapExceededError) throw e;
             log.error('[UserStore] createUserWithSeatCheck error:', /** @type {Error} */ (e).message);

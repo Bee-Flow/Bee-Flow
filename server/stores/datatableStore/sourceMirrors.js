@@ -15,6 +15,8 @@ const { run, getOne, getAll } = require('../../db');
 const { assertScope } = require('./scope');
 const { initDB } = require('./schema');
 const { rowToDatatable } = require('./rowMappers');
+/** A row the query returned maps to a datatable, never to null. @param {Record<string, unknown>} r */
+const mirrorOf = (r) => /** @type {NonNullable<ReturnType<typeof rowToDatatable>>} */ (rowToDatatable(r));
 const { getDatatable } = require('./datatables');
 
 // Everything about WHERE a mirror's rows come from lives in `source`, and how
@@ -180,7 +182,7 @@ async function setSourceNextRun(id, nextRunAt) {
  * a pass that is running keeps running (and finishSourceSync keeps this mark
  * when it was set after the claim).
  * @param {string} id
- * @param {string} reason
+ * @param {string | null} reason   null records 'event'
  */
 async function markSourceStale(id, reason) {
     await initDB();
@@ -230,7 +232,7 @@ async function listDueSourceSyncs(limit = 20, { staleMs = 10 * 60 * 1000 } = {})
         [Math.max(1, Math.min(200, Number(limit) || 20)), new Date().toISOString(),
             new Date(Date.now() - staleMs).toISOString()],
     );
-    return (res || []).map(rowToDatatable);
+    return (res || []).map(mirrorOf);
 }
 
 /**
@@ -251,7 +253,7 @@ async function listNcMirrorsForTable(organizationId, ncTableId) {
             AND (source->>'ncTableId')::int = $3`,
         [MIRROR_KIND, organizationId, ncTableId],
     );
-    return (res || []).map(rowToDatatable);
+    return (res || []).map(mirrorOf);
 }
 
 /**
@@ -271,7 +273,7 @@ async function listSourceMirrorsByRef(organizationId, { kind, provider, fileId }
             AND source->>'provider' = $3 AND source->'file'->>'id' = $4`,
         [kind, organizationId, String(provider), String(fileId)],
     );
-    return (res || []).map(rowToDatatable);
+    return (res || []).map(mirrorOf);
 }
 
 /**
@@ -291,7 +293,7 @@ async function listSourceMirrorsByPath(organizationId, { kind, provider, path })
             AND source->>'provider' = $3 AND source->'file'->>'path' = $4`,
         [kind, organizationId, String(provider), path],
     );
-    return (res || []).map(rowToDatatable);
+    return (res || []).map(mirrorOf);
 }
 
 /**
@@ -311,7 +313,7 @@ async function listSourceMirrorsByLinker(userId, provider) {
             AND source->>'linkedByUserId' = $1 AND source->>'provider' = $2`,
         [String(userId), String(provider)],
     );
-    return (res || []).map(rowToDatatable);
+    return (res || []).map(mirrorOf);
 }
 
 /**
@@ -338,7 +340,7 @@ async function listSourceMirrorsInScope(scope, { kind = null } = {}) {
               ORDER BY name ASC`,
             [scope.kind, scope.id],
         );
-    return (res || []).map(rowToDatatable);
+    return (res || []).map(mirrorOf);
 }
 
 // One-release aliases under the Nextcloud-era names. `listNcMirrorsInScope`

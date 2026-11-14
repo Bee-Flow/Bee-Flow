@@ -8,6 +8,9 @@ import type { UseProjectStreamOptions } from '@/hooks/useProjectStream';
 import { testQueryClient, withQueryClient } from '@/test/queryWrapper';
 import { ProjectLiveProvider, useProjectLive } from './ProjectLiveContext';
 
+/** A beat is a mutation: it reaches the network a few microtasks after the timer or the click. */
+const flushBeats = () => act(async () => {});
+
 const { post, stream } = vi.hoisted(() => ({ post: vi.fn(), stream: { options: null as null | UseProjectStreamOptions } }));
 vi.mock('@/api/client', async (importOriginal) => ({
     ...(await importOriginal<Record<string, unknown>>()),
@@ -83,9 +86,10 @@ describe('ProjectLiveProvider', () => {
         expect(old.state.isInvalidated).toBe(true);
     });
 
-    it('stops the presence beat while the tab is hidden and beats again when it is back', () => {
+    it('stops the presence beat while the tab is hidden and beats again when it is back', async () => {
         setup();
         const beats = () => post.mock.calls.filter(c => String(c[0]).endsWith('/presence')).length;
+        await flushBeats();
         expect(beats()).toBe(1);
         const hide = (hidden: boolean) => {
             Object.defineProperty(document, 'hidden', { configurable: true, get: () => hidden });
@@ -94,8 +98,10 @@ describe('ProjectLiveProvider', () => {
         vi.useFakeTimers();
         act(() => hide(true));
         act(() => { vi.advanceTimersByTime(120_000); });
+        await flushBeats();
         expect(beats()).toBe(1);
         act(() => hide(false));
+        await flushBeats();
         expect(beats()).toBe(2);
         vi.useRealTimers();
     });
@@ -129,12 +135,16 @@ describe('ProjectLiveProvider: who is viewing which item', () => {
     it('posts the open item with the heartbeat, and beats again the moment another item opens', async () => {
         setup();
         const bodies = () => post.mock.calls.filter(c => String(c[0]).endsWith('/presence')).map(c => c[1]);
+        await flushBeats();
         expect(bodies()).toEqual([{}]);
         act(() => screen.getByText('open doc').click());
+        await flushBeats();
         expect(bodies()).toEqual([{}, { target: { type: 'document', id: 'd1' } }]);
         act(() => screen.getByText('open doc').click());
+        await flushBeats();
         expect(bodies()).toHaveLength(2);
         act(() => screen.getByText('close doc').click());
+        await flushBeats();
         expect(bodies()).toEqual([{}, { target: { type: 'document', id: 'd1' } }, {}]);
     });
 });

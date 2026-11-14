@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * DSR Store — Data Subject Request persistence (GDPR Art. 15–22).
  *
@@ -120,7 +120,7 @@ function _dueFrom(receivedAt, months) {
 }
 
 /**
- * @param {string} v
+ * @param {string | undefined} v
  */
 function _channel(v) {
     const c = String(v || 'public_form').toLowerCase();
@@ -139,7 +139,7 @@ function _event(kind, { at, by, ...rest } = {}) {
 /**
  * Rows written before the timeline column have `[]`; synthesise the trail
  * from the columns on the way out (read path only — never an UPDATE).
- * @param {import('pg').QueryResultRow | null | undefined} row
+ * @param {import('pg').QueryResultRow | null | undefined} row @returns {import('pg').QueryResultRow | null | undefined} the row, with its timeline
  */
 function _withTimeline(row) {
     if (!row) return row;
@@ -196,7 +196,7 @@ async function createRequest(input) {
  * phone, letter). The admin has seen the person or their letter, so identity
  * is `verified_manual`; the clock starts at `received_at`, not at data entry.
  * @param {string} orgId
- * @param {{ subject_email?: string, request_type?: string, channel?: string, notes?: string, received_at?: string|Date, created_by?: string }} [opts]
+ * @param {{ subject_email?: string, request_type?: string, channel?: string, notes?: string | null, received_at?: string|Date|null, created_by?: string | null }} [opts]
  */
 async function createManual(orgId, { subject_email, request_type, channel, notes, received_at, created_by } = {}) {
     await initDB();
@@ -307,7 +307,7 @@ const STATUS_EVENT = { fulfilled: 'fulfilled', rejected: 'rejected', in_progress
  * @param {string} orgId
  * @param {number} id
  * @param {string} status
- * @param {{ fulfilledBy?: string, resultSummary?: string, resultPayload?: unknown }} [opts]
+ * @param {{ fulfilledBy?: string | null, resultSummary?: string | null, resultPayload?: unknown }} [opts]
  */
 async function updateStatus(orgId, id, status, { fulfilledBy, resultSummary, resultPayload } = {}) {
     await initDB();
@@ -358,7 +358,7 @@ async function start(orgId, id, userId) {
  *   the UPDATE is guarded by `extended_at IS NULL`).
  * @param {string} orgId
  * @param {number} id
- * @param {{ reason?: string, by?: string }} [opts]
+ * @param {{ reason?: string, by?: string | null }} [opts]
  */
 async function extend(orgId, id, { reason, by } = {}) {
     await initDB();
@@ -367,7 +367,7 @@ async function extend(orgId, id, { reason, by } = {}) {
     const existing = await getRequest(orgId, id);
     if (!existing) return null;
     if (existing.extended_at) throw new AlreadyExtendedError(id);
-    if (!OPEN_STATUSES.includes(existing.status)) throw new StoreInputError(`cannot extend a ${existing.status} request`);
+    if (!OPEN_STATUSES.includes(existing.status)) throw Object.assign(new StoreInputError(`cannot extend a ${existing.status} request`), { code: 'dsr_not_open' });
     const extendedUntil = _dueFrom(existing.created_at, EXTENDED_SLA_MONTHS);
     const event = _event('extended', { by: by || null, text: text.slice(0, 2000), until: extendedUntil.toISOString() });
     const r = await db.run(`

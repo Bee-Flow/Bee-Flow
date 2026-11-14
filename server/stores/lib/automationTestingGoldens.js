@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Golden runs: a finished run kept as the reference a later replay is compared
  * with. The row holds the run's id, a label and the paths the comparison
@@ -18,8 +18,8 @@ const { newId, toIso, fromJson } = require('./automationTestingCases');
 
 /** @param {GoldenRow} r */
 function rowToGolden(r) {
-    /** @type {{ status?: string, summary?: string, errorCode?: string } | null} */
-    const replay = fromJson(r.last_replay_json, null);
+    // setGoldenReplay always writes a status.
+    const replay = /** @type {{ status: string, summary?: string | null, errorCode?: string | null } | null} */ (fromJson(r.last_replay_json, null));
     return {
         id: r.id,
         automationId: r.automation_id,
@@ -92,7 +92,7 @@ function makeGoldens(db, ready) {
     }
 
     /** Record a replay's verdict. Nothing but status, summary and errorCode is kept. */
-    /** @param {string} goldenId @param {{ status: string, summary?: string | null, replayRunId?: string | null, errorCode?: string | null }} verdict */
+    /** @param {string} goldenId @param {{ status: string, summary?: unknown, replayRunId?: string | null, errorCode?: string | null }} verdict */
     async function setGoldenReplay(goldenId, { status, summary = null, replayRunId = null, errorCode = null }) {
         await q(
             `UPDATE automation_golden_runs

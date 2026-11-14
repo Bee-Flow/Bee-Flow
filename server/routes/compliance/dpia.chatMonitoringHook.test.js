@@ -31,7 +31,8 @@ const restore = installResolveStub({
     '../../stores/chatSignalStore': {},
     // The handler re-judges the agent through runForSubject (detection round 2).
     '../../compliance/runner': { runOne: async () => [], runForSubject: async () => [] },
-    '../../db': { getAll: async () => [] },
+    // The DPIA routes look the agent up in the caller's organisation: it is there.
+    '../../db': { getAll: async (sql) => (String(sql).includes('FROM agents') ? [{ name: 'Support agent' }] : []) },
     '../../auth/permissions': { requireAuth: pass, requirePermission: () => pass, isOrgAdminForOrg: async () => true, isSuperAdmin: () => false },
     './shared': { resolveOrgId: async (req) => req.headers['x-test-org'] || 'default' },
     '../../compliance/evidence/writeFailures': { onEvidenceWriteFailed: () => () => {} },

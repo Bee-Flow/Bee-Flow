@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Sandboxed JavaScript execution for automation `code` steps.
  *
@@ -43,7 +44,6 @@
  * isolated-vm is not installed, the runner refuses to execute code steps with
  * a clear error rather than crashing on require().
  */
-
 const { isPrivateHostname, safeFetch, isPrivateAddressError } = require('../utils/ssrfGuard');
 const { HTTP_RESPONSE_CAP, readBodyBounded } = require('./httpResponseLimits');
 const { acquireSlot } = require('./codeSandboxSlots');
@@ -206,8 +206,8 @@ function testBridges(bridges = {}) {
 /**
  * Run user-provided JS in the sandbox.
  *
- * @param {{ code: string, inputs?: Record<string, unknown>, limits?: { memoryMb?: number, cpuMs?: number, wallMs?: number, httpBudget?: number },
- *   bridges?: SandboxBridges & { secrets?: unknown }, mode?: string, concurrencyKey?: string|null }} options
+ * @param {Partial<{ code: string, inputs?: Record<string, unknown>, limits?: { memoryMb?: number, cpuMs?: number, wallMs?: number, httpBudget?: number },
+ *   bridges?: SandboxBridges & { secrets?: unknown }, mode?: string, concurrencyKey?: string|null }>} options
  *   code: source. May be a single expression, a top-level await block, or a
  *         function definition `function main(inputs, ctx)`.
  *   inputs: resolved inputs (already free of secrets unless declared).
@@ -379,7 +379,7 @@ async function runCode({ code, inputs = {}, limits = {}, bridges = {}, mode = 'l
         /**
          * @param {((value: void) => void | PromiseLike<void>) | null} work
          */
-        const answer = (id, work) => {
+        const answer = (/** @type {number} */ id, /** @type {() => unknown} */ work) => {
             Promise.resolve().then(work).then(
                 (value) => settle(id, value === undefined ? null : value),
                 (e) => settle(id, { error: (e && e.message) || String(e) }),

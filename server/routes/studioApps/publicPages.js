@@ -13,6 +13,8 @@ const publicationAudit = require('../../appStudio/publicationAudit');
 const { publicAppUrlForToken } = require('../../automation/publicUrl');
 const { requireManageApps, audienceFor } = require('./access');
 const { sessionUser } = require('../../core/http/sessionUser');
+const { validate } = require('../../core/http/validate');
+const { NoBody } = require('./schemas');
 
 const router = express.Router();
 
@@ -106,7 +108,7 @@ router.get('/:id/public-pages', requireAuth, /** @param {import('express').Reque
     });
 });
 
-router.post('/:id/public-pages', requireAuth, requireManageApps, /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
+router.post('/:id/public-pages', requireAuth, requireManageApps, validate({ body: NoBody }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const app = await loadOwnedAppForPublic(req, res);
     if (!app) return undefined;
     // One live URL per app is the shape the UI needs; rotating means

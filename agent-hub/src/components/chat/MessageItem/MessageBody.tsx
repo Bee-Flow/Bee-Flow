@@ -19,7 +19,6 @@ import type { SkillSummary } from '@/hooks/useChatEngine/types';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import SessionSkillsSection from './SessionSkillsSection';
 import SwarmTimeline from './SwarmTimeline';
-import TerminalProgress from './TerminalProgress';
 import TestChatNotice from './TestChatNotice';
 import { ThinkingPanel } from './ThinkingPanel';
 import { SequentialThinking } from './ThinkingSteps';
@@ -103,8 +102,8 @@ export function AssistantPreamble(p: PreambleProps) {
     );
 }
 
-/** The draft cards (with their per-draft statuses), map embeds and terminal progress. */
-export function AssistantAttachments({ msg, allMessages }: { msg: ChatMessage; allMessages: ChatMessage[] }) {
+/** The draft cards (with their per-draft statuses) and map embeds. */
+export function AssistantAttachments({ msg }: { msg: ChatMessage }) {
     const [emailDraftStatuses, setEmailDraftStatuses] = useState({});
     const [calendarDraftStatuses, setCalendarDraftStatuses] = useState({});
     const [linkedInDraftStatuses, setLinkedInDraftStatuses] = useState({});
@@ -112,7 +111,6 @@ export function AssistantAttachments({ msg, allMessages }: { msg: ChatMessage; a
     const [keepDraftStatuses, setKeepDraftStatuses] = useState({});
     return (
         <>
-            {!!msg.terminalActivity && <TerminalProgress msg={msg} allMessages={allMessages} />}
             {msg.emailDrafts && <EmailDraftCard msg={msg} emailDraftStatuses={emailDraftStatuses} setEmailDraftStatuses={setEmailDraftStatuses} />}
             {msg.calendarDrafts && <CalendarDraftCard msg={msg} calendarDraftStatuses={calendarDraftStatuses} setCalendarDraftStatuses={setCalendarDraftStatuses} />}
             {msg.linkedInDrafts && <LinkedInDraftCard msg={msg} linkedInDraftStatuses={linkedInDraftStatuses} setLinkedInDraftStatuses={setLinkedInDraftStatuses} />}

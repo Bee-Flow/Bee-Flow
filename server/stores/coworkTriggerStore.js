@@ -30,17 +30,22 @@ function makeCoworkTriggerStore(db, { ready = async () => {} } = {}) {
      */
     async function claimEventRun({ scheduleId, userId, triggerRef, triggerKind = 'mail' }) {
         await ready();
+        // The run and the schedule's 'running' status in one statement: a run
+        // is never open on a schedule that does not say so.
         const res = await db.query(
-            `INSERT INTO cowork_runs (id, schedule_id, user_id, status, trigger_kind, trigger_ref)
-             SELECT $1, s.id, s.user_id, 'running', $4, $5
-               FROM cowork_schedules s WHERE s.id = $2 AND s.user_id = $3
-             ON CONFLICT (schedule_id, trigger_ref) WHERE trigger_ref IS NOT NULL DO NOTHING
-             RETURNING id`,
+            `WITH r AS (
+                INSERT INTO cowork_runs (id, schedule_id, user_id, status, trigger_kind, trigger_ref)
+                SELECT $1, s.id, s.user_id, 'running', $4, $5
+                  FROM cowork_schedules s WHERE s.id = $2 AND s.user_id = $3
+                ON CONFLICT (schedule_id, trigger_ref) WHERE trigger_ref IS NOT NULL DO NOTHING
+                RETURNING id, schedule_id
+             ), s AS (
+                UPDATE cowork_schedules SET last_status = 'running' WHERE id IN (SELECT schedule_id FROM r)
+             )
+             SELECT id FROM r`,
             [crypto.randomUUID(), scheduleId, userId, triggerKind, triggerRef],
         );
-        const id = res.rows[0]?.id ?? null;
-        if (id) await db.query(`UPDATE cowork_schedules SET last_status = 'running' WHERE id = $1`, [scheduleId]);
-        return id;
+        return res.rows[0]?.id ?? null;
     }
 
     /**

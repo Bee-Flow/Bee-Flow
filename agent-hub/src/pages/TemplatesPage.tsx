@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback, useEffectEvent } from 'react';
-import { API_BASE, mutate } from '../api/mutate';
 import { createTemplateActions } from './templates/templateActions';
 import useConfirm from '../components/shared/useConfirm';
 import useChatEngine from '../hooks/useChatEngine';
@@ -13,6 +12,7 @@ import { toast } from '../components/shared/Toast';
 import type { TemplateRecord } from './templates/templateTypes';
 import type { RetryModelTiers } from '../components/chat/MessageItem/MessageActionsRow';
 import { ChatAttachment } from '../hooks/useChatEngine/historyAttachment';
+import { apiRequest } from '@/api/typedRequest';
 
 interface TemplatesPageProps {
     user: { id?: string } | null;
@@ -111,11 +111,7 @@ export default function TemplatesPage({ user, onBack }: TemplatesPageProps) {
         if (!fillTemplate) return;
         setSavingInstructions(true);
         try {
-            await mutate(`${API_BASE}/api/templates/${fillTemplate.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ instructions: editInstructions }),
-            });
+            await apiRequest('PUT /api/templates/{id}', { params: { id: fillTemplate.id }, body: { instructions: editInstructions } });
             setFillTemplate(prev => ({ ...(prev as TemplateRecord), instructions: editInstructions }));
         } catch (err) { console.error('Save instructions failed:', err); toast.error((err as Error).message); }
         finally { setSavingInstructions(false); }
@@ -126,11 +122,7 @@ export default function TemplatesPage({ user, onBack }: TemplatesPageProps) {
         if (!fillTemplate) return;
         setFillTemplate(prev => ({ ...(prev as TemplateRecord), knowledgeBaseIds: newIds }));
         try {
-            await mutate(`${API_BASE}/api/templates/${fillTemplate.id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ knowledgeBaseIds: newIds }),
-            });
+            await apiRequest('PUT /api/templates/{id}', { params: { id: fillTemplate.id }, body: { knowledgeBaseIds: newIds } });
         } catch (err) { console.error('Save KB IDs failed:', err); toast.error((err as Error).message); }
     };
 

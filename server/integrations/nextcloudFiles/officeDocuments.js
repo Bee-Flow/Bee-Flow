@@ -12,6 +12,8 @@
  * the `/f/<fileId>` deep link that opens the deck in Nextcloud Office.
  */
 
+// Another feature's module, looked up by name (core/featureModules.js).
+const { featureModule } = require('../../core/featureModules');
 const XLSX = require('@e965/xlsx');
 const JSZip = require('jszip');
 const officegen = require('../../core/documents/office/officegen');
@@ -152,155 +154,174 @@ async function buildAppendedSpreadsheet({ ncFetch, authError, root }, path, args
     return { buffer, contentType: officegen.CONTENT_TYPES[format] };
 }
 
+async function createSpreadsheet(args, ctx) {
+    const { ncFetch, authError, root } = ctx;
+    if (!args.path) return { error: 'path is required' };
+    if (!Array.isArray(args.rows) || args.rows.length === 0) return { error: 'rows must be a non-empty array (of row objects, or arrays of cells)' };
+    const ifExists = args.ifExists == null ? 'overwrite' : args.ifExists;
+    if (!IF_EXISTS_MODES.includes(ifExists)) return { error: 'ifExists must be "overwrite" or "append"' };
+    const format = officegen.resolveOfficeFormat(args.format, args.path, ['xlsx', 'ods'], 'xlsx');
+    const path = officegen.ensureExt(args.path, format);
+
+    if (ifExists === 'append') {
+        const appended = await buildAppendedSpreadsheet(ctx, path, args, format);
+        if (appended.error) return { error: appended.error };
+        if (!appended.notFound) {
+            const up = await uploadBinaryFile(ncFetch, root, path, appended.buffer, appended.contentType, authError);
+            return up.error ? up : { ...up, appended: args.rows.length };
+        }
+        // No file yet: the first run of a ledger simply creates it.
+    }
+
+    /** @type {{ buffer: Buffer; contentType: string; format: string; }} */
+    let gen;
+    try {
+        const matrix = officegen.rowsToMatrix(args.rows, args.columns);
+        gen = await officegen.buildSpreadsheet({ matrix, sheetName: args.sheetName, format });
+    } catch (e) {
+        return { error: `Could not build the spreadsheet: ${/** @type {Error} */ (e).message}` };
+    }
+    const up = await uploadBinaryFile(ncFetch, root, path, gen.buffer, gen.contentType, authError);
+    // Only the append path reports `appended`; the overwrite result is
+    // the same object it always was, so existing automations see no change.
+    return ifExists === 'append' && !up.error ? { ...up, appended: 0 } : up;
+}
+
+async function createDocument(args, { ncFetch, authError, root }) {
+    if (!args.path) return { error: 'path is required' };
+    if (args.content === undefined || args.content === null) return { error: 'content is required' };
+    const format = officegen.resolveOfficeFormat(args.format, args.path, ['docx', 'odt'], 'docx');
+    const path = officegen.ensureExt(args.path, format);
+    /** @type {{ buffer: Buffer; contentType: string; format: string; }} */
+    let gen;
+    try {
+        gen = await officegen.buildDocument({ content: String(args.content), title: args.title, format });
+    } catch (e) {
+        return { error: `Could not build the document: ${/** @type {Error} */ (e).message}` };
+    }
+    return await uploadBinaryFile(ncFetch, root, path, gen.buffer, gen.contentType, authError);
+}
+
+// Art. 50(2): a deck written by the model is model output; whether
+// the org marks it is answered through the core port.
+async function deckMarking(ctx) {
+    try {
+        const { resolveMarking } = require('../../core/automationRunner/documentMarking');
+        return await resolveMarking(ctx.orgId || null, { automationId: null, aiStepIds: [], provider: 'chat' });
+    } catch (e) {
+        log.warn(`[nextcloud_create_presentation] marking unavailable, rendering unmarked: ${/** @type {Error} */ (e).message}`);
+        return null;
+    }
+}
+
+// A template deck for THIS deck: a .pptx in the user's Nextcloud
+// whose first slides carry the design. Read through the same
+// scope-guarded WebDAV access as any other file; its look rides
+// along as a theme override, so the house style steps back.
+// Answers { theme } or { error }.
+async function deckTheme(args, { ncFetch, authError, root }) {
+    const theme = args.theme && typeof args.theme === 'object' ? { ...args.theme } : {};
+    if (typeof args.templatePath !== 'string' || !args.templatePath.trim()) return { theme };
+    const tplPath = args.templatePath.trim();
+    const res = await ncFetch(joinDavPath(root, tplPath), {});
+    if (res.status === 404) return { error: `Template deck not found: ${tplPath}` };
+    if (res.status === 401) return { error: authError };
+    if (!res.ok) return { error: `Nextcloud read of the template deck failed (${res.status})` };
+    const cap = toolFileMaxBytes();
+    const tpl = await readBytesBounded(res, { byteCap: cap });
+    if (tpl.truncated || !tpl.buffer) return { error: fileTooLargeMessage(tplPath, tpl.declaredBytes, cap) };
+    try {
+        const { extractDeckTemplate } = require('../../core/documents/pptxTemplate');
+        theme.template = await extractDeckTemplate(tpl.buffer, { name: tplPath.split('/').pop() });
+    } catch (e) {
+        return { error: `The template deck could not be used: ${/** @type {Error} */ (e).message}` };
+    }
+    return { theme };
+}
+
+// The answer for a saved deck: where it went, and the card the chat shows.
+function presentationAnswer({ up, out, path, webUrl, fileId, kept }) {
+    const warn = out.warnings.length ? ` Notes: ${out.warnings.slice(0, 5).join('; ')}.` : '';
+    const library = kept ? { documentId: kept.documentId, documentUrl: kept.url } : {};
+    return {
+        ...up,
+        fileId,
+        webUrl,
+        slideCount: out.slideCount,
+        houseStyle: out.houseStyle,
+        marking: out.marking,
+        warnings: out.warnings,
+        ...library,
+        // The card the chat shows under the reply — whatever the model
+        // writes, the person sees where the deck went.
+        file: { kind: 'presentation', name: path.split('/').pop(), mimeType: out.contentType, size: out.buffer.length, slideCount: out.slideCount, path, webUrl, source: 'nextcloud_create_presentation', ...library },
+        message: (webUrl
+            ? `Saved ${path} (${out.slideCount} slides). Tell the user: [Open in Nextcloud Office](${webUrl}).`
+            : `Saved ${path} (${out.slideCount} slides) to Nextcloud.`)
+            + (kept ? ` It is also in Studio → Documents: [${kept.name}](${kept.url}) opens the slides in Bee Flow.` : '') + warn,
+    };
+}
+
+async function createPresentation(args, ctx) {
+    const { ncFetch, authError, root } = ctx;
+    if (!args.path) return { error: 'path is required' };
+    const hasSlides = Array.isArray(args.slides) && args.slides.length > 0;
+    const hasMarkdown = typeof args.markdown === 'string' && args.markdown.trim().length > 0;
+    if (!hasSlides && !hasMarkdown) return { error: 'Give the deck as `slides` (an array of { title, bullets, notes }) or as `markdown` (an outline with "## " per slide).' };
+    const path = officegen.ensureExt(args.path, 'pptx');
+    const title = typeof args.title === 'string' ? args.title.trim().slice(0, 200) : '';
+    const marking = await deckMarking(ctx);
+    const themed = await deckTheme(args, ctx);
+    if (themed.error) return { error: themed.error };
+    const { theme } = themed;
+
+    const { renderPresentation, makeUserImageResolver } = featureModule('services/presentationRenderer');
+    let out;
+    try {
+        out = await renderPresentation({
+            deck: hasSlides ? { title, subtitle: args.subtitle, slides: args.slides } : { title, subtitle: args.subtitle, markdown: args.markdown },
+            title,
+            orgId: ctx.orgId || null,
+            houseStyle: args.houseStyle !== false,
+            theme: Object.keys(theme).length ? theme : null,
+            marking,
+            resolveImage: makeUserImageResolver(ctx.userId),
+        });
+    } catch (e) {
+        if (e && e.errorClass) return { error: `Could not build the presentation: ${/** @type {Error} */ (e).message}` };
+        throw e;
+    }
+
+    const up = await uploadBinaryFile(ncFetch, root, path, out.buffer, out.contentType, authError, {
+        wantFileId: true, baseUrl: ctx.baseUrl, uid: ctx.uid,
+    });
+    if (up.error) return up;
+
+    // The deep link a person can open. In connector mode `baseUrl` is
+    // the ExApp proxy, so only the org's public URL qualifies.
+    const linkBase = ctx.publicBaseUrl || (ctx.mode !== 'connector' ? String(ctx.baseUrl || '').replace(/\/+$/, '') : null);
+    const fileId = up.fileId || null;
+    const webUrl = linkBase && fileId ? `${linkBase}/f/${fileId}` : null;
+    // The deck also lives in Studio → Documents (with its template),
+    // so it opens in Bee Flow and can be rebuilt without Nextcloud.
+    const kept = args.saveToLibrary === false ? null : await require('../../core/documents/deckDocument').keepDeckInLibrary({
+        userId: ctx.userId, deck: out.deck, title: title || path.split('/').pop().replace(/\.pptx$/i, ''),
+        theme: Object.keys(theme).length ? theme : null, houseStyle: args.houseStyle !== false, source: 'nextcloud_create_presentation',
+    });
+    return presentationAnswer({ up, out, path, webUrl, fileId, kept });
+}
+
+const HANDLERS = {
+    nextcloud_create_spreadsheet: createSpreadsheet,
+    nextcloud_create_document: createDocument,
+    nextcloud_create_presentation: createPresentation,
+};
+
 // Returns undefined when the tool belongs to another Nextcloud file family, so
 // the facade can hand it to the next handler.
 async function executeOfficeDocumentTool(toolName, args, ctx) {
-    const { ncFetch, authError, root } = ctx;
-
-    switch (toolName) {
-        case 'nextcloud_create_spreadsheet': {
-            if (!args.path) return { error: 'path is required' };
-            if (!Array.isArray(args.rows) || args.rows.length === 0) return { error: 'rows must be a non-empty array (of row objects, or arrays of cells)' };
-            const ifExists = args.ifExists == null ? 'overwrite' : args.ifExists;
-            if (!IF_EXISTS_MODES.includes(ifExists)) return { error: 'ifExists must be "overwrite" or "append"' };
-            const format = officegen.resolveOfficeFormat(args.format, args.path, ['xlsx', 'ods'], 'xlsx');
-            const path = officegen.ensureExt(args.path, format);
-
-            if (ifExists === 'append') {
-                const appended = await buildAppendedSpreadsheet(ctx, path, args, format);
-                if (appended.error) return { error: appended.error };
-                if (!appended.notFound) {
-                    const up = await uploadBinaryFile(ncFetch, root, path, appended.buffer, appended.contentType, authError);
-                    return up.error ? up : { ...up, appended: args.rows.length };
-                }
-                // No file yet: the first run of a ledger simply creates it.
-            }
-
-            /** @type {{ buffer: Buffer; contentType: string; format: string; }} */
-            let gen;
-            try {
-                const matrix = officegen.rowsToMatrix(args.rows, args.columns);
-                gen = await officegen.buildSpreadsheet({ matrix, sheetName: args.sheetName, format });
-            } catch (e) {
-                return { error: `Could not build the spreadsheet: ${/** @type {Error} */ (e).message}` };
-            }
-            const up = await uploadBinaryFile(ncFetch, root, path, gen.buffer, gen.contentType, authError);
-            // Only the append path reports `appended`; the overwrite result is
-            // the same object it always was, so existing automations see no change.
-            return ifExists === 'append' && !up.error ? { ...up, appended: 0 } : up;
-        }
-
-        case 'nextcloud_create_document': {
-            if (!args.path) return { error: 'path is required' };
-            if (args.content === undefined || args.content === null) return { error: 'content is required' };
-            const format = officegen.resolveOfficeFormat(args.format, args.path, ['docx', 'odt'], 'docx');
-            const path = officegen.ensureExt(args.path, format);
-            /** @type {{ buffer: Buffer; contentType: string; format: string; }} */
-            let gen;
-            try {
-                gen = await officegen.buildDocument({ content: String(args.content), title: args.title, format });
-            } catch (e) {
-                return { error: `Could not build the document: ${/** @type {Error} */ (e).message}` };
-            }
-            return await uploadBinaryFile(ncFetch, root, path, gen.buffer, gen.contentType, authError);
-        }
-
-        case 'nextcloud_create_presentation': {
-            if (!args.path) return { error: 'path is required' };
-            const hasSlides = Array.isArray(args.slides) && args.slides.length > 0;
-            const hasMarkdown = typeof args.markdown === 'string' && args.markdown.trim().length > 0;
-            if (!hasSlides && !hasMarkdown) return { error: 'Give the deck as `slides` (an array of { title, bullets, notes }) or as `markdown` (an outline with "## " per slide).' };
-            const path = officegen.ensureExt(args.path, 'pptx');
-            const title = typeof args.title === 'string' ? args.title.trim().slice(0, 200) : '';
-
-            // Art. 50(2): a deck written by the model is model output; whether
-            // the org marks it is answered through the core port.
-            let marking = null;
-            try {
-                const { resolveMarking } = require('../../core/automationRunner/documentMarking');
-                marking = await resolveMarking(ctx.orgId || null, { automationId: null, aiStepIds: [], provider: 'chat' });
-            } catch (e) {
-                log.warn(`[nextcloud_create_presentation] marking unavailable, rendering unmarked: ${/** @type {Error} */ (e).message}`);
-            }
-
-            // A template deck for THIS deck: a .pptx in the user's Nextcloud
-            // whose first slides carry the design. Read through the same
-            // scope-guarded WebDAV access as any other file; its look rides
-            // along as a theme override, so the house style steps back.
-            const theme = args.theme && typeof args.theme === 'object' ? { ...args.theme } : {};
-            if (typeof args.templatePath === 'string' && args.templatePath.trim()) {
-                const tplPath = args.templatePath.trim();
-                const res = await ncFetch(joinDavPath(root, tplPath), {});
-                if (res.status === 404) return { error: `Template deck not found: ${tplPath}` };
-                if (res.status === 401) return { error: authError };
-                if (!res.ok) return { error: `Nextcloud read of the template deck failed (${res.status})` };
-                const cap = toolFileMaxBytes();
-                const tpl = await readBytesBounded(res, { byteCap: cap });
-                if (tpl.truncated || !tpl.buffer) return { error: fileTooLargeMessage(tplPath, tpl.declaredBytes, cap) };
-                try {
-                    const { extractDeckTemplate } = require('../../core/documents/pptxTemplate');
-                    theme.template = await extractDeckTemplate(tpl.buffer, { name: tplPath.split('/').pop() });
-                } catch (e) {
-                    return { error: `The template deck could not be used: ${/** @type {Error} */ (e).message}` };
-                }
-            }
-
-            const { renderPresentation, makeUserImageResolver } = require('../../services/presentationRenderer');
-            let out;
-            try {
-                out = await renderPresentation({
-                    deck: hasSlides ? { title, subtitle: args.subtitle, slides: args.slides } : { title, subtitle: args.subtitle, markdown: args.markdown },
-                    title,
-                    orgId: ctx.orgId || null,
-                    houseStyle: args.houseStyle !== false,
-                    theme: Object.keys(theme).length ? theme : null,
-                    marking,
-                    resolveImage: makeUserImageResolver(ctx.userId),
-                });
-            } catch (e) {
-                if (e && e.errorClass) return { error: `Could not build the presentation: ${/** @type {Error} */ (e).message}` };
-                throw e;
-            }
-
-            const up = await uploadBinaryFile(ncFetch, root, path, out.buffer, out.contentType, authError, {
-                wantFileId: true, baseUrl: ctx.baseUrl, uid: ctx.uid,
-            });
-            if (up.error) return up;
-
-            // The deep link a person can open. In connector mode `baseUrl` is
-            // the ExApp proxy, so only the org's public URL qualifies.
-            const linkBase = ctx.publicBaseUrl || (ctx.mode !== 'connector' ? String(ctx.baseUrl || '').replace(/\/+$/, '') : null);
-            const fileId = up.fileId || null;
-            const webUrl = linkBase && fileId ? `${linkBase}/f/${fileId}` : null;
-            // The deck also lives in Studio → Documents (with its template),
-            // so it opens in Bee Flow and can be rebuilt without Nextcloud.
-            const kept = args.saveToLibrary === false ? null : await require('../../core/documents/deckDocument').keepDeckInLibrary({
-                userId: ctx.userId, deck: out.deck, title: title || path.split('/').pop().replace(/\.pptx$/i, ''),
-                theme: Object.keys(theme).length ? theme : null, houseStyle: args.houseStyle !== false, source: 'nextcloud_create_presentation',
-            });
-            const warn = out.warnings.length ? ` Notes: ${out.warnings.slice(0, 5).join('; ')}.` : '';
-            return {
-                ...up,
-                fileId,
-                webUrl,
-                slideCount: out.slideCount,
-                houseStyle: out.houseStyle,
-                marking: out.marking,
-                warnings: out.warnings,
-                ...(kept ? { documentId: kept.documentId, documentUrl: kept.url } : {}),
-                // The card the chat shows under the reply — whatever the model
-                // writes, the person sees where the deck went.
-                file: { kind: 'presentation', name: path.split('/').pop(), mimeType: out.contentType, size: out.buffer.length, slideCount: out.slideCount, path, webUrl, source: 'nextcloud_create_presentation', ...(kept ? { documentId: kept.documentId, documentUrl: kept.url } : {}) },
-                message: (webUrl
-                    ? `Saved ${path} (${out.slideCount} slides). Tell the user: [Open in Nextcloud Office](${webUrl}).`
-                    : `Saved ${path} (${out.slideCount} slides) to Nextcloud.`)
-                    + (kept ? ` It is also in Studio → Documents: [${kept.name}](${kept.url}) opens the slides in Bee Flow.` : '') + warn,
-            };
-        }
-
-        default:
-            return undefined;
-    }
+    const handler = Object.hasOwn(HANDLERS, toolName) ? HANDLERS[toolName] : null;
+    return handler ? handler(args, ctx) : undefined;
 }
 
 module.exports = { executeOfficeDocumentTool };

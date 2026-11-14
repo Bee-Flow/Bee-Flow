@@ -131,8 +131,11 @@ async function ingestLocally(tenantId, kbId, docId, content, options = {}) {
             );
         } catch (err) { if (!isMissingTable(err)) throw err; log.debug('Column may not exist yet — ignore, migration handles it', err); }
 
-        // Batch INSERT — 10 chunks per statement to reduce round-trips
+        // Batch INSERT — 10 chunks per statement to reduce round-trips.
+        // Without pgvector kb_chunks has no embedding column at all
+        // (kbChunksSchema.js), so the column is named only when it exists.
         const BATCH_SIZE = 10;
+        const embeddingColumn = isPgvectorAvailable() ? 'embedding, ' : '';
         for (let batchStart = 0; batchStart < chunks.length; batchStart += BATCH_SIZE) {
             const batch = chunks.slice(batchStart, batchStart + BATCH_SIZE);
             const hasVectors = isPgvectorAvailable() && embeddings.length > 0;
@@ -158,7 +161,7 @@ async function ingestLocally(tenantId, kbId, docId, content, options = {}) {
                     params.push(tenantId, kbId, docId, chunk.chunk_id, lang, title, chunk.text, vectorStr, sourceUri, chunkType, pageStart);
                     paramIdx += 11;
                 } else {
-                    values.push(`($${paramIdx}, $${paramIdx+1}, $${paramIdx+2}, $${paramIdx+3}, $${paramIdx+4}, $${paramIdx+5}, $${paramIdx+6}, setweight(to_tsvector('dutch', $${paramIdx+6}), 'A') || setweight(to_tsvector('simple', $${paramIdx+6}), 'B'), NULL, $${paramIdx+7}, $${paramIdx+8}, $${paramIdx+9})`);
+                    values.push(`($${paramIdx}, $${paramIdx+1}, $${paramIdx+2}, $${paramIdx+3}, $${paramIdx+4}, $${paramIdx+5}, $${paramIdx+6}, setweight(to_tsvector('dutch', $${paramIdx+6}), 'A') || setweight(to_tsvector('simple', $${paramIdx+6}), 'B'), ${embeddingColumn ? 'NULL, ' : ''}$${paramIdx+7}, $${paramIdx+8}, $${paramIdx+9})`);
                     params.push(tenantId, kbId, docId, chunk.chunk_id, lang, title, chunk.text, sourceUri, chunkType, pageStart);
                     paramIdx += 10;
                 }
@@ -167,7 +170,7 @@ async function ingestLocally(tenantId, kbId, docId, content, options = {}) {
             await client.query(
                 `INSERT INTO kb_chunks (
                     tenant_id, knowledge_base_id, document_id,
-                    chunk_id, lang, title, content, tsv, embedding, source_uri, chunk_type, page_start
+                    chunk_id, lang, title, content, tsv, ${embeddingColumn}source_uri, chunk_type, page_start
                 ) VALUES ${values.join(', ')}`,
                 params
             );

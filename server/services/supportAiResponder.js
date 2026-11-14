@@ -126,7 +126,7 @@ async function _resolveOperatorIntegrations(cfg) {
     try {
         const automationAuth = require('../auth/automationAuth');
         const { getIntegrationTools } = require('../core/integrations/integrationTools');
-        const { toolNamesForApps } = require('../automation/toolRegistry');
+        const { toolNamesForApps } = require('../core/featureModules').featureModule('automation/toolRegistry');
 
         // Refreshing session from the operator's credential vault. null = the
         // operator has no working OAuth creds for the granted providers; fall

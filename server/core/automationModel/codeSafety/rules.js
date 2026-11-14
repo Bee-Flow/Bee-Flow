@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The rule catalog: one entry per finding the analyser can raise.
  *
@@ -144,8 +144,8 @@ function makeFinding(ruleId, where) {
     const rule = RULES[ruleId];
     if (!rule) throw new Error(`unknown code-safety rule ${ruleId}`);
     const loc = where && where.loc ? where.loc : null;
-    const line = loc ? loc.start.line : (where && Number.isInteger(where.line) ? where.line : 1);
-    const column = loc ? loc.start.column + 1 : (where && Number.isInteger(where.column) ? where.column : 1);
+    const line = loc ? loc.start.line : (where && Number.isInteger(where.line) ? /** @type {number} */ (where.line) : 1);
+    const column = loc ? loc.start.column + 1 : (where && Number.isInteger(where.column) ? /** @type {number} */ (where.column) : 1);
     const finding = {
         ruleId,
         severity: rule.severity,

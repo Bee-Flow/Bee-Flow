@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/dsr`
 
-14 routes, 8 with a request schema. Back to the [endpoint reference](../reference.md).
+14 routes, 9 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `requests`
 
@@ -90,7 +90,7 @@ No request schema.
 
 **Access:** Signed-in user · Permission `admin_compliance`
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `GET /api/dsr/requests/:id/timeline`
 

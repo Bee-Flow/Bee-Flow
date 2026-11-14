@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Rate limiters for the App Studio action-run bridge (server/routes/studioAppsRun.js).
  *
@@ -17,11 +17,12 @@
  */
 
 const { perUserRateLimit, spendLimiter } = require('../utils/perUserRateLimit');
+const { envInt } = require('../utils/envNumber.mts');
 
 // Tightest tier — every hit can trigger a full automation execution (LLM calls,
 // integration side effects) under the owner's credentials. Tunable via env;
 // read at module load like AUTOMATION_RUN_TRIGGER_RPM in routes/automation/runs.js.
-const ACTION_RUN_RPM = parseInt(process.env.STUDIO_APP_ACTION_RUN_RPM, 10) || 10;
+const ACTION_RUN_RPM = envInt('STUDIO_APP_ACTION_RUN_RPM', 10, { min: 1 });
 
 // Looser tier for the data-step endpoint. A single v2 sequence dispatches EACH
 // server-authoritative data step to POST /:id/actions/:aid/step individually,
@@ -29,21 +30,21 @@ const ACTION_RUN_RPM = parseInt(process.env.STUDIO_APP_ACTION_RUN_RPM, 10) || 10
 // would throttle a normal multi-step run mid-flight. A data step is far cheaper
 // than a /run (one record write, no automation graph), so it gets its own higher
 // bucket (default 60/min, env STUDIO_APP_STEP_RATE). Same userId:appId keying.
-const STEP_RPM = parseInt(process.env.STUDIO_APP_STEP_RATE, 10) || 60;
+const STEP_RPM = envInt('STUDIO_APP_STEP_RATE', 60, { min: 1 });
 
 // Connector-run tier. POST /:id/data/connectors/:connectorId/run dispatches an
 // external fetch / tool / automation acts-as-owner — same class of side effect as
 // /run, but a connector is typically a read (list rows), so it gets its own
 // middle bucket (default 20/min, env STUDIO_APP_CONNECTOR_RATE). Same
 // userId:appId keying so one noisy viewer can't drain another's budget.
-const CONNECTOR_RUN_RPM = parseInt(process.env.STUDIO_APP_CONNECTOR_RATE, 10) || 20;
+const CONNECTOR_RUN_RPM = envInt('STUDIO_APP_CONNECTOR_RATE', 20, { min: 1 });
 
 // Authoring tier — /inspect and /sync are OWNER-ONLY, so there is no
 // cross-viewer fairness problem to solve here; the cap exists because each hit
 // runs the connector for real (and /sync also writes rows). Tighter than the
 // viewer run tier precisely because a sync is the expensive one: a chained
 // connector can spend up to MAX_CHAIN_CALLS upstream calls per hit.
-const CONNECTOR_SYNC_RPM = parseInt(process.env.STUDIO_APP_CONNECTOR_SYNC_RATE, 10) || 6;
+const CONNECTOR_SYNC_RPM = envInt('STUDIO_APP_CONNECTOR_SYNC_RATE', 6, { min: 1 });
 
 // Outbound mail. The tightest bucket in the file, and the only one with a daily
 // ceiling as well as a per-minute one: every hit puts a real message in a real
@@ -56,14 +57,14 @@ const CONNECTOR_SYNC_RPM = parseInt(process.env.STUDIO_APP_CONNECTOR_SYNC_RATE, 
 // across replicas and the documented number is the real fleet-wide ceiling —
 // including the daily e-mail cap, which used to multiply by replica count.
 // Without Redis they fall back to the original per-replica in-memory windows.
-const SEND_EMAIL_RPM = parseInt(process.env.STUDIO_APP_SEND_EMAIL_RPM, 10) || 5;
-const SEND_EMAIL_PER_DAY = parseInt(process.env.STUDIO_APP_SEND_EMAIL_DAILY, 10) || 200;
+const SEND_EMAIL_RPM = envInt('STUDIO_APP_SEND_EMAIL_RPM', 5, { min: 1 });
+const SEND_EMAIL_PER_DAY = envInt('STUDIO_APP_SEND_EMAIL_DAILY', 200, { min: 1 });
 
 // Bulk file intake. One hit redeems a whole order's mailed attachments — up to
 // 25 provider fetches, each landing bytes in the owner's storage. The generic
 // step bucket (60/min) would permit 1500 provider fetches a minute; this one
 // exists so it cannot. Named → Redis-backed, fleet-wide when configured.
-const FILE_INTAKE_RPM = parseInt(process.env.STUDIO_APP_FILE_INTAKE_RPM, 10) || 6;
+const FILE_INTAKE_RPM = envInt('STUDIO_APP_FILE_INTAKE_RPM', 6, { min: 1 });
 
 // Model calls dispatched as STEPS (ai_extract / ai_generate / kb_query).
 //
@@ -82,7 +83,7 @@ const FILE_INTAKE_RPM = parseInt(process.env.STUDIO_APP_FILE_INTAKE_RPM, 10) || 
 // long order over it, and a 429 here ABORTS the sequence (the runner does not
 // retry), so it would stop partway after paying for the calls that did land.
 // Raise this together with any change that shortens per-call latency.
-const AI_STEP_RPM = parseInt(process.env.STUDIO_APP_AI_STEP_RPM, 10) || 30;
+const AI_STEP_RPM = envInt('STUDIO_APP_AI_STEP_RPM', 30, { min: 1 });
 
 // Large-dataset upload tiers. Init/complete are cheap DB writes but mint real
 // multipart uploads in object storage, so they stay tight; the PART tier is the
@@ -90,19 +91,19 @@ const AI_STEP_RPM = parseInt(process.env.STUDIO_APP_AI_STEP_RPM, 10) || 30;
 // saturate a fast home uplink without letting one viewer monopolise the pod.
 // dataset_query is a bounded ranged read + row scan (no model call) — same
 // class as a data step, so it gets a step-like budget of its own.
-const DATASET_INIT_RPM = parseInt(process.env.STUDIO_APP_DATASET_INIT_RPM, 10) || 5;
-const DATASET_PART_RPM = parseInt(process.env.STUDIO_APP_DATASET_PART_RPM, 10) || 90;
-const DATASET_COMPLETE_RPM = parseInt(process.env.STUDIO_APP_DATASET_COMPLETE_RPM, 10) || 10;
-const DATASET_STATUS_RPM = parseInt(process.env.STUDIO_APP_DATASET_STATUS_RPM, 10) || 120;
-const DATASET_QUERY_RPM = parseInt(process.env.STUDIO_APP_DATASET_QUERY_RPM, 10) || 30;
+const DATASET_INIT_RPM = envInt('STUDIO_APP_DATASET_INIT_RPM', 5, { min: 1 });
+const DATASET_PART_RPM = envInt('STUDIO_APP_DATASET_PART_RPM', 90, { min: 1 });
+const DATASET_COMPLETE_RPM = envInt('STUDIO_APP_DATASET_COMPLETE_RPM', 10, { min: 1 });
+const DATASET_STATUS_RPM = envInt('STUDIO_APP_DATASET_STATUS_RPM', 120, { min: 1 });
+const DATASET_QUERY_RPM = envInt('STUDIO_APP_DATASET_QUERY_RPM', 30, { min: 1 });
 
 // AI browsing. The tightest AI bucket: one hit runs a headless-browser agent
 // loop (up to 90 s) holding one of only FOUR process-wide browser slots, on the
 // owner's model spend. 4/min per (viewer, app) keeps a single app's viewers
 // from monopolising the shared browser pool the whole chat product also uses.
-const BROWSE_RPM = parseInt(process.env.STUDIO_APP_BROWSE_RPM, 10) || 4;
+const BROWSE_RPM = envInt('STUDIO_APP_BROWSE_RPM', 4, { min: 1 });
 
-/** @param {import('express').Request<{ id: string }>} req */
+/** @param {{ session?: { user?: { id?: string } }, params?: { id?: string } }} req  the fields the key reads; spendLimiter also passes a carrier without params */
 function actionRunKey(req) {
     const userId = req.session?.user?.id || 'anon';
     const appId = req.params?.id || 'unknown';

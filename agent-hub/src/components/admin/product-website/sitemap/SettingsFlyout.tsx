@@ -198,7 +198,7 @@ export default function SettingsFlyout({ page, pages, site, siteId, anchorPos, c
         >
             <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border-subtle)]">
                 <span className="text-xs font-semibold text-[var(--text-primary)]">{t('cms_site.site.sitemap.page_settings', 'Page settings')}</span>
-                <button type="button" onClick={onClose} className="text-[var(--text-muted)] hover:text-[var(--text-secondary)]" title={t('cms_site.site.sitemap.close', 'Close')}>
+                <button type="button" onClick={onClose} className="text-[var(--text-muted)] hover:text-[var(--text-secondary)]" title={t('cms_site.site.sitemap.close', 'Close')} aria-label={t('cms_site.site.sitemap.close', 'Close')}>
                     <AppIcon name="X" className="w-3.5 h-3.5" />
                 </button>
             </div>

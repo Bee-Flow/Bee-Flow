@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 // §WS5 #4 — public inbound trigger surface (webhook + provider event pushes),
 // extracted verbatim from routes/automation.js. Mounted BEFORE the auth chain.
 //
@@ -11,8 +11,8 @@
 // the HMAC that proves the delivery is genuine. The narrowing that belongs
 // here is the signature check and the rate limit, both below — not a shape.
 const express = require('express');
-const { checkWebhookSignature, sameSignature } = require('./webhookSignature');
-const { NOT_ACCEPTED, verifyDeliverySignature, startSignedDelivery } = require('./webhookReceive.mts');
+const { checkWebhookSignature, sameSignature } = require('../../usecases/automation/webhookSignature');
+const { NOT_ACCEPTED, verifyDeliverySignature, startSignedDelivery } = require('../../usecases/automation/webhookReceive.mts');
 const crypto = require('crypto');
 const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
@@ -89,7 +89,7 @@ const webhookJson = express.json({ limit: '256kb', verify: (req, _res, buf) => {
 
 /**
  * What the delivery needs from the rest of the server; resolved at call time.
- * @type {import('./webhookReceive.mts').ReceiveDeps}
+ * @type {import('../../usecases/automation/webhookReceive.mts').ReceiveDeps}
  */
 const webhookDeps = {
     store: automationStore,
@@ -101,7 +101,7 @@ const webhookDeps = {
     log,
 };
 
-router.post('/webhook/:slug', webhookIpLimiter, webhookSlugLimiter, webhookJson, async (/** @type {import('express').Request<{ slug: string }> & { rawBody?: string }} */ req, res) => {
+router.post('/webhook/:slug', webhookIpLimiter, webhookSlugLimiter, webhookJson, async (/** @type {import('express').Request<{ slug: string }>} */ req, res) => {
     // The nonce (and the timestamp, when sent) is part of the signed message,
     // not just checked separately: a signature that did not cover the nonce
     // would let the same body be sent again under a new one.
@@ -110,7 +110,7 @@ router.post('/webhook/:slug', webhookIpLimiter, webhookSlugLimiter, webhookJson,
         signature: req.get('X-BeeFlow-Signature') || '',
         nonce: req.get('X-BeeFlow-Nonce') || '',
         timestamp: req.get('X-BeeFlow-Timestamp') || null,
-        rawBody: req.rawBody ?? null,
+        rawBody: /** @type {string | undefined} */ (req.rawBody) ?? null, // webhookJson keeps the body text
         body: req.body,
         headers: pickWebhookHeaders(req),
     };
@@ -266,7 +266,7 @@ router.post('/events/nextcloud', eventsLimiter, captureRawNc, async (req, res) =
         try {
             const subs = await automationStore.getSubscriptionsForUserAndEvent(user.id, 'nextcloud', event);
             for (const sub of subs) {
-                await automationStore.updateSubscription(sub.id, { lastPushAt: new Date().toISOString() }).catch((e) => bestEffort('routes/automation/events:anon#3', e));
+                await automationStore.updateSubscription(/** @type {NonNullable<typeof sub>} */ (sub).id, { lastPushAt: new Date().toISOString() }).catch((e) => bestEffort('routes/automation/events:anon#3', e));
             }
         } catch (err) { bestEffort('routes/automation/events:anon#4', err); /* best-effort */ }
     }

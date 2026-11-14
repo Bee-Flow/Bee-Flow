@@ -30,7 +30,7 @@
  */
 
 const log = require('../telemetry/log');
-const { bestEffort } = require('../utils/bestEffort');
+const { bestEffort, ignoreGone } = require('../utils/bestEffort');
 
 const SCHEDULER_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours
 // A fixed key of our own (distinct from the ISO collector's 0xBEEF10A).
@@ -64,7 +64,7 @@ async function _acquire(pool) {
         return null;
     } catch (e) {
         log.warn('[ComplianceScheduler] could not take the sweep lock:', /** @type {Error} */ (e).message);
-        if (client) { try { client.release(); } catch (err) { log.debug('already gone', err); } }
+        if (client) { try { client.release(); } catch (err) { ignoreGone('compliance/scheduler:releaseClient', err); } }
         return null;
     }
 }

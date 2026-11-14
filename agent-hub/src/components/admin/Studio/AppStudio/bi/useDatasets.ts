@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import useTranslation from '@/hooks/useTranslation';
 import type { TranslateFn } from '@/hooks/useTranslation';
-import { API_BASE, authFetch } from '@/utils/helpers';
+import { authFetch } from '@/utils/helpers';
+import { apiUrl } from '@/api/typedRequest';
 import type { AuthFetchOptions } from '@/utils/helpers';
 
 /**
@@ -87,7 +88,7 @@ export default function useDatasets(appId: string | null | undefined) {
     const listQuery = useQuery({
         queryKey: listKey,
         queryFn: async (): Promise<Dataset[]> => {
-            const body = await request(`${API_BASE}/api/studio-apps/${(encodeURIComponent as (value: string | null | undefined) => string)(appId)}/datasets`, {}, t);
+            const body = await request(apiUrl('GET /api/studio-apps/{id}/datasets', { params: { id: String(appId) } }), {}, t);
             return Array.isArray(body?.datasets) ? body.datasets : [];
         },
         enabled: !!appId,
@@ -95,21 +96,22 @@ export default function useDatasets(appId: string | null | undefined) {
         retry: false,
     });
 
-    const base = `${API_BASE}/api/studio-apps/${(encodeURIComponent as (value: string | null | undefined) => string)(appId)}/datasets`;
+    // An app id that is not there yet reads as the word, as encodeURIComponent would write it.
+    const appIdParam = String(appId);
     const invalidate = () => qc.invalidateQueries({ queryKey: ['studio-app-datasets', appId] });
 
     const saveMutation = useMutation({
         mutationFn: async ({ id, ...payload }: DatasetPayload) => {
             if (id) {
-                return request(`${base}/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(payload) }, t);
+                return request(apiUrl('PUT /api/studio-apps/{id}/datasets/{datasetId}', { params: { id: appIdParam, datasetId: id } }), { method: 'PUT', body: JSON.stringify(payload) }, t);
             }
-            return request(base, { method: 'POST', body: JSON.stringify(payload) }, t);
+            return request(apiUrl('POST /api/studio-apps/{id}/datasets', { params: { id: appIdParam } }), { method: 'POST', body: JSON.stringify(payload) }, t);
         },
         onSuccess: invalidate,
     });
 
     const deleteMutation = useMutation({
-        mutationFn: async (id: string) => request(`${base}/${encodeURIComponent(id)}`, { method: 'DELETE' }, t),
+        mutationFn: async (id: string) => request(apiUrl('DELETE /api/studio-apps/{id}/datasets/{datasetId}', { params: { id: appIdParam, datasetId: id } }), { method: 'DELETE' }, t),
         onSuccess: invalidate,
     });
 

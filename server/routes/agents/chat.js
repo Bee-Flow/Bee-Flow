@@ -1,3 +1,4 @@
+// @typecheck
 const express = require('express');
 const agentStore = require('../../stores/agentStore');
 const agentRuntime = require('../../core/agentRuntime');
@@ -23,11 +24,10 @@ const streamLimiter = perUserRateLimit({ windowMs: 60_000, max: 60 });
 // under the limit while still bounding crawl rates.
 const embedLimiter = perUserRateLimit({ windowMs: 60_000, max: 100 });
 
-const userStore = require('../../stores/userStore');
 require('../../stores/usageStore');
 const { checkSubscriptionLimits: checkSubLimits } = require('../../core/entitlements/limits');
 const { setupSSE, sendSSEError } = require('../../core/http/sseHelpers');
-const { storedFlag, FLAG_DEFAULTS } = require('./storedFlag');
+const { storedFlag, FLAG_DEFAULTS } = require('../../usecases/agents/storedFlag');
 
 const router = express.Router();
 const { validate } = require('../../core/http/validate');
@@ -35,124 +35,18 @@ const { validate } = require('../../core/http/validate');
 const { TurnBody, PlainTurnBody, TitleBody, DescribeBody } = require('./chatSchema');
 const { fallback } = require('../../utils/bestEffort');
 const incognitoRules = require('../../core/conversation/incognito.mts');
-
-/**
- * Re-validates that an authenticated user still has group/org access to a
- * published agent at message-send time — not just when the page loaded.
- *
- * Mirrors the filtering logic in agentCrud.getPublishedAgentsForUser so that
- * revoking group membership or changing org scope takes effect immediately,
- * even for users who already have the agent open in their browser.
- *
- * @param {import('./crud').AgentRow & { shared_groups?: string[] }} agent   - Parsed agent record (shared_groups already an array)
- * @param {string} userId  - Authenticated user ID
- * @param {import('express').Request} req     - Express request (for resolveUserOrgIds)
- * @returns {Promise<boolean>}
- */
-async function userCanAccessPublishedAgent(agent, userId, req) {
-    // Agent must be published for anyone other than the owner
-    if (!agent.is_published) return false;
-
-    // Owner always has access to their own agent
-    if (agent.owner_id === userId) return true;
-
-    // Load current group membership and direct org from DB (not from session/cache)
-    let userGroups = [];
-    let userDirectOrgId = null;
-    try {
-        const user = await userStore.getUser(userId);
-        if (user) {
-            userGroups = Array.isArray(user.groups)
-                ? user.groups
-                : (() => { try { return JSON.parse(user.groups || '[]'); } catch (_) { return []; } })();
-            userDirectOrgId = user.organizationId || null;
-        }
-    } catch (err) { fallback('routes/agents/chat:userCanAccessPublishedAgent', err); /* treat as no groups */ }
-
-    // Resolve the full set of org IDs the user belongs to
-    const resolvedOrgIds = await resolveUserOrgIds(req);
-    let userOrgIds;
-    if (resolvedOrgIds instanceof Set) {
-        userOrgIds = resolvedOrgIds;
-    } else {
-        userOrgIds = new Set();
-        if (userDirectOrgId) userOrgIds.add(userDirectOrgId);
-    }
-    const hasOrgMembership = userOrgIds.size > 0;
-
-    // ── Org isolation (same logic as getPublishedAgentsForUser) ─────────────
-    if (hasOrgMembership) {
-        // Org users can ONLY access agents that belong to one of their orgs
-        if (!agent.organization_id) return false;
-        if (!userOrgIds.has(agent.organization_id)) return false;
-    } else {
-        // Users with no org can only access global (non-org-scoped) agents
-        if (agent.organization_id) return false;
-    }
-
-    // ── Group restriction ────────────────────────────────────────────────────
-    // shared_groups is already parsed as an array by agentCrud.parseConfig
-    const sharedGroups = agent.shared_groups || [];
-    if (sharedGroups.length > 0) {
-        return sharedGroups.some(sg => userGroups.includes(sg));
-    }
-
-    return true;
-}
-
-/**
- * May a visitor WITHOUT an account take a turn with this (published) agent?
- * Only where the agent has a public chat page, and that page exists only while
- * its owner has Web embed switched on — GET /:id/embed below applies the same
- * rule. The editor asks before turning it on: "Make this agent public? Anyone
- * who knows the URL will be able to chat with this agent without an account"
- * (EnableEmbedConfirmModal). Left off, the agent is not public.
- *
- * Why a separate check: a visitor is never userless here. getEffectiveUserId
- * gives every session a `guest_…` id, so the turn routes below send a visitor
- * through userCanAccessPublishedAgent as an account with no organisation — and
- * that admits every published agent WITHOUT an org, embed switch on or off.
- *
- * Signed-in people are unaffected: for them the embed switch is not an
- * audience rule, userCanAccessPublishedAgent is.
- */
-function anonymousOutsideEmbed(agent, req) {
-    return !req.session?.user?.id && !agent.embed_enabled;
-}
+// Who may take a turn with an agent (auth/agentAccess.mts): the chat gate in
+// front of the turn and history routes, the edit rule behind "Test as".
+const { requireAgentChat, canModifyAgent } = require('./crud');
+const { agentAccessOf } = require('../../auth/agentAccess.mts');
 
 // ============ Chat ============
 
-// Chat with agent
-router.post('/:id/chat', validate({ body: PlainTurnBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof PlainTurnBody>, import('qs').ParsedQs>} */ req, res) => {
-    const userId = getEffectiveUserId(req);
+// Chat with agent. The audience is re-read on every turn by the gate, so a
+// revoked group or organisation takes effect at once.
+router.post('/:id/chat', requireAgentChat(), validate({ body: PlainTurnBody }), async (req, res) => {
+    const { userId } = agentAccessOf(req);
     const { message } = req.body;
-
-    const agent = await agentStore.getAgent(req.params.id);
-    if (!agent) {
-        return res.status(404).json({ error: 'Agent not found' });
-    }
-
-    if (!agent.is_published) {
-        // Unpublished agents: only the owner can access. A visitor without an
-        // account gets the answer /chat/stream gives, and the one below for a
-        // published agent without a public page, so an anonymous probe cannot
-        // tell the two apart.
-        if (!req.session?.user?.id) {
-            return res.status(401).json({ error: 'Not authenticated' });
-        }
-        if (agent.owner_id !== userId) {
-            return res.status(403).json({ error: 'Access denied' });
-        }
-    } else if (anonymousOutsideEmbed(agent, req)) {
-        return res.status(401).json({ error: 'Not authenticated' });
-    } else if (userId) {
-        // Published agents: re-validate current group/org permissions on every request
-        const canAccess = await userCanAccessPublishedAgent(agent, userId, req);
-        if (!canAccess) {
-            log.warn(`[AgentChat] User ${userId} attempted to chat with agent ${agent.id} — access denied (permissions revoked)`);
-            return res.status(403).json({ error: 'Access denied' });
-        }
-    }
 
     // ── Subscription limit enforcement ──
     // Mirrors the /chat/stream gate at line 213 so the legacy non-streaming
@@ -248,48 +142,15 @@ async function embedComplianceNotice(agent) {
 // ── Subscription limit enforcement (uses shared module) ──────────────────────
 const checkSubscriptionLimits = checkSubLimits;
 
-// Streaming chat with agent (SSE)
-router.post('/:id/chat/stream', streamLimiter, validate({ body: TurnBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof TurnBody>, import('qs').ParsedQs>} */ req, res) => {
+// Streaming chat with agent (SSE). The chat gate re-reads the audience on
+// every turn (membership from the database, not the session), so a revoked
+// permission takes effect even for someone who already has the agent open.
+router.post('/:id/chat/stream', streamLimiter, requireAgentChat(), validate({ body: TurnBody }), async (req, res) => {
     // Incognito: refused combinations are a 400 before anything is read; the
     // turn becomes ephemeral and memory is switched off on the request itself.
     incognitoRules.assertIncognitoRequest(req.body, 'agent');
     incognitoRules.applyIncognitoPolicy(req.body, 'agent');
-    const agent = await agentStore.getAgent(req.params.id);
-
-    if (!agent) {
-        return res.status(404).json({ error: 'Agent not found' });
-    }
-
-    // Access control — re-validated on every request so revoked permissions take
-    // effect immediately, even for users who already have the agent open.
-    {
-        const userId = getEffectiveUserId(req);
-
-        if (!agent.is_published) {
-            // Unpublished: require authentication and ownership
-            if (!req.session?.user?.id) {
-                return res.status(401).json({ error: 'Not authenticated' });
-            }
-            if (agent.owner_id !== userId) {
-                return res.status(403).json({ error: 'Access denied' });
-            }
-        } else if (anonymousOutsideEmbed(agent, req)) {
-            // Published, but with no public page: a visitor without an
-            // account has no way in. Same answer as an unpublished agent, so
-            // the two cannot be told apart from outside.
-            return res.status(401).json({ error: 'Not authenticated' });
-        } else if (userId) {
-            // Published: re-validate group/org membership from DB on every message.
-            // This prevents a user whose permissions were revoked from continuing to
-            // chat just because they haven't refreshed the page yet. A visitor
-            // with embed on lands here too, under their `guest_…` id.
-            const canAccess = await userCanAccessPublishedAgent(agent, userId, req);
-            if (!canAccess) {
-                log.warn(`[AgentChat] User ${userId} attempted to stream agent ${agent.id} — access denied (permissions revoked)`);
-                return res.status(403).json({ error: 'Access denied' });
-            }
-        }
-    }
+    const { agent } = agentAccessOf(req);
 
     const { message, history, messageId, parentId, attachments, conversationId, ephemeral, modelTier, activeSkillIds, reasoningEffort } = req.body;
 
@@ -333,7 +194,6 @@ router.post('/:id/chat/stream', streamLimiter, validate({ body: TurnBody }), asy
     if (wantsTest || req.body?.asGroup) {
         let canEdit = false;
         try {
-            const { canModifyAgent } = require('./crud');
             canEdit = await canModifyAgent(agent, userId, req);
         } catch (e) {
             // An edit check that could not run is not permission to simulate.
@@ -350,16 +210,16 @@ router.post('/:id/chat/stream', streamLimiter, validate({ body: TurnBody }), asy
             throw new HttpError(503, _refused[0] || 'test_as_check_failed',
                 'Could not check your permissions right now. Try again.', { codes: _refused });
         }
-        const testGate = testChatMod.gateTestChatRequest({ test: req.body?.test, canEdit });
+        const testGate = /** @type {Record<string, any>} */ (testChatMod.gateTestChatRequest({ test: req.body?.test, canEdit }));
         if (!testGate.ok) return res.status(testGate.status).json({ error: testGate.error, code: testGate.code });
         isTestChat = testGate.testChat;
 
         // "Test als" keeps its own module and its own refusals — A4 rides the
         // A1c path, it does not grow a second one beside it.
         const testAsMod = require('../../core/agentRuntime/testAs');
-        const gated = await testAsMod.gateTestAsRequest({
+        const gated = /** @type {Record<string, any>} */ (await testAsMod.gateTestAsRequest({
             asGroup: req.body.asGroup, userId, orgIds, canEdit,
-        });
+        }));
         if (!gated.ok) return res.status(gated.status).json({ error: gated.error, code: gated.code });
         testAs = gated.testAs;
     }
@@ -546,7 +406,7 @@ router.post('/describe-building', requireAuth, helperLimiter, validate({ body: D
             throw new Error(`AI request failed: ${response.status}`);
         }
 
-        const data = await response.json();
+        const data = /** @type {{ choices?: { message?: { content?: string } }[] }} */ (await response.json());
         const description = data.choices?.[0]?.message?.content?.trim() || 'Building an interactive application...';
 
         res.json({ description });
@@ -557,33 +417,18 @@ router.post('/describe-building', requireAuth, helperLimiter, validate({ body: D
     }
 });
 
-// Get conversation history
-router.get('/:id/history', helperLimiter, async (req, res) => {
-    const agent = await agentStore.getAgent(req.params.id);
-    if (!agent) {
-        return res.status(404).json({ error: 'Agent not found' });
-    }
-
-    // Use effective user ID (works for guests too)
-    const userId = getEffectiveUserId(req);
+// Get conversation history: the caller's own (a visitor's under their
+// `guest_…` id), behind the same gate as a turn, so an agent outside the
+// caller's audience answers as it does there.
+router.get('/:id/history', helperLimiter, requireAgentChat(), async (req, res) => {
+    const { userId } = agentAccessOf(req);
     const conversation = await agentStore.getConversation(req.params.id, userId);
     res.json(conversation?.messages || []);
 });
 
-// Clear conversation history
-router.delete('/:id/history', helperLimiter, async (req, res) => {
-    const userId = getEffectiveUserId(req);
-
-    const agent = await agentStore.getAgent(req.params.id);
-    if (!agent) {
-        return res.status(404).json({ error: 'Agent not found' });
-    }
-
-    // Allow access if published or if user is owner
-    if (!agent.is_published && agent.owner_id !== userId) {
-        return res.status(403).json({ error: 'Access denied' });
-    }
-
+// Clear conversation history: the caller's own, same gate.
+router.delete('/:id/history', helperLimiter, requireAgentChat(), async (req, res) => {
+    const { userId } = agentAccessOf(req);
     await agentStore.clearConversation(req.params.id, userId);
     res.json({ success: true });
 });

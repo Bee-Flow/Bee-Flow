@@ -12,12 +12,12 @@
  * state at "no subscription" which is the safe default for the gate.
  */
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import type { OrgSubscription } from '../admin/org/orgInfo/license/licenseShared';
-import { API_BASE } from '../../utils/helpers';
 import { cloudFetch } from '../../api/cloudFetch';
-import useAdjustOnChange from '@/hooks/useAdjustOnChange';
+import { apiUrl } from '@/api/typedRequest';
 
 export interface Subscription extends OrgSubscription {
     status: string;
@@ -49,30 +49,30 @@ const SubscriptionContext = createContext<SubscriptionContextValue>({
 });
 
 export function SubscriptionProvider({ children, user }: SubscriptionProviderProps) {
-    const [sub, setSub] = useState<Subscription | null>(null);
-    const [loading, setLoading] = useState(() => !!(user?.organizationId || user?.orgId));
-    const [version, setVersion] = useState(0);
-
     // Consumer accounts (no org) and the platform-operator user fall
     // through with no subscription state — the gate ignores them.
-    useAdjustOnChange([user?.organizationId, user?.orgId, user?.featureFlags?.deploymentMode, version], () => {
-        if (!(user?.organizationId || user?.orgId)) { setSub(null); setLoading(false); } else setLoading(true);
+    const orgId = user?.organizationId || user?.orgId;
+    const deploymentMode = user?.featureFlags?.deploymentMode || 'cloud';
+    const query = useQuery<Subscription | null>({
+        queryKey: ['subscription', 'org', orgId, deploymentMode],
+        enabled: !!orgId,
+        staleTime: 0,
+        retry: false,
+        queryFn: async () => {
+            try {
+                const r = await cloudFetch(deploymentMode, apiUrl('GET /api/subscriptions/orgs/{orgId}', { params: { orgId: orgId as string } }));
+                return (r?.ok ? await r.json() : null) || null;
+            } catch {
+                return null;
+            }
+        },
     });
-    useEffect(() => {
-        let cancelled = false;
-        const orgId = user?.organizationId || user?.orgId;
-        if (!orgId) return;
-        const deploymentMode = user?.featureFlags?.deploymentMode || 'cloud';
-        cloudFetch(deploymentMode, `${API_BASE}/api/subscriptions/orgs/${orgId}`)
-            .then(r => (r?.ok ? r.json() : null))
-            .then(data => { if (!cancelled) setSub(data || null); })
-            .catch(() => { if (!cancelled) setSub(null); })
-            .finally(() => { if (!cancelled) setLoading(false); });
-        return () => { cancelled = true; };
-    }, [user?.organizationId, user?.orgId, user?.featureFlags?.deploymentMode, version]);
+    const sub = orgId ? query.data ?? null : null;
+    const loading = !!orgId && query.isFetching;
+    const { refetch } = query;
 
     const hasActiveSub = !!sub && ['active', 'trialing'].includes(sub.status);
-    const value = { sub, loading, hasActiveSub, refresh: () => setVersion((v: number) => v + 1) };
+    const value = { sub, loading, hasActiveSub, refresh: () => { void refetch(); } };
 
     return (
         <SubscriptionContext.Provider value={value}>

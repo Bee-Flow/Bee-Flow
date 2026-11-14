@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 
 /**
@@ -45,7 +45,8 @@ function prepareDryRunPayload(trigger, givenPayload) {
             const { pickMatcher } = require('../triggerBus/filters');
             const { applyDslFilter } = require('../triggers/dslFilters');
             const base = pickMatcher(provider, event);
-            filterMatched = !!applyDslFilter(payload, filter, base);
+            // Each provider's matcher reads its own payload shape; the payload here is that provider's.
+            filterMatched = !!applyDslFilter(payload, filter, /** @type {Parameters<typeof applyDslFilter>[2]} */ (base));
         } catch (e) { fallback('automation/builderTools/dryRunTrigger:prepareDryRunPayload#2', e); /* [dryRun] trigger filter not evaluated: */ }
         if (source === 'declared_sample') {
             // The sample is a generic example, not the person's data: a narrow

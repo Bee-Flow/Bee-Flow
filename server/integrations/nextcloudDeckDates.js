@@ -5,7 +5,7 @@
  * A due date as UTC ISO. Deck re-parses the string without its offset, so an
  * offset string ("...-05:00") would shift by the offset on every resend.
  * @returns {{ iso: string | null } | { error: string }}
- * @param {string | number | Date} value
+ * @param {string | number | Date | null | undefined} value
  */
 function toUtcIso(value) {
     if (value === undefined || value === null || value === '') return { iso: null };

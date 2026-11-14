@@ -156,6 +156,7 @@ async function addConversationColumns() {
     ]);
 }
 
+// stepwise: a boot migration; every statement is idempotent and the next boot re-runs what a failed one left
 async function addProjectForeignKeys() {
     // Migration: FK constraint so deleting a project clears project_id on its
     // conversations instead of leaving dangling references (a recycled UUID

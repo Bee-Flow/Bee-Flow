@@ -18,12 +18,12 @@ const assert = require('node:assert');
 
 const {
     stableStringify,
-    hashDefinition,
     installedTemplateVersion,
     upgradeCandidate,
     isPristine,
     annotateTemplateUpgrades,
 } = require('./templateUpgrade');
+const { hashDefinition } = require('../core/packaging/definitionHash.mts');
 const { getTemplate, templateVersion, TEMPLATES } = require('./templates');
 
 // A definition-ish fixture with nested objects and arrays.

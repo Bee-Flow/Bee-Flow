@@ -37,117 +37,48 @@ const { cacheKey, cacheGet, cacheSet } = require('./scanCache');
 const { classifyDegradation } = require('./degradation');
 const { windowCountFor } = require('./windowing');
 const { detectPii } = require('./detect');
+const { inputPolicy, lastUserText, degradedOutsideScope } = require('./inputPolicy.mts');
 
-async function validateInputForPii(/** @type {Array<{ role?: string, content?: string | Array<{ type?: string, text?: string }> | null, [k: string]: unknown }>} */ messages, agentPiiEnabled = false, /** @type {{ enabled?: boolean, piiDetectionAction?: string, piiFailureMode?: string, [k: string]: unknown } | null} */ orgShieldConfig = null, /** @type {string | null} */ overridePiiAction = null, /** @type {Record<string, string> | null} */ existingTokenMap = null, /** @type {{ vaultUserId?: string | null, report?: PiiGateReport | null, onProgress?: (progress: { done: number, total: number, coveredChars: number, totalChars: number }) => void, [k: string]: unknown }} */ options = {}) {
-    const vaultUserId = options.vaultUserId || null;
-    /** @type {PiiGateReport|null} */
-    const report = options.report && typeof options.report === 'object' ? options.report : null;
-    const aiConfig = await getAIConfig();
+/** @typedef {NonNullable<Awaited<ReturnType<typeof detectPii>>>} DetectResult */
 
-    // Loud entry trace so admins can see PII gates firing in logs.
-    log.info(`[PiiDetection] validateInputForPii called: agentPiiEnabled=${agentPiiEnabled} aiCfgEnabled=${!!aiConfig.piiDetectionEnabled} shield={enabled:${!!orgShieldConfig?.enabled}, action:${orgShieldConfig?.piiDetectionAction || 'default'}}`);
+/**
+ * What one gate call carries from step to step.
+ * @typedef {{ piiAction: string, piiFailureMode: string, report: PiiGateReport | null, orgShieldConfig: { piiDetectionAction?: string, [k: string]: unknown } | null,
+ *             existingTokenMap: Record<string, string> | null, vaultUserId: string | null, aiAction: string | undefined, confidenceThreshold: number }} GateCall
+ */
 
-    // PII detection switches on if any of:
-    //   1. Global AI config flag (admin-set via /ai/config)
-    //   2. Per-agent override (rare; specific agent configs)
-    //   3. Org Privacy Shield's master `enabled` flag — the only switch a
-    //      non-developer typically uses, exposed at /app/settings/organisation/privacy
-    const piiEnabled =
-        aiConfig.piiDetectionEnabled ||
-        agentPiiEnabled ||
-        !!orgShieldConfig?.enabled;
-    if (!piiEnabled) {
-        log.info('[PiiDetection] gate=DISABLED (aiConfig + agent + shield all off)');
-        _report(report, 'disabled');
-        return null;
+/**
+ * The only stored shield, for callers that do not resolve one themselves.
+ *
+ * Never the FIRST key of the store: on a multi-tenant install that applies an
+ * arbitrary org's categories and threshold to another org's scan, a silent
+ * under-detection that looks plausible in the logs. So only an unambiguous
+ * answer counts (directChat.js applies the same guard).
+ * @returns {Promise<{ piiDetectionCategories?: unknown, piiDetectionConfidenceThreshold?: unknown } | null | undefined>}
+ */
+async function legacyStoredShield() {
+    /** @type {Record<string, { piiDetectionCategories?: unknown, piiDetectionConfidenceThreshold?: unknown } | undefined>} */
+    const allConfigs = await configStore.getAllConfig() || {};
+    const shieldKeys = Object.keys(allConfigs).filter(k => k.startsWith('org_privacy_shield_'));
+    if (shieldKeys.length === 1) return allConfigs[shieldKeys[0]];
+    if (shieldKeys.length > 1) {
+        log.warn(`[PiiDetection] ${shieldKeys.length} org shields stored and no orgShieldConfig passed — refusing to guess; scanning ALL categories. The caller should resolve the shield (orgShield.resolveShieldFor).`);
     }
+    return null;
+}
 
-    // overridePiiAction lets a trusted internal flow set the action per-call
-    // (takes precedence over org/AI config). The support auto-responder passes
-    // 'allow' — a support reply is legitimate first-party processing of the
-    // customer's OWN email (their address/IBAN/order ids), so it must not be
-    // hard-blocked. 'allow' short-circuits before any scan/block/tokenize.
-    const piiAction = overridePiiAction || orgShieldConfig?.piiDetectionAction || aiConfig.piiDetectionAction || 'block';
-    if (piiAction === 'allow') {
-        log.info('[PiiDetection] gate=ALLOW (per-call override) — skipping scan');
-        _report(report, 'allowed_by_policy');
-        return null;
-    }
-
-    // Failure policy when detection can't fully run (guard unreachable or the
-    // GLiNER model isn't ready → regex-only). Default fail_closed so we never
-    // silently send unmasked text to the LLM (BFSF-269). Per-org overridable.
-    const piiFailureMode =
-        orgShieldConfig?.piiFailureMode ||
-        aiConfig.piiFailureMode ||
-        'fail_closed';
-    // Whether a guard that is not installed at all is a refusal. With the
-    // Privacy Shield switched on the org asked for every message to be
-    // scanned, and under fail_closed "no detector" is as degraded as an
-    // unreachable one (the DLP runner has treated it that way all along). The
-    // global flag alone, with the mode left unset, keeps the old meaning: the
-    // guard is not installed, so the feature is simply off.
-    const guardRequired = (!!orgShieldConfig?.enabled && piiFailureMode === 'fail_closed')
-        || aiConfig.piiFailureMode === 'fail_closed';
-
-    const lastUserMessage = messages.slice().reverse().find(m => m.role === 'user');
-    if (!lastUserMessage) {
-        log.info('[PiiDetection] no user message in batch');
-        _report(report, 'too_short');
-        return null;
-    }
-
-    // A user message is one text block plus attachments: the attachment
-    // pipeline appends extracted text to that first block (agentRuntime/
-    // attachmentKinds.js appendTextPart, after its own scan) and only pushes a
-    // new block when there is none, so the first text block IS the user-authored
-    // text. Later blocks are images and the hydrator's "[previously attached]"
-    // placeholders — nothing a person typed.
-    const rawContent = lastUserMessage.content;
-    /** @type {string | null | undefined} */
-    let inputText;
-    if (Array.isArray(rawContent)) {
-        const textBlock = rawContent.find(b => b.type === 'text');
-        inputText = textBlock ? textBlock.text : '';
-    } else {
-        inputText = rawContent;
-    }
-    if (!inputText || inputText.length < 3) {
-        log.info(`[PiiDetection] input too short (${inputText?.length || 0} chars), skipping`);
-        _report(report, 'too_short');
-        return null;
-    }
-
-    // ── Load enabled categories & confidence threshold
-    // Priority: 1) Passed-in org shield config (callers already resolved the correct org)
-    //           2) Fallback: scan configStore for any org shield (legacy/generic callers)
-    //           3) Global AI config categories
-    //           4) All categories (default)
+/**
+ * The categories and confidence threshold to scan with: the passed-in org
+ * shield (callers already resolved the right org), else the one stored shield,
+ * else the AI config's categories, else all of them.
+ * @param {import('../../llm/modelCache').AIConfig} aiConfig
+ * @param {{ [k: string]: unknown } | null} orgShieldConfig
+ */
+async function resolveScanScope(aiConfig, orgShieldConfig) {
     let enabledCategories = ALL_PII_CATEGORY_IDS;
     let confidenceThreshold = aiConfig.piiDetectionConfidenceThreshold ?? DEFAULT_PII_CONFIDENCE_THRESHOLD;
     try {
-        const shieldConfig = orgShieldConfig || await (async () => {
-            // Legacy fallback for callers that don't resolve a shield themselves.
-            //
-            // This must not be `.find(...)` — the FIRST key in an unordered
-            // object. On a single-org install that is the right shield by
-            // accident; on a multi-tenant install it applies an ARBITRARY
-            // org's categories and threshold to another org's scan. Narrowing
-            // org B's scan to org A's category list is silent under-detection
-            // in a privacy control, and it is invisible in the logs because
-            // the line below reports a perfectly plausible category count.
-            //
-            // So: only fall back when the answer is unambiguous. Same guard
-            // directChat.js already applies at :1528 and :2126.
-            /** @type {Record<string, { piiDetectionCategories?: unknown, piiDetectionConfidenceThreshold?: unknown } | undefined>} */
-            const allConfigs = await configStore.getAllConfig() || {};
-            const shieldKeys = Object.keys(allConfigs).filter(k => k.startsWith('org_privacy_shield_'));
-            if (shieldKeys.length === 1) return allConfigs[shieldKeys[0]];
-            if (shieldKeys.length > 1) {
-                log.warn(`[PiiDetection] ${shieldKeys.length} org shields stored and no orgShieldConfig passed — refusing to guess; scanning ALL categories. The caller should resolve the shield (orgShield.resolveShieldFor).`);
-            }
-            return null;
-        })();
+        const shieldConfig = orgShieldConfig || await legacyStoredShield();
         if (shieldConfig) {
             if (Array.isArray(shieldConfig.piiDetectionCategories) && shieldConfig.piiDetectionCategories.length > 0) {
                 enabledCategories = _shieldCategories(shieldConfig.piiDetectionCategories);
@@ -168,170 +99,250 @@ async function validateInputForPii(/** @type {Array<{ role?: string, content?: s
     } catch (shieldErr) {
         log.warn(`[PiiDetection] Could not load org shield:`, shieldErr.message);
     }
+    return { enabledCategories, confidenceThreshold };
+}
 
-    // Check cache. The key includes the resolved categories + threshold, so a
-    // shield change takes effect immediately instead of after the TTL, and a
-    // narrow scan's result can never be served to an all-categories caller.
-    const key = cacheKey('user_input', inputText, enabledCategories, confidenceThreshold);
-    const cached = cacheGet(key);
-    if (cached) {
-        // The entry holds the detector's raw answer; org POLICY is applied per
-        // read, exactly as on the fresh path below — otherwise an allowlisted
-        // term blocks or not depending on whether an identical message is still
-        // in the LRU.
-        const hit = _applyAllowlist(cached, orgShieldConfig);
-        log.info(`[PiiDetection] Cache hit → ${hit.hasPii ? 'PII found' : 'clean'}`);
-        if (hit.hasPii) {
-            const categoryList = [...new Set(hit.entities.map((/** @type {PiiEntity} */ e) => e.label))].join(', ');
-            if (MASKING_ACTIONS.has(piiAction)) {
-                const tokenised = await _tokeniseOrFail(inputText, hit.entities, existingTokenMap, vaultUserId, { piiFailureMode, report });
-                if (!tokenised) return null;
-                log.warn(`[PiiDetection] Tokenizing ${hit.entities.length} entities (cached): ${[...new Set(hit.entities.map(_logLabel))].join(', ')}`);
-                _report(report, 'found', hit.entities, 'tokenised');
-                return { tokenizedText: tokenised.tokenizedText, tokenMap: tokenised.tokenMap, entities: hit.entities };
-            }
-            const err = /** @type {PiiError} */ (new Error(`PII Detected: Message contains sensitive personal information (${categoryList}). Please remove PII before sending.`));
-            err.piiEntities = hit.entities;
-            err.violationCodes = hit.entities.map((/** @type {PiiEntity} */ e) => `PII:${e.category}`);
-            _report(report, 'found', hit.entities, 'blocked');
-            throw err;
-        }
-        _report(report, 'clean');
+/**
+ * The block verdict for a find, reported as blocked.
+ * @param {PiiEntity[]} entities
+ * @param {PiiGateReport | null} report
+ */
+function piiBlockedError(entities, report) {
+    const categoryList = [...new Set(entities.map((e) => e.label))].join(', ');
+    const err = /** @type {PiiError} */ (new Error(`PII Detected: Message contains sensitive personal information (${categoryList}). Please remove PII before sending.`));
+    err.piiEntities = entities;
+    err.violationCodes = entities.map((e) => `PII:${e.category}`);
+    _report(report, 'found', entities, 'blocked');
+    return err;
+}
+
+/**
+ * A cached scan. The entry holds the detector's raw answer; org POLICY (the
+ * allowlist) is applied per read, exactly as on the fresh path, or an
+ * allowlisted term would block or not depending on the LRU.
+ * @param {string} inputText
+ * @param {DetectResult} cached
+ * @param {GateCall} gate
+ */
+async function answerFromCache(inputText, cached, gate) {
+    const hit = _applyAllowlist(cached, gate.orgShieldConfig);
+    log.info(`[PiiDetection] Cache hit → ${hit.hasPii ? 'PII found' : 'clean'}`);
+    if (!hit.hasPii) {
+        _report(gate.report, 'clean');
         return null;
     }
+    if (MASKING_ACTIONS.has(gate.piiAction)) {
+        const tokenised = await _tokeniseOrFail(inputText, hit.entities, gate.existingTokenMap, gate.vaultUserId, { piiFailureMode: gate.piiFailureMode, report: gate.report });
+        if (!tokenised) return null;
+        log.warn(`[PiiDetection] Tokenizing ${hit.entities.length} entities (cached): ${[...new Set(hit.entities.map(_logLabel))].join(', ')}`);
+        _report(gate.report, 'found', hit.entities, 'tokenised');
+        return { tokenizedText: tokenised.tokenizedText, tokenMap: tokenised.tokenMap, entities: hit.entities };
+    }
+    throw piiBlockedError(hit.entities, gate.report);
+}
 
+/**
+ * No guard: under `guardRequired` the scan the org asked for could not
+ * happen, which is a refusal; otherwise the feature is off and the text goes
+ * on, as it always did.
+ * @param {boolean} guardRequired
+ * @param {PiiGateReport | null} report
+ */
+function noGuardAnswer(guardRequired, report) {
+    if (guardRequired) {
+        log.warn('[PiiDetection] guard not configured — fail_closed: blocking message');
+        const err = /** @type {PiiError} */ (new Error('Privacy protection unavailable: the PII Guard service is not installed. Ask your administrator to install it, or to switch the Privacy Shield off.'));
+        err.privacyUnavailable = true;
+        err.privacyUnavailableKind = 'unavailable';
+        err.degradedReason = 'guard_not_installed';
+        _report(report, 'failed_closed');
+        throw err;
+    }
+    _report(report, 'guard_absent');
+    return null;
+}
+
+/**
+ * A degraded scan (guard unreachable, or only the regex tier answered):
+ * trusting it would under-redact, so the failure policy applies, unless the
+ * degradation missed this caller's scope. True: carry on with the result;
+ * false: fail open; fail closed throws.
+ * @param {DetectResult} result
+ * @param {string[]} enabledCategories
+ * @param {GateCall} gate
+ */
+function continueAfterDegraded(result, enabledCategories, gate) {
+    const affected = result.degradedCategories;
+    const reason = result.degradedReason || 'unknown';
+    if (degradedOutsideScope(affected, enabledCategories)) {
+        log.warn(`[PiiDetection] Detection DEGRADED (${reason}) but only for [${affected.join(', ')}], none of which this scope requested — continuing with the result`);
+        return true;
+    }
+    if (gate.piiFailureMode === 'fail_open') {
+        log.warn(`[PiiDetection] Detection DEGRADED (${reason}) — fail_open: allowing content UNMASKED`);
+        _report(gate.report, 'failed_open');
+        return false;
+    }
+    log.warn(`[PiiDetection] Detection DEGRADED (${reason}) — fail_closed: blocking message`);
+    const kind = classifyDegradation(result.degradedReason);
+    const err = /** @type {PiiError} */ (new Error(kind === 'too_large'
+        ? 'Privacy protection unavailable: this message is too large to scan for personal data. Please split it into smaller parts.'
+        : 'Privacy protection unavailable: PII detection is temporarily unavailable. Please try again shortly.'));
+    err.privacyUnavailable = true;
+    err.privacyUnavailableKind = kind;
+    err.degradedReason = result.degradedReason || null;
+    err.degradedCategories = affected || null;
+    _report(gate.report, 'failed_closed');
+    throw err;
+}
+
+/**
+ * The log lines of a find: counts, category names and confidences only, never
+ * span text. A per-entity snippet would put the very values this service
+ * protects into the server log and every aggregator behind it, against the
+ * guard's own policy (guard-service/app/routers/pii.py: "Never span text").
+ * @param {{ entities: PiiEntity[] }} result
+ * @param {number} ms
+ * @param {GateCall} gate
+ */
+function logFind(result, ms, gate) {
+    const breakdown = result.entities
+        .map((e) => `${_logLabel(e)}@${Math.round((e.confidence ?? 0) * 100)}%`)
+        .join(' | ');
+    log.warn(`[PiiDetection] PII detected | categories: ${[...new Set(result.entities.map(_logLabel))].join(', ')} | ${result.entities.length} entities | ${ms}ms`);
+    log.warn(`[PiiDetection] Confidences: ${breakdown}`);
+    log.warn(`[PiiDetection] Action: ${gate.piiAction} (source: ${gate.orgShieldConfig?.piiDetectionAction ? 'org-shield' : gate.aiAction ? 'ai-config' : 'default'})`);
+}
+
+/**
+ * A fresh scan, then the verdict.
+ * @param {string} inputText
+ * @param {string} key  the scan cache key
+ * @param {string[]} enabledCategories
+ * @param {GateCall & { guardRequired: boolean }} gate
+ * @param {((progress: { done: number, total: number, coveredChars: number, totalChars: number }) => void) | undefined} onProgress
+ */
+async function scanFresh(inputText, key, enabledCategories, gate, onProgress) {
     log.info(`[PiiDetection] Scanning input (${inputText.length} chars, ${windowCountFor(inputText)} window(s))...`);
     const start = Date.now();
-
     try {
-        // options.onProgress lets the chat runtimes report "part 3/6" while a
-        // multi-window scan runs — minutes of otherwise silent wait.
-        let result = await detectPii(inputText, enabledCategories, confidenceThreshold, { onProgress: options.onProgress });
+        // onProgress lets the chat runtimes report "part 3/6" while a
+        // multi-window scan runs: minutes of otherwise silent wait.
+        let result = await detectPii(inputText, enabledCategories, gate.confidenceThreshold, { onProgress });
         // null: the guard is not installed. `guardAbsent` without a find: no
         // guard either, but the org's own words/patterns ran in Node and found
-        // nothing (a find is acted on below). Under `guardRequired` the scan
-        // the org asked for could not happen, which is a refusal; otherwise
-        // the feature is off and the text goes on, as it always did.
-        if (!result || (result.guardAbsent && !result.hasPii)) {
-            if (guardRequired) {
-                log.warn('[PiiDetection] guard not configured — fail_closed: blocking message');
-                const err = /** @type {PiiError} */ (new Error('Privacy protection unavailable: the PII Guard service is not installed. Ask your administrator to install it, or to switch the Privacy Shield off.'));
-                err.privacyUnavailable = true;
-                err.privacyUnavailableKind = 'unavailable';
-                err.degradedReason = 'guard_not_installed';
-                _report(report, 'failed_closed');
-                throw err;
-            }
-            _report(report, 'guard_absent');
-            return null;
-        }
-
-        // Detection couldn't fully run (guard unreachable, or the GLiNER model
-        // isn't ready so only the regex tier answered). Trusting this would
-        // under-redact — apply the org failure policy (BFSF-269).
-        if (result.degraded) {
-            // Does the degradation actually touch what THIS caller asked for?
-            //
-            // The guard reports which categories lost coverage when it can (a
-            // label group whose every inference call raised). Under model-only
-            // it runs 7 label groups instead of 4, so a transient ORT error is
-            // meaningfully more likely per request AND degrades the whole
-            // response — without this check an org scoped to {Email,
-            // PhoneNumber} gets blocked because the government-id group died,
-            // for a category it never asked about. That org otherwise never
-            // touches the model at all and could never fail closed.
-            //
-            // Absent/empty degradedCategories means "unknown — assume all"
-            // (older guard, or an oversize partial scan whose unscanned tail
-            // can hide anything), which preserves the old behaviour exactly.
-            const affected = result.degradedCategories;
-            const requested = Array.isArray(enabledCategories) && enabledCategories.length
-                ? enabledCategories : null;
-            if (affected && requested && !affected.some((/** @type {string} */ c) => requested.includes(c))) {
-                log.warn(`[PiiDetection] Detection DEGRADED (${result.degradedReason || 'unknown'}) but only for [${affected.join(', ')}], none of which this scope requested — continuing with the result`);
-            } else if (piiFailureMode === 'fail_open') {
-                log.warn(`[PiiDetection] Detection DEGRADED (${result.degradedReason || 'unknown'}) — fail_open: allowing content UNMASKED`);
-                _report(report, 'failed_open');
-                return null;
-            } else {
-                log.warn(`[PiiDetection] Detection DEGRADED (${result.degradedReason || 'unknown'}) — fail_closed: blocking message`);
-                const kind = classifyDegradation(result.degradedReason);
-                const err = /** @type {PiiError} */ (new Error(kind === 'too_large'
-                    ? 'Privacy protection unavailable: this message is too large to scan for personal data. Please split it into smaller parts.'
-                    : 'Privacy protection unavailable: PII detection is temporarily unavailable. Please try again shortly.'));
-                err.privacyUnavailable = true;
-                err.privacyUnavailableKind = kind;
-                err.degradedReason = result.degradedReason || null;
-                err.degradedCategories = affected || null;
-                _report(report, 'failed_closed');
-                throw err;
-            }
-        }
+        // nothing (a find is acted on below).
+        if (!result || (result.guardAbsent && !result.hasPii)) return noGuardAnswer(gate.guardRequired, gate.report);
+        if (result.degraded && !continueAfterDegraded(result, enabledCategories, gate)) return null;
 
         const ms = Date.now() - start;
-
-        // NEVER cache a degraded result. Most degraded paths above return or
-        // throw, but the "degradation missed this scope" branch deliberately
-        // falls through with degraded still true — and caching that would
-        // serve an incomplete entity set for the full TTL after the model
-        // recovered, silently under-redacting (BFSF-269).
+        // NEVER cache a degraded result: the "missed this scope" branch falls
+        // through with degraded still true, and caching it would serve an
+        // incomplete entity set for the full TTL after the model recovered.
         if (!result.degraded && !result.guardAbsent) cacheSet(key, result);
-
-        // Never-redact layer — deliberately AFTER the cache write. The cache
-        // holds the detector's honest answer; the allowlist is per-org POLICY,
-        // and two orgs sharing a cache entry must not inherit each other's.
-        // The cache-hit branch above applies the identical filter on its way out.
-        result = _applyAllowlist(result, orgShieldConfig);
-
+        // The allowlist is per-org POLICY, applied AFTER the cache write: the
+        // cache holds the detector's honest answer, and two orgs sharing an
+        // entry must not inherit each other's.
+        result = _applyAllowlist(result, gate.orgShieldConfig);
         if (!result.hasPii) {
-            log.info(`[PiiDetection] Input clean | ${ms}ms | threshold ≥ ${confidenceThreshold}`);
-            _warnLikelyPii(inputText, confidenceThreshold);
-            _report(report, 'clean');
+            log.info(`[PiiDetection] Input clean | ${ms}ms | threshold ≥ ${gate.confidenceThreshold}`);
+            _warnLikelyPii(inputText, gate.confidenceThreshold);
+            _report(gate.report, 'clean');
             return null;
         }
-
-        const categoryList = [...new Set(result.entities.map((/** @type {PiiEntity} */ e) => e.label))].join(', ');
-        // Counts, category names and confidences only — never span text.
-        //
-        // This must not emit `snippets`, up to 20 characters of EVERY detected
-        // entity, at warn level. That would put the very values this service exists
-        // to protect into the server log, where they are shipped to whatever
-        // aggregator the deployment uses and outlive the conversation. It would also
-        // contradict the guard's own stated policy, which it is careful about
-        // (guard-service/app/routers/pii.py:96-99: "Never span text").
-        //
-        // A per-entity confidence breakdown keeps the diagnostic value that
-        // line actually had — "why did this fire / why is it under threshold" —
-        // without the payload.
-        const breakdown = result.entities
-            .map((/** @type {PiiEntity} */ e) => `${_logLabel(e)}@${Math.round((e.confidence ?? 0) * 100)}%`)
-            .join(' | ');
-        log.warn(`[PiiDetection] PII detected | categories: ${[...new Set(result.entities.map(_logLabel))].join(', ')} | ${result.entities.length} entities | ${ms}ms`);
-        log.warn(`[PiiDetection] Confidences: ${breakdown}`);
-        log.warn(`[PiiDetection] Action: ${piiAction} (source: ${orgShieldConfig?.piiDetectionAction ? 'org-shield' : aiConfig.piiDetectionAction ? 'ai-config' : 'default'})`);
-
-        if (MASKING_ACTIONS.has(piiAction)) {
-            const { tokenizedText, tokenMap } = await _tokenizeWithVault(inputText, result.entities, existingTokenMap, vaultUserId);
+        logFind(result, ms, gate);
+        if (MASKING_ACTIONS.has(gate.piiAction)) {
+            const { tokenizedText, tokenMap } = await _tokenizeWithVault(inputText, result.entities, gate.existingTokenMap, gate.vaultUserId);
             log.warn(`[PiiDetection] Tokenizing — sending redacted text to AI`);
-            _report(report, 'found', result.entities, 'tokenised');
+            _report(gate.report, 'found', result.entities, 'tokenised');
             return { tokenizedText, tokenMap, entities: result.entities };
         }
-
-        // Default: block
-        const err = /** @type {PiiError} */ (new Error(`PII Detected: Message contains sensitive personal information (${categoryList}). Please remove PII before sending.`));
-        err.piiEntities = result.entities;
-        err.violationCodes = result.entities.map((/** @type {PiiEntity} */ e) => `PII:${e.category}`);
-        _report(report, 'found', result.entities, 'blocked');
-        throw err;
-
+        throw piiBlockedError(result.entities, gate.report);
     } catch (e) {
-        // Propagate deliberate gate outcomes: the PII block and the
-        // fail-closed "protection unavailable" block must not be swallowed.
-        if (e?.message?.includes('PII Detected') || e?.privacyUnavailable) throw e;
-        const err = _gateFailure(e, piiFailureMode, report);
-        if (err) throw err;
+        return verdictOrGateFailure(e, gate);
+    }
+}
+
+/**
+ * A throw out of the fresh scan. The deliberate gate outcomes (the PII block
+ * and the fail-closed "protection unavailable" block) propagate; anything else
+ * is a failure of the gate itself and takes the failure policy (null: open).
+ * @param {{ message?: string, privacyUnavailable?: boolean } | null | undefined} e
+ * @param {GateCall} gate
+ * @returns {null}
+ */
+function verdictOrGateFailure(e, gate) {
+    if (e?.message?.includes('PII Detected') || e?.privacyUnavailable) throw e;
+    const err = _gateFailure(e, gate.piiFailureMode, gate.report);
+    if (err) throw err;
+    return null;
+}
+
+/**
+ * The user's text to scan, or null (reported as too short) when there is no
+ * user message or fewer than three characters.
+ * @param {Parameters<typeof lastUserText>[0]} messages
+ * @param {PiiGateReport | null} report
+ */
+function textToScan(messages, report) {
+    const { found, text } = lastUserText(messages);
+    if (!found) {
+        log.info('[PiiDetection] no user message in batch');
+        _report(report, 'too_short');
         return null;
     }
+    if (!text || text.length < 3) {
+        log.info(`[PiiDetection] input too short (${text?.length || 0} chars), skipping`);
+        _report(report, 'too_short');
+        return null;
+    }
+    return text;
+}
+
+/**
+ * Loud entry trace so admins can see PII gates firing in logs.
+ * @param {boolean} agentPiiEnabled
+ * @param {{ piiDetectionEnabled?: boolean }} aiConfig
+ * @param {{ enabled?: boolean, piiDetectionAction?: string } | null} orgShieldConfig
+ */
+function logGateEntry(agentPiiEnabled, aiConfig, orgShieldConfig) {
+    log.info(`[PiiDetection] validateInputForPii called: agentPiiEnabled=${agentPiiEnabled} aiCfgEnabled=${!!aiConfig.piiDetectionEnabled} shield={enabled:${!!orgShieldConfig?.enabled}, action:${orgShieldConfig?.piiDetectionAction || 'default'}}`);
+}
+
+async function validateInputForPii(/** @type {Array<{ role?: string, content?: string | Array<{ type?: string, text?: string }> | null, [k: string]: unknown }>} */ messages, agentPiiEnabled = false, /** @type {{ enabled?: boolean, piiDetectionAction?: string, piiFailureMode?: string, [k: string]: unknown } | null} */ orgShieldConfig = null, /** @type {string | null} */ overridePiiAction = null, /** @type {Record<string, string> | null} */ existingTokenMap = null, /** @type {{ vaultUserId?: string | null, report?: PiiGateReport | null, onProgress?: (progress: { done: number, total: number, coveredChars: number, totalChars: number }) => void, [k: string]: unknown }} */ options = {}) {
+    /** @type {PiiGateReport|null} */
+    const report = options.report && typeof options.report === 'object' ? options.report : null;
+    const aiConfig = await getAIConfig();
+
+    logGateEntry(agentPiiEnabled, aiConfig, orgShieldConfig);
+
+    const policy = inputPolicy(aiConfig, agentPiiEnabled, orgShieldConfig, overridePiiAction);
+    if (!policy.enabled) {
+        log.info('[PiiDetection] gate=DISABLED (aiConfig + agent + shield all off)');
+        _report(report, 'disabled');
+        return null;
+    }
+    if (policy.action === 'allow') {
+        log.info('[PiiDetection] gate=ALLOW (per-call override) — skipping scan');
+        _report(report, 'allowed_by_policy');
+        return null;
+    }
+
+    const inputText = textToScan(messages, report);
+    if (inputText === null) return null;
+
+    const { enabledCategories, confidenceThreshold } = await resolveScanScope(aiConfig, orgShieldConfig);
+    const gate = {
+        piiAction: policy.action, piiFailureMode: policy.failureMode, guardRequired: policy.guardRequired, report,
+        orgShieldConfig, existingTokenMap, vaultUserId: options.vaultUserId || null, aiAction: aiConfig.piiDetectionAction, confidenceThreshold,
+    };
+    // The key includes the resolved categories + threshold, so a shield change
+    // takes effect at once and a narrow scan's result is never served to an
+    // all-categories caller.
+    const key = cacheKey('user_input', inputText, enabledCategories, confidenceThreshold);
+    const cached = cacheGet(key);
+    if (cached) return answerFromCache(inputText, cached, gate);
+    return scanFresh(inputText, key, enabledCategories, gate, options.onProgress);
 }
 
 /**

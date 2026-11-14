@@ -1,9 +1,6 @@
-import { API_BASE } from '../../utils/helpers';
 import { HTTP_AUTH_TYPES, httpKindName } from '../../utils/httpCredentialTypes';
 import type { ProviderSpec, Connection } from './ConnectionsManager.types';
 import { logger } from '../../utils/logger';
-
-export const BASE = `${API_BASE}/api/integrations/connections`;
 
 export const EMERALD = '#059669';
 

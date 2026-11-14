@@ -3,9 +3,9 @@ import { useState } from 'react';
 import { isImeEnter } from '../../components/projects/workspace/chat/ime';
 import useConfirm from '../../components/shared/useConfirm';
 import { useTranslation } from '../../hooks/useTranslation';
-import { authFetch } from '../../utils/helpers';
+import { apiFetch } from '../../api/typedRequest';
 import type { Grant, ErrorLineProps, SharePanelProps, ConnectionRowProps } from './ConnectionsManager.types';
-import { BASE, EMERALD, EXPIRY_OPTIONS, inputStyle, inputCls, daysFromNowIso, errorFrom, httpMetaSummary } from './ConnectionsManager.helpers';
+import { EMERALD, EXPIRY_OPTIONS, inputStyle, inputCls, daysFromNowIso, errorFrom, httpMetaSummary } from './ConnectionsManager.helpers';
 
 export const ErrorLine = ({ children }: ErrorLineProps) => (
     <p role="alert" className="text-[11px] mt-1 [color:#dc2626]!">{children}</p>
@@ -24,9 +24,10 @@ const SharePanel = ({ connection, grants, onChanged }: SharePanelProps) => {
     const share = async (body: { granteeType: string; granteeEmail: string; } | { granteeType: string; }) => {
         setBusy(true); setErr(null);
         try {
-            const res = await authFetch(`${BASE}/${connection.id}/grants`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...body, expiresAt: daysFromNowIso(expiry ? Number(expiry) : 0) }),
+            // The raw body: granteeType is a plain string here, wider than the route's schema type.
+            const res = await apiFetch('POST /api/integrations/connections/{id}/grants', {
+                params: { id: connection.id },
+                init: { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, expiresAt: daysFromNowIso(expiry ? Number(expiry) : 0) }) },
             });
             if (!res.ok) setErr(await errorFrom(res, t('connections.share_failed', 'Share failed')));
             else { setEmail(''); onChanged(); }
@@ -37,7 +38,7 @@ const SharePanel = ({ connection, grants, onChanged }: SharePanelProps) => {
     const revoke = async (grantId: string) => {
         setBusy(true); setErr(null);
         try {
-            const res = await authFetch(`${BASE}/grants/${grantId}`, { method: 'DELETE' });
+            const res = await apiFetch('DELETE /api/integrations/connections/grants/{grantId}', { params: { grantId } });
             if (!res.ok) setErr(await errorFrom(res, t('connections.revoke_failed', 'Could not revoke this share')));
             else onChanged();
         } catch (e) { setErr((e as Error).message); }
@@ -101,7 +102,7 @@ const SharePanel = ({ connection, grants, onChanged }: SharePanelProps) => {
                                 {g.resource_type ? ` · ${g.resource_type}` : ''}
                                 {g.expires_at ? ` · ${t('connections.expires_on', 'expires')} ${new Date(g.expires_at).toLocaleDateString()}` : ''}
                             </span>
-                            <button onClick={() => revoke(g.id)} disabled={busy} title={t('connections.revoke', 'Revoke')} className="opacity-70 hover:opacity-100">
+                            <button onClick={() => revoke(g.id)} disabled={busy} title={t('connections.revoke', 'Revoke')} aria-label={t('connections.revoke', 'Revoke')} className="opacity-70 hover:opacity-100">
                                 <Trash2 size={13} />
                             </button>
                         </div>
@@ -135,9 +136,7 @@ export const ConnectionRow = ({ connection, grants, onChanged }: ConnectionRowPr
         setBusy(true); setErr(null);
         let ok = false;
         try {
-            const res = await authFetch(`${BASE}/${connection.id}`, {
-                method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
-            });
+            const res = await apiFetch('PATCH /api/integrations/connections/{id}', { params: { id: connection.id }, body });
             ok = res.ok;
             if (!ok) setErr(await errorFrom(res, fallbackMsg));
             else onChanged();
@@ -163,13 +162,13 @@ export const ConnectionRow = ({ connection, grants, onChanged }: ConnectionRowPr
         if (!(await confirm({ title: t('connections.confirm_delete', 'Delete this connection? Any automation using it will stop working.'), confirmLabel: t('connections.delete', 'Delete'), destructive: true }))) return;
         setBusy(true); setErr(null);
         try {
-            let res = await authFetch(`${BASE}/${connection.id}`, { method: 'DELETE' });
+            let res = await apiFetch('DELETE /api/integrations/connections/{id}', { params: { id: connection.id } });
             if (res.status === 409) {
                 if (!(await confirm({ title: t('connections.confirm_delete_shared', 'This connection is shared. Delete anyway and revoke all shares?'), confirmLabel: t('connections.delete', 'Delete'), destructive: true }))) {
                     setBusy(false);
                     return; // nothing changed — don't reload the list
                 }
-                res = await authFetch(`${BASE}/${connection.id}?force=1`, { method: 'DELETE' });
+                res = await apiFetch('DELETE /api/integrations/connections/{id}', { params: { id: connection.id }, query: { force: '1' } });
             }
             if (!res.ok) setErr(await errorFrom(res, t('connections.delete_failed', 'Could not delete this connection')));
             else onChanged();
@@ -194,8 +193,8 @@ export const ConnectionRow = ({ connection, grants, onChanged }: ConnectionRowPr
                                 if (e.key === 'Escape') { setLabel(connection.label); setRenaming(false); setErr(null); }
                             }}
                         />
-                        <button onClick={saveRename} disabled={busy} className="p-1" title={t('connections.save', 'Save')}><Check size={14} /></button>
-                        <button onClick={() => { setLabel(connection.label); setRenaming(false); setErr(null); }} className="p-1" title={t('connections.cancel', 'Cancel')}><X size={14} /></button>
+                        <button onClick={saveRename} disabled={busy} className="p-1" title={t('connections.save', 'Save')} aria-label={t('connections.save', 'Save')}><Check size={14} /></button>
+                        <button onClick={() => { setLabel(connection.label); setRenaming(false); setErr(null); }} className="p-1" title={t('connections.cancel', 'Cancel')} aria-label={t('connections.cancel', 'Cancel')}><X size={14} /></button>
                     </>
                 ) : (
                     <>
@@ -224,8 +223,8 @@ export const ConnectionRow = ({ connection, grants, onChanged }: ConnectionRowPr
                             >{t('connections.set_default', 'Set default')}</button>
                         )}
                         <button onClick={() => setRenaming(true)} className="text-[11px] underline text-[var(--text-muted)]">{t('connections.rename', 'Rename')}</button>
-                        <button type="button" onClick={() => setSharing(v => !v)} aria-expanded={sharing} className={`p-1 ${sharing ? '[color:var(--accent-primary)]' : '[color:var(--text-muted)]'}`} title={t('connections.share', 'Share')}><Share2 size={14} /></button>
-                        <button onClick={remove} disabled={busy} className="p-1 text-[var(--text-muted)]" title={t('connections.delete', 'Delete')}><Trash2 size={14} /></button>
+                        <button type="button" onClick={() => setSharing(v => !v)} aria-expanded={sharing} className={`p-1 ${sharing ? '[color:var(--accent-primary)]' : '[color:var(--text-muted)]'}`} title={t('connections.share', 'Share')} aria-label={t('connections.share', 'Share')}><Share2 size={14} /></button>
+                        <button onClick={remove} disabled={busy} className="p-1 text-[var(--text-muted)]" title={t('connections.delete', 'Delete')} aria-label={t('connections.delete', 'Delete')}><Trash2 size={14} /></button>
                     </>
                 )}
             </div>

@@ -56,3 +56,15 @@ test('titleKey also drops a leading # and caps the length at 100', () => {
     assert.equal(titleKey('## Plan'), titleKey('Plan'));
     assert.equal(titleKey('a'.repeat(150)), 'a'.repeat(100));
 });
+
+test('the dispatcher: an unknown name, missing arguments, a partial update and a delete', async () => {
+    const calls = install([]);
+    assert.deepEqual(await executeNextcloudNotesTool('nextcloud_notes_nope', {}, 'u', {}), { error: 'Unknown Nextcloud notes tool: nextcloud_notes_nope' });
+    assert.deepEqual(await executeNextcloudNotesTool('nextcloud_notes_get', {}, 'u', {}), { error: 'id is required' });
+    assert.deepEqual(await executeNextcloudNotesTool('nextcloud_notes_update', { id: 4 }, 'u', {}), { error: 'no fields to update' });
+    const updated = await executeNextcloudNotesTool('nextcloud_notes_update', { id: 4, favorite: true }, 'u', {});
+    assert.equal(updated.success, true);
+    assert.deepEqual(Object.keys(calls[0].body).sort(), ['favorite', 'modified']);
+    assert.deepEqual(await executeNextcloudNotesTool('nextcloud_notes_delete', { id: 4 }, 'u', {}), { success: true, id: 4 });
+    assert.deepEqual(calls.map((c) => c.method), ['PUT', 'DELETE']);
+});

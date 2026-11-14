@@ -53,13 +53,13 @@
 // `checkAvailability` stays because it is the register's contract and the one
 // place where "unknown narrows" is enforced for whatever entry comes next.
 
-import { API_BASE } from '@/utils/helpers';
 import { kindOf, type KindKey } from '@/components/shared/kindColors';
 import { studioAppForKind, studioSectionLabel } from '../studioNav';
 import type { TranslateParams } from '@/hooks/useTranslation';
 import type { LessonUser, HasFeature } from '@/api/lessons.types';
 import type { AttentionFinding, RawAttentionRow, AttentionBody, AttentionVerdict, AttentionRun, AttentionCtx, AttentionCheck, AttentionItem } from './attentionChecks.types';
-import { request, RefusedError } from '@/api/mutate';
+import { RefusedError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 import { SEVERITY_RANK, SOURCE_ORDER, SOURCE_LABELS, AVAILABILITY, EMPTY_ATTENTION } from './attentionChecks.constants';
 import { runCheck } from './attentionChecks.helpers';
 export { checkAvailability, runCheck } from './attentionChecks.helpers';
@@ -67,13 +67,13 @@ export { SEVERITY_RANK, SOURCE_ORDER, SOURCE_LABELS, AVAILABILITY, EMPTY_ATTENTI
 export type { AttentionFinding, AttentionRun, AttentionItem } from './attentionChecks.types';
 
 /** The same helper actionChecks.js keeps private; the Studio chunk gets its own. */
-async function getJson(path: string) {
+async function getJson(key: 'GET /api/studio/attention') {
     let res: Response;
     try {
-        res = await request(`${API_BASE}${path}`);
+        res = await apiRequest(key);
     } catch (err) {
         if (!(err instanceof RefusedError)) throw err;
-        throw new Error(`GET ${path} → ${err.status}`);
+        throw new Error(`${key} → ${err.status}`);
     }
     return res.json();
 }
@@ -242,7 +242,7 @@ export function evaluateStudioAttention(data: AttentionBody | null | undefined):
 export const ATTENTION_CHECKS: Record<string, AttentionCheck> = {
     studio: {
         async fetchState() {
-            return getJson('/api/studio/attention');
+            return getJson('GET /api/studio/attention');
         },
         evaluate: evaluateStudioAttention,
     },

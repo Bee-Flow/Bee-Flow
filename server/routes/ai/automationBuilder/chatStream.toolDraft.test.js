@@ -27,8 +27,8 @@ const { createBuilderStream, call } = require('../../../testUtils/builderStreamH
 const h = createBuilderStream();
 after(() => h.restore());
 
-const { streamWithRetry: sharedStreamWithRetry } = require('../builderShared');
-const { streamWithRetry: routeStreamWithRetry } = require('./modelStream');
+const { streamWithRetry: sharedStreamWithRetry } = require('../../../usecases/ai/builderShared');
+const { streamWithRetry: routeStreamWithRetry } = require('../../../usecases/ai/automationBuilder/modelStream');
 
 // ── The route ─────────────────────────────────────────────
 
@@ -215,7 +215,7 @@ test('the thought narrator wrapper forwards the new events untouched, in order',
     // The loop writes through `send`, which is the narrator's wrapper when an
     // admin configured a narration model. It must hand every unknown event to
     // the client exactly as sent — tool_draft and prompt_progress included.
-    const { createThoughtNarrator } = require('./thoughtNarrator');
+    const { createThoughtNarrator } = require('../../../usecases/ai/automationBuilder/thoughtNarrator');
     const out = [];
     const target = (event, data) => out.push({ event, data });
     const narrator = createThoughtNarrator({

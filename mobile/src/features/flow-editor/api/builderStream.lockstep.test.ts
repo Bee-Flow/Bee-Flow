@@ -24,10 +24,15 @@ import { builderFrames } from './builderStream';
 
 const REPO = path.resolve(__dirname, '../../../../..');
 const BUILDER = path.join(REPO, 'server/routes/ai/automationBuilder');
+// The turn's HTTP-free modules: the route reaches them as ../../../usecases/ai/automationBuilder/x.
+const USE_CASES = path.join(REPO, 'server/usecases/ai/automationBuilder');
+const writerPath = (file: string): string =>
+    fs.existsSync(path.join(BUILDER, file)) ? path.join(BUILDER, file) : path.join(USE_CASES, file);
 
 /**
  * The files that write onto POST /builder/stream: the route's chatStream.js
- * and, transitively, every sibling module it requires.
+ * and, transitively, every sibling module it requires (in the route's folder
+ * or in its use-case twin).
  */
 function streamWriters(): string[] {
     const seen = new Set<string>();
@@ -36,14 +41,14 @@ function streamWriters(): string[] {
         const file = todo.pop() as string;
         if (seen.has(file)) continue;
         seen.add(file);
-        const source = fs.readFileSync(path.join(BUILDER, file), 'utf8');
-        for (const m of source.matchAll(/require\('\.\/([A-Za-z]+)'\)/g)) todo.push(`${m[1] as string}.js`);
+        const source = fs.readFileSync(writerPath(file), 'utf8');
+        for (const m of source.matchAll(/require\('(?:\.\/|(?:\.\.\/){3}usecases\/ai\/automationBuilder\/)([A-Za-z]+)'\)/g)) todo.push(`${m[1] as string}.js`);
     }
     return [...seen];
 }
 
 function serverEvents(): string[] {
-    const source = streamWriters().map((f) => fs.readFileSync(path.join(BUILDER, f), 'utf8')).join('\n');
+    const source = streamWriters().map((f) => fs.readFileSync(writerPath(f), 'utf8')).join('\n');
     const names = [...source.matchAll(/\b(?:send|sendRaw|emit)\(\s*'([a-z_]+)'/g)].map((m) => m[1] as string);
     return [...new Set([...names, 'ping'])].sort();
 }

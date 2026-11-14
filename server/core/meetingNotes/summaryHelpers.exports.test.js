@@ -35,7 +35,7 @@ stub('../llm/modelResolver', {
 stub('../privacy/piiDetection', { detectPii: async () => null });
 
 const SERVER_ROOT = path.resolve(__dirname, '../..');
-const SEARCH_DIRS = ['routes', 'core', 'integrations'].map(d => path.join(SERVER_ROOT, d));
+const SEARCH_DIRS = ['routes', 'usecases', 'core', 'integrations'].map(d => path.join(SERVER_ROOT, d));
 
 /** Every .js file under the searched dirs, excluding tests. */
 function sourceFiles(dir, out = []) {

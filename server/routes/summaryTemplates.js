@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Summary Templates API
  *
@@ -147,7 +147,7 @@ router.get('/org', requireAuth, async (req, res) => {
 });
 
 // ── Create ─────────────────────────────────────────────────────────
-router.post('/', requireAuth, validate({ body: CreateBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CreateBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/', requireAuth, validate({ body: CreateBody }), async (req, res) => {
     const ctx = await resolveCtx(req);
     const { scope, name, prompt } = req.body;
     const isDefault = req.body.isDefault === true;
@@ -181,7 +181,7 @@ router.post('/', requireAuth, validate({ body: CreateBody }), async (/** @type {
 async function authorizeWrite(req, tpl) {
     const ctx = await resolveCtx(req);
     if (tpl.scope === 'user') return tpl.userId === ctx.userId;
-    return isOrgAdminForOrg(req, tpl.organizationId);
+    return isOrgAdminForOrg(req, /** @type {string} */ (tpl.organizationId)); // passed on as stored
 }
 
 // ── Update ─────────────────────────────────────────────────────────

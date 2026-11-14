@@ -169,3 +169,11 @@ test('the caller\'s own organisation, named or not, and a refused configure leav
     assert.strictEqual(refused.statusCode, 400);
     assert.deepStrictEqual(audits(), []);
 });
+
+test('both pushes take no fields: one sent is refused by name', async () => {
+    for (const [url, subject] of [['/push', 'Pushing everything to GitHub'], ['/push-pending', 'Pushing the pending changes to GitHub']]) {
+        const res = await dispatch({ method: 'POST', url, body: { orgId: 'orgB' } });
+        assert.strictEqual(res.statusCode, 400, url);
+        assert.match(res.body.error, new RegExp(`${subject} does not take "orgId"`));
+    }
+});

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Tenant Support Inbox: the org-scoped tag taxonomy, canned replies and
  * SLA policies the tenant Support studio owns. Split out of
@@ -67,7 +67,7 @@ async function deleteTag(req, res) {
     try {
         const orgId = await _firstWritableOrg(req);
         if (!orgId) return res.status(403).json({ error: 'No organisation in scope' });
-        await supportStore.deleteTag(req.params.id, orgId);
+        if (!(await supportStore.deleteTag(req.params.id, orgId))) return res.status(404).json({ error: 'Tag not found' });
         audit.emit(req, { organizationId: orgId, action: 'tag_deleted', payload: { id: req.params.id } });
         res.json({ ok: true });
     } catch (err) { throw _studioWriteError(err); }
@@ -112,7 +112,7 @@ async function deleteCanned(req, res) {
     try {
         const orgId = await _firstWritableOrg(req);
         if (!orgId) return res.status(403).json({ error: 'No organisation in scope' });
-        await supportStore.deleteCannedResponse(req.params.id, orgId);
+        if (!(await supportStore.deleteCannedResponse(req.params.id, orgId))) return res.status(404).json({ error: 'Canned response not found' });
         audit.emit(req, { organizationId: orgId, action: 'canned_deleted', payload: { id: req.params.id } });
         res.json({ ok: true });
     } catch (err) { throw _studioWriteError(err); }

@@ -4,6 +4,7 @@
  * are fixed sentences (an upstream body or message can carry personal data),
  * list filters are validated before a request leaves, durations are readable.
  */
+const { fetchFixedEndpoint } = require('../utils/fixedEndpointFetch.mts');
 const log = require('../telemetry/log');
 
 const FIREFLIES_API_URL = 'https://api.fireflies.ai/graphql';
@@ -28,7 +29,7 @@ function messageForStatus(status) {
 async function firefliesRequest(apiKey, query, variables = {}) {
     let response;
     try {
-        response = await fetch(FIREFLIES_API_URL, {
+        response = await fetchFixedEndpoint(FIREFLIES_API_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

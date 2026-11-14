@@ -16,6 +16,8 @@ const { mapMetaRow } = require('./rowMappers');
 const { recountRows, bumpDataVersion } = require('./rowCounts');
 const { buildMigrationReport, applyPlanned, previewAgainst } = require('./migrationPreview.mts');
 const { bestEffort } = require('../../utils/bestEffort');
+// db.withTransaction's runner over io.getClient, so a test hands in its own database.
+const { runTransaction, rollback } = require('../../utils/txRollback');
 
 // The data-model contract (appStudio/dataModel) sits in the server's import
 // cycle; the barrel hands it in through cycleDeps.
@@ -149,121 +151,120 @@ async function saveDataModelIn(io, appId, ownerId, model, { expectedVersion = nu
     const { errors } = validateDataModel(model);
     if (errors.length) return { ok: false, invalid: true, errors };
 
-    const client = await io.getClient();
+    let saved;
     try {
-        await client.query('BEGIN');
-        const cur = await client.query(
-            `SELECT owner_user_id, model, model_version FROM studio_app_data_meta WHERE app_id = $1 FOR UPDATE`,
-            [appId]
-        );
-
-        let currentModel;
-        /** @type {number} */
-        let currentVersion;
-        /** @type {boolean} */
-        let metaExists;
-        if (cur.rows.length > 0) {
-            if (cur.rows[0].owner_user_id !== ownerId) {
-                await client.query('ROLLBACK');
-                return { ok: false, notFound: true };
-            }
-            currentModel = parseJSON(cur.rows[0].model, emptyDataModel());
-            currentVersion = parseInt(cur.rows[0].model_version) || 0;
-            metaExists = true;
-        } else {
-            // No meta yet — the app itself must be owned before we create one.
-            const owns = await client.query(
-                `SELECT 1 FROM studio_apps WHERE id = $1 AND user_id = $2`, [appId, ownerId]
-            );
-            if (owns.rows.length === 0) {
-                await client.query('ROLLBACK');
-                return { ok: false, notFound: true };
-            }
-            currentModel = emptyDataModel();
-            currentVersion = 0;
-            metaExists = false;
-        }
-
-        // The app's stage, if any: only a deploy changes a stage's model.
-        const app = await client.query(`SELECT project_id FROM studio_apps WHERE id = $1`, [appId]);
-        const lock = await (io.managedParts || require('../managedPartsDefault')).assertManagedWrite({
-            kind: 'app', projectId: app.rows[0] ? app.rows[0].project_id ?? null : null,
-            changedKeys: ['dataModel'], managedWrite, client,
-        });
-
-        if (expectedVersion != null && currentVersion !== expectedVersion) {
-            await client.query('ROLLBACK');
-            return { ok: false, conflict: true, currentVersion, model: currentModel };
-        }
-
-        // A stage's model never loses a table or a column, whoever asks.
-        const stage = additiveOnly || (lock.managed && lock.via === 'capability');
-        if (stage) {
-            const additive = additiveModel(currentModel, model);
-            if (additive.invalid) {
-                await client.query('ROLLBACK');
-                return { ok: false, invalid: true, errors: additive.invalid };
-            }
-            if (additive.refused.length) {
-                throw storeError(409, 'app.data_model_not_additive',
-                    'This data model change is not additive: a stage only takes new tables, new optional columns and new indexes.',
-                    { statements: additive.refused.slice(0, 20) });
-            }
-            model = additive.model;
-        }
-
-        // Apply the physical schema diff BEFORE persisting the new model.
-        //
-        // Under SQLITE the two stores are separate systems, so the DDL lands
-        // first and targetVersion stamps PRAGMA user_version in the same SQLite
-        // txn — the reconcile anchor for a PG COMMIT failing after this
-        // succeeded (the documented split-brain window).
-        //
-        // Under POSTGRES the app's tables live in a schema inside THIS
-        // database, and PG's DDL is transactional: passing our own client makes
-        // the schema change and the model row ONE commit. Either both land or
-        // neither does, so the drift window — and everything built to detect
-        // and repair it — simply does not exist.
-        const nextVersion = currentVersion + 1;
-        const planned = planMigration(currentModel, model, stage ? {} : { convertTypes, onUnconvertible });
-        const applied = await applyPlanned(io, { ownerId, appId, client, planned, nextVersion, refuseUnsupported: convertTypes && !stage });
-        // A refusal leaves through the catch below, which owns the ROLLBACK.
-        if ('result' in applied) throw Object.assign(new Error('data model change refused'), { saveResult: applied.result });
-        const payload = JSON.stringify(model ?? {});
-        if (metaExists) {
-            await client.query(
-                `UPDATE studio_app_data_meta SET model = $1::jsonb, model_version = $2, updated_at = NOW()
-                 WHERE app_id = $3 AND owner_user_id = $4`,
-                [payload, nextVersion, appId, ownerId]
-            );
-        } else {
-            await client.query(
-                `INSERT INTO studio_app_data_meta (app_id, owner_user_id, model, model_version)
-                 VALUES ($1, $2, $3::jsonb, $4)`,
-                [appId, ownerId, payload, nextVersion]
-            );
-        }
-        // Mirror the version onto studio_apps so an app-list read can tell an
-        // app has a data model without a join.
-        await client.query(
-            `UPDATE studio_apps SET data_model_version = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3`,
-            [nextVersion, appId, ownerId]
-        );
-        await client.query('COMMIT');
-        // Row counts can drift across a migration (table drops/recreates) —
-        // take an authoritative recount, best-effort (the save is committed).
-        try { await io.recountRows(appId, ownerId, Array.isArray(model && model.tables) ? model.tables : []); } catch (err) { bestEffort('stores/studioAppData/dataModel:saveDataModelIn', err); /* advisory */ }
-        const report = buildMigrationReport(planned, applied.probed);
-        await bumpTouchedTables(io, appId, ownerId, planned);
-        return { ok: true, version: nextVersion, report };
+        saved = await runTransaction(await io.getClient(), (client) => saveDataModelTx(client, {
+            io, appId, ownerId, model, expectedVersion, managedWrite, additiveOnly, convertTypes, onUnconvertible,
+        }));
     } catch (e) {
-        await client.query('ROLLBACK').catch((e) => bestEffort('stores/studioAppData/dataModel:saveDataModelIn#2', e));
         const refusal = /** @type {{ saveResult?: import('./migrationPreview.mts').SaveRefusal }} */ (e).saveResult;
         if (refusal) return refusal;
         throw e;
-    } finally {
-        client.release();
     }
+    if (!('nextVersion' in saved)) return saved;
+    const { planned, applied, nextVersion } = saved;
+    // Row counts can drift across a migration (table drops/recreates) —
+    // take an authoritative recount, best-effort (the save is committed).
+    try { await io.recountRows(appId, ownerId, Array.isArray(saved.model && saved.model.tables) ? saved.model.tables : []); } catch (err) { bestEffort('stores/studioAppData/dataModel:saveDataModelIn', err); /* advisory */ }
+    const report = buildMigrationReport(planned, applied.probed);
+    await bumpTouchedTables(io, appId, ownerId, planned);
+    return { ok: true, version: nextVersion, report };
+}
+
+/**
+ * saveDataModelIn's transaction on `client`: a refusal that wrote nothing is
+ * answered through `rollback(...)`, a refusal after the migration ran is
+ * thrown (with `saveResult`), and a save answers what the post-commit steps need.
+ */
+async function saveDataModelTx(client, { io, appId, ownerId, model, expectedVersion, managedWrite, additiveOnly, convertTypes, onUnconvertible }) {
+    const cur = await client.query(
+        `SELECT owner_user_id, model, model_version FROM studio_app_data_meta WHERE app_id = $1 FOR UPDATE`,
+        [appId]
+    );
+
+    let currentModel;
+    /** @type {number} */
+    let currentVersion;
+    /** @type {boolean} */
+    let metaExists;
+    if (cur.rows.length > 0) {
+        if (cur.rows[0].owner_user_id !== ownerId) return rollback({ ok: false, notFound: true });
+        currentModel = parseJSON(cur.rows[0].model, emptyDataModel());
+        currentVersion = parseInt(cur.rows[0].model_version) || 0;
+        metaExists = true;
+    } else {
+        // No meta yet — the app itself must be owned before we create one.
+        const owns = await client.query(
+            `SELECT 1 FROM studio_apps WHERE id = $1 AND user_id = $2`, [appId, ownerId]
+        );
+        if (owns.rows.length === 0) return rollback({ ok: false, notFound: true });
+        currentModel = emptyDataModel();
+        currentVersion = 0;
+        metaExists = false;
+    }
+
+    // The app's stage, if any: only a deploy changes a stage's model.
+    const app = await client.query(`SELECT project_id FROM studio_apps WHERE id = $1`, [appId]);
+    const lock = await (io.managedParts || require('../managedPartsDefault')).assertManagedWrite({
+        kind: 'app', projectId: app.rows[0] ? app.rows[0].project_id ?? null : null,
+        changedKeys: ['dataModel'], managedWrite, client,
+    });
+
+    if (expectedVersion != null && currentVersion !== expectedVersion) {
+        return rollback({ ok: false, conflict: true, currentVersion, model: currentModel });
+    }
+
+    // A stage's model never loses a table or a column, whoever asks.
+    const stage = additiveOnly || (lock.managed && lock.via === 'capability');
+    if (stage) {
+        const additive = additiveModel(currentModel, model);
+        if (additive.invalid) return rollback({ ok: false, invalid: true, errors: additive.invalid });
+        if (additive.refused.length) {
+            throw storeError(409, 'app.data_model_not_additive',
+                'This data model change is not additive: a stage only takes new tables, new optional columns and new indexes.',
+                { statements: additive.refused.slice(0, 20) });
+        }
+        model = additive.model;
+    }
+
+    // Apply the physical schema diff BEFORE persisting the new model.
+    //
+    // Under SQLITE the two stores are separate systems, so the DDL lands
+    // first and targetVersion stamps PRAGMA user_version in the same SQLite
+    // txn — the reconcile anchor for a PG COMMIT failing after this
+    // succeeded (the documented split-brain window).
+    //
+    // Under POSTGRES the app's tables live in a schema inside THIS
+    // database, and PG's DDL is transactional: passing our own client makes
+    // the schema change and the model row ONE commit. Either both land or
+    // neither does, so the drift window — and everything built to detect
+    // and repair it — simply does not exist.
+    const nextVersion = currentVersion + 1;
+    const planned = planMigration(currentModel, model, stage ? {} : { convertTypes, onUnconvertible });
+    const applied = await applyPlanned(io, { ownerId, appId, client, planned, nextVersion, refuseUnsupported: convertTypes && !stage });
+    // A refusal is thrown so the transaction rolls back what the migration already ran.
+    if ('result' in applied) throw Object.assign(new Error('data model change refused'), { saveResult: applied.result });
+    const payload = JSON.stringify(model ?? {});
+    if (metaExists) {
+        await client.query(
+            `UPDATE studio_app_data_meta SET model = $1::jsonb, model_version = $2, updated_at = NOW()
+             WHERE app_id = $3 AND owner_user_id = $4`,
+            [payload, nextVersion, appId, ownerId]
+        );
+    } else {
+        await client.query(
+            `INSERT INTO studio_app_data_meta (app_id, owner_user_id, model, model_version)
+             VALUES ($1, $2, $3::jsonb, $4)`,
+            [appId, ownerId, payload, nextVersion]
+        );
+    }
+    // Mirror the version onto studio_apps so an app-list read can tell an
+    // app has a data model without a join.
+    await client.query(
+        `UPDATE studio_apps SET data_model_version = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3`,
+        [nextVersion, appId, ownerId]
+    );
+    return { planned, applied, nextVersion, model };
 }
 
 /** bumpDataVersion for every table whose rows a recompute or conversion changed (best-effort). */

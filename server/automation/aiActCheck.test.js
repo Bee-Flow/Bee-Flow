@@ -11,7 +11,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 const c = require('./aiActCheck');
-const annexIii = require('../compliance/aiAct/annexIii');
+const annexIii = require('../core/aiAct/annexIii');
 
 const manual = (steps) => ({ trigger: { id: 't1', kind: 'manual' }, steps, edges: [] });
 const mail = (id, to, tool = 'gmail_compose') => ({ id, type: 'integration_action', tool, label: `Mail ${id}`, inputs: { to, subject: 's', body: 'b' } });

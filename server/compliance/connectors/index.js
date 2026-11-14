@@ -33,6 +33,7 @@
 
 /** @typedef {typeof import('../../utils/ssrfGuard').safeFetch} SafeFetch */
 /** @typedef {{ orgId?: string, secret?: Record<string, any> | null, settings?: Record<string, any> | null, safeFetch?: SafeFetch }} CollectArgs */
+/** A collector that reaches the network: the collector job always hands its guarded fetch. @typedef {CollectArgs & { safeFetch: SafeFetch }} FetchingCollectArgs */
 
 const fs = require('fs');
 const path = require('path');

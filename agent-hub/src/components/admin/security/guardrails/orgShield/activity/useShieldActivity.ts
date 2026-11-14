@@ -51,8 +51,8 @@
 
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { messageOf } from '@/utils/caughtError';
-import { API_BASE } from '@/utils/helpers';
 import { settled } from '@/api/settled';
+import { apiUrl } from '@/api/typedRequest';
 
 const DETAIL_LIMIT = 200;
 const REFRESH_MS = 30_000;
@@ -190,10 +190,10 @@ export default function useShieldActivity({ enabled, rangeParams, limit = DETAIL
             try {
                 const none = Promise.resolve({ notFound: true });
                 const [g, i, gr, er] = await Promise.all([
-                    fetchJson(`${API_BASE}/api/usage/guardrails/overview${buildQS(range, scope)}`),
-                    fetchJson(`${API_BASE}/api/usage/integrations/overview${buildQS(range, scope)}`),
-                    detail ? fetchJson(`${API_BASE}/api/usage/guardrails/recent${buildQS(range, { limit, ...scope })}`) : none,
-                    detail ? fetchJson(`${API_BASE}/api/usage/integrations/egress${buildQS(range, { limit, ...scope })}`) : none,
+                    fetchJson(`${apiUrl('GET /api/usage/guardrails/overview')}${buildQS(range, scope)}`),
+                    fetchJson(`${apiUrl('GET /api/usage/integrations/overview')}${buildQS(range, scope)}`),
+                    detail ? fetchJson(`${apiUrl('GET /api/usage/guardrails/recent')}${buildQS(range, { limit, ...scope })}`) : none,
+                    detail ? fetchJson(`${apiUrl('GET /api/usage/integrations/egress')}${buildQS(range, { limit, ...scope })}`) : none,
                 ]);
                 if (cancelled) return;
                 setGuard(g.notFound ? EMPTY_GUARD : { ...EMPTY_GUARD, ...g.data });

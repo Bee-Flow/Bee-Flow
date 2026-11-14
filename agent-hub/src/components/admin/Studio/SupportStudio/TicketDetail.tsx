@@ -1,8 +1,8 @@
 import { Sparkles, Send, CheckCircle2, Loader2, Flag, Tag as TagIcon, Users, MessageSquareText, EyeOff, RotateCcw, Clock, Star, AlertTriangle } from 'lucide-react';
-import { useEffect, useState, useCallback, SetStateAction, Dispatch } from 'react';
+import { useState, useCallback, SetStateAction, Dispatch } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import TicketTimeline from './TicketTimeline';
 import useTranslation, { TranslateParams, type TranslateFn } from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
 import { useSupportCanned, useSupportTags, useSupportTeammates } from '@/api/queries/studioSupport';
 import { toast } from '@/components/shared/Toast';
 import EmailHtmlBody from '@/components/support/EmailHtmlBody';
@@ -10,13 +10,44 @@ import type { SupportTeammate } from './supportStudio.types';
 import type { ConvLabel } from '@/components/shell/sidebar/EditLabelInline';
 import type { CannedResponse } from '@/components/support/SupportInboxPanel.types';
 import type { SupportThread, SupportMessage, TicketContext, TicketDetailProps, MessageBubbleProps } from './index.types';
-import { mutate, ApiError, errorBody, request, RefusedError } from '@/api/mutate';
+import { ApiError, errorBody, RefusedError } from '@/api/mutate';
 import { NOT_SUPPORT_TAG, STATUS_IDS, PRIORITY_IDS, STATUS_COLORS, statusLabel, slaBreached } from './SupportStudio.helpers';
+import { apiRequest } from '@/api/typedRequest';
+
+interface TicketAnswer { thread: SupportThread | null; messages: SupportMessage[] }
+const NO_TICKET: TicketAnswer = { thread: null, messages: [] };
+
+/**
+ * The open conversation, kept fresh on the same interval as the ticket list so
+ * a new customer reply or status change shows up without re-opening it. A
+ * refusal keeps what is shown.
+ */
+function useTicketThread(threadId: string, autoRefreshMs: number | null | undefined) {
+    const queryClient = useQueryClient();
+    const key = ['supportStudio', 'thread', threadId] as const;
+    const query = useQuery<TicketAnswer>({
+        queryKey: key,
+        staleTime: 0,
+        retry: false,
+        refetchInterval: autoRefreshMs || false,
+        refetchIntervalInBackground: true,
+        queryFn: async () => {
+            const res = await apiRequest('GET /api/support-inbox/threads/{id}', { params: { id: threadId } }).catch((err: unknown) => {
+                if (err instanceof RefusedError) return null;
+                throw err;
+            });
+            if (!res) return queryClient.getQueryData<TicketAnswer>(key) ?? NO_TICKET;
+            const d = await res.json();
+            return { thread: d.thread, messages: d.messages || [] };
+        },
+    });
+    const { refetch } = query;
+    const load = useCallback(async () => { await refetch(); }, [refetch]);
+    return { thread: query.data?.thread ?? null, messages: query.data?.messages ?? NO_TICKET.messages, load };
+}
 
 export function TicketDetail({ threadId, user, onChanged, autoRefreshMs = 0 }: TicketDetailProps) {
     const { t } = useTranslation();
-    const [thread, setThread] = useState<SupportThread | null>(null);
-    const [messages, setMessages] = useState<SupportMessage[]>([]);
     const [reply, setReply] = useState('');
     const [internal, setInternal] = useState(false);
     const [busy, setBusy] = useState(false);
@@ -29,27 +60,12 @@ export function TicketDetail({ threadId, user, onChanged, autoRefreshMs = 0 }: T
     const [context, setContext] = useState<TicketContext | null>(null);
     const [showContext, setShowContext] = useState(false);
 
-    const load = useCallback(async () => {
-        const res = await request(`${API_BASE}/api/support-inbox/threads/${threadId}`).catch((err: unknown) => {
-            if (err instanceof RefusedError) return null;
-            throw err;
-        });
-        if (res) { const d = await res.json(); setThread(d.thread); setMessages(d.messages || []); }
-    }, [threadId]);
-    useEffect(() => { load(); }, [load]);
-
-    // Keep the open conversation fresh on the same interval as the ticket list,
-    // so a new customer reply or status change shows up without re-opening it.
-    useEffect(() => {
-        if (!autoRefreshMs) return undefined;
-        const id = setInterval(() => { load(); }, autoRefreshMs);
-        return () => clearInterval(id);
-    }, [autoRefreshMs, load]);
+    const { thread, messages, load } = useTicketThread(threadId, autoRefreshMs);
 
     const toggleActivity = () => setShowActivity(v => !v);
 
     const loadContext = useCallback(async () => {
-        const res = await request(`${API_BASE}/api/support-inbox/threads/${threadId}/context`).catch((err: unknown) => {
+        const res = await apiRequest('GET /api/support-inbox/threads/{id}/context', { params: { id: threadId } }).catch((err: unknown) => {
             if (err instanceof RefusedError) return null;
             throw err;
         });
@@ -61,7 +77,7 @@ export function TicketDetail({ threadId, user, onChanged, autoRefreshMs = 0 }: T
         setDrafting(true);
         try {
             try {
-                const res = await mutate(`${API_BASE}/api/support-inbox/threads/${threadId}/draft`, { method: 'POST' });
+                const res = await apiRequest('POST /api/support-inbox/threads/{id}/draft', { params: { id: threadId } });
                 const d = await res.json().catch(() => ({}));
                 if (d.message?.body) { setReply(d.message.body); setInternal(false); }
             } catch (err) {
@@ -78,10 +94,7 @@ export function TicketDetail({ threadId, user, onChanged, autoRefreshMs = 0 }: T
         setBusy(true);
         try {
             try {
-                await mutate(`${API_BASE}/api/support-inbox/threads/${threadId}/reply`, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ body: reply, internalNote: internal }),
-                });
+                await apiRequest('POST /api/support-inbox/threads/{id}/reply', { params: { id: threadId }, body: { body: reply, internalNote: internal } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const d = errorBody(err) ?? {};
@@ -93,9 +106,7 @@ export function TicketDetail({ threadId, user, onChanged, autoRefreshMs = 0 }: T
     };
 
     const patch = async (body: Record<string, unknown>) => {
-        const res = await mutate(`${API_BASE}/api/support-inbox/threads/${threadId}`, {
-            method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
-        }).catch((err: unknown) => {
+        const res = await apiRequest('PATCH /api/support-inbox/threads/{id}', { params: { id: threadId }, body }).catch((err: unknown) => {
             if (err instanceof ApiError) return null;
             throw err;
         });

@@ -7,9 +7,9 @@ import { ALERT_ERROR, ALERT_SUCCESS, CHIP, PRIMARY_BTN, QUIET_BTN } from '@/comp
 import SectionHeader from '@/components/shared/SectionHeader';
 import { FIELD_INPUT, SettingsGroup, SettingsList } from '@/components/shared/SettingsList';
 import Spinner from '@/components/shared/Spinner';
-import { API_BASE } from '@/utils/helpers';
 import { Loader2, Plus, Trash2, AtSign, ChevronDown, ChevronRight, ShieldCheck } from 'lucide-react';
-import { mutate, errorBody, RefusedError } from '@/api/mutate';
+import { errorBody, RefusedError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 interface DomainMessage {
     type: 'success' | 'error';
@@ -55,11 +55,7 @@ export default function FreeEmailDomainsPanel() {
     const persist = async (nextExtra: string[]) => {
         setSaving(true);
         try {
-            const res = await mutate(`${API_BASE}/auth/free-email-domains`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ extra: nextExtra }),
-            });
+            const res = await apiRequest('PUT /auth/free-email-domains', { body: { extra: nextExtra } });
             const data = await res.json().catch(() => ({}));
             queryClient.setQueryData<FreeEmailDomains | null>(freeEmailDomainsKey, (prev) => ({ builtin: prev?.builtin ?? [], extra: Array.isArray(data.extra) ? data.extra : nextExtra }));
             notify('success', t('admin.fed_saved', 'Email-domain blocklist updated'));

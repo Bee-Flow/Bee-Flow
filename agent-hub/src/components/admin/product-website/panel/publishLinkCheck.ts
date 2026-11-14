@@ -1,8 +1,7 @@
 // The link pre-check of Publish: internal links only (the server resolves them
 // against the site's own pages, posts and redirects, no network). A failed or
 // slow check never blocks publishing; it only means no warning is shown.
-import { mutate } from '@/api/mutate';
-import { cmsApi } from '../cmsApi';
+import { apiRequest } from '@/api/typedRequest';
 import type { ConfirmOptions } from '@/components/shared/useConfirm';
 
 const CHECK_TIMEOUT_MS = 8000;
@@ -24,12 +23,11 @@ const isLinkProblem = (value: unknown): value is LinkProblem => {
 /** The broken internal links of a site draft, errors only; [] when the check cannot run. */
 export async function fetchLinkErrors(siteId: string): Promise<LinkProblem[]> {
     try {
-        const res = await mutate(cmsApi.siteLinkCheck(siteId), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({}),
+        const res = await apiRequest('POST /api/cms/sites/{siteId}/link-check', {
+            params: { siteId },
+            body: {},
             // A hanging server must not hang Publish: an abort counts as "no problems".
-            signal: AbortSignal.timeout(CHECK_TIMEOUT_MS),
+            init: { signal: AbortSignal.timeout(CHECK_TIMEOUT_MS) },
         });
         const data: unknown = await res.json();
         const problems = typeof data === 'object' && data !== null && 'problems' in data ? data.problems : [];

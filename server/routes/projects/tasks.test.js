@@ -18,7 +18,7 @@
 const { test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert');
 const crypto = require('node:crypto');
-const { serve } = require('../../testUtils/routeHarness');
+const { serve, assertRefused } = require('../../testUtils/routeHarness');
 const { pgliteDb } = require('../../testUtils/pgliteDb');
 const { fakeRequireProjectRole, projectUser } = require('../../testUtils/projectRoleGate');
 const taskStoreModule = require('../../stores/projectTaskStore');
@@ -558,4 +558,14 @@ test('dependency links survive storage, stay separate from related tasks and rej
     const removed = await call('PATCH', `/api/projects/p1/tasks/${b.id}`, { body: { links: [] } });
     assert.strictEqual(removed.status, 200, removed.text);
     assert.deepStrictEqual(removed.body.task.links, []);
+});
+
+test('the AI improvements take no fields: one sent is refused by name and the AI is not asked', async () => {
+    const task = await make({ title: 'Fields' });
+    const before = asked.length;
+    for (const url of ['/api/projects/p1/meetings/mt-1/task-suggestions/improve', `/api/projects/p1/tasks/${task.id}/improve`]) {
+        assertRefused(assert, await call('POST', url, { body: { note: 'shorter' } }), undefined, /does not take "note"/);
+    }
+    assert.strictEqual(asked.length, before);
+    assert.strictEqual((await call('POST', `/api/projects/p1/tasks/${task.id}/improve`, { body: {} })).status, 200);
 });

@@ -1,7 +1,7 @@
 import { useEffect, useEffectEvent, useState } from 'react';
 import { summariseDeleteBlock } from './deleteBlock';
 import type { DeleteBlockBody } from './deleteBlock';
-import { deleteAgentRequest } from '@/api/agentStudio';
+import { useDeleteAgentMutation } from '@/api/queries/agentDelete';
 import { errorMessage } from '@/utils/caughtError';
 import { logger } from '@/utils/logger';
 
@@ -28,6 +28,7 @@ export default function useAgentDelete({ onDeleted, fetchAgents }: Options) {
     // ONLY way to reach the override, because the server requires ?confirm=1
     // and will not take an unconfirmed delete of an agent anything still uses.
     const [deleteBlocked, setDeleteBlocked] = useState<DeleteBlock | null>(null);
+    const { mutateAsync: sendDelete } = useDeleteAgentMutation();
 
     // Open the in-app confirmation modal. The actual delete happens in confirmDelete().
     const requestDelete = (a: DeleteTarget | null | undefined) => {
@@ -49,7 +50,7 @@ export default function useAgentDelete({ onDeleted, fetchAgents }: Options) {
         setDeleting(true);
         setDeleteError(null);
         try {
-            const res = await deleteAgentRequest(a.id, force);
+            const res = await sendDelete({ agentId: a.id, force });
             // 409 is not an error to show as text — it is the answer to
             // "what would this break", and it belongs in the dialog. Reading
             // it must never turn an unparsable body into "nothing uses this":

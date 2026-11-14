@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * GET /api/public/github-stats — live repository facts for the marketing
  * site's `github-stats` block (stars, latest release).
@@ -29,6 +29,7 @@
  * still shows these numbers next to whatever `repoUrl` an admin configured,
  * and does not read that `url` — a client-side fix, not one for this route.)
  */
+const { fetchFixedEndpoint } = require('../utils/fixedEndpointFetch.mts');
 const express = require('express');
 const { validate } = require('../core/http/validate');
 const { z, onUnknownKeys } = require('../utils/zod');
@@ -59,7 +60,7 @@ let inFlight = null; // dedupes a cold-cache stampede into one upstream fetch
  * @param {string} url
  */
 async function fetchJson(url) {
-    const res = await fetch(url, {
+    const res = await fetchFixedEndpoint(url, {
         headers: {
             accept: 'application/vnd.github+json',
             'user-agent': 'beeflow-server',
@@ -99,15 +100,16 @@ async function loadStats(previous) {
         }
     }
     const data = {
-        stars: Number.isFinite(repo.stargazers_count) ? repo.stargazers_count : null,
-        forks: Number.isFinite(repo.forks_count) ? repo.forks_count : null,
+        // Number.isFinite holds only for a number.
+        stars: Number.isFinite(repo.stargazers_count) ? /** @type {number} */ (repo.stargazers_count) : null,
+        forks: Number.isFinite(repo.forks_count) ? /** @type {number} */ (repo.forks_count) : null,
         latestRelease,
         url: repo.html_url || `https://github.com/${REPO}`,
     };
     return { data, releaseUnknown };
 }
 
-router.get('/github-stats', validate({ query: NO_QUERY }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof NO_QUERY>>} */ req, res) => {
+router.get('/github-stats', validate({ query: NO_QUERY }), async (req, res) => {
     if (cache.data && Date.now() - cache.at < TTL_MS) {
         res.set('Cache-Control', cache.releaseUnknown ? 'public, max-age=600' : 'public, max-age=3600');
         return res.json(cache.data);

@@ -239,7 +239,7 @@ const isBrief = (s) => typeof s === 'string' && s.trim() !== '' && !SYNTHETIC_TU
  * reach the snapshot, so a user entry there is the human's text.
  *
  * @param {Array}  [history]   priorSnapshot.messages
- * @param {string} [message]   the client's own text this turn (empty on a synthetic turn)
+ * @param {string | null} [message]   the client's own text this turn (empty on a synthetic turn)
  * @param {string} [persisted] priorSnapshot.brief — the brief as an earlier turn stored it
  * @returns {string} '' when there is no brief to read
  */

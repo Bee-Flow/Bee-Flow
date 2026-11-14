@@ -22,7 +22,7 @@ const assert = require('node:assert');
 const { makeAiActAuto, mergeAnswers } = require('./aiActAuto');
 const { makeAiActState } = require('./aiActCheck');
 const { detectQuestions } = require('./aiActDetect');
-const assess = require('../compliance/aiAct/assess');
+const assess = require('../core/aiAct/assess');
 const signalsLib = require('../compliance/aiAct/signals');
 
 const NOW = Date.parse('2026-09-28T10:00:00Z');

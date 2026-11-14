@@ -273,6 +273,11 @@ test('a transcript line filed into a knowledge base is found through its stored 
             { id: 'kb-1', lineCount: 2 },
             { id: 'kb-2', lineCount: 1 },
         ]);
+        // With tags the tag clause comes first and every later parameter
+        // slides along: the filed lines must still be found under their own.
+        const tagged = await usageForMeeting(meeting({ tags: ['nothing-tagged-this'] }), { db });
+        assert.deepStrictEqual(tagged.partial, []);
+        assert.deepStrictEqual(tagged.rows.filter(r => r.kind === 'kb' && r.lineCount).map(r => [r.id, r.lineCount]).sort(), [['kb-1', 2], ['kb-2', 1]]);
     } finally {
         await q(`DELETE FROM kb_sources WHERE id IN ('t1','t2','t3','t4','t5')`);
     }

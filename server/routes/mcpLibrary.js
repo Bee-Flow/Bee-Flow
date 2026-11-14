@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * MCP library API — mounted at /api/mcp-library.
  *
@@ -45,7 +45,8 @@ const connectLimit = perUserRateLimit({ windowMs: 60_000, max: 12, name: 'mcp-li
 
 // ── Schemas ─────────────────────────────────────────────────────────
 
-/** @param {import('zod').ZodRawShape} shape */
+/** @template {import('zod').ZodRawShape} S @param {S} shape
+ */
 const bodyOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 const CATALOG_ID = worded('catalogId is a library id.').regex(/^[a-z0-9_]{2,40}$/, 'catalogId is a library id.');
@@ -117,7 +118,7 @@ router.get('/policy', requireAuth, requireSuperAdmin, async (req, res) => {
     });
 });
 
-router.put('/policy', requireAuth, requireSuperAdmin, validate({ body: PolicyBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof PolicyBody>, import('qs').ParsedQs>} */ req, res) => {
+router.put('/policy', requireAuth, requireSuperAdmin, validate({ body: PolicyBody }), async (req, res) => {
     const bad = req.body.allowedHosts.filter(/** @param {string} h */ h => !policyModule.normalizeHostPattern(h));
     if (bad.length) {
         throw new HttpError(400, 'invalid_host', `Not a host name: ${bad.slice(0, 3).join(', ')}. Use names like mcp.example.com or *.example.com, without https:// or a path.`);
@@ -157,49 +158,53 @@ router.delete('/me/:id/credential', requireAuth, /** @param {import('express').R
  */
 const org = express.Router();
 org.use(requirePrimaryOrgAdmin(), requireFeature('mcp_marketplace'));
+/** The organisation requirePrimaryOrgAdmin set. @param {{ primaryOrgId?: string }} req */
+const orgIdOf = (req) => /** @type {string} */ (req.primaryOrgId);
+/** The row the :id loader below set. @param {unknown} req */
+const rowOf = (req) => /** @type {NonNullable<LibraryReq['libraryRow']>} */ (/** @type {LibraryReq} */ (req).libraryRow);
 
 // Library row loader: another organisation's row, a builder row and a
 // missing row are all the same 404, so the API is no existence oracle.
-org.param('id', /** @param {LibraryReq} req */ async (req, res, next, id) => {
-    const row = await service.loadOrgRow(req.primaryOrgId, id);
+org.param('id', async (req, res, next, id) => {
+    const row = await service.loadOrgRow(orgIdOf(req), id);
     if (!row) return next(new HttpError(404, 'not_found', 'Not found'));
-    req.libraryRow = row;
+    /** @type {LibraryReq} */ (req).libraryRow = row;
     next();
 });
 
 org.get('/', async (req, res) => {
-    res.json(await service.getLibrary({ orgId: req.primaryOrgId, isServerAdmin: isSuperAdmin(req) }));
+    res.json(await service.getLibrary({ orgId: orgIdOf(req), isServerAdmin: isSuperAdmin(req) }));
 });
 
-org.post('/probe', connectLimit, validate({ body: ProbeBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof ProbeBody>, import('qs').ParsedQs>} */ req, res) => {
+org.post('/probe', connectLimit, validate({ body: ProbeBody }), async (req, res) => {
     res.json(await service.probe(req.body));
 });
 
-org.post('/servers', connectLimit, validate({ body: InstallBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof InstallBody>, import('qs').ParsedQs>} */ req, res) => {
-    const server = await service.install({ orgId: req.primaryOrgId, actorUserId: sessionUser(req).id, input: req.body });
+org.post('/servers', connectLimit, validate({ body: InstallBody }), async (req, res) => {
+    const server = await service.install({ orgId: orgIdOf(req), actorUserId: sessionUser(req).id, input: req.body });
     res.status(201).json({ server });
 });
 
-org.patch('/servers/:id', connectLimit, validate({ body: UpdateBody }), /** @param {LibraryReq} req */ async (req, res) => {
-    const server = await service.update({ orgId: req.primaryOrgId, row: req.libraryRow, actorUserId: sessionUser(req).id, patch: req.body });
+org.patch('/servers/:id', connectLimit, validate({ body: UpdateBody }), async (req, res) => {
+    const server = await service.update({ orgId: orgIdOf(req), row: rowOf(req), actorUserId: sessionUser(req).id, patch: req.body });
     res.json({ server });
 });
 
-org.post('/servers/:id/refresh', connectLimit, validate({ body: NoBody }), /** @param {LibraryReq} req */ async (req, res) => {
-    res.json(await service.refresh({ orgId: req.primaryOrgId, row: req.libraryRow, actorUserId: sessionUser(req).id }));
+org.post('/servers/:id/refresh', connectLimit, validate({ body: NoBody }), async (req, res) => {
+    res.json(await service.refresh({ orgId: orgIdOf(req), row: rowOf(req), actorUserId: sessionUser(req).id }));
 });
 
-org.put('/servers/:id/credential', connectLimit, validate({ body: CredentialBody }), /** @param {LibraryReq} req */ async (req, res) => {
-    res.json(await service.setSharedCredential({ orgId: req.primaryOrgId, row: req.libraryRow, actorUserId: sessionUser(req).id, value: req.body.value }));
+org.put('/servers/:id/credential', connectLimit, validate({ body: CredentialBody }), async (req, res) => {
+    res.json(await service.setSharedCredential({ orgId: orgIdOf(req), row: rowOf(req), actorUserId: sessionUser(req).id, value: req.body.value }));
 });
 
-org.delete('/servers/:id', /** @param {LibraryReq} req */ async (req, res) => {
-    res.json(await service.uninstall({ orgId: req.primaryOrgId, row: req.libraryRow, actorUserId: sessionUser(req).id }));
+org.delete('/servers/:id', async (req, res) => {
+    res.json(await service.uninstall({ orgId: orgIdOf(req), row: rowOf(req), actorUserId: sessionUser(req).id }));
 });
 
 org.put('/server-wide/:serverId', validate({ body: ServerWideBody }), /** @param {import('express').Request<{ serverId: string }>} req */ async (req, res) => {
     const access = await service.setServerWideAccess({
-        orgId: req.primaryOrgId, serverId: req.params.serverId, actorUserId: sessionUser(req).id, access: req.body.access,
+        orgId: orgIdOf(req), serverId: req.params.serverId, actorUserId: sessionUser(req).id, access: req.body.access,
     });
     res.json({ access });
 });

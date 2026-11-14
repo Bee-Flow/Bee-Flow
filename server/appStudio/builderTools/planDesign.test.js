@@ -13,7 +13,7 @@ const { boundPlanDesign, hexColour, PLAN_DESIGN_LIMITS } = require('./planDesign
 const { boundPlanArtifact, applyToolCall, TOOL_SCHEMAS } = require('../builderTools');
 const { emptyDefinition, DESIGN_SPEC, NAV_STYLES } = require('../componentSpecs');
 const { ALL_APP_DESIGN_PRESETS } = require('../appDesignPresets');
-const { renderApprovedPlanNote } = require('../../routes/ai/appStudioBuilder/turnNotes');
+const { renderApprovedPlanNote } = require('../../usecases/ai/appStudioBuilder/turnNotes');
 
 const BASE = { title: 'Repairs', summary: 'Report and follow repairs.', screens: [{ name: 'Home', purpose: 'Overview', contents: ['hero'] }] };
 

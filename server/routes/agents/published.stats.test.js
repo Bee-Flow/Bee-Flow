@@ -23,6 +23,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const Module = require('module');
+const { fakeAgentGates } = require('./agentGate.testkit');
 
 const noop = () => {};
 const mw = () => (req, res, next) => next();
@@ -73,12 +74,15 @@ const MOCKS = {
     '../../core/entitlements/limits': { checkSubscriptionLimits: async () => ({}), checkResourceLimits: async () => ({}) },
     '../../core/http/sseHelpers': { setupSSE: noop, sendSSEError: noop, persistAndTitle: async () => {}, getOrCreateAgentConversation: async () => {} },
     './crud': {
-        canModifyAgent: async (a) => a.owner_id === fx.userId,
         buildCanModifyContext: async () => ({}),
         validateAgentConfigReferences: async () => ({ warnings: [] }),
     },
     '../../compliance/events': { EVENTS: { AGENT_PUBLISHED: 'agent_published' }, emit: noop },
 };
+Object.assign(MOCKS['./crud'], fakeAgentGates({
+    agentStore: MOCKS['../../stores/agentStore'], canModify: (a) => a.owner_id === fx.userId, userId: () => fx.userId,
+}));
+
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
     const mockId = `mock:published-stats:${request}`;

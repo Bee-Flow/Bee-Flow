@@ -27,6 +27,7 @@ const { getProviders, invalidateModelCache } = require('../../core/aiAgent');
 const { getAdapter } = require('../../core/providers');
 const { LOCAL_RUNTIMES, isLocalProviderType } = require('../../core/providers/localModels');
 const { z, typeError } = require('../../utils/zod');
+const { bodyOf } = require('../../core/http/schemaParts');
 const { validate } = require('../../core/http/validate');
 const { openSse } = require('../../core/http/sseHelpers');
 const { requireAdminUser } = require('./requireAdminUser');
@@ -187,7 +188,7 @@ const DETECT_SERVICES = [
 // POST /ai/local-runtimes/detect — scan the usual suspects.
 // Fixed candidate list only: it never probes a caller-supplied address, so it
 // cannot be used as a port scanner.
-router.post('/local-runtimes/detect', requireAuth, requireAdmin, async (/** @type {import('express').Request} */ _req, /** @type {import('express').Response} */ res) => {
+router.post('/local-runtimes/detect', requireAuth, requireAdmin, validate({ body: bodyOf({}, 'Detecting local runtimes') }), async (/** @type {import('express').Request} */ _req, /** @type {import('express').Response} */ res) => {
     const candidates = [
         ...DETECT_HOSTS.flatMap(host =>
             DETECT_TARGETS.map(t => ({ type: t.type, url: `http://${host}:${t.port}${t.path}` }))

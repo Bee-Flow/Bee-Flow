@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * What a run-step row keeps of the mappings that found nothing while the step
  * ran: the runner's binding log (automation/bind.js withBindingLog, carried
@@ -32,8 +32,8 @@ const KINDS = new Set(['ref', 'template', 'expr']);
 /** @type {Record<string, number>} */
 const STRING_FIELDS = { field: 200, path: 1000, at: 1000, found: 20, missing: 200, message: 500, step: 200 };
 
-/** @param {number} v */
-const isCount = (v) => Number.isInteger(v) && v > 0;
+/** @param {unknown} v @returns {v is number} */
+const isCount = (v) => Number.isInteger(v) && /** @type {number} */ (v) > 0;
 
 /**
  * One log entry as stored, or null when it has no path to show.
@@ -48,9 +48,9 @@ function pickEntry(e) {
         const v = e[key];
         if (typeof v === 'string' && v) out[key] = v.length > max ? `${v.slice(0, max - 1)}…` : v;
     }
-    if (KINDS.has(e.kind)) out.kind = e.kind;
-    out.reason = REASONS.has(e.reason) ? e.reason : 'missing';
-    if (Number.isInteger(e.size) && e.size >= 0) out.size = e.size;
+    if (KINDS.has(/** @type {string} */ (e.kind))) out.kind = e.kind;
+    out.reason = REASONS.has(/** @type {string} */ (e.reason)) ? e.reason : 'missing';
+    if (Number.isInteger(e.size) && /** @type {number} */ (e.size) >= 0) out.size = e.size;
     if (e.index === true) out.index = true;
     out.count = isCount(e.count) ? e.count : 1;
     return out;

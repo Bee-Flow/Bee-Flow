@@ -1,150 +1,122 @@
+// @typecheck
 /**
- * The W2 publish-lifecycle backfill.
+ * The W2 publish-lifecycle backfill, on a real Postgres: the boot ladder's
+ * schema on PGlite (testUtils/pgliteTemplate.js) behind db.js's pool
+ * (testUtils/pglitePool.js). The store's createVersion copies object-storage
+ * blobs, so it is replaced on the store object by one that writes the version
+ * row the real one would (and fails for one page).
  *
- * What is pinned here is the ORDER and the IDEMPOTENCE, because both are the
+ * What is held here is the ORDER and the IDEMPOTENCE, because both are the
  * difference between "the audience reads what was published" and a pointer
  * aimed at nothing:
  *
- *   - the columns come first and are IF NOT EXISTS (this product has no
- *     migration ledger; every replica replays this on every boot);
+ *   - the columns survive a replay (no migration ledger; every replica
+ *     replays this on every boot);
  *   - a snapshot is created for a published page that has none BEFORE any
- *     pointer is written — step 3 cannot point at a row that does not exist;
- *   - the pointer UPDATE is scoped `WHERE published_version_id IS NULL`, so a
- *     second run never moves a pointer the owner has since re-published;
- *   - the pointer column is never given NOT NULL or a DEFAULT: NULL means
+ *     pointer is written — the pointer cannot aim at a row that does not exist;
+ *   - a second run never moves a pointer the owner has since re-published;
+ *   - the pointer column has no NOT NULL and no DEFAULT: NULL means
  *     "nothing pinned", not version zero;
  *   - drafts are left alone entirely (no audience, no snapshot work).
  *
- * The pg layer and the store are mocked via require.cache (the pattern of
- * studio-app-published-version-2026-08.test.js).
- *
- * Run: node --test --test-force-exit migrations/webpage-published-version-2026-09.test.js
+ * Run: node --test migrations/webpage-published-version-2026-09.test.js
  */
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const path = require('path');
+const { usePglitePool } = require('../testUtils/pglitePool');
+const { ladderPglite } = require('../testUtils/pgliteTemplate');
+const { insertRow } = require('../testUtils/pgliteSeed');
+const { hideTable } = require('../testUtils/pgliteFaults');
 
-const calls = { ddl: [], all: [], run: [], versions: [] };
-let orphanRows = [];
-
-let tablePresent = true;
-
-const fakeDb = {
-    async exec(sql) { calls.ddl.push(String(sql).replace(/\s+/g, ' ').trim()); },
-    async getAll(sql, params) {
-        calls.all.push({ sql: String(sql).replace(/\s+/g, ' ').trim(), params });
-        return orphanRows;
-    },
-    async run(sql, params) {
-        calls.run.push({ sql: String(sql).replace(/\s+/g, ' ').trim(), params });
-        return { rowCount: 2 };
-    },
-    async getOne(sql) {
-        if (/to_regclass/.test(String(sql))) return { t: tablePresent ? 'webpages' : null };
-        return null;
-    },
-};
-
-const dbPath = require.resolve(path.join(__dirname, '..', 'db.js'));
-require.cache[dbPath] = { id: dbPath, filename: dbPath, loaded: true, exports: fakeDb };
-
-const storePath = require.resolve(path.join(__dirname, '..', 'stores', 'webpageStore.js'));
-require.cache[storePath] = {
-    id: storePath, filename: storePath, loaded: true,
-    exports: {
-        // The migration awaits this before touching anything: at boot the
-        // ladder is not sequenced after the store inits.
-        ready: Promise.resolve(),
-        createVersion: async (userId, webpageId, summary, hashes, source) => {
-            calls.versions.push({ userId, webpageId, summary, source });
-            if (webpageId === 'wp-broken') throw new Error('blob unreachable');
-            return { id: `v-${webpageId}` };
-        },
-    },
-};
-
+const { pg, close } = usePglitePool(ladderPglite());
+const webpageStore = require('../stores/webpageStore');
 const migration = require('./webpage-published-version-2026-09');
 
-function reset() {
-    calls.ddl = []; calls.all = []; calls.run = []; calls.versions = [];
-    orphanRows = []; tablePresent = true;
-}
+/** @type {Array<{ userId: string, webpageId: string, summary: string, source: string }>} */
+const snapshots = [];
+const realCreateVersion = webpageStore.createVersion;
+webpageStore.createVersion = /** @type {any} */ (async (/** @type {string} */ userId, /** @type {string} */ webpageId, /** @type {string} */ summary, /** @type {unknown} */ _hashes, /** @type {string} */ source) => {
+    snapshots.push({ userId, webpageId, summary, source });
+    if (webpageId === 'wp-broken') throw new Error('blob unreachable');
+    return insertRow(pg, 'webpage_versions', { id: `v-${webpageId}`, webpage_id: webpageId, summary, source });
+});
+// The store's schema is in place before a test hides its table.
+test.before(async () => { await webpageStore.ready; });
+test.after(async () => { webpageStore.createVersion = realCreateVersion; await close(); });
+
+test.beforeEach(async () => {
+    snapshots.length = 0;
+    await pg.exec('TRUNCATE webpage_versions, webpages CASCADE');
+});
+
+/** @param {string} id @param {Record<string, unknown>} [over] */
+const page = (id, over = {}) => insertRow(pg, 'webpages', { id, user_id: 'alice', name: id, is_published: true, ...over });
+/** @param {string} id */
+const pointer = async (id) => (await pg.query('SELECT published_version_id FROM webpages WHERE id = $1', [id])).rows[0].published_version_id;
 
 test('a build without the webpages table is skipped, not failed', async () => {
     // At boot this ladder is kicked off with setImmediate and is not ordered
     // after the store inits; a light build may have no webpages table at all.
     // "Nothing to pin" is not an error, and it must not ALTER a missing table.
-    reset();
-    tablePresent = false;
-    const result = await migration.up();
+    const show = await hideTable(pg, 'webpages');
+    let result;
+    try { result = await migration.up(); } finally { await show(); }
     assert.strictEqual(result.skipped, true);
-    assert.deepStrictEqual(calls.ddl, []);
-    assert.deepStrictEqual(calls.run, []);
+    assert.deepStrictEqual(snapshots, []);
 });
 
-test('adds both columns idempotently, and never forces NOT NULL on the pointer', async () => {
-    reset();
+test('the columns survive a replay, and the pointer has no NOT NULL and no DEFAULT', async () => {
     await migration.up();
     await migration.up(); // replayed on every boot of every replica
-
-    const pointerDdl = calls.ddl.filter(q => /published_version_id/.test(q));
-    assert.strictEqual(pointerDdl.length, 2, 'the column statement runs on every invocation');
-    for (const q of pointerDdl) {
-        assert.match(q, /ALTER TABLE webpages ADD COLUMN IF NOT EXISTS published_version_id TEXT/);
-        assert.doesNotMatch(q, /NOT NULL|DEFAULT/,
-            'NULL means "nothing pinned" — a default would read as version zero');
-    }
-    const sourceDdl = calls.ddl.filter(q => /webpage_versions ADD COLUMN/.test(q));
-    assert.strictEqual(sourceDdl.length, 2);
-    for (const q of sourceDdl) {
-        assert.match(q, /IF NOT EXISTS source TEXT NOT NULL DEFAULT 'manual'/,
-            "existing rows must land on 'manual', the pre-W2 behaviour");
-    }
+    const { rows } = await pg.query(`SELECT table_name, column_name, is_nullable, column_default FROM information_schema.columns
+        WHERE (table_name, column_name) IN (('webpages', 'published_version_id'), ('webpage_versions', 'source')) ORDER BY table_name`);
+    assert.deepStrictEqual(rows, [
+        { table_name: 'webpage_versions', column_name: 'source', is_nullable: 'NO', column_default: "'manual'::text" },
+        { table_name: 'webpages', column_name: 'published_version_id', is_nullable: 'YES', column_default: null },
+    ], 'NULL means "nothing pinned" — a default would read as version zero; existing versions land on manual');
 });
 
-test('a published page with no snapshot gets one BEFORE any pointer is written', async () => {
-    reset();
-    orphanRows = [{ id: 'wp1', user_id: 'alice' }];
-    await migration.up();
-
-    assert.deepStrictEqual(
-        calls.versions.map(v => [v.webpageId, v.userId, v.source]),
-        [['wp1', 'alice', 'published']],
+test('a published page with no snapshot gets one, and the pointer aims at it', async () => {
+    await page('wp1');
+    const result = await migration.up();
+    assert.deepStrictEqual(snapshots.map(v => [v.webpageId, v.userId, v.source]), [['wp1', 'alice', 'published']],
         "the snapshot is marked 'published' so the prune can never take it");
-
-    // Ordering is the safety property: a pointer written first would aim at
-    // a version that does not exist yet.
-    const pointerUpdate = calls.run.find(c => /SET published_version_id/.test(c.sql));
-    assert.ok(pointerUpdate, 'the pointer UPDATE must run');
-    assert.ok(calls.versions.length > 0, 'and the snapshot must have run before it');
+    assert.strictEqual(await pointer('wp1'), 'v-wp1');
+    assert.deepStrictEqual(result, { created: 1, pinned: 1 });
 });
 
-test('the pointer UPDATE only ever touches published pages that have none', async () => {
-    reset();
+test('the pointer picks the newest version, ties broken by id; a pinned pointer never moves', async () => {
+    await page('wp-tie');
+    const t = '2026-09-01T00:00:00Z';
+    await insertRow(pg, 'webpage_versions', { id: 'v-b', webpage_id: 'wp-tie', created_at: t });
+    await insertRow(pg, 'webpage_versions', { id: 'v-a', webpage_id: 'wp-tie', created_at: t });
+    await insertRow(pg, 'webpage_versions', { id: 'v-old', webpage_id: 'wp-tie', created_at: '2026-08-01T00:00:00Z' });
+    await page('wp-pinned', { published_version_id: 'v-p1' });
+    await insertRow(pg, 'webpage_versions', { id: 'v-p1', webpage_id: 'wp-pinned', created_at: '2026-01-01T00:00:00Z' });
+    await insertRow(pg, 'webpage_versions', { id: 'v-p2', webpage_id: 'wp-pinned', created_at: '2026-10-01T00:00:00Z' });
     await migration.up();
-    const upd = calls.run.find(c => /SET published_version_id/.test(c.sql));
-    assert.match(upd.sql, /is_published = TRUE/, 'a draft has no audience and needs no pin');
-    assert.match(upd.sql, /published_version_id IS NULL/,
-        're-running must never move a pointer the owner has since re-published');
-    assert.match(upd.sql, /ORDER BY v\.created_at DESC, v\.id/,
-        'created_at is transaction time — ties need the id tiebreaker or the pick is arbitrary');
-    assert.match(upd.sql, /EXISTS \(SELECT 1 FROM webpage_versions/,
-        'without the EXISTS guard the subselect would write NULL over NULL forever');
+    assert.strictEqual(await pointer('wp-tie'), 'v-a', 'created_at is transaction time — ties need the id tiebreaker');
+    assert.strictEqual(await pointer('wp-pinned'), 'v-p1', 're-running must never move a pointer the owner has since re-published');
+    assert.deepStrictEqual(snapshots, [], 'pages with versions need no snapshot');
 });
 
 test('a page whose snapshot fails keeps a NULL pointer instead of a broken one', async () => {
-    reset();
-    orphanRows = [{ id: 'wp-broken', user_id: 'alice' }, { id: 'wp-ok', user_id: 'alice' }];
+    await page('wp-broken');
+    await page('wp-ok');
     const result = await migration.up();
     assert.strictEqual(result.created, 1, 'the reachable page is still snapshotted');
-    assert.strictEqual(calls.versions.length, 2, 'and the failure does not abort the loop');
+    assert.strictEqual(snapshots.length, 2, 'and the failure does not abort the loop');
+    assert.strictEqual(await pointer('wp-broken'), null);
+    assert.strictEqual(await pointer('wp-ok'), 'v-wp-ok');
 });
 
 test('drafts are never even looked at', async () => {
-    reset();
+    await page('draft', { is_published: false });
+    await page('draft-with-version', { is_published: false });
+    await insertRow(pg, 'webpage_versions', { id: 'v-d', webpage_id: 'draft-with-version' });
     await migration.up();
-    const scan = calls.all[0];
-    assert.match(scan.sql, /w\.is_published = TRUE/,
-        'scanning every draft would copy object-storage blobs nobody reads');
+    assert.deepStrictEqual(snapshots, [], 'scanning every draft would copy object-storage blobs nobody reads');
+    assert.strictEqual(await pointer('draft'), null);
+    assert.strictEqual(await pointer('draft-with-version'), null, 'a draft has no audience and needs no pin');
 });

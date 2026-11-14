@@ -21,6 +21,7 @@ const Module = require('module');
 // ── Mutable fixtures ─────────────────────────────────────────────────
 const fx = {
     orgIds: new Set(['orgA']),   // resolveUserOrgIds (null = super-admin)
+    manageAgentsIn: new Set(['orgA']), // the organisations where manage_agents holds (resolvePermissionsByOrg)
     categories: {},              // id → row
     agentCounts: {},             // id → in-use count
     reassigns: [],               // spy
@@ -63,6 +64,7 @@ const MOCKS = {
         OrgRoles: { AGENT_EDITOR: 'agent_editor' }, SystemRoles: { SUPER_ADMIN: 'admin' },
         hasPermission: async () => true,
         resolveUserOrgIds: async () => fx.orgIds,
+        resolvePermissionsByOrg: async () => ({ holds: (/** @type {string} */ perm, /** @type {string} */ orgId) => perm === 'manage_agents' && fx.manageAgentsIn.has(orgId) }),
         canSeePublished: () => false,
         resolveUserGroups: async () => [],
         assertUserCanUseOrg: async () => {},
@@ -98,6 +100,7 @@ test.after(() => { Module._resolveFilename = originalResolve; });
 
 function resetFx() {
     fx.orgIds = new Set(['orgA']);
+    fx.manageAgentsIn = new Set(['orgA']);
     fx.categories = {
         sales: { id: 'sales', organization_id: 'orgA', name: 'Sales' },
         marketing: { id: 'marketing', organization_id: 'orgA', name: 'Marketing' },
@@ -170,6 +173,21 @@ test('PATCH on another org\'s category → 404 (no cross-org leak)', async () =>
     const res = await dispatch({ method: 'PATCH', url: '/categories/foreign', body: { name: 'Hijack' } });
     assert.strictEqual(res.statusCode, 404);
     assert.strictEqual(fx.categories.foreign.name, 'Foreign', 'untouched');
+});
+
+test('a member of orgB who holds manage_agents in orgA only gets the 404 of orgB\'s category', async () => {
+    resetFx();
+    fx.orgIds = new Set(['orgA', 'orgB']);
+    const renamed = await dispatch({ method: 'PATCH', url: '/categories/foreign', body: { name: 'Hijack' } });
+    assert.strictEqual(renamed.statusCode, 404);
+    const deleted = await dispatch({ method: 'DELETE', url: '/categories/foreign?reassignTo=none' });
+    assert.strictEqual(deleted.statusCode, 404);
+    assert.strictEqual(fx.categories.foreign.name, 'Foreign', 'untouched');
+    assert.strictEqual(fx.deletes.length, 0, 'nothing deleted');
+    // Holding manage_agents in orgB as well is what manages its category.
+    fx.manageAgentsIn.add('orgB');
+    const own = await dispatch({ method: 'PATCH', url: '/categories/foreign', body: { name: 'Renamed in B' } });
+    assert.strictEqual(own.statusCode, 200);
 });
 
 test('super-admin (resolveUserOrgIds null) may manage any category', async () => {

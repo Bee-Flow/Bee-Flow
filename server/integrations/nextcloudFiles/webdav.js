@@ -267,7 +267,7 @@ function parsePropfind(xml, baseUrl, uid) {
             permissions,
             ownerId,
         };
-    }).filter(Boolean);
+    }).filter((e) => e !== null);
 }
 
 module.exports = {

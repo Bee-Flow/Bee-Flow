@@ -13,7 +13,7 @@ const log = require('../../telemetry/log');
  * @param {string} action
  * @param {string} targetType
  * @param {string} targetId
- * @param {string | null} changedBy
+ * @param {string | null | undefined} changedBy  absent reads as system
  */
 async function logSubscriptionAudit(action, targetType, targetId, changedBy, oldValues, newValues) {
     try {
@@ -31,6 +31,13 @@ async function logSubscriptionAudit(action, targetType, targetId, changedBy, old
 // kind) tuple has already been claimed. The ON CONFLICT DO NOTHING +
 // rowCount check is the atomic primitive — no race between webhook
 // retries.
+/**
+ * @param {string} targetType
+ * @param {string} targetId
+ * @param {string} kind
+ * @param {string | null} [recipient]
+ * @param {unknown} [payload]
+ */
 async function claimNotification(targetType, targetId, kind, recipient = null, payload = null) {
     try {
         await initDB();

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Who the user is, from their account: name, e-mail, organisation, role.
  *
@@ -22,8 +23,8 @@ function clean(v) {
 }
 
 /**
- * @param {object|null} user  a users row (displayName, firstName, lastName, email, orgRole)
- * @param {object|null} org   an organizations row (name)
+ * @param {{ displayName?: any, email?: any, firstName?: any, lastName?: any, orgRole?: any }|null} user  a users row (displayName, firstName, lastName, email, orgRole)
+ * @param {{ name?: any }|null} org   an organizations row (name)
  * @returns {{ text: string, knownEntities: Array<{ text: string, category: string, role: string }> }}
  */
 function buildUserIdentity(user, org = null) {

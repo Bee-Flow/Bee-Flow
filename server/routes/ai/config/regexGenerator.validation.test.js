@@ -102,7 +102,9 @@ test('a tier that exists but has no model is refused the same way', async () => 
 test('a configured tier gets past the check', async () => {
     const res = await dispatch({ prompt: 'Dutch IBANs', modelTier: 'fast' });
     assert.deepStrictEqual(reached, ['system-regex-generator']);
-    assert.strictEqual(res.statusCode, 500, 'the (mocked) missing agent ends it after the checks');
+    // The (mocked) missing system agent ends it after the checks: a 503 that names it, not a bare 500.
+    assert.strictEqual(res.statusCode, 503);
+    assert.strictEqual(res.body.code, 'regex_generator_unavailable');
 });
 
 test('no tier still means fast, then the default — the page sends that while its list is empty', async () => {

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Direct Chat — the streaming turn (POST /chat/direct/stream).
  *
@@ -45,13 +45,13 @@ const { compactConversation } = require('./compactionPhase');
 const { buildChatOptions } = require('./chatOptions');
 const { prepareToolLoop } = require('./toolLoopSetup');
 const { runToolLoop } = require('./toolLoopRounds');
-const { toFriendlyTurnError } = require('./turnErrors');
+const { toFriendlyTurnError } = require('../../../usecases/ai/directChat/turnErrors');
 const { finalizeDirectChatTurn } = require('./finalizeTurn');
 const { finishTurnLogs, failTurnLogs } = require('../../../core/kb/queryLog/hook.mts');
 const { validate } = require('../../../core/http/validate');
 // Typed, not closed: see the header of ./turnSchema.js.
 const { DirectTurnBody } = require('./turnSchema');
-const { fallback } = require('../../../utils/bestEffort');
+const { fallback, ignoreGone } = require('../../../utils/bestEffort');
 const { sessionUser } = require('../../../core/http/sessionUser');
 const incognitoRules = require('../../../core/conversation/incognito.mts');
 
@@ -75,7 +75,7 @@ function makeInterruptedTurnPersister(turn) {
         // Incognito: there is no conversation to record it in, and none is made for it.
         if (turn.incognito) return;
         try {
-            const { buildInterruptedTurnMessages } = require('./interruptedTurn');
+            const { buildInterruptedTurnMessages } = require('../../../usecases/ai/directChat/interruptedTurn');
             const { turnAnchorId } = require('./finalizeRows');
             const { placeTurnRows } = require('../../../core/conversation/historyMerge');
             const anchorId = turnAnchorId(turn);
@@ -90,8 +90,9 @@ function makeInterruptedTurnPersister(turn) {
             if (!rows) return;
             // Saved under the row lock like a finished turn
             // (finalizeTurn.persistTurn); the whole array only where that does
-            // not apply. meta null → meta_json stays untouched.
-            if (anchorId !== null && await agentStore.placeDirectConversationTurn(turn.convId, { rows, anchorId, ...turn.turnMark }, userId, null, encryptionOpts(req))) return;
+            // not apply. meta null → meta_json stays untouched. Not incognito
+            // (returned above), so the attachment intake made the conversation.
+            if (anchorId !== null && await agentStore.placeDirectConversationTurn(/** @type {string} */ (turn.convId), { rows, anchorId, ...turn.turnMark }, userId, null, encryptionOpts(req))) return;
             const convNow = await agentStore.getDirectConversation(turn.convId, userId, encryptionOpts(req));
             await agentStore.updateDirectConversation(turn.convId, placeTurnRows(convNow?.messages || [], rows, anchorId), userId, null, encryptionOpts(req));
         } catch (e) {
@@ -104,7 +105,7 @@ function makeInterruptedTurnPersister(turn) {
  * The input gates, then the chat-signal count. Returns false when a gate
  * ended the stream.
  * @param {Turn} turn
- * @param {{ message: string, attachments?: unknown[] }} input
+ * @param {{ message?: string | null, attachments?: unknown[] | null }} input
  */
 async function runGates(turn, { message, attachments }) {
     const { req, res, send, userId } = turn;
@@ -153,7 +154,7 @@ async function handleTurnError(error, { turn, clientAbort, persistInterruptedTur
     // signal with every cancelled answer.
     if (turn.clientGone || error?.name === 'AbortError' || clientAbort.signal.aborted) {
         log.info('[DirectChat] turn cancelled by the client');
-        try { if (!res.writableEnded) res.end(); } catch (err) { log.debug('socket already gone', err); }
+        try { if (!res.writableEnded) res.end(); } catch (err) { ignoreGone('routes/ai/directChat/streamTurn:endCancelled', err); }
         return;
     }
     log.error('[DirectChat] Stream error:', error);
@@ -204,7 +205,7 @@ async function releaseTurn(turn) {
     } catch (e) {
         log.warn('[DirectChat] turn release failed:', /** @type {Error} */ (e).message);
     }
-    try { if (!res.writableEnded) res.end(); } catch (err) { log.debug('socket already gone', err); }
+    try { if (!res.writableEnded) res.end(); } catch (err) { ignoreGone('routes/ai/directChat/streamTurn:endReleased', err); }
 }
 
 // ─── Streaming Direct Chat ───────────────────────────────────────
@@ -213,7 +214,7 @@ async function releaseTurn(turn) {
 // it (0 = no limit); the default is far above what a person types.
 const directChatLimiter = spendLimiter({ env: 'DIRECT_CHAT_RPM', fallback: 60, name: 'direct-chat' });
 
-router.post('/chat/direct/stream', requireAuth, directChatLimiter, validate({ body: DirectTurnBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof DirectTurnBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/chat/direct/stream', requireAuth, directChatLimiter, validate({ body: DirectTurnBody }), async (req, res) => {
     // Incognito: refused combinations are a 400 before anything runs; memory
     // is switched off on the request itself (core/conversation/incognito.mts).
     incognitoRules.assertIncognitoRequest(req.body, 'direct');
@@ -261,13 +262,14 @@ router.post('/chat/direct/stream', requireAuth, directChatLimiter, validate({ bo
         sidePanelWebpage, sidePanelDocument, projectId, timezone, requestSystemPrompt, activeSkillIds, requestReasoningEffort,
         requestSessionSkills, requestActivatedSessionSkillIds, requestedKbIds, webpagePlanExecution, incognito,
     };
-    const turn = createTurnState({ req, res, send, clientAbort, userId, ...body });
+    // The schema leaves the lists' items open; createTurnState reads them as it always has.
+    const turn = createTurnState(/** @type {Parameters<typeof createTurnState>[0]} */ ({ req, res, send, clientAbort, userId, ...body }));
     Object.assign(turn, turnSetup);
     res.on('close', () => {
         if (res.writableEnded) return;
         turn.clientGone = true;
         log.info('[DirectChat] client disconnected — aborting the generation');
-        try { clientAbort.abort(); } catch (err) { log.debug('already aborted', err); }
+        try { clientAbort.abort(); } catch (err) { ignoreGone('routes/ai/directChat/streamTurn:abortOnClose', err); }
     });
 
     // Emit on every turn so the "How I got this answer" panel always knows

@@ -1,6 +1,6 @@
 // @typecheck
 // The one place the data tools reach into the automation validator (pickClosestId): layering budget counts requires.
-const { pickClosestId } = require('../../automation/validate/helpers');
+const { pickClosestId } = require('../../utils/closestId.mts');
 const { emptyDataModel } = require('../dataModel');
 const { persistDraft } = require('./persistence');
 const { fallback } = require('../../utils/bestEffort');

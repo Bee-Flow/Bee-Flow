@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 
 /**
@@ -26,6 +26,7 @@ test('a scan result is one row per subject, replaced by the next scan', async ()
         organizationId: 'org1', projectId: 'p1', subjectKind: 'studio_document', subjectId: 'd1', versionId: 'v1',
         categories: { Person: 3, Email: 1, Bogus: 0, '': 4 }, kinds: ['name', 'email', 'name'], mentionCount: 4,
     });
+    assert.ok(first);
     assert.deepStrictEqual(first.categories, { Person: 3, Email: 1 }, 'zero counts and empty keys are dropped');
     assert.deepStrictEqual(first.kinds.sort(), ['email', 'name']);
     assert.strictEqual(first.degraded, false);
@@ -34,6 +35,7 @@ test('a scan result is one row per subject, replaced by the next scan', async ()
         organizationId: 'org1', projectId: 'p1', subjectKind: 'studio_document', subjectId: 'd1', versionId: 'v2',
         categories: {}, kinds: [], mentionCount: 0, degraded: true,
     });
+    assert.ok(second);
     assert.strictEqual(second.versionId, 'v2');
     assert.strictEqual(second.degraded, true);
     const { rows } = await pg.query(`SELECT COUNT(*)::int AS n FROM content_pii_signals`);
@@ -42,9 +44,9 @@ test('a scan result is one row per subject, replaced by the next scan', async ()
 
 test('reads are scoped to the organisation', async () => {
     await store.upsertSignal({ organizationId: 'org2', projectId: 'p9', subjectKind: 'notebook_document', subjectId: 'n1', mentionCount: 2, kinds: ['health'], categories: { MedicalCondition: 2 } });
-    assert.deepStrictEqual((await store.listForOrg('org1')).map(r => r.subjectId), ['d1']);
-    assert.deepStrictEqual((await store.listForOrg('org2')).map(r => r.subjectId), ['n1']);
-    assert.strictEqual((await store.getSignal('notebook_document', 'n1')).kinds[0], 'health');
+    assert.deepStrictEqual((await store.listForOrg('org1')).map((/** @type {any} */ r) => r.subjectId), ['d1']);
+    assert.deepStrictEqual((await store.listForOrg('org2')).map((/** @type {any} */ r) => r.subjectId), ['n1']);
+    assert.strictEqual(/** @type {any} */ ((await store.getSignal('notebook_document', 'n1'))).kinds[0], 'health');
 });
 
 test('the columns hold categories, kinds and counts only', async () => {

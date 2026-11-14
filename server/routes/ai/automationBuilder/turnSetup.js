@@ -19,9 +19,9 @@ const { summariseDefinition, renderAgentDraftState } = require('../../../automat
 // require routes/ (server/layering.test.js).
 const { buildCatalogForUser, inputSchemasByTool, inspectedToolsFrom } = require('../../../automation/builderCatalog');
 const { loadOrCreateDraft } = require('./builderDraft');
-const { MODES, isBlankDraft, planMentionsRemoval, pendingProposal } = require('./workMode');
+const { MODES, isBlankDraft, planMentionsRemoval, pendingProposal } = require('../../../usecases/ai/automationBuilder/workMode');
 const { setupDatatableTurn, clientSnapshot } = require('./datatableTurn');
-const { turnModeOf } = require('./modeRules.mts');
+const { turnModeOf } = require('../../../usecases/ai/automationBuilder/modeRules.mts');
 const { z, worded, bodyOf, queryOf, closedObject, choice, flag, typeError } = require('../../../core/http/schemaParts');
 
 /**
@@ -35,7 +35,7 @@ const { z, worded, bodyOf, queryOf, closedObject, choice, flag, typeError } = re
  *   _offeredTools?: Set<string>,
  *   _stagedDryRun?: boolean,
  *   _documentDiscoveryRequired?: boolean,
- *   _onDryRunStarted?: (created: { id: string, status?: string, startedAt?: string }) => void,
+ *   _onDryRunStarted?: ((created: { id: string, status?: string, startedAt?: string }) => void) | null,
  * }} BuilderDraftWrap
  */
 /**
@@ -51,7 +51,7 @@ const { z, worded, bodyOf, queryOf, closedObject, choice, flag, typeError } = re
  *   disabledMedia: Record<string, unknown>, timezone: string | null, canvasScope: string | null,
  *   seedMetadata: { title?: string, description?: string } | null, wantsResume: boolean,
  *   send: (event: string, data: unknown) => void,
- *   narrator: ReturnType<typeof import('./thoughtNarrator').createThoughtNarrator> | null,
+ *   narrator: ReturnType<typeof import('../../../usecases/ai/automationBuilder/thoughtNarrator').createThoughtNarrator> | null,
  *   codeStepEnabled: boolean, userOrgForTiers: string | null,
  *   tiers: Awaited<ReturnType<typeof getUserTierMap>>, requestedTier: string,
  *   permittedTiers: Awaited<ReturnType<typeof getUserTierMap>>,
@@ -65,7 +65,7 @@ const { z, worded, bodyOf, queryOf, closedObject, choice, flag, typeError } = re
  *   turnMode: string, bufferedBuild: boolean, permissionMode: string, isolated: boolean,
  *   planAllowsRemoval: boolean, pausedAfterStep: boolean,
  *   baseDraft: import('../../../automation/builderTools/draftGraph').DraftGraph,
- *   baseTitle: string, baseDescription: string,
+ *   baseTitle: string | undefined, baseDescription: string | undefined,
  *   savedProposal: ReturnType<typeof pendingProposal>,
  *   reviewOutcome: Awaited<ReturnType<typeof automationStore.getBuilderSession>>['reviewOutcome'] | null,
  *   priorQuestions: unknown[] | null,
@@ -81,11 +81,11 @@ const { z, worded, bodyOf, queryOf, closedObject, choice, flag, typeError } = re
  *   narrationModelId: string, thinkingModelId: string,
  *   profile: ReturnType<typeof import('../../../core/automationModel/builderModelProfiles').getProfileForModel>,
  *   catalogOrder: ReturnType<typeof import('../../../automation/builderPrompt/rankApps').catalogOrderOf> | null,
- *   webResearch: Awaited<ReturnType<typeof import('./webResearch').resolveWebResearch>>,
- *   sys: ReturnType<typeof import('./turnMessages').composeTurnMessages>['sys'],
- *   fewShotMessages: ReturnType<typeof import('./turnMessages').composeTurnMessages>['fewShotMessages'],
- *   windowedHistory: ReturnType<typeof import('./turnMessages').composeTurnMessages>['windowedHistory'],
- *   messages: ReturnType<typeof import('./turnMessages').composeTurnMessages>['messages'],
+ *   webResearch: Awaited<ReturnType<typeof import('../../../usecases/ai/automationBuilder/webResearch').resolveWebResearch>>,
+ *   sys: ReturnType<typeof import('../../../usecases/ai/automationBuilder/turnMessages').composeTurnMessages>['sys'],
+ *   fewShotMessages: ReturnType<typeof import('../../../usecases/ai/automationBuilder/turnMessages').composeTurnMessages>['fewShotMessages'],
+ *   windowedHistory: ReturnType<typeof import('../../../usecases/ai/automationBuilder/turnMessages').composeTurnMessages>['windowedHistory'],
+ *   messages: ReturnType<typeof import('../../../usecases/ai/automationBuilder/turnMessages').composeTurnMessages>['messages'],
  *   tools: ReturnType<typeof import('../../../automation/builderTools/schemaProjection').projectToolSchemas>,
  *   webpageInspectorEnabled: boolean,
  *   webpageInspectorCtx: { userId: string, organizationId: string | null, userGroupIds: string[], userOrgIds: string[] } | null,

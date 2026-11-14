@@ -6,10 +6,10 @@ import { operatedStagesOf } from '@/api/stagesApi';
 import { filterSolutions, partitionSolutions } from './solutionOverviewModel';
 import { CatalogueTab, EmptyOurs, GridSkeleton, OperatedStages, OverviewFilters, OverviewNotices, SolutionGrid } from './SolutionsOverviewParts';
 import { useTranslation } from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
 import SegmentedControl, { type SegmentedOption } from '@/components/shared/SegmentedControl';
 import type { OperatedStage } from '@/api/stagesApi';
-import { mutate, errorBody, RefusedError } from '@/api/mutate';
+import { errorBody, RefusedError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 /** One Solution row of GET /api/projects/summary; the model reads the rest. */
 export type SummaryRow = Record<string, unknown>;
@@ -70,13 +70,7 @@ function NewSolutionForm({ onCreated, focus = false }: { onCreated: (project: { 
         try {
             let res: Response;
             try {
-                res = await mutate(`${API_BASE}/api/projects`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                // `kind` keeps it in Studio: without it the server files a new
-                // row as a collaborative project workspace.
-                body: JSON.stringify({ name: name.trim(), icon: '📦', kind: 'solution' }),
-            });
+                res = await apiRequest('POST /api/projects', { body: { name: name.trim(), icon: '📦', kind: 'solution' } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const body = errorBody(err) ?? {};

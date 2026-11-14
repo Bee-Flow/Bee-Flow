@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * POST /:id/diagnose-trigger: the trigger pipeline health check, split out of
  * routes/automation/runs.js (which mounts this router in its old place, so the
@@ -14,7 +14,10 @@ const automationStore = require('../../stores/automationStore');
 const { getDeliverableEvents, isPushPending } = require('../../automation/deliverableEvents');
 const { makeAutomationAccess } = require('../../automation/access');
 const { sessionUser } = require('../../core/http/sessionUser');
-const automationAccess = makeAutomationAccess({ store: automationStore });
+const { validate } = require('../../core/http/validate');
+const { bodyOf } = require('../../core/http/schemaParts');
+// The store's share rows are mapped one to one, so none is null.
+const automationAccess = makeAutomationAccess({ store: /** @type {NonNullable<Parameters<typeof makeAutomationAccess>[0]>['store']} */ (automationStore) });
 
 /**
  * Run a one-shot health check on the trigger pipeline for one automation.
@@ -27,7 +30,7 @@ const automationAccess = makeAutomationAccess({ store: automationStore });
  *
  * Tokens are NEVER returned — only booleans and high-level shape.
  */
-router.post('/:id/diagnose-trigger', async (req, res) => {
+router.post('/:id/diagnose-trigger', validate({ body: bodyOf({}, 'Diagnosing a trigger') }), async (req, res) => {
     const a = await automationStore.getAutomation(req.params.id);
     if (!a) return res.status(404).json({ error: 'Not found' });
     if (!await automationAccess.guard(req, res, a, 'edit')) return;
@@ -81,7 +84,7 @@ router.post('/:id/diagnose-trigger', async (req, res) => {
         try { session = await require('../../automation/triggerBus').loadSession(userId); } catch { session = null; }
         const isConnector = !!(session && (session._source === 'connector' || session.connectorOrgId || session.user?.provider === 'nextcloud_connector'));
         if (isConnector) {
-            checks.push({ name: 'auth_mode', status: 'ok', message: 'Connector identity present — NC tools route via the Bee Flow ExApp proxy.', detail: { source: session._source || 'connector' } });
+            checks.push({ name: 'auth_mode', status: 'ok', message: 'Connector identity present — NC tools route via the Bee Flow ExApp proxy.', detail: { source: /** @type {NonNullable<typeof session>} */ (session)._source || 'connector' } }); // isConnector holds only with a session
         } else if (session && require('../../integrations/nextcloudClient').isNextcloudOAuthSession(session)) {
             checks.push({ name: 'auth_mode', status: 'ok', message: 'Nextcloud OAuth session found (bearer token).', detail: { source: session._source || 'oauth' } });
         } else if (session?.accessToken) {
@@ -91,7 +94,7 @@ router.post('/:id/diagnose-trigger', async (req, res) => {
         }
 
         // 3) Subscription state (cursor / lastPolledAt / lastPushAt / failures)
-        const subs = await automationStore.getSubscriptionsForAutomation(a.id);
+        const subs = /** @type {Array<NonNullable<Awaited<ReturnType<typeof automationStore.getSubscriptionsForAutomation>>[number]>>} */ (await automationStore.getSubscriptionsForAutomation(a.id)); // rows mapped one to one
         const sub = subs.find(s => s.provider === 'nextcloud' && s.eventType === event) || null;
         if (!sub) {
             checks.push({ name: 'subscription', status: 'error', message: 'No subscription yet — click Activate to create it.' });
@@ -146,7 +149,7 @@ router.post('/:id/diagnose-trigger', async (req, res) => {
     const finish = (/** @type {boolean} */ ok) => res.json({ ok, kind: 'gmail.mail.new', checks });
 
     // 1) Subscription row
-    const subs = await automationStore.getSubscriptionsForAutomation(a.id);
+    const subs = /** @type {Array<NonNullable<Awaited<ReturnType<typeof automationStore.getSubscriptionsForAutomation>>[number]>>} */ (await automationStore.getSubscriptionsForAutomation(a.id)); // rows mapped one to one
     const sub = subs.find(s => s.provider === 'gmail' && s.eventType === 'mail.new') || null;
     if (!sub) {
         checks.push({

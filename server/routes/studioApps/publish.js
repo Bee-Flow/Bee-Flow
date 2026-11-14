@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Publish, the Nextcloud app menu, and the publish-version history (routes/studioApps/).
  *
@@ -25,12 +25,13 @@ const publicationAudit = require('../../appStudio/publicationAudit');
 const nextcloudMenuSync = require('../../appStudio/nextcloudMenuSync');
 // Publish / unpublish / groups, shared with a Solution stage's on/off.
 const appAudience = require('../../appStudio/appAudience');
-const { PublishBody, NextcloudMenuBody } = require('./schemas');
+const { PublishBody, NextcloudMenuBody, NoBody } = require('./schemas');
 const { requireManageApps, audienceFor } = require('./access');
-const { loadOwnedAutomations, loadDataRefs } = require('./appHelpers');
+const { loadOwnedAutomations, loadDataRefs } = require('../../usecases/studioApps/appHelpers');
 const { sessionUser } = require('../../core/http/sessionUser');
 const { syncAppTriggers } = require('../../appStudio/triggers/triggerSync.mts');
 const { syncWebhookEndpoints } = require('../../appStudio/triggers/webhook/webhookEndpoints.mts');
+const { HttpError } = require('../../core/http/errors');
 
 const router = express.Router();
 
@@ -85,7 +86,7 @@ router.patch('/:id/publish', requireAuth, requireManageApps, validate({ body: Pu
             notifyMenuChange: (orgId, meta) => nextcloudMenuSync.notifyMenuChange(orgId, meta),
         },
     });
-    if (!out.ok) return res.status(out.status).json(out.body);
+    if (!out.ok) return res.status(/** @type {number} */ (out.status)).json(out.body); // a refusal carries its status
     // The server triggers follow the published copy: armed from it now, removed with an
     // unpublish (appStudio/triggers/triggerSync.mts; it never throws, the publish stands).
     await syncAppTriggers(app.id);
@@ -144,7 +145,8 @@ router.patch('/:id/nextcloud-menu', requireAuth, requireManageApps, validate({ b
     }
 
     const updated = await studioAppStore.setStudioAppNextcloudMenu(req.params.id, app.userId, enabled);
-    if (!updated) throw new Error('Failed to update Nextcloud menu setting');
+    // No row for this id and owner: the app was deleted since it was loaded.
+    if (!updated) throw new HttpError(404, 'app_not_found', 'This app no longer exists. Reload the page.');
     // Not an access change on its own — the app is already org-published to
     // get here — but it puts the app in front of everyone in the
     // organisation, so it belongs on the same trail.
@@ -174,7 +176,7 @@ router.get('/:id/versions', requireAuth, /** @param {import('express').Request<{
     res.json({ versions });
 });
 
-router.post('/:id/versions/:versionId/restore', requireAuth, requireManageApps, /** @param {import('express').Request<{ id: string, versionId: string }>} req */ async (req, res) => {
+router.post('/:id/versions/:versionId/restore', requireAuth, requireManageApps, validate({ body: NoBody }), /** @param {import('express').Request<{ id: string, versionId: string }>} req */ async (req, res) => {
     const userId = sessionUser(req).id;
     // restoreVersion is scoped to app AND owner; it bumps definition_version
     // so open editors' CAS saves conflict instead of clobbering the restore.

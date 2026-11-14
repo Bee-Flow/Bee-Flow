@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The "Find repeating work" routes mounted on a real HTTP server, for the
  * tests next to routes/ai/automationBuilder/suggestions.js. The router comes
@@ -32,7 +33,7 @@ const pass = (_req, _res, next) => next();
 /**
  * @param {typeof import('node:test')} test
  * @param {import("express-serve-static-core").RequestHandler<import("express-serve-static-core").ParamsDictionary, unknown, unknown, import("qs").ParsedQs, Record<string, unknown>>} router
- * @param {{ prefix?: string, errorHandler: Function }} opts
+ * @param {{ prefix?: string, errorHandler: import('express').ErrorRequestHandler }} opts
  */
 function mountSuggestions(test, router, { prefix = '/builder', errorHandler }) {
     if (typeof errorHandler !== 'function') throw new TypeError('mountSuggestions needs opts.errorHandler (the terminal error handler)');
@@ -45,14 +46,14 @@ function mountSuggestions(test, router, { prefix = '/builder', errorHandler }) {
         app.use(express.json());
         app.use((req, _res, next) => {
             const id = req.get('x-test-user') || 'u1';
-            req.session = { user: { id, organizationId: ORG } };
+            req.session = /** @type {typeof req.session} */ (/** @type {unknown} */ ({ user: { id, organizationId: ORG } }));
             next();
         });
         app.use(prefix, router);
         app.use(errorHandler);
         server = http.createServer(app);
-        await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
-        base = `http://127.0.0.1:${server.address().port}${prefix}`;
+        await /** @type {Promise<void>} */ (new Promise((resolve) => server.listen(0, '127.0.0.1', resolve)));
+        base = `http://127.0.0.1:${/** @type {import('net').AddressInfo} */ (server.address()).port}${prefix}`;
     });
     test.after(async () => {
         server.closeAllConnections?.();

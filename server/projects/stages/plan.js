@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * What a deployment would do (design 6.3). Writes nothing.
  *
@@ -106,7 +107,7 @@ function rewriteBundleRefs(value, idByRef, unresolved) {
  * @param {string} kind
  * @param {unknown} entity  a manifest entity
  * @param {{ idByRef: Map, bindings: Map, slots: object[], tableTokens?: Map }} ctx
- * @returns {{ entity: object, substitutions: object[], unresolved: string[] }}
+ * @returns {{ entity: Record<string, any>, substitutions: object[], unresolved: string[] }}
  */
 function bindReleaseEntity(kind, entity, { idByRef, bindings, slots, tableTokens = new Map() }) {
     const bound = clone(entity);
@@ -206,8 +207,8 @@ function noteFor(release, ref) {
 }
 
 async function goLiveRefusal({ entity, bound, stamp, stage }, deps) {
-    const check = dep(deps, 'checkBeforeLiveCore', () => require('../../automation/goLive').checkBeforeLiveCore);
-    const aiActState = dep(deps, 'aiActState', () => require('../../automation/aiActCheck').defaultAiActState());
+    const check = dep(deps, 'checkBeforeLiveCore', () => require('../../core/featureModules').featureModule('automation/goLive').checkBeforeLiveCore);
+    const aiActState = dep(deps, 'aiActState', () => require('../../core/featureModules').featureModule('automation/aiActCheck').defaultAiActState());
     const automation = {
         id: stamp ? stamp.entityId : null, kind: 'automation', title: entity.title || '',
         userId: stage.runAsUserId, organizationId: stage.organizationId || null, projectId: stage.projectId,

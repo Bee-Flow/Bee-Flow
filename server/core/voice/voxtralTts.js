@@ -13,6 +13,7 @@
  * Returns MP3-encoded base64 audio — the frontend decodes via HTMLAudioElement.
  */
 
+const { fetchFixedEndpoint } = require('../../utils/fixedEndpointFetch.mts');
 const configStore = require('../../stores/configStore');
 const elevenlabsProvider = require('../providers/elevenlabs');
 const log = require('../../telemetry/log');
@@ -36,7 +37,7 @@ async function discoverVoiceId(apiKey) {
     if (_cachedVoiceId) return _cachedVoiceId;
     if (_voiceDiscoveryFailed) return null;
     try {
-        const resp = await fetch(`${MISTRAL_API_BASE}/v1/audio/voices?limit=1`, {
+        const resp = await fetchFixedEndpoint(`${MISTRAL_API_BASE}/v1/audio/voices?limit=1`, {
             headers: { Authorization: `Bearer ${apiKey}` },
         });
         if (!resp.ok) {

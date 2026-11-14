@@ -64,6 +64,7 @@ function _logDecryptFailure() {
  * When `orgId` is supplied, derives a per-org key via HKDF info string
  * `beeflow:config-secrets:v1:<orgId>` and records the org context in the
  * envelope so decrypt can rebuild the right key.
+ * @param {string | null} [orgId]
  */
 function encryptValue(plaintext, orgId = null) {
     if (!plaintext) return plaintext;

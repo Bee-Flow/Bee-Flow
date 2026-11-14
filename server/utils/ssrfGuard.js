@@ -30,6 +30,7 @@ const net = require('net');
 const dns = require('dns');
 const { fetch: undiciFetch } = require('undici');
 const canonical = require('../core/http/ssrfGuard');
+const { fetchWithTimeout } = require('./outboundTimeout.mts');
 
 const PRIVATE_ADDRESS_ERROR_CODE = 'EPRIVATEADDRESS';
 const PRIVATE_ADDRESS_ERROR_MESSAGE = 'Refused: target resolves to a private/internal address.';
@@ -138,12 +139,23 @@ function defaultDispatcher() {
  * so DNS rebinding and redirect laundering both fail with an error whose
  * cause chain satisfies isPrivateAddressError(). Throws on refusal; callers
  * that need a structured error catch + translate (see codeSandbox).
+ *
+ * The call is bounded by the outbound default time-out
+ * (utils/outboundTimeout.mts: OUTBOUND_HTTP_TIMEOUT_MS, `timeoutMs`,
+ * `timeoutPhase`); a caller that passes its own `signal` keeps its own bound.
+ *
+ * @param {string | URL} url
+ * @param {Record<string, any> & import('./outboundTimeout.mts').OutboundTimeoutOptions} [opts]
  */
 async function safeFetch(url, opts = {}) {
     const parsed = new URL(typeof url === 'string' ? url : String(url));
     if (isPrivateHostname(parsed.hostname)) throw privateAddressError(parsed.hostname);
     const { dispatcher, ...init } = opts || {};
-    return undiciFetch(url, { ...init, dispatcher: dispatcher || defaultDispatcher() });
+    return fetchWithTimeout(
+        (/** @type {string | URL} */ u, /** @type {Record<string, any>} */ i) => undiciFetch(u, { ...i, dispatcher: dispatcher || defaultDispatcher() }),
+        url,
+        init,
+    );
 }
 
 module.exports = {

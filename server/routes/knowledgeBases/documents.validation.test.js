@@ -31,11 +31,12 @@ const pass = (req, res, next) => next();
 const KB = { id: 'kb1', tenant_id: 'u1', organization_id: 'orgA' };
 const DOC_ID = '0b7e6a52-9d1c-4a6f-8f3e-2c1d5e7a9b10';
 
+const { fakeKbGates } = require('./kbGate.testkit');
 const MOCKS = {
     '../../stores/knowledgeBases': {
         DOC_STATUSES: ['processed', 'redacted', 'skipped', 'error', 'duplicate'],
         PII_STATUSES: ['none', 'found', 'redacted', 'unscanned'],
-        getKB: async (id) => { touched.push({ what: 'getKB', args: [id] }); return id === KB.id ? { ...KB } : null; },
+        getKB: async (id) => (id === KB.id ? { ...KB } : null),
         listDocuments: async (id, opts) => { touched.push({ what: 'listDocuments', args: [id, opts] }); return []; },
         countDocuments: async () => 0,
         listThreads: async (id, opts) => { touched.push({ what: 'listThreads', args: [id, opts] }); return []; },
@@ -48,8 +49,7 @@ const MOCKS = {
     },
     './shared': {
         getUserId: (req) => req.session?.user?.id || null,
-        canAccessKB: async () => true,
-        canManageKB: async () => true,
+        ...fakeKbGates({ kbStore: { getKB: (id) => MOCKS['../../stores/knowledgeBases'].getKB(id) }, canRead: () => true }),
         blockIfSystemKB: () => false,
     },
 };

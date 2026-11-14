@@ -2,7 +2,6 @@
 // search for agents, its credentials (Bing, Serper) and the Agent Search
 // defaults. The bindings are threaded in as props from the panel.
 import type React from 'react';
-import { API_BASE } from '@/utils/helpers';
 import { useTranslation } from '@/hooks/useTranslation';
 import { ALERT_INFO } from '@/components/mcpLibrary/ui';
 import SectionHeader from '@/components/shared/SectionHeader';
@@ -10,15 +9,21 @@ import { FIELD_INPUT, Field, FieldGrid, SettingRow, SettingsGroup, SettingsList 
 import Toggle from '@/components/shared/Toggle';
 import type { SearchSectionProps } from './adminPanel.types';
 import { HINT_LINK, SaveButton, StatusChip } from './ui';
-import { mutate, ApiError } from '@/api/mutate';
+import { ApiError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 const MASK = '••••••••••••••••';
 const PROVIDER_LABELS: Record<string, string> = { 'disabled': 'Disabled', 'bing': 'Azure Bing Search', 'node-search': 'Cloud-only (Serper + provider APIs)', 'agent-search': 'Self-hosted Agent Search' };
 
-/** A mutate whose refusal is an Error, so the caller's catch reports it. */
-async function send(url: string, method: string, body: unknown) {
+/** A JSON body as it is, whatever the route's schema type says. */
+function jsonInit(body: unknown) {
+    return { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
+}
+
+/** A checked request whose refusal is an Error, so the caller's catch reports it. */
+async function send(pending: Promise<Response>) {
     try {
-        await mutate(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        await pending;
     } catch (err) {
         if (!(err instanceof ApiError)) throw err;
         throw new Error(`HTTP ${err.status}`);
@@ -27,7 +32,7 @@ async function send(url: string, method: string, body: unknown) {
 
 /** POST /ai/config; null when the server refused. */
 function postConfig(body: unknown) {
-    return mutate(`${API_BASE}/ai/config`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    return apiRequest('POST /ai/config', { init: jsonInit(body) })
         .catch((err: unknown) => {
             if (err instanceof ApiError) return null;
             throw err;
@@ -39,7 +44,7 @@ function ProviderRow({ searchProvider, setSearchProvider, setMessage }: Pick<Sea
     const change = async (val: string) => {
         setSearchProvider(val);
         try {
-            await send(`${API_BASE}/ai/config`, 'POST', { searchProvider: val });
+            await send(apiRequest('POST /ai/config', { init: jsonInit({ searchProvider: val }) }));
             setMessage({ type: 'success', text: `Search provider set to ${PROVIDER_LABELS[val] || val}` });
         } catch (e) {
             setMessage({ type: 'error', text: 'Failed to save search provider' });
@@ -153,7 +158,7 @@ function DefaultsGroup({ agentSearchDefaults: d, setAgentSearchDefaults: set, sa
     const save = async () => {
         setSavingSearchDefaults(true);
         try {
-            await send(`${API_BASE}/ai/agent-search/defaults`, 'PUT', d);
+            await send(apiRequest('PUT /ai/agent-search/defaults', { init: jsonInit(d) }));
             setMessage({ type: 'success', text: 'Agent Search defaults saved' });
         } catch (e) {
             setMessage({ type: 'error', text: 'Failed to save defaults' });

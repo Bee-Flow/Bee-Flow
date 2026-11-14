@@ -382,18 +382,14 @@ async function purgeUsageForConsumer(consumerKind, consumerId) {
     await initDB();
     assertConsumerKind(consumerKind, 'purgeUsageForConsumer');
     if (!consumerId) return 0;
-    const res = await run(
-        `DELETE FROM automation_usage WHERE consumer_kind = $1 AND consumer_id = $2`,
-        [consumerKind, consumerId],
-    );
-    // The marker goes too: an app that no longer exists is not
+    // The marker goes in the same transaction: an app that no longer exists is not
     // "indexed", it is not there. If the row stayed, a returned id (on an import with the
     // same id) would count as looked-at while it was never looked at.
-    await run(
-        `DELETE FROM automation_usage_indexed WHERE consumer_kind = $1 AND consumer_id = $2`,
-        [consumerKind, consumerId],
-    );
-    return res?.rowCount || 0;
+    return withTransaction(async (client) => {
+        const res = await client.query(`DELETE FROM automation_usage WHERE consumer_kind = $1 AND consumer_id = $2`, [consumerKind, consumerId]);
+        await client.query(`DELETE FROM automation_usage_indexed WHERE consumer_kind = $1 AND consumer_id = $2`, [consumerKind, consumerId]);
+        return res?.rowCount || 0;
+    });
 }
 
 /**

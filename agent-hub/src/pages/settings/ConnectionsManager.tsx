@@ -1,11 +1,12 @@
 import { Plus, Loader2 } from 'lucide-react';
 import React, { useState } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
-import { mutate, errorBody, RefusedError } from '../../api/mutate';
+import { errorBody, RefusedError } from '../../api/mutate';
+import { apiRequest } from '../../api/typedRequest';
 import { useNamedConnections } from '../../api/queries/settingsConnections';
 import { HTTP_AUTH_TYPES, splitHttpAuthValues, missingHttpAuthFields, type HttpAuthType } from '../../utils/httpCredentialTypes';
 import type { ProviderField, ConnectionSecretMeta, Connection, Grant, GroupLabelProps, AddConnectionFormProps } from './ConnectionsManager.types';
-import { BASE, PROVIDERS, PROVIDER_BY_ID, inputStyle, inputCls } from './ConnectionsManager.helpers';
+import { PROVIDERS, PROVIDER_BY_ID, inputStyle, inputCls } from './ConnectionsManager.helpers';
 import { ErrorLine, ConnectionRow } from './ConnectionRow';
 
 const GroupLabel = ({ children }: GroupLabelProps) => (
@@ -59,15 +60,14 @@ const AddConnectionForm = ({ onAdded }: AddConnectionFormProps) => {
         }
         setBusy(true); setErr(null);
         try {
-            await mutate(BASE, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+            await apiRequest('POST /api/integrations/connections', {
+                init: { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
                     provider: providerId,
                     kind: authType ? authType.kind : provider.kind,
                     label: label.trim() || (authType ? `${provider.name} — ${t(authType.nameKey, authType.name)}` : provider.name),
                     secret,
                     ...(secretMeta ? { secretMeta } : {}),
-                }),
+                }) },
             });
             reset(); setOpen(false); onAdded();
         } catch (e) {

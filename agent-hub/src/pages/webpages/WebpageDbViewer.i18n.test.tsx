@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -34,6 +34,7 @@ vi.mock('../../utils/helpers', () => ({
 }));
 
 import WebpageDbViewer from './WebpageDbViewer';
+import { renderWithClient } from '@/test/render';
 
 const SCHEMA = {
     tables: [{
@@ -64,7 +65,7 @@ beforeEach(() => {
 
 describe('WebpageDbViewer — i18n', () => {
     it('BIJT — de drie tabbladen en de verversknop dragen sleutels', async () => {
-        render(<WebpageDbViewer webpageId="wp1" />);
+        renderWithClient(<WebpageDbViewer webpageId="wp1" />);
 
         expect(await screen.findByText('⟦webpages.db.tab_schema⟧')).toBeInTheDocument();
         expect(screen.getByText('⟦webpages.db.tab_browse⟧')).toBeInTheDocument();
@@ -75,7 +76,7 @@ describe('WebpageDbViewer — i18n', () => {
     });
 
     it('BIJT — de schema-tabel benoemt zijn kolomkoppen via sleutels, en het aantal kolommen met een parameter', async () => {
-        render(<WebpageDbViewer webpageId="wp1" />);
+        renderWithClient(<WebpageDbViewer webpageId="wp1" />);
 
         expect(await screen.findByText('⟦webpages.db.col_column⟧')).toBeInTheDocument();
         // These three deliberately point to common.*: their text already existed there,
@@ -94,7 +95,7 @@ describe('WebpageDbViewer — i18n', () => {
     });
 
     it('BIJT — één kolom kiest de ENKELVOUDSSLEUTEL', async () => {
-        render(<WebpageDbViewer webpageId="wp1" />);
+        renderWithClient(<WebpageDbViewer webpageId="wp1" />);
         await screen.findByText('⟦webpages.db.col_column⟧');
         // The fixture has one table with two columns; the singular branch is tested here
         // on the helper itself, so that the choice hangs on the KEY and not on a
@@ -105,7 +106,7 @@ describe('WebpageDbViewer — i18n', () => {
     });
 
     it('BIJT — SQL blijft SQL: kolomnamen en typenamen gaan niet door t() heen', async () => {
-        render(<WebpageDbViewer webpageId="wp1" />);
+        renderWithClient(<WebpageDbViewer webpageId="wp1" />);
         await screen.findByText('⟦webpages.db.col_column⟧');
 
         // The name of the table, the column and the type are machine text from the
@@ -117,7 +118,7 @@ describe('WebpageDbViewer — i18n', () => {
 
     it('BIJT — het rijaantal kiest de meervoudssleutel in plaats van een aangeplakte s', async () => {
         const user = userEvent.setup();
-        render(<WebpageDbViewer webpageId="wp1" />);
+        renderWithClient(<WebpageDbViewer webpageId="wp1" />);
         await user.click(await screen.findByText('⟦webpages.db.tab_browse⟧'));
 
         // Precisely one row in the fixture → the SINGULAR KEY, and therefore never
@@ -129,7 +130,7 @@ describe('WebpageDbViewer — i18n', () => {
 
     it('BIJT — de SQL-tab benoemt de leesstand, de knop en de gevarenzone met sleutels', async () => {
         const user = userEvent.setup();
-        render(<WebpageDbViewer webpageId="wp1" />);
+        renderWithClient(<WebpageDbViewer webpageId="wp1" />);
         await user.click(await screen.findByText('⟦webpages.db.tab_sql⟧'));
 
         expect(screen.getByText('⟦webpages.db.read_query⟧')).toBeInTheDocument();

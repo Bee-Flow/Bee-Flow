@@ -26,16 +26,17 @@
 //   // custom flow: save(body, { endpoint, method, fallback, onSuccess })
 //
 // `save`/`disconnect` never throw — failures land in `error`. Both default to
-// POST `${API_BASE}/ai/user-settings`; pass `endpoint`/`method` to reuse the
+// POST /ai/user-settings; pass `endpoint` (an apiUrl) and `method` to reuse the
 // same state machine for other endpoints (GitHub connect, Nextcloud app
 // password, …). A `null`/`undefined` body sends no request body (for DELETE or
 // no-payload calls).
 
 import { useState } from 'react';
 import type { AuthFetchOptions } from '../utils/helpers';
-import { API_BASE, authFetch } from '../utils/helpers';
+import { authFetch } from '../utils/helpers';
+import { apiUrl } from '../api/typedRequest';
 
-const USER_SETTINGS_URL = `${API_BASE}/ai/user-settings`;
+const USER_SETTINGS_URL = apiUrl('POST /ai/user-settings');
 
 /** The parsed response body; `{}` when the response carried no JSON. */
 type UserSettingResponse = Record<string, unknown> & { error?: string };

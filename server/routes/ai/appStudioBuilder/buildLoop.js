@@ -25,7 +25,7 @@
  */
 
 const { effortForIteration } = require('../../../appStudio/builderModelProfiles');
-const { emptyUsageTotals } = require('./turnLoop');
+const { emptyUsageTotals } = require('../../../usecases/ai/appStudioBuilder/turnLoop');
 const {
     MAX_TOKENS_PER_ROUND, requestRound, recoverWrittenCalls, accountRound, thinkingToReplay, settleToolLessRound, assistantToolMessage,
 } = require('./buildRound');
@@ -69,7 +69,7 @@ function freshLoopState(profile, tier) {
 
 /**
  * One round; returns 'next' to run another, or 'end' to end the turn.
- * @param {import('./turnClosing').BuilderTurn} turn
+ * @param {import('../../../usecases/ai/appStudioBuilder/turnClosing').BuilderTurn} turn
  * @param {number} iter
  * @param {import('./buildRound').BuildCtx} ctx
  * @param {import('./buildRound').LoopState} ls
@@ -112,7 +112,7 @@ async function runRound(turn, iter, ctx, ls) {
 }
 
 /**
- * @param {import('./turnClosing').BuilderTurn} turn
+ * @param {import('../../../usecases/ai/appStudioBuilder/turnClosing').BuilderTurn} turn
  * @param {import('./buildRound').BuildCtx} ctx
  */
 async function runBuildLoop(turn, ctx) {

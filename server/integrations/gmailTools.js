@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Gmail Tools — Built-in tools for AI to search and read Gmail
  * 

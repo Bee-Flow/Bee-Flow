@@ -55,7 +55,8 @@ const dbStub = {
         },
         release() {},
     }),
-    withTransaction: async (fn) => fn({ query: async () => ({ rows: [], rowCount: 0 }) }),
+    // The same recording client getClient lends: the seat-capped create runs inside db.withTransaction.
+    withTransaction: async (fn) => fn(await dbStub.getClient()),
     getRedis: () => null,
     redisHealthy: () => false,
 };

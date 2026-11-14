@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * Pattern helpers for the "Your own data" test bench: is a pattern safe to
@@ -232,7 +232,7 @@ function strictField(values) {
     if (!all.every((r) => r.map((x) => x[0]).join('') === shape)) return looseField(values);
     return all[0].map((r, i) => {
         const lens = all.map((x) => x[i][1]);
-        return `${CLASS_SRC[r[0]]}${quant(Math.min(...lens), Math.max(...lens))}`;
+        return `${CLASS_SRC[/** @type {string} */ (r[0])]}${quant(Math.min(...lens), Math.max(...lens))}`;
     }).join('');
 }
 
@@ -259,7 +259,7 @@ function withBoundaries(src, first, last) {
 }
 
 /**
- * @param {string[]} examples  the real examples
+ * @param {string[] | undefined} examples  the real examples
  * @param {boolean} caseSensitive
  * @returns {string[]} distinct pattern sources, strict first; [] when there is nothing to infer
  */

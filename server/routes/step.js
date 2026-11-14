@@ -48,7 +48,7 @@ const express = require('express');
 const router = express.Router();
 const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
-const { worded } = require('../core/http/schemaParts');
+const { worded, bodyOf } = require('../core/http/schemaParts');
 
 const automationStore = require('../stores/automationStore');
 const userStore = require('../stores/userStore');
@@ -144,7 +144,7 @@ router.get('/', async (req, res) => {
 });
 
 // Create a Step (draft).
-router.post('/', validate({ body: CreateBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CreateBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/', validate({ body: CreateBody }), async (req, res) => {
     const userId = sessionUser(req).id;
     const { title, description } = req.body;
     // Absent means "start from the skeleton"; anything else is a definition,
@@ -247,7 +247,7 @@ router.delete('/:id', /** @param {import('express').Request<{ id: string }>} req
 });
 
 // Publish: snapshot the current draft so consumers pick up the change.
-router.post('/:id/publish', /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
+router.post('/:id/publish', validate({ body: bodyOf({}, 'Publishing a Step') }), /** @param {import('express').Request<{ id: string }>} req */ async (req, res) => {
     const userId = sessionUser(req).id;
     const existing = await automationStore.getAutomation(req.params.id);
     if (!existing || existing.kind !== 'block') return res.status(404).json({ error: 'Not found' });

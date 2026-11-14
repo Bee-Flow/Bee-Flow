@@ -15,7 +15,7 @@ const kbStore = require('../../stores/knowledgeBases');
 const { resolveAudienceContext } = require('../../auth/audience');
 const { requireAuth } = require('../../auth/permissions');
 const webpageUsageSync = require('../../core/webpages/webpageUsageSync');
-const { describeWebpageDeleteBlock } = require('./deleteGuard');
+const { describeWebpageDeleteBlock } = require('../../usecases/webpages/deleteGuard');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { worded, bodyOf, flag, NOTHING, NO_QUERY } = require('./schemas');
@@ -64,7 +64,7 @@ function register(router) {
         res.json({ success: true, webpage: cloned });
     });
 
-    router.delete('/:id', requireAuth, validate({ body: NOTHING, query: DeleteQuery }), /** @param {import('express').Request<{ id: string }>} req @param {import('express').Response} res */ async (req, res) => {
+    router.delete('/:id', requireAuth, validate({ body: NOTHING, query: DeleteQuery }), async (req, res) => {
         const userId = sessionUser(req).id;
         const confirmed = /** @type {{ confirm?: boolean }} */ (req.query).confirm === true;
 

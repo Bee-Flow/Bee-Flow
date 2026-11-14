@@ -135,3 +135,13 @@ test('/disconnect revokes at Nmbrs, then deletes locally', async () => {
     assert.ok(calls.every((c) => c.url === 'https://identityservice.nmbrs.com/connect/revocation'));
     assert.deepStrictEqual(revokedLocal, [{ userId: 'u1', provider: 'nmbrs' }]);
 });
+
+test('/disconnect takes no fields: its chain refuses one by name', async () => {
+    const layer = router.stack.find((l) => l.route && l.route.path === '/disconnect' && l.route.methods.post);
+    const chain = layer.route.stack;
+    const req = { session: session(), body: { provider: 'other' }, query: {}, headers: {} };
+    let err;
+    await chain[chain.length - 2].handle(req, {}, (e) => { err = e; });
+    assert.strictEqual(err?.status, 400);
+    assert.match(err.message, /Disconnecting Nmbrs does not take "provider"/);
+});

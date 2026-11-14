@@ -61,6 +61,33 @@ function tasksModel(access = { default: 'owner' }) {
 const OWNER = 'owner-9';
 const APP = { id: 'app1', userId: OWNER };
 
+// The data pass of two tests runs its compiled SQL on the app's real engine:
+// better-sqlite3 with the planner's `tasks` table (testUtils/linkedEngines.testkit.js,
+// which boots PGlite beside it).
+const { bootLinkedEngines } = require('../testUtils/linkedEngines.testkit');
+const closers = [];
+/** @type {{ sqlite: any } | null} */
+let engines = null;
+test.after(() => { for (const close of closers) close(); });
+/** The engine with three tasks: two of the owner (todo, todo), one of someone else (done). */
+async function seededEngine() {
+    if (!engines) {
+        engines = await bootLinkedEngines(tasksModel(), closers);
+        for (const [id, by, status] of [['t1', OWNER, 'todo'], ['t2', OWNER, 'todo'], ['t3', 'other-user', 'done']]) {
+            await engines.sqlite.run('INSERT INTO tasks (id, created_by, status, title) VALUES (?, ?, ?, ?)', [id, by, status, id]);
+        }
+    }
+    return engines.sqlite;
+}
+async function depsOnEngine(capture) {
+    const engine = await seededEngine();
+    return {
+        dbQuery: async (ownerScope, appId, sql, params) => { capture.push({ ownerScope }); return { rows: await engine.all(sql, params) }; },
+        runDataset: async () => ({ rows: [] }),
+        getDataset: async () => null,
+    };
+}
+
 function depsReturning(rows, capture = null) {
     return {
         dbQuery: async (ownerScope, appId, sql, params) => { if (capture) capture.push({ ownerScope, sql, params }); return { rows }; },
@@ -93,10 +120,10 @@ test('unknown dataset → STATIC error, ok:false; the data pass skips it (unreso
 test('a formula filter resolves against the synthetic OWNER scope (currentUser.id → owner)', async () => {
     const capture = [];
     const def = appWith({ kind: 'records', tableId: 'tbl_task01', filter: [{ field: 'created_by', op: 'eq', value: { kind: 'formula', expr: 'currentUser.id' } }] });
-    const r = await appDryRun({ def, dataModel: tasksModel(), datasets: [], app: APP, ownerId: OWNER, deps: depsReturning([{ id: 'r1' }], capture) }, {});
+    const r = await appDryRun({ def, dataModel: tasksModel({ default: 'app' }), datasets: [], app: APP, ownerId: OWNER, deps: await depsOnEngine(capture) }, {});
     assert.strictEqual(r.bindings[0].ok, true);
     assert.strictEqual(capture.length, 1, 'the resolved filter ran one query');
-    assert.ok(capture[0].params.includes(OWNER), `owner id bound into the WHERE params: ${JSON.stringify(capture[0].params)}`);
+    assert.strictEqual(r.bindings[0].rowCount, 2, 'the owner\'s two tasks: currentUser.id resolved to the owner');
 });
 
 test('a formula referencing an unpopulated root → binding skipped:dynamic (no query)', async () => {
@@ -218,13 +245,12 @@ test('an aggregate binding sorted by its own output alias is not a finding', asy
     const capture = [];
     const r = await appDryRun({
         def, dataModel: tasksModel({ default: 'app' }), datasets: [], app: APP, ownerId: OWNER,
-        deps: depsReturning([{ status: 'todo', count: 2 }], capture),
+        deps: await depsOnEngine(capture),
     }, {});
-    assert.deepStrictEqual(r.bindings[0], { nodeId: 'cmp_table1', prop: 'source', kind: 'aggregate', ok: true, rowCount: 1 });
-    // The SQL it checked is the SQL the live /data/query route runs — a GROUP BY,
-    // not a row list. Without this the test would still pass on a compiler that
-    // silently ignored the aggregate half of the descriptor.
-    assert.match(capture[0].sql, /GROUP BY/i, capture[0].sql);
+    // The SQL it checked is the SQL the live /data/query route runs: two groups
+    // (todo, done), not the three rows a compiler that ignored the aggregate
+    // half of the descriptor would read.
+    assert.deepStrictEqual(r.bindings[0], { nodeId: 'cmp_table1', prop: 'source', kind: 'aggregate', ok: true, rowCount: 2 });
 });
 
 test('a bucketed aggregate sorted by its bucket alias is not a finding either', async () => {

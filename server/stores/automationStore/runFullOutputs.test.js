@@ -12,19 +12,35 @@
  *     fails, the row gets the plain sentinel it always got;
  *   - the copy round-trips through the table unchanged.
  *
- * Pure: the save and the db facade are injected. (Requiring the module
- * constructs the pg Pool but does not connect.)
+ * The save is injected for the decision; the table itself runs on a real
+ * Postgres (the boot ladder's schema on PGlite, testUtils/pgliteDb.js over
+ * testUtils/pgliteTemplate.js ladderPglite) behind the store's db facade.
  *
  * Run: cd server && node --test stores/automationStore/runFullOutputs.test.js
  */
 
 'use strict';
 
-const { test } = require('node:test');
+const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 
 const { persistableOutput, createRunFullOutputs } = require('./runFullOutputs');
 const { isTruncatedOutput, fullOutputRefOf, DEFAULT_MAX_BYTES } = require('../../automation/payloadTruncation');
+const { pgliteDb } = require('../../testUtils/pgliteDb');
+const { ladderPglite } = require('../../testUtils/pgliteTemplate');
+
+const { pg, db } = pgliteDb(ladderPglite());
+const facade = {
+    initDB: async () => {},
+    run: db.query,
+    getOne: async (/** @type {string} */ sql, /** @type {unknown[]} */ params) => (await db.query(sql, params)).rows[0] || null,
+};
+before(() => pg.exec(`
+    INSERT INTO automations (id, user_id, title, definition_json) VALUES ('a1', 'u1', 'A', '{}');
+    INSERT INTO automation_runs (id, automation_id, version, user_id, trigger_kind, mode, status)
+        VALUES ('run-1', 'a1', 1, 'u1', 'manual', 'live', 'success');
+`));
+after(() => pg.close());
 
 const REF = { runId: 'run-1', stepId: 'http1', attempts: 1 };
 const big = () => ({ status: 200, data: { items: Array.from({ length: 4000 }, (_, i) => ({ id: i, text: 'x'.repeat(80) })) } });
@@ -85,32 +101,16 @@ test('a failed write costs the copy, never the step row', async () => {
     assert.equal(fullOutputRefOf(out), null);
 });
 
-// ── The table, over a fake db facade ───────────────────────────────────────
-
-function fakeDb() {
-    const rows = new Map();
-    const key = (p) => `${p[0]}|${p[1]}|${p[2]}`;
-    return {
-        rows,
-        initDB: async () => {},
-        run: async (sql, params) => {
-            assert.match(sql, /INSERT INTO automation_run_full_outputs/);
-            assert.match(sql, /ON CONFLICT \(run_id, step_id, attempts\) DO UPDATE/, 'a re-recorded attempt replaces its copy');
-            rows.set(key(params), { output_gz: params[3], original_bytes: params[4] });
-            return { rowCount: 1 };
-        },
-        getOne: async (_sql, params) => rows.get(key(params)) || null,
-    };
-}
+// ── The table, on PGlite ─────────────────────────────────────────────────
 
 test('a kept copy round-trips unchanged, and is stored compressed', async () => {
-    const db = fakeDb();
-    const store = createRunFullOutputs(db);
+    const store = createRunFullOutputs(facade);
     const value = big();
     const serialized = Buffer.byteLength(JSON.stringify(value));
     await store.saveRunFullOutput({ ...REF, value, originalBytes: serialized });
 
-    const stored = [...db.rows.values()][0];
+    const stored = (await pg.query(`SELECT output_gz, original_bytes FROM automation_run_full_outputs WHERE run_id = 'run-1' AND step_id = 'http1'`)).rows[0];
+    stored.output_gz = Buffer.from(stored.output_gz);
     assert.ok(Buffer.isBuffer(stored.output_gz));
     assert.ok(stored.output_gz.length < serialized / 4, `gzip keeps it small (${stored.output_gz.length} of ${serialized} bytes)`);
     assert.equal(stored.original_bytes, serialized);
@@ -118,9 +118,18 @@ test('a kept copy round-trips unchanged, and is stored compressed', async () => 
 });
 
 test('no copy reads as null — for another attempt, another step, or no ids at all', async () => {
-    const store = createRunFullOutputs(fakeDb());
+    const store = createRunFullOutputs(facade);
     await store.saveRunFullOutput({ ...REF, value: big(), originalBytes: 1 });
     assert.equal(await store.getRunFullOutput(REF.runId, REF.stepId, 2), null);
     assert.equal(await store.getRunFullOutput(REF.runId, 'other'), null);
     assert.equal(await store.getRunFullOutput('', REF.stepId), null);
+});
+
+test('a re-recorded attempt replaces its copy', async () => {
+    const store = createRunFullOutputs(facade);
+    await store.saveRunFullOutput({ runId: 'run-1', stepId: 'again', attempts: 1, value: { v: 1 }, originalBytes: 1 });
+    await store.saveRunFullOutput({ runId: 'run-1', stepId: 'again', attempts: 1, value: { v: 2 }, originalBytes: 2 });
+    assert.deepEqual(await store.getRunFullOutput('run-1', 'again', 1), { v: 2 });
+    const { rows } = await pg.query(`SELECT original_bytes FROM automation_run_full_outputs WHERE step_id = 'again'`);
+    assert.deepEqual(rows.map(r => r.original_bytes), [2]);
 });

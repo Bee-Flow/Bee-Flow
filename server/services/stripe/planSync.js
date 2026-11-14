@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Plan sync: fixed-price and pay-as-you-go (metered) plans as Stripe Product +
  * Price, the global PAYG Billing Meter, and PAYG meter events.
@@ -12,7 +13,7 @@ const { bestEffort } = require('../../utils/bestEffort');
  * Creates new or updates existing based on stripe_product_id.
  * 
  * @param {DbRow.SubscriptionPlans} plan - The plan object from userStore.getPlan()
- * @returns {{ productId: string, priceId: string }}
+ * @returns {Promise<{ productId: string, priceId: string }>}
  */
 async function syncPlanToStripe(plan) {
     const stripe = await getClient();

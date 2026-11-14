@@ -1,14 +1,15 @@
-import React, { useEffect, useState, useEffectEvent } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Calendar, Loader2, RefreshCw, Video, Mic, AlertCircle, Users } from 'lucide-react';
 import { kindColorVar, kindTint } from '@/components/shared/kindColors';
 import useTranslation from '@/hooks/useTranslation';
 import { openGoogleConsentPopup, openMicrosoftConsentPopup } from '@/api/oauthPopupLaunchers';
 import TagRow from '../detail/TagRow';
 import ReconnectBanner from './ReconnectBanner';
-import { listTalkMeetings, setMeetingRecord, listGoogleMeetMeetings, setGoogleMeetMeetingRecord, listTeamsMeetings, setTeamsMeetingRecord } from '@/api/transcriptionsApi';
+import { setMeetingRecord, setGoogleMeetMeetingRecord, setTeamsMeetingRecord } from '@/api/transcriptionsApi';
+import { useUpcomingGmeetMeetings, useUpcomingTalkMeetings, useUpcomingTeamsMeetings } from '@/api/queries/upcomingMeetings';
 import { metaSegments, meetingTags, dateBlockParts, recordReasonHint, toggleStateLabel, attendeeNotices, autoRecordingHint } from '../lib/upcomingMeta';
 import { StatusChip, gmeetChipStatus, teamsChipStatus, talkChipStatus, startMs } from './UpcomingChips';
-import type { DateBlockProps, GmeetData, GmeetMeeting, ProviderChipProps, SourceState, TalkData, TalkMeeting, TeamsData, TeamsMeeting, ToggleProps, UpcomingMeetingRowProps, UpcomingMeetingsProps, UpcomingRow } from './UpcomingMeetings.types';
+import type { DateBlockProps, GmeetData, GmeetMeeting, ProviderChipProps, TalkData, TalkMeeting, TeamsData, TeamsMeeting, ToggleProps, UpcomingMeetingRowProps, UpcomingMeetingsProps, UpcomingRow } from './UpcomingMeetings.types';
 import { messageOf, errorCode, errorMessage } from '@/utils/caughtError';
 import { logger } from '@/utils/logger';
 
@@ -153,9 +154,9 @@ function toggleErrorText(err: unknown, fallback: string): string {
 
 export default function UpcomingMeetings({ onOpenNote, onRowsChange, talkConnected }: UpcomingMeetingsProps) {
     const { t } = useTranslation();
-    const [talk, setTalk] = useState<SourceState<TalkData>>({ loading: true, error: null, data: null }); // { recordingEnabled, recordingMode, meetings }
-    const [gmeet, setGmeet] = useState<SourceState<GmeetData>>({ loading: true, error: null, data: null }); // { connection, autoImport, meetings }
-    const [teams, setTeams] = useState<SourceState<TeamsData>>({ loading: true, error: null, data: null }); // { connection, autoImport, autoRecordConfig, meetings }
+    const [talk, setTalk, refetchTalk] = useUpcomingTalkMeetings<TalkData>(); // { recordingEnabled, recordingMode, meetings }
+    const [gmeet, setGmeet, refetchGmeet] = useUpcomingGmeetMeetings<GmeetData>(); // { connection, autoImport, meetings }
+    const [teams, setTeams, refetchTeams] = useUpcomingTeamsMeetings<TeamsData>(); // { connection, autoImport, autoRecordConfig, meetings }
     const [busyKey, setBusyKey] = useState<string | null>(null);
     const [talkRowErrors, setTalkRowErrors] = useState<Record<string, string>>({}); // talkToken → message
     const [gmeetRowErrors, setGmeetRowErrors] = useState<Record<string, string>>({}); // eventId → message
@@ -169,22 +170,7 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange, talkConnect
     const [reconnecting, setReconnecting] = useState(false);
     const [reconnectingMs, setReconnectingMs] = useState(false);
 
-    const loadTalk = async () => {
-        setTalk(s => ({ ...s, loading: true, error: null }));
-        try { setTalk({ loading: false, error: null, data: await listTalkMeetings() }); }
-        catch (err) { setTalk(s => ({ ...s, loading: false, error: err })); }
-    };
-    const loadGmeet = async () => {
-        setGmeet(s => ({ ...s, loading: true, error: null }));
-        try { setGmeet({ loading: false, error: null, data: await listGoogleMeetMeetings() }); }
-        catch (err) { setGmeet(s => ({ ...s, loading: false, error: err })); }
-    };
-    const loadTeams = async () => {
-        setTeams(s => ({ ...s, loading: true, error: null }));
-        try { setTeams({ loading: false, error: null, data: await listTeamsMeetings() }); }
-        catch (err) { setTeams(s => ({ ...s, loading: false, error: err })); }
-    };
-    const load = () => { setTalkRowErrors({}); setGmeetRowErrors({}); setTeamsRowErrors({}); setOverridden({}); setRowNotices({}); loadTalk(); loadGmeet(); loadTeams(); };
+    const load = () => { setTalkRowErrors({}); setGmeetRowErrors({}); setTeamsRowErrors({}); setOverridden({}); setRowNotices({}); void refetchTalk(); void refetchGmeet(); void refetchTeams(); };
     const noteAutoRecording = (rowKey: string, outcome: unknown, provider: 'teams' | 'gmeet') => {
         const hint = autoRecordingHint(typeof outcome === 'string' ? outcome : null, provider, t);
         setRowNotices(prev => {
@@ -194,8 +180,6 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange, talkConnect
             return next;
         });
     };
-    const runLoadEffect = useEffectEvent(() => { load(); });
-    useEffect(() => { runLoadEffect(); }, []);
 
     const loading = talk.loading || gmeet.loading || teams.loading;
     const recordingEnabled = !!talk.data?.recordingEnabled;
@@ -293,7 +277,7 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange, talkConnect
         } catch (err) {
             setTalkRowErrors(prev => ({ ...prev, [m.talkToken]: toggleErrorText(err, t('meetings.upcoming_update_failed', "Couldn't update this meeting.")) }));
             // revert + reload to be safe
-            await loadTalk();
+            await refetchTalk();
         } finally {
             setBusyKey(null);
         }
@@ -325,7 +309,7 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange, talkConnect
         } catch (err) {
             setGmeetRowErrors(prev => ({ ...prev, [m.eventId]: toggleErrorText(err, t('meetings.upcoming_update_failed', "Couldn't update this meeting.")) }));
             // revert by reloading the Meet slice
-            await loadGmeet();
+            await refetchGmeet();
         } finally {
             setBusyKey(null);
         }
@@ -355,7 +339,7 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange, talkConnect
             } : s);
         } catch (err) {
             setTeamsRowErrors(prev => ({ ...prev, [m.eventId]: toggleErrorText(err, t('meetings.upcoming_update_failed', "Couldn't update this meeting.")) }));
-            await loadTeams();
+            await refetchTeams();
         } finally {
             setBusyKey(null);
         }
@@ -365,7 +349,7 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange, talkConnect
         setReconnectingMs(true);
         try {
             await openMicrosoftConsentPopup();
-            await loadTeams();
+            await refetchTeams();
         } catch (err) { logger.debug('popup blocked / auth-url failed — the banner stays, user can retry', err); } finally {
             setReconnectingMs(false);
         }
@@ -375,7 +359,7 @@ export default function UpcomingMeetings({ onOpenNote, onRowsChange, talkConnect
         setReconnecting(true);
         try {
             await openGoogleConsentPopup();
-            await loadGmeet();
+            await refetchGmeet();
         } catch (err) { logger.debug('popup blocked / auth-url failed — the banner stays, user can retry', err); } finally {
             setReconnecting(false);
         }

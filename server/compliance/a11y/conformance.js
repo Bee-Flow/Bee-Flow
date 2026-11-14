@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Reader for the CI accessibility-conformance artefact.
  *
@@ -66,8 +66,8 @@ function validate(doc) {
     doc.surfaces.forEach((/** @type {{ id?: string, status?: string, violations?: Record<string, unknown>, rules?: unknown }} */ s, /** @type {number} */ i) => {
         const at = `surfaces[${i}]`;
         if (!s || typeof s !== 'object') { problems.push(`${at} not an object`); return; }
-        if (!SURFACE_IDS.includes(s.id)) problems.push(`${at}.id unknown (${s.id})`);
-        if (!['tested', 'skipped'].includes(s.status)) problems.push(`${at}.status must be tested|skipped`);
+        if (!SURFACE_IDS.includes(/** @type {string} */ (s.id))) problems.push(`${at}.id unknown (${s.id})`);
+        if (!['tested', 'skipped'].includes(/** @type {string} */ (s.status))) problems.push(`${at}.status must be tested|skipped`);
         if (s.status === 'tested') {
             const v = s.violations;
             if (!v || typeof v !== 'object') problems.push(`${at}.violations missing`);
@@ -75,7 +75,7 @@ function validate(doc) {
             if (!Array.isArray(s.rules)) problems.push(`${at}.rules must be an array`);
             else s.rules.forEach((/** @type {{ id?: unknown, impact?: string }} */ r, /** @type {number} */ j) => {
                 if (!r || typeof r.id !== 'string') problems.push(`${at}.rules[${j}].id missing`);
-                if (!IMPACTS.includes(r?.impact)) problems.push(`${at}.rules[${j}].impact invalid`);
+                if (!IMPACTS.includes(/** @type {string} */ (r?.impact))) problems.push(`${at}.rules[${j}].impact invalid`);
             });
         }
     });
@@ -86,7 +86,7 @@ function validate(doc) {
  * @param {{ path?: string, now?: number }} [opts]
  */
 function loadConformance(opts = {}) {
-    const now = Number.isFinite(opts.now) ? opts.now : Date.now();
+    const now = Number.isFinite(opts.now) ? /** @type {number} */ (opts.now) : Date.now();
     const candidates = candidatePaths(opts.path);
     let lastPath = candidates[candidates.length - 1];
     for (const p of candidates) {

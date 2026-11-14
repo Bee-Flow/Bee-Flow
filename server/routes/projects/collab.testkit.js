@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Test kit for the co-editing route tests: the co-editing routes and the
  * project stream served over real HTTP, on top of the world from
@@ -9,6 +10,7 @@
 
 'use strict';
 
+const { fetchFixedEndpoint } = require('../../utils/fixedEndpointFetch.mts');
 const { fakeRoleGate, passThrough, quietLog } = require('../../core/collab/collab.testkit');
 const telemetryLog = require('../../telemetry/log');
 
@@ -33,7 +35,7 @@ function serveCollab(w, roles, { maxBodyBytes = 64 * 1024, requireNotebooks = pa
     app.use(express.json({ limit: '20mb' }));
     app.use((req, _res, next) => {
         const who = req.headers['x-test-user'];
-        req.session = who ? { isAuthenticated: true, user: JSON.parse(/** @type {string} */ (who)) } : {};
+        req.session = /** @type {Express.Session} */ (/** @type {unknown} */ (who ? { isAuthenticated: true, user: JSON.parse(/** @type {string} */ (who)) } : {}));
         next();
     });
     app.use('/api/projects', makeCollabRouter({
@@ -66,7 +68,7 @@ function serveCollab(w, roles, { maxBodyBytes = 64 * 1024, requireNotebooks = pa
     async function call(method, url, { body, user } = {}) {
         const headers = { 'content-type': 'application/json' };
         if (user) headers['x-test-user'] = JSON.stringify(user);
-        const res = await fetch(`${await base()}${url}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+        const res = await fetchFixedEndpoint(`${await base()}${url}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
         const text = await res.text();
         let json = null;
         try { json = JSON.parse(text); } catch (err) { telemetryLog.debug('not JSON', err); }
@@ -77,7 +79,7 @@ function serveCollab(w, roles, { maxBodyBytes = 64 * 1024, requireNotebooks = pa
     async function openStream(path, user, onFrame) {
         const ctrl = new AbortController();
         const frames = [];
-        const res = await fetch(`${await base()}${path}`, { headers: { 'x-test-user': JSON.stringify(user) }, signal: ctrl.signal });
+        const res = await fetchFixedEndpoint(`${await base()}${path}`, { headers: { 'x-test-user': JSON.stringify(user) }, signal: ctrl.signal });
         const reader = res.body.getReader();
         const dec = new TextDecoder();
         let buf = '';

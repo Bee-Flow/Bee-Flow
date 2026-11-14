@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -14,6 +14,7 @@ vi.mock('../hooks/RecorderContext', () => ({ useRecorder: () => recorderMock.cur
 
 import { listGoogleMeetRecordings } from '@/api/transcriptionsApi';
 import { openGoogleOAuthPopup } from '@/lib/googleOAuthPopup';
+import { renderWithClient } from '@/test/render';
 import GoogleMeetImportPanel from './GoogleMeetImportPanel';
 import useGoogleMeetConnected from '../hooks/useGoogleMeetConnected';
 
@@ -44,7 +45,7 @@ describe('GoogleMeetImportPanel', () => {
     });
 
     it('renders a row per meeting with the state-appropriate action', async () => {
-        render(<GoogleMeetImportPanel />);
+        renderWithClient(<GoogleMeetImportPanel />);
         expect(await screen.findByText('Weekly sync')).toBeTruthy();
         // available → Transcribe button (e4 is available too but already imported)
         expect(screen.getByRole('button', { name: 'Transcribe' }).disabled).toBe(false);
@@ -60,7 +61,7 @@ describe('GoogleMeetImportPanel', () => {
     it('imports a recording with the capture settings and calls onComplete', async () => {
         const user = userEvent.setup();
         const onComplete = vi.fn();
-        render(<GoogleMeetImportPanel onComplete={onComplete} />);
+        renderWithClient(<GoogleMeetImportPanel onComplete={onComplete} />);
         await user.click(await screen.findByRole('button', { name: 'Transcribe' }));
         await waitFor(() => expect(onComplete).toHaveBeenCalled());
         expect(recorderMock.current.importFromGoogleMeet).toHaveBeenCalledWith(ITEMS[0], { contextTerms: 'AFAS' });
@@ -71,7 +72,7 @@ describe('GoogleMeetImportPanel', () => {
         const user = userEvent.setup();
         recorderMock.current = makeRecorder({ importFromGoogleMeet: vi.fn().mockResolvedValue({ ok: false, error: new Error('nope') }) });
         const onComplete = vi.fn();
-        render(<GoogleMeetImportPanel onComplete={onComplete} />);
+        renderWithClient(<GoogleMeetImportPanel onComplete={onComplete} />);
         await user.click(await screen.findByRole('button', { name: 'Transcribe' }));
         await waitFor(() => expect(recorderMock.current.importFromGoogleMeet).toHaveBeenCalled());
         expect(onComplete).not.toHaveBeenCalled();
@@ -81,7 +82,7 @@ describe('GoogleMeetImportPanel', () => {
         const user = userEvent.setup();
         recorderMock.current = makeRecorder({ importFromGoogleMeet: vi.fn().mockResolvedValue({ ok: false, pending: true, result: { jobId: 'j1' } }) });
         const onComplete = vi.fn();
-        render(<GoogleMeetImportPanel onComplete={onComplete} />);
+        renderWithClient(<GoogleMeetImportPanel onComplete={onComplete} />);
         await user.click(await screen.findByRole('button', { name: 'Transcribe' }));
         expect(await screen.findByText('Waiting for Google')).toBeTruthy();
         expect(screen.queryByRole('button', { name: 'Transcribe' })).toBeNull();
@@ -90,20 +91,20 @@ describe('GoogleMeetImportPanel', () => {
 
     it('disables Transcribe while an upload is in flight', async () => {
         recorderMock.current = makeRecorder({ uploading: true });
-        render(<GoogleMeetImportPanel />);
+        renderWithClient(<GoogleMeetImportPanel />);
         const btn = await screen.findByRole('button', { name: 'Transcribe' });
         expect(btn.disabled).toBe(true);
     });
 
     it('shows the empty state when there are no recordings', async () => {
         listGoogleMeetRecordings.mockResolvedValue({ items: [] });
-        render(<GoogleMeetImportPanel />);
+        renderWithClient(<GoogleMeetImportPanel />);
         expect(await screen.findByText('No Meet recordings found')).toBeTruthy();
     });
 
     it('surfaces a load error', async () => {
         listGoogleMeetRecordings.mockRejectedValue(new Error('boom'));
-        render(<GoogleMeetImportPanel />);
+        renderWithClient(<GoogleMeetImportPanel />);
         // Typographic apostrophe: the panel's strings are t()-keyed now and
         // follow the product's own punctuation ("Couldn’t load your meetings").
         expect(await screen.findByText('Couldn’t load recordings')).toBeTruthy();
@@ -114,7 +115,7 @@ describe('GoogleMeetImportPanel', () => {
         const user = userEvent.setup();
         useGoogleMeetConnected.mockReturnValue({ connected: false, needsReconsent: true, loading: false });
         openGoogleOAuthPopup.mockResolvedValue({ success: true });
-        render(<GoogleMeetImportPanel />);
+        renderWithClient(<GoogleMeetImportPanel />);
         expect(screen.getByText('Google Meet needs additional access')).toBeTruthy();
         expect(screen.queryByText('Weekly sync')).toBeNull();
 
@@ -127,7 +128,7 @@ describe('GoogleMeetImportPanel', () => {
         const user = userEvent.setup();
         useGoogleMeetConnected.mockReturnValue({ connected: false, needsReconsent: true, loading: false });
         openGoogleOAuthPopup.mockResolvedValue({ success: false, closed: true });
-        render(<GoogleMeetImportPanel />);
+        renderWithClient(<GoogleMeetImportPanel />);
         await user.click(screen.getByRole('button', { name: 'Re-authorize Google' }));
         await waitFor(() => expect(openGoogleOAuthPopup).toHaveBeenCalled());
         expect(screen.getByText('Google Meet needs additional access')).toBeTruthy();
@@ -135,7 +136,7 @@ describe('GoogleMeetImportPanel', () => {
 
     it('an expired grant (needsReauth from the list) shows the reconnect card, not an empty list', async () => {
         listGoogleMeetRecordings.mockResolvedValue({ connection: { googleConnected: true, meetScopesGranted: true, needsReauth: true }, items: [] });
-        render(<GoogleMeetImportPanel />);
+        renderWithClient(<GoogleMeetImportPanel />);
         expect(await screen.findByTestId('gmeet-reauth')).toHaveTextContent('Your Google connection has expired');
         expect(screen.queryByText('No Meet recordings found')).toBeNull();
         expect(screen.getByRole('button', { name: 'Re-authorize Google' })).toBeTruthy();
@@ -145,7 +146,7 @@ describe('GoogleMeetImportPanel', () => {
         const user = userEvent.setup();
         recorderMock.current = makeRecorder({ uploadError: Object.assign(new Error('Google access expired'), { status: 409, code: 'needs_reauth' }) });
         openGoogleOAuthPopup.mockResolvedValue({ success: true });
-        render(<GoogleMeetImportPanel />);
+        renderWithClient(<GoogleMeetImportPanel />);
         expect(await screen.findByTestId('gmeet-reauth')).toBeTruthy();
         await user.click(screen.getByRole('button', { name: 'Re-authorize Google' }));
         await waitFor(() => expect(recorderMock.current.clearError).toHaveBeenCalled());

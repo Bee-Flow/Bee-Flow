@@ -5,6 +5,8 @@
  * API-key redaction.
  *
  * configStore + audioPreprocess + global.fetch are stubbed — no DB, no network.
+ * The presigned PUT goes through utils/ssrfGuard.safeFetch, whose network half
+ * is the same scripted fetch; one test runs the real guard.
  * Run: cd server && node --test core/voice/pyannoteClient.test.js
  */
 
@@ -37,7 +39,7 @@ const { transcribeWithPyannote, computePyannoteTimeouts, mapPyannoteOutput } = r
 test.after(() => { try { fs.unlinkSync(FLAC_PATH); } catch (_) {} });
 
 // ── A scripted fetch: media/input → PUT → diarize [→ identify] → jobs polling ──
-function installFetch({ jobStates, submitBody, identifyBody, identifyOutput, identifyFails } = {}) {
+function installFetch({ jobStates, submitBody, identifyBody, identifyOutput, identifyFails, presigned = 'https://presigned.example/put' } = {}) {
     const calls = [];
     const states = jobStates || [{ status: 'running' }, {
         status: 'succeeded',
@@ -52,9 +54,9 @@ function installFetch({ jobStates, submitBody, identifyBody, identifyOutput, ide
     global.fetch = async (url, opts = {}) => {
         calls.push({ url, method: opts.method || 'GET', body: opts.body });
         if (url.endsWith('/media/input')) {
-            return { ok: true, json: async () => ({ url: 'https://presigned.example/put' }) };
+            return { ok: true, json: async () => ({ url: presigned }) };
         }
-        if (url === 'https://presigned.example/put') {
+        if (url === presigned) {
             return { ok: true, text: async () => '' };
         }
         if (url.endsWith('/diarize')) {
@@ -92,6 +94,12 @@ function selection(labels = { vp_tom: 'Tom Smit' }) {
 
 const realFetch = global.fetch;
 test.afterEach(() => { global.fetch = realFetch; cleanupCalls.length = 0; });
+
+const ssrfGuard = require('../../utils/ssrfGuard');
+const realSafeFetch = ssrfGuard.safeFetch;
+const scriptedSafeFetch = (url, opts) => global.fetch(String(url), opts);
+ssrfGuard.safeFetch = scriptedSafeFetch;
+test.after(() => { ssrfGuard.safeFetch = realSafeFetch; });
 
 // ── Pure helpers ─────────────────────────────────────────────────────
 
@@ -133,6 +141,17 @@ test('happy path: uploads to media store, submits, polls, maps turn-level segmen
     assert.ok(calls.some((c) => c.url.endsWith('/diarize') && c.method === 'POST'));
     assert.ok(calls.some((c) => c.url.includes('/jobs/job-123')));
     assert.deepStrictEqual(cleanupCalls, ['x'], 'temp audio cleaned up');
+});
+
+test('an upload address on a private network is refused and nothing is sent to it', async (t) => {
+    ssrfGuard.safeFetch = realSafeFetch;
+    t.after(() => { ssrfGuard.safeFetch = scriptedSafeFetch; });
+    const presigned = 'http://127.0.0.1:9/put';
+    const calls = installFetch({ presigned });
+
+    await assert.rejects(() => transcribeWithPyannote('meeting.mp4', { language: 'nl' }), /private\/internal address/);
+    assert.ok(!calls.some((c) => c.url === presigned), 'no PUT went out');
+    assert.ok(!calls.some((c) => c.url.endsWith('/diarize')), 'no job was submitted');
 });
 
 test('the meeting LANGUAGE picks the speech model', async () => {

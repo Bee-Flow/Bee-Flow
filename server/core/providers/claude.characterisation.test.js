@@ -96,6 +96,20 @@ const PARAM_CASES = {
     noContextEditing: ['claude-sonnet-4-6', SHORT, { tools: TOOLS, _noContextEditing: true }],
     oldModel: ['claude-3-5-sonnet-20241022', HISTORY, { tools: TOOLS, temperature: 0.5 }],
     haiku: ['claude-haiku-4-5', SHORT, { temperature: 0.1 }],
+    // A forced choice on a model that thinks by default sends an explicit off.
+    forcedOnThinkingDefault: ['claude-opus-5', SHORT, { tools: TOOLS, toolChoice: { name: 'agent_search' }, reasoningEffort: 'high' }],
+    forcedOpenAiShape: ['claude-opus-5', SHORT, { tools: TOOLS, toolChoice: { type: 'function', function: { name: 'bare_tool' } } }],
+    forcedNoTools: ['claude-sonnet-4-6', SHORT, { toolChoice: 'any', reasoningEffort: 'high' }],
+    unforcedNoSystem: ['claude-sonnet-5-5', [{ role: 'user', content: 'x' }], { tools: TOOLS, toolChoice: 'required' }],
+    unforcedNoTools: ['claude-sonnet-5-5', SHORT, { toolChoice: { name: 'agent_search' } }],
+    emptyTools: ['claude-sonnet-4-6', SHORT, { tools: [], toolChoice: 'auto' }],
+    budgetBelowMax: ['claude-opus-4-6', SHORT, { budgetTokens: 2000, maxTokens: 64000 }],
+    budgetOnAdaptiveOnly: ['claude-opus-5', SHORT, { budgetTokens: 2000, maxTokens: 1000 }],
+    adaptiveBigMax: ['claude-opus-5', SHORT, { maxTokens: 50000 }],
+    temperatureNoThinkingModel: ['claude-haiku-4-5', SHORT, { tools: TOOLS, temperature: 0.4, maxTokens: 500 }],
+    jsonSchemaNoThinking: ['claude-sonnet-4-6', SHORT, { reasoningEffort: 'none', responseFormat: { type: 'json_schema', json_schema: { schema: { type: 'object', properties: { a: { type: 'string', pattern: 'x' } } } } } }],
+    jsonSchemaMissing: ['claude-opus-5', SHORT, { responseFormat: { type: 'json_schema', json_schema: {} } }],
+    jsonObjectIgnored: ['claude-opus-5', SHORT, { responseFormat: { type: 'json_object' } }],
     jsonSchema: ['claude-opus-5', SHORT, { reasoningEffort: 'low', responseFormat: { type: 'json_schema', json_schema: { schema: {
         type: 'object', properties: { n: { type: 'number', minimum: 0, maximum: 10 }, s: { type: 'string', maxLength: 'x', minLength: 2 }, a: { type: 'array', items: [{ type: 'integer', multipleOf: 2 }] } },
     } } } }],
@@ -249,6 +263,35 @@ const STREAM_CASES = {
     errorEnriched: ['claude-sonnet-4-6', SHORT, {}, [apiErr('overloaded', 529)]],
     errorNoStatus: ['claude-sonnet-4-6', SHORT, {}, [new Error('socket hang up')]],
     oauth: ['claude-opus-4-8', SHORT, { tools: TOOLS }, [fakeStream([], { stop_reason: 'end_turn' })], 'sk-ant-oat-x'],
+    // Deltas outside an open block, a stop with nothing open, an event type
+    // the adapter does not know, and a usage block without a stop reason.
+    edges: ['claude-sonnet-4-6', SHORT, {}, [fakeStream([
+        { type: 'content_block_delta', delta: { type: 'thinking_delta', thinking: 'loose thought' } },
+        { type: 'content_block_delta', delta: { type: 'input_json_delta', partial_json: '{"a":1}' } },
+        { type: 'content_block_delta', delta: { type: 'input_json_delta', partial_json: '' } },
+        { type: 'content_block_delta', delta: { type: 'other_delta' } },
+        { type: 'content_block_delta' },
+        { type: 'content_block_stop' },
+        { type: 'content_block_start', content_block: { type: 'server_tool_use' } },
+        { type: 'content_block_start' },
+        { type: 'ping' },
+        { type: 'content_block_start', content_block: { type: 'thinking' } },
+        { type: 'content_block_delta', delta: { type: 'signature_delta', signature: '' } },
+        { type: 'content_block_start', content_block: { type: 'tool_use', id: 'tu_e', name: 'agent_search' } },
+        { type: 'content_block_delta', delta: { type: 'input_json_delta', partial_json: '{}' } },
+        { type: 'content_block_stop' },
+        { type: 'content_block_stop' },
+    ], { usage: { input_tokens: 4, output_tokens: 2 } })]],
+    // An error thrown after events reached the caller is never retried, even
+    // when it is one of the retryable rejections.
+    midStreamContextMgmt: ['claude-sonnet-4-6', SHORT, { tools: TOOLS }, [{
+        async *[Symbol.asyncIterator]() { yield { type: 'message_start' }; throw apiErr('context_management: unknown'); },
+        finalMessage: async () => ({}),
+    }]],
+    errorAlreadyEnriched: ['claude-sonnet-4-6', SHORT, {}, [Object.assign(new Error('API error 503: busy'), { status: 503 })]],
+    errorStatusNoBody: ['claude-sonnet-4-6', SHORT, {}, [Object.assign(new Error('gateway'), { status: 502 })]],
+    thinkingRetryOptedOut: ['claude-sonnet-4-6', HISTORY, { _noThinkingReplay: true }, [apiErr('thinking block signature does not match')]],
+    forcedRetryAutoChoice: ['claude-sonnet-4-6', SHORT, { tools: TOOLS, toolChoice: 'auto' }, [apiErr('tool_choice any is not supported')]],
 };
 
 async function streamScenario() {

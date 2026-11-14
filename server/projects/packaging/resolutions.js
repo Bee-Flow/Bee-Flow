@@ -57,7 +57,7 @@
 
 'use strict';
 
-const { walkAllSteps } = require('../../automation/portability');
+const { walkAllSteps } = require('../../core/packaging/walkers');
 
 /** The four seat fields scrub.js empties. Kept in step with AUTOMATION_SEAT_FIELDS. */
 const SEAT_FIELDS = ['assignee', 'approvers', 'escalateTo', 'finalApprover'];

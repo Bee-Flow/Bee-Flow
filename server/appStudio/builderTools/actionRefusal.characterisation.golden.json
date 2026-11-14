@@ -1,0 +1,235 @@
+{
+  "notAList": {
+    "_fixHint": "Fix the fields the errors name and call app_set_action again with the whole action."
+  },
+  "emptyList": {
+    "_fixHint": "Fix the fields the errors name and call app_set_action again with the whole action."
+  },
+  "junkEntries": {
+    "_fixHint": "Fix the fields the errors name and call app_set_action again with the whole action."
+  },
+  "unknownTableZero": {
+    "_fixHint": "Reject reason: table \"tbl_suppliers_01\" is not in the app (it has no tables yet). Create it first with app_upsert_table {name, fields:[{key,type}]} — or link an existing Studio table with app_link_datatable {name} — and use the tbl_ id from the result; never invent a tbl_ id. Then resend this action unchanged."
+  },
+  "unknownTableHintDym": {
+    "_fixHint": "Reject reason: table \"tbl_suppliers_01\" is not in the app. Did you mean \"tbl_ab12cd\"? Create it first with app_upsert_table {name, fields:[{key,type}]} — or link an existing Studio table with app_link_datatable {name} — and use the tbl_ id from the result; never invent a tbl_ id. Then resend this action unchanged.",
+    "_suggestedPatch": {
+      "ops": [
+        {
+          "op": "set",
+          "path": "action.tableId",
+          "value": "tbl_ab12cd"
+        }
+      ],
+      "why": "the validator named the exact fix"
+    }
+  },
+  "unknownTableSuggest": {
+    "_fixHint": "Reject reason: table \"tbl_supplier\" is not in the app. Create it first with app_upsert_table {name, fields:[{key,type}]} — or link an existing Studio table with app_link_datatable {name} — and use the tbl_ id from the result; never invent a tbl_ id. Then resend this action unchanged."
+  },
+  "unknownTableNoMessage": {
+    "_fixHint": "Reject reason: table \"tbl_suppliers_01\" is not in the app. Did you mean \"tbl_ab12cd\"? Create it first with app_upsert_table {name, fields:[{key,type}]} — or link an existing Studio table with app_link_datatable {name} — and use the tbl_ id from the result; never invent a tbl_ id. Then resend this action unchanged.",
+    "_suggestedPatch": {
+      "ops": [
+        {
+          "op": "set",
+          "path": "action.steps[0].tableId",
+          "value": "tbl_ab12cd"
+        }
+      ],
+      "why": "the validator named the exact fix"
+    }
+  },
+  "unknownTableNothingClose": {
+    "_fixHint": "Reject reason: table \"tbl_zzzzzz\" is not in the app. Create it first with app_upsert_table {name, fields:[{key,type}]} — or link an existing Studio table with app_link_datatable {name} — and use the tbl_ id from the result; never invent a tbl_ id. Then resend this action unchanged."
+  },
+  "unknownFieldValues": {
+    "_fixHint": "Reject reason: action.values.emial names a field the table does not have (its keys: name, email) — did you mean \"email\".",
+    "_suggestedPatch": {
+      "ops": [
+        {
+          "op": "move",
+          "from": "action.values.emial",
+          "to": "action.values.email"
+        }
+      ],
+      "why": "the validator named the exact fix"
+    }
+  },
+  "unknownFieldByKey": {
+    "_fixHint": "Reject reason: action.values.x names a field the table does not have (its keys: amount, due_date)."
+  },
+  "unknownFieldNotValues": {
+    "_fixHint": "Reject reason: action.recordId names a field the table does not have (its keys: name, email) — did you mean \"email\"."
+  },
+  "unknownFieldNoFieldsTable": {
+    "_fixHint": "Reject reason: action.values.x names a field the table does not have."
+  },
+  "unknownFieldNoMatch": {
+    "_fixHint": "Reject reason: action.values.x names a field the table does not have."
+  },
+  "actionUnknownFieldPrefix": {
+    "_fixHint": "Fix the fields the errors name and call app_set_action again with the whole action."
+  },
+  "bindingKindInvalid": {
+    "_fixHint": "Reject reason: action.values.category must be a binding object: {kind:\"formula\", expr:\"form.<inputName>\"} for a submitted value, or {kind:\"static\", value}.",
+    "_suggestedPatch": {
+      "ops": [
+        {
+          "op": "set",
+          "path": "action.values.category",
+          "value": {
+            "kind": "formula",
+            "expr": "form.category"
+          }
+        }
+      ],
+      "why": "the validator named the exact fix"
+    }
+  },
+  "bindingKindInvalidBadName": {
+    "_fixHint": "Reject reason: action.values.bad must be a binding object: {kind:\"formula\", expr:\"form.<inputName>\"} for a submitted value, or {kind:\"static\", value}."
+  },
+  "bindingInvalidString": {
+    "_fixHint": "Reject reason: action.values.plain must be a binding object: {kind:\"formula\", expr:\"form.<inputName>\"} for a submitted value, or {kind:\"static\", value}."
+  },
+  "bindingInvalidNested": {
+    "_fixHint": "Reject reason: action.steps[0].values.v must be a binding object: {kind:\"formula\", expr:\"form.<inputName>\"} for a submitted value, or {kind:\"static\", value}.",
+    "_suggestedPatch": {
+      "ops": [
+        {
+          "op": "set",
+          "path": "action.steps[0].values.v",
+          "value": {
+            "kind": "formula",
+            "expr": "form.n1"
+          }
+        }
+      ],
+      "why": "the validator named the exact fix"
+    }
+  },
+  "bindingInvalidMissing": {
+    "_fixHint": "Reject reason: action.values.none must be a binding object: {kind:\"formula\", expr:\"form.<inputName>\"} for a submitted value, or {kind:\"static\", value}."
+  },
+  "actionUnknownField": {
+    "_fixHint": "Reject reason: Action \"act_1\" has unknown fields for kind \"create_record\": inputMapping, onSuccess. create_record takes only tableId, values, resultVar. To save a form: {kind:\"sequence\", steps:[{kind:\"create_record\", tableId, values:{<fieldKey>:{kind:\"formula\",expr:\"form.<inputName>\"}}}, {kind:\"refresh\", tableId}, {kind:\"toast\", message}]}, then app_bind_action {nodeId:<form id>, event:\"onSubmit\", actionId}.."
+  },
+  "stepUnknownField": {
+    "_fixHint": "Reject reason: Step 0 has an unknown field \"foo\". create_record takes only tableId, values, resultVar. To save a form: {kind:\"sequence\", steps:[{kind:\"create_record\", tableId, values:{<fieldKey>:{kind:\"formula\",expr:\"form.<inputName>\"}}}, {kind:\"refresh\", tableId}, {kind:\"toast\", message}]}, then app_bind_action {nodeId:<form id>, event:\"onSubmit\", actionId}.."
+  },
+  "unknownFieldNoMessage": {
+    "_fixHint": "Reject reason: . create_record takes only tableId, values, resultVar. To save a form: {kind:\"sequence\", steps:[{kind:\"create_record\", tableId, values:{<fieldKey>:{kind:\"formula\",expr:\"form.<inputName>\"}}}, {kind:\"refresh\", tableId}, {kind:\"toast\", message}]}, then app_bind_action {nodeId:<form id>, event:\"onSubmit\", actionId}.."
+  },
+  "requiredValues": {
+    "_fixHint": "Reject reason: action is missing `values` — values: {<fieldKey>: binding}, keys of invoices: amount, due_date."
+  },
+  "requiredValuesNoTable": {
+    "_fixHint": "Reject reason: action is missing `values` — values: {<fieldKey>: binding}."
+  },
+  "requiredValuesBareTable": {
+    "_fixHint": "Reject reason: action is missing `values` — values: {<fieldKey>: binding}."
+  },
+  "requiredOther": {
+    "_fixHint": "Reject reason: action.steps[1] is missing `tableId`."
+  },
+  "requiredNoMessage": {
+    "_fixHint": "Reject reason: action is missing a required field."
+  },
+  "navigateMissing": {
+    "_fixHint": "Reject reason: action (navigate) needs screenId at the top level — {kind:\"navigate\", screenId:\"scr_…\", params:{…}} — with a scr_ id from the draft state, never a guessed one."
+  },
+  "navigateMissingNoSuffix": {
+    "_fixHint": "Reject reason: action.steps[2] (navigate) needs screenId at the top level — {kind:\"navigate\", screenId:\"scr_…\", params:{…}} — with a scr_ id from the draft state, never a guessed one."
+  },
+  "approvalStages": {
+    "_fixHint": "Reject reason: action.stages: A stage needs approvers — a stage is {key, name, approvers:[{userId:\"…\"}|{groupId:\"…\"}], rule:\"first\"|\"all\"|\"quorum\"}."
+  },
+  "approvalStagesNoMessage": {
+    "_fixHint": "Reject reason: action.stages:  — a stage is {key, name, approvers:[{userId:\"…\"}|{groupId:\"…\"}], rule:\"first\"|\"all\"|\"quorum\"}."
+  },
+  "approvalHook": {
+    "_fixHint": "Reject reason: action.onDecided: onDecided.set must map outcomes — onDecided is {tableId:\"tbl_…\", recordId:{kind:\"formula\", expr:\"screen.params.recordId\"}, set:{approved:{<statusKey>:\"…\"}, rejected:{<statusKey>:\"…\"}}}."
+  },
+  "navigateUnresolved": {
+    "_fixHint": "Reject reason: action.screenId navigates to a screen the app does not have — did you mean \"scr_home\"; use a scr_ id from the draft state.",
+    "_suggestedPatch": {
+      "ops": [
+        {
+          "op": "set",
+          "path": "action.screenId",
+          "value": "scr_home"
+        }
+      ],
+      "why": "the validator named the exact fix"
+    }
+  },
+  "stepNavigateUnresolved": {
+    "_fixHint": "Reject reason: action.steps[0].screenId navigates to a screen the app does not have; use a scr_ id from the draft state."
+  },
+  "effectsNavigateUnresolved": {
+    "_fixHint": "Reject reason: action.onSuccess.navigate.screenId navigates to a screen the app does not have — did you mean \"scr_list\"; use a scr_ id from the draft state.",
+    "_suggestedPatch": {
+      "ops": [
+        {
+          "op": "set",
+          "path": "action.onSuccess.navigate.screenId",
+          "value": "scr_list"
+        }
+      ],
+      "why": "the validator named the exact fix"
+    }
+  },
+  "unknownCode": {
+    "_fixHint": "Fix the fields the errors name and call app_set_action again with the whole action."
+  },
+  "otherAction": {
+    "_fixHint": "Reject reason: actions.act_2.values.category must be a binding object: {kind:\"formula\", expr:\"form.<inputName>\"} for a submitted value, or {kind:\"static\", value}."
+  },
+  "noActionId": {
+    "_fixHint": "Reject reason: actions.act_1.values.category must be a binding object: {kind:\"formula\", expr:\"form.<inputName>\"} for a submitted value, or {kind:\"static\", value}."
+  },
+  "repeatedReasons": {
+    "_fixHint": "Reject reason: action (navigate) needs screenId at the top level — {kind:\"navigate\", screenId:\"scr_…\", params:{…}} — with a scr_ id from the draft state, never a guessed one."
+  },
+  "mixed": {
+    "_fixHint": "Reject reason: table \"tbl_suppliers_01\" is not in the app. Did you mean \"tbl_ab12cd\"? Create it first with app_upsert_table {name, fields:[{key,type}]} — or link an existing Studio table with app_link_datatable {name} — and use the tbl_ id from the result; never invent a tbl_ id. Then resend this action unchanged | action.values.emial names a field the table does not have (its keys: name, email) — did you mean \"email\" | action.values.category must be a binding object: {kind:\"formula\", expr:\"form.<inputName>\"} for a submitted value, or {kind:\"static\", value} | action.screenId navigates to a screen the app does not have — did you mean \"scr_home\"; use a scr_ id from the draft state | Action has unknown fields for kind \"x\": a, b. create_record takes only tableId, values, resultVar. To save a form: {kind:\"sequence\", steps:[{kind:\"create_record\", tableId, values:{<fieldKey>:{kind:\"formula\",expr:\"form.<inputName>\"}}}, {kind:\"refresh\", tableId}, {kind:\"toast\", message}]}, then app_bind_action {nodeId:<form id>, event:\"onSubmit\", actionId}..",
+    "_suggestedPatch": {
+      "ops": [
+        {
+          "op": "set",
+          "path": "action.tableId",
+          "value": "tbl_ab12cd"
+        },
+        {
+          "op": "move",
+          "from": "action.values.emial",
+          "to": "action.values.email"
+        },
+        {
+          "op": "set",
+          "path": "action.values.category",
+          "value": {
+            "kind": "formula",
+            "expr": "form.category"
+          }
+        },
+        {
+          "op": "set",
+          "path": "action.screenId",
+          "value": "scr_home"
+        }
+      ],
+      "why": "the validator named the exact fix"
+    }
+  },
+  "tablesNotList": {
+    "_fixHint": "Reject reason: table \"tbl_suppliers_01\" is not in the app (it has no tables yet). Create it first with app_upsert_table {name, fields:[{key,type}]} — or link an existing Studio table with app_link_datatable {name} — and use the tbl_ id from the result; never invent a tbl_ id. Then resend this action unchanged."
+  },
+  "tablesWithJunk": {
+    "_fixHint": "Reject reason: table \"tbl_supplier\" is not in the app. Create it first with app_upsert_table {name, fields:[{key,type}]} — or link an existing Studio table with app_link_datatable {name} — and use the tbl_ id from the result; never invent a tbl_ id. Then resend this action unchanged | action.values.q names a field the table does not have."
+  },
+  "noOpts": {
+    "_fixHint": "Reject reason: table \"tbl_suppliers_01\" is not in the app (it has no tables yet). Create it first with app_upsert_table {name, fields:[{key,type}]} — or link an existing Studio table with app_link_datatable {name} — and use the tbl_ id from the result; never invent a tbl_ id. Then resend this action unchanged."
+  }
+}

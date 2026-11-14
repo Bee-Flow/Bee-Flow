@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Project team chats: storing one human message, announcing it, and asking
  * the assistant when the chat's rule says so. Shared by "start a chat with a
@@ -10,7 +10,7 @@
 
 const log = require('../../telemetry/log');
 const { badRequest, notFound, conflict } = require('../../core/http/errors');
-const { effectiveAiMode, chatEvent, presentMessage } = require('./chatsPresent');
+const { effectiveAiMode, chatEvent, presentMessage } = require('../../usecases/projects/chatsPresent');
 
 /**
  * @typedef {ReturnType<typeof import('./chatsContext').makeChatsContext>} Ctx

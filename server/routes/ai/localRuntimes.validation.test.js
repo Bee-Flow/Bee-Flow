@@ -182,3 +182,11 @@ test('a pull streams its progress as SSE on the head it always had', async () =>
         'event: progress\ndata: {"status":"pulling","completed":1,"total":2}\n\n'
         + 'event: done\ndata: {"model":"llama3"}\n\n');
 });
+
+test('detection takes no fields: an address sent is refused by name, nothing is probed', async () => {
+    probed.length = 0;
+    const res = await dispatch({ method: 'POST', url: '/local-runtimes/detect', body: { url: 'http://10.0.0.1:11434' } });
+    assert.strictEqual(res.statusCode, 400, JSON.stringify(res.body));
+    assert.match(res.body.error, /Detecting local runtimes does not take "url"/);
+    assert.deepStrictEqual(probed, []);
+});

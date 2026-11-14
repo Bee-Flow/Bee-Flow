@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * A Nextcloud push event → the mirror(s) it is about, patched in place.
  *

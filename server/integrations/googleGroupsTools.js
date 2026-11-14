@@ -91,10 +91,10 @@ const GOOGLE_GROUPS_TOOLS = [
     }
 ];
 
-// Gmail body/header parsing — shared home (services/email/parse). getGmailHeader
+// Gmail body/header parsing — shared home (utils/emailParse). getGmailHeader
 // guards headers with no name; extractTextBody is folded here byte-identically
 // (direct-plain, then direct-html tag-stripped, then recurse into nested parts).
-const { extractTextBody, getGmailHeader: getHeader } = require('../services/email/parse');
+const { extractTextBody, getGmailHeader: getHeader } = require('../utils/emailParse');
 
 /**
  * Execute a Google Groups tool call.

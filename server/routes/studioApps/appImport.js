@@ -18,7 +18,7 @@ const { applyCopiedAssets } = require('../../appStudio/portableAssetStore.mts');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { requireAuth } = require('../../auth/permissions');
 const { requireManageApps, resolveOwnerOrgId } = require('./access');
-const { sanitizeAppRow } = require('./appHelpers');
+const { sanitizeAppRow } = require('../../usecases/studioApps/appHelpers');
 const { bestEffort } = require('../../utils/bestEffort');
 
 const router = express.Router();

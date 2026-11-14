@@ -13,10 +13,12 @@ const { test, before, after } = require('node:test');
 const assert = require('node:assert');
 const { newPglite } = require('../../testUtils/pgliteTemplate');
 const { pgliteQuery } = require('../../testUtils/pglitePool');
+const { runTransaction } = require('../../utils/txRollback');
 const { claimApprovalReminder } = require('./approvalReminders');
 
 const pg = newPglite();
-const deps = { getClient: async () => ({ query: pgliteQuery(pg), release: () => {} }) };
+// db.withTransaction's runner, on the one PGlite session.
+const deps = { withTransaction: (/** @type {(client: any) => Promise<any>} */ fn) => runTransaction({ query: pgliteQuery(pg), release: () => {} }, fn) };
 
 before(async () => {
     await pg.exec(`

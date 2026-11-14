@@ -22,7 +22,7 @@ const assert = require('node:assert/strict');
 const { createBuilderStream, call } = require('../../../testUtils/builderStreamHarness');
 
 const h = createBuilderStream();
-const webResearch = require('./webResearch');
+const webResearch = require('../../../usecases/ai/automationBuilder/webResearch');
 
 const real = { ...webResearch._deps };
 const fx = { available: true, permitted: true, shield: null, runs: [] };

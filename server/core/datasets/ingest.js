@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * core/datasets — streaming VCF ingest: raw upload → data.bgz + block index
  * entries + rsID records. Constant memory regardless of file size; a 30 GB
@@ -50,8 +50,8 @@ class IngestError extends Error {
 /**
  * @param {{ input: import('stream').Readable, gzip: boolean,
  *   sink: { write: (buf: Buffer) => Promise<number>, writeRsid: (shard: number, record: { rsNum: number, contigIdx: number, pos: number }) => void|Promise<void> },
- *   totalBytes?: number,
- *   onProgress?: (p: { pct: number, variantCount: number, bytesRead: number }) => void }} opts
+ *   totalBytes?: number | null,
+ *   onProgress?: ((p: { pct: number | null, variantCount: number, bytesRead: number }) => void) | null }} opts
  *   `input`: the raw upload bytes; `gzip`: input is gzip-compressed (.vcf.gz; bgzf included); `sink`: see
  *   module header; `totalBytes`: declared raw size, for progress pct; `onProgress`: at most once per 2 s
  * @returns {Promise<{ stats: {variantCount:number, blockCount:number, samples:string[],
@@ -112,7 +112,7 @@ async function ingestVcf({ input, gzip, sink, totalBytes = null, onProgress = nu
         const offset = await sink.write(block);
         blockCount++;
         if (pendingFirstPos !== null) {
-            current.entries.push({ firstPos: pendingFirstPos, blockOffset: offset, uncompSize: payload.length });
+            /** @type {ContigAcc} */ (current).entries.push({ firstPos: pendingFirstPos, blockOffset: offset, uncompSize: payload.length }); // a positioned block is in the open contig
         }
         pendingFirstPos = null;
     }
@@ -131,7 +131,7 @@ async function ingestVcf({ input, gzip, sink, totalBytes = null, onProgress = nu
             const offset = await sink.write(block);
             blockCount++;
             if (firstPos !== null && o === 0) {
-                current.entries.push({ firstPos, blockOffset: offset, uncompSize: chunk.length });
+                /** @type {ContigAcc} */ (current).entries.push({ firstPos, blockOffset: offset, uncompSize: chunk.length }); // a positioned block is in the open contig
             }
         }
     }
@@ -173,7 +173,7 @@ async function ingestVcf({ input, gzip, sink, totalBytes = null, onProgress = nu
 
         const rsNum = rsNumberOf(parsed.id);
         if (rsNum !== null) {
-            await sink.writeRsid(shardOf(rsNum), { rsNum, contigIdx: contigIdxByName.get(parsed.chrom), pos: parsed.pos });
+            await sink.writeRsid(shardOf(rsNum), { rsNum, contigIdx: /** @type {number} */ (contigIdxByName.get(parsed.chrom)), pos: parsed.pos });
         }
 
         const withNewline = Buffer.concat([lineBuf, Buffer.from('\n')]);
@@ -250,6 +250,8 @@ async function ingestVcf({ input, gzip, sink, totalBytes = null, onProgress = nu
     }
 
     if (!header) throw new IngestError('not a VCF: no #CHROM column line found');
+    // Set by the line handler, which the checker cannot follow into.
+    const vcfHeader = /** @type {NonNullable<typeof header>} */ (header);
     if (variantCount === 0) throw new IngestError('the VCF has a header but no data rows — nothing to index');
 
     await flushPending();
@@ -261,11 +263,11 @@ async function ingestVcf({ input, gzip, sink, totalBytes = null, onProgress = nu
         stats: {
             variantCount,
             blockCount,
-            samples: header.samples,
-            build: header.build,
+            samples: vcfHeader.samples,
+            build: vcfHeader.build,
             contigs: perContig.map(({ name, count, minPos, maxPos }) => ({ name, count, minPos, maxPos })),
         },
-        headerText: header.headerText,
+        headerText: vcfHeader.headerText,
         perContig,
         contentEnd,
     };

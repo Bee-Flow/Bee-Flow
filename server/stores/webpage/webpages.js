@@ -4,7 +4,7 @@
 // cloning a page to a new owner, and delete.
 
 const crypto = require('crypto');
-const { run, getOne, getAll } = require('../../db');
+const { run, getOne, getAll, withTransaction } = require('../../db');
 const storageStore = require('../storageStore');
 const { initDB } = require('./schema');
 const { buildUpdate } = require('../lib/sqlBuilder');
@@ -102,10 +102,10 @@ const PUBLISH_COLUMNS = {
 };
 
 /**
- * Toggle published state + sharing scope. When sharedGroups is undefined,
- * preserve the existing DB value (same trap as agents had — see
- * setAgentPublished). organizationId is set on first publish so visibility
- * filters can match against the owner's org without a join.
+ * Toggle published state + sharing scope. sharedGroups undefined keeps the stored value (see setAgentPublished);
+ * organizationId is set on first publish so visibility filters match the owner's org without a join.
+ * @param {string[]} [sharedGroups]
+ * @param {string | null} [organizationId]
  */
 async function setWebpagePublished(id, isPublished, ownerId, sharedGroups = undefined, organizationId = undefined) {
     await initDB();
@@ -300,33 +300,46 @@ async function cloneWebpage({ sourceId, newOwnerId, newName }) {
     // `published_version_id` is deliberately NOT in this list: a clone is
     // unpublished, and the source's versions are not copied, so a pointer
     // carried across would aim at a version this new page does not own.
-    await run(
-        `INSERT INTO webpages (
-            id, user_id, name, description, instructions,
-            knowledge_base_ids, settings,
-            html_sha256, css_sha256, js_sha256, db_sha256,
-            html_size, css_size, js_size, db_size,
-            icon, accent_color, tagline, thumbnail_sha256, thumbnail_size,
-            bridge_grants
-         ) VALUES (
-            $1, $2, $3, $4, $5,
-            $6::jsonb, $7::jsonb,
-            $8, $9, $10, $11,
-            $12, $13, $14, $15,
-            $16, $17, $18, $19, $20,
-            $21::jsonb
-         )`,
-        [
-            newId, newOwnerId, name, src.description || '', src.instructions || '',
-            kbIds, settings,
-            src.html_sha256 || '', src.css_sha256 || '', src.js_sha256 || '', src.db_sha256 || '',
-            parseInt(src.html_size) || 0, parseInt(src.css_size) || 0,
-            parseInt(src.js_size) || 0, parseInt(src.db_size) || 0,
-            src.icon || '', src.accent_color || '', src.tagline || '',
-            src.thumbnail_sha256 || '', parseInt(src.thumbnail_size) || 0,
-            grants,
-        ]
-    );
+    // The page row and its extra-file rows land together; the blobs are copied
+    // after the commit (a failed copy is logged, as an empty slot would be).
+    const values = [
+        newId, newOwnerId, name, src.description || '', src.instructions || '',
+        kbIds, settings,
+        src.html_sha256 || '', src.css_sha256 || '', src.js_sha256 || '', src.db_sha256 || '',
+        parseInt(src.html_size) || 0, parseInt(src.css_size) || 0,
+        parseInt(src.js_size) || 0, parseInt(src.db_size) || 0,
+        src.icon || '', src.accent_color || '', src.tagline || '',
+        src.thumbnail_sha256 || '', parseInt(src.thumbnail_size) || 0,
+        grants,
+    ];
+    const extras = await getAll('SELECT * FROM webpage_extra_files WHERE webpage_id = $1', [sourceId]);
+    await withTransaction(async (client) => {
+        await client.query(
+            `INSERT INTO webpages (
+                id, user_id, name, description, instructions,
+                knowledge_base_ids, settings,
+                html_sha256, css_sha256, js_sha256, db_sha256,
+                html_size, css_size, js_size, db_size,
+                icon, accent_color, tagline, thumbnail_sha256, thumbnail_size,
+                bridge_grants
+             ) VALUES (
+                $1, $2, $3, $4, $5,
+                $6::jsonb, $7::jsonb,
+                $8, $9, $10, $11,
+                $12, $13, $14, $15,
+                $16, $17, $18, $19, $20,
+                $21::jsonb
+             )`,
+            values
+        );
+        for (const f of extras) {
+            await client.query(
+                `INSERT INTO webpage_extra_files (id, webpage_id, path, mime_type, is_text, sha256, size)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                [crypto.randomUUID(), newId, f.path, f.mime_type, f.is_text, f.sha256, f.size]
+            );
+        }
+    });
 
     const ignoreMissing = (err) => {
         if (err?.name === 'NoSuchKey' || err?.$metadata?.httpStatusCode === 404) return;
@@ -348,19 +361,10 @@ async function cloneWebpage({ sourceId, newOwnerId, newName }) {
         }
     }
 
-    // Extra files — duplicate every row + corresponding RustFS blob.
-    const extras = await getAll('SELECT * FROM webpage_extra_files WHERE webpage_id = $1', [sourceId]);
-    for (const f of extras) {
-        const extraId = crypto.randomUUID();
-        await run(
-            `INSERT INTO webpage_extra_files (id, webpage_id, path, mime_type, is_text, sha256, size)
-             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-            [extraId, newId, f.path, f.mime_type, f.is_text, f.sha256, f.size]
-        );
-        if (storageStore.isAvailable()) {
-            try { await storageStore.copyObject(extraKey(sourceOwnerId, sourceId, f.path), extraKey(newOwnerId, newId, f.path)); }
-            catch (err) { try { ignoreMissing(err); } catch (e) { log.warn(`[WebpageStore] Clone extra ${f.path} failed:`, e.message); } }
-        }
+    // Extra files: the blob behind every row copied above.
+    for (const f of storageStore.isAvailable() ? extras : []) {
+        try { await storageStore.copyObject(extraKey(sourceOwnerId, sourceId, f.path), extraKey(newOwnerId, newId, f.path)); }
+        catch (err) { try { ignoreMissing(err); } catch (e) { log.warn(`[WebpageStore] Clone extra ${f.path} failed:`, e.message); } }
     }
 
     log.info(`[WebpageStore] Cloned ${sourceId} (owner ${sourceOwnerId}) → ${newId} (owner ${newOwnerId}) ("${name}")`);

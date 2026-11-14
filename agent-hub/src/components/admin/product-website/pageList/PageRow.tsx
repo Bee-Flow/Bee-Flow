@@ -255,6 +255,7 @@ export default function PageRow({ page, allSlugs, isActive, onClick, onSetHomepa
                             ${menuOpen ? 'opacity-100' : 'opacity-40 group-hover:opacity-100'}`}
                         onClick={() => setMenuOpen(v => !v)}
                         title={t('cms_site.site.pagelist.page_actions', 'Page actions')}
+                        aria-label={t('cms_site.site.pagelist.page_actions', 'Page actions')}
                     >
                         <AppIcon name="MoreVertical" className="w-3.5 h-3.5" />
                     </button>

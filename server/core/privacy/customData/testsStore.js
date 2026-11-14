@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * The test sets of the "Your own data" types, stored encrypted and apart.
@@ -58,7 +58,8 @@ const LIMITS = Object.freeze({
     maxBytes: 256 * 1024,
 });
 
-const isPlainObject = (/** @type {unknown} */ v) => !!v && typeof v === 'object' && !Array.isArray(v);
+/** @param {unknown} v @returns {v is Record<string, any>} */
+const isPlainObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 
 /**
  * The configStore key of an org's test sets.
@@ -194,7 +195,7 @@ function cleanSentence(raw, index, { typeId, errors, seenIds }) {
     }
     seenIds.add(id);
     const gold = cleanGold(raw.gold, text.length, { typeId, field: `${field}.gold`, errors });
-    const origin = ORIGINS.includes(raw.origin) ? raw.origin : 'own';
+    const origin = ORIGINS.includes(/** @type {string} */ (raw.origin)) ? /** @type {string} */ (raw.origin) : 'own';
     /** @type {TestSentence} */
     const out = { id, text };
     if (gold !== undefined) out.gold = gold;
@@ -229,7 +230,7 @@ function cleanEntry(raw, { typeId, method, errors }) {
     } else {
         const seenIds = new Set();
         for (const [i, s] of (raw.sentences || []).entries()) {
-            const clean = cleanSentence(s, i, { typeId, errors, seenIds });
+            const clean = cleanSentence(/** @type {Parameters<typeof cleanSentence>[0]} */ (s), i, { typeId, errors, seenIds }); // cleanSentence checks the shape
             if (clean) sentences.push(clean);
         }
     }
@@ -261,7 +262,7 @@ function assertSize(doc) {
  * Clean a TestsDoc before it is stored.
  *
  * @param {any} doc  the client's `customDataTests`
- * @param {{ typeIds?: string[]|Set<string>|null, methods?: Record<string,string>|Map<string,string> }} [opts]
+ * @param {{ typeIds?: string[]|Set<string>|null, methods?: Record<string,string>|Map<string,string>|null }} [opts]
  *   typeIds: the ids of the SAVED types; entries for any other id are dropped
  *   silently (a removed type's tests go with it). null means "no filter".
  *   methods: optional id → method; when given, keepFixed is kept only for

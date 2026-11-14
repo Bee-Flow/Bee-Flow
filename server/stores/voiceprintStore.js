@@ -107,7 +107,7 @@ function toMeta(row) {
  * wholesale by `upsertVoiceprint` on success.
  *
  * @param {{userId: string, organizationId: string, provider?: string,
- *          language?: string, consent?: {at?: Date, version?: number, ip?: string, userAgent?: string}}} args
+ *          language?: string | null, consent?: {at?: Date, version?: number, ip?: string | null, userAgent?: string | null}}} args
  */
 async function markPending({ userId, organizationId, provider = DEFAULT_PROVIDER, language = null, consent = {} }) {
     await initDB();
@@ -165,7 +165,7 @@ async function markFailed(userId, provider, errorCode) {
  * org's vault key before it touches the DB.
  *
  * @returns {Promise<any>} the metadata row (never the template)
- * @param {{userId: string, organizationId: string, provider?: string, model?: string, voiceprintBase64: string, durationSeconds?: number|null, language?: string|null, jobId?: string|null, consent?: {at?: Date, version?: number, ip?: string, userAgent?: string}}} opts
+ * @param {{userId: string, organizationId: string, provider?: string, model?: string, voiceprintBase64: string, durationSeconds?: number|null, language?: string|null, jobId?: string|null, consent?: {at?: Date, version?: number, ip?: string | null, userAgent?: string | null}}} opts
  */
 async function upsertVoiceprint({
     userId, organizationId, provider = DEFAULT_PROVIDER, model = 'precision-3',

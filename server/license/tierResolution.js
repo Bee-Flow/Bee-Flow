@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Resolve which licence tier a subscription plan grants.
  *
@@ -34,6 +35,7 @@ function normalizeTier(raw) {
 /**
  * Legacy fallback: guess the tier from the plan name. Only reached when a plan
  * row has no usable `tier` value.
+ * @param {unknown} planName
  * @returns {string|null}
  */
 function tierFromPlanName(planName) {
@@ -70,10 +72,11 @@ function resolveTierForPlan(plan) {
  * Check a whole plan catalogue. A paid plan that resolves to no tier is the
  * failure this module exists to prevent: the customer pays and gets nothing.
  *
- * @param {Array<object>} plans
- * @returns {{ok: boolean, offenders: Array<{id, name, tier, reason}>}}
+ * @param {Array<PlanRow> | null | undefined} plans
+ * @returns {{ok: boolean, offenders: Array<PlanTierOffender>}}
  */
 function validateAllPlanTiers(plans) {
+    /** @type {Array<PlanTierOffender>} */
     const offenders = [];
     for (const plan of plans || []) {
         const declared = plan.tier ?? plan.plan_tier;
@@ -95,6 +98,8 @@ function validateAllPlanTiers(plans) {
  * Log the catalogue's tier problems at boot. Non-fatal on purpose — refusing to
  * start would take the whole product down over a billing-catalogue typo — but
  * loud, and the colocated test is the CI gate.
+ * @param {Array<PlanRow> | null | undefined} plans
+ * @param {{ error: (message: string) => void }} [log]
  */
 function reportPlanTierProblems(plans, log = console) {
     const { ok, offenders } = validateAllPlanTiers(plans);
@@ -120,4 +125,9 @@ module.exports = {
  * A subscription_plans row, or a join exposing plan_* columns.
  * @typedef {{ id?: string, plan_id?: string, name?: string, plan_name?: string, tier?: string,
  *   plan_tier?: string, price?: number|string, amount?: number|string }} PlanRow
+ */
+
+/**
+ * A plan whose tier is unknown, missing on a paid plan, or only guessed from its name.
+ * @typedef {{ id: string | undefined, name: string | undefined, tier: string | null, reason: string }} PlanTierOffender
  */

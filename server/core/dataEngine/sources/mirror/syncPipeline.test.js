@@ -17,6 +17,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const { installResolveStub } = require('../../../../testUtils/stubRequire');
+const { pgDatatableEngine } = require('../../../../testUtils/pgDatatableEngine.testkit');
 
 const SCOPE = { kind: 'org', id: 'org_1' };
 const META = { id: 'tbl_s', key: 'sheet', fields: [{ id: 'fld_a', key: 'a', type: 'text' }, { id: 'fld_b', key: 'b', type: 'number' }] };
@@ -32,13 +33,22 @@ function table(over = {}) {
 }
 
 const world = {};
-function reset() {
+/** @type {Awaited<ReturnType<typeof pgDatatableEngine>>} */
+let dt;
+async function reset() {
     Object.assign(world, {
-        claimRow: table(), claimed: true, existingIds: [], rows: [], columns: [{ col: 0 }, { col: 1 }],
-        opens: [], pages: [], queries: [], batches: [], finished: [], rowCounts: [], unchanged: false, claims: [],
+        claimRow: table(), claimed: true, rows: [], columns: [{ col: 0 }, { col: 1 }],
+        opens: [], pages: [], finished: [], rowCounts: [], unchanged: false, claims: [],
         statePatch: { marker: { etag: '"1"' } }, metaMissing: false, deriveChanges: [],
     });
+    await dt.pg.exec('TRUNCATE "sheet"');
+    dt.calls.length = 0;
 }
+/** Rows the copy already holds. */
+const existing = async (ids) => { for (const id of ids) await dt.insert('sheet', { id, org_id: 'org_1', a: `old-${id}` }); };
+const copy = async () => (await dt.rows('sheet')).map((r) => [r.id, r.a, r.b == null ? null : Number(r.b)]).sort();
+const batchSizes = () => dt.calls.filter((c) => c.fn === 'batch').map((c) => c.statements);
+const snapshotTaken = () => dt.calls.some((c) => c.fn === 'query');
 
 const datatableStore = {
     claimSourceSync: async (id, opts) => { world.claims.push(opts); return world.claimed ? { ...world.claimRow, id } : null; },
@@ -48,14 +58,11 @@ const datatableStore = {
     setRowCount: async (id, scope, n) => { world.rowCounts.push(n); },
     getDatatable: async () => world.claimRow,
 };
+// The copy: the planner's table on PGlite (testUtils/pgDatatableEngine.testkit.js).
 const datatableDbStore = {
     scopeKey: () => 'org:org_1',
-    query: async (a, b, sql) => {
-        world.queries.push(sql);
-        if (/^SELECT "id" FROM/.test(sql)) return { rows: world.existingIds.map(id => ({ id })), truncated: false };
-        return { rows: [] };
-    },
-    batch: async (a, b, stmts) => { world.batches.push(stmts); return stmts.map(() => ({ changes: 1 })); },
+    query: (o, a, sql, params) => dt.store.query(o, a, sql, params),
+    batch: (o, a, stmts) => dt.store.batch(o, a, stmts),
 };
 const restore = installResolveStub({
     '../../../../stores/datatableStore': datatableStore,
@@ -67,7 +74,8 @@ const restore = installResolveStub({
 });
 const { makeSync } = require('./syncPipeline');
 const { SourceError } = require('./errors');
-test.after(() => restore());
+test.before(async () => { dt = await pgDatatableEngine([META]); });
+test.after(async () => { restore(); await dt.close(); });
 test.beforeEach(reset);
 
 const adapter = {
@@ -96,18 +104,16 @@ const sync = makeSync(adapter);
 function run(t, opts) { world.claimRow = t; return sync.syncRows(t, opts); }
 
 test('a full pass: open → columns → snapshot → pages → upsert → sweep → finish, with the statePatch and the counters', async () => {
-    world.existingIds = ['1', '9'];
+    await existing(['1', '9']);
     world.rows = [['1', 'x', 1], ['2', 'y', 2], ['3', 'z', 3]];
     const out = await run(table(), { reason: 'manual' });
     assert.equal(out.ok, true, out.error && out.error.message);
     assert.equal(world.opens[0].mustFetch, true, 'a never-succeeded copy must fetch');
     assert.equal(world.opens[0].rowCap, 10000);
-    assert.ok(world.queries.some(q => /^SELECT "id" FROM/.test(q)), 'snapshot taken');
+    assert.ok(snapshotTaken(), 'snapshot taken');
     assert.deepEqual(world.pages, [{ limit: 2, offset: 0 }, { limit: 2, offset: 2 }], 'paged by the adapter\'s PAGE');
-    assert.equal(world.batches[0].length, 3, 'three upserts');
-    assert.match(world.batches[0][0].sql, /ON CONFLICT \("id"\) DO UPDATE/);
-    assert.equal(world.batches[1].length, 1, 'one sweep');
-    assert.equal(world.batches[1][0].params[0], '9');
+    assert.deepEqual(batchSizes(), [3, 1], 'three upserts, one sweep');
+    assert.deepEqual(await copy(), [['1', 'x', 1], ['2', 'y', 2], ['3', 'z', 3]], 'row 1 overwritten, 9 swept');
     assert.deepEqual(world.rowCounts, [3]);
     const state = world.finished[0];
     assert.equal(state.status, 'ok');
@@ -120,14 +126,15 @@ test('a full pass: open → columns → snapshot → pages → upsert → sweep 
 
 test('unchanged: no snapshot, no batch, no setRowCount — but lastSuccessAt moves and the patch lands', async () => {
     world.unchanged = true;
-    world.existingIds = ['1'];
+    await existing(['1']);
     world.rows = [['1', 'x', 1]];
     const out = await run(table({ rowCount: 1, syncState: { lastSuccessAt: '2026-01-01T09:00:00.000Z', truncated: false } }));
     assert.equal(out.ok, true);
     assert.equal(out.unchanged, true);
     assert.equal(world.opens[0].mustFetch, false, 'a healthy copy may be probed');
-    assert.equal(world.queries.some(q => /^SELECT "id" FROM/.test(q)), false, 'no snapshot');
-    assert.deepEqual(world.batches, [], 'no batch');
+    assert.equal(snapshotTaken(), false, 'no snapshot');
+    assert.deepEqual(batchSizes(), [], 'no batch');
+    assert.deepEqual(await copy(), [['1', 'old-1', null]], 'the copy is untouched');
     assert.deepEqual(world.rowCounts, [], 'no counter move — data_version stays');
     const state = world.finished[0];
     assert.equal(state.status, 'ok');
@@ -178,20 +185,20 @@ test('a row the adapter cannot identify is skipped and counted, never upserted',
     const out = await run(table());
     assert.equal(out.ok, true);
     assert.equal(out.skippedRows, 1);
-    assert.equal(world.batches[0].length, 2);
-    assert.deepEqual(world.batches[0].map(s => s.params[0]), ['1', '3']);
+    assert.deepEqual(batchSizes(), [2]);
+    assert.deepEqual(await copy(), [['1', 'x', 1], ['3', 'z', 3]]);
     assert.equal(world.finished[0].skippedRows, 1);
     assert.equal(world.finished[0].rowCount, 2);
 });
 
 test('the row cap truncates the fetch, probes once more, and SKIPS the sweep', async () => {
-    world.existingIds = ['999'];
+    await existing(['999']);
     world.rows = [['1', 'a', 1], ['2', 'b', 2], ['3', 'c', 3], ['4', 'd', 4]];
     const out = await run(table({ source: { ...table().source, rowCap: 2 } }));
     assert.equal(out.ok, true);
     assert.equal(out.truncated, true);
     assert.deepEqual(world.pages, [{ limit: 2, offset: 0 }, { limit: 1, offset: 2 }]);
-    assert.equal(world.batches.some(b => /^DELETE/.test(b[0].sql)), false, 'no sweep under the cap');
+    assert.deepEqual((await copy()).map((r) => r[0]), ['1', '2', '999'], 'no sweep under the cap');
     assert.equal(world.finished[0].rowCount, 3, 'the 2 fetched + the one the snapshot still holds');
 });
 

@@ -107,7 +107,7 @@ function ScheduleRow({ t, r, onEdit, onToggle, onRunNow, onDelete }: RowProps) {
             </div>
             <div className="flex items-center gap-0.5 flex-shrink-0">
                 {r.triggerKind !== 'app_event' && (
-                    <button onClick={() => onRunNow(r)} title={t('agent_schedules.run_now', 'Run now')} className="p-1.5 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition">
+                    <button onClick={() => onRunNow(r)} title={t('agent_schedules.run_now', 'Run now')} aria-label={t('agent_schedules.run_now', 'Run now')} className="p-1.5 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition">
                         <Play size={13} />
                     </button>
                 )}
@@ -115,11 +115,11 @@ function ScheduleRow({ t, r, onEdit, onToggle, onRunNow, onDelete }: RowProps) {
                     {r.isActive ? <Pause size={13} /> : <Play size={13} />}
                 </button>
                 {r.triggerKind !== 'app_event' && (
-                    <button onClick={() => onEdit(r)} title={t('agent_schedules.edit', 'Edit')} className="p-1.5 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition">
+                    <button onClick={() => onEdit(r)} title={t('agent_schedules.edit', 'Edit')} aria-label={t('agent_schedules.edit', 'Edit')} className="p-1.5 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition">
                         <Sliders size={13} />
                     </button>
                 )}
-                <button onClick={() => onDelete(r)} title={t('agent_schedules.delete', 'Delete')} className="p-1.5 rounded hover:bg-red-500/10 text-[var(--text-tertiary)] hover:text-red-500 transition">
+                <button onClick={() => onDelete(r)} title={t('agent_schedules.delete', 'Delete')} aria-label={t('agent_schedules.delete', 'Delete')} className="p-1.5 rounded hover:bg-red-500/10 text-[var(--text-tertiary)] hover:text-red-500 transition">
                     <Trash2 size={13} />
                 </button>
             </div>

@@ -80,6 +80,9 @@ function useDeepLinkedAgent(
     return bootstrappedFor;
 }
 
+/** The addresses the editor is shown at (the Studio section, the editor and wizard deep links). */
+const OWN_ADDRESS = /^\/app\/(?:studio\/agents|agent-designer|agent-wizard)(?:\/|$)/;
+
 export default function AgentStudio({ user, initialAgentId = null, onClose, onNavigate, hasPermission = () => true, systemMode = false, startInWizard = false, onEditingChange }: AgentStudioProps) {
     const { t } = useTranslation();
 
@@ -102,15 +105,19 @@ export default function AgentStudio({ user, initialAgentId = null, onClose, onNa
     useEffect(() => {
         if (!onNavigate) return;
         if (bootstrappedFor === null) return; // not yet bootstrapped
+        // Back can move the address on before this chunk has mounted; an editor
+        // that is no longer at one of its own addresses has nothing to reflect.
+        if (!OWN_ADDRESS.test(window.location.pathname)) return;
         if (mode === 'edit' && selectedAgent?.id) {
             onNavigate(`studio/agents/${selectedAgent.id}`);
-        } else if (mode === 'idle' || mode === 'wizard') {
-            // The wizard belongs to the section root: it does not (yet) have its own route. A draft in
-            // `edit` deliberately does NOT navigate — that would set the URL to the list while you are
-            // in the editor.
+        } else if (mode === 'idle' || (mode === 'wizard' && !startInWizard)) {
+            // Inside Studio the wizard belongs to the section root. Opened at its own address
+            // (/app/agent-wizard, `startInWizard`) it stays there: moving to Studio would put
+            // Studio's overview on screen instead of the wizard. A draft in `edit` deliberately
+            // does NOT navigate — that would set the URL to the list while you are in the editor.
             onNavigate('studio/agents');
         }
-    }, [bootstrappedFor, mode, selectedAgent?.id, onNavigate]);
+    }, [bootstrappedFor, mode, selectedAgent?.id, onNavigate, startInWizard]);
 
     // Local-only draft: the agent isn't persisted until the user hits Save in
     // the editor. Until then it has no id, doesn't appear in the sidebar list,

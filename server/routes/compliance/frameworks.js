@@ -293,7 +293,7 @@ function _sendPolicyError(res, e) {
     return null;
 }
 
-router.post('/frameworks/:id/enable', requireAuth, requirePermission('admin_compliance'), validate({ body: NoBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof NoBody>, import('qs').ParsedQs>} */ req, res, next) => {
+router.post('/frameworks/:id/enable', requireAuth, requirePermission('admin_compliance'), validate({ body: NoBody }), async (req, res, next) => {
     const orgId = await requireOrgId(req, res);
     if (!orgId) return;
     const id = req.params.id;
@@ -325,7 +325,7 @@ router.post('/frameworks/:id/enable', requireAuth, requirePermission('admin_comp
     }
 });
 
-router.post('/frameworks/:id/disable', requireAuth, requirePermission('admin_compliance'), validate({ body: NoBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof NoBody>, import('qs').ParsedQs>} */ req, res, next) => {
+router.post('/frameworks/:id/disable', requireAuth, requirePermission('admin_compliance'), validate({ body: NoBody }), async (req, res, next) => {
     const orgId = await requireOrgId(req, res);
     if (!orgId) return;
     const id = req.params.id;
@@ -346,7 +346,7 @@ router.post('/frameworks/:id/disable', requireAuth, requirePermission('admin_com
 
 const RELEVANCE_VALUES = ['relevant', 'not_relevant', 'unknown'];
 
-router.post('/frameworks/:id/relevance', requireAuth, requirePermission('admin_compliance'), validate({ body: NoteBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof NoteBody>, import('qs').ParsedQs>} */ req, res, next) => {
+router.post('/frameworks/:id/relevance', requireAuth, requirePermission('admin_compliance'), validate({ body: NoteBody }), async (req, res, next) => {
     const orgId = await requireOrgId(req, res);
     if (!orgId) return;
     const id = req.params.id;

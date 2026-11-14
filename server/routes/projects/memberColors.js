@@ -42,9 +42,9 @@ function makeMemberColorsRouter(deps = {}) {
     const emit = deps.emit
         || ((/** @type {string} */ projectId, /** @type {Parameters<typeof import('../../core/projectFeed').emitProjectEvent>[1]} */ event) => require('../../core/projectFeed').emitProjectEvent(projectId, event, { label: 'ProjectMemberColors' }));
 
-    router.put('/:id/members/:userId/color', requireRole('viewer'), validate({ body: Body }), async (/** @type {import('express').Request<{ id: string, userId: string }, any, import('zod').infer<typeof Body>, import('qs').ParsedQs>} */ req, res) => {
+    router.put('/:id/members/:userId/color', requireRole('viewer'), validate({ body: Body }), async (req, res) => {
         const me = sessionUser(req).id;
-        const target = req.params.userId;
+        const target = /** @type {Record<string, string>} */ (req.params).userId;
         if (req.projectRole !== 'owner' && target !== me) {
             throw forbidden('not_your_colour', 'You can change your own colour; the project owner can change anyone\'s.');
         }

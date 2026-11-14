@@ -11,9 +11,10 @@ import { CANVAS_GROUND, themeVars } from '../../components/admin/Studio/AppStudi
 import { openingRoute, previewRoleFor, type ScreenParams } from '@/components/admin/Studio/AppStudio/runtime/screenRoute';
 import EmptyState from '../../components/shared/EmptyState';
 import { useTranslation } from '../../hooks/useTranslation';
-import { API_BASE, setPublicAppTransport } from '../../utils/helpers';
+import { setPublicAppTransport } from '../../utils/helpers';
 import { errorMessage, errorStatus } from '../../utils/caughtError';
 import { logger } from '../../utils/logger';
+import { apiUrl } from '@/api/typedRequest';
 
 /** A load failure; `status` is the HTTP status when the server answered. */
 type PublicAppError = Error & { status?: number };
@@ -166,7 +167,7 @@ export default function PublicAppPage({ token }: { token: string }) {
             // has to reach the network on its own: it is where the visitor token
             // comes from, and every later call is signed with what it returns.
             // eslint-disable-next-line no-restricted-syntax
-            const res = await fetch(`${API_BASE}/api/public-app/${encodeURIComponent(token)}`, {
+            const res = await fetch(apiUrl('GET /api/public-app/{token}', { params: { token } }), {
                 credentials: 'omit',
                 cache: 'no-store',
             });

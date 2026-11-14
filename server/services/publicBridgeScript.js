@@ -75,7 +75,7 @@ function buildPublicBridgeScript({ token, apiBase }) {
       body: body ? JSON.stringify(body) : undefined
     });
     var json = null;
-    try { json = await res.json(); } catch(_){}
+    try { json = await res.json(); } catch(_){ json = null; }
     if (!res.ok){
       var err = new Error((json && json.error) || ("HTTP " + res.status));
       err.status = res.status;
@@ -88,7 +88,7 @@ function buildPublicBridgeScript({ token, apiBase }) {
     var res = await fetchWithAuth(BASE + path, { method: "POST", headers: jsonHeaders(), body: JSON.stringify(body || {}) });
     if (!res.ok){
       var errJson = null;
-      try { errJson = await res.json(); } catch(_){}
+      try { errJson = await res.json(); } catch(_){ errJson = null; }
       var err = new Error((errJson && errJson.error) || ("HTTP " + res.status));
       err.status = res.status;
       throw err;
@@ -112,8 +112,8 @@ function buildPublicBridgeScript({ token, apiBase }) {
           else if (line.indexOf("data:") === 0) data += line.slice(5).trim();
         }
         var parsed = null;
-        try { parsed = data ? JSON.parse(data) : null; } catch(_){}
-        try { onEvent(ev, parsed); } catch(_){}
+        try { parsed = data ? JSON.parse(data) : null; } catch(_){ parsed = null; }
+        try { onEvent(ev, parsed); } catch(e){ console.error(e); }
       }
     }
   }
@@ -133,7 +133,7 @@ function buildPublicBridgeScript({ token, apiBase }) {
       return streamSSE("/ai/stream", body, function(ev, data){
         if (ev === "content" && data && typeof data.text === "string"){
           full += data.text;
-          try { onToken && onToken(data.text); } catch(_){}
+          try { onToken && onToken(data.text); } catch(e){ console.error(e); }
         }
       }).then(function(){ return full; });
     },

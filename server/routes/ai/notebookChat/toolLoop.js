@@ -32,7 +32,7 @@ const dlpRunner = require('../../../core/dlp/dlpRunner');
 const { createUntokeniser } = require('../../../core/dlp/untokeniseStream');
 const { applyTokenMapToMessages, untokeniseToolArgs } = require('../../../core/dlp/applyTokenMapToOutbound');
 const { fallback } = require('../../../utils/bestEffort');
-const { createTurnMeter } = require('./toolLoopUsage');
+const { createTurnMeter } = require('../../../usecases/ai/notebookChat/toolLoopUsage');
 
 // What the model is told when a write is refused, in words it can pass on.
 const VIEWER_WRITE_REFUSAL = 'This user can view this notebook but not change it, so the document and its sources were left as they are. Answer in the chat instead.';

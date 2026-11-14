@@ -1,46 +1,50 @@
+// @typecheck
 /**
  * The agent-routines → cowork move: the same four statements as the prompt-task
- * move (pinned in prompt-tasks-to-cowork-2026-08.test.js), aimed at the rows
- * that one left behind.
+ * move (tested in prompt-tasks-to-cowork-2026-08.test.js), aimed at the rows
+ * that one left behind. On a real Postgres (the boot ladder's schema on PGlite
+ * behind db.js's pool).
  *
  * Run: node --test server/migrations/agent-tasks-to-cowork-2026-10.test.js
  */
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const path = require('path');
+const { usePglitePool } = require('../testUtils/pglitePool');
+const { ladderPglite } = require('../testUtils/pgliteTemplate');
+const { insertRow } = require('../testUtils/pgliteSeed');
 
-const ops = [];
-const norm = (sql) => String(sql).replace(/\s+/g, ' ').trim();
-const fakeDb = {
-    async exec() {},
-    async run(sql) { ops.push(norm(sql)); return { rowCount: 0, rows: [] }; },
-    async getOne(sql, params = []) { return norm(sql).includes('to_regclass') ? { oid: params[0] } : null; },
-    async getAll() { return []; },
-    pool: { query: async () => ({ rows: [], rowCount: 0 }) },
-};
-const dbPath = path.join(__dirname, '..', 'db.js');
-require.cache[dbPath] = { id: dbPath, filename: dbPath, loaded: true, exports: fakeDb };
-for (const store of ['coworkStore', 'aiTaskStore']) {
-    const p = path.join(__dirname, '..', 'stores', `${store}.js`);
-    require.cache[p] = { id: p, filename: p, loaded: true, exports: {} };
-}
-
+const { pg, close } = usePglitePool(ladderPglite());
 const { up, AGENT_TASK } = require('./agent-tasks-to-cowork-2026-10');
 const { PLAIN_TASK } = require('./prompt-tasks-to-cowork-2026-08');
+test.after(close);
 
-test('moves exactly the agent-linked rows: every statement is scoped to them, never to the plain ones', async () => {
-    await up();
-    const scoped = ops.filter((q) => q.includes('FROM ai_tasks t') || q.startsWith('UPDATE ai_tasks t'));
-    assert.strictEqual(scoped.length, 4, 'copy, seed history, pause, stamp');
-    for (const q of scoped) {
-        assert.ok(q.includes(norm(AGENT_TASK)), q);
-    }
+/** @param {string} id @param {string | null} agentId */
+const task = (id, agentId) => insertRow(pg, 'ai_tasks', {
+    id, user_id: 'u1', title: id, prompt: 'p', next_run_at: '2026-12-01T00:00:00Z', is_active: true,
+    agent_id: agentId, last_run_at: '2026-10-01T00:00:00Z', last_status: 'success',
+});
+/** @param {string} t */
+const ids = async (t) => (await pg.query(`SELECT id FROM ${t} ORDER BY id`)).rows.map(r => r.id);
+
+test('moves exactly the agent-linked rows, never the plain ones', async () => {
     assert.strictEqual(AGENT_TASK, `NOT ${PLAIN_TASK}`);
+    await task('agent', 'ag1');
+    await task('plain-null', null);
+    await task('plain-empty', '');
+    assert.deepEqual(await up(), { migrated: 1, runsSeeded: 1, deactivated: 1 });
+    assert.deepEqual(await ids('cowork_schedules'), ['agent']);
+    assert.deepEqual(await ids('cowork_runs'), ['migrated-agent']);
+    const { rows } = await pg.query('SELECT id, is_active, migrated_to_cowork_at IS NOT NULL AS stamped FROM ai_tasks ORDER BY id');
+    assert.deepEqual(rows, [
+        { id: 'agent', is_active: false, stamped: true },
+        { id: 'plain-empty', is_active: true, stamped: false },
+        { id: 'plain-null', is_active: true, stamped: false },
+    ]);
 });
 
-test('ids are carried and the stamp keeps a deleted cowork twin from coming back', () => {
-    const copy = ops.find((q) => q.startsWith('INSERT INTO cowork_schedules'));
-    assert.match(copy, /SELECT t\.id,/);
-    assert.match(copy, /t\.migrated_to_cowork_at IS NULL/);
+test('ids are carried and the stamp keeps a deleted cowork twin from coming back', async () => {
+    await pg.query("DELETE FROM cowork_schedules WHERE id = 'agent'");
+    await up();
+    assert.deepEqual(await ids('cowork_schedules'), [], 'the stamped source is not copied again');
 });

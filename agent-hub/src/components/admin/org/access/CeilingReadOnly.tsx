@@ -2,7 +2,7 @@ import { Info, Lock } from 'lucide-react';
 import { useMemo } from 'react';
 import { getIntegrationIcon } from '@/config/integrationIcons';
 import { useTranslation } from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
+import { apiUrl } from '@/api/typedRequest';
 import { useGroupAccessRead } from '@/api/queries/orgAdminReads';
 import { ACCESS_KIND_SECTIONS } from './accessTypes';
 import type { AccessCapability, AccessData } from './accessTypes';
@@ -21,8 +21,8 @@ import { ALERT_ERROR, ALERT_INFO } from '@/components/mcpLibrary/ui';
 export default function CeilingReadOnly({ orgId = null }: { orgId?: string | null }) {
     const { t } = useTranslation();
     const readPath = orgId
-        ? `${API_BASE}/auth/organizations/${encodeURIComponent(orgId)}/group-access`
-        : `${API_BASE}/auth/me/group-access`;
+        ? apiUrl('GET /auth/organizations/{orgId}/group-access', { params: { orgId } })
+        : apiUrl('GET /auth/me/group-access');
 
     const { data, error, loading } = useGroupAccessRead<AccessData>(
         readPath,

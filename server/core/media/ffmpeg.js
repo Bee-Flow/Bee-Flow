@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The one place that finds and runs the ffmpeg binary.
  *
@@ -68,7 +68,7 @@ function createLinesRing(maxLines) {
      */
     const lines = [];
     /**
-     * @type {string | null | undefined}
+     * @type {string | null}
      */
     let current = null;
     let closed = false;
@@ -83,8 +83,9 @@ function createLinesRing(maxLines) {
                 current = current !== null ? current + parts[0] : parts[0];
                 return;
             }
-            if (current !== null) lines.push(current + parts.shift());
-            current = parts.pop();
+            // Two parts at least here: the first ends the open line, the last opens the next.
+            if (current !== null) lines.push(current + /** @type {string} */ (parts.shift()));
+            current = /** @type {string} */ (parts.pop());
             for (const l of parts) lines.push(l);
             if (max > -1 && lines.length > max) lines.splice(0, lines.length - max);
         },
@@ -115,7 +116,7 @@ function extractFfmpegError(stderr) {
         if (message.charAt(0) === ' ' || message.charAt(0) === '[') return [];
         messages.push(message);
         return messages;
-    }, []).join('\n');
+    }, /** @type {string[]} */ ([])).join('\n');
 }
 
 /**
@@ -152,12 +153,12 @@ function runFfmpeg(args, { timeoutMs } = {}) {
         let settled = false;
 
         /**
-         * @param {Error} err
+         * @param {Error | null} err
          */
         const settle = (err) => {
             if (settled) return;
             settled = true;
-            clearTimeout(timer);
+            clearTimeout(timer ?? undefined);
             if (err) reject(err);
             else resolve({ stderr: stderrRing.get() });
         };
@@ -188,7 +189,7 @@ function runFfmpeg(args, { timeoutMs } = {}) {
             maybeFinish();
         });
 
-        if (timeoutMs > 0) {
+        if (timeoutMs && timeoutMs > 0) {
             timer = setTimeout(() => {
                 settle(new Error(`process ran into a timeout (${timeoutMs / 1000}s)`));
                 proc.kill();

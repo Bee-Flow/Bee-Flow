@@ -89,6 +89,28 @@ function resolveSpec(spec: string, fromFile: string) {
     return null;
 }
 
+/** A file's first-party runtime imports, read and resolved once per run: many suites share most of their closure. */
+const depsCache = new Map<string, string[]>();
+function depsOf(file: string): string[] {
+    const cached = depsCache.get(file);
+    if (cached) return cached;
+    const deps: string[] = [];
+    let src = '';
+    try { src = fs.readFileSync(file, 'utf8'); } catch { /* unreadable: no imports */ }
+    IMPORT_RE.lastIndex = 0;
+    let m;
+    while ((m = IMPORT_RE.exec(src))) {
+        const spec = m[1] || m[2] || m[3];
+        if (!spec) continue;
+        // `import type …` / `export type … from` is erased at compile time and never loads the chain.
+        if (TYPE_ONLY_RE.test(m[0])) continue;
+        const resolved = resolveSpec(spec, file);
+        if (resolved) deps.push(resolved);
+    }
+    depsCache.set(file, deps);
+    return deps;
+}
+
 /** Walk the import closure of `entry`; return the chain that reaches the
  *  translation hook, or null. */
 function chainToTranslationHook(entry: string) {
@@ -99,17 +121,8 @@ function chainToTranslationHook(entry: string) {
         if (seen.has(file)) continue;
         seen.add(file);
         if (file === TRANSLATION_HOOK) return chain;
-        let src;
-        try { src = fs.readFileSync(file, 'utf8'); } catch { continue; }
-        IMPORT_RE.lastIndex = 0;
-        let m;
-        while ((m = IMPORT_RE.exec(src))) {
-            const spec = m[1] || m[2] || m[3];
-            if (!spec) continue;
-            // `import type …` / `export type … from` is erased at compile time and never loads the chain.
-            if (TYPE_ONLY_RE.test(m[0])) continue;
-            const resolved = resolveSpec(spec, file);
-            if (resolved && !seen.has(resolved)) stack.push([resolved, [...chain, resolved]]);
+        for (const resolved of depsOf(file)) {
+            if (!seen.has(resolved)) stack.push([resolved, [...chain, resolved]]);
         }
     }
     return null;

@@ -68,7 +68,7 @@ function slidesDocument({ title, css, body }) {
 /**
  * @param {string} bodyHtml
  */
-function buildSlidesHtml(bodyHtml, { title = '', author = '', date = '', marking = null, theme = null } = {}) {
+function buildSlidesHtml(bodyHtml, { title = '', author = '', date = '', marking = null, theme = /** @type {Record<string, unknown> | null} */ (null) } = {}) {
     const stamp = date || new Date().toISOString().slice(0, 10);
     const html = String(bodyHtml);
     // Zero page margin means Chromium draws no footer chrome, so the marking
@@ -257,7 +257,7 @@ function screenChromeHtml(theme, marking, index, _total) {
  * panel show: the same sections, each wrapped as a scaled card, so what a
  * person sees on screen is the PDF's page and the .pptx's slide.
  */
-function deckToSlidesHtml(deck, { theme = null, marking = null, date = '', title = '', mode = 'print' } = {}) {
+function deckToSlidesHtml(deck, { theme = /** @type {Record<string, unknown> | null} */ (null), marking = null, date = '', title = '', mode = 'print' } = {}) {
     const screen = mode === 'screen';
     const stamp = date || deck.date || new Date().toISOString().slice(0, 10);
     const cover = coverSectionHtml({

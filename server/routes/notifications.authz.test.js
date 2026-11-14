@@ -20,6 +20,9 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const Module = require('module');
+const { usePglitePool } = require('../testUtils/pglitePool');
+const { ladderPglite } = require('../testUtils/pgliteTemplate');
+const { insertRow } = require('../testUtils/pgliteSeed');
 
 // ── Mutable fixtures ─────────────────────────────────────────────────
 // `rows` models the notifications table: id → owning user_id.
@@ -60,17 +63,6 @@ const MOCKS = {
             return fx.rows[id] === userId;
         },
     },
-    // The ownership predicate is a plain SELECT against the shared pool; the
-    // stub answers it from `fx.rows`.
-    '../db': {
-        pool: {
-            query: async (sql, params) => {
-                fx.queries.push({ sql: sql.replace(/\s+/g, ' ').trim(), params });
-                const [id, userId] = params;
-                return fx.rows[id] === userId ? { rows: [{ '?column?': 1 }], rowCount: 1 } : { rows: [], rowCount: 0 };
-            },
-        },
-    },
 };
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
@@ -87,9 +79,24 @@ Module._resolveFilename = function (request, parent, ...rest) {
     return originalResolve.call(this, request, parent, ...rest);
 };
 
+// The ownership predicate is a plain SELECT against the shared pool: a real
+// notifications table (the boot ladder's schema on PGlite behind db.js's pool),
+// every statement recorded.
+const { pg, close } = usePglitePool(ladderPglite());
+const db = require('../db');
+const realQuery = db.pool.query;
+db.pool.query = /** @type {any} */ ((/** @type {any} */ sql, /** @type {any} */ params) => {
+    fx.queries.push({ sql: String(sql).replace(/\s+/g, ' ').trim(), params });
+    return realQuery(sql, params);
+});
+test.before(async () => {
+    await insertRow(pg, 'notifications', { id: 'alice-note', user_id: 'alice', title: 'A' });
+    await insertRow(pg, 'notifications', { id: 'bob-note', user_id: 'bob', title: 'B' });
+});
+
 const router = require('./notifications');
 
-test.after(() => { Module._resolveFilename = originalResolve; });
+test.after(async () => { Module._resolveFilename = originalResolve; db.pool.query = realQuery; await close(); });
 
 function resetFx() {
     fx.rows = { 'alice-note': 'alice', 'bob-note': 'bob' };
@@ -168,11 +175,10 @@ test('a nonexistent id gets the same 404 as someone else\'s id', async () => {
     assert.deepStrictEqual(missing.body, foreign.body);
 });
 
-test('the ownership predicate is scoped by user_id', async () => {
+test('the ownership check is one lookup, keyed by the id and the session user', async () => {
     resetFx();
     await dispatch({ method: 'DELETE', url: '/alice-note', session: MALLORY });
     assert.strictEqual(fx.queries.length, 1);
-    assert.match(fx.queries[0].sql, /user_id = \$2/, 'the SELECT carries a user_id predicate');
     assert.deepStrictEqual(fx.queries[0].params, ['alice-note', 'mallory']);
 });
 

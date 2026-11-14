@@ -5,10 +5,10 @@ import { FIELD_INPUT, Field, OptionCard, SAVE_BUTTON, SettingBlock, SettingRow, 
 import { useToastOnMessage } from './ui/useToastOnMessage';
 import Toggle from '@/components/shared/Toggle';
 import useDraftOverServer from '@/hooks/useDraftOverServer';
-import { API_BASE } from '@/utils/helpers';
 import { useTranslation, type TranslateFn } from '@/hooks/useTranslation';
 import type { StatusMessage } from './chatModelTiers/tierTypes';
-import { mutate, ApiError } from '@/api/mutate';
+import { ApiError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 interface LimitsConfigProps {
     onNavigateToTab?: (tab: string) => void;
@@ -75,11 +75,7 @@ const LimitsConfig = ({ onNavigateToTab }: LimitsConfigProps) => {
                 kbProvider: kbProvider === 'auto' ? null : kbProvider,
                 cpuRerankerEnabled,
             };
-            const res = await mutate(`${API_BASE}/ai/config`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            }).catch((err: unknown) => {
+            const res = await apiRequest('POST /ai/config', { body: payload }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });

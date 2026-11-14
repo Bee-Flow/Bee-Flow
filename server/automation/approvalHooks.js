@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * approvalHooks — the on_decided record-write hook.
  *
@@ -120,7 +120,7 @@ async function runRecordHook(approval) {
     if (approval?.isTest === true) return { ran: false };
     const hook = approval?.onDecided;
     if (!hook || !approval.studioAppId || approval.status === 'pending') return { ran: false };
-    const set = hook.set && typeof hook.set === 'object' ? hook.set[approval.status] : null;
+    const set = hook.set && typeof hook.set === 'object' ? hook.set[String(approval.status)] : null;
     if (!set || typeof set !== 'object' || !Object.keys(set).length) return { ran: false };
 
     try {
@@ -164,7 +164,7 @@ async function runRecordHook(approval) {
         try {
             const notificationStore = require('../stores/notificationStore');
             await notificationStore.createNotification({
-                userId: approval.ownerId,
+                userId: /** @type {string} */ (approval.ownerId), // an app's approval names its owner
                 category: 'urgent',
                 title: `⚠️ App update failed after a decision`,
                 message: `The decision on "${approval.prompt || 'an approval'}" was recorded, but the app's record could not be updated: ${/** @type {Error} */ (e).message}`,

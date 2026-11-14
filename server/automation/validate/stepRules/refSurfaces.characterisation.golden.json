@@ -1,0 +1,372 @@
+{
+"full notification": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"},
+  {"kind":"ref","path":"steps.s.output.title","where":"title","template":true},
+  {"kind":"ref","path":"steps.s.output.body","where":"body","template":true}
+],
+"full condition": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"},
+  {"kind":"expr","src":"steps.s.output.expr == 1","where":"expr","host":"topics"}
+],
+"full guard": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"},
+  {"kind":"ref","path":"steps.s.output.sourceRef","where":"sourceRef"}
+],
+"full tokenize": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"},
+  {"kind":"ref","path":"steps.s.output.sourceRef","where":"sourceRef"}
+],
+"full untokenize": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"},
+  {"kind":"ref","path":"steps.s.output.sourceRef","where":"sourceRef"}
+],
+"full parse_json": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"},
+  {"kind":"ref","path":"steps.s.output.sourceRef","where":"sourceRef"}
+],
+"full loop": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"},
+  {"kind":"ref","path":"steps.s.output.overRef","where":"overRef"}
+],
+"full set": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"},
+  {"kind":"ref","path":"steps.s.output.fields.a","where":"fields.a"},
+  {"kind":"expr","src":"steps.s.output.fields.b > 1","where":"fields.b","binding":true,"parse":false},
+  {"kind":"ref","path":"steps.s.output.fields.c","where":"fields.c","template":true},
+  {"kind":"ref","path":"steps.s.output.arrayRef","where":"arrayRef"}
+],
+"full layer_output": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"},
+  {"kind":"ref","path":"steps.s.output.fields.a","where":"fields.a"},
+  {"kind":"expr","src":"steps.s.output.fields.b > 1","where":"fields.b","binding":true}
+],
+"full datetime": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"},
+  {"kind":"ref","path":"steps.s.output.input","where":"input"},
+  {"kind":"ref","path":"steps.s.output.arrayRef","where":"arrayRef"}
+],
+"full stop_error": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"},
+  {"kind":"ref","path":"steps.s.output.message","where":"message","template":true}
+],
+"full return_to_app": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"},
+  {"kind":"ref","path":"steps.s.output.toast","where":"toast.message","template":true},
+  {"kind":"ref","path":"steps.s.output.record","where":"navigateTo.recordRef","template":true}
+],
+"full ai_step": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"},
+  {"kind":"ref","path":"steps.s.output.enum0","where":"enumFrom[0].ref"},
+  {"kind":"ref","path":"steps.s.output.check0","where":"checks[0].ref"},
+  {"kind":"ref","path":"steps.s.output.same0","where":"checks[0].sameCountAs"},
+  {"kind":"ref","path":"steps.s.output.fallback.a","where":"fallback.fields.a"}
+],
+"full data_extraction": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"},
+  {"kind":"ref","path":"steps.s.output.source","where":"source","template":true}
+],
+"full generate_document": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"},
+  {"kind":"ref","path":"steps.s.output.content","where":"content","template":true},
+  {"kind":"ref","path":"steps.s.output.title","where":"title","template":true},
+  {"kind":"ref","path":"steps.s.output.fileName","where":"fileName","template":true}
+],
+"full slide": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"},
+  {"kind":"ref","path":"steps.s.output.title","where":"title","template":true},
+  {"kind":"ref","path":"steps.s.output.content","where":"content","template":true},
+  {"kind":"ref","path":"steps.s.output.notes","where":"notes","template":true},
+  {"kind":"ref","path":"steps.s.output.image","where":"image","template":true},
+  {"kind":"ref","path":"steps.s.output.chart.data","where":"chart.data"},
+  {"kind":"ref","path":"steps.s.output.labels","where":"chart.labels","template":true},
+  {"kind":"ref","path":"steps.s.output.values","where":"chart.values","template":true},
+  {"kind":"ref","path":"steps.s.output.unit","where":"chart.unit","template":true},
+  {"kind":"ref","path":"steps.s.output.stat0","where":"stats[0]","template":true},
+  {"kind":"ref","path":"steps.s.output.stat1","where":"stats[1]"}
+],
+"full presentation": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"},
+  {"kind":"ref","path":"steps.s.output.title","where":"title","template":true},
+  {"kind":"ref","path":"steps.s.output.subtitle","where":"subtitle","template":true},
+  {"kind":"ref","path":"steps.s.output.fileName","where":"fileName","template":true},
+  {"kind":"ref","path":"steps.s.output.accent","where":"accent","template":true},
+  {"kind":"ref","path":"steps.s.output.background","where":"background","template":true},
+  {"kind":"ref","path":"steps.s.output.logo","where":"logo","template":true},
+  {"kind":"ref","path":"steps.s.output.footer","where":"footerText","template":true},
+  {"kind":"ref","path":"steps.s.output.copyName","where":"copyName","template":true},
+  {"kind":"ref","path":"steps.s.output.slide0","where":"slides[0]","template":true},
+  {"kind":"ref","path":"steps.s.output.slide1","where":"slides[1]"},
+  {"kind":"ref","path":"steps.s.output.slide2.a","where":"slides[2].a","template":true},
+  {"kind":"ref","path":"steps.s.output.slide2.b0","where":"slides[2].b[0]","template":true}
+],
+"full fill_document": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"},
+  {"kind":"ref","path":"steps.s.output.fileName","where":"fileName","template":true},
+  {"kind":"ref","path":"steps.s.output.copyName","where":"copyName","template":true},
+  {"kind":"ref","path":"steps.s.output.values.a","where":"values.a","template":true},
+  {"kind":"ref","path":"steps.s.output.values.b","where":"values.b"}
+],
+"full switch": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"},
+  {"kind":"expr","src":"steps.s.output.expr == 1","where":"expr","host":"topics"},
+  {"kind":"ref","path":"steps.s.output.arrayRef","where":"arrayRef"},
+  {"kind":"expr","src":"steps.s.output.case0 == 1","where":"cases[0].expr","host":"topics"}
+],
+"full filter": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"},
+  {"kind":"expr","src":"steps.s.output.expr == 1","where":"expr","host":"topics"},
+  {"kind":"ref","path":"steps.s.output.arrayRef","where":"arrayRef"}
+],
+"full limit": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"},
+  {"kind":"ref","path":"steps.s.output.arrayRef","where":"arrayRef"}
+],
+"full dedupe": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"},
+  {"kind":"ref","path":"steps.s.output.arrayRef","where":"arrayRef"}
+],
+"full aggregate": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"},
+  {"kind":"ref","path":"steps.s.output.arrayRef","where":"arrayRef"}
+],
+"full summarize": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"},
+  {"kind":"ref","path":"steps.s.output.arrayRef","where":"arrayRef"}
+],
+"full flatten": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"},
+  {"kind":"ref","path":"steps.s.output.arrayRef","where":"arrayRef"},
+  {"kind":"ref","path":"steps.s.output.parent0","where":"parents[0].overRef"}
+],
+"full read_table": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"},
+  {"kind":"ref","path":"steps.s.output.source","where":"source"}
+],
+"full table": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"},
+  {"kind":"ref","path":"steps.s.output.source","where":"source"},
+  {"kind":"ref","path":"steps.s.output.join","where":"ops[0].with"},
+  {"kind":"ref","path":"steps.s.output.rulesFrom","where":"ops[1].rulesFrom"},
+  {"kind":"ref","path":"steps.s.output.rule0","where":"ops[1].rules[0].value"},
+  {"kind":"expr","src":"steps.s.output.filterExpr == 1","where":"ops[1].expr","parse":true},
+  {"kind":"ref","path":"steps.s.output.derive1","where":"ops[2].columns[1].value"}
+],
+"full knowledge_write": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"},
+  {"kind":"ref","path":"steps.s.output.content","where":"content","template":true},
+  {"kind":"ref","path":"steps.s.output.title","where":"title"},
+  {"kind":"ref","path":"steps.s.output.uri","where":"sourceUri","template":true}
+],
+"full kb_query_log": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"},
+  {"kind":"ref","path":"steps.s.output.kb","where":"knowledgeBaseId","template":true},
+  {"kind":"ref","path":"steps.s.output.entry","where":"entryId"},
+  {"kind":"ref","path":"steps.s.output.status","where":"status","template":true},
+  {"kind":"ref","path":"steps.s.output.note","where":"note","template":true},
+  {"kind":"ref","path":"steps.s.output.filters.a","where":"filters.a","template":true},
+  {"kind":"ref","path":"steps.s.output.filters.b","where":"filters.b"}
+],
+"full datatable": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"},
+  {"kind":"ref","path":"steps.s.output.values.a","where":"values.a"},
+  {"kind":"ref","path":"steps.s.output.cursor","where":"cursor","template":true},
+  {"kind":"ref","path":"steps.s.output.where0","where":"where[0].value"}
+],
+"full http_request": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"},
+  {"kind":"ref","path":"steps.s.output.url","where":"url","template":true},
+  {"kind":"ref","path":"steps.s.output.headers.A","where":"headers.A","template":true},
+  {"kind":"ref","path":"steps.s.output.body","where":"body","template":true},
+  {"kind":"ref","path":"steps.s.output.query.json","where":"query.json","template":true},
+  {"kind":"ref","path":"steps.s.output.qk","where":"query.items[0].key","template":true},
+  {"kind":"ref","path":"steps.s.output.qv","where":"query.items[0].value","template":true}
+],
+"full approval": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"},
+  {"kind":"ref","path":"steps.s.output.prompt","where":"prompt","template":true},
+  {"kind":"ref","path":"steps.s.output.details","where":"approval.details","template":true},
+  {"kind":"ref","path":"steps.s.output.approval.fields.label","where":"approval.fields[0].label","template":true},
+  {"kind":"ref","path":"steps.s.output.approval.fields.ph","where":"approval.fields[0].placeholder","template":true},
+  {"kind":"ref","path":"steps.s.output.approval.fields.help","where":"approval.fields[0].help","template":true},
+  {"kind":"ref","path":"steps.s.output.approval.fields.opt","where":"approval.fields[0].options[0].label","template":true},
+  {"kind":"ref","path":"steps.s.output.att0","where":"approval.attachments[0].binding","template":true},
+  {"kind":"ref","path":"steps.s.output.stage.name","where":"approval.stages[0].name","template":true},
+  {"kind":"ref","path":"steps.s.output.stage.desc","where":"approval.stages[0].description","template":true},
+  {"kind":"expr","src":"steps.s.output.stage.when == 1","where":"approval.stages[0].when","parse":true}
+],
+"full form_page": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"},
+  {"kind":"ref","path":"steps.s.output.form.title","where":"form.title","template":true},
+  {"kind":"ref","path":"steps.s.output.form.desc","where":"form.description","template":true},
+  {"kind":"ref","path":"steps.s.output.form.submit","where":"form.submitLabel","template":true},
+  {"kind":"ref","path":"steps.s.output.form.success","where":"form.successMessage","template":true},
+  {"kind":"ref","path":"steps.s.output.form.fields.label","where":"form.fields[0].label","template":true},
+  {"kind":"ref","path":"steps.s.output.form.fields.ph","where":"form.fields[0].placeholder","template":true},
+  {"kind":"ref","path":"steps.s.output.form.fields.help","where":"form.fields[0].help","template":true},
+  {"kind":"ref","path":"steps.s.output.form.fields.opt","where":"form.fields[0].options[0].label","template":true},
+  {"kind":"expr","src":"steps.s.output.when == 1","where":"when","parse":true},
+  {"kind":"ref","path":"steps.s.output.form.fields.of","where":"form.fields[0].optionsFrom.ref"},
+  {"kind":"ref","path":"steps.s.output.form.fields.ff","where":"form.fields[0].fieldsFrom.ref"},
+  {"kind":"ref","path":"steps.s.output.form.fields.content","where":"form.fields[0].content","template":true},
+  {"kind":"ref","path":"steps.s.output.form.fields.hint","where":"form.fields[0].options[0].hint","template":true}
+],
+"full unknown_type": [
+  {"kind":"ref","path":"steps.s.output.inputs.a","where":"inputs.a"},
+  {"kind":"ref","path":"steps.s.output.inputs.b","where":"inputs.b","template":true},
+  {"kind":"expr","src":"steps.s.output.inputs.c > 1","where":"inputs.c","binding":true},
+  {"kind":"ref","path":"steps.s.output.forEach","where":"forEach.overRef"}
+],
+"odd notification": [],
+"odd condition": [],
+"odd loop": [],
+"odd set": [
+  {"kind":"ref","path":"steps.s.output.fields0","where":"fields[0]"}
+],
+"odd datetime": [
+  {"kind":"ref","path":"today","where":"input"}
+],
+"odd datetime2": [
+  {"kind":"ref","path":"steps.s.output.when","where":"input2"}
+],
+"odd return_to_app": [],
+"odd ai_step": [],
+"odd data_extraction": [
+  {"kind":"ref","path":"steps.s.output.bare","where":"source"}
+],
+"odd data_extraction2": [],
+"odd data_extraction3": [
+  {"kind":"ref","path":"steps.s.output.source","where":"source"}
+],
+"odd data_extraction4": [],
+"odd slide": [
+  {"kind":"ref","path":"steps.s.output.stats","where":"stats"}
+],
+"odd slide2": [
+  {"kind":"ref","path":"steps.s.output.stats","where":"stats","template":true}
+],
+"odd presentation": [
+  {"kind":"ref","path":"steps.s.output.slides","where":"slides","template":true}
+],
+"odd presentation2": [
+  {"kind":"ref","path":"steps.s.output.slides","where":"slides","template":true}
+],
+"odd fill_document": [],
+"odd switch": [],
+"odd flatten": [],
+"odd table": [],
+"odd kb_query_log": [],
+"odd datatable": [
+  {"kind":"ref","path":"steps.s.output.v0","where":"values[0]"},
+  {"kind":"ref","path":"steps.s.output.cursor","where":"cursor"}
+],
+"odd http_request": [],
+"odd http_request2": [],
+"odd approval": [],
+"odd approval2": [],
+"odd form_page": [],
+"odd form_page2": [],
+"no type": [
+  {"kind":"ref","path":"steps.s.output.in0","where":"inputs[0]"}
+],
+"type that is an array": [],
+"type named like a prototype member": []
+}

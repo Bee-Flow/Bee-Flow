@@ -117,12 +117,12 @@ router.get('/', async (req, res) => {
 // POST /announce — { etaSeconds, reason?, ref? }
 router.post('/announce', _requireDeployToken, validate({ body: AnnounceBody }), async (req, res) => {
     const { etaSeconds, reason, ref } = req.body;
-    const window = await maintenanceWindow.announce({ etaSeconds, reason, ref });
+    const window = await maintenanceWindow.announce({ etaSeconds: /** @type {number} */ (etaSeconds), reason, ref });
     res.json({ success: true, maintenance: window });
 });
 
 // POST /clear — rollout finished ahead of its ETA.
-router.post('/clear', _requireDeployToken, validate({ body: NoBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof NoBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/clear', _requireDeployToken, validate({ body: NoBody }), async (req, res) => {
     await maintenanceWindow.clear();
     res.json({ success: true });
 });

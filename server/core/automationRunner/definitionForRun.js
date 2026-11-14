@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Which definition does a run execute — the LIVE copy or the WORKING copy?
  *
@@ -137,6 +138,7 @@ function spreadIsDeployed(automation) {
  * D17: a managed automation runs its live copy with the live settings, test runs
  * included, and does not run at all without one. `storeLive` is the store's
  * live copy (optional), whose settings a caller-built synthetic gets.
+ * @returns {RunDefinition}
  */
 function managedDefinitionForRun(automation, storeLive) {
     if ((automation.kind || 'automation') !== 'automation') {
@@ -153,14 +155,17 @@ function managedDefinitionForRun(automation, storeLive) {
     return { definition: live, version: automation.liveVersion, source: 'live' };
 }
 
+/** @typedef {{ definition: { trigger?: any, triggers?: unknown[] }, version: number|null, source: 'live'|'working'|'not_deployed' }} RunDefinition */
+
 /**
- * @param {object|null} automation a row from the store (or a synthetic one)
+ * @param {{ definition?: any, kind?: any, liveVersion?: any, version?: any }|null} automation a row from the store (or a synthetic one)
  * @param {{ mode?: string, triggerKind?: string|null, isTest?: boolean, managed?: boolean, liveDefinition?: object|null }} [opts]
  *   `liveDefinition`: the store's live copy, read only by a managed selection
  *   of a caller-built synthetic (its live settings).
- * @returns {{ definition: object, version: number|null, source: 'live'|'working'|'not_deployed' }}
+ * @returns {RunDefinition}
  */
 function definitionForRun(automation, opts = {}) {
+    /** @type {RunDefinition} */
     const working = { definition: automation?.definition || {}, version: automation?.version ?? null, source: 'working' };
     if (!automation) return working;
     if (opts.managed) return managedDefinitionForRun(automation, opts.liveDefinition);

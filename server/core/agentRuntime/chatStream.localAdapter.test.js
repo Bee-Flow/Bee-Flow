@@ -32,7 +32,9 @@ const SRC = fs.readdirSync(CHAT_STREAM_DIR)
 
 test('useNativeAdapter includes the self-hosted runtimes', () => {
     assert.match(SRC, /const _adapterIsLocal = isLocalProviderType\(config\.providerType\) \|\| providerAdapter instanceof LocalProvider/);
-    assert.match(SRC, /const useNativeAdapter = \(NATIVE_TYPES\.includes\(config\.providerType\) \|\| _adapterIsLocal\) && typeof providerAdapter\?\.stream === 'function'/);
+    // A JSDoc cast (`/** @type {string} */ (x)`) is read as the bare `x`.
+    const uncast = SRC.replace(/\/\*\* @type \{[^}]*\} \*\/ \(([\w.]+)\)/g, '$1');
+    assert.match(uncast, /const useNativeAdapter = \(NATIVE_TYPES\.includes\(config\.providerType\) \|\| _adapterIsLocal\) && typeof providerAdapter\?\.stream === 'function'/);
     // From the leaf modules: the runtime tests mock the providers index down to
     // { getAdapter }, and a predicate pulled from the index came back undefined.
     // One '..' deeper than it reads, because this code lives in chatStream/ now.

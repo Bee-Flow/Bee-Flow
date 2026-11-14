@@ -1,6 +1,7 @@
 /** Image upload: the default notebook uploader and the check on the address an uploader returns. */
 import { API_BASE } from '../../utils/helpers';
-import { mutate, ApiError } from '../../api/mutate';
+import { ApiError } from '../../api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 /** An uploaded image's address the editor will embed: same-origin or http(s). */
 // A picture carried inside the document (a page embeds its images, since the
@@ -25,7 +26,7 @@ export async function uploadNotebookImage(nbId: string | number, file: File): Pr
   // fixture layer and hit the real API unauthenticated.
   let res: Response;
   try {
-      res = await mutate(`${API_BASE}/api/notebooks/${encodeURIComponent(nbId)}/images`, { method: 'POST', body: fd, credentials: 'include' });
+      res = await apiRequest('POST /api/notebooks/{id}/images', { params: { id: nbId }, init: { credentials: 'include', body: fd } });
   } catch (err) {
       if (!(err instanceof ApiError)) throw err;
       throw new Error(`upload ${err.status}`);

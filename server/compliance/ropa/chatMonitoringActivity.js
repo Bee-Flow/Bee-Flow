@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 
 /**
@@ -57,7 +57,7 @@ function defaultDeps() {
  * @param {Date} now
  */
 async function observedKinds(orgKey, deps, now) {
-    const to = sup.utcDay(now);
+    const to = /** @type {string} */ (sup.utcDay(now)); // a Date always has a day
     const from = sup.addDays(to, -OBSERVED_DAYS);
     const seen = new Set();
     for (const surface of V.SURFACES) {

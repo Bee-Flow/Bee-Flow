@@ -21,12 +21,13 @@
 const crypto = require('node:crypto');
 const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
+const { envInt } = require('../../utils/envNumber.mts');
 
 /** Texts per request. The service accepts 32; 16 keeps one request short. */
 const BATCH_SIZE = 16;
 const MAX_IN_FLIGHT = 2;
 /** Overall budget for one classify() call, retries included. */
-const DEADLINE_MS = Number(process.env.AUTOMATION_TOPIC_DEADLINE_MS) || 120_000;
+const DEADLINE_MS = envInt('AUTOMATION_TOPIC_DEADLINE_MS', 120_000, { min: 1 });
 const REQUEST_BASE_MS = 10_000;
 const REQUEST_PER_TEXT_MS = 2_000;
 const BREAKER_THRESHOLD = 3;

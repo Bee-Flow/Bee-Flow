@@ -58,6 +58,7 @@ import type { HeaderCtx } from './header/registerSpecs';
 import type { HubHeaderCtx } from './ComplianceHeader';
 import type { CheckRecord } from './pages/framework/checkSort';
 import type ComplianceMobile from './ComplianceMobile';
+import { useShellProps } from '@/authedApp/useShellProps';
 
 /** The hub's one way to move: a section, an optional item and tab; `replace` rewrites the history entry. */
 type NavigateTo = (sectionId: string, subId?: string | null, nextTab?: string | null, opts?: { replace?: boolean }) => void;
@@ -71,7 +72,7 @@ type MobileProps = React.ComponentProps<typeof ComplianceMobile>;
 interface ComplianceHubProps {
     activeSection?: string;
     focusCheckId?: string | null;
-    onNavigate: (path: string, opts?: { replace?: boolean }) => void;
+    onNavigate?: (path: string, opts?: { replace?: boolean }) => void;
     exportsEnabled?: boolean;
     onBack?: (() => void) | null;
 }
@@ -85,8 +86,11 @@ function HubLadder({ ladder, onClose }: { ladder: LadderState; onClose: () => vo
 
 const orgNameOf = (overview: ReturnType<typeof useComplianceCore>['overview']) => overview?.settings?.org_name || overview?.organization_name || null;
 
-export default function ComplianceHub({ activeSection = 'overview', focusCheckId = null, onNavigate, exportsEnabled = true, onBack = null }: ComplianceHubProps) {
+export default function ComplianceHub({ activeSection = 'overview', focusCheckId = null, onNavigate: onNavigateProp, exportsEnabled = true, onBack = null }: ComplianceHubProps) {
     const { t } = useTranslation();
+    // Inside the app shell the navigation comes from context; a host outside
+    // it (a test, a kit) still hands it as a prop.
+    const { onNavigate } = useShellProps({ onNavigate: onNavigateProp });
     const { isMobile } = useViewport();
     const active = resolveSection(activeSection);
     const section = sectionById(active);

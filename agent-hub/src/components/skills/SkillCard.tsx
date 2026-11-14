@@ -130,6 +130,7 @@ export default function SkillCard({
                             <button
                                 onClick={() => onEdit?.(skill)}
                                 title={t('skills.edit_skill', 'Edit skill')}
+                                aria-label={t('skills.edit_skill', 'Edit skill')}
                                 className="w-7 h-7 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]"
                             >
                                 <Edit2 size={13} />
@@ -153,6 +154,7 @@ export default function SkillCard({
                                 <button
                                     onClick={() => setConfirmDelete(true)}
                                     title={t('skills.delete_skill', 'Delete skill')}
+                                    aria-label={t('skills.delete_skill', 'Delete skill')}
                                     className="w-7 h-7 rounded-md flex items-center justify-center transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]"
                                 >
                                     <Trash2 size={13} />

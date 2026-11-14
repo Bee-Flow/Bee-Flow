@@ -1,11 +1,12 @@
 import { useEffect, useEffectEvent, type Dispatch, type SetStateAction } from 'react';
 import { DEFAULT_AGENT_EMOJI, pickAgentAvatar } from '../utils/agentAvatar';
-import { API_BASE, generateMessageId } from '../utils/helpers';
+import { generateMessageId } from '../utils/helpers';
 import scopedStorage from '../utils/scopedStorage';
 import type { ChatMessage } from '../hooks/useChatEngine/types';
 import type { AgentLike, IdRef } from './useAgentHubData';
 import { logger } from '../utils/logger';
-import { request, RefusedError } from '../api/mutate';
+import { RefusedError } from '../api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 // The "All Chats" aggregation and the window-event listeners that steer the
 // hub from outside (Settings' chat-history-mode switch, NotificationCenter's
@@ -71,7 +72,7 @@ const useDirectChatEvents = ({
             // possible) instead of generic direct chat.
             if (agentId) {
                 try {
-                    const agentRes = await request(`${API_BASE}/agents/${agentId}`).catch((apiErr: unknown) => {
+                    const agentRes = await apiRequest('GET /agents/{id}', { params: { id: agentId } }).catch((apiErr: unknown) => {
                         if (apiErr instanceof RefusedError) return null;
                         throw apiErr;
                     });

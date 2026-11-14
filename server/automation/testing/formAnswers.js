@@ -40,7 +40,7 @@ const isPlainObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 
 /**
  * The trigger node a run entered through: the primary, or the `triggers[]` entry named by rootStepId.
- * @param {import('../automationGraph').AutomationDefinition} definition
+ * @param {import('../../core/automationModel/automationGraph').AutomationDefinition} definition
  * @param {string | null | undefined} rootStepId
  */
 function enteredTriggerOf(definition, rootStepId) {

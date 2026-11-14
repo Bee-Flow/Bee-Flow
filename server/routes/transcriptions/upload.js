@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Transcriptions — upload & transcribe.
  *
@@ -23,14 +24,16 @@ const {
 } = require('./shared');
 const meetingFiling = require('../../projects/meetingFiling');
 const { toContextBias } = require('../../core/meetingNotes/summaryHelpers');
-const { lookupUserName } = require('./speakerNaming');
+const { lookupUserName } = require('../../usecases/transcriptions/speakerNaming');
 const { resolveProjectFiling, resolveUploadProvider, persistUploadAudio } = require('./uploadIntake');
 const { transcribeUpload, analyseUpload, finishUpload, beatProcessing } = require('./uploadPipeline');
-const { failureSummary } = require('./noteText.mts');
+const { failureSummary } = require('../../usecases/transcriptions/noteText.mts');
 const { discardSavedAudio } = require('../../core/meetingNotes/savedAudioStore');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded, bodyOf, choice } = require('./schemas');
+const { envInt } = require('../../utils/envNumber.mts');
+const { sessionUser } = require('../../core/http/sessionUser');
 
 // ── What an upload may carry ───────────────────────────────────────
 //
@@ -145,8 +148,8 @@ async function recordUploadFailure(transcriptionId, userId, err, res) {
     return null;
 }
 
-router.post('/', requireAuth, uploadLimiter, upload.single('audio'), validate({ body: UploadBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof UploadBody>, import('qs').ParsedQs>} */ req, res) => {
-    const userId = req.session.user.id;
+router.post('/', requireAuth, uploadLimiter, upload.single('audio'), validate({ body: UploadBody }), async (req, res) => {
+    const userId = sessionUser(req).id;
     const userOrgId = await resolveUserOrgFromReq(req);
 
     if (!req.file) {
@@ -180,13 +183,13 @@ router.post('/', requireAuth, uploadLimiter, upload.single('audio'), validate({ 
     // A retry of a recording this user already sent (see client_upload_id).
     const sourceUri = req.body.client_upload_id ? `upload://${userId}/${req.body.client_upload_id}` : null;
     /** @param {{ id: string }} note */
-    const answerRepeat = (note) => res.status(202).json({ id: note.id, status: 'processing', title, fileName: req.file.originalname || 'audio.mp3', projectId, dedup: true });
+    const answerRepeat = (note) => res.status(202).json({ id: note.id, status: 'processing', title, fileName: /** @type {NonNullable<typeof req.file>} */ (req.file).originalname || 'audio.mp3', projectId, dedup: true }); // checked at the top
 
     try {
         // The transcription pipeline (transcribe → diarize → summarise) can take
         // many minutes on long recordings; keep the socket alive long enough to
         // send the initial 202, then the work continues in the background.
-        const routeTimeout = Number(process.env.TRANSCRIBE_ROUTE_TIMEOUT_MS) || 1800000;
+        const routeTimeout = envInt('TRANSCRIBE_ROUTE_TIMEOUT_MS', 1800000, { min: 0 });
         req.setTimeout(routeTimeout);
         res.setTimeout(routeTimeout);
 
@@ -217,7 +220,7 @@ router.post('/', requireAuth, uploadLimiter, upload.single('audio'), validate({ 
         // still be reprocessed), create a 'processing' note, and respond 202
         // immediately. The heavy pipeline below keeps running after the response
         // and writes its result to this note (or marks it 'failed' in the catch). ──
-        const { savedAudioPath, audioStorageKey } = await persistUploadAudio(req.file, userId, fileName);
+        const { savedAudioPath, audioStorageKey } = await persistUploadAudio(/** @type {{ path: string, originalname?: string }} */ (req.file), userId, fileName);
 
         // No note for the copies (failed INSERT, or a repeat that lost the race): they go.
         const processingNote = await createProcessingNote({
@@ -244,7 +247,8 @@ router.post('/', requireAuth, uploadLimiter, upload.single('audio'), validate({ 
         res.status(202).json({ id: transcriptionId, status: 'processing', title, fileName, projectId });
 
         const transcribed = await transcribeUpload({
-            provider, filePath: req.file.path, fileName, language, contextTerms, numSpeakers, userOrgId, userId, attendees,
+            // multer's disk storage names the file.
+            provider, filePath: /** @type {string} */ (req.file.path), fileName, language, contextTerms, numSpeakers, userOrgId, userId, attendees,
         });
         // Heartbeats between the phases: the stuck-note reaper measures silence,
         // not meeting length. Best-effort.

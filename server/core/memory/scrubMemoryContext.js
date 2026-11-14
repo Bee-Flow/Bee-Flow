@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Scrub an assembled memory-context string of any PII the Azure detector can
  * find. This is the read-time guard against the "memory leak" class of bug:
@@ -111,7 +111,7 @@ async function scrubMemoryContext(text, orgShield = null, { knownEntities = [] }
  * @param {string[]|null} enabledCategories
  */
 function withKnownEntities(text, detected, known, enabledCategories = null) {
-    /** @type {PiiSpan[]} */
+    /** @type {Array<PiiSpan & { offset: number, length: number }>} */
     const spans = [];
     for (const k of known || []) {
         if (!k?.text || (enabledCategories && !enabledCategories.includes(k.category))) continue;
@@ -131,14 +131,14 @@ function withKnownEntities(text, detected, known, enabledCategories = null) {
  * @param {PiiSpan[]} entities
  */
 function labelEntities(text, entities) {
-    const sorted = [...entities].sort((a, b) => b.offset - a.offset);
+    const sorted = [...entities].sort((a, b) => Number(b.offset) - Number(a.offset));
     let scrubbed = text;
     const seen = new Set();
     for (const entity of sorted) {
         const label = humaniseLabel(entity.category);
         const replacement = `[${label}]`;
         if (typeof entity.offset === 'number' && entity.offset >= 0) {
-            scrubbed = scrubbed.slice(0, entity.offset) + replacement + scrubbed.slice(entity.offset + entity.length);
+            scrubbed = scrubbed.slice(0, entity.offset) + replacement + scrubbed.slice(entity.offset + Number(entity.length));
         } else if (entity.text) {
             scrubbed = scrubbed.split(entity.text).join(replacement);
         }

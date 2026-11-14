@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The account half of the OAuth callback (./providerCallbackRoutes.js): find
  * the local user for a provider identity, or create one (signup wizard or
@@ -24,7 +24,7 @@ const { claimSessionInvite, releaseInvite } = require('./oauthInvite.mts');
 
 /** @typedef {import('./providerCallbackRoutes').OAuthUser} OAuthUser */
 /** @typedef {NonNullable<Awaited<ReturnType<typeof userStore.getUser>>>} UserRow */
-/** @typedef {{ organizationId: string, orgRole: string, status: string, groups: string[] }} Placement */
+/** @typedef {import('../accountProvisioning').Placement} Placement */
 /** @typedef {ReturnType<typeof accountProvisioning.normalizeSignupIntent>} SignupIntent */
 /** @typedef {{ name?: string } | null | undefined} PreResolvedOrg */
 
@@ -245,12 +245,12 @@ async function finishNewSsoUser({ req, user, localId, placement, signupIntent, p
                     try {
                         const row = await userStore.getUser(localId);
                         if (!row || (row.status ?? 'active') !== 'active') return;
-                        const claimed = await userStore.claimNotification('user', localId, 'welcome_email', user.email);
+                        const claimed = await userStore.claimNotification('user', localId, 'welcome_email', /** @type {string} */ (user.email));
                         if (!claimed) return;
                         const clientHost = `${process.env.CLIENT_PROTOCOL || 'https'}://${process.env.CLIENT_PUBLIC_HOST || 'beeflow.nl'}`;
                         const orgName = preResolvedOrg?.name || '';
                         const { sendWelcomeEmail } = require('../../utils/emailService');
-                        await sendWelcomeEmail({ email: user.email, displayName: user.displayName, loginUrl: clientHost, orgName, locale: ssoLocale });
+                        await sendWelcomeEmail({ email: /** @type {string} */ (user.email), displayName: user.displayName, loginUrl: clientHost, orgName, locale: ssoLocale });
                     } catch (e) { log.warn('[OAuth] welcome email failed:', /** @type {Error} */ (e).message); }
                 });
             }
@@ -296,7 +296,7 @@ function identityOf(provider, user, localId) {
 async function makeNewSsoUser({ req, provider, user, msTenant, identities }) {
     const plan = await planNewSsoUser({ req, provider, user, msTenant });
     if (plan.error) return { error: plan.error };
-    const { placement, preResolvedOrg, localId, signupIntent } = plan;
+    const { placement, preResolvedOrg, localId, signupIntent } = /** @type {Exclude<typeof plan, { error: unknown }>} */ (plan);
     const created = await createSsoUser({ provider, user, localId, placement });
     if (created.error) return created;
     if (identities && !(await recordIdentity(identities, localId, provider, user))) return { error: 'sso_link_required' };

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 
 const invoiceTracker = require('./invoiceTracker');
@@ -6,7 +6,7 @@ const invoiceTracker = require('./invoiceTracker');
 const RECIPES = Object.freeze({ [invoiceTracker.RECIPE_ID]: invoiceTracker });
 
 /**
- * @param {string | number} id
+ * @param {string | number | null | undefined} id  anything but a known string id finds none
  */
 function getRecipe(id) {
     return (typeof id === 'string' && RECIPES[id]) || null;
@@ -22,6 +22,7 @@ function getRecipe(id) {
  * `getRecipe` has to resolve their `recipeId` to compose their briefs and name
  * their phases. Put an id back in OFFERED to list it again.
  */
+/** @type {readonly string[]} */
 const OFFERED = Object.freeze([]);
 
 /**

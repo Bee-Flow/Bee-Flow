@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Package loader: the operator-driven install paths.
  *
@@ -7,7 +8,6 @@
  * list retained versions and roll back. Each path owns the install progress
  * (memory + install store) and the per-module install guard.
  */
-
 'use strict';
 
 const path = require('path');
@@ -71,7 +71,7 @@ async function installFromHub(moduleId, { version = null, actorId = null, accept
         }
     } catch (e) { if (e.code === 'module_id_conflict') throw e; /* catalog unavailable in some tests */ }
     if (_installing.has(moduleId)) {
-        const e = new HubError('already_connected', 'install_in_progress'); e.inProgress = true; throw e;
+        const e = /** @type {InstanceType<typeof HubError> & { inProgress?: boolean }} */ (new HubError('already_connected', 'install_in_progress')); e.inProgress = true; throw e;
     }
     // Cross-replica lease: exactly one live install per module. A DB hiccup
     // degrades to the in-memory guard rather than blocking installs.
@@ -79,7 +79,7 @@ async function installFromHub(moduleId, { version = null, actorId = null, accept
     try {
         const lease = await installStore().acquire(moduleId, { version, actor: actorId, replica: REPLICA_ID });
         if (!lease) {
-            const e = new HubError('already_connected', 'install_in_progress'); e.inProgress = true; throw e;
+            const e = /** @type {InstanceType<typeof HubError> & { inProgress?: boolean }} */ (new HubError('already_connected', 'install_in_progress')); e.inProgress = true; throw e;
         }
         leased = true;
     } catch (e) {
@@ -117,7 +117,7 @@ async function installFromHub(moduleId, { version = null, actorId = null, accept
             const granted = new Set([...existingList, ...(Array.isArray(acceptedPermissions) ? acceptedPermissions : [])]);
             const missing = needed.filter(p => !granted.has(p));
             if (missing.length) {
-                const e = new Error('consent_required');
+                const e = /** @type {Error & { missingPermissions?: string[] }} */ (new Error('consent_required'));
                 e.code = 'consent_required';
                 e.missingPermissions = missing;
                 throw e;
@@ -214,7 +214,7 @@ async function updateModule(moduleId, { actorId = null, acceptedPermissions = nu
  */
 async function sideloadFromBuffer(buffer, { actorId = null, acceptedPermissions = null } = {}) {
     const result = await packageVerify().verifyPackage(buffer, { publicKeyResolver: packageKeyResolver() });
-    if (!result.ok) { const e = new Error(`package_verify_failed:${result.error}`); e.code = 'package_verify_failed'; e.detail = result.error; throw e; }
+    if (!result.ok) { const e = /** @type {Error & { detail?: string }} */ (new Error(`package_verify_failed:${result.error}`)); e.code = 'package_verify_failed'; e.detail = result.error; throw e; }
     const manifest = result.manifest;
     const moduleId = manifest.id;
     const version = manifest.version;
@@ -247,12 +247,12 @@ async function sideloadFromBuffer(buffer, { actorId = null, acceptedPermissions 
             const granted = new Set([...existingList, ...(Array.isArray(acceptedPermissions) ? acceptedPermissions : [])]);
             const missing = needed.filter(p => !granted.has(p));
             if (missing.length) {
-                const e = new Error('consent_required'); e.code = 'consent_required'; e.missingPermissions = missing; throw e;
+                const e = /** @type {Error & { missingPermissions?: string[] }} */ (new Error('consent_required')); e.code = 'consent_required'; e.missingPermissions = missing; throw e;
             }
             grantedPermissions = { list: needed, acceptedBy: actorId, acceptedAt: new Date().toISOString() };
         }
 
-        /** @type {{ entitlement: GateEntitlement; }} */
+        /** @type {{ entitlement: import('./packageEntitlement').GateEntitlement; }} */
         let gate;
         try {
             gate = await _sideloadEntitlementGate(moduleId, manifest, result.signature && result.signature.payload);
@@ -367,7 +367,7 @@ async function rollbackTo(moduleId, { version = null, force = false, actorId = n
             || (activeRow && activeRow.manifest && activeRow.manifest.server && activeRow.manifest.server.schemaVersion) || 0);
         const targetSchema = Number((manifest.server && manifest.server.schemaVersion) || 0);
         if (!force && activeSchema && targetSchema && targetSchema < activeSchema) {
-            const e = new Error('schema_downgrade'); e.code = 'schema_downgrade';
+            const e = /** @type {Error & { detail?: string }} */ (new Error('schema_downgrade')); e.code = 'schema_downgrade';
             e.detail = `target schemaVersion ${targetSchema} < active ${activeSchema}`;
             throw e;
         }

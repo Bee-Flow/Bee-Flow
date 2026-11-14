@@ -17,12 +17,11 @@ import React, { useCallback, useMemo, useState } from 'react';
 import type { FocusEvent } from 'react';
 import { errorMessage } from '@/utils/caughtError';
 import { copyText } from '@/utils/copyText';
-import { API_BASE } from '@/utils/helpers';
-import { mutate } from '@/api/mutate';
 import { useWebpagePublicShares } from '@/api/queries/webpageShares';
 import useConfirm from '@/components/shared/useConfirm';
 import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
 import { logger } from '@/utils/logger';
+import { apiRequest } from '@/api/typedRequest';
 
 type AccessMode = 'unlisted' | 'password' | 'email';
 
@@ -138,11 +137,7 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
                 ...(accessMode === 'password' ? { password } : {}),
                 ...(accessMode === 'email' ? { allowedEmails } : {}),
             };
-            const res = await mutate(`${API_BASE}/api/webpages/${webpageId}/public-shares`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-            });
+            const res = await apiRequest('POST /api/webpages/{id}/public-shares', { params: { id: webpageId }, body });
             const data = await res.json();
             setJustCreated({ url: data.url, shareId: data.share?.id });
             resetForm();
@@ -158,9 +153,7 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
         if (!webpageId) return;
         if (!(await confirm({ title: 'Revoke this link?', description: 'Existing recipients will lose access immediately.', confirmLabel: 'Revoke', destructive: true }))) return;
         try {
-            await mutate(`${API_BASE}/api/webpages/${webpageId}/public-shares/${shareId}`, {
-                method: 'DELETE',
-            });
+            await apiRequest('DELETE /api/webpages/{id}/public-shares/{shareId}', { params: { id: webpageId, shareId } });
             await fetchShares();
         } catch (e) {
             setError(errorMessage(e));
@@ -170,9 +163,7 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
     const handleRefresh = useCallback(async (shareId: string) => {
         if (!webpageId) return;
         try {
-            await mutate(`${API_BASE}/api/webpages/${webpageId}/public-shares/${shareId}/refresh`, {
-                method: 'POST',
-            });
+            await apiRequest('POST /api/webpages/{id}/public-shares/{shareId}/refresh', { params: { id: webpageId, shareId } });
             await fetchShares();
         } catch (e) {
             setError(errorMessage(e));
@@ -328,6 +319,7 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
                                             type="button"
                                             onClick={() => handleRefresh(s.id)}
                                             title={t('agent_wizard.external_share_re_snapshot_update_the_public_copy_to', 'Re-snapshot — update the public copy to match current edits')}
+                                            aria-label={t('agent_wizard.external_share_re_snapshot_update_the_public_copy_to', 'Re-snapshot — update the public copy to match current edits')}
                                             className="p-1 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)]"
                                         >
                                             <RefreshCw size={12} />
@@ -336,6 +328,7 @@ export default function ExternalShareSection({ webpageId, webpageName, readOnly 
                                             type="button"
                                             onClick={() => handleRevoke(s.id)}
                                             title={t('agent_wizard.external_share_revoke_link', 'Revoke link')}
+                                            aria-label={t('agent_wizard.external_share_revoke_link', 'Revoke link')}
                                             className="p-1 rounded hover:bg-red-500/10 text-red-500"
                                         >
                                             <Trash2 size={12} />

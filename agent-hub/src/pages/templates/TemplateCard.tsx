@@ -83,6 +83,7 @@ export default function TemplateCard({ template, renamingId, setRenamingId, rena
                         onClick={() => handleDownload(template)}
                         className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
                         title={t('templates.download', 'Download')}
+                        aria-label={t('templates.download', 'Download')}
                     >
                         <Download className="w-4 h-4 text-[var(--text-muted)]" />
                     </button>
@@ -90,6 +91,7 @@ export default function TemplateCard({ template, renamingId, setRenamingId, rena
                         onClick={() => { setRenamingId(template.id); setRenameValue(template.name ?? ''); }}
                         className="p-1.5 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
                         title={t('templates.rename', 'Rename')}
+                        aria-label={t('templates.rename', 'Rename')}
                     >
                         <Pencil className="w-4 h-4 text-[var(--text-muted)]" />
                     </button>

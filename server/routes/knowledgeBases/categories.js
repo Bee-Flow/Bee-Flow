@@ -31,7 +31,7 @@ router.get('/categories', requireAuth, async (req, res) => {
     res.json(categories);
 });
 
-router.post('/categories', requireAuth, requirePermission('manage_knowledge'), validate({ body: CategoryBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CategoryBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/categories', requireAuth, requirePermission('manage_knowledge'), validate({ body: CategoryBody }), async (req, res) => {
     const { name, icon, color } = req.body;
     const orgIds = await resolveUserOrgIds(req);
     const orgId = orgIds !== null && orgIds.size > 0 ? Array.from(orgIds)[0] : null;
@@ -41,6 +41,16 @@ router.post('/categories', requireAuth, requirePermission('manage_knowledge'), v
 });
 
 router.delete('/categories/:id', requireAuth, requirePermission('manage_knowledge'), async (req, res) => {
+    // Only a category of the caller's own organisation (the ones GET /categories lists); one of another
+    // organisation answers as an unknown id. The super admin (no organisation filter) reaches every one.
+    const orgIds = await resolveUserOrgIds(req);
+    if (orgIds !== null) {
+        const orgId = orgIds.size > 0 ? Array.from(orgIds)[0] : null;
+        const own = await kbStore.listKBCategories(orgId);
+        if (!own.some((/** @type {{ id: string }} */ c) => String(c.id) === String(req.params.id))) {
+            return res.status(404).json({ error: 'Category not found', code: 'category_not_found' });
+        }
+    }
     await kbStore.deleteKBCategory(req.params.id);
     res.json({ success: true });
 });

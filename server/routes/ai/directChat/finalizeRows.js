@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Direct Chat end-of-turn: building the rows and meta that persist a turn.
  * The user row (privacy metadata, token map), the assistant tokenisation
@@ -19,7 +19,7 @@ const TOKEN_CATEGORY = /^\[([a-z0-9_]+)_\d+\]$/;
 
 /**
  * A restore function over the conversation token map, or identity (render-layer best-effort).
- * @param {string} convId
+ * @param {string | null | undefined} convId
  * @returns {(s: string) => string}
  */
 function conversationRestorer(convId) {
@@ -158,7 +158,7 @@ function restoredTokensInfo({ _streamUntok, convId, modelId, send }) {
  * @param {Pick<Turn, '_assistantTokenisationInfo' | '_turnAttachmentSummaries' | '_streamUntok' | 'convId' | 'modelId' | 'send'>} p
  */
 function resolveTokenisationInfo({ _assistantTokenisationInfo, _turnAttachmentSummaries, _streamUntok, convId, modelId, send }) {
-    /** @type {Partial<import('../../../core/agentRuntime/inputPiiGate').PiiTokenisationInfo> & { attachments?: typeof _turnAttachmentSummaries }} */
+    /** @type {Partial<import('../../../core/agentRuntime/inputPiiGate').PiiTokenisationInfo> & { attachments?: typeof _turnAttachmentSummaries } | null | undefined} */
     let info = _assistantTokenisationInfo;
     if (Array.isArray(_turnAttachmentSummaries) && _turnAttachmentSummaries.length > 0) {
         if (!info) {
@@ -217,7 +217,7 @@ function persistedThinking({ thinkingParts, thinkingContent, convId }) {
  * shown in the "How I got this answer" panel; the AI never reads toolHistory
  * back, so this is purely a user-render concern. Mutates in place.
  * @param {Turn['collectedToolHistory']} collectedToolHistory
- * @param {string} convId
+ * @param {string | null | undefined} convId
  */
 function restoreToolHistory(collectedToolHistory, convId) {
     try {

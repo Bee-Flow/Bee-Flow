@@ -94,7 +94,7 @@ async function _adminCarveOut(org, orgId, payload, reqNcUid) {
     // way we re-establish their org_admin row idempotently and continue.
     if (payload.nc_admin === true || _isOrgAdminRequester(org, reqNcUid)) {
         try {
-            const { ensureOrgAdminUser } = require('./connectorBootstrap').helpers;
+            const { ensureOrgAdminUser } = require('./connector/provisioning');
             const adminUser = await ensureOrgAdminUser(org, {
                 ncAdminEmail: payload.email,
                 ncAdminUid: reqNcUid,

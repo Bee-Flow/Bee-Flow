@@ -186,3 +186,11 @@ test('a search without a range asks for the stored objects, unexpanded', async (
     assert.doesNotMatch(bodies[0], /expand/);
     assert.equal(out.events[0].recurrenceId, null, 'a master VEVENT has no recurrence id');
 });
+
+test('the dispatcher: an unknown name, missing arguments and get_event', async () => {
+    assert.deepEqual((await run('nextcloud_calendar_nope', {})).out, { error: 'Unknown Nextcloud calendar tool: nextcloud_calendar_nope' });
+    assert.deepEqual((await run('nextcloud_calendar_create_event', { calendar: 'personal' })).out, { error: 'calendar, summary, and start are required' });
+    assert.deepEqual((await run('nextcloud_calendar_search_events', {})).out, { error: 'query is required' });
+    const got = (await run('nextcloud_calendar_get_event', { calendar: 'personal', uid: 'ev1@nc.test' })).out;
+    assert.deepEqual([got.summary, got.etag, got.calendar], ['Weekly sync', '"e"', 'personal']);
+});

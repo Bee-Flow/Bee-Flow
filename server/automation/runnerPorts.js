@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The automation feature's side of core/automationRunner/featurePorts.js: the
  * capabilities core's runner (and meeting notes, for the trigger bus) call in
@@ -19,7 +19,7 @@ const approvalDelivery = () => require('./approvalDelivery');
 const triggerBus = () => require('./triggerBus');
 const formQueue = () => require('./formQueue');
 const codeSandbox = () => require('./codeSandbox');
-const automationGraph = () => require('./automationGraph');
+const automationGraph = () => require('../core/automationModel/automationGraph');
 const runOutcome = () => require('./runOutcome');
 const toolRegistry = () => require('./toolRegistry');
 const formTriggerContract = () => require('./formTriggerContract');
@@ -80,9 +80,9 @@ registerRunnerPorts({
         /** @type {typeof import('./testing/formScenarioValues').scenarioPageValues} */ scenarioPageValues: (...args) => require('./testing/formScenarioValues').scenarioPageValues(...args),
     },
     automationGraph: {
-        /** @type {typeof import('./automationGraph').walkSteps} */ walkSteps: (...args) => automationGraph().walkSteps(...args),
-        /** @type {typeof import('./automationGraph').isAiStep} */ isAiStep: (...args) => automationGraph().isAiStep(...args),
-        /** @type {typeof import('./automationGraph').generatingStepsDownstreamOfAi} */ generatingStepsDownstreamOfAi: (...args) => automationGraph().generatingStepsDownstreamOfAi(...args),
+        /** @type {typeof import('../core/automationModel/automationGraph').walkSteps} */ walkSteps: (...args) => automationGraph().walkSteps(...args),
+        /** @type {typeof import('../core/automationModel/automationGraph').isAiStep} */ isAiStep: (...args) => automationGraph().isAiStep(...args),
+        /** @type {typeof import('../core/automationModel/automationGraph').generatingStepsDownstreamOfAi} */ generatingStepsDownstreamOfAi: (...args) => automationGraph().generatingStepsDownstreamOfAi(...args),
     },
     runOutcome: {
         /** @type {typeof import('./runOutcome').resolveRunOutcome} */ resolveRunOutcome: (...args) => runOutcome().resolveRunOutcome(...args),

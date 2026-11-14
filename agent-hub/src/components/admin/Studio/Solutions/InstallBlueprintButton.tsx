@@ -5,7 +5,7 @@ import InstallBlueprintModal from './InstallBlueprintModal';
 import useRemote from './useRemote';
 import type { RemoteStatus } from './useRemote';
 import { useTranslation } from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
+import { apiUrl } from '@/api/typedRequest';
 
 /**
  * Install a Blueprint as a new Solution — the entry point, not the install.
@@ -89,7 +89,7 @@ export default function InstallBlueprintButton({ onInstalled, showGallery = true
     // Blueprints kept on this instance. An empty gallery and a gallery that
     // could not be read are different answers, and the second one says so —
     // silence there taught people their organisation had none.
-    const gallery = useRemote<{ blueprints?: SavedBlueprint[] }>(`${API_BASE}/api/projects/package/blueprints`, showGallery);
+    const gallery = useRemote<{ blueprints?: SavedBlueprint[] }>(apiUrl('GET /api/projects/package/blueprints'), showGallery);
     const saved = gallery.data?.blueprints || [];
     const savedStatus = gallery.status;
 

@@ -49,6 +49,7 @@ const SPOT_CHECK_ROWS = 20;
 // computed (frozen, but never wrong) and flagged in the report.
 const { translateComputedExpr } = require('../appStudio/computedDialect');
 const telemetryLog = require('../telemetry/log');
+const { bestEffort, ignoreGone } = require('../utils/bestEffort');
 
 function qi(name) {
     return '"' + String(name).replace(/"/g, '""') + '"';
@@ -345,7 +346,7 @@ async function main() {
                 console.warn(`  ! ${res.degradedComputed.length} computed column(s) demoted to plain values — see the report`);
             }
         } catch (e) {
-            await client.query('ROLLBACK').catch(() => {});
+            await client.query('ROLLBACK').catch((err) => bestEffort('scripts/migrateStudioAppsToPg:rollback', err));
             failures++;
             report.apps.push({ id: appRow.id, name: appRow.name || null, status: 'failed', error: e.message });
             console.error(`  ✖ FAILED: ${e.message}`);
@@ -361,7 +362,7 @@ async function main() {
     console.log(`[migrate] ${report.apps.filter((a) => a.status === 'migrated' || a.status === 'dry-run-ok').length} ok, `
         + `${report.apps.filter((a) => a.status === 'skipped').length} skipped, ${failures} failed`);
 
-    await pool.end().catch(() => {});
+    await pool.end().catch((err) => ignoreGone('scripts/migrateStudioAppsToPg:poolEnd', err));
     process.exit(failures ? 1 : 0);
 }
 

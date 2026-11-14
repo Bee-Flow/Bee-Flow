@@ -7,6 +7,7 @@
  * Uses raw REST API — no npm dependencies.
  */
 
+const { fetchFixedEndpoint } = require('../utils/fixedEndpointFetch.mts');
 const configStore = require('../stores/configStore');
 const log = require('../telemetry/log');
 
@@ -146,7 +147,7 @@ async function signrequestApiRequest(subdomain, token, method, path, body = null
     const options = { method, headers };
     if (body) options.body = JSON.stringify(body);
 
-    const response = await fetch(url, options);
+    const response = await fetchFixedEndpoint(url, options);
 
     if (!response.ok) {
         const text = await response.text();

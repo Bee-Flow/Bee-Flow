@@ -64,12 +64,7 @@
  * Nothing tells you until a user presses the button. Now something does.
  */
 
-const { walkObjects } = require('../appStudio/templateCapture');
-const { walkAllSteps } = require('../automation/portability');
-// The third shared walker. Pure, like the other two: a definition in, the
-// tables its steps touch out — loop bodies, branches and inline layers
-// included. See the header on why this rather than the persisted usage index.
-const { collectDatatableUsage } = require('../automation/datatableUsage');
+const { walkObjects, walkAllSteps } = require('../core/packaging/walkers');
 
 const {
     PROBLEM, PROSE, SEVERITY, TARGET_NOUN, nodeId, approvalNodeId, formNodeId, meetingNodeId, classify,
@@ -336,7 +331,10 @@ function linkAutomationTables(automations, { linkTo }) {
     for (const a of automations.filter(Boolean)) {
         const from = nodeId('automation', a.id);
         const name = a.title || 'An automation';
-        for (const use of collectDatatableUsage(a.definition)) {
+        // The third shared walker (automation/'s, looked up by name). Pure, like the other two: a
+        // definition in, the tables its steps touch out, loop bodies, branches and inline layers
+        // included. See the header on why this rather than the persisted usage index.
+        for (const use of require('../core/featureModules').featureModule('automation/datatableUsage').collectDatatableUsage(a.definition)) {
             linkTo({
                 fromNode: from, fromName: name, fromOwnerId: a.userId,
                 fromRef: { kind: 'automation', id: a.id, title: a.title || null, stepId: use.stepId || null },

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Notebooks in the Documents library (stores/notebookLibrary.js). Mounted by
  * routes/studioDocuments.js under /api/studio-documents.
@@ -25,6 +25,7 @@
 const express = require('express');
 const { validate } = require('../../core/http/validate');
 const { notFound } = require('../../core/http/errors');
+const { sessionUser } = require('../../core/http/sessionUser');
 const { z, worded, bodyOf, typeError } = require('../../core/http/schemaParts');
 
 const FOLDER_TEXT = 'folderId is the id of one of your document folders, or null for none.';
@@ -57,7 +58,7 @@ function makeNotebookLibraryRouter(deps = {}) {
     const requireNotebooks = (req, res, next) => gate()(req, res, next);
 
     /** Whether this reader's library lists notebooks. Never throws: a refusal or an unknown answer is "no". */
-    async function notebooksVisible(/** @type {import('express').Request} */ req) {
+    async function notebooksVisible(/** @type {import('express').Request<any, any, any, any>} */ req) {
         try {
             await require('../projects/notebookGate').passNotebookGate(gate(), req);
             return true;
@@ -67,7 +68,7 @@ function makeNotebookLibraryRouter(deps = {}) {
     }
 
     router.patch('/notebooks/:id/filing', requireAuth, requireNotebooks, validate({ body: Filing }), async (/** @type {import('express').Request<{ id: string }>} */ req, res) => {
-        const filed = await library().setNotebookFiling(req.session.user.id, req.params.id, req.body,
+        const filed = await library().setNotebookFiling(sessionUser(req).id, req.params.id, req.body,
             (folderId, userId) => documents().assertFolder(folderId, userId));
         if (!filed) throw notFound('notebook_not_found', 'Notebook not found');
         res.json(filed);

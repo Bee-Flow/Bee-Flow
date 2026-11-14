@@ -1,4 +1,5 @@
-import { API_BASE, getSessionToken, isDemoMode, isNextcloudEmbed } from '@/utils/helpers';
+import { getSessionToken, isDemoMode, isNextcloudEmbed } from '@/utils/helpers';
+import { apiUrl } from '@/api/typedRequest';
 
 /**
  * App Studio assets on the web: the value `asset:<id>` (an uploaded logo, picture or font
@@ -56,15 +57,15 @@ export function isAllowedBoundImage(value: unknown, allowedHosts: unknown): valu
 
 /**
  * The URL of `ref` for this transport, or null when it is not an asset reference or there is
- * nothing to address it by. API_BASE carries the Nextcloud proxy prefix inside Nextcloud.
+ * nothing to address it by. apiUrl's API_BASE carries the Nextcloud proxy prefix inside Nextcloud.
  *   public page: /api/public-app/<token>/assets/<id>   (the page token; no visitor bearer needed)
  *   signed in:   /api/studio-apps/<appId>/assets/<id>
  */
 export function assetUrl(ref: unknown, transport: AssetTransport): string | null {
     const id = assetIdOf(ref);
     if (!id) return null;
-    if (transport.publicToken) return `${API_BASE}/api/public-app/${encodeURIComponent(transport.publicToken)}/assets/${encodeURIComponent(id)}`;
-    if (transport.appId) return `${API_BASE}/api/studio-apps/${encodeURIComponent(transport.appId)}/assets/${encodeURIComponent(id)}`;
+    if (transport.publicToken) return apiUrl('GET /api/public-app/{token}/assets/{assetId}', { params: { token: transport.publicToken, assetId: id } });
+    if (transport.appId) return apiUrl('GET /api/studio-apps/{id}/assets/{assetId}', { params: { id: transport.appId, assetId: id } });
     return null;
 }
 

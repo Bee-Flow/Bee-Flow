@@ -9,12 +9,15 @@
  *     source write for the list) and the per-row loop when it has not, and
  *     `collect` reports per-index errors, stopping only when the source is
  *     unreachable.
+ * The copy is a real Postgres table (the planner's, on PGlite, behind the
+ * datatableDbStore surface of testUtils/pgDatatableEngine.testkit.js).
  *
  * Run: cd server && node --test core/dataEngine/sources/mirror/writeThrough.test.js
  */
 const test = require('node:test');
 const assert = require('node:assert');
 const { installResolveStub } = require('../../../../testUtils/stubRequire');
+const { pgDatatableEngine } = require('../../../../testUtils/pgDatatableEngine.testkit');
 
 const SCOPE = { kind: 'org', id: 'org_1' };
 const META = {
@@ -28,29 +31,23 @@ const TABLE = {
     source: { kind: 'fake_kind', linkedByUserId: 'u', columnMap: { fld_a: { col: 0 }, fld_b: { col: 1 } }, relations: [] },
 };
 
-// ── the fake copy ──────────────────────────────────────────────────────────
-const db = { rows: new Map(), execs: [], batches: [], bumps: [] };
+// ── the copy: the planner's table on PGlite (testUtils/pgDatatableEngine.testkit.js) ──
+const db = { bumps: [] };
+/** @type {Awaited<ReturnType<typeof pgDatatableEngine>>} */
+let dt;
+// Handed out before the engine boots; the methods reach it at call time.
 const datatableDbStore = {
     scopeKey: () => 'org:org_1',
-    query: async (a, b, sql, params) => {
-        if (/^SELECT \* FROM "sheet" WHERE "id" = \?/.test(sql)) {
-            const row = db.rows.get(params[0]);
-            return { rows: row ? [row] : [] };
-        }
-        return { rows: [] };
-    },
-    exec: async (a, b, sql, params) => {
-        db.execs.push({ sql, params });
-        if (/^INSERT INTO/.test(sql)) { db.rows.set(params[0], { id: params[0], updated_at: params[2] }); return { changes: 1 }; }
-        if (/^UPDATE/.test(sql)) { const id = params[params.length - 2]; if (db.rows.has(id)) { db.rows.set(id, { ...db.rows.get(id), updated_at: params[0] }); return { changes: 1 }; } return { changes: 0 }; }
-        if (/^DELETE/.test(sql)) { const had = db.rows.delete(params[0]); return { changes: had ? 1 : 0 }; }
-        return { changes: 0 };
-    },
-    batch: async (a, b, stmts) => {
-        db.batches.push(stmts);
-        return Promise.all(stmts.map(s => datatableDbStore.exec(a, b, s.sql, s.params)));
-    },
+    query: (o, a, sql, params) => dt.store.query(o, a, sql, params),
+    exec: (o, a, sql, params) => dt.store.exec(o, a, sql, params),
+    batch: (o, a, stmts) => dt.store.batch(o, a, stmts),
 };
+/** Put a row in the copy (or move its token). */
+const setCopy = (id, updatedAt = '2026-09-12T10:00:00.000Z') => dt.pg.query(
+    `INSERT INTO "sheet" (id, org_id, updated_at) VALUES ($1, 'org_1', $2) ON CONFLICT (id) DO UPDATE SET updated_at = EXCLUDED.updated_at`, [id, updatedAt]);
+const inCopy = async (id) => (await dt.pg.query('SELECT 1 FROM "sheet" WHERE id = $1', [id])).rows.length > 0;
+const copyRow = async (id) => (await dt.pg.query('SELECT * FROM "sheet" WHERE id = $1', [id])).rows[0];
+const batches = () => dt.calls.filter((c) => c.fn === 'batch').length;
 const restore = installResolveStub({
     '../../../../stores/datatableStore': { bumpAfterWrite: async (id, scope, d) => { db.bumps.push(d); } },
     '../../../../stores/datatableDbStore': datatableDbStore,
@@ -58,7 +55,8 @@ const restore = installResolveStub({
 });
 const { makeWriteThrough } = require('./writeThrough');
 const { SourceError } = require('./errors');
-test.after(() => restore());
+test.before(async () => { dt = await pgDatatableEngine([META]); });
+test.after(async () => { restore(); await dt.close(); });
 
 // ── the fake source ────────────────────────────────────────────────────────
 class FakeError extends SourceError { constructor(...a) { super(...a); this.name = 'SourceError'; } }
@@ -82,16 +80,21 @@ function base() {
     };
 }
 const ctx = (wt, grade = 'editor') => wt.contextOf({ table: TABLE, scope: SCOPE, scopeKey: 'org:org_1', tableMeta: META, grade, viewerId: 'user_9' });
-test.beforeEach(() => { src.calls.length = 0; src.rows.clear(); src.next = 1; src.fail = null; db.rows.clear(); db.execs.length = 0; db.batches.length = 0; db.bumps.length = 0; });
+test.beforeEach(async () => {
+    src.calls.length = 0; src.rows.clear(); src.next = 1; src.fail = null; db.bumps.length = 0;
+    await dt.pg.exec('TRUNCATE "sheet"');
+    dt.calls.length = 0;
+});
 
 test('insert: source first, then the copy under the source\'s id; the editor is created_by', async () => {
     const wt = makeWriteThrough(base());
     const r = await wt.insertRow(ctx(wt), { a: 'x', b: 2 });
     assert.deepEqual(src.calls, [['insert', ['x', 2]]]);
     assert.equal(r.id, '1');
-    assert.match(db.execs[0].sql, /^INSERT INTO "sheet"/);
-    assert.equal(db.execs[0].params[0], '1');
-    assert.equal(db.execs[0].params[3], 'user_9');
+    const row = await copyRow('1');
+    assert.equal(row.a, 'x');
+    assert.equal(Number(row.b), 2);
+    assert.equal(row.created_by, 'user_9', 'the editor is created_by');
     assert.deepEqual(db.bumps, [1]);
     assert.ok(r.row && r.row.id === '1');
 });
@@ -101,13 +104,13 @@ test('a viewer is refused with the kind\'s forbidden code; a wire refusal never 
     await assert.rejects(() => wt.insertRow(ctx(wt, 'viewer'), { a: 'x' }), (e) => e.status === 403 && e.code === 'fake_forbidden' && e.errorClass === 'datatable_forbidden' && e.safe);
     await assert.rejects(() => wt.insertRow(ctx(wt), { derived: 1 }), (e) => e.code === 'derived_column');
     assert.equal(src.calls.length, 0);
-    assert.equal(db.execs.length, 0);
+    assert.deepEqual(dt.calls.filter((c) => c.fn !== 'query'), [], 'nothing written to the copy');
 });
 
 test('update: probe first — not there → 0/null, stale token → 0/row — with no source call; then source, then copy', async () => {
     const wt = makeWriteThrough(base());
     assert.deepEqual(await wt.updateRow(ctx(wt), '5', { a: 'x' }), { changes: 0, row: null });
-    db.rows.set('5', { id: '5', updated_at: '2026-09-12T10:00:00.000Z' });
+    await setCopy('5');
     const stale = await wt.updateRow(ctx(wt), '5', { a: 'x' }, { expectedUpdatedAt: '2026-09-12T09:00:00.000Z' });
     assert.equal(stale.changes, 0);
     assert.equal(stale.row.id, '5');
@@ -116,33 +119,33 @@ test('update: probe first — not there → 0/null, stale token → 0/row — wi
     const r = await wt.updateRow(ctx(wt), '5', { b: 9 }, { expectedUpdatedAt: '2026-09-12T10:00:00Z' });
     assert.deepEqual(src.calls, [['update', '5', [null, 9]]]);
     assert.equal(r.changes, 1);
-    assert.match(db.execs[0].sql, /^UPDATE "sheet"/);
+    assert.equal(Number((await copyRow('5')).b), 9, 'the copy is rewritten from the source\'s answer');
     assert.deepEqual(db.bumps, [0]);
 });
 
 test('update: a not-found code from the source deletes the local copy', async () => {
     const wt = makeWriteThrough(base());
-    db.rows.set('5', { id: '5', updated_at: 'x' });
+    await setCopy('5');
     const r = await wt.updateRow(ctx(wt), '5', { b: 9 });
     assert.deepEqual(r, { changes: 0, row: null });
-    assert.equal(db.rows.has('5'), false);
+    assert.equal(await inCopy('5'), false);
     assert.deepEqual(db.bumps, [-1]);
     // any other refusal propagates, and nothing changed locally
-    db.rows.set('6', { id: '6', updated_at: 'x' });
+    await setCopy('6');
     src.rows.set('6', []);
     src.fail = new FakeError(503, 'fake_unavailable', 'down', { errorClass: 'datatable_source_unavailable' });
     await assert.rejects(() => wt.updateRow(ctx(wt), '6', { b: 1 }), (e) => e.code === 'fake_unavailable');
-    assert.equal(db.rows.has('6'), true);
+    assert.equal(await inCopy('6'), true);
 });
 
 test('delete: probe, then source, then copy; already-gone at the source still counts', async () => {
     const wt = makeWriteThrough(base());
     assert.deepEqual(await wt.deleteRow(ctx(wt), '5'), { changes: 0 });
     assert.equal(src.calls.length, 0);
-    db.rows.set('5', { id: '5' });
+    await setCopy('5');
     src.fail = new FakeError(404, 'fake_not_found', 'gone');
     assert.deepEqual(await wt.deleteRow(ctx(wt), '5'), { changes: 1 });
-    assert.equal(db.rows.has('5'), false);
+    assert.equal(await inCopy('5'), false);
     assert.deepEqual(db.bumps, [-1]);
 });
 
@@ -166,7 +169,7 @@ test('batch forms without many-calls: the per-row loop; collect reports per inde
     assert.equal(cut.stopped, true);
     assert.equal(src.calls.length, 1);
     src.fail = null;
-    db.rows.set('2', { id: '2', updated_at: 'x' });
+    await setCopy('2');
     const upd = await wt.updateRows(ctx(wt), [{ id: '2', values: { b: 1 } }, { id: 'nope', values: { b: 1 } }]);
     assert.equal(upd.changed, 1);
     assert.deepEqual(upd.results.map(r => [r.index, r.changes]), [[0, 1], [1, 0]]);
@@ -185,12 +188,12 @@ test('batch forms with many-calls: ONE source write for the list, the copy in on
     assert.deepEqual(src.calls, [['insertMany', [['one', 1], ['three', 3]]]], 'one source write, the refused row left out');
     assert.deepEqual(ins.inserted.map(r => [r.index, r.id]), [[0, '1'], [2, '2']]);
     assert.deepEqual(ins.errors.map(e => e.index), [1]);
-    assert.equal(db.batches.length, 1, 'the copy in one batch');
+    assert.equal(batches(), 1, 'the copy in one batch');
     assert.deepEqual(db.bumps, [2], 'the counter moves once, by what landed');
     assert.ok(ins.inserted.every(r => r.row && r.row.id === r.id));
 
     src.calls.length = 0; db.bumps.length = 0;
-    db.rows.set('1', { id: '1', updated_at: '2026-09-12T10:00:00.000Z' });
+    await setCopy('1');
     src.rows.delete('2');   // gone at the source, still in the copy
     const upd = await wt.updateRows(ctx(wt), [
         { id: '1', values: { b: 11 } },
@@ -201,12 +204,13 @@ test('batch forms with many-calls: ONE source write for the list, the copy in on
     assert.deepEqual(src.calls, [['updateMany', ['1', '2']]], 'the stale and the missing never reach the source');
     assert.deepEqual(upd.results.map(r => [r.index, r.changes, r.row ? r.row.id : null]), [[0, 1, '1'], [1, 0, null], [2, 0, '1'], [3, 0, null]]);
     assert.equal(upd.changed, 1);
-    assert.equal(db.rows.has('2'), false, 'a null from the source deletes the copy');
+    assert.equal(await inCopy('2'), false, 'a null from the source deletes the copy');
 
     src.calls.length = 0; db.bumps.length = 0;
     const del = await wt.deleteRows(ctx(wt), ['1', 'nope']);
     assert.deepEqual(src.calls, [['deleteMany', ['1']]]);
     assert.equal(del.changed, 1);
+    assert.equal(await inCopy('1'), false, 'the copy lost the row in the same batch');
     assert.deepEqual(del.results.map(r => [r.index, r.changes]), [[0, 1], [1, 0]]);
     assert.deepEqual(db.bumps, [-1]);
 });

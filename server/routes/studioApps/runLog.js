@@ -33,7 +33,7 @@ async function ownedApp(req) {
     return app && studioAppStore.canWriteStudioApp(app, sessionUser(req).id) ? app : null;
 }
 
-router.get('/:id/runs', requireAuth, validate({ query: RunsQuery }), /** @param {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof RunsQuery>>} req */ async (req, res) => {
+router.get('/:id/runs', requireAuth, validate({ query: RunsQuery }), async (req, res) => {
     const app = await ownedApp(req);
     if (!app) return res.status(404).json({ error: 'App not found' });
     const callerId = sessionUser(req).id;

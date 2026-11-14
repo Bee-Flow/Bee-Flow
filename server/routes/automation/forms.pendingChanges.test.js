@@ -118,3 +118,9 @@ test('without edit every route is refused before the body is read; no form, no t
     assert.strictEqual((await api.call('POST', '/api/automation/forms/au-manual/test-link')).status, 404);
     assert.strictEqual((await api.call('POST', '/api/automation/forms/nope/test-link')).status, 404);
 });
+
+test('making a test link takes no fields: one sent is refused by name, nothing is made', async () => {
+    const res = await api.call('POST', '/api/automation/forms/au1/test-link', { body: { audience: 'org' } });
+    h.assertRefused(assert, res, 'body', /Making a test link does not take "audience"/);
+    assert.deepStrictEqual(pages, []);
+});

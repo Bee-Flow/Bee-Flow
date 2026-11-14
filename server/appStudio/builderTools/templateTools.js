@@ -117,7 +117,7 @@ async function applyListTemplates(draftWrap) {
  */
 async function stampTemplateProvenance(draftWrap, template, definition) {
     try {
-        const { hashDefinition } = require('../templateUpgrade');
+        const { hashDefinition } = require('../../core/packaging/definitionHash.mts');
         const { templateVersion } = require('../templates');
         const studioAppStore = require('../../stores/studioAppStore');
         if (typeof studioAppStore.setTemplateProvenance === 'function') {

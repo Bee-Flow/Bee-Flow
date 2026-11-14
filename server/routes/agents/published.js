@@ -15,7 +15,8 @@ const userStore = require('../../stores/userStore');
 require('../../stores/usageStore');
 require('../../core/entitlements/limits');
 require('../../core/http/sseHelpers');
-const { canModifyAgent, buildCanModifyContext } = require('./crud');
+const { canModifyAgent, buildCanModifyContext, requireAgentGrade } = require('./crud');
+const { agentAccessOf } = require('../../auth/agentAccess.mts');
 // Pure, and deliberately not reached through the store facade — see the
 // same import in ./usage.js.
 const { unknownUsage } = require('../../stores/agent/agentUsage');
@@ -146,6 +147,7 @@ const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
 const { bestEffort } = require('../../utils/bestEffort');
+const { HttpError } = require('../../core/http/errors');
 
 // -- What a caller may send ------------------------------------------
 //
@@ -190,7 +192,7 @@ const PublishBody = bodyOf({
 // ============ Published Agents (public access) ============
 
 // Get all published agents (no auth required)
-router.get('/published', validate({ query: ListQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof ListQuery>>} */ req, res) => {
+router.get('/published', validate({ query: ListQuery }), async (req, res) => {
     // Get user's groups and direct org for org-scoped filtering
     const userId = req.session?.user?.id;
     let userGroups = [];
@@ -237,7 +239,7 @@ router.get('/published', validate({ query: ListQuery }), async (/** @type {impor
 // `?orgId` narrows a platform admin's list to one organisation; for anyone
 // else it is checked and the list stays theirs (./agentOrgScope.mts). Every
 // row names its organisation.
-router.get('/all', requirePermission('manage_agents'), validate({ query: AllQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof AllQuery>>} */ req, res) => {
+router.get('/all', requirePermission('manage_agents'), validate({ query: AllQuery }), async (req, res) => {
     const orgIds = await resolveUserOrgIds(req);
     const named = await namedAdminOrg(req, (r) => require('../../auth/permissions').resolveAdminOrgId(r));
 
@@ -255,22 +257,10 @@ router.get('/all', requirePermission('manage_agents'), validate({ query: AllQuer
 });
 
 // Toggle agent published status + set sharing scope
-router.patch('/:id/publish', validate({ body: PublishBody }), async (req, res) => {
-    const userId = getEffectiveUserId(req);
-    const agent = await agentStore.getAgent(req.params.id);
-    if (!agent) {
-        return res.status(404).json({ error: 'Agent not found' });
-    }
-
-    // Ownership, super-admin bypass, the manage_agents requirement, org
-    // scoping, and the agent_editor/unpublished-draft rule are all handled
-    // by canModifyAgent — no extra inline permission check needed.
-    if (!(await canModifyAgent(agent, userId, req))) {
-        return res.status(403).json({
-            error: 'You do not have permission to edit this agent.',
-            code: 'agent_not_editable',
-        });
-    }
+// Ownership, the super admin, manage_agents within the agent's organisation
+// and the agent_editor/unpublished-draft rule: the edit grade (auth/agentAccess.mts).
+router.patch('/:id/publish', requireAgentGrade('edit'), validate({ body: PublishBody }), async (req, res) => {
+    const { agent } = agentAccessOf(req);
 
     const { isPublished, sharedGroups } = req.body;
 
@@ -297,8 +287,9 @@ router.patch('/:id/publish', validate({ body: PublishBody }), async (req, res) =
     // a non-owner (org admin, agent admin) is toggling publish.
     const success = await agentStore.setAgentPublished(req.params.id, isPublished, agent.owner_id, cleanedGroups);
 
+    // No row matched id and owner: the agent was deleted or handed to another owner meanwhile.
     if (!success) {
-        throw new Error('Failed to update published status');
+        throw new HttpError(409, 'agent_changed', 'The agent changed while it was being saved. Reload the page and try again.');
     }
 
     // Publishing changes the org's compliance surface (Art-50 AI disclosure,

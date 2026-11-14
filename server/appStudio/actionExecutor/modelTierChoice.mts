@@ -58,14 +58,15 @@ export function modelTierNote(pick: TierPick, resolved: ResolvedTier | null | un
 
 /** What the AI steps read of aiRuntime.resolveOwnerModel's answer (and pass on whole). */
 type OwnerModel = ResolvedTier & Record<string, unknown>;
-type ResolveOwnerModel = (app: unknown, tier: string | undefined, opts?: { fromBinding?: boolean }) => Promise<OwnerModel>;
+type ResolveOwnerModel<M extends OwnerModel> = (app: unknown, tier: string | undefined, opts?: { fromBinding?: boolean }) => Promise<M>;
 
 /**
  * The owner's model for a step's modelTier (a tier name, or a binding worked out
  * now through `resolve`), plus the note when a binding gave no usable tier.
  * A tier from a binding is resolved with `fromBinding`, so it is never logged.
+ * The answer keeps the runtime's own model type.
  */
-export async function resolveStepModel(aiRuntime: { resolveOwnerModel: ResolveOwnerModel }, app: unknown, raw: unknown, resolve: (binding: unknown) => unknown): Promise<{ aiModel: OwnerModel; tierNote: string | null }> {
+export async function resolveStepModel<M extends OwnerModel>(aiRuntime: { resolveOwnerModel: ResolveOwnerModel<M> }, app: unknown, raw: unknown, resolve: (binding: unknown) => unknown): Promise<{ aiModel: M; tierNote: string | null }> {
     const pick = pickModelTier(raw, resolve);
     const aiModel = pick.fromBinding
         ? await aiRuntime.resolveOwnerModel(app, pick.tier, { fromBinding: true })

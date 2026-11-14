@@ -48,6 +48,7 @@ const touched = [];
 const pass = (req, res, next) => next();
 const KB = { id: 'kb1', tenant_id: 'u1', name: 'Handbook', organization_id: 'orgA' };
 
+const { fakeKbGates } = require('./kbGate.testkit');
 const MOCKS = {
     '../../stores/knowledgeBases': {
         getKB: async (id) => (id === KB.id ? { ...KB } : null),
@@ -69,8 +70,7 @@ const MOCKS = {
     },
     './shared': {
         getUserId: (req) => req.session?.user?.id || null,
-        canAccessKB: async () => true,
-        canManageKB: async () => true,
+        ...fakeKbGates({ kbStore: { getKB: (id) => MOCKS['../../stores/knowledgeBases'].getKB(id) }, canRead: () => true }),
         blockIfSystemKB: () => false,
         sanitizeUsageContexts: (v) => (Array.isArray(v) && v.length ? Array.from(new Set(v)) : null),
         VALID_USAGE_CONTEXTS: new Set(SURFACES),

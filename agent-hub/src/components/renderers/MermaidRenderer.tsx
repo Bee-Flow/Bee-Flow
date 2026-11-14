@@ -127,6 +127,7 @@ const MermaidOverlay = ({ code, onClose }: { code: string; onClose: () => void }
                     <button
                         onClick={onClose}
                         title={t('chat.renderers.mermaid_close_esc', 'Close (ESC)')}
+                        aria-label={t('chat.renderers.mermaid_close_esc', 'Close (ESC)')}
                         className="[display:flex] [align-items:center] [justify-content:center] [width:36px] [height:36px] [border-radius:8px] [background:rgba(255,255,255,0.1)] [border:1px_solid_rgba(255,255,255,0.15)] [color:rgba(255,255,255,0.8)] [cursor:pointer] [transition:all_0.15s]"
                         onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => { (e.target as HTMLElement).style.background = 'rgba(239,68,68,0.4)'; }}
                         onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => { (e.target as HTMLElement).style.background = 'rgba(255,255,255,0.1)'; }}

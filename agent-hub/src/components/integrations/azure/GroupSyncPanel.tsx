@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle, Info, Loader2 } from 'lucide-react';
-import { API_BASE } from '@/utils/helpers';
 import { useTranslation } from '@/hooks/useTranslation';
 import { errorMessage } from '@/utils/caughtError';
-import { request } from '@/api/mutate';
 import GroupSyncBlock from './GroupSyncBlock';
 import type { GroupSyncSettings, GroupSyncStatus } from './SSOSection.types';
 import { panelOrgId } from '@/utils/adminAccess';
+import { apiRequest } from '@/api/typedRequest';
 
 interface GroupSyncPanelProps {
     user?: { organizationId?: string } | null;
@@ -23,7 +22,7 @@ interface GroupSyncRead {
 }
 
 async function readGroupSync(orgId: string): Promise<GroupSyncRead> {
-    const res = await request(`${API_BASE}/api/org-azure-config/${encodeURIComponent(orgId)}/sync-groups/status`);
+    const res = await apiRequest('GET /api/org-azure-config/{orgId}/sync-groups/status', { params: { orgId } });
     const d = await res.json();
     return { directoryConfigured: d?.directoryConfigured === true, status: d?.status || null, settings: d?.settings || null };
 }

@@ -8,6 +8,8 @@
  *     tooling   scripts/, testUtils/, CLIs   may require anything; the app never requires it
  *     entry     index.js, boot/, …           composition roots: wiring is their whole job
  *     api       routes/, auth/ routers       may require anything below
+ *     application usecases/                  composes features for one request; required
+ *                                            only by api, entry and tooling
  *     feature   automation/, projects/, …    may require core + platform, NOT each other
  *     core      core/                        may require platform, NOT a feature
  *     platform  stores/, auth/, utils/, …    may require platform
@@ -56,12 +58,12 @@ const path = require('path');
 const ROOT = __dirname;
 const BUDGET_FILE = path.join(ROOT, '.layering-ratchet.json');
 
-const RANK = { data: 0, platform: 1, core: 2, feature: 3, api: 4, entry: 5, tooling: 6 };
+const RANK = { data: 0, platform: 1, core: 2, feature: 3, application: 4, api: 5, entry: 6, tooling: 7 };
 
 /** Unit -> layer. A unit is a top-level folder or file, plus the refinements in unitOf(). */
 const LAYERS = {
     // tooling: test support, CLIs and separate containers.
-    scripts: 'tooling', testUtils: 'tooling', types: 'tooling',
+    scripts: 'tooling', testUtils: 'tooling', types: 'tooling', journeys: 'tooling',
     'pwt-runner': 'tooling', 'terminal-runner': 'tooling',
     'migrateDb.js': 'tooling', 'reset-nc.js': 'tooling', 'seed-plans.js': 'tooling',
     'eslint.config.js': 'tooling',
@@ -70,6 +72,10 @@ const LAYERS = {
     migrations: 'entry',
     // api: HTTP surface.
     routes: 'api', 'auth/routers': 'api',
+    // application: the turn engines and helpers that combine features for a
+    // route. Above the features, so it may require several of them; below
+    // routes/, so it holds no HTTP.
+    usecases: 'application',
     // feature: one product surface each. jobs/ and workers/ are the scheduled
     // and background halves of features; services/ and agents/ are features
     // until they are split up or moved down.
@@ -95,10 +101,10 @@ const IGNORED = new Set(['node_modules', 'coverage']);
 
 /**
  * The routers inside auth/: `auth/loginRoutes.js`, `auth/login/currentUserRoutes.js`,
- * … and auth/securityKeys/index.js, which builds and exports the two
- * security-key routers.
+ * …, auth/connectorBootstrap.js, and auth/securityKeys/index.js, which builds and
+ * exports the two security-key routers.
  */
-const AUTH_ROUTER = /^auth\/(.*Routes\.js|securityKeys\/index\.js)$/;
+const AUTH_ROUTER = /^auth\/(.*Routes\.js|connectorBootstrap\.js|securityKeys\/index\.js)$/;
 
 /** Which unit a server-relative posix path belongs to. */
 function unitOf(rel) {
@@ -108,8 +114,9 @@ function unitOf(rel) {
     return rel.split('/')[0];
 }
 
-const CODE = /\.(c|m)?js$/;
-const TEST_CODE = /\.test\.(c|m)?js$|\.testkit\.js$/;
+// TypeScript source (.mts) is code like any other: new server files are written in it.
+const CODE = /\.(c|m)?js$|\.mts$/;
+const TEST_CODE = /\.test\.(c|m)?js$|\.test\.mts$|\.testkit\.js$/;
 
 function walk(dir, out = []) {
     for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -125,33 +132,53 @@ function walk(dir, out = []) {
 
 /** The file a relative require lands on, as Node would pick it (enough of it). */
 function resolveTarget(abs) {
-    for (const c of [abs, abs + '.js', abs + '.cjs', abs + '.json',
-        path.join(abs, 'index.js'), path.join(abs, 'index.cjs')]) {
+    for (const c of [abs, abs + '.js', abs + '.cjs', abs + '.mts', abs + '.json',
+        path.join(abs, 'index.js'), path.join(abs, 'index.cjs'), path.join(abs, 'index.mts')]) {
         try { if (fs.statSync(c).isFile()) return c; } catch { /* next candidate */ }
     }
     return abs;
 }
 
 const REQUIRE = /require\(\s*['"](\.[^'"]+)['"]\s*\)/g;
+// `import x from './y'`, `export { x } from './y'`, `import './y'` and `await import('./y')`.
+// A statement may span lines, so these run over the whole file. `import type` and
+// `export type` load nothing at run time and are not edges; neither is the
+// `import('./y').T` of a type position, which is why the dynamic form needs its `await`.
+const STATIC_IMPORT = /^[ \t]*(import|export)\b(?![ \t]+type\b)(?:[^;'"]*?\bfrom)?[ \t\n]*['"](\.[^'"]+)['"]/gm;
+const DYNAMIC_IMPORT = /\bawait[ \t]+import\(\s*['"](\.[^'"]+)['"]\s*\)/g;
 const COMMENT_LINE = /^\s*(\/\/|\*|\/\*)/;
 const posix = (p) => p.split(path.sep).join('/');
 
-/** Every relative require between two different units: { from, to, at, target }. */
+/**
+ * Every relative specifier a file loads at run time, with its line: { spec, line }.
+ * Exported for the synthetic test below.
+ * @param {string} text
+ */
+function loadsOf(text) {
+    const found = [];
+    const lineAt = (index) => text.slice(0, index).split('\n').length;
+    const lines = text.split('\n');
+    lines.forEach((line, i) => {
+        if (COMMENT_LINE.test(line)) return;
+        for (const m of line.matchAll(REQUIRE)) found.push({ spec: m[1], line: i + 1 });
+        for (const m of line.matchAll(DYNAMIC_IMPORT)) found.push({ spec: m[1], line: i + 1 });
+    });
+    for (const m of text.matchAll(STATIC_IMPORT)) found.push({ spec: m[2], line: lineAt(m.index + m[0].length) });
+    return found;
+}
+
+/** Every relative require or import between two different units: { from, to, at, target }. */
 function edges() {
     const out = [];
     for (const file of walk(ROOT)) {
         const rel = posix(path.relative(ROOT, file));
         const from = unitOf(rel);
-        const lines = fs.readFileSync(file, 'utf8').split('\n');
-        lines.forEach((line, i) => {
-            if (COMMENT_LINE.test(line)) return;
-            for (const m of line.matchAll(REQUIRE)) {
-                const target = posix(path.relative(ROOT, resolveTarget(path.resolve(path.dirname(file), m[1]))));
-                if (target.startsWith('..')) continue;
-                const to = unitOf(target);
-                if (to !== from) out.push({ from, to, at: `${rel}:${i + 1}`, target });
-            }
-        });
+        for (const { spec, line } of loadsOf(fs.readFileSync(file, 'utf8'))) {
+            const target = posix(path.relative(ROOT, resolveTarget(path.resolve(path.dirname(file), spec))));
+            if (target.startsWith('..')) continue;
+            const to = unitOf(target);
+            if (to !== from) out.push({ from, to, at: `${rel}:${line}`, target });
+        }
     }
     return out;
 }
@@ -210,6 +237,31 @@ if (require.main === module && process.argv.includes('--list')) {
     }
 }
 
+test('synthetic: requires and imports are edges, type-only imports and comments are not', () => {
+    const specs = (text) => loadsOf(text).map((l) => `${l.spec}:${l.line}`).sort();
+    // The specifiers are spelled through `R` so that importPaths.test.js, which reads this
+    // file's text too, does not take the fixture lines for imports of this file.
+    const R = './';
+    assert.deepEqual(specs([
+        `const a = require('${R}a');`,
+        `import b from '${R}b.mts';`,
+        'import {',
+        '    c,',
+        `} from '${R}c.mts';`,
+        `export { d } from '${R}d.mts';`,
+        `import '${R}e.mts';`,
+        `const f = await import('${R}f.mts');`,
+    ].join('\n')), ['./a:1', './b.mts:2', './c.mts:5', './d.mts:6', './e.mts:7', './f.mts:8']);
+    assert.deepEqual(specs([
+        `import type { T } from '${R}t.mts';`,
+        `export type { U } from '${R}u.mts';`,
+        `const v: import('${R}v.mts').V = make();`,
+        `// const w = require('${R}w');`,
+        ` * import x from '${R}x.mts';`,
+        "import fs from 'node:fs';",
+    ].join('\n')), []);
+});
+
 test('every top-level entry of server/ is classified into a layer', () => {
     const missing = [];
     for (const e of fs.readdirSync(ROOT, { withFileTypes: true })) {
@@ -259,6 +311,15 @@ test('nothing below the API layer requires a router', () => {
         .filter(e => LAYERS[e.to] === 'api' && RANK[LAYERS[e.from]] < RANK.api)
         .map(e => `${e.at} -> ${e.target}`))];
     assert.deepStrictEqual(bad, [], 'upward edges into the API layer:\n  ' + bad.join('\n  '));
+});
+
+test('only the API layer and the composition roots require the application layer', () => {
+    // Zero, like the rule above: a feature that needs a use case has the
+    // dependency upside down, and the shared piece belongs in core/ instead.
+    const bad = [...new Set(ALL
+        .filter(e => LAYERS[e.to] === 'application' && RANK[LAYERS[e.from]] < RANK.application)
+        .map(e => `${e.at} -> ${e.target}`))];
+    assert.deepStrictEqual(bad, [], 'upward edges into the application layer:\n  ' + bad.join('\n  '));
 });
 
 // Measured when this guard landed; lower it when you remove an edge.

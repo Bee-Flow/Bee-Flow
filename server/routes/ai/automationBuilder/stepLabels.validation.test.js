@@ -30,7 +30,7 @@ const MOCKS = {
         },
     },
     '../../../auth/permissions': { requireAuth: pass },
-    './rateLimits': { summariseLayerRateLimit: pass },
+    '../../../usecases/ai/automationBuilder/rateLimits': { summariseLayerRateLimit: pass },
     '../../../core/entitlements/betaFeatures': { userHasBetaFeature: async () => true },
 };
 

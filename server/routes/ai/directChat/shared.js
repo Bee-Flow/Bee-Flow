@@ -119,7 +119,7 @@ const _chatResolveMarks = new Map();
  *
  * Best-effort throughout: a live-feed update must never be able to fail the
  * chat turn that produced it.
- * @param {string} projectId
+ * @param {string | null} projectId
  * @param {Parameters<typeof import('../../../core/projectContent/projectFeed').emitProjectEvent>[1]} event
  */
 function emitThreadEvent(projectId, event) {

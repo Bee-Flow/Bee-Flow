@@ -29,7 +29,7 @@ const { HttpError } = require('../../core/http/errors');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { TABLE_ID_RE, COLUMN_TYPES } = require('../../core/automationRunner/tables/handle');
 const { listToTable } = require('../../core/automationRunner/tables/listSource');
-const { tableRouterDeps } = require('./tableRouterDeps');
+const { tableRouterDeps } = require('../../usecases/automation/tableRouterDeps');
 const log = require('../../telemetry/log');
 const { sessionUser } = require('../../core/http/sessionUser');
 

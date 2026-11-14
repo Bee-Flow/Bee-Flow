@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ComponentType } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -9,6 +9,7 @@ import AppConnectorStatus from './AppConnectorStatus';
 import AppFileGallery from './AppFileGallery';
 import AppFilePreview from './AppFilePreview';
 import { expectPartsMatch } from './recordPartClassKit';
+import { renderWithClient } from '@/test/render';
 
 /**
  * LK7b, record family (the types that read through authFetch): every part a type
@@ -22,7 +23,7 @@ const answer = (match: string, make: Answer) => { routes = [[match, make], ...ro
 
 function mount(Component: ComponentType<{ node: never }>, node: Record<string, unknown>, runtime: Record<string, unknown> = {}) {
     const value = { ...DEFAULT_RUNTIME, scope: buildScope({ now: '2026-01-01T00:00:00.000Z' }), mode: 'run', ...runtime } as never;
-    return render(
+    return renderWithClient(
         <DataProvider appId="app_1">
             <RuntimeProvider value={value}><Component node={node as never} /></RuntimeProvider>
         </DataProvider>,

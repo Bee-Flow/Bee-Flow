@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Direct Chat input gates, part two: the PII detection gate (block or
  * tokenize, fail-closed when protection is unavailable) and the interactive
@@ -55,7 +55,7 @@ const auditInput = (g, violation_type, violation_categories, action_taken) => gu
  * preservation addendum and the inbound-history retokeniser all consult the
  * in-process map, which is {} until hydrated; without this a `[medication_1]`
  * minted on turn 1 survives as literal text in every later reply. Idempotent.
- * @param {string} convId
+ * @param {string | null | undefined} convId  none in an incognito chat: nothing to hydrate
  */
 async function hydrateTokenMap(convId) {
     if (!convId) return;
@@ -75,7 +75,7 @@ function applyPiiTokens(g, piiResult) {
     if (typeof lastMsg.content === 'string') {
         lastMsg.content = piiResult.tokenizedText;
     } else if (Array.isArray(lastMsg.content)) {
-        const textPart = lastMsg.content.find((/** @type {{ type: string; }} */ p) => p.type === 'text');
+        const textPart = lastMsg.content.find((p) => p.type === 'text');
         if (textPart) textPart.text = piiResult.tokenizedText;
     }
     // Register on the shared DLP conversation-token store so the streaming
@@ -87,10 +87,11 @@ function applyPiiTokens(g, piiResult) {
 
     // Tell the AI about the tokenization so it can reference them properly.
     // Shared helper (also used by the agent path); reads conversation-scoped
-    // tokens so a value redacted in turn 1 is still recognised in turn 5.
+    // tokens so a value redacted in turn 1 is still recognised in turn 5; a
+    // turn without a conversation (incognito) has only this turn's tokens.
     try {
-        const convMap = require('../../../core/dlp/dlpRunner').getConversationTokenMap(convId);
-        appendVolatile(buildTokenPreservationAddendum(convMap));
+        const scopeMap = require('../../../core/dlp/dlpRunner').getTurnTokenMap(convId, piiResult.tokenMap);
+        appendVolatile(buildTokenPreservationAddendum(scopeMap));
     } catch (_) {
         appendVolatile(buildTokenPreservationAddendum(piiResult.tokenMap));
     }
@@ -247,7 +248,7 @@ async function runDlpGate(g) {
     const { runDlpPreflight } = require('../../../core/dlp/dlpPreflight');
     const dlp = await runDlpPreflight({
         messages,
-        resolvedShield: orgShield,
+        resolvedShield: /** @type {NonNullable<GateCtx['orgShield']>} */ (orgShield), // the gate runs for an enabled shield only
         orgId: userOrgId,
         conversationId: convId,
         userId,
@@ -289,8 +290,8 @@ async function runDlpGate(g) {
         out.piiTokenMap = dlp.tokenMap; // reuse the existing un-tokenise path on the response
         // Tell the AI about the tokens so it reuses placeholders verbatim (and
         // never invents `[your name]` for sign-offs).
-        const convMap = require('../../../core/dlp/dlpRunner').getConversationTokenMap(convId);
-        appendVolatile(buildTokenPreservationAddendum(convMap));
+        const scopeMap = require('../../../core/dlp/dlpRunner').getTurnTokenMap(convId, dlp.tokenMap);
+        appendVolatile(buildTokenPreservationAddendum(scopeMap));
     }
     if (dlp.userPrivacyMeta) out.userPrivacyMeta = dlp.userPrivacyMeta;
     if (dlp.assistantTokenisationInfo) out.assistantInfo = dlp.assistantTokenisationInfo;

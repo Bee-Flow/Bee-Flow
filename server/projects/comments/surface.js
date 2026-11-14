@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Comment threads as a surface of the AI participation engine
  * (projects/participation): what lets the AI join a thread by itself when the
@@ -88,7 +88,7 @@ function makeCommentSurface(deps = {}) {
     /**
      * The passage and its section, read as `userId`; '' when it cannot be read.
      * @param {{ id: string }} project
-     * @param {ReturnType<typeof import('../../stores/lib/projectCommentRows').rowToThread>} thread
+     * @param {NonNullable<ReturnType<typeof import('../../stores/lib/projectCommentRows').rowToThread>>} thread
      * @param {ReturnType<Awaited<ReturnType<typeof import('./commentCrypto').forProject>>['openAnchor']>} anchor
      * @param {string} userId
      */
@@ -182,7 +182,7 @@ function makeCommentSurface(deps = {}) {
                 content: box.sealContent(thread.id, commentId, answer.length > ANSWER_CHARS ? `${answer.slice(0, ANSWER_CHARS)} …` : answer),
                 replyTo: replyTarget ? replyTarget.id : null,
                 aiTrigger: String(trigger || 'auto').slice(0, 40),
-            }, { requireOpen: true, staleAfterSeq: Number.isFinite(afterSeq) ? afterSeq : null });
+            }, { requireOpen: true, staleAfterSeq: Number.isFinite(afterSeq) ? /** @type {number} */ (afterSeq) : null });
         } catch (err) {
             // Resolved while the answer was written: the people are done with it.
             if (err?.code === 'THREAD_RESOLVED') return { stale: true };

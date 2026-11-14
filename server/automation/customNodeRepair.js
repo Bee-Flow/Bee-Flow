@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Run it, see what broke, fix it, run it again — bounded, and honest about
  * the run that never went green.
@@ -88,7 +89,7 @@ function defaultDeps(overrides = {}) {
                 // Flagged rather than described: the loop has to tell "this
                 // box has no isolate" from "the author's code throws", and
                 // matching on a message is how those two become one.
-                const e = new Error(`Code step disabled: ${sandbox.loadError() || 'isolated-vm not installed'}`);
+                const e = /** @type {Error & { sandboxUnavailable?: boolean }} */ (new Error(`Code step disabled: ${sandbox.loadError() || 'isolated-vm not installed'}`));
                 e.sandboxUnavailable = true;
                 throw e;
             }
@@ -112,6 +113,7 @@ function defaultDeps(overrides = {}) {
  * One attempt's evidence, in the one shape every exit of this module carries.
  * @param {number} n
  * @param {string} code
+ * @param {{ result?: unknown, logs?: unknown[], calls?: unknown[] }} [run]
  * @param {string | null} [error]
  */
 function evidenceOf(n, code, { result, logs, calls } = {}, error = null, missingOutputs = []) {
@@ -145,7 +147,7 @@ function missingFrom(result, expectOutputs) {
 function notRepaired(reason, message, attempts, extra = {}) {
     const last = attempts.length ? attempts[attempts.length - 1] : null;
     return {
-        ok: false,
+        ok: /** @type {false} */ (false),
         reason,
         message,
         // The field a caller reaches for when it wants the working body. A
@@ -172,9 +174,9 @@ function proposedCode(answer) {
 /**
  * Test a code body, and repair it while it is broken — at most a few times.
  *
- * @param {{ code: string, inputs?: Record<string, unknown>, allowedTools?: string[], limits?: Record<string, unknown>,
+ * @param {Partial<{ code: string, inputs?: Record<string, unknown>, allowedTools?: string[], limits?: Record<string, unknown>,
  *   expectOutputs?: string[], maxAttempts?: number, goal?: string,
- *   onProgress?: ((e: { type: string, detail: unknown }) => void) | null }} [p]
+ *   onProgress?: ((e: { type: string, detail: unknown }) => void) | null }>} [p]
  *   code: the body as written. inputs: sample inputs for the rehearsal.
  *   allowedTools: the tools the body may reach — the same list codeSandbox
  *                 gates through bridges.allowedTools.
@@ -333,9 +335,9 @@ function replaceStep(graph, target, next) {
  * @typedef RepairCustomNodeArgs
  * @property {string} [goal]
  * @property {unknown} [definition]
- * @property {unknown} [inputs]
- * @property {unknown} [maxAttempts]
- * @property {unknown} [onProgress]
+ * @property {Record<string, unknown>} [inputs]
+ * @property {number} [maxAttempts]
+ * @property {((e: { type: string, detail: unknown }) => void) | null} [onProgress]
  */
 /**
  * The same loop, asked of a custom node instead of a loose body.

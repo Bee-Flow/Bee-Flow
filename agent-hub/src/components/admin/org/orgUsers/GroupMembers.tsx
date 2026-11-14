@@ -113,6 +113,7 @@ export function GroupMembersList({ group, groupsState }: Omit<GroupMembersProps,
                         disabled={memberBusy}
                         onClick={() => removeGroupMember(group.id, m.id)}
                         title={t('admin.org_group_remove_member', 'Remove from group')}
+                        aria-label={t('admin.org_group_remove_member', 'Remove from group')}
                         className="shrink-0 p-1 rounded-md text-[var(--text-muted)] hover:text-red-500 hover:bg-[var(--bg-tertiary)] disabled:opacity-50"
                     >
                         <X className="w-3.5 h-3.5" />

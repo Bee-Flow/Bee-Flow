@@ -1,4 +1,5 @@
-import { API_BASE, getSessionToken } from '@/utils/helpers';
+import { getSessionToken } from '@/utils/helpers';
+import { apiUrl } from '@/api/typedRequest';
 import { logger } from '@/utils/logger';
 
 /**
@@ -33,7 +34,7 @@ export function uploadCmsFile(file: File, { path = 'upload', onProgress, signal 
             return;
         }
         const xhr = new XMLHttpRequest();
-        xhr.open('POST', `${API_BASE}/api/cms/admin/${path}`);
+        xhr.open('POST', apiUrl(path === 'upload-clip' ? 'POST /api/cms/admin/upload-clip' : 'POST /api/cms/admin/upload'));
         xhr.withCredentials = true;
         xhr.setRequestHeader('X-Beeflow-Client', 'web');
         const token = getSessionToken();

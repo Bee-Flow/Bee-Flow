@@ -2,9 +2,11 @@ import { Globe } from 'lucide-react';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import WebpageDeleteDialog from './webpages/WebpageDeleteDialog';
 import WebpageEditorPage, { type WebpageEditorPageProps } from './webpages/WebpageEditorPage';
-import { api, fetchWebpageBundle } from '../api/webpagesApi';
+import { api } from '../api/webpagesApi';
+import { useWebpageBundleRead, useWebpagesListQuery } from '../api/queries/webpagesShell';
+import useAdjustOnChange from '../hooks/useAdjustOnChange';
 import WebpagesList from './webpages/WebpagesList';
-import { readOrgGroups, type OrgGroup } from '../api/queries/orgGroups';
+import { useOrgGroupsQuery, type OrgGroup } from '../api/queries/orgGroups';
 import { useCan } from '../components/licensing/Gate';
 import { RequireTier } from '../components/licensing/LicenseContext';
 import useTranslation from '../hooks/useTranslation';
@@ -45,6 +47,7 @@ interface WebpagesPageInnerProps {
 }
 
 const EMPTY_MODEL_TIERS: {} = {};
+const NO_GROUPS: OrgGroup[] = [];
 
 function WebpagesPageInner({ user, onBack, initialWebpageId, onWebpageChange, embedded = false }: WebpagesPageInnerProps) {
     // Drive UI gating from the SAME unified entitlements snapshot the server's
@@ -52,24 +55,18 @@ function WebpagesPageInner({ user, onBack, initialWebpageId, onWebpageChange, em
     // inner gate, the outer RequireTier, and the /api/webpages API never diverge.
     const canUseWebpages = useCan('webpages');
     const { t } = useTranslation();
-    const [orgGroups, setOrgGroups] = useState<OrgGroup[]>([]);
-
-    useEffect(() => {
-        (async () => {
-            try {
-                const list = await readOrgGroups();
-                if (list) setOrgGroups(list);
-            } catch (err) { logger.debug('ignore', err); }
-        })();
-    }, []);
+    const orgGroups = useOrgGroupsQuery().data ?? NO_GROUPS;
 
     /* ── Model tiers (shell-owned so the choice survives opening another page) ── */
     const [selectedTier, setSelectedTier] = useState('fast');
     const modelTiersQuery = useConfigChatModels();
     const modelTiers = modelTiersQuery.data ?? EMPTY_MODEL_TIERS;
 
+    // The list as read, then edited here (rename, create, delete) without reading it again.
+    const listQuery = useWebpagesListQuery<WebpageRow>(canUseWebpages);
     const [webpages, setWebpages] = useState<WebpageRow[]>([]);
-    const [loading, setLoading] = useState(true);
+    useAdjustOnChange([listQuery.dataUpdatedAt], () => { if (listQuery.data) setWebpages(listQuery.data); });
+    const loading = listQuery.isPending;
     // Which list-card's fetch is in flight — the list view doesn't switch to
     // the editor until the bundle resolves, so without this a click on a slow
     // network looked like nothing happened.
@@ -77,6 +74,7 @@ function WebpagesPageInner({ user, onBack, initialWebpageId, onWebpageChange, em
     const [creating, setCreating] = useState(false);
     const [newName, setNewName] = useState('');
     const [error, setError] = useState<string | null>(null);
+    useAdjustOnChange([listQuery.errorUpdatedAt], () => { if (listQuery.error) setError(listQuery.error.message); });
 
     // The open page: its loaded bundle + whether it opened in the IDE.
     const [loaded, setLoaded] = useState<WebpageEditorPageProps['loaded'] | null>(null);
@@ -85,22 +83,8 @@ function WebpagesPageInner({ user, onBack, initialWebpageId, onWebpageChange, em
     // OUTGOING page before its editor unmounts.
     const flushRef = useRef<(() => Promise<unknown>) | null>(null);
 
-    /* ── Fetch webpages list ─────────────────────────────────── */
-    const fetchWebpages = useCallback(async () => {
-        try {
-            setLoading(true);
-            const data = await api('/');
-            setWebpages(data.webpages || []);
-        } catch (err) {
-            setError((err as Error).message);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => { if (canUseWebpages) fetchWebpages(); }, [fetchWebpages, canUseWebpages]);
-
     /* ── Load a webpage (deep-link or click) ─────────────────── */
+    const readBundle = useWebpageBundleRead();
     const loadWebpage = useCallback(async (id: string, { edit = false } = {}) => {
         setLoadingWebpageId(id);
         // Flush the OUTGOING page's pending edits before we replace it, so
@@ -109,7 +93,7 @@ function WebpagesPageInner({ user, onBack, initialWebpageId, onWebpageChange, em
         // no-ops when nothing is dirty. Never let a flush failure block the load.
         try { await flushRef.current?.(); } catch (err) { logger.debug('best-effort flush', err); }
         try {
-            const bundle = await fetchWebpageBundle(id);
+            const bundle = await readBundle(id);
             setEditMode(edit);
             setLoaded(bundle);
             setLoadingWebpageId(null);
@@ -118,7 +102,7 @@ function WebpagesPageInner({ user, onBack, initialWebpageId, onWebpageChange, em
             setError((err as Error).message);
             setLoadingWebpageId(null);
         }
-    }, [onWebpageChange]);
+    }, [onWebpageChange, readBundle]);
 
     // Deep-link: load the webpage in the URL directly by id. Do NOT gate on it
     // being present in the fetched (capped) accessible list — pages outside that

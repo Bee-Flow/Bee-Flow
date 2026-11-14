@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseSchema, render, tsType } from './gen-row-types.mjs';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { parseSchema, render, sourceFiles, tsType } from './gen-row-types.mjs';
 
 const SQL = `
     CREATE TABLE IF NOT EXISTS widgets (
@@ -51,4 +54,13 @@ test('tsType', () => {
     assert.equal(tsType('integer[]'), 'number[]');
     assert.equal(tsType('bytea'), 'Buffer');
     assert.equal(tsType('geometry'), 'unknown');
+});
+
+test('sourceFiles reads TypeScript sources too, and no tests, testkits or type folders', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gen-row-types-'));
+    for (const rel of ['stores/a.js', 'stores/b.mts', 'stores/c.cjs', 'stores/b.test.mts', 'stores/a.test.js', 'stores/x.testkit.js', 'types/rows.d.ts', 'node_modules/dep/index.js']) {
+        fs.mkdirSync(path.dirname(path.join(dir, rel)), { recursive: true });
+        fs.writeFileSync(path.join(dir, rel), '');
+    }
+    assert.deepEqual(sourceFiles(dir), ['stores/a.js', 'stores/b.mts', 'stores/c.cjs']);
 });

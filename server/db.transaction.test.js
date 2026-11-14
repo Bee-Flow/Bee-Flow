@@ -1,7 +1,10 @@
 /**
- * Unit — db.js transaction + store-init helpers (H1). DB-free: exercises the
- * client-injectable core (_runTransaction), the query instrumentation wrapper
- * (_instrumentClient) and the memoized init factory (makeStoreInit) with fakes.
+ * Unit — db.js transaction + store-init helpers (H1): the client-injectable
+ * core (_runTransaction), the query instrumentation wrapper (_instrumentClient)
+ * and the memoized init factory (makeStoreInit). The transaction client is a
+ * real Postgres session (PGlite) that also records each statement, so the
+ * BEGIN/COMMIT/ROLLBACK order is pinned on statements that really ran, and what
+ * a commit or a rollback left behind is read back.
  * Run: node --test db.transaction.test.js
  */
 
@@ -10,37 +13,48 @@ const assert = require('node:assert');
 
 const { rollback } = require('./utils/txRollback');
 const { _runTransaction, _instrumentClient, makeStoreInit, isSqlStateError } = require('./db');
+const { newPglite } = require('./testUtils/pgliteTemplate');
 
+const pg = newPglite();
+test.after(() => pg.close());
+const ready = pg.exec('CREATE TABLE t (x INT); INSERT INTO t VALUES (0)');
+const xOf = async () => (await pg.query('SELECT x FROM t')).rows[0].x;
+
+/** A client over the one PGlite session that records every statement it runs. */
 function fakeClient() {
     const calls = [];
     let released = 0;
     return {
         calls,
         get released() { return released; },
-        query: (sql) => { calls.push(sql); return Promise.resolve({ rows: [] }); },
+        query: async (sql) => { calls.push(sql); await ready; return pg.query(sql); },
         release: () => { released += 1; },
     };
 }
 
 test('_runTransaction commits and returns the callback value', async () => {
     const c = fakeClient();
+    await pg.query('UPDATE t SET x = 0');
     const result = await _runTransaction(c, async (client) => {
         await client.query('UPDATE t SET x=1');
         return 42;
     });
     assert.strictEqual(result, 42);
     assert.deepStrictEqual(c.calls, ['BEGIN', 'UPDATE t SET x=1', 'COMMIT']);
+    assert.strictEqual(await xOf(), 1, 'the write is committed');
     assert.strictEqual(c.released, 1, 'client released exactly once');
 });
 
 test('_runTransaction rolls back and rethrows on callback error', async () => {
     const c = fakeClient();
     const boom = new Error('boom');
+    await pg.query('UPDATE t SET x = 0');
     await assert.rejects(
-        () => _runTransaction(c, async () => { throw boom; }),
+        () => _runTransaction(c, async (client) => { await client.query('UPDATE t SET x=7'); throw boom; }),
         (e) => e === boom,
     );
-    assert.deepStrictEqual(c.calls, ['BEGIN', 'ROLLBACK']);
+    assert.deepStrictEqual(c.calls, ['BEGIN', 'UPDATE t SET x=7', 'ROLLBACK']);
+    assert.strictEqual(await xOf(), 0, 'the write is rolled back');
     assert.strictEqual(c.released, 1, 'client released even on error');
 });
 
@@ -191,12 +205,15 @@ test('isSqlStateError: false for non-errors and non-string codes', () => {
 
 test('_runTransaction: return rollback(v) rolls back, releases and resolves to v', async () => {
     const c = fakeClient();
+    await pg.query('UPDATE t SET x = 0');
     const result = await _runTransaction(c, async (client) => {
-        await client.query('SELECT 1 FOR UPDATE');
+        await client.query('SELECT x FROM t FOR UPDATE');
+        await client.query('UPDATE t SET x=5');
         return rollback({ ok: false });
     });
     assert.deepStrictEqual(result, { ok: false });
-    assert.deepStrictEqual(c.calls, ['BEGIN', 'SELECT 1 FOR UPDATE', 'ROLLBACK']);
+    assert.deepStrictEqual(c.calls, ['BEGIN', 'SELECT x FROM t FOR UPDATE', 'UPDATE t SET x=5', 'ROLLBACK']);
+    assert.strictEqual(await xOf(), 0, 'rollback(v) undoes the write');
     assert.strictEqual(c.released, 1);
 });
 
@@ -204,4 +221,17 @@ test('_runTransaction: rollback() without a value resolves to undefined', async 
     const c = fakeClient();
     assert.strictEqual(await _runTransaction(c, async () => rollback()), undefined);
     assert.deepStrictEqual(c.calls, ['BEGIN', 'ROLLBACK']);
+});
+
+test('runTransaction opens with the given statement (a read-only transaction) and still ends it once', async () => {
+    const { runTransaction } = require('./utils/txRollback');
+    const c = fakeClient();
+    const out = await runTransaction(c, async (client) => { await client.query('SELECT 1'); return 'ok'; }, { begin: 'BEGIN READ ONLY' });
+    assert.strictEqual(out, 'ok');
+    assert.deepStrictEqual(c.calls, ['BEGIN READ ONLY', 'SELECT 1', 'COMMIT']);
+    // And it really is read-only: a write inside it is refused by Postgres.
+    const w = fakeClient();
+    await assert.rejects(() => runTransaction(w, async (client) => client.query('UPDATE t SET x=9'), { begin: 'BEGIN READ ONLY' }), /read-only/);
+    assert.ok(w.calls.includes('ROLLBACK'));
+    assert.strictEqual(c.released, 1);
 });

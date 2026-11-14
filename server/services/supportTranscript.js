@@ -15,7 +15,7 @@
  * boundary.
  */
 
-const { isGenuineCustomerSender } = require('./email/parse');
+const { isGenuineCustomerSender } = require('../utils/emailParse');
 
 /**
  * Did this outbound message actually reach the customer?

@@ -245,6 +245,10 @@ function createFindings({ run, getOne, getAll, initDB }) {
      * Dismiss (`snoozedUntil` null) or snooze one hint. A dismissal stores the
      * fingerprint it was made against, so the hint returns only when what it
      * reports changes; a snooze lapses by date whatever the fingerprint.
+     * @param {string} userId
+     * @param {string} projectId
+     * @param {string} hintKey
+     * @param {{ fingerprint?: string | null, snoozedUntil?: string | null }} [opts]
      */
     async function recordHintDismissal(userId, projectId, hintKey, { fingerprint = null, snoozedUntil = null } = {}) {
         await initDB();

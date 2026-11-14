@@ -1,14 +1,14 @@
 import { AlertTriangle, ChevronRight, RefreshCw, Search } from 'lucide-react';
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { STATUS_META, STATUS_IDS, statusRank, orgIsBlocked } from './healthMeta';
 import type { FleetOrg } from './healthMeta';
 import OrgHealthDrawer from './OrgHealthDrawer';
 import { useTranslation } from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
-import { request, RefusedError } from '@/api/mutate';
 import { ALERT_ERROR, DANGER_BTN, EYEBROW, FILTER_CHIP_OFF, FILTER_CHIP_ON } from '@/components/mcpLibrary/ui';
 import SectionHeader from '@/components/shared/SectionHeader';
 import Spinner from '@/components/shared/Spinner';
+import { apiRequest } from '@/api/typedRequest';
 
 /**
  * ConnectorHealthPanel — super-admin fleet overview of every Nextcloud-connected
@@ -66,47 +66,49 @@ interface ConnectorHealthPanelProps {
     onNavigate?: (path: string) => void;
 }
 
+const NO_ORGS: FleetOrg[] = [];
+
+/** The fleet read; Refresh reads again. */
+function useFleet() {
+    // A refusal, a failure or an answer without a fleet is a failed load, never "no organisations".
+    const fleet = useQuery<FleetOrg[]>({
+        queryKey: ['platformAdmin', 'connectorHealthFleet'],
+        staleTime: 0,
+        retry: false,
+        queryFn: async () => {
+            const data = await (await apiRequest('GET /auth/admin/connector-health/fleet')).json().catch(() => null);
+            if (!data || !Array.isArray(data.orgs)) throw new Error('no fleet in the answer');
+            return data.orgs;
+        },
+    });
+    const orgs = fleet.data ?? NO_ORGS;
+    const loading = fleet.isFetching;
+    const loadFailed = fleet.isError && !fleet.isFetching;
+    const { refetch } = fleet;
+    const load = useCallback(() => { void refetch(); }, [refetch]);
+    return { orgs, loading, loadFailed, load };
+}
+
+/** Opens `initialOrgId` once the fleet lists it; applied once, so closing stays closed. */
+function useDeepLinkedOrg(initialOrgId: string | null | undefined, orgs: FleetOrg[], select: (id: string) => void) {
+    const [applied, setApplied] = useState(false);
+    if (!applied && initialOrgId && orgs.length > 0) {
+        setApplied(true);
+        if (orgs.some((o: FleetOrg) => o.id === initialOrgId)) select(initialOrgId);
+    }
+}
+
 export default function ConnectorHealthPanel({ initialOrgId = '', onNavigate }: ConnectorHealthPanelProps) {
     const { t } = useTranslation();
-    const [orgs, setOrgs] = useState<FleetOrg[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [loadFailed, setLoadFailed] = useState(false);
     const [statusFilter, setStatusFilter] = useState<string | null>(null); // null = all
     const [query, setQuery] = useState('');
     const [selectedId, setSelectedId] = useState<string | null>(null);
-    const appliedInitial = useRef(false);
 
-    const load = useCallback(async () => {
-        setLoading(true);
-        setLoadFailed(false);
-        try {
-            let res: Response;
-            try {
-                res = await request(`${API_BASE}/auth/admin/connector-health/fleet`);
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                setLoadFailed(true);
-                return;
-            }
-            const data = await res.json().catch(() => null);
-            if (!data || !Array.isArray(data.orgs)) { setLoadFailed(true); return; }
-            setOrgs(data.orgs);
-        } catch {
-            setLoadFailed(true);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => { load(); }, [load]);
+    const { orgs, loading, loadFailed, load } = useFleet();
 
     // Deep-link drill-in: admin/security/connector-health/<orgId> opens the
     // drawer once the fleet has loaded (applied once, so closing stays closed).
-    useEffect(() => {
-        if (appliedInitial.current || !initialOrgId || orgs.length === 0) return;
-        appliedInitial.current = true;
-        if (orgs.some((o: FleetOrg) => o.id === initialOrgId)) setSelectedId(initialOrgId);
-    }, [initialOrgId, orgs]);
+    useDeepLinkedOrg(initialOrgId, orgs, setSelectedId);
 
     const blockedCount = useMemo(() => orgs.filter(orgIsBlocked).length, [orgs]);
     const silentCount = useMemo(() => orgs.filter((o: FleetOrg) => !o.messagesTotal).length, [orgs]);

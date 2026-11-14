@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The AI step editor's two previews (moved out of catalog.js, handoff 5):
  *   GET /catalog/agent/:agentId  what an agent brings to THIS step
@@ -98,7 +99,7 @@ function registerAgentStepRoutes(router) {
      * the reason (it lists only agents the caller can already see); this route
      * cannot, because it will answer about any id it is handed.
      */
-    router.get('/catalog/agent/:agentId', validate({ query: AgentPreviewQuery }), async (/** @type {import('express').Request<{ agentId: string }, any, any, import('zod').infer<typeof AgentPreviewQuery>>} */ req, /** @type {import('express').Response} */ res) => {
+    router.get('/catalog/agent/:agentId', validate({ query: AgentPreviewQuery }), async (req, /** @type {import('express').Response} */ res) => {
         /**
          * @param {string | undefined} v
          */
@@ -182,7 +183,7 @@ function registerAgentStepRoutes(router) {
         }
         // Handoff 5: version, scope, the knowledge bases and skills the agent
         // brings, and its tools grouped per integration (agentStepCatalog.js).
-        const { describeAgentForStep } = require('./agentStepCatalog');
+        const { describeAgentForStep } = require('../../usecases/automation/agentStepCatalog');
         const detail = await describeAgentForStep({ binding, gate, withheld, ctx, deps: agentStepDeps() });
         res.json({
             id: binding.agentId,
@@ -222,7 +223,7 @@ function registerAgentStepRoutes(router) {
         if (principal.identityError) {
             throw new HttpError(503, 'identity_unavailable', 'Your account could not be read just now. Try again in a moment.');
         }
-        const { describeSkillForStep } = require('./agentStepCatalog');
+        const { describeSkillForStep } = require('../../usecases/automation/agentStepCatalog');
         const skill = await describeSkillForStep({
             skillId: req.params.skillId,
             orgId: principal.organizationId || null,

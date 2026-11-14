@@ -264,6 +264,7 @@ function ManageRow({ t, category, others, onRename, onDelete }: {
                             onClick={() => setEditing(true)}
                             className="p-1 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] opacity-0 group-hover:opacity-100 transition"
                             title={t('agent_wizard.builder.category_rename', 'Rename')}
+                            aria-label={t('agent_wizard.builder.category_rename', 'Rename')}
                         >
                             <Pencil size={13} />
                         </button>
@@ -272,6 +273,7 @@ function ManageRow({ t, category, others, onRename, onDelete }: {
                             onClick={() => setDeleting('confirm')}
                             className="p-1 text-[var(--text-tertiary)] hover:text-red-500 opacity-0 group-hover:opacity-100 transition"
                             title={t('agent_studio.delete', 'Delete')}
+                            aria-label={t('agent_studio.delete', 'Delete')}
                         >
                             <Trash2 size={13} />
                         </button>

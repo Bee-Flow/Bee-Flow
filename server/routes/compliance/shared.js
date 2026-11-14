@@ -246,6 +246,19 @@ function _recordSoaEvidence(orgId, subjectId, payload) {
     });
 }
 
+/**
+ * A record the store found in the caller's organisation, or the 404 of an
+ * unknown id: the ISO process stores answer null for an id that is not in the
+ * organisation, and a 200 with `null` would read as a write that landed.
+ * @template T
+ * @param {T | null | undefined} row
+ * @returns {T}
+ */
+function orNotFound(row) {
+    if (row == null) throw new HttpError(404, 'not_found', 'There is no such record in your organisation.');
+    return row;
+}
+
 function _riskStore() { return require('../../stores/riskStore'); }
 function _auditStore() { return require('../../stores/isoAuditStore'); }
 function _obligationStore() { return require('../../stores/isoObligationStore'); }
@@ -279,4 +292,5 @@ module.exports = {
     _auditStore,
     _obligationStore,
     latestOf,
+    orNotFound,
 };

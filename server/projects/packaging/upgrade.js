@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Upgrade an installed Solution to a newer Blueprint.
  *
@@ -22,12 +23,16 @@
  *
  * ── One hasher ─────────────────────────────────────────────────────────────
  *
- * hashDefinition and stableStringify are App Studio's, reused unchanged. jsonb
+ * hashDefinition is the one App Studio stamps with, reused unchanged. jsonb
  * does not preserve key order, so a second hasher would eventually call an
  * untouched entity dirty and skip an upgrade nobody declined.
  */
 
 'use strict';
+
+// What this needs of automation/ and appStudio/ (features) is looked up by name
+// (core/featureModules.js, registered in boot/featureModules.js).
+const { featureModule } = require('../../core/featureModules');
 
 const { sanitizeManifest } = require('../../core/packaging/manifest');
 const { currentPayload } = require('./install/payload');
@@ -43,7 +48,7 @@ const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
 function hashOf(payload) {
-    const { hashDefinition } = require('../../appStudio/templateUpgrade');
+    const { hashDefinition } = require('../../core/packaging/definitionHash.mts');
     return hashDefinition(payload);
 }
 
@@ -77,7 +82,7 @@ const PLAN_LISTS = (entities) => [
     ['knowledge_base', entities.knowledgeBases],
 ];
 
-/** @typedef {{ projectId?: string }} PlanUpgradeArgs */
+/** @typedef {{ projectId?: string, manifest?: any }} PlanUpgradeArgs */
 /**
  * Decide what an upgrade would do, without doing any of it.
  *
@@ -144,7 +149,7 @@ async function planUpgrade({ projectId, manifest } = {}) {
 }
 
 
-/** @typedef {{ blueprintVersion: number }} IsNewerArgs */
+/** @typedef {{ blueprintVersion: number, installedVersion?: any }} IsNewerArgs */
 /**
  * Is this Blueprint newer than what the project has?
  *
@@ -221,7 +226,7 @@ function applyRenameMap(definition, stepIdMap, { rekey = null } = {}) {
     if (!isPlainObject(stepIdMap) || !isPlainObject(definition)) {
         return { definition: clone(definition), renameMap: isPlainObject(stepIdMap) ? clone(stepIdMap) : null };
     }
-    const rekeyDefinition = rekey || require('../../automation/portability').rekeyDefinition;
+    const rekeyDefinition = rekey || featureModule('automation/portability').rekeyDefinition;
     const source = JSON.stringify(definition);
 
     for (let attempt = 0; attempt < MAX_REKEY_TRIES; attempt++) {
@@ -315,7 +320,7 @@ async function replaceAutomation(entityId, entity, stamp, ctx, report, unresolve
     // callers execute (D14); an automation through its live copy. A layer has
     // neither: it runs inside its caller.
     if (row.kind === 'block') {
-        await store.updateAutomation(entityId, { definition }, ctx.ownerId);
+        await store.updateAutomation(entityId, { definition: /** @type {Record<string, unknown>} */ (definition) }, ctx.ownerId);
         if (row.publishedVersion !== null && row.publishedVersion !== undefined) {
             await store.publishStep(entityId, ctx.ownerId);
         }
@@ -327,7 +332,7 @@ async function replaceAutomation(entityId, entity, stamp, ctx, report, unresolve
     }
     const hasLive = row.liveVersion !== null && row.liveVersion !== undefined;
     const goLive = ctx.goLive();
-    const updates = { definition };
+    const updates = { definition: /** @type {Record<string, unknown>} */ (definition) };
     if (hasLive) {
         // The trigger columns go live with the definition, as on a publish.
         const planned = goLive.planGoLive(row, definition, { willBeActive: !!row.isActive });
@@ -337,7 +342,7 @@ async function replaceAutomation(entityId, entity, stamp, ctx, report, unresolve
     await store.updateAutomation(entityId, updates, ctx.ownerId, { goLive: hasLive });
     if (hasLive) {
         const { warnings } = await goLive.convergeAfterPublish({
-            automation: row, definition, previousLive: row.liveDefinition || null, isActive: !!row.isActive,
+            automation: row, definition, previousLive: /** @type {{ liveDefinition?: object | null }} */ (row).liveDefinition || null, isActive: !!row.isActive,
             ownerId: row.userId || ctx.ownerId, organizationId: ctx.organizationId, reason: 'upgrade',
         });
         for (const w of warnings || []) report.warnings.push(`"${entity.title || entity.ref}" was updated, but ${w.step} did not finish: ${w.message}`);
@@ -433,7 +438,7 @@ async function replaceAgent(entityId, entity, ctx, report, unresolved) {
         config,
         // embed_enabled: whatever the owner set. An update neither switches
         // embedding on nor takes it away (F3).
-        (live.embed_enabled ?? live.embedEnabled) === true,
+        (live.embed_enabled ?? /** @type {{ embedEnabled?: boolean }} */ (live).embedEnabled) === true,
         // organization / shared groups / category: `undefined` =
         // preserve (updateAgent's undefined-means-preserve rule).
         undefined,
@@ -448,7 +453,7 @@ async function replaceAgent(entityId, entity, ctx, report, unresolved) {
         { persona: null },
     );
     // A published agent serves its published config: move it along.
-    if (Number(live.published_version ?? live.publishedVersion) > 0) {
+    if (Number(live.published_version ?? /** @type {{ publishedVersion?: number }} */ (live).publishedVersion) > 0) {
         const out = await agentStore.publishAgentVersion(entityId, { config });
         if (!out || out.ok !== true) {
             report.warnings.push(`"${entity.name || entity.ref}" was updated, but its published version could not be moved to it. Publish the agent by hand.`);
@@ -477,7 +482,7 @@ async function replaceEntity(kind, entityId, entity, stamp, ctx, report) {
     }
 }
 
-/** @typedef {{ projectId?: string, ownerId?: string, organizationId?: string | null }} ApplyUpgradeArgs */
+/** @typedef {{ projectId?: string, ownerId?: string, organizationId?: string | null, manifest?: any, can?: any, req?: any, deps?: any }} ApplyUpgradeArgs */
 /**
  * Apply an upgrade.
  *
@@ -552,7 +557,7 @@ async function applyUpgrade({
         installedVersion: toVersion,
         wiring: wiringFromBindings(bindingRows),
     });
-    ctx.goLive = () => deps.goLive || require('../../automation/goLive');
+    ctx.goLive = () => deps.goLive || featureModule('automation/goLive');
     ctx.webpageDb = () => deps.webpageDb || require('../../stores/webpageDbStore');
 
     // Additions first, so a replacement that references a newly-added entity

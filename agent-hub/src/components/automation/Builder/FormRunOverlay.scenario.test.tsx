@@ -13,7 +13,11 @@ import FormRunOverlay from './FormRunOverlay';
 
 const get = vi.fn();
 const post = vi.fn();
-vi.mock('@/api/client', () => ({ default: { get: (...a: unknown[]) => get(...a), post: (...a: unknown[]) => post(...a) } }));
+// The real module for everything but the default client: api/mutate reads ApiError from it.
+vi.mock('@/api/client', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/api/client')>()),
+    default: { get: (...a: unknown[]) => get(...a), post: (...a: unknown[]) => post(...a) },
+}));
 vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: vi.fn() }));
 
 const reply = (status: number, body: unknown) =>

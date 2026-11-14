@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * App Studio Builder — everything a turn needs BEFORE the stream opens.
  *
@@ -44,13 +44,13 @@ const { briefForNaming } = require('../../../appStudio/builderTools/appNaming');
 const { describeLinkedTables, overlayLinkedRowCounts } = require('../../../appStudio/linkedTables');
 const { normalizePlanTodos } = require('../../../core/llm/planChecklist');
 const { deriveScreenConstraints } = require('../../../core/llm/screenConstraints');
-const { sanitizeInboundImages } = require('./inboundImages');
-const { sanitizeEditorContext } = require('./turnNotes');
-const { normalizeRowCounts } = require('./dataModelEvent');
+const { sanitizeInboundImages } = require('../../../usecases/ai/appStudioBuilder/inboundImages');
+const { sanitizeEditorContext } = require('../../../usecases/ai/appStudioBuilder/turnNotes');
+const { normalizeRowCounts } = require('../../../usecases/ai/appStudioBuilder/dataModelEvent');
 const { fallback } = require('../../../utils/bestEffort');
 
 const PLAN_MODES = ['auto', 'always', 'never'];
-const { WORK_MODES } = require('./workMode.mts');
+const { WORK_MODES } = require('../../../usecases/ai/appStudioBuilder/workMode.mts');
 
 const TurnBody = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({
     // Optional: approval, continuation and image-only turns may carry none.
@@ -115,7 +115,7 @@ function readTurnRequest(req) {
     if (imageCheck.error) {
         return { failed: { status: 400, body: { error: imageCheck.error, code: 'invalid_image' } } };
     }
-    const inboundImages = imageCheck.images;
+    const inboundImages = imageCheck.images || []; // a check without an error carries its list
 
     // Approval/continuation turns carry an implicit instruction when the client
     // sends no prose. Everything else still requires a message — unless the

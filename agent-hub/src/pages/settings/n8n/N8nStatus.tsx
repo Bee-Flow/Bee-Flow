@@ -135,7 +135,7 @@ export function AccessCheckCard(p: AccessCheckProps) {
                     </span>
                 </div>
                 <button onClick={onRefresh} disabled={loading}
-                    className="text-[11px] px-2 py-0.5 rounded flex items-center gap-1 disabled:opacity-50 text-[var(--text-secondary)]" title={t('settings.n8n.refresh', 'Refresh')}>
+                    className="text-[11px] px-2 py-0.5 rounded flex items-center gap-1 disabled:opacity-50 text-[var(--text-secondary)]" title={t('settings.n8n.refresh', 'Refresh')} aria-label={t('settings.n8n.refresh', 'Refresh')}>
                     <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
                 </button>
             </div>

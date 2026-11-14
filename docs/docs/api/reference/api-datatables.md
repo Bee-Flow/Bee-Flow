@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/datatables`
 
-47 routes, 33 with a request schema. Back to the [endpoint reference](../reference.md).
+47 routes, 37 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -77,7 +77,16 @@ No request schema.
 
 **Access:** Signed-in user · Resource role `viewer` or higher · Licence feature `automations` · Capability `automations` · middleware `trainingGate`
 
-No request schema.
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `groupBy` | any |  |  |
+| `aggregates` | any |  |  |
+| `filters` | any |  |  |
+| `match` | any |  |  |
+| `sort` | any |  |  |
+| `limit` | any |  |  |
 
 ### `DELETE /api/datatables/:id/answers/columns/:fieldId`
 
@@ -164,11 +173,17 @@ No request schema.
 
 **Query:** object (no other keys)
 
+**Body:** object (no other keys)
+
 ### `PUT /api/datatables/:id/nextcloud/relations`
 
 **Access:** Signed-in user · Permission `manage_datatables` · Resource role `owner` or higher · Licence feature `automations` · Capability `automations` · middleware `trainingGate`, `requireMirror`
 
-No request schema.
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `relations` | any |  |  |
 
 ### `POST /api/datatables/:id/nextcloud/relink`
 
@@ -332,11 +347,17 @@ No request schema.
 
 **Query:** object (no other keys)
 
+**Body:** object (no other keys)
+
 ### `PUT /api/datatables/:id/source/relations`
 
 **Access:** Signed-in user · Permission `manage_datatables` · Resource role `owner` or higher · Licence feature `automations` · Capability `automations` · middleware `trainingGate`, `requireMirror`
 
-No request schema.
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `relations` | any |  |  |
 
 ### `POST /api/datatables/:id/source/relink`
 
@@ -356,7 +377,15 @@ No request schema.
 
 **Access:** Signed-in user · Licence feature `automations` · Capability `automations` · middleware `trainingGate`
 
-No request schema.
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `mode` | one of `"create"`, `"revise"` |  | default `"create"` |
+| `brief` | string or null |  |  |
+| `note` | string or null |  |  |
+| `current` | object or null |  |  |
+| `allowDestructive` | boolean |  |  |
 
 ## `managed`
 

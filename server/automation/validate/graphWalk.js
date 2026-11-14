@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The step walk of validateGraph (./graph.js): run the per-type step rules
  * over the top-level steps in topological order and, recursively, every step
@@ -10,7 +11,8 @@ const { checkBindableStepId } = require('./fieldChecks');
 
 /**
  * @param {import('./helpers').GraphCtx} ctx   validateGraph's context
- * @param {object} walk  { ids, stepById, order } plus the step-rule catalogues
+ * @param {{ ids: Set<string>, stepById: Map<string, Record<string, any>>, order: string[] | null, availableTools?: unknown, toolRequiredParams?: unknown, knownConnectionIds?: unknown, knownVarNames?: unknown, writtenVars?: unknown, availableAgents?: unknown, topicClassifier?: boolean | null }} walk
+ *                      { ids, stepById, order } plus the step-rule catalogues
  *                      (availableTools, toolRequiredParams, knownConnectionIds,
  *                      availableAgents, topicClassifier).
  */

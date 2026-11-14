@@ -306,6 +306,7 @@ const DirectChatView = ({
                                                     onClick={clearWebpageSelection}
                                                     className="p-0.5 rounded hover:bg-[var(--bg-tertiary)]"
                                                     title={t('webpages.chat.selection_remove', 'Remove selection')}
+                                                    aria-label={t('webpages.chat.selection_remove', 'Remove selection')}
                                                 >
                                                     <X className="w-3.5 h-3.5 text-[var(--text-tertiary)]" />
                                                 </button>

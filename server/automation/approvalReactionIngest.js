@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * approvalReactionIngest — a 👍 in Nextcloud Talk becomes a real vote.
  *
@@ -154,7 +154,7 @@ async function nudgeToApp({ delivery, approval, reason }) {
  * Never throws — the caller is a webhook ack path. Returns a small verdict
  * object; `counted: true` means a vote reached approvalService.decide.
  *
- * @param {{orgId:string, ncUid?:string|null, payload?:{ removed?: boolean, reaction?: string, actorType?: string, roomToken?: string, messageId?: string|number, actor?: string }}} p
+ * @param {{orgId:string|null|undefined, ncUid?:string|null, payload?:{ removed?: boolean, reaction?: string, actorType?: string, roomToken?: string, messageId?: string|number, actor?: string }}} p
  */
 async function handleTalkReaction({ orgId, ncUid = null, payload = {} }) {
     /**
@@ -293,10 +293,10 @@ async function pollTalkReactions({ limit = 200, budgetMs = 20_000, now = () => D
     if (!deliveries.length) return { checked: 0, counted: 0 };
 
     const { _deliveryTest: { resolveNcContext } } = require('./approvalDelivery');
-    const { listMessageReactions } = require('../integrations/nextcloudTalkBot');
+    const { listMessageReactions } = require('../core/integrations/integrationClients').integrationClient('nextcloudTalkBot');
     // One Nextcloud identity per owner, not per card: a queue of ten approvals
     // from one owner must not rebuild the same session ten times.
-    /** @type {Map<string, import('./approvalDelivery').NcContext|null>} */
+    /** @type {Map<string | null | undefined, import('./approvalDelivery').NcContext|null>} */
     const contexts = new Map();
 
     for (const d of deliveries) {

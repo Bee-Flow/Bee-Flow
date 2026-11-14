@@ -1,5 +1,6 @@
 /** @typedef {import('stream').Readable} Readable */
-// @typecheck noImplicitAny
+/** @typedef {NonNullable<Awaited<ReturnType<typeof import('../../stores/automationStore').listGeneratedFilesForRuns>>[number]>} GeneratedFile */
+// @typecheck strict
 /**
  * The files a run produced, as the run page shows them:
  *
@@ -39,7 +40,7 @@ const { HttpError } = require('../../core/http/errors');
 const { sendStream } = require('../../core/http/sendStream');
 const { contentDisposition } = require('../../core/http/contentDisposition');
 const { makeAutomationAccess } = require('../../automation/access');
-const { makeJourneyReader } = require('./runJourney');
+const { makeJourneyReader } = require('../../usecases/automation/runJourney');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 
 /**
@@ -81,7 +82,7 @@ const mayInline = (mime) => isPdf(mime) || isInlineImage(mime);
 
 /**
  * The list entry for one file: an explicit allow-list, never the row.
- * @param {Awaited<ReturnType<typeof import('../../stores/automationStore').listGeneratedFilesForRuns>>[number]} f
+ * @param {GeneratedFile} f
  */
 function describeFile(f) {
     return {
@@ -136,7 +137,7 @@ function makeRunFilesRouter(overrides = {}) {
         ...(overrides.hasPermission ? { hasPermission: overrides.hasPermission } : {}),
     });
 
-    // The run, plus the journey legs the caller may read (routes/automation/runJourney.js).
+    // The run, plus the journey legs the caller may read (usecases/automation/runJourney.js).
     const journeyReader = makeJourneyReader({ store, access });
     const readableJourney = /** @param {import('express').Request<{ runId: string }>} req @param {import('express').Response} res */ (req, res) => journeyReader(req, res, req.params.runId);
 
@@ -166,9 +167,9 @@ function makeRunFilesRouter(overrides = {}) {
     router.get('/runs/:runId/files', async (req, res) => {
         const journey = await readableJourney(req, res);
         if (!journey) return undefined;
-        const files = await store().listGeneratedFilesForRuns(journey.runIds);
+        const files = /** @type {GeneratedFile[]} */ (await store().listGeneratedFilesForRuns(journey.runIds)); // rows mapped one to one
         res.setHeader('Cache-Control', 'private, no-store');
-        return res.json({ files: files.filter((/** @type {Awaited<ReturnType<typeof import('../../stores/automationStore').listGeneratedFilesForRuns>>[number]} */ f) => f.automationId === journey.run.automationId).map(describeFile) });
+        return res.json({ files: files.filter((/** @type {GeneratedFile} */ f) => f.automationId === journey.run.automationId).map(describeFile) });
     });
 
     router.get('/runs/:runId/files/:fileId', async (req, res, next) => {

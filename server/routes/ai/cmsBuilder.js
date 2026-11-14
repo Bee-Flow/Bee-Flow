@@ -1,3 +1,4 @@
+// @typecheck
 /** @typedef {import('../../core/providers/base')} BaseProvider */
 /**
  * CMS Builder — conversational SSE endpoint (trimmed clone of
@@ -44,7 +45,6 @@
  * (renderDraftState + the editor-context line) so provider prefix caches
  * keep hitting while the user iterates.
  */
-
 const express = require('express');
 const log = require('../../telemetry/log');
 const { trackUsageTotals, usageTotalsLogFields } = require('../../core/providers/usageNormalizer');
@@ -59,21 +59,20 @@ const { TOOL_SCHEMAS, MUTATING_TOOLS, SITE_DRAFT_TOOLS, PAGE_DRAFT_TOOLS, applyT
 const { buildSystemPrompt } = require('../../cmsBuilder/builderPrompt');
 const { validateSiteDraft } = require('../../cmsBuilder/validate');
 const { getProfileForModel, effortForIteration } = require('../../cmsBuilder/builderModelProfiles');
-const { isTransientChatError, applyBuilderTierFloor, streamWithRetry: sharedStreamWithRetry } = require('./builderShared');
+const { isTransientChatError, applyBuilderTierFloor, streamWithRetry: sharedStreamWithRetry } = require('../../usecases/ai/builderShared');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { openSse, onClientGone } = require('../../core/http/sseHelpers');
 const {
     VALIDATION_NOTE_PREFIX, DRAFT_STATE_PREFIX, EDITOR_CONTEXT_PREFIX, BLOCK_FEEDBACK_PREFIX,
     renderValidationNote, renderBlockFeedbackNote, renderDraftStateNote, sanitizeEditorContext,
     renderEditorContextNote, sanitizeHistory, labelForTool, summariseToolResult, parseToolArgs, truncateJson,
-} = require('./cmsBuilderMessages');
-
+} = require('../../usecases/ai/cmsBuilderMessages');
 // The same admin gate + siteId validation the CMS CRUD routes use — the
 // builder must never be reachable below the admin bar.
 const { requireAdmin, SITE_ID_RE } = require('../cmsShared');
 const { validate } = require('../../core/http/validate');
 const { z, worded, bodyOf, closedObject, typeError } = require('../../core/http/schemaParts');
-const { fallback, bestEffort } = require('../../utils/bestEffort');
+const { fallback, bestEffort, ignoreGone } = require('../../utils/bestEffort');
 
 // ── What a caller may send ───────────────────────────────────────────
 // The body keys the builder reads, and nothing else: a misspelled
@@ -117,7 +116,7 @@ router.get('/session/:siteId', requireAdmin, validate({ params: SessionParams })
     res.json({ snapshot });
 });
 
-router.post('/stream', requireAdmin, builderRateLimit, validate({ body: StreamBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof StreamBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/stream', requireAdmin, builderRateLimit, validate({ body: StreamBody }), async (req, res) => {
     const userId = req.session.user.id;
     // Wall-clock start of the turn — feeds the usage row's duration_ms and
     // the structured observability line. Set before any SSE so a turn that
@@ -334,6 +333,7 @@ router.post('/stream', requireAdmin, builderRateLimit, validate({ body: StreamBo
         // Live site state — ONE LATE role:'user' machine message (never in
         // the cached system prompt; see the cache-discipline note on top).
         // The editor-context line rides inside the same message.
+        /** @type {Array<{ role: string, content: unknown, tool_calls?: unknown[], tool_call_id?: string }>} */
         const messages = [
             { role: 'system', content: sys },
             ...history,
@@ -352,7 +352,7 @@ router.post('/stream', requireAdmin, builderRateLimit, validate({ body: StreamBo
         const clientAbort = new AbortController();
         onClientGone(res, () => {
             clientGone = true;
-            try { clientAbort.abort(); } catch (err) { log.debug('already aborted', err); }
+            try { clientAbort.abort(); } catch (err) { ignoreGone('routes/ai/cmsBuilder:abortOnClose', err); }
         });
 
         let lastValidation = null;
@@ -429,7 +429,7 @@ router.post('/stream', requireAdmin, builderRateLimit, validate({ body: StreamBo
                 toolCallCount += 1;
                 const name = tc.function.name;
                 const { args, truncated } = parseToolArgs(tc.function.arguments, name);
-                /** @type {{ error: string; }} */
+                /** @type {{ error?: string, pageId?: string, dropped?: Array<{ type?: string }>, [k: string]: unknown }} */
                 let toolResult;
                 if (truncated) {
                     // Truncated-JSON self-repair: a machine message, not a crash.

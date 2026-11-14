@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Hub client — the product side of the Bee Flow module Hub wire contract
  * (license.beeflow.nl / hub.beeflow.nl, `/hub/v1/*`).
@@ -406,7 +407,7 @@ async function fetchEntitlements() {
     };
 }
 
-/** @typedef {{ moduleId?: string }} CreatePurchaseArgs */
+/** @typedef {{ moduleId?: string, priceId?: string, successUrl?: string | null, cancelUrl?: string | null }} CreatePurchaseArgs */
 /**
  * @param {CreatePurchaseArgs} [param0]
  */
@@ -453,7 +454,7 @@ async function _streamToFileAndHash(resp, partPath) {
     };
     try {
         if (resp.body && typeof resp.body.getReader === 'function') {
-            for await (const chunk of Readable.fromWeb(resp.body)) {
+            for await (const chunk of Readable.fromWeb(/** @type {import('stream/web').ReadableStream} */ (resp.body))) {
                 cap(chunk.length);
                 hash.update(chunk);
                 await fh.write(chunk);
@@ -475,6 +476,7 @@ async function _streamToFileAndHash(resp, partPath) {
  * Download a `.bfmod` to `destPath`. Streams to `<destPath>.part`, verifies the
  * sha256 (against the caller's `expectedSha256` when given, else the
  * X-BeeFlow-Package-Sha256 header), then atomically renames into place.
+ * @param {{ moduleId?: string, version?: string, destPath?: string, expectedSha256?: string | null, redownloadSha?: string | null }} [opts]
  * @returns {Promise<{ path, sha256: string|null, signature, kid }>}
  */
 async function downloadPackage({ moduleId, version, destPath, expectedSha256 = null, redownloadSha = null } = {}) {

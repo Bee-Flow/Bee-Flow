@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Email provider clients — session-LESS Gmail / Microsoft Graph access bound to
  * a stored, encrypted token blob (not a live req.session). Used by the tenant
@@ -11,6 +12,7 @@
  *
  * Token blob shape: { accessToken, refreshToken, scope?, expiryDate? }.
  */
+const { fetchFixedEndpoint } = require('../../utils/fixedEndpointFetch.mts');
 const log = require('../../telemetry/log');
 
 const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
@@ -106,7 +108,7 @@ async function exchangeCode(provider, { code, redirectUri }) {
     if (provider === 'outlook') {
         const pc = await microsoftProviderConfig();
         const tenantId = pc.tenantId || 'common';
-        const resp = await fetch(`https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`, {
+        const resp = await fetchFixedEndpoint(`https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({
@@ -164,12 +166,14 @@ async function gmailClientFromTokens(tokens, onRefresh) {
  * 401 with a refresh + write-back. `tokens` is mutated in place on refresh so a
  * sequence of calls in one tick reuses the fresh access token.
  * @param {string} path
- * @param {{ method: string; body: string; } | { method: string; }} [opts]
+ * @param {{ method?: string, body?: string, headers?: Record<string, string> }} [opts]
  */
 async function graphFetchFromTokens(tokens, onRefresh, path, opts = {}) {
     const pc = await microsoftProviderConfig();
     if (!tokens || !tokens.accessToken) throw new Error('No valid Microsoft tokens — reconnect the mailbox.');
-    const doFetch = (token) => fetch(path.startsWith('http') ? path : `${GRAPH_BASE}${path}`, {
+    const doFetch = (token) => fetchFixedEndpoint(path.startsWith('http') ? path : `${GRAPH_BASE}${path}`, {
+        // Bounds the wait for the answer, not the body: a message with attachments may take longer.
+        timeoutPhase: 'headers',
         ...opts,
         headers: {
             Authorization: `Bearer ${token}`,
@@ -180,7 +184,7 @@ async function graphFetchFromTokens(tokens, onRefresh, path, opts = {}) {
     let resp = await doFetch(tokens.accessToken);
     if (resp.status === 401 && tokens.refreshToken) {
         const tenantId = pc.tenantId || 'common';
-        const tokenResp = await fetch(`https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`, {
+        const tokenResp = await fetchFixedEndpoint(`https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({
@@ -212,7 +216,7 @@ async function graphFetchFromTokens(tokens, onRefresh, path, opts = {}) {
         // structured fields are additive, so callers that need to tell a
         // permission failure (403 on a shared mailbox) from throttling (429)
         // don't have to parse prose.
-        const err = new Error(`Graph API ${resp.status}: ${t.slice(0, 200)}`);
+        const err = /** @type {Error & { retryAfterMs?: unknown, graphCode?: unknown }} */ (new Error(`Graph API ${resp.status}: ${t.slice(0, 200)}`));
         err.status = resp.status;
         const retryAfter = Number(resp.headers?.get?.('retry-after'));
         if (Number.isFinite(retryAfter) && retryAfter > 0) err.retryAfterMs = retryAfter * 1000;

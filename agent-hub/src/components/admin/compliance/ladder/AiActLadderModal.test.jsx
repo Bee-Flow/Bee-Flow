@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { screen, fireEvent, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -11,6 +11,7 @@ vi.mock('@/components/shared/Toast', () => {
 
 import { API } from '@/api/complianceApi';
 import toast from '@/components/shared/Toast';
+import { renderWithClient } from '@/test/render';
 import { authFetch } from '@/utils/helpers';
 import AiActLadderModal from './AiActLadderModal';
 import { legacyAnnexAnswers } from './ladderOutcome';
@@ -80,7 +81,7 @@ beforeEach(() => {
 
 describe('AiActLadderModal — step verdicts from the signals (artboard 1f)', () => {
     it('header, subtitle and "Contains AI" banner read the signals; steps 1 and 3 start unanswered', () => {
-        render(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} data={hookData()} now={NOW} />);
+        renderWithClient(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} data={hookData()} now={NOW} />);
         expect(screen.getByText('Does the AI Act apply to this automation?')).toBeTruthy();
         expect(screen.getByText('Offerte berekenen · 7 steps · 1 AI step · customer-facing via a form')).toBeTruthy();
         const banner = screen.getByTestId('ladder-contains-ai');
@@ -94,7 +95,7 @@ describe('AiActLadderModal — step verdicts from the signals (artboard 1f)', ()
     });
 
     it('step 2 paints the two sub-cards from the signals: notice shown (success), marking missing (error) with the fixed deadline', () => {
-        render(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} data={hookData()} now={NOW} />);
+        renderWithClient(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} data={hookData()} now={NOW} />);
         const step2 = screen.getByTestId('ladder-step-2');
         expect(step2.getAttribute('data-state')).toBe('failing');
         expect(screen.getByTestId('ladder-step-2-verdict').textContent).toBe('1 of 2 in order');
@@ -110,7 +111,7 @@ describe('AiActLadderModal — step verdicts from the signals (artboard 1f)', ()
 
     it('an unknown signal (client fallback, disclosure null) is a neutral card, not a failure', () => {
         const signals = { ...ARTBOARD_SIGNALS, disclosure_present: null, marking_enabled: null, source: 'client' };
-        render(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} data={hookData({ signals })} now={NOW} />);
+        renderWithClient(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} data={hookData({ signals })} now={NOW} />);
         expect(screen.getByTestId('ladder-card-disclosure').getAttribute('data-tone')).toBe('neutral');
         expect(screen.getByTestId('ladder-card-marking').getAttribute('data-tone')).toBe('neutral');
         expect(screen.getByTestId('ladder-step-2').getAttribute('data-state')).toBe('open');
@@ -119,7 +120,7 @@ describe('AiActLadderModal — step verdicts from the signals (artboard 1f)', ()
 
     it('all EIGHT Art. 5 chips ticked → "No"; all TEN Annex III questions answered "No" → "No"; the outcome becomes transparency', async () => {
         const user = userEvent.setup();
-        render(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} data={hookData()} now={NOW} />);
+        renderWithClient(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} data={hookData()} now={NOW} />);
         // These counts were 3 and 4 while the server's lists were 8 and 10, so
         // ticking everything on screen recorded a declaration about things
         // nobody had been asked. Both are now the whole list.
@@ -160,7 +161,7 @@ describe('AiActLadderModal — step verdicts from the signals (artboard 1f)', ()
 
     it('without AI the banner says so with the GDPR note, the outcome is not_applicable and recording needs no chips', () => {
         const signals = { contains_ai: false, customer_facing: true, generates_content: false, disclosure_present: null, marking_enabled: null, steps: { ai: [], generating: [] }, step_count: 3, surface: 'form', source: 'client' };
-        render(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} data={hookData({ signals })} now={NOW} />);
+        renderWithClient(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} data={hookData({ signals })} now={NOW} />);
         const banner = screen.getByTestId('ladder-contains-ai');
         expect(banner.getAttribute('data-contains-ai')).toBe('false');
         expect(banner.textContent).toContain('Without AI only the GDPR applies: Art. 22 for decisions with legal effect, WOR Art. 27 for employee monitoring.');
@@ -170,7 +171,7 @@ describe('AiActLadderModal — step verdicts from the signals (artboard 1f)', ()
 
     it('kind="agent" changes the title', () => {
         const signals = { contains_ai: true, customer_facing: true, generates_content: true, disclosure_present: false, marking_enabled: true, steps: { ai: [], generating: [] }, step_count: null, surface: 'published_agent', source: 'server' };
-        render(<AiActLadderModal open onClose={() => {}} kind="agent" target={{ id: 'g1', name: 'Helpdesk' }} data={hookData({ signals })} now={NOW} />);
+        renderWithClient(<AiActLadderModal open onClose={() => {}} kind="agent" target={{ id: 'g1', name: 'Helpdesk' }} data={hookData({ signals })} now={NOW} />);
         expect(screen.getByText('Does the AI Act apply to this agent?')).toBeTruthy();
         expect(screen.getByText('Helpdesk · 0 AI steps · customer-facing via a published agent')).toBeTruthy();
         expect(screen.getByTestId('ladder-card-disclosure').getAttribute('data-tone')).toBe('error');
@@ -182,7 +183,7 @@ describe('AiActLadderModal — actions', () => {
     it('"Enable marking" calls the hook\'s enableMarking (PUT settings + refetch) and toasts', async () => {
         const user = userEvent.setup();
         const data = hookData();
-        render(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} data={data} now={NOW} />);
+        renderWithClient(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} data={data} now={NOW} />);
         await user.click(screen.getByTestId('ladder-enable-marking'));
         await waitFor(() => expect(data.enableMarking).toHaveBeenCalledTimes(1));
         await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Content marking enabled for this organisation.'));
@@ -193,7 +194,7 @@ describe('AiActLadderModal — actions', () => {
         const data = hookData();
         const onClose = vi.fn();
         const onRecorded = vi.fn();
-        render(<AiActLadderModal open onClose={onClose} onRecorded={onRecorded} kind="automation" target={quote} data={data} now={NOW} />);
+        renderWithClient(<AiActLadderModal open onClose={onClose} onRecorded={onRecorded} kind="automation" target={quote} data={data} now={NOW} />);
         clickAll('ladder-art5-chip');
         answerAllAnnex('no');
         await user.click(screen.getByTestId('ladder-record'));
@@ -213,7 +214,7 @@ describe('AiActLadderModal — actions', () => {
         const user = userEvent.setup();
         const data = hookData({ save: vi.fn().mockRejectedValue(new Error('500 Internal Server Error')) });
         const onClose = vi.fn();
-        render(<AiActLadderModal open onClose={onClose} kind="automation" target={quote} data={data} now={NOW} />);
+        renderWithClient(<AiActLadderModal open onClose={onClose} kind="automation" target={quote} data={data} now={NOW} />);
         clickAll('ladder-art5-chip');
         answerAllAnnex('no');
         await user.click(screen.getByTestId('ladder-record'));
@@ -225,7 +226,7 @@ describe('AiActLadderModal — actions', () => {
         const user = userEvent.setup();
         // The four-chip ladder had no way to say yes at all: a genuinely
         // high-risk system could not be recorded as one through this screen.
-        render(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} data={hookData()} now={NOW} />);
+        renderWithClient(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} data={hookData()} now={NOW} />);
         clickAll('ladder-art5-chip');
         const credit = screen.getAllByTestId('ladder-annex-yes').find(b => b.getAttribute('data-domain') === 'credit');
         await user.click(credit);
@@ -249,7 +250,7 @@ describe('AiActLadderModal — actions', () => {
                 { id: 'biometrics', hint: false, article: 'Annex III(1)' },
             ],
         };
-        render(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} data={data} now={NOW} />);
+        renderWithClient(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} data={data} now={NOW} />);
         const rows = screen.getAllByTestId('ladder-annex-question');
         expect(rows[0].getAttribute('data-domain')).toBe('law_enforcement');
         expect(rows[0].getAttribute('data-answer')).toBe('open');
@@ -266,7 +267,7 @@ describe('AiActLadderModal — actions', () => {
                 answers: { art5: { answer: 'no', practices: [] }, annex_iii: { answer: 'no', category: null } },
             },
         });
-        render(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} data={data} now={NOW} />);
+        renderWithClient(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} data={data} now={NOW} />);
         expect(screen.getByTestId('ladder-step-1').getAttribute('data-state')).toBe('done');
         // A row stored before the ten questions existed carries one answer for
         // all of them. It must still read back as a declaration — dropping it
@@ -284,7 +285,7 @@ describe('AiActLadderModal — actions', () => {
                 answers: { art5: { answer: 'no', practices: [] }, annex_iii: { answer: 'yes', category: 'insurance' } },
             },
         });
-        render(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} data={data} now={NOW} />);
+        renderWithClient(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} data={data} now={NOW} />);
         const byDomain = Object.fromEntries(screen.getAllByTestId('ladder-annex-question')
             .map(r => [r.getAttribute('data-domain'), r.getAttribute('data-answer')]));
         expect(byDomain.insurance).toBe('yes');
@@ -301,7 +302,7 @@ describe('AiActLadderModal — actions', () => {
                 answers: { art5: { answer: 'no', practices: [] }, annex_iii: { answer: 'yes', category: 'astrology' } },
             },
         });
-        render(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} data={data} now={NOW} />);
+        renderWithClient(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} data={data} now={NOW} />);
         expect(screen.getAllByTestId('ladder-annex-question').every(r => r.getAttribute('data-answer') === 'open')).toBe(true);
         expect(screen.getByTestId('ladder-legacy-yes-note')).toBeTruthy();
         expect(screen.getByTestId('ladder-step-3-verdict').textContent).toBe('0 of 10 answered');
@@ -325,7 +326,7 @@ describe('AiActLadderModal — actions', () => {
                 },
             },
         });
-        render(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} data={data} now={NOW} />);
+        renderWithClient(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} data={data} now={NOW} />);
         const byDomain = Object.fromEntries(screen.getAllByTestId('ladder-annex-question')
             .map(r => [r.getAttribute('data-domain'), r.getAttribute('data-answer')]));
         expect(byDomain.employment).toBe('yes');
@@ -334,7 +335,7 @@ describe('AiActLadderModal — actions', () => {
     });
 
     it('closed → renders nothing', () => {
-        render(<AiActLadderModal open={false} onClose={() => {}} kind="automation" target={quote} data={hookData()} />);
+        renderWithClient(<AiActLadderModal open={false} onClose={() => {}} kind="automation" target={quote} data={hookData()} />);
         expect(screen.queryByTestId('ai-act-ladder')).toBeNull();
     });
 });
@@ -342,7 +343,7 @@ describe('AiActLadderModal — actions', () => {
 describe('AiActLadderModal — standalone (owns the hook) and the 404 fallback', () => {
     it('with no `data` prop it reads the assessment route; a 404 falls back to the definition\'s own signals', async () => {
         authFetch.mockResolvedValue({ ok: false, status: 404, statusText: 'Not Found', json: async () => ({}) });
-        render(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} now={NOW} />);
+        renderWithClient(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} now={NOW} />);
         await waitFor(() => expect(authFetch).toHaveBeenCalledWith(`${API}/ai-act/assessments/automation/a1`, expect.objectContaining({ credentials: 'include' })));
         await waitFor(() => expect(screen.getByTestId('ladder-contains-ai').getAttribute('data-contains-ai')).toBe('true'));
         // summarize (s4) is not counted: one AI step, seven steps, via the form.
@@ -359,7 +360,7 @@ describe('AiActLadderModal — standalone (owns the hook) and the 404 fallback',
             if (url.endsWith('/signals')) return { ok: true, json: async () => ({ ...ARTBOARD_SIGNALS, marking_enabled: true }) };
             return { ok: true, json: async () => ({ signals: ARTBOARD_SIGNALS, answers: null, outcome: null, current: false }) };
         });
-        render(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} now={NOW} />);
+        renderWithClient(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} now={NOW} />);
         await waitFor(() => expect(screen.getByTestId('ladder-card-marking').getAttribute('data-tone')).toBe('error'));
         await user.click(screen.getByTestId('ladder-enable-marking'));
         await waitFor(() => expect(authFetch).toHaveBeenCalledWith(
@@ -373,7 +374,7 @@ describe('AiActLadderModal — standalone (owns the hook) and the 404 fallback',
 
     it('a failed read (500) is its own state, shown inside the modal', async () => {
         authFetch.mockResolvedValue({ ok: false, status: 500, statusText: 'Internal Server Error', json: async () => ({}) });
-        render(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} now={NOW} />);
+        renderWithClient(<AiActLadderModal open onClose={() => {}} kind="automation" target={quote} now={NOW} />);
         await waitFor(() => expect(screen.getByTestId('ladder-load-error')).toBeTruthy());
         // …and the definition's signals still drive the ladder.
         expect(screen.getByTestId('ladder-contains-ai').getAttribute('data-contains-ai')).toBe('true');

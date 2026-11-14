@@ -28,6 +28,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
+const { fakeAgentGates } = require('./agentGate.testkit');
 const path = require('node:path');
 
 const SERVER = path.join(__dirname, '..', '..');
@@ -55,7 +56,7 @@ const fx = {
 };
 
 // ── Stubs, vóór de route (en vóór toolPolicy) geïnstalleerd ─────────
-stub('stores/agentStore', {
+const agentStoreStub = {
     getAgent: async (id) => (fx.agents[id] ? { ...fx.agents[id] } : null),
     // What the RUNTIME reads — the published config, not the draft that the
     // editor is working on. `null` = not readable.
@@ -64,11 +65,10 @@ stub('stores/agentStore', {
         if (!fx.agents[id]) return null;
         return { ...fx.agents[id], config: fx.runtimeConfig };
     },
-});
-stub('routes/agents/crud', {
-    canReadAgent: async () => fx.canRead,
-    canModifyAgent: async () => fx.canModify,
-});
+};
+stub('stores/agentStore', agentStoreStub);
+// The real edit gate over the fixture's verdicts (routes/agents/agentGate.testkit.js).
+stub('routes/agents/crud', fakeAgentGates({ agentStore: agentStoreStub, canRead: () => fx.canRead, canModify: () => fx.canModify }));
 stub('core/integrations/connectionResolution', {
     isLendingEnabled: () => {
         if (fx.lendingThrows) throw new Error('lending flag unreadable');
@@ -329,6 +329,7 @@ test('een vlag die niet gelezen kan worden is GEEN ja', async () => {
 
 test('wie de agent niet mag zien krijgt dezelfde 404 als GET /:id', async () => {
     fx.canRead = false;
+    fx.canModify = false;
     const res = await dispatch('/a1/tool-lending');
     assert.strictEqual(res.statusCode, 404);
     assert.strictEqual(fx.grantCalls.length, 0);

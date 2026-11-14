@@ -1,0 +1,4573 @@
+{
+  "app-request-form/asIs": {
+    "ok": true,
+    "report": {
+      "screens": 2,
+      "actions": 2,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 3750,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Request form",
+    "sha": "32e70ff2d2d7717479b044dadc62e380e8e38db65e068623446c1ff05bbc929d"
+  },
+  "app-request-form/rows": {
+    "ok": true,
+    "report": {
+      "screens": 2,
+      "actions": 2,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 3750,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Request form",
+    "sha": "32e70ff2d2d7717479b044dadc62e380e8e38db65e068623446c1ff05bbc929d"
+  },
+  "app-request-form/oneRow": {
+    "ok": true,
+    "report": {
+      "screens": 2,
+      "actions": 2,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 3750,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Request form",
+    "sha": "32e70ff2d2d7717479b044dadc62e380e8e38db65e068623446c1ff05bbc929d"
+  },
+  "app-request-form/noModel": {
+    "ok": true,
+    "report": {
+      "screens": 2,
+      "actions": 2,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 3750,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Request form",
+    "sha": "32e70ff2d2d7717479b044dadc62e380e8e38db65e068623446c1ff05bbc929d"
+  },
+  "app-request-form/fullMeta": {
+    "ok": true,
+    "report": {
+      "screens": 2,
+      "actions": 2,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 3882,
+      "requires": [],
+      "warnings": [
+        "1 example row(s) dropped: the file carries rows but no data model to put them in."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "datasets"
+    ],
+    "title": "Request form copy",
+    "sha": "a662e228531dad26e290391f4ef0d9ceab414a808b9b15fcafaa8746c836531a"
+  },
+  "app-lookup-console/asIs": {
+    "ok": true,
+    "report": {
+      "screens": 1,
+      "actions": 1,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 2250,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Lookup console",
+    "sha": "2767870a484b1b2e7da79d4679f193bf6adb7b156d930b0f9855ac695a558bf7"
+  },
+  "app-lookup-console/rows": {
+    "ok": true,
+    "report": {
+      "screens": 1,
+      "actions": 1,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 2250,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Lookup console",
+    "sha": "2767870a484b1b2e7da79d4679f193bf6adb7b156d930b0f9855ac695a558bf7"
+  },
+  "app-lookup-console/oneRow": {
+    "ok": true,
+    "report": {
+      "screens": 1,
+      "actions": 1,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 2250,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Lookup console",
+    "sha": "2767870a484b1b2e7da79d4679f193bf6adb7b156d930b0f9855ac695a558bf7"
+  },
+  "app-lookup-console/noModel": {
+    "ok": true,
+    "report": {
+      "screens": 1,
+      "actions": 1,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 2250,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Lookup console",
+    "sha": "2767870a484b1b2e7da79d4679f193bf6adb7b156d930b0f9855ac695a558bf7"
+  },
+  "app-lookup-console/fullMeta": {
+    "ok": true,
+    "report": {
+      "screens": 1,
+      "actions": 1,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 2392,
+      "requires": [],
+      "warnings": [
+        "1 example row(s) dropped: the file carries rows but no data model to put them in."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "datasets"
+    ],
+    "title": "Lookup console copy",
+    "sha": "5ad0d15c8502d1905c8e0e34f02f62080c69bfce14e096f67df0d8ee12605991"
+  },
+  "app-ops-dashboard/asIs": {
+    "ok": true,
+    "report": {
+      "screens": 2,
+      "actions": 2,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 4363,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Ops dashboard",
+    "sha": "e3289cbbfcd1323ed714f8b4ef480de147ba244610a3cd6af57aff05bbe81bdc"
+  },
+  "app-ops-dashboard/rows": {
+    "ok": true,
+    "report": {
+      "screens": 2,
+      "actions": 2,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 4363,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Ops dashboard",
+    "sha": "e3289cbbfcd1323ed714f8b4ef480de147ba244610a3cd6af57aff05bbe81bdc"
+  },
+  "app-ops-dashboard/oneRow": {
+    "ok": true,
+    "report": {
+      "screens": 2,
+      "actions": 2,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 4363,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Ops dashboard",
+    "sha": "e3289cbbfcd1323ed714f8b4ef480de147ba244610a3cd6af57aff05bbe81bdc"
+  },
+  "app-ops-dashboard/noModel": {
+    "ok": true,
+    "report": {
+      "screens": 2,
+      "actions": 2,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 4363,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Ops dashboard",
+    "sha": "e3289cbbfcd1323ed714f8b4ef480de147ba244610a3cd6af57aff05bbe81bdc"
+  },
+  "app-ops-dashboard/fullMeta": {
+    "ok": true,
+    "report": {
+      "screens": 2,
+      "actions": 2,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 4512,
+      "requires": [],
+      "warnings": [
+        "1 example row(s) dropped: the file carries rows but no data model to put them in."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "datasets"
+    ],
+    "title": "Ops dashboard copy",
+    "sha": "7efa5fa34c51ca8632050f78ed55dda40cee7eddceb6dd19cec0b2b9c176dbf9"
+  },
+  "app-team-hub/asIs": {
+    "ok": true,
+    "report": {
+      "screens": 2,
+      "actions": 2,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 3762,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Team hub",
+    "sha": "5dd5d8ff97aa392efb7dc5abac01219ac7b2510ac73e525e5e15e89ffb0dd972"
+  },
+  "app-team-hub/rows": {
+    "ok": true,
+    "report": {
+      "screens": 2,
+      "actions": 2,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 3762,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Team hub",
+    "sha": "5dd5d8ff97aa392efb7dc5abac01219ac7b2510ac73e525e5e15e89ffb0dd972"
+  },
+  "app-team-hub/oneRow": {
+    "ok": true,
+    "report": {
+      "screens": 2,
+      "actions": 2,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 3762,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Team hub",
+    "sha": "5dd5d8ff97aa392efb7dc5abac01219ac7b2510ac73e525e5e15e89ffb0dd972"
+  },
+  "app-team-hub/noModel": {
+    "ok": true,
+    "report": {
+      "screens": 2,
+      "actions": 2,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 3762,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Team hub",
+    "sha": "5dd5d8ff97aa392efb7dc5abac01219ac7b2510ac73e525e5e15e89ffb0dd972"
+  },
+  "app-team-hub/fullMeta": {
+    "ok": true,
+    "report": {
+      "screens": 2,
+      "actions": 2,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 3900,
+      "requires": [],
+      "warnings": [
+        "1 example row(s) dropped: the file carries rows but no data model to put them in."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "datasets"
+    ],
+    "title": "Team hub copy",
+    "sha": "951d27efc89a089faaf4af54ebcb00f545203741793675ce54350d1ed7626e37"
+  },
+  "app-approval-inbox/asIs": {
+    "ok": true,
+    "report": {
+      "screens": 1,
+      "actions": 2,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 3549,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Approval inbox",
+    "sha": "8e735e1ef0849608ad6bf47a809942b233a2fc9ce575bca958885341a1aa6979"
+  },
+  "app-approval-inbox/rows": {
+    "ok": true,
+    "report": {
+      "screens": 1,
+      "actions": 2,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 3549,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Approval inbox",
+    "sha": "8e735e1ef0849608ad6bf47a809942b233a2fc9ce575bca958885341a1aa6979"
+  },
+  "app-approval-inbox/oneRow": {
+    "ok": true,
+    "report": {
+      "screens": 1,
+      "actions": 2,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 3549,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Approval inbox",
+    "sha": "8e735e1ef0849608ad6bf47a809942b233a2fc9ce575bca958885341a1aa6979"
+  },
+  "app-approval-inbox/noModel": {
+    "ok": true,
+    "report": {
+      "screens": 1,
+      "actions": 2,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 3549,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Approval inbox",
+    "sha": "8e735e1ef0849608ad6bf47a809942b233a2fc9ce575bca958885341a1aa6979"
+  },
+  "app-approval-inbox/fullMeta": {
+    "ok": true,
+    "report": {
+      "screens": 1,
+      "actions": 2,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 3679,
+      "requires": [],
+      "warnings": [
+        "1 example row(s) dropped: the file carries rows but no data model to put them in."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "datasets"
+    ],
+    "title": "Approval inbox copy",
+    "sha": "d7dde20749fce44860071c7babfc7fc77cacdb5f01fd5e2eff07c23f028eabd9"
+  },
+  "app-crm-pipeline/asIs": {
+    "ok": true,
+    "report": {
+      "screens": 2,
+      "actions": 3,
+      "tables": 3,
+      "seededTables": {
+        "tbl_crmco": 3,
+        "tbl_crmct": 3,
+        "tbl_crmdl": 5
+      },
+      "seededRows": 11,
+      "bytes": 6200,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed",
+      "datasets"
+    ],
+    "title": "CRM pipeline",
+    "sha": "f7edfe0883f23af174f43f79588c4560f180ff5dc4810b6d7669f309359c51e6"
+  },
+  "app-crm-pipeline/rows": {
+    "ok": true,
+    "report": {
+      "screens": 2,
+      "actions": 3,
+      "tables": 3,
+      "seededTables": {
+        "tbl_crmco": 3,
+        "tbl_crmct": 3,
+        "tbl_crmdl": 5
+      },
+      "seededRows": 11,
+      "bytes": 6056,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed",
+      "datasets"
+    ],
+    "title": "CRM pipeline",
+    "sha": "9029183be31fca43d89fab43699a3423cef3a883dccc4793e5af298fae9d0085"
+  },
+  "app-crm-pipeline/oneRow": {
+    "ok": true,
+    "report": {
+      "screens": 2,
+      "actions": 3,
+      "tables": 3,
+      "seededTables": {
+        "tbl_crmco": 1,
+        "tbl_crmct": 1,
+        "tbl_crmdl": 1
+      },
+      "seededRows": 3,
+      "bytes": 5525,
+      "requires": [],
+      "warnings": [
+        "8 seed row(s) dropped (not an object, or over the 1-row per-table ceiling)."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed",
+      "datasets"
+    ],
+    "title": "CRM pipeline",
+    "sha": "4b858ca2649790bbc98b1262db1d8ff806c9ce45e930b1826f76df338c325112"
+  },
+  "app-crm-pipeline/noModel": {
+    "ok": true,
+    "report": {
+      "screens": 2,
+      "actions": 3,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 3443,
+      "requires": [],
+      "warnings": [
+        "11 example row(s) dropped: the file carries rows but no data model to put them in.",
+        "binding.table_unverified @ screens[0].sections[1].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[1].sections[0].children[1].props.source.tableId",
+        "binding.table_unverified @ actions.act_crmmove.steps[0].tableId"
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "datasets"
+    ],
+    "title": "CRM pipeline",
+    "sha": "1dc484ffd5456541d0a2331532504ae86911c24e3387c70878e54e39eacc4874"
+  },
+  "app-crm-pipeline/fullMeta": {
+    "ok": true,
+    "report": {
+      "screens": 2,
+      "actions": 3,
+      "tables": 3,
+      "seededTables": {
+        "tbl_crmco": 3,
+        "tbl_crmct": 3,
+        "tbl_crmdl": 5
+      },
+      "seededRows": 11,
+      "bytes": 6136,
+      "requires": [],
+      "warnings": [
+        "1 seed table(s) dropped: the file seeds tables this template's data model does not contain."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed",
+      "datasets"
+    ],
+    "title": "CRM pipeline copy",
+    "sha": "6bf2da62a41b7153379255b33bc6f1632bbdc0fdedc56298056ed4e4840b5e94"
+  },
+  "app-ticket-tracker/asIs": {
+    "ok": true,
+    "report": {
+      "screens": 3,
+      "actions": 1,
+      "tables": 1,
+      "seededTables": {
+        "tbl_tktik": 5
+      },
+      "seededRows": 5,
+      "bytes": 5788,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Ticket tracker",
+    "sha": "4eef636f5781d6c8c421687a7342f6af76826602fca642dcdeeb2d01d8e82f05"
+  },
+  "app-ticket-tracker/rows": {
+    "ok": true,
+    "report": {
+      "screens": 3,
+      "actions": 1,
+      "tables": 1,
+      "seededTables": {
+        "tbl_tktik": 5
+      },
+      "seededRows": 5,
+      "bytes": 5788,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Ticket tracker",
+    "sha": "4eef636f5781d6c8c421687a7342f6af76826602fca642dcdeeb2d01d8e82f05"
+  },
+  "app-ticket-tracker/oneRow": {
+    "ok": true,
+    "report": {
+      "screens": 3,
+      "actions": 1,
+      "tables": 1,
+      "seededTables": {
+        "tbl_tktik": 1
+      },
+      "seededRows": 1,
+      "bytes": 5349,
+      "requires": [],
+      "warnings": [
+        "4 seed row(s) dropped (not an object, or over the 1-row per-table ceiling)."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Ticket tracker",
+    "sha": "b4d48fdc2a9726a8addde7067d9e30c7d3e5f71a734181fb851b3861823b1328"
+  },
+  "app-ticket-tracker/noModel": {
+    "ok": true,
+    "report": {
+      "screens": 3,
+      "actions": 1,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 4357,
+      "requires": [],
+      "warnings": [
+        "5 example row(s) dropped: the file carries rows but no data model to put them in.",
+        "binding.table_unverified @ screens[1].sections[0].children[1].props.source.tableId",
+        "binding.table_unverified @ screens[2].sections[0].children[1].props.source.tableId",
+        "binding.table_unverified @ actions.act_tksubmit.steps[0].tableId"
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Ticket tracker",
+    "sha": "7fdb824b45a955295766a9d01a104ef1644c6b7b6bb2651322da53525d34e566"
+  },
+  "app-ticket-tracker/fullMeta": {
+    "ok": true,
+    "report": {
+      "screens": 3,
+      "actions": 1,
+      "tables": 1,
+      "seededTables": {
+        "tbl_tktik": 5
+      },
+      "seededRows": 5,
+      "bytes": 5936,
+      "requires": [],
+      "warnings": [
+        "1 seed table(s) dropped: the file seeds tables this template's data model does not contain."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed",
+      "datasets"
+    ],
+    "title": "Ticket tracker copy",
+    "sha": "ab2d74267331adf84cabaefb79ee27b3bcc65a31d1289424f67e74ea7a2914c7"
+  },
+  "app-asset-inventory/asIs": {
+    "ok": true,
+    "report": {
+      "screens": 2,
+      "actions": 2,
+      "tables": 1,
+      "seededTables": {
+        "tbl_asast": 5
+      },
+      "seededRows": 5,
+      "bytes": 4638,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Asset inventory",
+    "sha": "824e22906a9a74b14cdee2aa93bfbb4030a9a4a2018160d3dda77db5b52483c6"
+  },
+  "app-asset-inventory/rows": {
+    "ok": true,
+    "report": {
+      "screens": 2,
+      "actions": 2,
+      "tables": 1,
+      "seededTables": {
+        "tbl_asast": 5
+      },
+      "seededRows": 5,
+      "bytes": 4638,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Asset inventory",
+    "sha": "824e22906a9a74b14cdee2aa93bfbb4030a9a4a2018160d3dda77db5b52483c6"
+  },
+  "app-asset-inventory/oneRow": {
+    "ok": true,
+    "report": {
+      "screens": 2,
+      "actions": 2,
+      "tables": 1,
+      "seededTables": {
+        "tbl_asast": 1
+      },
+      "seededRows": 1,
+      "bytes": 4217,
+      "requires": [],
+      "warnings": [
+        "4 seed row(s) dropped (not an object, or over the 1-row per-table ceiling)."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Asset inventory",
+    "sha": "0045f40d336ea0e76509144d7fb3362ba1602c94ca30cf661af8ea703a4e7f73"
+  },
+  "app-asset-inventory/noModel": {
+    "ok": true,
+    "report": {
+      "screens": 2,
+      "actions": 2,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 2905,
+      "requires": [],
+      "warnings": [
+        "5 example row(s) dropped: the file carries rows but no data model to put them in.",
+        "binding.table_unverified @ screens[0].sections[0].children[1].props.source.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[2].props.source.tableId",
+        "binding.table_unverified @ screens[1].sections[0].children[1].props.source.tableId"
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Asset inventory",
+    "sha": "9af08e0755956adce9db2d2801786f16d8f23728a3ecb41f1eec757702753f2b"
+  },
+  "app-asset-inventory/fullMeta": {
+    "ok": true,
+    "report": {
+      "screens": 2,
+      "actions": 2,
+      "tables": 1,
+      "seededTables": {
+        "tbl_asast": 5
+      },
+      "seededRows": 5,
+      "bytes": 4786,
+      "requires": [],
+      "warnings": [
+        "1 seed table(s) dropped: the file seeds tables this template's data model does not contain."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed",
+      "datasets"
+    ],
+    "title": "Asset inventory copy",
+    "sha": "372167f158c8030033bbadf49766190994eb0fc148d57240e1d14789c62cb4ce"
+  },
+  "app-event-planner/asIs": {
+    "ok": true,
+    "report": {
+      "screens": 2,
+      "actions": 1,
+      "tables": 1,
+      "seededTables": {
+        "tbl_evevt": 4
+      },
+      "seededRows": 4,
+      "bytes": 4252,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Event planner",
+    "sha": "0142b6b151add8c49e3c336c84eb54f80dc4ef577fcb1511a83bfa2ec04ded19"
+  },
+  "app-event-planner/rows": {
+    "ok": true,
+    "report": {
+      "screens": 2,
+      "actions": 1,
+      "tables": 1,
+      "seededTables": {
+        "tbl_evevt": 4
+      },
+      "seededRows": 4,
+      "bytes": 4252,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Event planner",
+    "sha": "0142b6b151add8c49e3c336c84eb54f80dc4ef577fcb1511a83bfa2ec04ded19"
+  },
+  "app-event-planner/oneRow": {
+    "ok": true,
+    "report": {
+      "screens": 2,
+      "actions": 1,
+      "tables": 1,
+      "seededTables": {
+        "tbl_evevt": 1
+      },
+      "seededRows": 1,
+      "bytes": 3974,
+      "requires": [],
+      "warnings": [
+        "3 seed row(s) dropped (not an object, or over the 1-row per-table ceiling)."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Event planner",
+    "sha": "43e9b50dc064129a1cf2887d7ff3b236591ba2537d55010fd4c6648c8b5cd578"
+  },
+  "app-event-planner/noModel": {
+    "ok": true,
+    "report": {
+      "screens": 2,
+      "actions": 1,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 3019,
+      "requires": [],
+      "warnings": [
+        "4 example row(s) dropped: the file carries rows but no data model to put them in.",
+        "binding.table_unverified @ screens[0].sections[0].children[1].props.source.tableId",
+        "binding.table_unverified @ actions.act_evsubmit.steps[0].tableId"
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Event planner",
+    "sha": "975c18d5871da02185a1dc990d995bab8128583988ad83a917a402b14f3ff8da"
+  },
+  "app-event-planner/fullMeta": {
+    "ok": true,
+    "report": {
+      "screens": 2,
+      "actions": 1,
+      "tables": 1,
+      "seededTables": {
+        "tbl_evevt": 4
+      },
+      "seededRows": 4,
+      "bytes": 4385,
+      "requires": [],
+      "warnings": [
+        "1 seed table(s) dropped: the file seeds tables this template's data model does not contain."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed",
+      "datasets"
+    ],
+    "title": "Event planner copy",
+    "sha": "78ce2ec3ef8f4e177bab0cd148302b9de508c79588a628fc4c9133ee7cb714a3"
+  },
+  "app-team-directory/asIs": {
+    "ok": true,
+    "report": {
+      "screens": 1,
+      "actions": 0,
+      "tables": 1,
+      "seededTables": {
+        "tbl_tmppl": 5
+      },
+      "seededRows": 5,
+      "bytes": 3941,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Team directory",
+    "sha": "00301703d1866eb54157810f69f7f95f400e539952f3654775a2bdd9d7b82365"
+  },
+  "app-team-directory/rows": {
+    "ok": true,
+    "report": {
+      "screens": 1,
+      "actions": 0,
+      "tables": 1,
+      "seededTables": {
+        "tbl_tmppl": 5
+      },
+      "seededRows": 5,
+      "bytes": 3941,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Team directory",
+    "sha": "00301703d1866eb54157810f69f7f95f400e539952f3654775a2bdd9d7b82365"
+  },
+  "app-team-directory/oneRow": {
+    "ok": true,
+    "report": {
+      "screens": 1,
+      "actions": 0,
+      "tables": 1,
+      "seededTables": {
+        "tbl_tmppl": 1
+      },
+      "seededRows": 1,
+      "bytes": 3503,
+      "requires": [],
+      "warnings": [
+        "4 seed row(s) dropped (not an object, or over the 1-row per-table ceiling)."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Team directory",
+    "sha": "8c2467f39fe6a0065b7a87a692c51d13cf42f6b27fcce7703213e83f1a1051b6"
+  },
+  "app-team-directory/noModel": {
+    "ok": true,
+    "report": {
+      "screens": 1,
+      "actions": 0,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 2492,
+      "requires": [],
+      "warnings": [
+        "5 example row(s) dropped: the file carries rows but no data model to put them in.",
+        "binding.table_unverified @ screens[0].sections[1].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[0].sections[1].children[1].props.source.tableId"
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Team directory",
+    "sha": "b713ba9e54754a5e3e5b9939ce04ae4285cf871bbb4f373670b11224bd1c8703"
+  },
+  "app-team-directory/fullMeta": {
+    "ok": true,
+    "report": {
+      "screens": 1,
+      "actions": 0,
+      "tables": 1,
+      "seededTables": {
+        "tbl_tmppl": 5
+      },
+      "seededRows": 5,
+      "bytes": 4086,
+      "requires": [],
+      "warnings": [
+        "1 seed table(s) dropped: the file seeds tables this template's data model does not contain."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed",
+      "datasets"
+    ],
+    "title": "Team directory copy",
+    "sha": "8ede43d9c5d70f963d096b415276dabe7bf297034af3804ca48d118c151e390c"
+  },
+  "app-support-desk/asIs": {
+    "ok": true,
+    "report": {
+      "screens": 5,
+      "actions": 13,
+      "tables": 6,
+      "seededTables": {
+        "tbl_sdcan": 4
+      },
+      "seededRows": 4,
+      "bytes": 41533,
+      "requires": [
+        {
+          "kind": "connector",
+          "ids": [
+            "conn_sdmail"
+          ]
+        }
+      ],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Support desk",
+    "sha": "8977d8b3135d6f82a9799986c102feb1e1101ecbe6d83c7f52bb5e76fc602db4"
+  },
+  "app-support-desk/rows": {
+    "ok": true,
+    "report": {
+      "screens": 5,
+      "actions": 13,
+      "tables": 6,
+      "seededTables": {
+        "tbl_sdcan": 4
+      },
+      "seededRows": 4,
+      "bytes": 41533,
+      "requires": [
+        {
+          "kind": "connector",
+          "ids": [
+            "conn_sdmail"
+          ]
+        }
+      ],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Support desk",
+    "sha": "8977d8b3135d6f82a9799986c102feb1e1101ecbe6d83c7f52bb5e76fc602db4"
+  },
+  "app-support-desk/oneRow": {
+    "ok": true,
+    "report": {
+      "screens": 5,
+      "actions": 13,
+      "tables": 6,
+      "seededTables": {
+        "tbl_sdcan": 1
+      },
+      "seededRows": 1,
+      "bytes": 41049,
+      "requires": [
+        {
+          "kind": "connector",
+          "ids": [
+            "conn_sdmail"
+          ]
+        }
+      ],
+      "warnings": [
+        "3 seed row(s) dropped (not an object, or over the 1-row per-table ceiling)."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Support desk",
+    "sha": "22bda301ddb305fb56d55642a75aa0e7a51115f52742913b4f1dee2c17b02589"
+  },
+  "app-support-desk/noModel": {
+    "ok": true,
+    "report": {
+      "screens": 5,
+      "actions": 13,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 30569,
+      "requires": [
+        {
+          "kind": "connector",
+          "ids": [
+            "conn_sdmail"
+          ]
+        }
+      ],
+      "warnings": [
+        "4 example row(s) dropped: the file carries rows but no data model to put them in.",
+        "binding.table_unverified @ screens[0].sections[0].children[0].children[1].props.source.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[0].children[2].props.source.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[1].children[2].props.source.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[1].children[2].props.attachmentsSource.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[1].children[3].children[0].props.snippets.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[1].children[4].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[1].sections[0].children[1].props.source.tableId",
+        "binding.table_unverified @ screens[2].sections[0].children[2].props.source.tableId",
+        "binding.table_unverified @ screens[2].sections[0].children[3].props.source.tableId",
+        "binding.table_unverified @ screens[3].sections[0].children[0].props.value.tableId",
+        "binding.table_unverified @ screens[3].sections[0].children[1].props.value.tableId"
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Support desk",
+    "sha": "74d92c3c532bcd1ec9e22daf3861c656b8c52dbc7d318e1540e2414f7a69d61d"
+  },
+  "app-support-desk/fullMeta": {
+    "ok": true,
+    "report": {
+      "screens": 5,
+      "actions": 13,
+      "tables": 6,
+      "seededTables": {
+        "tbl_sdcan": 4
+      },
+      "seededRows": 4,
+      "bytes": 41675,
+      "requires": [
+        {
+          "kind": "connector",
+          "ids": [
+            "conn_sdmail"
+          ]
+        }
+      ],
+      "warnings": [
+        "1 seed table(s) dropped: the file seeds tables this template's data model does not contain."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed",
+      "datasets"
+    ],
+    "title": "Support desk copy",
+    "sha": "94d5108a7323de81fbc1948210741621c17a060f72769216aecf4aa2af8bc160"
+  },
+  "app-quote-intake/asIs": {
+    "ok": true,
+    "report": {
+      "screens": 9,
+      "actions": 41,
+      "tables": 9,
+      "seededTables": {
+        "tbl_qicol": 24,
+        "tbl_qiop": 3,
+        "tbl_qimat": 18
+      },
+      "seededRows": 45,
+      "bytes": 119456,
+      "requires": [
+        {
+          "kind": "connector",
+          "ids": [
+            "conn_qimail"
+          ]
+        }
+      ],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Quote intake",
+    "sha": "5d9dc018c3258f6105dfb7f69e6e6683fec8ee4517eaf05c68eeec422957c704"
+  },
+  "app-quote-intake/rows": {
+    "ok": true,
+    "report": {
+      "screens": 9,
+      "actions": 41,
+      "tables": 9,
+      "seededTables": {
+        "tbl_qimat": 18,
+        "tbl_qicol": 24,
+        "tbl_qiop": 3
+      },
+      "seededRows": 45,
+      "bytes": 119456,
+      "requires": [
+        {
+          "kind": "connector",
+          "ids": [
+            "conn_qimail"
+          ]
+        }
+      ],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Quote intake",
+    "sha": "eecf5c38e65e2435d7de565f380aed1ed0ac618de7f7778e1794bb05c136f02d"
+  },
+  "app-quote-intake/oneRow": {
+    "ok": true,
+    "report": {
+      "screens": 9,
+      "actions": 41,
+      "tables": 9,
+      "seededTables": {
+        "tbl_qicol": 1,
+        "tbl_qiop": 1,
+        "tbl_qimat": 1
+      },
+      "seededRows": 3,
+      "bytes": 116810,
+      "requires": [
+        {
+          "kind": "connector",
+          "ids": [
+            "conn_qimail"
+          ]
+        }
+      ],
+      "warnings": [
+        "42 seed row(s) dropped (not an object, or over the 1-row per-table ceiling)."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Quote intake",
+    "sha": "ed17aa35a6d52240516ba52be68e1ac615b72d40734916d5d9d0017b9e4a8b39"
+  },
+  "app-quote-intake/noModel": {
+    "ok": true,
+    "report": {
+      "screens": 9,
+      "actions": 41,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 100489,
+      "requires": [
+        {
+          "kind": "connector",
+          "ids": [
+            "conn_qimail"
+          ]
+        }
+      ],
+      "warnings": [
+        "45 example row(s) dropped: the file carries rows but no data model to put them in.",
+        "binding.table_unverified @ screens[0].sections[0].children[0].children[1].props.source.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[0].children[2].props.source.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[1].children[4].props.source.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[1].children[4].props.attachmentsSource.tableId",
+        "binding.table_unverified @ screens[1].sections[0].children[2].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[1].sections[0].children[2].children[3].props.source.tableId",
+        "binding.table_unverified @ screens[1].sections[0].children[3].children[0].children[0].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[1].sections[0].children[3].children[0].children[0].children[0].props.attachmentsSource.tableId",
+        "binding.table_unverified @ screens[1].sections[0].children[3].children[0].children[1].children[1].props.value.tableId",
+        "binding.table_unverified @ screens[1].sections[0].children[3].children[0].children[1].children[2].props.value.tableId",
+        "binding.table_unverified @ screens[1].sections[0].children[3].children[0].children[1].children[3].props.source.tableId"
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Quote intake",
+    "sha": "0160493574ce826d5921a8268532af5bfeb873e600b58835569eb405025a9bc0"
+  },
+  "app-quote-intake/fullMeta": {
+    "ok": true,
+    "report": {
+      "screens": 9,
+      "actions": 41,
+      "tables": 9,
+      "seededTables": {
+        "tbl_qicol": 24,
+        "tbl_qiop": 3,
+        "tbl_qimat": 18
+      },
+      "seededRows": 45,
+      "bytes": 119561,
+      "requires": [
+        {
+          "kind": "connector",
+          "ids": [
+            "conn_qimail"
+          ]
+        }
+      ],
+      "warnings": [
+        "1 seed table(s) dropped: the file seeds tables this template's data model does not contain."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed",
+      "datasets"
+    ],
+    "title": "Quote intake copy",
+    "sha": "4ade0be75c38569b636cc3627fcfe6c32e975cb195d51e247cd68ba9fe8df5a8"
+  },
+  "app-sprint-board/asIs": {
+    "ok": true,
+    "report": {
+      "screens": 6,
+      "actions": 40,
+      "tables": 8,
+      "seededTables": {
+        "tbl_boards1": 2,
+        "tbl_states1": 5,
+        "tbl_types01": 5,
+        "tbl_member1": 4,
+        "tbl_bcols01": 8,
+        "tbl_sprint1": 2,
+        "tbl_items01": 25,
+        "tbl_notes01": 3
+      },
+      "seededRows": 54,
+      "bytes": 82482,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed",
+      "seedPeople"
+    ],
+    "title": "Sprint planning",
+    "sha": "3ea7f475882bc666bd5a4a4476db271e30cc027b089e21913c5b1b66b22f4caa"
+  },
+  "app-sprint-board/rows": {
+    "ok": true,
+    "report": {
+      "screens": 6,
+      "actions": 40,
+      "tables": 8,
+      "seededTables": {
+        "tbl_boards1": 2,
+        "tbl_states1": 5,
+        "tbl_bcols01": 8,
+        "tbl_types01": 5,
+        "tbl_member1": 4,
+        "tbl_sprint1": 2,
+        "tbl_items01": 25,
+        "tbl_notes01": 3
+      },
+      "seededRows": 54,
+      "bytes": 81236,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed",
+      "seedPeople"
+    ],
+    "title": "Sprint planning",
+    "sha": "908403d14889d0454fb48af953e0b2f951032afe5abdd206f65a1806edb68788"
+  },
+  "app-sprint-board/oneRow": {
+    "ok": true,
+    "report": {
+      "screens": 6,
+      "actions": 40,
+      "tables": 8,
+      "seededTables": {
+        "tbl_boards1": 1,
+        "tbl_states1": 1,
+        "tbl_types01": 1,
+        "tbl_member1": 1,
+        "tbl_bcols01": 1,
+        "tbl_sprint1": 1,
+        "tbl_items01": 1,
+        "tbl_notes01": 1
+      },
+      "seededRows": 8,
+      "bytes": 73224,
+      "requires": [],
+      "warnings": [
+        "46 seed row(s) dropped (not an object, or over the 1-row per-table ceiling).",
+        "1 relation value(s) emptied: they pointed at rows this file does not carry."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed",
+      "seedPeople"
+    ],
+    "title": "Sprint planning",
+    "sha": "5611bb3b4271ed5190e7fde67be52d5060fddf43f35c49866e7aa978c89b7cd7"
+  },
+  "app-sprint-board/noModel": {
+    "ok": true,
+    "report": {
+      "screens": 6,
+      "actions": 40,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 61757,
+      "requires": [],
+      "warnings": [
+        "54 example row(s) dropped: the file carries rows but no data model to put them in.",
+        "binding.table_unverified @ screens[0].sections[1].children[0].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[0].sections[1].children[0].children[1].props.source.tableId",
+        "binding.table_unverified @ screens[0].sections[1].children[0].children[1].props.columnsSource.tableId",
+        "binding.table_unverified @ screens[1].sections[0].children[1].props.value.tableId",
+        "binding.table_unverified @ screens[1].sections[0].children[2].props.value.tableId",
+        "binding.table_unverified @ screens[1].sections[0].children[3].props.value.tableId",
+        "binding.table_unverified @ screens[1].sections[0].children[4].props.value.tableId",
+        "binding.table_unverified @ screens[1].sections[1].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[2].sections[0].children[1].props.value.tableId",
+        "binding.table_unverified @ screens[2].sections[1].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[2].sections[1].children[1].props.source.tableId"
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Sprint planning",
+    "sha": "df45239b40e75d9e5392c941e2d62e89d4ea0f459333a68e83b585c5cb55b5de"
+  },
+  "app-sprint-board/fullMeta": {
+    "ok": true,
+    "report": {
+      "screens": 6,
+      "actions": 40,
+      "tables": 8,
+      "seededTables": {
+        "tbl_boards1": 2,
+        "tbl_states1": 5,
+        "tbl_types01": 5,
+        "tbl_member1": 4,
+        "tbl_bcols01": 8,
+        "tbl_sprint1": 2,
+        "tbl_items01": 25,
+        "tbl_notes01": 3
+      },
+      "seededRows": 54,
+      "bytes": 82390,
+      "requires": [],
+      "warnings": [
+        "1 seed table(s) dropped: the file seeds tables this template's data model does not contain."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed",
+      "datasets"
+    ],
+    "title": "Sprint planning copy",
+    "sha": "bf2d5ddceed41421146e23351c28ca120d5eb36015362524613a632afb5886bc"
+  },
+  "app-ai-act-register/asIs": {
+    "ok": true,
+    "report": {
+      "screens": 5,
+      "actions": 24,
+      "tables": 6,
+      "seededTables": {
+        "tbl_tiers01": 5,
+        "tbl_usecase1": 14,
+        "tbl_aisys01": 10,
+        "tbl_overs01": 6,
+        "tbl_incid01": 7,
+        "tbl_asmnt01": 6
+      },
+      "seededRows": 48,
+      "bytes": 97625,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "AI system register",
+    "sha": "982a546d3f8e8f87ee8a2e0d31c127be23e4674e5839463efbfd5934932d4e0e"
+  },
+  "app-ai-act-register/rows": {
+    "ok": true,
+    "report": {
+      "screens": 5,
+      "actions": 24,
+      "tables": 6,
+      "seededTables": {
+        "tbl_tiers01": 5,
+        "tbl_usecase1": 14,
+        "tbl_aisys01": 10,
+        "tbl_overs01": 6,
+        "tbl_incid01": 7,
+        "tbl_asmnt01": 6
+      },
+      "seededRows": 48,
+      "bytes": 96704,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "AI system register",
+    "sha": "fa768f595387c457a135f074df600987876d09db877c5956f86309c140a1a5d5"
+  },
+  "app-ai-act-register/oneRow": {
+    "ok": true,
+    "report": {
+      "screens": 5,
+      "actions": 24,
+      "tables": 6,
+      "seededTables": {
+        "tbl_tiers01": 1,
+        "tbl_usecase1": 1,
+        "tbl_aisys01": 1,
+        "tbl_overs01": 1,
+        "tbl_incid01": 1,
+        "tbl_asmnt01": 1
+      },
+      "seededRows": 6,
+      "bytes": 77856,
+      "requires": [],
+      "warnings": [
+        "42 seed row(s) dropped (not an object, or over the 1-row per-table ceiling).",
+        "1 relation value(s) emptied: they pointed at rows this file does not carry."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "AI system register",
+    "sha": "eab2629289e3cfac9521d13e669bdac09db752ec962fb10a81cbadabb3568ab6"
+  },
+  "app-ai-act-register/noModel": {
+    "ok": true,
+    "report": {
+      "screens": 5,
+      "actions": 24,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 62350,
+      "requires": [],
+      "warnings": [
+        "48 example row(s) dropped: the file carries rows but no data model to put them in.",
+        "binding.table_unverified @ screens[0].sections[0].children[2].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[3].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[4].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[5].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[1].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[1].sections[0].children[2].props.value.tableId",
+        "binding.table_unverified @ screens[1].sections[1].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[1].sections[1].children[1].props.source.tableId",
+        "binding.table_unverified @ screens[1].sections[1].children[1].props.columnsSource.tableId",
+        "binding.table_unverified @ screens[1].sections[2].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[2].sections[0].children[1].props.source.tableId"
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "AI system register",
+    "sha": "961df297eb1822e1051f7320377ebd863bdd627e43f17230f86833c15ec1998b"
+  },
+  "app-ai-act-register/fullMeta": {
+    "ok": true,
+    "report": {
+      "screens": 5,
+      "actions": 24,
+      "tables": 6,
+      "seededTables": {
+        "tbl_tiers01": 5,
+        "tbl_usecase1": 14,
+        "tbl_aisys01": 10,
+        "tbl_overs01": 6,
+        "tbl_incid01": 7,
+        "tbl_asmnt01": 6
+      },
+      "seededRows": 48,
+      "bytes": 97707,
+      "requires": [],
+      "warnings": [
+        "1 seed table(s) dropped: the file seeds tables this template's data model does not contain."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed",
+      "datasets"
+    ],
+    "title": "AI system register copy",
+    "sha": "e9191b838155e61679c2bd0c627f51ca05323c3fd52329df1fad4afe22ea32de"
+  },
+  "app-processing-register/asIs": {
+    "ok": true,
+    "report": {
+      "screens": 7,
+      "actions": 37,
+      "tables": 11,
+      "seededTables": {
+        "tbl_dept01": 6,
+        "tbl_lbase1": 6,
+        "tbl_dcat01": 10,
+        "tbl_proc01": 5,
+        "tbl_subp01": 5,
+        "tbl_act001": 12,
+        "tbl_aproc1": 8,
+        "tbl_acat01": 28,
+        "tbl_trans1": 5,
+        "tbl_dpia01": 4,
+        "tbl_rlog01": 15
+      },
+      "seededRows": 104,
+      "bytes": 141180,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Processing register (verwerkingsregister)",
+    "sha": "791344cd76f1a62505394093595b6a983e3e24d2a674d97c68c4c9427aac67ff"
+  },
+  "app-processing-register/rows": {
+    "ok": true,
+    "report": {
+      "screens": 7,
+      "actions": 37,
+      "tables": 11,
+      "seededTables": {
+        "tbl_dept01": 6,
+        "tbl_lbase1": 6,
+        "tbl_dcat01": 10,
+        "tbl_proc01": 5,
+        "tbl_subp01": 5,
+        "tbl_act001": 12,
+        "tbl_aproc1": 8,
+        "tbl_acat01": 28,
+        "tbl_trans1": 5,
+        "tbl_dpia01": 4,
+        "tbl_rlog01": 15
+      },
+      "seededRows": 104,
+      "bytes": 139906,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Processing register (verwerkingsregister)",
+    "sha": "3b835b907ee9d73875d9da9f632f34b8d840b1f68216fe6133743143bcfd6424"
+  },
+  "app-processing-register/oneRow": {
+    "ok": true,
+    "report": {
+      "screens": 7,
+      "actions": 37,
+      "tables": 11,
+      "seededTables": {
+        "tbl_dept01": 1,
+        "tbl_lbase1": 1,
+        "tbl_dcat01": 1,
+        "tbl_proc01": 1,
+        "tbl_subp01": 1,
+        "tbl_act001": 1,
+        "tbl_aproc1": 1,
+        "tbl_acat01": 1,
+        "tbl_trans1": 1,
+        "tbl_dpia01": 1,
+        "tbl_rlog01": 1
+      },
+      "seededRows": 11,
+      "bytes": 113732,
+      "requires": [],
+      "warnings": [
+        "93 seed row(s) dropped (not an object, or over the 1-row per-table ceiling).",
+        "3 relation value(s) emptied: they pointed at rows this file does not carry."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Processing register (verwerkingsregister)",
+    "sha": "892901ff14ac9435850d7c0b405e7f7cb6086c2d1263838cef4cd39ac691e1d1"
+  },
+  "app-processing-register/noModel": {
+    "ok": true,
+    "report": {
+      "screens": 7,
+      "actions": 37,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 93323,
+      "requires": [],
+      "warnings": [
+        "104 example row(s) dropped: the file carries rows but no data model to put them in.",
+        "binding.table_unverified @ screens[0].sections[0].children[1].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[2].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[3].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[4].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[1].children[2].props.source.tableId",
+        "binding.table_unverified @ screens[0].sections[1].children[3].props.source.tableId",
+        "binding.table_unverified @ screens[0].sections[3].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[1].sections[0].children[0].props.titleFrom.tableId",
+        "binding.table_unverified @ screens[1].sections[0].children[0].props.subtitleFrom.tableId",
+        "binding.table_unverified @ screens[1].sections[0].children[1].props.source.tableId",
+        "binding.table_unverified @ screens[1].sections[1].children[0].children[0].props.valueFrom.tableId"
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Processing register (verwerkingsregister)",
+    "sha": "574bc0379693a1cb505ff1fd1ed39da8236d435ae168e5851e759a78e59a8771"
+  },
+  "app-processing-register/fullMeta": {
+    "ok": true,
+    "report": {
+      "screens": 7,
+      "actions": 37,
+      "tables": 11,
+      "seededTables": {
+        "tbl_dept01": 6,
+        "tbl_lbase1": 6,
+        "tbl_dcat01": 10,
+        "tbl_proc01": 5,
+        "tbl_subp01": 5,
+        "tbl_act001": 12,
+        "tbl_aproc1": 8,
+        "tbl_acat01": 28,
+        "tbl_trans1": 5,
+        "tbl_dpia01": 4,
+        "tbl_rlog01": 15
+      },
+      "seededRows": 104,
+      "bytes": 141238,
+      "requires": [],
+      "warnings": [
+        "1 seed table(s) dropped: the file seeds tables this template's data model does not contain."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed",
+      "datasets"
+    ],
+    "title": "Processing register (verwerkingsregister) copy",
+    "sha": "bf9bc7ef45d923bcae71584ed25e9d24c2945c19145871b34b659e500576c686"
+  },
+  "app-breach-register/asIs": {
+    "ok": true,
+    "report": {
+      "screens": 5,
+      "actions": 17,
+      "tables": 4,
+      "seededTables": {
+        "tbl_sevs001": 5,
+        "tbl_brchs01": 9,
+        "tbl_bsys001": 8,
+        "tbl_bacts01": 29
+      },
+      "seededRows": 51,
+      "bytes": 96771,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Data breach register",
+    "sha": "7c00c79329fe6a104abeeb5256887c246966c6b2bd18e6cbcb3f9c4372f419a1"
+  },
+  "app-breach-register/rows": {
+    "ok": true,
+    "report": {
+      "screens": 5,
+      "actions": 17,
+      "tables": 4,
+      "seededTables": {
+        "tbl_brchs01": 9,
+        "tbl_bacts01": 29,
+        "tbl_bsys001": 8,
+        "tbl_sevs001": 5
+      },
+      "seededRows": 51,
+      "bytes": 96048,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Data breach register",
+    "sha": "0d5d868e9301b3ee14b500c8bd19ff3ed208ee422ee3be84373bb6c3a8ab1df0"
+  },
+  "app-breach-register/oneRow": {
+    "ok": true,
+    "report": {
+      "screens": 5,
+      "actions": 17,
+      "tables": 4,
+      "seededTables": {
+        "tbl_sevs001": 1,
+        "tbl_brchs01": 1,
+        "tbl_bsys001": 1,
+        "tbl_bacts01": 1
+      },
+      "seededRows": 4,
+      "bytes": 75029,
+      "requires": [],
+      "warnings": [
+        "47 seed row(s) dropped (not an object, or over the 1-row per-table ceiling).",
+        "2 relation value(s) emptied: they pointed at rows this file does not carry."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Data breach register",
+    "sha": "d1847b15bc1a171eced11bb5461a44ba1fb7992c2eb459ddbf16a7ca296702da"
+  },
+  "app-breach-register/noModel": {
+    "ok": true,
+    "report": {
+      "screens": 5,
+      "actions": 17,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 63075,
+      "requires": [],
+      "warnings": [
+        "51 example row(s) dropped: the file carries rows but no data model to put them in.",
+        "binding.table_unverified @ screens[0].sections[0].children[1].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[2].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[3].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[4].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[1].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[1].sections[1].children[1].props.source.tableId",
+        "binding.table_unverified @ screens[2].sections[0].children[3].props.value.tableId",
+        "binding.table_unverified @ screens[2].sections[0].children[4].props.source.tableId",
+        "binding.table_unverified @ screens[2].sections[1].children[0].children[0].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[2].sections[1].children[0].children[3].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[2].sections[1].children[0].children[4].children[0].props.source.tableId"
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Data breach register",
+    "sha": "35235ff2df4d6c1e8bd2c2f047b5d6122f0af9a5c1f22dcfe3b43b90498ee9f6"
+  },
+  "app-breach-register/fullMeta": {
+    "ok": true,
+    "report": {
+      "screens": 5,
+      "actions": 17,
+      "tables": 4,
+      "seededTables": {
+        "tbl_sevs001": 5,
+        "tbl_brchs01": 9,
+        "tbl_bsys001": 8,
+        "tbl_bacts01": 29
+      },
+      "seededRows": 51,
+      "bytes": 96885,
+      "requires": [],
+      "warnings": [
+        "1 seed table(s) dropped: the file seeds tables this template's data model does not contain."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed",
+      "datasets"
+    ],
+    "title": "Data breach register copy",
+    "sha": "c8a508780b0893cb42e34cfabe4bd69219712e1655295dbf34dd48f4af2b07d2"
+  },
+  "app-data-subject-requests/asIs": {
+    "ok": true,
+    "report": {
+      "screens": 6,
+      "actions": 19,
+      "tables": 8,
+      "seededTables": {
+        "tbl_types01": 6,
+        "tbl_stat001": 5,
+        "tbl_grnd001": 6,
+        "tbl_reqs001": 8,
+        "tbl_ident01": 7,
+        "tbl_srch001": 11,
+        "tbl_disc001": 3,
+        "tbl_exem001": 3
+      },
+      "seededRows": 49,
+      "bytes": 91677,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Data subject requests",
+    "sha": "e3acae0a423ba1565a6bed5101c3c63628a863e9b4cadbdeef3e170395a1f697"
+  },
+  "app-data-subject-requests/rows": {
+    "ok": true,
+    "report": {
+      "screens": 6,
+      "actions": 19,
+      "tables": 8,
+      "seededTables": {
+        "tbl_types01": 6,
+        "tbl_stat001": 5,
+        "tbl_grnd001": 6,
+        "tbl_reqs001": 8,
+        "tbl_ident01": 7,
+        "tbl_srch001": 11,
+        "tbl_disc001": 3,
+        "tbl_exem001": 3
+      },
+      "seededRows": 49,
+      "bytes": 91277,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Data subject requests",
+    "sha": "40913cb8859d21c2221f5211a8f451a2dac7c5ad34f97782d190324470cb47e5"
+  },
+  "app-data-subject-requests/oneRow": {
+    "ok": true,
+    "report": {
+      "screens": 6,
+      "actions": 19,
+      "tables": 8,
+      "seededTables": {
+        "tbl_types01": 1,
+        "tbl_stat001": 1,
+        "tbl_grnd001": 1,
+        "tbl_reqs001": 1,
+        "tbl_ident01": 1,
+        "tbl_srch001": 1,
+        "tbl_disc001": 1,
+        "tbl_exem001": 1
+      },
+      "seededRows": 8,
+      "bytes": 78644,
+      "requires": [],
+      "warnings": [
+        "41 seed row(s) dropped (not an object, or over the 1-row per-table ceiling).",
+        "2 relation value(s) emptied: they pointed at rows this file does not carry."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Data subject requests",
+    "sha": "19a1135b47785cf12342d49d38cd234db6ef2b41b6d96fe2e9cef30e90424f40"
+  },
+  "app-data-subject-requests/noModel": {
+    "ok": true,
+    "report": {
+      "screens": 6,
+      "actions": 19,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 64084,
+      "requires": [],
+      "warnings": [
+        "49 example row(s) dropped: the file carries rows but no data model to put them in.",
+        "binding.table_unverified @ screens[0].sections[0].children[1].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[2].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[3].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[4].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[1].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[0].sections[1].children[1].props.source.tableId",
+        "binding.table_unverified @ screens[2].sections[0].children[3].props.source.tableId",
+        "binding.table_unverified @ screens[2].sections[1].children[0].children[0].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[2].sections[1].children[0].children[1].children[2].props.source.tableId",
+        "binding.table_unverified @ screens[2].sections[1].children[0].children[2].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[2].sections[1].children[0].children[3].children[1].props.source.tableId"
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Data subject requests",
+    "sha": "dd70647e33032e7ade8f2f8406ed64405dd365062ff3f8e4a98deddccaddfecc"
+  },
+  "app-data-subject-requests/fullMeta": {
+    "ok": true,
+    "report": {
+      "screens": 6,
+      "actions": 19,
+      "tables": 8,
+      "seededTables": {
+        "tbl_types01": 6,
+        "tbl_stat001": 5,
+        "tbl_grnd001": 6,
+        "tbl_reqs001": 8,
+        "tbl_ident01": 7,
+        "tbl_srch001": 11,
+        "tbl_disc001": 3,
+        "tbl_exem001": 3
+      },
+      "seededRows": 49,
+      "bytes": 91780,
+      "requires": [],
+      "warnings": [
+        "1 seed table(s) dropped: the file seeds tables this template's data model does not contain."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed",
+      "datasets"
+    ],
+    "title": "Data subject requests copy",
+    "sha": "15ee5bdd95037cb1dd9efbed86e6a6b2d003be28f6e5a8b5eee609a1739451a8"
+  },
+  "app-knowledge-governance/asIs": {
+    "ok": true,
+    "report": {
+      "screens": 9,
+      "actions": 29,
+      "tables": 7,
+      "seededTables": {
+        "tbl_kbases1": 4,
+        "tbl_rstate1": 5,
+        "tbl_lbasis1": 6,
+        "tbl_source1": 18,
+        "tbl_finds01": 10,
+        "tbl_grant01": 8,
+        "tbl_retire1": 4
+      },
+      "seededRows": 55,
+      "bytes": 123678,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Knowledge base governance",
+    "sha": "36e7dfb707b919467a2578c5914de383446b34970222f70d073c4ec5f7fd94fa"
+  },
+  "app-knowledge-governance/rows": {
+    "ok": true,
+    "report": {
+      "screens": 9,
+      "actions": 29,
+      "tables": 7,
+      "seededTables": {
+        "tbl_kbases1": 4,
+        "tbl_rstate1": 5,
+        "tbl_lbasis1": 6,
+        "tbl_source1": 18,
+        "tbl_finds01": 10,
+        "tbl_grant01": 8,
+        "tbl_retire1": 4
+      },
+      "seededRows": 55,
+      "bytes": 122773,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Knowledge base governance",
+    "sha": "bdebd1d8a4febe81a1be738f89fc4bb7f5df583f1d4007e4e102bcccc4836d96"
+  },
+  "app-knowledge-governance/oneRow": {
+    "ok": true,
+    "report": {
+      "screens": 9,
+      "actions": 29,
+      "tables": 7,
+      "seededTables": {
+        "tbl_kbases1": 1,
+        "tbl_rstate1": 1,
+        "tbl_lbasis1": 1,
+        "tbl_source1": 1,
+        "tbl_finds01": 1,
+        "tbl_grant01": 1,
+        "tbl_retire1": 1
+      },
+      "seededRows": 7,
+      "bytes": 103524,
+      "requires": [],
+      "warnings": [
+        "48 seed row(s) dropped (not an object, or over the 1-row per-table ceiling).",
+        "2 relation value(s) emptied: they pointed at rows this file does not carry."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Knowledge base governance",
+    "sha": "c8c02ce1c56ecc820ccc40a6273429e07ecf3346627bf24fe9f31592f71b3e5d"
+  },
+  "app-knowledge-governance/noModel": {
+    "ok": true,
+    "report": {
+      "screens": 9,
+      "actions": 29,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 87648,
+      "requires": [],
+      "warnings": [
+        "55 example row(s) dropped: the file carries rows but no data model to put them in.",
+        "binding.table_unverified @ screens[0].sections[0].children[1].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[2].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[3].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[4].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[1].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[0].sections[1].children[1].props.source.tableId",
+        "binding.table_unverified @ screens[1].sections[1].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[1].sections[1].children[1].props.source.tableId",
+        "binding.table_unverified @ screens[2].sections[0].children[1].props.value.tableId",
+        "binding.table_unverified @ screens[2].sections[0].children[2].props.value.tableId",
+        "binding.table_unverified @ screens[2].sections[0].children[3].props.value.tableId"
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Knowledge base governance",
+    "sha": "23a5ff52fbcfb8e44c3f4a8e6d7deb3c5cab1bd7c236b5279120eac2f868629e"
+  },
+  "app-knowledge-governance/fullMeta": {
+    "ok": true,
+    "report": {
+      "screens": 9,
+      "actions": 29,
+      "tables": 7,
+      "seededTables": {
+        "tbl_kbases1": 4,
+        "tbl_rstate1": 5,
+        "tbl_lbasis1": 6,
+        "tbl_source1": 18,
+        "tbl_finds01": 10,
+        "tbl_grant01": 8,
+        "tbl_retire1": 4
+      },
+      "seededRows": 55,
+      "bytes": 123783,
+      "requires": [],
+      "warnings": [
+        "1 seed table(s) dropped: the file seeds tables this template's data model does not contain."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed",
+      "datasets"
+    ],
+    "title": "Knowledge base governance copy",
+    "sha": "aa15f051fe70a5d2ebcd645edc156ac3e3887855632e68bb437b579cf6756b6d"
+  },
+  "app-meeting-dossier/asIs": {
+    "ok": true,
+    "report": {
+      "screens": 6,
+      "actions": 44,
+      "tables": 8,
+      "seededTables": {
+        "tbl_mdkind": 4,
+        "tbl_mdstat": 4,
+        "tbl_mdppl": 5,
+        "tbl_mdmeet": 4,
+        "tbl_mdrec": 5,
+        "tbl_mdspk": 8,
+        "tbl_mddec": 6,
+        "tbl_mdact": 9
+      },
+      "seededRows": 45,
+      "bytes": 106764,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Meeting dossier",
+    "sha": "46773e3b4bcaa470f1de10a3a280ee0f379150e17d94dc3cb01c65b6dca682f3"
+  },
+  "app-meeting-dossier/rows": {
+    "ok": true,
+    "report": {
+      "screens": 6,
+      "actions": 44,
+      "tables": 8,
+      "seededTables": {
+        "tbl_mdkind": 4,
+        "tbl_mdstat": 4,
+        "tbl_mdppl": 5,
+        "tbl_mdmeet": 4,
+        "tbl_mdrec": 5,
+        "tbl_mdspk": 8,
+        "tbl_mddec": 6,
+        "tbl_mdact": 9
+      },
+      "seededRows": 45,
+      "bytes": 106139,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Meeting dossier",
+    "sha": "77b72b47e18ccd3dfb0b392720bd93d2980f176b899beaa0dd8a00b8884e14c1"
+  },
+  "app-meeting-dossier/oneRow": {
+    "ok": true,
+    "report": {
+      "screens": 6,
+      "actions": 44,
+      "tables": 8,
+      "seededTables": {
+        "tbl_mdkind": 1,
+        "tbl_mdstat": 1,
+        "tbl_mdppl": 1,
+        "tbl_mdmeet": 1,
+        "tbl_mdrec": 1,
+        "tbl_mdspk": 1,
+        "tbl_mddec": 1,
+        "tbl_mdact": 1
+      },
+      "seededRows": 8,
+      "bytes": 95369,
+      "requires": [],
+      "warnings": [
+        "37 seed row(s) dropped (not an object, or over the 1-row per-table ceiling)."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Meeting dossier",
+    "sha": "98c0a8ce789040f8a39da3e763b98840419953cc462821b1cae139053dc50fba"
+  },
+  "app-meeting-dossier/noModel": {
+    "ok": true,
+    "report": {
+      "screens": 6,
+      "actions": 44,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 77711,
+      "requires": [],
+      "warnings": [
+        "45 example row(s) dropped: the file carries rows but no data model to put them in.",
+        "binding.table_unverified @ screens[0].sections[0].children[2].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[3].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[4].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[1].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[1].sections[1].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[1].sections[3].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[2].sections[1].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[2].sections[1].children[1].props.source.tableId",
+        "binding.table_unverified @ screens[3].sections[1].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[3].sections[1].children[0].props.columnsSource.tableId",
+        "binding.table_unverified @ screens[4].sections[1].children[0].props.source.tableId"
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Meeting dossier",
+    "sha": "116f5ad203bf6a1c2c3b5b5481f4096a3a9182153970ba3569cdd189c3029cb2"
+  },
+  "app-meeting-dossier/fullMeta": {
+    "ok": true,
+    "report": {
+      "screens": 6,
+      "actions": 44,
+      "tables": 8,
+      "seededTables": {
+        "tbl_mdkind": 4,
+        "tbl_mdstat": 4,
+        "tbl_mdppl": 5,
+        "tbl_mdmeet": 4,
+        "tbl_mdrec": 5,
+        "tbl_mdspk": 8,
+        "tbl_mddec": 6,
+        "tbl_mdact": 9
+      },
+      "seededRows": 45,
+      "bytes": 106854,
+      "requires": [],
+      "warnings": [
+        "1 seed table(s) dropped: the file seeds tables this template's data model does not contain."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed",
+      "datasets"
+    ],
+    "title": "Meeting dossier copy",
+    "sha": "ed78efb2202e679fd19700642fca60330be5d5a7e9dc50027d32315ac2e9b8ee"
+  },
+  "app-bi-reports/asIs": {
+    "ok": true,
+    "report": {
+      "screens": 5,
+      "actions": 18,
+      "tables": 6,
+      "seededTables": {
+        "tbl_bidimc1": 6,
+        "tbl_bidime1": 6,
+        "tbl_biload1": 2,
+        "tbl_bifact1": 40,
+        "tbl_bistg01": 6,
+        "tbl_birep01": 4
+      },
+      "seededRows": 64,
+      "bytes": 76874,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "BI reports",
+    "sha": "83517d298a63157a1a2dec6c75e4bb133411cb3b9eebf1b616b63646c195d651"
+  },
+  "app-bi-reports/rows": {
+    "ok": true,
+    "report": {
+      "screens": 5,
+      "actions": 18,
+      "tables": 6,
+      "seededTables": {
+        "tbl_bidimc1": 6,
+        "tbl_bidime1": 6,
+        "tbl_biload1": 2,
+        "tbl_bifact1": 40,
+        "tbl_bistg01": 6,
+        "tbl_birep01": 4
+      },
+      "seededRows": 64,
+      "bytes": 75129,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "BI reports",
+    "sha": "054a5f7abad0d74141058b3e9fc554600ac5e3e437ce8da7576a9488c7d87ec0"
+  },
+  "app-bi-reports/oneRow": {
+    "ok": true,
+    "report": {
+      "screens": 5,
+      "actions": 18,
+      "tables": 6,
+      "seededTables": {
+        "tbl_bidimc1": 1,
+        "tbl_bidime1": 1,
+        "tbl_biload1": 1,
+        "tbl_bifact1": 1,
+        "tbl_bistg01": 1,
+        "tbl_birep01": 1
+      },
+      "seededRows": 6,
+      "bytes": 64551,
+      "requires": [],
+      "warnings": [
+        "58 seed row(s) dropped (not an object, or over the 1-row per-table ceiling)."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "BI reports",
+    "sha": "db07b4f563cec0de0912ef150cd8fc84800fff789a0be12b47302d16fdf99206"
+  },
+  "app-bi-reports/noModel": {
+    "ok": true,
+    "report": {
+      "screens": 5,
+      "actions": 18,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 56301,
+      "requires": [],
+      "warnings": [
+        "64 example row(s) dropped: the file carries rows but no data model to put them in.",
+        "binding.table_unverified @ screens[0].sections[0].children[1].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[2].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[3].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[4].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[1].children[0].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[0].sections[1].children[1].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[0].sections[1].children[2].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[0].sections[2].children[0].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[0].sections[2].children[1].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[0].sections[2].children[2].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[0].sections[3].children[0].props.source.tableId"
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "BI reports",
+    "sha": "6061f84a46d7aa557d75431595fcdfbf3aeca532d98e7a0b24eceedca1d1d871"
+  },
+  "app-bi-reports/fullMeta": {
+    "ok": true,
+    "report": {
+      "screens": 5,
+      "actions": 18,
+      "tables": 6,
+      "seededTables": {
+        "tbl_bidimc1": 6,
+        "tbl_bidime1": 6,
+        "tbl_biload1": 2,
+        "tbl_bifact1": 40,
+        "tbl_bistg01": 6,
+        "tbl_birep01": 4
+      },
+      "seededRows": 64,
+      "bytes": 76955,
+      "requires": [],
+      "warnings": [
+        "1 seed table(s) dropped: the file seeds tables this template's data model does not contain."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed",
+      "datasets"
+    ],
+    "title": "BI reports copy",
+    "sha": "a5e3509ecbae145e42c000cb786d047d65c6945d668781dddf698b5f50b61adb"
+  },
+  "app-invoice-approvals/asIs": {
+    "ok": true,
+    "report": {
+      "screens": 10,
+      "actions": 25,
+      "tables": 6,
+      "seededTables": {
+        "tbl_iasup": 8,
+        "tbl_iacc": 6,
+        "tbl_iapol": 4,
+        "tbl_iainv": 15,
+        "tbl_ialine": 24,
+        "tbl_iaevt": 22
+      },
+      "seededRows": 79,
+      "bytes": 144443,
+      "requires": [
+        {
+          "kind": "approver",
+          "count": 14
+        }
+      ],
+      "warnings": [
+        "14 approval stage(s) removed together with their approvers: a stage cannot exist without somebody to decide it. Rebuild the approval chain after installing."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Invoice approvals",
+    "sha": "7a0d79422fea69104a809a00a54d91670ead5e4823944d9dbfaf8010b71f3bb8"
+  },
+  "app-invoice-approvals/rows": {
+    "ok": true,
+    "report": {
+      "screens": 10,
+      "actions": 25,
+      "tables": 6,
+      "seededTables": {
+        "tbl_iasup": 8,
+        "tbl_iacc": 6,
+        "tbl_iapol": 4,
+        "tbl_iainv": 15,
+        "tbl_ialine": 24,
+        "tbl_iaevt": 22
+      },
+      "seededRows": 79,
+      "bytes": 142978,
+      "requires": [
+        {
+          "kind": "approver",
+          "count": 14
+        }
+      ],
+      "warnings": [
+        "14 approval stage(s) removed together with their approvers: a stage cannot exist without somebody to decide it. Rebuild the approval chain after installing."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Invoice approvals",
+    "sha": "69249dd87223f7a92812bc7bb835c8de3f9326c6d1a2565967287eb91b1f977b"
+  },
+  "app-invoice-approvals/oneRow": {
+    "ok": true,
+    "report": {
+      "screens": 10,
+      "actions": 25,
+      "tables": 6,
+      "seededTables": {
+        "tbl_iasup": 1,
+        "tbl_iacc": 1,
+        "tbl_iapol": 1,
+        "tbl_iainv": 1,
+        "tbl_ialine": 1,
+        "tbl_iaevt": 1
+      },
+      "seededRows": 6,
+      "bytes": 122511,
+      "requires": [
+        {
+          "kind": "approver",
+          "count": 14
+        }
+      ],
+      "warnings": [
+        "14 approval stage(s) removed together with their approvers: a stage cannot exist without somebody to decide it. Rebuild the approval chain after installing.",
+        "73 seed row(s) dropped (not an object, or over the 1-row per-table ceiling)."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Invoice approvals",
+    "sha": "61590ec04c4e7037ae739578837400559d32e6523c6269f302827cdcbf9ce789"
+  },
+  "app-invoice-approvals/noModel": {
+    "ok": true,
+    "report": {
+      "screens": 10,
+      "actions": 25,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 108015,
+      "requires": [
+        {
+          "kind": "approver",
+          "count": 14
+        }
+      ],
+      "warnings": [
+        "14 approval stage(s) removed together with their approvers: a stage cannot exist without somebody to decide it. Rebuild the approval chain after installing.",
+        "79 example row(s) dropped: the file carries rows but no data model to put them in.",
+        "binding.table_unverified @ screens[0].sections[1].children[0].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[1].children[1].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[1].children[2].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[1].children[3].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[3].children[2].props.source.tableId",
+        "binding.table_unverified @ screens[0].sections[3].children[3].props.source.tableId",
+        "binding.table_unverified @ screens[1].sections[1].children[0].children[0].children[1].props.tableId",
+        "binding.table_unverified @ screens[1].sections[2].children[1].props.source.tableId",
+        "binding.table_unverified @ screens[2].sections[1].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[3].sections[0].children[0].props.titleFrom.tableId"
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Invoice approvals",
+    "sha": "1462e23fd4658517bd2b6656325fbe03531a3d237eb44b67758f6d6345a768bb"
+  },
+  "app-invoice-approvals/fullMeta": {
+    "ok": true,
+    "report": {
+      "screens": 10,
+      "actions": 25,
+      "tables": 6,
+      "seededTables": {
+        "tbl_iasup": 8,
+        "tbl_iacc": 6,
+        "tbl_iapol": 4,
+        "tbl_iainv": 15,
+        "tbl_ialine": 24,
+        "tbl_iaevt": 22
+      },
+      "seededRows": 79,
+      "bytes": 144508,
+      "requires": [
+        {
+          "kind": "approver",
+          "count": 14
+        }
+      ],
+      "warnings": [
+        "14 approval stage(s) removed together with their approvers: a stage cannot exist without somebody to decide it. Rebuild the approval chain after installing.",
+        "1 seed table(s) dropped: the file seeds tables this template's data model does not contain."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed",
+      "datasets"
+    ],
+    "title": "Invoice approvals copy",
+    "sha": "22da80f6559541aff1519988b10f7341bd23ed330fa0a2533212e32be91451a2"
+  },
+  "app-field-service/asIs": {
+    "ok": true,
+    "report": {
+      "screens": 5,
+      "actions": 7,
+      "tables": 3,
+      "seededTables": {
+        "tbl_fstech": 4,
+        "tbl_fscust": 4,
+        "tbl_fsjob": 8
+      },
+      "seededRows": 16,
+      "bytes": 29375,
+      "requires": [],
+      "warnings": [],
+      "portable": {
+        "triggers": {
+          "count": 1,
+          "webhooks": 0,
+          "armed": false
+        }
+      }
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Field service planner",
+    "sha": "179821359e8bcfcf9840c908111a3e029029245142960bc65c61e66cd607594c"
+  },
+  "app-field-service/rows": {
+    "ok": true,
+    "report": {
+      "screens": 5,
+      "actions": 7,
+      "tables": 3,
+      "seededTables": {
+        "tbl_fstech": 4,
+        "tbl_fscust": 4,
+        "tbl_fsjob": 8
+      },
+      "seededRows": 16,
+      "bytes": 28931,
+      "requires": [],
+      "warnings": [],
+      "portable": {
+        "triggers": {
+          "count": 1,
+          "webhooks": 0,
+          "armed": false
+        }
+      }
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Field service planner",
+    "sha": "3aa7a7e958b04b3951219d4a581754b37432aacfc206a731f0e90890c1371493"
+  },
+  "app-field-service/oneRow": {
+    "ok": true,
+    "report": {
+      "screens": 5,
+      "actions": 7,
+      "tables": 3,
+      "seededTables": {
+        "tbl_fstech": 1,
+        "tbl_fscust": 1,
+        "tbl_fsjob": 1
+      },
+      "seededRows": 3,
+      "bytes": 26996,
+      "requires": [],
+      "warnings": [
+        "13 seed row(s) dropped (not an object, or over the 1-row per-table ceiling).",
+        "1 relation value(s) emptied: they pointed at rows this file does not carry."
+      ],
+      "portable": {
+        "triggers": {
+          "count": 1,
+          "webhooks": 0,
+          "armed": false
+        }
+      }
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Field service planner",
+    "sha": "8781aff075ed038ed5ba547073f6acff65bf3f2e6a18c2a1d33473743ba1b469"
+  },
+  "app-field-service/noModel": {
+    "ok": true,
+    "report": {
+      "screens": 5,
+      "actions": 7,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 20392,
+      "requires": [],
+      "warnings": [
+        "16 example row(s) dropped: the file carries rows but no data model to put them in.",
+        "binding.table_unverified @ screens[0].sections[0].children[1].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[2].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[3].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[4].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[1].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[1].sections[0].children[2].props.source.tableId",
+        "binding.table_unverified @ screens[2].sections[0].children[2].props.source.tableId",
+        "binding.table_unverified @ screens[2].sections[1].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[3].sections[0].children[1].children[0].children[0].children[1].props.tableId",
+        "binding.table_unverified @ screens[3].sections[0].children[1].children[0].children[2].children[0].props.tableId",
+        "binding.table_unverified @ screens[3].sections[0].children[1].children[0].children[2].children[1].props.tableId"
+      ],
+      "portable": {
+        "triggers": {
+          "count": 1,
+          "webhooks": 0,
+          "armed": false
+        }
+      }
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Field service planner",
+    "sha": "46e9613150ee5b34eeefef4e842501890104283ae9e07f955ca614346d572749"
+  },
+  "app-field-service/fullMeta": {
+    "ok": true,
+    "report": {
+      "screens": 5,
+      "actions": 7,
+      "tables": 3,
+      "seededTables": {
+        "tbl_fstech": 4,
+        "tbl_fscust": 4,
+        "tbl_fsjob": 8
+      },
+      "seededRows": 16,
+      "bytes": 29519,
+      "requires": [],
+      "warnings": [
+        "1 seed table(s) dropped: the file seeds tables this template's data model does not contain."
+      ],
+      "portable": {
+        "triggers": {
+          "count": 1,
+          "webhooks": 0,
+          "armed": false
+        }
+      }
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed",
+      "datasets"
+    ],
+    "title": "Field service planner copy",
+    "sha": "183537a56b4be11c0dde9a87b744b95d388546e203c44475c71ef51b87597f9b"
+  },
+  "app-request-approval/asIs": {
+    "ok": true,
+    "report": {
+      "screens": 4,
+      "actions": 5,
+      "tables": 2,
+      "seededTables": {
+        "tbl_rarq": 5,
+        "tbl_ratri": 3
+      },
+      "seededRows": 8,
+      "bytes": 23612,
+      "requires": [],
+      "warnings": [],
+      "portable": {
+        "triggers": {
+          "count": 1,
+          "webhooks": 0,
+          "armed": false
+        }
+      }
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Request and approval flow",
+    "sha": "e2b91a34739f0b789b7bf43072c94580652288ec423942fbe4b84f86a3e15525"
+  },
+  "app-request-approval/rows": {
+    "ok": true,
+    "report": {
+      "screens": 4,
+      "actions": 5,
+      "tables": 2,
+      "seededTables": {
+        "tbl_rarq": 5,
+        "tbl_ratri": 3
+      },
+      "seededRows": 8,
+      "bytes": 23530,
+      "requires": [],
+      "warnings": [],
+      "portable": {
+        "triggers": {
+          "count": 1,
+          "webhooks": 0,
+          "armed": false
+        }
+      }
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Request and approval flow",
+    "sha": "dffcd58dba380b1791f40cbe23d3ee5e9072242f0639435669da4248c8e87a82"
+  },
+  "app-request-approval/oneRow": {
+    "ok": true,
+    "report": {
+      "screens": 4,
+      "actions": 5,
+      "tables": 2,
+      "seededTables": {
+        "tbl_rarq": 1,
+        "tbl_ratri": 1
+      },
+      "seededRows": 2,
+      "bytes": 22373,
+      "requires": [],
+      "warnings": [
+        "6 seed row(s) dropped (not an object, or over the 1-row per-table ceiling)."
+      ],
+      "portable": {
+        "triggers": {
+          "count": 1,
+          "webhooks": 0,
+          "armed": false
+        }
+      }
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Request and approval flow",
+    "sha": "d7dca991f481b78c8747aa74f83a9ab431791a16e066fda6f4c86fb1f5b8d097"
+  },
+  "app-request-approval/noModel": {
+    "ok": true,
+    "report": {
+      "screens": 4,
+      "actions": 5,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 18258,
+      "requires": [],
+      "warnings": [
+        "8 example row(s) dropped: the file carries rows but no data model to put them in.",
+        "binding.table_unverified @ screens[2].sections[0].children[1].props.source.tableId",
+        "binding.table_unverified @ screens[2].sections[1].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[2].sections[1].children[1].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[2].sections[1].children[1].children[1].props.source.tableId",
+        "binding.table_unverified @ actions.act_rasubmit.steps[0].tableId",
+        "binding.table_unverified @ actions.act_ratriage.steps[0].tableId",
+        "binding.table_unverified @ actions.act_rasend.steps[1].value.tableId",
+        "binding.table_unverified @ actions.act_rasend.steps[2].tableId",
+        "binding.table_unverified @ actions.act_rasend.steps[4].then[0].tableId",
+        "binding.table_unverified @ actions.act_rasend.steps[4].then[3].tableId",
+        "binding.table_unverified @ actions.act_rasend.steps[4].else[0].tableId"
+      ],
+      "portable": {
+        "triggers": {
+          "count": 1,
+          "webhooks": 0,
+          "armed": false
+        }
+      }
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Request and approval flow",
+    "sha": "19f8c04fc7663c533a4b21e010d6d93b7d5866122c8da7eb8387d5da94de220c"
+  },
+  "app-request-approval/fullMeta": {
+    "ok": true,
+    "report": {
+      "screens": 4,
+      "actions": 5,
+      "tables": 2,
+      "seededTables": {
+        "tbl_rarq": 5,
+        "tbl_ratri": 3
+      },
+      "seededRows": 8,
+      "bytes": 23751,
+      "requires": [],
+      "warnings": [
+        "1 seed table(s) dropped: the file seeds tables this template's data model does not contain."
+      ],
+      "portable": {
+        "triggers": {
+          "count": 1,
+          "webhooks": 0,
+          "armed": false
+        }
+      }
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed",
+      "datasets"
+    ],
+    "title": "Request and approval flow copy",
+    "sha": "975c57bdeb6d719f47f809aee54fbeac6047ad737afff36a560817216ee78b87"
+  },
+  "app-sales-dashboard/asIs": {
+    "ok": true,
+    "report": {
+      "screens": 3,
+      "actions": 2,
+      "tables": 2,
+      "seededTables": {
+        "tbl_sdacct": 8,
+        "tbl_sddeal": 12
+      },
+      "seededRows": 20,
+      "bytes": 22495,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed",
+      "datasets"
+    ],
+    "title": "Sales dashboard",
+    "sha": "7ec0a650ba39b2afcf0aac02afa73ee730d214e5d14777ebe9b924f1127a9823"
+  },
+  "app-sales-dashboard/rows": {
+    "ok": true,
+    "report": {
+      "screens": 3,
+      "actions": 2,
+      "tables": 2,
+      "seededTables": {
+        "tbl_sdacct": 8,
+        "tbl_sddeal": 12
+      },
+      "seededRows": 20,
+      "bytes": 22272,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed",
+      "datasets"
+    ],
+    "title": "Sales dashboard",
+    "sha": "7d1a284ae2f725a97032218d6a5e80ded17243d13312934c52b27fed0144cad9"
+  },
+  "app-sales-dashboard/oneRow": {
+    "ok": true,
+    "report": {
+      "screens": 3,
+      "actions": 2,
+      "tables": 2,
+      "seededTables": {
+        "tbl_sdacct": 1,
+        "tbl_sddeal": 1
+      },
+      "seededRows": 2,
+      "bytes": 20063,
+      "requires": [],
+      "warnings": [
+        "18 seed row(s) dropped (not an object, or over the 1-row per-table ceiling).",
+        "1 relation value(s) emptied: they pointed at rows this file does not carry."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed",
+      "datasets"
+    ],
+    "title": "Sales dashboard",
+    "sha": "46879296b90d927d6771ef8f711943df54c843d70db56066d88d750405c6c424"
+  },
+  "app-sales-dashboard/noModel": {
+    "ok": true,
+    "report": {
+      "screens": 3,
+      "actions": 2,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 16624,
+      "requires": [],
+      "warnings": [
+        "20 example row(s) dropped: the file carries rows but no data model to put them in.",
+        "binding.table_unverified @ screens[0].sections[1].children[0].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[1].children[1].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[1].children[2].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[1].children[3].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[2].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[0].sections[2].children[1].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[2].children[2].props.source.tableId",
+        "binding.table_unverified @ screens[0].sections[2].children[3].props.source.tableId",
+        "binding.table_unverified @ screens[1].sections[0].children[1].props.value.tableId",
+        "binding.table_unverified @ screens[1].sections[0].children[2].props.value.tableId",
+        "binding.table_unverified @ screens[1].sections[0].children[3].props.value.tableId"
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "datasets"
+    ],
+    "title": "Sales dashboard",
+    "sha": "ccd589101cf6cc2c5e42109c62d62612658eaa5afd573adaaaf437b93b032bb1"
+  },
+  "app-sales-dashboard/fullMeta": {
+    "ok": false,
+    "errors": [
+      "binding.unknown_dataset @ screens[1].sections[0].children[6].props.source.datasetId"
+    ],
+    "sha": "cacbfce03ec7147a4d88d2c72f105699e6412210009ef29ea743faf2294a1197"
+  },
+  "app-inbound-orders/asIs": {
+    "ok": true,
+    "report": {
+      "screens": 5,
+      "actions": 8,
+      "tables": 3,
+      "seededTables": {
+        "tbl_ioprod": 4,
+        "tbl_ioord": 4,
+        "tbl_iolog": 6
+      },
+      "seededRows": 14,
+      "bytes": 29252,
+      "requires": [],
+      "warnings": [],
+      "portable": {
+        "triggers": {
+          "count": 1,
+          "webhooks": 1,
+          "armed": false
+        }
+      }
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Inbound orders",
+    "sha": "598c46659782b13eeda91f11ab9480cc15a7d56807553b966639795e40dbb28e"
+  },
+  "app-inbound-orders/rows": {
+    "ok": true,
+    "report": {
+      "screens": 5,
+      "actions": 8,
+      "tables": 3,
+      "seededTables": {
+        "tbl_ioprod": 4,
+        "tbl_ioord": 4,
+        "tbl_iolog": 6
+      },
+      "seededRows": 14,
+      "bytes": 29172,
+      "requires": [],
+      "warnings": [],
+      "portable": {
+        "triggers": {
+          "count": 1,
+          "webhooks": 1,
+          "armed": false
+        }
+      }
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Inbound orders",
+    "sha": "51d1a773079ad8d1a94a9c194c0a35175df4faa64efac8ee41ede89b316729c0"
+  },
+  "app-inbound-orders/oneRow": {
+    "ok": true,
+    "report": {
+      "screens": 5,
+      "actions": 8,
+      "tables": 3,
+      "seededTables": {
+        "tbl_ioprod": 1,
+        "tbl_ioord": 1,
+        "tbl_iolog": 1
+      },
+      "seededRows": 3,
+      "bytes": 27663,
+      "requires": [],
+      "warnings": [
+        "11 seed row(s) dropped (not an object, or over the 1-row per-table ceiling)."
+      ],
+      "portable": {
+        "triggers": {
+          "count": 1,
+          "webhooks": 1,
+          "armed": false
+        }
+      }
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed"
+    ],
+    "title": "Inbound orders",
+    "sha": "45687463b633c1252264877a51c23a8f362da6abd8b99b6f7655abe917ac3bb7"
+  },
+  "app-inbound-orders/noModel": {
+    "ok": true,
+    "report": {
+      "screens": 5,
+      "actions": 8,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 22606,
+      "requires": [],
+      "warnings": [
+        "14 example row(s) dropped: the file carries rows but no data model to put them in.",
+        "binding.table_unverified @ screens[0].sections[0].children[1].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[2].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[0].children[3].props.value.tableId",
+        "binding.table_unverified @ screens[0].sections[1].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[1].sections[0].children[3].children[0].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[1].sections[0].children[3].children[0].children[1].props.source.tableId",
+        "binding.table_unverified @ screens[1].sections[0].children[3].children[1].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[1].sections[0].children[3].children[2].children[0].props.source.tableId",
+        "binding.table_unverified @ screens[2].sections[0].children[1].props.source.tableId",
+        "binding.table_unverified @ screens[3].sections[0].children[1].props.source.tableId",
+        "binding.table_unverified @ actions.act_iopicking.steps[0].tableId"
+      ],
+      "portable": {
+        "triggers": {
+          "count": 1,
+          "webhooks": 1,
+          "armed": false
+        }
+      }
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Inbound orders",
+    "sha": "818f226d61a172602fe6f6291c5971bd6f141b277df6bb2ab8ece094fedceea6"
+  },
+  "app-inbound-orders/fullMeta": {
+    "ok": true,
+    "report": {
+      "screens": 5,
+      "actions": 8,
+      "tables": 3,
+      "seededTables": {
+        "tbl_ioprod": 4,
+        "tbl_ioord": 4,
+        "tbl_iolog": 6
+      },
+      "seededRows": 14,
+      "bytes": 29366,
+      "requires": [],
+      "warnings": [
+        "1 seed table(s) dropped: the file seeds tables this template's data model does not contain."
+      ],
+      "portable": {
+        "triggers": {
+          "count": 1,
+          "webhooks": 1,
+          "armed": false
+        }
+      }
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed",
+      "datasets"
+    ],
+    "title": "Inbound orders copy",
+    "sha": "fe4dbf90d7ea06bb6c6997fa656fd5a4514632981d8fb8ec00e62448c6af0442"
+  },
+  "noTitle": {
+    "ok": false,
+    "errors": [
+      "A title is required for the template."
+    ],
+    "sha": "04f561e7e73f4e672ec7ec544e299f0d412e1492657ab687873e5b0db39a1faa"
+  },
+  "blankTitle": {
+    "ok": false,
+    "errors": [
+      "A title is required for the template."
+    ],
+    "sha": "04f561e7e73f4e672ec7ec544e299f0d412e1492657ab687873e5b0db39a1faa"
+  },
+  "noDefinition": {
+    "ok": false,
+    "errors": [
+      "The app has no definition to capture."
+    ],
+    "sha": "007d5e8ea5e32a6a14dd9803adc9b6bcd5922560485a73f4969ee1711bffb6cb"
+  },
+  "definitionNotObject": {
+    "ok": false,
+    "errors": [
+      "The app has no definition to capture."
+    ],
+    "sha": "007d5e8ea5e32a6a14dd9803adc9b6bcd5922560485a73f4969ee1711bffb6cb"
+  },
+  "noArgs": {
+    "ok": false,
+    "errors": [
+      "A title is required for the template."
+    ],
+    "sha": "04f561e7e73f4e672ec7ec544e299f0d412e1492657ab687873e5b0db39a1faa"
+  },
+  "newerSchema": {
+    "ok": false,
+    "errors": [
+      "This app was made with a newer version of Bee Flow (definition version 999; this installation reads up to 3). Update Bee Flow to change it."
+    ],
+    "sha": "fdaa26ffb70b2cb0cda7ab5a2d25a1e3f0ec2065accc7280958d3292fb00ae39"
+  },
+  "validationErrors": {
+    "ok": false,
+    "errors": [
+      "action.navigate_unresolved @ actions.act_aaaaaa.screenId",
+      "action.kind_invalid @ actions.act_bbbbbb.kind"
+    ],
+    "sha": "0bc518cd27f48f88803ae5dd6247c8940b724f5dadb516e5bab9991a11674e18"
+  },
+  "references": {
+    "ok": true,
+    "report": {
+      "screens": 1,
+      "actions": 2,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 1997,
+      "requires": [
+        {
+          "kind": "automation",
+          "count": 1
+        },
+        {
+          "kind": "approver",
+          "count": 2
+        }
+      ],
+      "warnings": [
+        "1 approval stage(s) removed together with their approvers: a stage cannot exist without somebody to decide it. Rebuild the approval chain after installing.",
+        "action.unreachable @ actions.act_run001",
+        "action.unreachable @ actions.act_seq001"
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Refs",
+    "sha": "daf02374358c157308bbd2ba6b11aef841eaf85ae1b98ed5de853b5a534e3a6b"
+  },
+  "badVersion": {
+    "ok": true,
+    "report": {
+      "screens": 1,
+      "actions": 0,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 548,
+      "requires": [],
+      "warnings": []
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "T",
+    "sha": "08b5801cdf3f0f0de93b1a79e45b7e55611fa0874e9545a022f59423ba302d56"
+  },
+  "orphanRows": {
+    "ok": true,
+    "report": {
+      "screens": 1,
+      "actions": 0,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 548,
+      "requires": [],
+      "warnings": [
+        "2 example row(s) dropped: the file carries rows but no data model to put them in."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "T",
+    "sha": "ed2bfaccbc3d5ec7fafa85d87d5a72adad042bfc25bc3c5a1defcc4565025393"
+  },
+  "emptyModel": {
+    "ok": true,
+    "report": {
+      "screens": 1,
+      "actions": 0,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 548,
+      "requires": [],
+      "warnings": [
+        "1 example row(s) dropped: the file carries rows but no data model to put them in."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "T",
+    "sha": "f2ef1db4673b8d8bb0a052f4d3d8ab39b8bf5d0717761d34f36e77c830c470a2"
+  },
+  "oversized": {
+    "ok": false,
+    "errors": [
+      "The captured template is 5006kB, over the 4MB ceiling. Capture fewer seed tables."
+    ],
+    "sha": "4c6837200cdbd017617ef8ac5f79d3f26f1e371c82955fb5637a47a07f1f0e2d"
+  },
+  "kbRefs": {
+    "ok": true,
+    "report": {
+      "screens": 1,
+      "actions": 1,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 658,
+      "requires": [
+        {
+          "kind": "knowledge_base",
+          "count": 2
+        }
+      ],
+      "warnings": [
+        "action.unreachable @ actions.act_kbq001"
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "KB",
+    "sha": "2a932d92885854496e4cf03b030d8e3c38de3b4a09f2fbecdc1dc2d1c5671fcc"
+  },
+  "assetRefs": {
+    "ok": true,
+    "report": {
+      "screens": 1,
+      "actions": 0,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 682,
+      "requires": [],
+      "warnings": [
+        "2 uploaded file reference(s) removed (theme.logo, screens[0].sections[0].children[0].props.src): the image, logo or font itself did not come along. Upload it again in the new app."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Files",
+    "sha": "529d28636bbc4b45d297a0fb655e44ed81bbf49f437056aa6c94985599e9987f"
+  },
+  "assetRefsAsked": {
+    "ok": true,
+    "report": {
+      "screens": 1,
+      "actions": 0,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 682,
+      "requires": [],
+      "warnings": [
+        "2 uploaded file reference(s) removed (theme.logo, screens[0].sections[0].children[0].props.src): the image, logo or font itself did not come along. Upload it again in the new app."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition"
+    ],
+    "title": "Files",
+    "sha": "529d28636bbc4b45d297a0fb655e44ed81bbf49f437056aa6c94985599e9987f"
+  },
+  "danglingDataset": {
+    "ok": true,
+    "report": {
+      "screens": 1,
+      "actions": 1,
+      "tables": 0,
+      "seededTables": {},
+      "seededRows": 0,
+      "bytes": 764,
+      "requires": [],
+      "warnings": [
+        "1 dataset binding(s) will not survive install: they point at datasets this template does not carry. Re-point them after installing.",
+        "binding.dataset_unverified @ actions.act_dsref01.steps[0].value.datasetId",
+        "action.unreachable @ actions.act_dsref01"
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "datasets"
+    ],
+    "title": "DS",
+    "sha": "86f1d6000bf5669c9e1203f0fb01b30b455cbadabc4456ea99e25d56b5794d85"
+  },
+  "seedThatDoesNotFit": {
+    "ok": true,
+    "report": {
+      "screens": 2,
+      "actions": 3,
+      "tables": 3,
+      "seededTables": {
+        "tbl_crmco": 1,
+        "tbl_crmct": 3,
+        "tbl_crmdl": 5
+      },
+      "seededRows": 9,
+      "bytes": 5838,
+      "requires": [],
+      "warnings": [
+        "1 seed value(s) dropped — no such column, or a type that never travels (file/computed): companies.nope_col.",
+        "8 relation value(s) emptied: they pointed at rows this file does not carry.",
+        "The demo-people declaration was dropped (roster (no table undefined)) — seeded rows keep the names the file carries.",
+        "The demo-people declaration was dropped (assign (no table undefined)) — seeded rows keep the names the file carries."
+      ]
+    },
+    "templateKeys": [
+      "id",
+      "version",
+      "title",
+      "description",
+      "category",
+      "icon",
+      "tags",
+      "definition",
+      "dataModel",
+      "seed",
+      "datasets"
+    ],
+    "title": "CRM pipeline",
+    "sha": "7ea8d91a4def471dc8745002514c2aca798c390d689ad0874309d2b20dc3eac0"
+  },
+  "noOptions": {
+    "ok": false,
+    "errors": [
+      "A title is required for the template."
+    ],
+    "sha": "04f561e7e73f4e672ec7ec544e299f0d412e1492657ab687873e5b0db39a1faa"
+  }
+}

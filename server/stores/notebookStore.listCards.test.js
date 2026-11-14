@@ -1,139 +1,114 @@
+// @typecheck
 /**
- * notebookStore card-listing + update-side-effect tests.
+ * The notebook card listing and the side effects of an update, against a real
+ * Postgres (PGlite behind db.js's pool, testUtils/pglitePool.js).
  *
- * buildListCardsQuery is pure ({sql, params}), so the injection-safety
- * invariants are locked without a database: the projection ships NO document
- * bodies, user search input is ILIKE-escaped and always parameter-bound, and
- * sort/filter come from whitelist maps — never interpolated.
+ * The listing: search input matches literally (`%`, `_` and `\` are escaped
+ * and bound) across name, description, the Markdown mirror and source names;
+ * sort and filter come from whitelist maps, so anything else falls back to the
+ * default and never reaches the SQL; pinned cards come first; limit and offset
+ * are clamped. The update: a content write derives preview and word count,
+ * bumps the version and marks edit activity; a pin is not content and not
+ * recency.
  *
- * _updateNotebook behaviour runs against the same require.cache db mock as
- * notebookStore.mirror.test.js: sanitize-on-write, cached preview/word-count
- * clauses, the pinned non-content clause and the {noop:true} 0-clause shape.
- *
- * Run: node --test stores/notebookStore.listCards.test.js
+ * Run: cd server && node --test stores/notebookStore.listCards.test.js
  */
+
+'use strict';
 
 const test = require('node:test');
 const assert = require('node:assert');
 
-process.env.NODE_ENV = 'test';
+const { usePglitePool } = require('../testUtils/pglitePool');
 
-const state = { rowCount: 1, returnedVersion: 5 };
-const calls = [];
-
-const dbPath = require.resolve('../db');
-require.cache[dbPath] = {
-    id: dbPath, filename: dbPath, loaded: true,
-    exports: {
-        run: async (sql, params = []) => {
-            calls.push({ sql, params });
-            if (/^UPDATE notebooks SET/i.test(sql.trim())) {
-                return { rowCount: state.rowCount, rows: [{ version: state.returnedVersion }] };
-            }
-            return { rowCount: 1 };
-        },
-        getOne: async (sql, params = []) => {
-            if (/MAX\(sort_order\)/i.test(sql)) return { next: 0 };
-            if (/FROM notebook_sources/i.test(sql)) {
-                return { id: params[0], notebook_id: params[1] || 'nb1', type: 'text', name: 'x', status: 'ready' };
-            }
-            if (/SELECT version FROM notebooks/i.test(sql)) return { version: 7 };
-            return null;
-        },
-        getAll: async () => [],
-        exec: async () => undefined,
-        // A content write runs as one transaction (the row lock, the
-        // co-editing check, the write): the same recorder answers it, with no
-        // co-editing table in this database.
-        withTransaction: async (fn) => fn({
-            query: async (sql, params = []) => {
-                if (/to_regclass/.test(sql)) return { rows: [{ present: false }] };
-                if (/^\s*UPDATE notebooks[\s\S]*RETURNING version\s*$/i.test(sql)) return { rows: [], ...(await require.cache[dbPath].exports.run(sql, params)) };
-                // The row lock, and the schema init's own transaction: nothing to record.
-                return { rows: /FOR UPDATE/.test(sql) ? [{ id: params[0] }] : [], rowCount: 0 };
-            },
-        }),
-    },
-};
-
+const { pg, close } = usePglitePool();
 const notebookStore = require('./notebookStore');
 
-function reset() { calls.length = 0; state.rowCount = 1; }
+test.before(async () => {
+    await pg.exec(`CREATE TABLE projects (id TEXT PRIMARY KEY, owner_id TEXT, organization_id TEXT NOT NULL DEFAULT '');
+        CREATE TABLE notebook_conversations (notebook_id TEXT NOT NULL, user_id TEXT NOT NULL, message_count INT NOT NULL DEFAULT 0)`);
+    await notebookStore.initDB();
+    // u1's notebooks, each with an activity time an hour apart so the default sort is known.
+    await pg.exec(`
+        INSERT INTO notebooks (id, user_id, name, description, document_md, type, doc_word_count, last_activity_at, created_at) VALUES
+            ('n-sale', 'u1', '50% off', '', '', 'notebook', 0, NOW() - INTERVAL '1 hour', NOW() - INTERVAL '5 days'),
+            ('n-pct', 'u1', '50 percent', '', '', 'notebook', 9, NOW() - INTERVAL '2 hours', NOW() - INTERVAL '1 day'),
+            ('n-under', 'u1', 'a_b', 'plain', '', 'notebook', 0, NOW() - INTERVAL '3 hours', NOW() - INTERVAL '3 days'),
+            ('n-axb', 'u1', 'axb', '', 'body mentions back\\slash', 'notebook', 2, NOW() - INTERVAL '4 hours', NOW() - INTERVAL '4 days'),
+            ('n-desc', 'u1', 'Zeta', 'quarterly figures', '', 'notebook', 0, NOW() - INTERVAL '5 hours', NOW() - INTERVAL '2 days'),
+            ('n-arch', 'u1', 'Old', '', '', 'archive', 0, NOW(), NOW()),
+            ('n-other', 'u2', '50% off', '', '', 'notebook', 0, NOW(), NOW());
+        INSERT INTO notebook_sources (id, notebook_id, type, name, status, word_count) VALUES
+            ('s1', 'n-desc', 'text', 'invoice scan', 'ready', 40),
+            ('s2', 'n-desc', 'text', 'pending', 'processing', 0);
+        INSERT INTO notebook_conversations (notebook_id, user_id, message_count) VALUES ('n-axb', 'u1', 4);
+    `);
+});
+test.after(close);
 
-function capturedUpdate() {
-    const c = [...calls].reverse().find(x => /^UPDATE notebooks SET/i.test(x.sql.trim()));
-    assert.ok(c, 'expected an UPDATE notebooks statement');
-    const cols = [...c.sql.matchAll(/(\w+)\s*=\s*\$(\d+)/g)].map(m => [m[1], c.params[Number(m[2]) - 1]]);
-    return { sql: c.sql, params: c.params, cols: Object.fromEntries(cols) };
-}
+const ids = async (opts) => (await notebookStore.listNotebookCards('u1', opts)).map((c) => c.id);
+const ACTIVITY = ['n-sale', 'n-pct', 'n-under', 'n-axb', 'n-desc'];
 
-// ── buildListCardsQuery ───────────────────────────────────────────
-test('projection never ships document bodies or private columns', () => {
-    const { sql } = notebookStore.buildListCardsQuery('u1', {});
-    for (const col of ['document_content', 'document_md', 'settings', 'instructions', 'pii_token_map', 'knowledge_base_ids']) {
-        assert.ok(!sql.includes(col), `listing SQL must not reference ${col}`);
+// ── listNotebookCards ─────────────────────────────────────────────
+
+test("the listing holds the caller's notebooks of one type, by activity, with counts and no document bodies", async () => {
+    const cards = await notebookStore.listNotebookCards('u1', {});
+    assert.deepStrictEqual(cards.map((c) => c.id), ACTIVITY, 'u2 and the archive type stay out');
+    const desc = cards.find((c) => c.id === 'n-desc');
+    assert.deepStrictEqual([desc.sourceCount, desc.processingCount, desc.sourceWordCount], [2, 1, 40]);
+    assert.strictEqual(cards.find((c) => c.id === 'n-axb').messageCount, 4);
+    for (const c of cards) assert.ok(!('documentContent' in c) && !('documentMd' in c) && !('settings' in c) && !('instructions' in c));
+    assert.deepStrictEqual(await ids({ type: 'archive' }), ['n-arch']);
+});
+
+test('search: %, _ and \\ match literally', async () => {
+    assert.deepStrictEqual(await ids({ search: '50%' }), ['n-sale']);
+    assert.deepStrictEqual(await ids({ search: 'a_b' }), ['n-under']);
+    assert.deepStrictEqual(await ids({ search: 'back\\slash' }), ['n-axb']);
+});
+
+test('search reaches the description, the Markdown mirror and the source names', async () => {
+    assert.deepStrictEqual(await ids({ search: 'quarterly' }), ['n-desc']);
+    assert.deepStrictEqual(await ids({ search: 'mentions' }), ['n-axb']);
+    assert.deepStrictEqual(await ids({ search: 'INVOICE' }), ['n-desc'], 'case-insensitive');
+});
+
+test('an unknown sort key falls back to activity and runs nothing it carries', async () => {
+    assert.deepStrictEqual(await ids({ sort: 'name; DROP TABLE notebooks;--' }), ACTIVITY);
+    assert.ok((await pg.query("SELECT to_regclass('public.notebooks') AS t")).rows[0].t, 'the table is still there');
+});
+
+test('whitelisted sorts order by name, creation and words', async () => {
+    assert.deepStrictEqual(await ids({ sort: 'name' }), ['n-pct', 'n-sale', 'n-under', 'n-axb', 'n-desc']);
+    assert.deepStrictEqual(await ids({ sort: 'created' }), ['n-pct', 'n-desc', 'n-under', 'n-axb', 'n-sale']);
+    assert.deepStrictEqual((await ids({ sort: 'words' })).slice(0, 3), ['n-desc', 'n-pct', 'n-axb'], 'document words plus ready source words');
+});
+
+test('filters: pinned, sources, chat, empty and processing; an unknown filter is ignored', async () => {
+    await pg.query("UPDATE notebooks SET pinned_at = NOW() WHERE id = 'n-axb'");
+    try {
+        assert.deepStrictEqual(await ids({ filter: 'pinned' }), ['n-axb']);
+        assert.deepStrictEqual(await ids({ sort: 'name' }), ['n-axb', 'n-pct', 'n-sale', 'n-under', 'n-desc'], 'pinned always first');
+    } finally {
+        await pg.query("UPDATE notebooks SET pinned_at = NULL WHERE id = 'n-axb'");
     }
-    assert.match(sql, /n\.preview/);
-    assert.match(sql, /AS message_count/);
+    assert.deepStrictEqual(await ids({ filter: 'sources' }), ['n-desc']);
+    assert.deepStrictEqual(await ids({ filter: 'processing' }), ['n-desc']);
+    assert.deepStrictEqual(await ids({ filter: 'chat' }), ['n-axb']);
+    assert.deepStrictEqual(await ids({ filter: 'empty' }), ['n-sale', 'n-under']);
+    assert.deepStrictEqual(await ids({ filter: '1=1; DROP TABLE' }), ACTIVITY);
 });
 
-test('type is always bound as a parameter', () => {
-    const def = notebookStore.buildListCardsQuery('u1', {});
-    assert.match(def.sql, /n\.type = \$2/);
-    assert.strictEqual(def.params[1], 'notebook');
-    const other = notebookStore.buildListCardsQuery('u1', { type: 'archive' });
-    assert.strictEqual(other.params[1], 'archive');
-});
-
-test('search: %, _ and \\ are escaped in the single bound parameter', () => {
-    const { sql, params } = notebookStore.buildListCardsQuery('u1', { search: '50%_\\x' });
-    assert.strictEqual(params[2], '%50\\%\\_\\\\x%');
-    assert.strictEqual((sql.match(/\$3/g) || []).length, 4, 'name/description/document_md/source-name all reuse $3');
-    assert.match(sql, /ILIKE \$3 ESCAPE '\\'/);
-    assert.ok(!sql.includes('50%'), 'raw search text must not appear in the SQL');
-});
-
-test('document_md may be SEARCHED but only via the bound param', () => {
-    const { sql } = notebookStore.buildListCardsQuery('u1', { search: 'foo' });
-    assert.match(sql, /n\.document_md ILIKE \$3/);
-});
-
-test('unknown sort key falls back to activity, never interpolated', () => {
-    const { sql } = notebookStore.buildListCardsQuery('u1', { sort: 'name; DROP TABLE notebooks;--' });
-    assert.match(sql, /COALESCE\(n\.last_activity_at, n\.updated_at\) DESC/);
-    assert.ok(!/DROP/i.test(sql));
-});
-
-test('whitelisted sorts map to their expressions', () => {
-    assert.match(notebookStore.buildListCardsQuery('u1', { sort: 'name' }).sql, /LOWER\(n\.name\) ASC/);
-    assert.match(notebookStore.buildListCardsQuery('u1', { sort: 'created' }).sql, /n\.created_at DESC/);
-    assert.match(notebookStore.buildListCardsQuery('u1', { sort: 'words' }).sql, /n\.doc_word_count \+/);
-});
-
-test('pinned notebooks always order first', () => {
-    const { sql } = notebookStore.buildListCardsQuery('u1', { sort: 'name' });
-    assert.match(sql, /ORDER BY n\.pinned_at DESC NULLS LAST,\s*LOWER\(n\.name\) ASC/);
-});
-
-test('filter whitelist: pinned applies its predicate, unknown filter is ignored', () => {
-    assert.match(notebookStore.buildListCardsQuery('u1', { filter: 'pinned' }).sql, /n\.pinned_at IS NOT NULL/);
-    const evil = notebookStore.buildListCardsQuery('u1', { filter: "1=1; DROP TABLE" });
-    assert.ok(!/DROP/i.test(evil.sql));
-    assert.strictEqual(evil.sql, notebookStore.buildListCardsQuery('u1', {}).sql);
-});
-
-test('limit/offset are clamped and bound', () => {
-    const { sql, params } = notebookStore.buildListCardsQuery('u1', { limit: 10000, offset: -3 });
-    assert.strictEqual(params[params.length - 2], notebookStore.MAX_CARD_LIMIT);
-    assert.strictEqual(params[params.length - 1], 0);
-    assert.match(sql, /LIMIT \$\d+ OFFSET \$\d+/);
-});
-
-test('MAX_CARD_LIMIT is the exported single source of truth for the clamp', () => {
+test('limit and offset are clamped', async () => {
+    await pg.query(`INSERT INTO notebooks (id, user_id, name) SELECT 'bulk' || g, 'u-bulk', 'B' || g FROM generate_series(1, 205) AS g`);
+    assert.strictEqual((await notebookStore.listNotebookCards('u-bulk', { limit: 10000 })).length, notebookStore.MAX_CARD_LIMIT);
     assert.strictEqual(notebookStore.MAX_CARD_LIMIT, 200);
+    assert.deepStrictEqual(await ids({ offset: -3 }), ACTIVITY, 'a negative offset is 0');
+    assert.deepStrictEqual(await ids({ limit: 2, offset: 1 }), ACTIVITY.slice(1, 3));
 });
 
 // ── mapNotebookCardRow ────────────────────────────────────────────
+
 test('mapNotebookCardRow exposes card fields only', () => {
     const mapped = notebookStore.mapNotebookCardRow({
         id: 'n1', name: 'N', description: '', type: 'notebook', version: 3,
@@ -149,88 +124,86 @@ test('mapNotebookCardRow exposes card fields only', () => {
     assert.ok(!('documentContent' in mapped) && !('documentMd' in mapped) && !('settings' in mapped) && !('instructions' in mapped));
 });
 
-// ── _updateNotebook side effects ──────────────────────────────────
-test('0-clause update reports {ok:false, conflict:false, noop:true}', async () => {
-    reset();
-    const r = await notebookStore.updateNotebookCas('nb1', 'u1', {});
-    assert.deepStrictEqual(r, { ok: false, conflict: false, noop: true });
-    assert.strictEqual(calls.length, 0, 'no SQL for a no-op');
+// ── updateNotebook side effects ───────────────────────────────────
+
+let seq = 0;
+async function fresh() {
+    seq += 1;
+    const id = `nb${seq}`;
+    await pg.query("INSERT INTO notebooks (id, user_id, updated_at) VALUES ($1, 'u1', NOW() - INTERVAL '1 day')", [id]);
+    return id;
+}
+const row = async (id) => (await pg.query(
+    'SELECT version, preview, doc_word_count, document_content, last_activity_kind, last_activity_at, pinned_at, updated_at FROM notebooks WHERE id = $1', [id],
+)).rows[0];
+
+test('an update with nothing in it is a no-op and writes nothing', async () => {
+    const id = await fresh();
+    const before = await row(id);
+    assert.deepStrictEqual(await notebookStore.updateNotebookCas(id, 'u1', {}), { ok: false, conflict: false, noop: true });
+    assert.deepStrictEqual(await row(id), before);
 });
 
-test('content write derives preview + doc_word_count and marks edit activity', async () => {
-    reset();
-    const r = await notebookStore.updateNotebookCas('nb1', 'u1', { documentContent: '<p>Hello world</p><p>Second line</p>' });
-    const u = capturedUpdate();
-    assert.strictEqual(u.cols.preview, 'Hello world\nSecond line');
-    assert.strictEqual(u.cols.doc_word_count, 4);
-    assert.match(u.sql, /version = version \+ 1/);
-    assert.match(u.sql, /last_activity_at = NOW\(\)/);
-    assert.match(u.sql, /last_activity_kind = 'edit'/);
-    assert.match(u.sql, /RETURNING version/);
-    assert.deepStrictEqual(r, { ok: true, conflict: false, version: 5 });
+test('a content write derives preview and word count, bumps the version and marks edit activity', async () => {
+    const id = await fresh();
+    const before = await row(id);
+    const r = await notebookStore.updateNotebookCas(id, 'u1', { documentContent: '<p>Hello world</p><p>Second line</p>' });
+    const after = await row(id);
+    assert.deepStrictEqual(r, { ok: true, conflict: false, version: before.version + 1 });
+    assert.strictEqual(after.preview, 'Hello world\nSecond line');
+    assert.strictEqual(after.doc_word_count, 4);
+    assert.strictEqual(after.version, before.version + 1);
+    assert.strictEqual(after.last_activity_kind, 'edit');
 });
 
-test('markdown body: preview comes from the stripped mirror', async () => {
-    reset();
-    await notebookStore.updateNotebook('nb1', 'u1', { documentContent: '# Title\n\nHello **world**' });
-    const u = capturedUpdate();
-    assert.strictEqual(u.cols.preview, 'Title Hello world');
-    assert.strictEqual(u.cols.doc_word_count, 3);
+test('a Markdown body: the preview comes from the stripped mirror', async () => {
+    const id = await fresh();
+    await notebookStore.updateNotebook(id, 'u1', { documentContent: '# Title\n\nHello **world**' });
+    const after = await row(id);
+    assert.strictEqual(after.preview, 'Title Hello world');
+    assert.strictEqual(after.doc_word_count, 3);
 });
 
 test('HTML content is sanitized before it reaches the row', async () => {
-    reset();
-    await notebookStore.updateNotebook('nb1', 'u1', { documentContent: '<p>hi</p><script>alert(1)</script>' });
-    const u = capturedUpdate();
-    assert.ok(!/script|alert/i.test(u.cols.document_content), 'script must be stripped at the store choke point');
-    assert.match(u.cols.document_content, /<p>hi<\/p>/);
+    const id = await fresh();
+    await notebookStore.updateNotebook(id, 'u1', { documentContent: '<p>hi</p><script>alert(1)</script>' });
+    const { document_content: stored } = await row(id);
+    assert.ok(!/script|alert/i.test(stored), 'script must be stripped at the store choke point');
+    assert.match(stored, /<p>hi<\/p>/);
 });
 
-test('pinned is a non-content clause: no version bump, no activity', async () => {
-    reset();
-    const r = await notebookStore.updateNotebookCas('nb1', 'u1', { pinned: true });
-    const u = capturedUpdate();
-    assert.match(u.sql, /pinned_at = NOW\(\)/);
-    assert.ok(!/version = version \+ 1/.test(u.sql));
-    assert.ok(!/last_activity/.test(u.sql));
-    assert.strictEqual(r.ok, true);
+test('a pin is not content and not recency: no version bump, no activity, no updated_at', async () => {
+    const id = await fresh();
+    const before = await row(id);
+    assert.strictEqual((await notebookStore.updateNotebookCas(id, 'u1', { pinned: true })).ok, true);
+    let after = await row(id);
+    assert.ok(after.pinned_at);
+    assert.strictEqual(after.version, before.version);
+    assert.strictEqual(after.last_activity_kind, before.last_activity_kind);
+    assert.strictEqual(String(after.updated_at), String(before.updated_at), 'a pin must not read as "just now"');
 
-    reset();
-    await notebookStore.updateNotebookCas('nb1', 'u1', { pinned: false });
-    assert.match(capturedUpdate().sql, /pinned_at = NULL/);
+    await notebookStore.updateNotebookCas(id, 'u1', { pinned: false });
+    after = await row(id);
+    assert.strictEqual(after.pinned_at, null);
+    assert.strictEqual(String(after.updated_at), String(before.updated_at), 'unpin is pin-only too');
 });
 
-test('pin-only write does NOT bump updated_at (pinning is not recency)', async () => {
-    reset();
-    await notebookStore.updateNotebookCas('nb1', 'u1', { pinned: true });
-    let u = capturedUpdate();
-    assert.match(u.sql, /pinned_at = NOW\(\)/);
-    assert.ok(!/updated_at = NOW\(\)/.test(u.sql), 'legacy rows fall back to updated_at for recency — a pin must not read as "just now"');
-
-    reset();
-    await notebookStore.updateNotebookCas('nb1', 'u1', { pinned: false });
-    assert.ok(!/updated_at = NOW\(\)/.test(capturedUpdate().sql), 'unpin is pin-only too');
-});
-
-test('pinned combined with another field still bumps updated_at', async () => {
-    reset();
-    await notebookStore.updateNotebookCas('nb1', 'u1', { pinned: true, name: 'Renamed' });
-    const u = capturedUpdate();
-    assert.match(u.sql, /pinned_at = NOW\(\)/);
-    assert.match(u.sql, /updated_at = NOW\(\)/);
+test('a pin combined with another field still bumps updated_at', async () => {
+    const id = await fresh();
+    const before = await row(id);
+    await notebookStore.updateNotebookCas(id, 'u1', { pinned: true, name: 'Renamed' });
+    const after = await row(id);
+    assert.ok(after.pinned_at);
+    assert.ok(new Date(after.updated_at) > new Date(before.updated_at));
 });
 
 // ── touchActivity wiring ──────────────────────────────────────────
-test('addSource and deleteSource record source activity', async () => {
-    reset();
-    await notebookStore.addSource({ notebookId: 'nb1', type: 'text', name: 'S' });
-    let touch = calls.find(c => /last_activity_kind = \$2/.test(c.sql));
-    assert.ok(touch, 'addSource must touch activity');
-    assert.deepStrictEqual(touch.params, ['nb1', 'source']);
 
-    reset();
-    await notebookStore.deleteSource('s1', 'nb1');
-    touch = calls.find(c => /last_activity_kind = \$2/.test(c.sql));
-    assert.ok(touch, 'deleteSource must touch activity');
-    assert.deepStrictEqual(touch.params, ['nb1', 'source']);
+test('addSource and deleteSource record source activity', async () => {
+    const id = await fresh();
+    const s = await notebookStore.addSource({ notebookId: id, type: 'text', name: 'S' });
+    assert.strictEqual((await row(id)).last_activity_kind, 'source');
+    await pg.query("UPDATE notebooks SET last_activity_kind = NULL WHERE id = $1", [id]);
+    await notebookStore.deleteSource(s.id, id);
+    assert.strictEqual((await row(id)).last_activity_kind, 'source');
 });

@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { AppWindow, Clock, Loader2, Settings2, Sparkles, Upload } from 'lucide-react';
 import ActionPill from './ActionPill';
 import InstructionsEditor from './InstructionsEditor';
-import { API_BASE, authFetch } from '@/utils/helpers';
 import ModelTierSelector from '@/components/licensing/ModelTierSelector';
 import MarkdownRenderer from '@/components/renderers/MarkdownRenderer';
 import { toast } from '@/components/shared/Toast';
@@ -17,6 +16,7 @@ import type { Skill } from '@/api/queries/skills';
 import type { TranslateFn, TranslateParams } from '@/hooks/useTranslation';
 import type { Schedule } from './useAgentSchedules';
 import { logger } from '@/utils/logger';
+import { apiFetch } from '@/api/typedRequest';
 
 type OpenSetter = Dispatch<SetStateAction<boolean>>;
 
@@ -169,13 +169,13 @@ export default function BuilderConfigPanel({
                         onEdit={(r: Schedule) => { setSchedulesPickerOpen(false); setScheduleModal({ mode: 'edit', schedule: r }); }}
                         onToggle={async (r: Schedule) => {
                             try {
-                                await authFetch(`${API_BASE}/api/cowork/${r.id}/toggle`, { method: 'POST' });
+                                await apiFetch('POST /api/cowork/{id}/toggle', { params: { id: r.id } });
                                 await refreshAgentSchedules();
                             } catch (err) { logger.debug('non-fatal', err); }
                         }}
                         onRunNow={async (r: Schedule) => {
                             try {
-                                await authFetch(`${API_BASE}/api/cowork/${r.id}/run-now`, { method: 'POST' });
+                                await apiFetch('POST /api/cowork/{id}/run-now', { params: { id: r.id } });
                                 await refreshAgentSchedules();
                             } catch (err) { logger.debug('non-fatal', err); }
                         }}
@@ -203,10 +203,8 @@ export default function BuilderConfigPanel({
                         onToggle={toggleSkill}
                         onCreate={async ({ name: skillName, description: skillDesc, instructions: skillInstr, automationId: skillAutomationId }) => {
                             try {
-                                const res = await authFetch(`${API_BASE}/api/skills`, {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
+                                const res = await apiFetch('POST /api/skills', {
+                                    body: {
                                         name: skillName,
                                         description: skillDesc,
                                         instructions: skillInstr,
@@ -216,7 +214,7 @@ export default function BuilderConfigPanel({
                                         // it on demand instead of injecting a body.
                                         dynamicActivation: !!skillAutomationId,
                                         automationId: skillAutomationId || null,
-                                    }),
+                                    },
                                 });
                                 if (!res.ok) throw new Error(await res.text());
                                 const created = await res.json();

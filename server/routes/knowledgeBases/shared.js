@@ -4,8 +4,8 @@
  *
  * Everything the KB sub-routers under routes/knowledgeBases/ have in common:
  * the system-KB beta resolution, the usage-context query helpers, the SSRF
- * screening used by every caller-influenced fetch, and the access/management
- * guards. Module-level state (SEARCH_SERVICE_URL, SYSTEM_KB_BETA_SLUGS) lives
+ * screening used by every caller-influenced fetch, and the access gate (auth/kbAccess.mts,
+ * through support/kbAccess.js). Module-level state (SEARCH_SERVICE_URL, SYSTEM_KB_BETA_SLUGS) lives
  * here and nowhere else.
  *
  * No request schema lives here: this file declares no route. The query helpers
@@ -14,7 +14,7 @@
  */
 
 const kbStore = require('../../stores/knowledgeBases');
-const { resolveUserOrgIds, resolvePermissionsByOrg, resolveUserGroups: resolveUserGroupsById } = require('../../auth');
+const { resolveUserGroups: resolveUserGroupsById } = require('../../auth');
 const { userHasBetaFeature } = require('../../core/entitlements/betaFeatures');
 const { PROJECT_FILES_SOURCE_KIND } = require('../../core/kb/projectFilesKb');
 require('../../core/kb/kbIngestionHelpers');
@@ -117,7 +117,7 @@ const { guardedFetch } = require('../../core/kb/fetchGuard');
 
 // Auth helper
 /** @param {import('express').Request} req */
-const getUserId = (/** @type {import('express').Request} */ req) => sessionUser(req).id;
+const getUserId = (/** @type {import('express').Request<any, any, any, any>} */ req) => sessionUser(req).id;
 
 // Resolve user's group IDs (used for shared_groups filtering) — delegates
 // to the audience home (auth/audience.js), the single source of truth for
@@ -125,27 +125,12 @@ const getUserId = (/** @type {import('express').Request} */ req) => sessionUser(
 /** @param {import('express').Request} req */
 const resolveUserGroups = (req) => resolveUserGroupsById(getUserId(req));
 
-// The KB access check + org-admin resolution now live in support/kbAccess.js so
-// that every router which lets a client name a kb id (this one, notebooks)
-// applies the identical policy and the guards can never drift.
-const { canAccessKB, resolveAdminOrgIds } = require('../../support/kbAccess');
-
-/**
- * Management check for KB settings mutations. Mirrors the
- * publish route's owner-or-manager policy but adds same-org scoping:
- * manage_knowledge must hold IN the KB's organisation.
- * Does NOT grant content read access — GET/document/search routes keep
- * canAccessKB.
- * @param {import('express').Request} req
- * @param {Record<string, any>} kb
- */
-async function canManageKB(req, kb) {
-    const userId = getUserId(req);
-    const orgIds = await resolveUserOrgIds(req);
-    const hasPerm = !!kb?.organization_id
-        && (await resolvePermissionsByOrg(userId, req.session)).holds('manage_knowledge', kb.organization_id);
-    return kbStore.canUserManageKB(kb, userId, orgIds, hasPerm);
-}
+// Who may read or manage a base is decided in auth/kbAccess.mts, wired once in
+// support/kbAccess.js, so every router that lets a client name a kb id (this
+// one, notebooks, projects) applies the identical policy. `requireKbGrade` is
+// the tagged gate every `/:id` route here puts in its chain; the handler takes
+// the loaded base from `kbAccessOf(req)`.
+const { canAccessKB, canManageKB, requireKbGrade, kbAccessOf, resolveAdminOrgIds } = require('../../support/kbAccess');
 
 /**
  * Guard for mutating routes. System-managed KBs are read-only — their content
@@ -233,6 +218,8 @@ module.exports = {
     canAccessKB,
     resolveAdminOrgIds,
     canManageKB,
+    requireKbGrade,
+    kbAccessOf,
     blockIfSystemKB,
     ensureKbSource,
     decorateKbList,

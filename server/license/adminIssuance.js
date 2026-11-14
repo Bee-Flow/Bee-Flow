@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * Admin License Issuance — direct license minting from the admin console.
  *
@@ -59,6 +60,9 @@ function base64UrlDecode(str) {
     return Buffer.from(str, 'base64');
 }
 
+/**
+ * @param {unknown} payload
+ */
 function encodeAdminLicenseBlob(payload) {
     const json = JSON.stringify(payload);
     return BLOB_PREFIX + base64UrlEncode(json);
@@ -95,6 +99,9 @@ function decodeAdminLicenseEnvelope(blob) {
     return decoded;
 }
 
+/**
+ * @param {{ issuer?: string | null } | null | undefined} license
+ */
 function isAdminIssuedLicense(license) {
     return !!license && license.issuer === ADMIN_ISSUER;
 }
@@ -125,9 +132,7 @@ function normalizeExpiresAt(expiresAt) {
  * `limitsOverride` is merged over them; `notes` is free text, audit only; `activatedBy` the
  * admin user id.
  *
- * @param {{ scope?: 'organization'|'server', organizationId?: string, tier: string, expiresAt: string|Date,
- *   billingInterval?: string, featuresOverride?: string[] | null, limitsOverride?: Record<string, unknown> | null,
- *   maxSeats?: number|null, notes?: string | null, activatedBy?: string | null }} args
+ * @param {IssueAdminLicenseArgs} args
  */
 async function issueAdminLicense({
     scope = 'organization',
@@ -140,7 +145,7 @@ async function issueAdminLicense({
     maxSeats = null,
     notes = null,
     activatedBy = null,
-} = {}) {
+} = /** @type {IssueAdminLicenseArgs} */ ({})) {
     if (scope !== 'organization' && scope !== 'server') {
         throw new Error(`Unsupported scope: ${scope}`);
     }
@@ -216,6 +221,7 @@ async function issueAdminLicense({
  * a fresh license id so each install has its own row, but preserves tier,
  * expiry, billing interval, and metadata.
  * @param {string} blob
+ * @param {{ activatedBy?: string | null, organizationId?: string | null }} [opts]
  */
 async function importAdminLicense(blob, { activatedBy = null, organizationId = null } = {}) {
     const decoded = decodeAdminLicenseBlob(blob);
@@ -244,6 +250,9 @@ async function importAdminLicense(blob, { activatedBy = null, organizationId = n
     });
 }
 
+/**
+ * @param {import('./store').LicenseRecord | null | undefined} lic
+ */
 function publicLicenseShape(lic) {
     if (!lic) return null;
     return {
@@ -264,6 +273,12 @@ function publicLicenseShape(lic) {
         adminGrant: isAdminIssuedLicense(lic),
     };
 }
+
+/**
+ * @typedef {{ scope?: 'organization'|'server', organizationId?: string | null, tier: string, expiresAt: string|Date,
+ *   billingInterval?: string, featuresOverride?: string[] | null, limitsOverride?: Record<string, unknown> | null,
+ *   maxSeats?: number|null, notes?: string | null, activatedBy?: string | null }} IssueAdminLicenseArgs
+ */
 
 module.exports = {
     ADMIN_BLOB_FORBIDDEN,

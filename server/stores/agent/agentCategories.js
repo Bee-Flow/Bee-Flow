@@ -4,7 +4,8 @@
  */
 
 const { randomUUID } = require('crypto');
-const { run, getOne, getAll } = require('../../db');
+const { run, getOne, getAll, withTransaction } = require('../../db');
+const { rollback } = require('../../utils/txRollback');
 const { initDB } = require('./initSchema');
 const { buildUpdate } = require('../lib/sqlBuilder');
 
@@ -108,12 +109,15 @@ async function reassignAgentsCategory(fromId, toId = null) {
  */
 async function deleteAgentCategory(id, orgId = undefined) {
     await initDB();
-    // Unset category_id on agents that use this category
-    await run('UPDATE agents SET category_id = NULL WHERE category_id = $1', [id]);
-    const { rowCount } = orgId === undefined
-        ? await run('DELETE FROM agent_categories WHERE id = $1', [id])
-        : await run('DELETE FROM agent_categories WHERE id = $1 AND organization_id IS NOT DISTINCT FROM $2', [id, orgId || null]);
-    return rowCount > 0;
+    // The agents let go of the category and the category goes, together; a
+    // category this call may not delete keeps its agents too.
+    return withTransaction(async (client) => {
+        await client.query('UPDATE agents SET category_id = NULL WHERE category_id = $1', [id]);
+        const { rowCount } = orgId === undefined
+            ? await client.query('DELETE FROM agent_categories WHERE id = $1', [id])
+            : await client.query('DELETE FROM agent_categories WHERE id = $1 AND organization_id IS NOT DISTINCT FROM $2', [id, orgId || null]);
+        return (rowCount ?? 0) > 0 ? true : rollback(false);
+    });
 }
 
 module.exports = { getAgentCategories, createAgentCategory, countAgentsInCategory, getAgentCategory, findAgentCategoryByName, updateAgentCategory, reassignAgentsCategory, deleteAgentCategory };

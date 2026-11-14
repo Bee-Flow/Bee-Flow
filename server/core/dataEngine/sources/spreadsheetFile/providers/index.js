@@ -87,7 +87,7 @@ function providerFor(name) {
 
 module.exports = { providerFor, formatOf, isSpreadsheetName, SPREADSHEET_MIMES, EXT_TO_FORMAT, PROVIDERS };
 
-/** @typedef {{ provider?: string, fileId?: string, id?: string, driveId?: string|null, path?: string|null, name?: string|null, owned?: boolean, writable?: boolean, size?: number, mimeType?: string, format?: string|null, webUrl?: string, marker?: object, [k: string]: unknown }} FileRef */
+/** @typedef {{ provider?: string, fileId?: string, id?: string, driveId?: string|null, path?: string|null, name?: string|null, owned?: boolean, writable?: boolean, size?: number|null, mimeType?: string|null, format?: string|null, webUrl?: string|null, marker?: object, [k: string]: unknown }} FileRef */
 
 /** @typedef {{ marker?: { modified?: string, modifiedTime?: string, lastModifiedDateTime?: string }, name?: string, size?: number, mimeType?: string, format?: string|null, path?: string, webUrl?: string, owned?: boolean, writable?: boolean, file: FileRef }} FileProbe */
 

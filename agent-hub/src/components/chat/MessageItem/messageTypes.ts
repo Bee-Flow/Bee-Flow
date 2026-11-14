@@ -1,5 +1,4 @@
 import type { ChatMessage as EngineMessage } from '@/hooks/useChatEngine/types';
-import type { TerminalActivity } from './TerminalProgress';
 import type { TestChatInfo } from './TestChatNotice';
 
 /**
@@ -19,7 +18,6 @@ export type ChatMessage = EngineMessage & {
     compactionArtifact?: unknown;
     dlpRedactedCount?: number;
     testChat?: TestChatInfo | null;
-    terminalActivity?: TerminalActivity | null;
 };
 
 /** A translate function that takes a string fallback, as the message components call it. */

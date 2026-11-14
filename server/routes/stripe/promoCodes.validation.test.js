@@ -176,3 +176,15 @@ test('the activate/deactivate PUTs take only their path id and are unaffected', 
     assert.strictEqual(res.statusCode, 200);
     assert.deepStrictEqual(touched[0], { what: 'deactivatePromoCode', args: ['promo_1'] });
 });
+
+test('activating and deactivating a promo code take no fields: one sent is refused by name, Stripe is not called', async () => {
+    for (const action of ['activate', 'deactivate']) {
+        const res = await dispatch({ method: 'PUT', url: `/promo-codes/promo_1/${action}`, body: { active: true } });
+        assert.strictEqual(res.statusCode, 400, action);
+        assert.match(res.body.error, /does not take "active"/);
+    }
+    assert.deepStrictEqual(touched, []);
+    const ok = await dispatch({ method: 'PUT', url: '/promo-codes/promo_1/activate', body: undefined });
+    assert.strictEqual(ok.statusCode, 200);
+    assert.deepStrictEqual(touched, [{ what: 'activatePromoCode', args: ['promo_1'] }]);
+});

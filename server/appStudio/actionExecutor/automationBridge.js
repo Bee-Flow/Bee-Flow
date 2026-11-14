@@ -12,6 +12,7 @@ const studioAppDataStore = require('../../stores/studioAppDataStore');
 const { LIMITS } = require('../componentSpecs');
 const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
+const { envInt } = require('../../utils/envNumber.mts');
 
 // Hygiene caps on viewer-supplied form values flowing into automation inputs
 // (shared with routes/studioAppsRun.js, which also uses them for its own
@@ -89,7 +90,7 @@ function isAppTriggerAutomation(automation) {
 
 // Lifetime of the signed download URL handed to the automation for a `file`
 // input. Long/paused runs (approvals) should fetch files early in the flow.
-const FILE_URL_TTL_S = parseInt(process.env.STUDIO_APP_FILE_URL_TTL_S, 10) || 3600;
+const FILE_URL_TTL_S = envInt('STUDIO_APP_FILE_URL_TTL_S', 3600, { min: 1 });
 
 // A file param's expanded runtime value. mime/size ALWAYS come from the
 // attachment LEDGER (never the client); `name` is the client's display name,

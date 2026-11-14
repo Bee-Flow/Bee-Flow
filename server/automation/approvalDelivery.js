@@ -1,3 +1,4 @@
+// @typecheck
 /** @typedef {import('../integrations/nextcloudClient.types').NcAuth} NcAuth */
 /**
  * approvalDelivery — putting an approval card where the approver already is.
@@ -46,6 +47,9 @@ const {
     APPROVE_EMOJI, REJECT_EMOJI, approvalAnnouncement, renderTalkCard, renderBell,
 } = require('./approvalAnnouncement');
 const { fallback, bestEffort } = require('../utils/bestEffort');
+// The Nextcloud clients belong to integrations/, a feature; they are reached
+// through the registry that feature fills at boot, looked up at call time.
+const { integrationClient } = require('../core/integrations/integrationClients');
 
 /**
  * Org-level default conversation for approval cards (plain config, not a secret).
@@ -107,7 +111,7 @@ function buildApprovalCard({ approval, automationTitle = '', url, stage = null, 
 }
 
 function talkCardText(announcement) {
-    const { MAX_MESSAGE_CHARS } = require('../integrations/nextcloudTalkBot');
+    const { MAX_MESSAGE_CHARS } = integrationClient('nextcloudTalkBot');
     // Backstop only: every part of the card is capped, so this never cuts.
     return clampText(renderTalkCard(announcement), MAX_MESSAGE_CHARS);
 }
@@ -140,7 +144,7 @@ async function resolveNcContext(userId) {
     try {
         const { resolveUserSession } = require('../core/automationRunner/engine');
         const session = await resolveUserSession(userId).catch((e) => fallback('automation/approvalDelivery:resolveNcContext', e, null));
-        const ncClient = require('../integrations/nextcloudClient');
+        const ncClient = integrationClient('nextcloud');
         const ctx = await ncClient.resolveAuth(session, userId);
         return ctx && ctx.baseUrl && typeof ctx.fetch === 'function' ? ctx : null;
     } catch { return null; }
@@ -158,7 +162,7 @@ async function resolveNcContext(userId) {
 async function resolveNcBaseUrl(ctx) {
     if (ctx?.baseUrl) return ctx.baseUrl;
     try {
-        return await require('../integrations/nextcloudClient').getBaseUrl();
+        return await integrationClient('nextcloud').getBaseUrl();
     } catch { return null; }
 }
 
@@ -183,9 +187,11 @@ async function resolveNcBaseUrl(ctx) {
  * A card with no recoverable message id is still a delivery — it carries the
  * deep link — it simply cannot count reactions, and the ledger row shows that
  * by having no messageId.
+ * @param {{ orgId: string | null, roomToken: string, message: string, ownerId?: string | null, silent?: boolean,
+ *   replyTo?: string | number | null, ctx?: Awaited<ReturnType<typeof resolveNcContext>> }} card
  */
 async function postTalkCard({ orgId, roomToken, message, ownerId = null, silent = false, replyTo = null, ctx = undefined }) {
-    const talkBot = require('../integrations/nextcloudTalkBot');
+    const talkBot = integrationClient('nextcloudTalkBot');
     const secret = await talkBot.getBotSecret(orgId);
     // Rebuilding an offline session is the expensive part of this path, so the
     // caller may hand one in — a delivery that posts a card, seeds a reaction
@@ -195,9 +201,9 @@ async function postTalkCard({ orgId, roomToken, message, ownerId = null, silent 
     if (secret) {
         const baseUrl = await resolveNcBaseUrl(ctx);
         if (baseUrl) {
-            const res = await talkBot.postBotMessage({
+            const res = /** @type {Record<string, any>} */ (await talkBot.postBotMessage({
                 baseUrl, secret, roomToken, message, replyTo, silent,
-            }).catch(e => ({ ok: false, status: 0, error: e.message }));
+            }).catch(e => ({ ok: false, status: 0, error: e.message })));
             if (res.ok) {
                 // The id lookup is a READ, which the bot has no surface for —
                 // it needs a user/connector identity. Without one the card is
@@ -287,8 +293,8 @@ async function deliverApprovalToNextcloud({ approval, automation = null, channel
             report.talk = { ok: false, error: 'no Talk conversation configured for approval cards' };
         } else {
             const message = talkCardText(announcement);
-            const res = await postTalkCard({ orgId, roomToken, message, ownerId, ctx })
-                .catch(e => ({ ok: false, via: null, error: e.message }));
+            const res = /** @type {Record<string, any>} */ (await postTalkCard({ orgId, roomToken, message, ownerId, ctx })
+                .catch(e => ({ ok: false, via: null, error: e.message })));
             report.talk = res;
             await automationStore.recordApprovalDelivery({
                 approvalId: approval.id,
@@ -311,7 +317,7 @@ async function deliverApprovalToNextcloud({ approval, automation = null, channel
             // a failure here changes nothing about who may decide.
             if (res.ok && res.messageId && res.via === 'bot') {
                 try {
-                    const talkBot = require('../integrations/nextcloudTalkBot');
+                    const talkBot = integrationClient('nextcloudTalkBot');
                     const secret = await talkBot.getBotSecret(orgId);
                     if (secret && ctx?.baseUrl && !announcement.answerInApp) {
                         await talkBot.postBotReaction({
@@ -325,7 +331,7 @@ async function deliverApprovalToNextcloud({ approval, automation = null, channel
     }
 
     if (wantBell) {
-        const { sendAdminNotification } = require('../integrations/nextcloudAdminNotify');
+        const { sendAdminNotification } = integrationClient('nextcloudAdminNotify');
         const userStore = require('../stores/userStore');
         const bell = renderBell(announcement);
         for (const userId of Array.isArray(recipientIds) ? recipientIds : []) {
@@ -360,6 +366,7 @@ async function deliverApprovalToNextcloud({ approval, automation = null, channel
  * Reply into the conversation a card was posted in — the 👎 nudge and the
  * "counted it" acknowledgement. Best-effort and deliberately terse: chat noise
  * about approvals is the fastest way to get the bot removed from the room.
+ * @param {{ orgId?: string | null, roomToken?: string | null, message: string, replyTo?: string | number | null, ownerId?: string | null }} reply
  */
 async function replyInTalk({ orgId, roomToken, message, replyTo = null, ownerId = null }) {
     if (!roomToken || !String(message || '').trim()) return { ok: false, error: 'nothing to say' };
@@ -390,4 +397,4 @@ module.exports = {
 
 /** @typedef {{ ok: boolean, via?: string|null, roomToken?: string, messageId?: string|null, referenceId?: string, error?: string }} TalkCardResult */
 
-/** @typedef {{ title?: string, organizationId?: string | null, userId?: string, definition?: unknown }} ApprovalAutomation  the parts of an automation a card reads */
+/** @typedef {{ title?: string, organizationId?: string | null, userId?: string, definition?: { notificationSettings?: Record<string, any>, [k: string]: unknown } }} ApprovalAutomation  the parts of an automation a card reads */

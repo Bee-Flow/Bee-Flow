@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * "Which table is this step allowed to touch, and as what?" — resolved ONCE,
  * for every step type that names a datatable.
@@ -33,7 +34,7 @@
 
 /** A step-level failure in the shape the runner's on_error branches match on. */
 function fail(message, errorClass) {
-    const e = new Error(message);
+    const e = /** @type {Error & { errorClass?: unknown }} */ (new Error(message));
     e.errorClass = errorClass;
     return e;
 }

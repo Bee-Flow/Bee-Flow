@@ -476,3 +476,10 @@ test('disconnect: a Google SSO session keeps its own tokens', async () => {
     assert.strictEqual(session.oauthProvider, 'google');
     assert.strictEqual(session.accessToken, 'google-at');
 });
+
+test('disconnect: a field sent is refused by name, and nothing is revoked', async () => {
+    resetFx();
+    await assert.rejects(dispatch({ method: 'POST', url: '/disconnect', body: { provider: 'other' }, session: makeSession() }),
+        (err) => err.status === 400 && /Disconnecting Microsoft 365 does not take "provider"/.test(err.message));
+    assert.deepStrictEqual(fx.revokes, []);
+});

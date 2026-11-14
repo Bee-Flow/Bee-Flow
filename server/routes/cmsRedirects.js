@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Redirect manager routes of the CMS, mounted by routes/cms.js under
  * /sites/:siteId/redirects behind requireAdmin + attachSiteIdFromParam:
@@ -57,9 +57,11 @@ function asHttp(err) {
 
 function createRedirectsRouter() {
     const router = express.Router({ mergeParams: true });
+    /** @param {import('express').Request} req  mounted behind the :siteId gate, which set req.siteId */
+    const siteIdOf = (req) => /** @type {string} */ (req.siteId);
 
     router.get('/', async (req, res) => {
-        res.json(await cmsStore.getRedirects(req.siteId, { fresh: true }));
+        res.json(await cmsStore.getRedirects(siteIdOf(req), { fresh: true }));
     });
 
     /**
@@ -69,27 +71,27 @@ function createRedirectsRouter() {
      * @param {Record<string, unknown> & { id?: string }} details
      */
     const audit = (req, action, details) => require('../stores/userStore').logAccessAudit(
-        action, 'cms_redirect', details.id || req.siteId, req.session?.user?.id || null, null, { siteId: req.siteId, ...details }, req.session?.user?.organizationId || null,
+        action, 'cms_redirect', details.id || siteIdOf(req), req.session?.user?.id || null, null, { siteId: siteIdOf(req), ...details }, req.session?.user?.organizationId || null,
     );
 
     router.post('/', writeLimiter, setBody, async (req, res) => {
         try {
-            const { entry, redirects } = await cmsStore.setRedirect(req.siteId, req.body);
+            const { entry, redirects } = await cmsStore.setRedirect(siteIdOf(req), req.body);
             await audit(req, 'cms.redirect.set', { id: entry.id, from: entry.from, external: entry.external, ...(entry.external ? { host: hostOf(entry.to) } : {}) });
             res.json({ success: true, entry, redirects });
         } catch (err) { throw asHttp(err); }
     });
 
     router.put('/hosts', writeLimiter, hostsBody, async (req, res) => {
-        const before = (await cmsStore.getRedirects(req.siteId, { fresh: true })).allowedHosts;
-        const doc = await cmsStore.setRedirectHosts(req.siteId, req.body.hosts);
+        const before = (await cmsStore.getRedirects(siteIdOf(req), { fresh: true })).allowedHosts;
+        const doc = await cmsStore.setRedirectHosts(siteIdOf(req), req.body.hosts);
         await audit(req, 'cms.redirect.hosts', { before, after: doc.allowedHosts });
         res.json({ success: true, ...doc });
     });
 
     router.delete('/:id', writeLimiter, async (req, res) => {
         const id = String(req.params.id || '');
-        const removed = await cmsStore.removeRedirect(req.siteId, id);
+        const removed = await cmsStore.removeRedirect(siteIdOf(req), id);
         if (!removed) throw new HttpError(404, 'redirect_not_found', 'Redirect not found');
         await audit(req, 'cms.redirect.delete', { id });
         res.json({ success: true });

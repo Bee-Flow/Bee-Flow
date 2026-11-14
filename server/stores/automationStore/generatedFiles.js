@@ -109,7 +109,7 @@ async function listExpiredGeneratedFiles(limit = 200) {
         `SELECT * FROM automation_generated_files WHERE expires_at < NOW() ORDER BY expires_at LIMIT $1`,
         [limit],
     );
-    return rows.map(rowToGeneratedFile);
+    return rows.map((r) => /** @type {NonNullable<ReturnType<typeof rowToGeneratedFile>>} */ (rowToGeneratedFile(r))); // a selected row maps, never to null
 }
 
 /** @param {string[]} ids */

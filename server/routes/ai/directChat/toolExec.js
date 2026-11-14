@@ -33,7 +33,7 @@ const { isDocumentTool, executeDocumentTool } = require('../../../integrations/d
 const { isDbTool, executeDbTool } = require('../../../integrations/webpageDbTools');
 const { executeProposeWebpagePlan } = require('../../../integrations/webpagePlanTool');
 const { untokeniseToolArgs } = require('../../../core/dlp/applyTokenMapToOutbound');
-const { isNotebookWriteTool } = require('./notebookWriteGate');
+const { isNotebookWriteTool } = require('../../../usecases/ai/directChat/notebookWriteGate');
 const guardrailEventStore = require('../../../stores/guardrailEventStore');
 const configStore = require('../../../stores/configStore');
 const log = require('../../../telemetry/log');
@@ -104,7 +104,7 @@ async function executeDirectChatToolCall(toolCall, ctx) {
     let toolArgs = {};
     try { toolArgs = JSON.parse(toolCall.function?.arguments || '{}'); } catch (e) { fallback('routes/ai/directChat/toolExec:executeDirectChatToolCall', e); /* tool arguments are not valid JSON, call the tool with none */ }
     // Only a name offered this turn is dispatched, ahead of the DLP restore (./offeredToolGate.mts).
-    const unoffered = require('./offeredToolGate.mts').refuseUnofferedTool(toolCall, toolName, ctx);
+    const unoffered = require('../../../usecases/ai/directChat/offeredToolGate.mts').refuseUnofferedTool(toolCall, toolName, ctx);
     if (unoffered) return unoffered;
     // Restore DLP tokens in outbound tool args so write-side tools
     // (docs/sheets/gmail/calendar) get the real value, not the

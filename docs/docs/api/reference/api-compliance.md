@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/compliance`
 
-121 routes, 72 with a request schema. Back to the [endpoint reference](../reference.md).
+121 routes, 77 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `access-audit`
 
@@ -118,7 +118,7 @@ No request schema.
 
 **Access:** Signed-in user · Permission `admin_compliance` · the handler also checks who the caller is
 
-No request schema.
+**Body:** object (no other keys)
 
 ## `calendar`
 
@@ -203,7 +203,11 @@ No request schema.
 
 **Access:** Signed-in user · Permission `admin_compliance` · the handler also checks who the caller is
 
-No request schema.
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `subjectId` | string or null |  |  |
 
 ### `GET /api/compliance/checks/:id/history`
 
@@ -219,7 +223,7 @@ No request schema.
 
 **Access:** Signed-in user · Permission `admin_compliance` · the handler also checks who the caller is
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `POST /api/compliance/checks/:id/state`
 
@@ -239,7 +243,7 @@ No request schema.
 
 **Access:** Signed-in user · Permission `admin_compliance` · the handler also checks who the caller is
 
-No request schema.
+**Body:** object (no other keys)
 
 ## `counts`
 
@@ -380,7 +384,7 @@ No request schema.
 
 ### `POST /api/compliance/dpia/:agentId`
 
-**Access:** Signed-in user · Permission `admin_compliance` · middleware `chatMonitoringDpiaHook` · the handler also checks who the caller is
+**Access:** Signed-in user · Permission `admin_compliance` · middleware `requireOrgAgent`, `chatMonitoringDpiaHook` · the handler also checks who the caller is
 
 **Body**
 
@@ -1220,5 +1224,10 @@ No request schema.
 
 **Access:** Signed-in user · Permission `admin_compliance` · the handler also checks who the caller is
 
-No request schema.
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `operator` | string | yes | min length 1 |
+| `confirmed` | boolean |  |  |
 

@@ -315,7 +315,7 @@ test('app_inspect_catalog answers an unknown name or family without failing the 
 });
 
 test('every shipped family is answered whole by one call, within the builder\'s tool-result limit', () => {
-    const { truncateJson } = require('../../routes/ai/appStudioBuilder/turnLoop');
+    const { truncateJson } = require('../../usecases/ai/appStudioBuilder/turnLoop');
     const families = [...new Set(extensionItems().map((item) => item.family))];
     for (const family of families) {
         const out = applyInspectCatalog({ family });

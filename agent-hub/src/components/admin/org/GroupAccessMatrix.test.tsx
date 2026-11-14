@@ -4,11 +4,12 @@
 // exception: "All members" is a real toggle for it, and a group can hold it
 // while All members does not.
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, expect, it, vi } from 'vitest';
 import GroupAccessMatrix from './GroupAccessMatrix';
+import { renderWithClient } from '@/test/render';
 
 const { fetchMock } = vi.hoisted(() => ({ fetchMock: vi.fn() }));
 vi.mock('@/utils/helpers', () => ({ API_BASE: '', authFetch: fetchMock }));
@@ -50,7 +51,7 @@ const toggleOf = (name: string) => screen.getByRole('checkbox', { name });
 
 it('on a group, a group-scoped beta can be granted while an ordinary beta stays inherited', async () => {
     const user = userEvent.setup();
-    render(<GroupAccessMatrix heading={undefined} subtitle={undefined} />);
+    renderWithClient(<GroupAccessMatrix heading={undefined} subtitle={undefined} />);
     await user.click(await screen.findByRole('button', { name: /Finance/ }));
 
     expect(toggleOf('Webpages')).toBeDisabled();
@@ -67,7 +68,7 @@ it('on a group, a group-scoped beta can be granted while an ordinary beta stays 
 
 it('on All members, the group-scoped beta is a real toggle even when the subscription governs betas', async () => {
     const user = userEvent.setup();
-    render(<GroupAccessMatrix heading={undefined} subtitle={undefined} />);
+    renderWithClient(<GroupAccessMatrix heading={undefined} subtitle={undefined} />);
     await screen.findByTitle('Meeting Notes');
 
     expect(toggleOf('Webpages')).toBeDisabled();
@@ -83,7 +84,7 @@ it('on All members, the group-scoped beta is a real toggle even when the subscri
 it('a group inherits the group-scoped beta once All members has it', async () => {
     everyone = ['webpages', 'meeting_notes'];
     const user = userEvent.setup();
-    render(<GroupAccessMatrix heading={undefined} subtitle={undefined} />);
+    renderWithClient(<GroupAccessMatrix heading={undefined} subtitle={undefined} />);
     await user.click(await screen.findByRole('button', { name: /Finance/ }));
 
     const meeting = toggleOf('Meeting Notes');
@@ -95,13 +96,13 @@ it('a group inherits the group-scoped beta once All members has it', async () =>
 // selected "Integration access" tab), so the matrix there drops its own heading
 // rather than repeat it; Access & Permissions keeps the default heading.
 it('shows its "Access & Permissions" heading by default', async () => {
-    render(<GroupAccessMatrix heading={undefined} subtitle={undefined} />);
+    renderWithClient(<GroupAccessMatrix heading={undefined} subtitle={undefined} />);
     expect(await screen.findByRole('heading', { level: 2, name: 'Access & Permissions' })).toBeInTheDocument();
 });
 
 it('with hideHeading, drops the heading but keeps the intro line and the save status', async () => {
     const user = userEvent.setup();
-    render(<GroupAccessMatrix heading={undefined} subtitle="Give an integration to a group." hideHeading />);
+    renderWithClient(<GroupAccessMatrix heading={undefined} subtitle="Give an integration to a group." hideHeading />);
     await screen.findByTitle('Meeting Notes');
 
     expect(screen.queryByRole('heading', { level: 2 })).toBeNull();
@@ -113,7 +114,7 @@ it('with hideHeading, drops the heading but keeps the intro line and the save st
 
 it('marks the chosen scope as current and titles the list with it', async () => {
     const user = userEvent.setup();
-    render(<GroupAccessMatrix heading={undefined} subtitle={undefined} />);
+    renderWithClient(<GroupAccessMatrix heading={undefined} subtitle={undefined} />);
     const all = await screen.findByRole('button', { name: /All members/ });
     expect(all).toHaveAttribute('aria-current', 'true');
 

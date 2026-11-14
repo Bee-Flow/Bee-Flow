@@ -25,10 +25,10 @@
  * An account that is disabled in Nextcloud counts as gone, and a guest gets no
  * new account unless nc_sync_groups[] names the guests group: ./ncAccountState.mts.
  */
-// @typecheck noImplicitAny
+// @typecheck strict
 const userStore = require('../stores/userStore');
 const configStore = require('../stores/configStore');
-const { signedConnectorHeaders } = require('../integrations/ncSigning');
+const { signedConnectorHeaders } = require('../auth/connector/ncSigning');
 const { nextcloudFetch } = require('../utils/nextcloudTarget');
 const orgHealth = require('./orgHealth');
 const log = require('../telemetry/log');
@@ -267,7 +267,7 @@ async function _applyUserCreated(org, ncUid, state) {
     // Map NC group memberships to Bee Flow group ids — relies on mirrorGroups
     // having populated the groups table for this org. NC's `admin` group is
     // intentionally not mirrored, so it gets dropped here.
-    const bfGroupIds = (ncGroups || []).filter(g => g !== 'admin').map(g => ncGroupToBfId(org.id, g));
+    const bfGroupIds = (ncGroups || []).filter(g => g !== 'admin').map(g => ncGroupToBfId(/** @type {string} */ (org.id), g)); // an organizations row has its id
     const r = await userStore.createUserWithSeatCheck({
         id: userId,
         username: ncUser.email,
@@ -369,7 +369,7 @@ function ncGroupToBfId(orgId, ncGroupName) {
 }
 
 /** @type {(org: NcOrg, currentGroups: unknown, ncGroups: string[] | null | undefined) => string[]} See ncAccountState.groupsAfterSync. */
-const groupsAfterSync = (org, currentGroups, ncGroups) => mergedGroups(org.id, currentGroups, ncGroups, ncGroupToBfId);
+const groupsAfterSync = (org, currentGroups, ncGroups) => mergedGroups(/** @type {string} */ (org.id), currentGroups, ncGroups, ncGroupToBfId); // an organizations row has its id
 
 /** @param {NcOrg} org */
 async function mirrorGroups(org) {
@@ -394,7 +394,7 @@ async function mirrorGroups(org) {
         if (existingByNcName.has(name)) continue;
         try {
             await userStore.createGroup({
-                id: ncGroupToBfId(org.id, name),
+                id: ncGroupToBfId(/** @type {string} */ (org.id), name), // an organizations row has its id
                 name,
                 organizationId: org.id,
                 source: 'nextcloud',
@@ -454,7 +454,7 @@ async function runFullSync(org) {
         try {
             const r = await applyUserCreated(org, ncUid, { accountState });
             if (r.action === 'create') result.created++;
-            if ('changed' in r && r.changed.includes('status')) result.reactivated++;
+            if ('changed' in r && r.changed?.includes('status')) result.reactivated++;
         } catch (e) { result.errors.push({ ncUid, error: e.message }); }
     }
 

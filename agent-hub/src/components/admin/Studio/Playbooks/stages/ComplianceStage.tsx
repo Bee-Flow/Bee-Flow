@@ -1,6 +1,5 @@
 import { ExternalLink, ScaleIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { API_BASE } from '@/utils/helpers';
 import StageShell from './StageShell';
 import useAutomationApi from '@/hooks/useAutomationApi';
 import { studioAppsApi } from '../../AppStudio/studioAppsApi';
@@ -13,20 +12,17 @@ import { applyResolvePlan } from './resolveApply';
 import type { Finding, ResolvePlan } from './compliance.types';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import type { Phase, PlaybookEvent, PlaybookLike } from '../phaseMachine';
-import { request, errorBody, RefusedError } from '@/api/mutate';
+import { errorBody, RefusedError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
-/** One write, at the endpoint that owns it. Throws with the status on it. */
-async function put(path: string, body: unknown, method: string = 'PUT') {
+/** One write, at the endpoint that owns it (`what` is its operation key). Throws with the status on it. */
+async function put(what: string, send: () => Promise<Response>) {
     let r: Response;
     try {
-        r = await request(`${API_BASE}${path}`, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-    });
+        r = await send();
     } catch (err) {
         if (!(err instanceof RefusedError)) throw err;
-        const e: Error & { status?: number; body?: unknown } = new Error(`${method} ${path} failed`);
+        const e: Error & { status?: number; body?: unknown } = new Error(`${what} failed`);
         e.status = err.status;
         e.body = (errorBody(err) ?? null);
         throw e;
@@ -101,8 +97,8 @@ function useResolve({ playbookId, phaseKey, facts, t, recheck }: ResolveArgs) {
             // the hooks that own them elsewhere (useAppRoles wants a query
             // client, useComplianceCore toasts and refetches a page that is
             // not on screen) — a stage should not need either to make one call.
-            assignMember: (userId, roleKey) => put(`/api/studio-apps/${encodeURIComponent(String(appId))}/members`, { userId, roleKey }, 'POST'),
-            saveComplianceSettings: (body) => put('/api/compliance/settings', body),
+            assignMember: (userId, roleKey) => put('POST /api/studio-apps/{id}/members', () => apiRequest('POST /api/studio-apps/{id}/members', { params: { id: String(appId) }, body: { userId, roleKey } })),
+            saveComplianceSettings: (body) => put('PUT /api/compliance/settings', () => apiRequest('PUT /api/compliance/settings', { body })),
         });
         setApplying(null);
         setApplied({ code, out });

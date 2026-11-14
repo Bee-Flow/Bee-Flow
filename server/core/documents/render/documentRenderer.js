@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Document Renderer — text in, a real PDF or Word file out.
  *
@@ -118,7 +119,7 @@ function buildPrintHtml(bodyHtml, { title = '', author = '', date = '', marking 
  */
 
 /**
- * @typedef {{ title?: string }} DocxOptionsArgs
+ * @typedef {{ title?: string, marking?: any, style?: any }} DocxOptionsArgs
  */
 /**
  * html-to-docx writes the core properties it is given (title, subject,
@@ -151,13 +152,13 @@ function docxOptions({ title = '', marking = null, style = null } = {}) {
  * @param {string} html
  */
 async function renderDocx(html, { title = '', marking = null, style = null } = {}) {
-    let HTMLtoDOCX = require('@turbodocx/html-to-docx');
+    let HTMLtoDOCX = /** @type {typeof import('@turbodocx/html-to-docx') & { default?: typeof import('@turbodocx/html-to-docx') }} */ (require('@turbodocx/html-to-docx'));
     if (HTMLtoDOCX.default) HTMLtoDOCX = HTMLtoDOCX.default;
     // html-to-docx takes the header and footer HTML as POSITIONAL arguments
     // (html, header, options, footer); as option keys they are ignored.
     const { headerHTML = null, footerHTML = null, ...styleOpts } = (style && typeof style === 'object') ? style : {};
     const out = await HTMLtoDOCX(html, headerHTML, docxOptions({ title, marking, style: styleOpts }), footerHTML);
-    return Buffer.from(out);
+    return Buffer.from(/** @type {ArrayBuffer} */ (out));
 }
 
 /**

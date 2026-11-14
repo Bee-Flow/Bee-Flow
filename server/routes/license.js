@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * License API Routes
  *
@@ -17,6 +17,7 @@ const express = require('express');
 const log = require('../telemetry/log');
 const { HttpError } = require('../core/http/errors');
 const router = express.Router();
+const { forgetTierResolution } = require('../license/middleware');
 const rateLimit = /** @type {typeof import('express-rate-limit').rateLimit} */ (/** @type {unknown} */ (require('express-rate-limit')));
 
 const license = require('../license');
@@ -25,6 +26,7 @@ const { validate } = require('../core/http/validate');
 const { z, typeError } = require('../utils/zod');
 const { worded, choice } = require('../core/http/schemaParts');
 const { fallback } = require('../utils/bestEffort');
+const { orgScope } = require('../auth/orgScope');
 
 // ── What a caller may send ──────────────────────────────────────────
 //
@@ -96,11 +98,20 @@ function getSessionUser(req) {
     return req.session?.user || null;
 }
 
-/** @param {import('express').Request} req */
-function getOrgId(req) {
+/**
+ * The organisation on the caller's account. A password or OPAQUE sign-in
+ * stores the user on the session without an organisation
+ * (auth/login/finalizeLogin.js), so the session alone would send an
+ * organisation admin's activation to the consumer path or refuse it with
+ * no_organization; the account row is read when the session does not say.
+ * @param {import('express').Request} req
+ */
+async function getOrgId(req) {
     const u = getSessionUser(req);
     if (!u) return null;
-    return u.organizationId || /** @type {string | undefined} */ (u.orgId) || null;
+    const fromSession = u.organizationId || /** @type {string | undefined} */ (u.orgId);
+    if (fromSession) return fromSession;
+    return (await orgScope(req)).homeOrgId || null;
 }
 
 /** @param {import('express').Request} req */
@@ -136,7 +147,7 @@ router.use((req, res, next) => {
 
 // ── GET /status ─────────────────────────────────────────────────────────
 router.get('/status', licenseLimiter, async (req, res) => {
-    const orgId = getOrgId(req);
+    const orgId = await getOrgId(req);
     const userId = getUserId(req);
     // Resolve every org the caller belongs to (direct organizationId +
     // group-based memberships). Status now reports the highest-tier
@@ -165,7 +176,7 @@ router.get('/status', licenseLimiter, async (req, res) => {
 router.post('/activate', licenseLimiter, validate({ body: ActivateBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof ActivateBody>, import('qs').ParsedQs>} */ req, res, next) => {
     try {
         const { token, scope } = req.body;
-        const orgId = getOrgId(req);
+        const orgId = await getOrgId(req);
         const userId = getUserId(req);
 
         // Server-scope branch. Gated by self-host + super-admin checks; the
@@ -198,6 +209,7 @@ router.post('/activate', licenseLimiter, validate({ body: ActivateBody }), async
                 });
             }
             const status = await license.getLicenseStatus({ organizationId: orgId, userId, superAdmin: isSuperAdmin(req) });
+            forgetTierResolution(req);
             return res.json({ activated, status });
         }
 
@@ -232,6 +244,7 @@ router.post('/activate', licenseLimiter, validate({ body: ActivateBody }), async
             userId: resolvedScope === 'consumer' ? userId : null,
             superAdmin: isSuperAdmin(req),
         });
+        forgetTierResolution(req);
         res.json({ activated, status });
     } catch (e) {
         if (e.code === license.adminIssuance.ADMIN_BLOB_FORBIDDEN) {
@@ -245,11 +258,11 @@ router.post('/activate', licenseLimiter, validate({ body: ActivateBody }), async
 });
 
 // ── POST /refresh ───────────────────────────────────────────────────────
-router.post('/refresh', validate({ body: NoBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof NoBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/refresh', validate({ body: NoBody }), async (req, res) => {
     if (!(await isOrgAdmin(req))) {
         return res.status(403).json({ error: 'Admin required' });
     }
-    const orgId = getOrgId(req);
+    const orgId = await getOrgId(req);
     const userId = getUserId(req);
     const lic = orgId
         ? await license.store.getActiveLicenseForOrg(orgId)
@@ -303,8 +316,8 @@ router.get('/health', async (req, res) => {
 // Query: ?scope=server removes the install-wide server licence. Same
 // super-admin gate as activate. Org/consumer scope follows the legacy
 // "infer from session" rule.
-router.delete('/deactivate', validate({ query: DeactivateQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof DeactivateQuery>>} */ req, res) => {
-    const orgId = getOrgId(req);
+router.delete('/deactivate', validate({ query: DeactivateQuery }), async (req, res) => {
+    const orgId = await getOrgId(req);
     const userId = getUserId(req);
     if (req.query.scope === 'server') {
         if (!isSuperAdmin(req)) {
@@ -315,6 +328,7 @@ router.delete('/deactivate', validate({ query: DeactivateQuery }), async (/** @t
             deactivatedBy: userId,
         });
         if (!ok) return res.status(404).json({ error: 'No active server licence to deactivate' });
+        forgetTierResolution(req);
         return res.json({ success: true, scope: 'server' });
     }
     if (orgId && !(await isOrgAdmin(req))) {
@@ -326,6 +340,7 @@ router.delete('/deactivate', validate({ query: DeactivateQuery }), async (/** @t
         deactivatedBy: userId,
     });
     if (!ok) return res.status(404).json({ error: 'No active license to deactivate' });
+    forgetTierResolution(req);
     res.json({ success: true });
 });
 

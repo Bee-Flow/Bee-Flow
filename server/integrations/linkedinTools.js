@@ -6,6 +6,7 @@
  * Posts require user approval via the frontend before being published.
  */
 
+const { fetchFixedEndpoint } = require('../utils/fixedEndpointFetch.mts');
 const configStore = require('../stores/configStore');
 
 const LINKEDIN_TOOLS = [
@@ -76,7 +77,7 @@ async function executeLinkedInAction(action, session) {
     }
 
     if (action.action === 'post') {
-        const postRes = await fetch('https://api.linkedin.com/rest/posts', {
+        const postRes = await fetchFixedEndpoint('https://api.linkedin.com/rest/posts', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${accessToken}`,

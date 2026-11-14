@@ -1,0 +1,275 @@
+{
+  "editor": {
+    "answers": {
+      "0:no_such_tool": "Error: unknown tool no_such_tool.",
+      "1:read_range": "#| A | B | C | D\n1| Product | Region | Sales | Label\n2| Apple | North | 10 | =A2&\"!\"⇒Apple!\n3| Banana | North | 20 | =UPPER(B3)⇒NORTH",
+      "2:read_range": "Error: sheet not found; use a tab id or name.",
+      "3:read_range": "Error: give a range like \"A1:D20\" inside A1:Z2000.",
+      "4:read_range": "Error: that is 2600 cells; read at most 1500 at a time.",
+      "5:read_range": "#| A\n1| 40\n2| Goal",
+      "6:read_range": "#| A\n1| 40",
+      "7:find": "A2: Apple\nD2: =A2&\"!\"\nA4: Apple\nA7: Apple",
+      "8:find": "No cell contains that text.",
+      "9:find": "B2: North\nB3: North\nD3: =UPPER(B3)\nB7: North",
+      "10:find": "Error: say what text to find.",
+      "11:find": "No cell contains that text.",
+      "12:find": "H1: needle 0\nH2: needle 1\nH3: needle 2\nH4: needle 3\nH5: needle 4\nH6: needle 5\nH7: needle 6\nH8: needle 7\nH9: needle 8\nH10: needle 9\nH11: needle 10\nH12: needle 11\nH13: needle 12\nH14: needle 13\nH15: needle 14\nH16: needle 15\nH17: needle 16\nH18: needle 17\nH19: needle 18\nH20: needle 19\nH21: needle 20\nH22: needle 21\nH23: needle 22\nH24: needle 23\nH25: needle 24\nH26: needle 25\nH27: needle 26\nH28: needle 27\nH29: needle 28\nH30: needle 29\nH31: needle 30\nH32: needle 31\nH33: needle 32\nH34: needle 33\nH35: needle 34\nH36: needle 35\nH37: needle 36\nH38: needle 37\nH39: needle 38\nH40: needle 39\nH41: needle 40\nH42: needle 41\nH43: needle 42\nH44: needle 43\nH45: needle 44\nH46: needle 45\nH47: needle 46\nH48: needle 47\nH49: needle 48\nH50: needle 49",
+      "13:find": "A2: Goal",
+      "14:find": "Error: sheet not found; use a tab id or name.",
+      "15:evaluate": "=SUM(C2:C3) → 30\n=COUNTA(A1:A7) → 6\n= → #ERROR!",
+      "16:evaluate": "=0 → 0\n=1 → 1\n=2 → 2\n=3 → 3\n=4 → 4\n=5 → 5\n=6 → 6\n=7 → 7\n=8 → 8\n=9 → 9\n=10 → 10\n=11 → 11\n=12 → 12\n=13 → 13\n=14 → 14\n=15 → 15\n=16 → 16\n=17 → 17\n=18 → 18\n=19 → 19",
+      "17:evaluate": "Error: give formulas, e.g. [\"=COUNTA(A2:A100)\"].",
+      "18:evaluate": "=A1*2 → 80",
+      "19:evaluate": "Error: sheet not found; use a tab id or name.",
+      "20:set_cells": "Staged 3 cell(s). Now showing: E1=Total, E2=20, E3=. No new errors.",
+      "21:set_cells": "Error: cells must be an object like {\"A1\": \"value\"}.",
+      "22:set_cells": "Error: cells must be an object like {\"A1\": \"value\"}.",
+      "23:set_cells": "Error: \"A1:B2\" is not a single cell in A1:Z2000.",
+      "24:set_cells": "Error: \"ZZ9\" is not a single cell in A1:Z2000.",
+      "25:set_cells": "Error: F1 holds at most 10000 characters.",
+      "26:set_cells": "Staged 1 cell(s). Now showing: F1=#DIV/0!. NEW ERRORS: F1 #DIV/0!.",
+      "27:set_cells": "Staged 1 cell(s). Now showing: F2=42. No new errors. NOTE: F2 got a typed number. If it was counted or calculated from other cells, replace it with the formula that computes it.",
+      "28:set_cells": "Error: cells can only be written on the active sheet.",
+      "29:set_cells": "Error: sheet not found; use a tab id or name.",
+      "30:set_cells": "Staged 1 cell(s). Now showing: A1=Product. No new errors.",
+      "31:fill_formula": "Staged 3 cell(s). Now showing: G2=11, G3=21, G4=#VALUE!. NEW ERRORS: G4 #VALUE!.",
+      "32:fill_formula": "Error: give a range like \"D2:D200\" inside A1:Z2000.",
+      "33:fill_formula": "Error: formulas can only be written on the active sheet.",
+      "34:fill_formula": "Error: sheet not found; use a tab id or name.",
+      "35:clear_range": "Staged 2 cell(s). Now showing: F1=, F2=. No new errors.",
+      "36:clear_range": "Error: give a range like \"F1:F50\" inside A1:Z2000.",
+      "37:clear_range": "Error: ranges can only be cleared on the active sheet.",
+      "38:clear_range": "Error: sheet not found; use a tab id or name.",
+      "39:add_chart": "Added bar chart anchored at J2 using C2:C3.",
+      "40:add_chart": "Error: type must be one of bar, hbar, line, area, pie, doughnut, scatter, stacked, kpi.",
+      "41:add_chart": "Error: type must be one of bar, hbar, line, area, pie, doughnut, scatter, stacked, kpi.",
+      "42:create_pivot": "Error: sourceRange must be a range like \"A1:C20\".",
+      "43:create_pivot": "Error: targetCell must be a single cell.",
+      "44:create_pivot": "Error: aggregation must be SUM, COUNT or AVERAGE.",
+      "45:create_pivot": "Error: rowField \"Nope\" not found in header row.",
+      "46:create_pivot": "Error: valuesField \"Nope\" not found in header row.",
+      "47:create_pivot": "Error: no rows to aggregate.",
+      "48:create_pivot": "Staged 8 cell(s). Now showing: L2=product, M2=SUM SALES, L3=Apple, M3=35, L4=Banana, M4=20, L5=Cherry, M5=30. No new errors. NOTE: M3, M4, M5 got a typed number. If it was counted or calculated from other cells, replace it with the formula that computes it.",
+      "49:create_pivot": "Staged 10 cell(s). Now showing: L10=Region, M10=COUNT Sales, L11=East, M11=1, L12=North, M12=3, L13=South, M13=1, L14=West, M14=1. No new errors. NOTE: M11, M12, M13, M14 got a typed number. If it was counted or calculated from other cells, replace it with the formula that computes it.",
+      "50:create_pivot": "Staged 6 cell(s). Now showing: L20=Label, M20=SUM Sales, L21=Apple!, M21=10, L22=NORTH, M22=20. No new errors. NOTE: M21, M22 got a typed number. If it was counted or calculated from other cells, replace it with the formula that computes it.",
+      "51:create_pivot": "Staged 8 cell(s). Now showing: L30=Product, M30=AVERAGE Sales, L31=Apple, M31=17.5, L32=Banana, M32=20, L33=Cherry, M33=30. No new errors. NOTE: M31, M32, M33 got a typed number. If it was counted or calculated from other cells, replace it with the formula that computes it.",
+      "52:create_pivot": "Staged 8 cell(s). Now showing: L40=Product, M40=SUM Sales, L41=Apple, M41=35, L42=Banana, M42=20, L43=Cherry, M43=30. No new errors. NOTE: M41, M42, M43 got a typed number. If it was counted or calculated from other cells, replace it with the formula that computes it."
+    },
+    "result": {
+      "reply": "Done.",
+      "changes": {
+        "E1": {
+          "before": "",
+          "after": "Total"
+        },
+        "E2": {
+          "before": "",
+          "after": "=C2*2"
+        },
+        "G2": {
+          "before": "",
+          "after": "=C2+1"
+        },
+        "G3": {
+          "before": "",
+          "after": "=C3+1"
+        },
+        "G4": {
+          "before": "",
+          "after": "=C4+1"
+        },
+        "L2": {
+          "before": "",
+          "after": "product"
+        },
+        "M2": {
+          "before": "",
+          "after": "SUM SALES"
+        },
+        "L3": {
+          "before": "",
+          "after": "Apple"
+        },
+        "M3": {
+          "before": "",
+          "after": "35"
+        },
+        "L4": {
+          "before": "",
+          "after": "Banana"
+        },
+        "M4": {
+          "before": "",
+          "after": "20"
+        },
+        "L5": {
+          "before": "",
+          "after": "Cherry"
+        },
+        "M5": {
+          "before": "",
+          "after": "30"
+        },
+        "L10": {
+          "before": "",
+          "after": "Region"
+        },
+        "M10": {
+          "before": "",
+          "after": "COUNT Sales"
+        },
+        "L11": {
+          "before": "",
+          "after": "East"
+        },
+        "M11": {
+          "before": "",
+          "after": "1"
+        },
+        "L12": {
+          "before": "",
+          "after": "North"
+        },
+        "M12": {
+          "before": "",
+          "after": "3"
+        },
+        "L13": {
+          "before": "",
+          "after": "South"
+        },
+        "M13": {
+          "before": "",
+          "after": "1"
+        },
+        "L14": {
+          "before": "",
+          "after": "West"
+        },
+        "M14": {
+          "before": "",
+          "after": "1"
+        },
+        "L20": {
+          "before": "",
+          "after": "Label"
+        },
+        "M20": {
+          "before": "",
+          "after": "SUM Sales"
+        },
+        "L21": {
+          "before": "",
+          "after": "=A2&\"!\""
+        },
+        "M21": {
+          "before": "",
+          "after": "10"
+        },
+        "L22": {
+          "before": "",
+          "after": "=UPPER(B3)"
+        },
+        "M22": {
+          "before": "",
+          "after": "20"
+        },
+        "L30": {
+          "before": "",
+          "after": "Product"
+        },
+        "M30": {
+          "before": "",
+          "after": "AVERAGE Sales"
+        },
+        "L31": {
+          "before": "",
+          "after": "Apple"
+        },
+        "M31": {
+          "before": "",
+          "after": "17.5"
+        },
+        "L32": {
+          "before": "",
+          "after": "Banana"
+        },
+        "M32": {
+          "before": "",
+          "after": "20"
+        },
+        "L33": {
+          "before": "",
+          "after": "Cherry"
+        },
+        "M33": {
+          "before": "",
+          "after": "30"
+        },
+        "L40": {
+          "before": "",
+          "after": "Product"
+        },
+        "M40": {
+          "before": "",
+          "after": "SUM Sales"
+        },
+        "L41": {
+          "before": "",
+          "after": "Apple"
+        },
+        "M41": {
+          "before": "",
+          "after": "35"
+        },
+        "L42": {
+          "before": "",
+          "after": "Banana"
+        },
+        "M42": {
+          "before": "",
+          "after": "20"
+        },
+        "L43": {
+          "before": "",
+          "after": "Cherry"
+        },
+        "M43": {
+          "before": "",
+          "after": "30"
+        }
+      },
+      "charts": [
+        {
+          "id": "chart-<id>",
+          "width": 672,
+          "height": 392,
+          "type": "bar",
+          "dataRange": "C2:C3",
+          "categoriesRange": "A2:A3",
+          "anchor": "J2",
+          "title": "Sales",
+          "tab": "t1"
+        }
+      ],
+      "rounds": 1,
+      "tier": "fast"
+    }
+  },
+  "viewer": {
+    "answers": {
+      "0:set_cells": "Error: this sheet is read-only for the user.",
+      "1:add_chart": "Error: this sheet is read-only for the user.",
+      "2:read_range": "#| A\n1| Product",
+      "3:find": "A2: Apple\nD2: =A2&\"!\"\nA4: Apple\nA7: Apple",
+      "4:evaluate": "=1+1 → 2"
+    },
+    "result": {
+      "reply": "Done.",
+      "changes": {},
+      "charts": [],
+      "rounds": 1,
+      "tier": "fast"
+    }
+  }
+}

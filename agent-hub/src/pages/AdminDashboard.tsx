@@ -114,7 +114,7 @@ const AdminDashboard = ({ user, onBack, adminPath = {}, onNavigate }: AdminDashb
                         ? (
                             <AdminOrgGate choice={orgChoice}>
                                 <AdminScopeOverrideProvider value={setScopeOverride}>
-                                    <AdminTabContent activeTab={activeTab} user={user} hasPermission={hasPermission} agentSection={agentSection} onNavigate={onNavigate} adminPath={adminPath} />
+                                    <AdminTabContent activeTab={activeTab} hasPermission={hasPermission} agentSection={agentSection} adminPath={adminPath} />
                                 </AdminScopeOverrideProvider>
                             </AdminOrgGate>
                         )

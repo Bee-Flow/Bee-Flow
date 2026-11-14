@@ -3,8 +3,8 @@
   "version": 1,
   "routes": {
     "DELETE /agents/:id": {
-      "gate": "handler",
-      "via": "mount,handler"
+      "gate": "scoped",
+      "via": "edit"
     },
     "DELETE /agents/:id/conversations/:convId": {
       "gate": "handler",
@@ -15,8 +15,8 @@
       "via": "mount,handler"
     },
     "DELETE /agents/:id/history": {
-      "gate": "handler",
-      "via": "mount"
+      "gate": "scoped",
+      "via": "chat"
     },
     "DELETE /agents/:id/tests/:testId": {
       "gate": "permission",
@@ -242,8 +242,8 @@
       "gate": "auth"
     },
     "DELETE /api/kb/:id/query-log": {
-      "gate": "scope",
-      "via": "kbManager"
+      "gate": "scoped",
+      "via": "manage"
     },
     "DELETE /api/kb/:id/sources/:sid": {
       "gate": "permission",
@@ -598,7 +598,8 @@
       "via": "orgAdminOfTargetUser"
     },
     "DELETE /versions/:agentId/:versionId": {
-      "gate": "auth"
+      "gate": "scoped",
+      "via": "edit"
     },
     "GET /.well-known/microsoft-identity-association.json": {
       "gate": "open",
@@ -625,12 +626,12 @@
       "via": "mount"
     },
     "GET /agents/:id": {
-      "gate": "handler",
-      "via": "mount,handler"
+      "gate": "scoped",
+      "via": "read"
     },
     "GET /agents/:id/conversations": {
-      "gate": "handler",
-      "via": "mount,handler"
+      "gate": "scoped",
+      "via": "read"
     },
     "GET /agents/:id/conversations/:convId": {
       "gate": "handler",
@@ -645,8 +646,8 @@
       "via": "mount"
     },
     "GET /agents/:id/history": {
-      "gate": "handler",
-      "via": "mount"
+      "gate": "scoped",
+      "via": "chat"
     },
     "GET /agents/:id/tests": {
       "gate": "permission",
@@ -663,16 +664,16 @@
       ]
     },
     "GET /agents/:id/tool-lending": {
-      "gate": "handler",
-      "via": "mount,handler"
+      "gate": "scoped",
+      "via": "edit"
     },
     "GET /agents/:id/tools": {
-      "gate": "handler",
-      "via": "mount,handler"
+      "gate": "scoped",
+      "via": "read"
     },
     "GET /agents/:id/usage": {
-      "gate": "handler",
-      "via": "mount,handler"
+      "gate": "scoped",
+      "via": "edit"
     },
     "GET /agents/all": {
       "gate": "permission",
@@ -1109,6 +1110,12 @@
       "gate": "auth"
     },
     "GET /api/automation/builder/session/:automationId": {
+      "gate": "auth"
+    },
+    "GET /api/automation/builder/suggest/last": {
+      "gate": "auth"
+    },
+    "GET /api/automation/builder/suggest/sources": {
       "gate": "auth"
     },
     "GET /api/automation/by-agent/:agentId/automation-ids": {
@@ -2083,53 +2090,64 @@
       "gate": "auth"
     },
     "GET /api/kb/:id": {
-      "gate": "auth"
+      "gate": "scoped",
+      "via": "read"
     },
     "GET /api/kb/:id/documents": {
-      "gate": "auth"
+      "gate": "scoped",
+      "via": "read"
     },
     "GET /api/kb/:id/documents/:docId/chunks": {
-      "gate": "auth"
+      "gate": "scoped",
+      "via": "read"
     },
     "GET /api/kb/:id/documents/:docId/content": {
-      "gate": "auth"
+      "gate": "scoped",
+      "via": "read"
     },
     "GET /api/kb/:id/documents/:docId/original": {
-      "gate": "auth"
+      "gate": "scoped",
+      "via": "read"
     },
     "GET /api/kb/:id/query-log": {
-      "gate": "scope",
-      "via": "kbManager"
+      "gate": "scoped",
+      "via": "manage"
     },
     "GET /api/kb/:id/query-log/:entryId": {
-      "gate": "scope",
-      "via": "kbManager"
+      "gate": "scoped",
+      "via": "manage"
     },
     "GET /api/kb/:id/query-log/export.csv": {
-      "gate": "scope",
-      "via": "kbManager"
+      "gate": "scoped",
+      "via": "manage"
     },
     "GET /api/kb/:id/query-log/settings": {
-      "gate": "scope",
-      "via": "kbManager"
+      "gate": "scoped",
+      "via": "manage"
     },
     "GET /api/kb/:id/sources": {
-      "gate": "auth"
+      "gate": "scoped",
+      "via": "read"
     },
     "GET /api/kb/:id/sources/:sid/documents": {
-      "gate": "auth"
+      "gate": "scoped",
+      "via": "read"
     },
     "GET /api/kb/:id/sources/:sid/documents/:docId": {
-      "gate": "auth"
+      "gate": "scoped",
+      "via": "read"
     },
     "GET /api/kb/:id/threads": {
-      "gate": "auth"
+      "gate": "scoped",
+      "via": "read"
     },
     "GET /api/kb/:id/threads/:threadId/documents": {
-      "gate": "auth"
+      "gate": "scoped",
+      "via": "read"
     },
     "GET /api/kb/:id/usage": {
-      "gate": "auth"
+      "gate": "scoped",
+      "via": "read"
     },
     "GET /api/kb/categories": {
       "gate": "auth"
@@ -2816,11 +2834,11 @@
     },
     "GET /api/studio-documents/:id/sheet": {
       "gate": "handler",
-      "via": "route,handler"
+      "via": "route"
     },
     "GET /api/studio-documents/:id/sheet.csv": {
       "gate": "handler",
-      "via": "route,handler"
+      "via": "route"
     },
     "GET /api/studio-documents/:id/sheet.xlsx": {
       "gate": "handler",
@@ -3860,10 +3878,12 @@
       "reason": "og:image bij GET /verify/:token — zelfde token-credential"
     },
     "GET /versions/:agentId": {
-      "gate": "auth"
+      "gate": "scoped",
+      "via": "edit"
     },
     "GET /versions/:agentId/:versionId": {
-      "gate": "auth"
+      "gate": "scoped",
+      "via": "edit"
     },
     "GET /w/:token": {
       "gate": "handler",
@@ -3890,8 +3910,8 @@
       "via": "mount"
     },
     "PATCH /agents/:id/publish": {
-      "gate": "handler",
-      "via": "mount,handler"
+      "gate": "scoped",
+      "via": "edit"
     },
     "PATCH /agents/categories/:id": {
       "gate": "permission",
@@ -3945,11 +3965,12 @@
       ]
     },
     "PATCH /api/kb/:id/publish": {
-      "gate": "auth"
+      "gate": "scoped",
+      "via": "manage"
     },
     "PATCH /api/kb/:id/query-log/:entryId/review": {
-      "gate": "scope",
-      "via": "kbManager"
+      "gate": "scoped",
+      "via": "manage"
     },
     "PATCH /api/kb/:id/sources/:sid": {
       "gate": "permission",
@@ -4045,7 +4066,7 @@
     },
     "PATCH /api/studio-documents/:id/sheet": {
       "gate": "handler",
-      "via": "route,handler"
+      "via": "route"
     },
     "PATCH /api/studio-documents/:id/sheet/tabs/:tabId": {
       "gate": "handler",
@@ -4108,16 +4129,16 @@
       ]
     },
     "POST /agents/:id/chat": {
-      "gate": "handler",
-      "via": "mount,handler"
+      "gate": "scoped",
+      "via": "chat"
     },
     "POST /agents/:id/chat/stream": {
-      "gate": "handler",
-      "via": "mount,handler"
+      "gate": "scoped",
+      "via": "chat"
     },
     "POST /agents/:id/conversations": {
-      "gate": "handler",
-      "via": "mount,handler"
+      "gate": "scoped",
+      "via": "read"
     },
     "POST /agents/:id/persona/parse": {
       "gate": "permission",
@@ -4127,8 +4148,8 @@
       ]
     },
     "POST /agents/:id/publish-version": {
-      "gate": "handler",
-      "via": "mount,handler"
+      "gate": "scoped",
+      "via": "edit"
     },
     "POST /agents/:id/tests": {
       "gate": "permission",
@@ -4612,6 +4633,9 @@
       "gate": "middleware",
       "via": "requireAuth,requireAutomationsBeta"
     },
+    "POST /api/automation/builder/feedback": {
+      "gate": "auth"
+    },
     "POST /api/automation/builder/label-steps": {
       "gate": "auth"
     },
@@ -4628,6 +4652,9 @@
       "gate": "auth"
     },
     "POST /api/automation/builder/stream": {
+      "gate": "auth"
+    },
+    "POST /api/automation/builder/suggest": {
       "gate": "auth"
     },
     "POST /api/automation/builder/suggest-mappings": {
@@ -5313,7 +5340,8 @@
       ]
     },
     "POST /api/kb/:id/ask": {
-      "gate": "auth"
+      "gate": "scoped",
+      "via": "read"
     },
     "POST /api/kb/:id/documents/bulk-delete": {
       "gate": "permission",
@@ -5495,16 +5523,20 @@
       ]
     },
     "POST /api/notebooks/:id/export/docx": {
-      "gate": "auth"
+      "gate": "scoped",
+      "via": "viewer"
     },
     "POST /api/notebooks/:id/export/nextcloud": {
-      "gate": "auth"
+      "gate": "scoped",
+      "via": "viewer"
     },
     "POST /api/notebooks/:id/export/pdf": {
-      "gate": "auth"
+      "gate": "scoped",
+      "via": "viewer"
     },
     "POST /api/notebooks/:id/export/signrequest": {
-      "gate": "auth"
+      "gate": "scoped",
+      "via": "viewer"
     },
     "POST /api/notebooks/:id/generate/:type": {
       "gate": "permission",
@@ -6833,10 +6865,12 @@
       "gate": "auth"
     },
     "POST /versions/:agentId/:versionId/restore": {
-      "gate": "auth"
+      "gate": "scoped",
+      "via": "edit"
     },
     "POST /versions/:agentId/pre-refine": {
-      "gate": "auth"
+      "gate": "scoped",
+      "via": "edit"
     },
     "POST /w/:token/unlock": {
       "gate": "handler",
@@ -6854,8 +6888,8 @@
       "via": "mount"
     },
     "PUT /agents/:id/favorite": {
-      "gate": "handler",
-      "via": "mount,handler"
+      "gate": "scoped",
+      "via": "read"
     },
     "PUT /agents/:id/tests/:testId": {
       "gate": "permission",
@@ -7222,11 +7256,12 @@
       "gate": "auth"
     },
     "PUT /api/kb/:id/favorite": {
-      "gate": "auth"
+      "gate": "scoped",
+      "via": "read"
     },
     "PUT /api/kb/:id/query-log/settings": {
-      "gate": "scope",
-      "via": "kbManager"
+      "gate": "scoped",
+      "via": "manage"
     },
     "PUT /api/languages/:code/default": {
       "gate": "platform",

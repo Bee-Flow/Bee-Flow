@@ -1,8 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import MeetingPicker from './MeetingPicker';
+import { renderWithClient } from '@/test/render';
 
 /**
  * The picker feeds notebook sources and template context. A note still
@@ -30,7 +31,7 @@ describe('MeetingPicker only offers notes that are ready', () => {
         stubList();
         const user = userEvent.setup();
         const onSelect = vi.fn();
-        render(<MeetingPicker mode="single" onSelect={onSelect} />);
+        renderWithClient(<MeetingPicker mode="single" onSelect={onSelect} />);
         const processing = (await screen.findByText('Still transcribing')).closest('button')!;
         const failed = screen.getByText('Broken upload').closest('button')!;
         expect(processing).toBeDisabled();
@@ -47,7 +48,7 @@ describe('MeetingPicker only offers notes that are ready', () => {
         stubList();
         const user = userEvent.setup();
         const onChange = vi.fn();
-        render(<MeetingPicker mode="multi" value={[]} onChange={onChange} />);
+        renderWithClient(<MeetingPicker mode="multi" value={[]} onChange={onChange} />);
         await user.click(await screen.findByText('Still transcribing'));
         expect(onChange).not.toHaveBeenCalled();
         await user.click(screen.getByText('Weekly sync'));
@@ -57,7 +58,7 @@ describe('MeetingPicker only offers notes that are ready', () => {
     it('previews from the list snippet without fetching the full note', async () => {
         const fetchMock = stubList();
         const user = userEvent.setup();
-        render(<MeetingPicker mode="single" onSelect={() => {}} />);
+        renderWithClient(<MeetingPicker mode="single" onSelect={() => {}} />);
         await user.hover(await screen.findByText('Weekly sync'));
         expect(screen.getByText('We agreed on the roadmap.')).toBeInTheDocument();
         await user.hover(screen.getByText('Broken upload'));

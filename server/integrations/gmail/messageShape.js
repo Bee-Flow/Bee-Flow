@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Shaping Gmail API messages for the model: search summaries, full reads
  * (body text capped), attachment listings and MIME guesses, plus the
@@ -27,9 +28,9 @@ function guessMimeTypeFromName(name = '') {
     return MAP[ext] || 'application/octet-stream';
 }
 
-// Body/header parsing — shared home (services/email/parse). getGmailHeader
+// Body/header parsing — shared home (utils/emailParse). getGmailHeader
 // additionally guards entries without a name (the old inline copy threw).
-const { extractTextBody, getGmailHeader: getHeader } = require('../../services/email/parse');
+const { extractTextBody, getGmailHeader: getHeader } = require('../../utils/emailParse');
 
 /**
  * Extract attachment info from a Gmail message payload.

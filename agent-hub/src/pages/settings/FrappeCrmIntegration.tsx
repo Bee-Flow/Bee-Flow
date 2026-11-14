@@ -1,11 +1,11 @@
 import { useState, type ChangeEvent } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import useUserSettingSave from '../../hooks/useUserSettingSave';
-import { API_BASE } from '../../utils/helpers';
 import { postForBody } from '../../api/postForBody';
 import { FrappeCrmLogo } from '../../utils/integrationLogos.database';
 import { IntegrationRow, DisconnectButton } from './IntegrationPrimitives';
 import type { FrappeCrmIntegrationProps } from './IntegrationsSection.types';
+import { apiUrl } from '@/api/typedRequest';
 
 // ── Frappe CRM ────────────────────────────────────────────────────────────────
 // Leads, deals, contacts, tasks and notes in a Frappe CRM site (Frappe Cloud or
@@ -36,7 +36,7 @@ function useConnectionTest(values: Values) {
         setTesting(true);
         setResult(null);
         try {
-            const { body } = await postForBody(`${API_BASE}/ai/frappe-crm/test`, { method: 'POST', body: JSON.stringify(bodyOf(values)), headers: { 'Content-Type': 'application/json' } });
+            const { body } = await postForBody(apiUrl('POST /ai/frappe-crm/test'), { method: 'POST', body: JSON.stringify(bodyOf(values)), headers: { 'Content-Type': 'application/json' } });
             if (body.ok) setResult({ ok: true, text: t('integ.frappe_crm_test_ok', { user: String(body.user ?? '') }) });
             else setResult({ ok: false, text: typeof body.error === 'string' && body.error ? body.error : t('integ.frappe_crm_test_failed') });
         } catch {

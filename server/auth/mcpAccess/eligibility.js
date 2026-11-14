@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Which MCP servers may THIS user put on a token?
  *
@@ -95,14 +95,14 @@ async function eligibleServers(user, deps = {}) {
         (async () => {
             const s = servers.automations;
             if (!s || !s.enabled()) return { ...off };
-            return (await attempt('automations', userId, () => s.entitled(userId))) ? { available: true } : { ...noAccess };
+            return (await attempt('automations', userId, () => /** @type {NonNullable<ServerCheck['entitled']>} */ (s.entitled)(/** @type {string} */ (userId)))) ? { available: true } : { ...noAccess };
         })(),
         (async () => {
             const s = servers.studio;
             if (!s || !s.enabled()) return { ...off };
             // App Studio has one licence capability for building; there is no
             // separate read right, so writing is exactly as available as reading.
-            return (await attempt('studio', userId, () => s.entitled(userId)))
+            return (await attempt('studio', userId, () => /** @type {NonNullable<ServerCheck['entitled']>} */ (s.entitled)(/** @type {string} */ (userId))))
                 ? { available: true, canWrite: true }
                 : { ...noAccess, canWrite: false };
         })(),
@@ -110,7 +110,7 @@ async function eligibleServers(user, deps = {}) {
             const s = servers.cms;
             if (!s || !s.enabled()) return { ...off, canPublish: false };
             // Only CMS admins use the CMS tools at all, and they may publish.
-            return (await attempt('cms', userId, () => s.isAdmin(user)))
+            return (await attempt('cms', userId, () => /** @type {NonNullable<ServerCheck['isAdmin']>} */ (s.isAdmin)(user)))
                 ? { available: true, canPublish: true }
                 : { ...noAccess, canPublish: false };
         })(),

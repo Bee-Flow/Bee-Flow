@@ -4,12 +4,12 @@ import { OptionCard, SAVE_BUTTON, SettingBlock, SettingRow, SettingsList } from 
 import { useToastOnMessage } from './ui/useToastOnMessage';
 import { useWebSearchInferenceQuery } from '@/api/queries/adminConfigReads';
 import useDraftOverServer from '@/hooks/useDraftOverServer';
-import { API_BASE } from '@/utils/helpers';
 import { getModelMeta, getModelDisplayName, type ModelEntry } from '@/api/modelMeta';
 import SearchableModelSelect from '../shared/SearchableModelSelect';
 import { useTranslation, type TranslateParams } from '@/hooks/useTranslation';
 import type { StatusMessage } from './chatModelTiers/tierTypes';
-import { mutate, ApiError } from '@/api/mutate';
+import { ApiError } from '@/api/mutate';
+import { type ApiBody, apiRequest } from '@/api/typedRequest';
 
 const getRerankMethods = (t: (key: string | undefined, fallbackOrParams?: string | TranslateParams, params?: TranslateParams) => string) => [
     {
@@ -106,10 +106,8 @@ const WebSearchInferenceConfig = ({ allModels = [], onNavigateToTab }: WebSearch
     const handleSave = async () => {
         setSaving(true);
         try {
-            const res = await mutate(`${API_BASE}/ai/config/web-search-inference`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(config),
+            const res = await apiRequest('POST /ai/config/web-search-inference', {
+                body: config as ApiBody<'POST /ai/config/web-search-inference'>, // rerank.method is one of RERANK_METHODS
             }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;

@@ -1,3 +1,4 @@
+// @typecheck
 /** @typedef {import('zod').ZodString} ZodString */
 /** @typedef {import('zod').ZodNumber} ZodNumber */
 /**
@@ -112,7 +113,6 @@
  * routes/studioAppDatasets.mount.test.js mounts both routers in index.js's
  * order and reversed, and pins that each answers its own paths.
  */
-
 const express = require('express');
 const crypto = require('crypto');
 const { z } = require('../utils/zod');
@@ -136,22 +136,18 @@ const {
 } = require('./studioAppRateLimits');
 const { SHARD_COUNT, shardName } = require('../core/datasets/rsidIndex');
 const { bestEffort } = require('../utils/bestEffort');
-
 // ── Sizing (env-tunable; a NEW quota axis, deliberately not MAX_ATTACHMENT_BYTES) ──
-const PART_BYTES = parseInt(process.env.DATASET_PART_BYTES, 10) || 32 * 1024 * 1024;
-const MAX_FILE_BYTES = parseInt(process.env.STUDIO_APP_DATASET_MAX_FILE_BYTES, 10) || 32 * 1024 * 1024 * 1024;
-const TOTAL_BYTES_PER_OWNER = parseInt(process.env.STUDIO_APP_DATASET_TOTAL_BYTES, 10) || 64 * 1024 * 1024 * 1024;
-const MAX_FILES_PER_APP = parseInt(process.env.STUDIO_APP_DATASET_MAX_FILES, 10) || 10;
+const PART_BYTES = require('../utils/envNumber.mts').envInt('DATASET_PART_BYTES', 32 * 1024 * 1024, { min: 1 });
+const MAX_FILE_BYTES = require('../utils/envNumber.mts').envInt('STUDIO_APP_DATASET_MAX_FILE_BYTES', 32 * 1024 * 1024 * 1024, { min: 1 });
+const TOTAL_BYTES_PER_OWNER = require('../utils/envNumber.mts').envInt('STUDIO_APP_DATASET_TOTAL_BYTES', 64 * 1024 * 1024 * 1024, { min: 1 });
+const MAX_FILES_PER_APP = require('../utils/envNumber.mts').envInt('STUDIO_APP_DATASET_MAX_FILES', 10, { min: 1 });
 
 // A paid capability on top of app_studio — first in every route's chain below,
 // never path-less on the router (see the header).
 const largeDatasets = requireFeature('large_datasets');
 
 // ── What a caller may send ────────────────────────────────────────────
-/**
- * An object that also accepts nothing at all: no body, or a test's bare req, reads as {}.
- * @param {{ name: ZodString; bytes: ZodNumber; kind: import('zod').ZodOptional<import('zod').ZodEnum<{ vcf: 'vcf'; }>>; }} shape
- */
+/** An object that also accepts nothing at all: no body, or a test's bare req, reads as {}. @template {import('zod').ZodRawShape} S @param {S} shape */
 const partOf = (shape) => z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object(shape).strict());
 
 const APP_ID_TEXT = 'The app id is the id in the app\'s address.';
@@ -191,7 +187,7 @@ async function audienceFor(req) {
     return { orgIdArr, userGroups: Array.isArray(userGroups) ? userGroups : [] };
 }
 
-async function loadVisibleApp(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) {
+async function loadVisibleApp(/** @type {import('express').Request<any, any, any, any>} */ req, /** @type {import('express').Response} */ res) {
     const userId = req.session.user.id;
     const app = await studioAppStore.getStudioApp(req.params.id);
     if (!app) { res.status(404).json({ error: 'App not found' }); return null; }
@@ -229,7 +225,7 @@ async function viewerMayRead(/** @type {import('express').Request} */ req, app) 
 }
 
 // List, single, parts, complete: the person who uploaded it — see the header.
-function isMine(/** @type {import('express').Request} */ req, ds) {
+function isMine(/** @type {import('express').Request<any, any, any, any>} */ req, ds) {
     return isUploaderOf(ds, req.session.user.id);
 }
 
@@ -334,7 +330,7 @@ router.put('/:id/large-datasets/:datasetId/parts/:n', largeDatasets, requireAuth
     if (!ds || !isMine(req, ds)) return res.status(404).json({ error: 'Dataset not found' });
     if (ds.status !== 'uploading') return res.status(409).json({ error: `the upload is ${ds.status}, not accepting parts` });
 
-    const { n } = req.params;
+    const n = /** @type {number} */ (/** @type {unknown} */ (req.params.n)); // validate() coerced it
     if (n >= ds.partsTotal) {
         return res.status(400).json({ error: `part number must be 0..${ds.partsTotal - 1}` });
     }
@@ -356,7 +352,7 @@ router.put('/:id/large-datasets/:datasetId/parts/:n', largeDatasets, requireAuth
 
     // Part 0 carries the head — the only part whose CONTENT is inspected here.
     if (n === 0) {
-        const sniff = sniffDatasetHead(body);
+        const sniff = /** @type {Record<string, any>} */ (sniffDatasetHead(body));
         if (!sniff.ok) {
             await storageStore.abortMultipartUpload(ds.rawKey, ds.uploadState?.s3UploadId).catch((e) => bestEffort('routes/studioAppDatasets:anon', e));
             await datasetFileStore.deleteDataset(ds.id, app.id, app.userId).catch((e) => bestEffort('routes/studioAppDatasets:anon#2', e));
@@ -365,7 +361,7 @@ router.put('/:id/large-datasets/:datasetId/parts/:n', largeDatasets, requireAuth
     }
 
     const { etag } = await storageStore.uploadPartBuffer(ds.rawKey, ds.uploadState?.s3UploadId, n + 1, body);
-    const recorded = await datasetFileStore.recordPart(ds.id, app.id, app.userId, n, etag, body.length);
+    const recorded = /** @type {Record<string, any>} */ (await datasetFileStore.recordPart(ds.id, app.id, app.userId, n, etag, body.length));
     if (!recorded.ok) {
         // Out-of-order or duplicate — tell the client where to resume.
         return res.status(409).json({ error: 'part out of sequence', expected: recorded.expected });

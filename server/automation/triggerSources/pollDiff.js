@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The generic `poll_diff` event producer.
  *
@@ -22,6 +23,9 @@ const crypto = require('crypto');
 const { walkRelativePath } = require('../bind');
 const { emitDisappeared } = require('./pollDiffDisappear');
 const log = require('../../telemetry/log');
+// Keys that plausibly identify one item, best first. Used only by auto-derived
+// sources, where no declaration told us what identity means.
+const { ID_CANDIDATES } = require('../../core/integrations/itemIdentity.mts');
 
 const CURSOR_VERSION = 1;
 const CURSOR_KIND = 'pd';
@@ -80,12 +84,6 @@ function projectChangePaths(item, changePaths) {
     return out;
 }
 
-// Keys that plausibly identify one item, best first. Used only by auto-derived
-// sources, where no declaration told us what identity means.
-const ID_CANDIDATES = [
-    'id', 'uuid', 'guid', 'key', 'measurement_key', 'sku', 'resourceName', 'noteId', 'messageId',
-    'threadId', 'eventId', 'fileId', 'deviceId', 'transcriptId', 'number', 'slug', 'path', 'url', 'name',
-];
 
 const isScalar = (v) => v === null || ['string', 'number', 'boolean'].includes(typeof v);
 
@@ -150,6 +148,7 @@ function indexCursor(cursor) {
 }
 
 function buildCursor({ entries, trunc, trackValues, now }) {
+    /** @type {{ v: number, k: string, t: unknown, h: string[], trunc?: boolean, vals?: Record<string, unknown>, deg?: unknown }} */
     const cursor = {
         v: CURSOR_VERSION,
         k: CURSOR_KIND,
@@ -451,11 +450,6 @@ module.exports = {
     runPollDiff,
     makePassCtx,
     BudgetExhausted,
-    // The identity heuristic is shared with App Studio's connector inspection
-    // (appStudio/connectorSchema.js), which answers the same question — "which
-    // key identifies one row of this tool's output?" — for a different consumer.
-    // Exported rather than duplicated so both stay on one candidate list.
-    ID_CANDIDATES,
     // exported for tests
     _internals: { parseCursor, buildCursor, projectChangePaths, canonical, normaliseToolResult, resolveEffectiveSource, MAX_CURSOR_BYTES },
 };

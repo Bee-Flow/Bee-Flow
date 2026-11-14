@@ -47,8 +47,8 @@ const agentStore = require('../../stores/agentStore');
 // the failure mode of an absent one is a safety fallback that throws — or
 // worse, a redaction that silently does nothing.
 const { KINDS: USAGE_KINDS, redactForeign } = require('../../stores/agent/agentUsage');
-const { getEffectiveUserId } = require('../../utils/routeHelpers');
-const { canReadAgent, canModifyAgent } = require('./crud');
+const { requireAgentGrade } = require('./crud');
+const { agentAccessOf } = require('../../auth/agentAccess.mts');
 const log = require('../../telemetry/log');
 const { bestEffort } = require('../../utils/bestEffort');
 
@@ -178,23 +178,11 @@ async function gatherUsage(agent, askerId) {
 
 const NoQuery = z.preprocess((v) => (v === undefined || v === null ? {} : v), z.object({}).strict());
 
-router.get('/:id/usage', validate({ query: NoQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof NoQuery>>} */ req, res) => {
-    const userId = getEffectiveUserId(req);
-    const agent = await agentStore.getAgent(req.params.id);
-    if (!agent) return res.status(404).json({ error: 'Agent not found' });
-    // Same 404 as GET /:id for someone who may not see the agent at all —
-    // "you may not" and "it is not there" must not be distinguishable.
-    if (!(await canReadAgent(agent, userId, req))) {
-        return res.status(404).json({ error: 'Agent not found' });
-    }
-    if (!(await canModifyAgent(agent, userId, req))) {
-        return res.status(403).json({
-            error: 'You do not have permission to edit this agent.',
-            code: 'agent_not_editable',
-        });
-    }
-
-    const { rows, counts, chat, testChats, unchecked, audience } = await gatherUsage(agent, userId);
+// The edit grade (auth/agentAccess.mts): someone who may not see the agent at
+// all gets the 404 of GET /:id, someone who may chat with it the editor's 403.
+router.get('/:id/usage', requireAgentGrade('edit'), validate({ query: NoQuery }), async (req, res) => {
+    const { agent, userId } = agentAccessOf(req);
+    const { rows, counts, chat, testChats, unchecked, audience } = await gatherUsage(/** @type {import('./crud').AgentRow} */ (agent), userId);
     res.json({
         usage: redactForeign(rows, userId),
         counts,

@@ -6,7 +6,7 @@
  * routes (routes/automation/runs.js, formScenarios.js) and the MCP form-scenario
  * dry run (automation/mcpFormScenarios.js), so a test run of any kind picks its
  * entry point the same way. It sits in core/ because a feature may not require
- * a route; routes/automation/runEntry.js re-exports it.
+ * a route; usecases/automation/runEntry.js re-exports it.
  */
 const { isManagedAutomation } = require('./stageVars');
 const { automationForRun } = require('./definitionForRun');

@@ -115,7 +115,7 @@ test('runPartial still throws for a genuinely unknown step id', async () => {
     const automation = automationWithLayer();
     await assert.rejects(
         () => runner.runPartial(automation, 'does-not-exist', { mode: 'only' }),
-        /not found in definition/i,
+        (e) => e.status === 404 && e.code === 'step_not_found',
     );
 });
 

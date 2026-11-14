@@ -2,7 +2,7 @@ import { useEffect, useEffectEvent } from 'react';
 import type { MutableRefObject } from 'react';
 import type { CmsLocale, CmsLocaleOverrides, CmsPageDoc, CmsSiteDoc, CmsSiteListEntry } from './cmsPanelTypes';
 import { ACTIVE_SITE_LS_KEY } from './helpers';
-import { settled } from '@/api/settled';
+import { useCmsEditorRead } from '@/api/queries/cmsEditorReads';
 import { cmsApi } from '../cmsApi';
 import { HEADER_VIRTUAL_ID } from '../sentinels';
 import { errorMessage } from '@/utils/caughtError';
@@ -18,6 +18,12 @@ interface SitePayload {
     pages?: CmsPageDoc[];
     localeOverrides?: CmsLocaleOverrides;
     publishedAt?: string | null;
+}
+
+/** GET /api/cms/sites. */
+interface SitesAnswer {
+    sites?: CmsSiteListEntry[];
+    liveSiteId?: string | null;
 }
 
 interface SitesListInput {
@@ -60,35 +66,27 @@ function rememberedSiteId(): string | null {
  * useCmsSitePayload then loads that site's full editor payload.
  */
 export function useCmsSitesList({ activeSiteIdRef, setActiveSiteId, setError, setLiveSiteId, setLoading, setSites, setSitesLoaded }: SitesListInput) {
+    const list = useCmsEditorRead<SitesAnswer>(['sites'], cmsApi.listSites(), 'Failed to load sites');
     useEffect(() => {
-        let cancelled = false;
-        (async () => {
-            try {
-                const res = await settled(cmsApi.listSites(), undefined, 'empty');
-                if (!res.ok) throw new Error(`Failed to load sites (${res.status})`);
-                const data = await res.res.json();
-                if (cancelled) return;
-                const list: CmsSiteListEntry[] = Array.isArray(data.sites) ? data.sites : [];
-                setSites(list);
-                setLiveSiteId(data.liveSiteId || null);
-                const remembered = rememberedSiteId();
-                const initial = (remembered && list.find(s => s.id === remembered))
-                    ? remembered
-                    : (list[0]?.id || null);
-                activeSiteIdRef.current = initial;
-                setActiveSiteId(initial);
-                if (!initial) setLoading(false);  // empty state — no payload to fetch
-            } catch (err) {
-                if (!cancelled) {
-                    setError(errorText(err));
-                    setLoading(false);
-                }
-            } finally {
-                if (!cancelled) setSitesLoaded(true);
-            }
-        })();
-        return () => { cancelled = true; };
-    }, [activeSiteIdRef, setActiveSiteId, setError, setLiveSiteId, setLoading, setSites, setSitesLoaded]);
+        if (!list.data) return;
+        const sites: CmsSiteListEntry[] = Array.isArray(list.data.sites) ? list.data.sites : [];
+        setSites(sites);
+        setLiveSiteId(list.data.liveSiteId || null);
+        const remembered = rememberedSiteId();
+        const initial = (remembered && sites.find(s => s.id === remembered))
+            ? remembered
+            : (sites[0]?.id || null);
+        activeSiteIdRef.current = initial;
+        setActiveSiteId(initial);
+        if (!initial) setLoading(false);  // empty state — no payload to fetch
+        setSitesLoaded(true);
+    }, [list.data, activeSiteIdRef, setActiveSiteId, setLiveSiteId, setLoading, setSites, setSitesLoaded]);
+    useEffect(() => {
+        if (!list.error) return;
+        setError(errorText(list.error));
+        setLoading(false);
+        setSitesLoaded(true);
+    }, [list.error, setError, setLoading, setSitesLoaded]);
 }
 
 /**
@@ -100,7 +98,7 @@ export function useCmsSitesList({ activeSiteIdRef, setActiveSiteId, setError, se
  */
 export function useCmsSitePayload(input: SitePayloadInput) {
     const {
-        activeSiteId, sites, historyResetRef, pendingSaves,
+        activeSiteId, sites, historyResetRef, pendingSaves: pendingSavesRef,
         setActiveBlockId, setActiveLocale, setActivePageId, setDefaultLocale, setDirtySincePublish, setError,
         setLiveSiteId, setLoading, setLocaleOverrides, setLocales, setPages, setPublishedAt, setSaveStatus, setSiteDoc,
     } = input;
@@ -112,49 +110,48 @@ export function useCmsSitePayload(input: SitePayloadInput) {
             && Date.parse(listEntry.updatedAt) > Date.parse(publishedAt)
         ));
     });
+    // A new site starts from nothing, so the editor never shows stale content
+    // from the previous site mid-read.
     useEffect(() => {
         if (!activeSiteId) return;
-        let cancelled = false;
         setLoading(true);
         setError(null);
-        // Clean local state so the editor never shows stale content from
-        // the previous site mid-fetch.
         setSiteDoc(null);
         setPages([]);
         setActivePageId(HEADER_VIRTUAL_ID);
         setActiveBlockId(null);
         setSaveStatus('idle');
         setPublishedAt(null);
-        pendingSaves.current = {};
-        (async () => {
-            try {
-                const res = await settled(cmsApi.site(activeSiteId), undefined, 'empty');
-                if (!res.ok) throw new Error(`Failed to load site (${res.status})`);
-                const data: SitePayload = await res.res.json();
-                if (cancelled) return;
-                // Server includes liveSiteId on the site payload — refresh
-                // it here in case another tab toggled live in the meantime.
-                if (data.liveSiteId !== undefined) setLiveSiteId(data.liveSiteId || null);
-                setDefaultLocale(data.defaultLocale || 'en');
-                setLocales(data.locales || [{ code: 'en', name: 'English', isDefault: true }]);
-                setSiteDoc(data.site || null);
-                setPages(data.pages || []);
-                setLocaleOverrides(data.localeOverrides || { siteByLocale: {}, pagesByLocale: {} });
-                setPublishedAt(data.publishedAt || null);
-                seedDirtySincePublish(activeSiteId, data.publishedAt);
-                setActiveLocale(data.defaultLocale || 'en');
-                historyResetRef.current();
-                const firstPageId = data.site?.pages?.[0]?.id;
-                setActivePageId(firstPageId || HEADER_VIRTUAL_ID);
-                if (firstPageId && data.pages?.length) {
-                    setActiveBlockId(data.pages[0]?.blocks?.[0]?.id || null);
-                }
-            } catch (err) {
-                if (!cancelled) setError(errorText(err));
-            } finally {
-                if (!cancelled) setLoading(false);
-            }
-        })();
-        return () => { cancelled = true; };
-    }, [activeSiteId, historyResetRef, pendingSaves, setActiveBlockId, setActiveLocale, setActivePageId, setDefaultLocale, setError, setLiveSiteId, setLoading, setLocaleOverrides, setLocales, setPages, setPublishedAt, setSaveStatus, setSiteDoc]);
+        pendingSavesRef.current = {};
+    }, [activeSiteId, pendingSavesRef, setActiveBlockId, setActivePageId, setError, setLoading, setPages, setPublishedAt, setSaveStatus, setSiteDoc]);
+
+    const payload = useCmsEditorRead<SitePayload>(['site', activeSiteId], activeSiteId ? cmsApi.site(activeSiteId) : null, 'Failed to load site');
+    const data = activeSiteId ? payload.data : undefined;
+    useEffect(() => {
+        if (!activeSiteId || !data) return;
+        // Server includes liveSiteId on the site payload — refresh
+        // it here in case another tab toggled live in the meantime.
+        if (data.liveSiteId !== undefined) setLiveSiteId(data.liveSiteId || null);
+        setDefaultLocale(data.defaultLocale || 'en');
+        setLocales(data.locales || [{ code: 'en', name: 'English', isDefault: true }]);
+        setSiteDoc(data.site || null);
+        setPages(data.pages || []);
+        setLocaleOverrides(data.localeOverrides || { siteByLocale: {}, pagesByLocale: {} });
+        setPublishedAt(data.publishedAt || null);
+        seedDirtySincePublish(activeSiteId, data.publishedAt);
+        setActiveLocale(data.defaultLocale || 'en');
+        historyResetRef.current();
+        const firstPageId = data.site?.pages?.[0]?.id;
+        setActivePageId(firstPageId || HEADER_VIRTUAL_ID);
+        if (firstPageId && data.pages?.length) {
+            setActiveBlockId(data.pages[0]?.blocks?.[0]?.id || null);
+        }
+        setLoading(false);
+    }, [activeSiteId, data, historyResetRef, setActiveBlockId, setActiveLocale, setActivePageId, setDefaultLocale, setLiveSiteId, setLoading, setLocaleOverrides, setLocales, setPages, setPublishedAt, setSiteDoc]);
+    const failure = activeSiteId ? payload.error : null;
+    useEffect(() => {
+        if (!failure) return;
+        setError(errorText(failure));
+        setLoading(false);
+    }, [failure, setError, setLoading]);
 }

@@ -39,6 +39,7 @@ export default function PendingInvitations({ pending, onRevoke }: PendingInvitat
                             onClick={() => onRevoke(inv.id)}
                             className="text-xs px-2 py-1 rounded-lg text-[var(--text-muted)] hover:text-red-500 hover:bg-red-500/10 transition-colors"
                             title={t('admin_org.users_revoke_invite', 'Revoke invitation')}
+                            aria-label={t('admin_org.users_revoke_invite', 'Revoke invitation')}
                         >
                             <X className="w-3.5 h-3.5" />
                         </button>

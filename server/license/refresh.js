@@ -232,7 +232,8 @@ async function crlTick() {
                 log.warn(`[License CRL] markRevoked failed license_id=${r.license_id} error=${e.message}`);
             }
         }
-        const newSince = Number.isFinite(body.next_since) ? body.next_since : since;
+        const offered = Number.isFinite(body.next_since) ? body.next_since : since;
+        const newSince = Math.max(offered, since);
         if (newSince > since) {
             try { await configStore.setConfig(CRL_CONFIG_KEY, newSince); } catch (err) { bestEffort('license/refresh:crlCursor', err); }
         }

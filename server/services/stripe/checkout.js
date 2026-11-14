@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Hosted Checkout and the Billing Portal: checkout session creation (org
  * customer resolution, VAT, address, tax, recurring disclosure), session
@@ -40,18 +41,177 @@ function buildRecurringDisclosure(billingInterval) {
 }
 
 /**
+ * @typedef {Awaited<ReturnType<typeof getClient>>} StripeClient
+ * @typedef {Parameters<typeof buildStripeAddress>[0] & { vat?: string | null, phone?: string | null, name?: string | null, email?: string | null }} OrgBillingRow
+ */
+
+/**
+ * The quantity billed. Per-seat org plans bill the active seat count so
+ * Stripe pro-rates as the org grows or shrinks; a consumer is always one.
+ * @param {DbRow.SubscriptionPlans} plan
+ * @param {boolean} isConsumer
+ * @param {string | undefined} orgId
+ */
+async function billedSeatCount(plan, isConsumer, orgId) {
+    if (!plan.per_seat || isConsumer || !orgId) return 1;
+    try {
+        return Math.max(1, await deps.userStore().getActiveSeatCount(orgId));
+    } catch (e) {
+        log.warn('[Stripe] per-seat checkout: seat count lookup failed, defaulting to 1:', /** @type {Error} */ (e).message);
+        return 1;
+    }
+}
+
+/**
+ * The org's customer found by its metadata, or null (the search index is
+ * eventually consistent and may also fail).
+ * @param {StripeClient} stripe
+ * @param {string} orgId
+ */
+async function searchOrgCustomer(stripe, orgId) {
+    try {
+        const found = await stripe.customers.search({
+            query: `metadata['beeflow_org_id']:'${escapeSearchValue(orgId)}'`,
+            limit: 1,
+        });
+        if (found?.data?.[0]?.id) return found.data[0].id;
+    } catch (e) { bestEffort('stripe/checkout:customerSearch', e); }
+    return null;
+}
+
+/**
+ * Attach the org's VAT id (idempotent) so Stripe Tax can apply EU reverse
+ * charge without the admin re-entering it. Non-fatal: inline
+ * tax_id_collection covers it.
+ * @param {StripeClient} stripe
+ * @param {string | null} customerId
+ * @param {OrgBillingRow | null | undefined} org
+ * @param {string} orgId
+ */
+async function attachOrgVat(stripe, customerId, org, orgId) {
+    const taxId = org ? resolveStripeTaxId(org.vat) : null;
+    if (!taxId || !customerId) return;
+    try {
+        const existing = await stripe.customers.listTaxIds(customerId, { limit: 25 });
+        const already = (existing?.data || []).some((/** @type {{ value: string; type: string; }} */ t) => t.value === taxId.value && t.type === taxId.type);
+        if (!already) await stripe.customers.createTaxId(customerId, taxId);
+    } catch (e) {
+        log.warn(`[Stripe] attaching VAT for org ${orgId} failed: ${/** @type {Error} */ (e).message}`);
+    }
+}
+
+/**
+ * Sync the org's structured billing address + phone onto the customer so
+ * Checkout and the Billing Portal pre-fill and Stripe Tax has a valid
+ * address, for reused customers too (create only sets name/email).
+ * Non-fatal: billing_address_collection + customer_update cover it.
+ * @param {StripeClient} stripe
+ * @param {string} customerId
+ * @param {OrgBillingRow | null | undefined} org
+ * @param {string} orgId
+ */
+async function syncOrgBillingAddress(stripe, customerId, org, orgId) {
+    try {
+        /** @type {Record<string, unknown>} */
+        const billingUpdates = {};
+        if (org?.phone) billingUpdates.phone = org.phone;
+        const address = buildStripeAddress(org);
+        if (address) billingUpdates.address = address;
+        if (Object.keys(billingUpdates).length > 0) {
+            await stripe.customers.update(customerId, billingUpdates);
+        }
+    } catch (e) {
+        log.warn(`[Stripe] syncing billing address for org ${orgId} failed: ${/** @type {Error} */ (e).message}`);
+    }
+}
+
+/**
+ * ONE Stripe customer per org, so repeated checkout attempts (before the
+ * first one activates) don't mint duplicates: the stored id, else a search
+ * by metadata.beeflow_org_id, else a new one. It is stored at once, so the
+ * next attempt reuses it without the search index or the activation
+ * webhook. The org's VAT and billing address go onto it, so Stripe Tax can
+ * apply reverse charge (EU B2B) without the admin re-entering the number.
+ * Any failure here leaves the customer found so far (or none: Checkout then
+ * collects the e-mail).
+ * @param {StripeClient} stripe
+ * @param {{ orgId: string, orgName?: string, userEmail: string, stripeCustomerId?: string }} ctx
+ */
+async function resolveOrgCustomer(stripe, { orgId, orgName, userEmail, stripeCustomerId }) {
+    let customerId = stripeCustomerId || null;
+    try {
+        const userStore = deps.userStore();
+        const org = await userStore.getOrganization(orgId);
+        if (!customerId) customerId = await searchOrgCustomer(stripe, orgId);
+        if (!customerId) {
+            const created = await stripe.customers.create({
+                name: orgName || org?.name || undefined,
+                email: userEmail || org?.email || undefined,
+                metadata: { beeflow_org_id: orgId },
+            });
+            customerId = created.id;
+        }
+        if (customerId) {
+            try { assertStored(await userStore.setOrgSubscription(orgId, { stripe_customer_id: customerId }), `Stripe customer id of organization ${orgId}`); }
+            catch (e) { bestEffort('stripe/checkout:persistCustomerId', e); }
+        }
+        await attachOrgVat(stripe, customerId, org, orgId);
+        if (customerId) await syncOrgBillingAddress(stripe, customerId, org, orgId);
+    } catch (e) {
+        log.warn(`[Stripe] org customer resolution skipped: ${/** @type {Error} */ (e).message}`);
+    }
+    return customerId;
+}
+
+/**
+ * A trial, or a billing cycle anchored to the 1st of next month (UTC) so every
+ * paying subscription renews on the same day. Stripe rejects
+ * billing_cycle_anchor together with trial_period_days (the trial end IS the
+ * anchor). `create_prorations` charges the partial period up to the anchor,
+ * which matters for per-seat plans entering mid-cycle.
+ * @param {Record<string, unknown>} subscriptionData
+ * @param {DbRow.SubscriptionPlans} plan
+ */
+function applyTrialOrAnchor(subscriptionData, plan) {
+    if (plan.trial_days && plan.trial_days > 0) {
+        subscriptionData.trial_period_days = plan.trial_days;
+    } else {
+        subscriptionData.billing_cycle_anchor = computeBillingCycleAnchor();
+        subscriptionData.proration_behavior = 'create_prorations';
+    }
+}
+
+/**
+ * Stripe Tax: a billing address, and VAT numbers for B2B customers we did not
+ * pre-attach one for. With a customer attached, Stripe Tax needs the address
+ * ON that customer, which billing_address_collection alone does not write
+ * back: customer_update does (invalid alongside customer_email). Without it
+ * the session is rejected ("Automatic tax calculation in Checkout requires a
+ * valid address on the Customer").
+ * @param {Record<string, unknown>} sessionParams
+ */
+function applyTaxCollection(sessionParams) {
+    sessionParams.automatic_tax = { enabled: true };
+    sessionParams.billing_address_collection = 'required';
+    sessionParams.tax_id_collection = { enabled: true };
+    if (sessionParams.customer) {
+        sessionParams.customer_update = { address: 'auto', name: 'auto' };
+    }
+}
+
+/**
  * Create a Stripe Checkout Session for a plan.
  * Supports both organization and consumer subscriptions.
- * 
+ *
  * `options`: `plan` is the BeeFlow plan row; `orgId`/`orgName` are set for an
  * org checkout, `userId` for a consumer checkout; `subscriberType` is
  * 'organization' (default) or 'consumer'; `userEmail` pre-fills the form;
  * `successUrl`/`cancelUrl` are the redirect URLs; `stripeCustomerId` an
  * existing Stripe customer ID.
  *
- * @param {{ plan: DbRow.SubscriptionPlans, orgId?: string, orgName?: string, userId?: string,
- *   subscriberType?: 'organization' | 'consumer' | string, userEmail: string, successUrl: string, cancelUrl: string,
- *   stripeCustomerId?: string }} options
+ * @param {{ plan: DbRow.SubscriptionPlans, orgId?: string | null, orgName?: string | null, userId?: string | null,
+ *   subscriberType?: 'organization' | 'consumer' | string, userEmail?: string, successUrl: string, cancelUrl: string,
+ *   stripeCustomerId?: string | null }} options
  * @returns {Promise<import('stripe').Checkout.Session>} Stripe Checkout Session
  */
 async function createCheckoutSession({ plan, orgId, orgName, userId, subscriberType = 'organization', userEmail, successUrl, cancelUrl, stripeCustomerId }) {
@@ -62,31 +222,14 @@ async function createCheckoutSession({ plan, orgId, orgName, userId, subscriberT
     }
 
     const isConsumer = subscriberType === 'consumer';
-
-    // Build metadata based on subscriber type
     const metadata = {
         beeflow_plan_id: plan.id,
         beeflow_subscriber_type: subscriberType,
+        ...(isConsumer ? { beeflow_user_id: userId } : { beeflow_org_id: orgId }),
     };
-    if (isConsumer) {
-        metadata.beeflow_user_id = userId;
-    } else {
-        metadata.beeflow_org_id = orgId;
-    }
+    const quantity = await billedSeatCount(plan, isConsumer, orgId);
 
-    // Per-seat org plans bill `quantity = active seat count` so Stripe
-    // pro-rates as the org grows or shrinks. Consumer plans always
-    // bill quantity=1 (they have a single user by definition).
-    let quantity = 1;
-    if (plan.per_seat && !isConsumer && orgId) {
-        try {
-            const userStore = deps.userStore();
-            quantity = Math.max(1, await userStore.getActiveSeatCount(orgId));
-        } catch (e) {
-            log.warn('[Stripe] per-seat checkout: seat count lookup failed, defaulting to 1:', /** @type {Error} */ (e).message);
-        }
-    }
-
+    /** @type {Record<string, any>} */
     const sessionParams = {
         mode: 'subscription',
         line_items: [{ price: plan.stripe_price_id, quantity }],
@@ -97,126 +240,20 @@ async function createCheckoutSession({ plan, orgId, orgName, userId, subscriberT
         subscription_data: { metadata },
     };
 
-    // For org checkouts, pre-attach the org's stored VAT to a Stripe customer
-    // so Stripe Tax can apply reverse charge (EU B2B) without making the
-    // org-admin re-enter the number during checkout. We only build/upgrade
-    // a customer when the VAT is parseable; otherwise we fall back to the
-    // existing email/customer flow and Stripe will collect the VAT inline.
-    let effectiveCustomerId = stripeCustomerId || null;
-    if (!isConsumer && orgId) {
-        try {
-            const userStore = deps.userStore();
-            const org = await userStore.getOrganization(orgId);
-
-            // Resolve ONE Stripe customer per org so repeated checkout attempts
-            // (e.g. before the first one activates) don't mint duplicate
-            // customers. Order: stored id → search by metadata.beeflow_org_id →
-            // create. The result is persisted immediately so the next attempt
-            // reuses it without depending on the (eventually-consistent) search
-            // index or the activation webhook.
-            if (!effectiveCustomerId) {
-                try {
-                    const found = await stripe.customers.search({
-                        query: `metadata['beeflow_org_id']:'${escapeSearchValue(orgId)}'`,
-                        limit: 1,
-                    });
-                    if (found?.data?.[0]?.id) effectiveCustomerId = found.data[0].id;
-                } catch (e) { bestEffort('stripe/checkout:customerSearch', e); }
-            }
-            if (!effectiveCustomerId) {
-                const created = await stripe.customers.create({
-                    name: orgName || org?.name || undefined,
-                    email: userEmail || org?.email || undefined,
-                    metadata: { beeflow_org_id: orgId },
-                });
-                effectiveCustomerId = created.id;
-            }
-            if (effectiveCustomerId) {
-                try { assertStored(await userStore.setOrgSubscription(orgId, { stripe_customer_id: effectiveCustomerId }), `Stripe customer id of organization ${orgId}`); }
-                catch (e) { bestEffort('stripe/checkout:persistCustomerId', e); }
-            }
-
-            // Attach the org's VAT id (idempotent) so Stripe Tax can apply EU
-            // reverse charge without the admin re-entering it. Non-fatal: the
-            // checkout still proceeds and inline tax_id_collection covers it.
-            const taxId = org ? resolveStripeTaxId(org.vat) : null;
-            if (taxId && effectiveCustomerId) {
-                try {
-                    const existing = await stripe.customers.listTaxIds(effectiveCustomerId, { limit: 25 });
-                    const already = (existing?.data || []).some((/** @type {{ value: string; type: string; }} */ t) => t.value === taxId.value && t.type === taxId.type);
-                    if (!already) await stripe.customers.createTaxId(effectiveCustomerId, taxId);
-                } catch (e) {
-                    log.warn(`[Stripe] attaching VAT for org ${orgId} failed: ${/** @type {Error} */ (e).message}`);
-                }
-            }
-
-            // Sync the org's structured billing address + phone onto the
-            // customer so Checkout and the Billing Portal pre-fill, and Stripe
-            // Tax has a valid address. Covers reused/pre-existing customers too
-            // (the create call above only sets name/email). Non-fatal: checkout
-            // still proceeds via billing_address_collection + customer_update.
-            if (effectiveCustomerId) {
-                try {
-                    const billingUpdates = {};
-                    if (org?.phone) billingUpdates.phone = org.phone;
-                    const address = buildStripeAddress(org);
-                    if (address) billingUpdates.address = address;
-                    if (Object.keys(billingUpdates).length > 0) {
-                        await stripe.customers.update(effectiveCustomerId, billingUpdates);
-                    }
-                } catch (e) {
-                    log.warn(`[Stripe] syncing billing address for org ${orgId} failed: ${/** @type {Error} */ (e).message}`);
-                }
-            }
-        } catch (e) {
-            log.warn(`[Stripe] org customer resolution skipped: ${/** @type {Error} */ (e).message}`);
-        }
-    }
-
-    // Re-use existing customer (possibly just created above with VAT) or
-    // pre-fill email so Stripe creates one at checkout time.
-    if (effectiveCustomerId) {
-        sessionParams.customer = effectiveCustomerId;
+    // An existing customer (for an org possibly just created with its VAT),
+    // else the e-mail, and Stripe creates the customer at checkout.
+    const customerId = !isConsumer && orgId
+        ? await resolveOrgCustomer(stripe, { orgId, orgName, userEmail, stripeCustomerId })
+        : stripeCustomerId || null;
+    if (customerId) {
+        sessionParams.customer = customerId;
     } else {
         sessionParams.customer_email = userEmail;
     }
 
-    // Apply trial period if plan has trial days
-    if (plan.trial_days && plan.trial_days > 0) {
-        sessionParams.subscription_data.trial_period_days = plan.trial_days;
-    } else {
-        // Anchor the billing cycle to a stable monthly date (1st of next
-        // month UTC) so every paying subscription renews on the same day.
-        // Stripe rejects billing_cycle_anchor together with
-        // trial_period_days (the trial end IS the implicit anchor), so we
-        // only set it when there's no trial. `create_prorations` makes
-        // Stripe issue a partial-period charge between "now" and the
-        // anchor — relevant for per-seat plans entering mid-cycle.
-        sessionParams.subscription_data.billing_cycle_anchor = computeBillingCycleAnchor();
-        sessionParams.subscription_data.proration_behavior = 'create_prorations';
-    }
+    applyTrialOrAnchor(sessionParams.subscription_data, plan);
+    if (await deps.configStore.getConfig('stripe_tax_enabled')) applyTaxCollection(sessionParams);
 
-    // Tax collection
-    const taxEnabled = await deps.configStore.getConfig('stripe_tax_enabled');
-    if (taxEnabled) {
-        sessionParams.automatic_tax = { enabled: true };
-        // Collect billing address so Stripe can calculate tax
-        sessionParams.billing_address_collection = 'required';
-        // Allow B2B customers to enter VAT numbers (covers customers we
-        // didn't pre-attach a VAT for above).
-        sessionParams.tax_id_collection = { enabled: true };
-        // When a Customer is pre-attached, Stripe Tax requires an address ON
-        // that Customer. billing_address_collection alone does NOT write the
-        // entered address back to an existing Customer — customer_update does.
-        // Without this, session creation is rejected with "Automatic tax
-        // calculation in Checkout requires a valid address on the Customer".
-        // (Invalid alongside customer_email, so guard on `customer`.)
-        if (sessionParams.customer) {
-            sessionParams.customer_update = { address: 'auto', name: 'auto' };
-        }
-    }
-
-    // Allow promo codes
     sessionParams.allow_promotion_codes = true;
 
     // BFSF-243: make the recurring nature explicit on the hosted checkout.

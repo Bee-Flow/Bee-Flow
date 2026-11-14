@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
 import { buildPdfExportHtml } from './messageItemHelpers';
 import type { ChatMessage } from './messageTypes';
-import { API_BASE } from '@/utils/helpers';
-import { mutate } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 type Translate = (key: string, fallback?: string) => string;
 
@@ -61,7 +60,6 @@ function feedbackPayload(c: FeedbackContext, rating: string | null, comment: str
 
 async function submitFeedback(c: FeedbackContext, rating: string | null, comment = '', withConversation = false) {
     try {
-        const API = (typeof API_BASE !== 'undefined' ? API_BASE : '') + '/api/feedback';
         const payload = feedbackPayload(c, rating, comment);
         if (withConversation && !c.incognito && c.allMessages?.length > 0) {
             payload.conversationSnapshot = c.allMessages.map(m => ({
@@ -74,10 +72,9 @@ async function submitFeedback(c: FeedbackContext, rating: string | null, comment
                 model: m.model || null,
             }));
         }
-        await mutate(API, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
+        // The raw body: the payload is assembled as a loose record.
+        await apiRequest('POST /api/feedback', {
+            init: { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) },
         });
     } catch (e) {
         console.error('[Feedback] Failed to submit:', e);

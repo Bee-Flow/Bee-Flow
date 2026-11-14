@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * App Studio — the PUBLIC surface of an app.
  *
@@ -75,7 +75,7 @@ const UploadFields = bodyOf({
 const studioAppStore = require('../stores/studioAppStore');
 const studioAppDataStore = require('../stores/studioAppDataStore');
 const storageStore = require('../stores/storageStore');
-const { logPublicStepUsage } = require('./studioAppPublicParts');
+const { logPublicStepUsage } = require('../usecases/studioAppPublicParts');
 const rlsGateway = require('../appStudio/rlsGateway');
 const actionExecutor = require('../appStudio/actionExecutor');
 const attachmentAccess = require('../appStudio/attachmentAccess');
@@ -90,9 +90,10 @@ const { issueVisitorToken, verifyVisitorToken } = require('../auth/publicShareTo
 const { resolveRequestedStep, STEP_MISMATCH, sanitizeBag, sanitizeErrorScope, stepNotes, stepFailureExtras } = require('../appStudio/actionSequence');
 const { bestEffort } = require('../utils/bestEffort');
 const { optionalListQuery } = require('./studio/appDataContext');
-const { attachmentResponseHeaders } = require('./studioAppAttachmentHeaders.mts');
+const { attachmentResponseHeaders } = require('../usecases/studioAppAttachmentHeaders.mts');
 const uploadDelete = require('./studioAppUploadDeleteToken.mts');
 const { withViewerAttributes, anonymousViewerAttributes } = require('../appStudio/viewerAttributes.mts');
+const { envInt } = require('../utils/envNumber.mts');
 
 const { assertAttachmentTotalBytes } = mailboxAttachments;
 
@@ -100,16 +101,16 @@ const { assertAttachmentTotalBytes } = mailboxAttachments;
 // Two axes, like formPublic: per IP (one abuser) and per token (one form being
 // hammered). Deliberately tighter than the signed-in equivalents — there is no
 // account behind these calls, and every one of them spends the owner's.
-const PUB_RPM_PER_IP = parseInt(process.env.STUDIO_APP_PUBLIC_RPM_PER_IP, 10) || 60;
-const PUB_RPM_PER_TOKEN = parseInt(process.env.STUDIO_APP_PUBLIC_RPM_PER_TOKEN, 10) || 240;
-const PUB_STEP_RPM = parseInt(process.env.STUDIO_APP_PUBLIC_STEP_RPM, 10) || 30;
+const PUB_RPM_PER_IP = envInt('STUDIO_APP_PUBLIC_RPM_PER_IP', 60, { min: 1 });
+const PUB_RPM_PER_TOKEN = envInt('STUDIO_APP_PUBLIC_RPM_PER_TOKEN', 240, { min: 1 });
+const PUB_STEP_RPM = envInt('STUDIO_APP_PUBLIC_STEP_RPM', 30, { min: 1 });
 // A form that checks each upload as it arrives spends one model call PER FILE,
 // not one per submission: the seven-photo intake is seven calls in the couple
 // of minutes someone stands at their meter cupboard, and every retaken photo is
 // another. 12/min was sized for the old submit-time batch and would have
 // throttled an ordinary visitor halfway through.
-const PUB_AI_STEP_RPM = parseInt(process.env.STUDIO_APP_PUBLIC_AI_STEP_RPM, 10) || 30;
-const PUB_UPLOAD_RPM = parseInt(process.env.STUDIO_APP_PUBLIC_UPLOAD_RPM, 10) || 20;
+const PUB_AI_STEP_RPM = envInt('STUDIO_APP_PUBLIC_AI_STEP_RPM', 30, { min: 1 });
+const PUB_UPLOAD_RPM = envInt('STUDIO_APP_PUBLIC_UPLOAD_RPM', 20, { min: 1 });
 
 const ipLimiter = perUserRateLimit({ windowMs: 60_000, max: PUB_RPM_PER_IP, keyFn: (req) => `pubapp-ip:${req.ip || 'unknown'}`, name: 'studio-public-ip' });
 const tokenLimiter = perUserRateLimit({ windowMs: 60_000, max: PUB_RPM_PER_TOKEN, keyFn: (/** @type {import('express').Request} */ req) => `pubapp-tok:${req.params.token}`, name: 'studio-public-token' });
@@ -122,7 +123,7 @@ const uploadLimiter = perUserRateLimit({ windowMs: 60_000, max: PUB_UPLOAD_RPM, 
 // per-token+IP granularity as the step bucket, so one visitor cannot spend the
 // budget of everyone else looking at the same page.
 const MAX_BATCH_READS = 25;
-const PUB_READ_DESCRIPTOR_RPM = parseInt(process.env.STUDIO_APP_PUBLIC_READ_DESCRIPTOR_RPM, 10) || 300;
+const PUB_READ_DESCRIPTOR_RPM = envInt('STUDIO_APP_PUBLIC_READ_DESCRIPTOR_RPM', 300, { min: 1 });
 const readDescriptorLimiter = perUserRateLimit({
     windowMs: 60_000,
     max: PUB_READ_DESCRIPTOR_RPM,
@@ -172,7 +173,7 @@ const TOKEN_RE = /^[a-f0-9]{24,64}$/;
 // spend the owner's quota, which an anonymous caller must not be able to drain.
 const { aiStepKinds: AI_STEP_KINDS } = require('../appStudio/componentSpecs/stepRegistry').STEP_POLICY_LISTS;
 // Which kinds an anonymous visitor may post at all (the `public` policy row of the step catalogue).
-const { publicStepRefusal } = require('./studioAppPublicStepGate.mts');
+const { publicStepRefusal } = require('../usecases/studioAppPublicStepGate.mts');
 const { visibleFormValues } = require('./studioAppRunGate');
 
 
@@ -183,7 +184,7 @@ const { visibleFormValues } = require('./studioAppRunGate');
  * A revoked page, a deleted app, an unpublished app, an app whose definition
  * dropped `publicAccess`, and a token that never existed are ALL the same 404.
  * The token is the credential, so probing must learn nothing.
- * @param {import('express').Request<{ token: string }>} req
+ * @param {import('express').Request<{ token: string }, any, any, any>} req
  * @param {import('express').Response} res
  */
 async function loadPublicApp(req, res) {
@@ -207,7 +208,7 @@ async function loadPublicApp(req, res) {
     return { token, page, app, definition, surface };
 }
 
-/** @typedef {import('express').Request<{ token: string }> & { visitor?: NonNullable<ReturnType<typeof verifyVisitorToken>> }} VisitorReq  a request requireVisitor let through */
+/** @typedef {import('express').Request<{ token: string }, any, any, any> & { visitor?: NonNullable<ReturnType<typeof verifyVisitorToken>> }} VisitorReq  a request requireVisitor let through */
 
 /**
  * The visitor bearer → { viewerId }. Every endpoint except GET /:token needs
@@ -238,9 +239,10 @@ function requireVisitor(req, res, next) {
  */
 async function publicDataContext(found, req, res, { tableId } = {}) {
     const { app, surface } = found;
+    const visitor = /** @type {NonNullable<VisitorReq['visitor']>} */ (req.visitor); // set by requireVisitor
     // The visitor token names an app; a token minted for a different app must
     // not resolve here even if both pages were somehow confused.
-    if (req.visitor.appId !== app.id) { res.status(401).json({ error: 'Invalid visitor token' }); return null; }
+    if (visitor.appId !== app.id) { res.status(401).json({ error: 'Invalid visitor token' }); return null; }
 
     const meta = await studioAppDataStore.getDataModel(app.id, app.userId);
     const model = /** @type {DataModel | null} */ ((meta && meta.model && typeof meta.model === 'object') ? meta.model : null);
@@ -253,10 +255,10 @@ async function publicDataContext(found, req, res, { tableId } = {}) {
     /** @type {{ id: string, role: typeof role, organizationId: string | null }} */
     // The same goes for the attributes a row rule may read (viewerAttributes.mts): a visitor
     // has no account, is in no group and in no organisation, and no lookup is made for one.
-    const viewer = await withViewerAttributes({ id: req.visitor.viewerId, role, organizationId: null }, model, { anonymous: true });
+    const viewer = await withViewerAttributes({ id: visitor.viewerId, role, organizationId: null }, model, { anonymous: true });
 
     /** @type {{ app: typeof app, ownerScope: string, viewerId: string, model: DataModel, role: typeof role, viewer: typeof viewer, table?: DataTable }} */
-    const ctx = { app, ownerScope: app.userId, viewerId: req.visitor.viewerId, model, role, viewer };
+    const ctx = { app, ownerScope: app.userId, viewerId: visitor.viewerId, model, role, viewer };
     if (tableId) {
         const table = model.tables.find((t) => t && (t.id === tableId || t.key === tableId));
         if (!table) { res.status(404).json({ error: 'Table not found' }); return null; }
@@ -419,7 +421,7 @@ router.get('/:token/data/tables/:tableId/records', ipLimiter, tokenLimiter, requ
         if (!rlsGateway.canRead(ctx.table, ctx.role)) return res.status(403).json({ error: 'Forbidden' });
 
         const out = await dataReadRunner.runRecordList(ctx, ctx.table, {
-            ...R.listQueryOf(req.query), ...optionalListQuery(req.query), cursor: req.query.cursor, limit: req.query.limit, total: req.query.total === '1',
+            ...R.listQueryOf(req.query), ...optionalListQuery(/** @type {import('qs').ParsedQs} */ (/** @type {unknown} */ (req.query))), cursor: req.query.cursor, limit: req.query.limit, total: req.query.total === '1',
         });
         return res.json(out);
     } catch (err) { return handleErr(res, err, 'records.list'); }
@@ -516,7 +518,7 @@ function attachmentKey(ownerId, appId, sha256) {
  * @param {string} role
  */
 function roleMayUpload(model, role) {
-    return model.tables.some((t) => rlsGateway.resolveScope(t, role, 'create') === true
+    return /** @type {DataTable[]} */ (model.tables).some((t) => rlsGateway.resolveScope(t, role, 'create') === true // a list: publicDataContext checked
         || rlsGateway.resolveScope(t, role, 'update') !== 'none');
 }
 

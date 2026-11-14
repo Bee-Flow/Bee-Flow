@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 const { bestEffort } = require('../../utils/bestEffort');
 
 /**
@@ -32,7 +32,7 @@ const { bestEffort } = require('../../utils/bestEffort');
  *
  * @param {{ messages: Array<{ role?: string, content?: string | Array<{ type?: string, text?: string }> }>,
  *   resolvedShield: { showRawPayload?: boolean, dlpMode?: string, piiDetectionConfidenceThreshold?: number, [key: string]: unknown },
- *   orgId?: string, conversationId?: string, userId?: string, model?: string | null,
+ *   orgId?: string | null, conversationId?: string | null, userId?: string | null, model?: string | null,
  *   providerConfig: Parameters<typeof import('../providers/classification').classifyProvider>[0],
  *   emit: import('../agentRuntime/phaseEvents').PhaseSend, audit: Record<string, unknown>,
  *   registerDecision?: typeof import('./decisionQueue').register,
@@ -191,7 +191,7 @@ async function runDlpPreflight({
 
     if (dlpResult.action === 'redact') {
         return finalizeRedaction({
-            tokenizedText: dlpResult.redactedText,
+            tokenizedText: /** @type {string} */ (dlpResult.redactedText), // a redact verdict carries its text
             tokenMap: dlpResult.tokenMap,
             automatic: true,
             decisionMs: scanMs,

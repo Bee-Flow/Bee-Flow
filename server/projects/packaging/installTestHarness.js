@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The stores and engines an install reaches, swapped for recorders, and the
  * one-call `install` helper the install tests drive the real module through.
@@ -34,13 +35,13 @@ const guardStage = (projectId, opts) => {
     }
 };
 
-require.cache[projectStorePath] = {
+require.cache[projectStorePath] = /** @type {NodeJS.Module} */ ({
     id: projectStorePath, filename: projectStorePath, loaded: true,
     exports: {
         createProject: async (args) => { record('createProject', args); return { id: 'proj_new' }; },
     },
-};
-require.cache[automationStorePath] = {
+});
+require.cache[automationStorePath] = /** @type {NodeJS.Module} */ ({
     id: automationStorePath, filename: automationStorePath, loaded: true,
     exports: {
         createAutomation: async (args) => {
@@ -62,8 +63,8 @@ require.cache[automationStorePath] = {
             if (updates.definition) live.get(id).definition = updates.definition;
         },
     },
-};
-require.cache[studioAppStorePath] = {
+});
+require.cache[studioAppStorePath] = /** @type {NodeJS.Module} */ ({
     id: studioAppStorePath, filename: studioAppStorePath, loaded: true,
     exports: {
         createStudioApp: async (args) => {
@@ -79,8 +80,8 @@ require.cache[studioAppStorePath] = {
         },
         getStudioApp: async (id) => (liveApps.has(id) ? { id, definition: liveApps.get(id) } : null),
     },
-};
-require.cache[webpageStorePath] = {
+});
+require.cache[webpageStorePath] = /** @type {NodeJS.Module} */ ({
     id: webpageStorePath, filename: webpageStorePath, loaded: true,
     exports: {
         createWebpage: async (args) => {
@@ -100,12 +101,12 @@ require.cache[webpageStorePath] = {
         getWebpageRaw: async (id) => (liveSlots.has(id) ? { id, userId: 'installer' } : null),
         readAllSlots: async (userId, id) => ({ ...liveSlots.get(id) }),
     },
-};
+});
 
 // The gallery rows `verifyClaimedBlueprint` can find. Meta only: that
 // function reads nothing but `solutionKey` and returns a boolean.
 const gallery = new Map();
-require.cache[blueprintStorePath] = {
+require.cache[blueprintStorePath] = /** @type {NodeJS.Module} */ ({
     id: blueprintStorePath, filename: blueprintStorePath, loaded: true,
     exports: {
         upsertStamp: async (client, args) => record('upsertStamp', args),
@@ -118,7 +119,7 @@ require.cache[blueprintStorePath] = {
             return gallery.get(id) || null;
         },
     },
-};
+});
 
 // ── The three kinds a Solution gained in O1 ─────────────────────────────────
 //
@@ -148,7 +149,7 @@ const fx = {
     dataModelResult: { ok: true, version: 1 },
 };
 
-require.cache[dbPath] = {
+require.cache[dbPath] = /** @type {NodeJS.Module} */ ({
     id: dbPath, filename: dbPath, loaded: true,
     exports: {
         withTransaction: async (fn) => fn({ marker: 'tx' }),
@@ -159,14 +160,14 @@ require.cache[dbPath] = {
         exec: async () => {}, run: async () => ({ rowCount: 0 }), getOne: async () => null,
         getAll: async () => [],
     },
-};
+});
 // …and its schema module, which otherwise fires DDL at require time.
 const webpageSchemaPath = require.resolve('../../stores/webpage/schema');
-require.cache[webpageSchemaPath] = {
+require.cache[webpageSchemaPath] = /** @type {NodeJS.Module} */ ({
     id: webpageSchemaPath, filename: webpageSchemaPath, loaded: true,
     exports: { initDB: async () => {}, ready: Promise.resolve() },
-};
-require.cache[datatableStorePath] = {
+});
+require.cache[datatableStorePath] = /** @type {NodeJS.Module} */ ({
     id: datatableStorePath, filename: datatableStorePath, loaded: true,
     exports: {
         orgScope: (id) => ({ kind: 'org', id }),
@@ -190,28 +191,28 @@ require.cache[datatableStorePath] = {
             return { id: nextId('tbl') };
         },
     },
-};
-require.cache[datatableDbStorePath] = {
+});
+require.cache[datatableDbStorePath] = /** @type {NodeJS.Module} */ ({
     id: datatableDbStorePath, filename: datatableDbStorePath, loaded: true,
     exports: {
         scopeKey: (scope) => `${scope.kind}:${scope.id}`,
         applyMigration: async (a, b, statements, opts) => record('applyMigration', { scopeKey: a, statements, client: opts?.client }),
         invalidate: () => record('invalidate', {}),
     },
-};
-require.cache[datatableLimitsPath] = {
+});
+require.cache[datatableLimitsPath] = /** @type {NodeJS.Module} */ ({
     id: datatableLimitsPath, filename: datatableLimitsPath, loaded: true,
     exports: { assertDatatableQuota: async () => record('assertQuota', {}) },
-};
-require.cache[migrationPlanPath] = {
+});
+require.cache[migrationPlanPath] = /** @type {NodeJS.Module} */ ({
     id: migrationPlanPath, filename: migrationPlanPath, loaded: true,
     exports: { migrationPlan: () => ['CREATE TABLE …'] },
-};
-require.cache[ddlPath] = {
+});
+require.cache[ddlPath] = /** @type {NodeJS.Module} */ ({
     id: ddlPath, filename: ddlPath, loaded: true,
     exports: { ddlForTable: () => 'ENSURE …' },
-};
-require.cache[agentStorePath] = {
+});
+require.cache[agentStorePath] = /** @type {NodeJS.Module} */ ({
     id: agentStorePath, filename: agentStorePath, loaded: true,
     exports: {
         createAgent: async (...args) => { record('createAgent', args); return { id: nextId('agt') }; },
@@ -219,15 +220,15 @@ require.cache[agentStorePath] = {
         getAgent: async (id) => ({ id, name: 'live', config: {}, avatar: null }),
         updateAgent: async (...args) => { record('updateAgent', args); return { ok: true, rev: 2 }; },
     },
-};
-require.cache[knowledgeBasesPath] = {
+});
+require.cache[knowledgeBasesPath] = /** @type {NodeJS.Module} */ ({
     id: knowledgeBasesPath, filename: knowledgeBasesPath, loaded: true,
     exports: {
         createKB: async (...args) => { record('createKB', args); return { id: nextId('kb') }; },
         getKB: async (id) => ({ id, organization_id: 'org1' }),
     },
-};
-require.cache[kbMembershipPath] = {
+});
+require.cache[kbMembershipPath] = /** @type {NodeJS.Module} */ ({
     id: kbMembershipPath, filename: kbMembershipPath, loaded: true,
     exports: {
         setKnowledgeBaseProject: async (kbId, userId, projectId, ctx) => {
@@ -235,16 +236,16 @@ require.cache[kbMembershipPath] = {
             return fx.kbFiled;
         },
     },
-};
+});
 
 // Skills and document templates. The registry's setProject is the way in: it
 // is swapped here for a recorder (the real one reads the database for the stage
 // gate; membership.test.js covers it against pglite).
-require.cache[skillStorePath] = {
+require.cache[skillStorePath] = /** @type {NodeJS.Module} */ ({
     id: skillStorePath, filename: skillStorePath, loaded: true,
     exports: { createSkill: async (args) => { record('createSkill', args); return { id: nextId('skl') }; } },
-};
-require.cache[documentStorePath] = {
+});
+require.cache[documentStorePath] = /** @type {NodeJS.Module} */ ({
     id: documentStorePath, filename: documentStorePath, loaded: true,
     exports: {
         createDocument: async (args) => {
@@ -253,8 +254,8 @@ require.cache[documentStorePath] = {
             return { id, versionId: `ver_of_${id}` };
         },
     },
-};
-require.cache[solutionTemplatesPath] = {
+});
+require.cache[solutionTemplatesPath] = /** @type {NodeJS.Module} */ ({
     id: solutionTemplatesPath, filename: solutionTemplatesPath, loaded: true,
     exports: {
         writeManagedTemplate: async (client, input, opts) => {
@@ -263,8 +264,8 @@ require.cache[solutionTemplatesPath] = {
             return { id, versionId: `ver_of_${id}`, created: true };
         },
     },
-};
-require.cache[membershipPath] = {
+});
+require.cache[membershipPath] = /** @type {NodeJS.Module} */ ({
     id: membershipPath, filename: membershipPath, loaded: true,
     exports: {
         getKind: (kind) => ({
@@ -274,11 +275,11 @@ require.cache[membershipPath] = {
             },
         }),
     },
-};
+});
 
 // An app's own data model (F13) goes through the store's save path.
 const studioAppDataStorePath = require.resolve('../../stores/studioAppDataStore');
-require.cache[studioAppDataStorePath] = {
+require.cache[studioAppDataStorePath] = /** @type {NodeJS.Module} */ ({
     id: studioAppDataStorePath, filename: studioAppDataStorePath, loaded: true,
     exports: {
         saveDataModel: async (appId, ownerId, model, opts) => {
@@ -286,7 +287,7 @@ require.cache[studioAppDataStorePath] = {
             return fx.dataModelResult;
         },
     },
-};
+});
 
 
 const { installBlueprint } = require('./install');

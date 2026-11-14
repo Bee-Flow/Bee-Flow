@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Project content routes — a new document or notebook, made inside a project.
  *
@@ -105,7 +105,8 @@ function makeContentRouter(deps = {}) {
     };
     const cells = () => deps.cells || require('../../core/documents/sheetCells');
 
-    const userIdOf = (/** @type {import('express').Request} */ req) => req.session?.user?.id;
+    // Every route here is behind requireRole, so there is a signed-in user.
+    const userIdOf = (/** @type {import('express').Request} */ req) => /** @type {string} */ (req.session?.user?.id);
 
     /**
      * The project behind a passed role gate, checked to be a container that

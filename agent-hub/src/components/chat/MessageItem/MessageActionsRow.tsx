@@ -186,6 +186,7 @@ const MessageActionsRow = ({
                             onClick={() => setShowCopyMenu(!showCopyMenu)}
                             className="p-0.5 -ml-1 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
                             title={t('chat.msg.more_export', 'More export options')}
+                            aria-label={t('chat.msg.more_export', 'More export options')}
                             data-testid="msg-copy-more-btn"
                         >
                             <ChevronDown className="w-3 h-3" />
@@ -228,6 +229,7 @@ const MessageActionsRow = ({
                 onClick={() => handleThumbClick('up')}
                 className={`p-1.5 rounded transition-colors ${feedbackRating === 'up' ? 'text-green-500 bg-green-500/10' : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'}`}
                 title={t('chat.msg.thumbs_up', 'Good response')}
+                aria-label={t('chat.msg.thumbs_up', 'Good response')}
                 data-testid="msg-thumbs-up"
             >
                 <ThumbsUp className="w-3.5 h-3.5" />
@@ -236,6 +238,7 @@ const MessageActionsRow = ({
                 onClick={() => handleThumbClick('down')}
                 className={`p-1.5 rounded transition-colors ${feedbackRating === 'down' ? 'text-red-500 bg-red-500/10' : 'text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'}`}
                 title={t('chat.msg.thumbs_down', 'Bad response')}
+                aria-label={t('chat.msg.thumbs_down', 'Bad response')}
                 data-testid="msg-thumbs-down"
             >
                 <ThumbsDown className="w-3.5 h-3.5" />
@@ -252,6 +255,7 @@ const MessageActionsRow = ({
                             onClick={() => onRetry(idx)}
                             className="p-1.5 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
                             title={t('chat.msg.retry', 'Retry response')}
+                            aria-label={t('chat.msg.retry', 'Retry response')}
                             data-testid="msg-retry-btn"
                         >
                             <RefreshCw className="w-3.5 h-3.5" />
@@ -261,6 +265,7 @@ const MessageActionsRow = ({
                             onClick={handleToggleRetryMenu}
                             className="p-0.5 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors -ml-1"
                             title={t('chat.msg.retry_other_model', 'Retry with different model')}
+                            aria-label={t('chat.msg.retry_other_model', 'Retry with different model')}
                         >
                             <ChevronDown className="w-3 h-3" />
                         </button>

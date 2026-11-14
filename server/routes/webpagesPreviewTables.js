@@ -78,7 +78,7 @@ const { validate } = require('../core/http/validate');
 const { HttpError } = require('../core/http/errors');
 const { z, typeError } = require('../utils/zod');
 
-/** A body that also accepts no body: Express 5 then leaves `req.body` undefined. */
+/** A body that also accepts no body: Express 5 then leaves `req.body` undefined. @template {import('zod').ZodRawShape} S @param {S} shape */
 const bodyOf = (shape) => z.preprocess(
     (v) => (v === undefined || v === null ? {} : v),
     z.object(shape).strict(),

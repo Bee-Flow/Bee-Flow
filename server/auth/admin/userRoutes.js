@@ -28,6 +28,7 @@ const { validatePassword } = require('../passwordPolicy');
 const { sanitizePlainTextFields } = require('../../utils/htmlSanitizer');
 const { checkResourceLimits } = require('../../core/entitlements/limits');
 const { validate } = require('../../core/http/validate');
+const { bodyOf } = require('../../core/http/schemaParts');
 const {
     isActiveUserStatus,
     wouldOrphanOrg,
@@ -458,7 +459,7 @@ router.put('/users/:id', requireOrgAdminForUser, async (req, res) => {
 // enrollment entirely; because `require_mfa_for_password_accounts` defaults
 // on, the user is forced to re-enroll at their next login — so this unlocks a
 // locked-out user without weakening the account long-term. Audited.
-router.post('/users/:id/mfa/reset', requireOrgAdminForUser, async (req, res) => {
+router.post('/users/:id/mfa/reset', requireOrgAdminForUser, validate({ body: bodyOf({}, 'A two-factor reset') }), async (req, res) => {
     const { id } = req.params;
     const target = await userStore.getUser(id);
     if (!target) return res.status(404).json({ error: 'User not found' });

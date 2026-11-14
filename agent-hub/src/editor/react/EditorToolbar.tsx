@@ -172,7 +172,7 @@ export default function EditorToolbar({
       {!compact && (
         <>
           <Dropdown trigger={(open, setOpen) => (
-            <button onMouseDown={(e: React.MouseEvent) => { e.preventDefault(); setOpen((o: boolean) => !o); }} className={`flex items-center gap-0.5 p-1.5 rounded-md shrink-0 ${align('center') || align('right') ? 'text-[var(--accent-primary)] bg-[var(--accent-primary)]/10' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'}`} title={tt('notebooks.alignment', 'Alignment')}>
+            <button onMouseDown={(e: React.MouseEvent) => { e.preventDefault(); setOpen((o: boolean) => !o); }} className={`flex items-center gap-0.5 p-1.5 rounded-md shrink-0 ${align('center') || align('right') ? 'text-[var(--accent-primary)] bg-[var(--accent-primary)]/10' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)]'}`} title={tt('notebooks.alignment', 'Alignment')} aria-label={tt('notebooks.alignment', 'Alignment')}>
               <AlignLeft className="w-3.5 h-3.5" /><ChevronDown className="w-2.5 h-2.5 opacity-50" />
             </button>
           )}>
@@ -180,7 +180,7 @@ export default function EditorToolbar({
           </Dropdown>
 
           <Dropdown trigger={(open, setOpen) => (
-            <button onMouseDown={(e: React.MouseEvent) => { e.preventDefault(); setOpen((o: boolean) => !o); }} className={`flex items-center gap-1 p-1.5 rounded-md shrink-0 hover:bg-[var(--bg-tertiary)] ${currentColor || currentFont ? 'bg-[var(--accent-primary)]/10' : ''}`} title={tt('notebooks.text_style', 'Text style')}>
+            <button onMouseDown={(e: React.MouseEvent) => { e.preventDefault(); setOpen((o: boolean) => !o); }} className={`flex items-center gap-1 p-1.5 rounded-md shrink-0 hover:bg-[var(--bg-tertiary)] ${currentColor || currentFont ? 'bg-[var(--accent-primary)]/10' : ''}`} title={tt('notebooks.text_style', 'Text style')} aria-label={tt('notebooks.text_style', 'Text style')}>
               <Palette className="w-3.5 h-3.5" style={{ color: currentColor || 'currentColor' }} /><ChevronDown className="w-2.5 h-2.5 opacity-50" />
             </button>
           )}>
@@ -192,7 +192,7 @@ export default function EditorToolbar({
       {/* compact: marks + align + colour collapse into one Format menu */}
       {compact && (
         <Dropdown trigger={(open, setOpen) => (
-          <button onMouseDown={(e: React.MouseEvent) => { e.preventDefault(); setOpen((o: boolean) => !o); }} className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] shrink-0" title={tt('notebooks.format', 'Format')}>
+          <button onMouseDown={(e: React.MouseEvent) => { e.preventDefault(); setOpen((o: boolean) => !o); }} className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] shrink-0" title={tt('notebooks.format', 'Format')} aria-label={tt('notebooks.format', 'Format')}>
             <Palette className="w-3.5 h-3.5" /><ChevronDown className="w-3 h-3 opacity-50" />
           </button>
         )}>

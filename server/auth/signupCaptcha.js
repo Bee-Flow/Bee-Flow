@@ -79,7 +79,7 @@ function failOpen() {
 /**
  * Verify a widget token.
  *
- * @param {string} token  the `captchaToken` from the request body
+ * @param {string | undefined} token  the `captchaToken` from the request body
  * @param {import('express').Request} [req]  used only to forward the remote IP, which the providers
  *                        accept as an optional extra signal
  * @returns {Promise<{ok: boolean, error?: string, code?: string}>}

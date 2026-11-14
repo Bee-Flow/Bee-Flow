@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * The test bench's matching: the SAME matchers production runs, applied to a
@@ -250,7 +250,9 @@ async function runTest({ engine, spec, sentences, orgTypes, tokenKey }) {
     let engineName;
     let degraded = false;
     if (spec.method === 'ai') {
-        const { labelSet, floors } = aiGroup(spec, spec.ai.prompt, spec.ai.floor, orgTypes);
+        // method 'ai' is validated with its `ai` block (customTypes/spec).
+        const ai = /** @type {NonNullable<CustomDataType['ai']>} */ (spec.ai);
+        const { labelSet, floors } = aiGroup(spec, ai.prompt, ai.floor, orgTypes);
         spans = decodeAi(await probeAll(engine, texts, labelSet), floors, spec.id, texts.length);
         engineName = 'guard';
     } else {

@@ -6,7 +6,7 @@
  * Per-source: one subject per automation whose document step (generate_document,
  * fill_document or presentation) draws on a model (an ai_step /
  * data_extraction / ai_tool upstream — summarize is an aggregate, not AI).
- * The graph reading is automation/automationGraph.js, the same one the AI-Act
+ * The graph reading is core/automationModel/automationGraph.js, the same one the AI-Act
  * signals and the runtime marking use, so what this check lists is exactly
  * what execDocument / execPresentation mark.
  *

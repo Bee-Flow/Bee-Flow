@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * A tiny HTTP harness for the security-key routers: a real express app with
  * the production body parser and terminal error handler, a session the test
@@ -116,8 +116,9 @@ async function serve(router, { mount = '/', session, errorHandler }) {
     const app = express();
     app.use(express.json());
     app.use((/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ _res, /** @type {import('express').NextFunction} */ next) => {
-        req.session = session.current;
-        if (req.session && !req.session.save) req.session.save = /** @type {Express.Session['save']} */ ((cb) => cb && cb());
+        // The test may hold no session yet; the routes under test read it as optional.
+        req.session = /** @type {Express.Session} */ (session.current);
+        if (req.session && !req.session.save) req.session.save = /** @type {Express.Session['save']} */ (/** @type {unknown} */ ((/** @type {((err?: Error) => void) | undefined} */ cb) => cb && cb()));
         next();
     });
     app.use(mount, router);

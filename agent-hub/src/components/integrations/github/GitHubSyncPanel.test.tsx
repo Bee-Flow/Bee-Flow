@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fail, ok } from '@/test/http';
@@ -7,6 +7,7 @@ const { authFetch } = vi.hoisted(() => ({ authFetch: vi.fn() }));
 vi.mock('@/utils/helpers', () => ({ API_BASE: 'https://api.test', authFetch }));
 
 import GitHubSyncPanel from './GitHubSyncPanel';
+import { renderWithClient } from '@/test/render';
 
 /**
  * Characterisation of the GitHub sync panel: what each connection state shows
@@ -48,7 +49,7 @@ beforeEach(() => {
 });
 afterEach(() => { vi.restoreAllMocks(); });
 
-const renderPanel = () => render(<GitHubSyncPanel user={null} />);
+const renderPanel = () => renderWithClient(<GitHubSyncPanel user={null} />);
 const ready = async () => { renderPanel(); await screen.findByRole('heading', { name: 'GitHub Sync' }); };
 
 describe('GitHubSyncPanel: states', () => {

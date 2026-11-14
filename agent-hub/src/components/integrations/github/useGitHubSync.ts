@@ -1,17 +1,46 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { githubSyncApi as githubSyncCalls } from '@/api/githubSyncApi';
 import { useAdminOrgScope } from '@/api/adminOrgScope';
 import { errorMessage } from '@/utils/caughtError';
 import useConfirm from '../../shared/useConfirm';
 import type { GitHubSyncDetail, GitHubSyncMessage, GitHubSyncStatus } from './githubSync.types';
 
+type GitHubSyncConfig = NonNullable<GitHubSyncStatus['config']>;
+
+/** The sync status; each answer with a config refills the form, a refusal or a failure keeps what is shown. */
+function useGitHubSyncStatus(api: ReturnType<typeof githubSyncCalls>, scopeOrgId: string | null, onConfig: (config: GitHubSyncConfig) => void) {
+    const queryClient = useQueryClient();
+    const statusKey = useMemo(() => ['integrations', 'githubSyncStatus', scopeOrgId] as const, [scopeOrgId]);
+    const statusQuery = useQuery<GitHubSyncStatus | null>({
+        queryKey: statusKey,
+        staleTime: 0,
+        retry: false,
+        queryFn: async () => {
+            try {
+                const res = await api.status();
+                if (!res.ok) return queryClient.getQueryData<GitHubSyncStatus | null>(statusKey) ?? null;
+                const data = await res.json();
+                if (data.config) onConfig(data.config);
+                return data;
+            } catch (err) {
+                console.error('[GitHubSync] Status fetch error:', err);
+                throw err;
+            }
+        },
+    });
+    const setStatus = (edit: (prev: GitHubSyncStatus | null) => GitHubSyncStatus | null) =>
+        queryClient.setQueryData<GitHubSyncStatus | null>(statusKey, (prev) => edit(prev ?? null));
+    const { refetch } = statusQuery;
+    const fetchStatus = useCallback(async () => { await refetch(); }, [refetch]);
+    return { status: statusQuery.data ?? null, loading: statusQuery.isPending, setStatus, fetchStatus };
+}
+
 /** The sync status, the configuration form and the actions of the GitHub sync panel. */
 export function useGitHubSync() {
     // The organisation an AdminOrgScopeProvider names (the dashboard's choice), else the caller's own.
     const scopeOrgId = useAdminOrgScope();
     const githubSyncApi = useMemo(() => githubSyncCalls(scopeOrgId), [scopeOrgId]);
-    const [status, setStatus] = useState<GitHubSyncStatus | null>(null);
-    const [loading, setLoading] = useState(true);
     const [syncing, setSyncing] = useState(false);
     const [configuring, setConfiguring] = useState(false);
     const [message, setMessage] = useState<GitHubSyncMessage | null>(null);
@@ -26,27 +55,12 @@ export function useGitHubSync() {
     const [showConfig, setShowConfig] = useState(false);
     const { confirm, confirmDialog } = useConfirm();
 
-    const fetchStatus = useCallback(async () => {
-        try {
-            const res = await githubSyncApi.status();
-            if (res.ok) {
-                const data = await res.json();
-                setStatus(data);
-                if (data.config) {
-                    setRepoOwner(data.config.repoOwner || '');
-                    setRepoName(data.config.repoName || '');
-                    setBranch(data.config.branch || 'main');
-                    setAutoSync(data.config.autoSync || false);
-                }
-            }
-        } catch (err) {
-            console.error('[GitHubSync] Status fetch error:', err);
-        } finally {
-            setLoading(false);
-        }
-    }, [githubSyncApi]);
-
-    useEffect(() => { fetchStatus(); }, [fetchStatus]);
+    const { status, loading, setStatus, fetchStatus } = useGitHubSyncStatus(githubSyncApi, scopeOrgId ?? null, (config) => {
+        setRepoOwner(config.repoOwner || '');
+        setRepoName(config.repoName || '');
+        setBranch(config.branch || 'main');
+        setAutoSync(config.autoSync || false);
+    });
 
     useEffect(() => {
         if (message) {

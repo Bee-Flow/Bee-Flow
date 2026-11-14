@@ -39,7 +39,7 @@ const { resolveTurnTier } = require('../../core/llm/resolveTurnModel');
 // The turn's steps, in the order the handler runs them.
 const { buildTurnContext } = require('./webpageChat/context');
 const { finishTurnLogs, failTurnLogs } = require('../../core/kb/queryLog/hook.mts');
-const { buildTurnMessages, STOP } = require('./webpageChat/messages');
+const { buildTurnMessages, STOP } = require('../../usecases/ai/webpageChat/messages');
 const { runToolLoop } = require('./webpageChat/toolLoop');
 const { finishTurn } = require('./webpageChat/finalize');
 
@@ -49,10 +49,10 @@ const { requireAuth } = require('../../auth/permissions');
 const { validate } = require('../../core/http/validate');
 // The chat engine's bag: typed, not closed (see routes/ai/directChat/turnSchema.js).
 const { WebpageTurnBody } = require('./directChat/turnSchema');
-const { fallback, bestEffort } = require('../../utils/bestEffort');
+const { fallback, bestEffort, ignoreGone } = require('../../utils/bestEffort');
 const { sessionUser } = require('../../core/http/sessionUser');
 
-router.post('/chat/webpage/stream', requireAuth, validate({ body: WebpageTurnBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof WebpageTurnBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/chat/webpage/stream', requireAuth, validate({ body: WebpageTurnBody }), async (req, res) => {
     const {
         message, webpageId, history, modelTier, timezone, attachments,
         htmlContent, cssContent, jsContent, webpageSelection,
@@ -109,7 +109,7 @@ router.post('/chat/webpage/stream', requireAuth, validate({ body: WebpageTurnBod
     if (!modelId) {
         const config = await getAIConfig();
         modelId = config.model;
-        if (!modelId) throw new Error(`No model configured for tier "${resolvedTier}". Set up model tiers in Settings.`);
+        if (!modelId) throw new HttpError(503, 'no_model', 'No AI model is configured for this workspace. Ask an admin to set up the model tiers in Settings.');
     }
 
     let config;
@@ -196,7 +196,7 @@ router.post('/chat/webpage/stream', requireAuth, validate({ body: WebpageTurnBod
         // listening), and nothing logged as a termination.
         if (isGone() || err?.name === 'AbortError' || clientSignal.aborted) {
             log.info('[WebpageChat] turn cancelled by the client');
-            try { if (!res.writableEnded) res.end(); } catch (err) { log.debug('socket already gone', err); }
+            try { if (!res.writableEnded) res.end(); } catch (err) { ignoreGone('routes/ai/webpageChat:endCancelled', err); }
             return;
         }
         log.error('[WebpageChat] Error:', err);

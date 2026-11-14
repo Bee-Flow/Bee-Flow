@@ -41,3 +41,11 @@ test('a valid run reaches the app lookup and answers as before', async () => {
     assert.strictEqual(res.status, 404, res.text);
     assert.ok(db.queries.length > 0);
 });
+
+test('refreshing and verifying a connector take no fields: one sent is refused by name before the app is looked up', async () => {
+    h.assertRefused(assert, await post('/sync', { force: true }), 'body', /does not take "force"/);
+    h.assertRefused(assert, await post('/verify', { mailbox: 'x' }), 'body', /does not take "mailbox"/);
+    h.assertRefused(assert, await api.call('POST', '/api/studio-apps/app1/runtime/connectors/c1/refresh', { body: { force: true } }), 'body', /does not take "force"/);
+    assert.deepStrictEqual(db.queries, []);
+    assert.strictEqual((await post('/sync', {})).status, 404, 'an empty body still reaches the app lookup');
+});

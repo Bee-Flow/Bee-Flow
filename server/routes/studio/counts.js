@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * GET /api/studio/counts — the numbers on the Studio rail.
  *
@@ -230,7 +230,7 @@ const KINDS = [
             const principal = await resolveDatatablePrincipal(req);
             const scopes = datatableScopesFor(principal);
             const all = [];
-            for (const scope of scopes) all.push(...await d.datatableStore.listDatatablesForScope(scope));
+            for (const scope of scopes) all.push(.../** @type {Array<NonNullable<Awaited<ReturnType<typeof d.datatableStore.listDatatablesForScope>>[number]>>} */ (await d.datatableStore.listDatatablesForScope(scope))); // rows mapped one to one
             const grants = await d.datatableStore.listGrantsForTables(all.map(t => t.id));
             const visible = all.filter(t => !!gradeForPrincipal(t, grants.get(t.id) || [], principal));
             return { count: visible.length, owners: visible.map(ownerOf) };
@@ -453,7 +453,7 @@ function createCountsRouter(deps = null) {
         // single store having a bad day would become a statement about the
         // organisation. An ABSENT key is the answer this response already
         // has for "not known" (the counts use it), so makers uses it too.
-        if (partial) delete body.makers;
+        if (partial) delete /** @type {{ makers?: unknown }} */ (body).makers;
         if (!partial) cacheSet(key, body);
         return res.json(body);
     });

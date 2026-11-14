@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Sparkles, Loader2, Send, X } from 'lucide-react';
-import { API_BASE, authFetch } from '../../utils/helpers';
 import { useTranslation } from '../../hooks/useTranslation';
+import { apiFetch } from '@/api/typedRequest';
 
 interface HelpMessage {
     role: string;
@@ -50,13 +50,7 @@ export default function MfaHelpAssistant() {
         setMessages(nextMessages);
         setInput('');
         try {
-            const res = await authFetch(`${API_BASE}/auth/mfa/assist`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                // Only the typed conversation — never QR/secret/code props
-                // (this component has none, by design).
-                body: JSON.stringify({ question, history: messages.slice(-6) }),
-            });
+            const res = await apiFetch('POST /auth/mfa/assist', { body: { question, history: messages.slice(-6) } });
             const data = await res.json().catch(() => ({}));
             if (!res.ok || !data.answer) throw new Error(data.error || 'unavailable');
             setMessages([...nextMessages, { role: 'assistant', content: String(data.answer) }]);

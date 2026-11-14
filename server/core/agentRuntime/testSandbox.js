@@ -187,7 +187,7 @@ function normaliseTest(raw) {
  *
  * @template {{ function?: { name?: string }, __automation?: unknown }} T
  * @param {T[]} tools        the assembled tool definitions
- * @param {{ tools?: unknown } | null} agentConfig the RUNTIME agent config (for `confirm`)
+ * @param {{ tools?: unknown } | null | undefined} agentConfig the RUNTIME agent config (for `confirm`)
  * @returns {{tools: T[], withheld: Array<{name: string|null, reason: string}>}}
  */
 function sandboxToolStack(tools, agentConfig) {

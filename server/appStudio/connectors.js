@@ -1,3 +1,4 @@
+// @typecheck strict
 /**
  * App Studio v2 — CONNECTORS (owner-authored external data sources).
  *
@@ -107,8 +108,8 @@ const { runIntegrationTool, runAutomationConnector, runRestConnector } = require
  *
  * @param {import('./connectors/shared').Connector} connector  A connector object from model.connectors
  *   (NOT the public projection — carries fixedArgs/url/auth).
- * @param {{ app: import('./connectors/shared').ConnectorApp, viewerId?: string, params?: unknown, systemArgs?: unknown,
- *   trace?: boolean, _deps?: Partial<import('./connectors/session').ConnectorDeps> }} [opts]
+ * @param {Partial<{ app: import('./connectors/shared').ConnectorApp, viewerId?: string, params?: unknown, systemArgs?: unknown,
+ *   trace?: boolean, _deps?: Partial<import('./connectors/session').ConnectorDeps> }>} [opts]
  */
 async function runConnector(connector, { app, viewerId, params, systemArgs, trace = false, _deps } = {}) {
     if (!isValidConnector(connector)) throw connectorError(400, 'invalid connector', 'bad_connector');

@@ -1,5 +1,5 @@
 /** @typedef {import('url').URL} URL */
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * URL probe for compliance checks — a bounded, SSRF-guarded GET.
  *
@@ -25,7 +25,7 @@
  */
 
 const { safeFetch, isPrivateHostname, isPrivateAddressError } = require('../../utils/ssrfGuard');
-const log = require('../../telemetry/log');
+const { ignoreGone } = require('../../utils/bestEffort');
 
 const DEFAULT_MAX_BYTES = 64_000;
 const DEFAULT_TIMEOUT_MS = 8_000;
@@ -53,7 +53,7 @@ function _result(patch) {
 
 /**
  * @param {ReadableStream<Uint8Array> | null | undefined} body
- * @param {number | undefined} maxBytes
+ * @param {number} maxBytes
  */
 async function _readBounded(body, maxBytes) {
     if (!body || typeof body.getReader !== 'function') return { text: '', truncated: false, bytes: 0 };
@@ -78,7 +78,7 @@ async function _readBounded(body, maxBytes) {
             total += value.byteLength;
         }
     } finally {
-        if (truncated) { try { await reader.cancel(); } catch (err) { log.debug('stream already gone', err); } }
+        if (truncated) { try { await reader.cancel(); } catch (err) { ignoreGone('compliance/urlProbe:cancelReader', err); } }
     }
     return { text: Buffer.concat(chunks.map(c => Buffer.from(c))).toString('utf8'), truncated, bytes: total };
 }

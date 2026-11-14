@@ -10,7 +10,7 @@
 
 const { COMPONENT_TYPES, STEP_KINDS } = require('../componentSpecs');
 const log = require('../../telemetry/log');
-const { pickClosestId } = require('../../automation/validate/helpers');
+const { pickClosestId } = require('../../utils/closestId.mts');
 const { canonicalComponentType } = require('./componentAliases');
 const { applyFindNodes } = require('./findNodesTool');
 const { INSPECT_CATALOG_MAX_COMPONENTS, INSPECT_CATALOG_MAX_STEPS } = require('./schemas');

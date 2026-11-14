@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * "Test" — one question through the steps of ONE skill (Skills artboard 1c).
  * (Bee Flow Builder redesign, Sep 2026, Track S3.)
@@ -195,7 +196,7 @@ async function resolveModel(rawModel, { userId, userOrgId }) {
 
 /**
  * @typedef {{ startMs: number,
- *   source: string }} LogTestUsageArgs
+ *   source: string, userId?: any, userOrgId?: any, modelId?: any, usage?: any }} LogTestUsageArgs
  */
 /**
  * One usage row per model call. `runToolLoop`/`chatForcedTool` log nothing themselves.
@@ -411,7 +412,7 @@ async function run(req, res) {
                 agentId: agent?.id || null,
                 question,
                 results: verdict.results,
-                status: verdict.status,
+                status: /** @type {'error'|'ok'|'warning'} */ (verdict.status),
                 advice: verdict.advice,
             });
         } catch (e) {

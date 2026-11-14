@@ -13,7 +13,7 @@ const { AGG_FNS } = require('./normalize');
 
 /**
  * Reports one issue: severity, code, path under the op, sentence, optional hint.
- * @typedef {(severity: string, code: string, sub: string, message: string, hint?: string) => void} AddIssue
+ * @typedef {(severity: 'error' | 'warning', code: string, sub: string, message: string, hint?: string) => void} AddIssue
  */
 /**
  * The raw op as typed; the fields compared against a fixed list are text.

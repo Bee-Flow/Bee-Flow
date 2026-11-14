@@ -9,8 +9,9 @@ import { TranslateParams, useTranslation } from '../../hooks/useTranslation';
 import { toast } from '../shared/Toast';
 import useConfirm from '../shared/useConfirm';
 import type { PanelAgent, AgentDesignerPanelProps } from './AgentDesignerPanel.types';
-import { mutate, ApiError, errorBody, RefusedError } from '../../api/mutate';
+import { ApiError, errorBody, RefusedError } from '../../api/mutate';
 import { AgentDesignerPanelSection } from './AgentDesignerPanelSection';
+import { apiRequest } from '@/api/typedRequest';
 
 /** Only the parameters the author fixed go to the server; a tool without any is left out. */
 function fixedToolParams(toolParams: AgentFormData['toolParams'] | undefined) {
@@ -123,11 +124,7 @@ const AgentDesignerPanel = ({
 
     const handleCreateCategory = async (name: string) => {
         try {
-            const res = await mutate(`${API_BASE}/agents/categories`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name })
-            }).catch((err: unknown) => {
+            const res = await apiRequest('POST /agents/categories', { body: { name } }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });
@@ -147,13 +144,12 @@ const AgentDesignerPanel = ({
 
         try {
             try {
-                await mutate(`${API_BASE}/agents/${agent.id}/publish`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
+                await apiRequest('PATCH /agents/{id}/publish', {
+                    params: { id: agent.id },
+                    body: {
                         isPublished: !formData.isPublished,
                         sharedGroups: formData.sharedGroups || [],
-                    })
+                    },
                 });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
@@ -197,11 +193,7 @@ const AgentDesignerPanel = ({
             let savedAgent = agent;
             if (agent) {
                 try {
-                    await mutate(`${API_BASE}/agents/${agent.id}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(body)
-                    });
+                    await apiRequest('PUT /agents/{id}', { params: { id: agent.id }, init: { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } });
                 } catch (err) {
                     if (!(err instanceof RefusedError)) throw err;
                     // BFSF-271: surface permission rejections instead of
@@ -214,11 +206,7 @@ const AgentDesignerPanel = ({
                     return;
                 }
             } else {
-                const res = await mutate(`${API_BASE}/agents`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
-                }).catch((err: unknown) => {
+                const res = await apiRequest('POST /agents', { body }).catch((err: unknown) => {
                     if (err instanceof ApiError) return null;
                     throw err;
                 });
@@ -241,9 +229,7 @@ const AgentDesignerPanel = ({
 
         try {
             try {
-                await mutate(`${API_BASE}/agents/${agent.id}`, {
-                    method: 'DELETE',
-                });
+                await apiRequest('DELETE /agents/{id}', { params: { id: agent.id } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const data = (errorBody(err) ?? {}) as { error?: string };

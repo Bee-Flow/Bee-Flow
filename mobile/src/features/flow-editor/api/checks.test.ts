@@ -134,7 +134,7 @@ describe('the AI Act assessment', () => {
         for (const key of ['contains_ai:', 'customer_facing:', 'generates_content:', 'disclosure_present:', 'marking_enabled:', 'annex_iii_questions:', 'label: _label(x.step)']) {
             expect(src).toContain(key);
         }
-        const annex = fs.readFileSync(path.join(SERVER, 'compliance/aiAct/annexIii.js'), 'utf8');
+        const annex = fs.readFileSync(path.join(SERVER, 'core/aiAct/annexIii.js'), 'utf8');
         expect(annex).toContain('id: d.id, point: d.point, article: d.article, label_key: d.labelKey, hint: hinted.has(d.id),');
     });
 });

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Pure helpers of the n8n workflow tools (n8nWorkflowTools.js): JSON parameter
  * parsing, node operations, integrity checks and the summaries sent back to the
@@ -79,7 +79,7 @@ function deepMerge(target, source) {
 /**
  * @param {{ nodes?: N8nNodeShape[], connections?: N8nConnections }} current
  * @param {Array<{ action?: string, node_name?: string, node_data?: unknown }>} ops
- * @param {string} toolName
+ * @param {string} [toolName]
  */
 function applyNodeOperations(current, ops, toolName) {
     let nodes = Array.isArray(current.nodes) ? [...current.nodes] : [];
@@ -214,6 +214,7 @@ function summarizeWorkflow(wf) {
 function getByPath(obj, path) {
     if (!obj || !path) return undefined;
     const parts = path.split('.');
+    /** @type {unknown} */
     let cur = obj;
     for (const p of parts) {
         if (cur === null || cur === undefined) return undefined;
@@ -236,7 +237,7 @@ function filterNodes(workflow, { node_type_pattern, node_names, has_param }) {
 
     return nodes.filter(n => {
         if (typeRe && !typeRe.test(n.type || '')) return false;
-        if (nameSet && !nameSet.has(n.name)) return false;
+        if (nameSet && !nameSet.has(/** @type {string} */ (n.name))) return false;
         if (has_param) {
             const val = getByPath(n.parameters || {}, has_param);
             if (val === undefined || val === null) return false;

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Running ONE integration tool for a connector: who it runs as (owner, viewer,
  * or a lent connection), the missing-connection answer, and the dispatch
@@ -11,6 +12,8 @@ const {
     connectorError, isPlainObject, integrationIdsFor,
 } = require('./shared');
 const { fallback } = require('../../utils/bestEffort');
+
+/** @typedef {Error & { provider?: string, reason?: string }} ConnectionError  a connector error that names the integration */
 
 /**
  * The OAuth provider behind an integration id, used as buildUserAuth's
@@ -78,7 +81,7 @@ async function resolveViewerExecution(connector, { app, viewerId, deps }) {
         }
     }
 
-    const err = connectorError(409, 'this data source needs a connected account', 'connection_required');
+    const err = /** @type {ConnectionError} */ (connectorError(409, 'this data source needs a connected account', 'connection_required'));
     if (provider) err.provider = provider;
     throw err;
 }
@@ -128,7 +131,9 @@ const MISSING_CONNECTION_RE = /not connected|must log in|not configured|no (?:va
  *
  * `code` stays `connection_required` either way so existing clients keep working;
  * `reason` distinguishes them for a caller that wants to.
+ * @param connector
  * @param {string} message
+ * @param {{ userId?: string | null, deps?: { getProviderAuth: (userId: string, provider: string) => Promise<{ accessToken?: string } | null | undefined> } }} [opts]
  */
 async function connectionError(connector, message, { userId, deps } = {}) {
     const provider = (typeof connector?.integrationId === 'string' && connector.integrationId) ? connector.integrationId : null;
@@ -144,13 +149,13 @@ async function connectionError(connector, message, { userId, deps } = {}) {
 
     if (hasCredential) {
         log.warn(`[Connectors] ${provider} is connected for user ${userId} but the connector session carried no token — upstream said: ${String(message).slice(0, 200)}`);
-        const err = connectorError(409, `Your ${provider} connection could not be loaded. Try disconnecting and reconnecting it in Settings → Connections.`, 'connection_required');
+        const err = /** @type {ConnectionError} */ (connectorError(409, `Your ${provider} connection could not be loaded. Try disconnecting and reconnecting it in Settings → Connections.`, 'connection_required'));
         err.reason = 'token_unavailable';
         if (provider) err.provider = provider;
         return err;
     }
 
-    const err = connectorError(409, String(message).slice(0, 300), 'connection_required');
+    const err = /** @type {ConnectionError} */ (connectorError(409, String(message).slice(0, 300), 'connection_required'));
     err.reason = 'not_connected';
     if (provider) err.provider = provider;
     return err;

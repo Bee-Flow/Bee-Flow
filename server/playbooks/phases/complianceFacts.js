@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * What is ACTUALLY true about what the playbook built — the half of the
  * compliance review that does IO.
@@ -189,7 +189,7 @@ async function orgFacts(orgId, deps = defaultDeps()) {
  * Everything the review could not know by itself, in one object.
  * `table.privacy` is the datatable row's own metadata as `datatableStore`
  * hands it back (camelCase).
- * @param {{ table?: { fields?: Parameters<typeof detector.byValue>[0]['fields'] } | null, rows?: Parameters<typeof detector.byValue>[0]['rows'],
+ * @param {{ table?: { fields?: NonNullable<Parameters<typeof detector.byValue>[0]>['fields'] } | null, rows?: NonNullable<Parameters<typeof detector.byValue>[0]>['rows'],
  *   automations?: Array<AutomationLike | null>, orgId?: string | null, privacy?: TablePrivacy | null }} [input]
  * @param {FactsDeps} [deps]
  */

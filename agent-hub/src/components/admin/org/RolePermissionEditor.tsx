@@ -2,11 +2,11 @@ import { AlertCircle, Check, Loader2, Lock } from 'lucide-react';
 import React, { useMemo, useState } from 'react';
 import { editablePermissionsForRole, permissionsForRole } from '@/config/orgRoles';
 import { useTranslation } from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
 import { errorMessage } from '@/utils/caughtError';
 import type { OrgRolePermissions } from './useOrgDirectory';
-import { mutate, errorBody, RefusedError } from '@/api/mutate';
+import { errorBody, RefusedError } from '@/api/mutate';
 import { useAdminOrgScope, withOrgIdParam } from '@/api/adminOrgScope';
+import { apiRequest } from '@/api/typedRequest';
 
 interface RolePermissionEditorProps {
     role: { id: string; color: string };
@@ -76,11 +76,11 @@ const RolePermissionEditor = ({ role, mapping, editablePermissions, canEdit, onS
         try {
             let res: Response;
             try {
-                res = await mutate(withOrgIdParam(`${API_BASE}/auth/org-roles/${encodeURIComponent(role.id)}`, scopeOrgId), {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ permissions: current }),
-            });
+                res = await apiRequest('PUT /auth/org-roles/{roleId}', {
+                    params: { roleId: role.id },
+                    query: { orgId: scopeOrgId || undefined },
+                    body: { permissions: current },
+                });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const body = errorBody(err) ?? null;

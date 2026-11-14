@@ -113,6 +113,7 @@ function describeValue(value, depth = 0) {
 /**
  * Record the shape of a tool's actual output. Best-effort: failures are
  * swallowed so a misbehaving cache never breaks a run.
+ * @param {{ userId: string, toolName: string, output: unknown }} sample
  */
 async function recordShape({ userId, toolName, output }) {
     try {

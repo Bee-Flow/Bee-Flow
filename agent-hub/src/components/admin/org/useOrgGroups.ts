@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 import type { OrgMember, Organization } from './useOrgDirectory';
-import { API_BASE } from '@/utils/helpers';
 import { settled } from '@/api/settled';
 import { toast } from '../../shared/Toast';
 import useOutsideDismiss from '@/hooks/useOutsideDismiss';
-import { mutate, ApiError, errorBody, RefusedError } from '@/api/mutate';
+import { ApiError, errorBody, RefusedError } from '@/api/mutate';
+import { apiRequest, apiUrl } from '@/api/typedRequest';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { ImageLimits } from '@/utils/imageLimits';
 import { saveImageLimits } from './imageLimits/saveImageLimits';
@@ -69,11 +69,7 @@ export interface UseOrgGroupsOptions {
 /** PUT the self-hosted AI budget every member of a group gets, then re-read the directory. */
 async function updateGroupCostLimit(fetchData: UseOrgGroupsOptions['fetchData'], groupId: string, value: number | null) {
     try {
-        const res = await mutate(`${API_BASE}/auth/groups/${groupId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ perUserCostLimit: value }),
-        }).catch((err: unknown) => {
+        const res = await apiRequest('PUT /auth/groups/{id}', { params: { id: groupId }, body: { perUserCostLimit: value } }).catch((err: unknown) => {
             if (!(err instanceof ApiError)) throw err;
             // A refused save must not pass for a saved one: the editor closes on the old value.
             toast.error(`Failed to update the budget (${err.status})`);
@@ -91,11 +87,7 @@ async function updateGroupAllowedTiers(fetchData: UseOrgGroupsOptions['fetchData
     try {
         let res: Response | undefined;
         try {
-            res = await mutate(`${API_BASE}/auth/groups/${groupId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ allowedTiers: newAllowedTiers }),
-        });
+            res = await apiRequest('PUT /auth/groups/{id}', { params: { id: groupId }, body: { allowedTiers: newAllowedTiers } });
         } catch (err) {
             if (!(err instanceof RefusedError)) throw err;
             const body: { error?: string } = errorBody(err) ?? {};
@@ -114,11 +106,7 @@ async function updateGroupAllowedTiers(fetchData: UseOrgGroupsOptions['fetchData
 /** PUT the org role a group grants, then re-read the directory. */
 async function updateGroupRole(fetchData: UseOrgGroupsOptions['fetchData'], groupId: string, newRole: string) {
     try {
-        const res = await mutate(`${API_BASE}/auth/groups/${groupId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ orgRole: newRole }),
-        }).catch((err: unknown) => {
+        const res = await apiRequest('PUT /auth/groups/{id}', { params: { id: groupId }, body: { orgRole: newRole } }).catch((err: unknown) => {
             if (err instanceof ApiError) return null;
             throw err;
         });
@@ -136,11 +124,7 @@ async function toggleUserGroup(fetchData: UseOrgGroupsOptions['fetchData'], user
         ? currentGroups.filter(g => g !== groupId)
         : [...currentGroups, groupId];
     try {
-        const res = await mutate(`${API_BASE}/auth/users/${userId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ groups: updatedGroups }),
-        }).catch((err: unknown) => {
+        const res = await apiRequest('PUT /auth/users/{id}', { params: { id: userId }, body: { groups: updatedGroups } }).catch((err: unknown) => {
             if (err instanceof ApiError) return null;
             throw err;
         });
@@ -199,14 +183,12 @@ export default function useOrgGroups({ users, organizations, fetchData, confirm 
         if (!newGroupName.trim()) return;
         setCreatingGroup(true);
         try {
-            const res = await mutate(`${API_BASE}/auth/groups`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+            const res = await apiRequest('POST /auth/groups', {
+                body: {
                     name: newGroupName.trim(),
                     description: newGroupDesc.trim(),
                     organizationId: newGroupOrg || null,
-                }),
+                },
             }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
@@ -227,7 +209,7 @@ export default function useOrgGroups({ users, organizations, fetchData, confirm 
     const handleDeleteGroup = async (groupId: string) => {
         if (!(await confirm({ title: 'Delete this group?', description: 'Users will be unassigned.', confirmLabel: 'Delete', destructive: true }))) return;
         try {
-            const res = await mutate(`${API_BASE}/auth/groups/${groupId}`, { method: 'DELETE' }).catch((err: unknown) => {
+            const res = await apiRequest('DELETE /auth/groups/{id}', { params: { id: groupId } }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });
@@ -239,11 +221,7 @@ export default function useOrgGroups({ users, organizations, fetchData, confirm 
 
     const handleUpdateGroupDesc = async (groupId: string) => {
         try {
-            const res = await mutate(`${API_BASE}/auth/groups/${groupId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ description: editGroupDesc }),
-            }).catch((err: unknown) => {
+            const res = await apiRequest('PUT /auth/groups/{id}', { params: { id: groupId }, body: { description: editGroupDesc } }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });
@@ -260,7 +238,7 @@ export default function useOrgGroups({ users, organizations, fetchData, confirm 
 
     const handleUpdateGroupCostLimit = (groupId: string, value: number | null) => updateGroupCostLimit(fetchData, groupId, value);
 
-    const handleUpdateGroupImageLimits = (groupId: string, limits: ImageLimits | null) => saveImageLimits(`/auth/groups/${groupId}`, 'perUserImageLimits', limits, {
+    const handleUpdateGroupImageLimits = (groupId: string, limits: ImageLimits | null) => saveImageLimits({ group: groupId }, limits, {
         fetchData, failText: t('image_limits.save_failed', 'The image limits could not be saved.'),
     });
 
@@ -283,7 +261,7 @@ export default function useOrgGroups({ users, organizations, fetchData, confirm 
     const addGroupMember = async (groupId: string, userId: string) => {
         setMemberBusy(true);
         try {
-            const res = await settled(`${API_BASE}/auth/groups/${groupId}/members`, {
+            const res = await settled(apiUrl('POST /auth/groups/{id}/members', { params: { id: groupId } }), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId }),
@@ -297,7 +275,7 @@ export default function useOrgGroups({ users, organizations, fetchData, confirm 
     const removeGroupMember = async (groupId: string, userId: string) => {
         setMemberBusy(true);
         try {
-            const res = await settled(`${API_BASE}/auth/groups/${groupId}/members/${userId}`, { method: 'DELETE' }, 'empty');
+            const res = await settled(apiUrl('DELETE /auth/groups/{id}/members/{userId}', { params: { id: groupId, userId } }), { method: 'DELETE' }, 'empty');
             if (!res.ok) { const e: { error?: string } = res.body; toast.error(e.error || 'Failed to remove member'); }
             else { await fetchData(); }
         } catch (e) { toast.error(e instanceof Error ? e.message : String(e)); }

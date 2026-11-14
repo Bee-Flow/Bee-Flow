@@ -1,12 +1,14 @@
 import { AlertTriangle, CheckCircle2, Link2Off, Loader2, RefreshCw } from 'lucide-react';
-import { useCallback, useEffect, useState, type JSX } from 'react';
+import { useState, type JSX } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import useTranslation from '@/hooks/useTranslation';
 import type { TranslateParams } from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
 import { useDataContext } from '../DataContext';
 import { useRuntime } from '../RuntimeContext';
 import { ROLE_COLORS } from '../styleResolver.constants';
-import { mutate, request, RefusedError, errorBody } from '@/api/mutate';
+import { RefusedError, errorBody } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
+import { useOptionalQueryClient } from '@/api/queries/optionalQueryClient';
 
 /**
  * App Studio runtime — 'connector_status'. Spec: server/appStudio/componentSpecs.js.
@@ -78,61 +80,52 @@ interface AppConnectorStatusProps {
     node: { id: string; type: string; visible?: boolean; props: { connectorId: string; title: string | null; showSync: boolean }; style: { span?: number } };
 }
 
+/** The app's connector states; null when the check could not be made (a refusal or a failure). Never rejects. */
+function readConnectorStatus(appId: string) {
+    return async (): Promise<ConnectorState[] | null> => {
+        try {
+            const res = await apiRequest('GET /api/studio-apps/{id}/runtime/connectors/status', { params: { id: appId } });
+            const body = await res.json().catch(() => null);
+            return body?.connectors || [];
+        } catch {
+            return null;          // best effort: the card degrades, the app does not
+        }
+    };
+}
+
 export default function AppConnectorStatus({ node }: AppConnectorStatusProps) {
     const { t } = useTranslation();
     const { mode } = useRuntime();
     const { appId } = useDataContext();
     const { connectorId = '', title = null, showSync = true } = node.props || {};
-    const [state, setState] = useState<ConnectorState | null>(null);
-    // "could not check" is not "no longer part of the app" — every failure used
-    // to collapse into the second, which is a definite claim the card had no
-    // way to make.
-    const [checkFailed, setCheckFailed] = useState(false);
-    const [loading, setLoading] = useState(true);
-    const [syncing, setSyncing] = useState(false);
     const [note, setNote] = useState<string | null>(null);
 
     const isRun = mode === 'run' && !!appId && !!connectorId;
 
-    const load = useCallback(async () => {
-        if (!isRun) { setLoading(false); return; }
-        try {
-            let res: Response;
-            try {
-                res = await request(`${API_BASE}/api/studio-apps/${encodeURIComponent(appId as string)}/runtime/connectors/status`);
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                setCheckFailed(true);
-                setState(null);
-                return;
-            }
-            const body = await res.json().catch(() => null);
-            // Only a 200 whose list genuinely lacks the id means "removed".
-            const found = (body?.connectors || []).find((c: ConnectorState) => c.id === connectorId) || null;
-            setCheckFailed(false);
-            setState(found);
-        } catch {
-            setCheckFailed(true);
-            setState(null);          // best effort: the card degrades, the app does not
-        } finally {
-            setLoading(false);
-        }
-    }, [appId, connectorId, isRun]);
+    // One read per app, shared by every connector card on the screen.
+    const { client, attached } = useOptionalQueryClient();
+    const statusQuery = useQuery<ConnectorState[] | null>({
+        queryKey: ['studioApps', 'runtimeConnectorStatus', appId],
+        enabled: isRun && attached,
+        staleTime: 0,
+        retry: false,
+        queryFn: readConnectorStatus(appId as string),
+    }, client);
+    // "could not check" (null) is not "no longer part of the app" — every failure
+    // collapsing into the second would be a definite claim the card has no way to make.
+    const checkFailed = statusQuery.data === null;
+    // Only a 200 whose list genuinely lacks the id means "removed".
+    const state = statusQuery.data?.find((c) => c.id === connectorId) || null;
+    const loading = isRun && statusQuery.data === undefined;
+    const { refetch } = statusQuery;
 
-    useEffect(() => { load(); }, [load]);
-
-    const refresh = async () => {
-        setSyncing(true);
-        setNote(null);
-        try {
+    const refreshMutation = useMutation({
+        mutationFn: async () => {
             let status: number;
             let ok: boolean;
             let body: { error?: string; rowsWritten?: number } | null;
             try {
-                const res = await mutate(
-                    `${API_BASE}/api/studio-apps/${encodeURIComponent(appId as string)}/runtime/connectors/${encodeURIComponent(connectorId)}/refresh`,
-                    { method: 'POST' },
-                );
+                const res = await apiRequest('POST /api/studio-apps/{id}/runtime/connectors/{connectorId}/refresh', { params: { id: appId as string, connectorId } });
                 status = res.status; ok = true;
                 body = await res.json().catch(() => null);
             } catch (err) {
@@ -140,19 +133,22 @@ export default function AppConnectorStatus({ node }: AppConnectorStatusProps) {
                 status = err.status; ok = false;
                 body = errorBody(err) as typeof body;
             }
-            if (status === 429) setNote(t('studio_apps_runtime.connector.just_checked', 'Just checked — give it a minute.'));
-            else if (status === 202) setNote(t('studio_apps_runtime.connector.refresh_running', 'A refresh is already running.'));
-            else if (!ok) setNote(body?.error || t('studio_apps_runtime.connector.check_failed', 'Could not check right now.'));
-            else setNote(body?.rowsWritten
+            if (status === 429) return t('studio_apps_runtime.connector.just_checked', 'Just checked — give it a minute.');
+            if (status === 202) return t('studio_apps_runtime.connector.refresh_running', 'A refresh is already running.');
+            if (!ok) return body?.error || t('studio_apps_runtime.connector.check_failed', 'Could not check right now.');
+            return body?.rowsWritten
                 ? t('studio_apps_runtime.connector.rows_new', '{n} new', { n: body.rowsWritten })
-                : t('studio_apps_runtime.connector.up_to_date', 'Up to date'));
-            await load();
-        } catch {
-            setNote(t('studio_apps_runtime.connector.check_failed', 'Could not check right now.'));
-        } finally {
-            setSyncing(false);
-        }
-    };
+                : t('studio_apps_runtime.connector.up_to_date', 'Up to date');
+        },
+        onMutate: () => setNote(null),
+        onSuccess: async (text) => {
+            setNote(text);
+            await refetch();
+        },
+        onError: () => setNote(t('studio_apps_runtime.connector.check_failed', 'Could not check right now.')),
+    }, client);
+    const syncing = refreshMutation.isPending;
+    const refresh = () => refreshMutation.mutate();
 
     // Editor preview / no runtime: show the shape, not an error.
     const preview = !isRun;

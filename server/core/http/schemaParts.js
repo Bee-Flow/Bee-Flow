@@ -42,9 +42,7 @@ function unknownKeysText(keys, known, subject) {
 }
 
 /**
- * An object that refuses a key it does not know, naming what `subject` does take.
- * @template {import('zod').ZodRawShape} S
- * @param {S} shape
+ * An object that refuses a key it does not know, naming what `subject` does take. @template {import('zod').ZodRawShape} S @param {S} shape
  * @param {string} [subject]
  */
 const closedObject = (shape, subject = 'This request') => {
@@ -57,33 +55,34 @@ const closedObject = (shape, subject = 'This request') => {
 
 /**
  * Express 5 leaves `req.body` undefined without a body; read that as `{}`.
- * @param {import('zod').ZodType} schema
+ * Generic, so the schema's output type reaches the handler (validate.js).
+ * @template {import('zod').ZodType} T
+ * @param {T} schema
  */
 const orEmpty = (schema) => z.preprocess((v) => (v === undefined || v === null ? {} : v), schema);
 
 /**
- * A closed body that also accepts no body at all.
- * @template {import('zod').ZodRawShape} S
- * @param {S} shape
+ * A closed body that also accepts no body at all. @template {import('zod').ZodRawShape} S @param {S} shape
  * @param {string} [subject]
  */
 const bodyOf = (shape, subject = 'This request') => orEmpty(closedObject(shape, subject));
 
 /**
- * A closed query string.
- * @template {import('zod').ZodRawShape} S
- * @param {S} shape
+ * A closed query string. @template {import('zod').ZodRawShape} S @param {S} shape
  * @param {string} [subject]
 
  */
 const queryOf = (shape, subject = 'This request') => orEmpty(closedObject(shape, subject));
 
 /**
- * One of a fixed list, refused with the list rather than zod's enum text.
- * @param {string[] | readonly string[] | [string, ...string[]]} values
+ * One of a fixed list, refused with the list rather than zod's enum text. Generic, so a
+ * literal list types the field as the union of its values.
+ * @template {string} T
+ * @param {readonly [T, ...T[]] | readonly T[]} values
  * @param {string} message
+ * @returns {import('zod').ZodEnum<{ [K in T]: K }>}
  */
-const choice = (values, message) => z.enum(values, { error: () => message });
+const choice = (values, message) => z.enum(/** @type {[T, ...T[]]} */ (values), { error: () => message });
 
 /**
  * An on/off flag. Only the booleans and their exact spellings count: the

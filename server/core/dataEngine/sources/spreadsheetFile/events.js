@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * A push from a storage → the spreadsheet mirror(s) it is about, marked
  * stale and kicked. Never patched in place: a file event carries no row.
@@ -97,7 +97,7 @@ async function onFileEvent({ orgId, event, payload, actorUserId = null }) {
  */
 async function mirrorsOf(orgId, event, p) {
     const byId = new Map();
-    const add = (/** @type {Mirror[]} */ list) => { for (const m of list || []) if (m && !byId.has(m.id)) byId.set(m.id, m); };
+    const add = (/** @type {Array<Mirror | null>} */ list) => { for (const m of list || []) if (m && !byId.has(m.id)) byId.set(m.id, m); };
     const id = p.id !== null && p.id !== undefined && p.id !== '' ? String(p.id) : null;
     if (id) add(await datatableStore.listSourceMirrorsByRef(orgId, { kind: KIND, provider: PROVIDER, fileId: id }));
     if (event === 'file.deleted' && typeof p.path === 'string' && p.path) {

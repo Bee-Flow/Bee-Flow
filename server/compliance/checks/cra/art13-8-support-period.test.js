@@ -3,47 +3,49 @@
  * CRA Art. 13(8) support period: relevance/role gates (with the products
  * hint), missing declaration → fail, passed / near end-of-support → warn,
  * declared → pass, DATE-typed column tolerated, missing tables tolerated in
- * the hint, and evidence free of the update-channel address.
+ * the hint, and evidence free of the update-channel address. The products
+ * hint runs on a real Postgres.
  *
- * Run: cd server && node --test --test-force-exit compliance/checks/cra/art13-8-support-period.test.js
+ * Run: cd server && node --test compliance/checks/cra/art13-8-support-period.test.js
  */
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { installResolveStub } = require('../../../testUtils/stubRequire');
 
+const { usePglitePool } = require('../../../testUtils/pglitePool');
+const { ladderPglite } = require('../../../testUtils/pgliteTemplate');
+const { hideTable } = require('../../../testUtils/pgliteFaults');
+const { insertRow } = require('../../../testUtils/pgliteSeed');
+
 const D = 86400e3;
-const state = {
-    settings: {},
-    counts: { releases: 0, publicPages: 0, webpages: 0 },
-    failTables: new Set(),  // 'project_releases' | 'studio_app_public_pages' | 'webpages'
-    queries: [],
-};
+/** @type {{ settings: Record<string, unknown> }} */
+const state = { settings: {} };
 
-const fakeDb = {
-    async getOne(sql, params) {
-        const s = String(sql).replace(/\s+/g, ' ').trim();
-        state.queries.push({ sql: s, params });
-        for (const t of state.failTables) {
-            if (s.includes(`FROM ${t}`)) throw Object.assign(new Error(`relation "${t}" does not exist`), { code: '42P01' });
-        }
-        if (s.includes('FROM project_releases')) return { c: state.counts.releases };
-        if (s.includes('FROM studio_app_public_pages')) return { c: state.counts.publicPages };
-        if (s.includes('FROM webpages')) return { c: state.counts.webpages };
-        return null;
-    },
-    async getAll() { return []; },
-    async run() { return { rowCount: 0 }; },
-    async exec() {},
-};
-const fakeComplianceStore = { async getSettings() { return state.settings; } };
-
+// The products hint reads the boot ladder's schema on PGlite
+// (testUtils/pgliteTemplate.js) behind db.js's pool. The settings are stubbed:
+// the declarations under test include values the settings store would refuse
+// to save (a date of "someday"), which is exactly what the check must survive.
+const { pg, close } = usePglitePool(ladderPglite());
 const restore = installResolveStub({
-    '../../../db': fakeDb,
-    '../../../stores/complianceStore': fakeComplianceStore,
+    '../../../stores/complianceStore': { async getSettings() { return state.settings; } },
 });
 const check = require('./art13-8-support-period');
-test.after(() => restore());
+test.after(async () => { restore(); await close(); });
+
+/** Products placed on the market by `org`: gallery releases, public app pages, published webpages. */
+async function products(org, { releases = 0, publicPages = 0, webpages = 0, unpublishedWebpages = 0 } = {}) {
+    const project = await insertRow(pg, 'projects', { id: `p_${org}_${Math.random().toString(36).slice(2)}`, name: 'P', owner_id: 'u', organization_id: org });
+    for (let i = 0; i < releases; i++) {
+        await insertRow(pg, 'project_releases', { id: `r_${project.id}_${i}`, project_id: project.id, version: i + 1, manifest: {}, published_by: 'u', channel: 'gallery' });
+    }
+    await insertRow(pg, 'project_releases', { id: `r_${project.id}_pipe`, project_id: project.id, version: 99, manifest: {}, published_by: 'u', channel: 'pipeline' });
+    const app = await insertRow(pg, 'studio_apps', { id: `a_${project.id}`, user_id: 'u', organization_id: org });
+    for (let i = 0; i < publicPages; i++) await insertRow(pg, 'studio_app_public_pages', { id: `pp_${app.id}_${i}`, app_id: app.id });
+    for (let i = 0; i < webpages + unpublishedWebpages; i++) {
+        await insertRow(pg, 'webpages', { id: `w_${project.id}_${i}`, user_id: 'u', organization_id: org, is_published: i < webpages });
+    }
+}
 
 const iso = (daysFromNow) => new Date(Date.now() + daysFromNow * D).toISOString().slice(0, 10);
 const GOOD = {
@@ -54,11 +56,9 @@ const GOOD = {
     security_update_channel: 'mailto:updates@example.com',
 };
 
-test.beforeEach(() => {
+test.beforeEach(async () => {
     state.settings = { ...GOOD };
-    state.counts = { releases: 0, publicPages: 0, webpages: 0 };
-    state.failTables = new Set();
-    state.queries = [];
+    await pg.exec('DELETE FROM studio_app_public_pages; DELETE FROM studio_apps; DELETE FROM webpages; DELETE FROM project_releases; DELETE FROM projects');
 });
 
 function noPersonalData(r) {
@@ -83,7 +83,6 @@ test('relevance gate: CRA not relevant → not_applicable before any query', asy
     const r = await check.evaluate('org1');
     assert.equal(r.status, 'not_applicable');
     assert.deepEqual(r.evidence, { relevance: 'not_relevant' });
-    assert.equal(state.queries.length, 0);
 });
 
 test('role gate: distributor / user_only / undeclared → not_applicable; the hint names detected products, org-scoped', async () => {
@@ -93,13 +92,14 @@ test('role gate: distributor / user_only / undeclared → not_applicable; the hi
     assert.equal(r.evidence.cra_role, 'distributor');
     assert.equal(r.evidence.products_hint.any, false);
     assert.match(r.details, /no products placed on the market were detected/);
-    for (const q of state.queries) {
-        assert.match(q.sql, /organization_id = \$1/);
-        assert.deepEqual(q.params, ['org1']);
-    }
+
+    // Another organisation's products, and an unpublished page, are not org1's.
+    await products('org2', { releases: 5, publicPages: 5, webpages: 5 });
+    await products('org1', { unpublishedWebpages: 1 });
+    assert.equal((await check.evaluate('org1')).evidence.products_hint.any, false);
 
     state.settings = { ...GOOD, cra_role: null };
-    state.counts = { releases: 3, publicPages: 0, webpages: 2 };
+    await products('org1', { releases: 3, webpages: 2 });
     const r2 = await check.evaluate('org1');
     assert.equal(r2.status, 'not_applicable');
     assert.equal(r2.evidence.products_hint.any, true);
@@ -111,9 +111,10 @@ test('role gate: distributor / user_only / undeclared → not_applicable; the hi
 
 test('hint tolerates missing product tables (42P01) — that number is simply unknown', async () => {
     state.settings = { ...GOOD, cra_role: 'user_only' };
-    state.failTables = new Set(['project_releases', 'studio_app_public_pages']);
-    state.counts.webpages = 1;
-    const r = await check.evaluate('org1');
+    await products('org1', { releases: 2, publicPages: 2, webpages: 1 });
+    const restores = [await hideTable(pg, 'project_releases'), await hideTable(pg, 'studio_app_public_pages')];
+    let r;
+    try { r = await check.evaluate('org1'); } finally { for (const undo of restores.reverse()) await undo(); }
     assert.equal(r.status, 'not_applicable');
     assert.equal(r.evidence.products_hint.solution_releases, null);
     assert.equal(r.evidence.products_hint.public_app_pages, null);
@@ -128,7 +129,6 @@ test('manufacturer without URL or date → fail, each gap named; nothing queried
     assert.equal(r.evidence.support_policy_url_set, false);
     assert.equal(r.evidence.support_end_date, null);
     assert.match(r.details, /no support policy URL and no end-of-support date/);
-    assert.equal(state.queries.length, 0, 'the verdict needs no database');
 
     state.settings = { ...GOOD, support_policy_url: 'not a url', support_end_date: 'someday' };
     const r2 = await check.evaluate('org1');

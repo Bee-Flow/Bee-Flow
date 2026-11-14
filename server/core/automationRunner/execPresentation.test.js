@@ -40,7 +40,7 @@ const automationStore = {
 };
 const library = { created: [] };
 // The step reaches services/presentationRenderer through the presentations
-// port of ./featurePorts.js, and automation/automationGraph (the marking's AI
+// port of ./featurePorts.js, and core/automationModel/automationGraph (the marking's AI
 // steps) through another; boot registers the real ones. The renderer is faked.
 require('../../automation/runnerPorts');
 require('./featurePorts').registerRunnerPorts({

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * CMS media helpers: clip uploads (demo videos WITH sound, up to 500 MB) and
  * WebVTT captions validation.
@@ -30,7 +30,7 @@ const CLIP_EXT_WHITELIST = new Set(['.mp4', '.webm']);
 // content decide, the declared type only has to be one of the harmless ones.
 const VTT_DECLARED_MIME = new Set(['text/vtt', 'text/plain', 'application/octet-stream', '']);
 
-/** @param {string} name */
+/** @param {string | undefined} name */
 function extOf(name) {
     return path.extname(name || '').toLowerCase();
 }
@@ -75,6 +75,7 @@ function ensureTmpDir() {
     return tmpRoot;
 }
 
+// nosemgrep: semgrep.beeflow-multer-without-upload-guard -- clips of up to 500 MB go to disk, which the in-memory guard cannot hold; handleClipUpload sniffs the container (looksLikeClip), the temp name is random and the stored key takes a whitelisted extension and a sanitised base name (tracked by lint:multer-guard-ratchet)
 const clipUpload = multer({
     storage: multer.diskStorage({
         destination: (/** @type {import('express').Request} */ req, /** @type {{ mimetype?: string, originalname?: string }} */ file, /** @type {(err: Error | null, destination: string) => void} */ cb) => {
@@ -84,7 +85,7 @@ const clipUpload = multer({
     }),
     limits: { fileSize: CLIP_MAX_BYTES, files: 1 },
     fileFilter: (/** @type {import('express').Request} */ req, /** @type {{ mimetype?: string, originalname?: string }} */ file, /** @type {(err: Error | null, accept?: boolean) => void} */ cb) => {
-        if (CLIP_MIME_WHITELIST.has(file.mimetype) && CLIP_EXT_WHITELIST.has(extOf(file.originalname))) cb(null, true);
+        if (CLIP_MIME_WHITELIST.has(/** @type {string} */ (file.mimetype)) && CLIP_EXT_WHITELIST.has(extOf(file.originalname))) cb(null, true);
         else cb(new Error('Unsupported file type: clips must be MP4 or WebM'));
     },
 });
@@ -153,6 +154,7 @@ async function streamIntoStorage(filePath, size, key, contentType, signal = null
 async function handleClipUpload(req, res) {
     const file = req.file;
     if (!file) throw badRequest('no_file', 'No file provided');
+    const filePath = /** @type {string} */ (file.path); // multer's disk storage names the file
     /** @type {{ success: boolean; key: string; url: string; }} */
     let result;
     try {
@@ -160,7 +162,7 @@ async function handleClipUpload(req, res) {
 
         const ext = extOf(file.originalname);
         const head = Buffer.alloc(16);
-        const fh = await fs.promises.open(file.path, 'r');
+        const fh = await fs.promises.open(filePath, 'r');
         try { await fh.read(head, 0, 16, 0); } finally { await fh.close(); }
         if (!file.size || !looksLikeClip(head, ext)) {
             throw badRequest('invalid_clip', 'This file is not a valid MP4 or WebM video');
@@ -170,14 +172,14 @@ async function handleClipUpload(req, res) {
             .replace(/[^a-zA-Z0-9._-]/g, '_')
             .replace(/\.[^.]+$/, '');
         const key = `cms/${Date.now()}-${crypto.randomBytes(6).toString('hex')}-${safeBase}${ext}`;
-        await streamIntoStorage(file.path, file.size, key, file.mimetype);
+        await streamIntoStorage(filePath, file.size, key, file.mimetype);
 
         const url = `/api/cms/asset/${key.split('/').map(encodeURIComponent).join('/')}`;
         result = { success: true, key, url };
     } finally {
         // Before the response goes out, so a caller that gets its answer can
         // rely on the temp file being gone.
-        await fs.promises.rm(file.path, { force: true }).catch((e) => log.warn(`[CMS] clip temp cleanup failed: ${e.message}`));
+        await fs.promises.rm(filePath, { force: true }).catch((e) => log.warn(`[CMS] clip temp cleanup failed: ${e.message}`));
     }
     res.json(result);
 }

@@ -1,11 +1,12 @@
 // Subscriptions → Organizations. Pinned: "Remove subscription" inside the
 // editor asks for confirmation right there (the dialog used to exist only in
 // the list view, so the button did nothing until the admin went back).
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import { setDemoTransport } from '@/utils/helpers';
 import { OrgsView } from './OrgsView';
+import { renderWithClient } from '@/test/render';
 
 const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
 
@@ -23,7 +24,7 @@ describe('OrgsView', () => {
             if (address.endsWith('/api/subscriptions/plans')) return json([{ id: 'p1', name: 'Team' }]);
             return json({ features: [] });
         });
-        render(<OrgsView />);
+        renderWithClient(<OrgsView />);
         await user.click(await screen.findByText('Acme'));
         expect(await screen.findByText('Organization subscription')).toBeTruthy();
 
@@ -50,7 +51,7 @@ describe('OrgsView', () => {
             if (address.endsWith('/api/subscriptions/plans')) return json([{ id: 'p1', name: 'Team' }]);
             return json({ features: [] });
         });
-        render(<OrgsView />);
+        renderWithClient(<OrgsView />);
         const table = await screen.findByRole('table', { name: 'Active subscriptions' });
         const first = () => within(table).getAllByRole('row')[1].textContent;
         expect(first()).toContain('Acme');
@@ -73,7 +74,7 @@ describe('OrgsView', () => {
             if (address.endsWith('/api/subscriptions/plans')) return json([{ id: 'p1', name: 'Team' }]);
             return json({ features: [] });
         });
-        render(<OrgsView />);
+        renderWithClient(<OrgsView />);
         const table = await screen.findByRole('table', { name: 'Active subscriptions' });
         expect(within(table).getByText('Action required')).toBeInTheDocument();
         expect(within(table).queryByText('manual_action_required')).toBeNull();
@@ -99,7 +100,7 @@ describe('OrgsView', () => {
             if (address.endsWith('/api/subscriptions/plans')) return json([{ id: 'p1', name: 'Team' }]);
             return json({ features: [] });
         });
-        render(<OrgsView />);
+        renderWithClient(<OrgsView />);
         await user.click(await screen.findByText('Acme'));
         const overrides = await screen.findAllByText('Override');
         await user.click(overrides[1]); // Max users
@@ -121,7 +122,7 @@ describe('OrgsView', () => {
             if (address.endsWith('/api/subscriptions/plans')) return json([{ id: 'p1', name: 'Free' }, { id: 'p2', name: 'Launch' }]);
             return json({ features: [] });
         });
-        render(<OrgsView />);
+        renderWithClient(<OrgsView />);
         await user.click(await screen.findByText('Acme'));
         await screen.findByText('Organization subscription');
         await user.selectOptions(screen.getAllByRole('combobox')[0], 'p2');

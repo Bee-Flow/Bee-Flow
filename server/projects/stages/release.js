@@ -51,7 +51,7 @@ const rowsOf = (res) => (Array.isArray(res) ? res : (res && res.rows) || []);
 
 /** The http_request connections an automation uses: the Dev ids a `cn_n` slot stands for. */
 function connectionIdsOf(definitions) {
-    const { walkAllSteps } = require('../../automation/portability');
+    const { walkAllSteps } = require('../../core/packaging/walkers');
     const ids = new Set();
     for (const definition of definitions || []) {
         if (!isObject(definition)) continue;

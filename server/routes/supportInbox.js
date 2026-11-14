@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Tenant Support Inbox API (Studio → Support).
  *
@@ -78,7 +78,7 @@ router.get('/inboxes', async (req, res) => {
     res.json({ inboxes });
 });
 
-router.post('/inboxes', validate({ body: S.CreateInboxBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof S.CreateInboxBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/inboxes', validate({ body: S.CreateInboxBody }), async (req, res) => {
     const scope = await resolveOrgScope(req);
     const organizationId = req.body.organizationId || scope[0];
     if (!organizationId || !scope.includes(organizationId)) {
@@ -91,7 +91,7 @@ router.post('/inboxes', validate({ body: S.CreateInboxBody }), async (/** @type 
         organizationId, createdBy: getUserId(req), provider,
         displayName: displayName || '', defaultAgentId: defaultAgentId || null,
         kbIds: Array.isArray(kbIds) ? kbIds : [],
-        replyMode: ['draft', 'auto_confident', 'autonomous'].includes(replyMode) ? replyMode : 'draft',
+        replyMode: replyMode && ['draft', 'auto_confident', 'autonomous'].includes(replyMode) ? replyMode : 'draft',
         autoresolveThreshold: autoresolveThreshold != null ? Number(autoresolveThreshold) : 0.78,
         toolsEnabled: !!toolsEnabled, signature: signature || null,
         folderFilter: Array.isArray(folderFilter) ? folderFilter : ['INBOX'],
@@ -110,7 +110,7 @@ router.patch('/inboxes/:id', validate({ body: S.PatchInboxBody }), async (/** @t
     // string / null clears the operator (allowed).
     if (typeof req.body?.operator_user_id === 'string' && req.body.operator_user_id.trim()) {
         const { _eligibleStaffForOrg } = require('../services/supportAutoAssigner');
-        const eligible = await _eligibleStaffForOrg(inbox.organization_id, { tenantInbox: true }).catch((e) => fallback('routes/supportInbox:anon', e, []));
+        const eligible = await _eligibleStaffForOrg(inbox.organization_id, { tenantInbox: true }).catch((e) => fallback('routes/supportInbox:anon', e, /** @type {string[]} */ ([])));
         const op = req.body.operator_user_id.trim();
         if (!Array.isArray(eligible) || !eligible.includes(op)) {
             return res.status(400).json({ error: "Operator must be a support-capable member of this inbox's organisation." });
@@ -140,7 +140,7 @@ router.patch('/inboxes/:id', validate({ body: S.PatchInboxBody }), async (/** @t
 // Unlink the mailbox but keep the inbox: tokens are shredded, syncing stops,
 // and the tickets this mailbox produced are purged. The inbox row survives so
 // its agent/KB/access settings are still there when someone reconnects.
-router.post('/inboxes/:id/disconnect', async (req, res) => {
+router.post('/inboxes/:id/disconnect', validate({ body: S.NoBody }), async (req, res) => {
     const inbox = await loadInboxInScope(req, res, req.params.id);
     if (!inbox) return;
     const { ok, purgedThreads } = await supportInboxStore.disconnectInbox(req.params.id, inbox.organization_id);
@@ -218,7 +218,7 @@ async function ensureKbAutomation(inbox, userId, session, kbId) {
             description: 'Auto-provisioned from Support settings — distils resolved tickets into the knowledge base.',
             definition: def, triggerType: 'app_event',
         });
-        automationId = created.id;
+        automationId = /** @type {NonNullable<typeof created>} */ (created).id; // the row it just wrote
     }
     // This path creates and updates an automation WITHOUT going through
     // PUT /api/automation/:id, so it has to reconcile the knowledge-base
@@ -310,7 +310,7 @@ router.get('/threads/:id', Threads.getThread);
 router.get('/threads/:id/context', Threads.threadContext);
 router.get('/threads/:id/events', Threads.threadEvents);
 router.post('/threads/:id/reply', validate({ body: S.ReplyBody }), Threads.replyToThread);
-router.post('/threads/:id/draft', Threads.draftReply);
+router.post('/threads/:id/draft', validate({ body: S.NoBody }), Threads.draftReply);
 router.patch('/threads/:id', validate({ body: S.PatchThreadBody }), Threads.patchThread);
 
 // ── Settings reads, the live feed, access and audit ───────────────────────────

@@ -39,7 +39,7 @@
 
 const http = require('http');
 const fs = require('fs');
-const log = require('../telemetry/log');
+const { bestEffort } = require('../utils/bestEffort');
 
 const APP = process.env.BEEFLOW_APP_DIR || '/app';
 const ORG = process.env.HARNESS_ORG || 'nc-nextcloud-nc-host-bee';
@@ -206,7 +206,7 @@ function streamBuild({ headers, body, onEvent }) {
                     let data = null;
                     try { data = JSON.parse(line.slice(6)); } catch { data = line.slice(6); }
                     events.push({ at: Date.now() - t0, event: ev, data });
-                    if (onEvent) { try { onEvent(ev, data); } catch (err) { log.debug('printing never breaks the run', err); } }
+                    if (onEvent) { try { onEvent(ev, data); } catch (err) { bestEffort('scripts/drive-app-builder:onEvent', err); } }
                 }
             });
             res.on('end', () => resolve({ events, t0 }));

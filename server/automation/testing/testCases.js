@@ -48,12 +48,12 @@ const REASON_OF = Object.freeze({
  *
  * @param {unknown} definition
  * @param {string} stepId
- * @returns {import('../automationGraph').AutomationStep|null}
+ * @returns {import('../../core/automationModel/automationGraph').AutomationStep|null}
  */
 function findCodeStep(definition, stepId) {
-    /** @type {import('../automationGraph').AutomationStep | null} */
+    /** @type {import('../../core/automationModel/automationGraph').AutomationStep | null} */
     let found = null;
-    walkAllSteps(definition, (/** @type {import('../automationGraph').AutomationStep} */ s) => {
+    walkAllSteps(definition, (/** @type {import('../../core/automationModel/automationGraph').AutomationStep} */ s) => {
         if (!found && s && s.id === stepId && s.type === 'code') found = s;
     });
     return found;
@@ -61,7 +61,7 @@ function findCodeStep(definition, stepId) {
 
 /**
  * The input names a code step reads (its `inputs` keys), without the secret declaration.
- * @param {import('../automationGraph').AutomationStep | null | undefined} step
+ * @param {import('../../core/automationModel/automationGraph').AutomationStep | null | undefined} step
  */
 function declaredInputNames(step) {
     return isObject(step?.inputs) ? Object.keys(step.inputs).filter((k) => k !== 'secretKeys') : [];

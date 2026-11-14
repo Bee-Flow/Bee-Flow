@@ -675,8 +675,8 @@ async function runForSubject(orgId, subjectIds, { runType = 'event' } = {}) {
  * complete. That is what makes the re-run after an auto-fix, or after an event
  * that changed who the subjects are, show the fixed state at once instead of
  * leaving the fixed subjects' last `fail` rows standing until the next sweep.
- * @param {string} checkId
- * @param {string} orgId
+ * @param {string} orgId @param {string} checkId
+ * @param {{ runType?: string, subjectId?: string | null }} [opts]
  */
 async function runOne(orgId, checkId, { runType = 'manual', subjectId = null } = {}) {
     const check = registry.get(checkId);

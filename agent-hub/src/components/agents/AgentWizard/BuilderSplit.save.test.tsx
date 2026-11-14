@@ -133,7 +133,10 @@ describe('BuilderSplit — 409 reconcile', () => {
         const input = screen.getByDisplayValue('Test Agent');
         await userEvent.clear(input);
         await userEvent.type(input, 'Mine');
-        await screen.findByText('Keep mine', {}, { timeout: 3000 });
+        // The autosave runs on its debounce (real timers): on a loaded machine the
+        // first PUT can take seconds, so wait for it before the conflict dialog.
+        await waitFor(() => expect(calls('PUT', '/agents/agent-1').length).toBeGreaterThan(0), { timeout: 10_000 });
+        await screen.findByText('Keep mine', {}, { timeout: 5000 });
         expect(JSON.parse(calls('PUT', '/agents/agent-1')[0][1].body).baseVersion).toBe(3);
         await userEvent.click(screen.getByText('Keep mine'));
         await waitFor(() => expect(screen.queryByText('Keep mine')).toBeNull());
@@ -155,7 +158,10 @@ describe('BuilderSplit — 409 reconcile', () => {
         const input = screen.getByDisplayValue('Test Agent');
         await userEvent.clear(input);
         await userEvent.type(input, 'Mine');
-        await screen.findByText('Load latest', {}, { timeout: 3000 });
+        // The autosave runs on its debounce (real timers): on a loaded machine the
+        // first PUT can take seconds, so wait for it before the conflict dialog.
+        await waitFor(() => expect(calls('PUT', '/agents/agent-1').length).toBeGreaterThan(0), { timeout: 10_000 });
+        await screen.findByText('Load latest', {}, { timeout: 5000 });
         await userEvent.click(screen.getByText('Load latest'));
         await waitFor(() => expect(screen.queryByText('Load latest')).toBeNull());
         expect(calls('GET', '/agents/agent-1').filter(([u]) => u === '/agents/agent-1')).toHaveLength(1);

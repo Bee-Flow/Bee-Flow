@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder tools — draft persistence: the write-through to the automations
  * table (create on first mutation, update thereafter, finalize gate).
@@ -33,7 +34,7 @@ function blocksByIdOf(list) {
  *
  * Resolves to the stored row; `error` is set when the store refused the write
  * and `validationErrors` when the draft was saved but is not yet valid.
- * @param {import('../mcpBuilder').McpDraftWrap} draftWrap
+ * @param {import('../mcpBuilder').McpDraftWrap & Pick<import('./refCheck').BuilderWrap, '_blocks'>} draftWrap
  * @param {{ finalize?: boolean }} [opts]
  * @returns {Promise<Awaited<ReturnType<typeof automationStore.createAutomation>> & { error?: string, validationErrors?: object[] }>}
  */
@@ -131,7 +132,7 @@ async function persistDraft(draftWrap, { finalize = false } = {}) {
     }
     const triggerType = def.trigger?.kind || 'manual';
     const scheduleCron = def.trigger?.schedule?.cron || null;
-    const scheduleTz = def.trigger?.schedule?.tz || 'Europe/Amsterdam';
+    const scheduleTz = /** @type {{ tz?: string } | undefined} */ (def.trigger?.schedule)?.tz || 'Europe/Amsterdam';
 
     // Only flip is_draft:false when the definition actually validates —
     // finalize is a request, not a command. Without this gate, a caller
@@ -175,7 +176,7 @@ async function persistDraft(draftWrap, { finalize = false } = {}) {
         if (canFinalize) {
             return automationStore.updateAutomation(a.id, { isDraft: false }, draftWrap.userId);
         }
-        if (finalize && !validation.ok) a.validationErrors = validation.errors;
+        if (finalize && !validation.ok) /** @type {typeof a & { validationErrors?: unknown }} */ (a).validationErrors = validation.errors;
         return a;
     }
     // Update existing row. Snapshot the stored definition FIRST: when the

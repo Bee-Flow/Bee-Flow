@@ -11,7 +11,7 @@ const multer = require('multer');
 const log = require('../../telemetry/log');
 const kbStore = require('../../stores/knowledgeBases');
 const { getUserId } = require('./shared');
-const { MAX_UPLOAD_FILES, MAX_FILE_BYTES, QUEUED_REASON, helpers, resolveKb, resolveSource } = require('./sourcePolicy');
+const { MAX_UPLOAD_FILES, MAX_FILE_BYTES, QUEUED_REASON, helpers, writableKb, resolveSource } = require('./sourcePolicy');
 const { bestEffort } = require('../../utils/bestEffort');
 const { keepUploadedOriginal } = require('../../core/kb/sources/keepOriginals');
 
@@ -146,7 +146,7 @@ function acceptFile(kb, source, file, userId) {
 /** POST /:id/sources/:sid/files — add files to an upload source (202). */
 async function addFiles(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
     try {
-        const kb = await resolveKb(req, res, { manage: true });
+        const kb = writableKb(req, res);
         if (!kb) return;
         const source = await resolveSource(kb, req, res);
         if (!source) return;

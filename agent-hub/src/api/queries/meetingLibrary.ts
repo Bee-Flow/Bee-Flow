@@ -25,9 +25,10 @@ type Note = Awaited<ReturnType<typeof api.listTranscriptions>>[number];
  * finished note without a manual refresh; the interval stops with the last
  * processing note.
  */
-export function useTranscriptionsQuery() {
+export function useTranscriptionsQuery(enabled = true) {
     return useQuery({
         queryKey: meetingNotesKey,
+        enabled,
         queryFn: () => api.listTranscriptions(),
         staleTime: 0,
         retry: false,

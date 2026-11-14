@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { refKindKey } from './skillModel';
 import { skillsApi, type SkillTestPayload, type SkillTestRun } from '@/api/skillsApi';
 import type { JsonResourceError } from '@/api/client';
@@ -72,23 +73,68 @@ function messageForError(t: TranslateFn, err: { code?: string | null; message?: 
     }
 }
 
+interface TestHistoryRead {
+    /** false = the read FAILED: "not tested" is a claim about the skill that a failed read cannot make. */
+    runs: SkillTestRun[] | false;
+    /**
+     * A 403 on the history read. Kept APART from `runs === false`: "could not
+     * load" is a claim about the network, and this is a claim about rights —
+     * the account may see this skill but not edit it, and the server refuses
+     * the whole test surface on it. Neither one may become "not tested".
+     */
+    forbidden: boolean;
+}
+
+/** The skill's stored test runs; never rejects. */
+function useTestHistory(skillId: string | null | undefined) {
+    return useQuery<TestHistoryRead>({
+        queryKey: ['skills', 'testRuns', skillId],
+        enabled: !!skillId,
+        staleTime: 0,
+        retry: false,
+        queryFn: async () => {
+            try {
+                const body = await skillsApi.testRuns(skillId as string);
+                return { runs: Array.isArray(body?.runs) ? body.runs : [], forbidden: false };
+            } catch (e) {
+                const err = e as JsonResourceError;
+                return { runs: false, forbidden: err?.status === 403 || err?.code === 'not_editable' };
+            }
+        },
+    });
+}
+
+/** The agents a test may run as: null = still loading, false = the read FAILED (never "you have none"). */
+function useTestAgents(): { id: string; name: string }[] | false | null {
+    const query = useQuery<{ id: string; name: string }[] | false>({
+        queryKey: ['skills', 'testAgents'],
+        staleTime: 0,
+        retry: false,
+        queryFn: async () => {
+            try {
+                const body = await skillsApi.testAgents();
+                return Array.isArray(body?.agents) ? body.agents : [];
+            } catch {
+                return false;
+            }
+        },
+    });
+    return query.data ?? null;
+}
+
 export default function TestTab({ skillId, steps = [], onNavigate = null, readOnly = false }: TestTabProps) {
     const { t } = useTranslation();
     const rel = useRelativeTime();
-    const [runs, setRuns] = useState<SkillTestRun[] | false | null>(null);
     const [question, setQuestion] = useState('');
     const [agentId, setAgentId] = useState('');
-    // null = still loading, false = the read FAILED (never "you have none").
-    const [agents, setAgents] = useState<{ id: string; name: string }[] | false | null>(null);
     const [running, setRunning] = useState(false);
     const [answer, setAnswer] = useState('');
     const [result, setResult] = useState<SkillTestRun | null>(null);
     const [error, setError] = useState<string | null>(null);
-    // A 403 on the history read. Kept APART from `runs === false`: "could not
-    // load" is a claim about the network, and this is a claim about rights —
-    // the account may see this skill but not edit it, and the server refuses
-    // the whole test surface on it. Neither one may become "not tested".
-    const [forbidden, setForbidden] = useState(false);
+    const history = useTestHistory(skillId);
+    const runs = history.data?.runs ?? null;
+    const forbidden = history.data?.forbidden ?? false;
+    const agents = useTestAgents();
     // `{ declared, used }` when the server searched fewer knowledge bases than
     // the skill links. Null = it searched all of them, or none were linked.
     const [kbNotice, setKbNotice] = useState<{ declared: number; used: number; } | null>(null);
@@ -98,47 +144,8 @@ export default function TestTab({ skillId, steps = [], onNavigate = null, readOn
     // hands down, or the server saying so to our face. The screen must not
     // offer what the server would refuse.
     const locked = readOnly || forbidden;
-    const refreshHistory = useCallback(async () => {
-        try {
-            const body = await skillsApi.testRuns(skillId);
-            setRuns(Array.isArray(body?.runs) ? body.runs : []);
-        } catch (e) {
-            // NOT []: "not tested" is a claim about this skill, and a read
-            // that failed cannot make it — the same rule the agent picker
-            // above follows. A 403 is not a failure at all: it is the answer.
-            if ((e as JsonResourceError)?.status === 403 || (e as JsonResourceError)?.code === 'not_editable') setForbidden(true);
-            setRuns(false);
-        }
-    }, [skillId]);
-    useEffect(() => {
-        if (!skillId) return undefined;
-        let alive = true;
-        (async () => {
-            try {
-                const body = await skillsApi.testRuns(skillId);
-                if (alive) setRuns(Array.isArray(body?.runs) ? body.runs : []);
-            } catch (e) {
-                if (!alive) return;
-                // 403 = "you may look, not edit", not a storing.
-                if ((e as JsonResourceError)?.status === 403 || (e as JsonResourceError)?.code === 'not_editable') setForbidden(true);
-                setRuns(false);   // failed ≠ "not tested"
-            }
-        })();
-        return () => { alive = false; };
-    }, [skillId]);
-    useEffect(() => {
-        let alive = true;
-        (async () => {
-            try {
-                const body = await skillsApi.testAgents();
-                if (alive) setAgents(Array.isArray(body?.agents) ? body.agents : []);
-            } catch {
-                // NOT []: an empty picker is a claim this read cannot make.
-                if (alive) setAgents(false);
-            }
-        })();
-        return () => { alive = false; };
-    }, []);
+    const { refetch: refetchHistory } = history;
+    const refreshHistory = useCallback(async () => { await refetchHistory(); }, [refetchHistory]);
     useEffect(() => () => { try { abortRef.current?.abort(); } catch (err) { logger.debug('gone', err); } }, []);
     const canRun = Boolean(skillId) && !locked && question.trim().length > 0 && steps.length > 0 && !running && agents !== null;
 

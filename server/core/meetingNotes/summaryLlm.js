@@ -21,6 +21,7 @@ const {
 const { parseJsonArray, parseJsonObject } = require('./llmJson');
 const { buildSummarySystemPrompt } = require('./summaryTemplates');
 const log = require('../../telemetry/log');
+const { envInt } = require('../../utils/envNumber.mts');
 
 // A transcript this long is a runaway recording, not a meeting. Bounds the
 // request; the real limit is the model's context, which we are nowhere near
@@ -35,7 +36,7 @@ const SUMMARY_MAX_TOKENS = 8192;
 // Ceiling for every meeting-notes LLM call. Deliberately below the 10-minute
 // gmeet job lease: a stalled provider call must fail (and release the job)
 // before another pod can re-claim it.
-const MEETING_LLM_TIMEOUT_MS = Number(process.env.MEETING_LLM_TIMEOUT_MS) || 540_000;
+const MEETING_LLM_TIMEOUT_MS = envInt('MEETING_LLM_TIMEOUT_MS', 540_000, { min: 1 });
 
 /** @type {Record<string, string>} */
 const LANG_NAMES = { nl: 'Dutch', en: 'English', de: 'German', fr: 'French', es: 'Spanish', it: 'Italian', pt: 'Portuguese' };
@@ -121,6 +122,9 @@ Keep it concise and actionable. Skip empty sections rather than writing "none".`
 
 /**
  * Generate a short, descriptive meeting title using the fast-tier LLM.
+ * @param {string} summary
+ * @param {string} language
+ * @param {string | null} [userOrgId]
  * @param {{ userId?: string | null }} [opts] the meeting's owner, for the usage row
  */
 async function generateMeetingTitle(summary, language, userOrgId = null, opts) {

@@ -97,7 +97,7 @@ test('MCP: mcp true is listed with appId and a write annotation; mcp false is ne
 });
 
 test('discuss mode refuses a registry tool, read or write (its allow-list fails closed)', async () => {
-    const W = await import('../../routes/ai/appStudioBuilder/workMode.mts');
+    const W = await import('../../usecases/ai/appStudioBuilder/workMode.mts');
     for (const name of FIXTURES) assert.ok(W.gateWorkModeCall(name, 'discuss'), name);
     assert.equal(W.gateWorkModeCall('app_zz_note', 'build'), null);
 });

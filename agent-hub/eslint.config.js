@@ -1,5 +1,6 @@
 import js from '@eslint/js';
 import importPlugin from 'eslint-plugin-import';
+import jsxA11y from 'eslint-plugin-jsx-a11y';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
@@ -27,8 +28,9 @@ const sizeComplexityRules = {
 export default [
     {
         // dist-embed is the Nextcloud embed build (see the Dockerfile's embed
-        // stage); like dist, it is build output and never linted.
-        ignores: ['dist', 'dist-embed', 'dist-runtime', 'build', 'node_modules', 'coverage', '.vite'],
+        // stage); like dist, it is build output and never linted. The api types
+        // are generated from docs/static/openapi.json (scripts/gen-api-types.mjs).
+        ignores: ['dist', 'dist-embed', 'dist-runtime', 'build', 'node_modules', 'coverage', '.vite', 'src/api/apiTypes.generated.ts'],
     },
     {
         // A disable comment that silences nothing is dead weight and hides the
@@ -235,6 +237,34 @@ export default [
                 message: 'Use apiClient (api/client) or a React Query hook instead of raw fetch().',
             }],
         },
+    },
+    {
+        // Accessibility: jsx-a11y's recommended set, every rule an error. The
+        // violations that predate it are in eslint-suppressions.json, so a new
+        // unlabelled control or a clickable div without a role fails. Test
+        // fixtures render throwaway markup to drive a component, not UI a
+        // person uses, so tests stay out.
+        files: ['**/*.{jsx,tsx}'],
+        ignores: ['**/*.test.{jsx,tsx}', 'src/test/**'],
+        plugins: { 'jsx-a11y': jsxA11y },
+        // The recommended set has every rule it enables at 'error' already.
+        rules: { ...jsxA11y.flatConfigs.recommended.rules },
+    },
+    {
+        // A promise nobody awaits, returns or catches loses its rejection. The
+        // api layer is where requests start, so the type-aware check runs
+        // there, against a program of src/api only (tsconfig.eslint-api.json):
+        // the whole-src program is too heavy for every lint run.
+        files: ['src/api/**/*.ts'],
+        ignores: ['src/api/**/*.test.ts'],
+        languageOptions: {
+            parserOptions: {
+                project: './tsconfig.eslint-api.json',
+                tsconfigRootDir: import.meta.dirname,
+            },
+        },
+        plugins: { '@typescript-eslint': tseslint.plugin },
+        rules: { '@typescript-eslint/no-floating-promises': 'error' },
     },
     {
         // Tests are exempt from the size and complexity limits: a describe

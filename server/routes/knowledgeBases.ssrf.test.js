@@ -60,6 +60,7 @@ function respondFor(u) {
 
 const mw = (req, res, next) => next();
 
+const { fakeKbGates } = require('./knowledgeBases/kbGate.testkit');
 const MOCKS = {
     '../stores/knowledgeBases': {
         getKB: async (id) => ({ id, tenant_id: 't1', name: 'kb' }),
@@ -86,7 +87,7 @@ const MOCKS = {
     },
     '../core/entitlements/betaFeatures': { userHasBetaFeature: async () => false },
     '../core/serviceAuth': { getServiceHeaders: () => ({}) },
-    '../support/kbAccess': { canAccessKB: async () => true, resolveAdminOrgIds: async () => new Set(['o1']) },
+    '../support/kbAccess': { ...fakeKbGates({ kbStore: { getKB: (id) => MOCKS['../stores/knowledgeBases'].getKB(id) }, canRead: () => true, canManage: (kb) => MOCKS['../stores/knowledgeBases'].canUserManageKB(kb, null, null, true) }), resolveAdminOrgIds: async () => new Set(['o1']) },
     '../core/kb/kbIngestionHelpers': {
         getAzureIngestParams: async () => ({}),
         extractFileContent: async () => '',

@@ -1,12 +1,13 @@
 import { AlertTriangle, CheckCircle2, Link2, MessageSquare, Send, ShieldAlert } from 'lucide-react';
-import { SetStateAction, Dispatch, useCallback, useEffect, useState } from 'react';
-import { API_BASE } from '../../utils/helpers';
+import { SetStateAction, Dispatch, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from '../../hooks/useTranslation';
 import { FIELD_INPUT, SAVE_BUTTON, SettingBlock, SettingRow, SettingsGroup, SettingsList } from '@/components/shared/SettingsList';
 import { ALERT_ERROR, ALERT_SUCCESS, ALERT_WARNING, SECONDARY_BTN } from '@/components/mcpLibrary/ui';
 import { errorMessage } from '../../utils/caughtError';
-import { request, RefusedError, mutate, errorBody } from '../../api/mutate';
+import { RefusedError, errorBody } from '../../api/mutate';
 import { type YouTrackConnection, type ChatNotifications, type ChatPatch, PROVIDERS, eventLabelsFor } from './SupportConnectionsConfig.helpers';
+import { apiRequest } from '@/api/typedRequest';
 
 /**
  * Where support connects to the outside world: YouTrack, and the team chat
@@ -34,16 +35,17 @@ function Banner({ tone, children }: { tone: 'ok' | 'warn' | 'bad'; children?: Re
     );
 }
 
+const YOUTRACK_KEY = ['support', 'youtrackConnection'] as const;
+const CHAT_NOTIFICATIONS_KEY = ['support', 'chatNotifications'] as const;
+
 export default function SupportConnectionsConfig() {
     const { t } = useTranslation();
-    const [yt, setYt] = useState<YouTrackConnection | null>(null);
     const [ytUrl, setYtUrl] = useState<string>('');
     const [ytToken, setYtToken] = useState<string>('');
     const [ytProject, setYtProject] = useState<string>('');
     const [ytSaving, setYtSaving] = useState<boolean>(false);
     const [ytError, setYtError] = useState<string | null | undefined>(null);
 
-    const [chat, setChat] = useState<ChatNotifications | null>(null);
     const [hook, setHook] = useState<string>('');
     const [chatSaving, setChatSaving] = useState<boolean>(false);
     const [chatError, setChatError] = useState<string | null | undefined>(null);
@@ -51,36 +53,51 @@ export default function SupportConnectionsConfig() {
 
     const [includeSubject, setIncludeSubject] = useState<boolean>(false);
 
-    const loadYt = useCallback(async () => {
-        try {
-            const res = await request(`${API_BASE}/api/support/youtrack/status`).catch((err: unknown) => {
-                if (err instanceof RefusedError) return null;
-                throw err;
-            });
-            if (res) {
+    const queryClient = useQueryClient();
+    // A refusal keeps what was shown (nothing, before the first answer); a failure says so.
+    const ytQuery = useQuery<YouTrackConnection | null>({
+        queryKey: YOUTRACK_KEY,
+        staleTime: 0,
+        retry: false,
+        queryFn: async () => {
+            try {
+                const res = await apiRequest('GET /api/support/youtrack/status').catch((err: unknown) => {
+                    if (err instanceof RefusedError) return null;
+                    throw err;
+                });
+                if (!res) return queryClient.getQueryData<YouTrackConnection | null>(YOUTRACK_KEY) ?? null;
                 const d = await res.json();
-                setYt(d);
                 setYtProject(d.defaultProject || '');
                 setIncludeSubject(!!d.includeSubject);
+                return d;
+            } catch (e) {
+                setYtError(errorMessage(e));
+                throw e;
             }
-        } catch (e) {
-            setYtError(errorMessage(e));
-        }
-    }, []);
+        },
+    });
+    const yt = ytQuery.data ?? null;
+    const setYt = (next: YouTrackConnection | null) => queryClient.setQueryData(YOUTRACK_KEY, next);
 
-    const loadChat = useCallback(async () => {
-        try {
-            const res = await request(`${API_BASE}/api/support/notifications`).catch((err: unknown) => {
-                if (err instanceof RefusedError) return null;
-                throw err;
-            });
-            if (res) setChat(await res.json());
-        } catch (e) {
-            setChatError(errorMessage(e));
-        }
-    }, []);
-
-    useEffect(() => { loadYt(); loadChat(); }, [loadYt, loadChat]);
+    const chatQuery = useQuery<ChatNotifications | null>({
+        queryKey: CHAT_NOTIFICATIONS_KEY,
+        staleTime: 0,
+        retry: false,
+        queryFn: async () => {
+            try {
+                const res = await apiRequest('GET /api/support/notifications').catch((err: unknown) => {
+                    if (err instanceof RefusedError) return null;
+                    throw err;
+                });
+                return res ? await res.json() : (queryClient.getQueryData<ChatNotifications | null>(CHAT_NOTIFICATIONS_KEY) ?? null);
+            } catch (e) {
+                setChatError(errorMessage(e));
+                throw e;
+            }
+        },
+    });
+    const chat = chatQuery.data ?? null;
+    const setChat = (next: ChatNotifications | null) => queryClient.setQueryData(CHAT_NOTIFICATIONS_KEY, next);
 
     // `subject` is passed explicitly rather than read from state: the checkbox
     // calls this from its own onChange, where the state update has not landed
@@ -95,11 +112,7 @@ export default function SupportConnectionsConfig() {
             if (ytToken.trim()) body.token = ytToken.trim();
             let res: Response;
             try {
-                res = await mutate(`${API_BASE}/api/support/youtrack/connection`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-            });
+                res = await apiRequest('PUT /api/support/youtrack/connection', { body });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const d = errorBody(err) ?? {};
@@ -126,11 +139,7 @@ export default function SupportConnectionsConfig() {
             if (hook.trim()) body.webhookUrl = hook.trim();
             let res: Response;
             try {
-                res = await mutate(`${API_BASE}/api/support/notifications`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-            });
+                res = await apiRequest('PUT /api/support/notifications', { body });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const d = errorBody(err) ?? {};
@@ -157,7 +166,7 @@ export default function SupportConnectionsConfig() {
     const test = async () => {
         setTestResult(null);
         try {
-            await mutate(`${API_BASE}/api/support/notifications/test`, { method: 'POST' });
+            await apiRequest('POST /api/support/notifications/test');
             setTestResult({ ok: true });
         } catch (e) {
             // Report what the endpoint actually said — "test failed" with no

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Automation Builder — one tool call of a round: the route's own answers
  * (./routeTools.js) first, then the builder dispatch (or an org webpage tool
@@ -14,10 +14,10 @@ const { validateDefinition } = require('../../../automation/validate');
 const { getDeliverableEvents } = require('../../../automation/deliverableEvents');
 const { ensureDraftTitle } = require('../../../automation/builderTools/deriveTitle');
 const { persistDraftWrap } = require('./builderDraft');
-const { inferPlanProgress } = require('./planProgress');
-const { withChangeStatus, markStagedView } = require('./workMode');
+const { inferPlanProgress } = require('../../../usecases/ai/automationBuilder/planProgress');
+const { withChangeStatus, markStagedView } = require('../../../usecases/ai/automationBuilder/workMode');
 const { proposalPreviewPayload } = require('./datatableTurn');
-const { parseToolArgs, mutates, applyPlanMarkDone, RECOVERED_CALL_HINT, REPAIRED_CALL_HINT } = require('./chatTurnLoop');
+const { parseToolArgs, mutates, applyPlanMarkDone, RECOVERED_CALL_HINT, REPAIRED_CALL_HINT } = require('../../../usecases/ai/automationBuilder/chatTurnLoop');
 const { rejectedCallLabel, rejectedStepPosition } = require('./turnStop');
 const { handleRouteTool } = require('./routeTools');
 
@@ -51,7 +51,8 @@ async function dispatchToolCall(turn, round, tc) {
             if (refusal) {
                 toolResult = { error: refusal.modelError };
             } else {
-                toolResult = await executeWebpageAutomationTool(name, args, webpageInspectorCtx);
+                // toolMenu sets the context whenever it enables the inspector.
+                toolResult = await executeWebpageAutomationTool(name, args, /** @type {NonNullable<typeof webpageInspectorCtx>} */ (webpageInspectorCtx));
                 shieldModelCopy = true;
             }
         } else {

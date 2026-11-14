@@ -191,13 +191,13 @@ async function loadMembers(projectId) {
  * pins the step to the revision of the copy it creates instead.
  */
 function dropDevTemplatePins(definition) {
-    require('../../automation/portability').walkAllSteps(definition, (step, _layerKey, isTrigger) => {
+    require('../../core/packaging/walkers').walkAllSteps(definition, (step, _layerKey, isTrigger) => {
         if (!isTrigger && step.type === 'fill_document' && isRef(step.documentId)) delete step.documentVersionId;
     });
 }
 
 function captureAutomation(automation, refs, warnings, opts = {}) {
-    const { buildExport } = require('../../automation/portability');
+    const { buildExport } = require('../../core/featureModules').featureModule('automation/portability');
     const definition = clone(automation.definition);
     toRefs('automation', { definition }, refs);
     dropDevTemplatePins(definition);

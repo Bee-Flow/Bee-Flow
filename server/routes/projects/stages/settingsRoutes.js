@@ -1,3 +1,4 @@
+// @typecheck
 'use strict';
 /**
  * Stage settings routes (design 4 and 8): the stage's own settings and approval
@@ -14,7 +15,6 @@
  * mail go. Everything else a stage editor may do is switching parts and the
  * stage on and off, non-steering values and audience.
  */
-
 const crypto = require('crypto');
 const express = require('express');
 const { validate } = require('../../../core/http/validate');
@@ -41,7 +41,7 @@ const steeringOf = (decl) => !!decl && (decl.steering === true || STEERING_TYPES
  * the names it does not have yet (a value may be entered before the deploy
  * that needs it).
  *
- * @returns {Promise<Map<string, object>>}
+ * @returns {Promise<Map<string, { name: string, type?: string, choices?: unknown[], [k: string]: unknown }>>}
  */
 async function declarationsFor(d, ctx) {
     const out = new Map();
@@ -157,7 +157,7 @@ function makeSettingsHandlers(d) {
         res.json({ ref: stamp.ref, kind: stamp.kind, ...result });
     }
 
-    /** Pause (stage-wide automation switch off) or resume (exactly that set back on). */
+    /** Pause (stage-wide automation switch off) or resume (exactly that set back on). @param {Parameters<typeof declarationsFor>[1]} ctx @param {boolean} pause @param {{ expectedVersion?: number }} [opts] */
     async function setPaused(ctx, pause, { expectedVersion } = {}) {
         const { stage, userId } = ctx;
         const failed = [];
@@ -482,7 +482,7 @@ function makeSettingsRouter(d, h) {
     });
 
     /**
-     * @param {string} min
+     * @param {'editor' | 'owner' | 'viewer'} min
      */
     const valueAuth = (min) => authMw(d, { stage: min, devStage: min });
     router.get('/:id/stages/:stage/variables', gate(d, 'projects'), valueAuth('viewer'), h.getValues);

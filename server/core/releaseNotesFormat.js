@@ -85,7 +85,7 @@ const NOTES_SCHEMA = {
 
 /**
  * Trim, de-duplicate and cap a list of git subject lines.
- * @param {string | string[] | undefined} input
+ * @param {string | string[] | null | undefined} input
  * @param {number} [cap]
  */
 function normaliseLines(input, cap = MAX_SUBJECTS) {
@@ -235,7 +235,7 @@ module.exports = {
 
 /**
  * One release range's raw git material.
- * @typedef {{ commitSubjects?: string[] | string, prTitles?: string[] | string, diffstat?: string,
- *   services?: string, version?: string, modelTier?: string }} ReleaseMaterial
+ * @typedef {{ commitSubjects?: string[] | string | null, prTitles?: string[] | string | null, diffstat?: string | null,
+ *   services?: string | null, version?: string | null, modelTier?: string }} ReleaseMaterial  a part left out or null is not mentioned
  * @typedef {{ title: string, lead: string, items: Array<{ kind: string, title: string, body: string }> }} ReleaseDraft
  */

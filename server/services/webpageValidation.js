@@ -13,7 +13,7 @@
  * here is ADVISORY — callers never block a write or persistence on a finding.
  */
 
-const { lineNumberForOffset } = require('../integrations/webpageDocTools');
+const { lineNumberForOffset } = require('../core/text/findReplace');
 
 // External <img> hosts that are always acceptable (deterministic placeholders
 // the prompt contract explicitly allows). Admins can extend the list via the

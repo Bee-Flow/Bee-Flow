@@ -35,8 +35,14 @@ async function appendMessage({
     }
     if (!body || !body.trim()) throw new Error('body required');
 
+    // The message and the thread's clock in one statement. Only a non-internal
+    // message moves last_message_at (internal notes are staff-only and must not
+    // move the SLA clock from the requester's point of view). ON CONFLICT DO
+    // NOTHING returns no row when the provider message was already ingested
+    // (idempotent inbound sync); the thread is then left alone too.
     const { rows } = await pool.query(
-        `INSERT INTO support_messages
+        `WITH m AS (
+         INSERT INTO support_messages
             (thread_id, author_kind, author_user_id, author_display,
              body, body_html, internal_note, kb_citations, ai_confidence, ai_model,
              rfc822_message_id, in_reply_to, email_references, provider_message_id,
@@ -44,24 +50,19 @@ async function appendMessage({
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9,$10,$11,$12,$13,$14,$15::jsonb,$16::jsonb)
          ON CONFLICT (thread_id, provider_message_id) WHERE provider_message_id IS NOT NULL
          DO NOTHING
-         RETURNING *`,
+         RETURNING *
+         ), t AS (
+            UPDATE support_threads SET last_message_at = now(), updated_at = now()
+             WHERE id = $1 AND NOT COALESCE($7::boolean, false) AND EXISTS (SELECT 1 FROM m)
+         )
+         SELECT * FROM m`,
         [threadId, authorKind, authorUserId, authorDisplay,
             body, bodyHtml, internalNote, JSON.stringify(kbCitations || []), aiConfidence, aiModel,
             rfc822MessageId, inReplyTo, emailReferences, providerMessageId,
             JSON.stringify(attachments || []),
             emailSendStatus ? JSON.stringify(emailSendStatus) : null]
     );
-    // ON CONFLICT DO NOTHING returns no row when the provider message was already
-    // ingested (idempotent inbound sync) — signal that to the caller.
     if (!rows.length) return null;
-    // Only non-internal messages bump last_message_at (internal notes are
-    // staff-only and shouldn't move the SLA clock from the requester's POV).
-    if (!internalNote) {
-        await pool.query(
-            `UPDATE support_threads SET last_message_at = now(), updated_at = now() WHERE id = $1`,
-            [threadId]
-        );
-    }
     return rows[0];
 }
 

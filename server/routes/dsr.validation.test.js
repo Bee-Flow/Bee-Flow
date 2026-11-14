@@ -22,8 +22,12 @@ process.env.NODE_ENV = 'test';
 const test = require('node:test');
 const assert = require('node:assert');
 const h = require('../testUtils/routeHarness');
+const { ladderPglite } = require('../testUtils/pgliteTemplate');
+const { insertRow } = require('../testUtils/pgliteSeed');
 
-const { db, api } = h.routeUnderTest(test, '/api/dsr', () => require('./dsr'));
+// The router runs on the boot ladder's schema on PGlite; every statement is recorded.
+const pg = ladderPglite();
+const { db, api } = h.routeUnderTest(test, '/api/dsr', () => require('./dsr'), { pg });
 
 test('a misspelled key on the public form is refused, not filed as an access request', async () => {
     const res = await api.call('POST', '/api/dsr/requests', {
@@ -58,9 +62,18 @@ test('the admin session is checked before the body', async () => {
     assert.deepStrictEqual(db.queries, []);
 });
 
-test('a valid public status check reaches the database and answers as before', async () => {
+test('a valid public status check reaches the database and answers for the matching subject only', async () => {
     const res = await api.call('GET', '/api/dsr/requests/7/public', { user: null, headers: { 'x-subject-email': 'person@example.org' } });
     assert.strictEqual(res.status, 404, res.text);
     assert.deepStrictEqual(res.body, { error: 'not found' });
-    assert.ok(db.queries.some((q) => /FROM dsr_requests/.test(q)));
+    const row = await insertRow(pg, 'dsr_requests', { organization_id: 'org1', request_type: 'access', subject_email: 'person@example.org', status: 'pending' });
+    const mine = await api.call('GET', `/api/dsr/requests/${row.id}/public`, { user: null, headers: { 'x-subject-email': 'Person@Example.org' } });
+    assert.strictEqual(mine.status, 200, mine.text);
+    assert.deepStrictEqual([mine.body.id, mine.body.status, mine.body.request_type], [row.id, 'pending', 'access']);
+    const other = await api.call('GET', `/api/dsr/requests/${row.id}/public`, { user: null, headers: { 'x-subject-email': 'someone@example.org' } });
+    assert.strictEqual(other.status, 404, 'another address never learns the request exists');
+});
+
+test('starting a request takes no fields: one sent is refused by name', async () => {
+    h.assertRefused(assert, await api.call('POST', '/api/dsr/requests/1/start', { body: { status: 'in_progress' } }), 'body', /Starting a request does not take "status"/);
 });

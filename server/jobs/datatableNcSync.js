@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Source mirror refresh — the SCHEDULED half of "keep this copy in step".
  *
@@ -25,12 +25,13 @@ const { pool } = require('../db');
 const datatableStore = require('../stores/datatableStore');
 const log = require('../telemetry/log');
 const { createLockedTick, runWorkerPool } = require('./lib/workerPool');
+const { envInt } = require('../utils/envNumber.mts');
 
 const LOCK_KEY = 0xBEEF110;
 const INTERVAL_MS = 60 * 1000;
 const BOOT_DELAY_MS = 45 * 1000;
-const MAX_PER_TICK = parseInt(process.env.DATATABLE_NC_SYNC_PER_TICK, 10) || 20;
-const SYNC_CONCURRENCY = parseInt(process.env.DATATABLE_NC_SYNC_CONCURRENCY, 10) || 3;
+const MAX_PER_TICK = envInt('DATATABLE_NC_SYNC_PER_TICK', 20, { min: 1 });
+const SYNC_CONCURRENCY = envInt('DATATABLE_NC_SYNC_CONCURRENCY', 3, { min: 1 });
 
 /** @type {NodeJS.Timeout | null} */
 let _timer = null;
@@ -61,7 +62,8 @@ const processDueSyncs = createLockedTick({
     label: 'DatatableNcSync',
     run: async () => {
         let ok = true;
-        const due = await datatableStore.listDueSourceSyncs(MAX_PER_TICK);
+        // Rows read from the table map to tables, never to null.
+        const due = /** @type {NonNullable<Awaited<ReturnType<typeof datatableStore.listDueSourceSyncs>>[number]>[]} */ (await datatableStore.listDueSourceSyncs(MAX_PER_TICK));
         await runWorkerPool(due, SYNC_CONCURRENCY, async (item) => {
             const r = await syncOne(item);
             if (!r.ok) ok = false;

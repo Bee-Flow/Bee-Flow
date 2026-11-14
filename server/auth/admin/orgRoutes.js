@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Admin Routes — organization management: CRUD, content-encryption settings
  * and the logo upload. Split out of auth/adminRoutes.js; mounted there in the

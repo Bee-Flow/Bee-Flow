@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The react-mui light tier's preview document: pinned esm.sh runtime, import
  * map, the esbuild virtual-filesystem plugin, the runtime guard, the asset
@@ -201,7 +202,7 @@ export async function bundleReact(esbuild, { entry = REACT_ENTRY, files }) {
         const msgs = Array.isArray(e?.errors) && e.errors.length
             ? e.errors.map((x) => x.text).join('\n')
             : (e?.message || String(e));
-        const err = new Error('esbuild bundle failed');
+        const err = /** @type {Error & { formatted?: string }} */ (new Error('esbuild bundle failed'));
         err.formatted = msgs;
         throw err;
     }

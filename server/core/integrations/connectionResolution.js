@@ -61,6 +61,8 @@ function providerForTool(toolName) {
  *
  * Returns { integrationUserId, integrationOrgId, connectionId, grantId,
  * provider, connectionLabel } only when a LEND grant applies.
+ * @param {{ toolName: string, runningUserId: string, runningUserOrgId?: string | null, runningUserGroups?: string[],
+ *   ownerUserId?: string | null, resourceType?: string | null, resourceId?: string | null, alreadyActingAs?: string | null }} call
  */
 async function resolveEffectiveIdentity({
     toolName, runningUserId, runningUserOrgId, runningUserGroups = [],

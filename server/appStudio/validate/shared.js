@@ -6,7 +6,7 @@
 'use strict';
 
 // The "did you mean" picker every validate/ module suggests with, required once here.
-const { pickClosestId } = require('../../automation/validate/helpers');
+const { pickClosestId } = require('../../utils/closestId.mts');
 
 /** @param {unknown} v */
 function isObject(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }

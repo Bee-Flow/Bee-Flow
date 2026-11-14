@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Knowledge Base Ingest — a AUTOMATION-ONLY automation action (never exposed to
  * chat agents; it writes). Used by the "Resolved tickets → knowledge base"
@@ -245,6 +246,7 @@ async function executeKbIngestTool(toolName, args = {}, context = {}) {
          * tokenise the tokens).
          */
         const { applyShield, OUTCOME } = require('../core/kb/ingestPrivacy');
+        /** @type {{ outcome: string, text: string, piiStatus?: string, piiCategories?: string[], [k: string]: unknown }} */
         let screened = { outcome: OUTCOME.PASS, text: body };
         try {
             screened = await applyShield({

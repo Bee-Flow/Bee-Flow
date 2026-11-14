@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { API_BASE } from '../utils/helpers';
-import { logger } from '../utils/logger';
-import { request, RefusedError } from '../api/mutate';
+import { useEffect, useState } from 'react';
+import { useMaintenanceQuery } from '../api/queries/maintenanceRead';
+import useAdjustOnChange from './useAdjustOnChange';
 
 /**
  * Watches for an announced deployment window so the app can warn people before
@@ -107,7 +106,14 @@ export function derivePhase(
 }
 
 export function useMaintenanceWindow({ enabled = true }: { enabled?: boolean } = {}): MaintenanceState {
-    const [window_, setWindow] = useState<MaintenanceWindow | null>(null);
+    // Poll loop. The interval tightens while a window is open — that is when the
+    // "you can continue" flip must land promptly. Once recovered there is
+    // nothing left to detect (the prompt persists until reload), so a stale
+    // tab relaxes back to the idle cadence. A failed poll during a rollout is
+    // expected (the pod serving us is being replaced): the last answer stays,
+    // so the banner stays up across the outage.
+    const query = useMaintenanceQuery<MaintenanceWindow>({ enabled, idleMs: IDLE_POLL_MS, activeMs: ACTIVE_POLL_MS });
+    const window_ = query.data?.maintenance || null;
     const [secondsRemaining, setSecondsRemaining] = useState(0);
     const [versionChanged, setVersionChanged] = useState(false);
 
@@ -122,45 +128,17 @@ export function useMaintenanceWindow({ enabled = true }: { enabled?: boolean } =
     // "The server moved DURING my session" is the comparison that is always
     // true to act on. (Its blind spot — an agent-hub-only roll changes no
     // server sha — is why a deploy should roll ALL services by default.)
-    const baselineVersion = useRef<string | null>(null);
+    const [baselineVersion, setBaselineVersion] = useState<string | null>(null);
 
-    const poll = useCallback(async () => {
-        try {
-            let res: Response;
-            try {
-                res = await request(`${API_BASE}/api/maintenance`);
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                return;
-            }   // 401 on a logged-out tab: nothing to show
-            const data = await res.json();
-
-            const version = data.appVersion || '';
-            if (version) {
-                if (baselineVersion.current === null) baselineVersion.current = version;
-                else if (version !== baselineVersion.current) setVersionChanged(true);
-            }
-
-            const win: MaintenanceWindow | null = data.maintenance || null;
-            setWindow(win);
-            setSecondsRemaining(win ? secondsUntil(win.endsAt) : 0);
-        } catch (err) { logger.debug('A failed poll during a rollout is EXPECTED — the pod serving us is being replaced. Holding the last known state is exactly right: the banner stays up across the outage instead of flickering off at the moment it is most useful.', err); }
-    }, []);
-
-    // Poll loop. Interval tightens while a window is open — that is when the
-    // "you can continue" flip must land promptly. Once recovered there is
-    // nothing left to detect (the prompt persists until reload), so a stale
-    // tab relaxes back to the idle cadence instead of hammering every 5s for
-    // the rest of its life. Keyed on the boolean rather than the window object
-    // so a fresh object from each poll does not tear down and rebuild the
-    // interval every tick.
-    const isActive = !!window_;
-    useEffect(() => {
-        if (!enabled) return undefined;
-        poll();
-        const id = setInterval(poll, isActive ? ACTIVE_POLL_MS : IDLE_POLL_MS);
-        return () => clearInterval(id);
-    }, [enabled, poll, isActive]);
+    useAdjustOnChange([query.dataUpdatedAt], () => {
+        if (!query.data) return;
+        const version = query.data.appVersion || '';
+        if (version) {
+            if (baselineVersion === null) setBaselineVersion(version);
+            else if (version !== baselineVersion) setVersionChanged(true);
+        }
+        setSecondsRemaining(window_ ? secondsUntil(window_.endsAt) : 0);
+    });
 
     // Local countdown so the number moves between polls.
     useEffect(() => {

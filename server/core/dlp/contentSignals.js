@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 
 /**
@@ -122,7 +122,7 @@ function makeContentSignals(overrides = {}) {
             const truncated = text.length > MAX_SCAN_CHARS;
             const r = await d.detectWithLedger(truncated ? text.slice(0, MAX_SCAN_CHARS) : text, {
                 categories: _categoriesOf(shield),
-                threshold: Number.isFinite(shield?.piiDetectionConfidenceThreshold) ? shield.piiDetectionConfidenceThreshold : undefined,
+                threshold: Number.isFinite(shield?.piiDetectionConfidenceThreshold) ? shield?.piiDetectionConfidenceThreshold : undefined,
                 scope: 'g',
             });
             /** @type {Record<string, number>} */

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * stores/notebook/versions.js — notebook version history: record (deduped,
  * numbered under the notebook lock, pruned), list, read, name, delete, and the
@@ -117,7 +117,8 @@ async function pruneVersions(notebookId) {
 async function recordVersion(notebookId, v = {}) {
     await initDB();
     if (!notebookId) throw new Error('recordVersion needs a notebook id');
-    const source = VERSION_SOURCES.includes(v.source) ? v.source : 'checkpoint';
+    // includes() is the membership test: a missing source is simply not in the list.
+    const source = VERSION_SOURCES.includes(/** @type {string} */ (v.source)) ? /** @type {string} */ (v.source) : 'checkpoint';
     // Sanitised like every document write: a conflict copy is the client's
     // own text, and the history panel renders versions.
     const rawHtml = typeof v.html === 'string' ? v.html : '';
@@ -280,7 +281,7 @@ async function nameVersion(notebookId, versionId, name) {
  * The sibling read path (getVersion) is guarded at the route; this closes the
  * write path the same way.
  * @param {string} versionId
- * @param {string} notebookId
+ * @param {string | null} [notebookId]
  */
 async function deleteVersion(versionId, notebookId = null) {
     await initDB();

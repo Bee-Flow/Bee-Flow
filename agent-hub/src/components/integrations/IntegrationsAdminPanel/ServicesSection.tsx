@@ -4,24 +4,20 @@
 // in as props from the panel.
 import type React from 'react';
 import type { ReactNode } from 'react';
-import { API_BASE } from '@/utils/helpers';
 import { useTranslation } from '@/hooks/useTranslation';
 import { FIELD_INPUT, Field, FieldGrid, SettingRow, SettingsGroup, SettingsList } from '@/components/shared/SettingsList';
 import SectionHeader from '@/components/shared/SectionHeader';
 import Toggle from '@/components/shared/Toggle';
 import type { ServicesSectionProps, SetMessage } from './adminPanel.types';
 import { HINT_LINK, Hint, SaveButton, StatusChip } from './ui';
-import { mutate, ApiError } from '@/api/mutate';
+import { ApiError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 const MASK = '••••••••••••••••';
 
 /** POST /ai/config; null when the server refused. */
 function postConfig(body: Record<string, unknown>) {
-    return mutate(`${API_BASE}/ai/config`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-    }).catch((err: unknown) => {
+    return apiRequest('POST /ai/config', { body }).catch((err: unknown) => {
         if (err instanceof ApiError) return null;
         throw err;
     });

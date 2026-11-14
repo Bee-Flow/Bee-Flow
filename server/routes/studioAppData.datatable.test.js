@@ -14,6 +14,9 @@
  *      the list of a member who may not read the data table.
  *   5. GET /export → wrote a linked table out as `[]`, without any marking. In a privacy product that is the file with which someone answers a subject access request.
  *
+ * The data table itself is a real Postgres table: the planner's, on PGlite,
+ * behind the datatableDbStore surface (testUtils/pgDatatableEngine.testkit.js).
+ *
  * Run: cd server && node --test --test-reporter=tap routes/studioAppData.datatable.test.js
  */
 
@@ -21,6 +24,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
+const { pgDatatableEngine } = require('../testUtils/pgDatatableEngine.testkit');
 
 function stub(path, exports) {
     const filename = require.resolve(path);
@@ -114,23 +118,20 @@ stub('../stores/datatableStore', {
     bumpAfterWrite: async (id, scope, delta) => { bumps.push({ id, delta }); },
 });
 
-const dtCalls = [];
-let dtRows = [{ id: 'rec_1', naam: 'Acme' }];
+/** @type {Awaited<ReturnType<typeof pgDatatableEngine>>} */
+let dt;
+const DT_META = { id: DT_ID, key: 'dt_klanten', fields: [{ id: 'f1', key: 'naam', type: 'text' }] };
+// Handed out before the engine boots; the methods reach it at call time.
 stub('../stores/datatableDbStore', {
     scopeKey: (scope) => `${scope.kind}:${scope.id}`,
-    query: async (ownerId, entityId, sql, params = []) => {
-        dtCalls.push({ op: 'query', ownerId, sql, params });
-        return { rows: dtRows };
-    },
-    exec: async (ownerId, entityId, sql, params = []) => {
-        dtCalls.push({ op: 'exec', ownerId, sql, params });
-        return { changes: 1 };
-    },
-    batch: async (ownerId, entityId, statements) => {
-        dtCalls.push({ op: 'batch', ownerId, statements });
-        return { changes: statements.length };
-    },
+    query: (o, a, sql, params = []) => dt.store.query(o, a, sql, params),
+    exec: (o, a, sql, params = []) => dt.store.exec(o, a, sql, params),
+    batch: (o, a, statements) => dt.store.batch(o, a, statements),
 });
+const dtCalls = { filter: (fn) => dt.calls.map((c) => ({ op: c.fn, ...c })).filter(fn), get length() { return dt.calls.length; } };
+const dtRows = async () => (await dt.rows('dt_klanten')).map((r) => ({ id: r.id, naam: r.naam }));
+test.before(async () => { dt = await pgDatatableEngine([DT_META]); });
+test.after(() => dt.close());
 
 stub('../stores/userStore', {
     getUser: async (id) => ({ id, organizationId: ORG, orgRole: 'member', groups: [] }),
@@ -217,11 +218,13 @@ function makeApp(mode = 'readwrite') {
     return apps.get(id);
 }
 
-function reset({ table = datatable(), granted = EDITOR_GRANT } = {}) {
+async function reset({ table = datatable(), granted = EDITOR_GRANT } = {}) {
     dtRow = table;
     grants = granted;
-    dtCalls.length = 0; appDb.length = 0; bumps.length = 0;
-    dtRows = [{ id: 'rec_1', naam: 'Acme' }];
+    appDb.length = 0; bumps.length = 0;
+    await dt.pg.exec('TRUNCATE "dt_klanten"');
+    await dt.insert('dt_klanten', { id: 'rec_1', naam: 'Acme', org_id: ORG, created_by: OWNER, created_at: '2026-09-01T00:00:00.000Z' });
+    dt.calls.length = 0;
 }
 
 const onlyAppTable = (calls) => calls.filter((c) => /"klanten"/.test(c.sql || ''));
@@ -229,7 +232,7 @@ const onlyAppTable = (calls) => calls.filter((c) => /"klanten"/.test(c.sql || ''
 // ═══ 1+3. schrijven en teruglezen ════════════════════════════════════════
 
 test('POST records schrijft in de DATATABEL en leest de rij daar terug', async () => {
-    reset();
+    await reset();
     const app = makeApp('readwrite');
     const r = await dispatch({
         method: 'POST', url: `/${app.id}/data/tables/tbl_link01/records`,
@@ -237,16 +240,18 @@ test('POST records schrijft in de DATATABEL en leest de rij daar terug', async (
     });
     assert.strictEqual(r.statusCode, 200, JSON.stringify(r.body));
     assert.strictEqual(r.body.success, true);
-    // De INSERT ging naar de datatabel…
-    assert.ok(dtCalls.some((c) => c.op === 'exec' && /^INSERT INTO "dt_klanten"/.test(c.sql)));
-    // …en de her-lezing ook, dus wat de UI toont is wat er echt staat.
-    assert.ok(dtCalls.some((c) => c.op === 'query' && /FROM "dt_klanten"/.test(c.sql)));
+    // The row landed in the data table…
+    const rows = await dtRows();
+    assert.strictEqual(rows.length, 2);
+    assert.ok(rows.some((r) => r.id !== 'rec_1' && r.naam === 'Acme'));
+    // …and the re-read came from there too, so what the UI shows is what is stored.
+    assert.ok(dtCalls.filter((c) => c.op === 'query').length > 0);
     // The app's own storage is not touched for this table.
     assert.deepStrictEqual(onlyAppTable(appDb), []);
 });
 
 test('POST records op een mode:read-koppeling is 403 met een reden, niet 200', async () => {
-    reset();
+    await reset();
     const app = makeApp('read');
     const r = await dispatch({
         method: 'POST', url: `/${app.id}/data/tables/tbl_link01/records`,
@@ -259,7 +264,7 @@ test('POST records op een mode:read-koppeling is 403 met een reden, niet 200', a
 });
 
 test('POST records door een kijker zonder graad is 403, geen stille rij', async () => {
-    reset({ granted: [] });
+    await reset({ granted: [] });
     const app = makeApp('readwrite');
     const r = await dispatch({
         method: 'POST', url: `/${app.id}/data/tables/tbl_link01/records`,
@@ -271,19 +276,19 @@ test('POST records door een kijker zonder graad is 403, geen stille rij', async 
 });
 
 test('PATCH records wijzigt de datatabelrij', async () => {
-    reset();
+    await reset();
     const app = makeApp('readwrite');
     const r = await dispatch({
         method: 'PATCH', url: `/${app.id}/data/tables/tbl_link01/records/rec_1`,
         user: MEMBER, body: { values: { naam: 'Acme BV' } },
     });
     assert.strictEqual(r.statusCode, 200, JSON.stringify(r.body));
-    assert.ok(dtCalls.some((c) => c.op === 'exec' && /^UPDATE "dt_klanten"/.test(c.sql)));
+    assert.deepStrictEqual(await dtRows(), [{ id: 'rec_1', naam: 'Acme BV' }]);
     assert.deepStrictEqual(onlyAppTable(appDb), []);
 });
 
 test('PATCH records op een viewer-graad is 403 — de app deelt de rechten van zijn maker niet uit', async () => {
-    reset({ granted: VIEWER_GRANT });
+    await reset({ granted: VIEWER_GRANT });
     const app = makeApp('readwrite');
     const r = await dispatch({
         method: 'PATCH', url: `/${app.id}/data/tables/tbl_link01/records/rec_1`,
@@ -296,18 +301,18 @@ test('PATCH records op een viewer-graad is 403 — de app deelt de rechten van z
 // ═══ 2. DELETE ═══════════════════════════════════════════════════════════
 
 test('DELETE records verwijdert uit de datatabel, niet uit de schaduwtabel', async () => {
-    reset();
+    await reset();
     const app = makeApp('readwrite');
     const r = await dispatch({
         method: 'DELETE', url: `/${app.id}/data/tables/tbl_link01/records/rec_1`, user: MEMBER,
     });
     assert.strictEqual(r.statusCode, 200, JSON.stringify(r.body));
-    assert.ok(dtCalls.some((c) => c.op === 'exec' && /^DELETE FROM "dt_klanten"/.test(c.sql)));
-    assert.deepStrictEqual(onlyAppTable(appDb), [], 'nooit DELETE FROM "klanten" op de app-opslag');
+    assert.deepStrictEqual(await dtRows(), [], 'the row is gone from the data table');
+    assert.deepStrictEqual(onlyAppTable(appDb), [], 'the app storage is never touched for "klanten"');
 });
 
 test('DELETE records op een mode:read-koppeling zegt WAAROM — geen 404', async () => {
-    reset();
+    await reset();
     const app = makeApp('read');
     const r = await dispatch({
         method: 'DELETE', url: `/${app.id}/data/tables/tbl_link01/records/rec_1`, user: MEMBER,
@@ -320,18 +325,18 @@ test('DELETE records op een mode:read-koppeling zegt WAAROM — geen 404', async
 // ═══ 3. readOne ══════════════════════════════════════════════════════════
 
 test('GET één record leest de DATATABEL — niet structureel 404', async () => {
-    reset();
+    await reset();
     const app = makeApp('readwrite');
     const r = await dispatch({ url: `/${app.id}/data/tables/tbl_link01/records/rec_1`, user: MEMBER });
     assert.strictEqual(r.statusCode, 200, JSON.stringify(r.body));
-    assert.deepStrictEqual(r.body.record, { id: 'rec_1', naam: 'Acme' });
-    assert.ok(dtCalls.some((c) => c.op === 'query' && /FROM "dt_klanten"/.test(c.sql)));
+    assert.deepStrictEqual({ id: r.body.record.id, naam: r.body.record.naam }, { id: 'rec_1', naam: 'Acme' });
+    assert.strictEqual(dtCalls.filter((c) => c.op === 'query').length, 1);
     assert.deepStrictEqual(onlyAppTable(appDb), []);
 });
 
 test('GET één record zonder graad is 403 met een reden, nooit 404', async () => {
     // A 404 becomes an EMPTY list in the runtime client (readError.js), so a refusal that answers 404 appears on the screen as "there is nothing".
-    reset({ granted: [] });
+    await reset({ granted: [] });
     const app = makeApp('readwrite');
     const r = await dispatch({ url: `/${app.id}/data/tables/tbl_link01/records/rec_1`, user: MEMBER });
     assert.strictEqual(r.statusCode, 403);
@@ -341,7 +346,7 @@ test('GET één record zonder graad is 403 met een reden, nooit 404', async () =
 // ═══ 4. de tabellenlijst ═════════════════════════════════════════════════
 
 test('GET /data/tables toont een gekoppelde tabel alleen aan wie hem mag lezen', async () => {
-    reset();
+    await reset();
     const app = makeApp('readwrite');
     const ok = await dispatch({ url: `/${app.id}/data/tables`, user: MEMBER });
     assert.strictEqual(ok.statusCode, 200);
@@ -354,7 +359,7 @@ test('GET /data/tables toont een gekoppelde tabel alleen aan wie hem mag lezen',
     assert.strictEqual(JSON.stringify(linked).includes(DT_ID), false);
 
     // …and without a grant it is NOT in there — not even its name and column names.
-    reset({ granted: [] });
+    await reset({ granted: [] });
     const hidden = await dispatch({ url: `/${app.id}/data/tables`, user: MEMBER });
     assert.strictEqual(hidden.statusCode, 200);
     assert.strictEqual(hidden.body.tables.some((t) => t.id === 'tbl_link01'), false);
@@ -364,7 +369,7 @@ test('GET /data/tables toont een gekoppelde tabel alleen aan wie hem mag lezen',
 });
 
 test('GET /data/tables markeert een read-koppeling als alleen-lezen', async () => {
-    reset();
+    await reset();
     const app = makeApp('read');
     const r = await dispatch({ url: `/${app.id}/data/tables`, user: MEMBER });
     const linked = r.body.tables.find((t) => t.id === 'tbl_link01');
@@ -374,12 +379,12 @@ test('GET /data/tables markeert een read-koppeling als alleen-lezen', async () =
 // ═══ 5. de export ════════════════════════════════════════════════════════
 
 test('de export haalt de rijen van een gekoppelde tabel op en noemt de herkomst', async () => {
-    reset();
+    await reset();
     const app = makeApp('readwrite');
     const r = await dispatch({ url: `/${app.id}/data/export`, user: OWNER });
     assert.strictEqual(r.destroyed, null, 'de stream is niet afgebroken');
     const out = JSON.parse(r.text);
-    assert.deepStrictEqual(out.tables.klanten, [{ id: 'rec_1', naam: 'Acme' }],
+    assert.deepStrictEqual(out.tables.klanten.map((x) => ({ id: x.id, naam: x.naam })), [{ id: 'rec_1', naam: 'Acme' }],
         'niet [] — "leeg" en "staat ergens anders" zijn verschillende antwoorden');
     assert.deepStrictEqual(out.linkedTables, { klanten: { datatableId: DT_ID, mode: 'readwrite' } });
     // De eigen tabel staat er nog gewoon in, uit de app-database.
@@ -389,7 +394,7 @@ test('de export haalt de rijen van een gekoppelde tabel op en noemt de herkomst'
 test('een export die een gekoppelde tabel niet kan lezen faalt VOOR de eerste byte', async () => {
     // Eenmaal onderweg is de status al 200 en zou de weigering als geldige,
     // volledige JSON aankomen.
-    reset({ table: null });
+    await reset({ table: null });
     const app = makeApp('readwrite');
     const r = await dispatch({ url: `/${app.id}/data/export`, user: OWNER });
     assert.strictEqual(r.statusCode, 422);
@@ -400,13 +405,13 @@ test('een export die een gekoppelde tabel niet kan lezen faalt VOOR de eerste by
 // ═══ De gewone tabelsoort verandert niet ════════════════════════════════
 
 test('een tabel zonder `source` loopt nog gewoon over de app-opslag', async () => {
-    reset();
+    await reset();
     const app = makeApp('readwrite');
     const r = await dispatch({
         method: 'POST', url: `/${app.id}/data/tables/tbl_own001/records`,
         user: MEMBER, body: { values: { body: 'x' } },
     });
     assert.strictEqual(r.statusCode, 200, JSON.stringify(r.body));
-    assert.ok(appDb.some((c) => c.op === 'exec' && /^INSERT INTO "notes"/.test(c.sql)));
+    assert.ok(appDb.some((c) => c.op === 'exec' && c.sql.includes('"notes"')), 'the write went to the app storage');
     assert.strictEqual(dtCalls.length, 0);
 });

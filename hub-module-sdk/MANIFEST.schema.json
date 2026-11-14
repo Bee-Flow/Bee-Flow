@@ -52,6 +52,21 @@
       "minimum": 1,
       "description": "Hard compatibility gate — the host-context surface the module was built against. The loader refuses a mismatch."
     },
+    "min_app_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z-.]+)?(?:\\+[0-9A-Za-z-.]+)?$",
+      "description": "Written by pack.mjs: minAppVersion under the snake_case name, so a loader that reads either spelling enforces the gate. Do not author it."
+    },
+    "max_app_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z-.]+)?(?:\\+[0-9A-Za-z-.]+)?$",
+      "description": "Written by pack.mjs: maxAppVersion under the snake_case name. Do not author it."
+    },
+    "host_api_version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Written by pack.mjs: hostApiVersion under the snake_case name. Do not author it."
+    },
     "capabilities": {
       "type": "array",
       "description": "Capability descriptors this module contributes to the registry.",

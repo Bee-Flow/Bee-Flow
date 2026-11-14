@@ -9,6 +9,7 @@ const { requirePermission, OrgRoles, SystemRoles, requireActiveOrgForMutations }
 require('../../stores/memoryStore');
 const { resolveUserOrgIds, canSeePublished, resolveUserGroups, assertUserCanUseOrg, validateSharedGroupsForOrg } = require('../../auth');
 const { getEffectiveUserId } = require('../../utils/routeHelpers');
+const { fallback } = require('../../utils/bestEffort');
 
 const userStore = require('../../stores/userStore');
 require('../../stores/usageStore');
@@ -19,13 +20,35 @@ require('../../core/http/sseHelpers');
 // faked facade must not be able to switch that off. See ./usage.js.
 const { redactForeign } = require('../../stores/agent/agentUsage');
 const { assertAgentToolsWrite, managedPayloadOfAgent } = require('../../stores/agent/agentCrud');
-
 const { validate } = require('../../core/http/validate');
-const { makeAgentAccess } = require('../../agents/agentAccess');
+const { HttpError } = require('../../core/http/errors');
+const { makeAgentAccess, agentAccessOf } = require('../../auth/agentAccess.mts');
 const { categoryListOrgId, withOrganizationNames } = require('./agentOrgScope.mts');
 const orgNameLookups = () => ({ getOrganization: (/** @type {string} */ id) => userStore.getOrganization(id), listOrganizations: () => userStore.getAllOrganizations() });
 
 const router = express.Router();
+
+// Who may read, edit, manage or chat with an agent is decided in
+// auth/agentAccess.mts, one module for every agent route. This router builds
+// its instance from ITS imports, which is what keeps the rules testable here
+// (crud.authz.test.js is their contract); the other agent routers take the
+// gates and the rules from this module's exports.
+const {
+    buildCanModifyContext, canModifyAgent, canReadAgent, canChatAgent, gradeOf, requireAgentGrade, requireAgentChat,
+} = makeAgentAccess({
+    getAgent: (id) => agentStore.getAgent(id),
+    getAgentViews: (id) => agentStore.getAgentViews(id),
+    getEffectiveUserId: (req) => getEffectiveUserId(/** @type {import('express').Request} */ (req)),
+    resolvePermissionsByOrg: (userId, session) => require('../../auth').resolvePermissionsByOrg(userId, session),
+    resolveUserOrgIds: (req) => resolveUserOrgIds(/** @type {import('express').Request} */ (req)),
+    resolveUserGroups: (userId) => resolveUserGroups(userId),
+    canSeePublished: (entity, who) => canSeePublished(/** @type {Parameters<typeof canSeePublished>[0]} */ (entity), who),
+    getUser: (id) => userStore.getUser(id),
+    isOrgAdminRole: (role) => require('../../auth').isOrgAdminRole(role),
+    roles: () => ({ SystemRoles, OrgRoles }),
+    fallback,
+    warn: (message) => require('../../telemetry/log').warn(message),
+});
 
 // The request schemas live in ./crudSchemas.js, the persona write in
 // ./agentPersonaWrite.js and the agent save (PUT /:id) in ./agentUpdate.js.
@@ -55,20 +78,26 @@ router.get('/categories', async (req, res) => {
 });
 
 // Category mutations are org-scoped. resolveUserOrgIds returns null
-// only for super-admins (skip the check); org categories require membership;
+// only for super-admins (skip the check); an org category needs manage_agents
+// in THAT organisation, since the right holds per organisation and membership
+// alone (a plain group of it) does not carry a right held elsewhere;
 // org-less (global) categories are manageable only by org-less requesters —
 // mirrors who can create them.
 async function canManageCategory(req, category) {
     const orgIds = await resolveUserOrgIds(req);
     if (orgIds === null) return true; // super-admin
-    if (category.organization_id) return orgIds.has(category.organization_id);
+    if (category.organization_id) {
+        if (!orgIds.has(category.organization_id)) return false;
+        const byOrg = await require('../../auth').resolvePermissionsByOrg(getEffectiveUserId(req), req.session);
+        return byOrg.holds('manage_agents', category.organization_id);
+    }
     return orgIds.size === 0;
 }
 
 // Create a new category. Idempotent on a case-insensitive duplicate: returns
 // the EXISTING row with `existing: true` so clients select it instead of
 // stacking "Sales" next to "sales". The organisation is the one GET lists (`?orgId` names a platform admin's).
-router.post('/categories', requirePermission('manage_agents'), validate({ body: CategoryBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CategoryBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/categories', requirePermission('manage_agents'), validate({ body: CategoryBody }), async (req, res) => {
     const { name, icon, color } = req.body;
     const orgId = await categoryListOrgId(req, await resolveUserOrgIds(req), (r) => require('../../auth/permissions').resolveAdminOrgId(r));
     const existing = await agentStore.findAgentCategoryByName(orgId, name);
@@ -80,7 +109,7 @@ router.post('/categories', requirePermission('manage_agents'), validate({ body: 
 // Rename/update a category (BFSF-272 — there was no way to fix a typo'd
 // category short of raw SQL). Duplicate names 409 with the conflicting row so
 // the client can offer a merge instead.
-router.patch('/categories/:id', requirePermission('manage_agents'), validate({ body: CategoryPatch }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof CategoryPatch>, import('qs').ParsedQs>} */ req, res) => {
+router.patch('/categories/:id', requirePermission('manage_agents'), validate({ body: CategoryPatch }), async (req, res) => {
     const category = await agentStore.getAgentCategory(req.params.id);
     if (!category) return res.status(404).json({ error: 'Category not found' });
     if (!(await canManageCategory(req, category))) {
@@ -101,7 +130,7 @@ router.patch('/categories/:id', requirePermission('manage_agents'), validate({ b
 // 409s with the live count so the UI can offer the guided flow:
 //   ?reassignTo=none   → uncategorise its agents, then delete
 //   ?reassignTo=<id>   → move its agents to another category (= merge), then delete
-router.delete('/categories/:id', requirePermission('manage_agents'), validate({ query: DeleteCategoryQuery }), async (/** @type {import('express').Request<{ id: string }, any, any, import('zod').infer<typeof DeleteCategoryQuery>>} */ req, res) => {
+router.delete('/categories/:id', requirePermission('manage_agents'), validate({ query: DeleteCategoryQuery }), async (req, res) => {
     const category = await agentStore.getAgentCategory(req.params.id);
     if (!category) return res.status(404).json({ error: 'Category not found' });
     if (!(await canManageCategory(req, category))) {
@@ -138,20 +167,6 @@ router.delete('/categories/:id', requirePermission('manage_agents'), validate({ 
     res.json({ success: true, reassigned });
 });
 
-// Visibility gate — a user can read an agent only if they own it, it's a
-// system/swarm agent, or `canSeePublished` accepts them given the agent's
-// org + shared_groups. Without this gate any authenticated user could fetch
-// any other user's drafts including the system_prompt, KB ids, and tool
-// params (which often hold API keys / customer-specific config).
-async function canReadAgent(agent, userId, req) {
-    if (!agent) return false;
-    if (agent.owner_id === userId) return true;
-    if (agent.owner_id === 'system' || agent.owner_id === 'swarm') return true;
-    const orgIds = await resolveUserOrgIds(req).catch(() => new Set());
-    const userGroups = await resolveUserGroups(userId);
-    return canSeePublished(agent, { userId, orgIds, userGroups });
-}
-
 // Concept/live projection (A1). Default = what runs (published_* once the
 // agent has a published version, the concept otherwise) — mobile reads the
 // profile and chats from this one endpoint, so both must agree. An editor
@@ -160,17 +175,13 @@ async function canReadAgent(agent, userId, req) {
 // only editors have). Shape is unchanged; `runtimeSource`, and for editors
 // `unpublishedChanges` (= rev - published_rev, 0 until the first
 // publish-version), are additive.
-router.get('/:id', async (req, res) => {
-    const userId = getEffectiveUserId(req);
-    // Both views from ONE load: the access decision and `unpublishedChanges`
-    // read the concept row, the body is the projection — and they must
-    // describe the same snapshot.
-    const views = await agentStore.getAgentViews(req.params.id);
-    if (!views) return res.status(404).json({ error: 'Agent not found' });
-    const agent = views.draft;
-    if (!(await canReadAgent(agent, userId, req))) {
-        return res.status(404).json({ error: 'Agent not found' });
-    }
+// Both views from ONE load (the gate's): the access decision and
+// `unpublishedChanges` read the concept row, the body is the projection, and
+// they must describe the same snapshot. Whoever may not see the agent gets the
+// 404 of an unknown id.
+router.get('/:id', requireAgentGrade('read', { views: true }), async (req, res) => {
+    const { agent, userId } = agentAccessOf(req);
+    const views = /** @type {import('../../auth/agentAccess.mts').AgentViews} */ (agentAccessOf(req).views);
     // `can_edit` lets the client render read-only editors from the same
     // policy the server enforces instead of a local heuristic.
     const canEdit = await canModifyAgent(agent, userId, req);
@@ -218,18 +229,9 @@ async function complianceCountingFor(agent, req) {
     }
 }
 
-// Delete agent - owner can delete own; others need manage_agents within the
-// agent's org (enforced by canModifyAgent, which owners short-circuit).
-router.delete('/:id', async (req, res) => {
-    const userId = getEffectiveUserId(req);
-    const agent = await agentStore.getAgent(req.params.id);
-    if (!agent) {
-        return res.status(404).json({ error: 'Agent not found' });
-    }
-
-    if (!(await canModifyAgent(agent, userId, req))) {
-        return sendAgentNotEditable(res);
-    }
+// Delete agent: the edit grade (the owner; manage_agents within the agent's organisation).
+router.delete('/:id', requireAgentGrade('edit'), async (req, res) => {
+    const { agent, userId } = agentAccessOf(req);
 
     /**
      * ── WHAT BREAKS, BEFORE IT BREAKS (A1c) ─────────────────────
@@ -267,7 +269,7 @@ router.delete('/:id', async (req, res) => {
     const confirmed = req.query?.confirm === '1' || req.query?.confirm === 'true';
     if (!confirmed) {
         const { gatherUsage } = require('./usage');
-        const { rows, counts, chat, unchecked, audience } = await gatherUsage(agent, userId);
+        const { rows, counts, chat, unchecked, audience } = await gatherUsage(/** @type {AgentRow} */ (agent), userId);
         const othersHistory = chat === null || chat.othersConversationCount > 0;
         if (rows.length > 0 || unchecked.length > 0 || othersHistory) {
             return res.status(409).json({
@@ -289,7 +291,7 @@ router.delete('/:id', async (req, res) => {
     if (deleted) {
         res.json({ success: true });
     } else {
-        throw new Error('Failed to delete agent');
+        throw new HttpError(404, 'agent_not_found', 'This agent no longer exists. Reload the page.'); // deleted since the lookup
     }
 });
 
@@ -425,7 +427,6 @@ function rejectUnsafeConfigKeys(config) {
 // and its tests resolve them exactly as they did when the code lived in this
 // file.
 const publishable = require('../../agents/publishableConfig');
-const { fallback } = require('../../utils/bestEffort');
 
 function validateAgentConfigReferences(agent, config) {
     return publishable.validateAgentConfigReferences(agent, config, {
@@ -436,58 +437,22 @@ function validateAgentConfigReferences(agent, config) {
 
 const { applyConfigValidation } = publishable;
 
-// The edit gate (canModifyAgent) and its prefetch (buildCanModifyContext) live in
-// agents/agentAccess.js, so code below routes/ (the automation bindings) asks the
-// same question. This router builds its instance from ITS imports, which is what
-// keeps the rules testable here (crud.authz.test.js is their contract).
-const { buildCanModifyContext, canModifyAgent } = makeAgentAccess({
-    resolvePermissionsByOrg: (userId, session) => require('../../auth').resolvePermissionsByOrg(userId, session),
-    resolveUserOrgIds: (req) => resolveUserOrgIds(req),
-    getUser: (id) => userStore.getUser(id),
-    roles: () => ({ SystemRoles, OrgRoles }),
-});
-
-// Structured 403 body shared by the mutating endpoints so the client can
-// translate the message and flip the editor into read-only mode.
-function sendAgentNotEditable(res) {
-    return res.status(403).json({
-        error: 'You do not have permission to edit this agent.',
-        code: 'agent_not_editable',
-    });
-}
-
-// Update agent - requires manage_agents permission
-router.put('/:id', requirePermission('manage_agents'), validate({ body: AgentUpdateBody }), makeUpdateAgentHandler({
-    canModifyAgent, sendAgentNotEditable, rejectUnsafeConfigKeys,
-    validateAgentConfigReferences, applyConfigValidation, resolveUserOrgIds,
+// Update agent: manage_agents, a valid body, then the edit grade on this agent.
+router.put('/:id', requirePermission('manage_agents'), requireAgentGrade('edit'), validate({ body: AgentUpdateBody }), makeUpdateAgentHandler({
+    rejectUnsafeConfigKeys, validateAgentConfigReferences, applyConfigValidation, resolveUserOrgIds,
 }));
 
-// Get tools with their fixed params — visibility-gated like GET /:id, since
+// Get tools with their fixed params — the read grade, like GET /:id, since
 // fixed tool params often hold credentials or customer-specific config.
-router.get('/:id/tools', async (req, res) => {
-    const userId = getEffectiveUserId(req);
-    const agent = await agentStore.getAgent(req.params.id);
-    if (!agent) return res.status(404).json({ error: 'Agent not found' });
-    if (!(await canReadAgent(agent, userId, req))) {
-        return res.status(404).json({ error: 'Agent not found' });
-    }
-
-    const toolsWithParams = await agentStore.getAgentToolsWithParams(req.params.id);
-    res.json(toolsWithParams);
+router.get('/:id/tools', requireAgentGrade('read'), async (req, res) => {
+    res.json(await agentStore.getAgentToolsWithParams(req.params.id));
 });
 
 // Update params for a specific tool. Tool params often hold API keys, so
-// require manage_agents + the same canModifyAgent gate the other write
-// endpoints use (covers org admins / agent editors, blocks read-only colleagues
-// in the same org from rewriting credentials).
-router.put('/:id/tools/:componentId/params', requirePermission('manage_agents'), validate({ body: ToolParamsBody }), async (/** @type {import('express').Request<{ id: string, componentId: string }, any, import('zod').infer<typeof ToolParamsBody>, import('qs').ParsedQs>} */ req, res) => {
-    const userId = getEffectiveUserId(req);
-    const agent = await agentStore.getAgent(req.params.id);
-    if (!agent) return res.status(404).json({ error: 'Agent not found' });
-    if (!(await canModifyAgent(agent, userId, req))) {
-        return sendAgentNotEditable(res);
-    }
-
+// manage_agents plus the edit grade on this agent (covers org admins / agent
+// editors, blocks read-only colleagues in the same org from rewriting credentials).
+router.put('/:id/tools/:componentId/params', requirePermission('manage_agents'), requireAgentGrade('edit'), validate({ body: ToolParamsBody }), async (req, res) => {
+    const { agent } = agentAccessOf(req);
     const { params } = req.body;
     // The same managed-agent tools lock as PUT /:id: the list with this one
     // component's params replaced must equal what is stored.
@@ -497,33 +462,15 @@ router.put('/:id/tools/:componentId/params', requirePermission('manage_agents'),
     res.json({ success: true });
 });
 
-// Transfer ownership of an agent to another user in the same org. Allowed
-// for the current owner, the agent's org_admin, or super-admin. The target
-// must be a member of the agent's org — otherwise the agent would silently
-// jump tenants. Records an access-audit row so the trail of "who owns
-// what" is preserved across HR events.
-router.put('/:id/transfer', requirePermission('manage_agents'), validate({ body: TransferBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof TransferBody>, import('qs').ParsedQs>} */ req, res) => {
-    const userId = getEffectiveUserId(req);
-    const agent = await agentStore.getAgent(req.params.id);
-    if (!agent) return res.status(404).json({ error: 'Agent not found' });
-
+// Transfer ownership of an agent to another user in the same org: the manage
+// grade (the owner, an organisation admin of the agent's organisation, or the
+// super admin; a same-org member with manage_agents alone is refused). The
+// target must be a member of the agent's org, or the agent would silently
+// jump tenants. Records an access-audit row so the trail of "who owns what"
+// is preserved across HR events.
+router.put('/:id/transfer', requirePermission('manage_agents'), requireAgentGrade('manage'), validate({ body: TransferBody }), async (req, res) => {
+    const { agent, userId } = agentAccessOf(req);
     const { newOwnerId } = req.body;
-
-    // Authorisation: current owner OR org-admin of agent's org OR super-admin.
-    // Transfers require an actual org-admin role: any same-org member with
-    // manage_agents must not fall through to allowed=true here.
-    const isSuperAdmin = req.session?.isAdmin || req.session?.user?.role === 'admin';
-    let allowed = isSuperAdmin || agent.owner_id === userId;
-    if (!allowed && agent.organization_id) {
-        try {
-            const { isOrgAdminRole } = require('../../auth');
-            const me = await userStore.getUser(userId);
-            if (me && me.organizationId === agent.organization_id && isOrgAdminRole(me.orgRole)) {
-                allowed = true;
-            }
-        } catch (err) { fallback('routes/agents/crud:anon', err); /* fall through */ }
-    }
-    if (!allowed) return res.status(403).json({ error: 'Only the owner or an org admin can transfer this agent' });
 
     // The new owner must already exist and belong to the agent's org.
     const target = await userStore.getUser(newOwnerId).catch((e) => fallback('routes/agents/crud:anon#2', e, null));
@@ -534,7 +481,7 @@ router.put('/:id/transfer', requirePermission('manage_agents'), validate({ body:
     }
 
     const success = await agentStore.transferAgentOwner(agent.id, newOwnerId, agent.organization_id);
-    if (!success) throw new Error('Transfer failed');
+    if (!success) throw new HttpError(409, 'agent_changed', 'The agent changed while it was being transferred. Reload the page and try again.');
 
     await userStore.logAccessAudit(
         'agent.transfer',
@@ -553,6 +500,10 @@ module.exports = Object.assign(router, {
     canModifyAgent,
     buildCanModifyContext,
     canReadAgent,
+    canChatAgent,
+    gradeOf,
+    requireAgentGrade,
+    requireAgentChat,
     validateAgentConfigReferences,
     applyConfigValidation,
     resolvePersonaWrite,
@@ -591,6 +542,10 @@ module.exports = Object.assign(router, {
  *   canModifyAgent: typeof canModifyAgent,
  *   buildCanModifyContext: typeof buildCanModifyContext,
  *   canReadAgent: typeof canReadAgent,
+ *   canChatAgent: typeof canChatAgent,
+ *   gradeOf: typeof gradeOf,
+ *   requireAgentGrade: typeof requireAgentGrade,
+ *   requireAgentChat: typeof requireAgentChat,
  *   validateAgentConfigReferences: typeof validateAgentConfigReferences,
  *   applyConfigValidation: typeof applyConfigValidation,
  *   resolvePersonaWrite: typeof resolvePersonaWrite,

@@ -26,8 +26,8 @@ const { pipeline } = require('stream/promises');
 const { parseTeamsVtt } = require('./teamsVtt');
 
 const { lazyDeps } = require('./lazyDeps');
-const log = require('../../telemetry/log');
-const { bestEffort } = require('../../utils/bestEffort');
+const { bestEffort, ignoreGone } = require('../../utils/bestEffort');
+const { envInt } = require('../../utils/envNumber.mts');
 
 /** Collaborators; tests swap them through init(). */
 const { deps, init } = lazyDeps({
@@ -51,7 +51,7 @@ const MATCH_POST_MS = 6 * 3600_000;
 
 // Teams recordings are video; cap the download well above any real meeting so
 // a runaway stream cannot fill the disk.
-const DEFAULT_MAX_VIDEO_BYTES = Number(process.env.TEAMS_MAX_RECORDING_BYTES) || 6 * 1024 * 1024 * 1024;
+const DEFAULT_MAX_VIDEO_BYTES = envInt('TEAMS_MAX_RECORDING_BYTES', 6 * 1024 * 1024 * 1024, { min: 1 });
 
 // Opaque Graph ids (base64-ish). encodeURIComponent below keeps any `/` from
 // becoming a path separator; this only refuses obvious garbage.
@@ -327,7 +327,7 @@ async function downloadRecordingToFile(session, { meetingId, recordingId, destPa
     try {
         await pipeline(Readable.fromWeb(/** @type {import('stream/web').ReadableStream} */ (response.body)), limiter, fs.createWriteStream(destPath));
     } catch (err) {
-        try { fs.unlinkSync(destPath); } catch (_) { log.debug('partial download already gone', _); }
+        try { fs.unlinkSync(destPath); } catch (_) { ignoreGone('meetingNotes/teamsArtifacts:unlinkPartial', _); }
         if (err?.code === 'recording_too_large') throw err;
         throw codedError(`Recording download failed: ${/** @type {Error} */ (err).message}`, 'download_failed', 502);
     }

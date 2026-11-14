@@ -1,7 +1,7 @@
 /**
  * The verdict of the AI Act three-step ladder — a port of the web's
  * ladderOutcome.js (agent-hub components/admin/compliance/ladder), which is
- * itself the client copy of the server's compliance/aiAct/assess.outcome: the
+ * itself the client copy of the server's core/aiAct/assess.outcome: the
  * sheet shows the verdict live while the questions are answered, the server
  * recomputes it on save and stores its own word. Same rules, same order:
  *

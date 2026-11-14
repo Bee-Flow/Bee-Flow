@@ -19,6 +19,7 @@ import type { SettingsUser } from '@/pages/settings/shell/settingsShellTypes';
 import OrgSectionBody from './OrgSectionBody';
 import { activeOrgSection, orgAzureSection, visibleOrgSections } from './orgSections';
 import { useOrgSectionFacts } from './useOrgSectionFacts';
+import { useShellProps } from '@/authedApp/useShellProps';
 
 type HubUser = SettingsUser & { enabledIntegrations?: string[]; [key: string]: unknown };
 
@@ -47,7 +48,10 @@ function SectionArea({ user, section, azureConfig }: { user: HubUser | null | un
     );
 }
 
-export default function OrganisationHub({ user, activeSection = '' }: OrganisationHubProps) {
+export default function OrganisationHub({ user: userProp, activeSection = '' }: OrganisationHubProps) {
+    // Inside the app shell the signed-in person comes from context; a host
+    // outside it (a test, a kit) still hands them as a prop.
+    const { user } = useShellProps({ user: userProp });
     const { orgId } = useEffectiveAdminOrgId(user);
     const facts = useOrgSectionFacts(user, orgId);
     const active = activeOrgSection(visibleOrgSections(facts), activeSection);

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Author-placed privacy steps (extracted verbatim from engine.js): guard
  * ("does this contain personal data"), tokenize ("hide it, reversibly") and
@@ -40,7 +41,7 @@ async function execGuard(step, ctx, runState, mode) {
     // string, find nothing, and route "clean" — a green tick meaning nobody
     // looked, which is the exact outcome this step exists to prevent.
     if (!sourceRef) {
-        const err = new Error('Guard has nothing to scan — pick a value from an earlier step.');
+        const err = /** @type {Error & { errorClass?: string }} */ (new Error('Guard has nothing to scan — pick a value from an earlier step.'));
         err.errorClass = 'guard_no_source';
         throw err;
     }
@@ -77,6 +78,7 @@ async function execGuard(step, ctx, runState, mode) {
     const failClosed = scanPolicy.failureMode === 'fail_closed';
     const treatAsFound = found || (det.degraded && failClosed);
 
+    /** @type {{ branch: string, hasPii: boolean, count: number, categories: object, groups: object, scanned: number, [k: string]: unknown }} */
     const output = {
         branch: treatAsFound ? 'then' : 'else',
         hasPii: found,
@@ -143,9 +145,9 @@ async function execGuard(step, ctx, runState, mode) {
         // guard blocks.
         if (mode === 'dry_run') return { output: { ...output, wouldStop: true } };
         const label = summary ? Object.keys(summary.categories).join(', ') : (det.degradedReason || 'unknown');
-        const err = new Error(found
+        const err = /** @type {Error & { errorClass?: string }} */ (new Error(found
             ? `Guard stopped the run — personal data found (${label})`
-            : `Guard stopped the run — the detector could not scan (${label}) and this organisation fails closed`);
+            : `Guard stopped the run — the detector could not scan (${label}) and this organisation fails closed`));
         err.errorClass = 'guard_pii_found';
         throw err;
     }
@@ -185,7 +187,7 @@ async function execTokenize(step, ctx, runState, mode) {
     // Same rule as the guard: an unbound step must fail rather than hand the
     // next one an empty string it will treat as "nothing to hide".
     if (!sourceRef) {
-        const err = new Error('Nothing to hide personal data in — pick a value from an earlier step.');
+        const err = /** @type {Error & { errorClass?: string }} */ (new Error('Nothing to hide personal data in — pick a value from an earlier step.'));
         err.errorClass = 'tokenize_no_source';
         throw err;
     }
@@ -204,11 +206,11 @@ async function execTokenize(step, ctx, runState, mode) {
         // Handing back the ORIGINAL and calling it tokenized is the failure this
         // step must never have — the next node would send real personal data
         // believing it was hidden. Fail instead.
-        const err = new Error(`Cannot hide personal data — ${noPolicyReason === 'no_organisation'
+        const err = /** @type {Error & { errorClass?: string }} */ (new Error(`Cannot hide personal data — ${noPolicyReason === 'no_organisation'
             ? 'this automation belongs to no organisation, so there is no Privacy Shield to read'
             : noPolicyReason === 'shield_disabled'
                 ? 'this organisation excluded automations from the Privacy Shield'
-                : 'this organisation has PII detection switched off'}.`);
+                : 'this organisation has PII detection switched off'}.`));
         err.errorClass = 'tokenize_no_policy';
         throw err;
     }
@@ -216,7 +218,7 @@ async function execTokenize(step, ctx, runState, mode) {
     const res = await safety.tokenizeIntoVault(text, scanPolicy, ctx);
     if (res.degraded) {
         // Same reasoning: a scan that could not run has hidden nothing.
-        const err = new Error(`Could not scan for personal data (${res.degradedReason || 'unknown'}) — nothing was hidden.`);
+        const err = /** @type {Error & { errorClass?: string }} */ (new Error(`Could not scan for personal data (${res.degradedReason || 'unknown'}) — nothing was hidden.`));
         err.errorClass = 'tokenize_degraded';
         throw err;
     }
@@ -266,7 +268,7 @@ async function execUntokenize(step, ctx, runState) {
 
     const sourceRef = typeof step.sourceRef === 'string' ? step.sourceRef.trim() : '';
     if (!sourceRef) {
-        const err = new Error('Nothing to restore — pick the value that holds the placeholders.');
+        const err = /** @type {Error & { errorClass?: string }} */ (new Error('Nothing to restore — pick the value that holds the placeholders.'));
         err.errorClass = 'untokenize_no_source';
         throw err;
     }

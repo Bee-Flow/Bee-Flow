@@ -55,7 +55,7 @@
  *     here would mean the builder and the compliance report could disagree
  *     about whether an automation sends anything, which is the split `dataFlow`
  *     was written to close.
- *   - WHICH STEPS HAND WORK TO A MODEL — `automation/automationGraph.AI_STEP_TYPES`,
+ *   - WHICH STEPS HAND WORK TO A MODEL — `core/automationModel/automationGraph.AI_STEP_TYPES`,
  *     and NOT `dataFlow.MODEL_TYPES`, which is the one place the two readings
  *     disagree. `automationGraph`'s list is `ai_step | data_extraction |
  *     ai_tool` and says in as many words that `summarize` is not one of them;
@@ -75,7 +75,7 @@
 
 const { isObject } = require('../helpers');
 const { findRefPaths } = require('../refPaths');
-const { AI_STEP_TYPES } = require('../../automationGraph');
+const { AI_STEP_TYPES } = require('../../../core/automationModel/automationGraph');
 const { kindFromName } = require('../../../core/privacy/personalColumns');
 const { classifyStep, SHIELD_TYPES: FLOW_SHIELD_TYPES } = require('../../../core/privacy/dataFlow');
 

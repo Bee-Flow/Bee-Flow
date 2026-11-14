@@ -1,17 +1,15 @@
+// @typecheck
 /**
- * Unit tests for the org-health seed migration — the one-shot classification
- * of already-broken NC orgs into org_health_problems.
- *
- * The pg layer is mocked via require.cache (mirrors
- * org-registration-source-2026-07.test.js), so no DB. Because every seed is a
- * single INSERT ... SELECT, the tests pin the CONTRACT of each statement:
- *   - idempotency by construction (ON CONFLICT (subject_key, code) DO NOTHING)
- *   - the no-subscription predicate matches getEffectiveLimits semantics
- *     (NO row at all — deliberately NOT filtered on os.status, so
- *     suspended/cancelled orgs are never seeded as community_fallback)
+ * The org-health seed migration — the one-shot classification of
+ * already-broken NC orgs into org_health_problems — on a real Postgres: the
+ * boot ladder's schema on PGlite (testUtils/pgliteTemplate.js) behind db.js's
+ * pool (testUtils/pglitePool.js). What it must do:
+ *   - idempotent: a re-run adds nothing and leaves a reopened count alone
+ *   - the no-subscription seeds match getEffectiveLimits semantics (NO row at
+ *     all — a suspended/cancelled org is never seeded as community_fallback)
  *   - the auth.* seeds require a live nc_instance_id binding
- *   - severity/message/remediation params come verbatim from the CODES
- *     catalog in server/services/orgHealth.js (single source of truth)
+ *   - severity/message/remediation come verbatim from the CODES catalog in
+ *     server/services/orgHealth.js (single source of truth)
  *   - meta is metadata-only ({reason} marker, nothing else)
  *
  * Run: node --test server/migrations/org-health-seed-2026-07.test.js
@@ -19,128 +17,129 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const path = require('path');
+const { usePglitePool } = require('../testUtils/pglitePool');
+const { ladderPglite } = require('../testUtils/pgliteTemplate');
+const { insertRow } = require('../testUtils/pgliteSeed');
 
-// ── In-memory fake of server/db.js (must be installed BEFORE any require
-// that transitively loads db.js — orgHealthStore runs its DDL at load) ─────
-// NOTE: orgHealthStore executes its CREATE TABLE DDL at require time (module
-// load), i.e. BEFORE any test body runs — so DDL-vs-INSERT ordering is pinned
-// via the persistent `ddlDone` flag stamped onto every recorded INSERT,
-// rather than by position in the (per-test-cleared) ops list.
-const state = { ops: [], rowCountsByCode: {}, ddlDone: false };
-const norm = (sql) => String(sql).replace(/\s+/g, ' ').trim();
-
-const fakeDb = {
-    async exec(sql) {
-        const q = norm(sql);
-        if (q.includes('CREATE TABLE IF NOT EXISTS org_health_problems')) state.ddlDone = true;
-        state.ops.push({ kind: 'exec', sql: q });
-    },
-    async run(sql, params = []) {
-        const q = norm(sql);
-        state.ops.push({ kind: 'run', sql: q, params, ddlDone: state.ddlDone });
-        if (q.startsWith('INSERT INTO org_health_problems')) {
-            return { rowCount: state.rowCountsByCode[params[0]] || 0 };
-        }
-        return { rowCount: 0 };
-    },
-    async getOne() { return null; },
-    async getAll() { return []; },
-};
-
-const dbPath = path.join(__dirname, '..', 'db.js');
-require.cache[dbPath] = { id: dbPath, filename: dbPath, loaded: true, exports: fakeDb };
-
+const { pg, close } = usePglitePool(ladderPglite());
 const { CODES } = require('../services/orgHealth');
 const { up } = require('./org-health-seed-2026-07');
+test.after(close);
 
-const inserts = () => state.ops.filter(o => o.kind === 'run' && o.sql.startsWith('INSERT INTO org_health_problems'));
-const insertFor = (code) => inserts().find(o => o.params[0] === code);
+test.beforeEach(async () => {
+    await pg.exec('TRUNCATE org_health_problems; TRUNCATE organization_subscriptions, organizations CASCADE');
+});
 
-test.beforeEach(() => { state.ops = []; state.rowCountsByCode = {}; });
+/** @param {string} id @param {Record<string, unknown>} [over] */
+const org = (id, over = {}) => insertRow(pg, 'organizations', { id, name: id, nc_instance_id: `inst-${id}`, nc_onboarding_completed_at: '2026-01-01', ...over });
+/** @param {string} orgId @param {string} status */
+const sub = (orgId, status) => insertRow(pg, 'organization_subscriptions', { id: `sub-${orgId}`, organization_id: orgId, status });
+let u = 0;
+/** @param {string} orgId @param {Record<string, unknown>} over */
+const user = (orgId, over) => insertRow(pg, 'users', { id: `hs-u${++u}`, username: `hs-u${u}`, organizationId: orgId, ...over });
+/** code → sorted org ids */
+async function seeded() {
+    const { rows } = await pg.query('SELECT subject_key, organization_id, code FROM org_health_problems ORDER BY code, subject_key');
+    /** @type {Record<string, string[]>} */
+    const out = {};
+    for (const r of rows) {
+        assert.equal(r.subject_key, r.organization_id, 'subject_key = organization_id = the org id (self-attributed rows)');
+        (out[r.code] ||= []).push(r.subject_key);
+    }
+    return out;
+}
 
-test('seeds all four codes and returns per-code counts from rowCount', async () => {
-    state.rowCountsByCode = {
-        'chat.subscription_blocked': 7,
-        'bootstrap.community_fallback': 7,
-        'auth.blocked_onboarding_pending': 3,
-        'auth.blocked_pending_approval': 2,
-    };
+test('seeds all four codes and returns per-code counts', async () => {
+    await org('nosub');                                                          // both subscription seeds
+    await org('wizard', { nc_onboarding_completed_at: null });                   // + onboarding, no sub either
+    await sub('wizard', 'active');
+    await org('approval', { nc_new_user_default_status: 'pending' });
+    await sub('approval', 'active');
+    await user('approval', { status: 'pending' });
     const res = await up();
-    assert.deepEqual(res, {
-        subscriptionBlocked: 7,
-        communityFallback: 7,
-        onboardingPending: 3,
-        pendingApproval: 2,
+    assert.deepEqual(res, { subscriptionBlocked: 1, communityFallback: 1, onboardingPending: 1, pendingApproval: 1 });
+    assert.deepEqual(await seeded(), {
+        'auth.blocked_onboarding_pending': ['wizard'],
+        'auth.blocked_pending_approval': ['approval'],
+        'bootstrap.community_fallback': ['nosub'],
+        'chat.subscription_blocked': ['nosub'],
     });
-    assert.equal(inserts().length, 4);
 });
 
-test('re-run safety: every INSERT carries ON CONFLICT (subject_key, code) DO NOTHING', async () => {
+test('re-run safety: a second run inserts nothing and leaves an existing row as it is', async () => {
+    await org('nosub');
     await up();
-    for (const op of inserts()) {
-        assert.ok(op.sql.includes('ON CONFLICT (subject_key, code) DO NOTHING'),
-            `idempotency clause missing on ${op.params[0]}`);
-    }
+    await pg.query("UPDATE org_health_problems SET count = 9 WHERE code = 'chat.subscription_blocked'");
+    const res = await up();
+    assert.deepEqual(res, { subscriptionBlocked: 0, communityFallback: 0, onboardingPending: 0, pendingApproval: 0 });
+    const { rows } = await pg.query("SELECT count FROM org_health_problems WHERE code = 'chat.subscription_blocked'");
+    assert.deepEqual(rows, [{ count: 9 }]);
 });
 
-test('store DDL runs before every seed INSERT', async () => {
+test('subscription seeds: NO-row predicate, no status filter (getEffectiveLimits semantics); NC provenance only', async () => {
+    await org('nosub');
+    await org('suspended');
+    await sub('suspended', 'suspended');
+    await org('cancelled');
+    await sub('cancelled', 'cancelled');
+    await org('connector-reg', { nc_instance_id: null, registration_source: 'nextcloud_connector' });
+    await org('plain', { nc_instance_id: null });
     await up();
-    assert.ok(state.ddlDone, 'orgHealthStore DDL executed');
-    for (const op of inserts()) {
-        assert.equal(op.ddlDone, true, `tables must exist before seeding ${op.params[0]}`);
-    }
-});
-
-test('subscription seeds: NO-row predicate, no status filter (getEffectiveLimits semantics)', async () => {
-    await up();
-    for (const code of ['chat.subscription_blocked', 'bootstrap.community_fallback']) {
-        const op = insertFor(code);
-        assert.ok(op, `${code} seeded`);
-        assert.ok(op.sql.includes('NOT EXISTS (SELECT 1 FROM organization_subscriptions os WHERE os.organization_id = o.id)'),
-            `${code}: must target orgs with NO subscription row at all`);
-        assert.ok(!op.sql.includes('os.status'),
-            `${code}: suspended/cancelled/trialing rows are deliberate states — never filter on status`);
-        // Broad NC provenance predicate (bound OR connector-registered).
-        assert.ok(op.sql.includes("o.nc_instance_id IS NOT NULL OR o.registration_source = 'nextcloud_connector'"));
-    }
+    const s = await seeded();
+    assert.deepEqual(s['chat.subscription_blocked'], ['connector-reg', 'nosub'],
+        'suspended/cancelled rows are deliberate states, never seeded; a non-NC org is not in scope');
+    assert.deepEqual(s['bootstrap.community_fallback'], ['connector-reg', 'nosub']);
 });
 
 test('onboarding seed requires a live binding and an incomplete wizard', async () => {
+    for (const id of ['done', 'unbound', 'open']) {
+        await org(id, {
+            nc_onboarding_completed_at: id === 'done' ? '2026-01-01' : null,
+            nc_instance_id: id === 'unbound' ? null : `inst-${id}`,
+            registration_source: 'nextcloud_connector',
+        });
+        await sub(id, 'active');
+    }
     await up();
-    const op = insertFor('auth.blocked_onboarding_pending');
-    assert.ok(op.sql.includes('o.nc_instance_id IS NOT NULL AND o.nc_onboarding_completed_at IS NULL'));
+    assert.deepEqual((await seeded())['auth.blocked_onboarding_pending'], ['open']);
 });
 
 test('pending-approval seed: pending default + pending users + no active non-admin', async () => {
+    const pendingOrg = async (/** @type {string} */ id, /** @type {Record<string, unknown>} */ over = {}) => {
+        await org(id, { nc_new_user_default_status: 'pending', ...over });
+        await sub(id, 'active');
+        await user(id, { status: 'pending' });
+    };
+    await pendingOrg('blocked');
+    await pendingOrg('admins-only');
+    await user('admins-only', { status: 'active', orgRole: 'org_admin' });
+    await user('admins-only', { status: 'active', orgRole: 'admin' });
+    await pendingOrg('has-member');
+    await user('has-member', { status: 'active', orgRole: 'member' });
+    await pendingOrg('null-status-member');
+    await user('null-status-member', { status: null, orgRole: null });
+    await pendingOrg('default-active', { nc_new_user_default_status: 'active' });
+    await pendingOrg('unbound', { nc_instance_id: null, registration_source: 'nextcloud_connector' });
+    await org('no-pending', { nc_new_user_default_status: 'pending' });
+    await sub('no-pending', 'active');
     await up();
-    const op = insertFor('auth.blocked_pending_approval');
-    assert.ok(op.sql.includes(`o.nc_new_user_default_status = 'pending'`));
-    assert.ok(op.sql.includes(`u.status = 'pending'`));
-    assert.ok(op.sql.includes(`COALESCE(u."orgRole", '') NOT IN ('org_admin', 'admin')`),
-        'active-non-admin exclusion must skip both canonical and legacy admin roles');
-    assert.ok(op.sql.includes('o.nc_instance_id IS NOT NULL'));
+    assert.deepEqual((await seeded())['auth.blocked_pending_approval'], ['admins-only', 'blocked'],
+        'both canonical and legacy admin roles are skipped by the active-non-admin exclusion');
 });
 
-test('severity/message/remediation params come verbatim from the CODES catalog', async () => {
+test('severity/message/remediation come verbatim from the CODES catalog; meta is a {reason} marker', async () => {
+    await org('nosub', { nc_onboarding_completed_at: null });
     await up();
-    for (const op of inserts()) {
-        const [code, category, severity, source, message, remediation, meta] = op.params;
-        const def = CODES[code];
-        assert.ok(def, `code ${code} exists in the catalog`);
-        assert.equal(category, def.category);
-        assert.equal(severity, def.severity);
-        assert.equal(message, def.defaultMessage);
-        assert.equal(remediation, def.remediation);
-        assert.equal(source, 'migration:org-health-seed-2026-07');
-        // meta is metadata-only: exactly a {reason} marker.
-        assert.deepEqual(Object.keys(JSON.parse(meta)), ['reason']);
-    }
-});
-
-test('subject_key = organization_id = the org id (self-attributed rows)', async () => {
-    await up();
-    for (const op of inserts()) {
-        assert.ok(op.sql.includes('SELECT o.id, o.id,'), 'subject_key and organization_id both bind to o.id');
+    const { rows } = await pg.query('SELECT * FROM org_health_problems');
+    assert.equal(rows.length, 3);
+    for (const r of rows) {
+        const def = CODES[r.code];
+        assert.ok(def, `code ${r.code} exists in the catalog`);
+        assert.equal(r.category, def.category);
+        assert.equal(r.severity, def.severity);
+        assert.equal(r.message, def.defaultMessage);
+        assert.equal(r.remediation, def.remediation);
+        assert.equal(r.source, 'migration:org-health-seed-2026-07');
+        assert.deepEqual(Object.keys(r.meta), ['reason']);
     }
 });

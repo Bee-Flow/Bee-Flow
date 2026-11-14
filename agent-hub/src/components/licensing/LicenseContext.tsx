@@ -1,10 +1,12 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import React, { createContext, useCallback, useContext, useEffect, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useSetupStatusQuery } from '@/api/queries/loginReads';
+import { licenseStatusKey, useLicenseStatusQuery } from '@/api/queries/licenseStatus';
 import { useEntitlements } from './EntitlementsContext';
 import UpgradePrompt from '../billing/UpgradePrompt';
-import { isAbortError, messageOf } from '../../utils/caughtError';
-import { request, RefusedError } from '../../api/mutate';
+import { messageOf } from '../../utils/caughtError';
 import { normalizeTier, TIER_RANK } from './licenseTiers';
+import { apiFetch } from '@/api/typedRequest';
 
 /** A licence or subscription row as /api/license/status returns it. */
 interface LicenseRecord {
@@ -14,7 +16,7 @@ interface LicenseRecord {
     billingInterval?: string;
 }
 
-export interface LicenseState {
+interface LicenseState {
     tier: string;
     source: string;
     scope: string | null;
@@ -97,69 +99,96 @@ const LicenseContext = createContext<LicenseContextValue>({
     refresh: async () => {},
 });
 
-export function LicenseProvider({ children }: { children: React.ReactNode }) {
-    const [state, setState] = useState<LicenseState>({
-        tier: 'community',
-        source: 'default',
-        scope: null,
-        license: null,
-        subscription: null,
-        features: [],
-        limits: {},
-        serverOverride: false,
-        serverLicense: null,
-        loading: true,
-        error: null,
-        upgradeUrl: 'https://beeflow.nl/pricing',
-        deploymentMode: 'cloud',
-    });
-    // Must SET the ref to true on every mount, not just rely on useRef's
-    // initial value. React StrictMode's mount → cleanup → remount cycle
-    // otherwise leaves the ref stuck at false (cleanup ran, nothing re-set
-    // it), silently swallowing every async setState — including the one
-    // that flips `loading` to false. Symptom: RequireTier returns null
-    // forever → blank pages behind any tier gate. Mirrors ThemeContext.
-    const mountedRef = useRef(true);
-    useEffect(() => {
-        mountedRef.current = true;
-        return () => { mountedRef.current = false; };
-    }, []);
+const INITIAL_STATE: LicenseState = {
+    tier: 'community',
+    source: 'default',
+    scope: null,
+    license: null,
+    subscription: null,
+    features: [],
+    limits: {},
+    serverOverride: false,
+    serverLicense: null,
+    loading: true,
+    error: null,
+    upgradeUrl: 'https://beeflow.nl/pricing',
+    deploymentMode: 'cloud',
+};
 
-    const reload = useCallback(async () => {
-        try {
-            let r: Response;
-            try {
-                r = await request(`${API_BASE}/api/license/status`);
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                throw new Error(`HTTP ${err.status}`);
-            }
-            const data = await r.json();
-            if (!mountedRef.current) return;
-            // Older deployments may still respond with `tier: 'pro'` from
-            // legacy license rows; normalise so paywall UI matches the
-            // current hierarchy.
-            const normalised = { ...data, tier: normalizeTier(data.tier) };
-            if (data.license && typeof data.license === 'object') {
-                normalised.license = { ...data.license, tier: normalizeTier(data.license.tier) };
-            }
-            if (data.subscription && typeof data.subscription === 'object') {
-                normalised.subscription = { ...data.subscription, tier: normalizeTier(data.subscription.tier) };
-            }
-            setState(s => ({ ...s, ...normalised, loading: false, error: null }));
-        } catch (e) {
-            if (!mountedRef.current) return;
-            console.warn('[LicenseProvider] reload failed', e);
-            setState(s => ({ ...s, loading: false, error: messageOf(e, 'license fetch failed') }));
-        }
-    }, []);
+interface LicenseStatusAnswer extends Partial<LicenseState> {
+    tier: string;
+}
+
+interface SetupStatusAnswer {
+    licenseUpgradeUrl?: string;
+    deploymentMode?: string;
+}
+
+/**
+ * Older deployments may still respond with `tier: 'pro'` from legacy license
+ * rows; normalise so paywall UI matches the current hierarchy.
+ */
+function normalisedStatus(data: LicenseStatusAnswer): Partial<LicenseState> {
+    const normalised: Partial<LicenseState> = { ...data, tier: normalizeTier(data.tier) };
+    if (data.license && typeof data.license === 'object') {
+        normalised.license = { ...data.license, tier: normalizeTier(data.license.tier || '') };
+    }
+    if (data.subscription && typeof data.subscription === 'object') {
+        normalised.subscription = { ...data.subscription, tier: normalizeTier(data.subscription.tier || '') };
+    }
+    return normalised;
+}
+
+/** The (self-host-overridable) upgrade URL and the deployment mode, when setup-status names them. */
+function setupPatch(data: SetupStatusAnswer | null | undefined): Partial<LicenseState> {
+    const patch: Partial<LicenseState> = {};
+    if (data?.licenseUpgradeUrl) patch.upgradeUrl = data.licenseUpgradeUrl;
+    if (data?.deploymentMode === 'cloud' || data?.deploymentMode === 'self-hosted') patch.deploymentMode = data.deploymentMode;
+    return patch;
+}
+
+/**
+ * The licence status (on mount AND again whenever auth flips) and the upgrade
+ * URL from /auth/setup-status (once). This provider is mounted above the auth
+ * boundary, so its first read runs pre-login (anonymous → community/default
+ * snapshot). App dispatches `beeflow:auth-changed` on login/logout/bootstrap;
+ * without re-resolving here, the pre-login tier/features/limits would persist
+ * after login and every tier- or licence-gated surface would stay stale until a
+ * full page refresh. Mirrors EntitlementsContext, which delegates `hasFeature` here.
+ */
+function useLicenseState() {
+    const status = useLicenseStatusQuery<LicenseStatusAnswer>();
+    // Falls back to the public BeeFlow pricing page if the server does not
+    // surface a URL (e.g. older API versions).
+    const setup = useSetupStatusQuery<SetupStatusAnswer>();
+    const { refetch } = status;
+    const reload = useCallback(async () => { await refetch(); }, [refetch]);
+
+    useEffect(() => {
+        if (status.error) console.warn('[LicenseProvider] reload failed', status.error);
+    }, [status.error]);
+    useEffect(() => {
+        const onAuthChanged = () => { void refetch(); };
+        window.addEventListener('beeflow:auth-changed', onAuthChanged);
+        return () => window.removeEventListener('beeflow:auth-changed', onAuthChanged);
+    }, [refetch]);
+
+    const state = useMemo<LicenseState>(() => ({
+        ...INITIAL_STATE,
+        ...setupPatch(setup.data),
+        ...(status.data ? normalisedStatus(status.data) : {}),
+        loading: status.isPending,
+        error: status.error ? messageOf(status.error, 'license fetch failed') : null,
+    }), [setup.data, status.data, status.isPending, status.error]);
+    return { state, reload };
+}
+
+export function LicenseProvider({ children }: { children: React.ReactNode }) {
+    const qc = useQueryClient();
+    const { state, reload } = useLicenseState();
 
     const activate = useCallback(async (token: string) => {
-        const r = await authFetch(`${API_BASE}/api/license/activate`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token }),
-        });
+        const r = await apiFetch('POST /api/license/activate', { body: { token } });
         let data: LicenseActionResponse = {};
         try { data = await r.json(); } catch (e) { console.warn('[LicenseProvider] activate response not JSON', e); }
         if (!r.ok) {
@@ -167,15 +196,16 @@ export function LicenseProvider({ children }: { children: React.ReactNode }) {
             err.code = data.code;
             throw err;
         }
-        if (data.status && mountedRef.current) {
-            setState(s => ({ ...s, ...data.status, loading: false, error: null }));
+        if (data.status) {
+            const shown = data.status;
+            qc.setQueryData<LicenseStatusAnswer>(licenseStatusKey, (prev) => ({ ...(prev ?? { tier: 'community' }), ...shown } as LicenseStatusAnswer));
         }
         await reload();
         return data;
-    }, [reload]);
+    }, [reload, qc]);
 
     const deactivate = useCallback(async () => {
-        const r = await authFetch(`${API_BASE}/api/license/deactivate`, { method: 'DELETE' });
+        const r = await apiFetch('DELETE /api/license/deactivate');
         if (!r.ok && r.status !== 404) {
             let data: LicenseActionResponse = {};
             try { data = await r.json(); } catch (e) { console.warn('[LicenseProvider] deactivate response not JSON', e); }
@@ -185,57 +215,12 @@ export function LicenseProvider({ children }: { children: React.ReactNode }) {
     }, [reload]);
 
     const refresh = useCallback(async () => {
-        const r = await authFetch(`${API_BASE}/api/license/refresh`, { method: 'POST' });
+        const r = await apiFetch('POST /api/license/refresh');
         let data: LicenseActionResponse = {};
         try { data = await r.json(); } catch (e) { console.warn('[LicenseProvider] refresh response not JSON', e); }
         if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
         await reload();
         return data;
-    }, [reload]);
-
-    // Pull the (self-host-overridable) upgrade URL from /auth/setup-status
-    // once at mount. Falls back to the public BeeFlow pricing page if the
-    // server doesn't surface a URL (e.g. older API versions).
-    useEffect(() => {
-        const ac = new AbortController();
-        (async () => {
-            try {
-                // authFetch, not bare fetch: it is the single choke point every
-                // other call in this file already goes through, and the public
-                // feature demos rely on that being true without exception —
-                // one raw fetch here is a real network call from an anonymous
-                // demo page. (authFetch skips its 401-reload for /auth/ paths,
-                // so the login-flow behaviour is unchanged.)
-                const r = await authFetch(`${API_BASE}/auth/setup-status`, { signal: ac.signal });
-                if (!r.ok) return;
-                const data = await r.json();
-                if (ac.signal.aborted) return;
-                const patch: Partial<LicenseState> = {};
-                if (data?.licenseUpgradeUrl) patch.upgradeUrl = data.licenseUpgradeUrl;
-                if (data?.deploymentMode === 'cloud' || data?.deploymentMode === 'self-hosted') {
-                    patch.deploymentMode = data.deploymentMode;
-                }
-                if (Object.keys(patch).length > 0) setState(s => ({ ...s, ...patch }));
-            } catch (e) {
-                if (isAbortError(e)) return;
-                console.warn('[LicenseProvider] setup-status fetch failed', e);
-            }
-        })();
-        return () => { ac.abort(); };
-    }, []);
-
-    // Fetch licence status on mount AND re-fetch whenever auth flips. This
-    // provider is mounted above the auth boundary, so its first fetch runs
-    // pre-login (anonymous → community/default snapshot). App dispatches
-    // `beeflow:auth-changed` on login/logout/bootstrap; without re-resolving
-    // here, the pre-login tier/features/limits would persist after login and
-    // every tier- or licence-gated surface would stay stale until a full page
-    // refresh. Mirrors EntitlementsContext, which delegates `hasFeature` here.
-    useEffect(() => {
-        reload();
-        const onAuthChanged = () => reload();
-        window.addEventListener('beeflow:auth-changed', onAuthChanged);
-        return () => window.removeEventListener('beeflow:auth-changed', onAuthChanged);
     }, [reload]);
 
     const tier = state.tier;

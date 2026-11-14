@@ -1,3 +1,4 @@
+// @typecheck
 /** @typedef {import('express-serve-static-core').NextFunction} NextFunction */
 /** @typedef {import('qs').ParsedQs} ParsedQs */
 /**
@@ -63,7 +64,7 @@ const { asToolExecutor } = require('../../../automation/patterns/scanReader');
 const { integrationOf } = require('../../../automation/patterns/ideation');
 const { fingerprintTitle } = require('../../../automation/suggestions');
 const { usageLogFields } = require('../../../core/providers/usageNormalizer');
-const { fallback: fallbackSwallowed, bestEffort } = require('../../../utils/bestEffort');
+const { fallback: fallbackSwallowed, bestEffort, ignoreGone } = require('../../../utils/bestEffort');
 
 const MODES = ['patterns', 'ideas'];
 const FOCUS_MAX_CHARS = 2000;
@@ -119,8 +120,8 @@ const FeedbackBody = z.object({
 /** Every collaborator, loaded on first use unless a test passed its own. */
 const LOADERS = {
     requireAuth: () => require('../../../auth/permissions').requireAuth,
-    suggestRateLimit: () => require('./rateLimits').suggestRateLimit,
-    feedbackRateLimit: () => require('./rateLimits').feedbackRateLimit,
+    suggestRateLimit: () => require('../../../usecases/ai/automationBuilder/rateLimits').suggestRateLimit,
+    feedbackRateLimit: () => require('../../../usecases/ai/automationBuilder/rateLimits').feedbackRateLimit,
     userHasBetaFeature: () => require('../../../core/entitlements/betaFeatures').userHasBetaFeature,
     setupSSE: () => require('../../../core/http/sseHelpers').setupSSE,
     startSseHeartbeat: () => require('../../../core/http/sseHelpers').startSseHeartbeat,
@@ -181,7 +182,7 @@ async function recordUsage(d, { userId, orgId, modelId, usage, mode, startedAt }
 /**
  * @typedef {{ scopeKey: string,
  *   cacheKey: string,
- *   userId: string }} CachedScanArgs
+ *   userId: string, mode?: any }} CachedScanArgs
  */
 /**
  * @param {Record<string, any>|null} [deps] collaborators to replace (tests)
@@ -242,7 +243,7 @@ function createSuggestionsRouter(deps = null) {
      * suggestion {suggestion}; ideas: scan_step; then done {suggestions,
      * summary, reason?, cached, scannedAt, mode} or error {error}.
      */
-    router.post('/suggest', d.requireAuth, d.suggestRateLimit, requireAutomationsBeta, validate({ body: SuggestBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof SuggestBody>, import('qs').ParsedQs>} */ req, res) => {
+    router.post('/suggest', d.requireAuth, d.suggestRateLimit, requireAutomationsBeta, validate({ body: SuggestBody }), async (req, res) => {
         const userId = req.session.user.id;
         const orgId = req.session?.user?.organizationId || null;
         const mode = req.body.mode || 'patterns';
@@ -256,7 +257,7 @@ function createSuggestionsRouter(deps = null) {
         const { sendEvent, abortController, markEnded } = d.setupSSE(res);
         const stopHeartbeat = d.startSseHeartbeat(res);
         const signal = abortController.signal;
-        const finish = () => { stopHeartbeat(); markEnded(); try { res.end(); } catch (err) { log.debug('already closed', err); } };
+        const finish = () => { stopHeartbeat(); markEnded(); try { res.end(); } catch (err) { ignoreGone('routes/ai/automationBuilder/suggestions:endResponse', err); } };
         const framing = { mode, ...(mode === 'patterns' ? { sources } : {}), focus };
 
         try {
@@ -351,7 +352,7 @@ function createSuggestionsRouter(deps = null) {
      * is none, the beta is off, or the store is unavailable: the page then
      * simply starts empty.
      */
-    router.get('/suggest/last', d.requireAuth, validate({ query: LastQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof LastQuery>>} */ req, res) => {
+    router.get('/suggest/last', d.requireAuth, validate({ query: LastQuery }), async (req, res) => {
         const userId = req.session.user.id;
         const mode = req.query.mode || 'patterns';
         let last = null;
@@ -395,7 +396,7 @@ function createSuggestionsRouter(deps = null) {
         if (reasonCode && action !== 'dismissed') {
             throw new HttpError(400, 'reason_code_needs_dismiss', 'A reasonCode goes with action dismissed only.');
         }
-        const pattern = s.pattern && typeof s.pattern === 'object' ? s.pattern : {};
+        const pattern = /** @type {Record<string, any>} */ (s.pattern && typeof s.pattern === 'object' ? s.pattern : {});
         const titleFingerprint = fingerprintTitle(s.title, s.buildPrompt || '');
         await d.feedbackStore.saveSuggestionFeedback({
             userId, organizationId: orgId, action, reason: req.body.reason || null, reasonCode, signature, titleFingerprint,
@@ -416,7 +417,7 @@ function createSuggestionsRouter(deps = null) {
             try {
                 await d.scanCache.removeSuggestionsFromScope({
                     scopeKey: d.scanCache.deriveScopeKey({ userId }),
-                    predicate: (stored) => {
+                    predicate: (/** @type {{ id?: string, pattern?: { signature?: string }, title?: string, buildPrompt?: string } | null} */ stored) => {
                         if (!stored) return false;
                         if (delId && stored.id === delId) return true;
                         if (signature && stored.pattern?.signature === signature) return true;
@@ -442,11 +443,11 @@ let defaultRouter = null;
  * @param {NextFunction} next
  */
 function suggestionsRouter(req, res, next) {
-    if (!defaultRouter) defaultRouter = createSuggestionsRouter();
-    return defaultRouter(req, res, next);
+    return routerForWalk()(req, res, next);
 }
+const routerForWalk = () => (defaultRouter ||= createSuggestionsRouter()); // also how scripts/api-reference-walk.cjs reads the routes
 
-module.exports = Object.assign(suggestionsRouter, { createSuggestionsRouter });
+module.exports = Object.assign(suggestionsRouter, { createSuggestionsRouter, routerForWalk });
 
 /**
  * @typedef {{ [K in keyof typeof LOADERS]: ReturnType<(typeof LOADERS)[K]> }} SuggestDeps

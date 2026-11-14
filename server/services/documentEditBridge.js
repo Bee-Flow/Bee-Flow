@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The hand-editing bridge of a designed document: the script the editor
  * preview carries in its <head> (services/documentCompose.js injects it for
@@ -142,12 +143,12 @@ function bridgeWire(B) {
     document.addEventListener('paste', function (e) {
         if (!B.isEditing()) return;
         e.preventDefault();
-        var text = (e.clipboardData || window.clipboardData).getData('text/plain');
+        var text = (e.clipboardData || /** @type {{ clipboardData?: DataTransfer }} */ (/** @type {unknown} */ (window)).clipboardData).getData('text/plain');
         try { document.execCommand('insertText', false, text); } catch (err) { bestEffort('services/documentEditBridge:bridgeWire', err); /* engine without execCommand */ }
     }, true);
     // A link inside an editable document is a navigation waiting to happen.
     document.addEventListener('click', function (e) {
-        var a = e.target && e.target.closest && e.target.closest('a');
+        var a = e.target && /** @type {Element} */ (e.target).closest && /** @type {Element} */ (e.target).closest('a');
         if (a) e.preventDefault();
     }, true);
     window.addEventListener('scroll', function () { later('scroll', 200, function () { drawPeers(); post({ __beeflowDocScrolled: true, y: window.scrollY }); }); });

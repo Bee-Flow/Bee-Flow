@@ -93,8 +93,10 @@ const isOrgAdminPerms = (perms) => Array.isArray(perms) && (perms.includes('all'
  * slightly different assemblies is how the button and the 403 start disagreeing.
  *
  * Any failure resolves to "nothing enforced": see the fail-open rule.
+ * @param {import('express').Request} req
+ * @param {{ extraCourses?: Array<{ id: string, lessonIds?: unknown, title?: unknown, badge?: unknown }> }} [opts]  the org's own published courses
  */
-async function evaluateForRequest(/** @type {import('express').Request} */ req, { extraCourses = [] } = {}) {
+async function evaluateForRequest(req, { extraCourses = [] } = {}) {
     const userId = req.session?.user?.id;
     const orgId = req.session?.user?.organizationId || null;
     if (!userId || !orgId) return {};

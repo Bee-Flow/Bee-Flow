@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * automation_notification_events — every notification an automation sent, or
  * held back (Studio → Automations handoff 5). The table comes from
@@ -46,7 +46,7 @@ function newEventId() {
     return 'ane_' + crypto.randomBytes(12).toString('hex');
 }
 
-/** @param {Date | string | number | null} v */
+/** @param {Date | string | number | null | undefined} v */
 function iso(v) {
     if (!v) return null;
     const d = v instanceof Date ? v : new Date(v);
@@ -202,7 +202,7 @@ function makeNotificationEventsStore(db, { ready = async () => {} } = {}) {
               ORDER BY created_at`,
             [String(recipient), automationIds],
         );
-        return r.rows.map(rowToEvent);
+        return r.rows.map((row) => /** @type {NonNullable<ReturnType<typeof rowToEvent>>} */ (rowToEvent(row))); // a selected row maps, never to null
     }
 
     /**
@@ -354,7 +354,7 @@ function instance() {
  * @template {keyof ReturnType<typeof makeNotificationEventsStore>} K
  * @param {K} name
  */
-const lazy = (name) => /** @param {Parameters<ReturnType<typeof makeNotificationEventsStore>[K]>} args */ (...args) => /** @type {(...a: Parameters<ReturnType<typeof makeNotificationEventsStore>[K]>) => ReturnType<ReturnType<typeof makeNotificationEventsStore>[K]>} */ (instance()[name])(...args);
+const lazy = (name) => /** @param {Parameters<ReturnType<typeof makeNotificationEventsStore>[K]>} args */ (...args) => /** @type {(...a: Parameters<ReturnType<typeof makeNotificationEventsStore>[K]>) => ReturnType<ReturnType<typeof makeNotificationEventsStore>[K]>} */ (/** @type {unknown} */ (instance()[name]))(...args);
 
 module.exports = {
     makeNotificationEventsStore,

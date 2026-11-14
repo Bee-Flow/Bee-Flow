@@ -70,6 +70,8 @@ after(restore);
 const MARK = 'direct@2026-10-14T09:00:00.000Z';
 const CONFIG = { providerType: 'openai', url: 'https://api.openai.com/v1', providerName: 'OpenAI' };
 const settle = () => new Promise((r) => setImmediate(r));
+/** The fakes stand in for Express's request and response. @param {unknown} fake */
+const asExpress = (fake) => /** @type {import('express').Request & import('express').Response} */ (fake);
 
 /** What a PII gate that found an e-mail address says, as validate.js says it. */
 const piiFound = (decision) => (messages, enabled, shield, a, b, options) => {
@@ -98,7 +100,7 @@ async function turn(message = 'mail ada@example.org') {
         { role: 'user', content: message },
     ];
     const result = await runInputGates({
-        req, res, send: (event) => sent.push(event), userId: 'u-1', convId: null, message, messages,
+        req: asExpress(req), res: asExpress(res), send: (event) => sent.push(event), userId: 'u-1', convId: null, message, messages,
         modelId: 'gpt-x', config: CONFIG, chatSignal,
     });
     countDirectTurn({ req, userId: 'u-1', chatSignal, config: CONFIG });
@@ -187,8 +189,8 @@ test('the PII gate writes into the accumulator itself, and reads only the tail o
 test('without an accumulator the gates answer as before', async () => {
     const req = { body: {}, session: { user: { id: 'u-1', organizationId: 'org-1' } } };
     const msgs = () => [{ role: 'system', content: 'S' }, { role: 'user', content: 'hello there' }];
-    const without = await runInputGates({ req, res: { end() {} }, send: () => {}, userId: 'u-1', convId: null, message: 'hello there', messages: msgs(), modelId: 'm', config: CONFIG });
-    const withIt = await runInputGates({ req, res: { end() {} }, send: () => {}, userId: 'u-1', convId: null, message: 'hello there', messages: msgs(), modelId: 'm', config: CONFIG, chatSignal: { pii: {}, dlp: null, allowlistedHosts: [] } });
+    const without = await runInputGates({ req: asExpress(req), res: asExpress({ end() {} }), send: () => {}, userId: 'u-1', convId: null, message: 'hello there', messages: msgs(), modelId: 'm', config: CONFIG });
+    const withIt = await runInputGates({ req: asExpress(req), res: asExpress({ end() {} }), send: () => {}, userId: 'u-1', convId: null, message: 'hello there', messages: msgs(), modelId: 'm', config: CONFIG, chatSignal: { pii: {}, dlp: null, allowlistedHosts: [] } });
     assert.deepEqual(Object.keys(withIt).sort(), Object.keys(without).sort());
     assert.equal(fx.piiCalls[0][5].report, undefined, 'no report without an accumulator');
 });

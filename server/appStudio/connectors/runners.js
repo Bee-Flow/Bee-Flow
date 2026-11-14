@@ -13,8 +13,7 @@ const {
 const { providerFor, resolveViewerExecution, dispatchTool } = require('./dispatch');
 const { applyChainStep } = require('./chain');
 const { renderRestBody, bodyPlaceholders } = require('./restBody.mts');
-const log = require('../../telemetry/log');
-const { fallback } = require('../../utils/bestEffort');
+const { fallback, ignoreGone } = require('../../utils/bestEffort');
 
 async function runIntegrationTool(connector, { app, viewerId, params, systemArgs, trace, deps }) {
     const tool = typeof connector.tool === 'string' ? connector.tool : '';
@@ -177,7 +176,7 @@ async function readCappedBody(resp, ac) {
             chunks.push(chunk);
         }
     } finally {
-        try { await reader.cancel(); } catch (err) { log.debug('already closed/aborted', err); }
+        try { await reader.cancel(); } catch (err) { ignoreGone('appStudio/connectors/runners:cancelReader', err); }
     }
     return Buffer.concat(chunks).toString('utf8');
 }

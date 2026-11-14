@@ -2,37 +2,33 @@
 /**
  * CRA Art. 14 clocks: relevance/role gates, empty register, overdue → fail,
  * due-soon / missing preparation → warn, full readiness → pass, store helper
- * preferred over the raw SELECT, and evidence free of personal data.
+ * preferred over the raw SELECT, and evidence free of personal data. The
+ * raw SELECT runs on a real Postgres.
  *
- * Run: cd server && node --test --test-force-exit compliance/checks/cra/art14-vuln-reporting-clocks.test.js
+ * Run: cd server && node --test compliance/checks/cra/art14-vuln-reporting-clocks.test.js
  */
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { installResolveStub } = require('../../../testUtils/stubRequire');
 
+const { usePglitePool } = require('../../../testUtils/pglitePool');
+const { ladderPglite } = require('../../../testUtils/pgliteTemplate');
+const { failReads } = require('../../../testUtils/pgliteFaults');
+const { insertRow } = require('../../../testUtils/pgliteSeed');
+
 const H = 3600e3;
 const state = {
     settings: {},
-    rows: [],
-    queryError: null,
     listOpenClocks: undefined, // set to a function to exercise the store path
     policyBody: null,
-    lastSql: null,
-    lastParams: null,
 };
 
-const fakeDb = {
-    async getAll(sql, params) {
-        state.lastSql = String(sql).replace(/\s+/g, ' ').trim();
-        state.lastParams = params;
-        if (state.queryError) throw state.queryError;
-        return state.rows;
-    },
-    async getOne() { return null; },
-    async run() { return { rowCount: 0, rows: [] }; },
-    async exec() {},
-};
+// The register runs on the boot ladder's schema on PGlite
+// (testUtils/pgliteTemplate.js) behind db.js's pool. The settings, the policy
+// text and the store helper are stubbed: they are this check's inputs, with
+// stores and tests of their own.
+const { pg, close } = usePglitePool(ladderPglite());
 const fakeComplianceStore = { async getSettings() { return state.settings; } };
 const fakeIncidentStore = {
     get listOpenClocks() { return state.listOpenClocks; },
@@ -46,13 +42,17 @@ const fakeIsmsDocStore = {
 };
 
 const restore = installResolveStub({
-    '../../../db': fakeDb,
     '../../../stores/complianceStore': fakeComplianceStore,
     '../../../stores/incidentStore': fakeIncidentStore,
     '../../../stores/ismsDocStore': fakeIsmsDocStore,
 });
 const check = require('./art14-vuln-reporting-clocks');
-test.after(() => restore());
+test.after(async () => { restore(); await close(); });
+
+/** @param {...Record<string, any>} rows incident rows of org1 unless they say otherwise */
+async function incidents(...rows) {
+    for (const r of rows) await insertRow(pg, 'compliance_incidents', { organization_id: 'org1', title: 'x', ...r });
+}
 
 const READY = {
     cra_role: 'manufacturer',
@@ -62,14 +62,15 @@ const READY = {
 };
 const GOOD_POLICY = 'Incidents are triaged within 4 hours. Vulnerability reports received via the PSIRT mailbox follow the same flow.';
 
-test.beforeEach(() => {
+test.beforeEach(async () => {
     state.settings = { ...READY };
-    state.rows = [];
-    state.queryError = null;
     state.listOpenClocks = undefined;
     state.policyBody = GOOD_POLICY;
-    state.lastSql = null;
+    await pg.exec('DELETE FROM compliance_incidents');
 });
+
+/** An overdue CRA incident: the verdict says whether the register was read at all. */
+const overdueVuln = () => incidents({ kind: 'vulnerability', status: 'open', detected_at: new Date(Date.now() - 100 * H).toISOString() });
 
 function noPersonalData(result) {
     const blob = JSON.stringify(result.evidence) + (result.details || '');
@@ -93,7 +94,6 @@ test('relevance gate: CRA marked not relevant → not_applicable with the releva
     const r = await check.evaluate('org1');
     assert.equal(r.status, 'not_applicable');
     assert.deepEqual(r.evidence, { relevance: 'not_relevant' });
-    assert.equal(state.lastSql, null, 'no query when not relevant');
 });
 
 test('role gate: a user-only organisation has no Art. 14 duty', async () => {
@@ -105,52 +105,57 @@ test('role gate: a user-only organisation has no Art. 14 duty', async () => {
 
 test('role gate: an importer/distributor has no Art. 14 reporting clock', async () => {
     state.settings = { ...READY, cra_role: 'distributor' };
+    await overdueVuln();
     const r = await check.evaluate('org1');
     assert.equal(r.status, 'not_applicable');
     assert.equal(r.evidence.cra_role, 'distributor');
     assert.match(r.details, /Art\. 19 and 20/);
-    assert.equal(state.lastSql, null, 'the register is not queried for a distributor');
 });
 
 test('role gate: an undeclared role keeps the clocks (the conservative reading)', async () => {
     state.settings = { ...READY, cra_role: null };
+    await overdueVuln();
     const r = await check.evaluate('org1');
-    assert.notEqual(r.status, 'not_applicable');
-    assert.notEqual(state.lastSql, null);
+    assert.equal(r.status, 'fail', 'the register is read and its clocks count');
 });
 
-test('empty register with full preparation → pass; the SELECT is org-scoped and CRA-filtered', async () => {
+test('empty register with full preparation → pass; only org1\'s open CRA incidents count', async () => {
+    const old = new Date(Date.now() - 100 * H).toISOString();
+    await incidents(
+        { organization_id: 'org2', kind: 'vulnerability', status: 'open', detected_at: old },
+        { kind: 'vulnerability', status: 'closed', detected_at: old },
+        { kind: 'breach', regimes: ['GDPR'], status: 'open', detected_at: old },
+    );
     const r = await check.evaluate('org1');
     assert.equal(r.status, 'pass');
     assert.equal(r.evidence.open_cra_incidents, 0);
     assert.equal(r.evidence.reporting_channel_set, true);
     assert.equal(r.evidence.psirt_contact_set, true);
     assert.equal(r.evidence.procedure_mentions_vulns, true);
-    assert.match(state.lastSql, /WHERE organization_id = \$1/);
-    assert.match(state.lastSql, /kind = 'vulnerability' OR COALESCE\(regimes, '\[\]'::jsonb\) \? 'CRA'/);
-    assert.match(state.lastSql, /status <> 'closed'/);
-    assert.deepEqual(state.lastParams, ['org1']);
+    await incidents({ kind: 'security_incident', regimes: ['NIS2', 'CRA'], status: 'open', detected_at: old });
+    assert.equal((await check.evaluate('org1')).evidence.open_cra_incidents, 1, 'a CRA-regime incident of another kind counts');
     noPersonalData(r);
 });
 
 test('register without the CRA columns yet → warn "not provisioned yet", never a throw', async () => {
     for (const code of ['42703', '42P01']) {
-        state.queryError = Object.assign(new Error('column "early_warning_due_at" does not exist'), { code });
-        const r = await check.evaluate('org1');
+        const undo = await failReads(pg, 'compliance_incidents', code, 'column "early_warning_due_at" does not exist');
+        let r;
+        try { r = await check.evaluate('org1'); } finally { await undo(); }
         assert.equal(r.status, 'warn');
         assert.match(r.details, /not provisioned yet/);
         assert.equal(r.evidence.registry_provisioned, false);
     }
     // Any other database error is NOT swallowed into a compliance verdict.
-    state.queryError = Object.assign(new Error('connection refused'), { code: 'ECONNREFUSED' });
-    await assert.rejects(() => check.evaluate('org1'), /connection refused/);
+    const undo = await failReads(pg, 'compliance_incidents', '08006', 'connection refused');
+    try { await assert.rejects(() => check.evaluate('org1'), /connection refused/); } finally { await undo(); }
 });
 
 test('an open CRA incident past its 24-hour early warning without a stamp → fail, ids only in the sample', async () => {
     const now = Date.now();
-    state.rows = [
+    await incidents(
         { id: 41, kind: 'vulnerability', regimes: ['CRA'], status: 'open', detected_at: new Date(now - 30 * H).toISOString(), exploited_in_wild: true },
-    ];
+    );
     const r = await check.evaluate('org1');
     assert.equal(r.status, 'fail');
     assert.equal(r.evidence.clocks.early_warning.overdue, 1);
@@ -163,13 +168,13 @@ test('an open CRA incident past its 24-hour early warning without a stamp → fa
 
 test('stamps stop the clocks: early warning + notification recorded, final report still inside 14 d → pass', async () => {
     const now = Date.now();
-    state.rows = [{
+    await incidents({
         id: 42, kind: 'security_incident', regimes: ['GDPR', 'CRA'], status: 'authority_notified',
         detected_at: new Date(now - 5 * 24 * H).toISOString(),
         early_warning_sent_at: new Date(now - 5 * 24 * H + 3 * H).toISOString(),
         authority_notified_at: new Date(now - 4 * 24 * H).toISOString(),
         final_report_due_at: new Date(now + 9 * 24 * H).toISOString(),
-    }];
+    });
     const r = await check.evaluate('org1');
     assert.equal(r.status, 'pass');
     assert.equal(r.evidence.clocks.early_warning.sent, 1);
@@ -179,13 +184,13 @@ test('stamps stop the clocks: early warning + notification recorded, final repor
 
 test('explicit due columns are honoured; an overdue final report → fail', async () => {
     const now = Date.now();
-    state.rows = [{
+    await incidents({
         id: 43, kind: 'vulnerability', status: 'assessing',
         detected_at: new Date(now - 20 * 24 * H).toISOString(),
         early_warning_due_at: new Date(now - 20 * 24 * H + 24 * H).toISOString(), early_warning_sent_at: new Date(now - 19 * 24 * H).toISOString(),
         authority_notified_at: new Date(now - 18 * 24 * H).toISOString(),
         final_report_due_at: new Date(now - 2 * H).toISOString(), final_report_sent_at: null,
-    }];
+    });
     const r = await check.evaluate('org1');
     assert.equal(r.status, 'fail');
     assert.equal(r.evidence.clocks.final_report.overdue, 1);
@@ -194,7 +199,7 @@ test('explicit due columns are honoured; an overdue final report → fail', asyn
 
 test('a clock due within 6 hours → warn (partial), not fail', async () => {
     const now = Date.now();
-    state.rows = [{ id: 44, kind: 'vulnerability', status: 'open', detected_at: new Date(now - 20 * H).toISOString() }];
+    await incidents({ id: 44, kind: 'vulnerability', status: 'open', detected_at: new Date(now - 20 * H).toISOString() });
     const r = await check.evaluate('org1');
     assert.equal(r.status, 'warn');
     assert.equal(r.evidence.clocks.early_warning.due_soon, 1);
@@ -235,7 +240,6 @@ test('incidentStore.listOpenClocks is preferred when the store ships it, and non
     };
     const r = await check.evaluate('org9');
     assert.equal(calledWith, 'org9');
-    assert.equal(state.lastSql, null, 'raw SELECT not used when the helper exists');
     assert.equal(r.evidence.open_cra_incidents, 1);
     assert.equal(r.status, 'fail');
     assert.equal(r.evidence.overdue_sample[0].id, 2);

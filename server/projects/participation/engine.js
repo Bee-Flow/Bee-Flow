@@ -132,7 +132,7 @@ function makeParticipationEngine(deps) {
     const breakerOpen = () => now() < openUntil;
     /** @param {{ available: boolean, skipReason?: string|null }} result */
     function noteGate(result) {
-        if (!result.available && BREAKER_FAILURES.includes(result.skipReason)) {
+        if (!result.available && BREAKER_FAILURES.includes(/** @type {string} */ (result.skipReason))) {
             failures += 1;
             if (failures >= BREAKER_THRESHOLD && !breakerOpen()) {
                 openUntil = now() + BREAKER_COOLDOWN_MS;
@@ -325,7 +325,7 @@ async function processWatch({ store, policy, gate, checkLimits, isLockHeld, writ
             userId: watch.authorUserId,
             triggerKind: watch.kind,
             lines: gateLinesFrom(messages, now()),
-            memberCount: Number.isFinite(ctx.memberCount) ? ctx.memberCount : null,
+            memberCount: Number.isFinite(ctx.memberCount) ? /** @type {number} */ (ctx.memberCount) : null,
             readByOthers,
             threshold: thresholdFor(orgPolicy),
         });

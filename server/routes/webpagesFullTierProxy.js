@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Full-tier reverse proxy — GATED, INERT unless webpageRuntimeManager.isEnabled().
  *
@@ -67,7 +68,7 @@ function applyPreviewSandbox(proxyRes) {
  * the proxy's `router` to read. Kept synchronous-for-the-router by design: a
  * failed/slow ensureRuntime() surfaces as a normal Express error response
  * here, not as an ambiguous proxy-layer failure.
- * @param {(value?: HttpError) => void} next
+ * @param {(value?: InstanceType<typeof HttpError>) => void} next
  */
 async function ensureFullTierTarget(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, next) {
     const claims = req.previewClaims;
@@ -101,8 +102,8 @@ function buildProxyMiddleware() {
                 log.error('[WebpagesFullTierProxy] proxy error:', err.message);
                 // `res` is a Socket (not an http.ServerResponse) on the WS
                 // upgrade path — only http response objects have .headersSent.
-                if (res && typeof res.headersSent === 'boolean') {
-                    if (!res.headersSent) res.writeHead(502, { 'Content-Type': 'application/json' });
+                if (res && typeof /** @type {import('http').ServerResponse} */ (res).headersSent === 'boolean') {
+                    if (!/** @type {import('http').ServerResponse} */ (res).headersSent) /** @type {import('http').ServerResponse} */ (res).writeHead(502, { 'Content-Type': 'application/json' });
                     res.end(JSON.stringify({ error: 'Full-tier runtime proxy error.' }));
                 } else if (res && typeof res.destroy === 'function') {
                     res.destroy();

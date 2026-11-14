@@ -2,9 +2,10 @@
 // connect popup, disconnect and display-name save, moved verbatim from
 // IntegrationsAdminPanel.jsx.
 import { isTrustedOAuthOrigin } from '@/lib/oauthMessageOrigin';
-import { API_BASE, authFetch } from '@/utils/helpers';
+import { API_BASE } from '@/utils/helpers';
 import type { AdminMessage } from './IntegrationsAdminPanel.types';
-import { mutate, ApiError } from '@/api/mutate';
+import { ApiError } from '@/api/mutate';
+import { apiFetch, apiRequest } from '@/api/typedRequest';
 
 interface UseServiceEmailActionsParams {
     setConnectingServiceEmail: (value: boolean) => void;
@@ -28,7 +29,7 @@ export default function useServiceEmailActions({
     const startServiceEmailConnect = async () => {
         setConnectingServiceEmail(true);
         try {
-            const res = await authFetch(`${API_BASE}/ai/config/service-email/oauth/start`);
+            const res = await apiFetch('GET /ai/config/service-email/oauth/start');
             const data = await res.json();
             if (!res.ok || !data.url) {
                 setMessage({ type: 'error', text: data.error || 'Could not start Google connect' });
@@ -91,7 +92,7 @@ export default function useServiceEmailActions({
     const disconnectServiceEmail = async () => {
         setSavingServiceEmail(true);
         try {
-            const res = await mutate(`${API_BASE}/ai/config/service-email/disconnect`, { method: 'POST' }).catch((err: unknown) => {
+            const res = await apiRequest('POST /ai/config/service-email/disconnect').catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });
@@ -113,11 +114,7 @@ export default function useServiceEmailActions({
     const saveServiceEmailDisplayName = async () => {
         setSavingServiceEmail(true);
         try {
-            const res = await authFetch(`${API_BASE}/ai/config`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ serviceEmailDisplayName }),
-            });
+            const res = await apiFetch('POST /ai/config', { body: { serviceEmailDisplayName } });
             setMessage(res.ok
                 ? { type: 'success', text: 'Display name saved' }
                 : { type: 'error', text: 'Failed to save display name' });

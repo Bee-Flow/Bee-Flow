@@ -21,6 +21,7 @@
 
 const globals = require('globals');
 const { hardErrorRules } = require('../scripts/eslint/base.cjs');
+const { stripTypes } = require('../scripts/eslint/stripTypes.cjs');
 
 const correctnessRules = {
     // Hard errors shared with the small services (scripts/eslint/base.cjs) —
@@ -92,6 +93,13 @@ module.exports = [
         rules: { ...correctnessRules, ...sizeComplexityRules },
     },
     {
+        // TypeScript sources (.mts) run type-stripped, and are linted that way:
+        // the processor hands ESLint the text Node executes, under the name
+        // `<file>.mts/0.mjs`, so the `**/*.mjs` block above applies to it.
+        files: ['**/*.mts'],
+        processor: stripTypes,
+    },
+    {
         files: [
             'scripts/**',
             'migrations/**',
@@ -111,35 +119,17 @@ module.exports = [
         // fetch() has no SSRF layer (private ranges, cloud metadata, DNS
         // rebinding, redirect hops). Use utils/ssrfGuard.safeFetch (user URLs),
         // core/http/configuredEndpointFetch.fetchConfiguredEndpoint (admin-set
-        // provider URLs, private networks allowed) or, for a FIXED trusted host,
-        // allow-list the file in the override below with a comment saying why.
-        files: ['routes/**/*.js'],
+        // provider URLs, private networks allowed) or, for a FIXED vendor host
+        // or the operator's own sidecar (env), utils/fixedEndpointFetch.
+        // All three carry the outbound default time-out.
+        files: ['routes/**/*.js', 'usecases/**/*.js'],
         ignores: ['**/*.test.js'],
         rules: {
             'no-restricted-globals': ['error', {
                 name: 'fetch',
-                message: 'Bare fetch() in a route has no SSRF guard: use utils/ssrfGuard.safeFetch or core/http/configuredEndpointFetch (see eslint.config.js).',
+                message: 'Bare fetch() in a route has no SSRF guard and no time-out: use utils/ssrfGuard.safeFetch, core/http/configuredEndpointFetch or utils/fixedEndpointFetch (see eslint.config.js).',
             }],
         },
-    },
-    {
-        // Fixed, hard-coded trusted hosts (or an operator-set internal service
-        // URL from the environment): no user-controlled URL reaches these.
-        files: [
-            'routes/integrations/github.js',          // api.github.com
-            'routes/integrations/githubSync.js',      // api.github.com (owner/repo are validated path segments)
-            'routes/integrations/googleWorkspace.js', // Google OAuth token/userinfo endpoints (constants)
-            'routes/integrations/linkedin.js',        // linkedin.com / api.linkedin.com
-            'routes/integrations/microsoft365.js',    // login.microsoftonline.com / graph.microsoft.com
-            'routes/integrations/withings.js',        // Withings OAuth token endpoint (constant)
-            'routes/publicGithubStats.js',            // api.github.com
-            'routes/search.js',                       // google.serper.dev
-            'routes/templates.js',                    // SEARCH_SERVICE_URL, the operator's own search service (env)
-            'routes/templateKb.js',                   // SEARCH_SERVICE_URL (env), split out of routes/templates.js
-            'routes/knowledgeBases/search.js',        // SEARCH_SERVICE_URL (env)
-            'routes/projects/collab.testkit.js',      // test helper against a local test server
-        ],
-        rules: { 'no-restricted-globals': 'off' },
     },
     {
         // Functions these files hand to page.evaluate() / waitForFunction()
@@ -150,9 +140,11 @@ module.exports = [
             'services/webpageRender.js',
             'routes/notebookExport.js',
             'cms/mcp/screenshot.js',
+            'cms/mcp/screenshotWalk.mts/*.mjs',
+            'services/appStudioRenderShot.mts/*.mjs',
         ],
         languageOptions: {
-            globals: { window: 'readonly', document: 'readonly' },
+            globals: { window: 'readonly', document: 'readonly', requestAnimationFrame: 'readonly' },
         },
     },
     {
@@ -170,7 +162,23 @@ module.exports = [
         // Tests are exempt from the size and complexity limits: a describe
         // block is a table of cases and splitting it buys nothing. (Same
         // exemption as agent-hub.)
-        files: ['**/*.test.{js,cjs,mjs}', 'testUtils/**'],
+        files: ['**/*.test.{js,cjs,mjs}', '**/*.test.mts/*.mjs', 'testUtils/**'],
+        rules: Object.fromEntries(Object.keys(sizeComplexityRules).map((rule) => [rule, 'off'])),
+    },
+    {
+        // Run-once and tooling code is exempt too: a migration is a fixed,
+        // dated sequence of statements that never changes after it ships,
+        // scripts and *.cli.js are command-line tools, and *.testkit.js holds
+        // test set-up shared between test files. The limits measure the
+        // code that serves requests.
+        files: [
+            'migrations/**',
+            'scripts/**',
+            '**/*.testkit.{js,cjs,mjs}',
+            '**/*.testkit.mts/*.mjs',
+            '**/*.cli.{js,cjs,mjs}',
+            '**/*.cli.mts/*.mjs',
+        ],
         rules: Object.fromEntries(Object.keys(sizeComplexityRules).map((rule) => [rule, 'off'])),
     },
 ];

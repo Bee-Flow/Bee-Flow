@@ -1,3 +1,4 @@
+// @typecheck
 // §WS5 #4 — automation CRUD + activate/deactivate, extracted verbatim from
 // routes/automation.js. Folders (folders.js), forms (forms.js) and templates,
 // import and export (importExport.js) are registered on this router at their
@@ -5,7 +6,6 @@
 const express = require('express');
 const log = require('../../telemetry/log');
 const router = express.Router();
-
 // The caller's organisation (see crudContext.js for why it is async and read
 // fresh), the knowledge-base findings and the one access answer.
 const { orgOf, kbFindingsFor, automationAccess, worded } = require('./crudContext');
@@ -25,7 +25,7 @@ const { HttpError } = require('../../core/http/errors');
 const cron = require('../../automation/cron');
 const { validateDefinition } = require('../../automation/validate');
 const { topicClassifierFor } = require('../../core/classify/classifierClient');
-
+const { bodyOf } = require('../../core/http/schemaParts');
 const { triggerColumnsFromDefinition } = require('../../automation/triggerColumns');
 const { summariseDefinition } = require('../../automation/summarise');
 require('../../automation/triggerBus');
@@ -71,7 +71,7 @@ const trashHandlers = makeTrashHandlers({
  * the back pointer is a LABEL. Whoever later points it to someone else's app gets no rights from that — appRefLookup tells a
  * non-owner no names, and the bridge keeps refusing on owner equality.
  *
- * @returns {{ok: true, ownerId: string}|{ok: false, code, message}}
+ * @returns {Promise<{ ok: boolean, ownerId?: string, code?: string, message?: string }>}
  * @param {string} actorUserId
  */
 async function appRefOwnerGate(definition, actorUserId) {
@@ -207,7 +207,7 @@ async function sharedWithCaller(req) {
 
 const byUpdatedDesc = (x, y) => String(y?.updatedAt || '').localeCompare(String(x?.updatedAt || ''));
 
-router.get('/', validate({ query: ListQuery }), async (/** @type {import('express').Request<{}, any, any, import('zod').infer<typeof ListQuery>>} */ req, res) => {
+router.get('/', validate({ query: ListQuery }), async (req, res) => {
     const own = await automationStore.getAutomationsForUser(req.session.user.id);
     const list = (own || []).map(a => projectForViewer(a, { role: 'owner', via: 'owner' }));
 
@@ -261,7 +261,7 @@ async function templateVersionMeta(templateId, userId, orgId) {
     }
 }
 
-router.post('/', validate({ body: CreateAutomationBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof CreateAutomationBody>, import('qs').ParsedQs>} */ req, res) => {
+router.post('/', validate({ body: CreateAutomationBody }), async (req, res) => {
     const userId = req.session.user.id;
     const { title, description, triggerType, scheduleCron, scheduleTz, createdFromChatId, templateId } = req.body;
     let { definition } = req.body;
@@ -433,7 +433,7 @@ router.get('/:id/usage', async (req, res) => {
 // GET /:id/export (importExport.js), in its original place among the `/:id` routes.
 registerExportRoute(router);
 
-router.put('/:id', validate({ body: UpdateAutomationBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof UpdateAutomationBody>, import('qs').ParsedQs>} */ req, res) => {
+router.put('/:id', validate({ body: UpdateAutomationBody }), async (req, res) => {
     // The person saving (stamped as the version's author) and the OWNER the
     // automation belongs to and runs as. They differ for an `edit` share; every
     // owner-bound check below (agents, approvers, knowledge bases, the event
@@ -665,7 +665,7 @@ router.delete('/:id', (req, res) => trashHandlers.trash(req, res));
 
 // Out of the trash again — always paused. The literal-first route (GET
 // /_trash) is registered above GET /:id.
-router.post('/:id/restore', (req, res) => trashHandlers.restore(req, res));
+router.post('/:id/restore', validate({ body: bodyOf({}, 'Restoring an automation') }), (req, res) => trashHandlers.restore(req, res));
 
 // The AI Act gate on activate and publish (handoff 5): only in an organisation
 // with the compliance hub licence. Bee checks the automation first and records
@@ -673,7 +673,7 @@ router.post('/:id/restore', (req, res) => trashHandlers.restore(req, res));
 // only with the questions it could not (automation/aiActCheck.gateRefusal).
 const aiActState = require('../../automation/aiActAuto').defaultAiActAuto().gateState;
 
-router.post('/:id/activate', (req, res) =>
+router.post('/:id/activate', validate({ body: bodyOf({}, 'Switching an automation on') }), (req, res) =>
     activateAutomation(req, res, { agentsFor, kbFindingsFor, wakeComplianceReview, access: automationAccess, aiActState }));
 
 // "Make vN live" (handoff 5): the working copy becomes the live version.
@@ -682,10 +682,10 @@ const PublishBody = z.preprocess((v) => (v === undefined || v === null ? {} : v)
     version: z.number({ error: typeError({ invalid: 'version is the version number you reviewed.' }) })
         .int('version is a whole number.').positive('version is a whole number.').optional(),
 }).strict());
-router.post('/:id/publish', validate({ body: PublishBody }), (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof PublishBody>, import('qs').ParsedQs>} */ req, res) =>
+router.post('/:id/publish', validate({ body: PublishBody }), (req, res) =>
     publishAutomation(req, res, { agentsFor, kbFindingsFor, wakeComplianceReview, ensureFormPages, access: automationAccess, aiActState }));
 
-router.post('/:id/deactivate', async (req, res) => {
+router.post('/:id/deactivate', validate({ body: bodyOf({}, 'Switching an automation off') }), async (req, res) => {
     const a = await automationStore.getAutomation(req.params.id);
     if (!a) return res.status(404).json({ error: 'Not found' });
     const access = await automationAccess.guard(req, res, a, 'edit');

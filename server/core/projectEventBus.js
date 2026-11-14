@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Cross-replica fan-out for project live updates.
  *
@@ -49,6 +49,7 @@ const bus = new EventEmitter();
 bus.setMaxListeners(0);   // one listener per open SSE stream; the cap is noise
 
 // The Redis handles, replaceable in tests (`_setRedis`) without module mocking.
+/** @type {{ getRedis: () => import('ioredis').Redis | null, redisHealthy: () => boolean }} */
 let _redisDeps = { getRedis: db.getRedis, redisHealthy: db.redisHealthy };
 const getRedis = () => _redisDeps.getRedis();
 

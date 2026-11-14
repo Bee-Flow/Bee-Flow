@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Unit tests for same-batch side-effect tool-call dedup.
  *
@@ -87,5 +87,5 @@ test('classifier is injectable', () => {
 
 test('empty and missing input is safe', () => {
     assert.deepStrictEqual(dedupeSideEffectToolCalls([]).kept, []);
-    assert.deepStrictEqual(dedupeSideEffectToolCalls(null).kept, []);
+    assert.deepStrictEqual(dedupeSideEffectToolCalls(/** @type {any} */ (null)).kept, []);
 });

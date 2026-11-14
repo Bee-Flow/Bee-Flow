@@ -198,16 +198,14 @@ export const STUDIO_SECTIONS: StudioSectionDescriptor[] = [
             labelKey: 'studio.new.skill',
             labelFallback: 'Skill',
             onCreate: async ({ onNavigate, t }) => {
-                const { API_BASE, authFetch } = await import('@/utils/helpers');
-                const res = await authFetch(`${API_BASE}/api/skills`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
+                const { apiFetch } = await import('@/api/typedRequest');
+                const res = await apiFetch('POST /api/skills', {
+                    body: {
                         name: t('skills_studio.untitled', 'Untitled skill'),
                         description: '', instructions: '', workflow: '', rules: '', examples: '',
                         icon: '⚡', isShared: false, dynamicActivation: false,
                         sharedGroups: [], enabledIntegrations: [],
-                    }),
+                    },
                 });
                 if (!res.ok) throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
                 const created = await res.json();

@@ -48,6 +48,22 @@ function tableMeta({ rowScope = 'all' } = {}) {
     };
 }
 
+// The default answer to a query is a real one: the planner's table on PGlite,
+// holding rows(), behind the datatableDbStore surface
+// (testUtils/pgDatatableEngine.testkit.js).
+const { pgDatatableEngine } = require('../../testUtils/pgDatatableEngine.testkit');
+/** @type {Awaited<ReturnType<typeof pgDatatableEngine>>} */
+let dt;
+test.before(async () => {
+    const fields = tableMeta().fields.filter((f) => f.type !== 'computed').map((f) => ({ id: `fld_${f.key}`, ...f }));
+    dt = await pgDatatableEngine([{ id: 'tbl-1', key: 'tbl_products', fields }]);
+    for (const r of rows()) await dt.insert('tbl_products', { ...r, org_id: 'acme' });
+    // A row of the owner that matches the OR group and the search only through a held-back column.
+    await dt.insert('tbl_products', { id: 'r3', naam: 'A', prijs: 0.5, marge: 1, notitie: 'XL', created_by: OWNER, created_at: '2026-09-03', org_id: 'acme' });
+});
+test.after(() => dt.close());
+const idsOf = (result) => result.results.map((r) => r.row_id);
+
 function rows() {
     return [
         { id: 'r1', naam: 'Product XL', prijs: 12.5, marge: 0.4, notitie: '', created_by: ASKER, created_at: '2026-09-01' },
@@ -74,7 +90,8 @@ function harness(over = {}) {
             query: async (a, b, sql, params) => {
                 calls.query.push({ scopeA: a, scopeB: b, sql, params });
                 if (over.query) return over.query(sql, params);
-                return { rows: over.rows ?? rows() };
+                if (over.rows) return { rows: over.rows };
+                return dt.store.query(a, b, sql, params);
             },
         },
         resolveDatatableForStep: async (id, ctx, opts) => {
@@ -138,6 +155,11 @@ test('the query is compiled for the ASKER, never for the agent\'s owner', async 
     assert.ok(!calls.query[0].params.includes(OWNER), 'and the owner\'s id never reaches the SQL');
 });
 
+test('the asker reads the rows THEY may see on a row_scope:own table', async () => {
+    const { result } = await run({ datatable_id: 'tbl-1' }, { tableMeta: tableMeta({ rowScope: 'own' }) });
+    assert.deepStrictEqual(idsOf(result), ['r1']);
+});
+
 test('scope "own" narrows on TOP of the table\'s own predicate, never instead of it', async () => {
     // Replacing the predicate would hand the asker rows they created in a
     // table they may not read at all. The grant is a second AND, outside.
@@ -148,32 +170,29 @@ test('scope "own" narrows on TOP of the table\'s own predicate, never instead of
         tableMeta: tableMeta({ rowScope: 'own' }),
     });
 
-    const { sql, params } = calls.query[0];
-    const matches = sql.match(/"created_by" = \?/g) || [];
-    assert.strictEqual(matches.length, 2, 'the table\'s predicate AND the grant\'s narrowing');
-    assert.strictEqual(params.filter(p => p === ASKER).length, 2, 'both bound to the asker');
+    const { params } = calls.query[0];
+    assert.strictEqual(params.filter(p => p === ASKER).length, 2, 'the table\'s predicate AND the grant\'s narrowing, both bound to the asker');
 });
 
 test('scope "own" holds even at owner grade, where the table itself allows everything', async () => {
     // grade 'owner' compiles to `1=1`. If the grant's narrowing were folded
     // into the access filter rather than ANDed after it, this is where it
     // would vanish — for exactly the people who have the most rows to leak.
-    const { calls } = await run({ datatable_id: 'tbl-1' }, {
+    const { result } = await run({ datatable_id: 'tbl-1' }, {
         grants: { 'tbl-1': { scope: 'own', columns: '*' } },
         grade: 'owner',
     });
-    assert.match(calls.query[0].sql, /"created_by" = \?/);
-    assert.ok(calls.query[0].params.includes(ASKER));
+    assert.deepStrictEqual(idsOf(result), ['r1'], 'only the asker\'s own row, even at owner grade');
 });
 
 test('an unreadable scope reads as "own", not as "all"', async () => {
     // The narrow side of an access question. `{scope:'everything'}` is a typo,
     // and reading a typo as "every row" is the one direction that cannot be
     // undone by the person who made it.
-    const { calls } = await run({ datatable_id: 'tbl-1' }, {
+    const { result } = await run({ datatable_id: 'tbl-1' }, {
         grants: { 'tbl-1': { scope: 'everything', columns: '*' } },
     });
-    assert.match(calls.query[0].sql, /"created_by" = \?/);
+    assert.deepStrictEqual(idsOf(result), ['r1']);
 });
 
 // ── Which tables ────────────────────────────────────────────────────
@@ -262,18 +281,18 @@ test('created_by is refused as a filter — the compiler would have accepted it'
 });
 
 test('created_at and updated_at may be sorted on, because ordering is not disclosure', async () => {
-    const { calls } = await run({ datatable_id: 'tbl-1', sort: { field: 'created_at', dir: 'asc' } });
-    assert.match(calls.query[0].sql, /ORDER BY "created_at" ASC/);
+    const asc = (await run({ datatable_id: 'tbl-1', sort: { field: 'created_at', dir: 'asc' } })).result;
+    assert.deepStrictEqual(idsOf(asc), ['r1', 'r2', 'r3']);
+    const desc = (await run({ datatable_id: 'tbl-1', sort: { field: 'created_at', dir: 'desc' } })).result;
+    assert.deepStrictEqual(idsOf(desc), ['r3', 'r2', 'r1']);
 });
 
 test('a search only ever looks inside the granted text columns', async () => {
-    const { calls } = await run({ datatable_id: 'tbl-1', search: 'XL' }, {
+    const { result } = await run({ datatable_id: 'tbl-1', search: 'XL' }, {
         grants: { 'tbl-1': { scope: 'all', columns: ['naam', 'prijs'] } },
     });
-    const { sql } = calls.query[0];
-    assert.match(sql, /"naam" ILIKE/);
-    assert.ok(!/"notitie" ILIKE/.test(sql), 'a column the grant left out is not searched');
-    assert.ok(!/"marge" ILIKE/.test(sql));
+    // r3 holds 'XL' only in notitie, a column the grant left out.
+    assert.deepStrictEqual(idsOf(result), ['r1']);
 });
 
 test('a grant whose columns nobody can read serves nothing, loudly', async () => {
@@ -363,7 +382,7 @@ test('the row limit is clamped to what a context window can carry', () => {
 });
 
 test('every row cites the table AND the row it came from', async () => {
-    const { result } = await run({ datatable_id: 'tbl-1' });
+    const { result } = await run({ datatable_id: 'tbl-1', sort: { field: 'created_at', dir: 'asc' } });
     assert.strictEqual(result._action, 'kb_sources', 'the same source panel a kb_search draws');
     assert.strictEqual(result._sources.length, result.results.length, 'aligned by index — the dedup reads them that way');
     const [first] = result._sources;
@@ -380,16 +399,14 @@ test('match "any" ORs the model\'s conditions and never the access predicate', a
     // whole table to anyone who asks for the right status. The compiler keeps
     // the predicate outside the OR group — and the grant's own narrowing rides
     // inside that predicate, so it is outside too.
-    const { calls } = await run({
+    const { result } = await run({
         datatable_id: 'tbl-1',
         match: 'any',
         filters: [{ field: 'naam', op: 'eq', value: 'A' }, { field: 'prijs', op: 'gt', value: 1 }],
     }, { grants: { 'tbl-1': { scope: 'own', columns: ['naam', 'prijs'] } } });
 
-    const { sql } = calls.query[0];
-    const orGroup = sql.slice(sql.indexOf('("naam"'));
-    assert.ok(!/created_by/.test(orGroup), 'the narrowing is not one of the ORed alternatives');
-    assert.match(sql, /"created_by" = \?\) AND \("naam" = \? OR "prijs" > \?\)/);
+    // r3 matches the OR group (naam = 'A') but is the owner's: the narrowing stays outside the group.
+    assert.deepStrictEqual(idsOf(result), ['r1']);
 });
 
 // ── Offering the tool ───────────────────────────────────────────────

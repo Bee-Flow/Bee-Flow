@@ -1,9 +1,9 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { Check, X, RotateCcw, Loader2 } from 'lucide-react';
 import { TranslateParams, useTranslation } from '@/hooks/useTranslation';
-import { API_BASE, authFetch } from '@/utils/helpers';
 import type { LessonStep, StepState } from '@/api/lessons.types';
 import { gradePracticeItem } from '@/api/practiceClient';
+import { apiFetch } from '@/api/typedRequest';
 
 /**
  * QuizStep — a multiple-choice knowledge check. Single-answer by default; set
@@ -127,11 +127,7 @@ export default function QuizStep({ step, lessonId, saved, onState }: QuizStepPro
             if (checking) return;
             setChecking(true);
             try {
-                const res = await authFetch(`${API_BASE}/ai/learning/quiz/grade`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ lessonId, stepId: step.id, choiceIds: [...selected] }),
-                });
+                const res = await apiFetch('POST /ai/learning/quiz/grade', { body: { lessonId, stepId: step.id, choiceIds: [...selected] } });
                 const body = await res.json().catch(() => null);
                 if (res.ok && body?.correct) {
                     setRevealedIds(new Set(body.correctChoiceIds || [...selected]));

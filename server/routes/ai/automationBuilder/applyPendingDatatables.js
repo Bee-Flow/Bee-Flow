@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Apply a proposal that creates tables.
  *
@@ -34,7 +35,7 @@
 
 const { randomUUID } = require('node:crypto');
 const { HttpError } = require('../../../core/http/errors');
-const { pendingProposal } = require('./workMode');
+const { pendingProposal } = require('../../../usecases/ai/automationBuilder/workMode');
 const { rebindPendingDatatables, collectPendingRefs } = require('../../../automation/builderTools/pendingDatatables');
 const { fallback } = require('../../../utils/bestEffort');
 
@@ -59,7 +60,7 @@ function defaultDeps() {
 const sameName = (a, b) => String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
 
 /**
- * @param {{ req: object, automationId: string, userId: string, snapshot: object }} p
+ * @param {{ req: object, automationId: string, userId: string, snapshot: { proposal?: any, version?: any } }} p
  *   `snapshot` is the stored session, whose proposal has pendingDatatables.
  * @returns {Promise<{ ok: true, outcome: 'applied', definition: object, createdDatatables: Array<{ref,id,key,name}> }>}
  * @throws {HttpError}
@@ -111,7 +112,7 @@ async function applyPendingDatatables({ req, automationId, userId, snapshot }, d
     await save(withProposal({ applying: { token: d.uuid(), at: new Date(d.now()).toISOString() } }));
 
     // ── 3. access and quota ──
-    const access = await d.checkDatatableCreate({ userId, req, automationOrgId: automation.organizationId || null });
+    const access = /** @type {Record<string, any>} */ (await d.checkDatatableCreate({ userId, req, automationOrgId: automation.organizationId || null }));
     if (!access.ok) throw await fail(access.status, access.code, access.message);
     const entries = structuredClone(snap.proposal.pendingDatatables || []);
     const toCreate = entries.filter((e) => !e.createdId).length;

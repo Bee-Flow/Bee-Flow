@@ -243,7 +243,7 @@ async function seedRuns() {
 // ── The two halves ──────────────────────────────────────────────────────────
 
 async function seed() {
-    const user = await userStore.getUser(USER_ID).catch(() => null);
+    const user = await userStore.getUser(USER_ID); // a failed read ends the run in main's catch
     if (!user) {
         console.error(`No such user: ${USER_ID}. Create the fixture account first.`);
         process.exit(1);
@@ -425,6 +425,6 @@ async function reset() {
         console.error('Failed:', e.message);
         process.exitCode = 1;
     } finally {
-        await pool.end().catch(() => {});
+        await pool.end().catch((err) => console.warn('pool.end failed:', err.message));
     }
 })();

@@ -20,6 +20,7 @@ const {
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
+const { keyMaterialForReset } = require('./passwordResetKey.mts');
 
 const EMAIL_TEXT = 'Enter the e-mail address of the account you want to reset.';
 // The constant-200 contract below is unchanged: this only refuses a request
@@ -107,9 +108,15 @@ router.post('/reset-password', resetPasswordIpLimiter, validate({ body: ResetBod
     });
     if (!policy.ok) return res.status(400).json({ error: policy.error, code: policy.code });
     const passwordHash = await passwords.hash(newPassword);
-    // The token is consumed by the same statement that writes the hash: of two
-    // requests carrying this link, one resets the password and the other is refused.
-    if (!(await userStore.completePasswordReset(user.id, tokenHash, passwordHash))) {
+    // The account's encryption key follows the new password (passwordResetKey.mts):
+    // on the managed tier the escrowed copy is wrapped under it, elsewhere the
+    // old wrapping is dropped and the next sign-in makes a fresh key. Decided
+    // before anything is written, so a refusal leaves the account as it was.
+    const keyMaterial = await keyMaterialForReset(user, newPassword, resetKeyDeps());
+    // The token is consumed by the same statement that writes the hash and the
+    // key material: of two requests carrying this link, one resets the
+    // password and the other is refused.
+    if (!(await userStore.completePasswordReset(user.id, tokenHash, passwordHash, keyMaterial))) {
         return res.status(400).json({ error: TOKEN_TEXT });
     }
     // Whoever was signed in with the old password is signed out everywhere:
@@ -127,7 +134,24 @@ router.post('/reset-password', resetPasswordIpLimiter, validate({ body: ResetBod
         if (user.email) await loginThrottle.clearIdentifier(user.email);
     } catch (err) { bestEffort('passwordReset:clear-lockout', err); }
     log.info(`[Auth] Password reset completed for user ${user.id}`);
-    return res.json({ success: true });
+    // `encryptionKeyReset`: the account starts a fresh encryption key at its
+    // next sign-in, and what was encrypted under the old one stays closed. Said
+    // here so the person is told, not discovered.
+    return res.json(keyMaterial && !keyMaterial.contentKept ? { success: true, encryptionKeyReset: true } : { success: true });
 });
+
+/**
+ * The real collaborators of keyMaterialForReset. Required here, at call time:
+ * orgEscrow reaches the stores, and this router is loaded by the auth barrel.
+ */
+function resetKeyDeps() {
+    const { resolvePolicy } = require('../../stores/encryptionPolicy');
+    const { unwrapUserDek } = require('../orgEscrow');
+    const { SALT_LENGTH, deriveKEK, wrapDEK, secureClear } = require('../encryptionPrimitives');
+    return {
+        resolvePolicy, unwrapEscrowedDek: unwrapUserDek, deriveKEK, wrapDEK, secureClear,
+        randomBytes: crypto.randomBytes, saltLength: SALT_LENGTH,
+    };
+}
 
 module.exports = router;

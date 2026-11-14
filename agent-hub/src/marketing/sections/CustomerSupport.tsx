@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { ArrowRight, CheckCircle2, Bot, User, AlertTriangle, Loader2, Send } from 'lucide-react';
-import { API_BASE } from '../../utils/helpers';
 import EditableText from '../components/EditableText';
 import SectionFrame from '../components/SectionFrame';
 import type { Convo, SupportThread, SupportMessage } from './CustomerSupport.types';
 import { logger } from '../../utils/logger';
+import { apiUrl } from '@/api/typedRequest';
 /**
  * Customer Support — a public, CMS-placeable support widget that mirrors the
  * in-app "Help & Support" experience for logged-out website visitors.
@@ -158,7 +158,7 @@ export default function CustomerSupport({ data, sectionId }: CustomerSupportProp
         }
         setSubmitting(true);
         try {
-            const res = await fetch(`${API_BASE}/api/support/threads`, {
+            const res = await fetch(apiUrl('POST /api/support/threads'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -206,7 +206,7 @@ export default function CustomerSupport({ data, sectionId }: CustomerSupportProp
         if (!threadId || !token) return;
         try {
             const r = await fetch(
-                `${API_BASE}/api/support/threads/${threadId}?token=${encodeURIComponent(token)}`,
+                apiUrl('GET /api/support/threads/{id}', { params: { id: threadId }, query: { token } }),
                 { credentials: 'omit' },
             );
             if (r.ok) {
@@ -233,7 +233,7 @@ export default function CustomerSupport({ data, sectionId }: CustomerSupportProp
         setSending(true);
         try {
             const r = await fetch(
-                `${API_BASE}/api/support/threads/${convo.threadId}/messages?token=${encodeURIComponent(convo.accessToken)}`,
+                apiUrl('POST /api/support/threads/{id}/messages', { params: { id: convo.threadId }, query: { token: convo.accessToken } }),
                 {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

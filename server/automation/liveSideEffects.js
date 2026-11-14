@@ -1,3 +1,4 @@
+// @typecheck
 /** @typedef {import('./formAnswers/provision').AutomationRef} AutomationRef */
 /** @typedef {import('./formAnswers/derive').Def} Def */
 /**
@@ -94,7 +95,7 @@ function makeLiveSideEffects(deps = {}) {
     async function kbFindingsFor(definition, { orgId = null, userId, stage } = {}) {
         try {
             const resolvedOrg = typeof orgId === 'function' ? await orgId() : orgId;
-            return await kbStepFindings()(definition, { orgId: resolvedOrg, userId, stage });
+            return await kbStepFindings()(definition, { orgId: resolvedOrg, userId, stage: /** @type {'activate' | 'draft'} */ (stage) });
         } catch (e) {
             log.warn('[automation/crud] knowledge-base check unavailable:', /** @type {Error} */ (e).message);
             return [];

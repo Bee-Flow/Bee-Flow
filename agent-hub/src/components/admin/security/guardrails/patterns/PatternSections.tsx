@@ -1,10 +1,11 @@
 import { Plus } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useConfigChatModels } from '@/api/queries/configModels';
 import type { PatternLibraryProps } from './patternTypes';
 import { STARTER_SETS } from './starterSets';
 import { useTranslation } from '@/hooks/useTranslation';
 import { TIER_META, configuredTierKeys } from '@/components/licensing/tierMeta';
-import { apiJson, generateRegexWithAi } from '../api/guardrailsApi';
+import { generateRegexWithAi } from '../api/guardrailsApi';
 import { errorMessage } from '@/utils/caughtError';
 
 type StarterSet = (typeof STARTER_SETS)[number];
@@ -64,23 +65,16 @@ export function StarterSets({ onApply }: { onApply: (set: StarterSet) => void })
  * Sourcing the list from the server's own configured tiers makes that class
  * of drift impossible rather than fixing it once.
  */
+const NO_TIERS: Record<string, unknown> = {};
+
 function useGenerationTiers() {
-    const [tiers, setTiers] = useState<Record<string, unknown>>({});
-    const [aiModelTier, setAiModelTier] = useState('');
-    useEffect(() => {
-        let cancelled = false;
-        apiJson('/ai/config/chat-models')
-            .then((data: { tiers?: Record<string, unknown> } | Record<string, unknown> | null) => {
-                if (cancelled) return;
-                const configured = (data as { tiers?: Record<string, unknown> })?.tiers || data || {};
-                setTiers(configured);
-                const keys: string[] = configuredTierKeys(configured).filter((k: string) => k !== 'auto');
-                setAiModelTier(prev => (prev && keys.includes(prev) ? prev : (keys[0] || '')));
-            })
-            .catch(() => { /* the picker just stays empty; generation still works on the server default */ });
-        return () => { cancelled = true; };
-    }, []);
+    // A failed read leaves the picker empty; generation still works on the server default.
+    const data = useConfigChatModels().data as { tiers?: Record<string, unknown> } | Record<string, unknown> | undefined;
+    const tiers = (data as { tiers?: Record<string, unknown> } | undefined)?.tiers || data || NO_TIERS;
     const tierKeys: string[] = configuredTierKeys(tiers).filter((k: string) => k !== 'auto');
+    const [picked, setAiModelTier] = useState('');
+    // Until one is picked (or when the picked one is gone), the first configured tier.
+    const aiModelTier = picked && tierKeys.includes(picked) ? picked : (tierKeys[0] || '');
     return { tierKeys, aiModelTier, setAiModelTier };
 }
 

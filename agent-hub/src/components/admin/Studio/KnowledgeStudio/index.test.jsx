@@ -163,6 +163,10 @@ describe('the suggestion banner', () => {
             const put = authFetch.mock.calls.find(([, o]) => o?.method === 'PUT');
             expect(put).toBeTruthy();
             expect(JSON.parse(put[1].body).config.knowledge_base_ids).toEqual(['kb_other', 'kb1']);
+            // The agents router is mounted at /agents (server/index.js), not under /api.
+            const agentCalls = authFetch.mock.calls.map(([u]) => String(u)).filter((u) => u.includes('/agents/'));
+            expect(agentCalls.length).toBeGreaterThanOrEqual(2);
+            for (const u of agentCalls) expect(new URL(u, 'http://x').pathname).toMatch(/^\/agents\/ag1$/);
         });
     });
 

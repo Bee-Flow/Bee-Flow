@@ -15,6 +15,7 @@ const { z, typeError } = require('../../../utils/zod');
 const { validate } = require('../../../core/http/validate');
 const { requireAdminUser } = require('../requireAdminUser');
 const { bestEffort } = require('../../../utils/bestEffort');
+const { tierSetBody, CustomTiersBody, OrgCustomTiersBody } = require('./tierSetBody.mts');
 
 const requireAdmin = requireAdminUser(isAdminUser);
 
@@ -67,7 +68,7 @@ router.get('/config/chat-models', requireAuth, async (/** @type {import('express
     res.json(tiers);
 });
 
-router.post('/config/chat-models', requireAuth, requireAdmin, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
+router.post('/config/chat-models', requireAuth, requireAdmin, validate({ body: tierSetBody('Saving the model tiers') }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const { fast, standard, swarm, thinking, writer, pro } = req.body;
     const tiers = {
         fast: fast || { modelId: '', label: 'Fast' },
@@ -168,7 +169,7 @@ modelIdSetting('/config/ai-step-model', 'ai_step_model');
 // ─── Builder narration Model ─────────────────────────────────────
 // While the Automation Builder reasons, a tiny side model rewrites a window
 // of the reasoning stream into one short phrase for the canvas
-// (routes/ai/automationBuilder/thoughtNarrator.js). It is called every few
+// (usecases/ai/automationBuilder/thoughtNarrator.js). It is called every few
 // seconds during a build, so it wants the smallest model available — locally
 // that is lfm2.5-350m on the llama-server router. Unset = the narrated line
 // is off and the client falls back to its own heuristics. Validated against
@@ -219,7 +220,6 @@ router.post('/config/hidden-models', requireAuth, validate({ body: HiddenModelsB
     res.json({ success: true, modelIds: ids });
 });
 
-
 // ─── EU Model Tier Config ────────────────────────────────────────
 
 router.get('/config/chat-models-eu', requireAuth, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
@@ -236,7 +236,7 @@ router.get('/config/chat-models-eu', requireAuth, async (/** @type {import('expr
     res.json(tiers);
 });
 
-router.post('/config/chat-models-eu', requireAuth, requireAdmin, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
+router.post('/config/chat-models-eu', requireAuth, requireAdmin, validate({ body: tierSetBody('Saving the EU model tiers') }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const { fast, standard, swarm, thinking, writer, pro } = req.body;
     const tiers = {
         fast: fast || { modelId: '', label: 'Fast' },
@@ -389,11 +389,8 @@ router.get('/config/custom-chat-models', requireAuth, requireAdmin, async (/** @
     res.json({ tiers: Array.isArray(tiers) ? tiers : [] });
 });
 
-router.post('/config/custom-chat-models', requireAuth, requireAdmin, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
+router.post('/config/custom-chat-models', requireAuth, requireAdmin, validate({ body: CustomTiersBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
     const { tiers } = req.body;
-    if (!Array.isArray(tiers)) {
-        return res.status(400).json({ error: '`tiers` must be an array' });
-    }
     const normalized = tiers.map(normalizeCustomTier).filter(Boolean);
     // Dedupe by id — last occurrence wins
     const seen = new Map();
@@ -448,15 +445,12 @@ router.get('/config/org-custom-chat-models', requireAuth, async (/** @type {impo
     });
 });
 
-router.post('/config/org-custom-chat-models', requireAuth, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
-    const target = await resolveOrgTierTarget(req, req.body?.orgId);
+router.post('/config/org-custom-chat-models', requireAuth, validate({ body: OrgCustomTiersBody }), async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
+    const target = await resolveOrgTierTarget(req, req.body.orgId);
     if (!('orgId' in target)) return res.status(target.status).json({ error: target.error });
     const { orgId } = target;
 
     const { tiers } = req.body;
-    if (!Array.isArray(tiers)) {
-        return res.status(400).json({ error: '`tiers` must be an array' });
-    }
     const normalized = tiers.map(normalizeCustomTier).filter(Boolean);
     const seen = new Map();
     for (const t of normalized) seen.set(t.id, t);

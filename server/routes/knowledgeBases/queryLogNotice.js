@@ -91,7 +91,7 @@ router.get('/query-log/notice', requireAuth, validate({ query: NoticeQuery }), a
 
 // The user has read the notice. Bases the caller cannot read, that do not log, or of another organisation are ignored
 // silently (same as in the notice), so this route cannot be used to probe for them.
-router.post('/query-log/acknowledge', requireAuth, validate({ body: AckBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof AckBody>>} */ req, res) => {
+router.post('/query-log/acknowledge', requireAuth, validate({ body: AckBody }), async (req, res) => {
     const userId = getUserId(req);
     const kbs = await loggingKbsOf(req, [...new Set(req.body.kbIds)].slice(0, NOTICE_MAX_IDS));
     const ids = kbs.map((k) => k.id);

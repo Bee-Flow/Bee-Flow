@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { userSettingsApi } from '../../api/userSettingsApi';
+import { useUserSettingsRead } from '../../api/queries/userSettingsRead';
 import scopedStorage from '../../utils/scopedStorage';
 import { markLessonComplete } from './learningProgress';
 import { resolveLessonSteps, DEFAULT_LESSON_ID, LESSON_COMPLETE_EVENT } from './lessons';
@@ -102,6 +103,7 @@ export function useTourRun({ user, onNavigate, currentPage }: OnboardingTourProp
 
     // ── Auto-start for first-time users (desktop, on the chat home only) ──
     const autoStartTriedRef = useRef(false);
+    const readSettings = useUserSettingsRead<Record<string, unknown>>();
     useEffect(() => {
         if (autoStartTriedRef.current) return;
         if (!user?.id) return;
@@ -114,15 +116,14 @@ export function useTourRun({ user, onNavigate, currentPage }: OnboardingTourProp
 
         (async () => {
             try {
-                const res = await userSettingsApi.get();
-                if (!res.ok || cancelled) return;
-                const data = await res.json();
-                if (data?.[TOUR_SEEN_KEY]) return;
+                const data = await readSettings();
+                if (!data || cancelled) return;
+                if (data[TOUR_SEEN_KEY]) return;
                 setTimeout(() => { if (!cancelled) startTour(); }, 900);
             } catch (e) { logger.debug('don\'t block the app on a settings fetch', e); }
         })();
         return () => { cancelled = true; };
-    }, [user?.id, currentPage, startTour]);
+    }, [user?.id, currentPage, startTour, readSettings]);
 
     // ── Replay on demand (intro tour or a specific Learning Center lesson) ──
     useEffect(() => {

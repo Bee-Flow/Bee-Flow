@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Playbook recipe `invoice_tracker` — read an invoice folder, load a table,
  * build an invoice app with approvals. PURE: the schema, the phase list, the
@@ -307,7 +307,7 @@ function buildDocument(locale) {
 const DOCUMENTS = Object.freeze({ nl: buildDocument('nl'), en: buildDocument('en') });
 const DOCUMENT = DOCUMENTS.nl;
 
-/** @param {string} locale */
+/** @param {string | null | undefined} locale */
 function toDocument(locale) {
     return DOCUMENTS[/** @type {'nl'|'en'} */ (packLocale(locale))];
 }

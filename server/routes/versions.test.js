@@ -16,6 +16,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const Module = require('module');
+const { fakeAgentGates } = require('./agents/agentGate.testkit');
 
 const fx = {
     versions: {},
@@ -51,10 +52,9 @@ const MOCKS = {
     '../utils/routeHelpers': {
         getEffectiveUserId: (req) => req.session?.user?.id || 'guest',
     },
-    './agents/crud': {
-        canModifyAgent: async () => true, // permissive: authz is the other file's job
-    },
 };
+// Permissive gate: authz is the other file's job.
+MOCKS['./agents/crud'] = fakeAgentGates({ agentStore: MOCKS['../stores/agentStore'], userId: (req) => req.session?.user?.id || 'guest' });
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
     const mockId = `mock:versions:${request}`;

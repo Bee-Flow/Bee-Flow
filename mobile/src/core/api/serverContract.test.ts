@@ -349,7 +349,7 @@ describe('knowledge base payloads (server/routes/knowledgeBases/)', () => {
     // exactly where it was." This holds it to that.
     it('still serves every snake_case field the library screens read', () => {
         expect(
-            absentTokens(readTree('routes/knowledgeBases'), [
+            absentTokens(readTree('routes/knowledgeBases') + readTree('usecases/knowledgeBases'), [
                 'document_count', 'total_chunks', 'chunk_count',
                 'source_type', 'remote_only', 'is_published',
             ]),
@@ -393,7 +393,7 @@ describe('the direct-chat request body (server/routes/ai/directChat/)', () => {
     // and do nothing.
     it('still reads every field the composer sends', () => {
         expect(
-            absentTokens(readTree('routes/ai/directChat'), [
+            absentTokens(readTree('routes/ai/directChat') + readTree('usecases/ai/directChat'), [
                 'message', 'conversationId', 'modelTier', 'history',
                 'attachments', 'webSearchEnabled', 'memoryWriteEnabled',
                 'projectId', 'timezone', 'activeSkillIds', 'reasoningEffort',
@@ -447,7 +447,7 @@ describe('the chat stream events (server/routes/ai/ + server/core/dlp/)', () => 
     // silently stops: rename `dlp_preview` and every phone hangs mid-turn
     // with no error, because the client never learns there is a decision to
     // answer. Quoted occurrences, so a prose mention cannot satisfy the pin.
-    const stream = readTree('routes/ai') + readTree('core/dlp');
+    const stream = readTree('routes/ai') + readTree('usecases/ai') + readTree('core/dlp');
 
     it('still emits every event name the phone routes on', () => {
         const events = [
@@ -675,7 +675,7 @@ describe('the 409 delete guards (src/core/api/deleteGuard.ts)', () => {
         const lifecycle = read('routes/webpages/lifecycle.js');
         expect(routeSlice(lifecycle, "router.delete('/:id',")).toMatch(/\(?req\.query\)?\.confirm === true/);
         expect(lifecycle).toMatch(/DeleteQuery = z\.object\(\{ confirm: flag\(/);
-        const guard = read('routes/webpages/deleteGuard.js');
+        const guard = read('usecases/webpages/deleteGuard.js');
         for (const token of IN_USE_BODY) expect(guard).toContain(token);
     });
 
@@ -781,7 +781,7 @@ describe('the agent endpoints the phone calls', () => {
         const slice = routeSlice(read('routes/agents/crud.js'), "router.get('/:id/tools'");
         expect(slice).not.toEqual('');
         expect(slice).toContain('getAgentToolsWithParams');
-        expect(slice).toContain('res.json(toolsWithParams)');
+        expect(slice).toMatch(/res\.json\((toolsWithParams|await agentStore\.getAgentToolsWithParams\()/);
     });
 
     it('still stores avatar and starter_prompts as TEXT', () => {
@@ -870,7 +870,7 @@ describe('every stream event the server emits', () => {
     // green while the phone's `case 'title_generated':` went dead and every
     // Android chat kept the title "New Chat". Measured: with the rename in
     // place the whole mobile suite was 596/596 green.
-    const stream = readTree('core/agentRuntime') + readTree('routes/ai') + readTree('routes/agents');
+    const stream = readTree('core/agentRuntime') + readTree('routes/ai') + readTree('usecases/ai') + readTree('routes/agents') + readTree('usecases/agents');
     // The phone's side is the agent adapter's table (shared/stream/adapters/
     // agent.ts): an entry is either a handler (routed) or IGNORE (a decision).
     const routed = (event: string) => accounts(AGENT_FRAMES, event);
@@ -947,7 +947,7 @@ describe('every stream event the server emits', () => {
         // /agents/:id/chat/stream slipped out of it once already. Moving that
         // handler to another tree is not an error anywhere — it just makes the
         // scan quietly stop covering the phone's own endpoint again.
-        expect(emittedEventNames(readTree('routes/agents'))).toContain('title_generated');
+        expect(emittedEventNames(readTree('routes/agents') + readTree('usecases/agents'))).toContain('title_generated');
         expect(read('routes/agents/chat.js')).toContain("router.post('/:id/chat/stream'");
         expect(routed('title_generated')).toBe(true);
     });
@@ -1295,7 +1295,7 @@ describe('App Studio (server/routes/studioApps*.js, studioAppData.js, the builde
 
     it('still persists the builder snapshot keys the session reader reads', () => {
         expect(read('routes/ai/appStudioBuilder/sessionSnapshot.js')).toContain('res.json({ snapshot })');
-        const persist = functionSlice(read('routes/ai/appStudioBuilder/turnClosing.js'), 'persistTurnSnapshot');
+        const persist = functionSlice(read('usecases/ai/appStudioBuilder/turnClosing.js'), 'persistTurnSnapshot');
         expect(missingFrom(persist, ['sessionId', 'appId', 'messages', 'lastValidation', 'summary', 'updatedAt', 'lastTier', 'todos', 'brief'])).toEqual([]);
         expect(absentTokens(persist, ['approvedPlan', 'pendingPlan', 'continueToken'])).toEqual([]);
     });
@@ -1328,7 +1328,7 @@ describe('the webpage builder (features/webpages)', () => {
             missingFrom(functionSlice(versions, 'getVersions'), ['id', 'summary', 'contentLength', 'createdAt', 'source']),
         ).toEqual([]);
         expect(missingFrom(functionSlice(versions, 'mapVersionFacts'), ['seq', 'lineDelta'])).toEqual([]);
-        const listing = read('routes/webpages/versionListing.js');
+        const listing = read('usecases/webpages/versionListing.js');
         expect(missingFrom(functionSlice(listing, 'decorateVersionRow'), ['actor', 'isPublished'])).toEqual([]);
         expect(missingFrom(functionSlice(listing, 'versionCoverage'), ['coversProject'])).toEqual([]);
         expect(read('routes/webpages/versions.js')).toContain('hasMore');
@@ -1361,7 +1361,7 @@ describe('the webpage builder (features/webpages)', () => {
         // webpageChat.js writes through its own `send('x', …)` helper, which
         // the scan above (onEvent/sendEvent) does not see.
         // webpageChat.js and the parts in routes/ai/webpageChat/.
-        const source = read('routes/ai/webpageChat.js') + readTree('routes/ai/webpageChat');
+        const source = read('routes/ai/webpageChat.js') + readTree('routes/ai/webpageChat') + readTree('usecases/ai/webpageChat');
         const sent = [...new Set([...source.matchAll(/\bsend\(\s*'([a-z_]+)'/g)].map((m) => m[1] as string))];
         expect(sent.length).toBeGreaterThan(10);
         expect(sent.filter((e) => !accounts(WEBPAGE_FRAMES, e))).toEqual([]);
@@ -1616,7 +1616,7 @@ describe('playbooks (server/stores/playbookStore.js + routes/playbooks/)', () =>
     // and read by src/features/playbooks/api/readers.ts.
     const store = read('stores/playbookStore.js');
     const phaseList = read('routes/playbooks/phaseList.js');
-    const routes = readTree('routes/playbooks');
+    const routes = readTree('routes/playbooks') + readTree('usecases/playbooks');
 
     it('mapRow still maps every field the run screen reads, the version above all', () => {
         expect(
@@ -1717,7 +1717,7 @@ describe('knowledge base Studio routes (server/routes/knowledgeBases/*)', () => 
         expect(read('stores/knowledgeBases.js')).toContain("DOCUMENT_COLUMNS } = require('./kb/model');");
         const columns = read('stores/kb/model.js').match(/const DOCUMENT_COLUMNS = \[([^\]]+)\]/)?.[1] ?? '';
         for (const col of ['status', 'status_reason', 'pii_status', 'title', 'source_uri', 'created_at']) expect(columns).toContain(`'${col}'`);
-        const filters = read('routes/knowledgeBases/docFilters.js');
+        const filters = read('usecases/knowledgeBases/docFilters.js');
         for (const token of ['statusFilter', 'piiFilter', "'found'"]) expect(filters).toContain(token);
     });
 

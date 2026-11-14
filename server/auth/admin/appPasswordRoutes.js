@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Admin Routes — Nextcloud app-password management for the caller's own
  * account. Split out of auth/adminRoutes.js; mounted there in the original
@@ -15,7 +15,7 @@ const { assertAllowedNextcloudHost, nextcloudFetch, MAX_URL_LENGTH: NEXTCLOUD_MA
 const { validate } = require('../../core/http/validate');
 const { HttpError } = require('../../core/http/errors');
 const { z } = require('../../utils/zod');
-const { worded } = require('../../core/http/schemaParts');
+const { worded, bodyOf } = require('../../core/http/schemaParts');
 
 const CREDENTIALS_TEXT = 'Username and password are required';
 // `url` is optional — blank leaves resolution to the org-wide config — but the
@@ -88,7 +88,7 @@ router.get('/app-password-status', requireAuth, async (req, res) => {
     });
 });
 
-router.post('/create-app-password', requireAuth, async (req, res) => {
+router.post('/create-app-password', requireAuth, validate({ body: bodyOf({}, 'Creating an app password') }), async (req, res) => {
     const accessToken = req.session.accessToken;
     const userId = req.session.user?.id;
 

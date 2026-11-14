@@ -12,6 +12,10 @@
 
 'use strict';
 
+// What this needs of automation/ and appStudio/ (features) is looked up by name
+// (core/featureModules.js, registered in boot/featureModules.js).
+const { featureModule } = require('../../../core/featureModules');
+
 const { rewriteRefs } = require('../../../core/packaging/manifest');
 const { fromRefs, visitPointers, isRef } = require('../../../core/packaging/pointers');
 const { walkAllSteps } = require('../../../core/packaging/walkers');
@@ -106,7 +110,7 @@ function applyResolutionsTo(definition, ref, ctx, report) {
     // it, so it only ever re-applies what the installer chose at install time,
     // read back from `solution_bindings` (upgrade.js wiringFromBindings).
     if (!ctx.wiring) return [];
-    const { rebindDatatables } = require('../../../automation/portability');
+    const { rebindDatatables } = featureModule('automation/portability');
 
     const { applied, ignored } = applyStepResolutions(definition, ref, ctx.wiring.resolutions);
     for (const row of applied) {

@@ -29,6 +29,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const log = require('../../telemetry/log');
+const { ignoreGone } = require('../../utils/bestEffort');
 const { getFfmpegPath, buildAudioArgs, runFfmpeg } = require('../media/ffmpeg');
 
 const FILTERS = [
@@ -132,7 +133,7 @@ async function preprocessForStt(inputPath, opts = {}) {
         // Corrupt input, unsupported codec, ffmpeg missing a library — none of
         // these should cost the user their transcription.
         log.warn(`[AudioPreprocess] Conditioning failed, sending original audio: ${/** @type {Error} */ (err).message}`);
-        try { fs.unlinkSync(outPath); } catch (_) { log.debug('converted temp file already gone', _); }
+        try { fs.unlinkSync(outPath); } catch (_) { ignoreGone('voice/audioPreprocess:unlinkConverted', _); }
         return noop;
     }
 
@@ -147,7 +148,7 @@ async function preprocessForStt(inputPath, opts = {}) {
     return {
         path: outPath,
         preprocessed: true,
-        cleanup: () => { try { fs.unlinkSync(outPath); } catch (_) { log.debug('converted temp file already gone', _); } },
+        cleanup: () => { try { fs.unlinkSync(outPath); } catch (_) { ignoreGone('voice/audioPreprocess:cleanupConverted', _); } },
     };
 }
 
@@ -199,13 +200,13 @@ async function asM4aIfAdts(inputPath, fileName) {
         await runFfmpeg(repackArgs(inputPath, outPath));
     } catch (err) {
         log.warn(`[AudioPreprocess] Repacking .aac failed, sending it as is: ${/** @type {Error} */ (err).message}`);
-        try { fs.unlinkSync(outPath); } catch (_) { log.debug('repacked temp file already gone', _); }
+        try { fs.unlinkSync(outPath); } catch (_) { ignoreGone('voice/audioPreprocess:unlinkRepacked', _); }
         return same;
     }
     return {
         path: outPath,
         fileName: fileName.replace(/\.aac$/i, '.m4a'),
-        cleanup: () => { try { fs.unlinkSync(outPath); } catch (_) { log.debug('repacked temp file already gone', _); } },
+        cleanup: () => { try { fs.unlinkSync(outPath); } catch (_) { ignoreGone('voice/audioPreprocess:cleanupRepacked', _); } },
     };
 }
 

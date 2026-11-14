@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Knowledge Bases — text, file and URL ingestion.
  *
@@ -12,16 +12,15 @@ const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
 const router = express.Router();
 const multer = require('multer');
-const kbStore = require('../../stores/knowledgeBases');
 const { requireAuth, requirePermission } = require('../../auth');
 const {
     extractFileContentWithMeta,
     fetchUrlContent,
     ingestDocument,
 } = require('../../core/kb/kbIngestionHelpers');
-// Writing content is managing the base: canManageKB (manage_knowledge held in
-// the base's own organisation, or its owner), not the read check.
-const { getUserId, canManageKB, blockIfSystemKB, ensureKbSource } = require('./shared');
+// Writing content is managing the base: the manage grade (manage_knowledge held in
+// the base's own organisation, or its owner), not the read grade.
+const { getUserId, requireKbGrade, kbAccessOf, blockIfSystemKB, ensureKbSource } = require('./shared');
 const { keepUploadedOriginal } = require('../../core/kb/sources/keepOriginals');
 const { validate } = require('../../core/http/validate');
 const { z } = require('../../utils/zod');
@@ -59,11 +58,9 @@ const upload = multer({
 /**
  * Ingest text content into a KB
  */
-router.post('/:id/ingest/text', requireAuth, requirePermission('manage_knowledge'), validate({ body: IngestTextBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof IngestTextBody>, import('qs').ParsedQs>} */ req, res, next) => {
+router.post('/:id/ingest/text', requireAuth, requirePermission('manage_knowledge'), requireKbGrade('manage'), validate({ body: IngestTextBody }), async (req, res, next) => {
     try {
-        const kb = await kbStore.getKB(req.params.id);
-        if (!kb) return res.status(404).json({ error: 'KB not found' });
-        if (!(await canManageKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
+        const { kb } = kbAccessOf(req);
         if (blockIfSystemKB(kb, res)) return;
 
         const { content, title } = req.body;
@@ -101,11 +98,9 @@ router.post('/:id/ingest/text', requireAuth, requirePermission('manage_knowledge
 /**
  * Ingest file into a KB
  */
-router.post('/:id/ingest/file', requireAuth, requirePermission('manage_knowledge'), upload.single('file'), async (req, res, next) => {
+router.post('/:id/ingest/file', requireAuth, requirePermission('manage_knowledge'), requireKbGrade('manage'), upload.single('file'), async (req, res, next) => {
     try {
-        const kb = await kbStore.getKB(req.params.id);
-        if (!kb) return res.status(404).json({ error: 'KB not found' });
-        if (!(await canManageKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
+        const { kb } = kbAccessOf(req);
         if (blockIfSystemKB(kb, res)) return;
 
         if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
@@ -139,7 +134,7 @@ router.post('/:id/ingest/file', requireAuth, requirePermission('manage_knowledge
                 sizeBytes: req.file.size != null ? req.file.size : (req.file.buffer ? req.file.buffer.length : null),
                 mime,
                 pageCount: Number.isFinite(meta && meta.pageCount) ? meta.pageCount : null,
-                sheetCount: Array.isArray(meta && meta.sheetNames) ? meta.sheetNames.length : null,
+                sheetCount: Array.isArray(meta && meta.sheetNames) ? /** @type {unknown[]} */ (/** @type {NonNullable<typeof meta>} */ (meta).sheetNames).length : null,
                 // The pages themselves, so each chunk carries the page it
                 // starts on and a citation can be checked against the document.
                 pages: Array.isArray(meta && meta.pages) ? meta.pages : null,
@@ -166,11 +161,9 @@ router.post('/:id/ingest/file', requireAuth, requirePermission('manage_knowledge
 /**
  * Ingest URL into a KB
  */
-router.post('/:id/ingest/url', requireAuth, requirePermission('manage_knowledge'), validate({ body: IngestUrlBody }), async (/** @type {import('express').Request<{ id: string }, any, import('zod').infer<typeof IngestUrlBody>, import('qs').ParsedQs>} */ req, res, next) => {
+router.post('/:id/ingest/url', requireAuth, requirePermission('manage_knowledge'), requireKbGrade('manage'), validate({ body: IngestUrlBody }), async (req, res, next) => {
     try {
-        const kb = await kbStore.getKB(req.params.id);
-        if (!kb) return res.status(404).json({ error: 'KB not found' });
-        if (!(await canManageKB(req, kb))) return res.status(403).json({ error: 'Access denied' });
+        const { kb } = kbAccessOf(req);
         if (blockIfSystemKB(kb, res)) return;
 
         const { url } = req.body;

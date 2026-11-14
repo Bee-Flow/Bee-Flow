@@ -1,6 +1,7 @@
 import { render, waitFor, act } from '@testing-library/react';
 import React from 'react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { queryWrapper } from '@/test/queryWrapper';
 import { EntitlementsProvider } from './EntitlementsContext';
 import { LicenseProvider, useLicenseContext } from './LicenseContext';
 import { TIER_HIERARCHY, TIER_RANK } from './licenseTiers';
@@ -48,6 +49,7 @@ function renderHarness(onRead) {
                 <HarnessReader onRead={onRead} />
             </LicenseProvider>
         </EntitlementsProvider>,
+        { wrapper: queryWrapper() },
     );
 }
 
@@ -99,7 +101,7 @@ describe('LicenseContext', () => {
         };
         await act(async () => { await captured.reload(); });
 
-        expect(captured.tier).toBe('enterprise');
+        await waitFor(() => expect(captured.tier).toBe('enterprise'));
         expect(captured.license).toEqual({ id: 'lic_legacy_pro', tier: 'enterprise' });
         expect(captured.hasTier('enterprise')).toBe(true);
         expect(captured.hasTier('full')).toBe(false);

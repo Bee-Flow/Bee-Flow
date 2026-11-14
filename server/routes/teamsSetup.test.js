@@ -223,6 +223,15 @@ test('my diagnostics: a user report, then 429 within the interval', async () => 
     assert.equal((await api.call('POST', '/api/teams-setup/me/diagnostics', { user: MEMBER_B })).status, 200, 'another user has their own slot');
 });
 
+test('the connection test and the consent link take no fields: one sent is refused by name, and the test slot stays free', async () => {
+    fx.config = { providers: { microsoft: { clientId: CLIENT, clientSecret: SECRET, tenantId: 'common' } } };
+    const mine = await api.call('POST', '/api/teams-setup/me/diagnostics', { user: MEMBER_A, body: { userId: 'a-admin' } });
+    h.assertRefused(assert, mine, 'body', /does not take "userId"/);
+    const link = await api.call('POST', '/api/teams-setup/org/consent-link', { user: ADMIN_A, body: { tenantId: TENANT_A } });
+    h.assertRefused(assert, link, 'body', /does not take "tenantId"/);
+    assert.equal((await api.call('POST', '/api/teams-setup/me/diagnostics', { user: MEMBER_A })).status, 200, 'the refused request took no slot');
+});
+
 // ── option B: organisation-wide import ───────────────────────────────
 
 const coverage = require('../core/meetingNotes/teamsAppImport/coverage.mts');

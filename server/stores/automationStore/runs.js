@@ -125,7 +125,7 @@ function rowToRunWithAutomation(r) {
     };
 }
 
-/** The org-scoped row: an explicit allow-list, see orgRunRow.js. */
+/** The org-scoped row: an explicit allow-list, see orgRunRow.js. @param {string | null} [viewerUserId] */
 function rowToOrgRunRow(r, viewerUserId = null) {
     return projectOrgRun(rowToRunWithAutomation(r), viewerUserId);
 }

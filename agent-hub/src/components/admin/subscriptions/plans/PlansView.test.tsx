@@ -1,11 +1,12 @@
 // Subscriptions → Plans. Pinned: "Delete plan" inside the editor asks for
 // confirmation right there (the dialog used to exist only in the list view, so
 // the button did nothing until the admin went back).
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import { setDemoTransport } from '@/utils/helpers';
 import { PlansView } from './PlansView';
+import { renderWithClient } from '@/test/render';
 
 const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
 
@@ -21,7 +22,7 @@ describe('PlansView', () => {
             if (address.endsWith('/api/subscriptions/plans')) return json([{ id: 'p1', name: 'Team', price: 10, plan_type: 'organization' }]);
             return json({});
         });
-        render(<PlansView />);
+        renderWithClient(<PlansView />);
         await user.click(await screen.findByRole('button', { name: /Edit/ }));
         expect(await screen.findByText('Edit subscription plan', { exact: false })).toBeTruthy();
 

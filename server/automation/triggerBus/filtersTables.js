@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 
 const { containsCI } = require('./matchUtil');
@@ -12,8 +12,8 @@ const { containsCI } = require('./matchUtil');
 function matchNextcloudTablesRowFilter(payload, filter) {
     if (!filter) return true;
     if (filter.tableId !== undefined && filter.tableId !== null && filter.tableId !== ''
-        && String(payload.tableId) !== String(filter.tableId)) return false;
-    if (filter.actorEquals && payload.actor !== filter.actorEquals) return false;
+        && String(payload?.tableId) !== String(filter.tableId)) return false;
+    if (filter.actorEquals && payload?.actor !== filter.actorEquals) return false;
     // Values are keyed by numeric column id in the event payload (the webhook
     // envelope has no column titles), so a value filter names the column id.
     // Without a columnId the value filters are not skipped (that fired on every

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Org subscriptions — listing every org's subscription, one org's subscription
  * with its billing/usage view and plan pickers, the admin assign/update write,
@@ -182,7 +182,7 @@ router.get('/orgs/:orgId', async (/** @type {import('express').Request<{ orgId: 
         ? explicitCap
         : derivedCap;
     if (effectiveCostCap != null) {
-        effective.max_cost_per_month = effectiveCostCap;
+        /** @type {NonNullable<typeof effective>} */ (effective).max_cost_per_month = effectiveCostCap; // the subscription was read above
     }
 
     // Pooled / per-user toggle lives on the organization row. '1' is
@@ -207,8 +207,8 @@ router.get('/orgs/:orgId', async (/** @type {import('express').Request<{ orgId: 
         usage_pooled: usagePooled,
         per_user_cap: !usagePooled
             && Number.isFinite(Number(effective?.max_cost_per_month))
-            && Number(effective.max_cost_per_month) > 0
-            ? Number(effective.max_cost_per_month) / Math.max(1, seatQty)
+            && Number(effective?.max_cost_per_month) > 0
+            ? Number(effective?.max_cost_per_month) / Math.max(1, seatQty)
             : null,
     } : null;
 
@@ -364,8 +364,8 @@ router.put('/orgs/:orgId', validate({ body: OrgSubscriptionBody }), async (/** @
                 req.params.orgId,
                 adminId,
                 {
-                    previous_override_by: oldSub.manual_override_by,
-                    previous_override_until: oldSub.manual_override_until,
+                    previous_override_by: /** @type {NonNullable<typeof oldSub>} */ (oldSub).manual_override_by,
+                    previous_override_until: /** @type {NonNullable<typeof oldSub>} */ (oldSub).manual_override_until, // displaced: read from the row before the write
                 },
                 { manual_override_until: payload.manual_override_until, manual_override_by: payload.manual_override_by },
             );

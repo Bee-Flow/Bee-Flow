@@ -243,7 +243,7 @@ export interface BriefRequest {
  */
 export async function requestDesignBrief({ adapter, cfg, modelId, ask, seed, userId, usageTotals, signal, stream, env = process.env }: BriefRequest): Promise<string | null> {
     const { timeoutMs, temperature } = designBriefSettings(env);
-    const run: StreamFn = stream || (nodeRequire('./modelStream.js') as { streamWithRetry: StreamFn }).streamWithRetry;
+    const run: StreamFn = stream || (nodeRequire('../../../usecases/ai/appStudioBuilder/modelStream.js') as { streamWithRetry: StreamFn }).streamWithRetry;
     const abort = new AbortController();
     const onClientAbort = () => abort.abort();
     if (signal?.aborted) return null;

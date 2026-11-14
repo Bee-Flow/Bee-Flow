@@ -12,8 +12,9 @@
 'use strict';
 
 /**
- * @param {() => { getAutomation(id: string): Promise<object|null> }} store the store, read per request
- * @param {{ guard(req: object, res: object, a: object, need: string): Promise<object|null> }} access
+ * @template A, C
+ * @param {() => { getAutomation(id: string): Promise<A | null> }} store the store, read per request
+ * @param {{ guard(req: object, res: object, a: A, need: string): Promise<C | null> }} access
  */
 function makeGuardedLoad(store, access) {
     /**

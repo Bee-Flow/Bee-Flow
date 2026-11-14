@@ -1,5 +1,6 @@
 import { Check, Copy } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import AiTranslateControl, { AiTranslateResult } from './AiTranslateControl';
 import { LANGUAGES_API } from './useLanguages';
 import useAiTranslate, { translateRequest } from '@/hooks/useAiTranslate';
@@ -132,28 +133,51 @@ function PromptSideBySide({ locale, label, defaultText, editText, setEditText, s
     );
 }
 
+const NO_TRANSLATIONS: Record<string, string> = {};
+
+/** The picked prompt, or until one is picked the first one the server lists. */
+function shownPrompt(picked: string | null, data: PromptData | null): string | null {
+    return picked || data?.promptIds?.[0] || null;
+}
+
+/** One locale's prompts and their translations; a save writes the translation into the cached read. */
+function usePromptTranslations(locale: string, onSaved: () => void) {
+    const queryClient = useQueryClient();
+    const key = ['languages', locale, 'prompts'] as const;
+    const query = useQuery<PromptData>({
+        queryKey: key,
+        staleTime: 0,
+        retry: false,
+        queryFn: async () => (await getLanguages(`${locale}/prompts`)).json(),
+    });
+    const { refetch } = query;
+    const fetchData = useCallback(() => { void refetch(); }, [refetch]);
+    const save = useMutation({
+        mutationFn: async ({ promptId, text }: { promptId: string; text: string }) => {
+            const res = await sendLanguagesJson('PUT', `${locale}/prompts/${promptId}`, { text });
+            return res.ok;
+        },
+        onSuccess: (ok, { promptId, text }) => {
+            if (!ok) return;
+            queryClient.setQueryData<PromptData>(key, (prev) => (prev ? { ...prev, translations: { ...prev.translations, [promptId]: text } } : prev));
+            onSaved();
+        },
+        onError: (err) => logger.warn('prompt translation save failed', err),
+    });
+    return { data: query.data ?? null, translations: query.data?.translations ?? NO_TRANSLATIONS, fetchData, save };
+}
+
 /** The system prompts of one locale: pick one, translate it side by side. */
 export default function PromptEditor({ locale }: { locale: string }) {
     const { t } = useTranslation();
-    const [data, setData] = useState<PromptData | null>(null);
-    const [translations, setTranslations] = useState<Record<string, string>>({});
-    const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null);
-    const [editText, setEditText] = useState('');
-    const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
-
-    const fetchData = useCallback(() => {
-        getLanguages(`${locale}/prompts`)
-            .then((r: Response) => r.json())
-            .then((d: PromptData) => {
-                setData(d);
-                setTranslations(d.translations || {});
-                if (d.promptIds?.length) setSelectedPrompt(cur => cur || d.promptIds![0]);
-            });
-    }, [locale]);
-
-    useEffect(() => { fetchData(); }, [fetchData]);
-
+    const { data, translations, fetchData, save } = usePromptTranslations(locale, () => {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+    });
+    const [pickedPrompt, setSelectedPrompt] = useState<string | null>(null);
+    const selectedPrompt = shownPrompt(pickedPrompt, data);
+    const [editText, setEditText] = useState('');
     useAdjustOnChange([selectedPrompt, translations], () => {
         if (selectedPrompt) {
             setEditText(translations[selectedPrompt] || '');
@@ -161,18 +185,10 @@ export default function PromptEditor({ locale }: { locale: string }) {
         }
     });
 
-    const handleSave = async () => {
+    const saving = save.isPending;
+    const handleSave = () => {
         if (!selectedPrompt) return;
-        setSaving(true);
-        try {
-            const res = await sendLanguagesJson('PUT', `${locale}/prompts/${selectedPrompt}`, { text: editText });
-            if (res.ok) {
-                setTranslations(prev => ({ ...prev, [selectedPrompt]: editText }));
-                setSaved(true);
-                setTimeout(() => setSaved(false), 2000);
-            }
-        } catch (err) { logger.warn('prompt translation save failed', err); }
-        setSaving(false);
+        save.mutate({ promptId: selectedPrompt, text: editText });
     };
 
     const ai = useAiTranslate({

@@ -157,6 +157,7 @@ function LinkToggle({ linked, mixed, onToggle }: { linked: boolean; mixed: boole
             type="button"
             onClick={onToggle}
             title={title}
+            aria-label={title}
             aria-pressed={linked}
             className={`p-1.5 rounded-md border transition-colors shrink-0
                 ${linked

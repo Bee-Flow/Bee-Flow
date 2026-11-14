@@ -1,3 +1,4 @@
+// @typecheck strict
 const kbStore = require('../../stores/knowledgeBases');
 const { getServiceHeaders } = require('../serviceAuth');
 const { friendlyError } = require('./friendlyError');
@@ -20,12 +21,12 @@ const { isMissingTable } = require('../../utils/isMissingTable');
  * and that error lands in `errors` of purgeSourceDocuments, which yields `complete: false` and leaves
  * the source row in place.
  *
- * @param {{ strict?: boolean, deleteLocal?: typeof import('./localKBIngest').deleteChunksLocally }} [opts]  `strict`
- *   (default false): throw if the remote cleanup is not demonstrably done, instead of warning;
- *   `deleteLocal` a test seam for localKBIngest.deleteChunksLocally
  * @param {string} kbId
  * @param {string} docId
  * @param {string} tenantId
+ * @param {{ strict?: boolean, deleteLocal?: typeof import('./localKBIngest').deleteChunksLocally }} [opts]  `strict`
+ *   (default false): throw if the remote cleanup is not demonstrably done, instead of warning;
+ *   `deleteLocal` a test seam for localKBIngest.deleteChunksLocally
  */
 async function purgeDocumentChunks(kbId, docId, tenantId, { strict = false, deleteLocal } = {}) {
     // Clean up local kb_chunks (for Azure-path ingested docs)
@@ -97,7 +98,7 @@ async function assertKbDocumentsWrite(kbId, managedWrite) {
  * @param {NonNullable<Parameters<typeof import('./kbIngestionHelpers').ingestDocument>[6]> & { title?: string,
  *   managedWrite?: { deploymentId?: string } | null }} [options] - the keys of ingestDocument's options
  *   (lang, metadata, externalId, …, onFailure), the title, and a deployment's write capability
- * @returns {Promise<{document: object, chunks: number, status: string, error?: string}>}
+ * @returns {Promise<{document: { id: string, [k: string]: any }, chunks: number, status: string, error?: string}>}
  */
 async function reingestDocument(tenantId, kbId, docId, content, options = {}) {
     const {

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Project files — files uploaded straight into a collaborative project.
  *
@@ -139,7 +139,7 @@ function toFile(doc, now) {
         id: doc.id,
         name: doc.title || 'Untitled file',
         mimeType: doc.mime || null,
-        size: doc.size_bytes != null && Number.isFinite(size) ? size : null,
+        size: doc.size_bytes != null && Number.isFinite(size) ? /** @type {number} */ (size) : null,
         status,
         statusReason,
         // Personal data was replaced by placeholders before the text was stored.
@@ -245,7 +245,7 @@ function makeProjectFiles(deps = {}) {
      * The names of those of `ids` that are still files of this project, read
      * now. A file that was removed (or never was this project's) is absent.
      * @param {import('./projectFilesKb').FilesProject} project  a getProject() result
-     * @param {string[]} ids
+     * @param {Array<string | null>} ids  a missing id is skipped
      * @returns {Promise<Map<string, string>>}
      */
     async function fileNames(project, ids) {
@@ -283,7 +283,7 @@ function makeProjectFiles(deps = {}) {
         /**
          * @param {{ action?: string; targetId?: string; details?: { targetId?: string; name?: string; }; }} item
          */
-        const isFileRow = (item) => !!item && FILE_ACTIONS.has(item.action);
+        const isFileRow = (item) => !!item && FILE_ACTIONS.has(/** @type {string} */ (item.action));
         if (!list.some(isFileRow)) return list;
         /**
          * @param {{ action?: string; targetId?: string; details?: { targetId?: string; name?: string; }; }} item

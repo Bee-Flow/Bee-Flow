@@ -87,7 +87,7 @@ ${apps || emptyCatalogLine(catalog)}
 Begin now.`;
 }
 
-/** @typedef {{ agentDraftState?: string, canvasScope?: string | undefined | null, title?: string | undefined }} RenderDraftStateSystemMessageArgs */
+/** @typedef {{ agentDraftState?: string, canvasScope?: string | undefined | null, title?: string | null }} RenderDraftStateSystemMessageArgs */
 /**
  * Per-turn dynamic context: the live draft state (+ optional canvas-scope
  * hint), emitted as its OWN system message placed late in the message list

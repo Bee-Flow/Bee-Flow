@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Notebook Tools (formerly Workspace Tools)
  * Provides notebook_read, notebook_write, notebook_replace, notebook_insert,
@@ -46,8 +46,8 @@ function parseRevision(value) {
     return Number.isInteger(seq) && seq >= 0 ? seq : null;
 }
 
-/** May this notebook role change the document? (routes/notebooksAccess.js ranks the same roles.) */
-const canEditNotebook = (/** @type {string | null | undefined} */ role) => role === 'owner' || role === 'editor';
+/** May this notebook role change the document? The one ladder (auth/notebookAccess.mts). */
+const canEditNotebook = (/** @type {string | null | undefined} */ role) => require('../auth/notebookAccess.mts').hasNotebookRole(role, 'editor');
 
 const WORKSPACE_TOOLS = [
     {
@@ -225,7 +225,7 @@ async function getWorkspace(convId) {
             notebookRole: role,
             // Co-edited, and the live update this content was read at.
             coEdited: current.active,
-            liveSeq: current.live && Number.isInteger(current.seq) ? current.seq : null,
+            liveSeq: current.live && Number.isInteger(current.seq) ? /** @type {number} */ (current.seq) : null,
         };
     }
     return { content: row.workspace_content || '', user_id: row.user_id, source };
@@ -344,7 +344,7 @@ async function setWorkspace(convId, content, workspace, { expectSeq = null } = {
             if (live.conflict) return 'conflict';
             if (live.stale) return 'stale';
             // The live update it made: the revision a next whole write goes from.
-            if (live.applied) { workspace.liveSeqAfter = Number.isInteger(live.seq) ? live.seq : null; return true; }
+            if (live.applied) { workspace.liveSeqAfter = Number.isInteger(live.seq) ? /** @type {number} */ (live.seq) : null; return true; }
         } catch (e) {
             log.warn('[NotebookTool] co-edited notebook write failed', { notebookId: workspace.notebookId, error: /** @type {Error} */ (e).message });
             return false;
@@ -457,7 +457,7 @@ async function notebookInsert(args, c) {
         if (edit.error) return edit;
         const { newContent } = edit;
 
-        const saved = await setWorkspace(conversationId, newContent, workspace);
+        const saved = await setWorkspace(conversationId, /** @type {string} */ (newContent), workspace); // an edit without an error has its content
         if (saved !== true) return failedWrite(c, saved, workspace, 'Insert');
         const words = wordCount(insertContent);
         return {
@@ -500,7 +500,7 @@ async function notebookReplace(args, c) {
         if (edit.error) return edit;
         const { newContent } = edit;
 
-        const saved = await setWorkspace(conversationId, newContent, workspace);
+        const saved = await setWorkspace(conversationId, /** @type {string} */ (newContent), workspace); // an edit without an error has its content
         if (saved !== true) return failedWrite(c, saved, workspace, 'Replace');
         const action = replaceText ? 'replaced' : 'removed';
         return {

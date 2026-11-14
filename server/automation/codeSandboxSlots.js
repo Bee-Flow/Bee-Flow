@@ -19,8 +19,9 @@
  * even when the process has free slots, so one org can never hold them all.
  */
 
-const MAX_TOTAL = Math.max(1, Number(process.env.CODE_STEP_MAX_CONCURRENCY) || 4);
-const MAX_PER_KEY = Math.max(1, Math.min(MAX_TOTAL, Number(process.env.CODE_STEP_MAX_CONCURRENCY_PER_ORG) || 2));
+const { envInt } = require('../utils/envNumber.mts');
+const MAX_TOTAL = Math.max(1, envInt('CODE_STEP_MAX_CONCURRENCY', 4, { min: 1 }));
+const MAX_PER_KEY = Math.max(1, Math.min(MAX_TOTAL, envInt('CODE_STEP_MAX_CONCURRENCY_PER_ORG', 2, { min: 1 })));
 const MAX_WAIT_MS = 20_000;
 
 function createSlots({ maxTotal = MAX_TOTAL, maxPerKey = MAX_PER_KEY, maxWaitMs = MAX_WAIT_MS } = {}) {

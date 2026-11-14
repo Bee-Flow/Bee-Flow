@@ -138,3 +138,17 @@ test('isPublished as text is refused', async () => {
     assert.strictEqual(res.body.error, 'isPublished is true or false.');
     assert.deepStrictEqual(touched, []);
 });
+
+test('an app deleted between the lookup and the write is a 404 the client can read, not a 500', async () => {
+    const store = MOCKS['../stores/appStore'];
+    const { updateApp, deleteApp } = store;
+    store.updateApp = async () => false;
+    store.deleteApp = async () => false;
+    try {
+        for (const [method, body] of [['PUT', { name: 'Renamed' }], ['DELETE', undefined]]) {
+            const res = await dispatch({ method, url: '/app1', body });
+            assert.strictEqual(res.statusCode, 404, method);
+            assert.strictEqual(res.body.code, 'app_not_found', method);
+        }
+    } finally { Object.assign(store, { updateApp, deleteApp }); }
+});

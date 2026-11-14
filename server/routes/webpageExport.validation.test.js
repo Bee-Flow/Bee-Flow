@@ -51,7 +51,7 @@ const MOCKS = {
     },
     '../auth/permissions': { requireAuth: pass },
     '../compliance/dataPortability/stampExport': () => pass,
-    '../integrations/webpageFramework': { resolveFramework: () => 'vanilla' },
+    '../core/webpages/frameworkModel.mts': { resolveFramework: () => 'vanilla' },
     '../services/browserProvider': {
         withContext: async (opts, fn) => {
             rendered.push(opts);

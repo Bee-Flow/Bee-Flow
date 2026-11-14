@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * MOVING A PLAYBOOK ALONG — the work every route group does between loading
  * the row and answering: resolve the recipe behind it, load the caller's own
@@ -82,7 +82,7 @@ function makeFlow(d) {
         const phase = lifecycle.phaseByKey(phases, key);
         if (!phase || phase.briefEdited) return phases;
         const brief = lifecycle.composeBriefFor(recipe, key, { ...playbook, phases });
-        return phases.map((p) => (p.key === key ? { ...p, brief, briefVersion: recipe.BRIEF_VERSION } : p));
+        return phases.map((p) => (p.key === key ? { ...p, brief, briefVersion: /** @type {NonNullable<typeof recipe>} */ (recipe).BRIEF_VERSION } : p)); // the caller's playbook has a recipe
     };
 
     /**

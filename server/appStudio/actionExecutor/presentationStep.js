@@ -18,6 +18,9 @@
 
 'use strict';
 
+// Another feature's module, looked up by name (core/featureModules.js).
+const { featureModule } = require('../../core/featureModules');
+
 const { buildServerScope, resolveBinding, storeStudioAttachment } = require('./shared');
 const log = require('../../telemetry/log');
 
@@ -59,7 +62,7 @@ async function generatePresentationStep(app, model, step, ctx) {
         if (typeof v === 'string' && v.trim()) theme[k] = v.trim();
     }
 
-    const { renderPresentation } = require('../../services/presentationRenderer');
+    const { renderPresentation } = featureModule('services/presentationRenderer');
     let rendered;
     try {
         rendered = await renderPresentation({

@@ -81,22 +81,23 @@ export function useChangeFeedLive(projectId: string | null | undefined, currentU
     const qc = useQueryClient();
     const { subscribe } = useProjectLive();
     const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const changesKey = useMemo(() => (projectId ? changeKeys.all(projectId) : null), [projectId]);
     useEffect(() => {
-        if (!projectId) return undefined;
+        if (!changesKey) return undefined;
         const off = subscribe((kind, event) => {
             if (!CONTENT_EVENT.test(kind)) return;
             if (event?.actorId && event.actorId === currentUserId) return;
             if (timer.current) return;
             timer.current = setTimeout(() => {
                 timer.current = null;
-                qc.invalidateQueries({ queryKey: changeKeys.all(projectId) });
+                qc.invalidateQueries({ queryKey: changesKey });
             }, REFRESH_DELAY_MS);
         });
         return () => {
             off();
             if (timer.current) { clearTimeout(timer.current); timer.current = null; }
         };
-    }, [projectId, currentUserId, subscribe, qc]);
+    }, [changesKey, currentUserId, subscribe, qc]);
 }
 
 /**

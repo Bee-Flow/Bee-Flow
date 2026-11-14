@@ -8,7 +8,8 @@
  */
 
 const { randomUUID } = require('crypto');
-const { run, getOne, getAll } = require('../../db');
+const { run, getOne, getAll, withTransaction } = require('../../db');
+const { deleteConversationsWhere } = require('./agentConversationsDelete.mts');
 const { initDB } = require('./initSchema');
 const convMessages = require('./conversationMessages');
 const { decryptMessages } = require('./messageEncryption');
@@ -26,7 +27,6 @@ const log = require('../../telemetry/log');
 const { _restoreTokensInMessages, _displayTokenMap } = require('./tokenDisplay');
 const { searchConversationRows, byUpdatedDesc, DIRECT_SEARCH } = require('../lib/conversationSearch');
 const { fallback, bestEffort } = require('../../utils/bestEffort');
-const { isMissingTable } = require('../../utils/isMissingTable');
 
 /** What the shared search needs from this store's db and crypto modules. */
 const SEARCH_DEPS = {
@@ -611,8 +611,7 @@ async function deleteDirectConversation(id, userId) {
     const owned = await getOne('SELECT id FROM direct_conversations WHERE id = $1 AND user_id = $2', [id, userId]);
     if (!owned) return false;
 
-    await run('DELETE FROM conversation_messages WHERE conversation_id = $1', [id]).catch((e) => { if (!isMissingTable(e)) throw e; });
-    const { rowCount } = await run('DELETE FROM direct_conversations WHERE id = $1 AND user_id = $2', [id, userId]);
+    const rowCount = await deleteConversationsWhere(withTransaction, 'direct_conversations', 'id = $1 AND user_id = $2', [id, userId]);
     // Cached DLP state: unscoped by id (nulls pii_token_map on BOTH tables), hence gated on the ownership check above.
     try { require('../../core/dlp/dlpRunner').clearConversationState(id); } catch (err) { bestEffort('stores/agent/directConversations:deleteDirectConversation', err); /* module not loaded yet */ }
     return rowCount > 0;

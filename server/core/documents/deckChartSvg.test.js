@@ -17,7 +17,9 @@ const { chartFromAny } = require('./deckChart');
 const { resolveDeckTheme } = require('./deckThemeOptions');
 
 const th = resolveDeckTheme({ enabled: true, accent: '#F5A623', ink: '#1A1A1A' });
-const two = chartFromAny({ labels: ['Q1', 'Q2', 'Q3'], series: [{ name: 'Omzet', values: [10, 20, 30] }, { name: 'Kosten', values: [5, 8, 12] }] }, {}, []);
+/** @typedef {import('./deckModel').SlideChart} SlideChart */
+// This input always yields a chart; the cast drops the null chartFromAny returns for data without numbers.
+const two = /** @type {SlideChart} */ (chartFromAny({ labels: ['Q1', 'Q2', 'Q3'], series: [{ name: 'Omzet', values: [10, 20, 30] }, { name: 'Kosten', values: [5, 8, 12] }] }, {}, []));
 
 test('column and bar: one rect per value, category labels, a legend for two series', () => {
     const svg = chartSvg(two, th);
@@ -69,7 +71,8 @@ test('pie and donut: one path per non-zero slice, percentages readable on their 
     assert.ok(pie.includes('>40%<') && /<text[^>]*>A <tspan/.test(pie), 'the label list names each slice with its value');
     const donut = chartSvg(chartFromAny('A: 70\nB: 30', { type: 'donut' }, []), th);
     assert.ok(/A[\d.]+ [\d.]+ 0 [01] 0 /.test(donut), 'a donut slice has an inner arc');
-    const empty = chartSvg({ type: 'pie', labels: ['a'], series: [{ name: '', values: [0] }] }, th);
+    // A bare model on purpose: chartSvg must cope with the optional settings left out.
+    const empty = chartSvg(/** @type {SlideChart} */ ({ type: 'pie', labels: ['a'], series: [{ name: '', values: [0] }] }), th);
     assert.ok(empty.includes('—'));
 });
 

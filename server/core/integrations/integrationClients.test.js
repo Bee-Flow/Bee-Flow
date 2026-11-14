@@ -28,7 +28,7 @@ test('a client must be registered as a getter', () => {
     assert.ok(!registry.hasIntegrationClient('_bad'));
 });
 
-// What core uses of each client (the list in the registry's header). The
+// What callers use of each client (the list in the registry's header). The
 // getters are called here, so this also proves each one loads.
 const EXPECTED = {
     google: ['createGoogleApiClient'],
@@ -38,6 +38,13 @@ const EXPECTED = {
     nextcloudTables: ['toWireData', 'readJsonSafe', 'describeColumn', 'mapTable'],
     nextcloudTalk: ['executeNextcloudTalkTool', 'getTalkRecordingCapability'],
     nextcloudCalendar: ['executeNextcloudCalendarTool'],
+    nextcloudTalkBot: ['getBotSecret', 'postBotMessage', 'postBotReaction', 'findMessageIdByReference', 'listMessageReactions'],
+    nextcloudAdminNotify: ['sendAdminNotification'],
+    nextcloudActivity: ['executeNextcloudActivityTool', 'incomingShares'],
+    nextcloudNotifications: ['executeNextcloudNotificationsTool'],
+    gmail: ['extractAttachments'],
+    github: ['executeGitHubTool'],
+    youtrack: ['executeYouTrackTool'],
 };
 
 test('integrations/integrationClients.js registers every client core asks for', () => {
@@ -50,4 +57,7 @@ test('integrations/integrationClients.js registers every client core asks for', 
     assert.strictEqual(typeof registry.integrationClient('nextcloudWebdav').PROPFIND_BODY, 'string');
     assert.strictEqual(typeof registry.integrationClient('nextcloudTables').TABLES_API, 'string');
     assert.strictEqual(typeof registry.integrationClient('nextcloudTables').HEADERS, 'object');
+    assert.strictEqual(typeof registry.integrationClient('nextcloudTalkBot').TALK_V1, 'string');
+    assert.strictEqual(typeof registry.integrationClient('nextcloudTalkBot').MAX_MESSAGE_CHARS, 'number');
+    assert.strictEqual(typeof registry.integrationClient('nextcloud').getBaseUrl, 'function');
 });

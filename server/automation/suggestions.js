@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Automation suggestions — pure helpers for the "Find repeating work" scan.
  *
@@ -13,7 +14,6 @@
  * complexity, and duplicates work the user already has. Every suggestion is
  * re-derived and clamped here before it reaches the client.
  */
-
 const crypto = require('crypto');
 
 // Complexity tiers, low → high. Index is the rank used for clamping: we never
@@ -96,7 +96,7 @@ function tierRank(tier) {
  * ignored. With no user nothing identifies the caller and the filter is empty;
  * callers must treat that as "no activity", never as "everything".
  */
-function resolveActivityFilter({ userId } = {}) {
+function resolveActivityFilter(/** @type {{ userId?: string | null, organizationId?: string | null }} */ { userId } = {}) {
     if (userId) return { userId };
     return {};
 }
@@ -263,7 +263,7 @@ function stripTokens(text) {
  * suggestion object, or null when the element is too malformed to keep or is a
  * near-duplicate of an automation the user already has.
  *
- * @param {unknown} raw
+ * @param {Record<string, any> | unknown[] | string | number | boolean | null | undefined} raw  one element of the model's JSON
  * @param {{ availableIntegrationIds?: Iterable<string>, existingTitles?: string[] }} [opts]
  *        availableIntegrationIds: integration ids the user can actually use. Required
  *        ids outside this set are kept but moved to `unavailableIntegrations`
@@ -516,7 +516,7 @@ function frequencyLabel(monthlyCount) {
  *
  * @returns {{ evidence: object, value: object }}
  */
-function scoreSuggestion(suggestion = {}, { activityIndex } = {}) {
+function scoreSuggestion(suggestion = {}, /** @type {{ activityIndex?: ReturnType<typeof buildActivityIndex> | null }} */ { activityIndex } = {}) {
     const idx = activityIndex instanceof Map ? activityIndex : new Map();
     const reqs = Array.isArray(suggestion.requiredIntegrations) ? suggestion.requiredIntegrations : [];
 

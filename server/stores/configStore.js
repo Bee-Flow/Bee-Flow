@@ -347,7 +347,7 @@ async function _auditCredentialChange(key, action, ctx) {
  * Optional 3rd arg `auditCtx` carries audit-log context:
  *   { orgId?, userId?, integration? }
  * The key itself is recorded but never the value.
- */
+ * @param {{ orgId?: string | null, userId?: string | null, integration?: string } | null} [auditCtx] */
 async function setSecret(key, value, auditCtx = null) {
     await initDB();
     // Don't encrypt empty values
@@ -383,7 +383,7 @@ async function setSecret(key, value, auditCtx = null) {
  * random tenant key), exactly ONE value is ever stored and everyone reads it
  * back. This closes the tenant-key divergence at the DB — the only shared state
  * across server replicas. Returns the stored value, or null on failure.
- */
+ * @param {{ orgId?: string | null, userId?: string | null, integration?: string } | null} [auditCtx] */
 async function setSecretIfAbsent(key, value, auditCtx = null) {
     await initDB();
     if (!value || value === '') return await getSecret(key);
@@ -481,7 +481,7 @@ async function getSecretFresh(key) {
     return result;
 }
 
-async function deleteConfig(key, auditCtx = null) {
+/** @param {{ orgId?: string | null, userId?: string | null, integration?: string } | null} [auditCtx] */ async function deleteConfig(key, auditCtx = null) {
     await initDB();
     const { rowCount } = await run('DELETE FROM config WHERE key = $1', [key]);
     _cacheInvalidate(key);

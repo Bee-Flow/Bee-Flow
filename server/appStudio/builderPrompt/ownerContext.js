@@ -7,7 +7,7 @@
 'use strict';
 
 // The machine note that carries the owner's automations and documents. Defined
-// here (with the renderer) and listed in routes/ai/appStudioBuilder/turnLoop.js
+// here (with the renderer) and listed in usecases/ai/appStudioBuilder/turnLoop.js
 // MACHINE_PREFIXES so sanitizeHistory strips it from cross-turn history.
 const OWNER_CONTEXT_PREFIX = '[OWNER CONTEXT — machine-generated: the owner\'s automations and documents]';
 

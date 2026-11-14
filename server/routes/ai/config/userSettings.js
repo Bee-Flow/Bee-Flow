@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * AI Config — per-user settings: integration credentials (Fireflies,
  * YouTrack, AFAS, NMBRS, vPlan, …), app enablement, EU-mode flags, Simple
@@ -9,8 +9,7 @@
  * POST /user-settings is a partial update: only the keys present are
  * written. Its body is a zod schema, `.strict()`, and EVERY check runs
  * before the first write. Writing field by field and refusing half-way
- * would leave a half-applied save behind — an
- * NMBRS form whose token was rejected had already switched `nmbrsApiMode`
+ * would leave a half-applied save behind — an NMBRS form whose token was rejected had already switched `nmbrsApiMode`
  * to rest, and an AFAS form whose token was rejected had already stored the
  * new member number beside the old token.
  *
@@ -47,8 +46,8 @@ const { normalizeAfasToken } = require('../../../integrations/afasTools');
 const { SUBDOMAIN_RE: NMBRS_SUBDOMAIN_RE, TOKEN_RE: NMBRS_TOKEN_RE, EMAIL_RE: NMBRS_EMAIL_RE, clearNmbrsPageCacheForUser } = require('../../../integrations/nmbrsTools');
 const NMBRS_CLIENT_ID_RE = /^[\x21-\x7E]{4,256}$/; // printable ASCII, no whitespace/CRLF
 const { API_KEY_RE: VPLAN_API_KEY_RE, API_ENV_RE: VPLAN_API_ENV_RE } = require('../../../integrations/vplanTools');
-const { firebirdFields } = require('./firebirdFields');
-const { frappeCrmFields } = require('./frappeCrmFields.mts');
+const { firebirdFields } = require('../../../usecases/ai/config/firebirdFields');
+const { frappeCrmFields } = require('../../../usecases/ai/config/frappeCrmFields.mts');
 const { SECRETS } = require('../../../stores/user/userSecretKeys.mts');
 const { SECRET_KEY_RE: SCALEWAY_SECRET_KEY_RE, ORG_ID_RE: SCALEWAY_ORG_ID_RE } = require('../../../integrations/scalewayBillingTools');
 const { sanitizeLearningProgress, mergeLearningProgress } = require('../../../learning/progressValidation');
@@ -60,6 +59,7 @@ const { validate } = require('../../../core/http/validate');
 const { HttpError } = require('../../../core/http/errors');
 const memoryQueries = require('../../../stores/memoryQueries');
 const { bestEffort, fallback } = require('../../../utils/bestEffort');
+const { sessionUser } = require('../../../core/http/sessionUser');
 
 // One DNS label — the team part of <team>.signrequest.com, nothing else.
 const SIGNREQUEST_SUBDOMAIN_RE = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/i;
@@ -168,7 +168,7 @@ const UserSettingsBody = z.object({
 // ─── Per-User Settings (Fireflies key etc.) ──────────────────────
 
 router.get('/user-settings', requireAuth, async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
 
     // BFSF-255, second half: a password-account user connects Google/Microsoft
     // through Settings → Connections, which writes an encrypted vault
@@ -368,7 +368,7 @@ router.get('/user-settings', requireAuth, async (req, res) => {
 });
 
 router.post('/user-settings', requireAuth, validate({ body: UserSettingsBody }), async (req, res) => {
-    const userId = req.session.user.id;
+    const userId = sessionUser(req).id;
     const { enabledApps, simpleMode, memoryEnabled, memorySensitiveOptIn, hasSeenIntroTour, learningProgress, learningProgressReset, learningPath } = req.body;
 
     // Opting in to sensitive memory is refused unless the organisation allows
@@ -394,7 +394,7 @@ router.post('/user-settings', requireAuth, validate({ body: UserSettingsBody }),
 
     // Integration credentials, each already shape-checked by the schema.
     // Empty string (or null) clears a field — disconnect.
-    for (const [field, key] of Object.entries(SECRETS)) {
+    for (const [field, key] of /** @type {[keyof typeof req.body, string][]} */ (Object.entries(SECRETS))) {
         if (req.body[field] === undefined) continue;
         await configStore.setSecret(`${key}_user_${userId}`, req.body[field] || '');
         if (key.startsWith('nmbrs_')) clearNmbrsPageCacheForUser(userId); // connection changed or removed: forget its cached lists

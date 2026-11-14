@@ -118,6 +118,7 @@ const multerMock = () => ({
 });
 multerMock.memoryStorage = () => ({});
 
+const { fakeKbGates } = require('./kbGate.testkit');
 const MOCKS = {
     '../stores/knowledgeBases': {
         DOCUMENT_COLUMNS: ['id', 'title', 'status'],
@@ -222,8 +223,7 @@ const MOCKS = {
     },
     '../core/entitlements/betaFeatures': { userHasBetaFeature: async () => false },
     '../core/serviceAuth': { getServiceHeaders: () => ({}) },
-    '../support/kbAccess': {
-        canAccessKB: async () => fx.canAccess,
+    '../support/kbAccess': { ...fakeKbGates({ kbStore: { getKB: (id) => MOCKS['../stores/knowledgeBases'].getKB(id) }, canRead: () => fx.canAccess, canManage: () => fx.canAccess && fx.canManage }),
         resolveAdminOrgIds: async () => new Set(['org1']),
     },
     '../license': {
@@ -385,11 +385,11 @@ test('the public config is an allow-list: a text source never ships its text', a
     assert.ok(!JSON.stringify(res.body).includes('internalNote'));
 });
 
-test('reading needs canAccessKB; an unknown KB is a 404 and not a 403', async () => {
+test('reading needs the read grade; a base the caller may not read and an unknown KB answer the same 404', async () => {
     resetFx();
     fx.canAccess = false;
     const denied = await dispatch({ method: 'GET', url: '/kb1/sources' });
-    assert.strictEqual(denied.statusCode, 403);
+    assert.strictEqual(denied.statusCode, 404);
 
     resetFx();
     const missing = await dispatch({ method: 'GET', url: '/nope/sources' });

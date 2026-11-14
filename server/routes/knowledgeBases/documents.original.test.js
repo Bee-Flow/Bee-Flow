@@ -3,8 +3,9 @@
  * GET /:id/documents/:docId/original: the kept original file of a document
  * (routes/knowledgeBases/documents.js, core/kb/originals.mts).
  *
- * The real router behind the real gates' session check; the database answers from a small table of
- * rows and object storage is a double on the shared store object. Run:
+ * The real router behind the real gates' session check, on a real Postgres (the boot ladder's
+ * schema on PGlite, testUtils/routeHarness.js `pg`, every statement recorded); object storage is a
+ * double on the shared store object. Run:
  *   node --test routes/knowledgeBases/documents.original.test.js
  */
 
@@ -14,6 +15,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { Readable } = require('node:stream');
 const h = require('../../testUtils/routeHarness');
+const { ladderPglite } = require('../../testUtils/pgliteTemplate');
+const { insertRow } = require('../../testUtils/pgliteSeed');
 
 const KB_ID = '11111111-1111-4111-8111-111111111111';
 const OTHER_KB_ID = '22222222-2222-4222-8222-222222222222';
@@ -23,22 +26,17 @@ const FOREIGN_DOC_ID = '55555555-5555-4555-8555-555555555555';
 const NO_ORIGINAL_DOC_ID = '66666666-6666-4666-8666-666666666666';
 const BYTES = Buffer.from('%PDF-1.7 the original bytes');
 
-const KB = { id: KB_ID, tenant_id: 'u1', organization_id: 'org1', is_published: false, shared_groups: '[]', keep_originals: true };
-const DOCS = {
-    [DOC_ID]: { id: DOC_ID, knowledge_base_id: KB_ID, tenant_id: 'u1', title: 'Contract', original_storage_key: `orgs/u1/kb/${KB_ID}/${DOC_ID}/abc`, original_mime: 'application/pdf', original_filename: 'Contract.pdf' },
-    [NO_ORIGINAL_DOC_ID]: { id: NO_ORIGINAL_DOC_ID, knowledge_base_id: KB_ID, tenant_id: 'u1', title: 'Notes', original_storage_key: null },
-    [OTHER_DOC_ID]: { id: OTHER_DOC_ID, knowledge_base_id: OTHER_KB_ID, tenant_id: 'u1', title: 'Elsewhere', original_storage_key: 'orgs/u1/kb/x/y/z', original_mime: 'application/pdf' },
-    [FOREIGN_DOC_ID]: { id: FOREIGN_DOC_ID, knowledge_base_id: KB_ID, tenant_id: 'intruder', title: 'Other tenant', original_storage_key: 'orgs/intruder/kb/x/y/z', original_mime: 'application/pdf' },
-};
-
-const db = h.recordDb((sql, params) => {
-    if (/FROM knowledge_bases WHERE id = \$1/.test(sql)) return params[0] === KB_ID ? { rows: [KB] } : { rows: [] };
-    if (/FROM documents WHERE id = \$1/.test(sql)) {
-        const row = DOCS[params[0]];
-        return { rows: row ? [row] : [] };
-    }
-    return undefined;
-});
+const KB = { id: KB_ID, tenant_id: 'u1', name: 'KB', organization_id: 'org1', is_published: false, shared_groups: '[]', keep_originals: true };
+const DOCS = [
+    { id: DOC_ID, knowledge_base_id: KB_ID, tenant_id: 'u1', title: 'Contract', original_storage_key: `orgs/u1/kb/${KB_ID}/${DOC_ID}/abc`, original_mime: 'application/pdf', metadata: { originalFilename: 'Contract.pdf' } },
+    { id: NO_ORIGINAL_DOC_ID, knowledge_base_id: KB_ID, tenant_id: 'u1', title: 'Notes', original_storage_key: null },
+    { id: OTHER_DOC_ID, knowledge_base_id: OTHER_KB_ID, tenant_id: 'u1', title: 'Elsewhere', original_storage_key: 'orgs/u1/kb/x/y/z', original_mime: 'application/pdf' },
+    { id: FOREIGN_DOC_ID, knowledge_base_id: KB_ID, tenant_id: 'intruder', title: 'Other tenant', original_storage_key: 'orgs/intruder/kb/x/y/z', original_mime: 'application/pdf' },
+];
+const pg = ladderPglite();
+const db = h.recordDb(undefined, { pg });
+/** @param {string} sql @param {unknown[]} [params] */
+const sqlRun = (sql, params) => pg.query(sql, params);
 h.openGates();
 const documentCrypto = require('../../stores/lib/documentCrypto');
 const storageStore = require('../../stores/storageStore');
@@ -48,10 +46,13 @@ const api = h.serve('/api/kb', require('./documents'));
 
 test.before(async () => {
     documentCrypto.keySources.policy = async () => ({ enabled: false, tier: 'none' });
-    await db.settle();
+    await insertRow(pg, 'knowledge_bases', KB);
+    await insertRow(pg, 'knowledge_bases', { ...KB, id: OTHER_KB_ID, name: 'Other' });
+    for (const d of DOCS) await insertRow(pg, 'documents', d);
+    await db.settle(600);
 });
 test.beforeEach(() => { db.reset(); streamed.length = 0; });
-test.after(api.close);
+test.after(async () => { await api.close(); await pg.close(); });
 
 const get = (kb, doc, user) => api.call('GET', `/api/kb/${kb}/documents/${doc}/original`, user === undefined ? {} : { user });
 
@@ -62,19 +63,17 @@ test('the owner gets the file: bytes, type, nosniff, and a PDF may open in the b
     assert.equal(res.headers.get('content-type'), 'application/pdf');
     assert.equal(res.headers.get('x-content-type-options'), 'nosniff');
     assert.match(res.headers.get('content-disposition'), /^inline; filename="Contract\.pdf"; filename\*=UTF-8''Contract\.pdf$/);
-    assert.deepEqual(streamed, [DOCS[DOC_ID].original_storage_key]);
+    assert.deepEqual(streamed, [DOCS[0].original_storage_key]);
 });
 
 test('anything that is not a PDF or a safe image is an attachment, with an RFC 5987 name', async () => {
-    DOCS[DOC_ID].original_mime = 'text/html';
-    DOCS[DOC_ID].original_filename = 'Jaarverslag één.html';
+    await sqlRun(`UPDATE documents SET original_mime = 'text/html', metadata = '{"originalFilename":"Jaarverslag één.html"}' WHERE id = $1`, [DOC_ID]);
     try {
         const res = await get(KB_ID, DOC_ID);
         assert.equal(res.status, 200);
         assert.match(res.headers.get('content-disposition'), /^attachment; filename="Jaarverslag n\.html"; filename\*=UTF-8''Jaarverslag%20%C3%A9%C3%A9n\.html$/);
     } finally {
-        DOCS[DOC_ID].original_mime = 'application/pdf';
-        DOCS[DOC_ID].original_filename = 'Contract.pdf';
+        await sqlRun(`UPDATE documents SET original_mime = 'application/pdf', metadata = '{"originalFilename":"Contract.pdf"}' WHERE id = $1`, [DOC_ID]);
     }
 });
 
@@ -104,9 +103,9 @@ test('an unknown document or base is a 404', async () => {
 
 test('somebody who may not read the base is refused before any document is looked up', async () => {
     const res = await get(KB_ID, DOC_ID, { id: 'stranger', organizationId: 'org2', role: 'user' });
-    assert.equal(res.status, 403);
+    assert.equal(res.status, 404, 'the same answer as for a base that does not exist');
     assert.deepEqual(streamed, []);
-    assert.ok(!db.queries.some((q) => /FROM documents/.test(q)), 'the document was never read');
+    assert.ok(!db.queries.some((q) => q.includes('FROM documents')), 'the document was never read');
 });
 
 test('no session: 401', async () => {
@@ -114,21 +113,21 @@ test('no session: 401', async () => {
 });
 
 test('a base that no longer keeps originals serves none: 404 no_original', async () => {
-    KB.keep_originals = false;
+    await sqlRun('UPDATE knowledge_bases SET keep_originals = false WHERE id = $1', [KB_ID]);
     try {
         const res = await get(KB_ID, DOC_ID);
         assert.equal(res.status, 404);
         assert.equal(res.body.code, 'no_original');
         assert.deepEqual(streamed, []);
-    } finally { KB.keep_originals = true; }
+    } finally { await sqlRun('UPDATE knowledge_bases SET keep_originals = true WHERE id = $1', [KB_ID]); }
 });
 
 test('a document whose text came out redacted serves no original: 404 no_original', async () => {
-    DOCS[DOC_ID].pii_status = 'redacted';
+    await sqlRun("UPDATE documents SET pii_status = 'redacted' WHERE id = $1", [DOC_ID]);
     try {
         const res = await get(KB_ID, DOC_ID);
         assert.equal(res.status, 404);
         assert.equal(res.body.code, 'no_original');
         assert.deepEqual(streamed, []);
-    } finally { delete DOCS[DOC_ID].pii_status; }
+    } finally { await sqlRun('UPDATE documents SET pii_status = NULL WHERE id = $1', [DOC_ID]); }
 });

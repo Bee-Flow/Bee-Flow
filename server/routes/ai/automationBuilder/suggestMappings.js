@@ -67,7 +67,7 @@ const { parsePath, appendKey, appendMatch, appendWildcard, parseJsonText } = req
 const {
     verifySuggestions, expectedKind, valueKind, isPlainObject, isScalar, secretEntryNameKey,
     KIND_WORDS, PLACEHOLDER_RE, PILL_TRANSFORMS, SECRET_KEY_RE, PAIR_NAME_KEYS, PAIR_VALUE_KEYS,
-} = require('./suggestMappingsVerify');
+} = require('../../../usecases/ai/automationBuilder/suggestMappingsVerify');
 
 // ── Bounds ──────────────────────────────────────────────────────────────────
 
@@ -153,7 +153,7 @@ const SuggestMappingsBody = z.object({
 }).strict();
 
 /**
- * @typedef {import('./suggestMappingsVerify').MappingSource} MappingSource
+ * @typedef {import('../../../usecases/ai/automationBuilder/suggestMappingsVerify').MappingSource} MappingSource
  * @typedef {ReturnType<typeof normaliseSuggestRequest>} SuggestRequest
  * @typedef {SuggestRequest['params'][number]} SuggestParam
  * @typedef {SuggestRequest['mapped'][number]} SuggestMapped
@@ -602,7 +602,7 @@ async function suggestMappings(input, { chat }) {
 function makeSuggestMappingsRouter(deps = {}) {
     const router = express.Router();
     const requireAuth = deps.requireAuth || require('../../../auth/permissions').requireAuth;
-    const rateLimit = deps.rateLimit || require('./rateLimits').suggestMappingsRateLimit;
+    const rateLimit = deps.rateLimit || require('../../../usecases/ai/automationBuilder/rateLimits').suggestMappingsRateLimit;
     const requireBeta = deps.requireBeta || require('./routeRules').requireAutomationsBeta;
     const resolveModel = deps.resolveModel || ((opts) => require('../../../core/llm/modelResolver')
         .resolveModelForTierName('fast', { ...opts, fallback: 'gemini-2.0-flash-lite' }));

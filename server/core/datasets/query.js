@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * core/datasets — bounded slice queries over an ingested dataset.
  *
@@ -253,7 +254,7 @@ async function queryRegion(dataset, params = {}) {
             notes.push(`chromosome ${span.chrom} is not present in this file`);
             continue;
         }
-        const range = findRange(index, contigName, span.start, span.end, { maxBlocks: MAX_BLOCKS_PER_QUERY });
+        const range = /** @type {{ empty?: true, startOffset: number, endOffset: number, blockCount: number, truncated: boolean } | null} */ (findRange(index, contigName, span.start, span.end, { maxBlocks: MAX_BLOCKS_PER_QUERY }));
         if (!range || range.empty) continue;
         if (range.truncated) {
             truncated = true;

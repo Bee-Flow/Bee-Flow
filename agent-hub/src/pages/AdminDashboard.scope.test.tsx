@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AdminDashboard from './AdminDashboard';
 import LicenseContext from '@/components/licensing/LicenseContext';
 import { withQueryClient } from '@/test/queryWrapper';
+import { withShell } from '@/test/shellProviders';
 
 type LicenseValue = React.ComponentProps<typeof LicenseContext.Provider>['value'];
 
@@ -39,7 +40,7 @@ function renderDashboard({ user = platformAdmin as object, seg1 = 'security', se
     const onNavigate = vi.fn();
     render(withQueryClient(
         <LicenseContext.Provider value={value}>
-            <AdminDashboard user={user as never} onBack={vi.fn()} onNavigate={onNavigate} adminPath={{ seg1, seg2, seg3 }} />
+            {withShell(<AdminDashboard user={user as never} onBack={vi.fn()} onNavigate={onNavigate} adminPath={{ seg1, seg2, seg3 }} />, { user, onNavigate })}
         </LicenseContext.Provider>,
     ));
     return { onNavigate };

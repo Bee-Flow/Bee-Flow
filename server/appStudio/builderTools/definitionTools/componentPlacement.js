@@ -10,7 +10,7 @@
 
 const { CONTAINER_TYPES, getSpec } = require('../../componentSpecs');
 const ops = require('../../definitionOps');
-const { pickClosestId } = require('../../../automation/validate/helpers');
+const { pickClosestId } = require('../../../utils/closestId.mts');
 const { idHint } = require('../shared');
 
 /**

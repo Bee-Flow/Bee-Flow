@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Support Inbox Store — connected support mailboxes for the tenant Support
  * studio (Studio → Support). One row per connected mailbox (support@, sales@…),
@@ -333,7 +333,7 @@ const TOKEN_COLUMNS = { tokens: 'encrypted_tokens', emailAddress: 'email_address
  */
 async function updateTokens(id, tokens, { emailAddress } = {}) {
     await initDB();
-    const built = buildUpdate({
+    const built = /** @type {{ sql: string, params: unknown[] }} */ (buildUpdate({ // `tokens` always maps to a column
         table: 'support_inboxes',
         // An empty address is not an address: keep the one the mailbox already
         // resolved rather than blanking it on a reconnect that omitted it.
@@ -341,7 +341,7 @@ async function updateTokens(id, tokens, { emailAddress } = {}) {
         columnMap: TOKEN_COLUMNS,
         extraSet: ['active = true', 'updated_at = now()'],
         where: [{ col: 'id', value: id }],
-    });
+    }));
     await pool.query(built.sql, built.params);
 }
 

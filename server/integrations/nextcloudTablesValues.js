@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 const { fallback } = require('../utils/bestEffort');
 
@@ -23,7 +23,7 @@ const { fallback } = require('../utils/bestEffort');
  *   description?: string, selectionOptions?: unknown, numberDecimals?: number, orderWeight?: number,
  *   selectionDefault?: unknown, numberPrefix?: string, numberSuffix?: string, datetimeDefault?: unknown,
  *   customSettings?: Record<string, unknown> }} RawTablesColumn
- * @typedef {{ id: number, title: string, type: string, subtype: string|null, mandatory: boolean,
+ * @typedef {{ id?: number, title?: string, type?: string, subtype: string|null, mandatory: boolean,
  *   description: string, selectionOptions?: SelectionOption[], numberDecimals?: number }} MappedColumn
  */
 
@@ -182,7 +182,7 @@ function mapColumn(c) {
     };
     // What a row write needs to translate labels and keep decimals.
     if (c.type === 'selection' && c.subtype !== 'check') out.selectionOptions = parseSelectionOptions(c.selectionOptions);
-    if (c.type === 'number') out.numberDecimals = Number.isFinite(c.numberDecimals) ? c.numberDecimals : 0;
+    if (c.type === 'number') out.numberDecimals = Number.isFinite(c.numberDecimals) ? /** @type {number} */ (c.numberDecimals) : 0;
     return out;
 }
 
@@ -198,10 +198,10 @@ function mapColumn(c) {
 function describeColumn(c) {
     return {
         ...mapColumn(c),
-        orderWeight: Number.isFinite(c.orderWeight) ? c.orderWeight : 0,
+        orderWeight: Number.isFinite(c.orderWeight) ? /** @type {number} */ (c.orderWeight) : 0,
         selectionOptions: parseSelectionOptions(c.selectionOptions),
         selectionDefault: c.selectionDefault ?? null,
-        numberDecimals: Number.isFinite(c.numberDecimals) ? c.numberDecimals : null,
+        numberDecimals: Number.isFinite(c.numberDecimals) ? /** @type {number} */ (c.numberDecimals) : null,
         numberPrefix: c.numberPrefix || '',
         numberSuffix: c.numberSuffix || '',
         datetimeDefault: c.datetimeDefault ?? null,

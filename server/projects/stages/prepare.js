@@ -1,3 +1,5 @@
+// @typecheck
+/** @typedef {import('./stageRows').DeploymentRow} DeploymentRow */
 /**
  * PREPARE, the first phase of a release deployment (design 6.4, 6.5).
  *
@@ -36,9 +38,7 @@
  * The result (`prepared`) is handed to the commit in memory: a crash after
  * prepare is compensated, never committed, so nothing needs to survive it.
  */
-
 'use strict';
-
 const { HttpError } = require('../../core/http/errors');
 const log = require('../../telemetry/log');
 const { KIND_OF_SECTION, canonicalOf, hashPayload, readStageShape } = require('./stagePayload');
@@ -487,8 +487,8 @@ async function preflight(ctx) {
 async function verify(ctx) {
     const { s, stage, deps, release, parts } = ctx;
     // Go-live of every automation that will be active, with its bound definition and owner = run-as.
-    const check = dep(deps, 'checkBeforeLiveCore', () => require('../../automation/goLive').checkBeforeLiveCore);
-    const aiActState = dep(deps, 'aiActState', () => require('../../automation/aiActCheck').defaultAiActState());
+    const check = dep(deps, 'checkBeforeLiveCore', () => require('../../core/featureModules').featureModule('automation/goLive').checkBeforeLiveCore);
+    const aiActState = dep(deps, 'aiActState', () => require('../../core/featureModules').featureModule('automation/aiActCheck').defaultAiActState());
     for (const part of parts) {
         if (part.kind !== 'automation' || part.installKind !== 'automation' || !part.goesLive) continue;
         const automation = {
@@ -528,14 +528,14 @@ async function defaultStageCompleteness(stageProjectId) {
     const built = await buildGraphForProject(stageProjectId);
     const out = await collectCompleteness({ graph: built.graph, ...built.members, unavailable: built.unavailable });
     if (!out || !out.blocked) return [];
-    return (out.findings || []).filter(f => f && (f.severity === 'error' || f.severity === 'blocking'))
-        .map(f => ({ code: f.code, ref: null }));
+    return (out.findings || []).filter((/** @type {{ severity?: string, code?: string }} */ f) => f && (f.severity === 'error' || f.severity === 'blocking'))
+        .map((/** @type {{ code?: string }} */ f) => ({ code: f.code, ref: null }));
 }
 
 // ── prepare ─────────────────────────────────────────────────────────────────
 
 /**
- * @param {{ deployment: object, stage: object, plan: object }} input  the deployment row, its stage row and
+ * @param {{ deployment: DeploymentRow, stage: StageRow, plan: object }} input  the deployment row, its stage row and
  *   the plan it runs (its `parts` give each ref's action and goesLive)
  * @param {Record<string, unknown>} [deps]  stores and engine modules (storesOf), `checkBeforeLiveCore`, `aiActState`,
  *   `scanStagePayloads`, `readiness`, `stageCompleteness(projectId)`, `readers` (stagePayload)

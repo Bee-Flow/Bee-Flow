@@ -9,6 +9,8 @@ interface ResetPasswordStepProps {
     onDone: () => void;
     isLoading: boolean;
     done: boolean;
+    /** The account started a fresh encryption key: data encrypted under the old one cannot be read any more. */
+    keyReset?: boolean;
     inputClass: string;
     labelClass: string;
 }
@@ -18,7 +20,7 @@ interface ResetPasswordStepProps {
  * parent). Local validation only; server errors surface via the parent's
  * shared error block.
  */
-const ResetPasswordStep = ({ onSubmit, onDone, isLoading, done, inputClass, labelClass }: ResetPasswordStepProps) => {
+const ResetPasswordStep = ({ onSubmit, onDone, isLoading, done, keyReset = false, inputClass, labelClass }: ResetPasswordStepProps) => {
     const { t } = useTranslation();
     const [pw, setPw] = useState('');
     const [confirm, setConfirm] = useState('');
@@ -31,6 +33,11 @@ const ResetPasswordStep = ({ onSubmit, onDone, isLoading, done, inputClass, labe
                 <p className="text-sm text-[var(--text-secondary)]">
                     {t('reset.success', 'Your password has been reset. You can now sign in with your new password.')}
                 </p>
+                {keyReset && (
+                    <p className="text-sm text-[var(--text-secondary)]" data-testid="reset-key-reset">
+                        {t('reset.encryption_key_reset', 'Your organisation keeps the encryption key with your password only, so it could not be carried over: content you encrypted before the reset cannot be opened any more. Everything you create from now on is encrypted with a new key.')}
+                    </p>
+                )}
                 <button onClick={onDone} className={PRIMARY_BUTTON_CLASS}>
                     {t('reset.go_signin', 'Go to sign in')}
                 </button>

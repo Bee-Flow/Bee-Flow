@@ -17,8 +17,9 @@
  *   - a non-ephemeral id is still written through (unchanged behaviour), and
  *     clearing it forgets it, so the warned set does not grow without bound.
  *
- * The detector and the database helpers are swapped on their module objects
- * (the pattern of dlpRunner.nameSweep.test.js); nothing is resolved to a stub.
+ * The detector is swapped on its module object (the pattern of
+ * dlpRunner.nameSweep.test.js); the database is real: the boot ladder's schema
+ * on PGlite behind db.js's pool, with every statement it is sent recorded.
  *
  * Run: cd server && node --test core/dlp/dlpRunner.ephemeral.test.js
  */
@@ -40,11 +41,18 @@ piiDetection.detectPii = async (text) => {
     return { hasPii: entities.length > 0, entities };
 };
 
+const { usePglitePool } = require('../../testUtils/pglitePool');
+const { ladderPglite } = require('../../testUtils/pgliteTemplate');
+const { insertRow } = require('../../testUtils/pgliteSeed');
+const { pg, close } = usePglitePool(ladderPglite());
 const db = require('../../db');
 const queries = [];
-db.run = async (sql) => { queries.push(String(sql)); return { rowCount: 0 }; };
-db.getOne = async (sql) => { queries.push(String(sql)); return null; };
-db.getAll = async (sql) => { queries.push(String(sql)); return []; };
+const realQuery = db.pool.query;
+db.pool.query = /** @type {any} */ ((/** @type {any} */ sql, /** @type {any} */ params) => { queries.push(String(sql)); return realQuery(sql, params); });
+const { after } = require('node:test');
+after(async () => { db.pool.query = realQuery; await close(); });
+/** @param {string} id */
+const tokenMapOf = async (id) => (await pg.query('SELECT pii_token_map FROM agent_conversations WHERE id = $1', [id])).rows[0]?.pii_token_map;
 
 const log = require('../../telemetry/log');
 const warnings = [];
@@ -99,8 +107,8 @@ test('a real conversation id is still written through, and clearing it forgets i
 
     await redact();
     await settle();
-    assert.ok(queries.some((q) => /UPDATE agent_conversations SET pii_token_map/.test(q)), 'unchanged: the map is written through');
-    assert.strictEqual(warnings.filter((w) => w.includes(id)).length, 1);
+    assert.ok(queries.some((q) => q.startsWith('UPDATE agent_conversations SET pii_token_map')), 'unchanged: the map is written through');
+    assert.strictEqual(warnings.filter((w) => w.includes(id)).length, 1, 'no conversation row behind the id: one warning');
 
     // Warned once per id while it lives...
     await redact();
@@ -110,9 +118,27 @@ test('a real conversation id is still written through, and clearing it forgets i
     // ...and forgotten when it is cleared, so the set cannot only grow.
     dlpRunner.clearConversationState(id);
     await settle();
-    assert.ok(queries.some((q) => /UPDATE agent_conversations SET pii_token_map = NULL/.test(q)), 'a real conversation is still cleared in the database');
+    assert.ok(queries.some((q) => q.startsWith('UPDATE agent_conversations SET pii_token_map = NULL')), 'a conversation id is still cleared in the database');
     await redact();
     await settle();
     assert.strictEqual(warnings.filter((w) => w.includes(id)).length, 2);
     dlpRunner.clearConversationState(id);
+});
+
+test('a stored conversation gets its token map in its row, and loses it on clear', async () => {
+    const id = `conv-row-${Math.random().toString(36).slice(2)}`;
+    if (!(await pg.query("SELECT 1 FROM agents WHERE id = 'dlp-ag1'")).rows.length) await insertRow(pg, 'agents', { id: 'dlp-ag1', name: 'A', owner_id: 'u1' });
+    await insertRow(pg, 'agent_conversations', { id, agent_id: 'dlp-ag1', user_id: 'u1' });
+    await dlpRunner.applyRedactionChoice({
+        conversationId: id, text: `mail ${EMAIL}`,
+        findings: [{ text: EMAIL, category: 'Email', label: 'Email', offset: 5, length: EMAIL.length }],
+    });
+    await settle();
+    const stored = await tokenMapOf(id);
+    assert.ok(stored, 'the map is in the row');
+    assert.ok(JSON.stringify(stored).includes('[email_1]'), `the token is in the stored map: ${JSON.stringify(stored).slice(0, 80)}`);
+    assert.strictEqual(warnings.filter((w) => w.includes(id)).length, 0, 'a real row is no warning');
+    dlpRunner.clearConversationState(id);
+    await settle();
+    assert.strictEqual(await tokenMapOf(id), null, 'cleared in the database');
 });

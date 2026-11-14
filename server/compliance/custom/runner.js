@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Custom-framework runner — evaluates every ACTIVE org-defined framework
  * (stores/customFrameworkStore) and persists one row per check through
@@ -145,7 +145,7 @@ function evaluateCheck(check, framework, attestation, mappedRow, now = Date.now(
         attested_at: attestation.attested_at || null,
         expires_at: attestation.expires_at || null,
         evidence_refs: _hasEvidenceRefs(attestation)
-            ? (Array.isArray(attestation.evidence_refs) ? attestation.evidence_refs : JSON.parse(attestation.evidence_refs)).length
+            ? (Array.isArray(attestation.evidence_refs) ? attestation.evidence_refs : JSON.parse(/** @type {string} */ (attestation.evidence_refs))).length
             : 0,
     };
 
@@ -153,12 +153,12 @@ function evaluateCheck(check, framework, attestation, mappedRow, now = Date.now(
         return {
             status: 'warn',
             severity,
-            details: `Attestation expired on ${new Date(attestation.expires_at).toISOString().slice(0, 10)} — re-attest`,
+            details: `Attestation expired on ${new Date(/** @type {string} */ (attestation.expires_at)).toISOString().slice(0, 10)} — re-attest`,
             evidence: { ...baseEvidence, expired: true },
         };
     }
 
-    let status = OUTCOME_STATUS[attestation.outcome] || 'fail';
+    let status = OUTCOME_STATUS[/** @type {string} */ (attestation.outcome)] || 'fail';
     let details = `Attested ${attestation.outcome}`;
     if (check.evidence_required && !_hasEvidenceRefs(attestation) && status !== 'na') {
         status = worst(status, 'warn');
@@ -197,7 +197,7 @@ async function runAll(orgId, { runType = 'scheduled' } = {}) {
                 // A retired slot is a subject that no longer exists.
                 if (r?.evidence?.retired === true) continue;
                 if (!byCheck.has(r.check_id)) byCheck.set(r.check_id, []);
-                byCheck.get(r.check_id).push(r);
+                /** @type {unknown[]} */ (byCheck.get(r.check_id)).push(r); // set on the line above
             }
             latestBuiltin = new Map();
             for (const [id, rows] of byCheck) {
@@ -241,7 +241,7 @@ async function runAll(orgId, { runType = 'scheduled' } = {}) {
                     framework_id: fw.id,
                     article: chk.ref,
                     severity: ev.severity,
-                    status: ev.status,
+                    status: /** @type {string} */ (ev.status), // a mapped verdict copies the stored result's status
                     details: ev.details,
                     evidence: { ...ev.evidence, custom_check_row_id: chk.id, title: chk.title },
                     scope_type: 'global',
@@ -264,7 +264,7 @@ async function runAll(orgId, { runType = 'scheduled' } = {}) {
     return { rows, scores };
 }
 
-/** @param {(Record<string, any> & { status: string })[]} fwRows */
+/** @param {Array<{ status?: string, [k: string]: unknown }>} fwRows */
 function _score(fwRows) {
     try {
         const score = require('../score');

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * pyannoteAI (api.pyannote.ai) — all-in-one speaker-attributed transcription,
  * optionally with per-person speaker identification.
@@ -97,7 +98,7 @@ function diarizationTurns(output, segments) {
  * @param {string} inputPath  Any audio/video file ffmpeg can read.
  * @param {{language?: string, numSpeakers?: number|null,
  *          orgId?: string|null, recorderUserId?: string|null, attendees?: string[],
- *          voiceprints?: object|null}} [opts]
+ *          voiceprints?: Awaited<ReturnType<typeof import('./voiceprintClient').selectVoiceprintsForJob>> | null}} [opts]
  *        `voiceprints` is the pre-resolved selection (used by tests and by
  *        callers that already loaded it); otherwise it is resolved from
  *        `orgId`. With neither, exactly one job is submitted — byte-identical

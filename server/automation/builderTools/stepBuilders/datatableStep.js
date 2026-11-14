@@ -310,7 +310,7 @@ function coerceSortList(rawSort) {
     };
 }
 
-/** @typedef {{ matchColumn?: string }} ResolveDatatableColumnsArgs */
+/** @typedef {{ matchColumn?: string, op?: any, values?: any, where?: any, sort?: any }} ResolveDatatableColumnsArgs */
 /**
  * Re-key every column a datatable step names against ONE catalog table:
  * values keys, matchColumn (save_row's identity column — a write, so a system

@@ -1,11 +1,10 @@
 import { useCallback } from 'react';
-import { API_BASE } from '@/utils/helpers';
 import { useAgentKnowledgeBaseList } from '@/api/queries/agentWizardFacts';
 import { toast } from '@/components/shared/Toast';
 import { READ } from '../canUse/canUseFacts';
 import type { ReadState } from '../agentEditor.types';
 import { messageOf } from '@/utils/caughtError';
-import { mutate } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 /** A knowledge base as `GET /api/kb` lists it. */
 export interface KnowledgeBaseRow {
@@ -65,11 +64,7 @@ export default function useKnowledgeBases({ knowledgeBaseIds, setKnowledgeBaseId
     const refreshKbs = useCallback(async () => { await refetch(); }, [refetch]);
     const createKb = async (name: string, description?: string) => {
         try {
-            const res = await mutate(`${API_BASE}/api/kb`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, description }),
-            });
+            const res = await apiRequest('POST /api/kb', { body: { name, description } });
             const created = await res.json();
             await refreshKbs();
             // Auto-link the new KB.

@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Compliance — the access & authentication trail, readable by the people who
  * have to answer for it.
@@ -168,8 +168,9 @@ router.get('/access-audit', requireAuth, requirePermission('admin_compliance'), 
     const scope = await scopeFor(req);
     if (!scope) return res.status(403).json(NO_SCOPE);
 
-    const limit = Math.max(1, Math.min(MAX_PAGE, parseInt(req.query.limit, 10) || DEFAULT_PAGE));
-    const offset = Math.max(0, parseInt(req.query.offset, 10) || 0);
+    // parseInt of an absent value is NaN, which falls to the default.
+    const limit = Math.max(1, Math.min(MAX_PAGE, parseInt(/** @type {string} */ (req.query.limit), 10) || DEFAULT_PAGE));
+    const offset = Math.max(0, parseInt(/** @type {string} */ (req.query.offset), 10) || 0);
     const filter = filterFrom(req, scope);
 
     // Count under the SAME filter as the rows, so the total a reader sees
@@ -228,7 +229,7 @@ router.get('/access-audit/export', requireAuth, requirePermission('admin_complia
     }
 
     const entries = await userStore.getAccessAuditLog({ ...filter, limit: MAX_EXPORT, offset: 0 });
-    const scopeLabel = scope.globalOnly ? 'platform' : scope.organizationId;
+    const scopeLabel = scope.globalOnly ? 'platform' : /** @type {string} */ (scope.organizationId); // an org scope names its organisation
     const filename = `access-audit-${scopeLabel}-${new Date().toISOString().slice(0, 10)}.json`;
 
     // Reading the audit trail is itself an auditable event. A.8.15 asks for

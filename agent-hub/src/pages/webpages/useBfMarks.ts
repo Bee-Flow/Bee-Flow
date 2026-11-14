@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
+import { keepPreviousData, useQuery, type UseQueryResult } from '@tanstack/react-query';
 import { api } from '../../api/webpagesApi';
 import type { StripMark } from './WebpageCodeStrip';
 import { messageOf } from '../../utils/caughtError';
@@ -42,33 +43,32 @@ interface BfMarksOptions {
     reloadKey?: unknown;
 }
 
+function marksState(query: UseQueryResult<BfMarksData | null>, active: boolean): BfMarksState {
+    if (query.error) return { loading: active && query.isFetching, error: messageOf(query.error, 'failed'), data: null };
+    return { loading: active && query.isFetching, error: null, data: query.data ?? null };
+}
+
 export function useBfMarks(webpageId: string | null | undefined, { enabled = true, reloadKey = null }: BfMarksOptions = {}) {
-    // Starts at `loading`, not at "nothing": between the first render and the
-    // effect below the legend would otherwise show, for one frame, the warning
-    // that the marks could not be worked out, before anyone has even looked.
-    // That is exactly the claim this screen must not make.
-    const [state, setState] = useState<BfMarksState>({ loading: true, error: null, data: null });
-
-    const load = useCallback(async () => {
-        if (!webpageId) return;
-        setState(s => ({ ...s, loading: true, error: null }));
-        try {
-            const body = await api(`/${encodeURIComponent(webpageId)}/bindings`);
-            setState({ loading: false, error: null, data: body && body.elements ? body.elements : null });
-        } catch (e) {
-            setState({ loading: false, error: messageOf(e, 'failed'), data: null });
-        }
-    }, [webpageId]);
-
-    useEffect(() => {
-        // Not fetching is different from fetching: leave the loading state, so
-        // the legend does not hang on "working it out".
-        if (!enabled || !webpageId) {
-            setState(s => (s.loading ? { ...s, loading: false } : s));
-            return;
-        }
-        load();
-    }, [enabled, webpageId, reloadKey, load]);
+    const active = enabled && !!webpageId;
+    const query = useQuery<BfMarksData | null>({
+        queryKey: ['webpages', 'bfMarks', webpageId, reloadKey],
+        enabled: active,
+        staleTime: 0,
+        retry: false,
+        // A reload keeps the legend it showed until the new answer lands.
+        placeholderData: keepPreviousData,
+        queryFn: async () => {
+            const body = await api(`/${encodeURIComponent(webpageId as string)}/bindings`);
+            return body && body.elements ? body.elements : null;
+        },
+    });
+    const { refetch } = query;
+    const load = useCallback(async () => { if (webpageId) await refetch(); }, [webpageId, refetch]);
+    // Starts at `loading`, not at "nothing", whenever it will read: otherwise the
+    // legend would show, for one frame, the warning that the marks could not be
+    // worked out, before anyone has even looked. Not reading (the Code tab is
+    // closed) is not loading, so the legend does not hang on "working it out".
+    const state = marksState(query, active);
 
     const data = state.data;
     return {

@@ -8,7 +8,8 @@
  *
  * Run: cd agent-hub && ./node_modules/.bin/vitest run src/components/agents/AgentWizard/AgentEditorBootstrapContext.test.tsx
  */
-import { render, screen, waitFor, cleanup } from '@testing-library/react';
+import { screen, waitFor, cleanup } from '@testing-library/react';
+import { renderWithClient as render } from '@/test/render';
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 

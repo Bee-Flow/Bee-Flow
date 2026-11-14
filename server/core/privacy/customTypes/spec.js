@@ -20,27 +20,10 @@
  */
 
 const { isCustomTypeId, sha256 } = require('./ids');
-const { re2Compile, v8Compile } = require('./compile');
 const { ALL_PII_CATEGORY_IDS } = require('../piiDetection/categories');
 const { TOKEN_WORDS } = require('../piiDetection/tokenNeutralise');
-
-const LIMITS = Object.freeze({
-    maxTypes: 50,
-    maxAiTypes: 6,
-    nameMax: 60,
-    descriptionMax: 400,
-    wordsMax: 500,
-    wordMax: 120,
-    legacyWordMax: 500,
-    patternMax: 300,
-    legacyPatternMax: 500,
-    promptMin: 2,
-    promptMax: 60,
-    floorMin: 0.10,
-    floorMax: 0.95,
-    floorDefault: 0.5,
-    groupSignatureMax: 200,
-});
+const { LIMITS } = require('./limits');
+const { METHOD_BLOCKS, isPlainObject } = require('./specMethods');
 
 const METHODS = Object.freeze(['words', 'pattern', 'ai']);
 const TOKEN_KEY_RE = /^[a-z](?:[a-z0-9_]{0,30}[a-z])?$/;
@@ -74,9 +57,6 @@ function _isReserved(key) {
     if (!_reservedNorm) _reservedNorm = new Set([...reservedTokenKeys()].map(normKey));
     return _reservedNorm.has(normKey(key));
 }
-
-const isPlainObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
-const CONTROL = /\p{Cc}/u;
 
 /** The fields that decide what a type matches and how it is shown. */
 function canonicalContent(t) {
@@ -115,6 +95,108 @@ function _cleanQuality(q) {
     return out;
 }
 
+/** @typedef {(field: string, code: string, message: string) => void} ErrSink */
+/** @typedef {Record<string, any>} TypeBody  a type as sent, once known to be an object */
+/** @typedef {Record<string, any> | null | undefined} StoredType  the saved version of a type, if any */
+
+/**
+ * STRUCTURAL checks: a usable id, name and method, and a legacy flag only
+ * where the stored version carries it. Reports through `err`; the caller
+ * drops the type when any was raised.
+ * @param {TypeBody} type
+ * @param {string | null} id
+ * @param {any[]} storedTypes
+ * @param {ErrSink} err
+ */
+function structuralFields(type, id, storedTypes, err) {
+    if (!id) err('id', 'invalid_id', 'A data type id is cdt_ followed by 10 hex characters.');
+    const name = typeof type.name === 'string' ? type.name.trim() : '';
+    if (!name || name.length > LIMITS.nameMax) err('name', 'name_invalid', `Give the data type a name of 1 to ${LIMITS.nameMax} characters.`);
+    if (!METHODS.includes(type.method)) err('method', 'method_invalid', 'The method is words, pattern or ai.');
+    const stored = id ? storedTypes.find(t => t && t.id === id) : null;
+    const isLegacy = !!(stored && stored.legacy === true);
+    if (type.legacy === true && !isLegacy) err('legacy', 'legacy_forged', 'Only the server marks a data type as migrated.');
+    return { name, stored, isLegacy };
+}
+
+/**
+ * The description, trimmed and cut to its cap (reported, but it does not switch the type off).
+ * @param {TypeBody} type
+ * @param {ErrSink} err
+ */
+function cleanDescription(type, err) {
+    const description = typeof type.description === 'string' ? type.description.trim() : '';
+    if (description.length <= LIMITS.descriptionMax) return description;
+    err('description', 'description_too_long', `The description holds at most ${LIMITS.descriptionMax} characters.`);
+    return description.slice(0, LIMITS.descriptionMax);
+}
+
+/**
+ * Another type (not this one, not a migrated `customterm`) with the same placeholder.
+ * @param {any[]} existingTypes
+ * @param {string | null} id
+ * @param {string} tokenKey
+ */
+const tokenKeyTaken = (existingTypes, id, tokenKey) => existingTypes.some(t => t && t.id !== id && !(t.legacy && t.tokenKey === LEGACY_TOKEN_KEY)
+    && normKey(t.tokenKey) === normKey(tokenKey));
+
+/**
+ * The placeholder key: well formed, not a built-in kind, not taken. A
+ * migrated type keeps `customterm`. A malformed key is reported and kept in
+ * its cleaned-up form.
+ * @param {TypeBody} type
+ * @param {{ id: string | null, isLegacy: boolean, existingTypes: any[] }} ctx
+ * @param {ErrSink} err
+ */
+function cleanTokenKey(type, { id, isLegacy, existingTypes }, err) {
+    const tokenKey = typeof type.tokenKey === 'string' ? type.tokenKey : '';
+    if (isLegacy && tokenKey === LEGACY_TOKEN_KEY) return tokenKey;
+    if (!TOKEN_KEY_RE.test(tokenKey)) {
+        err('tokenKey', 'token_key_invalid', 'The placeholder name uses lowercase letters, digits and underscores, starts and ends with a letter, and is at most 32 characters.');
+        return tokenKey.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 32);
+    }
+    if (_isReserved(tokenKey)) {
+        err('tokenKey', 'token_key_reserved', 'This placeholder name is already used by a built-in kind of data. Pick another one.');
+    } else if (tokenKeyTaken(existingTypes, id, tokenKey)) {
+        err('tokenKey', 'token_key_duplicate', 'Another data type already uses this placeholder name.');
+    }
+    return tokenKey;
+}
+
+/**
+ * The fields that are the server's to say: origin, the legacy marks and the
+ * timestamps and author, from the stored version when there is one.
+ * @param {Record<string, any>} out
+ * @param {TypeBody} type
+ * @param {{ stored: StoredType, isLegacy: boolean, userId: string | null | undefined, now: string }} ctx
+ */
+function setServerFields(out, type, { stored, isLegacy, userId, now }) {
+    out.origin = stored?.origin === 'migrated' ? 'migrated' : 'created';
+    if (isLegacy) out.legacy = true;
+    if (isLegacy && typeof stored?.legacyTermId === 'string') out.legacyTermId = stored.legacyTermId;
+    out.createdAt = createdAtOf(stored, type, now);
+    out.createdBy = stored ? (stored.createdBy ?? null) : (userId ?? null);
+    out.updatedAt = updatedAtOf(stored, out, now);
+}
+
+/**
+ * The stored creation time, else a short one from the body, else now.
+ * @param {StoredType} stored
+ * @param {TypeBody} type
+ * @param {string} now
+ */
+const createdAtOf = (stored, type, now) => (typeof stored?.createdAt === 'string' && stored.createdAt)
+    || (typeof type.createdAt === 'string' && type.createdAt.length <= 40 && type.createdAt) || now;
+
+/**
+ * The stored update time while the content is unchanged, else now.
+ * @param {StoredType} stored
+ * @param {Record<string, any>} out
+ * @param {string} now
+ */
+const updatedAtOf = (stored, out, now) => (stored && canonicalContent(stored) === canonicalContent(out) && typeof stored.updatedAt === 'string'
+    ? stored.updatedAt : now);
+
 /**
  * @param {any} type
  * @param {{ orgId?: string, existingTypes?: any[], storedTypes?: any[], userId?: string|null, now?: string }} [opts]
@@ -127,143 +209,31 @@ function validateTypeSpec(type, opts = {}) {
     const existingTypes = Array.isArray(opts.existingTypes) ? opts.existingTypes : [];
     const storedTypes = Array.isArray(opts.storedTypes) ? opts.storedTypes : existingTypes;
     const now = opts.now || new Date().toISOString();
+    /** @type {CustomTypeError[]} */
     const errors = [];
     if (!isPlainObject(type)) {
         return { ok: false, normalized: null, errors: [{ id: null, field: 'type', code: 'invalid_type', message: 'A data type is an object.' }] };
     }
     const id = isCustomTypeId(type.id) ? type.id : null;
-    /**
-     * @param {string} field
-     * @param {string} code
-     * @param {string} message
-     */
-    const err = (field, code, message) => errors.push({ id, field, code, message });
+    /** @type {ErrSink} */
+    const err = (field, code, message) => { errors.push({ id, field, code, message }); };
 
-    // ── structural ─────────────────────────────────────────────────────
-    if (!id) err('id', 'invalid_id', 'A data type id is cdt_ followed by 10 hex characters.');
-    const name = typeof type.name === 'string' ? type.name.trim() : '';
-    if (!name || name.length > LIMITS.nameMax) err('name', 'name_invalid', `Give the data type a name of 1 to ${LIMITS.nameMax} characters.`);
-    if (!METHODS.includes(type.method)) err('method', 'method_invalid', 'The method is words, pattern or ai.');
-    const stored = id ? storedTypes.find(t => t && t.id === id) : null;
-    const isLegacy = !!(stored && stored.legacy === true);
-    if (type.legacy === true && !isLegacy) err('legacy', 'legacy_forged', 'Only the server marks a data type as migrated.');
+    const { name, stored, isLegacy } = structuralFields(type, id, storedTypes, err);
     if (errors.length) return { ok: false, normalized: null, errors };
 
-    // ── content ────────────────────────────────────────────────────────
-    let description = typeof type.description === 'string' ? type.description.trim() : '';
-    if (description.length > LIMITS.descriptionMax) {
-        err('description', 'description_too_long', `The description holds at most ${LIMITS.descriptionMax} characters.`);
-        description = description.slice(0, LIMITS.descriptionMax);
-    }
-
-    let tokenKey = typeof type.tokenKey === 'string' ? type.tokenKey : '';
-    const legacyKey = isLegacy && tokenKey === LEGACY_TOKEN_KEY;
-    if (!legacyKey) {
-        if (!TOKEN_KEY_RE.test(tokenKey)) {
-            err('tokenKey', 'token_key_invalid', 'The placeholder name uses lowercase letters, digits and underscores, starts and ends with a letter, and is at most 32 characters.');
-            tokenKey = tokenKey.toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 32);
-        } else if (_isReserved(tokenKey)) {
-            err('tokenKey', 'token_key_reserved', 'This placeholder name is already used by a built-in kind of data. Pick another one.');
-        } else if (existingTypes.some(t => t && t.id !== id && !(t.legacy && t.tokenKey === LEGACY_TOKEN_KEY)
-            && normKey(t.tokenKey) === normKey(tokenKey))) {
-            err('tokenKey', 'token_key_duplicate', 'Another data type already uses this placeholder name.');
-        }
-    }
-
-    const out = {
-        id,
-        name,
-        description,
-        method: type.method,
-        tokenKey,
-    };
-
-    if (type.method === 'words') {
-        const w = isPlainObject(type.words) ? type.words : {};
-        const caseSensitive = w.caseSensitive === true;
-        const wholeWord = typeof w.wholeWord === 'boolean' ? w.wholeWord : !isLegacy;
-        const maxLen = isLegacy ? LIMITS.legacyWordMax : LIMITS.wordMax;
-        /** @type {string[]} */
-        const values = [];
-        const seen = new Set();
-        let tooLong = false;
-        for (const raw of Array.isArray(w.values) ? w.values : []) {
-            if (typeof raw !== 'string') continue;
-            // A migrated literal keeps its exact characters (parity with the old
-            // scanner); a new word is trimmed.
-            const v = isLegacy ? raw : raw.trim();
-            if (!v) continue;
-            if (v.length > maxLen) { tooLong = true; continue; }
-            if (seen.has(v)) continue;
-            seen.add(v);
-            values.push(v);
-        }
-        if (!Array.isArray(w.values)) err('words.values', 'words_invalid', 'The words are a list of text.');
-        if (tooLong) err('words.values', 'word_too_long', `Each word or phrase holds at most ${maxLen} characters.`);
-        if (values.length > LIMITS.wordsMax) err('words.values', 'words_too_many', `A data type holds at most ${LIMITS.wordsMax} words.`);
-        if (!values.length) err('words.values', 'words_empty', 'Add at least one word or phrase.');
-        out.words = { values: values.slice(0, LIMITS.wordsMax), caseSensitive, wholeWord };
-    } else if (type.method === 'pattern') {
-        const p = isPlainObject(type.pattern) ? type.pattern : {};
-        const source = typeof p.source === 'string' ? p.source : '';
-        const caseSensitive = p.caseSensitive === true;
-        const max = isLegacy ? LIMITS.legacyPatternMax : LIMITS.patternMax;
-        const keepV8 = isLegacy && stored.pattern?.engine === 'v8-legacy' && stored.pattern?.source === source;
-        let engine = keepV8 ? 'v8-legacy' : 're2';
-        /** @type {string | null} */
-        let error = null;
-        if (!source) {
-            err('pattern.source', 'pattern_required', 'Write the pattern.');
-            error = 'missing';
-        } else if (source.length > max) {
-            err('pattern.source', 'pattern_too_long', `A pattern holds at most ${max} characters.`);
-            error = 'too long';
-        } else if (keepV8) {
-            const v8 = v8Compile(source, caseSensitive);
-            if (!v8.ok) { err('pattern.source', 'pattern_invalid', 'This pattern does not compile.'); error = v8.error || 'invalid'; }
-        } else {
-            const { re, error: re2Error } = re2Compile(source, caseSensitive);
-            if (re2Error || !re) {
-                err('pattern.source', 'pattern_invalid', `This pattern is not supported: ${re2Error || 'invalid'}.`);
-                error = re2Error || 'invalid';
-            } else if (!isLegacy && re.test('')) {
-                err('pattern.source', 'pattern_matches_empty', 'This pattern also matches empty text, so it would match everywhere. Make it require at least one character.');
-                error = 'matches empty text';
-            }
-            engine = 're2';
-        }
-        out.pattern = { source: source.slice(0, max), caseSensitive, engine, ...(error ? { error: String(error).slice(0, 200) } : {}) };
-    } else {
-        const a = isPlainObject(type.ai) ? type.ai : {};
-        const prompt = typeof a.prompt === 'string' ? a.prompt.trim() : '';
-        if (prompt.length < LIMITS.promptMin || prompt.length > LIMITS.promptMax
-            || CONTROL.test(prompt) || prompt.includes('<<') || prompt.includes('>>')) {
-            err('ai.prompt', 'ai_prompt_invalid', `The label for the AI is ${LIMITS.promptMin} to ${LIMITS.promptMax} characters of plain text.`);
-        }
-        let floor = a.floor === undefined ? LIMITS.floorDefault : a.floor;
-        if (typeof floor !== 'number' || !Number.isFinite(floor) || floor < LIMITS.floorMin || floor > LIMITS.floorMax) {
-            err('ai.floor', 'ai_floor_invalid', `The sensitivity is a number between ${LIMITS.floorMin} and ${LIMITS.floorMax}.`);
-            floor = LIMITS.floorDefault;
-        }
-        out.ai = { prompt: prompt.slice(0, LIMITS.promptMax), floor };
-        if (typeof a.groupSignature === 'string' && a.groupSignature.length <= LIMITS.groupSignatureMax) {
-            out.ai.groupSignature = a.groupSignature;
-        }
-    }
+    const description = cleanDescription(type, err);
+    const tokenKey = cleanTokenKey(type, { id, isLegacy, existingTypes }, err);
+    /** @type {Record<string, any>} */
+    const out = { id, name, description, method: type.method, tokenKey };
+    const readBlock = /** @type {NonNullable<ReturnType<typeof METHOD_BLOCKS.get>>} */ (METHOD_BLOCKS.get(type.method));
+    out[type.method] = readBlock(type, { err, isLegacy, stored });
 
     const quality = _cleanQuality(type.quality);
     if (quality) out.quality = quality;
     // A description is only shown: cut to size and reported, it does not
     // switch the type off.
     if (errors.some(e => e.field !== 'description')) out.status = 'invalid';
-    out.origin = stored?.origin === 'migrated' ? 'migrated' : 'created';
-    if (isLegacy) out.legacy = true;
-    if (isLegacy && typeof stored.legacyTermId === 'string') out.legacyTermId = stored.legacyTermId;
-    out.createdAt = (typeof stored?.createdAt === 'string' && stored.createdAt)
-        || (typeof type.createdAt === 'string' && type.createdAt.length <= 40 && type.createdAt) || now;
-    out.createdBy = stored ? (stored.createdBy ?? null) : (opts.userId ?? null);
-    out.updatedAt = stored && canonicalContent(stored) === canonicalContent(out) && typeof stored.updatedAt === 'string'
-        ? stored.updatedAt : now;
+    setServerFields(out, type, { stored, isLegacy, userId: opts.userId, now });
 
     return { ok: errors.length === 0, normalized: out, errors };
 }

@@ -1,8 +1,9 @@
 import { Link2 } from 'lucide-react';
 import { useState } from 'react';
-import { API_BASE, mutate, RefusedError, errorBody } from '@/api/mutate';
+import { RefusedError, errorBody } from '@/api/mutate';
 import { useTranslation } from '@/hooks/useTranslation';
 import ReauthNotice from './ReauthNotice';
+import { apiRequest } from '@/api/typedRequest';
 
 /** The fragment key the connector's link page carries the ticket in (server auth/connector/ncLinkTicket.mts). */
 const FRAGMENT_KEY = 'nc_link';
@@ -55,11 +56,7 @@ export default function LinkNextcloudAccount() {
     const confirmLink = async () => {
         setState('working');
         try {
-            await mutate(`${API_BASE}/auth/connector/link`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ticket: link.ticket }),
-            });
+            await apiRequest('POST /auth/connector/link', { body: { ticket: link.ticket } });
             setState('done');
             clearTicket();
         } catch (err) {

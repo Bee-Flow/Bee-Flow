@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Nextcloud Connector: what binding a Nextcloud to an organisation provisions.
  *

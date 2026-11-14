@@ -16,9 +16,9 @@ const fs = require('fs');
 const configStore = require('../../stores/configStore');
 const { asM4aIfAdts } = require('../../core/voice/audioPreprocess');
 const { resolveDefaultTemplateForReq, VOXTRAL_TIMEOUT_MS } = require('./shared');
-const { lookupUserName, nameSpeakers, buildTranscriptOrThrow } = require('./speakerNaming');
+const { lookupUserName, nameSpeakers, buildTranscriptOrThrow } = require('../../usecases/transcriptions/speakerNaming');
 const { stampForTemplate } = require('../../core/meetingNotes/summaryStamp');
-const { leadingNotices, withNotices, summaryFailedNotice } = require('./noteText.mts');
+const { leadingNotices, withNotices, summaryFailedNotice } = require('../../usecases/transcriptions/noteText.mts');
 const {
     generateMeetingSummary,
     extractMeetingArtifacts,
@@ -30,6 +30,7 @@ const {
     transcribeWithScaleway,
 } = require('../../core/meetingNotes/summaryHelpers');
 const { mergeRegeneratedActionItems, mergeRegeneratedNotes } = require('../../core/meetingNotes/actionItems');
+const { HttpError } = require('../../core/http/errors');
 
 /** @typedef {{ audioPath: string, fileName: string, language: string | null }} TranscribeWithVoxtralArgs */
 /**
@@ -38,7 +39,7 @@ const { mergeRegeneratedActionItems, mergeRegeneratedNotes } = require('../../co
  */
 async function transcribeWithVoxtral({ audioPath, fileName, language }) {
     const apiKey = await configStore.getSecret('mistral_api_key');
-    if (!apiKey) throw new Error('Mistral API key not configured');
+    if (!apiKey) throw new HttpError(503, 'engine_not_configured', 'Mistral API key not configured');
 
     const { createVoxtralClient } = require('../../core/meetingNotes/voxtralClient');
     const client = createVoxtralClient(apiKey, { timeoutMs: VOXTRAL_TIMEOUT_MS });
@@ -84,7 +85,7 @@ async function transcribeStoredAudio({ provider, audioPath, fileName, language, 
         const { transcribeLocally } = require('../../core/voice/localWhisper');
         const local = await transcribeLocally(audioPath, { language });
         if (!local) {
-            throw new Error('Local transcription model is not available. Try again, or pick a cloud provider.');
+            throw new HttpError(503, 'local_model_unavailable', 'Local transcription model is not available. Try again, or pick a cloud provider.');
         }
         response = { text: local.text, segments: local.segments };
     } else if (provider === 'whisperx') {

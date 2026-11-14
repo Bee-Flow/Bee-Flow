@@ -32,7 +32,7 @@ export function promptFor(transcript: readonly ChatMessage[], failedId: string):
  *
  * A failed turn: the user's half is dropped when the saved transcript ends
  * with this very turn. The server does save a turn that died after a
- * side-effecting tool had run (routes/ai/directChat/interruptedTurn.js),
+ * side-effecting tool had run (usecases/ai/directChat/interruptedTurn.js),
  * always as the same words followed by an assistant row marked
  * `interrupted`, and showing that message twice would be a bug of its own.
  * Matching the words alone is not enough: "continue" asked twice would find

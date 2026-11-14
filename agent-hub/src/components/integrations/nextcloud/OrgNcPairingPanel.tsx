@@ -1,11 +1,12 @@
 import { Copy, Check, RefreshCw, Trash2, ServerCog } from 'lucide-react';
-import React, { useCallback, useEffect, useState } from 'react';
-import { API_BASE } from '@/utils/helpers';
+import React, { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import useConfirm from '../../shared/useConfirm';
 import { useTranslation } from '@/hooks/useTranslation';
 import { messageOf } from '@/utils/caughtError';
 import { logger } from '@/utils/logger';
-import { mutate, ApiError, request, RefusedError, errorBody } from '@/api/mutate';
+import { ApiError, RefusedError, errorBody } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 interface PairingCode {
     id: string;
@@ -36,78 +37,89 @@ interface PairingCode {
  *
  * Codes are one-shot and disappear from this list as soon as redeemed.
  */
+const PAIRING_CODES_KEY = ['orgAdmin', 'ncPairingCodes'] as const;
+const NO_CODES: PairingCode[] = [];
+
+async function readPairingCodes(): Promise<PairingCode[]> {
+    let res: Response;
+    try {
+        res = await apiRequest('GET /auth/admin/nc-bindings/pairing-codes');
+    } catch (err) {
+        if (!(err instanceof RefusedError)) throw err;
+        throw new Error(`HTTP ${err.status}`, { cause: err });
+    }
+    const data = await res.json();
+    return data.codes || [];
+}
+
+/** The time left on a code, as the list shows it. */
+function fmtCountdown(expiresAt: string | undefined) {
+    if (!expiresAt) return '';
+    const ms = new Date(expiresAt).getTime() - Date.now();
+    if (ms <= 0) return 'expired';
+    const min = Math.floor(ms / 60_000);
+    const sec = Math.floor((ms % 60_000) / 1000);
+    return `${min}m ${sec.toString().padStart(2, '0')}s remaining`;
+}
+
 const OrgNcPairingPanel = () => {
     const { t } = useTranslation();
     const { confirm, confirmDialog } = useConfirm();
-    const [codes, setCodes] = useState<PairingCode[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [generating, setGenerating] = useState(false);
     const [justCopiedId, setJustCopiedId] = useState<string | null>(null);
     // Codes generated in this view, by id: the only time a code is readable.
     const [generated, setGenerated] = useState<Record<string, string>>({});
-    const [error, setError] = useState<string | null>(null);
+    // A write's failure; a failed read is the query's own error.
+    const [writeError, setWriteError] = useState<string | null>(null);
 
-    const reload = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            let res: Response;
+    const queryClient = useQueryClient();
+    const query = useQuery<PairingCode[]>({
+        queryKey: PAIRING_CODES_KEY,
+        staleTime: 0,
+        retry: false,
+        queryFn: readPairingCodes,
+    });
+    const codes = query.data ?? NO_CODES;
+    const loading = query.isFetching;
+    const error = writeError || (query.error ? messageOf(query.error, 'Failed to load pairing codes') : null);
+    const refresh = () => queryClient.invalidateQueries({ queryKey: PAIRING_CODES_KEY });
+    const reload = () => { setWriteError(null); void refresh(); };
+
+    const generateCode = useMutation({
+        mutationFn: async () => {
             try {
-                res = await request(`${API_BASE}/auth/admin/nc-bindings/pairing-codes`);
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                throw new Error(`HTTP ${err.status}`);
-            }
-            const data = await res.json();
-            setCodes(data.codes || []);
-        } catch (e) {
-            setError(messageOf(e, 'Failed to load pairing codes'));
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => { reload(); }, [reload]);
-
-    const generate = async () => {
-        setGenerating(true);
-        setError(null);
-        try {
-            let res: Response;
-            try {
-                res = await mutate(`${API_BASE}/auth/admin/nc-bindings/generate-pairing-code`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({}),
-            });
+                const res = await apiRequest('POST /auth/admin/nc-bindings/generate-pairing-code', { body: {} });
+                return await res.json().catch(() => ({})) as { id?: string; code?: string };
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const data = errorBody(err) ?? {};
-                throw new Error(data?.error || `HTTP ${err.status}`);
+                throw new Error(data?.error || `HTTP ${err.status}`, { cause: err });
             }
-            const data = await res.json().catch(() => ({})) as { id?: string; code?: string };
+        },
+        onMutate: () => setWriteError(null),
+        onSuccess: async (data) => {
             if (data.id && data.code) setGenerated((prev) => ({ ...prev, [data.id as string]: data.code as string }));
-            await reload();
-        } catch (e) {
-            setError(messageOf(e, 'Failed to generate pairing code'));
-        } finally {
-            setGenerating(false);
-        }
-    };
+            await refresh();
+        },
+        onError: (e) => setWriteError(messageOf(e, 'Failed to generate pairing code')),
+    });
+    const generating = generateCode.isPending;
+    const generate = () => generateCode.mutate();
 
-    const revoke = async (id: string) => {
-        if (!(await confirm({ title: 'Revoke this pairing code?', description: 'Anyone who has it will no longer be able to use it.', confirmLabel: 'Revoke', destructive: true }))) return;
-        try {
+    const revokeCode = useMutation({
+        mutationFn: async (id: string) => {
             try {
-                await mutate(`${API_BASE}/auth/admin/nc-bindings/pairing-codes/${id}`, { method: 'DELETE' });
+                await apiRequest('DELETE /auth/admin/nc-bindings/pairing-codes/{id}', { params: { id } });
             } catch (err) {
                 if (!(err instanceof ApiError)) throw err;
-                throw new Error(`HTTP ${err.status}`);
+                throw new Error(`HTTP ${err.status}`, { cause: err });
             }
-            await reload();
-        } catch (e) {
-            setError(messageOf(e, 'Failed to revoke'));
-        }
+        },
+        onSuccess: () => refresh(),
+        onError: (e) => setWriteError(messageOf(e, 'Failed to revoke')),
+    });
+    const revoke = async (id: string) => {
+        if (!(await confirm({ title: 'Revoke this pairing code?', description: 'Anyone who has it will no longer be able to use it.', confirmLabel: 'Revoke', destructive: true }))) return;
+        revokeCode.mutate(id);
     };
 
     const copy = async (id: string, code: string) => {
@@ -118,14 +130,7 @@ const OrgNcPairingPanel = () => {
         } catch (err) { logger.debug('clipboard denied — ignore', err); }
     };
 
-    const fmtCountdown = (expiresAt: string | undefined) => {
-        if (!expiresAt) return '';
-        const ms = new Date(expiresAt).getTime() - Date.now();
-        if (ms <= 0) return 'expired';
-        const min = Math.floor(ms / 60_000);
-        const sec = Math.floor((ms % 60_000) / 1000);
-        return `${min}m ${sec.toString().padStart(2, '0')}s remaining`;
-    };
+
 
     return (
         <div className="rounded-xl p-5 mb-4 [background:var(--bg-secondary)] [border:1px_solid_var(--border-subtle)]">
@@ -162,6 +167,7 @@ const OrgNcPairingPanel = () => {
                     disabled={loading}
                     className="px-2.5 py-2 rounded-lg text-[12px] flex items-center gap-1.5 disabled:opacity-40 bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"
                     title={t('integ.org_nc_pairing_refresh', 'Refresh')}
+                    aria-label={t('integ.org_nc_pairing_refresh', 'Refresh')}
                 >
                     <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
                 </button>
@@ -195,6 +201,7 @@ const OrgNcPairingPanel = () => {
                                 onClick={() => revoke(c.id)}
                                 className="p-1.5 rounded-md transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--text-muted)]"
                                 title={t('integ.org_nc_pairing_revoke', 'Revoke')}
+                                aria-label={t('integ.org_nc_pairing_revoke', 'Revoke')}
                             >
                                 <Trash2 className="w-3.5 h-3.5" />
                             </button>

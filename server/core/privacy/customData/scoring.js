@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * How a test sentence is scored against what a matcher found in it.
@@ -132,8 +132,10 @@ function summarize(scored) {
 function fScore(summary, beta = 2) {
     const tp = summary?.found || 0;
     if (tp === 0) return 0;
-    const precision = tp / (tp + (summary.falseAlarms || 0));
-    const recall = summary.total ? tp / summary.total : 0;
+    // tp > 0 means there is a summary.
+    const s = /** @type {NonNullable<typeof summary>} */ (summary);
+    const precision = tp / (tp + (s.falseAlarms || 0));
+    const recall = s.total ? tp / s.total : 0;
     if (precision === 0 && recall === 0) return 0;
     const b2 = beta * beta;
     return ((1 + b2) * precision * recall) / (b2 * precision + recall);

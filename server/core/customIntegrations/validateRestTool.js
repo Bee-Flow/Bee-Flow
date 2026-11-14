@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Validation of one REST tool of a custom-integration definition
  * (./validateCustomIntegration.js): name, description, method, the parameters
@@ -58,7 +58,7 @@ function validateRestTool(r, tool, i, { slug, seenNames }) {
     }
 
     // method
-    if (!METHODS.has(tool.method)) {
+    if (!METHODS.has(/** @type {string} */ (tool.method))) {
         r.pushE({ code: 'tool.method_invalid', path: `${at}.method`, message: `Tool ${label}: method must be one of GET|POST|PUT|PATCH|DELETE (got ${JSON.stringify(tool.method)}).`, hint: 'Use the uppercase HTTP verb.' });
     }
 
@@ -156,7 +156,7 @@ function checkParamProperties(r, params, names, at, label, declaredParams) {
             r.pushE({ code: 'tool.param_name_invalid', path: pAt, message: `Tool ${label}: parameter name "${pname}" must match ^[a-z][a-z0-9_]{0,40}$.`, hint: 'Lowercase snake_case, starting with a letter.' });
         }
         declaredParams.add(pname);
-        const schema = params.properties[pname];
+        const schema = /** @type {Record<string, import('./validateShared').ParamSchema>} */ (params.properties)[pname]; // an object, checked by the caller
         if (!isObject(schema)) {
             r.pushE({ code: 'tool.param_schema_invalid', path: pAt, message: `Tool ${label}: parameter "${pname}" schema must be an object.`, hint: 'Example: { "type": "string", "description": "…" }.' });
             continue;
@@ -167,7 +167,7 @@ function checkParamProperties(r, params, names, at, label, declaredParams) {
                 r.pushE({ code: 'tool.param_schema_invalid', path: `${pAt}.${k}`, message: `Tool ${label}: parameter "${pname}" uses unsupported keyword "${k}".`, hint: `Allowed keywords: ${[...allowedProp].join(', ')}.` });
             }
         }
-        if (!PARAM_TYPES.has(schema.type)) {
+        if (!PARAM_TYPES.has(/** @type {string} */ (schema.type))) {
             const nested = schema.type === 'object';
             r.pushE({ code: 'tool.param_schema_invalid', path: `${pAt}.type`, message: nested ? `Tool ${label}: parameter "${pname}" is a nested object — not allowed.` : `Tool ${label}: parameter "${pname}" type must be string|number|integer|boolean|array.`, hint: nested ? 'Flatten nested data into scalar parameters, or accept a JSON string.' : 'Pick one of the supported scalar types or array-of-scalar.' });
         }
@@ -183,16 +183,17 @@ function checkParamProperties(r, params, names, at, label, declaredParams) {
         }
         if (schema.type === 'array') {
             const items = schema.items;
-            if (!isObject(items) || !PARAM_SCALAR_TYPES.has(items.type)) {
+            if (!isObject(items) || !PARAM_SCALAR_TYPES.has(/** @type {string} */ (items?.type))) {
                 r.pushE({ code: 'tool.param_schema_invalid', path: `${pAt}.items`, message: `Tool ${label}: array parameter "${pname}" items must be scalar (string|number|integer|boolean).`, hint: 'Arrays of objects are not supported; accept a JSON string instead.' });
             } else {
+                const itemSchema = /** @type {import('./validateShared').ParamSchema} */ (items); // an object, checked above
                 const allowedItems = new Set(['type', 'description', 'enum']);
-                for (const k of Object.keys(items)) {
+                for (const k of Object.keys(itemSchema)) {
                     if (!allowedItems.has(k)) {
                         r.pushE({ code: 'tool.param_schema_invalid', path: `${pAt}.items.${k}`, message: `Tool ${label}: items uses unsupported keyword "${k}".`, hint: `Allowed item keywords: ${[...allowedItems].join(', ')}.` });
                     }
                 }
-                if (items.enum !== undefined && (items.type !== 'string' || !Array.isArray(items.enum) || items.enum.length === 0 || items.enum.some(e => typeof e !== 'string' || e.length > MAX_ENUM_ENTRY_CHARS))) {
+                if (itemSchema.enum !== undefined && (itemSchema.type !== 'string' || !Array.isArray(itemSchema.enum) || itemSchema.enum.length === 0 || itemSchema.enum.some(e => typeof e !== 'string' || e.length > MAX_ENUM_ENTRY_CHARS))) {
                     r.pushE({ code: 'tool.param_enum_invalid', path: `${pAt}.items.enum`, message: `Tool ${label}: items.enum must be a non-empty array of strings (string items only), each at most ${MAX_ENUM_ENTRY_CHARS} chars.`, hint: 'List the allowed literal values.' });
                 }
             }
@@ -205,7 +206,7 @@ function checkParamProperties(r, params, names, at, label, declaredParams) {
 /**
  * The pathTemplate: a relative path that cannot leave the base origin, with declared, required placeholders.
  * @param {import('./validateShared').Reporter} r
- * @param {string} pt
+ * @param {string | undefined} pt   anything but a string starting with '/' is reported
  * @param {string} at
  * @param {string} label
  * @param {{ declaredParams: Set<string>, requiredParams: Set<string> }} params
@@ -373,7 +374,7 @@ function checkPagination(r, tool, at, label, declaredParams) {
         if (!isObject(pg)) {
             r.pushE({ code: 'tool.pagination_invalid', path: pgAt, message: `Tool ${label}: pagination must be an object.`, hint: 'Example: { "style": "page", "pageParam": "page", "sizeParam": "limit", "maxPageSize": 100 }.' });
         } else {
-            if (!PAGINATION_STYLES.has(pg.style)) {
+            if (!PAGINATION_STYLES.has(/** @type {string} */ (pg.style))) {
                 r.pushE({ code: 'tool.pagination_invalid', path: `${pgAt}.style`, message: `Tool ${label}: pagination.style must be page|offset|cursor|none (got ${JSON.stringify(pg.style)}).`, hint: 'Pick the style the vendor documents.' });
             }
             if (pg.maxPageSize !== undefined && (!Number.isInteger(pg.maxPageSize) || pg.maxPageSize < 1 || pg.maxPageSize > 1000)) {

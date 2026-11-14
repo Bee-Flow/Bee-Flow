@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * LINKING: which storages this account can browse, what is in them, what one
  * sheet would arrive as, and making one or several mirrors — the spreadsheet
@@ -107,6 +108,8 @@ async function providers(session, principal, scope) {
 /**
  * What linking one sheet would produce: the tabs, the inferred columns, a
  * preview, the key candidates, and how rows could be written back.
+ * @param session @param principal @param scope
+ * @param {{ provider?: string, fileId?: string, driveId?: string | null, path?: string | null, sheet?: string | null, headerRow?: number }} [opts]
  */
 async function describe(session, principal, scope, { provider, fileId, driveId = null, path = null, sheet = null, headerRow = 1 } = {}) {
     const ctx = await callerApi(session, principal, provider);
@@ -220,7 +223,7 @@ async function linkSpreadsheets({ scope, principal, session, tables, relations =
     warnings.push(...made.warnings);
 
     // ── then derive every table's columns, siblings included ────────
-    const declared = resolveDeclared(relations, created, siblings);
+    const declared = resolveDeclared(relations, created, /** @type {Parameters<typeof resolveDeclared>[2]} */ (/** @type {unknown} */ (siblings)));
     warnings.push(...declared.warnings);
     const stored = await linking.storeDerived(scope, created, (plan, table) => columns.fieldsFromSheet(plan.cols, {
         existingFields: [],

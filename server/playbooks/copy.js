@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The words the Playbook ENGINE itself writes — the phase summaries the
  * handoff card shows, the descriptions of the things it creates, and the
@@ -56,7 +56,7 @@ function languageName(locale) {
 
 /**
  * The locale whose COPY pack is used — Dutch or English.
- * @param {string | null} locale
+ * @param {string | null | undefined} locale
  */
 function packLocale(locale) {
     const code = normaliseLocale(locale, 'nl');
@@ -105,7 +105,7 @@ function packLocale(locale) {
 const COPY = Object.freeze({
     nl: Object.freeze(/** @type {CopyPack} */ ({
         tableCreated: (name, columns) => `Tabel "${name}" aangemaakt met ${columns} kolommen.`,
-        tableVerified: (name, columns, { isMirror = false, mirrorKind = null, hasStatus = true } = {}) => `Tabel "${name}" gecontroleerd: ${columns} kolommen herkend${isMirror ? ` (${MIRROR_WORD[mirrorKind] ? `${MIRROR_WORD[mirrorKind]}-spiegel` : 'spiegel van een externe bron'})` : ''}${hasStatus ? '' : ', geen statuskolom'}.`,
+        tableVerified: (name, columns, { isMirror = false, mirrorKind = null, hasStatus = true } = {}) => `Tabel "${name}" gecontroleerd: ${columns} kolommen herkend${isMirror ? ` (${MIRROR_WORD[String(mirrorKind)] ? `${MIRROR_WORD[String(mirrorKind)]}-spiegel` : 'spiegel van een externe bron'})` : ''}${hasStatus ? '' : ', geen statuskolom'}.`,
         tableDescription: (title) => `${title} die de Playbook-automatisering ophaalt en bijhoudt`,
         rowsAdded: (added, rowCount) => `${added == null ? 'Rijen' : `${added} rijen`} toegevoegd aan de tabel${rowCount == null ? '' : ` (nu ${rowCount})`}.`,
         designSummary: (name, screens, elements, preset) => `Ontwerp "${name}": ${screens} scherm${screens === 1 ? '' : 'en'}, ${elements} elementen, look ${preset}.`,
@@ -205,7 +205,7 @@ const COPY = Object.freeze({
     })),
     en: Object.freeze(/** @type {CopyPack} */ ({
         tableCreated: (name, columns) => `Table "${name}" created with ${columns} columns.`,
-        tableVerified: (name, columns, { isMirror = false, mirrorKind = null, hasStatus = true } = {}) => `Table "${name}" checked: ${columns} columns recognised${isMirror ? ` (${MIRROR_WORD[mirrorKind] ? `${MIRROR_WORD[mirrorKind]} mirror` : 'mirror of an external source'})` : ''}${hasStatus ? '' : ', no status column'}.`,
+        tableVerified: (name, columns, { isMirror = false, mirrorKind = null, hasStatus = true } = {}) => `Table "${name}" checked: ${columns} columns recognised${isMirror ? ` (${MIRROR_WORD[String(mirrorKind)] ? `${MIRROR_WORD[String(mirrorKind)]} mirror` : 'mirror of an external source'})` : ''}${hasStatus ? '' : ', no status column'}.`,
         tableDescription: (title) => `${title} the Playbook automation reads in and keeps up to date`,
         rowsAdded: (added, rowCount) => `${added == null ? 'Rows' : `${added} row${added === 1 ? '' : 's'}`} added to the table${rowCount == null ? '' : ` (${rowCount} now)`}.`,
         designSummary: (name, screens, elements, preset) => `Design "${name}": ${screens} screen${screens === 1 ? '' : 's'}, ${elements} elements, look ${preset}.`,

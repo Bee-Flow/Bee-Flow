@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { MessageSquare, Loader2, FileAudio, Video, RefreshCw, Download } from 'lucide-react';
 import useTranslation from '@/hooks/useTranslation';
 import CaptureControls from './CaptureControls';
@@ -40,28 +41,31 @@ function fmtDate(s: string | null) {
     return isNaN(d.getTime()) ? '' : d.toLocaleString();
 }
 
+const NO_ROOMS: TalkRoom[] = [];
+
+/** The Talk rooms' recordings; Refresh reads again. */
+function useTalkRecordings() {
+    const query = useQuery<TalkRoom[]>({
+        queryKey: ['meetingNotes', 'talkRecordings'],
+        staleTime: 0,
+        retry: false,
+        queryFn: async () => {
+            const data = await listNextcloudTalkRecordings();
+            return Array.isArray(data?.rooms) ? data.rooms : [];
+        },
+    });
+    const loading = query.isFetching;
+    const error: unknown = query.error;
+    const rooms = query.data ?? NO_ROOMS;
+    const { refetch } = query;
+    return { loading, error, rooms, load: () => { void refetch(); } };
+}
+
 export default function TalkImportPanel({ onComplete }: { onComplete?: () => void }) {
     const { t } = useTranslation();
     const { uploadFromNextcloud, uploading, uploadStage, uploadError, clearError } = useRecorder();
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<unknown>(null);
-    const [rooms, setRooms] = useState<TalkRoom[]>([]);
+    const { loading, error, rooms, load } = useTalkRecordings();
     const [busyPath, setBusyPath] = useState<string | null>(null);
-
-    const load = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const data = await listNextcloudTalkRecordings();
-            setRooms(Array.isArray(data?.rooms) ? data.rooms : []);
-        } catch (err) {
-            setError(err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => { load(); }, []);
 
     const handleImport = async (rec: TalkRecording) => {
         clearError();

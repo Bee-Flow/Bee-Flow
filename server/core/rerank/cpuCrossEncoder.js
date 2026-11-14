@@ -25,21 +25,22 @@ const path = require('path');
 const log = require('../../telemetry/log');
 const { fallback, bestEffort } = require('../../utils/bestEffort');
 const { markUsed } = require('../llm/cpuPipelineUsage');
+const { envInt } = require('../../utils/envNumber.mts');
 
 // Pinned permissive-licensed cross-encoder model (MIT). Do NOT swap to
 // a Llama-Community-licensed reranker without a licence audit.
 const CPU_RERANK_MODEL_ID = 'Xenova/bge-reranker-base';
 
 // ── Resource caps (override via env) ──────────────────────────────────
-const CPU_RERANK_TIMEOUT_MS       = Number(process.env.CPU_RERANK_TIMEOUT_MS)      || 8000;
+const CPU_RERANK_TIMEOUT_MS       = envInt('CPU_RERANK_TIMEOUT_MS', 8000, { min: 1 });
 // Cold-start budget: model download + ONNX init can take 10-30 s on a
 // fresh cache. Without an explicit cap, a hung HuggingFace Hub fetch
 // would block every queued rerank call indefinitely (they all await
 // the same `_pipelinePromise`).
-const CPU_RERANK_LOAD_TIMEOUT_MS  = Number(process.env.CPU_RERANK_LOAD_TIMEOUT_MS) || 60000;
-const CPU_RERANK_MAX_DOCS         = Number(process.env.CPU_RERANK_MAX_DOCS)        || 50;
-const CPU_RERANK_DOC_CHARS        = Number(process.env.CPU_RERANK_DOC_CHARS)       || 2000;
-const CPU_RERANK_QUERY_CHARS      = Number(process.env.CPU_RERANK_QUERY_CHARS)     || 500;
+const CPU_RERANK_LOAD_TIMEOUT_MS  = envInt('CPU_RERANK_LOAD_TIMEOUT_MS', 60000, { min: 1 });
+const CPU_RERANK_MAX_DOCS         = envInt('CPU_RERANK_MAX_DOCS', 50, { min: 1 });
+const CPU_RERANK_DOC_CHARS        = envInt('CPU_RERANK_DOC_CHARS', 2000, { min: 1 });
+const CPU_RERANK_QUERY_CHARS      = envInt('CPU_RERANK_QUERY_CHARS', 500, { min: 1 });
 const CPU_RERANK_WASM_THREADS = Math.max(
     1,
     Number(process.env.CPU_RERANK_WASM_THREADS) ||

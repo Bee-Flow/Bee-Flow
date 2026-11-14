@@ -1,8 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Search, Check, Clock, Users, FileAudio, Loader2 } from 'lucide-react';
-import * as api from '../../api/transcriptionsApi';
 import { formatDuration, formatRelativeDate } from '../../pages/meeting-notes/lib/format';
-import useAdjustOnChange from '@/hooks/useAdjustOnChange';
+import { useTranscriptionsQuery } from '@/api/queries/meetingLibrary';
 import useTranslation from '@/hooks/useTranslation';
 
 export interface PickerMeeting {
@@ -50,6 +49,8 @@ interface MeetingPickerProps {
  *   - autoLoad: defaults to true; set false to render the inline form factor
  *   - emptyAction: optional CTA shown when no meetings exist
  */
+const NO_MEETINGS: PickerMeeting[] = [];
+
 export default function MeetingPicker({
     mode = 'multi',
     value = [],
@@ -59,21 +60,13 @@ export default function MeetingPicker({
     placeholder = 'Search meeting notes…',
     emptyAction,
 }: MeetingPickerProps) {
-    const [meetings, setMeetings] = useState<PickerMeeting[]>([]);
-    const [loading, setLoading] = useState(autoLoad);
-    const [error, setError] = useState<string | null>(null);
+    const notes = useTranscriptionsQuery(autoLoad);
+    const meetings = (notes.data as PickerMeeting[] | undefined) ?? NO_MEETINGS;
+    const loading = autoLoad && notes.isPending;
+    const error = notes.error ? notes.error.message : null;
     const [query, setQuery] = useState('');
     const [hoveredId, setHoveredId] = useState<string | null>(null);
     const { t } = useTranslation();
-
-    useAdjustOnChange([autoLoad], () => { if (autoLoad) setLoading(true); });
-    useEffect(() => {
-        if (!autoLoad) return;
-        api.listTranscriptions()
-            .then(setMeetings)
-            .catch((e: Error) => setError(e.message))
-            .finally(() => setLoading(false));
-    }, [autoLoad]);
 
     const filtered = useMemo(() => {
         if (!query) return meetings;

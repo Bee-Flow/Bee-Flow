@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState, useEffectEvent } from 'react';
 import type { ChangeEvent, Dispatch, SetStateAction } from 'react';
 import type { TranslateFn } from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
-import { settled } from '@/api/settled';
 import { logger } from '@/utils/logger';
-import { mutate, ApiError, errorBody, RefusedError } from '@/api/mutate';
+import { ApiError, errorBody, RefusedError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
+import { useOrgFormReads } from '@/api/queries/orgInfoForm';
 import { imageLimitsToInput, parseImageLimitsInput } from '@/utils/imageLimits';
 import type { ImageLimits, ImageLimitsInput } from '@/utils/imageLimits';
 
@@ -129,7 +129,7 @@ function toFormData(myOrg: OrgRow): OrgFormData {
  * the binding the server holds now, then group membership, then (for a global
  * admin) the first org.
  */
-async function resolveMyOrg(orgs: OrgRow[], grps: GroupRow[], user: OrgInfoUser | null | undefined): Promise<OrgRow | null> {
+async function resolveMyOrg(orgs: OrgRow[], grps: GroupRow[], user: OrgInfoUser | null | undefined, readCurrentOrgId: () => Promise<string | null>): Promise<OrgRow | null> {
     let myOrg: OrgRow | null | undefined = null;
     if (user?.organizationId) {
         myOrg = orgs.find(o => o.id === user.organizationId);
@@ -140,8 +140,7 @@ async function resolveMyOrg(orgs: OrgRow[], grps: GroupRow[], user: OrgInfoUser 
     // user.organizationId — the SaaS is the authority for the current binding.
     if (!myOrg) {
         try {
-            const fresh = await settled(`${API_BASE}/auth/user`, undefined, 'empty').then(r => r.ok ? r.res.json() : null);
-            const freshOrgId = fresh?.user?.organizationId;
+            const freshOrgId = await readCurrentOrgId();
             if (freshOrgId) {
                 myOrg = orgs.find(o => o.id === freshOrgId);
             }
@@ -182,10 +181,7 @@ function useOrgLogo(
         try {
             let res: Response;
             try {
-                res = await mutate(`${API_BASE}/auth/organizations/${orgId}/logo`, {
-                method: 'POST',
-                body: formData,
-            });
+                res = await apiRequest('POST /auth/organizations/{id}/logo', { params: { id: orgId }, init: { body: formData } });
             } catch (err) {
                 if (!(err instanceof ApiError)) throw err;
                 setMessage({ type: 'error', text: t('org.logo_upload_failed', 'Logo upload failed') });
@@ -204,7 +200,7 @@ function useOrgLogo(
         if (!orgId) return;
         try {
             try {
-                await mutate(`${API_BASE}/auth/organizations/${orgId}/logo`, { method: 'DELETE' });
+                await apiRequest('DELETE /auth/organizations/{id}/logo', { params: { id: orgId } });
             } catch (err) {
                 if (!(err instanceof ApiError)) throw err;
                 setMessage({ type: 'error', text: t('org.logo_remove_failed', 'Failed to remove logo') });
@@ -238,21 +234,15 @@ export default function useOrgInfoForm({ user, orgId, t, onSave: parentOnSave, o
     // in the form is still "Selected" and can be changed until Save.
     const [savedAuthMethod, setSavedAuthMethod] = useState<string | null>(null);
 
+    const { readOrgsAndGroups, readCurrentOrgId } = useOrgFormReads<OrgRow, GroupRow>();
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
-            const [orgsRes, groupsRes] = await Promise.all([
-                settled(`${API_BASE}/auth/organizations`, undefined, 'empty'),
-                settled(`${API_BASE}/auth/groups`, undefined, 'empty'),
-            ]);
-            let orgs: OrgRow[] = [];
-            let grps: GroupRow[] = [];
-            if (orgsRes.ok) orgs = await orgsRes.res.json();
-            if (groupsRes.ok) grps = await groupsRes.res.json();
+            const { orgs, groups: grps } = await readOrgsAndGroups();
 
             if (orgs.length > 0) {
                 const myOrg = orgId === undefined
-                    ? await resolveMyOrg(orgs, grps, user)
+                    ? await resolveMyOrg(orgs, grps, user, readCurrentOrgId)
                     : orgs.find(o => o.id === orgId) ?? null;
                 if (!myOrg) {
                     setLoading(false);
@@ -269,7 +259,7 @@ export default function useOrgInfoForm({ user, orgId, t, onSave: parentOnSave, o
         } finally {
             setLoading(false);
         }
-    }, [user, orgId]);
+    }, [user, orgId, readOrgsAndGroups, readCurrentOrgId]);
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -304,11 +294,7 @@ export default function useOrgInfoForm({ user, orgId, t, onSave: parentOnSave, o
             const { id, ...fields } = current;
             let res: Response | undefined;
             try {
-                res = await mutate(`${API_BASE}/auth/organizations/${id}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...fields, imageLimits }),
-            });
+                res = await apiRequest('PUT /auth/organizations/{id}', { params: { id }, body: { ...fields, imageLimits } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 const data = errorBody(err) ?? {};

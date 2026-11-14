@@ -59,9 +59,12 @@ async function tableExists(name, client) {
 const SCANS = Object.freeze({
     agent: {
         table: 'agents',
+        // One agent whose config holds '' must not make the whole scan
+        // unanswerable: it reads as NULL (no knowledge bases). Through ::text,
+        // because the column is TEXT on some installs and jsonb on others.
         sql: `SELECT id, name AS title, owner_id, updated_at AS last_at
                 FROM agents
-               WHERE (config::jsonb -> 'knowledge_base_ids') @> $1::jsonb`,
+               WHERE (NULLIF(config::text, '')::jsonb -> 'knowledge_base_ids') @> $1::jsonb`,
         params: (kbId) => [JSON.stringify([kbId])],
         role: 'chat',
     },
@@ -264,7 +267,8 @@ async function scrubReferences(kbId, { db = pool } = {}) {
     }
 
     // `agents.config` is TEXT holding JSON on some installs and jsonb on
-    // others, so it is rewritten through a cast rather than updated in place.
+    // others, so it is rewritten through a cast rather than updated in place;
+    // a row holding '' is not a match, so it cannot fail the whole UPDATE.
     try {
         if (await tableExists('agents', db)) {
             const r = await db.query(
@@ -277,7 +281,7 @@ async function scrubReferences(kbId, { db = pool } = {}) {
                                  WHERE x <> to_jsonb($1::text)
                             ), '[]'::jsonb)
                         )::text
-                  WHERE (config::jsonb -> 'knowledge_base_ids') @> $2::jsonb`,
+                  WHERE (NULLIF(config::text, '')::jsonb -> 'knowledge_base_ids') @> $2::jsonb`,
                 [kbId, JSON.stringify([kbId])],
             );
             scrubbed.agent = r.rowCount || 0;

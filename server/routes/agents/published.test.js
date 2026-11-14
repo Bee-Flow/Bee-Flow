@@ -12,6 +12,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const Module = require('module');
+const { fakeAgentGates } = require('./agentGate.testkit');
 
 const fx = {
     userId: 'u1',
@@ -46,12 +47,15 @@ const MOCKS = {
     '../../core/entitlements/limits': { checkSubscriptionLimits: async () => ({}), checkResourceLimits: async () => ({}) },
     '../../core/http/sseHelpers': { setupSSE: noop, sendSSEError: noop, persistAndTitle: async () => {}, getOrCreateAgentConversation: async () => {} },
     './crud': {
-        canModifyAgent: async (a) => a.owner_id === fx.userId,
         buildCanModifyContext: async () => ({}),
         validateAgentConfigReferences: async () => { fx.validateCalls++; return { warnings: [], droppedSkillIds: [] }; },
     },
     '../../compliance/events': { EVENTS: { AGENT_PUBLISHED: 'agent_published' }, emit: noop },
 };
+Object.assign(MOCKS['./crud'], fakeAgentGates({
+    agentStore: MOCKS['../../stores/agentStore'], canModify: (a) => a.owner_id === fx.userId, userId: () => fx.userId,
+}));
+
 const MOCK_IDS = {};
 for (const [request, exportsObj] of Object.entries(MOCKS)) {
     const mockId = `mock:published:${request}`;
@@ -135,6 +139,17 @@ test('PATCH /:id/publish off: no reference validation, still audience-only', asy
     assert.strictEqual(res.statusCode, 200);
     assert.strictEqual(fx.validateCalls, 0);
     assert.deepStrictEqual(fx.setPublishedCalls, [['a1', false, 'u1', undefined]]);
+});
+
+test('PATCH /:id/publish on an agent deleted or handed over meanwhile → 409 agent_changed, not a 500', async () => {
+    const store = MOCKS['../../stores/agentStore'];
+    const { setAgentPublished } = store;
+    store.setAgentPublished = async () => false;
+    try {
+        const res = await dispatch({ method: 'PATCH', url: '/a1/publish', body: { isPublished: false } });
+        assert.strictEqual(res.statusCode, 409);
+        assert.strictEqual(res.body.code, 'agent_changed');
+    } finally { store.setAgentPublished = setAgentPublished; }
 });
 
 test('PATCH /:id/publish by a non-editor → 403 agent_not_editable', async () => {

@@ -1,4 +1,6 @@
+// @typecheck strict
 /** @typedef {import('./crud').AgentRow} AgentRow */
+/** @typedef {{ actorId?: string | null; session?: object | null; newSelection?: boolean; }} HandoffOpts  who picked the hand-off, and whether it is new */
 /**
  * Agent CRUD: the write side of `agents.persona` (structured role, A1c).
  * Normalising an incoming persona, verifying the hand-off automation it points
@@ -38,7 +40,7 @@ const log = require('../../telemetry/log');
  * unbound one would put "hand off via <tool>" in the prompt for a tool that never
  * exists. See `ensureHandoffBinding` for when a missing binding is made here.
  * @param {string} automationId
- * @param {{ actorId: string | null; session: object | null; newSelection: boolean; }} [opts]
+ * @param {HandoffOpts} [opts]
  * @param {AgentRow} agent
  */
 async function verifyHandoffAutomation(agent, automationId, opts = {}) {
@@ -80,6 +82,7 @@ async function verifyHandoffAutomation(agent, automationId, opts = {}) {
  * first save.
  * @param {AgentRow} agent
  * @param {agentBinding.AutomationRow} automation
+ * @param {HandoffOpts} [opts]
  */
 async function ensureHandoffBinding(agent, automation, { actorId = null, session = null, newSelection = false } = {}) {
     if (!agent.id) return false;
@@ -90,7 +93,7 @@ async function ensureHandoffBinding(agent, automation, { actorId = null, session
     const current = await automationStore.listBindingsForAutomation(automation.id);
     await agentBinding.setAgentBindings({
         automation,
-        agentIds: [...current.map((b) => b.agentId), agent.id],
+        agentIds: [...current.map((b) => /** @type {NonNullable<typeof b>} */ (b).agentId), agent.id], // mapped from rows, never null
         actorId,
         session,
     });

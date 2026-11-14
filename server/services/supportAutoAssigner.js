@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Support auto-assignment — round-robin assignment of escalated threads to
  * staff who hold the `admin_support` permission.
@@ -49,7 +49,7 @@ async function _isEligibleStaff(u, orgId, permsOf, tenantInbox = false) {
 }
 
 /**
- * @param {string | null} orgId
+ * @param {string | null | undefined} orgId  none reads as the global pool
  * @param {{ tenantInbox?: boolean }} [opts] tenantInbox: eligibility for a tenant support inbox
  * @returns {Promise<string[]>}
  */

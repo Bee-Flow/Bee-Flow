@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /** @typedef {import('pg').Pool} Pool */
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Migration: make the knowledge bases that org agents already read READABLE.
  *
@@ -121,7 +121,7 @@ async function plan({ db = pool } = {}) {
     for (const agent of agents) {
         for (const kbId of kbIdsOf(agent)) {
             if (!byKb.has(kbId)) byKb.set(kbId, []);
-            byKb.get(kbId).push(agent);
+            /** @type {Record<string, any>[]} */ (byKb.get(kbId)).push(agent); // set on the line above
         }
     }
 

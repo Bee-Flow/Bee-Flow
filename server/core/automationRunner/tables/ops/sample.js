@@ -1,5 +1,5 @@
 /** @typedef {import('./index').TableRow} TableRow */
-// @typecheck noImplicitAny
+// @typecheck strict
 'use strict';
 /**
  * sample: the first rows, or a random but repeatable pick. The generator is
@@ -29,14 +29,17 @@ function apply(op, input, ctx) {
     const hasN = op.n !== null;
     const hasP = op.percent !== null;
     if (hasN === hasP) throw tableError('table_op_invalid', 'Give either a number of rows or a percentage to sample, not both and not neither.', { opId: op.id, field: hasN ? 'percent' : 'n' });
+    // Exactly one of the two is set; each is read only on its own path below.
+    const n = /** @type {number} */ (op.n);
+    const percent = /** @type {number} */ (op.percent);
 
     async function* rows() {
         if (op.mode === 'first') {
-            let limit = op.n;
+            let limit = n;
             if (hasP) {
                 let total = 0;
                 for await (const r of input.rows()) { void r; total++; await ctx.tick(); }
-                limit = Math.ceil((total * op.percent) / 100);
+                limit = Math.ceil((total * percent) / 100);
             }
             if (limit <= 0) return;
             let seen = 0;
@@ -49,7 +52,7 @@ function apply(op, input, ctx) {
         }
         const rand = createPrng(op.seed);
         if (hasP) {
-            const share = op.percent / 100;
+            const share = percent / 100;
             for await (const row of input.rows()) {
                 await ctx.tick();
                 if (rand() < share) yield row;
@@ -62,10 +65,10 @@ function apply(op, input, ctx) {
         let i = 0;
         for await (const row of input.rows()) {
             await ctx.tick();
-            if (reservoir.length < op.n) reservoir.push({ i, row });
+            if (reservoir.length < n) reservoir.push({ i, row });
             else {
                 const j = Math.floor(rand() * (i + 1));
-                if (j < op.n) reservoir[j] = { i, row };
+                if (j < n) reservoir[j] = { i, row };
             }
             i++;
         }

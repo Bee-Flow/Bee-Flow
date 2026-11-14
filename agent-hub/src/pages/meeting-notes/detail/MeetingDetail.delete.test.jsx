@@ -15,7 +15,7 @@
  * Both halves are pinned here: skip the notice and the confirmation becomes a
  * lie; skip the OR and the delete deadlocks.
  */
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -62,11 +62,12 @@ vi.mock('./SummaryActionsLayout', () => ({ default: () => <div data-testid="body
 vi.mock('./MeetingVisibility', () => ({ default: () => null }));
 vi.mock('@/components/shared/Toast', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 
+import { renderWithClient } from '@/test/render';
 import MeetingDetail from './MeetingDetail';
 
 async function open() {
     const user = userEvent.setup();
-    render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" onDeleted={() => {}} />);
+    renderWithClient(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" onDeleted={() => {}} />);
     await user.click(screen.getByText(/Delete this meeting/i));
 }
 
@@ -135,7 +136,7 @@ describe('MeetingDetail — delete', () => {
     it('the outputs bar renders the same list, and says when it could not be read', async () => {
         usageState.usage = [];
         usageState.unchecked = ['notebook'];
-        render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
+        renderWithClient(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
         expect(await screen.findByTestId('meeting-outputs-unchecked')).toBeTruthy();
         expect(screen.getByTestId('meeting-outputs-empty').textContent).not.toMatch(/Nothing picks this meeting up/i);
     });
@@ -144,7 +145,7 @@ describe('MeetingDetail — delete', () => {
         // An under-count reads as a complete count. Better no number at all.
         usageState.usage = [{ kind: 'kb', id: 'kb-1', title: 'Sales', role: 'contains', ownerId: 'me' }];
         usageState.unchecked = ['automation'];
-        render(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
+        renderWithClient(<MeetingDetail id="m-1" currentUserId="me" currentUserName="Me" />);
         const tab = (await screen.findByText(/Used by/i)).closest('button') || screen.getByText(/Used by/i);
         expect(tab.textContent).not.toMatch(/\b1\b/);
     });

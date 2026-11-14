@@ -4,7 +4,7 @@ import CaptchaWidget from './CaptchaWidget';
 import type { CaptchaConfig } from './CaptchaWidget';
 import { MIN_PASSWORD_LENGTH, type SignupData } from './signupValidation';
 import { useTranslation } from '../../hooks/useTranslation';
-import { API_BASE, authFetch } from '../../utils/helpers';
+import { apiFetch, apiUrl } from '@/api/typedRequest';
 
 interface SignupStepAccountProps {
     signupData: SignupData;
@@ -130,14 +130,10 @@ const SignupStepAccount = ({
                         },
                     };
 
-                const res = await authFetch(`${API_BASE}/auth/pending-signup`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(pendingBody)
-                });
+                const res = await apiFetch('POST /auth/pending-signup', { init: { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(pendingBody) } });
                 const data = await res.json();
                 if (data.ok) {
-                    window.location.href = `${API_BASE}/auth/login/${signupData.authMethod}`;
+                    window.location.href = apiUrl('GET /auth/login/{provider}', { params: { provider: signupData.authMethod } });
                 } else {
                     setError(data.error || 'Failed to save signup data');
                     setIsLoading(false);

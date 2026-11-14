@@ -3,11 +3,13 @@ import {
     PROGRESS, applyRunEvent, endProgress, refusalFor, startProgress,
     type AgentTest, type Refusal, type RunProgress, type TestRun,
 } from './testSetFacts';
-import { API_BASE, authFetch } from '@/utils/helpers';
 import { readEventStream } from '@/utils/sseStream';
 import { READ, type ReadState } from '../canUse/canUseFacts';
 import { logger } from '@/utils/logger';
-import { request, RefusedError } from '@/api/mutate';
+import { RefusedError } from '@/api/mutate';
+import { apiFetch, apiRequest } from '@/api/typedRequest';
+import { useAgentTestsQuery } from '@/api/queries/agentTestsRead';
+import useAdjustOnChange from '@/hooks/useAdjustOnChange';
 
 /**
  * The reads and the actions behind the test-set card (A4 part D).
@@ -54,6 +56,14 @@ interface UseAgentTestsArgs {
     enabled?: boolean;
 }
 
+/** GET /agents/:id/tests, as far as the hook reads it. */
+interface TestsBody {
+    tests?: AgentTest[];
+    lastRun?: TestRun | null;
+    lastRunUnknown?: boolean;
+    limits?: typeof EMPTY_LIMITS;
+}
+
 export default function useAgentTests({ agentId = null, enabled = true }: UseAgentTestsArgs = {}) {
     const [tests, setTests] = useState<AgentTest[]>([]);
     const [testsState, setTestsState] = useState<ReadState>(READ.LOADING);
@@ -63,7 +73,6 @@ export default function useAgentTests({ agentId = null, enabled = true }: UseAge
     // Did the SERVER refuse the read, and why? Kept separate from `refusal` (which concerns a run),
     // because the two can exist at the same time and say different things.
     const [readRefusal, setReadRefusal] = useState<Refusal | null>(null);
-    const [nonce, setNonce] = useState(0);
 
     const [runs, setRuns] = useState<TestRun[]>([]);
     const [runsState, setRunsState] = useState<ReadState>(READ.OK);
@@ -77,53 +86,45 @@ export default function useAgentTests({ agentId = null, enabled = true }: UseAge
     const aliveRef = useRef(true);
     useEffect(() => () => { aliveRef.current = false; }, []);
 
-    // ── De vragen en de laatste run ─────────────────────────────
-    useEffect(() => {
-        if (!enabled || !agentId) return undefined;
-        const ctrl = new AbortController();
-        let alive = true;
-        setTestsState(READ.LOADING);
-        (async () => {
-            try {
-                const res = await authFetch(`${API_BASE}/agents/${agentId}/tests`, { signal: ctrl.signal });
-                if (!alive || ctrl.signal.aborted) return;
-                if (!res.ok) {
-                    // The STATUS CODE and the server's code are kept. Without that, a rights decision (403
-                    // `agent_not_editable`, for everyone who may only view this agent) was drawn as a fault,
-                    // with a Retry button that kept giving 403 forever. `refusalFor` already knows that code
-                    // and attaches `retryable: false` to it.
-                    const body = await bodyOf(res);
-                    if (!alive || ctrl.signal.aborted) return;
-                    setTests([]);
-                    setLastRun(null);
-                    setLastRunUnknown(true);
-                    setReadRefusal(refusalFor({ status: res.status, body }));
-                    setTestsState(READ.ERROR);
-                    return;
-                }
-                const body = await res.json();
-                if (!alive || ctrl.signal.aborted) return;
-                setTests(Array.isArray(body?.tests) ? body.tests : []);
-                setLastRun(body?.lastRun || null);
-                setLastRunUnknown(body?.lastRunUnknown === true);
-                setLimits(body?.limits || EMPTY_LIMITS);
-                setReadRefusal(null);
-                setTestsState(READ.OK);
-            } catch (_) {
-                if (!alive || ctrl.signal.aborted) return;
-                setTests([]);
-                setTestsState(READ.ERROR);
-                // A network error is not an answer from the server: no code, so also no refusal to show.
-                setReadRefusal(null);
-                // We do not know whether it has been run. That is something other than no.
-                setLastRun(null);
-                setLastRunUnknown(true);
-            }
-        })();
-        return () => { alive = false; try { ctrl.abort(); } catch (err) { logger.debug('noop', err); } };
-    }, [enabled, agentId, nonce]);
+    // ── The questions and the last run ─────────────────────────
+    const testsQuery = useAgentTestsQuery<TestsBody>(agentId, enabled);
+    useAdjustOnChange([testsQuery.isFetching], () => { if (testsQuery.isFetching) setTestsState(READ.LOADING); });
+    useAdjustOnChange([testsQuery.dataUpdatedAt], () => {
+        const answer = testsQuery.data;
+        if (!answer) return;
+        if (!answer.ok) {
+            // The STATUS CODE and the server's code are kept. Without that, a rights decision (403
+            // `agent_not_editable`, for everyone who may only view this agent) was drawn as a fault,
+            // with a Retry button that kept giving 403 forever. `refusalFor` already knows that code
+            // and attaches `retryable: false` to it.
+            setTests([]);
+            setLastRun(null);
+            setLastRunUnknown(true);
+            setReadRefusal(refusalFor({ status: answer.status, body: answer.body }));
+            setTestsState(READ.ERROR);
+            return;
+        }
+        const body = answer.body;
+        setTests(Array.isArray(body?.tests) ? body.tests : []);
+        setLastRun(body?.lastRun || null);
+        setLastRunUnknown(body?.lastRunUnknown === true);
+        setLimits(body?.limits || EMPTY_LIMITS);
+        setReadRefusal(null);
+        setTestsState(READ.OK);
+    });
+    useAdjustOnChange([testsQuery.errorUpdatedAt], () => {
+        if (!testsQuery.error) return;
+        setTests([]);
+        setTestsState(READ.ERROR);
+        // A network error is not an answer from the server: no code, so also no refusal to show.
+        setReadRefusal(null);
+        // We do not know whether it has been run. That is something other than no.
+        setLastRun(null);
+        setLastRunUnknown(true);
+    });
 
-    const refetch = useCallback(() => setNonce(n => n + 1), []);
+    const refetchTests = testsQuery.refetch;
+    const refetch = useCallback(() => { void refetchTests(); }, [refetchTests]);
 
     // ── De historie, pas als iemand Bekijk opent ────────────────
     const loadRuns = useCallback(async () => {
@@ -132,7 +133,7 @@ export default function useAgentTests({ agentId = null, enabled = true }: UseAge
         try {
             let res: Response;
             try {
-                res = await request(`${API_BASE}/agents/${agentId}/tests/runs`);
+                res = await apiRequest('GET /agents/{id}/tests/runs', { params: { id: agentId } });
             } catch (err) {
                 if (!(err instanceof RefusedError)) throw err;
                 throw new Error(`runs ${err.status}`);
@@ -159,14 +160,13 @@ export default function useAgentTests({ agentId = null, enabled = true }: UseAge
         let state = startProgress();
         setProgress(state);
         try {
-            const res = await authFetch(`${API_BASE}/agents/${agentId}/tests/run`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+            const res = await apiFetch('POST /agents/{id}/tests/run', {
+                params: { id: agentId },
+                body: {
                     testIds: Array.isArray(options.testIds) ? options.testIds : undefined,
                     asGroup: options.asGroup || undefined,
                     timezone: options.timezone || undefined,
-                }),
+                },
             });
             if (!res.ok) {
                 // Refused before the first turn. No result, no progress, only the message that nothing was tested.
@@ -202,14 +202,13 @@ export default function useAgentTests({ agentId = null, enabled = true }: UseAge
     const suggest = useCallback(async (turn: { question: string; answer: string; toolsUsed?: string[] }) => {
         if (!agentId) return { suggestion: null, refusal: null };
         try {
-            const res = await authFetch(`${API_BASE}/agents/${agentId}/tests/suggest`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+            const res = await apiFetch('POST /agents/{id}/tests/suggest', {
+                params: { id: agentId },
+                body: {
                     question: turn?.question || '',
                     answer: turn?.answer || '',
                     toolsUsed: Array.isArray(turn?.toolsUsed) ? turn.toolsUsed : [],
-                }),
+                },
             });
             const body = await bodyOf(res);
             if (!res.ok) return { suggestion: null, refusal: refusalFor({ status: res.status, body }) };
@@ -224,11 +223,7 @@ export default function useAgentTests({ agentId = null, enabled = true }: UseAge
     const createTest = useCallback(async (test: { question: string }) => {
         if (!agentId) return { test: null, refusal: null };
         try {
-            const res = await authFetch(`${API_BASE}/agents/${agentId}/tests`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(test || {}),
-            });
+            const res = await apiFetch('POST /agents/{id}/tests', { params: { id: agentId }, body: test || {} });
             const body = await bodyOf(res);
             if (!res.ok) return { test: null, refusal: refusalFor({ status: res.status, body }) };
             const created = body?.test || null;

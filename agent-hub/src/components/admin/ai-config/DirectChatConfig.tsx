@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import SectionHeader from '@/components/shared/SectionHeader';
 import { FIELD_INPUT, SAVE_BUTTON, SettingBlock, SettingsList } from '@/components/shared/SettingsList';
 import { useToastOnMessage } from './ui/useToastOnMessage';
-import { API_BASE } from '@/utils/helpers';
 import { useDirectChatPrompt } from '@/api/queries/orgAdminReads';
 import { useTranslation } from '@/hooks/useTranslation';
 import type { StatusMessage } from './chatModelTiers/tierTypes';
-import { mutate, ApiError } from '@/api/mutate';
+import { ApiError } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 const DirectChatConfig = () => {
     const { t } = useTranslation();
@@ -20,11 +20,7 @@ const DirectChatConfig = () => {
     const handleSave = async () => {
         setSaving(true);
         try {
-            const res = await mutate(`${API_BASE}/ai/config/direct-chat`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ systemPrompt })
-            }).catch((err: unknown) => {
+            const res = await apiRequest('POST /ai/config/direct-chat', { body: { systemPrompt } }).catch((err: unknown) => {
                 if (err instanceof ApiError) return null;
                 throw err;
             });

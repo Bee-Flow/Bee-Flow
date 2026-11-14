@@ -97,15 +97,15 @@ const { openSse } = require('../../../core/http/sseHelpers');
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).
 const { requireAuth } = require('../../../auth/permissions');
 const { readTurnRequest, loadDraftWrap, loadTurnDataModel, attachCrossTurnState } = require('./turnSetup');
-const { resolveBuilderModel } = require('./modelSelection');
-const { assembleTurnPrompt } = require('./promptAssembly');
-const { makeTurnUsageLogger } = require('./usageAccounting');
+const { resolveBuilderModel } = require('../../../usecases/ai/appStudioBuilder/modelSelection');
+const { assembleTurnPrompt } = require('../../../usecases/ai/appStudioBuilder/promptAssembly');
+const { makeTurnUsageLogger } = require('../../../usecases/ai/appStudioBuilder/usageAccounting');
 const { runBuildLoop } = require('./buildLoop');
-const { settleHeldChange } = require('./heldChanges.mts');
-const { handleProposedPlan, runAutoFinalizeNet, persistTurnSnapshot, classifyTurnOutcome } = require('./turnClosing');
-const { bestEffort } = require('../../../utils/bestEffort');
+const { settleHeldChange } = require('../../../usecases/ai/appStudioBuilder/heldChanges.mts');
+const { handleProposedPlan, runAutoFinalizeNet, persistTurnSnapshot, classifyTurnOutcome } = require('../../../usecases/ai/appStudioBuilder/turnClosing');
+const { bestEffort, ignoreGone } = require('../../../utils/bestEffort');
 const { designNotesForTurn } = require('./designBrief.mts');
-const { turnStartState, writeTurnEndVersion } = require('./turnEndVersion');
+const { turnStartState, writeTurnEndVersion } = require('../../../usecases/ai/appStudioBuilder/turnEndVersion');
 const { sessionUser } = require('../../../core/http/sessionUser');
 
 // Each builder turn is a multi-iteration LLM conversation chaining many tool
@@ -227,7 +227,7 @@ router.post('/stream', requireAuth, builderRateLimit, async (req, res) => {
     // What the build loop records and the rest of the turn reads back. An
     // object rather than let-bindings, because ./buildLoop.js writes to it and
     // the outer catch has to be able to log a turn that died inside the loop.
-    /** @type {import('./turnClosing').BuilderTurn} */
+    /** @type {import('../../../usecases/ai/appStudioBuilder/turnClosing').BuilderTurn} */
     const turn = {
         iter: 0,
         lastFinalized: false,
@@ -271,7 +271,7 @@ router.post('/stream', requireAuth, builderRateLimit, async (req, res) => {
         res.on('close', () => {
             if (res.writableEnded) return;
             turn.clientGone = true;
-            try { clientAbort.abort(); } catch (err) { log.debug('already aborted', err); }
+            try { clientAbort.abort(); } catch (err) { ignoreGone('routes/ai/appStudioBuilder/chatStream:abortOnClose', err); }
         });
 
         // The change held last turn: applied now on the user's "apply", before the draft state is rendered.
@@ -329,7 +329,7 @@ router.post('/stream', requireAuth, builderRateLimit, async (req, res) => {
         const outcome = classifyTurnOutcome(turn, { awaitingPlan, continuation, budgetExhausted });
         logTurnUsage(outcome);
 
-        /** @type {{ appId: string|null|undefined, finalized: boolean, awaitingPlan?: boolean, continuation?: import('./turnClosing').Continuation, reviewQuestions?: import('./turnClosing').BuilderTurn['reviewQuestions'] }} */
+        /** @type {{ appId: string|null|undefined, finalized: boolean, awaitingPlan?: boolean, continuation?: import('../../../usecases/ai/appStudioBuilder/turnClosing').Continuation, reviewQuestions?: import('../../../usecases/ai/appStudioBuilder/turnClosing').BuilderTurn['reviewQuestions'] }} */
         const donePayload = { appId: draftWrap.appId, finalized: turn.lastFinalized };
         if (awaitingPlan) donePayload.awaitingPlan = true;
         if (continuation) donePayload.continuation = continuation;

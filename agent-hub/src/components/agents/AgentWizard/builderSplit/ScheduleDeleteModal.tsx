@@ -1,8 +1,8 @@
-import { API_BASE, authFetch } from '@/utils/helpers';
 import Modal from '@/components/shared/Modal';
 import type { RefObject } from 'react';
 import type { TranslateFn } from '@/hooks/useTranslation';
 import { logger } from '@/utils/logger';
+import { apiFetch } from '@/api/typedRequest';
 
 /** The schedule the delete dialog is about. */
 export interface ScheduleDeleteTarget { id: string; title?: string }
@@ -25,7 +25,7 @@ export default function ScheduleDeleteModal({ t, scheduleDeleteTarget, scheduleD
         if (scheduleDeleting) return;
         setScheduleDeleting(true);
         try {
-            await authFetch(`${API_BASE}/api/cowork/${scheduleDeleteTarget.id}`, { method: 'DELETE' });
+            await apiFetch('DELETE /api/cowork/{id}', { params: { id: scheduleDeleteTarget.id } });
             await refreshAgentSchedules();
         } catch (err) { logger.debug('non-fatal', err); }
         finally {

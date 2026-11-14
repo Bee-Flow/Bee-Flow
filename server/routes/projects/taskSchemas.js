@@ -123,6 +123,8 @@ const PokerFinishBody = bodyOf({
     sessionId: sourceId,
     storyPoints: z.number({ error: typeError({ invalid: 'storyPoints is a Fibonacci estimate.' }) }).int('storyPoints is a Fibonacci estimate.').refine(v => [1, 2, 3, 5, 8, 13, 21].includes(v), 'storyPoints is a Fibonacci estimate.')
 }, 'Finishing planning poker');
+// The AI improvements read the meeting or task in the path and take no fields.
+const ImproveBody = bodyOf({}, 'Asking the AI to improve');
 
 module.exports = { TITLE_MAX, DESCRIPTION_MAX, MAX_ASSIGNEES, MAX_LINKS, MAX_BATCH, CreateTaskBody, BatchTasksBody, UpdateTaskBody,
-    PokerStartBody, PokerSessionBody, PokerVoteBody, PokerFinishBody };
+    PokerStartBody, PokerSessionBody, PokerVoteBody, PokerFinishBody, ImproveBody };

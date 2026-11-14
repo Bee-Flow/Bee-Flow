@@ -2,12 +2,12 @@ import React, { useState, useCallback } from 'react';
 import { useStudioCannedQuery, useStudioTagsQuery } from '@/api/queries/supportPanels';
 import { Plus, Trash2 } from 'lucide-react';
 import useTranslation from '@/hooks/useTranslation';
-import { API_BASE } from '@/utils/helpers';
 import Section from '@/components/shared/Section';
 import FormField from '@/components/shared/FormField';
 import { INPUT_FIELD, PRIMARY_BTN, PRIMARY_BTN_STYLE } from './supportStyles';
 import type { CannedResponse } from '@/components/support/SupportInboxPanel.types';
-import { mutate, ApiError, RefusedError, errorBody } from '@/api/mutate';
+import { ApiError, RefusedError, errorBody } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 interface SupportTag {
     id: string;
@@ -48,9 +48,7 @@ function Tags() {
         if (!name.trim()) return;
         setError(null);
         try {
-            await mutate(`${API_BASE}/api/support-inbox/tags`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name.trim(), color }),
-        });
+            await apiRequest('POST /api/support-inbox/tags', { body: { name: name.trim(), color } });
         } catch (err) {
             if (!(err instanceof RefusedError)) throw err;
             const e = errorBody(err) ?? {};
@@ -60,7 +58,7 @@ function Tags() {
         setName(''); await load();
     };
     const remove = async (id: string) => {
-        const res = await mutate(`${API_BASE}/api/support-inbox/tags/${id}`, { method: 'DELETE' }).catch((err: unknown) => {
+        const res = await apiRequest('DELETE /api/support-inbox/tags/{id}', { params: { id } }).catch((err: unknown) => {
             if (err instanceof ApiError) return null;
             throw err;
         });
@@ -105,10 +103,7 @@ function Canned() {
         if (!form.title.trim() || !form.body.trim()) { setError(t('support.canned.required', 'Title and body are required.')); return; }
         setError(null);
         try {
-            await mutate(`${API_BASE}/api/support-inbox/canned`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title: form.title.trim(), shortcut: form.shortcut.trim() || null, body: form.body }),
-        });
+            await apiRequest('POST /api/support-inbox/canned', { body: { title: form.title.trim(), shortcut: form.shortcut.trim() || null, body: form.body } });
         } catch (err) {
             if (!(err instanceof RefusedError)) throw err;
             const e = errorBody(err) ?? {};
@@ -118,7 +113,7 @@ function Canned() {
         setForm({ title: '', shortcut: '', body: '' }); setAdding(false); await load();
     };
     const remove = async (id: string) => {
-        const res = await mutate(`${API_BASE}/api/support-inbox/canned/${id}`, { method: 'DELETE' }).catch((err: unknown) => {
+        const res = await apiRequest('DELETE /api/support-inbox/canned/{id}', { params: { id } }).catch((err: unknown) => {
             if (err instanceof ApiError) return null;
             throw err;
         });

@@ -4,7 +4,7 @@
  */
 
 const crypto = require('crypto');
-const { initDB, run, getAll, withTransaction } = require('./core');
+const { initDB, getAll, withTransaction } = require('./core');
 const { rollback } = require('../../utils/txRollback');
 const { rowToAutomation, safeParse } = require('./rowMappers');
 const { getAutomation } = require('./automations');
@@ -33,11 +33,6 @@ async function assertStepWrite({ projectId, changedKeys, managedWrite = null, cl
 async function stepProjectId(q, id) {
     const r = await q.query(`SELECT project_id FROM automations WHERE id = $1 AND kind = 'block' FOR UPDATE`, [id]);
     return r.rows[0] ? r.rows[0].project_id ?? null : undefined;
-}
-
-/** Run `fn` on one pooled client in a transaction. */
-function inTx(fn) {
-    return withTransaction(fn);
 }
 
 // ── Steps (reusable building blocks, kind='block') ─────
@@ -132,18 +127,21 @@ async function getCallableStepsForUser(userId, { orgIds = [], userGroups = [] } 
 async function createStep({ userId, organizationId = null, title, description = '', definition, icon = null, category = null }) {
     await initDB();
     const id = crypto.randomUUID();
-    await run(
-        `INSERT INTO automations (id, user_id, organization_id, kind, title, description, icon, category, definition_json,
-            version, is_active, is_draft, needs_first_run_confirm, trigger_type, schedule_tz)
-         VALUES ($1,$2,$3,'block',$4,$5,$6,$7,$8,1,FALSE,TRUE,FALSE,'manual','Europe/Amsterdam')`,
-        [id, userId, organizationId, title, description, icon || null, category || null, JSON.stringify(definition || {})],
-    );
-    await run(
-        `INSERT INTO automation_versions (id, automation_id, version, definition_json, saved_by_user_id, change_summary)
-         VALUES ($1, $2, 1, $3, $4, $5)
-         ON CONFLICT (automation_id, version) DO NOTHING`,
-        [crypto.randomUUID(), id, JSON.stringify(definition || {}), userId, 'Created'],
-    );
+    // The row and its v1 version commit together, as in createAutomation.
+    await withTransaction(async (client) => {
+        await client.query(
+            `INSERT INTO automations (id, user_id, organization_id, kind, title, description, icon, category, definition_json,
+                version, is_active, is_draft, needs_first_run_confirm, trigger_type, schedule_tz)
+             VALUES ($1,$2,$3,'block',$4,$5,$6,$7,$8,1,FALSE,TRUE,FALSE,'manual','Europe/Amsterdam')`,
+            [id, userId, organizationId, title, description, icon || null, category || null, JSON.stringify(definition || {})],
+        );
+        await client.query(
+            `INSERT INTO automation_versions (id, automation_id, version, definition_json, saved_by_user_id, change_summary)
+             VALUES ($1, $2, 1, $3, $4, $5)
+             ON CONFLICT (automation_id, version) DO NOTHING`,
+            [crypto.randomUUID(), id, JSON.stringify(definition || {}), userId, 'Created'],
+        );
+    });
     return getAutomation(id);
 }
 
@@ -202,7 +200,7 @@ async function publishStepWith(client, id, savedByUserId, { managedWrite = null,
  */
 async function setStepSharing(id, sharing, { managedWrite = null } = {}) {
     await initDB();
-    const updated = await inTx((client) => setStepSharingWith(client, id, sharing, { managedWrite }));
+    const updated = await withTransaction((client) => setStepSharingWith(client, id, sharing, { managedWrite }));
     return updated ? getAutomation(id) : null;
 }
 
@@ -236,7 +234,7 @@ async function setStepSharingWith(q, id, { isPublished, sharedGroups }, { manage
  */
 async function setStepExpose(id, exposeAsTool, { managedWrite = null } = {}) {
     await initDB();
-    const updated = await inTx((client) => setStepExposeWith(client, id, exposeAsTool, { managedWrite }));
+    const updated = await withTransaction((client) => setStepExposeWith(client, id, exposeAsTool, { managedWrite }));
     return updated ? getAutomation(id) : null;
 }
 

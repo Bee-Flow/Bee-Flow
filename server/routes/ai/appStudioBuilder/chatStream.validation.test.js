@@ -36,11 +36,11 @@ const MOCKS = {
     '../../../auth': { resolveUserOrgIds: async () => { touched.push('orgs'); return new Set(['orgA']); } },
     // A valid turn is stopped here, still pre-SSE, by a spent allowance.
     '../../../core/entitlements/limits': { checkSubscriptionLimits: async () => { touched.push('limits'); return LIMIT_TEXT; } },
-    './modelSelection': { resolveBuilderModel: async () => { touched.push('model'); return { error: 'unreachable' }; } },
-    './promptAssembly': { assembleTurnPrompt: async () => { throw new Error('unreachable'); } },
-    './usageAccounting': { makeTurnUsageLogger: () => () => {} },
+    '../../../usecases/ai/appStudioBuilder/modelSelection': { resolveBuilderModel: async () => { touched.push('model'); return { error: 'unreachable' }; } },
+    '../../../usecases/ai/appStudioBuilder/promptAssembly': { assembleTurnPrompt: async () => { throw new Error('unreachable'); } },
+    '../../../usecases/ai/appStudioBuilder/usageAccounting': { makeTurnUsageLogger: () => () => {} },
     './buildLoop': { runBuildLoop: async () => {} },
-    './turnClosing': {},
+    '../../../usecases/ai/appStudioBuilder/turnClosing': {},
     // turnSetup.js — only readTurnRequest runs; the stores behind the rest are inert.
     '../../../stores/studioAppDataStore': {},
     '../../../appStudio/canonicalize': { canonicalizeAppDefinition: (d) => ({ def: d }) },
@@ -49,7 +49,7 @@ const MOCKS = {
     '../../../appStudio/linkedTables': { describeLinkedTables: async () => new Map(), overlayLinkedRowCounts: (c) => c },
     '../../../core/llm/planChecklist': { normalizePlanTodos: (t) => t },
     '../../../core/llm/screenConstraints': { deriveScreenConstraints: () => null },
-    './dataModelEvent': { normalizeRowCounts: () => ({}) },
+    '../../../usecases/ai/appStudioBuilder/dataModelEvent': { normalizeRowCounts: () => ({}) },
 };
 
 const MOCK_IDS = {};

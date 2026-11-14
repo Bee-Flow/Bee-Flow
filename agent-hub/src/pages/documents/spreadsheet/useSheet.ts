@@ -11,8 +11,9 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
-    createSheetTab, deleteSheetTab, getSheet, MAX_CELLS_PER_REQUEST, patchSheet, renameSheetTab,
+    createSheetTab, deleteSheetTab, getSheet, MAX_CELLS_PER_REQUEST, renameSheetTab,
 } from '@/api/sheetApi';
+import { useSheetCellsMutation } from '@/api/queries/sheetCellsWrite';
 import { evaluateSheet } from './sheetEngine';
 import { missingRefTabs, usedRowsOf } from './sheetModel';
 import useServerCells, { overlay } from './useServerCells';
@@ -73,6 +74,7 @@ export default function useSheet(id: string) {
     const staleRef = useRef(false);
     const refreshRef = useRef<() => Promise<void>>(() => Promise.resolve());
 
+    const { mutateAsync: saveCells } = useSheetCellsMutation();
     const flush = useCallback((): Promise<void> => {
         if (timer.current) { clearTimeout(timer.current); timer.current = null; }
         // A running loop re-reads the queue until it is empty, so it also takes what arrived meanwhile.
@@ -87,9 +89,7 @@ export default function useSheet(id: string) {
                     if (!keys.length) break;
                     const batch: Record<string, string> = {};
                     for (const k of keys) batch[k] = pending.current[k];
-                    await (activeTabRef.current
-                        ? patchSheet(idRef.current, batch, activeTabRef.current)
-                        : patchSheet(idRef.current, batch));
+                    await saveCells({ documentId: idRef.current, cells: batch, tabId: activeTabRef.current || null });
                     // A cell edited again while its batch was in flight stays queued.
                     for (const k of keys) if (pending.current[k] === batch[k]) delete pending.current[k];
                 }
@@ -105,7 +105,7 @@ export default function useSheet(id: string) {
         })();
         running.current = run;
         return run;
-    }, []);
+    }, [saveCells]);
 
     /** Edit cells: `{ B3: '12', C3: '=SUM(A1:B3)', D4: '' }` ("" clears). */
     const setCells = useCallback((changes: Record<string, string>) => {

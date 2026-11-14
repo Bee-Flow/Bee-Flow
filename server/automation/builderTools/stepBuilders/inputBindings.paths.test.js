@@ -7,7 +7,7 @@
  * after it (`loop.r.output["file name"]`) printed "undefined has: …". And the
  * one-edit `_suggestedPatch` addressed the input as `inputs.<key>`, which for
  * a key with a dot (`e.mail`) is a different, nested slot; it now uses the
- * canonical writer (`inputs["e.mail"]`), which suggestedPatch.js reads.
+ * canonical writer (`inputs["e.mail"]`), which core/llm/suggestedPatch.js reads.
  *
  * Run: cd server && node --test automation/builderTools/stepBuilders/inputBindings.paths.test.js
  */
@@ -17,7 +17,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert');
 const { boundInputNote, requiredInputError } = require('./inputBindings');
-const { applyPatchOps } = require('../suggestedPatch');
+const { applyPatchOps } = require('../../../core/llm/suggestedPatch');
 
 test('the envelope half of a bound fan-out path is read with the shared grammar', () => {
     const res = { source: 'fanout', itemFields: ['path'], outputFields: ['file name', 'content'] };

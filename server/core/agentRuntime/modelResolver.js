@@ -25,7 +25,7 @@ const log = require('../../telemetry/log');
  *
  * @param {{ userId?: string | null, session?: Express.Session | null } | null} [userContext]
  * @returns {Promise<{modelId: string, tierKey: string|null}>}
- * @param {string} agentModel
+ * @param {string | null | undefined} agentModel   none resolves as tier:auto
  * @param {string} userMessage
  */
 async function resolveAgentModelWithTier(agentModel, userMessage, globalConfig, userContext = null) {
@@ -119,7 +119,7 @@ async function resolveAgentModelWithTier(agentModel, userMessage, globalConfig, 
  * that stub this module with a plain string.
  * @param {string} userMessage
  * @param {{ userId: string; session: Express.Session | undefined; } | null} [userContext]
- * @param {string} agentModel
+ * @param {string | null | undefined} agentModel
  */
 async function resolveAgentModel(agentModel, userMessage, globalConfig, userContext = null) {
     const { modelId } = await resolveAgentModelWithTier(agentModel, userMessage, globalConfig, userContext);

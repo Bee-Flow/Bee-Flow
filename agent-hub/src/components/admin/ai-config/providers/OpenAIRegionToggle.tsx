@@ -3,9 +3,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { ProviderPaneProps } from './types';
 import Toggle from '@/components/shared/Toggle';
 import { aiProvidersKey, useAiProvidersQuery } from '@/api/queries/adminConfigReads';
-import { API_BASE } from '@/utils/helpers';
 import { useTranslation } from '@/hooks/useTranslation';
-import { RefusedError, mutate, errorBody } from '@/api/mutate';
+import { RefusedError, errorBody } from '@/api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 const EU_HOST = 'eu.api.openai.com';
 
@@ -45,11 +45,7 @@ export default function OpenAIRegionToggle({ onMessage }: ProviderPaneProps) {
         try {
             let res: Response | undefined;
             try {
-                res = await mutate(`${API_BASE}/ai/providers/${provider.id}/region`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ region: isEU ? 'default' : 'eu' }),
-                });
+                res = await apiRequest('PUT /ai/providers/{id}/region', { params: { id: String(provider.id) }, body: { region: isEU ? 'default' : 'eu' } });
             } catch (apiErr) {
                 if (!(apiErr instanceof RefusedError)) throw apiErr;
                 const err = errorBody(apiErr) ?? {};

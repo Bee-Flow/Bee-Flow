@@ -1,14 +1,13 @@
 import { useState, type MouseEvent, SetStateAction, Dispatch } from 'react';
 import useTranslation, { TranslateParams } from '../../hooks/useTranslation';
 import { useQueryClient } from '@tanstack/react-query';
-import { API_BASE } from '../../utils/helpers';
-import { mutate, request } from '../../api/mutate';
 import { agentVersionsKey, useAgentVersions, type AgentVersionRow } from '../../api/queries/agentVersions';
 import { formatRelativeTime } from '../../utils/dateFormatters';
 import { Clock, RotateCcw, ChevronDown, ChevronRight, Trash2, Eye } from 'lucide-react';
 import { toast } from '../shared/Toast';
 import useConfirm from '../shared/useConfirm';
 import type { VersionHistoryProps, SnapshotPhaseAgent, SnapshotPhase, AgentSnapshot, VersionPreview } from './VersionHistory.types';
+import { apiRequest } from '@/api/typedRequest';
 
 const NO_VERSIONS: AgentVersionRow[] = [];
 
@@ -39,7 +38,7 @@ export default function VersionHistory({ agentId, onRestore }: VersionHistoryPro
         // success. Only a 2xx is one.
         const failed = t('notebooks.restore_failed', 'Restore failed. Your content is unchanged — try again.');
         try {
-            await mutate(`${API_BASE}/versions/${agentId}/${versionId}/restore`, { method: 'POST' });
+            await apiRequest('POST /versions/{agentId}/{versionId}/restore', { params: { agentId, versionId } });
             await loadVersions();
             if (onRestore) onRestore();
         } catch (err) {
@@ -55,7 +54,7 @@ export default function VersionHistory({ agentId, onRestore }: VersionHistoryPro
             return;
         }
         try {
-            const res = await request(`${API_BASE}/versions/${agentId}/${versionId}`);
+            const res = await apiRequest('GET /versions/{agentId}/{versionId}', { params: { agentId, versionId } });
             const data = await res.json();
             setPreviewVersion(data);
         } catch (err) {
@@ -67,7 +66,7 @@ export default function VersionHistory({ agentId, onRestore }: VersionHistoryPro
         e.stopPropagation();
         if (!(await confirm({ title: 'Delete this version?', confirmLabel: 'Delete', destructive: true }))) return;
         try {
-            await mutate(`${API_BASE}/versions/${agentId}/${versionId}`, { method: 'DELETE' });
+            await apiRequest('DELETE /versions/{agentId}/{versionId}', { params: { agentId, versionId } });
             queryClient.setQueryData<AgentVersionRow[]>(agentVersionsKey(agentId), prev => (prev ?? []).filter(v => v.id !== versionId));
             if (previewVersion?.id === versionId) setPreviewVersion(null);
         } catch (err) {
@@ -301,6 +300,7 @@ export default function VersionHistory({ agentId, onRestore }: VersionHistoryPro
                                         onClick={(e) => { e.stopPropagation(); handlePreview(v.id); }}
                                         className="p-1 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-tertiary)] hover:text-blue-400"
                                         title={t('agent.version_history_preview', 'Preview')}
+                                        aria-label={t('agent.version_history_preview', 'Preview')}
                                     >
                                         <Eye className="w-3 h-3" />
                                     </button>
@@ -309,6 +309,7 @@ export default function VersionHistory({ agentId, onRestore }: VersionHistoryPro
                                         disabled={restoring === v.id}
                                         className="p-1 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-tertiary)] hover:text-green-400 disabled:opacity-50"
                                         title={t('agent.version_history_restore_this_version', 'Restore this version')}
+                                        aria-label={t('agent.version_history_restore_this_version', 'Restore this version')}
                                     >
                                         <RotateCcw className={`w-3 h-3 ${restoring === v.id ? 'animate-spin' : ''}`} />
                                     </button>
@@ -316,6 +317,7 @@ export default function VersionHistory({ agentId, onRestore }: VersionHistoryPro
                                         onClick={(e) => handleDelete(v.id, e)}
                                         className="p-1 rounded hover:bg-[var(--bg-secondary)] text-[var(--text-tertiary)] hover:text-red-400"
                                         title={t('agent.version_history_delete_version', 'Delete version')}
+                                        aria-label={t('agent.version_history_delete_version', 'Delete version')}
                                     >
                                         <Trash2 className="w-3 h-3" />
                                     </button>

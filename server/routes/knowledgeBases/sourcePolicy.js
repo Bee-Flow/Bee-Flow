@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Knowledge Bases — sources (K1): the policy and the shared helpers of the
  * sources router. Which kinds may be created and which refresh modes each
@@ -11,7 +11,7 @@ const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
 const kbStore = require('../../stores/knowledgeBases');
 const kbSourcesStore = require('../../stores/kbSources');
-const { canAccessKB, canManageKB, blockIfSystemKB } = require('./shared');
+const { blockIfSystemKB, kbAccessOf } = require('./shared');
 
 /** Kinds a client may create today. K7–K10 open the rest. */
 const CREATABLE_KINDS = Object.freeze(['text', 'upload', 'webpage', 'meeting_tag', 'datatable', 'cloud_folder']);
@@ -94,39 +94,22 @@ function helpers() {
 }
 
 /**
- * Load the KB and apply the access policy. Sends the response and returns null
- * when the request must stop.
+ * The base the gate loaded (`requireKbGrade` in the route's chain), for a
+ * mutating route: a system or project-files base is read-only here, whoever
+ * the caller is, including the super admin the manage grade let through.
+ * Sends the response and returns null when the request must stop.
  * @param {import('express').Request} req
  * @param {import('express').Response} res
- * @param {{ manage?: boolean }} [opts]  `manage`: true for every mutating route
  */
-async function resolveKb(req, res, { manage = false } = {}) {
-    const kb = await kbStore.getKB(req.params.id);
-    if (!kb) {
-        res.status(404).json({ error: 'KB not found', code: 'kb_not_found' });
-        return null;
-    }
-    if (manage) {
-        if (!(await canManageKB(req, kb))) {
-            res.status(403).json({ error: 'Access denied', code: 'forbidden' });
-            return null;
-        }
-        // System-managed KBs are owned by Bee Flow: read-only for everyone,
-        // including the super admin canManageKB just let through.
-        if (blockIfSystemKB(kb, res)) return null;
-        return kb;
-    }
-    if (!(await canAccessKB(req, kb))) {
-        res.status(403).json({ error: 'Access denied', code: 'forbidden' });
-        return null;
-    }
-    return kb;
+function writableKb(req, res) {
+    const { kb } = kbAccessOf(req);
+    return blockIfSystemKB(kb, res) ? null : kb;
 }
 
 /**
  * Load a source and prove it belongs to this KB (never trust the URL pair).
  * @param {Record<string, any>} kb
- * @param {import('express').Request} req
+ * @param {import('express').Request<any, any, any, any>} req
  * @param {import('express').Response} res
  */
 async function resolveSource(kb, req, res) {
@@ -204,7 +187,7 @@ const ZERO_COUNTS = Object.freeze({
 async function resolveCreators(ids) {
     /** @type {Record<string, { id: string, name: string | null }>} */
     const out = {};
-    const unique = Array.from(new Set((ids || []).filter(Boolean)));
+    const unique = Array.from(new Set(/** @type {string[]} */ ((ids || []).filter(Boolean)))); // the filter dropped null and undefined
     if (unique.length === 0) return out;
     let userStore = null;
     try { userStore = require('../../stores/userStore'); } catch (_) { return out; }
@@ -255,7 +238,8 @@ function mapSourceForApi(source, counts, creators) {
         duplicateCount: Number(c.duplicateCount || 0),
         piiFoundCount: Number(c.piiFoundCount || 0),
         totalChunks: Number(c.totalChunks || 0),
-        createdBy: (creators && creators[source.createdBy]) || (source.createdBy ? { id: source.createdBy, name: null } : null),
+        // A null id finds no creator.
+        createdBy: (creators && creators[/** @type {string} */ (source.createdBy)]) || (source.createdBy ? { id: source.createdBy, name: null } : null),
         createdAt: source.createdAt || null,
         updatedAt: source.updatedAt || null,
     };
@@ -328,6 +312,6 @@ function refreshPatchFor(refresh, kind) {
 module.exports = {
     CREATABLE_KINDS, REFRESH_MODES_BY_KIND, REFRESH_LABEL_KEYS,
     MAX_UPLOAD_FILES, MAX_FILE_BYTES, MAX_TEXT_CHARS, MAX_CRAWL_PAGES, DEFAULT_DOC_PAGE, MAX_DOC_PAGE, QUEUED_REASON,
-    shapeTextOrigin, helpers, resolveKb, resolveSource, publicSourceConfig, resolveCreators, mapSourceForApi,
+    shapeTextOrigin, helpers, writableKb, resolveSource, publicSourceConfig, resolveCreators, mapSourceForApi,
     sourceForApi, maxSourcesFor, refreshPatchFor,
 };

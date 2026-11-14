@@ -1,11 +1,11 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Loader2, Check } from 'lucide-react';
-import { API_BASE } from '../../utils/helpers';
 import { useConsumerEnabledApps } from '../../api/queries/settingsConsumer';
 import { useTranslation } from '../../hooks/useTranslation';
 import { INTEGRATION_CATALOG, NEXTCLOUD_INTEGRATION_IDS, CATEGORY_ORDER, type IntegrationEntry } from '../../config/integrationCatalog';
 import { getIntegrationIcon, hasIntegrationIcon } from '../../config/integrationIcons';
-import { mutate, ApiError } from '../../api/mutate';
+import { ApiError } from '../../api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 const SAVE_DEBOUNCE_MS = 400;
 const SAVED_FLASH_MS = 1500;
@@ -91,11 +91,7 @@ const ConsumerIntegrationsSection = () => {
             setSaveState('saving');
             try {
                 try {
-                    await mutate(`${API_BASE}/ai/user-settings`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ enabledApps: nextList }),
-                });
+                    await apiRequest('POST /ai/user-settings', { body: { enabledApps: nextList } });
                 } catch (err) {
                     if (!(err instanceof ApiError)) throw err;
                     throw new Error('Save failed');

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Skill injection — shared logic for resolving active/attached skills into
  * a system-prompt addendum + an optional on-demand tool registration.
@@ -39,7 +40,6 @@
  * record a `skill_activations` row (stores/skillActivations.js) so the
  * Studio can show "last used"; the write is fire-and-forget.
  */
-
 const skillStore = require('../../stores/skillStore');
 const {
     textOrRender,
@@ -115,7 +115,7 @@ function sanitizeEnabledIntegrations(list) {
  *                      skills (used by the onSkillsActivated callback)
  *   mergedIds        — the capped merged skill id list (diagnostics)
  */
-async function resolveSkillAppAllowlist({ attachedSkillIds = [], sessionSkillIds = [], activatedSkillIds = [], orgId, userId, forceDynamicSkills = false }) {
+async function resolveSkillAppAllowlist(/** @type {{ attachedSkillIds?: string[], sessionSkillIds?: string[], activatedSkillIds?: string[], orgId?: string | null, userId?: string | null, forceDynamicSkills?: boolean }} */ { attachedSkillIds = [], sessionSkillIds = [], activatedSkillIds = [], orgId, userId, forceDynamicSkills = false }) {
     const empty = { allowedApps: [], dynamicSkillApps: new Map(), mergedIds: [] };
     if (!orgId) return empty;
     const mergedIds = mergeSkillIds(attachedSkillIds, sessionSkillIds);
@@ -279,7 +279,7 @@ function recordSkillActivations(skillIds, { agentId = null, conversationId = nul
  * Resolve merged skill ids into prompt text + tool registration data.
  *
  * @param {{ sessionSkillIds: string[], attachedSkillIds: string[], orgId: string, userId: string,
- *   agentId?: string, conversationId?: string }} opts `sessionSkillIds`: user-toggled skills
+ *   agentId?: string, conversationId?: string, forceDynamicSkills?: boolean, preloadedSkills?: Array<NonNullable<ReturnType<typeof import('../../stores/skill/rows').mapRow>>> | null }} opts `sessionSkillIds`: user-toggled skills
  *   (activeSkillIds); `attachedSkillIds`: agent.config.attachedSkillIds; `agentId`: for the
  *   skill_activations row ("last used by"); `conversationId`: dedupes the static write to one per
  *   conversation
@@ -287,6 +287,7 @@ function recordSkillActivations(skillIds, { agentId = null, conversationId = nul
  *   systemPromptAddendum: string,
  *   tools: Array,
  *   dynamicSkillIds: string[],
+ *   automationSkillIds: string[],
  *   staticCount: number,
  * }>}
  */
@@ -391,7 +392,7 @@ async function buildSkillInjection({ sessionSkillIds = [], attachedSkillIds = []
  *
  * @returns {Promise<{ mergedIds: string[], skills: Object[] }>}
  */
-async function loadSkillsForIds({ attachedSkillIds = [], sessionSkillIds = [], orgId, userId, deps = {} }) {
+async function loadSkillsForIds({ attachedSkillIds = [], sessionSkillIds = [], orgId, userId, deps = /** @type {{ skillStore?: Pick<typeof skillStore, 'getSkillsByIds'> }} */ ({}) }) {
     const store = deps.skillStore || skillStore;
     const mergedIds = mergeSkillIds(attachedSkillIds, sessionSkillIds);
     if (mergedIds.length === 0) return { mergedIds, skills: [] };

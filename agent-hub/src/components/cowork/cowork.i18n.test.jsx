@@ -17,7 +17,7 @@
  * the property is "this string is reachable from the Languages panel", and a
  * list of forty exact keys would only pin today's spelling.
  */
-import { act, render, screen } from '@testing-library/react';
+import { act, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -45,6 +45,7 @@ vi.mock('../../hooks/useIntegrationStatus', () => ({
     useIntegrationStatus: () => ({ integrationStatus: { isGoogleUser: true }, unavailable: false }),
 }));
 
+import { renderWithClient } from '@/test/render';
 import CoworkComposer, { COWORK_PLACEHOLDER } from './CoworkComposer';
 import CoworkEditForm from './CoworkEditForm';
 import CoworkOptionsBar from './CoworkOptionsBar';
@@ -80,7 +81,7 @@ const keysOnScreen = (container) =>
 
 describe('CW-01 — CoworkWelcome', () => {
     it('translates the heading and the subheading', () => {
-        const { container } = render(<CoworkWelcome />);
+        const { container } = renderWithClient(<CoworkWelcome />);
         expect(screen.getByText('«cowork.welcome.heading»')).toBeInTheDocument();
         expect(screen.getByText('«cowork.welcome.subheading»')).toBeInTheDocument();
         expect(container.textContent).not.toContain(COWORK_HEADING);
@@ -88,7 +89,7 @@ describe('CW-01 — CoworkWelcome', () => {
     });
 
     it('translates every starter', () => {
-        const { container } = render(<CoworkWelcome />);
+        const { container } = renderWithClient(<CoworkWelcome />);
         const starters = screen.getAllByTestId('cowork-starter');
         expect(starters).toHaveLength(COWORK_STARTER_ITEMS.length);
         for (const { key, en } of COWORK_STARTER_ITEMS) {
@@ -103,14 +104,14 @@ describe('CW-01 — CoworkWelcome', () => {
         // while the button shows Dutch would put a language they are not
         // writing in into their own composer.
         const onStarterClick = vi.fn();
-        render(<CoworkWelcome onStarterClick={onStarterClick} />);
+        renderWithClient(<CoworkWelcome onStarterClick={onStarterClick} />);
         await user.click(screen.getAllByTestId('cowork-starter')[0]);
         expect(onStarterClick).toHaveBeenCalledWith(`«${COWORK_STARTER_ITEMS[0].key}»`);
     });
 });
 
 describe('CW-01 — CoworkComposer', () => {
-    const setup = (over = {}) => render(
+    const setup = (over = {}) => renderWithClient(
         <CoworkComposer
             value=""
             onChange={vi.fn()}
@@ -148,7 +149,7 @@ describe('CW-01 — CoworkComposer', () => {
 });
 
 describe('CW-01 — CoworkOptionsBar', () => {
-    const setup = (over = {}) => render(
+    const setup = (over = {}) => renderWithClient(
         <CoworkOptionsBar
             when={{ presetId: 'now', date: '', time: '' }}
             onWhenChange={vi.fn()}
@@ -222,7 +223,7 @@ describe('CW-01 — CoworkEditForm', () => {
         daysOfWeek: [],
         nextRunAt: '2026-02-03T09:00:00.000Z',
     };
-    const setup = (over = {}) => render(
+    const setup = (over = {}) => renderWithClient(
         <CoworkEditForm item={item} onSave={vi.fn()} onCancel={vi.fn()} {...over} />,
     );
 
@@ -292,7 +293,7 @@ describe('CW-01 — useCoworkComposer', () => {
             Object.assign(out, useCoworkComposer({ onCreated: () => {} }));
             return null;
         }
-        render(<Probe />);
+        renderWithClient(<Probe />);
         return out;
     }
 

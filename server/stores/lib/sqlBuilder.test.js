@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * DB-free unit test for stores/lib/sqlBuilder.js (M6).
  * Run: cd server && node --test --test-force-exit --test-timeout=30000 stores/lib/sqlBuilder.test.js
@@ -15,6 +15,7 @@ test('quoted cols + WHERE id (userStore.dynamicUpdate shape)', () => {
         where: [{ col: 'id', value: 'u1' }],
         quoteCols: true,
     });
+    assert.ok(r);
     assert.equal(r.sql, 'UPDATE users SET "display_name" = $1, "role" = $2 WHERE "id" = $3');
     assert.deepEqual(r.params, ['Al', 'admin', 'u1']);
 });
@@ -28,6 +29,7 @@ test('unquoted cols + ::jsonb cast + composite WHERE + RETURNING (studio family)
         extraSet: ['updated_at = NOW()'],
         returning: '*',
     });
+    assert.ok(r);
     assert.equal(
         r.sql,
         'UPDATE studio_app_datasets SET rows = $1::jsonb, name = $2, updated_at = NOW() WHERE app_id = $3 AND owner_user_id = $4 RETURNING *',
@@ -42,6 +44,7 @@ test('transform is applied to the value', () => {
         columnMap: { tags: { col: 'tags', transform: (v) => JSON.stringify(v) } },
         where: [{ col: 'id', value: 1 }],
     });
+    assert.ok(r);
     assert.equal(r.sql, 'UPDATE t SET tags = $1 WHERE id = $2');
     assert.deepEqual(r.params, ['["a","b"]', 1]);
 });
@@ -54,6 +57,7 @@ test('extraSet only appended when a real field changed', () => {
         extraSet: ['updated_at = NOW()', 'version = version + 1'],
         where: [{ col: 'id', value: 1 }],
     });
+    assert.ok(r);
     assert.equal(r.sql, 'UPDATE t SET name = $1, updated_at = NOW(), version = version + 1 WHERE id = $2');
 });
 
@@ -75,6 +79,7 @@ test('[SEC] keys not in columnMap are ignored (no column injection)', () => {
         columnMap: { name: 'name' }, // only `name` is allowed
         where: [{ col: 'id', value: 1 }],
     });
+    assert.ok(r);
     assert.equal(r.sql, 'UPDATE t SET name = $1 WHERE id = $2');
     assert.deepEqual(r.params, ['ok', 1]);
 });
@@ -84,6 +89,7 @@ test('startIdx offsets placeholder numbering', () => {
         table: 't', updates: { a: 1 }, columnMap: { a: 'a' },
         where: [{ col: 'id', value: 9 }], startIdx: 5,
     });
+    assert.ok(r);
     assert.equal(r.sql, 'UPDATE t SET a = $5 WHERE id = $6');
 });
 
@@ -101,6 +107,7 @@ test('a transform never runs for an absent key', () => {
         },
         where: [{ col: 'id', value: 1 }],
     });
+    assert.ok(r);
     assert.equal(calls, 0);
     assert.equal(r.sql, 'UPDATE t SET present = $1 WHERE id = $2');
 });
@@ -114,6 +121,7 @@ test('a transform that returns null writes a real SQL NULL', () => {
         columnMap: { result: { col: 'scan_result', cast: 'jsonb', transform: (v) => (v == null ? null : JSON.stringify(v)) } },
         where: [{ col: 'id', value: 'i1' }],
     });
+    assert.ok(r);
     assert.equal(r.sql, 'UPDATE support_inboxes SET scan_result = $1::jsonb WHERE id = $2');
     assert.deepEqual(r.params, [null, 'i1']);
 });
@@ -123,6 +131,7 @@ test('an empty where list leaves the statement unscoped', () => {
     // no-predicate shape is what the caller gets when it passes nothing —
     // pinned here because a silently dropped WHERE would widen the write.
     const r = buildUpdate({ table: 't', updates: { a: 1 }, columnMap: { a: 'a' } });
+    assert.ok(r);
     assert.equal(r.sql, 'UPDATE t SET a = $1');
     assert.deepEqual(r.params, [1]);
 });

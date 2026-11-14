@@ -1,6 +1,7 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import { renderWithClient as render } from '@/test/render';
 
 vi.mock('../../utils/helpers', () => ({
     API_BASE: 'https://host.example',

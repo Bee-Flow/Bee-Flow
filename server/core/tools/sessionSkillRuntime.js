@@ -145,7 +145,7 @@ function resolveDependencies(skills) {
     const graph = new Map(resolved.map(s => [s.id, /** @type {string[]} */ ([])]));
     for (const s of resolved) {
         for (const dep of s.dependsOn || []) {
-            if (graph.has(dep)) graph.get(dep).push(s.id);
+            if (graph.has(/** @type {string} */ (dep))) graph.get(dep).push(s.id);
         }
     }
     const queue = [];

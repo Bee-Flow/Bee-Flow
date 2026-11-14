@@ -17,7 +17,7 @@
  */
 
 const { sanitizeContentForExport, escapeHtml } = require('../templates/exportTemplate');
-const automationGraph = require('./automationGraph');
+const automationGraph = require('../core/automationModel/automationGraph');
 
 /**
  * The closing page, if the automation ran one. `form_page` steps with

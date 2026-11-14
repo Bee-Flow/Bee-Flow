@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/step`
 
-11 routes, 5 with a request schema. Back to the [endpoint reference](../reference.md).
+11 routes, 6 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -73,7 +73,7 @@ No request schema.
 
 **Access:** Signed-in user · Licence feature `automations` · Capability `automations`
 
-No request schema.
+**Body:** object (no other keys)
 
 ### `PUT /api/step/:id/sharing`
 

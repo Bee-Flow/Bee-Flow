@@ -1,5 +1,5 @@
 /**
- * Who may do what with a notebook (routes/notebooks.js, routes/notebooksAccess.js):
+ * Who may do what with a notebook (routes/notebooks.js, auth/notebookAccess.mts):
  * the role matrix, the compare-and-set conflict that keeps the losing copy,
  * and the whole-document write that refuses while the notebook is co-edited.
  *

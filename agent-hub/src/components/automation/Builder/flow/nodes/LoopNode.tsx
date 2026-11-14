@@ -204,6 +204,7 @@ function ExpandedLoop({ id, step, runStep, friendlyOver, onToggle }: LoopCardPro
                         type="button"
                         onClick={onToggle}
                         title={t('automations.canvas.loop_collapse', 'Collapse — back to a single card')}
+                        aria-label={t('automations.canvas.loop_collapse', 'Collapse — back to a single card')}
                         className="shrink-0 text-[var(--text-tertiary)] hover:text-[var(--text-primary)]"
                     >
                         <ChevronDown size={15} />

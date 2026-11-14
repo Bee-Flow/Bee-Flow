@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { LifeBuoy, Plus, ArrowLeft, GraduationCap } from 'lucide-react';
-import { API_BASE } from '../../utils/helpers';
 import {
     NewThreadForm,
     ThreadDetail,
@@ -9,7 +9,8 @@ import {
 } from '../../components/support/SupportDrawer';
 import { useTranslation } from '../../hooks/useTranslation';
 import { logger } from '../../utils/logger';
-import { request, RefusedError } from '../../api/mutate';
+import { RefusedError } from '../../api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 interface HelpSupportSectionProps {
     showLearningLink?: boolean;
@@ -39,29 +40,38 @@ type SupportView = 'list' | 'new' | 'detail';
  * open (phones, plans without it); `onOpenLearning` lets the settings shell
  * switch to it instead of the synthetic popstate below.
  */
+const MY_THREADS_KEY = ['support', 'myThreads'] as const;
+const NO_THREADS: SupportThread[] = [];
+
 export default function HelpSupportSection({ showLearningLink = true, onOpenLearning }: HelpSupportSectionProps) {
     const { t } = useTranslation();
-    const [threads, setThreads] = useState<SupportThread[]>([]);
     const [view, setView] = useState<SupportView>('list'); // 'list' | 'new' | 'detail'
     const [activeId, setActiveId] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
 
-    const fetchMine = useCallback(async () => {
-        try {
-            const res = await request(`${API_BASE}/api/support/threads/mine`).catch((err: unknown) => {
-                if (err instanceof RefusedError) return null;
+    const queryClient = useQueryClient();
+    const threadsQuery = useQuery<SupportThread[]>({
+        queryKey: MY_THREADS_KEY,
+        staleTime: 0,
+        retry: false,
+        queryFn: async () => {
+            try {
+                const res = await apiRequest('GET /api/support/threads/mine').catch((err: unknown) => {
+                    if (err instanceof RefusedError) return null;
+                    throw err;
+                });
+                // A refusal keeps the list that is shown.
+                if (!res) return queryClient.getQueryData<SupportThread[]>(MY_THREADS_KEY) ?? NO_THREADS;
+                return (await res.json()).threads || [];
+            } catch (err) {
+                logger.warn('support threads load failed', err);
                 throw err;
-            });
-            if (res) {
-                const data = await res.json();
-                setThreads(data.threads || []);
             }
-        } catch (err) { logger.warn('support threads load failed', err); } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => { fetchMine(); }, [fetchMine]);
+        },
+    });
+    const threads = threadsQuery.data ?? NO_THREADS;
+    const loading = threadsQuery.isPending;
+    const { refetch } = threadsQuery;
+    const fetchMine = useCallback(() => { void refetch(); }, [refetch]);
 
     // Deep-link: a support notification navigates here as
     // /app/settings/help_support?thread=<id>. Open that thread directly, then

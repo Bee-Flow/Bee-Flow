@@ -8,7 +8,7 @@
  *
  * They read the table ledger (stores/automationStore/runTables.js) and nothing
  * else: no new bearer path, no signed URL. The credential is the one every other
- * run read uses (routes/automation/runJourney.js), and a table is only looked up
+ * run read uses (usecases/automation/runJourney.js), and a table is only looked up
  * THROUGH the runs of the journey the caller may read, so an id from another
  * run, another automation or another organisation resolves to nothing.
  *
@@ -32,7 +32,7 @@ const { HttpError } = require('../../core/http/errors');
 const { contentDisposition } = require('../../core/http/contentDisposition');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { TABLE_ID_RE } = require('../../core/automationRunner/tables/handle');
-const { tableRouterDeps } = require('./tableRouterDeps');
+const { tableRouterDeps } = require('../../usecases/automation/tableRouterDeps');
 
 const WHOLE_NUMBER = /^\d{1,12}$/;
 const notFound = () => new HttpError(404, 'run_table_not_found', 'Not found');

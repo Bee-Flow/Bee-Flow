@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Microsoft Entra ID (Azure AD) directory connector — identity-population
  * evidence for the access-management controls (A.5.16/A.5.18/A.8.2) via
@@ -88,7 +88,7 @@ module.exports = {
     credential: { provider: 'microsoft-entra', kinds: ['oauth2_cc'] },
     settingsHint: 'no settings — tenant comes from the linked credential',
 
-    /** @param {import('./index').CollectArgs} args */
+    /** @param {import('./index').FetchingCollectArgs} args */
     async collect({ secret, safeFetch }) {
         const token = await _token(secret, safeFetch);
 
@@ -134,7 +134,7 @@ module.exports = {
         let admins = null;
         try {
             const roles = await _graphJson('/directoryRoles?$select=id,displayName,roleTemplateId', token, safeFetch);
-            const globalAdmin = (roles?.value || []).find((/** @type {{ roleTemplateId: string; }} */ r) => r.roleTemplateId === GLOBAL_ADMIN_TEMPLATE_ID);
+            const globalAdmin = (roles?.value || []).find((r) => r.roleTemplateId === GLOBAL_ADMIN_TEMPLATE_ID);
             if (globalAdmin) {
                 const members = await _graphJson(`/directoryRoles/${globalAdmin.id}/members?$select=id&$top=100`, token, safeFetch);
                 admins = Array.isArray(members?.value) ? members.value.length : null;

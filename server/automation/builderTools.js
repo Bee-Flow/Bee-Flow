@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * Builder tools — function-calling schemas the conversational builder agent
  * uses to mutate a draft automation. Each tool has:
@@ -55,7 +56,8 @@ const {
 } = require('./builderTools/modelPayload');
 const { persistDraft } = require('./builderTools/persistence');
 const { applyRequestDryRun } = require('./builderTools/dryRun');
-const { canonicalJson, applyPatchOps, describePatch } = require('./builderTools/suggestedPatch');
+const { applyPatchOps, describePatch } = require('../core/llm/suggestedPatch');
+const { canonicalJson } = require('../utils/stableJson');
 
 function applySetMetadata(draft, args) {
     if (typeof args.title === 'string') draft.title = args.title;
@@ -127,9 +129,10 @@ const SCOPED_GRAPH_TOOLS = new Set(
     ].includes(n)),
 );
 
+/** @typedef {{ function: { name: string, parameters: { properties?: Record<string, { enum?: string[], description?: string, [k: string]: unknown }>, [k: string]: unknown } } }} SchemaEntry  a tool schema, as the injections below rewrite it */
 // Inject the shared `scope` parameter into every scoped tool's schema so
 // the model discovers it without 18 hand-edited copies drifting apart.
-for (const t of TOOL_SCHEMAS) {
+for (const t of /** @type {SchemaEntry[]} */ (TOOL_SCHEMAS)) {
     if (!SCOPED_GRAPH_TOOLS.has(t.function?.name)) continue;
     t.function.parameters = t.function.parameters || { type: 'object', properties: {} };
     t.function.parameters.properties = t.function.parameters.properties || {};
@@ -153,7 +156,7 @@ const FOREACH_CAPABLE_TOOLS = new Set([
     // step of that pair is this one.
     'builder_add_data_extraction',
 ]);
-for (const t of TOOL_SCHEMAS) {
+for (const t of /** @type {SchemaEntry[]} */ (TOOL_SCHEMAS)) {
     if (!FOREACH_CAPABLE_TOOLS.has(t.function?.name)) continue;
     t.function.parameters = t.function.parameters || { type: 'object', properties: {} };
     t.function.parameters.properties = t.function.parameters.properties || {};
@@ -173,7 +176,7 @@ for (const t of TOOL_SCHEMAS) {
 // no-drift rationale as the scope injection above). branch:'error' wires
 // the new step onto afterStepId's on_error branch — it runs only when
 // that step fails after exhausting its retries.
-for (const t of TOOL_SCHEMAS) {
+for (const t of /** @type {SchemaEntry[]} */ (TOOL_SCHEMAS)) {
     const b = t.function?.parameters?.properties?.branch;
     if (!b || !Array.isArray(b.enum)) continue;
     for (const v of ['error', 'rejected']) if (!b.enum.includes(v)) b.enum.push(v);   // 'rejected': an approval's branch (edgeLabels.mts)
@@ -569,7 +572,7 @@ async function _applyToolCallRaw(name, args, draftWrap, { sent = args } = {}) {
         case 'builder_add_code_step':      return applyAddCode(graph, args, draftWrap);
         case 'builder_add_notification':   return applyAddNotification(graph, args, draftWrap);
         case 'builder_add_http_request':   return applyAddHttpRequest(graph, args, draftWrap);
-        case 'builder_add_generate_document': return applyAddGenerateDocument(graph, args, draftWrap);
+        case 'builder_add_generate_document': return applyAddGenerateDocument(graph, args);
         case 'builder_add_fill_document':  return applyAddFillDocument(graph, args, draftWrap);
         case 'builder_add_slide':          return applyAddSlide(graph, args, draftWrap);
         case 'builder_add_presentation':   return applyAddPresentation(graph, args);

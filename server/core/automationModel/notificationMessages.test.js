@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * automation/notificationMessages: what a notification says outside the Bee
  * Flow bell (name + event + link only), the bundle line and the daily summary.
@@ -51,6 +51,7 @@ test('the summary: totals, per-automation lines, busiest problems first', () => 
         ],
         link: '/app/studio/automations',
     });
+    assert.ok(d);
     assert.equal(d.code, 'automation.notify.digest');
     assert.deepEqual(d.params, { runs: 16, failures: 2, waiting: 1, automations: 2 });
     assert.equal(d.shortText, 'Your automations today: 16 runs, 2 failed, 1 still waiting');

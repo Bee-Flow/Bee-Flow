@@ -36,8 +36,9 @@ const os = require('os');
 const path = require('path');
 const log = require('../../telemetry/log');
 const { buildAudioArgs, runFfmpeg } = require('../media/ffmpeg');
-const { fallback, bestEffort } = require('../../utils/bestEffort');
+const { fallback, bestEffort, ignoreGone } = require('../../utils/bestEffort');
 const { markUsed } = require('../llm/cpuPipelineUsage');
+const { envInt, envNumber } = require('../../utils/envNumber.mts');
 
 const LOCAL_WHISPER_MODEL_ID = process.env.LOCAL_WHISPER_MODEL || 'Xenova/whisper-base';
 const LOCAL_WHISPER_DTYPE    = process.env.LOCAL_WHISPER_DTYPE   || 'q4';
@@ -51,8 +52,8 @@ const LOCAL_WHISPER_CACHE_DIR = process.env.HF_HOME
     || process.env.TRANSFORMERS_CACHE
     || path.join(__dirname, '..', '..', 'data', 'transformers-cache');
 
-const LOCAL_WHISPER_MAX_DURATION_SEC = Number(process.env.LOCAL_WHISPER_MAX_DURATION_SEC) || 600; // 10 min
-const LOCAL_WHISPER_TIMEOUT_MS       = Number(process.env.LOCAL_WHISPER_TIMEOUT_MS)       || 600_000;
+const LOCAL_WHISPER_MAX_DURATION_SEC = envNumber('LOCAL_WHISPER_MAX_DURATION_SEC', 600, { positive: true }); // 10 min
+const LOCAL_WHISPER_TIMEOUT_MS       = envInt('LOCAL_WHISPER_TIMEOUT_MS', 600_000, { min: 1 });
 const LOCAL_WHISPER_WASM_THREADS     = Math.max(
     1,
     Number(process.env.LOCAL_WHISPER_WASM_THREADS) ||
@@ -173,7 +174,7 @@ async function decodeAudioToFloat32(audioPath, maxSec) {
     try {
         audioBuf = await fs.promises.readFile(tmpRaw);
     } finally {
-        try { fs.unlinkSync(tmpRaw); } catch (_) { log.debug('raw temp file already gone', _); }
+        try { fs.unlinkSync(tmpRaw); } catch (_) { ignoreGone('voice/localWhisper:unlinkRaw', _); }
     }
 
     // Buffer → Float32Array via underlying ArrayBuffer (no copy).

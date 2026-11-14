@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * The Nextcloud Tables ADAPTER CORE: the members the sync and write-through
  * pipelines drive. The adapter the registry hands out is kindAdapter.js, this plus
@@ -35,7 +35,7 @@ const TAG = '[NextcloudTable]';
 
 /** @typedef {{ ncTableId?: number, ncViewId?: number, ncTitle?: string, ncEmoji?: string, ncBaseUrl?: string, refreshOnView?: boolean }} NcSource */
 /** @typedef {import('./columns').NcColumn} NcColumn */
-/** @typedef {Parameters<typeof fieldsFromNcColumns>[1]} DeriveCtx */
+/** @typedef {NonNullable<Parameters<typeof fieldsFromNcColumns>[1]>} DeriveCtx */
 
 /** @param {NcSource} source */
 function refOf(source) {

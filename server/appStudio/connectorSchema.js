@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio — CONNECTOR SHAPE DETECTION.
  *
@@ -41,13 +42,12 @@
  * just ran the thing), so detection reads the sample first and treats declared
  * schemas as a bonus. Every guess is shown to the author before it is used.
  */
-
 'use strict';
 
 const { FIELD_TYPES, KEY_RE, DATA_LIMITS, SYSTEM_COLUMNS, newTableId, newFieldId } = require('./dataModel');
 // The "which key identifies one item" heuristic is shared with the poll_diff
 // trigger runtime rather than duplicated — same question, different consumer.
-const { ID_CANDIDATES } = require('../automation/triggerSources/pollDiff');
+const { ID_CANDIDATES } = require('../core/integrations/itemIdentity.mts');
 
 // How many sample rows detection ever looks at. A connector run is capped at 500
 // rows; scanning them all to guess a column type buys nothing over the first
@@ -642,7 +642,7 @@ function proposeTable(name, fields, identity, existingKeys = []) {
  * stamped — never by matching a column name, which would break the moment an
  * expanded element happened to carry the same key as its parent.
  *
- * @param {object[]} grains  from runConnector(..., { trace: true })
+ * @param {Array<{ rows?: unknown[], level?: number, expandFrom?: string | null, tool?: string | null, parentLevel?: number | null }>} grains  from runConnector(..., { trace: true })
  * @returns {{ tables, primary, children, incremental, defaultMode }}
  */
 function proposeTableSet(grains, { name = 'Connector data', inputSchema = null, existingKeys = [] } = {}) {

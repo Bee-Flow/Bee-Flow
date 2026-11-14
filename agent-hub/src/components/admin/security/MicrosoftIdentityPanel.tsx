@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { API_BASE } from '@/utils/helpers';
+import React, { useCallback, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { apiUrl } from '@/api/typedRequest';
 import { settled } from '@/api/settled';
 import type { AuthFetchOptions } from '@/utils/helpers.types';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -20,38 +21,51 @@ interface SyncBinding {
     syncTenantId: string;
 }
 
+const MICROSOFT_IDENTITY_KEY = ['admin', 'microsoftIdentity'] as const;
+const NO_REQUESTS: LinkRequest[] = [];
+
 const FIELD = 'w-full px-4 py-2.5 rounded-lg text-sm font-mono bg-[var(--bg-tertiary)] border border-[var(--border-default)] text-[var(--text-primary)]';
 const PRIMARY_BUTTON = 'px-5 py-2.5 rounded-lg text-sm font-medium text-white shadow-md bg-[var(--accent-primary)] disabled:opacity-50';
 const SECONDARY_BUTTON = 'px-5 py-2.5 rounded-lg text-sm font-medium border border-[var(--border-default)] text-[var(--text-secondary)] bg-[var(--bg-secondary)] disabled:opacity-50';
 
 export default function MicrosoftIdentityPanel() {
     const { t } = useTranslation();
-    const [requests, setRequests] = useState<LinkRequest[]>([]);
     const [binding, setBinding] = useState<SyncBinding>({ syncOrganizationId: '', syncTenantId: '' });
     const [users, setUsers] = useState<Record<string, string>>({});
     const [error, setError] = useState<string | undefined>('');
-    const [busy, setBusy] = useState(false);
-    const request = useCallback(async (path: string, options?: AuthFetchOptions) => {
-        const res = await settled(`${API_BASE}/auth/microsoft/${path}`, options);
+    const request = useCallback(async (url: string, options?: AuthFetchOptions) => {
+        const res = await settled(url, options);
         if (!res.ok) throw new Error(res.body.error || t('common.error'));
         return await res.res.json();
     }, [t]);
-    const refresh = useCallback(async () => {
-        try {
-            const [pending, current] = await Promise.all([request('link-requests'), request('sync-binding')]);
-            setRequests(pending);
-            setBinding({ syncOrganizationId: current.syncOrganizationId || '', syncTenantId: current.syncTenantId || '' });
-        } catch (err) { setError(errorMessage(err)); }
-    }, [request]);
-    useEffect(() => { refresh(); }, [refresh]);
-    async function act(path: string, method: string, body?: unknown) {
-        setBusy(true); setError('');
-        try {
-            await request(path, { method, headers: { 'Content-Type': 'application/json' }, ...(body ? { body: JSON.stringify(body) } : {}) });
-            await refresh();
-        } catch (err) { setError(errorMessage(err)); }
-        finally { setBusy(false); }
+    const queryClient = useQueryClient();
+    const query = useQuery<{ pending: LinkRequest[]; current: Partial<SyncBinding> }>({
+        queryKey: MICROSOFT_IDENTITY_KEY,
+        staleTime: 0,
+        retry: false,
+        queryFn: async () => {
+            try {
+                const [pending, current] = await Promise.all([request(apiUrl('GET /auth/microsoft/link-requests')), request(apiUrl('GET /auth/microsoft/sync-binding'))]);
+                return { pending, current };
+            } catch (err) { setError(errorMessage(err)); throw err; }
+        },
+    });
+    const requests = query.data?.pending ?? NO_REQUESTS;
+    // Every answer refills the binding form; typing then edits it until the next answer.
+    const [seen, setSeen] = useState(query.data);
+    if (query.data && query.data !== seen) {
+        setSeen(query.data);
+        setBinding({ syncOrganizationId: query.data.current.syncOrganizationId || '', syncTenantId: query.data.current.syncTenantId || '' });
     }
+    const action = useMutation({
+        mutationFn: ({ url, method, body }: { url: string; method: string; body?: unknown }) =>
+            request(url, { method, headers: { 'Content-Type': 'application/json' }, ...(body ? { body: JSON.stringify(body) } : {}) }),
+        onMutate: () => setError(''),
+        onSuccess: () => queryClient.invalidateQueries({ queryKey: MICROSOFT_IDENTITY_KEY }),
+        onError: (err) => setError(errorMessage(err)),
+    });
+    const busy = action.isPending;
+    const act = (url: string, method: string, body?: unknown) => action.mutate({ url, method, body });
     return <section className={`${CARD} mt-6 space-y-6`}>
         <div>
             <h3 className="text-lg font-semibold text-primary">{t('azure.identity_admin_title', 'Microsoft identities and directory sync')}</h3>
@@ -69,7 +83,7 @@ export default function MicrosoftIdentityPanel() {
                         <label htmlFor={`ms-link-${row.id}`} className={LABEL}>{t('azure.identity_local_user', 'Local user ID')}</label>
                         <input id={`ms-link-${row.id}`} className={FIELD} value={users[row.id] || ''} onChange={e => setUsers({ ...users, [row.id]: e.target.value })} />
                     </div>
-                    <button type="button" className={PRIMARY_BUTTON} disabled={busy || !users[row.id]?.trim()} onClick={() => act(`users/${encodeURIComponent(users[row.id].trim())}/identity`, 'PUT', { requestId: row.id })}>
+                    <button type="button" className={PRIMARY_BUTTON} disabled={busy || !users[row.id]?.trim()} onClick={() => act(apiUrl('PUT /auth/microsoft/users/{userId}/identity', { params: { userId: users[row.id].trim() } }), 'PUT', { requestId: row.id })}>
                         {t('azure.identity_confirm', 'Confirm identity link')}
                     </button>
                 </div>
@@ -88,12 +102,12 @@ export default function MicrosoftIdentityPanel() {
                     <input id="ms-sync-tenant" className={FIELD} value={binding.syncTenantId} onChange={e => setBinding({ ...binding, syncTenantId: e.target.value })} />
                 </div>
             </div>
-            <button type="button" className={PRIMARY_BUTTON} disabled={busy || !binding.syncOrganizationId || !binding.syncTenantId} onClick={() => act('sync-binding', 'PUT', binding)}>
+            <button type="button" className={PRIMARY_BUTTON} disabled={busy || !binding.syncOrganizationId || !binding.syncTenantId} onClick={() => act(apiUrl('PUT /auth/microsoft/sync-binding'), 'PUT', binding)}>
                 {t('azure.sync_confirm_binding', 'Save directory sync binding')}
             </button>
         </div>
 
-        <MicrosoftUnlink onUnlink={userId => act(`users/${encodeURIComponent(userId)}/identity`, 'DELETE')} busy={busy} />
+        <MicrosoftUnlink onUnlink={userId => act(apiUrl('DELETE /auth/microsoft/users/{userId}/identity', { params: { userId } }), 'DELETE')} busy={busy} />
     </section>;
 }
 function MicrosoftUnlink({ onUnlink, busy }: { onUnlink: (userId: string) => unknown; busy: boolean }) {

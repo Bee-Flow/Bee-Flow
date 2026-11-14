@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * Transcriptions: intake steps of POST / (upload).
  *
@@ -15,7 +15,7 @@ const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
 const configStore = require('../../stores/configStore');
 const meetingFiling = require('../../projects/meetingFiling');
-const { bestEffort } = require('../../utils/bestEffort');
+const { bestEffort, ignoreGone } = require('../../utils/bestEffort');
 
 // Every engine the pipeline knows how to drive, and which of them this
 // workspace lets a user pick per upload: the one policy every ingest path
@@ -35,7 +35,7 @@ const { KNOWN_PROVIDERS, resolveAllowedProviders } = require('../../core/meeting
  */
 async function resolveProjectFiling(req, userId, userOrgId) {
     if (!req.body.projectId) return { projectId: null };
-    const dropUpload = () => { try { fs.unlinkSync(req.file.path); } catch (err) { bestEffort('routes/transcriptions/uploadIntake:dropUpload', err); /* multer's temp file may already be gone */ } };
+    const dropUpload = () => { try { fs.unlinkSync(/** @type {string} */ (/** @type {NonNullable<typeof req.file>} */ (req.file).path)); } catch (err) { bestEffort('routes/transcriptions/uploadIntake:dropUpload', err); /* multer's temp file may already be gone */ } };
     /** @type {Awaited<ReturnType<typeof meetingFiling.resolve>>} */
     let target;
     try {
@@ -74,7 +74,7 @@ async function resolveUploadProvider(req) {
         // exactly that reason had no way to stop a user picking a US cloud.
         const allowed = await resolveAllowedProviders(localEnabled);
         if (!allowed.includes(requestedProvider)) {
-            if (req.file?.path) { try { fs.unlinkSync(req.file.path); } catch (_) { log.debug('temp upload already gone', _); } }
+            if (req.file?.path) { try { fs.unlinkSync(req.file.path); } catch (_) { ignoreGone('routes/transcriptions/uploadIntake:unlinkUpload', _); } }
             return {
                 provider,
                 refusal: {

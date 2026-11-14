@@ -1,4 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { RECENT_LIMIT, recentSourcesFor, runRecentWork, statusLabel, statuslessKinds } from '@/api/recentWork';
 import { useTranslation } from '@/hooks/useTranslation';
 import { formatRelativeTime } from '@/utils/dateFormatters';
@@ -201,7 +202,6 @@ export default function RecentWorkList({
     sections = null, onNavigate = null, limit = RECENT_LIMIT, gatesResolved = true,
 }: RecentWorkListProps) {
     const { t, locale } = useTranslation();
-    const [state, setState] = useState<RecentWorkState | null>(null);
 
     // The sections are a new array on every render; the ids in them are not. The fetch
     // depends on those ids, so a render of the parent does not trigger a second round of requests.
@@ -212,14 +212,15 @@ export default function RecentWorkList({
     const sectionsRef = useRef(sections);
     useEffect(() => { sectionsRef.current = sections; });
 
-    useEffect(() => {
-        let cancelled = false;
-        (async () => {
-            const result = await runRecentWork(sectionsRef.current, { limit, gatesResolved });
-            if (!cancelled) setState(result);
-        })();
-        return () => { cancelled = true; };
-    }, [askedKey, limit, gatesResolved]);
+    // A new question keeps the last answer on screen until its own lands; runRecentWork never rejects.
+    const query = useQuery<RecentWorkState>({
+        queryKey: ['studio', 'recentWork', askedKey, limit, gatesResolved],
+        staleTime: 0,
+        retry: false,
+        placeholderData: keepPreviousData,
+        queryFn: () => runRecentWork(sectionsRef.current, { limit, gatesResolved }),
+    });
+    const state = query.data ?? null;
 
     // Before the first answer, nothing is claimed — no empty list, no reassurance. Same rule as the counts on the rail.
     if (!state) return null;

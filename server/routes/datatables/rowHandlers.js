@@ -27,9 +27,11 @@ const { mirrorCtx, mirrorWrites } = require('./source');
 
 /**
  * A handler whose datatable refusals (quota, grade, managed part, ...) are answered, anything else thrown on.
+ * It takes the router's request, whatever its validated body and query, as the gate left it.
  * @param {RowHandler} handler
  */
-const answering = (handler) => async (/** @type {DatatableRequest} */ req, /** @type {import('express').Response} */ res) => {
+const answering = (handler) => async (/** @type {unknown} */ gatedReq, /** @type {import('express').Response} */ res) => {
+    const req = /** @type {DatatableRequest} */ (gatedReq); // past requireDatatableGrade
     try {
         return await handler(req, res);
     } catch (e) {

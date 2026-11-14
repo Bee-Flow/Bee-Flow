@@ -7,8 +7,8 @@
  * an error bubble, token accounting over the adapters' shared 'done' payload,
  * and defensive tool-argument parsing.
  *
- * Both builders (automations: routes/ai/automationBuilder/chatTurnLoop.js; apps:
- * routes/ai/appStudioBuilder/turnLoop.js) bind their own note prefix and
+ * Both builders (automations: usecases/ai/automationBuilder/chatTurnLoop.js; apps:
+ * usecases/ai/appStudioBuilder/turnLoop.js) bind their own note prefix and
  * parameterless-tool set onto these — the mechanics were byte-identical
  * copies before, and a fix landing in one loop did not reach the other.
  * core/llm requires nothing outside core.

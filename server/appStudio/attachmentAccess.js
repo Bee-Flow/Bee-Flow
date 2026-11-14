@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * App Studio — "may this viewer read this attachment?", in ONE place.
  *

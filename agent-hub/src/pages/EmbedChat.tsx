@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
 import InputArea from '../components/chat/InputArea';
-import { API_BASE } from '../utils/helpers';
 import { applyEmbedCustomization } from './embed/embedCustomization';
 import EmbedHeader from './embed/EmbedHeader';
 import EmbedMessages from './embed/EmbedMessages';
@@ -14,7 +13,8 @@ import type { EmbedAgent } from './embed/EmbedHeader';
 import type { ComposerAttachment } from '../components/chat/InputArea/useFileIntake';
 import type { ChatMessage } from '../hooks/useChatEngine/types';
 import { logger } from '../utils/logger';
-import { mutate, ApiError } from '../api/mutate';
+import { ApiError } from '../api/mutate';
+import { apiRequest } from '@/api/typedRequest';
 
 const getInitialTheme = () => {
     // 1. Check URL param (?theme=light or ?theme=dark) — allows iframe embedder to control
@@ -89,10 +89,9 @@ const EmbedChat = ({ agentId }: EmbedChatProps) => {
         try {
             let response: Response;
             try {
-                response = await mutate(`${API_BASE}/agents/${agentId}/chat/stream`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+                response = await apiRequest('POST /agents/{id}/chat/stream', {
+                    params: { id: agentId },
+                    body: {
                     message: agentMessage,
                     // Include full history WITH current message, since historyOverride
                     // replaces conversation messages entirely in the runtime
@@ -104,8 +103,8 @@ const EmbedChat = ({ agentId }: EmbedChatProps) => {
                     ephemeral: true,
                     // Announced equals counted: the marker exists only while the notice is up.
                     ...visitor.turnFields(),
-                })
-            });
+                },
+                });
             } catch (apiErr) {
                 if (!(apiErr instanceof ApiError)) throw apiErr;
                 throw new Error('Failed to send message');

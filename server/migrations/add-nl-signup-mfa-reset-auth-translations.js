@@ -134,6 +134,7 @@ const NL_TRANSLATIONS = {
     'reset.set_password': 'Nieuw wachtwoord instellen',
     'reset.success': 'Je wachtwoord is opnieuw ingesteld. Je kunt nu inloggen met je nieuwe wachtwoord.',
     'reset.go_signin': 'Naar inloggen',
+    'reset.encryption_key_reset': 'Je organisatie bewaart de versleutelingssleutel alleen bij je wachtwoord, dus die kon niet mee: inhoud die je vóór de reset hebt versleuteld, is niet meer te openen. Alles wat je vanaf nu maakt, wordt versleuteld met een nieuwe sleutel.',
     'reset.min_length': 'Wachtwoord moet minstens 8 tekens bevatten',
     'reset.failed': 'Het opnieuw instellen van het wachtwoord is mislukt.',
 

@@ -58,6 +58,7 @@ export default function OrgHealthDrawer({ org, onClose, onNavigate }: OrgHealthD
                         <button
                             onClick={onClose}
                             title={t('admin.ch_close', 'Close')}
+                            aria-label={t('admin.ch_close', 'Close')}
                             className="shrink-0 p-1.5 rounded-lg text-[var(--text-tertiary)] hover:bg-[var(--bg-secondary)]"
                         >
                             <X size={18} />

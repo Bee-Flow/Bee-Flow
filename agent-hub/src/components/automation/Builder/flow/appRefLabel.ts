@@ -1,4 +1,5 @@
-import { useEffect, useEffectEvent, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useOptionalQueryClient } from '@/api/queries/optionalQueryClient';
 import { fetchAppRefRecord } from '@/api/queries/automationBuilderReads';
 import { appRefParam, parseAppRefParam } from '@/components/admin/Studio/studioRoutes';
 import type { FlowDefinition } from './types';
@@ -69,6 +70,8 @@ export function triggerAppRef(definition: FlowDefinition | null | undefined) {
 }
 
 const TTL_MS = 60_000;
+// Part of the query key, so a cleared cache is a new query too.
+let generation = 0;
 
 /** key → { at, record }. `record` may be null (the lookup failed). */
 const cache = new Map<string, { at: number; record: AppRefRecord | null }>();
@@ -137,6 +140,7 @@ export function loadAppRef(ref: AppRef | null | undefined): Promise<AppRefRecord
 export function clearAppRefCache() {
     cache.clear();
     inflight.clear();
+    generation += 1;
 }
 
 /** Historische naam, nog in gebruik in tests. */
@@ -156,21 +160,22 @@ export const __clearAppRefCacheForTests = clearAppRefCache;
  */
 export function useAppRefLabel(ref: AppRef | null | undefined) {
     const key = appRefKey(ref);
-    const [record, setRecord] = useState<AppRefRecord | null | undefined>(() => (key ? fresh(key) : undefined));
-
-    // `ref` is a fresh object every render; the key is its identity.
-    const load = useEffectEvent(() => loadAppRef(ref));
-    useEffect(() => {
-        if (!key) { setRecord(undefined); return undefined; }
-        const hit = fresh(key);
-        if (hit !== undefined) { setRecord(hit); return undefined; }
-        let alive = true;
-        setRecord(undefined);
-        load().then((r) => { if (alive) setRecord(r); });
-        return () => { alive = false; };
-    }, [key]);
-
-    return record;
+    // `ref` is a fresh object every render; the key is its identity. loadAppRef
+    // keeps its own short-lived cache (other readers share it), so a remount
+    // inside the TTL asks nothing.
+    // Also outside a QueryClientProvider (a diagram drawn on its own): the lookup still runs.
+    const { client } = useOptionalQueryClient();
+    const query = useQuery<AppRefRecord | null, Error>({
+        queryKey: ['automation', 'app-ref', key, generation],
+        enabled: !!key,
+        queryFn: () => loadAppRef(ref),
+        initialData: () => (key ? fresh(key) : undefined),
+        staleTime: 0,
+        retry: false,
+        refetchOnWindowFocus: false,
+        refetchOnReconnect: false,
+    }, client);
+    return key ? query.data : undefined;
 }
 
 /**

@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * The spreadsheet-file ADAPTER CORE: the members the sync pipeline drives. The
  * adapter the registry hands out is adapter.js, this plus the `sync`,
@@ -71,6 +72,7 @@ function keyEntryOf(source) {
  * sync state.
  */
 function coercionBag() {
+    /** @type {Record<string, number>} */
     const bag = {};
     Object.defineProperty(bag, 'toJSON', {
         enumerable: false,
@@ -127,7 +129,7 @@ const adapter = {
      * Probe → maybe unchanged → read → hash → maybe unchanged → the columns,
      * the rows with their ids, and what the finish should record.
      */
-    async open(api, table, { prev = {}, mustFetch = false, rowCap } = {}) {
+    async open(api, table, /** @type {{ prev?: { marker?: unknown, contentHash?: string } | null, mustFetch?: boolean, rowCap?: number }} */ { prev = {}, mustFetch = false, rowCap } = {}) {
         const reading = require('./reading');
         const source = table.source;
         const file = source.file || {};
@@ -207,6 +209,7 @@ const adapter = {
         if (ids.duplicate) warnings.push(`${ids.duplicate} rows share a key with an earlier row and were skipped.`);
         if (ids.missing) warnings.push(`${ids.missing} rows have no value in the key column and were skipped.`);
 
+        /** @type {Record<string, unknown>} */
         const statePatch = {
             ...base,
             contentHash,
@@ -233,7 +236,7 @@ const adapter = {
      * retype gives it a new id), and a select column whose options grew
      * (a model-only change the planner would not see).
      */
-    deriveFields(cols, { existingFields = [], declaredRelations = [], source = {} } = {}) {
+    deriveFields(cols, /** @type {{ existingFields?: Array<{ id?: string, key?: string, options?: unknown[], [k: string]: unknown }>, declaredRelations?: Parameters<typeof columns.fieldsFromSheet>[1]['declaredRelations'], source?: { columnMap?: Record<string, unknown> } }} */ { existingFields = [], declaredRelations = [], source = {} } = {}) {
         const keyCol = (cols.find(c => c && c.key) || {}).col;
         const derived = columns.fieldsFromSheet(cols, {
             existingFields,

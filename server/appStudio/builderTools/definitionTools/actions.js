@@ -17,10 +17,10 @@ const {
     getSpec,
 } = require('../../componentSpecs');
 const ops = require('../../definitionOps');
-const { pickClosestId } = require('../../../automation/validate/helpers');
+const { pickClosestId } = require('../../../utils/closestId.mts');
 const { repairAction, describeActionRefusal } = require('../actionNormalise');
 const { repairRunOptions } = require('../../backgroundRunPolicy.mts');
-const { canonicalJson } = require('../../../automation/builderTools/suggestedPatch');
+const { canonicalJson } = require('../../../utils/stableJson');
 const { adoptCanonical, limitRepairsUnder } = require('../shared');
 const { limitReasons } = require('../limitRefusal.mts');
 const { stepCountsByTopLevel } = require('../../actionStepCounts');

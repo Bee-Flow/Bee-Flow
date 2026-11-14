@@ -1,114 +1,139 @@
+// @typecheck
 /**
- * skillActivations — the "last used" write behind the Skills overview.
+ * skillActivations — the "last used" write behind the Skills overview, against
+ * a real Postgres (PGlite behind db.js's pool, testUtils/pglitePool.js).
  *
- * DB-free: the real db.js runs over a recording pool. Pins the natural-key upsert
- * (the static path fires on EVERY chat turn — a 40-turn chat must be one
- * row, with a current timestamp), the in-process TTL cache that keeps that
- * turn free, the last_used_at stamp, the retention prune and the
- * never-throws contract.
+ * The static path fires on EVERY chat turn, so a 40-turn chat must stay one
+ * row with a current timestamp (the natural-key upsert); a repeat within the
+ * TTL costs no round-trip; skills.last_used_at is stamped; old rows are pruned;
+ * and a database failure never throws.
  *
- * Run: node --test --test-force-exit stores/skillActivations.test.js
+ * Run: cd server && node --test stores/skillActivations.test.js
  */
 
-const { test, beforeEach } = require('node:test');
+'use strict';
+
+const { test, before, beforeEach, after } = require('node:test');
 const assert = require('node:assert');
 
-process.env.NODE_ENV = 'test';
+const { usePglitePool } = require('../testUtils/pglitePool');
 
-const calls = [];
-let failNext = false;
-// The real db.js over a recording pool: every data statement lands in `calls`
-// (whitespace collapsed), and the reads answer what the old double did.
-require('../testUtils/routeHarness').recordDb((sql, params = []) => {
-    if (!/^\s*(INSERT|UPDATE|DELETE|SELECT)/i.test(sql)) return undefined;
-    if (failNext && !/^\s*SELECT/i.test(sql)) { failNext = false; throw new Error('db down'); }
-    calls.push({ sql: sql.replace(/\s+/g, ' ').trim(), params });
-    if (/DISTINCT ON \(skill_id\)/.test(sql)) {
-        return { rows: [{ skill_id: 's1', agent_id: 'a1', source: 'static', at: '2026-09-01T10:00:00.000Z' }] };
-    }
-    if (/GROUP BY agent_id/.test(sql)) return { rows: [{ agent_id: 'a1', at: '2026-09-02T10:00:00.000Z' }] };
-    return { rows: [], rowCount: 1 };
-});
-
+const { pg, close } = usePglitePool();
+const db = require('../db');
 const store = require('./skillActivations');
 
-beforeEach(() => { calls.length = 0; failNext = false; store._resetCache(); });
-
-test('a static activation upserts on (skill, conversation, agent, source) and refreshes `at`', async () => {
-    const n = await store.recordActivations({ skillIds: ['s1', 's1', 's2'], agentId: 'a1', conversationId: 'c1', userId: 'u1', source: 'static' });
-    assert.strictEqual(n, 2, 'one row per distinct skill');
-    const inserts = calls.filter(c => /INSERT INTO skill_activations/.test(c.sql));
-    assert.strictEqual(inserts.length, 2);
-    for (const ins of inserts) {
-        assert.match(ins.sql, /ON CONFLICT \(skill_id, conversation_id, agent_id, source\)/, 'the static path fires every turn; a chat is one row');
-        assert.match(ins.sql, /DO UPDATE SET at = NOW\(\)/, '"last used" must still say when, not when the chat started');
-        assert.deepStrictEqual(ins.params.slice(1, 5), ['a1', 'c1', 'u1', 'static']);
-    }
+before(async () => {
+    await pg.exec('CREATE TABLE skills (id TEXT PRIMARY KEY, last_used_at TIMESTAMPTZ)');
+    await pg.exec("INSERT INTO skills (id) VALUES ('s1'), ('s2'), ('s3')");
+    await store.initDB();
+});
+after(close);
+beforeEach(async () => {
+    store._resetCache();
+    await pg.exec("DELETE FROM skill_activations; UPDATE skills SET last_used_at = NULL");
 });
 
-test('a repeat within the TTL costs no round-trip at all (the static path runs on every turn)', async () => {
+const rows = async () => (await pg.query(
+    'SELECT skill_id, agent_id, conversation_id, user_id, source, at FROM skill_activations ORDER BY skill_id, conversation_id',
+)).rows;
+
+/** Count the statements that reach the pool while `fn` runs. */
+async function statementsDuring(fn) {
+    const real = db.pool.query;
+    let n = 0;
+    db.pool.query = /** @type {any} */ (async (/** @type {any[]} */ ...a) => { n += 1; return /** @type {any} */ (real)(...a); });
+    try { await fn(); } finally { db.pool.query = real; }
+    return n;
+}
+
+test('a static activation is one row per (skill, conversation, agent, source), and a later turn refreshes `at`', async () => {
+    assert.strictEqual(await store.recordActivations({ skillIds: ['s1', 's1', 's2'], agentId: 'a1', conversationId: 'c1', userId: 'u1', source: 'static' }), 2);
+    const first = await rows();
+    assert.deepStrictEqual(first.map((r) => [r.skill_id, r.agent_id, r.conversation_id, r.user_id, r.source]),
+        [['s1', 'a1', 'c1', 'u1', 'static'], ['s2', 'a1', 'c1', 'u1', 'static']]);
+    await pg.query("UPDATE skill_activations SET at = NOW() - INTERVAL '1 hour'");
+
+    store._resetCache();
     await store.recordActivations({ skillIds: ['s1'], agentId: 'a1', conversationId: 'c1', source: 'static' });
-    calls.length = 0;
-    const n = await store.recordActivations({ skillIds: ['s1'], agentId: 'a1', conversationId: 'c1', source: 'static' });
-    assert.strictEqual(n, 0);
-    assert.strictEqual(calls.length, 0, 'no INSERT, no last_used_at stamp, no prune');
-    // A different conversation, agent or source is a different use.
-    await store.recordActivations({ skillIds: ['s1'], agentId: 'a1', conversationId: 'c2', source: 'static' });
-    assert.strictEqual(calls.filter(c => /INSERT INTO skill_activations/.test(c.sql)).length, 1);
+    const after = await rows();
+    assert.strictEqual(after.length, 2, 'the static path fires every turn; a chat is one row');
+    const s1 = after.find((r) => r.skill_id === 's1');
+    assert.ok(Date.now() - new Date(s1.at).getTime() < 60_000, '"last used" says when, not when the chat started');
+    assert.strictEqual(s1.user_id, 'u1', 'a turn without a user keeps the one already known');
 });
 
-test('without a conversation and agent the key columns are empty strings, never NULL', async () => {
-    // NULLs do not collide in a UNIQUE index — the ephemeral-chat path would
-    // then write a row per turn again.
+test('a repeat within the TTL costs no round-trip at all; another conversation is another use', async () => {
+    await store.recordActivations({ skillIds: ['s1'], agentId: 'a1', conversationId: 'c1', source: 'static' });
+    const n = await statementsDuring(async () => {
+        assert.strictEqual(await store.recordActivations({ skillIds: ['s1'], agentId: 'a1', conversationId: 'c1', source: 'static' }), 0);
+    });
+    assert.strictEqual(n, 0, 'no INSERT, no last_used_at stamp, no prune');
+    assert.strictEqual(await store.recordActivations({ skillIds: ['s1'], agentId: 'a1', conversationId: 'c2', source: 'static' }), 1);
+    assert.strictEqual((await rows()).length, 2);
+});
+
+test('without a conversation and agent the key columns are empty strings, so repeats still collide', async () => {
+    // NULLs do not collide in a UNIQUE index: the ephemeral-chat path would write a row per turn.
     await store.recordActivations({ skillIds: ['s1'], source: 'ai_step' });
-    const ins = calls.find(c => /INSERT INTO skill_activations/.test(c.sql));
-    assert.deepStrictEqual(ins.params, ['s1', '', '', null, 'ai_step']);
+    store._resetCache();
+    await store.recordActivations({ skillIds: ['s1'], source: 'ai_step' });
+    assert.deepStrictEqual((await rows()).map((r) => [r.agent_id, r.conversation_id, r.user_id, r.source]), [['', '', null, 'ai_step']]);
 });
 
 test('an unknown source falls back to static instead of writing junk', async () => {
     await store.recordActivations({ skillIds: ['s1'], source: 'whatever' });
-    const ins = calls.find(c => /INSERT INTO skill_activations/.test(c.sql));
-    assert.strictEqual(ins.params[4], 'static');
+    assert.strictEqual((await rows())[0].source, 'static');
 });
 
 test('skills.last_used_at is stamped and old rows are pruned, for exactly the skills touched', async () => {
+    await pg.query(`INSERT INTO skill_activations (skill_id, conversation_id, at) VALUES
+        ('s1', 'old', NOW() - INTERVAL '181 days'), ('s1', 'recent', NOW() - INTERVAL '10 days'),
+        ('s3', 'old', NOW() - INTERVAL '181 days')`);
     await store.recordActivations({ skillIds: ['s1', 's2'] });
-    const stamp = calls.find(c => /UPDATE skills SET last_used_at = NOW\(\)/.test(c.sql));
-    assert.ok(stamp, 'last_used_at stamp');
-    assert.deepStrictEqual(stamp.params[0], ['s1', 's2']);
-    const prune = calls.find(c => /DELETE FROM skill_activations/.test(c.sql));
-    assert.ok(prune, 'retention prune');
-    assert.deepStrictEqual(prune.params[0], ['s1', 's2']);
-    assert.strictEqual(prune.params[1], String(store.RETENTION_DAYS));
+    const stamped = (await pg.query('SELECT id FROM skills WHERE last_used_at IS NOT NULL ORDER BY id')).rows.map((r) => r.id);
+    assert.deepStrictEqual(stamped, ['s1', 's2']);
+    const left = (await rows()).map((r) => `${r.skill_id}:${r.conversation_id}`);
+    assert.ok(!left.includes('s1:old'), `older than ${store.RETENTION_DAYS} days is pruned`);
+    assert.ok(left.includes('s1:recent'));
+    assert.ok(left.includes('s3:old'), 'a skill not touched is not pruned');
 });
 
 test('empty or garbage input writes nothing', async () => {
-    assert.strictEqual(await store.recordActivations({ skillIds: [] }), 0);
-    assert.strictEqual(await store.recordActivations({ skillIds: [null, 42, ''] }), 0);
-    assert.strictEqual(await store.recordActivations({}), 0);
-    assert.strictEqual(calls.length, 0);
-});
-
-test('a database failure never throws — a chat turn must not pay for telemetry', async () => {
-    failNext = true;
-    const n = await store.recordActivations({ skillIds: ['s1'] });
+    const n = await statementsDuring(async () => {
+        assert.strictEqual(await store.recordActivations({ skillIds: [] }), 0);
+        assert.strictEqual(await store.recordActivations({ skillIds: /** @type {any} */ ([null, 42, '']) }), 0);
+        assert.strictEqual(await store.recordActivations(/** @type {any} */ ({})), 0);
+    });
     assert.strictEqual(n, 0);
-    // …and the failed write is not remembered as done, or the next turn
-    // would skip it too and the skill would never get a "last used".
-    calls.length = 0;
-    assert.strictEqual(await store.recordActivations({ skillIds: ['s1'] }), 1);
-    assert.ok(calls.some(c => /INSERT INTO skill_activations/.test(c.sql)));
 });
 
-test('getLastActivationBySkillIds maps DISTINCT ON rows to { skillId: {at, agentId, source} }', async () => {
-    const m = await store.getLastActivationBySkillIds(['s1', 's9']);
-    assert.deepStrictEqual(m, { s1: { at: '2026-09-01T10:00:00.000Z', agentId: 'a1', source: 'static' } });
+test('a database failure never throws, and the failed write is not remembered as done', async () => {
+    await pg.exec('ALTER TABLE skills RENAME TO skills_away');
+    try {
+        assert.strictEqual(await store.recordActivations({ skillIds: ['s1'] }), 0, 'a chat turn must not pay for telemetry');
+    } finally {
+        await pg.exec('ALTER TABLE skills_away RENAME TO skills');
+    }
+    assert.strictEqual(await store.recordActivations({ skillIds: ['s1'] }), 1, 'the next turn writes it');
+    assert.ok((await pg.query("SELECT last_used_at FROM skills WHERE id = 's1'")).rows[0].last_used_at);
+});
+
+test('getLastActivationBySkillIds answers the latest activation per skill', async () => {
+    await pg.query(`INSERT INTO skill_activations (skill_id, agent_id, conversation_id, source, at) VALUES
+        ('s1', 'a1', 'c1', 'static', '2026-09-01T10:00:00Z'), ('s1', 'a2', 'c2', 'activate_skill', '2026-08-01T10:00:00Z'),
+        ('s2', '', 'c3', 'ai_step', '2026-07-01T10:00:00Z')`);
+    assert.deepStrictEqual(await store.getLastActivationBySkillIds(['s1', 's2', 's9']), {
+        s1: { at: '2026-09-01T10:00:00.000Z', agentId: 'a1', source: 'static' },
+        s2: { at: '2026-07-01T10:00:00.000Z', agentId: null, source: 'ai_step' },
+    });
     assert.deepStrictEqual(await store.getLastActivationBySkillIds([]), {});
 });
 
 test('getLastActivationByAgent answers per agent for one skill', async () => {
-    const m = await store.getLastActivationByAgent('s1', ['a1', 'a2']);
-    assert.deepStrictEqual(m, { a1: '2026-09-02T10:00:00.000Z' });
+    await pg.query(`INSERT INTO skill_activations (skill_id, agent_id, conversation_id, at) VALUES
+        ('s1', 'a1', 'c1', '2026-09-01T10:00:00Z'), ('s1', 'a1', 'c2', '2026-09-02T10:00:00Z'),
+        ('s2', 'a2', 'c1', '2026-09-03T10:00:00Z')`);
+    assert.deepStrictEqual(await store.getLastActivationByAgent('s1', ['a1', 'a2']), { a1: '2026-09-02T10:00:00.000Z' });
     assert.deepStrictEqual(await store.getLastActivationByAgent('s1', []), {});
     assert.deepStrictEqual(await store.getLastActivationByAgent(null, ['a1']), {});
 });

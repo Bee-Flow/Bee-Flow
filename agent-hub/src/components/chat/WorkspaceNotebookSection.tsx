@@ -80,6 +80,7 @@ export function WorkspaceNotebookSection({ t, saving, user, exportMenuRef, setEx
                 onClick={() => { flushSaveRef.current?.(); onClose?.(); } }
                 className="p-1.5 rounded-lg transition-colors hover:bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]"
                 title={t('notebooks.close')}
+                aria-label={t('notebooks.close')}
             >
                 <X className="w-4 h-4" />
             </button>

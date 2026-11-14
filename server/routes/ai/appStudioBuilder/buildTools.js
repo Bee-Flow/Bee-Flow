@@ -1,4 +1,4 @@
-// @typecheck noImplicitAny
+// @typecheck strict
 /**
  * App Studio Builder build loop: running one round's tool calls. Each call is
  * applied (the plan tool is the route's own), annotated, reported over SSE,
@@ -13,22 +13,22 @@ const crypto = require('crypto');
 const { validateAppDefinition } = require('../../../appStudio/validate');
 const { MUTATING_TOOLS, DATA_MODEL_TOOLS, applyToolCall, persistDraft } = require('../../../appStudio/builderTools');
 const { mergePlanTodos, applyPlanMarkDone, planEcho } = require('../../../core/llm/planChecklist');
-const { inferAppPlanProgress } = require('./planProgress');
-const { toolCallEvent, labelForTool } = require('./toolCallEvents');
-const { dataModelEvent } = require('./dataModelEvent');
-const { parseToolArgs, renderValidationNote, truncateJson, RECOVERED_CALL_HINT, REPAIRED_CALL_HINT } = require('./turnLoop');
-const { gateWorkModeCall, askQuestions } = require('./workMode.mts');
-const { heldWait, gateConfirmable } = require('./heldChanges.mts');
+const { inferAppPlanProgress } = require('../../../usecases/ai/appStudioBuilder/planProgress');
+const { toolCallEvent, labelForTool } = require('../../../usecases/ai/appStudioBuilder/toolCallEvents');
+const { dataModelEvent } = require('../../../usecases/ai/appStudioBuilder/dataModelEvent');
+const { parseToolArgs, renderValidationNote, truncateJson, RECOVERED_CALL_HINT, REPAIRED_CALL_HINT } = require('../../../usecases/ai/appStudioBuilder/turnLoop');
+const { gateWorkModeCall, askQuestions } = require('../../../usecases/ai/appStudioBuilder/workMode.mts');
+const { heldWait, gateConfirmable } = require('../../../usecases/ai/appStudioBuilder/heldChanges.mts');
 const { frameAppData } = require('../../../appStudio/builderPrompt/appDataFrame.mts');
 const log = require('../../../telemetry/log');
 
 /**
- * @typedef {import('./turnClosing').BuilderTurn} BuilderTurn
+ * @typedef {import('../../../usecases/ai/appStudioBuilder/turnClosing').BuilderTurn} BuilderTurn
  * @typedef {import('./buildRound').BuildCtx} BuildCtx
  * @typedef {import('./buildRound').LoopState} LoopState
  * @typedef {import('./buildRound').RepeatedStop} RepeatedStop
  * @typedef {NonNullable<import('./buildRound').RoundResponse['toolCalls']>[number] & { _recovered?: boolean, _recoveredFrom?: string }} RoundToolCall
- * @typedef {import('./toolCallEvents').ToolResult & {
+ * @typedef {import('../../../usecases/ai/appStudioBuilder/toolCallEvents').ToolResult & {
  *   validation?: { ok?: boolean, errors?: unknown[], warnings?: unknown[] },
  *   plan?: unknown, presented?: boolean, _repeated?: number,
  *   alreadyAdded?: RepeatedStop['alreadyAdded'],
@@ -75,7 +75,7 @@ function setPlan(args, ctx) {
  * @returns {CallResult}
  */
 function askQuestionsCall(args, turn, ctx) {
-    const wm = ctx.workMode;
+    const wm = /** @type {NonNullable<BuildCtx['workMode']>} */ (ctx.workMode); // read as the loop set it
     const outcome = askQuestions(args, { mode: wm.mode, approved: wm.approved, closed: wm.closed });
     if ('error' in outcome) return { error: outcome.error };
     turn.reviewQuestions = outcome.questions;
@@ -175,7 +175,7 @@ async function afterSuccessfulCall(turn, name, toolResult, ctx) {
     if (name === 'app_mark_phase') {
         const total = (approvedPlanForTurn && Array.isArray(approvedPlanForTurn.phases))
             ? approvedPlanForTurn.phases.length : 0;
-        turn.lastPhaseIndex = toolResult.index;
+        turn.lastPhaseIndex = /** @type {number | null} */ (toolResult.index); // as the tool answered
         send('phase', { index: toolResult.index, total, label: toolResult.label });
         await writeCheckpoint(`AI checkpoint — ${toolResult.label}`);
     }
@@ -220,7 +220,7 @@ function reportFinalize(turn, ok, toolResult, ctx) {
  * @param {LoopState} ls
  */
 function trackRefusals(name, ok, toolResult, ls) {
-    if (toolResult && typeof toolResult === 'object' && toolResult._repeated >= 3) {
+    if (toolResult && typeof toolResult === 'object' && (toolResult._repeated ?? 0) >= 3) {
         ls.repeatedStop = { name, error: String(toolResult.error || '').slice(0, 300), alreadyAdded: toolResult.alreadyAdded || null };
     }
     if (ok) {
@@ -382,7 +382,7 @@ function validateAfterMutation(turn, ctx, ls) {
         datatables: draftWrap._ownerDatatables,
     });
     send('validation_errors', { errors: turn.lastValidation.errors, warnings: turn.lastValidation.warnings });
-    if (turn.lastValidation.errors.length) {
+    if (/** @type {unknown[]} */ (turn.lastValidation.errors).length) { // the validator always lists its errors
         messages.push({ role: 'user', content: renderValidationNote(turn.lastValidation) });
         ls.escalateNextRound = true;
     }

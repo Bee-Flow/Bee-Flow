@@ -1,3 +1,4 @@
+// @typecheck
 /**
  * approvalAnnouncement: the words an approval request carries once it leaves
  * Bee Flow.
@@ -40,6 +41,8 @@ function oneLine(text, max = 120) {
 
 /**
  * @typedef RoleWordingArgs
+ * @property {{ assigneeKind?: string, [k: string]: unknown }} approval
+ * @property {{ name?: string } | null} [stage]
  * @property {{ index: number; total: number; } | null} [position]
  */
 /**
@@ -73,7 +76,7 @@ function approvalAnnouncement({ approval, automationTitle = '', url = null, stag
     return Object.freeze({
         event: 'approval_needed',
         code: short.code,
-        automationName: short.params.name,
+        automationName: /** @type {{ name?: string }} */ (short.params).name,
         headline: short.text,
         role: roleWording({ approval, stage, position }),
         // Whether the request has approver questions, as a yes/no. The

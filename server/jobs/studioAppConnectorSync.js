@@ -23,11 +23,12 @@ const { pool } = require('../db');
 const studioAppDataStore = require('../stores/studioAppDataStore');
 const log = require('../telemetry/log');
 const { createLockedTick, runWorkerPool } = require('./lib/workerPool');
+const { envInt } = require('../utils/envNumber.mts');
 
 const LOCK_KEY = 0xBEEF10C;
 const INTERVAL_MS = 60 * 1000;          // the finest schedule granularity is a minute
 const BOOT_DELAY_MS = 45 * 1000;
-const MAX_PER_TICK = parseInt(process.env.STUDIO_APP_SYNC_PER_TICK, 10) || 20;
+const MAX_PER_TICK = envInt('STUDIO_APP_SYNC_PER_TICK', 20, { min: 1 });
 /**
  * How many due syncs run at once.
  *
@@ -37,7 +38,7 @@ const MAX_PER_TICK = parseInt(process.env.STUDIO_APP_SYNC_PER_TICK, 10) || 20;
  * becomes the difference between "live" and "stuck". Each row is still claimed
  * individually by syncConnector, so running several at once is safe.
  */
-const SYNC_CONCURRENCY = parseInt(process.env.STUDIO_APP_SYNC_CONCURRENCY, 10) || 3;
+const SYNC_CONCURRENCY = envInt('STUDIO_APP_SYNC_CONCURRENCY', 3, { min: 1 });
 
 /** @type {NodeJS.Timeout | null} */
 let _timer = null;

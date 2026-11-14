@@ -92,7 +92,7 @@ function isUnchanged() {
  * refresh of a 200-page site costs 200 round trips instead of 200
  * re-embeddings.
  */
-async function fetch(item, stored, _ctx, _deps) {
+async function fetchItem(item, stored, _ctx, _deps) {
     /** @type {{ "User-Agent": string; "If-None-Match"?: string; "If-Modified-Since"?: string }} */
     const headers = { 'User-Agent': 'Mozilla/5.0 (compatible; BeeFlow/1.0)' };
     // The validator this page gave us last time, offered back to it. An
@@ -201,4 +201,4 @@ async function sitemapPages(entryUrl, maxPages, ctx) {
     return urls;
 }
 
-module.exports = { enumerate, fetch, isUnchanged, supportsModes, defaultMode, MAX_CRAWL_PAGES, MAX_SITEMAP_FETCHES, sitemapPages };
+module.exports = { enumerate, fetch: fetchItem, isUnchanged, supportsModes, defaultMode, MAX_CRAWL_PAGES, MAX_SITEMAP_FETCHES, sitemapPages };
