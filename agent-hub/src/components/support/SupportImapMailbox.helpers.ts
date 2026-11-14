@@ -20,7 +20,7 @@ export interface ImapForm {
 }
 
 /** The usual port per protocol and security. */
-export const DEFAULT_PORTS: Record<'imap' | 'smtp', Record<MailSecurity, number>> = {
+const DEFAULT_PORTS: Record<'imap' | 'smtp', Record<MailSecurity, number>> = {
     imap: { tls: 993, starttls: 143 },
     smtp: { tls: 465, starttls: 587 },
 };
