@@ -37,11 +37,11 @@ const { sanitizeError } = require('../../core/privacy/errorSanitizer');
 const { emitPhase, emitPhaseEnd } = require('../../core/agentRuntime/phaseEvents');
 const { resolveTurnTier } = require('../../core/llm/resolveTurnModel');
 // The turn's steps, in the order the handler runs them.
-const { buildTurnContext } = require('./webpageChat/context');
+const { buildTurnContext } = require('../../usecases/ai/webpageChat/context');
 const { finishTurnLogs, failTurnLogs } = require('../../core/kb/queryLog/hook.mts');
 const { buildTurnMessages, STOP } = require('../../usecases/ai/webpageChat/messages');
 const { runToolLoop } = require('./webpageChat/toolLoop');
-const { finishTurn } = require('./webpageChat/finalize');
+const { finishTurn } = require('../../usecases/ai/webpageChat/finalize');
 
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).

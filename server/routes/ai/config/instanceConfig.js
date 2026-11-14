@@ -26,6 +26,7 @@ const { HttpError } = require('../../../core/http/errors');
 const { embeddingChoice, savedDimensions } = require('../../../core/embed/embeddingChoice.mts');
 const { z, worded, bodyOf, flag } = require('../../../core/http/schemaParts');
 const { parseAzureImageModels, AZURE_IMAGE_MODELS_KEY } = require('../../../core/media/imageModels.mts');
+const { SETTING_STEPS, aiConfigToSave } = require('../../../usecases/ai/config/instanceSettingSteps');
 const { AzureImageModelsBody } = require('../../../core/media/imageModelsBody');
 
 // ── What POST /config accepts ────────────────────────────────────────
@@ -78,9 +79,6 @@ const { requireAuth } = require('../../../auth/permissions');
 const { fallback } = require('../../../utils/bestEffort');
 
 const requireAdmin = requireAdminUser(isAdminUser);
-
-/** @param {string} value an absolute http:// or https:// address */
-const isHttpUrl = (value) => URL.canParse(value) && ['http:', 'https:'].includes(new URL(value).protocol);
 
 // ─── General AI Config ───────────────────────────────────────────
 
@@ -221,302 +219,66 @@ router.get('/config', requireAuth, async (req, res) => {
     res.json(await isAdminUser(req) ? payload : memberConfigView(payload));
 });
 
+/**
+ * The Stripe Tax switch. automatic_tax is per subscription, so the switch
+ * only changes NEW checkouts: when it goes from off to on, the existing
+ * active and trialing subscriptions are backfilled in the background
+ * (idempotent; switching off and on again runs it again). The previous value
+ * is read before the new one is written.
+ * @param {unknown} enabled
+ */
+async function switchStripeTax(enabled) {
+    let taxWasEnabled = false;
+    try { taxWasEnabled = !!(await configStore.getConfig('stripe_tax_enabled')); } catch (err) { fallback('routes/ai/config/instanceConfig:anon', err); /* treat as off */ }
+    await configStore.setConfig('stripe_tax_enabled', enabled ? 'true' : '');
+    if (enabled && !taxWasEnabled) {
+        const stripeService = require('../../../services/stripeService');
+        stripeService.enableAutomaticTaxForExistingSubscriptions()
+            .then(r => log.info(`[Config] Stripe Tax enabled — backfill updated=${r.updated} skipped=${r.skipped}`))
+            .catch(e => log.warn('[Config] Stripe Tax backfill failed:', e.message));
+    }
+}
+
+/**
+ * Stores what one step of SETTING_STEPS answered.
+ * @param {import('../../../usecases/ai/config/instanceSettingSteps').SettingWrite | import('../../../usecases/ai/config/instanceSettingSteps').StripeTaxSwitch} write
+ */
+async function storeSetting(write) {
+    if ('stripeTax' in write) return switchStripeTax(write.stripeTax);
+    if (write.secret) return configStore.setSecret(write.key, write.value);
+    return configStore.setConfig(write.key, write.value);
+}
+
 router.post('/config', requireAuth, requireAdmin, validate({ body: ConfigBody }), async (/** @type {import('express').Request<{}, any, import('zod').infer<typeof ConfigBody>, import('qs').ParsedQs>} */ req, res) => {
-    const { url, model, apiKey, mistralApiKey, openaiApiKey, claudeApiKey, googleApiKey, eugptApiKey, ionosApiKey, elevenlabsApiKey, googleVertexProject, googleVertexLocation, googleVertexServiceAccountKey, azureEndpoint, azureApiKey, azureModels, agentSearchUrl, lakeraApiKey, regexGuardrails, piiDetectionEnabled, piiDetectionCategories, piiDetectionConfidenceThreshold, piiDetectionScope, piiDetectionAction, embeddingModel, embeddingProviderId, allowedModelsByAgentType, directChatRegexGuardrails, googleMapsApiKey, serperApiKey, azureDocIntelligenceEndpoint, azureDocIntelligenceKey, azureOpenaiEmbeddingEndpoint, azureOpenaiEmbeddingKey, azureOpenaiEmbeddingModel, useAzureDocProcessing, serviceEmailDisplayName, azureSpeechKey, azureSpeechRegion, transcriptionProvider, notebooksEnabled, projectsEnabled, askAiEnabled, exportEnabled, openInNotebookEnabled, notebooksMenuEnabled, azureRerankerEndpoint, azureRerankerKey, azureRerankerModel, rerankProviderId, rerankModel, stripeSecretKey, stripeWebhookSecret, stripePublishableKey, stripeEnabled, stripeTaxEnabled, stripeTaxCountry, subscriptionNotifyEmail } = req.body;
-    // The instance-wide PII action. It was stored as given, and 'allow' — a
-    // per-call override for trusted first-party flows in piiDetection/validate
-    // — makes the scan skip entirely, for every org that falls back to this
-    // config. Checked before anything below is written.
+    const { piiDetectionAction, embeddingModel, embeddingProviderId } = req.body;
+    // The instance-wide PII action: 'allow', a per-call override for trusted
+    // first-party flows in piiDetection/validate, makes the scan skip
+    // entirely for every org that falls back to this config. Checked before
+    // anything below is written.
     if (piiDetectionAction !== undefined && !VALID_PII_ACTIONS.includes(piiDetectionAction)) {
         return res.status(400).json({ error: `piiDetectionAction is one of ${VALID_PII_ACTIONS.join(', ')}.` });
     }
     const existing = await getAIConfig();
 
-    if (allowedModelsByAgentType !== undefined) {
-        await configStore.setConfig('allowedModelsByAgentType', allowedModelsByAgentType);
-    }
-    if (directChatRegexGuardrails !== undefined) {
-        await configStore.setConfig('direct_chat_regex_guardrails', directChatRegexGuardrails);
-    }
-    if (azureModels !== undefined) {
-        await configStore.setConfig('azure_models', azureModels || '');
-    }
-    if (req.body.azureImageModels !== undefined) await configStore.setConfig(AZURE_IMAGE_MODELS_KEY, parseAzureImageModels(req.body.azureImageModels));
-    if (agentSearchUrl !== undefined) {
-        await configStore.setConfig('agent_search_url', agentSearchUrl || '');
-    }
-    if (serperApiKey !== undefined) {
-        await configStore.setSecret('serper_api_key', serperApiKey || '');
-    }
-    if (req.body.searchProvider !== undefined) {
-        const allowed = new Set(['agent-search', 'node-search', 'bing', 'disabled']);
-        const value = allowed.has(req.body.searchProvider) ? req.body.searchProvider : 'agent-search';
-        await configStore.setConfig('search_provider', value);
-    }
-    if (req.body.maxToolRoundsChat !== undefined) {
-        const raw = req.body.maxToolRoundsChat;
-        if (raw === null || raw === '' || raw === false) {
-            await configStore.setConfig('max_tool_rounds_chat', null);
-        } else {
-            const n = parseInt(String(raw), 10);
-            if (Number.isFinite(n)) {
-                const clamped = Math.min(Math.max(n, 1), 50);
-                await configStore.setConfig('max_tool_rounds_chat', clamped);
-            }
-        }
-    }
-    if (req.body.kbProvider !== undefined) {
-        const allowed = new Set(['local', 'remote']);
-        const value = allowed.has(req.body.kbProvider) ? req.body.kbProvider : null;
-        await configStore.setConfig('kb_provider', value);
-    }
-    if (req.body.cpuRerankerEnabled !== undefined) {
-        await configStore.setConfig('cpu_reranker_enabled', !!req.body.cpuRerankerEnabled);
-    }
-    if (req.body.bingSearchKey !== undefined) {
-        await configStore.setSecret('bing_search_key', req.body.bingSearchKey || '');
-    }
-    if (req.body.bingSearchMarket !== undefined) {
-        await configStore.setConfig('bing_search_market', req.body.bingSearchMarket || '');
-    }
-    if (googleMapsApiKey !== undefined) {
-        await configStore.setSecret('google_maps_api_key', googleMapsApiKey || '');
-    }
-    if (req.body.linkedinClientId !== undefined) {
-        await configStore.setSecret('linkedin_client_id', req.body.linkedinClientId || '');
-    }
-    if (req.body.linkedinClientSecret !== undefined) {
-        await configStore.setSecret('linkedin_client_secret', req.body.linkedinClientSecret || '');
-    }
-    // Withings health connector — one developer app per deployment, the same
-    // admin-global shape LinkedIn uses. Per-user tokens live in the automation
-    // vault, never here.
-    if (req.body.withingsClientId !== undefined) {
-        await configStore.setSecret('withings_client_id', req.body.withingsClientId || '');
-    }
-    if (req.body.withingsClientSecret !== undefined) {
-        await configStore.setSecret('withings_client_secret', req.body.withingsClientSecret || '');
-    }
-    // Azure Document Intelligence
-    if (azureDocIntelligenceEndpoint !== undefined) {
-        await configStore.setConfig('azure_doc_intelligence_endpoint', azureDocIntelligenceEndpoint || '');
-    }
-    if (azureDocIntelligenceKey !== undefined) {
-        await configStore.setSecret('azure_doc_intelligence_key', azureDocIntelligenceKey || '');
-    }
-    // Azure OpenAI Embeddings
-    if (azureOpenaiEmbeddingEndpoint !== undefined) {
-        await configStore.setConfig('azure_openai_embedding_endpoint', azureOpenaiEmbeddingEndpoint || '');
-    }
-    if (azureOpenaiEmbeddingKey !== undefined) {
-        await configStore.setSecret('azure_openai_embedding_key', azureOpenaiEmbeddingKey || '');
-    }
-    if (azureOpenaiEmbeddingModel !== undefined) {
-        await configStore.setConfig('azure_openai_embedding_model', azureOpenaiEmbeddingModel || 'text-embedding-3-small');
-    }
-    if (useAzureDocProcessing !== undefined) {
-        await configStore.setConfig('use_azure_doc_processing', useAzureDocProcessing ? 'true' : '');
-    }
-    // Azure AI Speech (Meeting Transcription)
-    if (azureSpeechKey !== undefined) {
-        await configStore.setSecret('azure_speech_key', azureSpeechKey || '');
-    }
-    if (azureSpeechRegion !== undefined) {
-        const region = (azureSpeechRegion || '').trim().toLowerCase();
-        if (region && !/^[a-z0-9-]{2,32}$/.test(region)) {
-            return res.status(400).json({ error: 'Invalid Azure Speech region format. Use a region like "westeurope" or "eastus".' });
-        }
-        await configStore.setConfig('azure_speech_region', region);
-    }
-    // WhisperX self-hosted
-    if (req.body.whisperxUrl !== undefined) {
-        const rawUrl = (req.body.whisperxUrl || '').trim();
-        if (rawUrl && !isHttpUrl(rawUrl)) {
-            return res.status(400).json({ error: 'WhisperX URL must be a valid http:// or https:// address.' });
-        }
-        await configStore.setSecret('whisperx_url', rawUrl);
-    }
-    if (req.body.whisperxToken !== undefined) {
-        await configStore.setSecret('whisperx_token', req.body.whisperxToken || '');
-    }
-    // Scaleway Whisper (hybrid). Diarization reuses the WhisperX URL above.
-    if (req.body.scalewayApiKey !== undefined) {
-        await configStore.setSecret('scaleway_api_key', req.body.scalewayApiKey || '');
-    }
-    if (req.body.scalewayModel !== undefined) {
-        await configStore.setConfig('scaleway_model', (req.body.scalewayModel || '').trim());
-    }
-    if (req.body.scalewayUrl !== undefined) {
-        const rawUrl = (req.body.scalewayUrl || '').trim();
-        if (rawUrl && !isHttpUrl(rawUrl)) {
-            return res.status(400).json({ error: 'Scaleway URL must be a valid http:// or https:// address.' });
-        }
-        await configStore.setConfig('scaleway_url', rawUrl);
-    }
-    // pyannoteAI (all-in-one diarization + transcription; hosts its own media).
-    if (req.body.pyannoteApiKey !== undefined) {
-        await configStore.setSecret('pyannote_api_key', req.body.pyannoteApiKey || '');
-    }
-    if (req.body.pyannoteTranscriptionModel !== undefined) {
-        // '' means "choose per meeting language", which is the default and the
-        // best answer for most instances. Anything else must be a model
-        // pyannoteAI actually accepts — storing whatever string
-        // arrives would let a single typo make EVERY pyannote transcription fail with
-        // a 400 until someone noticed.
-        const requested = String(req.body.pyannoteTranscriptionModel || '').trim();
-        const { TRANSCRIPTION_MODELS, isValidTranscriptionModel } = require('../../../core/voice/pyannoteModels');
-        if (requested && !isValidTranscriptionModel(requested)) {
-            return res.status(400).json({
-                error: `Unknown pyannoteAI transcription model. Use one of: ${TRANSCRIPTION_MODELS.join(', ')} — or leave it empty to pick automatically per meeting language.`,
-            });
-        }
-        await configStore.setConfig('pyannote_transcription_model', requested);
-    }
-    // Voiceprint speaker identification. The kill switch is instance-level on
-    // purpose: the pyannote API key is instance-global, so the cost of the
-    // second job it submits is an instance-level concern, not a per-org one.
-    if (req.body.voiceprintMatchingEnabled !== undefined) {
-        await configStore.setConfig('voiceprint_matching_enabled', !!req.body.voiceprintMatchingEnabled);
-    }
-    if (req.body.pyannoteIdentifyThreshold !== undefined) {
-        const n = Number(req.body.pyannoteIdentifyThreshold);
-        if (!Number.isFinite(n) || n < 0 || n > 100) {
-            return res.status(400).json({ error: 'Speaker-identification threshold must be between 0 and 100.' });
-        }
-        await configStore.setConfig('pyannote_identify_threshold', Math.round(n));
-    }
-    if (transcriptionProvider !== undefined) {
-        const allowed = ['voxtral', 'azure', 'whisperx', 'scaleway', 'whisper_azure', 'pyannote', 'local'];
-        if (transcriptionProvider && !allowed.includes(transcriptionProvider)) {
-            return res.status(400).json({ error: `Invalid transcription provider. Allowed: ${allowed.join(', ')}` });
-        }
-        await configStore.setConfig('transcription_provider', transcriptionProvider || 'voxtral');
-    }
-    // In-process Whisper-base CPU transcription — admin opt-out toggle.
-    // When false, the per-upload "Local CPU" picker disappears and any
-    // request with provider='local' falls back to the configured cloud one.
-    if (req.body.localWhisperEnabled !== undefined) {
-        await configStore.setConfig('local_whisper_enabled', !!req.body.localWhisperEnabled);
-    }
-    // Service Email (Gmail OAuth) — the address is set by the OAuth connect flow
-    // (the connected Google account), so only the display name is editable here.
-    // serviceEmailAddress/serviceEmailPassword are legacy SMTP fields, ignored.
-    if (serviceEmailDisplayName !== undefined) {
-        await configStore.setConfig('service_email_display_name', serviceEmailDisplayName || '');
-    }
-    // Feature flags (runtime-togglable)
-    if (notebooksEnabled !== undefined) {
-        await configStore.setConfig('feature_notebooks_enabled', notebooksEnabled ? true : false);
-    }
-    if (projectsEnabled !== undefined) {
-        await configStore.setConfig('feature_projects_enabled', projectsEnabled ? true : false);
-    }
-    if (askAiEnabled !== undefined) {
-        await configStore.setConfig('feature_ask_ai_enabled', askAiEnabled ? true : false);
-    }
-    if (exportEnabled !== undefined) {
-        await configStore.setConfig('feature_export_enabled', exportEnabled ? true : false);
-    }
-    if (openInNotebookEnabled !== undefined) {
-        await configStore.setConfig('feature_open_in_notebook_enabled', openInNotebookEnabled ? true : false);
-    }
-    if (notebooksMenuEnabled !== undefined) {
-        await configStore.setConfig('feature_notebooks_menu_enabled', notebooksMenuEnabled ? true : false);
-    }
-    // Azure Cohere Reranker
-    if (azureRerankerEndpoint !== undefined) {
-        await configStore.setConfig('azure_reranker_endpoint', azureRerankerEndpoint || '');
-    }
-    if (azureRerankerKey !== undefined) {
-        await configStore.setSecret('azure_reranker_key', azureRerankerKey || '');
-    }
-    if (azureRerankerModel !== undefined) {
-        await configStore.setConfig('azure_reranker_model', azureRerankerModel || 'Cohere-rerank-v4.0-fast');
-    }
-    // Provider rerank tier (both empty/null = off)
-    if (rerankProviderId !== undefined) {
-        await configStore.setConfig('rerank_provider_id', rerankProviderId || '');
-    }
-    if (rerankModel !== undefined) {
-        await configStore.setConfig('rerank_model', rerankModel || '');
-    }
-    // Stripe Payment Integration
-    if (stripeSecretKey !== undefined) {
-        await configStore.setSecret('stripe_secret_key', stripeSecretKey || '');
-    }
-    if (stripeWebhookSecret !== undefined) {
-        await configStore.setSecret('stripe_webhook_secret', stripeWebhookSecret || '');
-    }
-    if (stripePublishableKey !== undefined) {
-        await configStore.setConfig('stripe_publishable_key', stripePublishableKey || '');
-    }
-    if (stripeEnabled !== undefined) {
-        await configStore.setConfig('stripe_enabled', stripeEnabled ? 'true' : '');
-    }
-    if (stripeTaxEnabled !== undefined) {
-        // automatic_tax is per-subscription — flipping the toggle
-        // only affects NEW checkouts. On a false→true transition, backfill
-        // the existing active/trialing subscriptions (fire-and-forget, same
-        // style as syncSeatQuantityForOrg; idempotent + re-triggerable by
-        // toggling off/on again). Read the PREVIOUS value before writing.
-        let taxWasEnabled = false;
-        try { taxWasEnabled = !!(await configStore.getConfig('stripe_tax_enabled')); } catch (err) { fallback('routes/ai/config/instanceConfig:anon', err); /* treat as off */ }
-        await configStore.setConfig('stripe_tax_enabled', stripeTaxEnabled ? 'true' : '');
-        if (stripeTaxEnabled && !taxWasEnabled) {
-            const stripeService = require('../../../services/stripeService');
-            stripeService.enableAutomaticTaxForExistingSubscriptions()
-                .then(r => log.info(`[Config] Stripe Tax enabled — backfill updated=${r.updated} skipped=${r.skipped}`))
-                .catch(e => log.warn('[Config] Stripe Tax backfill failed:', e.message));
-        }
-    }
-    if (stripeTaxCountry !== undefined) {
-        await configStore.setConfig('stripe_tax_country', stripeTaxCountry || 'NL');
-    }
-    if (subscriptionNotifyEmail !== undefined) {
-        await configStore.setConfig('subscription_notify_email', (subscriptionNotifyEmail || '').trim());
+    // Each setting is stored before the next one is looked at: a refusal
+    // leaves the earlier ones saved.
+    for (const step of SETTING_STEPS) {
+        const outcome = step(req.body);
+        if (!outcome) continue;
+        if ('refuse' in outcome) return res.status(400).json({ error: outcome.refuse });
+        await storeSetting(outcome);
     }
 
     // The vector length is decided only when the embedding model changes (core/embed/embeddingChoice.mts).
     const embedding = await embeddingChoice(existing, { embeddingModel, embeddingProviderId });
-    const success = await saveAIConfig({
-        url: url !== undefined ? url : existing.url,
-        model: model !== undefined ? model : existing.model,
-        apiKey: apiKey !== undefined ? apiKey : undefined,
-        mistralApiKey: mistralApiKey !== undefined ? mistralApiKey : undefined,
-        openaiApiKey: openaiApiKey !== undefined ? openaiApiKey : undefined,
-        claudeApiKey: claudeApiKey !== undefined ? claudeApiKey : undefined,
-        googleApiKey: googleApiKey !== undefined ? googleApiKey : undefined,
-        eugptApiKey: eugptApiKey !== undefined ? eugptApiKey : undefined,
-        ionosApiKey: ionosApiKey !== undefined ? ionosApiKey : undefined,
-        elevenlabsApiKey: elevenlabsApiKey !== undefined ? elevenlabsApiKey : undefined,
-        googleVertexProject: googleVertexProject !== undefined ? googleVertexProject : undefined,
-        googleVertexLocation: googleVertexLocation !== undefined ? googleVertexLocation : undefined,
-        googleVertexServiceAccountKey: googleVertexServiceAccountKey !== undefined ? googleVertexServiceAccountKey : undefined,
-        azureEndpoint: azureEndpoint !== undefined ? azureEndpoint : undefined,
-        azureApiKey: azureApiKey !== undefined ? azureApiKey : undefined,
-        lakeraApiKey: lakeraApiKey !== undefined ? lakeraApiKey : undefined,
-        regexGuardrails: regexGuardrails !== undefined ? regexGuardrails : existing.regexGuardrails,
-        piiDetectionEnabled: piiDetectionEnabled !== undefined ? piiDetectionEnabled : existing.piiDetectionEnabled,
-        piiDetectionCategories: piiDetectionCategories !== undefined ? piiDetectionCategories : existing.piiDetectionCategories,
-        piiDetectionConfidenceThreshold: piiDetectionConfidenceThreshold !== undefined ? piiDetectionConfidenceThreshold : existing.piiDetectionConfidenceThreshold,
-        piiDetectionScope: piiDetectionScope !== undefined ? piiDetectionScope : existing.piiDetectionScope,
-        piiDetectionAction: piiDetectionAction !== undefined ? piiDetectionAction : existing.piiDetectionAction,
-        embeddingModel: embedding.modelId,
-        embeddingProviderId: embedding.providerId,
-        embeddingOutput: embedding.output,
-    });
-
-    if (success) {
-        // A new embedding model re-embeds the stored knowledge in the
-        // background; the admin does not have to know the column exists.
-        const embeddingChanged = embedding.changed;
-        if (embeddingChanged) {
-            require('../../../core/kb/embeddingMigration').ensureKbEmbeddingsCurrent({ reason: 'config' });
-        }
-        res.json({ success: true, ...(embeddingChanged ? { reembedding: true } : {}) });
-    } else {
-        throw new Error('Failed to save configuration');
+    const success = await saveAIConfig(aiConfigToSave(req.body, existing, embedding));
+    if (!success) throw new Error('Failed to save configuration');
+    // A new embedding model re-embeds the stored knowledge in the
+    // background; the admin does not have to know the column exists.
+    if (embedding.changed) {
+        require('../../../core/kb/embeddingMigration').ensureKbEmbeddingsCurrent({ reason: 'config' });
     }
+    res.json({ success: true, ...(embedding.changed ? { reembedding: true } : {}) });
 });
 
 // ─── Delete API Key ──────────────────────────────────────────────

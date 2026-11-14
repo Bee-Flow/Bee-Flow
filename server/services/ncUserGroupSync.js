@@ -7,7 +7,7 @@
  *      Flow ExApp connector subscribes to OCP\User and OCP\Group events
  *      via NC's AppAPI events_listener and forwards each fire here.
  *
- *   2. Periodic backstop — server/jobs/ncSyncBackstop.js. Catches gaps
+ *   2. Periodic backstop — server/services/ncSyncBackstop.js. Catches gaps
  *      from missed webhooks (NC restart, event listener drift) by doing
  *      a full diff every 6 hours.
  *

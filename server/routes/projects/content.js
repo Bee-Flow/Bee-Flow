@@ -69,7 +69,7 @@ const { bestEffort } = require('../../utils/bestEffort');
  *   notebooks?: typeof import('../../stores/notebookStore'), // stores/notebookStore surface ({ createNotebook })
  *   starters?: typeof import('../../core/documents/documentStarters').starters, // (locale) => document starters
  *   membership?: typeof import('../../projects/membership'), // projects/membership surface ({ isAllowedIn })
- *   changeFeed?: typeof import('../../projects/changeFeed'), // projects/changeFeed surface ({ recordItemCreated })
+ *   changeFeed?: typeof import('../../core/projectContent/changeFeed'), // core/projectContent/changeFeed surface ({ recordItemCreated })
  *   projectOrg?: typeof import('../../projects/projectOrg'), // projects/projectOrg surface
  *   createLimiter?: import('express').RequestHandler, // rate-limit middleware for the two creates
  *   requireNotebooks?: import('express').RequestHandler }} [deps]  requireNotebooks: the notebooks gates (notebookGate.makeNotebookGate())
@@ -87,7 +87,7 @@ function makeContentRouter(deps = {}) {
     const starters = (/** @type {string | undefined} */ locale) => (deps.starters || require('../../core/documents/documentStarters').starters)(locale);
     const membership = () => deps.membership || require('../../projects/membership');
     const orgOf = () => deps.projectOrg || require('../../projects/projectOrg');
-    const changeFeed = () => deps.changeFeed || require('../../projects/changeFeed');
+    const changeFeed = () => deps.changeFeed || require('../../core/projectContent/changeFeed');
 
     // Creating is cheap per call but not free (a document composes its house
     // style and writes a first revision). Named, so the ceiling holds across
@@ -134,7 +134,7 @@ function makeContentRouter(deps = {}) {
 
     /**
      * One "created" entry in the project's feed: the audit row and its live
-     * event in one transaction (projects/changeFeed.recordItemCreated), ids
+     * event in one transaction (core/projectContent/changeFeed.recordItemCreated), ids
      * only. Never a `resource_added` next to it: the item was made here, not
      * filed from elsewhere, and two rows would count it twice in "since your
      * last visit". After the item exists, so best-effort: the recorder never

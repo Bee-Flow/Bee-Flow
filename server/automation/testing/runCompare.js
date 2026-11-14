@@ -40,8 +40,8 @@
 
 const log = require('../../telemetry/log');
 const { envCap } = require('../mcpRunReadCaps');
-const { canReadRunData } = require('../../core/automationModel/callerRunVisibility');
-const { isTruncatedOutput, fullOutputRefOf } = require('../../core/automationModel/payloadTruncation');
+const { canReadRunData } = require('../../auth/callerRunVisibility');
+const { isTruncatedOutput, fullOutputRefOf } = require('../../stores/automationStore/payloadTruncation');
 const { AI_STEP_TYPES } = require('../../core/automationModel/automationGraph');
 const outputDiffers = require('./outputDiffers');
 const { diffJson } = require('./jsonDiff');

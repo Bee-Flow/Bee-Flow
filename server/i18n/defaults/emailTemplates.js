@@ -151,6 +151,7 @@ const EMAIL_TEMPLATE_LOCALE_DEFAULTS = {
  * field over the English copy. Returns a fresh shallow copy so callers can
  * mutate safely. Null if unknown.
  * @param {string | number} templateId
+ * @param {string | null} [locale]
  */
 function getDefaultEmailTemplate(templateId, locale = null) {
     const tpl = EMAIL_TEMPLATE_DEFAULTS[templateId];

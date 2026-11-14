@@ -246,7 +246,7 @@ async function _notifyStaffOfFailure({ kind, threadId, errorMsg }) {
     if (now - last < NOTIFY_DEDUPE_MS) return;
     _recentNotify.set(dedupeKey, now);
     try {
-        const supportRoute = require('./notifications');
+        const supportRoute = require('../core/support/notifications');
         if (typeof supportRoute.notifyStaff === 'function') {
             await supportRoute.notifyStaff({
                 title: `Email send failed (${kind})`,

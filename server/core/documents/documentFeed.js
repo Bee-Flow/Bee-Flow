@@ -2,7 +2,7 @@
 /**
  * The two optional neighbours a document route talks to, reached defensively:
  *
- *   the project change feed (server/projects/changeFeed.js): "what changed
+ *   the project change feed (server/core/projectContent/changeFeed.js): "what changed
  *     in this project" rows for a document filed in a project. Ids and counts
  *     only; the document's name is resolved when the feed is read, never
  *     copied into it.
@@ -31,7 +31,7 @@ function loadOptional(path) {
     }
 }
 
-const feedModule = () => loadOptional('../../projects/changeFeed');
+const feedModule = () => loadOptional('../projectContent/changeFeed');
 const collabModule = () => loadOptional('../collab');
 
 /**

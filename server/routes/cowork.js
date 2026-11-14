@@ -70,7 +70,7 @@ const { userHasBetaFeature } = require('../core/entitlements/betaFeatures');
 const { requireAuth } = require('../auth/permissions');
 const { bestEffort, fallback } = require('../utils/bestEffort');
 const { CreateBody, UpdateBody, NoBody, ComposeBody, RunsQuery, isKnownTimezone } = require('./coworkSchemas');
-const { mailTriggers, assertTriggerUsable, newItemFields, syncNewEventItem, planTriggerUpdate } = require('./coworkTrigger');
+const { mailTriggers, assertTriggerUsable, newItemFields, syncNewEventItem, planTriggerUpdate } = require('../usecases/coworkTrigger');
 
 const DEFAULT_MAX_SCHEDULES = 10;
 

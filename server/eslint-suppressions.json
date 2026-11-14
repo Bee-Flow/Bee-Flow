@@ -13,7 +13,7 @@
       "count": 1
     }
   },
-  "agents/memory/memoryWriter.js": {
+  "core/memory/memoryWriter.js": {
     "complexity": {
       "count": 2
     },
@@ -26,7 +26,7 @@
       "count": 1
     }
   },
-  "agents/notebooks/notebookRebase.js": {
+  "core/collab/notebookRebase.js": {
     "complexity": {
       "count": 1
     }
@@ -569,19 +569,10 @@
   },
   "appStudio/connectorSync.js": {
     "complexity": {
-      "count": 3
-    },
-    "max-lines-per-function": {
-      "count": 1
+      "count": 2
     }
   },
   "appStudio/connectors/chain.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    },
     "max-params": {
       "count": 1
     }
@@ -1072,7 +1063,7 @@
       "count": 2
     },
     "max-lines-per-function": {
-      "count": 2
+      "count": 1
     }
   },
   "auth/connector/ncVerify.js": {
@@ -1429,7 +1420,7 @@
   },
   "automation/builderTools.js": {
     "complexity": {
-      "count": 4
+      "count": 2
     }
   },
   "automation/builderTools/addSteps.js": {
@@ -2839,13 +2830,10 @@
   },
   "core/agentRuntime/attachmentIntake.js": {
     "complexity": {
-      "count": 2
+      "count": 1
     },
     "max-depth": {
       "count": 3
-    },
-    "max-lines-per-function": {
-      "count": 1
     }
   },
   "core/agentRuntime/attachmentProcessor.js": {
@@ -3151,7 +3139,7 @@
       "count": 2
     }
   },
-  "core/automationModel/runLogRedaction.js": {
+  "stores/automationStore/runLogRedaction.js": {
     "complexity": {
       "count": 1
     }
@@ -3942,9 +3930,6 @@
   "core/dataEngine/sources/spreadsheetFile/infer.js": {
     "complexity": {
       "count": 2
-    },
-    "max-lines-per-function": {
-      "count": 1
     }
   },
   "core/dataEngine/sources/spreadsheetFile/linkBrowse.js": {
@@ -4173,11 +4158,6 @@
       "count": 2
     }
   },
-  "core/documents/deckClamp.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "core/documents/deckCollect.js": {
     "complexity": {
       "count": 2
@@ -4190,22 +4170,11 @@
   },
   "core/documents/deckJson.js": {
     "complexity": {
-      "count": 3
-    }
-  },
-  "core/documents/deckModel.js": {
-    "complexity": {
       "count": 1
     }
   },
   "core/documents/deckParse.js": {
     "complexity": {
-      "count": 3
-    },
-    "max-depth": {
-      "count": 2
-    },
-    "max-lines-per-function": {
       "count": 1
     }
   },
@@ -4781,14 +4750,6 @@
   "core/kb/sources/datatable.js": {
     "complexity": {
       "count": 2
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "core/kb/sources/index.js": {
-    "complexity": {
-      "count": 1
     },
     "max-lines-per-function": {
       "count": 1
@@ -5674,14 +5635,8 @@
     }
   },
   "integrations/azureGroupSync.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-depth": {
-      "count": 11
-    },
     "max-lines-per-function": {
-      "count": 3
+      "count": 1
     }
   },
   "integrations/browserFetchTools.js": {
@@ -5707,10 +5662,7 @@
   },
   "integrations/customIntegrationRunner.js": {
     "complexity": {
-      "count": 4
-    },
-    "max-lines-per-function": {
-      "count": 1
+      "count": 3
     }
   },
   "integrations/docsTools.js": {
@@ -6072,7 +6024,7 @@
       "count": 2
     }
   },
-  "integrations/shared/apiClient.js": {
+  "utils/apiClient.js": {
     "complexity": {
       "count": 1
     }
@@ -6187,7 +6139,7 @@
       "count": 3
     }
   },
-  "jobs/aiParticipation.js": {
+  "projects/participation/aiParticipationJob.js": {
     "max-lines-per-function": {
       "count": 1
     }
@@ -6210,7 +6162,7 @@
       "count": 1
     }
   },
-  "jobs/isoEvidenceCollector.js": {
+  "compliance/isoEvidenceCollector.js": {
     "complexity": {
       "count": 1
     }
@@ -6457,7 +6409,7 @@
       "count": 1
     }
   },
-  "projects/changeFeed.js": {
+  "core/projectContent/changeFeed.js": {
     "complexity": {
       "count": 2
     },
@@ -6827,7 +6779,7 @@
       "count": 1
     }
   },
-  "routes/agents/agentPersonaWrite.js": {
+  "usecases/agents/agentPersonaWrite.js": {
     "complexity": {
       "count": 1
     }
@@ -6902,12 +6854,12 @@
       "count": 1
     }
   },
-  "routes/ai/appStudioBuilder/buildRound.js": {
+  "usecases/ai/appStudioBuilder/buildRound.js": {
     "max-params": {
       "count": 1
     }
   },
-  "routes/ai/appStudioBuilder/buildTools.js": {
+  "usecases/ai/appStudioBuilder/buildTools.js": {
     "complexity": {
       "count": 1
     }
@@ -6955,7 +6907,7 @@
   },
   "usecases/ai/appStudioBuilder/toolCallEvents.js": {
     "complexity": {
-      "count": 2
+      "count": 1
     }
   },
   "usecases/ai/appStudioBuilder/turnClosing.js": {
@@ -7015,7 +6967,7 @@
       "count": 1
     }
   },
-  "routes/ai/automationBuilder/inspectionTools.js": {
+  "usecases/ai/automationBuilder/inspectionTools.js": {
     "complexity": {
       "count": 1
     }
@@ -7060,7 +7012,7 @@
       "count": 1
     }
   },
-  "routes/ai/automationBuilder/roundNudges.js": {
+  "usecases/ai/automationBuilder/roundNudges.js": {
     "complexity": {
       "count": 1
     }
@@ -7071,12 +7023,6 @@
     }
   },
   "routes/ai/automationBuilder/routeTools.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    },
     "max-params": {
       "count": 1
     }
@@ -7112,14 +7058,6 @@
       "count": 1
     }
   },
-  "routes/ai/automationBuilder/toolDispatch.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "usecases/ai/automationBuilder/toolDraft.js": {
     "complexity": {
       "count": 1
@@ -7133,14 +7071,8 @@
       "count": 1
     }
   },
-  "routes/ai/automationBuilder/turnClosing.js": {
+  "usecases/ai/automationBuilder/turnClosing.js": {
     "complexity": {
-      "count": 1
-    },
-    "max-depth": {
-      "count": 1
-    },
-    "max-lines-per-function": {
       "count": 1
     }
   },
@@ -7151,9 +7083,6 @@
   },
   "routes/ai/automationBuilder/turnSetup.js": {
     "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
       "count": 1
     }
   },
@@ -7179,15 +7108,6 @@
     }
   },
   "routes/ai/cmsBuilder.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-depth": {
-      "count": 3
-    },
-    "max-lines-per-function": {
-      "count": 1
-    },
     "max-params": {
       "count": 1
     }
@@ -7204,10 +7124,10 @@
   },
   "routes/ai/config/instanceConfig.js": {
     "complexity": {
-      "count": 2
+      "count": 1
     },
     "max-lines-per-function": {
-      "count": 2
+      "count": 1
     }
   },
   "routes/ai/config/integrations.js": {
@@ -7241,7 +7161,7 @@
       "count": 1
     }
   },
-  "routes/ai/directChat/chatOptions.js": {
+  "usecases/ai/directChat/chatOptions.js": {
     "complexity": {
       "count": 1
     }
@@ -7256,7 +7176,7 @@
       "count": 1
     }
   },
-  "routes/ai/directChat/finalizeRows.js": {
+  "usecases/ai/directChat/finalizeRows.js": {
     "max-depth": {
       "count": 1
     }
@@ -7294,7 +7214,7 @@
   },
   "routes/ai/directChat/shared.js": {
     "complexity": {
-      "count": 2
+      "count": 1
     }
   },
   "usecases/ai/directChat/stageModelSwap.js": {
@@ -7315,15 +7235,12 @@
       "count": 1
     }
   },
-  "routes/ai/directChat/toolExec.js": {
+  "usecases/ai/directChat/toolExec.js": {
     "complexity": {
       "count": 2
     },
-    "max-depth": {
-      "count": 2
-    },
     "max-lines-per-function": {
-      "count": 2
+      "count": 1
     }
   },
   "routes/ai/directChat/toolLoopRounds.js": {
@@ -7336,7 +7253,7 @@
       "count": 1
     }
   },
-  "routes/ai/directChat/toolResultEvents.js": {
+  "usecases/ai/directChat/toolResultEvents.js": {
     "complexity": {
       "count": 1
     }
@@ -7410,7 +7327,7 @@
       "count": 9
     }
   },
-  "routes/ai/notebookChat/toolLoop.js": {
+  "usecases/ai/notebookChat/toolLoop.js": {
     "complexity": {
       "count": 2
     },
@@ -7448,7 +7365,7 @@
       "count": 1
     }
   },
-  "routes/ai/webpageChat/context.js": {
+  "usecases/ai/webpageChat/context.js": {
     "complexity": {
       "count": 1
     }
@@ -7464,7 +7381,7 @@
       "count": 1
     }
   },
-  "routes/ai/webpageChat/systemPrompt.js": {
+  "usecases/ai/webpageChat/systemPrompt.js": {
     "max-lines-per-function": {
       "count": 1
     }
@@ -8021,9 +7938,6 @@
   "routes/playbooks/complianceReview.js": {
     "complexity": {
       "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 2
     }
   },
   "routes/playbooks/complianceRoutes.js": {
@@ -8664,7 +8578,7 @@
       "count": 4
     }
   },
-  "services/email/providerClients.js": {
+  "utils/emailProviderClients.js": {
     "complexity": {
       "count": 1
     }
@@ -8710,7 +8624,7 @@
       "count": 1
     }
   },
-  "services/planEntitlements.js": {
+  "core/entitlements/planEntitlements.js": {
     "complexity": {
       "count": 1
     }
@@ -8819,7 +8733,7 @@
       "count": 3
     }
   },
-  "services/webpageValidation.js": {
+  "core/webpages/webpageValidation.js": {
     "complexity": {
       "count": 1
     }
@@ -9031,11 +8945,6 @@
       "count": 1
     }
   },
-  "stores/automationStore/notificationEvents.js": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "stores/automationStore/rowMappers.js": {
     "complexity": {
       "count": 3
@@ -9112,9 +9021,6 @@
   },
   "stores/chatSignalStore.js": {
     "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
       "count": 1
     }
   },
@@ -9199,11 +9105,6 @@
     }
   },
   "stores/compliance/evidence.js": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "stores/compliance/findings.js": {
     "max-lines-per-function": {
       "count": 1
     }
@@ -9364,16 +9265,6 @@
     },
     "max-lines-per-function": {
       "count": 2
-    }
-  },
-  "stores/kb/catalog.js": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "stores/kb/documentQueries.js": {
-    "max-lines-per-function": {
-      "count": 1
     }
   },
   "stores/kb/documents.js": {
@@ -9653,17 +9544,9 @@
       "count": 1
     }
   },
-  "stores/project/members.js": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "stores/project/projects.js": {
     "complexity": {
       "count": 2
-    },
-    "max-lines-per-function": {
-      "count": 1
     }
   },
   "stores/project/schema.js": {
@@ -9992,14 +9875,6 @@
       "count": 1
     }
   },
-  "stores/user/usersDelete.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "stores/versionStore.js": {
     "max-lines-per-function": {
       "count": 1
@@ -10051,7 +9926,7 @@
       "count": 1
     }
   },
-  "support/access.js": {
+  "core/support/access.js": {
     "complexity": {
       "count": 1
     }
@@ -10066,7 +9941,7 @@
       "count": 1
     }
   },
-  "support/notifications.js": {
+  "core/support/notifications.js": {
     "complexity": {
       "count": 1
     }

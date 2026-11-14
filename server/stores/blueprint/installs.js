@@ -14,10 +14,11 @@ const {
     isNonEmptyString, isPlainObject, STAMP_COLUMNS, mapStampRow, normalizeMembers, asJsonb,
 } = require('./mappers');
 
-/** @param {import('./mappers').BlueprintStoreCtx} ctx */
-function makeInstallsStore({ db, ready, handle, inTransaction }) {
-    // ── The ref ledger ───────────────────────────────────────────────────────
-
+/**
+ * The ref ledger: a part keeps its ref across captures.
+ * @param {import('./mappers').BlueprintStoreCtx} ctx
+ */
+function makeRefLedger({ ready, handle, inTransaction }) {
     /**
      * Give every member of a Solution its stable ref: Map(entityId → ref).
      *
@@ -139,8 +140,14 @@ function makeInstallsStore({ db, ready, handle, inTransaction }) {
         }));
     }
 
-    // ── Installed-entity stamps ─────────────────────────────────────────
+    return { allocateRefs, refsFor };
+}
 
+/**
+ * Recording what an entity looked like at install time.
+ * @param {import('./mappers').BlueprintStoreCtx} ctx
+ */
+function makeStampWrites({ db, ready, handle }) {
     /**
      * Record what an entity looked like at install time.
      *
@@ -229,6 +236,14 @@ function makeInstallsStore({ db, ready, handle, inTransaction }) {
         return mapStampRow(out);
     }
 
+    return { stampEntity, upsertStamp };
+}
+
+/**
+ * The stamps of a project and the installed versions.
+ * @param {import('./mappers').BlueprintStoreCtx} ctx
+ */
+function makeStampReads({ db, ready, handle }) {
     /**
      * Every stamp for a project, keyed by bundle-local ref (retired ones included).
      * @param {string} projectId
@@ -277,14 +292,12 @@ function makeInstallsStore({ db, ready, handle, inTransaction }) {
             .map(r => [r.project_id, Number(r.version)]));
     }
 
-    return {
-        allocateRefs,
-        refsFor,
-        stampEntity,
-        upsertStamp,
-        listStamps,
-        listInstalledVersions,
-    };
+    return { listStamps, listInstalledVersions };
+}
+
+/** @param {import('./mappers').BlueprintStoreCtx} ctx */
+function makeInstallsStore(ctx) {
+    return { ...makeRefLedger(ctx), ...makeStampWrites(ctx), ...makeStampReads(ctx) };
 }
 
 module.exports = { makeInstallsStore };

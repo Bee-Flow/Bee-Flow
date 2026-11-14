@@ -9,7 +9,7 @@
  */
 
 import { beginKbQueryLog, type Handle } from './recorder.mts';
-import type { Channel, Outcome } from './vocab.mts';
+import type { Channel, Outcome } from '../../../stores/kb/queryLog/vocab.mts';
 
 /** The `log` option the search functions accept. */
 export interface LogOption {

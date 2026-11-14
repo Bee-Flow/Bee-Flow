@@ -49,6 +49,9 @@ test('decrypt of junk / non-envelope returns null (no throw)', () => {
     assert.strictEqual(vault.decrypt('not json', 'org-A'), null);
     assert.strictEqual(vault.decrypt(JSON.stringify({ _encrypted: 'other' }), 'org-A'), null);
     assert.strictEqual(vault.decrypt(null, 'org-A'), null);
+    // JSON that parses to nothing, or to something that is no envelope.
+    assert.strictEqual(vault.decrypt('null', 'org-A'), null);
+    assert.strictEqual(vault.decrypt('7', 'org-A'), null);
 });
 
 test('encryptJSON / decryptJSON round-trip an object', () => {
@@ -96,6 +99,13 @@ test('orgVaultKey requires an orgId', () => {
 
 test('two encryptions of the same value differ (random IV)', () => {
     assert.notStrictEqual(vault.encrypt('same', 'org-A'), vault.encrypt('same', 'org-A'));
+});
+
+test('encryptJSON of nothing is null, not a sealed "null"; a falsy value is still sealed', () => {
+    assert.strictEqual(vault.encryptJSON(null, 'org-A'), null);
+    assert.strictEqual(vault.encryptJSON(undefined, 'org-A'), null);
+    assert.strictEqual(vault.decryptJSON(vault.encryptJSON(0, 'org-A'), 'org-A'), 0);
+    assert.strictEqual(vault.decryptJSON(vault.encryptJSON(false, 'org-A'), 'org-A'), false);
 });
 
 console.log(`\norgVault: ${passed} passed\n`);

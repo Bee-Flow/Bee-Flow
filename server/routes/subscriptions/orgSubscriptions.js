@@ -344,7 +344,7 @@ router.put('/orgs/:orgId', validate({ body: OrgSubscriptionBody }), async (/** @
         // can opt into widening explicitly elsewhere if needed.
         if (payload.plan_id && payload.plan_id !== oldSub?.plan_id) {
             try {
-                await require('../../services/planEntitlements').applyPlanToOrg(req.params.orgId, payload.plan_id, { mode: 'reset' });
+                await require('../../core/entitlements/planEntitlements').applyPlanToOrg(req.params.orgId, payload.plan_id, { mode: 'reset' });
             } catch (e) {
                 log.warn('[Subscriptions] applyPlanToOrg failed:', e.message);
             }

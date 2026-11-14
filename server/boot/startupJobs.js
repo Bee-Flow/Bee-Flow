@@ -86,7 +86,7 @@ function startRetentionAndComplianceJobs() {
         require('../compliance/scheduler').start();
         require('../jobs/complianceDeadlineNotifier').start();
         // ISO evidence connectors — periodic external-system sweeps (advisory-locked).
-        require('../jobs/isoEvidenceCollector').start();
+        require('../compliance/isoEvidenceCollector').start();
     }
 
     // Azure AD group sync: periodic syncs per org (explicit lifecycle call; it
@@ -149,7 +149,7 @@ function startRunnersAndFeeds() {
     // relevance gate and answers or stays silent. A few at a time per replica,
     // paused by its own circuit breaker when the gate keeps failing.
     if (isModuleAvailable('projects')) try {
-        require('../jobs/aiParticipation').start();
+        require('../projects/participation/aiParticipationJob').start();
     } catch (err) {
         log.warn('[Server] AI participation job load failed:', err.message);
     }
@@ -205,7 +205,7 @@ function startSupportAndSyncJobs() {
     }
     // NC user/group sync backstop — covers gaps when real-time webhooks miss
     try {
-        require('../jobs/ncSyncBackstop').start();
+        require('../services/ncSyncBackstop').start();
     } catch (err) {
         log.warn('[Server] NC sync backstop load failed:', err.message);
     }
@@ -218,8 +218,8 @@ function startSupportAndSyncJobs() {
         log.warn('[Server] NC onboarding reminder load failed:', err.message);
     }
     // Project task reminders: a daily tick for open tasks due tomorrow, today or late.
-    try { require('../jobs/projectTaskDueNotifier').start(); } catch (err) { log.warn('[Server] Project task due notifier load failed:', err.message); }
-    if (isModuleAvailable('projects')) try { require('../jobs/solutionDeployRunner').start(); } catch (err) { log.warn('[Server] Solution deploy runner load failed:', err.message); }
+    try { require('../projects/taskDueNotifier').start(); } catch (err) { log.warn('[Server] Project task due notifier load failed:', err.message); }
+    if (isModuleAvailable('projects')) try { require('../projects/stages/deployRunnerJob').start(); } catch (err) { log.warn('[Server] Solution deploy runner load failed:', err.message); }
     // Periodic process-memory log line (MEMORY_TELEMETRY_INTERVAL_MS, 0 = off).
     try { require('../jobs/memoryTelemetry').start(); } catch (err) { log.warn('[Server] Memory telemetry load failed:', err.message); }
     // Learning Center review nudge — daily tick that reminds lapsed learners

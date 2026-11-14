@@ -1,7 +1,7 @@
 /**
  * Transport for the Frappe CRM integration: one REST request against a Frappe
  * site (Frappe Cloud or self-hosted), through the hardened choke point
- * integrations/shared/apiClient.js (SSRF guard, timeout, no URL in errors).
+ * utils/apiClient.js (SSRF guard, timeout, no URL in errors).
  *
  * Auth is Frappe's token header, `Authorization: token <api_key>:<api_secret>`,
  * from the per-user connection (`frappe_crm_*_user_<id>`, stored sealed by
@@ -18,7 +18,7 @@ import { createRequire } from 'node:module';
 import { checkSiteUrl, assertNotLinkLocal } from './frappeCrmHost.mts';
 
 const nodeRequire = createRequire(import.meta.url);
-const { jsonApiRequest } = nodeRequire('./shared/apiClient.js') as {
+const { jsonApiRequest } = nodeRequire('../utils/apiClient.js') as {
     jsonApiRequest: (url: string, opts?: Record<string, unknown>) => Promise<unknown>;
 };
 const configStore = nodeRequire('../stores/configStore.js') as {

@@ -11,9 +11,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { lastRunBlock } = require('./lastRunContext.mts');
-const { maskedRunValues } = require('../../../routes/ai/automationBuilder/inspectionTools');
+const { maskedRunValues } = require('./inspectionTools');
 const { tokenizeText } = require('../../../core/privacy/piiDetection/tokenizer');
-const { canReadRunData } = require('../../../core/automationModel/callerRunVisibility');
+const { canReadRunData } = require('../../../auth/callerRunVisibility');
 
 const SINCE = '2026-11-04T11:00:00.000Z';
 const RUN = { id: 'r2', automationId: 'a1', mode: 'live', isTest: true, status: 'error', startedAt: '2026-11-04T11:55:00.000Z', finishedAt: '2026-11-04T11:55:09.000Z' };

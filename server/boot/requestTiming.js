@@ -25,6 +25,9 @@ function _normalizeRoute(req) {
     }).join('/');
     return '/' + norm;
 }
+/**
+ * @param {{ use: (arg0: (req: import("express").Request, res: import("express").Response, next: import("express").NextFunction) => void) => void; }} app
+ */
 function mountRequestTiming(app) {
     // ── Request-timing instrumentation ─────────────────────────────────────────────
     // Records per-route latency into httpMetrics (exposed at /api/admin/metrics).

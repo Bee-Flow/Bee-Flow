@@ -45,7 +45,7 @@ const {
     _contiguousCoverage,
 } = require('./piiDetection/windowing');
 const { tokenizeText, _tokenCategoryKey } = require('./piiDetection/tokenizer');
-const { restoreTokens, restoreTokensInRichText } = require('./piiDetection/tokenRestore');
+const { restoreTokens, restoreTokensInRichText } = require('../../utils/piiTokenRestore');
 const { neutraliseTokens } = require('./piiDetection/tokenNeutralise');
 const { detectPii } = require('./piiDetection/detect');
 const { validateInputForPii, validateOutputForPii } = require('./piiDetection/validate');

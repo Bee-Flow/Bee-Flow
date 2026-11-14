@@ -127,7 +127,7 @@ const SAVE_PATHS = {
             files: [
                 'stores/webpageStore.js',        // the backstop: writeSlot / extra files / restore
                 'routes/webpages',               // create, update, files, move, clone, restore, publish
-                'routes/ai/webpageChat/finalize.js', // the AI arm (end of the turn) — slots AND extra files
+                'usecases/ai/webpageChat/finalize.js', // the AI arm (end of the turn) — slots AND extra files
                 'routes/webpagesAudience.js',    // the only writer of bridge_grants.tables
                 'projects/packaging/install/parts/webpages.js', // a page installed from a Solution
                 'projects/packaging/upgrade.js', // a page REPLACED by a Solution upgrade

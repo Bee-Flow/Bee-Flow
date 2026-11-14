@@ -26,7 +26,7 @@ const {
     parseAddress,
     parseDisplayName,
 } = require('../../utils/emailParse');
-const { gmailClientFromTokens, graphFetchFromTokens } = require('./providerClients');
+const { gmailClientFromTokens, graphFetchFromTokens } = require('../../utils/emailProviderClients');
 const { fetchOutlookAttachment, listOutlookAttachments } = require('./outlookAttachment.mts');
 const { outlookListQuery } = require('../../core/integrations/outlookQuery.mts');
 const crypto = require('crypto');
@@ -516,9 +516,9 @@ module.exports = {
     _gmailAttachments: gmailAttachments,
 };
 
-/** @typedef {import('./providerClients').EmailTokens} EmailTokens */
+/** @typedef {import('../../utils/emailProviderClients').EmailTokens} EmailTokens */
 
-/** @typedef {import('./providerClients').OnTokenRefresh} OnTokenRefresh */
+/** @typedef {import('../../utils/emailProviderClients').OnTokenRefresh} OnTokenRefresh */
 
 /** @typedef {{ mode?: string, address?: string, [key: string]: unknown }} MailboxRef */
 

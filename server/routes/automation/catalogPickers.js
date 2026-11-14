@@ -112,7 +112,7 @@ async function loadKnowledgeBases(/** @type {import('express').Request} */ req, 
         // A failed read is no organisation.
         /** @type {Set<string>} */
         let adminOrgIds = new Set();
-        try { adminOrgIds = await require('../../support/kbAccess').resolveAdminOrgIds(req); } catch (e) { adminOrgIds = fallback('routes/automation/catalogPickers:adminOrgIds', e, new Set()); }
+        try { adminOrgIds = await require('../../core/kb/kbAccess').resolveAdminOrgIds(req); } catch (e) { adminOrgIds = fallback('routes/automation/catalogPickers:adminOrgIds', e, new Set()); }
         knowledgeBases = await require('../../automation/builderPickerCatalog')
             .listKnowledgeBasePicker({ userId, orgIds, userGroups, manageOrgIds, adminOrgIds });
     } catch (e) {

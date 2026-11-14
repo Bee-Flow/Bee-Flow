@@ -97,8 +97,8 @@ const restore = installResolveStub({
 
     './notificationStore': { deleteNotificationsForUser: async () => {} },
     '../notificationStore': { deleteNotificationsForUser: async () => {} },
-    '../services/planEntitlements': { applyPlanToOrg: async () => {} },
-    '../../services/planEntitlements': { applyPlanToOrg: async () => {} },
+    '../core/entitlements/planEntitlements': { applyPlanToOrg: async () => {} },
+    '../../core/entitlements/planEntitlements': { applyPlanToOrg: async () => {} },
     './usageStore': { invalidatePaygCache: () => {} },
     '../usageStore': { invalidatePaygCache: () => {} },
     // Non-unref'd 5-minute sweep installed at require time; without this the

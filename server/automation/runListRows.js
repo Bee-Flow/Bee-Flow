@@ -24,7 +24,7 @@
  */
 
 const { indexDefinition, finalRows } = require('./runOutcome');
-const { redactRunRowForViewer } = require('../core/automationModel/callerRunVisibility');
+const { redactRunRowForViewer } = require('../auth/callerRunVisibility');
 
 const STEP_BARS_MAX = 60;
 /** Nodes that are not steps a person would count. */

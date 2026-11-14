@@ -145,7 +145,7 @@ test("the 'merge' strategy sends the SCREENED text to the merge model and the st
     };
     mods['../stores/knowledgeBases'].getDocument = async () => EXISTING;
     const prompts = [];
-    mods['../agents/providerAdapters'] = {
+    mods['../core/llm/providerAdapters'] = {
         createChatCompletion: async ({ messages }) => {
             prompts.push(messages[1].content);
             return { choices: [{ message: { content: 'a merged article that is long enough' } }] };

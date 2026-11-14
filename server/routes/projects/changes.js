@@ -47,7 +47,7 @@ const CHANGE_ROWS_READ = 500;
  * @param {{ requireProjectRole?: import('./roleGate').ProjectRoleGate, // middleware named requireProjectRoleMw
  *   store?: Pick<typeof import('../../stores/projectStore'), 'getMemberState'|'listChangeLog'|'listChangeRows'|'listItemReads'|'markAllSeen'|'markItemSeen'|'recordVisit'>, // the change-feed surface
  *   titles?: Pick<typeof import('../../projects/changeTitles'), 'resolveTitles'>,
- *   feed?: Pick<typeof import('../../projects/changeFeed'), 'summarizeChangesPage'|'changeWindow'|'VISIT_GAP_MS'>,
+ *   feed?: Pick<typeof import('../../core/projectContent/changeFeed'), 'summarizeChangesPage'|'changeWindow'|'VISIT_GAP_MS'>,
  *   markLimiter?: import('express').RequestHandler }} [deps]  markLimiter: the rate limit for the visit and seen writes
  */
 function makeChangesRouter(deps = {}) {
@@ -56,7 +56,7 @@ function makeChangesRouter(deps = {}) {
     const requireRole = deps.requireProjectRole || lazyProjectRoleGate;
     const store = () => deps.store || require('../../stores/projectStore');
     const titles = () => deps.titles || require('../../projects/changeTitles');
-    const feed = () => deps.feed || require('../../projects/changeFeed');
+    const feed = () => deps.feed || require('../../core/projectContent/changeFeed');
     // The page pings on open and every few minutes while it stays open, and
     // marks an item after it has been in view for a moment: this leaves room
     // for several tabs and stops a loop from turning marks into a flood.

@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Server-side React + Material UI bundle + document assembly.
  *

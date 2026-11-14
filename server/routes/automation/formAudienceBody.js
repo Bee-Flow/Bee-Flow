@@ -10,7 +10,7 @@
 
 const { z, typeError } = require('../../utils/zod');
 const { worded } = require('../../core/http/schemaParts');
-const { AUDIENCES } = require('../../automation/formAudience');
+const { AUDIENCES } = require('../../auth/formAudience');
 
 const AUDIENCE_TEXT = `audience is one of: ${AUDIENCES.join(', ')}.`;
 /**

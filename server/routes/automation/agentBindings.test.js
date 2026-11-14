@@ -23,7 +23,7 @@
 const { test, before, after, beforeEach } = require('node:test');
 const assert = require('node:assert');
 const { makeAgentBindingsRouter } = require('./agentBindings');
-const { makeAgentAccess } = require('../../agents/agentAccess');
+const { makeAgentAccess } = require('../../core/agentRuntime/agentAccess');
 const { serve, assertRefused } = require('../../testUtils/routeHarness');
 
 const USERS = {

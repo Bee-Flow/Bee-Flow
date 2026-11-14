@@ -23,7 +23,7 @@
 'use strict';
 
 const log = require('../../telemetry/log');
-const notebookCollab = require('./notebookCollab');
+const notebookCollab = require('../../core/collab/notebookCollab');
 const { fallback } = require('../../utils/bestEffort');
 
 /** The HTML as the store keeps it, for "is this the same document?". @param {unknown} html */

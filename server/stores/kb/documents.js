@@ -191,7 +191,7 @@ function makeDocumentFns(ctx) {
         /**
          * Compute content hash for deduplication.
          */
-        hashContent: (content) => {
+        hashContent: (/** @type {crypto.BinaryLike} */ content) => {
             return crypto.createHash('sha256').update(content).digest('hex');
         },
     };

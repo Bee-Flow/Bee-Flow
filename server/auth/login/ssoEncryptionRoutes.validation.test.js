@@ -30,11 +30,12 @@ const Module = require('module');
 // leave it empty.
 const touched = [];
 let hasPin = false; // whether the account already holds an SSO PIN
+let unlockAnswer = () => ({ dek: Buffer.alloc(32) }); // what unlocking with a PIN answers
 
 const MOCKS = {
     '../encryption': {
         setupSSOUserDEK: async (userId, p) => { touched.push({ what: 'setupSSOUserDEK', args: [userId, p] }); return { dek: Buffer.alloc(32), recoveryKey: 'RK' }; },
-        unlockSSOUserDEK: async (userId, p) => { touched.push({ what: 'unlockSSOUserDEK', args: [userId, p] }); return { dek: Buffer.alloc(32) }; },
+        unlockSSOUserDEK: async (userId, p) => { touched.push({ what: 'unlockSSOUserDEK', args: [userId, p] }); return unlockAnswer(); },
         unlockWithRecoveryKey: async (userId, k) => { touched.push({ what: 'unlockWithRecoveryKey', args: [userId, k] }); return Buffer.alloc(32); },
         secureClear() {},
         hasSSOUserPin: async () => hasPin,
@@ -64,7 +65,7 @@ const { dispatcher } = require('../../testUtils/routeHarness');
 
 const dispatch = dispatcher(router, { session: () => ({ isAuthenticated: true, user: { id: 'u1' }, save(cb) { cb(); } }) });
 
-test.beforeEach(() => { touched.length = 0; hasPin = false; });
+test.beforeEach(() => { touched.length = 0; hasPin = false; unlockAnswer = () => ({ dek: Buffer.alloc(32) }); });
 
 /** Assert: refused with 400, the named field is in `details`, nothing touched. */
 async function refuses(request, field) {
@@ -144,4 +145,58 @@ test('a first-time setup (legacy key in the session, no PIN yet) needs no recent
     const res = await dispatch({ method: 'POST', url: '/sso-encryption-setup', body: { pin: 'abcdef12' }, session: unlockedSession(60 * 60 * 1000) });
     assert.strictEqual(res.statusCode, 200);
     assert.ok(touched.some((t) => t.what === 'setupSSOUserDEK'));
+});
+
+// ═══ Who may ask, and what a wrong PIN gets ═════════════════════════
+
+test('a session that is not signed in, or has no user, is refused on every PIN route before any key is touched', async () => {
+    const requests = [
+        { method: 'POST', url: '/sso-encryption-setup', body: { pin: 'abcdef12' } },
+        { method: 'POST', url: '/sso-encryption-unlock', body: { pin: 'abcdef12' } },
+        { method: 'POST', url: '/sso-change-pin', body: { oldPin: 'old-one', newPin: 'abcdef12' } },
+    ];
+    for (const request of requests) {
+        for (const session of [{ isAuthenticated: false, user: { id: 'u1' } }, { isAuthenticated: true, user: null }]) {
+            const res = await dispatch({ ...request, session });
+            assert.strictEqual(res.statusCode, 401, `${request.url} ${JSON.stringify(session)}`);
+            assert.deepStrictEqual(res.body, { error: 'Not authenticated' });
+        }
+    }
+    assert.deepStrictEqual(touched, []);
+});
+
+test('unlocking with a wrong PIN is a 401 and leaves the session without a key', async () => {
+    unlockAnswer = () => ({ wrongPin: true });
+    const session = { isAuthenticated: true, user: { id: 'u1' }, needsEncryptionPin: true, save(cb) { cb(); } };
+    const res = await dispatch({ method: 'POST', url: '/sso-encryption-unlock', body: { pin: 'not-the-pin' }, session });
+    assert.strictEqual(res.statusCode, 401);
+    assert.deepStrictEqual(res.body, { error: 'Incorrect PIN' });
+    assert.strictEqual(session.encryptionKey, undefined);
+    assert.strictEqual(session.needsEncryptionPin, true);
+});
+
+test('unlocking an account that has no PIN yet says so instead of failing', async () => {
+    unlockAnswer = () => ({ needsSetup: true });
+    const res = await dispatch({ method: 'POST', url: '/sso-encryption-unlock', body: { pin: 'abcdef12' } });
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(res.body, { needsSetup: true });
+});
+
+test('changing the PIN with a wrong current PIN is a 401 and re-wraps nothing; without a PIN set it is a 400', async () => {
+    unlockAnswer = () => ({ wrongPin: true });
+    const wrong = await dispatch({ method: 'POST', url: '/sso-change-pin', body: { oldPin: 'not-the-pin', newPin: 'abcdef12' } });
+    assert.strictEqual(wrong.statusCode, 401);
+    assert.deepStrictEqual(wrong.body, { error: 'Current PIN is incorrect' });
+
+    unlockAnswer = () => ({ needsSetup: true });
+    const unset = await dispatch({ method: 'POST', url: '/sso-change-pin', body: { oldPin: 'anything', newPin: 'abcdef12' } });
+    assert.strictEqual(unset.statusCode, 400);
+    assert.ok(!touched.some((t) => t.what === 'setupSSOUserDEK'), 'no key was re-wrapped');
+});
+
+test('changing the PIN with the right current PIN re-wraps the key under the new one', async () => {
+    const res = await dispatch({ method: 'POST', url: '/sso-change-pin', body: { oldPin: 'old-one', newPin: 'abcdef12' } });
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(touched.map((t) => t.what), ['unlockSSOUserDEK', 'setupSSOUserDEK']);
+    assert.strictEqual(touched[1].args[1], 'abcdef12');
 });

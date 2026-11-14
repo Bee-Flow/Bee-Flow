@@ -142,3 +142,31 @@ test('creating an app password takes no fields: one sent is refused by name and 
     assert.match(res.body.error, /does not take "password"/);
     assert.deepStrictEqual(touched, []);
 });
+
+// ── What the status says, and which hosts a save accepts ─────────────────────
+
+test('the status of a session without a user is "nothing", and names no host', async () => {
+    const res = await dispatcher(router, { session: () => ({ user: null, oauthProvider: 'nextcloud', accessToken: 'tok' }) })({ method: 'GET', url: '/app-password-status' });
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(res.body, { hasAppPassword: false, isNextcloudUser: false, nextcloudUrl: '' });
+    assert.deepStrictEqual(touched, []);
+});
+
+test('only a Nextcloud sign-in counts as a Nextcloud session; another provider\'s token does not', async () => {
+    const status = async (session) => (await dispatcher(router, { session: () => session })({ method: 'GET', url: '/app-password-status' })).body;
+    assert.deepStrictEqual(await status({ user: { id: 'u1' }, oauthProvider: 'nextcloud', accessToken: 'tok' }), { hasAppPassword: false, isNextcloudUser: true, nextcloudUrl: '' });
+    assert.strictEqual((await status({ user: { id: 'u1' }, oauthProvider: 'google', accessToken: 'tok' })).isNextcloudUser, false);
+    assert.strictEqual((await status({ user: { id: 'u1' }, oauthProvider: 'nextcloud' })).isNextcloudUser, false);
+});
+
+test('a host that is no address is refused in words and nothing is stored; a bare host name is read as https', async () => {
+    const save = (url) => dispatch({ method: 'POST', url: '/save-app-password', body: { username: 'bob', password: 'app-pw', url } });
+    const bad = await save('https://not a host');
+    assert.strictEqual(bad.statusCode, 400);
+    assert.strictEqual(bad.body.error, 'Enter a valid Nextcloud URL (e.g. https://cloud.example.com)');
+    assert.deepStrictEqual(touched, []);
+
+    const bare = await save('cloud.example.test/nextcloud//');
+    assert.strictEqual(bare.statusCode, 200);
+    assert.strictEqual(touched.find((t) => t.what === 'storeAppPassword').args[2], 'https://cloud.example.test/nextcloud');
+});

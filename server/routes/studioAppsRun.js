@@ -482,7 +482,7 @@ router.get('/:id/actions/runs/:runId', requireAuth, /** @param {import('express'
     // Defense-in-depth beyond the webpages precedent: only runs THIS app
     // started are pollable — not every run the owner has (the bridge
     // stamps _studioAppId into every trigger payload it sends).
-    if (run.triggerPayload?._studioAppId !== app.id || !require('../core/automationModel/callerRunVisibility').canReadRunData(run, sessionUser(req).id)) {
+    if (run.triggerPayload?._studioAppId !== app.id || !require('../auth/callerRunVisibility').canReadRunData(run, sessionUser(req).id)) {
         return res.status(403).json({ error: 'Forbidden' });
     }
     res.json(await runBody(run));

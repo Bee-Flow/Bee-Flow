@@ -32,6 +32,39 @@ const HOUSE_STYLE_COLUMNS = {
 };
 
 /**
+ * @typedef {{ id: string, orgId: string, name: string, description: string, styleMeta: Record<string, unknown>,
+ *   isDefault: boolean, createdBy: string|null, createdAt: Date|string, updatedAt: Date|string, docxBlob?: Buffer }} HouseStyle
+ */
+
+/**
+ * @param {import('pg').QueryResultRow | null | undefined} r
+ * @param {{ includeBlob?: boolean }} [opts]
+ * @returns {HouseStyle | null}
+ */
+function mapRow(r, { includeBlob = false } = {}) {
+    if (!r) return null;
+    /** @type {HouseStyle} */
+    const out = {
+        id: r.id,
+        orgId: r.org_id,
+        name: r.name,
+        description: r.description || '',
+        styleMeta: typeof r.style_meta === 'string' ? safeJSON(r.style_meta) : (r.style_meta || {}),
+        isDefault: !!r.is_default,
+        createdBy: r.created_by,
+        createdAt: r.created_at,
+        updatedAt: r.updated_at,
+    };
+    if (includeBlob) out.docxBlob = r.docx_blob;
+    return out;
+}
+
+/**
+ * @param {string} v
+ */
+function safeJSON(v) { try { return JSON.parse(v); } catch (_) { return {}; } }
+
+/**
  * @param {Pick<typeof import('../db'), 'run' | 'getOne' | 'getAll' | 'exec' | 'withTransaction'>} db
  * @param {{tag?: string}} [opts] - tag only changes the init error log prefix.
  */
@@ -60,39 +93,6 @@ function createHouseStyleStore(db, { tag = 'houseStyleStore' } = {}) {
                 ON org_house_styles(org_id) WHERE is_default = TRUE;
         `);
     }
-
-    /**
-     * @typedef {{ id: string, orgId: string, name: string, description: string, styleMeta: Record<string, unknown>,
-     *   isDefault: boolean, createdBy: string|null, createdAt: Date|string, updatedAt: Date|string, docxBlob?: Buffer }} HouseStyle
-     */
-
-    /**
-     * @param {import('pg').QueryResultRow | null | undefined} r
-     * @param {{ includeBlob?: boolean }} [opts]
-     * @returns {HouseStyle | null}
-     */
-    function mapRow(r, { includeBlob = false } = {}) {
-        if (!r) return null;
-        /** @type {HouseStyle} */
-        const out = {
-            id: r.id,
-            orgId: r.org_id,
-            name: r.name,
-            description: r.description || '',
-            styleMeta: typeof r.style_meta === 'string' ? safeJSON(r.style_meta) : (r.style_meta || {}),
-            isDefault: !!r.is_default,
-            createdBy: r.created_by,
-            createdAt: r.created_at,
-            updatedAt: r.updated_at,
-        };
-        if (includeBlob) out.docxBlob = r.docx_blob;
-        return out;
-    }
-
-    /**
-     * @param {string} v
-     */
-    function safeJSON(v) { try { return JSON.parse(v); } catch (_) { return {}; } }
 
     /** @param {string} orgId */
     async function listForOrg(orgId) {

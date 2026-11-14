@@ -27,7 +27,7 @@ const { pgliteDb, dbFacade } = require('../../testUtils/pgliteDb');
 const { terminalErrorHandler } = require('../../core/http/terminalErrorHandler');
 const { assertRefused } = require('../../testUtils/routeHarness');
 const { makeProjectStore, applyProjectSchema } = require('../../stores/projectStore');
-const { makeChangeFeed } = require('../../projects/changeFeed');
+const { makeChangeFeed } = require('../../core/projectContent/changeFeed');
 const { makeChangeTitles } = require('../../projects/changeTitles');
 const { makeChangesRouter } = require('./changes');
 

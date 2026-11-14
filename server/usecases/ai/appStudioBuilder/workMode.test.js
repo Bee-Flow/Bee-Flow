@@ -15,7 +15,7 @@ const W = require('./workMode.mts');
 const { MUTATING_TOOLS, TOOL_SCHEMAS } = require('../../../appStudio/builderTools');
 const { sanitizeHistory, WORK_MODE_PREFIX } = require('./turnLoop');
 const { renderWorkModeNote } = require('./turnNotes');
-const { runRoundTools } = require('../../../routes/ai/appStudioBuilder/buildTools');
+const { runRoundTools } = require('./buildTools');
 const { classifyTurnOutcome, persistTurnSnapshot } = require('./turnClosing');
 
 const q = (n, extra = {}) => ({ prompt: `Question ${n}?`, options: ['Yes', 'No', 'Maybe'], ...extra });

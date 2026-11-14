@@ -10,7 +10,7 @@
  * and generation silently ran without a single source.
  *
  * Every OTHER base on the notebook is still authorised with the caller's own
- * KB access (support/kbAccess): attaching a base to a notebook must never
+ * KB access (core/kb/kbAccess): attaching a base to a notebook must never
  * widen who can read it.
  *
  * The caller must already hold a role on the notebook (it was loaded through
@@ -27,7 +27,7 @@
  */
 async function partitionNotebookKbIds(req, notebook, deps = {}) {
     const kbStore = deps.kbStore || require('../../stores/knowledgeBases');
-    const partition = deps.partition || require('../../support/kbAccess').partitionAccessibleKBIds;
+    const partition = deps.partition || require('../../core/kb/kbAccess').partitionAccessibleKBIds;
     const ids = (Array.isArray(notebook?.knowledgeBaseIds) ? notebook.knowledgeBaseIds : [])
         .filter((id) => typeof id === 'string' && id);
     const own = new Set();

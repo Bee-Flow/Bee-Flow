@@ -185,6 +185,91 @@ function mdBullets(bullets) {
     return bullets.map((b) => `${b.level ? '  ' : ''}- ${mdLine(b.text)}`);
 }
 
+/** The table as GFM rows; a cell's "|" would end the cell. */
+function mdTable(table) {
+    const cols = table.columns.map((c) => mdLine(c).replace(/\|/g, '/'));
+    return [
+        `| ${cols.join(' | ')} |`, `|${cols.map(() => ' --- ').join('|')}|`,
+        ...table.rows.map((r) => `| ${r.map((v) => mdLine(v ?? '').replace(/\|/g, '/')).join(' | ')} |`),
+    ];
+}
+
+/** The chart as a fenced block: its options, the labels, one line per series. */
+function mdChart(c) {
+    const out = ['```chart', `type: ${c.type}`];
+    if (c.title) out.push(`title: ${mdLine(c.title)}`);
+    if (c.unit) out.push(`unit: ${mdLine(c.unit)}`);
+    if (c.stacked) out.push('stacked: true');
+    if (c.showValues === false) out.push('showValues: false');
+    out.push(`labels: ${mdList(c.labels)}`);
+    c.series.forEach((ser, i) => out.push(`${mdLine(ser.name || `Series ${i + 1}`).replace(/:/g, ' ')}: ${mdList(ser.values)}`));
+    out.push('```');
+    return out;
+}
+
+/** The KPI tiles as a fenced block, one "value | label | delta | icon" line each, without trailing empties. */
+function mdStats(stats) {
+    return ['```stats', ...stats.map((t) => [t.value, t.label || '', t.delta || '', t.icon || ''].map(mdLine).join(' | ').replace(/(\s*\|\s*)+$/, '')), '```'];
+}
+
+/**
+ * A timeline's steps are bullets in "Title — text" form; when the bullets
+ * are the steps (the usual case) they are written once.
+ */
+function mdStepsOrBullets(s) {
+    if (s.steps && !s.bullets.length) return s.steps.map((st) => `- ${mdLine(st.title)}${st.text ? ` — ${mdLine(st.text)}` : ''}`);
+    return mdBullets(s.bullets);
+}
+
+function mdQuote(quote) {
+    const out = [`> ${mdLine(quote.text)}`];
+    if (quote.attribution) out.push(`> — ${mdLine(quote.attribution)}`);
+    return out;
+}
+
+function mdColumn(col) {
+    return [`### ${mdLine(col.title || '')}`.trimEnd(), ...mdBullets(col.bullets || [])];
+}
+
+/** `![alt](ref)`, or nothing for an image without a reference the grammar reads. */
+function mdImage(image) {
+    const ref = mdImageRef(image);
+    return ref ? [`![${mdLine(image.alt || '')}](${ref})`] : [];
+}
+
+function mdCard(card) {
+    const out = [`### ${mdLine(card.title || '')}${card.icon ? ` {icon: ${card.icon}}` : ''}`.trimEnd(), ...mdImage(card.image)];
+    if (card.text) out.push(...String(card.text).split('\n').map((l) => l.trim()).filter(Boolean));
+    return out;
+}
+
+/**
+ * The grammar infers most layouts; a timeline (bullets read as steps) and a
+ * PAIR of cards (two ### blocks read as columns) need the hint.
+ */
+function needsLayoutComment(s) {
+    if (!s.layout) return false;
+    return s.layout !== inferLayout(s) || s.layout === 'timeline' || (s.layout === 'cards' && (s.cards || []).length === 2);
+}
+
+/** The lines of one slide, in the order the grammar reads them back. */
+function mdSlide(s) {
+    const out = [s.title ? `## ${mdLine(s.title)}` : '---'];
+    if (needsLayoutComment(s)) out.push(mdComment('layout', s.layout));
+    if (s.style) out.push(mdComment('style', s.style));
+    if (s.body) out.push(...String(s.body).split('\n'));
+    out.push(...mdImage(s.image));
+    if (s.table) out.push(...mdTable(s.table));
+    if (s.chart) out.push(...mdChart(s.chart));
+    if (s.stats) out.push(...mdStats(s.stats));
+    out.push(...mdStepsOrBullets(s));
+    if (s.quote) out.push(...mdQuote(s.quote));
+    out.push(...(s.columns || []).flatMap(mdColumn), ...(s.cards || []).flatMap(mdCard));
+    if (s.notes) out.push(mdComment('notes', s.notes));
+    out.push('');
+    return out;
+}
+
 /**
  * The markdown outline for a normalised deck — the inverse of deckFromMarkdown,
  * as far as the grammar reaches: what a person edits in the Documents library
@@ -202,57 +287,7 @@ function deckToMarkdown(deck) {
     if (d.title) out.push(`# ${mdLine(d.title)}`, '');
     if (d.subtitle) out.push(mdLine(d.subtitle), '');
     if (d.coverNotes) out.push(mdComment('notes', d.coverNotes), '');
-    for (const s of d.slides) {
-        out.push(s.title ? `## ${mdLine(s.title)}` : '---');
-        // The grammar infers most layouts; a timeline (bullets read as steps)
-        // and a PAIR of cards (two ### blocks read as columns) need the hint.
-        if (s.layout && (s.layout !== inferLayout(s) || s.layout === 'timeline' || (s.layout === 'cards' && (s.cards || []).length === 2))) out.push(mdComment('layout', s.layout));
-        if (s.style) out.push(mdComment('style', s.style));
-        if (s.body) out.push(...String(s.body).split('\n'));
-        const image = mdImageRef(s.image);
-        if (image) out.push(`![${mdLine(s.image.alt || '')}](${image})`);
-        if (s.table) {
-            const cols = s.table.columns.map((c) => mdLine(c).replace(/\|/g, '/'));
-            out.push(`| ${cols.join(' | ')} |`, `|${cols.map(() => ' --- ').join('|')}|`);
-            for (const r of s.table.rows) out.push(`| ${r.map((v) => mdLine(v ?? '').replace(/\|/g, '/')).join(' | ')} |`);
-        }
-        if (s.chart) {
-            const c = s.chart;
-            out.push('```chart', `type: ${c.type}`);
-            if (c.title) out.push(`title: ${mdLine(c.title)}`);
-            if (c.unit) out.push(`unit: ${mdLine(c.unit)}`);
-            if (c.stacked) out.push('stacked: true');
-            if (c.showValues === false) out.push('showValues: false');
-            out.push(`labels: ${mdList(c.labels)}`);
-            c.series.forEach((ser, i) => out.push(`${mdLine(ser.name || `Series ${i + 1}`).replace(/:/g, ' ')}: ${mdList(ser.values)}`));
-            out.push('```');
-        }
-        if (s.stats) {
-            out.push('```stats');
-            for (const t of s.stats) out.push([t.value, t.label || '', t.delta || '', t.icon || ''].map(mdLine).join(' | ').replace(/(\s*\|\s*)+$/, ''));
-            out.push('```');
-        }
-        // A timeline's steps are bullets in "Title — text" form; when the bullets
-        // are the steps (the usual case) they are written once.
-        if (s.steps && !s.bullets.length) out.push(...s.steps.map((st) => `- ${mdLine(st.title)}${st.text ? ` — ${mdLine(st.text)}` : ''}`));
-        else if (s.bullets.length && !(s.quote && s.layout === 'quote' && !s.bullets.length)) out.push(...mdBullets(s.bullets));
-        if (s.quote) {
-            out.push(`> ${mdLine(s.quote.text)}`);
-            if (s.quote.attribution) out.push(`> — ${mdLine(s.quote.attribution)}`);
-        }
-        for (const col of s.columns || []) {
-            out.push(`### ${mdLine(col.title || '')}`.trimEnd());
-            out.push(...mdBullets(col.bullets || []));
-        }
-        for (const card of s.cards || []) {
-            out.push(`### ${mdLine(card.title || '')}${card.icon ? ` {icon: ${card.icon}}` : ''}`.trimEnd());
-            const pic = mdImageRef(card.image);
-            if (pic) out.push(`![${mdLine(card.image.alt || '')}](${pic})`);
-            if (card.text) out.push(...String(card.text).split('\n').map((l) => l.trim()).filter(Boolean));
-        }
-        if (s.notes) out.push(mdComment('notes', s.notes));
-        out.push('');
-    }
+    for (const s of d.slides) out.push(...mdSlide(s));
     return `${out.join('\n').replace(/\n{3,}/g, '\n\n').trim()}\n`;
 }
 

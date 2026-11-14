@@ -48,7 +48,10 @@ const LINK_LOCAL_MAPPED_RE = /^\[?::ffff:(?:a9fe:|169\.254\.)/i;
 
 const MAX_URL_LENGTH = 512;
 
-/** A host as compared: lower case, without IPv6 brackets. */
+/**
+ * A host as compared: lower case, without IPv6 brackets.
+ * @param {string} host
+ */
 function bareHost(host) {
     const h = String(host || '').trim().toLowerCase();
     return h.startsWith('[') && h.endsWith(']') ? h.slice(1, -1) : h;
@@ -78,13 +81,19 @@ function allowPrivateHosts() {
     return allowed === null || allowed.length > 0;
 }
 
-/** True when this private host may be called. */
+/**
+ * True when this private host may be called.
+ * @param {string} hostname
+ */
 function privateHostAllowed(hostname) {
     const allowed = allowedPrivateHosts();
     return allowed === null || allowed.includes(bareHost(hostname));
 }
 
-/** Metadata endpoints — never reachable, whatever the deployment allows. */
+/**
+ * Metadata endpoints — never reachable, whatever the deployment allows.
+ * @param {string} hostname
+ */
 function isMetadataHost(hostname) {
     const host = String(hostname || '').toLowerCase().replace(/^\[|\]$/g, '');
     return METADATA_HOSTNAMES.has(host)
@@ -97,8 +106,10 @@ function isMetadataHost(hostname) {
  * Throws when `rawUrl` is not an acceptable Nextcloud target.
  * The thrown message is user-facing: it names the env flag so a self-hoster
  * knows exactly why their LAN address was refused.
+ * @param {string} rawUrl
  */
 function assertAllowedNextcloudHost(rawUrl) {
+    /** @type {URL} */
     let parsed;
     try {
         parsed = new URL(String(rawUrl));
@@ -125,7 +136,10 @@ function assertAllowedNextcloudHost(rawUrl) {
     return parsed;
 }
 
-/** Boolean form for call sites that pick their own error shape. */
+/**
+ * Boolean form for call sites that pick their own error shape.
+ * @param {string} rawUrl
+ */
 function isAllowedNextcloudHost(rawUrl) {
     try {
         assertAllowedNextcloudHost(rawUrl);
@@ -150,6 +164,7 @@ function isAllowedNextcloudHost(rawUrl) {
  *
  * Use-time validation matters independently of save-time validation: rows
  * written before this guard existed are already in the database.
+ * @param {string} url
  */
 async function nextcloudFetch(url, opts = {}) {
     const parsed = assertAllowedNextcloudHost(url);
@@ -211,6 +226,7 @@ function withoutCredentials(init) {
     return { ...init, headers };
 }
 
+/** @type {Record<string, string>} */
 const OAUTH_ENDPOINTS = { authorize: '/apps/oauth2/authorize', token: '/apps/oauth2/api/v1/token' };
 
 /**

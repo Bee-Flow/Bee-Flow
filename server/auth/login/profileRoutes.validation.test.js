@@ -103,3 +103,25 @@ test('a name is sanitised once, on its way to the store', async () => {
     assert.strictEqual(res.statusCode, 200);
     assert.strictEqual(touched.find((t) => t.what === 'updateUser').args[1].displayName, 'Bob');
 });
+
+test('the session shows what was saved, and only what was sent', async () => {
+    const profile = () => ({ user: { id: 'u1', avatar: 'old.png', avatarType: 'url', displayName: 'Old' }, save(cb) { cb(); } });
+
+    const picture = profile();
+    await dispatch({ method: 'POST', url: '/update-profile', body: { avatar: '🐝', avatarType: 'emoji' }, session: picture });
+    assert.deepStrictEqual(picture.user, { id: 'u1', avatar: '🐝', avatarType: 'emoji', displayName: 'Old' });
+
+    const name = profile();
+    await dispatch({ method: 'POST', url: '/update-profile', body: { displayName: 'New' }, session: name });
+    assert.deepStrictEqual(name.user, { id: 'u1', avatar: 'old.png', avatarType: 'url', displayName: 'New' });
+
+    const cleared = profile();
+    await dispatch({ method: 'POST', url: '/update-profile', body: { avatar: null, avatarType: null }, session: cleared });
+    assert.deepStrictEqual(cleared.user, { id: 'u1', avatar: null, avatarType: null, displayName: 'Old' });
+});
+
+test('a session without a user is refused and nothing is saved', async () => {
+    const res = await dispatch({ method: 'POST', url: '/update-profile', body: { displayName: 'New' }, session: { user: null, save(cb) { cb(); } } });
+    assert.strictEqual(res.statusCode, 401);
+    assert.deepStrictEqual(touched, []);
+});

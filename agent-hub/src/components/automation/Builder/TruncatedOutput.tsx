@@ -10,7 +10,7 @@ import { fetchRunFullOutput, fullOutputRefOf, type FullOutputRef } from '@/api/q
  *
  * The history keeps at most 256 KB of a step's output and stores the rest as a
  * sentinel, `{ __truncated__, originalBytes, headSample }`
- * (server/automation/payloadTruncation.js). Rendered as an ordinary object it
+ * (server/stores/automationStore/payloadTruncation.js). Rendered as an ordinary object it
  * read as three anonymous fields, as if that were the step's answer, and the
  * notice that replaced them could only show the 1 KB head and advise a re-run
  * that wrote the same stub again.

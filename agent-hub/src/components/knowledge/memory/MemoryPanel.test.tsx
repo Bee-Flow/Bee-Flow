@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
+import { withQueryClient } from '@/test/queryWrapper';
 import { Toaster } from '../../shared/Toast';
 import MemoryPanel, { type MemoryPanelProps } from './MemoryPanel';
 import { mem, mockApi, page, respond } from './testApi';
@@ -20,12 +21,12 @@ const LIST = [M1, M2];
 
 const listRoute = (items = LIST, extra = {}) => ({ 'GET /': () => page(items, extra) });
 
-const setup = (props: Partial<MemoryPanelProps> = {}) => render(
+const setup = (props: Partial<MemoryPanelProps> = {}) => render(withQueryClient(
     <>
         <MemoryPanel onClose={vi.fn()} {...props} />
         <Toaster />
     </>,
-);
+));
 
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
@@ -109,6 +110,37 @@ describe('MemoryPanel: loading and errors', () => {
         setup();
         expect(await screen.findByText(/no longer have access/)).toBeInTheDocument();
         expect(screen.queryByTestId('memory-item-m1')).not.toBeInTheDocument();
+    });
+
+    it('loads the next page from where the list ends and appends it', async () => {
+        const api = mockApi({
+            'GET /': (call) => (call.query.get('offset') === '0' ? page([M1, M2], { total: 3 }) : page([M3], { total: 3 })),
+        });
+        const user = userEvent.setup();
+        setup();
+        await user.click(await screen.findByRole('button', { name: 'Load more (1 remaining)' }));
+        expect(await screen.findByTestId('memory-item-m3')).toBeInTheDocument();
+        expect(screen.getByTestId('memory-item-m1')).toBeInTheDocument();
+        expect(api.find('GET', '/').map((c) => c.query.get('offset'))).toEqual(['0', '2']);
+        expect(screen.queryByRole('button', { name: /Load more/ })).not.toBeInTheDocument();
+    });
+
+    it('a next page that fails shows the load error, and Retry starts again from the first page', async () => {
+        let fail = true;
+        const api = mockApi({
+            'GET /': (call) => {
+                if (call.query.get('offset') === '0') return page([M1, M2], { total: 3 });
+                return fail ? respond({}, 500) : page([M3], { total: 3 });
+            },
+        });
+        const user = userEvent.setup();
+        setup();
+        await user.click(await screen.findByRole('button', { name: 'Load more (1 remaining)' }));
+        expect(await screen.findByText('Failed to load memories')).toBeInTheDocument();
+        fail = false;
+        await user.click(screen.getByRole('button', { name: 'Retry' }));
+        expect(await screen.findByTestId('memory-item-m1')).toBeInTheDocument();
+        expect(api.find('GET', '/').map((c) => c.query.get('offset'))).toEqual(['0', '2', '0']);
     });
 
     it('shows the empty state', async () => {

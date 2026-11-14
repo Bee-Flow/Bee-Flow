@@ -19,7 +19,7 @@
 // @typecheck
 const supportInboxStore = require('../stores/supportInboxStore');
 const supportStore = require('../stores/supportStore');
-const { gmailClientFromTokens, graphFetchFromTokens } = require('./email/providerClients');
+const { gmailClientFromTokens, graphFetchFromTokens } = require('../utils/emailProviderClients');
 const parse = require('../utils/emailParse');
 const supportMailer = require('./supportMailer');
 const { runAiAutoResponder } = require('./supportAiResponder');
@@ -44,7 +44,7 @@ let _emitEvent = null; // injected lazily to avoid a require cycle with routes/s
 function _emit(event, inboxId, data = {}) {
     try {
         if (!_emitEvent) {
-            const { supportEvents } = require('../support/events');
+            const { supportEvents } = require('../core/support/events');
             _emitEvent = (e, d) => supportEvents.emit('event', { event: e, data: d });
         }
         _emitEvent(event, { ...data, inboxId });

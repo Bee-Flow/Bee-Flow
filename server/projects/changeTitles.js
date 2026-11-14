@@ -3,7 +3,7 @@
  * The titles of the items in a project's change feed, resolved when the feed
  * is READ and with the reader's access.
  *
- * The feed stores ids, never titles (projects/changeFeed.js). For a project
+ * The feed stores ids, never titles (core/projectContent/changeFeed.js). For a project
  * member, access to a notebook, document or meeting in a workspace IS its
  * being filed in that project (projects/membership.js: project role is the
  * authorization), so each lookup asks for exactly that: the ids the feed

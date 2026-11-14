@@ -23,7 +23,7 @@ const MESSAGE_TEXT = 'Say who should use this app.';
 const AccessPlanBody = bodyOf({
     message: worded(MESSAGE_TEXT).trim().min(1, MESSAGE_TEXT).max(MAX_DESCRIPTION, `Keep it under ${MAX_DESCRIPTION} characters.`),
 });
-const { kindOf, firstOfKind, appBefore, localeOf } = require('./phaseList');
+const { kindOf, firstOfKind, appBefore, localeOf } = require('../../usecases/playbooks/phaseList');
 // WHO THE ASSISTANT MAY NAME — the organisation's directory, never the
 // installation's (the rule and its history are in ./directory.js).
 const { directoryFor } = require('../../usecases/playbooks/directory');
@@ -46,7 +46,7 @@ const DIGEST_VALUES = 40;
  * than a person could choose from is dropped rather than truncated, because a
  * truncated list invites the model to invent the rest.
  * @param {import('./index').PlaybookRouteCtx['d']} d
- * @param {import('./phaseList').PlaybookRow} playbook
+ * @param {import('../../usecases/playbooks/phaseList').PlaybookRow} playbook
  * @param {import('../../playbooks/lifecycle').PhaseArtifacts & { fields?: Array<{ key?: string, name?: string, type?: string }> }} tableArt
  */
 async function readDataDigest(d, playbook, tableArt) {

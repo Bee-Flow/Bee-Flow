@@ -35,9 +35,9 @@ const fx = {
 };
 
 const MOCKS = {
-    '../agents/memory/memoryWriter': {
-        detectSensitiveIdentifier: require('../agents/memory/memoryWriter.js').detectSensitiveIdentifier,
-        looksArt9: require('../agents/memory/memoryWriter.js').looksArt9,
+    '../core/memory/memoryWriter': {
+        detectSensitiveIdentifier: require('../core/memory/memoryWriter.js').detectSensitiveIdentifier,
+        looksArt9: require('../core/memory/memoryWriter.js').looksArt9,
         writeMemory: async (candidate, ctx) => { fx.written.push({ candidate, ctx }); return fx.writeResult(candidate); },
     },
     '../core/memory/memoryPolicy': { resolveMemoryPolicy: async () => fx.policy },

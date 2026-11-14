@@ -53,6 +53,7 @@ import { availableParallelism, tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { assignShards, fileTimeoutMs, orderLongestFirst, parseShard } from './testShards.mjs';
+import { normalizeCoverageDir } from './coverageUrls.mjs';
 
 const SERVER_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // Fills core's feature-module registry the way index.js does (testUtils/registerFeatures.js).
@@ -377,6 +378,7 @@ if (durationsOut) {
 
 let coverageOk = true;
 if (coverage) {
+    normalizeCoverageDir(coverageTmp); // required .mts files: see coverageUrls.mjs
     // Include/exclude and the reporters live in .c8rc.json, so a local
     // `npx c8 report --temp-directory …` reads the same scope as CI.
     const c8 = spawnSync(

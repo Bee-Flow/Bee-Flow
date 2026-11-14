@@ -24,7 +24,7 @@ export async function resolveStoredOutput(
     output: unknown,
     { readFullOutput = null }: { readFullOutput?: ReadFullOutput | null } = {},
 ): Promise<StoredOutput> {
-    const { isTruncatedOutput, fullOutputRefOf } = nodeRequire('../payloadTruncation');
+    const { isTruncatedOutput, fullOutputRefOf } = nodeRequire('../../stores/automationStore/payloadTruncation');
     if (!isTruncatedOutput(output)) return { out: output, note: null, partial: false, truncated: false };
     const ref = fullOutputRefOf(output);
     let full: unknown = null;

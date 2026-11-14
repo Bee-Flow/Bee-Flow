@@ -434,7 +434,7 @@ async function getLicenseStatus(/** @type {{ organizationId?: string | null, use
 
     if (!lic && userId) {
         lic = await store.getActiveLicenseForUser(userId);
-        scope = 'consumer';
+        if (lic) scope = 'consumer';
     }
 
     let tier = resolveTierFromLicense(lic);

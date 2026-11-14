@@ -12,7 +12,8 @@ import path from 'node:path';
 const SERVER = path.resolve(__dirname, '../../../../../server');
 const read = (rel: string) => fs.readFileSync(path.join(SERVER, rel), 'utf8');
 
-const users = read('auth/admin/userRoutes.js');
+// The route, and the steps of its PUT (split out of userRoutes.js).
+const users = read('auth/admin/userRoutes.js') + read('auth/admin/userUpdateSupportRoutes.js');
 // The allow-lists and body schemas, split out of userRoutes.js.
 const userSupport = read('auth/admin/userSupportRoutes.js');
 const usersStore = read('stores/user/users.js');

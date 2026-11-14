@@ -1,0 +1,2326 @@
+{
+ "noSession": {
+  "status": 401,
+  "body": {
+   "error": "Unauthorized"
+  },
+  "events": []
+ },
+ "memberCaller": {
+  "status": 403,
+  "body": {
+   "error": "You can only manage users in your organisation"
+  },
+  "events": []
+ },
+ "otherOrgAdmin": {
+  "status": 403,
+  "body": {
+   "error": "You can only manage users in your organisation"
+  },
+  "events": []
+ },
+ "orgAdminOnPlatformAdmin": {
+  "status": 403,
+  "body": {
+   "error": "Only a platform administrator can manage a platform administrator",
+   "code": "platform_admin_target"
+  },
+  "events": []
+ },
+ "orgAdminAssignsAdminRole": {
+  "status": 403,
+  "body": {
+   "error": "Cannot assign super admin role"
+  },
+  "events": []
+ },
+ "orgAdminMovesUser": {
+  "status": 403,
+  "body": {
+   "error": "Cannot move users between organisations",
+   "code": "cross_org_move_denied"
+  },
+  "events": []
+ },
+ "orgAdminForeignGroup": {
+  "status": 403,
+  "body": {
+   "error": "You can only assign groups in your organisation: g_b",
+   "code": "cross_org_group_denied",
+   "groups": [
+    "g_b"
+   ]
+  },
+  "events": []
+ },
+ "orgAdminUnknownTarget": {
+  "status": 404,
+  "body": {
+   "error": "User not found"
+  },
+  "events": []
+ },
+ "unknownField": {
+  "status": 400,
+  "body": {
+   "error": "Unsupported field(s): isAdmin, nope",
+   "code": "unknown_fields",
+   "fields": [
+    "isAdmin",
+    "nope"
+   ]
+  },
+  "events": []
+ },
+ "badCostLimit": {
+  "status": 400,
+  "body": {
+   "error": "A budget must be a number above zero, or empty for no limit.",
+   "code": "invalid_cost_limit"
+  },
+  "events": []
+ },
+ "badImageLimits": {
+  "status": 400,
+  "body": {
+   "error": "Image limits are an object with hour, day, week and month.",
+   "code": "invalid_image_limits"
+  },
+  "events": []
+ },
+ "unknownBeforeCostLimit": {
+  "status": 400,
+  "body": {
+   "error": "Unsupported field(s): nope",
+   "code": "unknown_fields",
+   "fields": [
+    "nope"
+   ]
+  },
+  "events": []
+ },
+ "costBeforeImageLimits": {
+  "status": 400,
+  "body": {
+   "error": "A budget must be a number above zero, or empty for no limit.",
+   "code": "invalid_cost_limit"
+  },
+  "events": []
+ },
+ "noBody": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "updateUser",
+    "eva",
+    {}
+   ],
+   [
+    "log.info",
+    "[Audit] ann updated user 'eva' — fields: "
+   ],
+   [
+    "invalidatePermissionCache",
+    "eva"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "eva"
+   ]
+  ]
+ },
+ "emptyBody": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "updateUser",
+    "eva",
+    {}
+   ],
+   [
+    "log.info",
+    "[Audit] ann updated user 'eva' — fields: "
+   ],
+   [
+    "invalidatePermissionCache",
+    "eva"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "eva"
+   ]
+  ]
+ },
+ "operatorDowngrade": {
+  "status": 400,
+  "body": {
+   "error": "Cannot downgrade system admin"
+  },
+  "events": []
+ },
+ "operatorKeepsRole": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "updateUser",
+    "admin",
+    {
+     "displayName": "Operator",
+     "role": "admin"
+    }
+   ],
+   [
+    "log.info",
+    "[Audit] ann updated user 'admin' — fields: displayName, role"
+   ],
+   [
+    "invalidatePermissionCache",
+    "admin"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "admin"
+   ]
+  ]
+ },
+ "operatorUnknownRole": {
+  "status": 400,
+  "body": {
+   "error": "Cannot downgrade system admin"
+  },
+  "events": []
+ },
+ "operatorSuspended": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "updateUser",
+    "admin",
+    {
+     "status": "suspended"
+    }
+   ],
+   [
+    "bustSessionsForUser",
+    "admin",
+    []
+   ],
+   [
+    "log.info",
+    "[Audit] ann updated user 'admin' — fields: status"
+   ],
+   [
+    "logAccessAudit",
+    "user.update",
+    "user",
+    "admin",
+    "ann",
+    {
+     "status": "active"
+    },
+    {
+     "status": "suspended"
+    },
+    null
+   ],
+   [
+    "invalidatePermissionCache",
+    "admin"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "admin"
+   ]
+  ]
+ },
+ "unknownRole": {
+  "status": 400,
+  "body": {
+   "error": "Unknown role: super_admin",
+   "code": "unknown_role"
+  },
+  "events": []
+ },
+ "unknownRoleLong": {
+  "status": 400,
+  "body": {
+   "error": "Unknown role: rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr",
+   "code": "unknown_role"
+  },
+  "events": []
+ },
+ "emptyRole": {
+  "status": 400,
+  "body": {
+   "error": "Unknown role: ",
+   "code": "unknown_role"
+  },
+  "events": []
+ },
+ "customRole": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "updateUser",
+    "eva",
+    {
+     "role": "auditor"
+    }
+   ],
+   [
+    "log.info",
+    "[Audit] ann updated user 'eva' — fields: role"
+   ],
+   [
+    "logAccessAudit",
+    "user.update",
+    "user",
+    "eva",
+    "ann",
+    {
+     "role": "user"
+    },
+    {
+     "role": "auditor"
+    },
+    "orgA"
+   ],
+   [
+    "invalidatePermissionCache",
+    "eva"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "eva"
+   ]
+  ]
+ },
+ "rolesLookupFails": {
+  "status": 400,
+  "body": {
+   "error": "Unknown role: auditor",
+   "code": "unknown_role"
+  },
+  "events": [
+   [
+    "log.warn",
+    "[adminRoutes] role allow-list lookup failed:",
+    "roles exploded"
+   ]
+  ]
+ },
+ "builtinRoleWhenLookupFails": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "updateUser",
+    "eva",
+    {
+     "role": "user"
+    }
+   ],
+   [
+    "log.info",
+    "[Audit] ann updated user 'eva' — fields: role"
+   ],
+   [
+    "invalidatePermissionCache",
+    "eva"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "eva"
+   ]
+  ]
+ },
+ "profileByPlatformAdmin": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "updateUser",
+    "eva",
+    {
+     "displayName": "Eva Jansen",
+     "firstName": "Eva",
+     "lastName": "Jansen",
+     "email": "eva@new.test",
+     "phone": "+31 6",
+     "avatar": "data:x",
+     "avatarType": "upload"
+    }
+   ],
+   [
+    "log.info",
+    "[Audit] ann updated user 'eva' — fields: displayName, firstName, lastName, email, phone, avatar, avatarType"
+   ],
+   [
+    "invalidatePermissionCache",
+    "eva"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "eva"
+   ]
+  ]
+ },
+ "profileByOrgAdmin": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "updateUser",
+    "eva",
+    {
+     "groups": [
+      "g_a"
+     ],
+     "displayName": "Eva J"
+    }
+   ],
+   [
+    "log.info",
+    "[Audit] jan updated user 'eva' — fields: groups, displayName"
+   ],
+   [
+    "invalidatePermissionCache",
+    "eva"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "eva"
+   ]
+  ]
+ },
+ "limits": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "updateUser",
+    "eva",
+    {
+     "monthlyCostLimit": 25,
+     "imageLimits": "{\"day\":5}"
+    }
+   ],
+   [
+    "log.info",
+    "[Audit] ann updated user 'eva' — fields: monthlyCostLimit, imageLimits"
+   ],
+   [
+    "invalidatePermissionCache",
+    "eva"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "eva"
+   ]
+  ]
+ },
+ "limitsWithNoWindowSet": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "updateUser",
+    "eva",
+    {
+     "imageLimits": null
+    }
+   ],
+   [
+    "log.info",
+    "[Audit] ann updated user 'eva' — fields: imageLimits"
+   ],
+   [
+    "invalidatePermissionCache",
+    "eva"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "eva"
+   ]
+  ]
+ },
+ "limitsCleared": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "updateUser",
+    "eva",
+    {
+     "monthlyCostLimit": null,
+     "imageLimits": null
+    }
+   ],
+   [
+    "log.info",
+    "[Audit] ann updated user 'eva' — fields: monthlyCostLimit, imageLimits"
+   ],
+   [
+    "invalidatePermissionCache",
+    "eva"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "eva"
+   ]
+  ]
+ },
+ "groupsChanged": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "updateUser",
+    "eva",
+    {
+     "groups": [
+      "g_a",
+      "g_b"
+     ]
+    }
+   ],
+   [
+    "log.info",
+    "[Audit] ann updated user 'eva' — fields: groups"
+   ],
+   [
+    "logAccessAudit",
+    "user.update",
+    "user",
+    "eva",
+    "ann",
+    {
+     "groups": [
+      "g_a"
+     ]
+    },
+    {
+     "groups": [
+      "g_a",
+      "g_b"
+     ]
+    },
+    "orgA"
+   ],
+   [
+    "invalidatePermissionCache",
+    "eva"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "eva"
+   ]
+  ]
+ },
+ "groupsUnchanged": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "updateUser",
+    "eva",
+    {
+     "groups": [
+      "g_a"
+     ],
+     "status": "active"
+    }
+   ],
+   [
+    "log.info",
+    "[Audit] ann updated user 'eva' — fields: groups, status"
+   ],
+   [
+    "invalidatePermissionCache",
+    "eva"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "eva"
+   ]
+  ]
+ },
+ "unknownUser": {
+  "status": 404,
+  "body": {
+   "error": "User not found"
+  },
+  "events": [
+   [
+    "updateUser",
+    "ghost",
+    {
+     "displayName": "x"
+    }
+   ]
+  ]
+ },
+ "unknownUserWithPassword": {
+  "status": 404,
+  "body": {
+   "error": "User not found"
+  },
+  "events": [
+   [
+    "hash",
+    "Correct-Horse-Battery-42"
+   ],
+   [
+    "adminResetUser",
+    "ghost"
+   ],
+   [
+    "log.warn",
+    "[Auth] Admin reset user ghost — encrypted data requires recovery key"
+   ],
+   [
+    "updateUser",
+    "ghost",
+    {
+     "passwordHash": "hash(Correct-Horse-Battery-42)"
+    }
+   ]
+  ]
+ },
+ "snapshotFails": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "updateUser",
+    "eva",
+    {
+     "orgRole": "org_admin",
+     "status": "active"
+    }
+   ],
+   [
+    "log.info",
+    "[Audit] ann updated user 'eva' — fields: orgRole, status"
+   ],
+   [
+    "logAccessAudit",
+    "user.update",
+    "user",
+    "eva",
+    "ann",
+    {
+     "orgRole": null,
+     "status": null
+    },
+    {
+     "orgRole": "org_admin",
+     "status": "active"
+    },
+    null
+   ],
+   [
+    "invalidatePermissionCache",
+    "eva"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "eva"
+   ]
+  ]
+ },
+ "platformRoleSet": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "updateUser",
+    "eva",
+    {
+     "role": "admin"
+    }
+   ],
+   [
+    "log.info",
+    "[Audit] ann updated user 'eva' — fields: role"
+   ],
+   [
+    "logAccessAudit",
+    "user.update",
+    "user",
+    "eva",
+    "ann",
+    {
+     "role": "user"
+    },
+    {
+     "role": "admin"
+    },
+    "orgA"
+   ],
+   [
+    "invalidatePermissionCache",
+    "eva"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "eva"
+   ]
+  ]
+ },
+ "platformRoleCleared": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "updateUser",
+    "ann",
+    {
+     "role": "user"
+    }
+   ],
+   [
+    "log.info",
+    "[Audit] ann updated user 'ann' — fields: role"
+   ],
+   [
+    "logAccessAudit",
+    "user.update",
+    "user",
+    "ann",
+    "ann",
+    {
+     "role": "admin"
+    },
+    {
+     "role": "user"
+    },
+    null
+   ],
+   [
+    "invalidatePermissionCache",
+    "ann"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "ann"
+   ]
+  ]
+ },
+ "moveToOtherOrg": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "updateUser",
+    "eva",
+    {
+     "orgRole": "member",
+     "organizationId": "orgB"
+    }
+   ],
+   [
+    "log.info",
+    "[Audit] ann updated user 'eva' — fields: orgRole, organizationId"
+   ],
+   [
+    "logAccessAudit",
+    "user.update",
+    "user",
+    "eva",
+    "ann",
+    {
+     "organizationId": "orgA"
+    },
+    {
+     "organizationId": "orgB"
+    },
+    "orgA"
+   ],
+   [
+    "invalidatePermissionCache",
+    "eva"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "eva"
+   ]
+  ]
+ },
+ "moveKeepsExplicitRole": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "updateUser",
+    "eva",
+    {
+     "orgRole": "org_admin",
+     "organizationId": "orgB"
+    }
+   ],
+   [
+    "log.info",
+    "[Audit] ann updated user 'eva' — fields: orgRole, organizationId"
+   ],
+   [
+    "logAccessAudit",
+    "user.update",
+    "user",
+    "eva",
+    "ann",
+    {
+     "orgRole": "member",
+     "organizationId": "orgA"
+    },
+    {
+     "orgRole": "org_admin",
+     "organizationId": "orgB"
+    },
+    "orgA"
+   ],
+   [
+    "invalidatePermissionCache",
+    "eva"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "eva"
+   ]
+  ]
+ },
+ "moveOutOfEveryOrg": {
+  "status": 200,
+  "body": {
+   "success": true,
+   "hint": {
+    "kind": "role_downgrade",
+    "from": "member",
+    "to": "",
+    "message": "Note: 'no role' has fewer permissions than 'member'. The user will lose access to some features immediately."
+   }
+  },
+  "events": [
+   [
+    "updateUser",
+    "eva",
+    {
+     "orgRole": "",
+     "organizationId": ""
+    }
+   ],
+   [
+    "log.info",
+    "[Audit] ann updated user 'eva' — fields: orgRole, organizationId"
+   ],
+   [
+    "logAccessAudit",
+    "user.update",
+    "user",
+    "eva",
+    "ann",
+    {
+     "orgRole": "member",
+     "organizationId": "orgA"
+    },
+    {
+     "orgRole": "",
+     "organizationId": ""
+    },
+    "orgA"
+   ],
+   [
+    "invalidatePermissionCache",
+    "eva"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "eva"
+   ]
+  ]
+ },
+ "moveOutWithNull": {
+  "status": 200,
+  "body": {
+   "success": true,
+   "hint": {
+    "kind": "role_downgrade",
+    "from": "member",
+    "to": "",
+    "message": "Note: 'no role' has fewer permissions than 'member'. The user will lose access to some features immediately."
+   }
+  },
+  "events": [
+   [
+    "updateUser",
+    "eva",
+    {
+     "orgRole": "",
+     "organizationId": null
+    }
+   ],
+   [
+    "log.info",
+    "[Audit] ann updated user 'eva' — fields: orgRole, organizationId"
+   ],
+   [
+    "logAccessAudit",
+    "user.update",
+    "user",
+    "eva",
+    "ann",
+    {
+     "orgRole": "member",
+     "organizationId": "orgA"
+    },
+    {
+     "orgRole": "",
+     "organizationId": null
+    },
+    "orgA"
+   ],
+   [
+    "invalidatePermissionCache",
+    "eva"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "eva"
+   ]
+  ]
+ },
+ "moveIntoAnOrg": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "updateUser",
+    "sol",
+    {
+     "orgRole": "member",
+     "organizationId": "orgA"
+    }
+   ],
+   [
+    "log.info",
+    "[Audit] ann updated user 'sol' — fields: orgRole, organizationId"
+   ],
+   [
+    "logAccessAudit",
+    "user.update",
+    "user",
+    "sol",
+    "ann",
+    {
+     "orgRole": "",
+     "organizationId": ""
+    },
+    {
+     "orgRole": "member",
+     "organizationId": "orgA"
+    },
+    "orgA"
+   ],
+   [
+    "invalidatePermissionCache",
+    "sol"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "sol"
+   ]
+  ]
+ },
+ "sameOrgEchoed": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "updateUser",
+    "eva",
+    {
+     "displayName": "Eva",
+     "organizationId": "orgA"
+    }
+   ],
+   [
+    "log.info",
+    "[Audit] ann updated user 'eva' — fields: displayName, organizationId"
+   ],
+   [
+    "invalidatePermissionCache",
+    "eva"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "eva"
+   ]
+  ]
+ },
+ "noOrgEchoedAsNull": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "updateUser",
+    "sol",
+    {
+     "organizationId": null
+    }
+   ],
+   [
+    "log.info",
+    "[Audit] ann updated user 'sol' — fields: organizationId"
+   ],
+   [
+    "logAccessAudit",
+    "user.update",
+    "user",
+    "sol",
+    "ann",
+    {
+     "organizationId": ""
+    },
+    {
+     "organizationId": null
+    },
+    null
+   ],
+   [
+    "invalidatePermissionCache",
+    "sol"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "sol"
+   ]
+  ]
+ },
+ "orgAdminEchoesOrgAndRole": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "updateUser",
+    "eva",
+    {
+     "orgRole": "member"
+    }
+   ],
+   [
+    "log.info",
+    "[Audit] jan updated user 'eva' — fields: orgRole"
+   ],
+   [
+    "invalidatePermissionCache",
+    "eva"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "eva"
+   ]
+  ]
+ },
+ "demoteOneOfTwoAdmins": {
+  "status": 200,
+  "body": {
+   "success": true,
+   "hint": {
+    "kind": "role_downgrade",
+    "from": "org_admin",
+    "to": "member",
+    "message": "Note: 'member' has fewer permissions than 'org_admin'. The user will lose access to some features immediately."
+   }
+  },
+  "events": [
+   [
+    "updateUser",
+    "kim",
+    {
+     "orgRole": "member"
+    }
+   ],
+   [
+    "log.info",
+    "[Audit] ann updated user 'kim' — fields: orgRole"
+   ],
+   [
+    "logAccessAudit",
+    "user.update",
+    "user",
+    "kim",
+    "ann",
+    {
+     "orgRole": "org_admin"
+    },
+    {
+     "orgRole": "member"
+    },
+    "orgA"
+   ],
+   [
+    "invalidatePermissionCache",
+    "kim"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "kim"
+   ]
+  ]
+ },
+ "demoteSoleAdmin": {
+  "status": 409,
+  "body": {
+   "error": "That change would leave this organisation without an administrator. Give another active member the Organisation Admin role first — nobody could manage users afterwards, and only direct database access could undo it.",
+   "code": "last_org_admin"
+  },
+  "events": []
+ },
+ "moveSoleAdmin": {
+  "status": 409,
+  "body": {
+   "error": "That change would leave this organisation without an administrator. Give another active member the Organisation Admin role first — nobody could manage users afterwards, and only direct database access could undo it.",
+   "code": "last_org_admin"
+  },
+  "events": []
+ },
+ "suspendSoleAdmin": {
+  "status": 409,
+  "body": {
+   "error": "That change would leave this organisation without an administrator. Give another active member the Organisation Admin role first — nobody could manage users afterwards, and only direct database access could undo it.",
+   "code": "last_org_admin"
+  },
+  "events": []
+ },
+ "soleAdminOfEmptyOrg": {
+  "status": 200,
+  "body": {
+   "success": true,
+   "hint": {
+    "kind": "role_downgrade",
+    "from": "org_admin",
+    "to": "member",
+    "message": "Note: 'member' has fewer permissions than 'org_admin'. The user will lose access to some features immediately."
+   }
+  },
+  "events": [
+   [
+    "updateUser",
+    "bob",
+    {
+     "orgRole": "member"
+    }
+   ],
+   [
+    "log.info",
+    "[Audit] ann updated user 'bob' — fields: orgRole"
+   ],
+   [
+    "logAccessAudit",
+    "user.update",
+    "user",
+    "bob",
+    "ann",
+    {
+     "orgRole": "org_admin"
+    },
+    {
+     "orgRole": "member"
+    },
+    "orgB"
+   ],
+   [
+    "invalidatePermissionCache",
+    "bob"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "bob"
+   ]
+  ]
+ },
+ "soleAdminEditsOwnProfile": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "updateUser",
+    "bob",
+    {
+     "displayName": "Bob"
+    }
+   ],
+   [
+    "log.info",
+    "[Audit] bob updated user 'bob' — fields: displayName"
+   ],
+   [
+    "invalidatePermissionCache",
+    "bob"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "bob"
+   ]
+  ]
+ },
+ "soleAdminKeepsEverything": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "updateUser",
+    "bob",
+    {
+     "displayName": "Bob",
+     "orgRole": "org_admin",
+     "status": "active",
+     "organizationId": "orgB"
+    }
+   ],
+   [
+    "log.info",
+    "[Audit] ann updated user 'bob' — fields: displayName, orgRole, status, organizationId"
+   ],
+   [
+    "invalidatePermissionCache",
+    "bob"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "bob"
+   ]
+  ]
+ },
+ "otherAdminSuspendedCounts": {
+  "status": 409,
+  "body": {
+   "error": "That change would leave this organisation without an administrator. Give another active member the Organisation Admin role first — nobody could manage users afterwards, and only direct database access could undo it.",
+   "code": "last_org_admin"
+  },
+  "events": []
+ },
+ "memberSuspended": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "updateUser",
+    "eva",
+    {
+     "status": "suspended"
+    }
+   ],
+   [
+    "bustSessionsForUser",
+    "eva",
+    []
+   ],
+   [
+    "log.info",
+    "[Audit] jan updated user 'eva' — fields: status"
+   ],
+   [
+    "logAccessAudit",
+    "user.update",
+    "user",
+    "eva",
+    "jan",
+    {
+     "status": "active"
+    },
+    {
+     "status": "suspended"
+    },
+    "orgA"
+   ],
+   [
+    "invalidatePermissionCache",
+    "eva"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "eva"
+   ]
+  ]
+ },
+ "memberPromoted": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "updateUser",
+    "eva",
+    {
+     "orgRole": "org_admin"
+    }
+   ],
+   [
+    "log.info",
+    "[Audit] jan updated user 'eva' — fields: orgRole"
+   ],
+   [
+    "logAccessAudit",
+    "user.update",
+    "user",
+    "eva",
+    "jan",
+    {
+     "orgRole": "member"
+    },
+    {
+     "orgRole": "org_admin"
+    },
+    "orgA"
+   ],
+   [
+    "invalidatePermissionCache",
+    "eva"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "eva"
+   ]
+  ]
+ },
+ "concurrentDemotion": {
+  "status": 409,
+  "body": {
+   "error": "That change would leave this organisation without an administrator. Give another active member the Organisation Admin role first — nobody could manage users afterwards, and only direct database access could undo it.",
+   "code": "last_org_admin"
+  },
+  "events": [
+   [
+    "updateUser",
+    "kim",
+    {
+     "orgRole": "member"
+    }
+   ],
+   [
+    "updateUser",
+    "kim",
+    {
+     "orgRole": "org_admin",
+     "organizationId": "orgA",
+     "status": "active"
+    }
+   ],
+   [
+    "invalidatePermissionCache",
+    "kim"
+   ],
+   [
+    "log.warn",
+    "[adminRoutes] concurrent admin changes would have left org 'orgA' without an administrator — reverted kim"
+   ]
+  ]
+ },
+ "selfDemotionUnconfirmed": {
+  "status": 409,
+  "body": {
+   "error": "This would remove your own administrator rights over this organisation. Re-send with confirmSelfDemotion: true to proceed.",
+   "code": "confirm_self_demotion",
+   "hint": {
+    "kind": "role_downgrade",
+    "from": "org_admin",
+    "to": "member",
+    "message": "Note: 'member' has fewer permissions than 'org_admin'. The user will lose access to some features immediately."
+   }
+  },
+  "events": []
+ },
+ "selfDemotionConfirmedAsText": {
+  "status": 409,
+  "body": {
+   "error": "This would remove your own administrator rights over this organisation. Re-send with confirmSelfDemotion: true to proceed.",
+   "code": "confirm_self_demotion",
+   "hint": {
+    "kind": "role_downgrade",
+    "from": "org_admin",
+    "to": "member",
+    "message": "Note: 'member' has fewer permissions than 'org_admin'. The user will lose access to some features immediately."
+   }
+  },
+  "events": []
+ },
+ "selfDemotionConfirmed": {
+  "status": 200,
+  "body": {
+   "success": true,
+   "hint": {
+    "kind": "role_downgrade",
+    "from": "org_admin",
+    "to": "member",
+    "message": "Note: 'member' has fewer permissions than 'org_admin'. The user will lose access to some features immediately."
+   }
+  },
+  "events": [
+   [
+    "updateUser",
+    "jan",
+    {
+     "orgRole": "member"
+    }
+   ],
+   [
+    "log.info",
+    "[Audit] jan updated user 'jan' — fields: orgRole"
+   ],
+   [
+    "logAccessAudit",
+    "user.update",
+    "user",
+    "jan",
+    "jan",
+    {
+     "orgRole": "org_admin"
+    },
+    {
+     "orgRole": "member"
+    },
+    "orgA"
+   ],
+   [
+    "invalidatePermissionCache",
+    "jan"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "jan"
+   ]
+  ]
+ },
+ "selfDemotionToNoRole": {
+  "status": 409,
+  "body": {
+   "error": "This would remove your own administrator rights over this organisation. Re-send with confirmSelfDemotion: true to proceed.",
+   "code": "confirm_self_demotion",
+   "hint": {
+    "kind": "role_downgrade",
+    "from": "org_admin",
+    "to": "",
+    "message": "Note: 'no role' has fewer permissions than 'org_admin'. The user will lose access to some features immediately."
+   }
+  },
+  "events": []
+ },
+ "selfSuspension": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "updateUser",
+    "jan",
+    {
+     "status": "suspended"
+    }
+   ],
+   [
+    "bustSessionsForUser",
+    "jan",
+    []
+   ],
+   [
+    "log.info",
+    "[Audit] jan updated user 'jan' — fields: status"
+   ],
+   [
+    "logAccessAudit",
+    "user.update",
+    "user",
+    "jan",
+    "jan",
+    {
+     "status": "active"
+    },
+    {
+     "status": "suspended"
+    },
+    "orgA"
+   ],
+   [
+    "invalidatePermissionCache",
+    "jan"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "jan"
+   ]
+  ]
+ },
+ "selfDemotionSoleAdmin": {
+  "status": 409,
+  "body": {
+   "error": "That change would leave this organisation without an administrator. Give another active member the Organisation Admin role first — nobody could manage users afterwards, and only direct database access could undo it.",
+   "code": "last_org_admin"
+  },
+  "events": []
+ },
+ "otherAdminDemotedByPeer": {
+  "status": 200,
+  "body": {
+   "success": true,
+   "hint": {
+    "kind": "role_downgrade",
+    "from": "org_admin",
+    "to": "member",
+    "message": "Note: 'member' has fewer permissions than 'org_admin'. The user will lose access to some features immediately."
+   }
+  },
+  "events": [
+   [
+    "updateUser",
+    "kim",
+    {
+     "orgRole": "member"
+    }
+   ],
+   [
+    "log.info",
+    "[Audit] jan updated user 'kim' — fields: orgRole"
+   ],
+   [
+    "logAccessAudit",
+    "user.update",
+    "user",
+    "kim",
+    "jan",
+    {
+     "orgRole": "org_admin"
+    },
+    {
+     "orgRole": "member"
+    },
+    "orgA"
+   ],
+   [
+    "invalidatePermissionCache",
+    "kim"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "kim"
+   ]
+  ]
+ },
+ "lastPlatformAdminStepsDown": {
+  "status": 409,
+  "body": {
+   "error": "This change would leave the server without a platform administrator. Make another active account a platform administrator first.",
+   "code": "last_platform_admin"
+  },
+  "events": []
+ },
+ "lastPlatformAdminSuspended": {
+  "status": 409,
+  "body": {
+   "error": "This change would leave the server without a platform administrator. Make another active account a platform administrator first.",
+   "code": "last_platform_admin"
+  },
+  "events": []
+ },
+ "platformAdminSuspendedWhileOperatorActive": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "updateUser",
+    "ann",
+    {
+     "status": "suspended"
+    }
+   ],
+   [
+    "bustSessionsForUser",
+    "ann",
+    []
+   ],
+   [
+    "log.info",
+    "[Audit] ann updated user 'ann' — fields: status"
+   ],
+   [
+    "logAccessAudit",
+    "user.update",
+    "user",
+    "ann",
+    "ann",
+    {
+     "status": "active"
+    },
+    {
+     "status": "suspended"
+    },
+    null
+   ],
+   [
+    "invalidatePermissionCache",
+    "ann"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "ann"
+   ]
+  ]
+ },
+ "resetByPlatformAdmin": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "hash",
+    "Correct-Horse-Battery-42"
+   ],
+   [
+    "adminResetUser",
+    "eva"
+   ],
+   [
+    "log.warn",
+    "[Auth] Admin reset user eva — encrypted data requires recovery key"
+   ],
+   [
+    "updateUser",
+    "eva",
+    {
+     "passwordHash": "hash(Correct-Horse-Battery-42)"
+    }
+   ],
+   [
+    "bustSessionsForUser",
+    "eva",
+    []
+   ],
+   [
+    "log.info",
+    "[Audit] ann updated user 'eva' — fields: passwordHash"
+   ],
+   [
+    "invalidatePermissionCache",
+    "eva"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "eva"
+   ]
+  ]
+ },
+ "resetByOrgAdmin": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "hash",
+    "Correct-Horse-Battery-42"
+   ],
+   [
+    "adminResetUser",
+    "eva"
+   ],
+   [
+    "log.warn",
+    "[Auth] Admin reset user eva — encrypted data requires recovery key"
+   ],
+   [
+    "updateUser",
+    "eva",
+    {
+     "passwordHash": "hash(Correct-Horse-Battery-42)"
+    }
+   ],
+   [
+    "bustSessionsForUser",
+    "eva",
+    []
+   ],
+   [
+    "log.info",
+    "[Audit] jan updated user 'eva' — fields: passwordHash"
+   ],
+   [
+    "invalidatePermissionCache",
+    "eva"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "eva"
+   ]
+  ]
+ },
+ "resetOfAdminElsewhere": {
+  "status": 403,
+  "body": {
+   "error": "This account administers another organisation; only a platform administrator can reset its password or two-factor authentication",
+   "code": "admin_elsewhere_target"
+  },
+  "events": []
+ },
+ "resetOfAdminElsewhereByPlatformAdmin": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "hash",
+    "Correct-Horse-Battery-42"
+   ],
+   [
+    "adminResetUser",
+    "kim"
+   ],
+   [
+    "log.warn",
+    "[Auth] Admin reset user kim — encrypted data requires recovery key"
+   ],
+   [
+    "updateUser",
+    "kim",
+    {
+     "passwordHash": "hash(Correct-Horse-Battery-42)"
+    }
+   ],
+   [
+    "bustSessionsForUser",
+    "kim",
+    []
+   ],
+   [
+    "log.info",
+    "[Audit] ann updated user 'kim' — fields: passwordHash"
+   ],
+   [
+    "invalidatePermissionCache",
+    "kim"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "kim"
+   ]
+  ]
+ },
+ "ownPasswordWhileAdminElsewhere": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "hash",
+    "Correct-Horse-Battery-42"
+   ],
+   [
+    "rewrapUserDEKCompat",
+    "kim",
+    "old",
+    "Correct-Horse-Battery-42"
+   ],
+   [
+    "updateUser",
+    "kim",
+    {
+     "passwordHash": "hash(Correct-Horse-Battery-42)"
+    }
+   ],
+   [
+    "bustSessionsForUser",
+    "kim",
+    [
+     "keepSid"
+    ]
+   ],
+   [
+    "log.info",
+    "[Audit] kim updated user 'kim' — fields: passwordHash"
+   ],
+   [
+    "invalidatePermissionCache",
+    "kim"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "kim"
+   ]
+  ]
+ },
+ "profileOfAdminElsewhere": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "updateUser",
+    "kim",
+    {
+     "displayName": "Kim"
+    }
+   ],
+   [
+    "log.info",
+    "[Audit] jan updated user 'kim' — fields: displayName"
+   ],
+   [
+    "invalidatePermissionCache",
+    "kim"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "kim"
+   ]
+  ]
+ },
+ "resetWeak": {
+  "status": 400,
+  "body": {
+   "error": "Password must be at least 8 characters",
+   "code": "password_too_short"
+  },
+  "events": []
+ },
+ "resetContainsStoredEmail": {
+  "status": 400,
+  "body": {
+   "error": "Your password must not contain your username or e-mail address.",
+   "code": "password_contains_identity"
+  },
+  "events": []
+ },
+ "resetContainsUnknownUsersId": {
+  "status": 400,
+  "body": {
+   "error": "Your password must not contain your username or e-mail address.",
+   "code": "password_contains_identity"
+  },
+  "events": []
+ },
+ "resetContainsNewEmail": {
+  "status": 400,
+  "body": {
+   "error": "Your password must not contain your username or e-mail address.",
+   "code": "password_contains_identity"
+  },
+  "events": []
+ },
+ "resetMemberLengthForMember": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "hash",
+    "Tr0ub4d&3x"
+   ],
+   [
+    "adminResetUser",
+    "eva"
+   ],
+   [
+    "log.warn",
+    "[Auth] Admin reset user eva — encrypted data requires recovery key"
+   ],
+   [
+    "updateUser",
+    "eva",
+    {
+     "passwordHash": "hash(Tr0ub4d&3x)"
+    }
+   ],
+   [
+    "bustSessionsForUser",
+    "eva",
+    []
+   ],
+   [
+    "log.info",
+    "[Audit] ann updated user 'eva' — fields: passwordHash"
+   ],
+   [
+    "invalidatePermissionCache",
+    "eva"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "eva"
+   ]
+  ]
+ },
+ "resetMemberLengthForOrgAdmin": {
+  "status": 400,
+  "body": {
+   "error": "Administrator passwords must be at least 12 characters",
+   "code": "password_too_short"
+  },
+  "events": []
+ },
+ "resetMemberLengthWithPromotion": {
+  "status": 400,
+  "body": {
+   "error": "Administrator passwords must be at least 12 characters",
+   "code": "password_too_short"
+  },
+  "events": []
+ },
+ "resetMemberLengthWithPlatformRole": {
+  "status": 400,
+  "body": {
+   "error": "Administrator passwords must be at least 12 characters",
+   "code": "password_too_short"
+  },
+  "events": []
+ },
+ "changeOwnPassword": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "hash",
+    "Correct-Horse-Battery-42"
+   ],
+   [
+    "rewrapUserDEKCompat",
+    "eva",
+    "old-secret",
+    "Correct-Horse-Battery-42"
+   ],
+   [
+    "updateUser",
+    "eva",
+    {
+     "passwordHash": "hash(Correct-Horse-Battery-42)"
+    }
+   ],
+   [
+    "bustSessionsForUser",
+    "eva",
+    [
+     "keepSid"
+    ]
+   ],
+   [
+    "log.info",
+    "[Audit] eva updated user 'eva' — fields: passwordHash"
+   ],
+   [
+    "invalidatePermissionCache",
+    "eva"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "eva"
+   ]
+  ]
+ },
+ "changeOwnPasswordWrongOld": {
+  "status": 400,
+  "body": {
+   "error": "Failed to verify old password"
+  },
+  "events": [
+   [
+    "hash",
+    "Correct-Horse-Battery-42"
+   ],
+   [
+    "rewrapUserDEKCompat",
+    "jan",
+    "wrong",
+    "Correct-Horse-Battery-42"
+   ]
+  ]
+ },
+ "changeOwnPasswordRewrapThrows": {
+  "status": 400,
+  "body": {
+   "error": "Failed to verify old password"
+  },
+  "events": [
+   [
+    "hash",
+    "Correct-Horse-Battery-42"
+   ],
+   [
+    "rewrapUserDEKCompat",
+    "jan",
+    "old",
+    "Correct-Horse-Battery-42"
+   ],
+   [
+    "log.error",
+    "[Auth] DEK rewrap failed:",
+    "rewrap exploded"
+   ]
+  ]
+ },
+ "resetWithSuspension": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "hash",
+    "Correct-Horse-Battery-42"
+   ],
+   [
+    "adminResetUser",
+    "eva"
+   ],
+   [
+    "log.warn",
+    "[Auth] Admin reset user eva — encrypted data requires recovery key"
+   ],
+   [
+    "updateUser",
+    "eva",
+    {
+     "status": "suspended",
+     "passwordHash": "hash(Correct-Horse-Battery-42)"
+    }
+   ],
+   [
+    "bustSessionsForUser",
+    "eva",
+    []
+   ],
+   [
+    "log.info",
+    "[Audit] ann updated user 'eva' — fields: status, passwordHash"
+   ],
+   [
+    "logAccessAudit",
+    "user.update",
+    "user",
+    "eva",
+    "ann",
+    {
+     "status": "active"
+    },
+    {
+     "status": "suspended"
+    },
+    "orgA"
+   ],
+   [
+    "invalidatePermissionCache",
+    "eva"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "eva"
+   ]
+  ]
+ },
+ "ownPasswordAndProfile": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "hash",
+    "Correct-Horse-Battery-42"
+   ],
+   [
+    "rewrapUserDEKCompat",
+    "jan",
+    "old",
+    "Correct-Horse-Battery-42"
+   ],
+   [
+    "updateUser",
+    "jan",
+    {
+     "displayName": "Jan",
+     "passwordHash": "hash(Correct-Horse-Battery-42)"
+    }
+   ],
+   [
+    "bustSessionsForUser",
+    "jan",
+    [
+     "keepSid"
+    ]
+   ],
+   [
+    "log.info",
+    "[Audit] jan updated user 'jan' — fields: displayName, passwordHash"
+   ],
+   [
+    "invalidatePermissionCache",
+    "jan"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "jan"
+   ]
+  ]
+ },
+ "unknownRoleBeforeLastAdmin": {
+  "status": 400,
+  "body": {
+   "error": "Unknown role: root",
+   "code": "unknown_role"
+  },
+  "events": []
+ },
+ "lastOrgAdminBeforeLastPlatformAdmin": {
+  "status": 409,
+  "body": {
+   "error": "That change would leave this organisation without an administrator. Give another active member the Organisation Admin role first — nobody could manage users afterwards, and only direct database access could undo it.",
+   "code": "last_org_admin"
+  },
+  "events": []
+ },
+ "lastPlatformAdminBeforePassword": {
+  "status": 409,
+  "body": {
+   "error": "This change would leave the server without a platform administrator. Make another active account a platform administrator first.",
+   "code": "last_platform_admin"
+  },
+  "events": []
+ },
+ "resetRefusalBeforePolicy": {
+  "status": 403,
+  "body": {
+   "error": "This account administers another organisation; only a platform administrator can reset its password or two-factor authentication",
+   "code": "admin_elsewhere_target"
+  },
+  "events": []
+ },
+ "adminThroughGroupDemoted": {
+  "status": 409,
+  "body": {
+   "error": "That change would leave this organisation without an administrator. Give another active member the Organisation Admin role first — nobody could manage users afterwards, and only direct database access could undo it.",
+   "code": "last_org_admin"
+  },
+  "events": []
+ },
+ "adminThroughGroupDemotedOtherOrgHasAdmin": {
+  "status": 200,
+  "body": {
+   "success": true,
+   "hint": {
+    "kind": "role_downgrade",
+    "from": "org_admin",
+    "to": "member",
+    "message": "Note: 'member' has fewer permissions than 'org_admin'. The user will lose access to some features immediately."
+   }
+  },
+  "events": [
+   [
+    "updateUser",
+    "kim",
+    {
+     "orgRole": "member"
+    }
+   ],
+   [
+    "log.info",
+    "[Audit] ann updated user 'kim' — fields: orgRole"
+   ],
+   [
+    "logAccessAudit",
+    "user.update",
+    "user",
+    "kim",
+    "ann",
+    {
+     "orgRole": "org_admin"
+    },
+    {
+     "orgRole": "member"
+    },
+    "orgA"
+   ],
+   [
+    "invalidatePermissionCache",
+    "kim"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "kim"
+   ]
+  ]
+ },
+ "concurrentChangeInSecondOrg": {
+  "status": 409,
+  "body": {
+   "error": "That change would leave this organisation without an administrator. Give another active member the Organisation Admin role first — nobody could manage users afterwards, and only direct database access could undo it.",
+   "code": "last_org_admin"
+  },
+  "events": [
+   [
+    "updateUser",
+    "kim",
+    {
+     "status": "suspended"
+    }
+   ],
+   [
+    "updateUser",
+    "kim",
+    {
+     "orgRole": "org_admin",
+     "organizationId": "orgA",
+     "status": "active"
+    }
+   ],
+   [
+    "invalidatePermissionCache",
+    "kim"
+   ],
+   [
+    "log.warn",
+    "[adminRoutes] concurrent admin changes would have left org 'orgB' without an administrator — reverted kim"
+   ]
+  ]
+ },
+ "everythingAtOnce": {
+  "status": 200,
+  "body": {
+   "success": true
+  },
+  "events": [
+   [
+    "hash",
+    "Correct-Horse-Battery-42"
+   ],
+   [
+    "adminResetUser",
+    "eva"
+   ],
+   [
+    "log.warn",
+    "[Auth] Admin reset user eva — encrypted data requires recovery key"
+   ],
+   [
+    "updateUser",
+    "eva",
+    {
+     "groups": [
+      "g_b"
+     ],
+     "displayName": "Eva",
+     "orgRole": "org_admin",
+     "status": "active",
+     "monthlyCostLimit": 10,
+     "organizationId": "orgB",
+     "role": "auditor",
+     "passwordHash": "hash(Correct-Horse-Battery-42)"
+    }
+   ],
+   [
+    "bustSessionsForUser",
+    "eva",
+    []
+   ],
+   [
+    "log.info",
+    "[Audit] ann updated user 'eva' — fields: groups, displayName, orgRole, status, monthlyCostLimit, organizationId, role, passwordHash"
+   ],
+   [
+    "logAccessAudit",
+    "user.update",
+    "user",
+    "eva",
+    "ann",
+    {
+     "role": "user",
+     "orgRole": "member",
+     "groups": [
+      "g_a"
+     ],
+     "organizationId": "orgA"
+    },
+    {
+     "role": "auditor",
+     "orgRole": "org_admin",
+     "groups": [
+      "g_b"
+     ],
+     "organizationId": "orgB"
+    },
+    "orgA"
+   ],
+   [
+    "invalidatePermissionCache",
+    "eva"
+   ],
+   [
+    "invalidateUserExistenceCache",
+    "eva"
+   ]
+  ]
+ }
+}

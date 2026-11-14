@@ -3,7 +3,7 @@
  *   Playbook          stores/playbookStore.js mapRow — the whole entity, with
  *                     its phases (status, brief, artifacts) and `version`, the
  *                     optimistic lock every write carries;
- *   PlaybookSummary   routes/playbooks/phaseList.js summarise — the list row;
+ *   PlaybookSummary   usecases/playbooks/phaseList.js summarise — the list row;
  *   Recipe            playbooks/recipeDoc.js — the document compose returns
  *                     and create accepts back;
  *   AccessPlan        playbooks/accessPlan.js resolveNames — a proposal;

@@ -23,8 +23,8 @@ const { encryptionOpts, emitThreadEvent } = require('./shared');
 const log = require('../../../telemetry/log');
 const {
     settleStreamedContent, emitRawResponse, restoreForDisplay, applyOutputRegexGuard, guardEmptyResponse,
-} = require('./finalizeContent');
-const { persistenceBase, turnAnchorId, buildUserRow, resolveTokenisationInfo, buildAssistantRow, buildUpdateMeta } = require('./finalizeRows');
+} = require('../../../usecases/ai/directChat/finalizeContent');
+const { persistenceBase, turnAnchorId, buildUserRow, resolveTokenisationInfo, buildAssistantRow, buildUpdateMeta } = require('../../../usecases/ai/directChat/finalizeRows');
 const { placeTurnRows, markOf } = require('../../../core/conversation/historyMerge');
 const { scheduleTitle, extractTurnMemories } = require('./finalizeAftercare');
 const { bestEffort } = require('../../../utils/bestEffort');

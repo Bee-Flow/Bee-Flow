@@ -13,7 +13,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const tools = require('./frappeCrmTools.mts');
-const { _setFetchForTests } = require('./shared/apiClient');
+const { _setFetchForTests } = require('../utils/apiClient');
 const host = require('./frappeCrmHost.mts');
 const client = require('./frappeCrmClient.mts');
 const defs = require('./frappeCrmToolDefs.mts');

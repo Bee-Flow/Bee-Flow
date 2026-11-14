@@ -74,3 +74,14 @@ test('tokenHash is stable 64-char lowercase hex (sha256 of the token)', () => {
 test('hasDurableSecret is true when the env secret is set', () => {
     assert.equal(hasDurableSecret(), true);
 });
+
+test('the serial is the first sixty bits of the HMAC, five bits per Crockford character', () => {
+    // Worked out here bit by bit, independently of the module's encoder, so a
+    // serial printed on a certificate stays the serial the server derives.
+    const digest = crypto.createHmac('sha256', 'x'.repeat(48)).update('serial|cert-foundations|u1|2026-06-10').digest();
+    const bits = [...digest].map((b) => b.toString(2).padStart(8, '0')).join('');
+    const alphabet = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+    let body = '';
+    for (let i = 0; i < 12; i += 1) body += alphabet[parseInt(bits.slice(i * 5, i * 5 + 5), 2)];
+    assert.equal(makeSerial('cert-foundations', 'u1', '2026-06-10'), `BF-${body.slice(0, 4)}-${body.slice(4, 8)}-${body.slice(8, 12)}`);
+});

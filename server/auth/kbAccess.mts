@@ -35,7 +35,7 @@
  * the caller is; that is routes/knowledgeBases/shared.js blockIfSystemKB,
  * asked by the handler after the gate.
  *
- * Pure: every dependency comes in through `deps`; support/kbAccess.js wires
+ * Pure: every dependency comes in through `deps`; core/kb/kbAccess.js wires
  * the real stores and auth (`defaultKbAccess`) for every router. The
  * per-request lookups (organisations, groups, administered organisations,
  * permissions) are memoised on the request, so a loop over many bases pays

@@ -192,7 +192,7 @@ function requireTier(requiredTier) {
     if (!tiers.isValidTier(requiredTier)) {
         throw new Error(`requireTier: invalid tier ${requiredTier}`);
     }
-    return tagGate(async function tierGate(req, res, next) {
+    return tagGate(async function tierGate(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
         if (!req.session?.isAuthenticated) return next(); // let auth middleware reject
         const resolution = await resolveBestTierForRequest(req);
         if (resolution.error === 'tier_unavailable') {
@@ -226,7 +226,7 @@ function requireTier(requiredTier) {
  * report WHICH tier the org is on without resolving twice.
  * @param {string} featureName
  */
-async function featureAllowedForRequest(req, featureName) {
+async function featureAllowedForRequest(/** @type {import('express').Request} */ req, featureName) {
     const resolution = await resolveBestTierForRequest(req);
     if (resolution.error === 'tier_unavailable') return { allowed: false, resolution };
     // Plan-level grants (the plan's allowed_features) extend the tier, so a
@@ -241,7 +241,7 @@ async function featureAllowedForRequest(req, featureName) {
  * @param {string} featureName
  */
 function requireFeature(featureName) {
-    return tagGate(async function featureGate(req, res, next) {
+    return tagGate(async function featureGate(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {
         if (!req.session?.isAuthenticated) return next();
         const { allowed, resolution } = await featureAllowedForRequest(req, featureName);
         if (resolution.error === 'tier_unavailable') {

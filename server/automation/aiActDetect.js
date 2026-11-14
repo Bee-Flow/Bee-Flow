@@ -204,7 +204,7 @@ function fieldsClass(inputs, fields, internalDomains) {
  * 'fixed_external', 'dynamic' or 'system'. What stays inside is left out: an
  * in-app notification, a Talk message, a file in the own Nextcloud, a draft,
  * an e-mail to a colleague's literal address, a form (members of the owning
- * organisation only, automation/formAudience.js). A webhook caller gets 202
+ * organisation only, auth/formAudience.js). A webhook caller gets 202
  * and no output (routes/automation/events.js), so it is not here either.
  */
 function outwardSteps(definition, { internalDomains = [] } = {}) {

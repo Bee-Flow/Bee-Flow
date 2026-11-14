@@ -162,6 +162,21 @@ test('/setup with force:true mints a fresh secret; expired TTL also re-mints', a
     session.mfaSetupSecret = { secret: r2.body.secret, mintedAt: Date.now() - 11 * 60_000 };
     const r3 = await dispatch({ url: '/setup', session });
     assert.notStrictEqual(r3.body.secret, r2.body.secret, 'stale (>10 min) secret re-mints');
+
+    // The ten minutes are exclusive: a secret minted exactly that long ago is no longer served.
+    const realNow = Date.now;
+    const at = realNow();
+    Date.now = () => at;
+    try {
+        session.mfaSetupSecret = { secret: r3.body.secret, mintedAt: at - 10 * 60_000 + 1 };
+        const kept = await dispatch({ url: '/setup', session });
+        assert.strictEqual(kept.body.secret, r3.body.secret, 'one millisecond inside the window: the same secret');
+        session.mfaSetupSecret = { secret: r3.body.secret, mintedAt: at - 10 * 60_000 };
+        const reminted = await dispatch({ url: '/setup', session });
+        assert.notStrictEqual(reminted.body.secret, r3.body.secret, 'at ten minutes: a fresh one');
+    } finally {
+        Date.now = realNow;
+    }
 });
 
 test('/enable reads both the new {secret,mintedAt} shape and the legacy string shape', async () => {

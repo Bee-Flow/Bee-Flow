@@ -9,7 +9,7 @@
  */
 
 import { createRequire } from 'node:module';
-import { TEAMS_EXPECTED_OUTCOME_CODES } from '../core/meetingNotes/teamsImportOutcomes.mts';
+import { TEAMS_EXPECTED_OUTCOME_CODES } from './teamsImportOutcomes.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 

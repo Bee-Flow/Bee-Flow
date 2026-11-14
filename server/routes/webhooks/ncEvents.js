@@ -75,7 +75,7 @@ const captureRaw = express.json({
 // Same env knob and ceiling as the /api/automation/events/* limiter
 // (routes/automation/events.js): the connector forwards both from one IP.
 // Registered before the body parser so a flood does not pay the JSON parse.
-// A sync event lost to a 429 is picked up by jobs/ncSyncBackstop.js.
+// A sync event lost to a 429 is picked up by services/ncSyncBackstop.js.
 const userSyncLimiter = limiterUnlessZero({
     max: automationWebhookLimits().eventsRpmPerIp,
     keyFn: (req) => `ncsync:${req.ip || 'unknown'}`,

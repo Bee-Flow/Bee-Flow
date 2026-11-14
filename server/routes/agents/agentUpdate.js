@@ -13,7 +13,7 @@ const { normalizeTierModel } = require('../../core/llm/modelResolver');
 const { getEffectiveUserId } = require('../../utils/routeHelpers');
 const { assertAgentToolsWrite } = require('../../stores/agent/agentCrud');
 const { storedFlag, FLAG_DEFAULTS } = require('../../usecases/agents/storedFlag');
-const { resolvePersonaWrite } = require('./agentPersonaWrite');
+const { resolvePersonaWrite } = require('../../usecases/agents/agentPersonaWrite');
 const { HttpError } = require('../../core/http/errors');
 const { agentAccessOf } = require('../../auth/agentAccess.mts');
 

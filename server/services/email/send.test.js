@@ -18,7 +18,7 @@ function stub(path, exports) {
 let gmailSends = [];
 let graphCalls = [];
 
-stub('./providerClients', {
+stub('../../utils/emailProviderClients', {
     gmailClientFromTokens: async () => ({
         users: {
             messages: {

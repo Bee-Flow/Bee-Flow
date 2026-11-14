@@ -111,7 +111,7 @@ function makeCollab(deps = {}) {
             || ((/** @type {string} */ projectId, /** @type {Parameters<typeof import('../projectEventBus').publishTransient>[1]} */ ev) => require('../projectEventBus').publishTransient(projectId, ev)),
         emitProjectEvent: deps.emitProjectEvent
             || ((/** @type {string} */ projectId, /** @type {Parameters<typeof import('../projectFeed').emitProjectEvent>[1]} */ ev) => require('../projectFeed').emitProjectEvent(projectId, ev, { label: 'Collab' })),
-        changeFeed: deps.changeFeed || (() => optional('../../projects/changeFeed')),
+        changeFeed: deps.changeFeed || (() => optional('../projectContent/changeFeed')),
         contentSignals: deps.contentSignals || (() => optional('../dlp/contentSignals')),
         /**
          * The resource owner's cap on the rendered body (a page's), or null.

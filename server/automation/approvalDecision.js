@@ -9,7 +9,7 @@
 'use strict';
 
 const automationStore = require('../stores/automationStore');
-const { redactRunForViewer } = require('../core/automationModel/callerRunVisibility');
+const { redactRunForViewer } = require('../auth/callerRunVisibility');
 const log = require('../telemetry/log');
 const { isRunless, voteSummary } = require('./approvalRulebook');
 const { bestEffort, fallback } = require('../utils/bestEffort');

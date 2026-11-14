@@ -1,3 +1,4 @@
+/** @typedef {import('express').NextFunction} NextFunction */
 // @typecheck
 'use strict';
 /**
@@ -21,10 +22,15 @@ const util = require('node:util');
 const { nameForLog, textForLog } = require('./logSafe');
 
 const LEVELS = ['debug', 'info', 'warn', 'error'];
+/** @type {Record<string, string>} */
 const CONSOLE_METHOD = { debug: 'debug', info: 'log', warn: 'warn', error: 'error' };
 
 const requestStore = new AsyncLocalStorage();
 
+/**
+ * @param {string} id
+ * @param {NextFunction} fn
+ */
 function runWithRequestId(id, fn) {
     return requestStore.run({ id }, fn);
 }
@@ -33,14 +39,21 @@ function currentRequestId() {
     return requestStore.getStore()?.id;
 }
 
+/**
+ * @param {NodeJS.ProcessEnv} [env]
+ */
 function isJsonMode(env = process.env) {
     if (env.LOG_FORMAT === 'json') return true;
     if (env.LOG_FORMAT === 'console') return false;
     return env.NODE_ENV === 'production';
 }
 
-/** console.error('[Tag] failed:', err) → msg '[Tag] failed: <message>', plus err. */
+/**
+ * console.error('[Tag] failed:', err) → msg '[Tag] failed: <message>', plus err.
+ * @param {(Error | null)[]} args
+ */
 function splitArgs(args) {
+    /** @type {Error | null} */
     let err = null;
     const printable = args.map((a) => {
         if (a instanceof Error) {

@@ -28,7 +28,7 @@
 
 const { appendKey } = require('../../shared/expr/index.mjs');
 const outputDiffers = require('./outputDiffers');
-const { FULL_OUTPUT_REF } = require('../../core/automationModel/payloadTruncation');
+const { FULL_OUTPUT_REF } = require('../../stores/automationStore/payloadTruncation');
 
 const { cutValue } = outputDiffers;
 

@@ -15,7 +15,7 @@ const assert = require('node:assert/strict');
 const { pgliteDb } = require('../../../testUtils/pgliteDb');
 const { makeKbQueryLogStore } = require('../../../stores/kb/queryLog/index.mts');
 const { KB_QUERY_LOG_COLUMN_DDL, KB_QUERY_LOG_TABLE_DDL } = require('../../../stores/kb/queryLog/ddl.mts');
-const crypto = require('./crypto.mts');
+const crypto = require('../../../stores/kb/queryLog/crypto.mts');
 const rec = require('./recorder.mts');
 const hook = require('./hook.mts');
 

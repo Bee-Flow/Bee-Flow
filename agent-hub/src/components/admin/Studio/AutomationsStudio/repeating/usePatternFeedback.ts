@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { repeatingApi, repeatingKeys, useScanFeedback } from '@/api/queries/automation/repeating';
+import { repeatingKeys, useScanFeedback, useScanFeedbackOnLeave } from '@/api/queries/automation/repeating';
 import type { FeedbackBody, ReasonCode, RepeatingSuggestion, ScanResult } from '@/api/queries/automation/repeating';
 import { useTranslation } from '@/hooks/useTranslation';
 import { toast } from '@/components/shared/Toast';
@@ -56,19 +56,23 @@ export default function usePatternFeedback({ undoMs = UNDO_MS }: { undoMs?: numb
     const { t } = useTranslation();
     const qc = useQueryClient();
     const { mutate } = useScanFeedback();
+    const dropFromLast = useCallback((key: string) => {
+        qc.setQueryData<ScanResult | null>(repeatingKeys.last, prev => withoutKey(prev, key));
+    }, [qc]);
+    const { mutate: sendOnLeave } = useScanFeedbackOnLeave(dropFromLast);
     const [hidden, setHidden] = useState<ReadonlySet<string>>(() => new Set());
     const [pending, setPending] = useState<PendingHide | null>(null);
     const pendingRef = useRef<{ entry: PendingHide; timer: ReturnType<typeof setTimeout> } | null>(null);
 
     const send = useCallback((entry: PendingHide) => {
         mutate(bodyFor(entry), {
-            onSuccess: () => qc.setQueryData<ScanResult | null>(repeatingKeys.last, prev => withoutKey(prev, entry.key)),
+            onSuccess: () => dropFromLast(entry.key),
             onError: () => {
                 setHidden(prev => removeFrom(prev, entry.key));
                 toast.error(t('automations.repeating.feedbackFailed', 'Bee could not save that, so the pattern is back.'));
             },
         });
-    }, [mutate, qc, t]);
+    }, [mutate, dropFromLast, t]);
 
     /** Send the pending hide now (the undo window closed, or a new hide replaces it). */
     const commit = useCallback(() => {
@@ -107,17 +111,15 @@ export default function usePatternFeedback({ undoMs = UNDO_MS }: { undoMs?: numb
         });
     }, [mutate]);
 
-    // Leaving the page inside the undo window still records the choice. The
-    // observer is gone by now, so this goes straight to the API.
+    // Leaving the page inside the undo window still records the choice: best-effort,
+    // a choice that could not be sent simply brings the card back next time.
     useEffect(() => () => {
         const p = pendingRef.current;
         if (!p) return;
         clearTimeout(p.timer);
         pendingRef.current = null;
-        repeatingApi.postFeedback(bodyFor(p.entry))
-            .then(() => qc.setQueryData<ScanResult | null>(repeatingKeys.last, prev => withoutKey(prev, p.entry.key)))
-            .catch(() => { /* best-effort: the card simply comes back next time */ });
-    }, [qc]);
+        sendOnLeave({ key: p.entry.key, body: bodyFor(p.entry) });
+    }, [sendOnLeave]);
 
     const isHidden = useCallback((s: RepeatingSuggestion) => hidden.has(suggestionKey(s)), [hidden]);
 

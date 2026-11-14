@@ -52,6 +52,7 @@ const jobDuration = meter.createHistogram('job.run.duration', { description: 'Ba
 const featureGate = meter.createCounter('feature.gate', { description: 'License feature-gate decisions', unit: '{check}' });
 
 /** Cheap provider inference from a model id (avoids an async provider lookup on
+ * @param {string | number | boolean | (string | null | undefined)[] | (number | null | undefined)[] | (boolean | null | undefined)[] | undefined} model
  * the usage hot-path). Low-cardinality, PII-safe. */
 function providerFromModel(model) {
     const m = String(model || '').toLowerCase();
@@ -83,7 +84,11 @@ function recordLlmUsage({ provider, model, source, status, durationMs,
     if (Number.isFinite(costUsd) && costUsd > 0) llmCostUsd.add(costUsd, { provider: attrs.provider, model: attrs.model });
 }
 
-/** Record a provider-side failure (no usage row is written on failure). */
+/** @typedef {{ provider?: string | number | boolean | (string | null | undefined)[] | (number | null | undefined)[] | (boolean | null | undefined)[], model?: string | number | boolean | (string | null | undefined)[] | (number | null | undefined)[] | (boolean | null | undefined)[], errorType?: string | number | boolean | (string | null | undefined)[] | (number | null | undefined)[] | (boolean | null | undefined)[] }} RecordLlmErrorArgs */
+/**
+ * Record a provider-side failure (no usage row is written on failure).
+ * @param {RecordLlmErrorArgs} param0
+ */
 function recordLlmError({ provider, model, errorType }) {
     llmErrors.add(1, {
         provider: provider || providerFromModel(model),
@@ -92,6 +97,10 @@ function recordLlmError({ provider, model, errorType }) {
     });
 }
 
+/** @typedef {{ agentType?: string, status?: string, durationMs: number }} RecordAgentRunArgs */
+/**
+ * @param {RecordAgentRunArgs} param0
+ */
 function recordAgentRun({ agentType, status, durationMs }) {
     const attrs = { agent_type: agentType || 'chat', status: status || 'ok' };
     agentRuns.add(1, attrs);
@@ -104,13 +113,17 @@ function recordMcpCall({ server, tool, status, durationMs }) {
     if (Number.isFinite(durationMs)) mcpDuration.record(durationMs, attrs);
 }
 
+/** @typedef {{ kind?: string, status?: string }} RecordAuthEventArgs */
 /** Record an auth event. `kind` e.g. 'login'|'opaque_login'|'mfa'|'lockout';
+ * @param {RecordAuthEventArgs} param0
  * `status` 'ok'|'fail'. NEVER pass a user id/email — status/kind only. */
 function recordAuthEvent({ kind, status }) {
     authEvents.add(1, { kind: kind || 'login', status: status || 'ok' });
 }
 
+/** @typedef {{ service?: string, status?: string, durationMs: number }} RecordSidecarCallArgs */
 /** Record a Python-sidecar HTTP call. `service` e.g. 'search'|'rerank'|'guard'|
+ * @param {RecordSidecarCallArgs} param0
  * 'pii'|'whisperx'; `status` 'ok'|'error'|'timeout'. */
 function recordSidecarCall({ service, status, durationMs }) {
     const attrs = { service: service || 'unknown', status: status || 'ok' };
@@ -118,7 +131,9 @@ function recordSidecarCall({ service, status, durationMs }) {
     if (Number.isFinite(durationMs)) sidecarDuration.record(durationMs, attrs);
 }
 
+/** @typedef {{ source?: string, status?: string }} RecordEmbedCallArgs */
 /** Record an embedding dispatch. `source` 'provider'|'azure'|'cpu'|'none';
+ * @param {RecordEmbedCallArgs} param0
  * `status` 'ok'|'error'. The cpu source is the fallback-rate signal. */
 function recordEmbedCall({ source, status }) {
     embedCalls.add(1, { source: source || 'none', status: status || 'ok' });
@@ -133,7 +148,9 @@ function recordJobRun({ job, status, durationMs }) {
     if (Number.isFinite(durationMs)) jobDuration.record(durationMs, attrs);
 }
 
+/** @typedef {{ feature?: string, tier?: string, decision?: string }} RecordFeatureGateArgs */
 /** Record a license feature-gate decision. `feature`/`tier` are bounded keys;
+ * @param {RecordFeatureGateArgs} param0
  * `decision` 'allow'|'deny'. Deny volume by feature is an upsell signal. */
 function recordFeatureGate({ feature, tier, decision }) {
     featureGate.add(1, { feature: feature || 'unknown', tier: tier || 'unknown', decision: decision || 'deny' });

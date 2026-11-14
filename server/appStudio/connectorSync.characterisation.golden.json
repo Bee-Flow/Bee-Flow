@@ -1,0 +1,9475 @@
+{
+ "noSyncBlock": {
+  "threw": {
+   "message": "this connector does not fill a table",
+   "status": 400,
+   "code": "not_synced"
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ]
+  ]
+ },
+ "syncBlockIsAList": {
+  "threw": {
+   "message": "this connector does not fill a table",
+   "status": 400,
+   "code": "not_synced"
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ]
+  ]
+ },
+ "noConnector": {
+  "threw": {
+   "message": "this connector does not fill a table",
+   "status": 400,
+   "code": "not_synced"
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    null,
+    "<deps>"
+   ]
+  ]
+ },
+ "tableGone": {
+  "threw": {
+   "message": "the table this connector fills no longer exists",
+   "status": 409,
+   "code": "table_missing"
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ]
+  ]
+ },
+ "noModel": {
+  "threw": {
+   "message": "the table this connector fills no longer exists",
+   "status": 409,
+   "code": "table_missing"
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    null,
+    "conn_ab12cd",
+    "<deps>"
+   ]
+  ]
+ },
+ "labelStepReplacesTheModel": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "added"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table added>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS added",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files,added>",
+    "<table added>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files,added>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "claimTaken": {
+  "result": {
+   "skipped": 0,
+   "inserted": 0,
+   "updated": 0,
+   "rows": 0,
+   "alreadyRunning": true,
+   "reason": "manual"
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ]
+  ]
+ },
+ "claimTakenWithReason": {
+  "result": {
+   "skipped": 0,
+   "inserted": 0,
+   "updated": 0,
+   "rows": 0,
+   "alreadyRunning": true,
+   "reason": "view"
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ]
+  ]
+ },
+ "claimTakenForced": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "adoptRecordedReplies",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    null,
+    "<deps>"
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ],
+   [
+    "runNewRecordHook",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    {
+     "thread": [
+      {
+       "id": "rec_0",
+       "values": {
+        "ext_id": "m1",
+        "subject": "Hi",
+        "received": "2026-02-01T08:00:00.000Z",
+        "unread": true,
+        "tags": [
+         "a"
+        ]
+       }
+      },
+      {
+       "id": "rec_1",
+       "values": {
+        "ext_id": "m2",
+        "subject": "Yo",
+        "received": "2026-02-20T09:30:00.000Z",
+        "unread": false
+       }
+      },
+      {
+       "id": "rec_2",
+       "values": {
+        "ext_id": "m3",
+        "subject": "Old",
+        "received": "2026-01-05T00:00:00.000Z"
+       }
+      }
+     ],
+     "message": []
+    }
+   ]
+  ]
+ },
+ "upsertInsertsAndUpdates": {
+  "result": {
+   "inserted": 2,
+   "updated": 1,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecord",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    {
+     "ext_id": "m2",
+     "subject": "Yo",
+     "received": "2026-02-20T09:30:00.000Z",
+     "unread": false
+    },
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     },
+     "recordId": "rec_old_2"
+    }
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_old_2",
+     "rec_1"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "upsertUnchangedRow": {
+  "result": {
+   "inserted": 1,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 1,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecord",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    {
+     "ext_id": "m1",
+     "subject": "Hi",
+     "received": "2026-02-01T08:00:00.000Z",
+     "unread": true,
+     "tags": [
+      "a"
+     ]
+    },
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     },
+     "recordId": "rec_old_1"
+    }
+   ],
+   [
+    "writeRecord",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    {
+     "ext_id": "m2",
+     "subject": "Yo",
+     "received": "2026-02-20T09:30:00.000Z",
+     "unread": false
+    },
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     },
+     "recordId": "rec_old_2"
+    }
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_old_1",
+     "rec_old_2",
+     "rec_0"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 1,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "upsertDuplicateKeys": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 5,
+   "rowsWritten": 3,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "subject": "No key"
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_0",
+     "rec_1",
+     "rec_2",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "upsertKeyColumnGone": {
+  "threw": {
+   "message": "the column this connector matches rows on is gone",
+   "status": 409,
+   "code": "key_missing"
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "error",
+     "rowsWritten": 0,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": "the column this connector matches rows on is gone",
+     "consecutiveErrors": 1
+    }
+   ]
+  ]
+ },
+ "upsertByColumnKey": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "subject",
+    [
+     "Hi",
+     "Yo",
+     "Old"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "Hi",
+     "Yo",
+     "Old"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "replaceRefills": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "compileDeleteAll",
+    "<table emails>",
+    {
+     "where": "1=1",
+     "params": [],
+     "columns": {
+      "table": "*",
+      "hidden": [],
+      "readOnly": []
+     }
+    }
+   ],
+   [
+    "exec",
+    "owner-1",
+    "app-1",
+    "DELETE emails",
+    []
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "setRowCount",
+    "app-1",
+    "emails",
+    3,
+    "owner-1"
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "replaceKeepsTheTableOnNoRows": {
+  "result": {
+   "inserted": 0,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 0,
+   "rowsWritten": 0,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 0,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "noKeyFieldReplaces": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "compileDeleteAll",
+    "<table emails>",
+    {
+     "where": "1=1",
+     "params": [],
+     "columns": {
+      "table": "*",
+      "hidden": [],
+      "readOnly": []
+     }
+    }
+   ],
+   [
+    "exec",
+    "owner-1",
+    "app-1",
+    "DELETE emails",
+    []
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "setRowCount",
+    "app-1",
+    "emails",
+    3,
+    "owner-1"
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "replaceRowCountFails": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "compileDeleteAll",
+    "<table emails>",
+    {
+     "where": "1=1",
+     "params": [],
+     "columns": {
+      "table": "*",
+      "hidden": [],
+      "readOnly": []
+     }
+    }
+   ],
+   [
+    "exec",
+    "owner-1",
+    "app-1",
+    "DELETE emails",
+    []
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "setRowCount",
+    "app-1",
+    "emails",
+    3,
+    "owner-1"
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "replaceWithAKeyField": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "compileDeleteAll",
+    "<table emails>",
+    {
+     "where": "1=1",
+     "params": [],
+     "columns": {
+      "table": "*",
+      "hidden": [],
+      "readOnly": []
+     }
+    }
+   ],
+   [
+    "exec",
+    "owner-1",
+    "app-1",
+    "DELETE emails",
+    []
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "setRowCount",
+    "app-1",
+    "emails",
+    3,
+    "owner-1"
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "resultWithoutRows": {
+  "result": {
+   "inserted": 0,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 0,
+   "rowsWritten": 0,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 0,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "resultNothing": {
+  "result": {
+   "inserted": 0,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 0,
+   "rowsWritten": 0,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 0,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "resultRowsNotAList": {
+  "result": {
+   "inserted": 0,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 0,
+   "rowsWritten": 0,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 0,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "resultPartial": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0,
+   "partial": true
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "resultPartialTruthy": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0,
+   "partial": true
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "resultPartialFalse": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "rowCap": {
+  "result": {
+   "inserted": 500,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 500,
+   "rowsWritten": 500,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "<200 items>",
+     "r0",
+     "r1"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "<200 items>",
+     "r0",
+     "r1"
+    ]
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "<200 items>",
+     "r200",
+     "r201"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "<200 items>",
+     "r200",
+     "r201"
+    ]
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "<100 items>",
+     "r400",
+     "r401"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "<100 items>",
+     "r400",
+     "r401"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     "<500 items>",
+     {
+      "ext_id": "r0"
+     },
+     {
+      "ext_id": "r1"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "<500 items>",
+     "rec_0",
+     "rec_1"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 500,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "requestTier": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": "2026-02-20T09:30:00.000Z",
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {
+      "since": "2026-02-10T00:00:00.000Z"
+     },
+     "trace": false
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": "2026-02-20T09:30:00.000Z",
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "requestTierUnix": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": "2026-02-20T09:30:00.000Z",
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {
+      "after": 1770681600
+     },
+     "trace": false
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": "2026-02-20T09:30:00.000Z",
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "requestTierDate": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {
+      "from": "2026-02-10"
+     },
+     "trace": false
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "requestTierFirstRun": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": "2026-02-20T09:30:00.000Z",
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": "2026-02-20T09:30:00.000Z",
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "requestTierUnreadableWatermark": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": "garbage",
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": "garbage",
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "clientTier": {
+  "result": {
+   "inserted": 2,
+   "updated": 0,
+   "skipped": 2,
+   "rows": 2,
+   "rowsWritten": 2,
+   "watermark": "2026-02-20T09:30:00.000Z",
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m2",
+     "m4"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m2",
+     "m4"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m4",
+      "subject": "No stamp"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": "2026-02-20T09:30:00.000Z",
+     "rowsWritten": 2,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "clientTierFirstRun": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": "2026-02-20T09:30:00.000Z",
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": "2026-02-20T09:30:00.000Z",
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "clientTierAtTheWatermark": {
+  "result": {
+   "inserted": 1,
+   "updated": 0,
+   "skipped": 1,
+   "rows": 1,
+   "rowsWritten": 1,
+   "watermark": "2026-02-10T00:00:00.001Z",
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m6"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m6"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m6",
+      "received": "2026-02-10T00:00:00.001Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": "2026-02-10T00:00:00.001Z",
+     "rowsWritten": 1,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "clientTierWithChildrenKeepsOldParents": {
+  "result": {
+   "inserted": 5,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 2,
+   "rowsWritten": 5,
+   "watermark": "2026-02-25T00:00:00.000Z",
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0,
+   "children": [
+    {
+     "tableId": "tbl_bbbbbb",
+     "table": "messages",
+     "inserted": 3,
+     "updated": 0
+    }
+   ]
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": true
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "t1",
+     "t2"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "t1",
+     "t2"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "t1",
+      "received": "2026-01-01T00:00:00.000Z"
+     },
+     {
+      "ext_id": "t2",
+      "received": "2026-02-25T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table messages>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS messages",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table messages>",
+    [
+     {
+      "ext_id": "m1",
+      "received_at": "2026-02-01T08:00:00.000Z",
+      "emails_ref": "rec_0"
+     },
+     {
+      "ext_id": "m2",
+      "received_at": "2026-02-02T08:00:00.000Z",
+      "emails_ref": "rec_1"
+     },
+     {
+      "ext_id": "m3",
+      "received_at": "2026-02-03T08:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": "2026-02-25T00:00:00.000Z",
+     "rowsWritten": 5,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "clientTierWithChildrenWritesAll": {
+  "result": {
+   "inserted": 5,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 2,
+   "rowsWritten": 5,
+   "watermark": "2026-02-10T00:00:00.000Z",
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0,
+   "children": [
+    {
+     "tableId": "tbl_bbbbbb",
+     "table": "messages",
+     "inserted": 3,
+     "updated": 0
+    }
+   ]
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": true
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "t1",
+     "t2"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "t1",
+     "t2"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "t1",
+      "subject": "Thread one"
+     },
+     {
+      "ext_id": "t2",
+      "subject": "Thread two"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table messages>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS messages",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table messages>",
+    [
+     {
+      "ext_id": "m1",
+      "received_at": "2026-02-01T08:00:00.000Z",
+      "emails_ref": "rec_0"
+     },
+     {
+      "ext_id": "m2",
+      "received_at": "2026-02-02T08:00:00.000Z",
+      "emails_ref": "rec_1"
+     },
+     {
+      "ext_id": "m3",
+      "received_at": "2026-02-03T08:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": "2026-02-10T00:00:00.000Z",
+     "rowsWritten": 5,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "clientTierMailboxWritesAll": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": "2026-02-20T09:30:00.000Z",
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {
+      "since": "2026-02-10T00:00:00.000Z"
+     },
+     "trace": false
+    }
+   ],
+   [
+    "adoptRecordedReplies",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    null,
+    "<deps>"
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": "2026-02-20T09:30:00.000Z",
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "incrementalNotAnObject": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "mailboxSince": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": "2026-02-20T09:30:00.000Z",
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {
+      "since": "2026-02-10T00:00:00.000Z"
+     },
+     "trace": false
+    }
+   ],
+   [
+    "adoptRecordedReplies",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    null,
+    "<deps>"
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": "2026-02-20T09:30:00.000Z",
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "mailboxFirstRun": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "adoptRecordedReplies",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    null,
+    "<deps>"
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "mailboxSinceBesideItsOwnParam": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": "2026-02-20T09:30:00.000Z",
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {
+      "after": 1770681600,
+      "since": "2026-02-10T00:00:00.000Z"
+     },
+     "trace": false
+    }
+   ],
+   [
+    "adoptRecordedReplies",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    null,
+    "<deps>"
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": "2026-02-20T09:30:00.000Z",
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "mailboxAdoptionFails": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "adoptRecordedReplies",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    null,
+    "<deps>"
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "grainsPrimaryIsGrainZero": {
+  "result": {
+   "inserted": 2,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 2,
+   "rowsWritten": 2,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "t1",
+     "t2"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "t1",
+     "t2"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "t1",
+      "subject": "Thread one"
+     },
+     {
+      "ext_id": "t2",
+      "subject": "Thread two"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 2,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "grainsWithoutRows": {
+  "result": {
+   "inserted": 0,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 0,
+   "rowsWritten": 0,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 0,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "grainsEmptyList": {
+  "result": {
+   "inserted": 0,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 0,
+   "rowsWritten": 0,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 0,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "grainsNotAList": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "adoptRecordedReplies",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    null,
+    "<deps>"
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "childrenTwoLevels": {
+  "result": {
+   "inserted": 6,
+   "updated": 1,
+   "skipped": 0,
+   "rows": 2,
+   "rowsWritten": 7,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0,
+   "children": [
+    {
+     "tableId": "tbl_bbbbbb",
+     "table": "messages",
+     "inserted": 2,
+     "updated": 1
+    },
+    {
+     "tableId": "tbl_cccccc",
+     "table": "files",
+     "inserted": 2,
+     "updated": 0
+    }
+   ]
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": true
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "t1",
+     "t2"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "t1",
+     "t2"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "t1",
+      "subject": "Thread one"
+     },
+     {
+      "ext_id": "t2",
+      "subject": "Thread two"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table messages>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS messages",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecord",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table messages>",
+    {
+     "ext_id": "m2",
+     "received_at": "2026-02-02T08:00:00.000Z",
+     "emails_ref": "rec_1"
+    },
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     },
+     "recordId": "rec_old_m2"
+    }
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table messages>",
+    [
+     {
+      "ext_id": "m1",
+      "received_at": "2026-02-01T08:00:00.000Z",
+      "emails_ref": "rec_0"
+     },
+     {
+      "ext_id": "m3",
+      "received_at": "2026-02-03T08:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table files>",
+    "ext_id",
+    [
+     "f1",
+     "f2"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS files",
+    [
+     "f1",
+     "f2"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table files>",
+    [
+     {
+      "ext_id": "f1",
+      "filename": "a.pdf",
+      "messages_ref": "rec_2"
+     },
+     {
+      "ext_id": "f2",
+      "filename": "b.pdf",
+      "messages_ref": "rec_3"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 7,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "childDefaultsToGrainZero": {
+  "result": {
+   "inserted": 4,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 2,
+   "rowsWritten": 4,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0,
+   "children": [
+    {
+     "tableId": "tbl_cccccc",
+     "table": "files",
+     "inserted": 2,
+     "updated": 0
+    }
+   ]
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": true
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "t1",
+     "t2"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "t1",
+     "t2"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "t1",
+      "subject": "Thread one"
+     },
+     {
+      "ext_id": "t2",
+      "subject": "Thread two"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table files>",
+    "ext_id",
+    [
+     "f1",
+     "f2"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS files",
+    [
+     "f1",
+     "f2"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table files>",
+    [
+     {
+      "ext_id": "f1",
+      "filename": "a.pdf",
+      "messages_ref": "rec_0"
+     },
+     {
+      "ext_id": "f2",
+      "filename": "b.pdf"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 4,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "childTableGone": {
+  "result": {
+   "inserted": 2,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 2,
+   "rowsWritten": 2,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": true
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "t1",
+     "t2"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "t1",
+     "t2"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "t1",
+      "subject": "Thread one"
+     },
+     {
+      "ext_id": "t2",
+      "subject": "Thread two"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "console.warn",
+    "[ConnectorSync] child tbl_cccccc wants level 1 which was not written"
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 2,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "childGrainMissing": {
+  "result": {
+   "inserted": 5,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 2,
+   "rowsWritten": 5,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0,
+   "children": [
+    {
+     "tableId": "tbl_bbbbbb",
+     "table": "messages",
+     "inserted": 3,
+     "updated": 0
+    }
+   ]
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": true
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "t1",
+     "t2"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "t1",
+     "t2"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "t1",
+      "subject": "Thread one"
+     },
+     {
+      "ext_id": "t2",
+      "subject": "Thread two"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table messages>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS messages",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table messages>",
+    [
+     {
+      "ext_id": "m1",
+      "received_at": "2026-02-01T08:00:00.000Z",
+      "emails_ref": "rec_0"
+     },
+     {
+      "ext_id": "m2",
+      "received_at": "2026-02-02T08:00:00.000Z",
+      "emails_ref": "rec_1"
+     },
+     {
+      "ext_id": "m3",
+      "received_at": "2026-02-03T08:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 5,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "childWithoutLevel": {
+  "result": {
+   "inserted": 2,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 2,
+   "rowsWritten": 2,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": true
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "t1",
+     "t2"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "t1",
+     "t2"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "t1",
+      "subject": "Thread one"
+     },
+     {
+      "ext_id": "t2",
+      "subject": "Thread two"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 2,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "childReplaceMode": {
+  "result": {
+   "inserted": 5,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 2,
+   "rowsWritten": 5,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0,
+   "children": [
+    {
+     "tableId": "tbl_bbbbbb",
+     "table": "messages",
+     "inserted": 3,
+     "updated": 0
+    }
+   ]
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": true
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "t1",
+     "t2"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "t1",
+     "t2"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "t1",
+      "subject": "Thread one"
+     },
+     {
+      "ext_id": "t2",
+      "subject": "Thread two"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "compileDeleteAll",
+    "<table messages>",
+    {
+     "where": "1=1",
+     "params": [],
+     "columns": {
+      "table": "*",
+      "hidden": [],
+      "readOnly": []
+     }
+    }
+   ],
+   [
+    "exec",
+    "owner-1",
+    "app-1",
+    "DELETE messages",
+    []
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table messages>",
+    [
+     {
+      "ext_id": "m1",
+      "received_at": "2026-02-01T08:00:00.000Z",
+      "emails_ref": "rec_0"
+     },
+     {
+      "ext_id": "m2",
+      "received_at": "2026-02-02T08:00:00.000Z",
+      "emails_ref": "rec_1"
+     },
+     {
+      "ext_id": "m3",
+      "received_at": "2026-02-03T08:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "setRowCount",
+    "app-1",
+    "messages",
+    3,
+    "owner-1"
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 5,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "childGrainWithoutRows": {
+  "result": {
+   "inserted": 2,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 2,
+   "rowsWritten": 2,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0,
+   "children": [
+    {
+     "tableId": "tbl_bbbbbb",
+     "table": "messages",
+     "inserted": 0,
+     "updated": 0
+    }
+   ]
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": true
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "t1",
+     "t2"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "t1",
+     "t2"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "t1",
+      "subject": "Thread one"
+     },
+     {
+      "ext_id": "t2",
+      "subject": "Thread two"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 2,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "childrenNotAList": {
+  "result": {
+   "inserted": 2,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 2,
+   "rowsWritten": 2,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "t1",
+     "t2"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "t1",
+     "t2"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "t1",
+      "subject": "Thread one"
+     },
+     {
+      "ext_id": "t2",
+      "subject": "Thread two"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 2,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "childrenWithoutGrains": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": true
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "childKeyColumnGone": {
+  "threw": {
+   "message": "the column this connector matches rows on is gone",
+   "status": 409,
+   "code": "key_missing"
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": true
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "t1",
+     "t2"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "t1",
+     "t2"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "t1",
+      "subject": "Thread one"
+     },
+     {
+      "ext_id": "t2",
+      "subject": "Thread two"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "error",
+     "rowsWritten": 0,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": "the column this connector matches rows on is gone",
+     "consecutiveErrors": 3
+    }
+   ]
+  ]
+ },
+ "threadMode": {
+  "result": {
+   "inserted": 7,
+   "updated": 2,
+   "skipped": 0,
+   "rows": 2,
+   "rowsWritten": 9,
+   "hook": {
+    "ran": 3
+   },
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0,
+   "children": [
+    {
+     "tableId": "tbl_bbbbbb",
+     "table": "messages",
+     "inserted": 3,
+     "updated": 0
+    },
+    {
+     "tableId": "tbl_cccccc",
+     "table": "files",
+     "inserted": 2,
+     "updated": 0
+    }
+   ]
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {
+      "since": "2026-02-10T00:00:00.000Z"
+     },
+     "trace": true
+    }
+   ],
+   [
+    "adoptRecordedReplies",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    3,
+    "<deps>"
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "t1",
+     "t2"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "t1",
+     "t2"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "t1",
+      "subject": "Thread one"
+     },
+     {
+      "ext_id": "t2",
+      "subject": "Thread two"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table messages>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS messages",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table messages>",
+    [
+     {
+      "ext_id": "m1",
+      "received_at": "2026-02-01T08:00:00.000Z",
+      "emails_ref": "rec_0"
+     },
+     {
+      "ext_id": "m2",
+      "received_at": "2026-02-02T08:00:00.000Z",
+      "emails_ref": "rec_1"
+     },
+     {
+      "ext_id": "m3",
+      "received_at": "2026-02-03T08:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table files>",
+    "ext_id",
+    [
+     "f1",
+     "f2"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS files",
+    [
+     "f1",
+     "f2"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table files>",
+    [
+     {
+      "ext_id": "f1",
+      "filename": "a.pdf",
+      "messages_ref": "rec_2"
+     },
+     {
+      "ext_id": "f2",
+      "filename": "b.pdf",
+      "messages_ref": "rec_4"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 9,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ],
+   [
+    "runNewRecordHook",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    {
+     "thread": [
+      {
+       "id": "rec_0",
+       "values": {
+        "ext_id": "t1",
+        "subject": "Thread one"
+       }
+      },
+      {
+       "id": "rec_1",
+       "values": {
+        "ext_id": "t2",
+        "subject": "Thread two"
+       }
+      }
+     ],
+     "message": [
+      {
+       "id": "rec_2",
+       "values": {
+        "ext_id": "m1",
+        "received_at": "2026-02-01T08:00:00.000Z",
+        "emails_ref": "rec_0"
+       }
+      },
+      {
+       "id": "rec_3",
+       "values": {
+        "ext_id": "m2",
+        "received_at": "2026-02-02T08:00:00.000Z",
+        "emails_ref": "rec_1"
+       }
+      },
+      {
+       "id": "rec_4",
+       "values": {
+        "ext_id": "m3",
+        "received_at": "2026-02-03T08:00:00.000Z"
+       }
+      }
+     ]
+    }
+   ]
+  ]
+ },
+ "threadModeNoChildren": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "hook": {
+    "ran": 1
+   },
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {
+      "since": "2026-02-10T00:00:00.000Z"
+     },
+     "trace": false
+    }
+   ],
+   [
+    "adoptRecordedReplies",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    null,
+    "<deps>"
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ],
+   [
+    "runNewRecordHook",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    {
+     "thread": [
+      {
+       "id": "rec_0",
+       "values": {
+        "ext_id": "m1",
+        "subject": "Hi",
+        "received": "2026-02-01T08:00:00.000Z",
+        "unread": true,
+        "tags": [
+         "a"
+        ]
+       }
+      },
+      {
+       "id": "rec_1",
+       "values": {
+        "ext_id": "m2",
+        "subject": "Yo",
+        "received": "2026-02-20T09:30:00.000Z",
+        "unread": false
+       }
+      },
+      {
+       "id": "rec_2",
+       "values": {
+        "ext_id": "m3",
+        "subject": "Old",
+        "received": "2026-01-05T00:00:00.000Z"
+       }
+      }
+     ],
+     "message": []
+    }
+   ]
+  ]
+ },
+ "messageMode": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "hook": {
+    "ran": 3
+   },
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {
+      "since": "2026-02-10T00:00:00.000Z"
+     },
+     "trace": false
+    }
+   ],
+   [
+    "adoptRecordedReplies",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    null,
+    "<deps>"
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ],
+   [
+    "runNewRecordHook",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    {
+     "thread": [],
+     "message": [
+      {
+       "id": "rec_0",
+       "values": {
+        "ext_id": "m1",
+        "subject": "Hi",
+        "received": "2026-02-01T08:00:00.000Z",
+        "unread": true,
+        "tags": [
+         "a"
+        ]
+       }
+      },
+      {
+       "id": "rec_1",
+       "values": {
+        "ext_id": "m2",
+        "subject": "Yo",
+        "received": "2026-02-20T09:30:00.000Z",
+        "unread": false
+       }
+      },
+      {
+       "id": "rec_2",
+       "values": {
+        "ext_id": "m3",
+        "subject": "Old",
+        "received": "2026-01-05T00:00:00.000Z"
+       }
+      }
+     ]
+    }
+   ]
+  ]
+ },
+ "messageModeWithChildren": {
+  "result": {
+   "inserted": 5,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 2,
+   "rowsWritten": 5,
+   "hook": {
+    "ran": 2
+   },
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0,
+   "children": [
+    {
+     "tableId": "tbl_bbbbbb",
+     "table": "messages",
+     "inserted": 3,
+     "updated": 0
+    }
+   ]
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {
+      "since": "2026-02-10T00:00:00.000Z"
+     },
+     "trace": true
+    }
+   ],
+   [
+    "adoptRecordedReplies",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    3,
+    "<deps>"
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "t1",
+     "t2"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "t1",
+     "t2"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "t1",
+      "subject": "Thread one"
+     },
+     {
+      "ext_id": "t2",
+      "subject": "Thread two"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table messages>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS messages",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table messages>",
+    [
+     {
+      "ext_id": "m1",
+      "received_at": "2026-02-01T08:00:00.000Z",
+      "emails_ref": "rec_0"
+     },
+     {
+      "ext_id": "m2",
+      "received_at": "2026-02-02T08:00:00.000Z",
+      "emails_ref": "rec_1"
+     },
+     {
+      "ext_id": "m3",
+      "received_at": "2026-02-03T08:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 5,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ],
+   [
+    "runNewRecordHook",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    {
+     "thread": [],
+     "message": [
+      {
+       "id": "rec_0",
+       "values": {
+        "ext_id": "t1",
+        "subject": "Thread one"
+       }
+      },
+      {
+       "id": "rec_1",
+       "values": {
+        "ext_id": "t2",
+        "subject": "Thread two"
+       }
+      }
+     ]
+    }
+   ]
+  ]
+ },
+ "hookNotOnFirstRun": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "adoptRecordedReplies",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    null,
+    "<deps>"
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "hookOnlyForAMailbox": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "hookNotConfigured": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {
+      "since": "2026-02-10T00:00:00.000Z"
+     },
+     "trace": false
+    }
+   ],
+   [
+    "adoptRecordedReplies",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    null,
+    "<deps>"
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "hookAnswersNothing": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {
+      "since": "2026-02-10T00:00:00.000Z"
+     },
+     "trace": false
+    }
+   ],
+   [
+    "adoptRecordedReplies",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    null,
+    "<deps>"
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ],
+   [
+    "runNewRecordHook",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    {
+     "thread": [
+      {
+       "id": "rec_0",
+       "values": {
+        "ext_id": "m1",
+        "subject": "Hi",
+        "received": "2026-02-01T08:00:00.000Z",
+        "unread": true,
+        "tags": [
+         "a"
+        ]
+       }
+      },
+      {
+       "id": "rec_1",
+       "values": {
+        "ext_id": "m2",
+        "subject": "Yo",
+        "received": "2026-02-20T09:30:00.000Z",
+        "unread": false
+       }
+      },
+      {
+       "id": "rec_2",
+       "values": {
+        "ext_id": "m3",
+        "subject": "Old",
+        "received": "2026-01-05T00:00:00.000Z"
+       }
+      }
+     ],
+     "message": []
+    }
+   ]
+  ]
+ },
+ "hookFails": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {
+      "since": "2026-02-10T00:00:00.000Z"
+     },
+     "trace": false
+    }
+   ],
+   [
+    "adoptRecordedReplies",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    null,
+    "<deps>"
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ],
+   [
+    "runNewRecordHook",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    {
+     "thread": [
+      {
+       "id": "rec_0",
+       "values": {
+        "ext_id": "m1",
+        "subject": "Hi",
+        "received": "2026-02-01T08:00:00.000Z",
+        "unread": true,
+        "tags": [
+         "a"
+        ]
+       }
+      },
+      {
+       "id": "rec_1",
+       "values": {
+        "ext_id": "m2",
+        "subject": "Yo",
+        "received": "2026-02-20T09:30:00.000Z",
+        "unread": false
+       }
+      },
+      {
+       "id": "rec_2",
+       "values": {
+        "ext_id": "m3",
+        "subject": "Old",
+        "received": "2026-01-05T00:00:00.000Z"
+       }
+      }
+     ],
+     "message": []
+    }
+   ]
+  ]
+ },
+ "labelsCountAsUpdates": {
+  "result": {
+   "inserted": 3,
+   "updated": 4,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 7,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 7,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "retention": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "purged": 5,
+   "watermark": "2026-02-20T09:30:00.000Z",
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "compileDeleteOlderThan",
+    "<table emails>",
+    {
+     "where": "1=1",
+     "params": [],
+     "columns": {
+      "table": "*",
+      "hidden": [],
+      "readOnly": []
+     }
+    },
+    {
+     "field": "received",
+     "cutoffIso": "2026-01-30T10:00:00.000Z"
+    }
+   ],
+   [
+    "compileRetentionDelete",
+    "<table emails>",
+    {
+     "where": "1=1",
+     "params": [],
+     "columns": {
+      "table": "*",
+      "hidden": [],
+      "readOnly": []
+     }
+    },
+    {
+     "doomed": {
+      "where": "<undefined>",
+      "params": "<undefined>"
+     },
+     "referrers": [
+      {
+       "tableMeta": "<table messages>",
+       "field": "emails_ref"
+      }
+     ]
+    }
+   ],
+   [
+    "batch",
+    "owner-1",
+    "app-1",
+    [
+     {
+      "sql": "compileRetentionDelete",
+      "params": []
+     }
+    ]
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": "2026-02-20T09:30:00.000Z",
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "retentionNothingPurged": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": "2026-02-20T09:30:00.000Z",
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "compileDeleteOlderThan",
+    "<table emails>",
+    {
+     "where": "1=1",
+     "params": [],
+     "columns": {
+      "table": "*",
+      "hidden": [],
+      "readOnly": []
+     }
+    },
+    {
+     "field": "received",
+     "cutoffIso": "2026-01-30T10:00:00.000Z"
+    }
+   ],
+   [
+    "compileRetentionDelete",
+    "<table emails>",
+    {
+     "where": "1=1",
+     "params": [],
+     "columns": {
+      "table": "*",
+      "hidden": [],
+      "readOnly": []
+     }
+    },
+    {
+     "doomed": {
+      "where": "<undefined>",
+      "params": "<undefined>"
+     },
+     "referrers": [
+      {
+       "tableMeta": "<table messages>",
+       "field": "emails_ref"
+      }
+     ]
+    }
+   ],
+   [
+    "batch",
+    "owner-1",
+    "app-1",
+    [
+     {
+      "sql": "compileRetentionDelete",
+      "params": []
+     }
+    ]
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": "2026-02-20T09:30:00.000Z",
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "retentionUnreachable": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T11:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "console.error",
+    "[ConnectorSync] RETENTION GAP on app-1/conn_ab12cd: emails keep data past 7 days"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "scheduleEveryMinutes": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T14:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T14:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "scheduleBelowTheFloor": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T10:15:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T10:15:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "scheduleMailboxFloor": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": null,
+   "nextRunAt": "2026-03-01T10:02:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "adoptRecordedReplies",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    null,
+    "<deps>"
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T10:02:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "scheduleCron": {
+  "result": {
+   "inserted": 3,
+   "updated": 0,
+   "skipped": 0,
+   "rows": 3,
+   "rowsWritten": 3,
+   "watermark": null,
+   "nextRunAt": "2026-03-02T05:00:00.000Z",
+   "reason": "manual",
+   "durationMs": 0
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-02T05:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ]
+  ]
+ },
+ "runFails": {
+  "threw": {
+   "message": "not connected"
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "error",
+     "rowsWritten": 0,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": "not connected",
+     "consecutiveErrors": 1
+    }
+   ]
+  ]
+ },
+ "runFailsOnAStreak": {
+  "threw": {
+   "message": "upstream 500"
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "error",
+     "rowsWritten": 0,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": "upstream 500",
+     "consecutiveErrors": 3
+    }
+   ]
+  ]
+ },
+ "runFailsWithRetryAfter": {
+  "threw": {
+   "message": "throttled"
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "error",
+     "rowsWritten": 0,
+     "nextRunAt": "2026-03-01T12:00:00.000Z",
+     "error": "throttled",
+     "consecutiveErrors": 1
+    }
+   ]
+  ]
+ },
+ "runFailsCronIgnoredOnAStreak": {
+  "threw": {
+   "message": "down"
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "error",
+     "rowsWritten": 0,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": "down",
+     "consecutiveErrors": 1
+    }
+   ]
+  ]
+ },
+ "runFailsMailboxFloor": {
+  "threw": {
+   "message": "down"
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "error",
+     "rowsWritten": 0,
+     "nextRunAt": "2026-03-01T10:04:00.000Z",
+     "error": "down",
+     "consecutiveErrors": 1
+    }
+   ]
+  ]
+ },
+ "runThrowsAString": {
+  "threw": {
+   "value": "plain text"
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "error",
+     "rowsWritten": 0,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": "plain text",
+     "consecutiveErrors": 1
+    }
+   ]
+  ]
+ },
+ "runThrowsNothing": {
+  "threw": {
+   "value": null
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "error",
+     "rowsWritten": 0,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": "null",
+     "consecutiveErrors": 1
+    }
+   ]
+  ]
+ },
+ "runFailsForced": {
+  "threw": {
+   "message": "down"
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "error",
+     "rowsWritten": 0,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": "down",
+     "consecutiveErrors": 1
+    }
+   ]
+  ]
+ },
+ "writeFails": {
+  "threw": {
+   "message": "quota exceeded"
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "error",
+     "rowsWritten": 0,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": "quota exceeded",
+     "consecutiveErrors": 1
+    }
+   ]
+  ]
+ },
+ "finishFails": {
+  "threw": {
+   "message": "finish ok failed"
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "ok",
+     "watermark": null,
+     "rowsWritten": 3,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": null,
+     "consecutiveErrors": 0
+    }
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "error",
+     "rowsWritten": 0,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": "finish ok failed",
+     "consecutiveErrors": 1
+    }
+   ]
+  ]
+ },
+ "failureFinishFails": {
+  "threw": {
+   "message": "down"
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "error",
+     "rowsWritten": 0,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": "down",
+     "consecutiveErrors": 1
+    }
+   ]
+  ]
+ },
+ "labelsFail": {
+  "threw": {
+   "message": "labels failed"
+  },
+  "calls": [
+   [
+    "ensureLabelColumns",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    "<deps>"
+   ],
+   [
+    "claimSync",
+    "app-1",
+    "conn_ab12cd",
+    "owner-1",
+    {
+     "tableKey": "emails"
+    }
+   ],
+   [
+    "runConnector",
+    "conn_ab12cd",
+    {
+     "app": "<app>",
+     "viewerId": "owner-1",
+     "params": {},
+     "systemArgs": {},
+     "trace": false
+    }
+   ],
+   [
+    "compileKeyIndex",
+    "<table emails>",
+    "ext_id",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "query",
+    "owner-1",
+    "app-1",
+    "KEYS emails",
+    [
+     "m1",
+     "m2",
+     "m3"
+    ]
+   ],
+   [
+    "writeRecordBatch",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "<table emails>",
+    [
+     {
+      "ext_id": "m1",
+      "subject": "Hi",
+      "received": "2026-02-01T08:00:00.000Z",
+      "unread": true,
+      "tags": [
+       "a"
+      ]
+     },
+     {
+      "ext_id": "m2",
+      "subject": "Yo",
+      "received": "2026-02-20T09:30:00.000Z",
+      "unread": false
+     },
+     {
+      "ext_id": "m3",
+      "subject": "Old",
+      "received": "2026-01-05T00:00:00.000Z"
+     }
+    ],
+    {
+     "viewer": {
+      "id": "owner-1",
+      "role": "owner"
+     }
+    }
+   ],
+   [
+    "refreshThreadLabels",
+    "<app>",
+    "<model -,emails,messages,files>",
+    "conn_ab12cd",
+    [
+     "rec_0",
+     "rec_1",
+     "rec_2"
+    ],
+    "<deps>"
+   ],
+   [
+    "finishSync",
+    "app-1",
+    "conn_ab12cd",
+    {
+     "status": "error",
+     "rowsWritten": 0,
+     "nextRunAt": "2026-03-01T11:00:00.000Z",
+     "error": "labels failed",
+     "consecutiveErrors": 1
+    }
+   ]
+  ]
+ }
+}

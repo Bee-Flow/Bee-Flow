@@ -554,11 +554,11 @@ test('every rule finding that can be fixed carries the fix it maps to', () => {
  * implementation nobody runs. This reads the ONE caller and pins the shape it
  * really sends, so the next person to change either side is told.
  */
-test('the fixtures here are the shape routes/playbooks/complianceReview.js really sends', () => {
+test('the fixtures here are the shape routes/playbooks/complianceReview.js really sends (its facts module)', () => {
     const fs = require('node:fs');
     const path = require('node:path');
     const routeSrc = fs.readFileSync(
-        path.resolve(__dirname, '../../routes/playbooks/complianceReview.js'), 'utf8',
+        path.resolve(__dirname, '../../routes/playbooks/complianceReviewFacts.js'), 'utf8',
     );
     // The projection must carry BOTH identifiers. `type` alone is not enough to
     // answer "does this step send data out" for an integration_action, which is
@@ -566,7 +566,7 @@ test('the fixtures here are the shape routes/playbooks/complianceReview.js reall
     // Spans the whole expression, not to the first newline: the projection is
     // written across several lines and a line-bounded match silently read
     // only its first one.
-    const projection = routeSrc.match(/steps:\s*\(a\.definition[\s\S]*?:\s*\[\],/);
+    const projection = routeSrc.match(/steps:\s*\(definition[\s\S]*?:\s*\[\],/);
     assert.ok(projection, 'the steps projection moved — re-point this guard before trusting it');
     assert.match(projection[0], /type:\s*st\s*&&\s*st\.type/, 'the route stopped sending `type`');
     assert.match(projection[0], /tool:/, 'the route stopped sending `tool` — readsFiles and the outbound check both go blind, silently');

@@ -25,7 +25,7 @@ const restore = installResolveStub({
     '../stores/supportInboxStore': {
         getDueScans: async () => { dueReads += 1; return []; },
     },
-    './email/providerClients': {
+    '../utils/emailProviderClients': {
         gmailClientFromTokens: async () => { throw new Error('not used in these tests'); },
         graphFetchFromTokens: async () => { throw new Error('not used in these tests'); },
     },

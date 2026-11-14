@@ -1,6 +1,6 @@
 /**
  * auth/agentAccess.mts: the agent access rules and the two gates, with every
- * dependency injected. The edit rule's own matrix is agents/agentAccess.test.js
+ * dependency injected. The edit rule's own matrix is core/agentRuntime/agentAccess.test.js
  * and routes/agents/crud.authz.test.js; here: the ladder (whoever may edit may
  * read; manage is the owner, the super admin or an organisation admin at home
  * in the agent's organisation), the chat audience, the gates' answers (404 for

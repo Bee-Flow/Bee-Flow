@@ -1,7 +1,7 @@
 // @typecheck strict
 /** @typedef {import('./youtrackClient').YoutrackCreds} YoutrackCreds */
 const configStore = require('../stores/configStore');
-const { jsonApiRequest } = require('./shared/apiClient');
+const { jsonApiRequest } = require('../utils/apiClient');
 const log = require('../telemetry/log');
 
 // configStore keys. The service pair is written by the support admin UI; the

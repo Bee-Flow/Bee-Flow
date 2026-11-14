@@ -19,7 +19,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
 const automationStore = require('../../stores/automationStore');
-const { truncatePayload } = require('../../automation/payloadTruncation');
+const { truncatePayload } = require('../../stores/automationStore/payloadTruncation');
 const { deriveRunOutcome } = require('./automationBridge');
 
 const BIG = { value: Array.from({ length: 300 }, (_, i) => ({ id: `m${i}`, subject: `Mail ${i}`, body: 'x'.repeat(900) })) };

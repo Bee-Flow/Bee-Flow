@@ -51,6 +51,9 @@ const PRIVATE_HOST_REGEXES = [
     /^metadata\.google\.internal$/i,
 ];
 
+/**
+ * @param {string} host
+ */
 function privateAddressError(host) {
     const err = /** @type {Error & { code?: string, host?: string }} */ (new Error(PRIVATE_ADDRESS_ERROR_MESSAGE));
     err.code = PRIVATE_ADDRESS_ERROR_CODE;
@@ -58,7 +61,10 @@ function privateAddressError(host) {
     return err;
 }
 
-/** An empty DNS answer: an ordinary resolver error, not a refusal. */
+/**
+ * An empty DNS answer: an ordinary resolver error, not a refusal.
+ * @param {string} host
+ */
 function unresolvedError(host) {
     const err = /** @type {Error & { code?: string, hostname?: string }} */ (new Error(`getaddrinfo ENOTFOUND ${host}`));
     err.code = 'ENOTFOUND';
@@ -91,6 +97,7 @@ function isPrivateIp(ip) {
 /**
  * Literal screen on a URL hostname (no DNS). Empty / non-string hosts are
  * treated as private (refuse). Normalises brackets and the FQDN trailing dot.
+ * @param {string} host
  */
 function isPrivateHostname(host) {
     return canonical.isBlockedHost(host);

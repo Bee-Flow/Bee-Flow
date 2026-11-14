@@ -4,7 +4,7 @@
  * agent, what the trigger panel may show, and the dispatch-time question.
  *
  * Every dependency goes in as an argument (no module mocking). The agent edit
- * rule is the REAL one (agents/agentAccess.js) over fake permissions, so the
+ * rule is the REAL one (core/agentRuntime/agentAccess.js) over fake permissions, so the
  * gate is tested against the rules it actually enforces.
  *
  * Proven:
@@ -25,7 +25,7 @@ const { test, beforeEach } = require('node:test');
 const assert = require('node:assert');
 const log = require('../telemetry/log');
 const { makeAutomationAccess } = require('./access');
-const { makeAgentAccess } = require('../agents/agentAccess');
+const { makeAgentAccess } = require('../core/agentRuntime/agentAccess');
 const binding = require('./agentBinding');
 
 // ── The world ────────────────────────────────────────────────────────

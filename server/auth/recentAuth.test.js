@@ -41,3 +41,7 @@ test('the window is ten minutes and the refusal names its code', () => {
     assert.strictEqual(REAUTH_REQUIRED.status, 403);
     assert.strictEqual(REAUTH_REQUIRED.body.code, 'reauth_required');
 });
+
+test('a proof made this very millisecond counts', () => {
+    assert.strictEqual(hasRecentAuth({ authenticatedAt: NOW }, NOW), true);
+});

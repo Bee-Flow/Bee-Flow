@@ -110,3 +110,11 @@ test('an all-zero project key is refused as unavailable, never used to seal', as
     const zeroed = makeChatCrypto({ getProjectKey: async () => Buffer.alloc(32) });
     await assert.rejects(() => zeroed.forProject(P1), { status: 503, code: 'PROJECT_KEY_UNAVAILABLE' });
 });
+
+test('a key of the wrong length or the wrong kind is refused even when it is not all zeroes', async () => {
+    const hex = crypto.randomBytes(16).toString('hex');
+    for (const bad of [crypto.randomBytes(16), crypto.randomBytes(31), crypto.randomBytes(64), hex, [...crypto.randomBytes(32)], null]) {
+        const box = makeChatCrypto({ getProjectKey: async () => bad });
+        await assert.rejects(() => box.forProject(P1), { status: 503, code: 'PROJECT_KEY_UNAVAILABLE' }, `${Buffer.isBuffer(bad) ? `Buffer(${bad.length})` : typeof bad}`);
+    }
+});

@@ -17,7 +17,7 @@ const log = require('../telemetry/log');
  * co-editing facade, resolved when used.
  */
 const seams = {
-    collab: () => require('../agents/notebooks/notebookCollab').defaultFacade(),
+    collab: () => require('../core/collab/notebookCollab').defaultFacade(),
 };
 
 // A linked notebook the conversation's owner cannot open (deleted, or never
@@ -211,7 +211,7 @@ async function getWorkspace(convId) {
         // minutes. These tools speak Markdown, so prefer the Markdown
         // rendering, and for the row the canonical Markdown mirror over
         // document_content (older rows have only the HTML).
-        const { readCurrentContent } = require('../agents/notebooks/notebookCollab');
+        const { readCurrentContent } = require('../core/collab/notebookCollab');
         const current = await readCurrentContent(notebook, seams.collab());
         const { htmlToMarkdown } = require('../core/markdown');
         const content = current.live
@@ -334,7 +334,7 @@ async function setWorkspace(convId, content, workspace, { expectSeq = null } = {
         // A failing engine refuses rather than writing the row behind
         // everyone's back.
         try {
-            const { applyEdit } = require('../agents/notebooks/notebookCollab');
+            const { applyEdit } = require('../core/collab/notebookCollab');
             const edit = Number.isInteger(expectSeq)
                 ? { html, markdown: content, expectSeq }
                 : { html, markdown: content, base: { markdown: workspace.content || '' } };
@@ -599,7 +599,7 @@ async function syncClientWorkspaceContent(conversationId, userId, content) {
         // A co-edited notebook's live state is authoritative (and already what
         // the pane shows): seeding it from one client's copy would overwrite
         // everyone else's typing.
-        const { isCollabActive } = require('../agents/notebooks/notebookCollab');
+        const { isCollabActive } = require('../core/collab/notebookCollab');
         if (await isCollabActive(row.workspace_notebook_id)) return { seeded: false, reason: 'collab-active' };
         if ((nb.documentContent || '') === content) return { seeded: false, reason: 'unchanged' };
         // No expectedVersion → last-writer-wins; bumps version + refreshes the

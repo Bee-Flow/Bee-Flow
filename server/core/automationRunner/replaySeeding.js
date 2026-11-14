@@ -9,8 +9,8 @@
 const automationStore = require('../../stores/automationStore');
 // The 256 KB truncation sentinel is persisted under an ordinary 'success', so
 // every replay-seeding path has to recognise it as "not data" (BFSF-360).
-const { isTruncatedOutput, fullOutputRefOf } = require('../automationModel/payloadTruncation');
-const { canReadRunData } = require('../automationModel/callerRunVisibility');
+const { isTruncatedOutput, fullOutputRefOf } = require('../../stores/automationStore/payloadTruncation');
+const { canReadRunData } = require('../../auth/callerRunVisibility');
 const { HttpError } = require('../http/errors');
 const { fallback } = require('../../utils/bestEffort');
 
@@ -151,7 +151,7 @@ async function seedReplayState(automationId, currentVersion, stepIdFor, opts = {
     if (opts.seedRunId) return seedReplayStateFromRun(automationId, currentVersion, stepIdFor, opts);
     const all = await automationStore.getRunsForAutomation(automationId, { limit: REPLAY_RUN_WINDOW }).catch((e) => fallback('core/automationRunner/replaySeeding:seedReplayState', e, []));
     // A run on its starter's own connections holds the starter's data: it seeds
-    // nobody else's partial run (automation/callerRunVisibility.js).
+    // nobody else's partial run (auth/callerRunVisibility.js).
     const runsWindow = (all || []).filter(r => r?.id && r.mode !== 'dry_run' && canReadRunData(r, opts.viewerUserId));
     const stepsByRun = await loadRunStepsForRuns(runsWindow.map(r => r.id));
     const replayState = {};

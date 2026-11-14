@@ -48,7 +48,7 @@ const MOCKS = {
     '../../services/trialService': {
         startOrgTrial: async (orgId, planId) => { touched.push({ what: 'startOrgTrial', args: [orgId, planId] }); return { ok: true }; },
     },
-    '../../services/planEntitlements': { applyPlanToOrg: async () => {} },
+    '../../core/entitlements/planEntitlements': { applyPlanToOrg: async () => {} },
 };
 
 const MOCK_IDS = {};

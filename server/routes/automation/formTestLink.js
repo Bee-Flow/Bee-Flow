@@ -25,7 +25,7 @@ const { validate } = require('../../core/http/validate');
 const { bodyOf } = require('../../core/http/schemaParts');
 const { HttpError } = require('../../core/http/errors');
 const { sessionUser } = require('../../core/http/sessionUser');
-const { publicAudience } = require('../../automation/formAudience');
+const { publicAudience } = require('../../auth/formAudience');
 const { AudienceBody, readAudienceBody: readAudience } = require('./formAudienceBody');
 
 /** @typedef {NonNullable<Awaited<ReturnType<typeof import('../../stores/automationStore').getAutomation>>>} StoredAutomation */

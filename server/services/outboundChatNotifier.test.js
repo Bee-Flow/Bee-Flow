@@ -48,7 +48,7 @@ const origLoad = Module._load;
 Module._load = function (request) {
     if (request.endsWith('stores/configStore')) return stubConfig;
     if (request.endsWith('stores/supportStore')) return stubStore;
-    if (request.endsWith('integrations/shared/apiClient')) return stubApi;
+    if (request.endsWith('utils/apiClient')) return stubApi;
     if (request.endsWith('support/issueEgress')) {
         return {
             includeSubjectEnabled: async () => includeSubject,

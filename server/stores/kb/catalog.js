@@ -40,12 +40,11 @@ async function purgeQueryLogOnOrgChange(client, id, fromOrg, toOrg, actorId) {
 const { isMissingTable } = require('../../utils/isMissingTable');
 
 /**
- * @param {import('./model').KbCtx} ctx  the barrel's db handle, schema init,
- *        write guard and the store object itself (methods dispatch through it,
- *        so a method swapped on the export is the one the others call)
+ * Create a base, the system-managed bases, and reading one.
+ * @param {import('./model').KbCtx} ctx
  */
-function makeCatalogFns(ctx) {
-    const { run, getOne, getAll, withTransaction, initDB, managedParts, assertKbWrite, kbUpdateChanges, stageStore, self: KnowledgeBasesStore } = ctx;
+function makeKbCreateReadFns(ctx) {
+    const { getOne, getAll, initDB } = ctx;
     return {
         // ── KB CRUD ─────────────────────────────────────────────────────────
 
@@ -118,7 +117,16 @@ function makeCatalogFns(ctx) {
             await initDB();
             return getOne('SELECT * FROM knowledge_bases WHERE id = $1', [id]);
         },
+    };
+}
 
+/**
+ * Metadata update (with the Solution-stage guard and the move to an organisation) and publishing.
+ * @param {import('./model').KbCtx} ctx
+ */
+function makeKbUpdateFns(ctx) {
+    const { getOne, withTransaction, initDB, managedParts, assertKbWrite, kbUpdateChanges, self: KnowledgeBasesStore } = ctx;
+    return {
         /**
          * `organizationId` is ONE-WAY on purpose: a value moves a personal KB into
          * an organisation, and there is no way to move it back out. Un-setting it
@@ -202,7 +210,16 @@ function makeCatalogFns(ctx) {
                 [id, !!isPublished, groupsJson]
             );
         },
+    };
+}
 
+/**
+ * The organisation's categories for its bases.
+ * @param {import('./model').KbCtx} ctx
+ */
+function makeKbCategoryFns(ctx) {
+    const { getOne, getAll, withTransaction, initDB } = ctx;
+    return {
         // ── KB Categories (org-level, mirrors agent_categories) ─────────────
 
         listKBCategories: async (organizationId) => {
@@ -235,7 +252,16 @@ function makeCatalogFns(ctx) {
             });
             return true;
         },
+    };
+}
 
+/**
+ * The managed-part guard and payload, delete, and the content version bump.
+ * @param {import('./model').KbCtx} ctx
+ */
+function makeKbLifecycleFns(ctx) {
+    const { run, getOne, initDB, managedParts, assertKbWrite, stageStore } = ctx;
+    return {
         /**
          * Refuse `changedKeys` on a base a Solution stage manages (409
          * managed_part) unless `managedWrite` is a deployment's capability. A
@@ -300,7 +326,16 @@ function makeCatalogFns(ctx) {
                 [id]
             );
         },
+    };
+}
 
+/**
+ * The per-user favourites.
+ * @param {import('./model').KbCtx} ctx
+ */
+function makeKbFavoriteFns(ctx) {
+    const { run, getAll, initDB } = ctx;
+    return {
         // ── KB Favorites ────────────────────────────────────────────────────
         listFavorites: async (userId) => {
             await initDB();
@@ -325,6 +360,21 @@ function makeCatalogFns(ctx) {
                 [userId, kbId]
             );
         },
+    };
+}
+
+/**
+ * @param {import('./model').KbCtx} ctx  the barrel's db handle, schema init,
+ *        write guard and the store object itself (methods dispatch through it,
+ *        so a method swapped on the export is the one the others call)
+ */
+function makeCatalogFns(ctx) {
+    return {
+        ...makeKbCreateReadFns(ctx),
+        ...makeKbUpdateFns(ctx),
+        ...makeKbCategoryFns(ctx),
+        ...makeKbLifecycleFns(ctx),
+        ...makeKbFavoriteFns(ctx),
     };
 }
 

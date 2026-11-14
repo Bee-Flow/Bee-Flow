@@ -6,6 +6,7 @@
 
 const { z, typeError, datetimeWithOffset } = require('../utils/zod');
 const { worded } = require('../core/http/schemaParts');
+const { TRIGGER_TEXT, NEXT_RUN_TEXT } = require('../usecases/coworkTexts');
 
 const VALID_REPEAT_INTERVALS = new Set([
     'hourly', 'daily', 'weekdays', 'weekly', 'biweekly', 'monthly', 'quarterly', 'yearly',
@@ -80,7 +81,6 @@ const enabledAppsField = z.array(worded(APPS_TEXT), { error: typeError({ invalid
 // excludeFromSelf ...; msgraph: mailbox 'me' or a shared address, plus its
 // fields), and is interpreted by the same matchers, so unknown keys are kept.
 const TRIGGER_KIND_TEXT = "triggerKind is 'schedule' or 'app_event'.";
-const TRIGGER_TEXT = "trigger is { provider: 'gmail' | 'msgraph', event: 'mail.new', filter?: object }, or null.";
 const MAX_FILTER_BYTES = 4000;
 const triggerField = z.object({
     provider: z.enum(['gmail', 'msgraph'], { error: () => TRIGGER_TEXT }),
@@ -92,7 +92,6 @@ const triggerField = z.object({
 
 const TITLE_TEXT = 'Title is required.';
 const PROMPT_TEXT = 'Prompt is required.';
-const NEXT_RUN_TEXT = 'nextRunAt is required: an ISO timestamp with a time zone, like 2026-09-23T07:00:00.000Z.';
 const scheduleFields = {
     title: worded(TITLE_TEXT).trim().min(1, TITLE_TEXT).max(500, 'A title is at most 500 characters.'),
     prompt: worded(PROMPT_TEXT).trim().min(1, PROMPT_TEXT),

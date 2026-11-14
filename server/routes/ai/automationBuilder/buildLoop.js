@@ -18,10 +18,10 @@ const { isLocalProviderType } = require('../../../core/providers/localModels');
 const { streamWithRetry } = require('../../../usecases/ai/automationBuilder/modelStream');
 const { scanToolDraft, deriveDraftKey, makeDraftThrottle, makeProgressThrottle } = require('../../../usecases/ai/automationBuilder/toolDraft');
 const { accumulateUsage, renderValidationNote, providerErrorExcerpt, recoverLeakedToolCalls } = require('../../../usecases/ai/automationBuilder/chatTurnLoop');
-const { WASTED_ROUNDS_LIMIT, stopSentence } = require('./turnStop');
+const { WASTED_ROUNDS_LIMIT, stopSentence } = require('../../../usecases/ai/automationBuilder/turnStop');
 const { dispatchToolCall } = require('./toolDispatch');
-const { afterToolLessRound } = require('./roundNudges');
-const { addRoundUsage } = require('./turnClosing');
+const { afterToolLessRound } = require('../../../usecases/ai/automationBuilder/roundNudges');
+const { addRoundUsage } = require('../../../usecases/ai/automationBuilder/turnClosing');
 
 /**
  * @param {BuilderTurn} turn

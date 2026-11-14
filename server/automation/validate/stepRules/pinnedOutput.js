@@ -17,7 +17,7 @@ const isObject = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 // step output has no business being saved as one. isTruncatedOutput recognises
 // the sentinel truncation leaves behind — which is emphatically not data, and
 // must not be pinned as if it were.
-const { DEFAULT_MAX_BYTES, isTruncatedOutput } = require('../../payloadTruncation');
+const { DEFAULT_MAX_BYTES, isTruncatedOutput } = require('../../../stores/automationStore/payloadTruncation');
 const { BRANCHER_TYPES } = require('../constants');
 
 /**

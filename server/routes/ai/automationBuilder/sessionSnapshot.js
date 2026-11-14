@@ -38,7 +38,7 @@ const { requireAuth, requireActiveOrgForMutations } = require('../../../auth/per
 const { validate } = require('../../../core/http/validate');
 const { z } = require('../../../utils/zod');
 const { applyPendingDatatables, keptDatatables } = require('./applyPendingDatatables');
-const { clientSnapshot } = require('./datatableTurn');
+const { clientSnapshot } = require('../../../usecases/ai/automationBuilder/proposalPayload');
 const { sessionUser } = require('../../../core/http/sessionUser');
 
 const NoQuery = z.object({}).strict();

@@ -97,16 +97,19 @@ function _invalidField(r) {
 }
 
 /**
- * @param {{ query: (sql: string, params?: any[]) => Promise<{rows: any[], rowCount?: number | null}> }} db
- * @param {{ ready?: () => Promise<unknown> }} [opts]
+ * @param {{ from: string, to: string, surfaces: string[], granularity?: string }} w
+ * @param {string} orgId
  */
-function makeChatSignalStore(db, { ready = async () => {} } = {}) {
-    /**
-     * @param {string} sql
-     * @param {unknown[]} [params]
-     */
-    const q = async (sql, params) => { await ready(); return db.query(sql, params); };
+function _window(orgId, w) {
+    const surfaces = (w?.surfaces || []).filter(s => V.SURFACES.includes(s));
+    return { org: String(orgId), from: w?.from, to: w?.to, surfaces, granularity: w?.granularity || null };
+}
 
+/**
+ * Adding turns to the counters.
+ * @param {(sql: string, params?: unknown[]) => ReturnType<Parameters<typeof makeChatSignalStore>[0]['query']>} q  the store's query, behind its schema init
+ */
+function makeCountWrites(q) {
     /**
      * Add turns to the counters. Every row is checked against the vocabulary
      * first; the first bad field throws `chat_signal_invalid:<field>` and
@@ -149,15 +152,14 @@ function makeChatSignalStore(db, { ready = async () => {} } = {}) {
         return all.length;
     }
 
-    /**
-     * @param {{ from: string, to: string, surfaces: string[], granularity?: string }} w
-     * @param {string} orgId
-     */
-    function _window(orgId, w) {
-        const surfaces = (w?.surfaces || []).filter(s => V.SURFACES.includes(s));
-        return { org: String(orgId), from: w?.from, to: w?.to, surfaces, granularity: w?.granularity || null };
-    }
+    return { addCounts };
+}
 
+/**
+ * The totals per outcome and per kind, and the number of contributors.
+ * @param {(sql: string, params?: unknown[]) => ReturnType<Parameters<typeof makeChatSignalStore>[0]['query']>} q
+ */
+function makeTotalReads(q) {
     /**
      * Outcome turns per surface, outcome, destination and provider type,
      * summed over `from <= period_start <= to`.
@@ -262,6 +264,14 @@ function makeChatSignalStore(db, { ready = async () => {} } = {}) {
         return null;
     }
 
+    return { outcomeTotals, kindTotals, contributorCount };
+}
+
+/**
+ * Whether an organisation has counts, deleting them, and the retention purge.
+ * @param {(sql: string, params?: unknown[]) => ReturnType<Parameters<typeof makeChatSignalStore>[0]['query']>} q
+ */
+function makeRetention(q) {
     /**
      * Does the org have any counts left? (The RoPA lists the activity while it does.)
      * @param {string} orgId
@@ -301,7 +311,20 @@ function makeChatSignalStore(db, { ready = async () => {} } = {}) {
         return r.rowCount || 0;
     }
 
-    return { addCounts, outcomeTotals, kindTotals, contributorCount, hasRows, deleteAll, purgeExpired };
+    return { hasRows, deleteAll, purgeExpired };
+}
+
+/**
+ * @param {{ query: (sql: string, params?: any[]) => Promise<{rows: any[], rowCount?: number | null}> }} db
+ * @param {{ ready?: () => Promise<unknown> }} [opts]
+ */
+function makeChatSignalStore(db, { ready = async () => {} } = {}) {
+    /**
+     * @param {string} sql
+     * @param {unknown[]} [params]
+     */
+    const q = async (sql, params) => { await ready(); return db.query(sql, params); };
+    return { ...makeCountWrites(q), ...makeTotalReads(q), ...makeRetention(q) };
 }
 
 const initDB = makeStoreInit('ChatSignalStore', async () => {

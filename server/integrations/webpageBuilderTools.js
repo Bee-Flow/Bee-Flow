@@ -247,7 +247,7 @@ async function executeBuilderTool(toolName, args, ctx) {
             try {
                 const configStore = require('../stores/configStore');
                 if ((await configStore.getConfig('webpage_validation_enabled')) !== 'false') {
-                    const { validateWebpageProject, formatToolWarning, mergeAllowedImgHosts } = require('../services/webpageValidation');
+                    const { validateWebpageProject, formatToolWarning, mergeAllowedImgHosts } = require('../core/webpages/webpageValidation');
                     const allowedHosts = mergeAllowedImgHosts(await configStore.getConfig('webpage_img_host_allowlist'));
                     const extras = await webpageStore.listExtraFiles(webpageId);
                     const slots = await webpageStore.readAllSlots(userId, webpageId);

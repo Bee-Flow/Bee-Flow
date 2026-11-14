@@ -42,7 +42,7 @@ const MOCKS = {
     '../core/seo/shell': { getShell: async () => '<html><head></head><body><div id="root"></div></body></html>' },
     '../core/seo/inject': { injectIntoShell: (shell, { body }) => shell.replace('<div id="root"></div>', `<div id="root">${body}</div>`) },
     '../core/seo/sitemap': { buildSitemap: () => '', buildRobots: () => '', buildLlmsTxt: () => '' },
-    '../core/seo/locales': { localesForPage: () => page.translations },
+    '../i18n/pageLocales': { localesForPage: () => page.translations },
     '../core/seo/legacySlugs': { LEGACY_SLUGS: {}, GONE_SLUGS: new Set(['retired-page']) },
     '../core/cms/legacyContent': { synthesizeLegacyContent: () => ({}) },
 };

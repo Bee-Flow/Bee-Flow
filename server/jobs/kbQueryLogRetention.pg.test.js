@@ -13,7 +13,7 @@ const assert = require('node:assert/strict');
 const { pgliteDb } = require('../testUtils/pgliteDb');
 const { makeKbQueryLogStore } = require('../stores/kb/queryLog/index.mts');
 const { KB_QUERY_LOG_COLUMN_DDL, KB_QUERY_LOG_TABLE_DDL } = require('../stores/kb/queryLog/ddl.mts');
-const crypto = require('../core/kb/queryLog/crypto.mts');
+const crypto = require('../stores/kb/queryLog/crypto.mts');
 const job = require('./kbQueryLogRetention.mts');
 
 const { pg, db } = pgliteDb();

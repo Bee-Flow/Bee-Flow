@@ -78,6 +78,16 @@ test('synthetic: a call site is keyed by audit method and extra keys, and a seco
     ]);
 });
 
+test('synthetic: a call without options, or with options that are not written out, has an unknown method', () => {
+    const src = `
+        async function a(req) {
+            await establishSession(req);
+            await establishSession(req, opts);
+            await establishSession(req, { user, audit });
+        }`;
+    assert.deepEqual(callSitesIn(src, 'z.js').map((s) => s.key), ['z.js#unknown{}', 'z.js#unknown{}#2', 'z.js#unknown{}#3']);
+});
+
 test('synthetic: a session made authenticated in place by Object.assign is a call site too', () => {
     const src = `
         function a(req) {

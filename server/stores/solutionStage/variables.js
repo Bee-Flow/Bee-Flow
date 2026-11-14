@@ -32,6 +32,7 @@
 'use strict';
 
 const { storeError } = require('../lib/storeError');
+const { makePartOptionsStore } = require('./partOptions');
 
 const VARIABLE_NAME_RE = /^[a-z][a-z0-9_]{0,62}$/;
 const VARIABLE_TYPES = Object.freeze(['text', 'number', 'boolean', 'url', 'email', 'choice']);
@@ -68,10 +69,6 @@ function mapVariable(row) {
         steering: row.steering === true,
         position: Number(row.position) || 0,
     };
-}
-
-function mapPartOption(row) {
-    return { ref: row.ref, kind: row.kind, options: row.options || {}, updatedBy: row.updated_by, updatedAt: row.updated_at };
 }
 
 /**
@@ -113,14 +110,8 @@ function entriesOf(values) {
     return Object.entries(values || {}).map(([name, value]) => ({ name, value }));
 }
 
-/**
- * @param {{ query: Function, tx: Function }} db
- * @param {{ ready: () => Promise<unknown>, valuesMemo?: Map<string, any> }} ctx
- */
-function makeVariablesStore(db, { ready, valuesMemo = new Map() }) {
-    /** projectId → { at, values }; shared with stages.js, which drops it when the release pointer moves. */
-    const memo = valuesMemo;
-
+/** The declarations of a Solution, and which names steer. @param {Parameters<typeof makeVariablesStore>[0]} db @param {{ ready: () => Promise<unknown>, memo: Map<string, any> }} ctx */
+function makeDeclarationFns(db, { ready, memo }) {
     /**
      * The names that are steering for a write to `projectId`, beyond the
      * caller's: for a stage, those the Dev declarations or the current release
@@ -187,6 +178,11 @@ function makeVariablesStore(db, { ready, valuesMemo = new Map() }) {
         return out;
     }
 
+    return { declaredSteering, listVariables, replaceVariables };
+}
+
+/** The values per project: entering them, applying steering ones, and what a run reads. @param {Parameters<typeof makeVariablesStore>[0]} db @param {{ ready: () => Promise<unknown>, memo: Map<string, any> }} ctx @param {ReturnType<typeof makeDeclarationFns>['declaredSteering']} declaredSteering */
+function makeValueFns(db, { ready, memo }, declaredSteering) {
     /**
      * Write a project's values. A non-steering name writes `value` and
      * `applied_value` (live at once); a steering name (in `steeringNames`, or
@@ -342,49 +338,23 @@ function makeVariablesStore(db, { ready, valuesMemo = new Map() }) {
         }));
     }
 
-    // ── Part options ────────────────────────────────────────────────────────
+    return { setVariableValues, applySteeringValues, variableValuesFor, listVariableValues };
+}
 
-    /** With `ref`: that part's options or null; without: every part option of the Solution. */
-    async function getPartOptions(solutionId, { ref = null, client = null } = {}) {
-        await ready();
-        const q = client || db;
-        if (ref) {
-            const r = await q.query('SELECT * FROM solution_part_options WHERE solution_id = $1 AND ref = $2', [solutionId, ref]);
-            return r.rows[0] ? mapPartOption(r.rows[0]) : null;
-        }
-        const r = await q.query('SELECT * FROM solution_part_options WHERE solution_id = $1 ORDER BY ref', [solutionId]);
-        return r.rows.map(mapPartOption);
-    }
-
-    /**
-     * Set one part's options (a whole replace): datatable `{reference, acks}`,
-     * KB `{contentMode: 'shell'|'carry', acks}`.
-     * @param {string} solutionId
-     * @param {{ ref: string, kind: string, options: object }} part
-     * @param {string} actorId
-     */
-    async function setPartOption(solutionId, { ref, kind, options }, actorId, { client = null } = {}) {
-        await ready();
-        if (typeof ref !== 'string' || !ref || typeof kind !== 'string' || !kind) {
-            throw storeError(400, 'part_option_invalid', 'A part option needs a ref and a kind.');
-        }
-        if (!options || typeof options !== 'object' || Array.isArray(options)) {
-            throw storeError(400, 'part_option_invalid', 'Part options are an object.');
-        }
-        const r = await (client || db).query(
-            `INSERT INTO solution_part_options (solution_id, ref, kind, options, updated_by)
-             VALUES ($1, $2, $3, $4::jsonb, $5)
-             ON CONFLICT (solution_id, ref) DO UPDATE
-                SET kind = EXCLUDED.kind, options = EXCLUDED.options, updated_by = EXCLUDED.updated_by, updated_at = NOW()
-             RETURNING *`,
-            [solutionId, ref, kind, JSON.stringify(options), actorId],
-        );
-        return mapPartOption(r.rows[0]);
-    }
-
+/**
+ * @param {StageDb} db
+ * @param {{ ready: () => Promise<unknown>, valuesMemo?: Map<string, any> }} ctx
+ */
+function makeVariablesStore(db, { ready, valuesMemo = new Map() }) {
+    /** projectId → { at, values }; shared with stages.js, which drops it when the release pointer moves. */
+    const memo = valuesMemo;
+    const ctx = { ready, memo };
+    const declarations = makeDeclarationFns(db, ctx);
     return {
-        listVariables, replaceVariables, setVariableValues, applySteeringValues, variableValuesFor,
-        listVariableValues, getPartOptions, setPartOption,
+        listVariables: declarations.listVariables,
+        replaceVariables: declarations.replaceVariables,
+        ...makeValueFns(db, ctx, declarations.declaredSteering),
+        ...makePartOptionsStore(db, ready),
     };
 }
 

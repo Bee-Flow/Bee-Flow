@@ -26,11 +26,7 @@ const MAX_FEEDBACK = 800;  // what a person asks the designer to change
 // maximum-length app brief in the handoff card was refused 400.
 const MAX_BRIEF = MAX_BRIEF_CHARS + MAX_DESIGN_BRIEF_CHARS + 600;
 const TABLE_MODES = new Set(['new', 'existing']);
-// The depth axis the dialog offers (licensing/tierMeta DEPTH_TIER_KEYS), plus
-// `standard`: which of them a given person may pick is decided there against
-// /ai/config/tiers-for-user; this set only keeps an unknown string out of the
-// builder's `modelTier`. `pro` and `deep_thinking` are the same tier.
-const TIERS = new Set(['fast', 'auto', 'standard', 'thinking', 'pro', 'deep_thinking']);
+const { TIERS } = require('../../usecases/playbooks/tiers');
 const CLIENT_STATUSES = new Set(['running', 'awaiting', 'failed', 'done']);
 
 /**

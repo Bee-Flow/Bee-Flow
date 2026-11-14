@@ -12,8 +12,8 @@ const {
     COMPLETE_SESSION_SKILL_TOOL_NAME,
 } = require('../../../core/tools/sessionSkillRuntime');
 const { applyTokenMapToMessages } = require('../../../core/dlp/applyTokenMapToOutbound');
-const { executeDirectChatToolCall } = require('./toolExec');
-const { skipToolPrecheck } = require('./volatileLayout');
+const { executeDirectChatToolCall } = require('../../../usecases/ai/directChat/toolExec');
+const { skipToolPrecheck } = require('../../../usecases/ai/directChat/volatileLayout');
 // Org-health capture: fire-and-forget emits for the silent chat-killers
 // (provider config/stream failures) plus a success-side resolve so the
 // dashboard self-heals once an org's chats work again.
@@ -21,10 +21,10 @@ const orgHealth = require('../../../services/orgHealth');
 const { _resolveChatProblemsThrottled } = require('./shared');
 const { emitPhase } = require('../../../core/agentRuntime/phaseEvents');
 const { getUserAuth } = require('../../../utils/routeHelpers');
-const { computeStepMachineGuard, pipelineNeedsWrapUp, callAdapterWithFallback } = require('./stepMachine');
-const { createStreamCallbacks, snapshotThinkingParts } = require('./streamCallbacks');
-const { emitToolResultEvents } = require('./toolResultEvents');
-const { logTurnUsage } = require('./turnUsage');
+const { computeStepMachineGuard, pipelineNeedsWrapUp, callAdapterWithFallback } = require('../../../usecases/ai/directChat/stepMachine');
+const { createStreamCallbacks, snapshotThinkingParts } = require('../../../usecases/ai/directChat/streamCallbacks');
+const { emitToolResultEvents } = require('../../../usecases/ai/directChat/toolResultEvents');
+const { logTurnUsage } = require('../../../usecases/ai/directChat/turnUsage');
 const { bestEffort } = require('../../../utils/bestEffort');
 
 const MAX_STREAM_TOOL_ROUNDS = 15;
@@ -179,7 +179,7 @@ async function runPrecheckLoop(turn, loop, persistInterruptedTurn) {
  * LLM is forced to keep calling tools instead of emitting final text.
  * @param {Turn} turn
  * @param {ToolLoop} loop
- * @param {ReturnType<typeof import('./streamCallbacks').createStreamCallbacks>['primary']} streamCallback
+ * @param {ReturnType<typeof import('../../../usecases/ai/directChat/streamCallbacks').createStreamCallbacks>['primary']} streamCallback
  */
 async function streamPrimary(turn, loop, streamCallback) {
     const { send } = turn;
@@ -262,7 +262,7 @@ function guardedFollowOptions(turn, loop, label) {
  * @param {Turn} turn
  * @param {ToolLoop} loop
  * @param {number} toolRound
- * @param {ReturnType<typeof import('./streamCallbacks').createStreamCallbacks>['follow']} followStreamCallback
+ * @param {ReturnType<typeof import('../../../usecases/ai/directChat/streamCallbacks').createStreamCallbacks>['follow']} followStreamCallback
  */
 async function kickstartWrapUp(turn, loop, toolRound, followStreamCallback) {
     const { guard: kickGuard, options: kickOptions } = guardedFollowOptions(turn, loop, `kickstart round=${toolRound + 1}`);
@@ -288,7 +288,7 @@ async function kickstartWrapUp(turn, loop, toolRound, followStreamCallback) {
  * @param {Turn} turn
  * @param {ToolLoop} loop
  * @param {number} toolRound
- * @param {ReturnType<typeof import('./streamCallbacks').createStreamCallbacks>['follow']} followStreamCallback
+ * @param {ReturnType<typeof import('../../../usecases/ai/directChat/streamCallbacks').createStreamCallbacks>['follow']} followStreamCallback
  */
 async function streamFollowUp(turn, loop, toolRound, followStreamCallback) {
     closeVisibleRound(turn);
@@ -313,7 +313,7 @@ async function streamFollowUp(turn, loop, toolRound, followStreamCallback) {
  * get_summary).
  * @param {Turn} turn
  * @param {ToolLoop} loop
- * @param {ReturnType<typeof import('./streamCallbacks').createStreamCallbacks>['follow']} followStreamCallback
+ * @param {ReturnType<typeof import('../../../usecases/ai/directChat/streamCallbacks').createStreamCallbacks>['follow']} followStreamCallback
  */
 async function runStreamedToolRounds(turn, loop, followStreamCallback) {
     let toolRound = 0;

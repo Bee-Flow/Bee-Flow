@@ -10,7 +10,7 @@
  */
 
 const automationStore = require('../../../stores/automationStore');
-const { audienceAdmits, needsGroups } = require('../../../automation/formAudience');
+const { audienceAdmits, needsGroups } = require('../../../auth/formAudience');
 const { fallback } = require('../../../utils/bestEffort');
 
 /**

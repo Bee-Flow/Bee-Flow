@@ -26,7 +26,7 @@ swap(userStore, 'updateUser', async (id, u) => { updates.push(u); return true; }
 swap(require('../../utils/freeEmailDomains'), 'getEffectiveFreeEmailDomains', async () => new Set());
 let tenantOrg = null;
 swap(require('./microsoftLogin'), 'trustedMicrosoftOrg', async () => tenantOrg);
-const { resolveOrgStanding } = require('./ssoSessionSetup');
+const { resolveOrgStanding, writeOAuthSession } = require('./ssoSessionSetup');
 test.after(restore);
 
 const standing = () => resolveOrgStanding({ provider: 'google', user: /** @type {any} */ ({ id: 'u1', email: 'u1@gmail.com' }) });
@@ -114,4 +114,54 @@ test('a Google sign-in records the account\'s own address as verified, once, and
         await resolveOrgStanding({ provider, user: /** @type {any} */ ({ id: 'u1', email, emailVerified: verified }) });
     }
     assert.deepEqual(updates, []);
+});
+
+test('an account that has an organisation, and a personal account, are never placed in another one', async () => {
+    orgs = [{ id: 'listed', name: 'Listed', allowedDomains: ['acme.test'], autoApproveSSO: true, defaultGroups: [] }];
+    const user = /** @type {any} */ ({ id: 'u1', email: 'u1@acme.test' });
+    updates.length = 0;
+    try {
+        row = { id: 'u1', role: 'user', status: 'active', organizationId: 'org-home', email: 'u1@acme.test', email_verified_at: '2026-01-01' };
+        const member = await resolveOrgStanding({ provider: 'nextcloud', user });
+        assert.equal(member.userHasOrg, true);
+
+        row = { id: 'u1', role: 'user', status: 'active', groups: [], email: 'u1@acme.test', email_verified_at: '2026-01-01' };
+        const personal = await resolveOrgStanding({ provider: 'nextcloud', user, signupIntent: /** @type {any} */ ({ accountType: 'consumer' }) });
+        assert.deepEqual([personal.userHasOrg, personal.isPersonalAccount], [false, true]);
+
+        // No address to match on: nobody is asked for the organisations.
+        const noAddress = await resolveOrgStanding({ provider: 'nextcloud', user: /** @type {any} */ ({ id: 'u1' }) });
+        assert.equal(noAddress.userHasOrg, false);
+        assert.deepEqual(updates, [], 'nobody was moved');
+    } finally { orgs = []; }
+});
+
+test('a Microsoft session is written only for the identity the account is bound to', async () => {
+    const identityStore = require('../../stores/microsoftIdentityStore');
+    const user = /** @type {any} */ ({ id: 'u1', email: 'u1@acme.test', azureTenantId: 'tenant-1', azureUserId: 'oid-1' });
+    /** @type {any} */
+    let binding = null;
+    const undo = swap(identityStore, 'getIdentityBinding', async () => binding);
+    const write = async () => {
+        const req = /** @type {any} */ ({ session: {} });
+        // Only the binding check and the identity it writes are under test: what comes after needs the vault and the key store.
+        const error = await writeOAuthSession({ req, provider: 'microsoft', user, freshUser: null, tokenData: { access_token: 'at' }, pendingApproval: false, userHasOrg: true, isPersonalAccount: false })
+            .then(() => null, (/** @type {Error} */ e) => e);
+        return { session: req.session, error };
+    };
+    try {
+        for (const other of [null, { azureTenantId: 'tenant-2', azureUserId: 'oid-1' }, { azureTenantId: 'tenant-1', azureUserId: 'oid-2' }]) {
+            binding = other;
+            const refused = await write();
+            assert.match(String(refused.error?.message), /binding changed during login/, JSON.stringify(other));
+            assert.deepEqual(refused.session, {}, 'nothing was written to the session');
+        }
+        binding = { azureTenantId: 'tenant-1', azureUserId: 'oid-1' };
+        const written = await write();
+        assert.doesNotMatch(String(written.error?.message), /binding changed during login/);
+        assert.equal(written.session.isAuthenticated, true);
+        assert.equal(written.session.user, user);
+        assert.equal(written.session.microsoftLoginIdentity, binding);
+        assert.equal(written.session.microsoftIdentityVersion, 2);
+    } finally { undo(); }
 });

@@ -24,7 +24,7 @@ const h = require('../../testUtils/routeHarness');
 const { pg, close, failWrites } = guardedPglitePool();
 const userStore = require('../../stores/userStore');
 const stripeService = require('../../services/stripeService');
-const planEntitlements = require('../../services/planEntitlements');
+const planEntitlements = require('../../core/entitlements/planEntitlements');
 const { swap, restore } = makeSwaps();
 
 const PLAN_WRITE = /UPDATE "?subscription_plans"? SET "/;

@@ -17,7 +17,7 @@ const { copyFor } = require('../../playbooks/copy');
 const { userIdOf } = require('../studio/shared');
 const { tierRefusal } = require('../../core/entitlements/tierAccess');
 const { sendErr } = require('./contract');
-const { kindOf, firstOfKind, appBefore, tierOf, localeOf } = require('./phaseList');
+const { kindOf, firstOfKind, appBefore, tierOf, localeOf } = require('../../usecases/playbooks/phaseList');
 const log = require('../../telemetry/log');
 
 // The tier a request runs on when nobody picked one -- the project's default,
@@ -25,13 +25,13 @@ const log = require('../../telemetry/log');
 const DEFAULT_TIER = 'fast';
 
 /**
- * @typedef {import('./phaseList').PlaybookRow} PlaybookRow
+ * @typedef {import('../../usecases/playbooks/phaseList').PlaybookRow} PlaybookRow
  * @typedef {import('../../playbooks/lifecycle').Phase} Phase
  * @typedef {import('express').Request} Req
  * @typedef {import('express').Response} Res
  */
 
-/** @param {ReturnType<typeof import('./deps').makeDefaultDeps>} d */
+/** @param {ReturnType<typeof import('../../usecases/playbooks/deps').makeDefaultDeps>} d */
 function makeFlow(d) {
     /**
      * The recipe a playbook runs on: its own document, or the built-in module.

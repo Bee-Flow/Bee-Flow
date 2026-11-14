@@ -54,7 +54,7 @@ const { requireAuth } = require('../../auth/permissions');
 const { validate } = require('../../core/http/validate');
 // The chat engine's bag: typed, not closed (see routes/ai/directChat/turnSchema.js).
 const { NotebookTurnBody } = require('./directChat/turnSchema');
-const notebookCollab = require('../../agents/notebooks/notebookCollab');
+const notebookCollab = require('../../core/collab/notebookCollab');
 const { makeAiDocWriter } = require('../../agents/notebooks/aiDocWriter');
 const { makeNotebookFeed } = require('../../agents/notebooks/notebookFeed');
 const { hasNotebookRole } = require('../../auth/notebookAccess.mts');
@@ -68,7 +68,7 @@ const {
     appendHistory, appendUserMessage, stripUnicodeSmuggling, runInputPiiGate, addTokenPreservation, runInputRegex,
 } = require('./notebookChat/inputGates');
 const { finishTurnLogs, failTurnLogs } = require('../../core/kb/queryLog/hook.mts');
-const { buildToolList, buildChatOptions, makeNotebookToolExecutor, runToolLoop } = require('./notebookChat/toolLoop');
+const { buildToolList, buildChatOptions, makeNotebookToolExecutor, runToolLoop } = require('../../usecases/ai/notebookChat/toolLoop');
 const { restoreForDisplay, buildPrivacyPanel, finishAiDocument, checkOutputRegex, persistTurn } = require('./notebookChat/finalize');
 const { bestEffort } = require('../../utils/bestEffort');
 

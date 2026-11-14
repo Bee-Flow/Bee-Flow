@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * steps.js — automationStore aggregate (§WS5, extracted verbatim).
  */

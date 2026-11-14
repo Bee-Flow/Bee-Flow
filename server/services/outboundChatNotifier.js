@@ -27,7 +27,7 @@
 
 const configStore = require('../stores/configStore');
 const supportStore = require('../stores/supportStore');
-const { jsonApiRequest } = require('../integrations/shared/apiClient');
+const { jsonApiRequest } = require('../utils/apiClient');
 const { includeSubjectEnabled, screenText } = require('../support/issueEgress');
 const log = require('../telemetry/log');
 

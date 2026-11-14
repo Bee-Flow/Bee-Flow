@@ -21,7 +21,7 @@ const { ladderPglite } = require('../testUtils/pgliteTemplate');
 
 const { pg, close } = usePglitePool(ladderPglite());
 const store = require('./automationStore');
-const { isTruncatedOutput } = require('../automation/payloadTruncation');
+const { isTruncatedOutput } = require('./automationStore/payloadTruncation');
 
 const NUL = String.fromCharCode(0);
 

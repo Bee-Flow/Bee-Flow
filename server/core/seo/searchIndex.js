@@ -13,7 +13,7 @@
 
 const { clamp } = require('./html');
 const { buildPublicPath, BLOG_BASE } = require('./publicPath');
-const { hasTranslation } = require('./locales');
+const { hasTranslation } = require('../../i18n/pageLocales');
 const { detailPath } = require('./integrationsDirectory');
 const { localesForPost } = require('../../stores/cms/blogEffective');
 

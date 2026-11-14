@@ -67,7 +67,7 @@ mock('../support/emails', {
     sendStaffReplyEmail: async () => {}, sendThreadResolvedEmail: async () => {},
     sendOrNotifyStaff: async () => {},
 });
-mock('../support/staffAccess', { hasAdminSupport: async () => hasAdminSupport });
+mock('../core/support/staffAccess', { hasAdminSupport: async () => hasAdminSupport });
 mock('../auth', {
     resolveUserOrgIds: async () => [],
     isSuperAdmin: (req) => req.session?.user?.role === 'admin',

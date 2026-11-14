@@ -29,7 +29,7 @@
  */
 
 const { envCap } = require('../mcpRunReadCaps');
-const { canReadRunData } = require('../../core/automationModel/callerRunVisibility');
+const { canReadRunData } = require('../../auth/callerRunVisibility');
 
 const staleMs = () => envCap('AUTOMATION_GOLDEN_REPLAY_STALE_MS', 30 * 60 * 1000);
 

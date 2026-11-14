@@ -322,7 +322,7 @@ async function resolveActiveFeaturesContext(req) {
     // uncapped.
     let planCappedInt = allowedIntegrations;
     try {
-        const { getOrgCaps, applyCap } = require('../../services/planEntitlements');
+        const { getOrgCaps, applyCap } = require('../../core/entitlements/planEntitlements');
         const caps = await getOrgCaps(orgId);
         planCappedInt = applyCap(allowedIntegrations, caps.integrations);
     } catch (e) {
@@ -401,7 +401,7 @@ router.put('/me/active-features', requireAuth, validate({ body: ActiveFeaturesBo
 
     // Plan caps — an org-admin cannot enable beyond what the plan allows.
     // null cap = unrestricted (legacy plans without the column set).
-    const planEntitlements = require('../../services/planEntitlements');
+    const planEntitlements = require('../../core/entitlements/planEntitlements');
     const caps = await planEntitlements.getOrgCaps(ctx.orgId);
 
     // On cloud the subscription governs beta access — ignore any beta

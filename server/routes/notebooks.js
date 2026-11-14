@@ -46,11 +46,11 @@ const { requirePermission } = require('../auth');
 // Shared with routes/knowledgeBases.js — a client naming a kb id must be
 // authorized for it before we persist or search it. The KB retrieval layer
 // does no tenant filtering of its own; the kb id list IS the access boundary.
-const { partitionAccessibleKBIds } = require('../support/kbAccess');
+const { partitionAccessibleKBIds } = require('../core/kb/kbAccess');
 const { validate } = require('../core/http/validate');
 const { z, worded, bodyOf, queryOf, choice, flag, wholeNumber, typeError } = require('../core/http/schemaParts');
 const { HttpError } = require('../core/http/errors');
-const notebookCollab = require('../agents/notebooks/notebookCollab');
+const notebookCollab = require('../core/collab/notebookCollab');
 const { asViewer, asEditor, asOwner, notebookOf, notebookRoleOf, seams, upload, text, ids } = require('./notebooksShared');
 const { sessionUser } = require('../core/http/sessionUser');
 

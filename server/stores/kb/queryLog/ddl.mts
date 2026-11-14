@@ -3,7 +3,7 @@
  * kb_query_log table. One list, run by stores/kb/schema.js and by the store tests.
  *
  * kb_id is UUID because knowledge_bases.id is. Content columns (`*_enc`) hold the
- * envelope of core/kb/queryLog/crypto.mts, or plain text when the org has encryption off.
+ * envelope of stores/kb/queryLog/crypto.mts, or plain text when the org has encryption off.
  */
 
 export const KB_QUERY_LOG_COLUMN_DDL: string[] = [

@@ -169,7 +169,7 @@ function rowToRun(r) {
         callerAgentId: r.caller_agent_id ?? null,
         callerConversationId: r.caller_conversation_id ?? null,
         // 'caller' when the run used the starter's own connections (fixed at its
-        // start; automation/callerRunVisibility.js reads it). Null otherwise.
+        // start; auth/callerRunVisibility.js reads it). Null otherwise.
         connectionsMode: r.connections_mode ?? null,
         // The run's profile as stored (core/automationModel/runProfile.mts), NULL
         // on a row from before the column. Read it through profileOfRun(run),

@@ -2,21 +2,30 @@
 const { renderEmailFromTemplate } = require('./emailTemplates');
 const { sendServiceEmail } = require('./emailTransport');
 
+/** @type {Record<string, { access: string; rectification: string; deletion: string; portability: string; restriction: string; objection: string; }>} */
 const DSR_TYPE_WORDS = {
     en: { access: 'access', rectification: 'rectification', deletion: 'erasure', portability: 'data portability', restriction: 'restriction of processing', objection: 'objection' },
     nl: { access: 'inzage', rectification: 'rectificatie', deletion: 'verwijdering', portability: 'overdraagbaarheid', restriction: 'beperking van de verwerking', objection: 'bezwaar' },
 };
 
+/** @type {Record<string, { fulfilled: string; rejected: string; }>} */
 const DSR_STATUS_WORDS = {
     en: { fulfilled: 'fulfilled', rejected: 'rejected' },
     nl: { fulfilled: 'afgehandeld', rejected: 'afgewezen' },
 };
 
+/**
+ * @param {string | undefined} locale
+ */
 function _dsrLang(locale) {
     const lang = typeof locale === 'string' ? locale.toLowerCase().split(/[-_]/)[0] : 'en';
     return lang === 'nl' ? 'nl' : 'en';
 }
 
+/**
+ * @param {string | Date} value
+ * @param {string} lang
+ */
 function _dsrDate(value, lang) {
     if (!value) return '';
     const d = new Date(value);
@@ -30,6 +39,8 @@ function _dsrDate(value, lang) {
  * Built-in template for the locale, then the admin's per-locale override on
  * top (same precedence languageStore.getEffectiveEmailTemplate applies, plus
  * the locale default layer the DSR letters ship with).
+ * @param {string} templateId
+ * @param {string} lang
  */
 async function _resolveDsrTemplate(templateId, lang) {
     const { getDefaultEmailTemplate, EMAIL_TEMPLATE_FIELDS } = require('../i18n/defaults/emailTemplates');
@@ -48,6 +59,11 @@ async function _resolveDsrTemplate(templateId, lang) {
     return merged;
 }
 
+/** @typedef {{ requestId?: string | number, requestType?: string, orgName?: string | null | undefined, dpoEmail?: string | null | undefined }} _dsrCommonVarsArgs */
+/**
+ * @param {_dsrCommonVarsArgs} param0
+ * @param {string} lang
+ */
 function _dsrCommonVars({ requestId, requestType, orgName, dpoEmail }, lang) {
     return {
         requestId: String(requestId ?? ''),

@@ -117,6 +117,9 @@ const TRAINING_AREAS = Object.freeze([
 
 /** @type {Map<string, (typeof TRAINING_AREAS)[number]>} */
 const AREA_BY_ID = new Map(TRAINING_AREAS.map((a) => [a.id, a]));
+/**
+ * @param {string} orgId
+ */
 const configKey = (orgId) => `${CONFIG_KEY_PREFIX}${orgId}`;
 
 // ── Stored settings ──────────────────────────────────────────────────────
@@ -133,6 +136,7 @@ const cache = new Map(); // orgId → { value, ts }
  * when `knownCourseIds` says nothing about it — validation happens on write.
  */
 function normalizeSettings(raw) {
+    /** @type {Record<string, string>} */
     const areas = {};
     const src = raw && typeof raw === 'object' ? (raw.areas || {}) : {};
     for (const [areaId, courseId] of Object.entries(src)) {
@@ -143,6 +147,9 @@ function normalizeSettings(raw) {
     return { areas, updatedAt: raw?.updatedAt || null, updatedBy: raw?.updatedBy || null };
 }
 
+/**
+ * @param {string | undefined} orgId
+ */
 async function getSettings(orgId) {
     if (!orgId) return { areas: {}, updatedAt: null, updatedBy: null };
     const hit = cache.get(orgId);

@@ -18,7 +18,7 @@
  *     request).
  *
  * Outside private mode the request goes through the guarded fetch of
- * integrations/shared/apiClient.js, which checks every address at connect
+ * utils/apiClient.js, which checks every address at connect
  * time. In private mode (the plain fetch) this module resolves the host before
  * each request and refuses it when any address is link-local or metadata, and
  * the caller turns redirects off, so a redirect cannot lead the credentials

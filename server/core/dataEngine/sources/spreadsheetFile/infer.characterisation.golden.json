@@ -1,0 +1,2442 @@
+{
+ "invoiceSheet": {
+  "columns": [
+   {
+    "col": 0,
+    "letter": "A",
+    "header": "Datum",
+    "name": "Datum",
+    "key": "datum",
+    "type": "date",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "2026-01-15",
+     "2026-01-16",
+     "2026-01-17"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 3,
+    "unique": false,
+    "format": "date"
+   },
+   {
+    "col": 1,
+    "letter": "B",
+    "header": "Factuurnummer",
+    "name": "Factuurnummer",
+    "key": "factuurnummer",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "F-2026-001",
+     "F-2026-002",
+     "F-2026-003"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 3,
+    "unique": true,
+    "numFmt": "General"
+   },
+   {
+    "col": 2,
+    "letter": "C",
+    "header": "Leverancier",
+    "name": "Leverancier",
+    "key": "leverancier",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "Acme",
+     "Beta"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 2,
+    "unique": false,
+    "numFmt": "0.00"
+   },
+   {
+    "col": 3,
+    "letter": "D",
+    "header": "Bedrag",
+    "name": "Bedrag",
+    "key": "bedrag",
+    "type": "number",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "1234.5",
+     "10",
+     "5"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 3,
+    "unique": true,
+    "numFmt": "[$€-413] #,##0.00",
+    "format": "currency"
+   },
+   {
+    "col": 4,
+    "letter": "E",
+    "header": "Betaald",
+    "name": "Betaald",
+    "key": "betaald",
+    "type": "bool",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "true",
+     "false"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 2,
+    "unique": false
+   },
+   {
+    "col": 5,
+    "letter": "F",
+    "header": "Totaal",
+    "name": "Totaal",
+    "key": "totaal",
+    "type": "number",
+    "formula": true,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "2469",
+     "20",
+     "10"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 3,
+    "unique": true,
+    "numFmt": "0.0%",
+    "format": "percent"
+   }
+  ],
+  "keyCandidates": [
+   1,
+   3
+  ],
+  "warnings": [
+   "\"Totaal\" holds formulas, so it is read-only here."
+  ]
+ },
+ "csvStrings": {
+  "columns": [
+   {
+    "col": 0,
+    "letter": "A",
+    "header": "Naam",
+    "name": "Naam",
+    "key": "naam",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "Acme",
+     "Beta",
+     "Gamma"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 3,
+    "unique": true
+   },
+   {
+    "col": 1,
+    "letter": "B",
+    "header": "Datum",
+    "name": "Datum",
+    "key": "datum",
+    "type": "date",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "15-01-2026",
+     "16-01-2026",
+     "17-01-2026"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 3,
+    "unique": false,
+    "format": "date",
+    "dateFormat": "dd-mm-yyyy"
+   },
+   {
+    "col": 2,
+    "letter": "C",
+    "header": "Bedrag",
+    "name": "Bedrag",
+    "key": "bedrag",
+    "type": "number",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "1.234,56",
+     "10,5",
+     "€ 7"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 3,
+    "unique": true
+   },
+   {
+    "col": 3,
+    "letter": "D",
+    "header": "Actief",
+    "name": "Actief",
+    "key": "actief",
+    "type": "bool",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "ja",
+     "nee",
+     "wel"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 3,
+    "unique": false
+   },
+   {
+    "col": 4,
+    "letter": "E",
+    "header": "Tijdstip",
+    "name": "Tijdstip",
+    "key": "tijdstip",
+    "type": "datetime",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "15-01-2026 09:30",
+     "16-01-2026 10:00",
+     "2026-01-17 11:15"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 3,
+    "unique": false,
+    "format": "date",
+    "dateFormat": "dd-mm-yyyy"
+   }
+  ],
+  "keyCandidates": [
+   0,
+   2
+  ],
+  "warnings": []
+ },
+ "headerMissing": {
+  "error": {
+   "name": "SpreadsheetSourceError",
+   "status": 422,
+   "code": "header_missing",
+   "message": "The header row is empty — pick the row that holds the column names."
+  }
+ },
+ "headerAllBlank": {
+  "error": {
+   "name": "SpreadsheetSourceError",
+   "status": 422,
+   "code": "header_missing",
+   "message": "The header row is empty — pick the row that holds the column names."
+  }
+ },
+ "headerNotAList": {
+  "error": {
+   "name": "SpreadsheetSourceError",
+   "status": 422,
+   "code": "header_missing",
+   "message": "The header row is empty — pick the row that holds the column names."
+  }
+ },
+ "rowsNotAList": {
+  "columns": [
+   {
+    "col": 0,
+    "letter": "A",
+    "header": "A",
+    "name": "A",
+    "key": "a",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [],
+    "nonEmpty": 0,
+    "empties": 0,
+    "distinct": 0,
+    "unique": false
+   },
+   {
+    "col": 1,
+    "letter": "B",
+    "header": "B",
+    "name": "B",
+    "key": "b",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [],
+    "nonEmpty": 0,
+    "empties": 0,
+    "distinct": 0,
+    "unique": false
+   }
+  ],
+  "keyCandidates": [],
+  "warnings": []
+ },
+ "noRows": {
+  "columns": [
+   {
+    "col": 0,
+    "letter": "A",
+    "header": "A",
+    "name": "A",
+    "key": "a",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [],
+    "nonEmpty": 0,
+    "empties": 0,
+    "distinct": 0,
+    "unique": false
+   },
+   {
+    "col": 1,
+    "letter": "B",
+    "header": "B",
+    "name": "B",
+    "key": "b",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [],
+    "nonEmpty": 0,
+    "empties": 0,
+    "distinct": 0,
+    "unique": false
+   }
+  ],
+  "keyCandidates": [],
+  "warnings": []
+ },
+ "onlyBlankRows": {
+  "columns": [
+   {
+    "col": 0,
+    "letter": "A",
+    "header": "A",
+    "name": "A",
+    "key": "a",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [],
+    "nonEmpty": 0,
+    "empties": 1,
+    "distinct": 0,
+    "unique": false
+   }
+  ],
+  "keyCandidates": [],
+  "warnings": []
+ },
+ "headerShapes": {
+  "columns": [
+   {
+    "col": 0,
+    "letter": "A",
+    "header": "Naam",
+    "name": "Naam",
+    "key": "naam",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "a",
+     "h"
+    ],
+    "nonEmpty": 2,
+    "empties": 0,
+    "distinct": 2,
+    "unique": true
+   },
+   {
+    "col": 1,
+    "letter": "B",
+    "header": "",
+    "name": "B",
+    "key": "col_b",
+    "type": "text",
+    "formula": true,
+    "blankHeader": true,
+    "duplicateHeader": false,
+    "samples": [
+     "b",
+     "i"
+    ],
+    "nonEmpty": 2,
+    "empties": 0,
+    "distinct": 2,
+    "unique": true
+   },
+   {
+    "col": 2,
+    "letter": "C",
+    "header": "Naam",
+    "name": "Naam #2",
+    "key": "naam_2",
+    "type": "text",
+    "formula": true,
+    "blankHeader": false,
+    "duplicateHeader": true,
+    "samples": [
+     "c",
+     "j"
+    ],
+    "nonEmpty": 2,
+    "empties": 0,
+    "distinct": 2,
+    "unique": true
+   },
+   {
+    "col": 3,
+    "letter": "D",
+    "header": "",
+    "name": "D",
+    "key": "col_d",
+    "type": "text",
+    "formula": false,
+    "blankHeader": true,
+    "duplicateHeader": false,
+    "samples": [
+     "d",
+     "k"
+    ],
+    "nonEmpty": 2,
+    "empties": 0,
+    "distinct": 2,
+    "unique": true
+   },
+   {
+    "col": 4,
+    "letter": "E",
+    "header": "naam",
+    "name": "naam #3",
+    "key": "naam_3",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": true,
+    "samples": [
+     "e",
+     "l"
+    ],
+    "nonEmpty": 2,
+    "empties": 0,
+    "distinct": 2,
+    "unique": true
+   },
+   {
+    "col": 5,
+    "letter": "F",
+    "header": "Bedrag (€)",
+    "name": "Bedrag (€)",
+    "key": "bedrag",
+    "type": "number",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "1",
+     "4"
+    ],
+    "nonEmpty": 2,
+    "empties": 0,
+    "distinct": 2,
+    "unique": true
+   },
+   {
+    "col": 6,
+    "letter": "G",
+    "header": "42",
+    "name": "42",
+    "key": "c_42",
+    "type": "number",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "2",
+     "5"
+    ],
+    "nonEmpty": 2,
+    "empties": 0,
+    "distinct": 2,
+    "unique": true
+   },
+   {
+    "col": 7,
+    "letter": "H",
+    "header": "2026-03-01",
+    "name": "2026-03-01",
+    "key": "c_2026_03_01",
+    "type": "number",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "3",
+     "6"
+    ],
+    "nonEmpty": 2,
+    "empties": 0,
+    "distinct": 2,
+    "unique": true
+   },
+   {
+    "col": 8,
+    "letter": "I",
+    "header": "Naam",
+    "name": "Naam #4",
+    "key": "naam_4",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": true,
+    "samples": [
+     "f",
+     "m"
+    ],
+    "nonEmpty": 2,
+    "empties": 0,
+    "distinct": 2,
+    "unique": true
+   },
+   {
+    "col": 9,
+    "letter": "J",
+    "header": "padded",
+    "name": "padded",
+    "key": "padded",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "g",
+     "n"
+    ],
+    "nonEmpty": 2,
+    "empties": 0,
+    "distinct": 2,
+    "unique": true
+   }
+  ],
+  "keyCandidates": [
+   0,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9
+  ],
+  "warnings": [
+   "Column B has no header; it is shown as \"B\".",
+   "\"B\" holds formulas, so it is read-only here.",
+   "More than one column is called \"Naam\"; column C is shown as \"Naam #2\".",
+   "\"Naam #2\" holds formulas, so it is read-only here.",
+   "Column D has no header; it is shown as \"D\".",
+   "More than one column is called \"naam\"; column E is shown as \"naam #3\".",
+   "More than one column is called \"Naam\"; column I is shown as \"Naam #4\"."
+  ]
+ },
+ "cellClasses": {
+  "columns": [
+   {
+    "col": 0,
+    "letter": "A",
+    "header": "dates",
+    "name": "dates",
+    "key": "dates",
+    "type": "date",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "2026-01-15",
+     "2026-01-16",
+     "2026-01-17"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 3,
+    "unique": false,
+    "format": "date"
+   },
+   {
+    "col": 1,
+    "letter": "B",
+    "header": "times",
+    "name": "times",
+    "key": "times",
+    "type": "datetime",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "2026-01-15T13:45:00.000Z",
+     "2026-01-16T00:01:00.000Z",
+     "2026-01-17T23:59:00.000Z"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 3,
+    "unique": false,
+    "format": "date"
+   },
+   {
+    "col": 2,
+    "letter": "C",
+    "header": "bools",
+    "name": "bools",
+    "key": "bools",
+    "type": "bool",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "true",
+     "false"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 2,
+    "unique": false
+   },
+   {
+    "col": 3,
+    "letter": "D",
+    "header": "numbers",
+    "name": "numbers",
+    "key": "numbers",
+    "type": "number",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "12",
+     "-3.5",
+     "0"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 3,
+    "unique": true
+   },
+   {
+    "col": 4,
+    "letter": "E",
+    "header": "nonFinite",
+    "name": "nonFinite",
+    "key": "nonfinite",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "Infinity",
+     "-Infinity"
+    ],
+    "nonEmpty": 2,
+    "empties": 1,
+    "distinct": 0,
+    "unique": false
+   },
+   {
+    "col": 5,
+    "letter": "F",
+    "header": "iso",
+    "name": "iso",
+    "key": "iso",
+    "type": "date",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "2026-01-15",
+     "2026-01-16",
+     " 2026-01-17 "
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 3,
+    "unique": false,
+    "format": "date",
+    "dateFormat": "yyyy-mm-dd"
+   },
+   {
+    "col": 6,
+    "letter": "G",
+    "header": "isoBad",
+    "name": "isoBad",
+    "key": "isobad",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "2026-02-31",
+     "2026-00-10",
+     "2026-01-17x"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 3,
+    "unique": true
+   },
+   {
+    "col": 7,
+    "letter": "H",
+    "header": "isoTime",
+    "name": "isoTime",
+    "key": "isotime",
+    "type": "datetime",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "2026-01-15 13:45",
+     "2026-01-16T08:00",
+     "2026-01-17 00:00"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 3,
+    "unique": false,
+    "format": "date",
+    "dateFormat": "yyyy-mm-dd"
+   },
+   {
+    "col": 8,
+    "letter": "I",
+    "header": "isoTimeBad",
+    "name": "isoTimeBad",
+    "key": "isotimebad",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "2026-13-01 10:00",
+     "2026-01-40T10:00",
+     "nope"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 3,
+    "unique": true
+   },
+   {
+    "col": 9,
+    "letter": "J",
+    "header": "dayFirstBad",
+    "name": "dayFirstBad",
+    "key": "dayfirstbad",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "31-02-2026",
+     "00-01-2026",
+     "15-13-2026"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 3,
+    "unique": true
+   },
+   {
+    "col": 10,
+    "letter": "K",
+    "header": "dayTime",
+    "name": "dayTime",
+    "key": "daytime",
+    "type": "datetime",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "15/01/2026 09:30",
+     "16.01.2026 9:05:30",
+     "17-01-2026T07:00"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 3,
+    "unique": false,
+    "format": "date",
+    "dateFormat": "dd/mm/yyyy"
+   },
+   {
+    "col": 11,
+    "letter": "L",
+    "header": "dayTimeBad",
+    "name": "dayTimeBad",
+    "key": "daytimebad",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "15/01/2026 25:00",
+     "32/01/2026 10:00",
+     "17-01-2026 7"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 3,
+    "unique": true
+   },
+   {
+    "col": 12,
+    "letter": "M",
+    "header": "words",
+    "name": "words",
+    "key": "words",
+    "type": "bool",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "Ja",
+     "ONWAAR",
+     "niet"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 3,
+    "unique": false
+   },
+   {
+    "col": 13,
+    "letter": "N",
+    "header": "marks",
+    "name": "marks",
+    "key": "marks",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "x",
+     "1",
+     "0"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 3,
+    "unique": true
+   },
+   {
+    "col": 14,
+    "letter": "O",
+    "header": "objects",
+    "name": "objects",
+    "key": "objects",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "[object Object]",
+     "a",
+     "text"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 3,
+    "unique": true
+   }
+  ],
+  "keyCandidates": [
+   3,
+   6,
+   8,
+   9,
+   11,
+   13,
+   14
+  ],
+  "warnings": []
+ },
+ "thresholdAt95": {
+  "columns": [
+   {
+    "col": 0,
+    "letter": "A",
+    "header": "A",
+    "name": "A",
+    "key": "a",
+    "type": "number",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "0",
+     "1",
+     "2",
+     "3",
+     "4"
+    ],
+    "nonEmpty": 100,
+    "empties": 0,
+    "distinct": 96,
+    "unique": false
+   }
+  ],
+  "keyCandidates": [],
+  "warnings": [
+   "5 of 100 values in \"A\" are not a number and will be empty."
+  ]
+ },
+ "thresholdAt94": {
+  "columns": [
+   {
+    "col": 0,
+    "letter": "A",
+    "header": "A",
+    "name": "A",
+    "key": "a",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "0",
+     "1",
+     "2",
+     "3",
+     "4"
+    ],
+    "nonEmpty": 100,
+    "empties": 0,
+    "distinct": 95,
+    "unique": false
+   }
+  ],
+  "keyCandidates": [],
+  "warnings": []
+ },
+ "thresholdOption": {
+  "columns": [
+   {
+    "col": 0,
+    "letter": "A",
+    "header": "A",
+    "name": "A",
+    "key": "a",
+    "type": "number",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "0",
+     "1",
+     "2",
+     "3",
+     "4"
+    ],
+    "nonEmpty": 10,
+    "empties": 0,
+    "distinct": 7,
+    "unique": false
+   }
+  ],
+  "keyCandidates": [],
+  "warnings": [
+   "4 of 10 values in \"A\" are not a number and will be empty."
+  ]
+ },
+ "thresholdOptionMissed": {
+  "columns": [
+   {
+    "col": 0,
+    "letter": "A",
+    "header": "A",
+    "name": "A",
+    "key": "a",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "0",
+     "1",
+     "2",
+     "3",
+     "4"
+    ],
+    "nonEmpty": 10,
+    "empties": 0,
+    "distinct": 6,
+    "unique": false
+   }
+  ],
+  "keyCandidates": [],
+  "warnings": []
+ },
+ "straysPerType": {
+  "columns": [
+   {
+    "col": 0,
+    "letter": "A",
+    "header": "bools",
+    "name": "bools",
+    "key": "bools",
+    "type": "bool",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "nee",
+     "ja",
+     "misschien"
+    ],
+    "nonEmpty": 40,
+    "empties": 0,
+    "distinct": 3,
+    "unique": false
+   },
+   {
+    "col": 1,
+    "letter": "B",
+    "header": "dates",
+    "name": "dates",
+    "key": "dates",
+    "type": "date",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "01-01-2026",
+     "02-01-2026",
+     "03-01-2026",
+     "04-01-2026",
+     "05-01-2026"
+    ],
+    "nonEmpty": 40,
+    "empties": 0,
+    "distinct": 29,
+    "unique": false,
+    "format": "date",
+    "dateFormat": "dd-mm-yyyy"
+   },
+   {
+    "col": 2,
+    "letter": "C",
+    "header": "datetimes",
+    "name": "datetimes",
+    "key": "datetimes",
+    "type": "datetime",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "15-01-2026 09:30",
+     "02-01-2026",
+     "03-01-2026",
+     "04-01-2026",
+     "05-01-2026"
+    ],
+    "nonEmpty": 40,
+    "empties": 0,
+    "distinct": 30,
+    "unique": false,
+    "format": "date",
+    "dateFormat": "dd-mm-yyyy"
+   },
+   {
+    "col": 3,
+    "letter": "D",
+    "header": "numbers",
+    "name": "numbers",
+    "key": "numbers",
+    "type": "number",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "0,5",
+     "1,5",
+     "2,5",
+     "3,5",
+     "4,5"
+    ],
+    "nonEmpty": 40,
+    "empties": 0,
+    "distinct": 40,
+    "unique": true
+   }
+  ],
+  "keyCandidates": [
+   3
+  ],
+  "warnings": [
+   "1 of 40 values in \"bools\" are not a yes/no value and will be empty.",
+   "1 of 40 values in \"dates\" are not a date and will be empty.",
+   "1 of 40 values in \"datetimes\" are not a date and time and will be empty.",
+   "1 of 40 values in \"numbers\" are not a number and will be empty."
+  ]
+ },
+ "tieBreak": {
+  "columns": [
+   {
+    "col": 0,
+    "letter": "A",
+    "header": "numbersAndBools",
+    "name": "numbersAndBools",
+    "key": "numbersandbools",
+    "type": "number",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "1",
+     "true"
+    ],
+    "nonEmpty": 2,
+    "empties": 0,
+    "distinct": 2,
+    "unique": true
+   },
+   {
+    "col": 1,
+    "letter": "B",
+    "header": "boolsAndDates",
+    "name": "boolsAndDates",
+    "key": "boolsanddates",
+    "type": "bool",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "true",
+     "2026-01-01"
+    ],
+    "nonEmpty": 2,
+    "empties": 0,
+    "distinct": 2,
+    "unique": false
+   }
+  ],
+  "keyCandidates": [
+   0
+  ],
+  "warnings": [
+   "1 of 2 values in \"numbersAndBools\" are not a number and will be empty.",
+   "1 of 2 values in \"boolsAndDates\" are not a yes/no value and will be empty."
+  ]
+ },
+ "mixedDatesAndTimes": {
+  "columns": [
+   {
+    "col": 0,
+    "letter": "A",
+    "header": "When",
+    "name": "When",
+    "key": "when",
+    "type": "datetime",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "2026-01-01",
+     "02-01-2026",
+     "2026-01-03T09:00:00.000Z",
+     "2026-01-04"
+    ],
+    "nonEmpty": 4,
+    "empties": 0,
+    "distinct": 4,
+    "unique": false,
+    "format": "date",
+    "dateFormat": "yyyy-mm-dd"
+   }
+  ],
+  "keyCandidates": [],
+  "warnings": []
+ },
+ "dateSpelling": {
+  "columns": [
+   {
+    "col": 0,
+    "letter": "A",
+    "header": "Start",
+    "name": "Start",
+    "key": "start",
+    "type": "date",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "01/01/2026",
+     "02/01/2026",
+     "03/01/2026",
+     "04/01/2026",
+     "05/01/2026"
+    ],
+    "nonEmpty": 12,
+    "empties": 0,
+    "distinct": 12,
+    "unique": false,
+    "format": "date",
+    "dateFormat": "mm/dd/yyyy"
+   },
+   {
+    "col": 1,
+    "letter": "B",
+    "header": "Einde",
+    "name": "Einde",
+    "key": "einde",
+    "type": "date",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "01/01/2026",
+     "01/02/2026",
+     "01/03/2026",
+     "01/04/2026",
+     "01/05/2026"
+    ],
+    "nonEmpty": 12,
+    "empties": 0,
+    "distinct": 12,
+    "unique": false,
+    "format": "date",
+    "dateFormat": "dd/mm/yyyy"
+   },
+   {
+    "col": 2,
+    "letter": "C",
+    "header": "Alleen gokken",
+    "name": "Alleen gokken",
+    "key": "alleen_gokken",
+    "type": "date",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "01/01/2026",
+     "02/01/2026",
+     "03/01/2026",
+     "04/01/2026",
+     "05/01/2026"
+    ],
+    "nonEmpty": 12,
+    "empties": 0,
+    "distinct": 12,
+    "unique": false,
+    "format": "date",
+    "dateFormat": "dd/mm/yyyy"
+   },
+   {
+    "col": 3,
+    "letter": "D",
+    "header": "Gemengd",
+    "name": "Gemengd",
+    "key": "gemengd",
+    "type": "date",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "15-01-2026",
+     "15-02-2026",
+     "15-03-2026",
+     "15-04-2026",
+     "15-05-2026"
+    ],
+    "nonEmpty": 12,
+    "empties": 0,
+    "distinct": 12,
+    "unique": false,
+    "format": "date",
+    "dateFormat": "dd-mm-yyyy"
+   },
+   {
+    "col": 4,
+    "letter": "E",
+    "header": "Punten",
+    "name": "Punten",
+    "key": "punten",
+    "type": "date",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "1.1.2026",
+     "2.2.2026",
+     "3.3.2026",
+     "4.4.2026",
+     "5.5.2026"
+    ],
+    "nonEmpty": 12,
+    "empties": 0,
+    "distinct": 12,
+    "unique": false,
+    "format": "date",
+    "dateFormat": "dd.mm.yyyy"
+   }
+  ],
+  "keyCandidates": [],
+  "warnings": []
+ },
+ "datetimeSpelling": {
+  "columns": [
+   {
+    "col": 0,
+    "letter": "A",
+    "header": "Wanneer",
+    "name": "Wanneer",
+    "key": "wanneer",
+    "type": "datetime",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "03/04/2026 09:30",
+     "01/15/2026 10:00"
+    ],
+    "nonEmpty": 2,
+    "empties": 0,
+    "distinct": 2,
+    "unique": false,
+    "format": "date",
+    "dateFormat": "mm/dd/yyyy"
+   },
+   {
+    "col": 1,
+    "letter": "B",
+    "header": "Guess",
+    "name": "Guess",
+    "key": "guess",
+    "type": "datetime",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "03/04/2026 09:30",
+     "05/06/2026 10:00"
+    ],
+    "nonEmpty": 2,
+    "empties": 0,
+    "distinct": 2,
+    "unique": false,
+    "format": "date",
+    "dateFormat": "dd/mm/yyyy"
+   }
+  ],
+  "keyCandidates": [],
+  "warnings": []
+ },
+ "serialsInDateColumn": {
+  "columns": [
+   {
+    "col": 0,
+    "letter": "A",
+    "header": "Datum",
+    "name": "Datum",
+    "key": "datum",
+    "type": "date",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "46037",
+     "2026-01-16",
+     "46039"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 3,
+    "unique": false,
+    "numFmt": "dd-mm-yyyy",
+    "format": "date"
+   },
+   {
+    "col": 1,
+    "letter": "B",
+    "header": "Tijd",
+    "name": "Tijd",
+    "key": "tijd",
+    "type": "datetime",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "46037.5",
+     "46038.25",
+     "2026-01-17T08:00:00.000Z"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 3,
+    "unique": false,
+    "format": "date"
+   },
+   {
+    "col": 2,
+    "letter": "C",
+    "header": "Geen datumkolom",
+    "name": "Geen datumkolom",
+    "key": "geen_datumkolom",
+    "type": "number",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "46037",
+     "46038",
+     "46039"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 3,
+    "unique": true,
+    "numFmt": "€ #,##0",
+    "format": "currency"
+   },
+   {
+    "col": 3,
+    "letter": "D",
+    "header": "Onleesbaar",
+    "name": "Onleesbaar",
+    "key": "onleesbaar",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "-5",
+     "1000000000000",
+     "46039"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 3,
+    "unique": true
+   }
+  ],
+  "keyCandidates": [
+   2,
+   3
+  ],
+  "warnings": []
+ },
+ "sampleAgainstFullRead": {
+  "columns": [
+   {
+    "col": 0,
+    "letter": "A",
+    "header": "Typed by the sample",
+    "name": "Typed by the sample",
+    "key": "typed_by_the_sample",
+    "type": "number",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "1",
+     "2",
+     "3",
+     "later text",
+     "more text"
+    ],
+    "nonEmpty": 6,
+    "empties": 0,
+    "distinct": 6,
+    "unique": true
+   },
+   {
+    "col": 1,
+    "letter": "B",
+    "header": "Unique in the sample only",
+    "name": "Unique in the sample only",
+    "key": "unique_in_the_sample_only",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "a",
+     "b",
+     "c",
+     "d"
+    ],
+    "nonEmpty": 5,
+    "empties": 1,
+    "distinct": 4,
+    "unique": false
+   }
+  ],
+  "keyCandidates": [
+   0
+  ],
+  "warnings": []
+ },
+ "sampleRowsZero": {
+  "columns": [
+   {
+    "col": 0,
+    "letter": "A",
+    "header": "A",
+    "name": "A",
+    "key": "a",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "1",
+     "2"
+    ],
+    "nonEmpty": 2,
+    "empties": 0,
+    "distinct": 2,
+    "unique": true
+   }
+  ],
+  "keyCandidates": [
+   0
+  ],
+  "warnings": []
+ },
+ "uniqueness": {
+  "columns": [
+   {
+    "col": 0,
+    "letter": "A",
+    "header": "text unique",
+    "name": "text unique",
+    "key": "text_unique",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "a",
+     "b",
+     "c"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 3,
+    "unique": true
+   },
+   {
+    "col": 1,
+    "letter": "B",
+    "header": "number unique",
+    "name": "number unique",
+    "key": "number_unique",
+    "type": "number",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "1",
+     "2",
+     "3"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 3,
+    "unique": true
+   },
+   {
+    "col": 2,
+    "letter": "C",
+    "header": "with empty",
+    "name": "with empty",
+    "key": "with_empty",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "x",
+     "z"
+    ],
+    "nonEmpty": 2,
+    "empties": 1,
+    "distinct": 2,
+    "unique": false
+   },
+   {
+    "col": 3,
+    "letter": "D",
+    "header": "duplicates",
+    "name": "duplicates",
+    "key": "duplicates",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "p",
+     "q"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 2,
+    "unique": false
+   },
+   {
+    "col": 4,
+    "letter": "E",
+    "header": "bool",
+    "name": "bool",
+    "key": "bool",
+    "type": "bool",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "true",
+     "false"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 2,
+    "unique": false
+   },
+   {
+    "col": 5,
+    "letter": "F",
+    "header": "date",
+    "name": "date",
+    "key": "date",
+    "type": "date",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "2026-01-01",
+     "2026-01-02",
+     "2026-01-03"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 3,
+    "unique": false,
+    "format": "date"
+   },
+   {
+    "col": 6,
+    "letter": "G",
+    "header": "case and space",
+    "name": "case and space",
+    "key": "case_and_space",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "Acme  Inc",
+     "Acme Inc",
+     " acme inc "
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 2,
+    "unique": false
+   },
+   {
+    "col": 7,
+    "letter": "H",
+    "header": "number spellings",
+    "name": "number spellings",
+    "key": "number_spellings",
+    "type": "number",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "1",
+     "1,0",
+     "2"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 3,
+    "unique": true
+   },
+   {
+    "col": 8,
+    "letter": "I",
+    "header": "formula unique",
+    "name": "formula unique",
+    "key": "formula_unique",
+    "type": "number",
+    "formula": true,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "10",
+     "20",
+     "30"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 3,
+    "unique": true
+   }
+  ],
+  "keyCandidates": [
+   0,
+   1,
+   7
+  ],
+  "warnings": [
+   "\"formula unique\" holds formulas, so it is read-only here."
+  ]
+ },
+ "samplesCappedAndDeduped": {
+  "columns": [
+   {
+    "col": 0,
+    "letter": "A",
+    "header": "S",
+    "name": "S",
+    "key": "s",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "a",
+     "b",
+     "c",
+     "d",
+     "e"
+    ],
+    "nonEmpty": 9,
+    "empties": 0,
+    "distinct": 8,
+    "unique": false
+   },
+   {
+    "col": 1,
+    "letter": "B",
+    "header": "Dates",
+    "name": "Dates",
+    "key": "dates",
+    "type": "datetime",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "2026-01-01",
+     "2026-01-01T08:30:00.000Z",
+     "2026-01-02",
+     "2026-01-03",
+     "2026-01-04"
+    ],
+    "nonEmpty": 7,
+    "empties": 2,
+    "distinct": 5,
+    "unique": false,
+    "format": "date"
+   }
+  ],
+  "keyCandidates": [],
+  "warnings": []
+ },
+ "numberFormats": {
+  "columns": [
+   {
+    "col": 0,
+    "letter": "A",
+    "header": "pct",
+    "name": "pct",
+    "key": "pct",
+    "type": "number",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "0.1",
+     "0.2"
+    ],
+    "nonEmpty": 2,
+    "empties": 0,
+    "distinct": 2,
+    "unique": true,
+    "numFmt": "0%",
+    "format": "percent"
+   },
+   {
+    "col": 1,
+    "letter": "B",
+    "header": "cur",
+    "name": "cur",
+    "key": "cur",
+    "type": "number",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "1",
+     "5"
+    ],
+    "nonEmpty": 2,
+    "empties": 0,
+    "distinct": 2,
+    "unique": true,
+    "numFmt": "€ #,##0.00",
+    "format": "currency"
+   },
+   {
+    "col": 2,
+    "letter": "C",
+    "header": "dollar",
+    "name": "dollar",
+    "key": "dollar",
+    "type": "number",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "2",
+     "6"
+    ],
+    "nonEmpty": 2,
+    "empties": 0,
+    "distinct": 2,
+    "unique": true,
+    "numFmt": "[$$-409]#,##0",
+    "format": "currency"
+   },
+   {
+    "col": 3,
+    "letter": "D",
+    "header": "general",
+    "name": "general",
+    "key": "general",
+    "type": "number",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "3",
+     "7"
+    ],
+    "nonEmpty": 2,
+    "empties": 0,
+    "distinct": 2,
+    "unique": true,
+    "numFmt": "General"
+   },
+   {
+    "col": 4,
+    "letter": "E",
+    "header": "plain",
+    "name": "plain",
+    "key": "plain",
+    "type": "number",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "4",
+     "8"
+    ],
+    "nonEmpty": 2,
+    "empties": 0,
+    "distinct": 2,
+    "unique": true,
+    "numFmt": "0.00"
+   },
+   {
+    "col": 5,
+    "letter": "F",
+    "header": "dateWithFmt",
+    "name": "dateWithFmt",
+    "key": "datewithfmt",
+    "type": "date",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "2026-01-01",
+     "2026-01-02"
+    ],
+    "nonEmpty": 2,
+    "empties": 0,
+    "distinct": 2,
+    "unique": false,
+    "numFmt": "0%",
+    "format": "date"
+   },
+   {
+    "col": 6,
+    "letter": "G",
+    "header": "textWithFmt",
+    "name": "textWithFmt",
+    "key": "textwithfmt",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "a",
+     "b"
+    ],
+    "nonEmpty": 2,
+    "empties": 0,
+    "distinct": 2,
+    "unique": true,
+    "numFmt": "£0",
+    "format": "currency"
+   }
+  ],
+  "keyCandidates": [
+   0,
+   1,
+   2,
+   3,
+   4,
+   6
+  ],
+  "warnings": []
+ },
+ "raggedRows": {
+  "columns": [
+   {
+    "col": 0,
+    "letter": "A",
+    "header": "A",
+    "name": "A",
+    "key": "a",
+    "type": "number",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "1",
+     "2",
+     "3",
+     "4"
+    ],
+    "nonEmpty": 4,
+    "empties": 0,
+    "distinct": 4,
+    "unique": true
+   },
+   {
+    "col": 1,
+    "letter": "B",
+    "header": "B",
+    "name": "B",
+    "key": "b",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "x",
+     "y",
+     "z"
+    ],
+    "nonEmpty": 3,
+    "empties": 1,
+    "distinct": 3,
+    "unique": false
+   },
+   {
+    "col": 2,
+    "letter": "C",
+    "header": "C",
+    "name": "C",
+    "key": "c",
+    "type": "bool",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "true",
+     "false"
+    ],
+    "nonEmpty": 2,
+    "empties": 2,
+    "distinct": 2,
+    "unique": false
+   }
+  ],
+  "keyCandidates": [
+   0
+  ],
+  "warnings": []
+ },
+ "blankHeaderKeys": {
+  "columns": [
+   {
+    "col": 0,
+    "letter": "A",
+    "header": "",
+    "name": "A",
+    "key": "col_a",
+    "type": "text",
+    "formula": false,
+    "blankHeader": true,
+    "duplicateHeader": false,
+    "samples": [
+     "a"
+    ],
+    "nonEmpty": 1,
+    "empties": 0,
+    "distinct": 1,
+    "unique": true
+   },
+   {
+    "col": 1,
+    "letter": "B",
+    "header": "col_a",
+    "name": "col_a",
+    "key": "col_a_2",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "b"
+    ],
+    "nonEmpty": 1,
+    "empties": 0,
+    "distinct": 1,
+    "unique": true
+   },
+   {
+    "col": 2,
+    "letter": "C",
+    "header": "",
+    "name": "C",
+    "key": "col_c",
+    "type": "text",
+    "formula": false,
+    "blankHeader": true,
+    "duplicateHeader": false,
+    "samples": [
+     "c"
+    ],
+    "nonEmpty": 1,
+    "empties": 0,
+    "distinct": 1,
+    "unique": true
+   },
+   {
+    "col": 3,
+    "letter": "D",
+    "header": "Col A",
+    "name": "Col A #2",
+    "key": "col_a_2_2",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": true,
+    "samples": [
+     "d"
+    ],
+    "nonEmpty": 1,
+    "empties": 0,
+    "distinct": 1,
+    "unique": true
+   }
+  ],
+  "keyCandidates": [
+   0,
+   1,
+   2,
+   3
+  ],
+  "warnings": [
+   "Column A has no header; it is shown as \"A\".",
+   "Column C has no header; it is shown as \"C\".",
+   "More than one column is called \"Col A\"; column D is shown as \"Col A #2\"."
+  ]
+ },
+ "serialsTooLargeForADate": {
+  "columns": [
+   {
+    "col": 0,
+    "letter": "A",
+    "header": "Datum",
+    "name": "Datum",
+    "key": "datum",
+    "type": "number",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "1000000000000",
+     "10000000000000"
+    ],
+    "nonEmpty": 2,
+    "empties": 0,
+    "distinct": 2,
+    "unique": true
+   }
+  ],
+  "keyCandidates": [
+   0
+  ],
+  "warnings": []
+ },
+ "minoritySpellingFirst": {
+  "columns": [
+   {
+    "col": 0,
+    "letter": "A",
+    "header": "Proven",
+    "name": "Proven",
+    "key": "proven",
+    "type": "date",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "01/15/2026",
+     "15/01/2026",
+     "16/01/2026"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 3,
+    "unique": false,
+    "format": "date",
+    "dateFormat": "dd/mm/yyyy"
+   },
+   {
+    "col": 1,
+    "letter": "B",
+    "header": "Guessed",
+    "name": "Guessed",
+    "key": "guessed",
+    "type": "date",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "01-02-2026",
+     "03/04/2026",
+     "05/06/2026"
+    ],
+    "nonEmpty": 3,
+    "empties": 0,
+    "distinct": 3,
+    "unique": false,
+    "format": "date",
+    "dateFormat": "dd/mm/yyyy"
+   }
+  ],
+  "keyCandidates": [],
+  "warnings": []
+ },
+ "emptyNumberFormat": {
+  "columns": [
+   {
+    "col": 0,
+    "letter": "A",
+    "header": "A",
+    "name": "A",
+    "key": "a",
+    "type": "number",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "1"
+    ],
+    "nonEmpty": 1,
+    "empties": 0,
+    "distinct": 1,
+    "unique": true
+   }
+  ],
+  "keyCandidates": [
+   0
+  ],
+  "warnings": []
+ },
+ "textColumnWithDateCells": {
+  "columns": [
+   {
+    "col": 0,
+    "letter": "A",
+    "header": "A",
+    "name": "A",
+    "key": "a",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "15-01-2026",
+     "x",
+     "16-01-2026",
+     "y"
+    ],
+    "nonEmpty": 4,
+    "empties": 0,
+    "distinct": 4,
+    "unique": true,
+    "numFmt": "0%",
+    "format": "percent"
+   }
+  ],
+  "keyCandidates": [
+   0
+  ],
+  "warnings": []
+ },
+ "headerObjects": {
+  "columns": [
+   {
+    "col": 2,
+    "letter": "C",
+    "header": "Third",
+    "name": "Third",
+    "key": "third",
+    "type": "text",
+    "formula": true,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "c",
+     "g"
+    ],
+    "nonEmpty": 2,
+    "empties": 0,
+    "distinct": 2,
+    "unique": true
+   },
+   {
+    "col": 1,
+    "letter": "B",
+    "header": "No col",
+    "name": "No col",
+    "key": "no_col",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "b",
+     "f"
+    ],
+    "nonEmpty": 2,
+    "empties": 0,
+    "distinct": 2,
+    "unique": true
+   },
+   {
+    "col": 2,
+    "letter": "C",
+    "header": "Bad col",
+    "name": "Bad col",
+    "key": "bad_col",
+    "type": "text",
+    "formula": true,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "c",
+     "g"
+    ],
+    "nonEmpty": 2,
+    "empties": 0,
+    "distinct": 2,
+    "unique": true
+   },
+   {
+    "col": 3,
+    "letter": "D",
+    "header": "[object Object]",
+    "name": "[object Object]",
+    "key": "object_object",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "d",
+     "h"
+    ],
+    "nonEmpty": 2,
+    "empties": 0,
+    "distinct": 2,
+    "unique": true
+   }
+  ],
+  "keyCandidates": [
+   1,
+   3
+  ],
+  "warnings": [
+   "\"Third\" holds formulas, so it is read-only here.",
+   "\"Bad col\" holds formulas, so it is read-only here."
+  ]
+ },
+ "headersWithoutLetters": {
+  "columns": [
+   {
+    "col": 0,
+    "letter": "A",
+    "header": "€€",
+    "name": "€€",
+    "key": "column_1",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "a"
+    ],
+    "nonEmpty": 1,
+    "empties": 0,
+    "distinct": 1,
+    "unique": true
+   },
+   {
+    "col": 1,
+    "letter": "B",
+    "header": "!!!",
+    "name": "!!! #2",
+    "key": "c_2",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": true,
+    "samples": [
+     "b"
+    ],
+    "nonEmpty": 1,
+    "empties": 0,
+    "distinct": 1,
+    "unique": true
+   },
+   {
+    "col": 2,
+    "letter": "C",
+    "header": "123",
+    "name": "123",
+    "key": "c_123",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "c"
+    ],
+    "nonEmpty": 1,
+    "empties": 0,
+    "distinct": 1,
+    "unique": true
+   },
+   {
+    "col": 3,
+    "letter": "D",
+    "header": "id",
+    "name": "id",
+    "key": "id_col",
+    "type": "text",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "d"
+    ],
+    "nonEmpty": 1,
+    "empties": 0,
+    "distinct": 1,
+    "unique": true
+   }
+  ],
+  "keyCandidates": [
+   0,
+   1,
+   2,
+   3
+  ],
+  "warnings": [
+   "More than one column is called \"!!!\"; column B is shown as \"!!! #2\"."
+  ]
+ },
+ "straysCountedOverTheSample": {
+  "columns": [
+   {
+    "col": 0,
+    "letter": "A",
+    "header": "A",
+    "name": "A",
+    "key": "a",
+    "type": "number",
+    "formula": false,
+    "blankHeader": false,
+    "duplicateHeader": false,
+    "samples": [
+     "0",
+     "1",
+     "2",
+     "3",
+     "4"
+    ],
+    "nonEmpty": 50,
+    "empties": 0,
+    "distinct": 50,
+    "unique": true
+   }
+  ],
+  "keyCandidates": [
+   0
+  ],
+  "warnings": [
+   "1 of 20 values in \"A\" are not a number and will be empty."
+  ]
+ }
+}

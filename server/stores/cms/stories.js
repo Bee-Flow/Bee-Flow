@@ -15,7 +15,7 @@
 const { isPlainObject, mergeLocaleContent } = require('./shared');
 const { getPublishedSnapshot } = require('./publishing');
 const { getDefaultLocale } = require('./localeOverrides');
-const { hasTranslation } = require('../../core/seo/locales');
+const { hasTranslation } = require('../../i18n/pageLocales');
 const { STORY_METRICS_MAX, STORY_GRID_MAX } = require('../../i18n/defaults/cmsDefaults');
 const log = require('../../telemetry/log');
 

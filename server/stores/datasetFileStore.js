@@ -158,6 +158,7 @@ async function listDatasets(appId, ownerId) {
  * @param {number} bytes
  * @param {string} appId
  * @param {string} ownerId
+ * @param {number} n
  */
 async function recordPart(id, appId, ownerId, n, etag, bytes) {
     await initDB();

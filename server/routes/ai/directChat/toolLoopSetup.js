@@ -17,10 +17,10 @@ const {
     layoutVolatile: layoutVolatileBlock,
     createVolatileGuard,
     traceStablePrefix: traceTurnPrefix,
-} = require('./volatileLayout');
+} = require('../../../usecases/ai/directChat/volatileLayout');
 const { applyLoadTools, onSkillsActivated } = require('./toolRefresh');
 const { createToolContextFactory } = require('./toolContext');
-const { createUntokeniserSink } = require('./streamCallbacks');
+const { createUntokeniserSink } = require('../../../usecases/ai/directChat/streamCallbacks');
 const { bestEffort } = require('../../../utils/bestEffort');
 
 /** @typedef {ReturnType<typeof import('./turnState').createTurnState>} Turn */

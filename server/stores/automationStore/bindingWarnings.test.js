@@ -12,7 +12,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { persistableBindingWarnings, MAX_STORED_WARNINGS } = require('./bindingWarnings');
-const { redactForPersistence } = require('../../automation/runLogRedaction');
+const { redactForPersistence } = require('./runLogRedaction');
 
 const MISS = {
     field: 'to', kind: 'ref', path: 'steps.http.output.data.contact.e-mail', reason: 'missing',

@@ -58,7 +58,7 @@ let graphCalls = [];
 let gmailCalls = [];
 let createReplyRecipients = [{ emailAddress: { address: 'klant@example.com' } }];
 const SEND_PATH = /\/(send|sendMail|reply|replyAll)$/;
-stub('../services/email/providerClients', {
+stub('../utils/emailProviderClients', {
     gmailClientFromTokens: async () => ({
         users: {
             drafts: {

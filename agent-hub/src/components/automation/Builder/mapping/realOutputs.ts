@@ -58,7 +58,7 @@ export interface SampleRootGroup {
 /**
  * The server replaces any step payload over its 256 KB cap with a sentinel
  * `{ __truncated__: true, originalBytes, headSample }` (see
- * server/automation/payloadTruncation.js). A sentinel is not data — it must
+ * server/stores/automationStore/payloadTruncation.js). A sentinel is not data — it must
  * never become a sample, an auto-map source, or a pin.
  */
 export function isTruncatedOutput(v: unknown): boolean {
@@ -87,7 +87,7 @@ export function deepOverlay(base: unknown, real: unknown): unknown {
  * What of a stored output the builder may treat as the step's real data.
  * A truncation sentinel is not data — except its `preview`: a shape-preserving
  * copy of the payload (every level kept, long lists cut to their first items,
- * server/automation/payloadTruncation.js), which keeps the deep fields of a
+ * server/stores/automationStore/payloadTruncation.js), which keeps the deep fields of a
  * big output pickable. Undefined when there is nothing usable.
  */
 function usableOutput(v: unknown): unknown {

@@ -10,7 +10,7 @@ const { z, worded, choice, wholeNumber } = require('../../core/http/schemaParts'
 const log = require('../../telemetry/log');
 const { HttpError } = require('../../core/http/errors');
 const { recordKbQueryLogAudit } = require('../../stores/kb/queryLog/audit.mts');
-const { CHANNELS, OUTCOMES, REVIEW_STATUSES } = require('../../core/kb/queryLog/vocab.mts');
+const { CHANNELS, OUTCOMES, REVIEW_STATUSES } = require('../../stores/kb/queryLog/vocab.mts');
 
 const DATE_TEXT = 'A date is an ISO date or time, for example 2026-11-01.';
 const isDate = (/** @type {string} */ v) => !Number.isNaN(Date.parse(v));

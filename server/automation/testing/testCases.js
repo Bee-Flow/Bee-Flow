@@ -21,7 +21,7 @@
 
 const { HttpError } = require('../../core/http/errors');
 const { walkAllSteps } = require('../../core/packaging/walkers');
-const { isTruncatedOutput } = require('../../core/automationModel/payloadTruncation');
+const { isTruncatedOutput } = require('../../stores/automationStore/payloadTruncation');
 const { envCap } = require('../mcpRunReadCaps');
 const { evaluateAssertions } = require('./assertions');
 const { runCodeOnce } = require('./codeTestRun');

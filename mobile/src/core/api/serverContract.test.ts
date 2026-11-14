@@ -409,7 +409,7 @@ describe('persisted chat turns (finalizeTurn.js, direct chat and agent runtime)'
     // a reopened chat lost its tool steps and citations with no error anywhere.
     it('the direct chat still saves kbSources, toolHistory, thinking and images on the answer', () => {
         // finalizeTurn.js builds the saved rows in finalizeRows.js.
-        const source = read('routes/ai/directChat/finalizeRows.js');
+        const source = read('usecases/ai/directChat/finalizeRows.js');
         expect(missingOutput(source, ['kbSources', 'toolHistory', 'thinking', 'images'], 'assistantSave')).toEqual([]);
         // The parts of `thinking`, an image's `url`, and the turn's date.
         expect(absentTokens(source, ['text', 'redacted', 'url', 'mimeType', 'timestamp'])).toEqual([]);
@@ -978,7 +978,7 @@ describe('the flow editor (server/routes/automation/*, routes/ai/automationBuild
     const chatStream = read('routes/ai/automationBuilder/chatStream.js');
     // The turn's body schema (turnSetup.js) and its closing write (turnClosing.js).
     const turnSetup = read('routes/ai/automationBuilder/turnSetup.js');
-    const turnClosing = read('routes/ai/automationBuilder/turnClosing.js');
+    const turnClosing = read('usecases/ai/automationBuilder/turnClosing.js');
 
     /** A top-level `const <name> = …` declaration, up to the next top-level statement. */
     function declSlice(source: string, name: string): string {
@@ -1615,7 +1615,7 @@ describe('playbooks (server/stores/playbookStore.js + routes/playbooks/)', () =>
     // Mirrored by Playbook / PlaybookSummary in src/features/playbooks/model/types.ts
     // and read by src/features/playbooks/api/readers.ts.
     const store = read('stores/playbookStore.js');
-    const phaseList = read('routes/playbooks/phaseList.js');
+    const phaseList = read('usecases/playbooks/phaseList.js');
     const routes = readTree('routes/playbooks') + readTree('usecases/playbooks');
 
     it('mapRow still maps every field the run screen reads, the version above all', () => {
@@ -1993,7 +1993,7 @@ describe('the chat answer, its cards and its composer (features/chat)', () => {
     });
 
     it('persists the parts of an answer the phone reads back (messageReader.ts)', () => {
-        const finalize = read('routes/ai/directChat/finalizeRows.js');
+        const finalize = read('usecases/ai/directChat/finalizeRows.js');
         expect(
             absentTokens(finalize, ['thinkingParts', 'toolHistory', 'emailDrafts', 'calendarDrafts', 'mapEmbeds', 'audioFiles', 'tokenisationInfo', 'autoSelectedTier']),
         ).toEqual([]);

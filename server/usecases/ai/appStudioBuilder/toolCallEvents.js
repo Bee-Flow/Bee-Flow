@@ -13,6 +13,7 @@
 
 const { findNode } = require('../../../appStudio/definitionOps');
 const { truncateJson } = require('./turnLoop');
+const { summariseToolResult } = require('./toolSummaries');
 
 /** @type {Record<string, string>} */
 const TOOL_LABELS = {
@@ -71,18 +72,7 @@ const TOOL_CALL_PAYLOAD_CHARS = 8_000;
 
 /**
  * @typedef {import('../../../appStudio/builderTools').ToolArgs} ToolArgs
- * @typedef {import('../../../appStudio/builderTools').ToolResult & {
- *   meta?: { name?: string }, screenId?: string, sectionId?: string, removed?: string,
- *   added?: Array<{ id?: string, type?: string, label?: string }>, batch?: boolean, applied?: number, updated?: string,
- *   moved?: string, toParentId?: string, created?: boolean, actionId?: string, hitCount?: number, truncated?: boolean,
- *   automations?: unknown[], automation?: { title?: string }, key?: string, tableId?: string, fields?: unknown[], migration?: string,
- *   table?: { id?: string, name?: string, key?: string, linked?: { kind?: string, mode?: string, rowCount?: number } },
- *   note?: string, todos?: Array<{ done?: boolean }>, next?: string, roles?: string[], inserted?: number, failed?: unknown[],
- *   name?: string, datasetId?: string, rowCount?: number, connectors?: unknown[], more?: boolean,
- *   static?: { errors?: unknown[] }, emptyTables?: unknown[], ok?: boolean,
- *   _screenshotDataUrl?: string, _screenshotCaption?: string, content?: string,
- *   planId?: string, index?: number, label?: string, templates?: unknown[], templateId?: string, finalized?: boolean,
- * }} ToolResult
+ * @typedef {import('./toolSummaries').ToolResult} ToolResult
  * @typedef {{ id: string, type: string|null, label: string|null }} AddedItem
  */
 
@@ -146,7 +136,7 @@ function toolCallEvent(name, args, result, ok, draftWrap) {
     payload.arguments = truncateJson(args, TOOL_CALL_PAYLOAD_CHARS);
     if (result && typeof result === 'object') {
         // Never the screenshot bytes: the success result carries the data URL
-        // on a side channel that must stay server-side (see summariseToolResult).
+        // on a side channel that must stay server-side (see toolSummaries.js).
         const { _screenshotDataUrl, _screenshotCaption, ...rest } = result;
         void _screenshotDataUrl; void _screenshotCaption;
         payload.result = truncateJson(rest, TOOL_CALL_PAYLOAD_CHARS);
@@ -154,90 +144,6 @@ function toolCallEvent(name, args, result, ok, draftWrap) {
         payload.result = truncateJson(result, TOOL_CALL_PAYLOAD_CHARS);
     }
     return payload;
-}
-
-/**
- * One short human line per tool result — feeds the tool_call SSE event.
- * @param {string} name
- * @param {ToolArgs|null|undefined} args
- * @param {ToolResult|null|undefined} result
- * @returns {string}
- */
-function summariseToolResult(name, args, result) {
-    /**
-     * @param {string} s
-     */
-    const cap = (s) => {
-        const str = String(s || '').replace(/\s+/g, ' ').trim();
-        return str.length > 140 ? `${str.slice(0, 140)}…` : str;
-    };
-    if (result && typeof result === 'object' && result.error) return cap(result.error);
-    switch (name) {
-        case 'app_set_meta': return cap(`App is now "${result?.meta?.name || args?.name || 'Untitled app'}"`);
-        case 'app_set_theme': return 'Theme updated';
-        case 'app_add_screen': return cap(`Added screen "${args?.name || 'Screen'}" (${result?.screenId})`);
-        case 'app_update_screen': return cap(`Updated screen ${args?.screenId}`);
-        case 'app_remove_screen': return cap(`Removed screen ${result?.removed}`);
-        case 'app_add_section': return cap(`Added section ${result?.sectionId}`);
-        case 'app_update_section': return cap(`Restyled section ${result?.sectionId}`);
-        case 'app_add_components': return cap(`Added ${Array.isArray(result?.added) ? result.added.length : 0} component(s)`);
-        // The three patch tools take a single form OR a batch, and the batch
-        // result carries { batch:true, applied } instead of the single form's
-        // per-call args. Reading args.* on a batch printed "undefined → …" in
-        // the user's transcript, so the batch shape gets its own line rather
-        // than a template that only happens to work one way round.
-        case 'app_update_component':
-            return cap(result?.batch ? `Updated ${result.applied} component(s)` : `Updated ${result?.updated}`);
-        case 'app_move_node': return cap(`Moved ${result?.moved} → ${result?.toParentId}`);
-        case 'app_remove_node': return cap(`Removed ${result?.removed}`);
-        case 'app_set_action':
-            return cap(result?.batch
-                ? `Configured ${result.applied} action(s)`
-                : `${result?.created ? 'Created' : 'Updated'} action ${result?.actionId} (${args?.action?.kind || '?'})`);
-        case 'app_remove_action': return cap(`Removed action ${result?.removed}`);
-        case 'app_bind_action':
-            if (result?.batch) return cap(`Wired ${result.applied} handler(s)`);
-            return cap(args?.actionId === null ? `Cleared ${args?.event} on ${args?.nodeId}` : `${args?.event} → ${result?.actionId}`);
-        case 'app_get_draft': return 'Read the current draft';
-        case 'app_get_node': return cap(`Read ${Array.isArray(result?.nodes) ? result.nodes.length : 0} component(s)`);
-        case 'app_find_nodes': return cap(`${result?.hitCount ?? 0} match(es)${result?.truncated ? ' (truncated)' : ''}`);
-        case 'app_list_automations': return cap(`${Array.isArray(result?.automations) ? result.automations.length : 0} automation(s) available`);
-        case 'app_inspect_automation': return cap(`Inspected ${result?.automation?.title || args?.automationId}`);
-        case 'app_upsert_table': return cap(`Table "${result?.key}" (${result?.tableId}) — ${Array.isArray(result?.fields) ? result.fields.length : 0} field(s), ${result?.migration || 'saved'}`);
-        case 'app_link_datatable': {
-            const t = result?.table || {};
-            const l = t.linked || {};
-            return cap(`Linked "${t.name || t.key || '?'}" (${t.id || '?'})${l.kind ? ` — ${l.kind === 'nextcloud' ? 'Nextcloud mirror' : 'Studio table'}` : ''}${l.mode ? `, ${l.mode === 'read' ? 'read-only' : 'read-write'}` : ''}${Number.isFinite(l.rowCount) ? `, ${l.rowCount} live row${l.rowCount === 1 ? '' : 's'}` : ''}${result?.note ? ` — ${result.note}` : ''}`);
-        }
-        case 'app_set_plan': {
-            const todos = Array.isArray(result?.todos) ? result.todos : [];
-            const done = todos.filter((/** @type {{ done?: boolean }} */ t) => t && t.done).length;
-            return cap(todos.length ? `Plan ${done}/${todos.length}${result?.next ? ` · next: ${result.next}` : ''}` : 'Plan cleared');
-        }
-        case 'app_remove_table': return cap(`Removed table ${result?.removed}${result?.note ? ` — ${result.note}` : ''}`);
-        case 'app_set_roles': return cap(`Roles: ${Array.isArray(result?.roles) ? result.roles.join(', ') : '?'}`);
-        case 'app_seed_records': return cap(`Inserted ${result?.inserted ?? 0} row(s) into ${result?.tableId || args?.tableId}${Array.isArray(result?.failed) ? `, ${result.failed.length} failed` : ''}`);
-        case 'app_upsert_dataset': return cap(`Dataset "${result?.name}" (${result?.datasetId}) — ${result?.rowCount ?? 0} preview row(s)`);
-        case 'app_get_data_model': return 'Read the data model';
-        case 'app_list_connectors': return cap(`${Array.isArray(result?.connectors) ? result.connectors.length : 0} connector(s) available`);
-        case 'app_list_assets': return cap(`${Array.isArray(result?.assets) ? result.assets.length : 0} uploaded file(s)`);
-        case 'app_query_data': return cap(`${result?.rowCount ?? 0} row(s)${result?.more ? ' (more available)' : ''}`);
-        case 'app_dry_run': {
-            const errCount = Array.isArray(result?.static?.errors) ? result.static.errors.length : 0;
-            const empties = Array.isArray(result?.emptyTables) ? result.emptyTables.length : 0;
-            if (result?.ok) return cap(`Dry-run clean${empties ? ` (${empties} empty table binding${empties === 1 ? '' : 's'})` : ''}`);
-            return cap(`Dry-run found ${errCount} error${errCount === 1 ? '' : 's'}${empties ? `, ${empties} empty binding${empties === 1 ? '' : 's'}` : ''} — fix before finalize`);
-        }
-        // NEVER reach into other fields here — the success result carries the
-        // full base64 data url on a side channel and must not leak into cap().
-        case 'app_screenshot': return cap(result?._screenshotDataUrl ? (result._screenshotCaption || 'Screenshot captured') : (result?.content || ''));
-        case 'app_propose_plan': return cap(`Proposed a build plan${result?.planId ? ` (${result.planId})` : ''} — review and approve it to build`);
-        case 'app_mark_phase': return cap(`Phase ${result?.index ?? '?'}: ${result?.label || ''}`);
-        case 'app_list_templates': return cap(`${Array.isArray(result?.templates) ? result.templates.length : 0} template(s) available`);
-        case 'app_apply_template': return cap(`Applied template ${result?.templateId || args?.templateId || '?'}`);
-        case 'app_finalize': return result?.finalized ? cap(`App "${result.name}" is valid and saved`) : 'Finalize blocked by validation errors';
-        default: return '';
-    }
 }
 
 module.exports = {

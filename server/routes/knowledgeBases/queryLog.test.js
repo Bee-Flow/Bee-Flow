@@ -16,7 +16,7 @@ process.env.MASTER_ENCRYPTION_KEY = process.env.MASTER_ENCRYPTION_KEY || 'qlog-t
 const { usePglitePool } = require('../../testUtils/pglitePool');
 const { pg, close: closePg } = usePglitePool();
 const h = require('../../testUtils/routeHarness');
-const crypto = require('../../core/kb/queryLog/crypto.mts');
+const crypto = require('../../stores/kb/queryLog/crypto.mts');
 const { ATTESTATION, enableBody } = require('../../testUtils/kbQueryLogAttestation');
 
 const ORG = 'org-ql';           // licensed (enterprise plan)

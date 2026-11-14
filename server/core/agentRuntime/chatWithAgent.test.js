@@ -25,7 +25,7 @@ const { installResolveStub } = require('../../testUtils/stubRequire');
 // the helpers the streaming route runs.
 const tokenMaps = require('../dlp/dlpTokenMaps');
 const realOutbound = require('../dlp/applyTokenMapToOutbound');
-const { restoreTokens } = require('../privacy/piiDetection/tokenRestore');
+const { restoreTokens } = require('../../utils/piiTokenRestore');
 
 const SYNTH_EMAIL = 'someone@example.test';
 

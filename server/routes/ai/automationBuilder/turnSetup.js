@@ -9,18 +9,10 @@
  * object the route hands from phase to phase.
  */
 
-const log = require('../../../telemetry/log');
-const automationStore = require('../../../stores/automationStore');
-const { getUserTierMap } = require('../../../core/llm/modelResolver');
-const { tierAccessFor, tierRefusal } = require('../../../core/entitlements/tierAccess');
 const { summariseDefinition, renderAgentDraftState } = require('../../../automation/summarise');
-// Lives in automation/ rather than here because the MCP surface
-// (automation/mcpBuilder.js) needs the same catalog, and automation/ may not
-// require routes/ (server/layering.test.js).
-const { buildCatalogForUser, inputSchemasByTool, inspectedToolsFrom } = require('../../../automation/builderCatalog');
-const { loadOrCreateDraft } = require('./builderDraft');
 const { MODES, isBlankDraft, planMentionsRemoval, pendingProposal } = require('../../../usecases/ai/automationBuilder/workMode');
-const { setupDatatableTurn, clientSnapshot } = require('./datatableTurn');
+const { clientSnapshot } = require('../../../usecases/ai/automationBuilder/proposalPayload');
+const { passesFeatureGate, tiersOfTurn, loadDraftAndSession, approvedPlanOf, questionRound, seedTodos, loadCatalogs } = require('./turnSetupSteps');
 const { turnModeOf } = require('../../../usecases/ai/automationBuilder/modeRules.mts');
 const { z, worded, bodyOf, queryOf, closedObject, choice, flag, typeError } = require('../../../core/http/schemaParts');
 
@@ -42,7 +34,7 @@ const { z, worded, bodyOf, queryOf, closedObject, choice, flag, typeError } = re
  * The turn object ./chatStream.js builds from the request; each phase
  * (setupTurn, resolveTurnModel, assembleTurnPrompt, buildToolMenu, the build
  * loop) adds its part.
- * @typedef {Awaited<ReturnType<typeof tierAccessFor>>} TurnTierAccess
+ * @typedef {Awaited<ReturnType<typeof import('../../../core/entitlements/tierAccess').tierAccessFor>>} TurnTierAccess
  * @typedef {{
  *   req: import('express').Request, res: import('express').Response, userId: string,
  *   message: string | null, clientSession: string | null, automationId: string | null, modelTier: string,
@@ -53,30 +45,30 @@ const { z, worded, bodyOf, queryOf, closedObject, choice, flag, typeError } = re
  *   send: (event: string, data: unknown) => void,
  *   narrator: ReturnType<typeof import('../../../usecases/ai/automationBuilder/thoughtNarrator').createThoughtNarrator> | null,
  *   codeStepEnabled: boolean, userOrgForTiers: string | null,
- *   tiers: Awaited<ReturnType<typeof getUserTierMap>>, requestedTier: string,
- *   permittedTiers: Awaited<ReturnType<typeof getUserTierMap>>,
- *   autoTiers: Awaited<ReturnType<typeof getUserTierMap>>,
+ *   tiers: Awaited<ReturnType<typeof import('../../../core/llm/modelResolver').getUserTierMap>>, requestedTier: string,
+ *   permittedTiers: Awaited<ReturnType<typeof import('../../../core/llm/modelResolver').getUserTierMap>>,
+ *   autoTiers: Awaited<ReturnType<typeof import('../../../core/llm/modelResolver').getUserTierMap>>,
  *   draftWrap: BuilderDraftWrap,
- *   snapshot: Awaited<ReturnType<typeof automationStore.getBuilderSession>> | null,
- *   reviewPlan: Awaited<ReturnType<typeof automationStore.getBuilderSession>>['reviewPlan'] | null,
+ *   snapshot: Awaited<ReturnType<typeof import('../../../stores/automationStore').getBuilderSession>> | null,
+ *   reviewPlan: Awaited<ReturnType<typeof import('../../../stores/automationStore').getBuilderSession>>['reviewPlan'] | null,
  *   reviewQuestions: Array<{ choice?: unknown, [k: string]: unknown }> | null,
  *   planCurrent: boolean,
- *   approvedPlan: Awaited<ReturnType<typeof automationStore.getBuilderSession>>['reviewPlan'] | null,
+ *   approvedPlan: Awaited<ReturnType<typeof import('../../../stores/automationStore').getBuilderSession>>['reviewPlan'] | null,
  *   turnMode: string, bufferedBuild: boolean, permissionMode: string, isolated: boolean,
  *   planAllowsRemoval: boolean, pausedAfterStep: boolean,
  *   baseDraft: import('../../../automation/builderTools/draftGraph').DraftGraph,
  *   baseTitle: string | undefined, baseDescription: string | undefined,
  *   savedProposal: ReturnType<typeof pendingProposal>,
- *   reviewOutcome: Awaited<ReturnType<typeof automationStore.getBuilderSession>>['reviewOutcome'] | null,
+ *   reviewOutcome: Awaited<ReturnType<typeof import('../../../stores/automationStore').getBuilderSession>>['reviewOutcome'] | null,
  *   priorQuestions: unknown[] | null,
- *   priorMeta: Awaited<ReturnType<typeof automationStore.getBuilderSession>>['questionsMeta'] | null,
+ *   priorMeta: Awaited<ReturnType<typeof import('../../../stores/automationStore').getBuilderSession>>['questionsMeta'] | null,
  *   planCycleRound: number, answerTurn: boolean, questionsClosed: boolean, planWritten: boolean,
  *   storedCatalogOrder: string[] | null,
- *   catalog: Awaited<ReturnType<typeof buildCatalogForUser>> & { toolNames?: Set<string>, datatables?: BuilderDraftWrap['_datatables'], documents?: BuilderDraftWrap['_documents'], datatableRequireChoice?: boolean },
- *   tableChoice: Awaited<ReturnType<typeof setupDatatableTurn>>,
+ *   catalog: Awaited<ReturnType<typeof import('../../../automation/builderCatalog').buildCatalogForUser>> & { toolNames?: Set<string>, datatables?: BuilderDraftWrap['_datatables'], documents?: BuilderDraftWrap['_documents'], datatableRequireChoice?: boolean },
+ *   tableChoice: Awaited<ReturnType<typeof import('./datatableTurn').setupDatatableTurn>>,
  *   summary: string, agentDraftState: string,
  *   modelId: string, cfg: Awaited<ReturnType<typeof import('../../../core/aiAgent').getProviderForModel>>,
- *   tier: Awaited<ReturnType<typeof getUserTierMap>>[string],
+ *   tier: Awaited<ReturnType<typeof import('../../../core/llm/modelResolver').getUserTierMap>>[string],
  *   adapter: ReturnType<typeof import('../../../core/providers').getAdapter>,
  *   narrationModelId: string, thinkingModelId: string,
  *   profile: ReturnType<typeof import('../../../core/automationModel/builderModelProfiles').getProfileForModel>,
@@ -153,74 +145,19 @@ const TurnQuery = queryOf({
  * @param {BuilderTurn} turn
  */
 async function setupTurn(turn) {
-    const {
-        req, res, send, userId,
-        message, clientSession, automationId, modelTier, workMode, alwaysPlanLarge, pauseAfterStep, approvedPlanId,
-        history, seedMetadata, wantsResume,
-    } = turn;
-    // Feature gate: 'automations' is a per-org beta feature.
-    // Admins toggle it from the admin dashboard → Security → Beta.
-    // Super admins always have access.
-    const { userHasBetaFeature } = require('../../../core/entitlements/betaFeatures');
-    const hasFeature = await userHasBetaFeature(userId, 'automations', req.session);
-    if (!hasFeature) {
-        send('error', { error: 'The Automations beta is not enabled for your organisation. Ask an administrator to enable it under Security → Beta Features.' });
-        res.end(); return false;
-    }
+    const { res, send, workMode, alwaysPlanLarge, pauseAfterStep, approvedPlanId, wantsResume } = turn;
+    if (!await passesFeatureGate(turn)) return false;
     // Code steps are offered wherever they can run: there is no switch,
     // only the sandbox being installed.
     const codeStepEnabled = require('../../../automation/codeSandbox').isAvailable();
+    const tierChoice = await tiersOfTurn(turn);
+    if (!tierChoice) return false;
 
-    // The tiers this turn may run on, read before a draft is loaded so a
-    // refused turn leaves nothing behind. The map is EU-aware base tiers
-    // plus custom tiers, the same source direct chat resolves against;
-    // WHICH of them this person may use is core/entitlements/tierAccess,
-    // for automation: the list the builder's own dropdown offers. It used
-    // to be the map alone, so an explicit tier outside the person's groups
-    // ran, and `auto` and the floor could land on any configured tier.
-    const userOrgForTiers = req.session?.user?.organizationId || null;
-    const tiers = await getUserTierMap({ userOrgId: userOrgForTiers, userId });
-    const tierAccess = await tierAccessFor({ userId, session: req.session, taskType: 'automation' });
-    const requestedTier = modelTier || 'fast';
-    const permittedTiers = tierAccess.narrow(tiers);
-    // What `auto`, and the floor after it, may choose from.
-    const { candidates: autoTiers, refused: autoRefused } = tierAccess.autoChoice(tiers);
-    if (!tierAccess.allows(requestedTier) || (requestedTier === 'auto' && autoRefused)) {
-        const refusal = tierRefusal(requestedTier);
-        log.info(`[AutomationBuilder] Tier "${requestedTier}" is not available to this user — refused`);
-        send('error', { error: refusal.error, code: refusal.code });
-        res.end(); return false;
-    }
-
-    // Resolve / load the draft.
-    /** @type {BuilderDraftWrap} */
-    let draftWrap = await loadOrCreateDraft({ userId, builderSessionId: clientSession, automationId, seedMetadata });
-    send('builder_session', { builderSessionId: draftWrap.builderSessionId, automationId: draftWrap.automationId });
-
-    // The persisted builder session is read on EVERY turn of an existing
-    // draft, not only on ?resume=1: it carries session state the prompt
-    // must replay verbatim — the catalogue order chosen on the first turn
-    // (see rankApps.applyCatalogOrder) and the to-do list. Seeding the
-    // to-do list only on a resume would start a normal second turn
-    // from an empty plan while the comment further down claims
-    // it "survives across turns".
-    let snapshot = null;
-    if (draftWrap.automationId) {
-        try { snapshot = await automationStore.getBuilderSession(draftWrap.automationId, userId); }
-        catch (_) { snapshot = null; /* non-fatal */ }
-    }
+    const { draftWrap, snapshot } = await loadDraftAndSession(turn);
     let reviewPlan = snapshot?.reviewPlan || null;
-    let reviewQuestions = null;
+    const reviewQuestions = null;
     const planCurrent = !reviewPlan?.baseDefinition || JSON.stringify(reviewPlan.baseDefinition) === JSON.stringify(draftWrap.def);
-    // A plan under review is built only against the draft it was written for.
-    // A plan already being built (`building`: the build is not finished;
-    // `paused`: it stopped for a question or a step) is the user's own work
-    // going on: they may have touched the canvas in between, and refusing
-    // every follow-up for that would leave the composer on "Building plan"
-    // with no way to continue. Any work mode may carry the id (the composer
-    // sends the mode the user chose and the id of the plan being built).
-    const approvedPlan = !!req.body.workMode && approvedPlanId && reviewPlan?.id === approvedPlanId
-        && (reviewPlan.status === 'review' ? planCurrent : ['paused', 'building'].includes(reviewPlan.status)) ? reviewPlan : null;
+    const approvedPlan = approvedPlanOf(turn, reviewPlan, planCurrent);
     if (approvedPlanId && !approvedPlan) {
         send('error', { error: 'This plan revision is no longer available. Review and approve the latest plan.' });
         res.end(); return false;
@@ -232,13 +169,13 @@ async function setupTurn(turn) {
     const permissionMode = bufferedBuild ? 'approve' : turnMode;
     const isolated = turnMode !== 'build' || bufferedBuild;
     // An approved plan that names a step to remove lets this build turn call
-    // builder_remove_step — for exactly the steps that plan names (checked per
-    // call at the dispatch below). Never in a buffered build, which stages.
+    // builder_remove_step, for exactly the steps that plan names (checked per
+    // call at the dispatch). Never in a buffered build, which stages.
     const planAllowsRemoval = !!approvedPlan && !bufferedBuild && planMentionsRemoval(approvedPlan);
-    let pausedAfterStep = false;
-    let baseDraft = structuredClone(draftWrap.def);
-    let baseTitle = draftWrap.title;
-    let baseDescription = draftWrap.description;
+    const pausedAfterStep = false;
+    const baseDraft = structuredClone(draftWrap.def);
+    const baseTitle = draftWrap.title;
+    const baseDescription = draftWrap.description;
     // Preview mutations operate on their own copy; the persisted definition
     // and all runtime actions remain untouched until a human applies it.
     if (isolated) draftWrap.def = structuredClone(baseDraft);
@@ -251,22 +188,8 @@ async function setupTurn(turn) {
     // staged and a follow-up adds to the proposal instead of starting over
     // from the live draft. The live draft stays the base.
     const savedProposal = pendingProposal(snapshot?.proposal, baseDraft);
-    const reviewOutcome = snapshot?.reviewOutcome || null;
-    // ── The question round of a plan ──
-    // One round per plan cycle, everything asked at once. The cycle starts
-    // with the first plan turn after a built, rejected or missing plan and
-    // ends when builder_write_plan succeeds. The server remembers that it
-    // asked (`questionsMeta` in the snapshot): the model alone did not, and
-    // asked again after every answer.
-    const priorQuestions = Array.isArray(snapshot?.reviewQuestions) && snapshot.reviewQuestions.length ? snapshot.reviewQuestions : null;
-    const cycleOver = (reviewOutcome?.kind === 'plan' && reviewOutcome.status === 'rejected') || snapshot?.reviewPlan?.status === 'built';
-    const priorMeta = cycleOver ? null : (snapshot?.questionsMeta || null);
-    let planCycleRound = (turnMode === 'plan' && priorMeta?.mode === 'plan') ? (priorMeta.round || 0) : 0;
-    // The previous turn showed the card and this turn is the user's reply
-    // (the card's answers or a typed message): the plan follows now.
-    const answerTurn = turnMode === 'plan' && !!priorQuestions;
-    const questionsClosed = turnMode === 'plan' && (planCycleRound >= 1 || answerTurn);
-    let planWritten = false;
+    const questions = questionRound(snapshot, turnMode);
+    const planWritten = false;
     if (isolated && savedProposal) {
         draftWrap.def = structuredClone(savedProposal.definition);
         if (typeof savedProposal.title === 'string') draftWrap.title = savedProposal.title;
@@ -274,131 +197,35 @@ async function setupTurn(turn) {
     }
     if (approvedPlan) reviewPlan = { ...reviewPlan, status: 'building', pauseAfterStep };
     if (reviewPlan) send('review_plan', { plan: reviewPlan });
-    // Resume support — when the client asks (?resume=1), re-emit the
-    // last persisted snapshot before processing the new turn. The
-    // client uses this to rehydrate any chat history + draft +
-    // validation state that was lost on a dropped SSE.
+    // Resume support: when the client asks (?resume=1), re-emit the last
+    // persisted snapshot before processing the new turn. The client uses
+    // this to rehydrate the chat history, draft and validation state that
+    // was lost on a dropped SSE.
     if (wantsResume && snapshot) {
         send('resume', { snapshot: clientSnapshot(snapshot) });
         if (Array.isArray(snapshot.todos) && snapshot.todos.length) send('plan', { todos: snapshot.todos });
     }
-    // Per-turn to-do list (builder_set_plan), carried across turns.
-    draftWrap._todos = Array.isArray(snapshot?.todos) ? snapshot.todos : [];
-    // The checklist belongs to a build. A list from an earlier turn would
-    // tick and spin in Plan first (the owner saw "Plan 3/4" with no Build
-    // button) and its items ("wait for approval") tell an approved build to
-    // wait. So: nothing in a planning or discussing turn, and the approved
-    // plan's own steps in a build. A paused or continuing build keeps the
-    // list it has when it is already that plan's, so its progress survives.
-    if (approvedPlan) {
-        /** @type {string[]} */
-        const steps = Array.isArray(approvedPlan.steps) ? approvedPlan.steps.filter(/** @returns {t is string} */ (/** @type {unknown} */ t) => typeof t === 'string') : [];
-        const sameList = draftWrap._todos.length === steps.length && steps.every((t, i) => draftWrap._todos[i]?.text === t);
-        if (!sameList) draftWrap._todos = steps.map(text => ({ text, done: false }));
-        send('plan', { todos: draftWrap._todos });
-    } else if (req.body.workMode && (turnMode === 'plan' || turnMode === 'discuss')) {
-        draftWrap._todos = [];
-        send('plan', { todos: [] });
-    }
+    seedTodos(turn, draftWrap, snapshot, approvedPlan, turnMode);
     // Catalogue order fixed on this session's first turn; null until then.
     const storedCatalogOrder = Array.isArray(snapshot?.catalogOrder) ? snapshot.catalogOrder : null;
 
-    // Build catalog for the prompt. (Prompt construction is deferred
-    // until after the model is resolved, so we can pick full vs. lean
-    // prompt + apply per-model catalog filtering — see Step 5 of the
-    // multi-model optimization in the plan file.)
-    /** @type {BuilderTurn['catalog']} */
-    const catalog = await buildCatalogForUser(userId, req.session);
+    const { catalog, tableChoice } = await loadCatalogs(turn, draftWrap, { snapshot, savedProposal, baseDraft, approvedPlan, isolated, permissionMode });
 
-    // §B progressive context: index every catalog action's input schema by
-    // tool name so builder_inspect_tool can return exact params on demand
-    // (the slim prompt catalog only advertises an input count), and the
-    // add-action gate can require an inspect before binding non-trivial
-    // params. `_inspectedTools` tracks what the agent inspected this turn.
-    //
-    // Built from the catalog's rows and resolved definitions, which
-    // buildCatalogForUser has already narrowed to what this user can RUN
-    // (MCP, custom-integration, automation and Step tools included). It must
-    // not be built from the full TOOL_REGISTRY, or `unknownToolError` would
-    // read "the catalog knows this tool's schema" as "the user has this tool".
-    // The two lists must come from one source or they drift back apart.
-    draftWrap._inputSchemasByTool = inputSchemasByTool(catalog);
-    // The authorisation set, and deliberately NOT derived from `apps`: it is
-    // the raw resolved set, and a row that could not be built for a tool
-    // must not turn into a refusal of a tool the user really has.
-    // Nor is `_inputSchemasByTool` the authority — it is keyed on tools
-    // that HAVE an input schema, so a parameterless tool would vanish.
-    draftWrap._availableToolNames = catalog?.toolNames instanceof Set ? catalog.toolNames : null;
-    // What this session already inspected (the stored session's
-    // `inspectedTools`, when it carries them), narrowed to tools the user can
-    // still run; otherwise empty, and the gate asks again this turn.
-    draftWrap._inspectedTools = inspectedToolsFrom(/** @type {{ inspectedTools?: unknown } | null} */ (snapshot)?.inspectedTools, draftWrap._availableToolNames);
-    // What the draft's tools really returned on this user's last live run
-    // (shapeCache), read by the path checks (builderTools/refCheck.js,
-    // outputFields.js) before the curated shapes. One cache read per tool,
-    // under a deadline, never an error: the MCP surface does the same.
-    draftWrap._runtimeShapes = await require('../../../automation/mcpBuilder').loadRuntimeShapes(draftWrap.def, userId);
-    // The datatables THIS user may address — rendered into the prompt as
-    // the "Datatables you may use" block and read by builder_add_datatable
-    // for its id/key/column check. Two absent shapes, two meanings:
-    // null = could not tell (store outage) → permissive, the same posture
-    // as `_availableToolNames`; [] = the user has none → a datatable step
-    // is refused. Before this the prompt pointed at "the catalog" for
-    // table ids and the catalog carried apps only, so the model invented
-    // `tbl_…` ids on every invoice brief.
-    try {
-        const { buildDatatableCatalogForUser } = require('../../../automation/builderDatatableCatalog');
-        draftWrap._datatables = await buildDatatableCatalogForUser(userId);
-    } catch (e) {
-        log.warn('[AutomationBuilder] datatable catalog unavailable:', /** @type {Error} */ (e).message);
-        draftWrap._datatables = null;
-    }
-    catalog.datatables = draftWrap._datatables;
-    // Tables and consent (builderTools/pendingDatatables, datatableApproval).
-    // Set AFTER catalog.datatables above, which stays the plain list, so the
-    // cached prompt block does not change when a proposal stages a table;
-    // the model learns of staged tables from the review note instead.
-    const tableChoice = await setupDatatableTurn({ draftWrap, catalog, req, userId, snapshot, savedProposal, baseDraft, approvedPlan, history, message, isolated, permissionMode });
-
-    // The DESIGNED documents this user may fill — rendered as the
-    // "Documents you may fill" block and read by builder_add_fill_document
-    // for its id/placeholder check. Same two absent shapes, same meanings
-    // as the datatable list above.
-    draftWrap._documentDiscoveryRequired = true;
-    try {
-        const { buildDocumentCatalogForUser } = require('../../../automation/builderDocumentCatalog');
-        draftWrap._documents = await buildDocumentCatalogForUser(userId);
-    } catch (e) {
-        log.warn('[AutomationBuilder] document catalog unavailable:', /** @type {Error} */ (e).message);
-        draftWrap._documents = null;
-    }
-    catalog.documents = draftWrap._documents;
-
-    // The lists the model fills ids from — agents, knowledge bases, and the
-    // app_event providers THIS user has — with the canvas pickers' own
-    // permission filters. Each fails into its own "could not read" marker
-    // (never into "none"), and none of them throws. They are rendered into
-    // the late dynamic message, not the cached system prompt.
-    const picked = await require('../../../automation/builderPickerCatalog').buildPickerCatalogsForUser(userId, req.session, catalog);
-    Object.assign(catalog, picked);
-    draftWrap._blocks = !picked.blocksError && Array.isArray(picked.blocks) ? picked.blocks : null; // call_block's gate; null = could not read
-
-    // Human-readable summary — seeds `lastSummary` (the "What this
-    // automation does" panel + builder_session snapshot). User-facing, so
-    // it stays prose without raw step IDs.
+    // Human-readable summary: seeds `lastSummary` (the "What this
+    // automation does" panel and the builder_session snapshot). User-facing,
+    // so it stays prose without raw step IDs.
     const summary = summariseDefinition(baseDraft).summary;
-    // Agent context: a structured, ID-bearing view of the WHOLE draft
-    // (main flow + every flowlet) with each step's settings and input
-    // bindings, so the model reads real step IDs + current wiring instead
-    // of asking the user for them. Rebuilt each turn from the live draft.
+    // Agent context: a structured, ID-bearing view of the WHOLE draft (main
+    // flow and every flowlet) with each step's settings and input bindings,
+    // so the model reads real step IDs and current wiring instead of asking
+    // the user for them. Rebuilt each turn from the live draft.
     const agentDraftState = renderAgentDraftState(draftWrap.def);
 
     Object.assign(turn, {
-        codeStepEnabled, userOrgForTiers, tiers, requestedTier, permittedTiers, autoTiers,
+        codeStepEnabled, ...tierChoice,
         draftWrap, snapshot, reviewPlan, reviewQuestions, planCurrent, approvedPlan, turnMode,
         bufferedBuild, permissionMode, isolated, planAllowsRemoval, pausedAfterStep,
-        baseDraft, baseTitle, baseDescription, savedProposal, reviewOutcome,
-        priorQuestions, priorMeta, planCycleRound, answerTurn, questionsClosed, planWritten,
+        baseDraft, baseTitle, baseDescription, savedProposal, ...questions, planWritten,
         storedCatalogOrder, catalog, tableChoice, summary, agentDraftState,
     });
     return true;

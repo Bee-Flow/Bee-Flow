@@ -18,7 +18,7 @@ const { faqPage, buildJsonLd } = require('./jsonld');
 const { renderBlocks, PREHYDRATE_CSS } = require('./renderBlocks');
 const { injectIntoShell } = require('./inject');
 const { buildSitemap, buildRobots, buildLlmsTxt } = require('./sitemap');
-const { hasTranslation, localesForPage } = require('./locales');
+const { hasTranslation, localesForPage } = require('../../i18n/pageLocales');
 const { LEGACY_SLUGS } = require('./legacySlugs');
 const { esc, jsonForScript, clamp } = require('./html');
 

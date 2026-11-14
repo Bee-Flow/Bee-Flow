@@ -92,6 +92,7 @@ function syncError(status, message, code) {
 const { nextRunFor: coreNextRunFor } = require('../core/scheduling/nextRun');
 const { bestEffort, fallback } = require('../utils/bestEffort');
 const { existingKeyMap, OWNER_FILTER } = require('./connectorSyncKeys');
+const { sinceParams, systemArgsFor, grainsOf, primaryRowsOf, newerRowsOnly, failureState, syncSummary } = require('./connectorSyncSteps');
 
 /**
  * The cadence floor for a connector kind. A mailbox may poll every 2 minutes;
@@ -393,6 +394,151 @@ async function purgePastRetention(app, model, connector, deps) {
 }
 
 /**
+ * The sync block of a connector and the table it fills.
+ * @param {{ tables?: SyncTable[] } | null | undefined} model
+ * @param {SyncConnector | null | undefined} connector
+ */
+function syncTarget(model, connector) {
+    const sync = isPlainObject(connector?.sync) ? connector.sync : null;
+    if (!sync) throw syncError(400, 'this connector does not fill a table', 'not_synced');
+
+    const table = (model?.tables || []).find((t) => t && t.id === sync.tableId) || null;
+    if (!table) throw syncError(409, 'the table this connector fills no longer exists', 'table_missing');
+    return { sync, table };
+}
+
+/**
+ * Run the connector and pick the rows of its primary table.
+ * @param {SyncRun} run
+ * @param {{ incremental: SyncBlock['incremental'], priorWatermark: string | null, children: SyncChild[] }} tier
+ */
+async function pullRows({ app, model, connector, deps }, { incremental, priorWatermark, children }) {
+    const params = sinceParams(incremental, priorWatermark);
+    // `trace` when child tables are configured: a chain that expands ends with
+    // one row per attachment, so the message-level rows only exist in the
+    // per-grain view. Without it we could not fill the parent table at all.
+    const result = await deps.runConnector(connector, {
+        app,
+        viewerId: app.userId,          // a sync is the owner's own read
+        params: {},
+        systemArgs: systemArgsFor(connector.kind, params, priorWatermark),
+        trace: children.length > 0,
+    });
+    const grains = grainsOf(result);
+    // A reply send_email recorded without a provider id gives its row to
+    // the provider's copy, instead of the copy landing as a second reply.
+    if (connector.kind === 'mailbox') {
+        await deps.adoptRecordedReplies(app, model, connector, grains, deps)
+            .catch((e) => bestEffort('appStudio/connectorSync:adoptRecordedReplies', e));
+    }
+    const { rows, skipped } = newerRowsOnly(primaryRowsOf(result, grains, MAX_SYNC_ROWS), {
+        incremental, priorWatermark, hasChildren: children.length > 0, kind: connector.kind,
+    });
+    return { result, grains, rows, skipped };
+}
+
+/**
+ * Child tables: one per chain step that expanded. Written AFTER the parent so
+ * each child row can carry the parent's real record id — the link is resolved
+ * from the positional `_parentIndex` the runner stamped, never by matching a
+ * column name.
+ *
+ * Ids are kept PER LEVEL because a child is not necessarily a child of grain
+ * 0. A mailbox in thread mode produces conversations (0) → messages (1) →
+ * attachments (2), and an attachment belongs to its message. Grain 0's ids
+ * for every child would relate every attachment to a ticket instead —
+ * quietly, since both are valid record ids.
+ *
+ * `?? 0` and not `?? level - 1`: a connector that declares no parentLevel
+ * relates to grain 0. Deeper nesting is opt-in.
+ *
+ * Answers the run's totals so far, the record ids per level, a line per child
+ * table and what was inserted, for the mailbox hook (mailboxNewRecordHook.mts):
+ * conversations, messages.
+ * @param {SyncRun} run
+ * @param {{ children: SyncChild[], grains: Array<{ rows?: SyncRow[] }> | null, primary: Awaited<ReturnType<typeof writeGrain>>, viewer: ReturnType<typeof ownerViewer> }} written
+ */
+async function writeChildGrains({ app, model, connector, deps }, { children, grains, primary, viewer }) {
+    let inserted = primary.inserted;
+    let updated = primary.updated;
+    const news = { thread: connector.groupIntoThreads ? primary.newRecords : [], message: connector.groupIntoThreads ? [] : primary.newRecords };
+    const recordIdsByLevel = { 0: primary.recordIdByRowIndex };
+    const childResults = [];
+    const ordered = [...children].sort((a, b) => (a.level || 0) - (b.level || 0));
+    for (const child of ordered) {
+        const childTable = (model?.tables || []).find((t) => t && t.id === child.tableId);
+        const grain = grains?.[child.level];
+        if (!childTable || !grain) continue;
+        const parentIds = recordIdsByLevel[child.parentLevel ?? 0];
+        if (!parentIds) {
+            log.warn(`[ConnectorSync] child ${child.tableId} wants level ${child.parentLevel} which was not written`);
+            continue;
+        }
+        const res = await writeGrain(app, model, childTable, (grain.rows || []).slice(0, MAX_SYNC_ROWS), {
+            mode: child.mode, keyField: child.keyField, viewer, deps,
+            relation: { field: child.relationField, parentIds },
+        });
+        recordIdsByLevel[child.level] = res.recordIdByRowIndex;
+        if (connector.groupIntoThreads && child.level === 1) news.message = res.newRecords;
+        inserted += res.inserted;
+        updated += res.updated;
+        childResults.push({ tableId: child.tableId, table: childTable.key, inserted: res.inserted, updated: res.updated });
+    }
+    return { inserted, updated, news, recordIdsByLevel, childResults };
+}
+
+/**
+ * The mailbox hook over what a run inserted. After the claim is released (a
+ * slow model call must not hold the connector); the sync succeeded whatever it
+ * does. Not on a connector's first run: that fills the lookback window with
+ * mail that was already there, not new mail.
+ * @param {SyncRun} run
+ * @param {{ thread: object[], message: object[] }} news
+ */
+async function newRecordHook({ app, model, connector, claim, deps }, news) {
+    if (!(connector.kind === 'mailbox' && connector.onNewRecord && !(claim && !claim.lastRunAt))) return null;
+    return deps.runNewRecordHook(app, model, connector, news).catch((e) => fallback('appStudio/connectorSync:runNewRecordHook', e, null));
+}
+
+/**
+ * A claimed run, from the connector's rows to the finished sync state.
+ * @param {SyncRun} run
+ * @param {string} reason
+ * @param {number} started
+ */
+async function runClaimedSync(run, reason, started) {
+    const { app, model, connector, sync, table, claim, deps } = run;
+    const incremental = isPlainObject(sync.incremental) ? sync.incremental : null;
+    const priorWatermark = claim?.watermark || null;
+    const children = Array.isArray(sync.children) ? sync.children : [];
+    const { result, grains, rows, skipped } = await pullRows(run, { incremental, priorWatermark, children });
+
+    const viewer = ownerViewer(app);
+    const primary = await writeGrain(app, model, table, rows, {
+        mode: sync.mode, keyField: sync.keyField, viewer, deps,
+    });
+    const written = await writeChildGrains(run, { children, grains, primary, viewer });
+    const { inserted, childResults } = written;
+    // A conversation's categories come from all its STORED messages, so after they are written.
+    const updated = written.updated + await deps.refreshThreadLabels(app, model, connector, written.recordIdsByLevel[0], deps);
+
+    const purged = await purgePastRetention(app, model, connector, deps);
+    const watermark = incremental?.field ? highWatermark(rows, incremental.field, priorWatermark) : null;
+    // A successful run clears the error streak, so the cadence returns to
+    // normal immediately rather than staying backed off.
+    const nextRunAt = nextRunFor(sync, Date.now(), connector.kind);
+    await deps.finishSync(app.id, connector.id, {
+        status: 'ok', watermark, rowsWritten: inserted + updated, nextRunAt, error: null, consecutiveErrors: 0,
+    });
+    const hook = await newRecordHook(run, written.news);
+
+    return syncSummary({
+        inserted, updated, skipped, rowCount: rows.length, purged, hook, watermark, nextRunAt, reason,
+        durationMs: Date.now() - started, childResults, partial: result?.partial,
+    });
+}
+
+/**
  * Run one connector and write its rows into its table.
  *
  * @param {SyncApp} app
@@ -404,11 +550,7 @@ async function purgePastRetention(app, model, connector, deps) {
 async function syncConnector(app, model, connector, { reason = 'manual', force = false, _deps } = {}) {
     const deps = { ...defaultDeps(), ...(_deps || {}) };
     model = await deps.ensureLabelColumns(app, model, connector, deps);   // Outlook categories need a column; never throws
-    const sync = isPlainObject(connector?.sync) ? connector.sync : null;
-    if (!sync) throw syncError(400, 'this connector does not fill a table', 'not_synced');
-
-    const table = (model?.tables || []).find((t) => t && t.id === sync.tableId) || null;
-    if (!table) throw syncError(409, 'the table this connector fills no longer exists', 'table_missing');
+    const { sync, table } = syncTarget(model, connector);
 
     // Claim first: two replicas ticking the same second must not both run this.
     const claim = await deps.claimSync(app.id, connector.id, app.userId, { tableKey: table.key });
@@ -418,137 +560,7 @@ async function syncConnector(app, model, connector, { reason = 'manual', force =
 
     const started = Date.now();
     try {
-        const incremental = isPlainObject(sync.incremental) ? sync.incremental : null;
-        const priorWatermark = claim?.watermark || null;
-
-        // 'request' tier: the watermark rides UP to the provider, so only what
-        // changed is ever fetched.
-        const params = {};
-        if (incremental?.param && priorWatermark) {
-            const rendered = renderWatermark(priorWatermark, incremental.format);
-            if (rendered !== null) params[incremental.param] = rendered;
-        }
-
-        // The since-param is OURS, not the audience's: it is never a declared
-        // viewer param, so it rides the systemArgs channel (merged like pinned
-        // args, but still below them so an author's pin always wins).
-        // `trace` when child tables are configured: a chain that expands ends with
-        // one row per attachment, so the message-level rows only exist in the
-        // per-grain view. Without it we could not fill the parent table at all.
-        const children = Array.isArray(sync.children) ? sync.children : [];
-        const result = await deps.runConnector(connector, {
-            app,
-            viewerId: app.userId,          // a sync is the owner's own read
-            params: {},
-            // A mailbox filters server-side by date rather than through a
-            // declared since-param, so it reads the watermark straight off
-            // systemArgs. Scoped to that kind so every other connector's
-            // systemArgs stays exactly what its author declared.
-            systemArgs: connector.kind === 'mailbox' && priorWatermark
-                ? { ...params, since: priorWatermark }
-                : params,
-            trace: children.length > 0,
-        });
-        const grains = Array.isArray(result?.grains) ? result.grains : null;
-        // A reply send_email recorded without a provider id gives its row to
-        // the provider's copy, instead of the copy landing as a second reply.
-        if (connector.kind === 'mailbox') {
-            await deps.adoptRecordedReplies(app, model, connector, grains, deps)
-                .catch((e) => bestEffort('appStudio/connectorSync:adoptRecordedReplies', e));
-        }
-        // The primary table stores grain 0 (the source list), not the flattened
-        // output — those differ the moment a step expands.
-        const primaryRows = grains ? (grains[0]?.rows || []) : (result?.rows || []);
-        let rows = Array.isArray(primaryRows) ? primaryRows.slice(0, MAX_SYNC_ROWS) : [];
-
-        // 'client' tier: everything came back, but only newer rows are written.
-        // Not with child tables: their `_parentIndex` points into grain 0 as it came back, so a
-        // shorter parent list linked a skipped conversation's messages to its neighbour instead.
-        // Not for a mailbox either: it already narrowed server-side (systemArgs.since, on the
-        // MODIFIED time), and an old message labelled later has a received_at below the watermark.
-        let skipped = 0;
-        if (incremental?.field && !incremental.param && priorWatermark && !children.length && connector.kind !== 'mailbox') {
-            const before = rows.length;
-            rows = rows.filter((row) => {
-                const iso = connectorSchema.toIsoStamp(connectorSchema.readPath(row, incremental.field));
-                return !iso || iso > priorWatermark;
-            });
-            skipped = before - rows.length;
-        }
-
-        const viewer = ownerViewer(app);
-        const primary = await writeGrain(app, model, table, rows, {
-            mode: sync.mode, keyField: sync.keyField, viewer, deps,
-        });
-        let inserted = primary.inserted;
-        let updated = primary.updated;
-        // What this run inserted, for the mailbox hook (mailboxNewRecordHook.mts): conversations, messages.
-        const news = { thread: connector.groupIntoThreads ? primary.newRecords : [], message: connector.groupIntoThreads ? [] : primary.newRecords };
-
-        // Child tables: one per chain step that expanded. Written AFTER the
-        // parent so each child row can carry the parent's real record id — the
-        // link is resolved from the positional `_parentIndex` the runner stamped,
-        // never by matching a column name.
-        //
-        // Ids are kept PER LEVEL because a child is not necessarily a child of
-        // grain 0. A mailbox in thread mode produces conversations (0) →
-        // messages (1) → attachments (2), and an attachment belongs to its
-        // message. Passing grain 0's ids unconditionally, as this did, would
-        // have related every attachment to a ticket instead — quietly, since
-        // both are valid record ids.
-        //
-        // `?? 0` and not `?? level - 1`: every connector written before parentLevel existed
-        // declares no parentLevel and must keep relating to grain 0 exactly as
-        // it did. Deeper nesting is opt-in.
-        const recordIdsByLevel = { 0: primary.recordIdByRowIndex };
-        const childResults = [];
-        const ordered = [...children].sort((a, b) => (a.level || 0) - (b.level || 0));
-        for (const child of ordered) {
-            const childTable = (model?.tables || []).find((t) => t && t.id === child.tableId);
-            const grain = grains?.[child.level];
-            if (!childTable || !grain) continue;
-            const parentIds = recordIdsByLevel[child.parentLevel ?? 0];
-            if (!parentIds) {
-                log.warn(`[ConnectorSync] child ${child.tableId} wants level ${child.parentLevel} which was not written`);
-                continue;
-            }
-            const res = await writeGrain(app, model, childTable, (grain.rows || []).slice(0, MAX_SYNC_ROWS), {
-                mode: child.mode, keyField: child.keyField, viewer, deps,
-                relation: { field: child.relationField, parentIds },
-            });
-            recordIdsByLevel[child.level] = res.recordIdByRowIndex;
-            if (connector.groupIntoThreads && child.level === 1) news.message = res.newRecords;
-            inserted += res.inserted;
-            updated += res.updated;
-            childResults.push({ tableId: child.tableId, table: childTable.key, inserted: res.inserted, updated: res.updated });
-        }
-        // A conversation's categories come from all its STORED messages, so after they are written.
-        updated += await deps.refreshThreadLabels(app, model, connector, recordIdsByLevel[0], deps);
-
-        const purged = await purgePastRetention(app, model, connector, deps);
-        const watermark = incremental?.field ? highWatermark(rows, incremental.field, priorWatermark) : null;
-        // A successful run clears the error streak, so the cadence returns to
-        // normal immediately rather than staying backed off.
-        const nextRunAt = nextRunFor(sync, Date.now(), connector.kind);
-        await deps.finishSync(app.id, connector.id, {
-            status: 'ok', watermark, rowsWritten: inserted + updated, nextRunAt, error: null, consecutiveErrors: 0,
-        });
-
-        // After the claim is released (a slow model call must not hold the connector); the sync succeeded whatever it does.
-        // Not on a connector's first run: that fills the lookback window with mail that was already there, not new mail.
-        const hook = connector.kind === 'mailbox' && connector.onNewRecord && !(claim && !claim.lastRunAt)
-            ? await deps.runNewRecordHook(app, model, connector, news).catch((e) => fallback('appStudio/connectorSync:runNewRecordHook', e, null))
-            : null;
-
-        return {
-            inserted, updated, skipped, rows: rows.length, rowsWritten: inserted + updated,
-            ...(purged ? { purged } : {}),
-            ...(hook ? { hook } : {}),
-            watermark, nextRunAt, reason,
-            durationMs: Date.now() - started,
-            ...(childResults.length ? { children: childResults } : {}),
-            ...(result?.partial ? { partial: true } : {}),
-        };
+        return await runClaimedSync({ app, model, connector, sync, table, claim, deps }, reason, started);
     } catch (err) {
         // A failure still schedules the next attempt — a connector that is down
         // for an hour must recover on its own, not stay dead until someone
@@ -556,16 +568,12 @@ async function syncConnector(app, model, connector, { reason = 'manual', force =
         // …but back off as the streak grows, and honour a provider's Retry-After.
         // Rescheduling a throttled mailbox at its normal 2-minute cadence is how
         // a soft 429 becomes a hard block.
-        const priorErrors = Number.isInteger(claim?.consecutiveErrors) ? claim.consecutiveErrors : 0;
-        const consecutiveErrors = priorErrors + 1;
+        const { consecutiveErrors, retryAfterMs, error } = failureState(claim, err);
         await deps.finishSync(app.id, connector.id, {
             status: 'error',
             rowsWritten: 0,
-            nextRunAt: nextRunFor(sync, Date.now(), connector.kind, {
-                consecutiveErrors,
-                retryAfterMs: err?.retryAfterMs || 0,
-            }),
-            error: err?.message || String(err),
+            nextRunAt: nextRunFor(sync, Date.now(), connector.kind, { consecutiveErrors, retryAfterMs }),
+            error,
             consecutiveErrors,
         }).catch((e) => bestEffort('appStudio/connectorSync:syncConnector', e));
         throw err;
@@ -610,5 +618,7 @@ module.exports = {
 /** @typedef {Record<string, unknown> & { _parentIndex?: number }} SyncRow  one upstream row, as the connector returned it */
 
 /** @typedef {ReturnType<typeof defaultDeps>} SyncDeps */
+
+/** @typedef {{ app: SyncApp, model: { tables?: SyncTable[] }, connector: SyncConnector & { groupIntoThreads?: boolean, onNewRecord?: unknown }, sync: SyncBlock, table: SyncTable, claim: { watermark?: string | null, lastRunAt?: string | null, consecutiveErrors?: number } | null, deps: SyncDeps }} SyncRun  one claimed run */
 
 /** @typedef {{ level: number, mode: string, table: SyncTable, column?: string, relationField?: string, parentTable?: SyncTable, sweepNull?: boolean }} RetentionStep */

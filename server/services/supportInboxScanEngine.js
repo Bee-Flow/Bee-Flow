@@ -15,7 +15,7 @@
  */
 
 const supportInboxStore = require('../stores/supportInboxStore');
-const { gmailClientFromTokens, graphFetchFromTokens } = require('./email/providerClients');
+const { gmailClientFromTokens, graphFetchFromTokens } = require('../utils/emailProviderClients');
 const parse = require('../utils/emailParse');
 const log = require('../telemetry/log');
 const { fallback, bestEffort } = require('../utils/bestEffort');
@@ -33,7 +33,7 @@ let _emitEvent = null;
 function _emit(event, inboxId, data = {}) {
     try {
         if (!_emitEvent) {
-            const { supportEvents } = require('../support/events');
+            const { supportEvents } = require('../core/support/events');
             _emitEvent = (e, d) => supportEvents.emit('event', { event: e, data: d });
         }
         _emitEvent(event, { ...data, inboxId });
@@ -241,7 +241,7 @@ module.exports = { startSupportInboxScan, stopSupportInboxScan, scanOneDue, runS
 
 /** @typedef {NonNullable<Awaited<ReturnType<typeof supportInboxStore.getInboxWithTokens>>>} InboxWithTokens */
 
-/** @typedef {import('./email/providerClients').OnTokenRefresh} OnTokenRefresh */
+/** @typedef {import('../utils/emailProviderClients').OnTokenRefresh} OnTokenRefresh */
 
 /** @typedef {((p: { processedThreads: number, pairsFound: number }) => void) | null | undefined} OnScanProgress */
 

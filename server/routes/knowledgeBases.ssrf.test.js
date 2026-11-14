@@ -87,7 +87,7 @@ const MOCKS = {
     },
     '../core/entitlements/betaFeatures': { userHasBetaFeature: async () => false },
     '../core/serviceAuth': { getServiceHeaders: () => ({}) },
-    '../support/kbAccess': { ...fakeKbGates({ kbStore: { getKB: (id) => MOCKS['../stores/knowledgeBases'].getKB(id) }, canRead: () => true, canManage: (kb) => MOCKS['../stores/knowledgeBases'].canUserManageKB(kb, null, null, true) }), resolveAdminOrgIds: async () => new Set(['o1']) },
+    '../core/kb/kbAccess': { ...fakeKbGates({ kbStore: { getKB: (id) => MOCKS['../stores/knowledgeBases'].getKB(id) }, canRead: () => true, canManage: (kb) => MOCKS['../stores/knowledgeBases'].canUserManageKB(kb, null, null, true) }), resolveAdminOrgIds: async () => new Set(['o1']) },
     '../core/kb/kbIngestionHelpers': {
         getAzureIngestParams: async () => ({}),
         extractFileContent: async () => '',

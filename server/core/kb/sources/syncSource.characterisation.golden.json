@@ -1,0 +1,8477 @@
+{
+ "kbGone": {
+  "result": {
+   "added": 0,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "skipped": "kb_gone",
+   "nextRefreshAt": null
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ]
+  ]
+ },
+ "kindWithoutAdapter": {
+  "result": {
+   "added": 0,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "skipped": "kind_unsupported",
+   "nextRefreshAt": null
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ]
+  ]
+ },
+ "precheckUnchanged": {
+  "result": {
+   "added": 0,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "precheckUnchanged": true,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "adapter.precheck",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ]
+  ]
+ },
+ "precheckUnchangedOnChangeSource": {
+  "result": {
+   "added": 0,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "precheckUnchanged": true,
+   "nextRefreshAt": "2026-03-01T10:05:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "adapter.precheck",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ]
+  ]
+ },
+ "precheckUnchangedManualSource": {
+  "result": {
+   "added": 0,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "precheckUnchanged": true,
+   "nextRefreshAt": null
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "adapter.precheck",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ]
+  ]
+ },
+ "precheckChanged": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "adapter.precheck",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh a",
+    "a",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh a",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about a"
+    }
+   ],
+   [
+    "sources.setSyncCursor",
+    "src1",
+    "42"
+   ]
+  ]
+ },
+ "precheckSaysNothing": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "adapter.precheck",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh a",
+    "a",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh a",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about a"
+    }
+   ]
+  ]
+ },
+ "precheckFails": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "adapter.precheck",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "log",
+    "source src1: precheck failed, running the full pass: etag unavailable"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh a",
+    "a",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh a",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about a"
+    }
+   ]
+  ]
+ },
+ "precheckEmptyCursor": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "adapter.precheck",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh a",
+    "a",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh a",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about a"
+    }
+   ]
+  ]
+ },
+ "nothingListed": {
+  "result": {
+   "added": 0,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ]
+  ]
+ },
+ "listIsNotAList": {
+  "result": {
+   "added": 0,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ]
+  ]
+ },
+ "listIsAString": {
+  "result": {
+   "added": 0,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ]
+  ]
+ },
+ "newDocument": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh a",
+    "a",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh a",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about a"
+    }
+   ]
+  ]
+ },
+ "newDocumentAllFields": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh text",
+    "Fresh title",
+    "web",
+    "https://example.com/a",
+    {
+     "sourceId": "src1",
+     "metadata": {
+      "rows": [
+       1,
+       2
+      ]
+     },
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": "2026-02-20T00:00:00Z",
+     "sizeBytes": 0,
+     "mime": "text/html",
+     "pageCount": 0,
+     "sheetCount": 3,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "keepOriginal",
+    {
+     "tenantId": "tenant1",
+     "kbId": "kb1",
+     "documentId": "new_a",
+     "buffer": "<buffer 4>",
+     "mime": "text/html",
+     "filename": "Fresh title"
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh text",
+     "title": "Fresh title",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about Fresh title"
+    }
+   ]
+  ]
+ },
+ "newDocumentNoCreator": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh a",
+    "a",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": null,
+     "onFailure": "record",
+     "privacy": {
+      "orgId": null,
+      "userId": null
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh a",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": null,
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about a"
+    }
+   ]
+  ]
+ },
+ "newDocumentNoDedupe": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh a",
+    "a",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": true,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh a",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about a"
+    }
+   ]
+  ]
+ },
+ "newDocumentSkipped": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh text",
+    "Fresh title",
+    "web",
+    "https://example.com/a",
+    {
+     "sourceId": "src1",
+     "metadata": {
+      "rows": [
+       1,
+       2
+      ]
+     },
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": "2026-02-20T00:00:00Z",
+     "sizeBytes": 0,
+     "mime": "text/html",
+     "pageCount": 0,
+     "sheetCount": 3,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ]
+  ]
+ },
+ "newDocumentRedacted": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh text",
+    "Fresh title",
+    "web",
+    "https://example.com/a",
+    {
+     "sourceId": "src1",
+     "metadata": {
+      "rows": [
+       1,
+       2
+      ]
+     },
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": "2026-02-20T00:00:00Z",
+     "sizeBytes": 0,
+     "mime": "text/html",
+     "pageCount": 0,
+     "sheetCount": 3,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "deleteOriginal",
+    {
+     "tenantId": "tenant1",
+     "kbId": "kb1",
+     "documentId": "new_a"
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh text",
+     "title": "Fresh title",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about Fresh title"
+    }
+   ]
+  ]
+ },
+ "newDocumentNoRow": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh text",
+    "Fresh title",
+    "web",
+    "https://example.com/a",
+    {
+     "sourceId": "src1",
+     "metadata": {
+      "rows": [
+       1,
+       2
+      ]
+     },
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": "2026-02-20T00:00:00Z",
+     "sizeBytes": 0,
+     "mime": "text/html",
+     "pageCount": 0,
+     "sheetCount": 3,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ]
+  ]
+ },
+ "newDocumentNoTitle": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "untitled text",
+    "a",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "untitled text",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about a"
+    }
+   ]
+  ]
+ },
+ "changedDocument": {
+  "result": {
+   "added": 0,
+   "updated": 1,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.isUnchanged",
+    {
+     "externalId": "a"
+    },
+    "d1"
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    "d1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.reingestDocument",
+    "tenant1",
+    "kb1",
+    "d1",
+    "fresh a",
+    {
+     "title": "a",
+     "externalId": "a",
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh a",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "d1",
+    {
+     "extractSummary": "about a"
+    }
+   ]
+  ]
+ },
+ "changedDocumentAllFields": {
+  "result": {
+   "added": 0,
+   "updated": 1,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.isUnchanged",
+    {
+     "externalId": "a"
+    },
+    "d1"
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    "d1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.reingestDocument",
+    "tenant1",
+    "kb1",
+    "d1",
+    "fresh text",
+    {
+     "title": "Fresh title",
+     "metadata": {
+      "rows": [
+       1,
+       2
+      ]
+     },
+     "externalId": "a",
+     "sourceModifiedAt": "2026-02-20T00:00:00Z",
+     "sizeBytes": 0,
+     "mime": "text/html",
+     "pageCount": 0,
+     "sheetCount": 3,
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "keepOriginal",
+    {
+     "tenantId": "tenant1",
+     "kbId": "kb1",
+     "documentId": "d1",
+     "buffer": "<buffer 4>",
+     "mime": "text/html",
+     "filename": "Fresh title"
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh text",
+     "title": "Fresh title",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "d1",
+    {
+     "extractSummary": "about Fresh title"
+    }
+   ]
+  ]
+ },
+ "changedDocumentKeepsStoredTitle": {
+  "result": {
+   "added": 0,
+   "updated": 1,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.isUnchanged",
+    {
+     "externalId": "a"
+    },
+    "d1"
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    "d1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.reingestDocument",
+    "tenant1",
+    "kb1",
+    "d1",
+    "x",
+    {
+     "title": "stored a",
+     "externalId": "a",
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "x",
+     "title": "stored a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "d1",
+    {
+     "extractSummary": "about stored a"
+    }
+   ]
+  ]
+ },
+ "changedDocumentRedacted": {
+  "result": {
+   "added": 0,
+   "updated": 1,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.isUnchanged",
+    {
+     "externalId": "a"
+    },
+    "d1"
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    "d1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.reingestDocument",
+    "tenant1",
+    "kb1",
+    "d1",
+    "fresh text",
+    {
+     "title": "Fresh title",
+     "metadata": {
+      "rows": [
+       1,
+       2
+      ]
+     },
+     "externalId": "a",
+     "sourceModifiedAt": "2026-02-20T00:00:00Z",
+     "sizeBytes": 0,
+     "mime": "text/html",
+     "pageCount": 0,
+     "sheetCount": 3,
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "deleteOriginal",
+    {
+     "tenantId": "tenant1",
+     "kbId": "kb1",
+     "documentId": "d1"
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh text",
+     "title": "Fresh title",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "d1",
+    {
+     "extractSummary": "about Fresh title"
+    }
+   ]
+  ]
+ },
+ "changedDocumentNoAnswer": {
+  "result": {
+   "added": 0,
+   "updated": 1,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.isUnchanged",
+    {
+     "externalId": "a"
+    },
+    "d1"
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    "d1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.reingestDocument",
+    "tenant1",
+    "kb1",
+    "d1",
+    "fresh text",
+    {
+     "title": "Fresh title",
+     "metadata": {
+      "rows": [
+       1,
+       2
+      ]
+     },
+     "externalId": "a",
+     "sourceModifiedAt": "2026-02-20T00:00:00Z",
+     "sizeBytes": 0,
+     "mime": "text/html",
+     "pageCount": 0,
+     "sheetCount": 3,
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh text",
+     "title": "Fresh title",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "d1",
+    {
+     "extractSummary": "about Fresh title"
+    }
+   ]
+  ]
+ },
+ "unchangedByAdapter": {
+  "result": {
+   "added": 0,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 1,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.isUnchanged",
+    {
+     "externalId": "a"
+    },
+    "d1"
+   ]
+  ]
+ },
+ "unchangedAtFetch": {
+  "result": {
+   "added": 0,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 1,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.isUnchanged",
+    {
+     "externalId": "a"
+    },
+    "d1"
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    "d1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ]
+  ]
+ },
+ "unchangedAtFetchNewItem": {
+  "result": {
+   "added": 0,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 1,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ]
+  ]
+ },
+ "fetchAnswersNothing": {
+  "result": {
+   "added": 0,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 1,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "log",
+    "source src1 item a failed: Cannot read properties of undefined (reading 'content')"
+   ]
+  ]
+ },
+ "goneDocument": {
+  "result": {
+   "added": 0,
+   "updated": 0,
+   "removed": 1,
+   "unchanged": 1,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.isUnchanged",
+    {
+     "externalId": "a"
+    },
+    "d1"
+   ],
+   [
+    "helpers.deleteDocumentChunks",
+    "kb1",
+    "d2",
+    "tenant1",
+    {
+     "skipSnapshot": true
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ]
+  ]
+ },
+ "goneDocumentDeleteFails": {
+  "result": {
+   "added": 0,
+   "updated": 0,
+   "removed": 1,
+   "unchanged": 1,
+   "failed": 1,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.isUnchanged",
+    {
+     "externalId": "a"
+    },
+    "d1"
+   ],
+   [
+    "helpers.deleteDocumentChunks",
+    "kb1",
+    "d2",
+    "tenant1",
+    {
+     "skipSnapshot": true
+    }
+   ],
+   [
+    "log",
+    "source src1 delete d2 failed: delete failed"
+   ],
+   [
+    "helpers.deleteDocumentChunks",
+    "kb1",
+    "d3",
+    "tenant1",
+    {
+     "skipSnapshot": true
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ]
+  ]
+ },
+ "everythingGone": {
+  "result": {
+   "added": 0,
+   "updated": 0,
+   "removed": 1,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.deleteDocumentChunks",
+    "kb1",
+    "d1",
+    "tenant1",
+    {
+     "skipSnapshot": true
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ]
+  ]
+ },
+ "wronglyDuplicateIsRebuilt": {
+  "result": {
+   "added": 0,
+   "updated": 1,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    "d1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.reingestDocument",
+    "tenant1",
+    "kb1",
+    "d1",
+    "fresh a",
+    {
+     "title": "a",
+     "externalId": "a",
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh a",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "d1",
+    {
+     "extractSummary": "about a"
+    }
+   ]
+  ]
+ },
+ "duplicateStaysWhenAdapterDedupes": {
+  "result": {
+   "added": 0,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 1,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.isUnchanged",
+    {
+     "externalId": "a"
+    },
+    "d1"
+   ]
+  ]
+ },
+ "mixedPass": {
+  "result": {
+   "added": 1,
+   "updated": 1,
+   "removed": 1,
+   "unchanged": 2,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.isUnchanged",
+    {
+     "externalId": "a"
+    },
+    "d1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.isUnchanged",
+    {
+     "externalId": "b"
+    },
+    "d2"
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "b"
+    },
+    "d2",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.reingestDocument",
+    "tenant1",
+    "kb1",
+    "d2",
+    "fresh b",
+    {
+     "title": "b",
+     "externalId": "b",
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "c"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh c",
+    "c",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "c",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "d"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.deleteDocumentChunks",
+    "kb1",
+    "d3",
+    "tenant1",
+    {
+     "skipSnapshot": true
+    }
+   ],
+   [
+    "log",
+    "source src1: 1 document(s) predate the source model and were left alone"
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh b",
+     "title": "b",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh c",
+     "title": "c",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "d2",
+    {
+     "extractSummary": "about b"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_c",
+    {
+     "extractSummary": "about c"
+    }
+   ]
+  ]
+ },
+ "numericExternalId": {
+  "result": {
+   "added": 0,
+   "updated": 1,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.isUnchanged",
+    {
+     "externalId": 7
+    },
+    "d1"
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": 7
+    },
+    "d1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.reingestDocument",
+    "tenant1",
+    "kb1",
+    "d1",
+    "fresh 7",
+    {
+     "title": "7",
+     "externalId": "7",
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh 7",
+     "title": "7",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "d1",
+    {
+     "extractSummary": "about 7"
+    }
+   ]
+  ]
+ },
+ "documentsWithoutExternalId": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh a",
+    "a",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "log",
+    "source src1: 2 document(s) predate the source model and were left alone"
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh a",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about a"
+    }
+   ]
+  ]
+ },
+ "storedPages": {
+  "result": {
+   "added": 0,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 2,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 200,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.isUnchanged",
+    {
+     "externalId": "e0"
+    },
+    "d0"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.isUnchanged",
+    {
+     "externalId": "e200"
+    },
+    "d200"
+   ],
+   [
+    "log",
+    "source src1: the source listed only part of what it holds; nothing was removed"
+   ]
+  ]
+ },
+ "documentFails": {
+  "result": {
+   "added": 2,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 1,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh a",
+    "a",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "b"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "log",
+    "source src1 item b failed: fetch failed"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "c"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh c",
+    "c",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "c",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh a",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh c",
+     "title": "c",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about a"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_c",
+    {
+     "extractSummary": "about c"
+    }
+   ]
+  ]
+ },
+ "ingestFails": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 1,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh a",
+    "a",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "log",
+    "source src1 item a failed: embedding failed"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "b"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh b",
+    "b",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "b",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh b",
+     "title": "b",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_b",
+    {
+     "extractSummary": "about b"
+    }
+   ]
+  ]
+ },
+ "reingestFails": {
+  "result": {
+   "added": 0,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 1,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "adapter.precheck",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.isUnchanged",
+    {
+     "externalId": "a"
+    },
+    "d1"
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    "d1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.reingestDocument",
+    "tenant1",
+    "kb1",
+    "d1",
+    "fresh a",
+    {
+     "title": "a",
+     "externalId": "a",
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "log",
+    "source src1 item a failed: embedding failed"
+   ]
+  ]
+ },
+ "isUnchangedThrows": {
+  "result": {
+   "added": 0,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 1,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.isUnchanged",
+    {
+     "externalId": "a"
+    },
+    "d1"
+   ],
+   [
+    "log",
+    "source src1 item a failed: bad stamp"
+   ]
+  ]
+ },
+ "enumerateThrows": {
+  "threw": "listing failed",
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ]
+  ]
+ },
+ "cancelledAtOnce": {
+  "result": {
+   "added": 0,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": true,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    true
+   ]
+  ]
+ },
+ "cancelledBetweenDocuments": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": true,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh a",
+    "a",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    true
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    true
+   ]
+  ]
+ },
+ "cancelledWhileLabelling": {
+  "result": {
+   "added": 5,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh a",
+    "a",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "b"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh b",
+    "b",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "b",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "c"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh c",
+    "c",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "c",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "d"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh d",
+    "d",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "d",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "e"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh e",
+    "e",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "e",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    true
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    true
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh a",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about a"
+    }
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    true
+   ]
+  ]
+ },
+ "itemCap": {
+  "result": {
+   "added": 2,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": true,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "adapter.precheck",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 2,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 2,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 2,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh a",
+    "a",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "b"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 2,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh b",
+    "b",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "b",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh a",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh b",
+     "title": "b",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about a"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_b",
+    {
+     "extractSummary": "about b"
+    }
+   ]
+  ]
+ },
+ "itemCapFromAdapter": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": true,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 1,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 1,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh a",
+    "a",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh a",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about a"
+    }
+   ]
+  ]
+ },
+ "itemCapCallerWins": {
+  "result": {
+   "added": 2,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": true,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 2,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 2,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh a",
+    "a",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "b"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 2,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh b",
+    "b",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "b",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh a",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh b",
+     "title": "b",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about a"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_b",
+    {
+     "extractSummary": "about b"
+    }
+   ]
+  ]
+ },
+ "itemCapExactlyMet": {
+  "result": {
+   "added": 2,
+   "updated": 0,
+   "removed": 1,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 2,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 2,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh a",
+    "a",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "b"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 2,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh b",
+    "b",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "b",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "helpers.deleteDocumentChunks",
+    "kb1",
+    "d9",
+    "tenant1",
+    {
+     "skipSnapshot": true
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh a",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh b",
+     "title": "b",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about a"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_b",
+    {
+     "extractSummary": "about b"
+    }
+   ]
+  ]
+ },
+ "outOfTime": {
+  "result": {
+   "added": 0,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": true,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": -15000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ]
+  ]
+ },
+ "timeBudgetFromCaller": {
+  "result": {
+   "added": 0,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": true,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": -1000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ]
+  ]
+ },
+ "timeBudgetNotSpent": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 1000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 1000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh a",
+    "a",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh a",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about a"
+    }
+   ]
+  ]
+ },
+ "partialList": {
+  "result": {
+   "added": 0,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 1,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "adapter.precheck",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.isUnchanged",
+    {
+     "externalId": "a"
+    },
+    "d1"
+   ],
+   [
+    "log",
+    "source src1: the source listed only part of what it holds; nothing was removed"
+   ]
+  ]
+ },
+ "labelFails": {
+  "result": {
+   "added": 2,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh a",
+    "a",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "b"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh b",
+    "b",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "b",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh a",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh b",
+     "title": "b",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "log",
+    "summary for new_a skipped: rate limited"
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_b",
+    {
+     "extractSummary": "about b"
+    }
+   ]
+  ]
+ },
+ "labelWithoutSummary": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh a",
+    "a",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh a",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ]
+  ]
+ },
+ "originalNotKept": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh text",
+    "Fresh title",
+    "web",
+    "https://example.com/a",
+    {
+     "sourceId": "src1",
+     "metadata": {
+      "rows": [
+       1,
+       2
+      ]
+     },
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": "2026-02-20T00:00:00Z",
+     "sizeBytes": 0,
+     "mime": "text/html",
+     "pageCount": 0,
+     "sheetCount": 3,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "keepOriginal",
+    {
+     "tenantId": "tenant1",
+     "kbId": "kb1",
+     "documentId": "new_a",
+     "buffer": "<buffer 4>",
+     "mime": "text/html",
+     "filename": "Fresh title"
+    }
+   ],
+   [
+    "log",
+    "original of new_a not kept (too_large)"
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh text",
+     "title": "Fresh title",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about Fresh title"
+    }
+   ]
+  ]
+ },
+ "originalKeepFails": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh text",
+    "Fresh title",
+    "web",
+    "https://example.com/a",
+    {
+     "sourceId": "src1",
+     "metadata": {
+      "rows": [
+       1,
+       2
+      ]
+     },
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": "2026-02-20T00:00:00Z",
+     "sizeBytes": 0,
+     "mime": "text/html",
+     "pageCount": 0,
+     "sheetCount": 3,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "keepOriginal",
+    {
+     "tenantId": "tenant1",
+     "kbId": "kb1",
+     "documentId": "new_a",
+     "buffer": "<buffer 4>",
+     "mime": "text/html",
+     "filename": "Fresh title"
+    }
+   ],
+   [
+    "log",
+    "original of new_a not kept: storage down"
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh text",
+     "title": "Fresh title",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about Fresh title"
+    }
+   ]
+  ]
+ },
+ "originalsOff": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh text",
+    "Fresh title",
+    "web",
+    "https://example.com/a",
+    {
+     "sourceId": "src1",
+     "metadata": {
+      "rows": [
+       1,
+       2
+      ]
+     },
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": "2026-02-20T00:00:00Z",
+     "sizeBytes": 0,
+     "mime": "text/html",
+     "pageCount": 0,
+     "sheetCount": 3,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh text",
+     "title": "Fresh title",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about Fresh title"
+    }
+   ]
+  ]
+ },
+ "datatableVersion": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": {
+       "dt2": 5
+      }
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh a",
+    "a",
+    "datatable",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh a",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about a"
+    }
+   ],
+   [
+    "datatables.getDataVersion",
+    "dt1"
+   ],
+   [
+    "sources.setSeenDataVersion",
+    "src1",
+    12,
+    {
+     "dt2": 5
+    }
+   ]
+  ]
+ },
+ "datatableVersionZero": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "x"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh a",
+    "a",
+    "datatable",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh a",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about a"
+    }
+   ],
+   [
+    "datatables.getDataVersion",
+    "dt1"
+   ],
+   [
+    "sources.setSeenDataVersion",
+    "src1",
+    0,
+    null
+   ]
+  ]
+ },
+ "datatableVersionUnknown": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh a",
+    "a",
+    "datatable",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh a",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about a"
+    }
+   ],
+   [
+    "datatables.getDataVersion",
+    "dt1"
+   ]
+  ]
+ },
+ "datatableWithoutId": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh a",
+    "a",
+    "datatable",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh a",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about a"
+    }
+   ]
+  ]
+ },
+ "datatableNoConfig": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh a",
+    "a",
+    "datatable",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh a",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about a"
+    }
+   ]
+  ]
+ },
+ "datatableVersionFails": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh a",
+    "a",
+    "datatable",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh a",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about a"
+    }
+   ],
+   [
+    "datatables.getDataVersion",
+    "dt1"
+   ],
+   [
+    "log",
+    "could not record the table version for source src1: table gone"
+   ]
+  ]
+ },
+ "datatableCancelled": {
+  "result": {
+   "added": 0,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": true,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    true
+   ]
+  ]
+ },
+ "datatableTruncated": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": true,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 1,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 1,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh a",
+    "a",
+    "datatable",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh a",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about a"
+    }
+   ]
+  ]
+ },
+ "datatableVersionThenCursor": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "adapter.precheck",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh a",
+    "a",
+    "datatable",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh a",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about a"
+    }
+   ],
+   [
+    "datatables.getDataVersion",
+    "dt1"
+   ],
+   [
+    "sources.setSeenDataVersion",
+    "src1",
+    4,
+    null
+   ],
+   [
+    "sources.setSyncCursor",
+    "src1",
+    "c8"
+   ]
+  ]
+ },
+ "tableIdOnAnotherKind": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh a",
+    "a",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh a",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about a"
+    }
+   ]
+  ]
+ },
+ "cursorSaved": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "adapter.precheck",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh a",
+    "a",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh a",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about a"
+    }
+   ],
+   [
+    "sources.setSyncCursor",
+    "src1",
+    "c5"
+   ]
+  ]
+ },
+ "cursorSaveFails": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "adapter.precheck",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh a",
+    "a",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh a",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about a"
+    }
+   ],
+   [
+    "sources.setSyncCursor",
+    "src1",
+    "c6"
+   ],
+   [
+    "log",
+    "could not record the change cursor for source src1: cursor write failed"
+   ]
+  ]
+ },
+ "cursorNotAfterAFailure": {
+  "result": {
+   "added": 0,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 1,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "adapter.precheck",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "log",
+    "source src1 item a failed: fetch failed"
+   ]
+  ]
+ },
+ "manualSource": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": null
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh a",
+    "a",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh a",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about a"
+    }
+   ]
+  ]
+ },
+ "cronSource": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T05:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "schedule",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh a",
+    "a",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh a",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about a"
+    }
+   ]
+  ]
+ },
+ "reasonAndLogFromCaller": {
+  "result": {
+   "added": 1,
+   "updated": 0,
+   "removed": 0,
+   "unchanged": 0,
+   "failed": 0,
+   "cancelled": false,
+   "truncated": false,
+   "nextRefreshAt": "2026-03-02T10:00:00.000Z"
+  },
+  "calls": [
+   [
+    "kb.getKB",
+    "kb1"
+   ],
+   [
+    "kb.listDocuments",
+    "kb1",
+    {
+     "limit": 200,
+     "offset": 0,
+     "filters": {
+      "sourceId": "src1"
+     }
+    }
+   ],
+   [
+    "adapter.enumerate",
+    "src1",
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "manual",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "adapter.fetch",
+    {
+     "externalId": "a"
+    },
+    null,
+    {
+     "ctx": {
+      "tenantId": "tenant1",
+      "kbId": "kb1",
+      "reason": "manual",
+      "maxItems": 500,
+      "deadline": 45000,
+      "partial": "<undefined>",
+      "relatedTables": "<undefined>"
+     }
+    },
+    "<deps>"
+   ],
+   [
+    "helpers.ingestDocument",
+    "tenant1",
+    "kb1",
+    "fresh a",
+    "a",
+    "fake",
+    null,
+    {
+     "sourceId": "src1",
+     "metadata": null,
+     "externalId": "a",
+     "skipDedup": false,
+     "sourceModifiedAt": null,
+     "sizeBytes": null,
+     "mime": null,
+     "pageCount": null,
+     "sheetCount": null,
+     "createdBy": "user1",
+     "onFailure": "record",
+     "privacy": {
+      "orgId": "org1",
+      "userId": "user1"
+     }
+    }
+   ],
+   [
+    "log",
+    "source src1: 1 document(s) predate the source model and were left alone"
+   ],
+   [
+    "kb.bumpKBVersion",
+    "kb1"
+   ],
+   [
+    "sources.isCancelRequested",
+    "src1",
+    false
+   ],
+   [
+    "summarise",
+    {
+     "text": "fresh a",
+     "title": "a",
+     "userId": "tenant1",
+     "orgId": "org1",
+     "kbId": "kb1"
+    }
+   ],
+   [
+    "kb.replaceDocumentContent",
+    "new_a",
+    {
+     "extractSummary": "about a"
+    }
+   ]
+  ]
+ }
+}

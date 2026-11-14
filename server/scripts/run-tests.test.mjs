@@ -70,6 +70,7 @@ function sandbox(files, exclusions = []) {
     fs.mkdirSync(path.join(dir, 'scripts'), { recursive: true });
     fs.copyFileSync(SCRIPT, path.join(dir, 'scripts/run-tests.mjs'));
     fs.copyFileSync(path.join(HERE, 'testShards.mjs'), path.join(dir, 'scripts/testShards.mjs'));
+    fs.copyFileSync(path.join(HERE, 'coverageUrls.mjs'), path.join(dir, 'scripts/coverageUrls.mjs'));
     fs.writeFileSync(path.join(dir, 'scripts/test-exclusions.json'), JSON.stringify({ exclusions }));
     for (const [name, body] of Object.entries(files)) {
         fs.writeFileSync(path.join(dir, name), body);

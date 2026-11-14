@@ -90,7 +90,7 @@ async function startOrgTrial(orgId, planId, { changedBy } = {}) {
         stripe_subscription_id: trialResult.stripeSubscriptionId,
     }, { resetLimits: true }), `org ${orgId}`, trialResult);
     try {
-        await require('./planEntitlements').applyPlanToOrg(orgId, planId, { mode: 'reset' });
+        await require('../core/entitlements/planEntitlements').applyPlanToOrg(orgId, planId, { mode: 'reset' });
     } catch (e) {
         log.warn(`[TrialService] applyPlanToOrg failed for ${orgId}:`, /** @type {Error} */ (e).message);
     }

@@ -68,6 +68,7 @@ function gatePasses(gate, perms, hasFeature) {
 // `visibleByCourse` shape completion.js consumes. Matches the client's
 // courseLessons(course, user, hasFeature) filtering.
 function buildVisibleByCourse(perms, hasFeature) {
+    /** @type {Record<string, string[]>} */
     const visible = {};
     for (const course of COURSES) {
         visible[course.id] = (course.lessonIds || [])
@@ -77,6 +78,9 @@ function buildVisibleByCourse(perms, hasFeature) {
 }
 
 function getCourse(courseId) { return COURSES.find((c) => c.id === courseId) || null; }
+/**
+ * @param {string | undefined} certId
+ */
 function getCertificate(certId) { return CERTIFICATES.find((c) => c.id === certId) || null; }
 
 // Which lessons the AI practice generator can write fresh questions for —

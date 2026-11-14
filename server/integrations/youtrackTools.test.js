@@ -32,7 +32,7 @@ SECRETS[`youtrack_token_user_${USER}`] = 'perm:token';
 // ── fetch stub ─────────────────────────────────────────────────────────
 // The client fetches through jsonApiRequest's guarded fetch, which does not
 // read the global: the scripted fetch is installed through its test seam.
-const { _setFetchForTests } = require('./shared/apiClient');
+const { _setFetchForTests } = require('../utils/apiClient');
 test.after(() => _setFetchForTests(null));
 let fetchCalls = [];
 function scriptFetch(responses) {

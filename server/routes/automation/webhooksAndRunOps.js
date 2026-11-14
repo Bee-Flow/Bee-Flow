@@ -12,7 +12,7 @@ const { HttpError } = require('../../core/http/errors');
 // Handoff 5 sharing: what a role may do with an automation and its runs.
 const { makeAutomationAccess, mayReadRun, roleSatisfies } = require('../../automation/access');
 const { isTestRun } = require('../../core/automationRunner/definitionForRun');
-const { assertCanReadRunData, redactRunForViewer, redactStepsForViewer, redactChainStepsForViewer } = require('../../core/automationModel/callerRunVisibility');
+const { assertCanReadRunData, redactRunForViewer, redactStepsForViewer, redactChainStepsForViewer } = require('../../auth/callerRunVisibility');
 const { envInt } = require('../../utils/envNumber.mts');
 const automationAccess = makeAutomationAccess({ store: automationStore });
 // @typecheck

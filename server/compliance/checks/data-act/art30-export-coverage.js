@@ -60,6 +60,9 @@ module.exports = {
     remediationKey: 'compliance.check_data_act_export_coverage_fix',
     remediationLink: 'admin/compliance/portability',
 
+    /**
+     * @param {string} orgId
+     */
     async evaluate(orgId) {
         const settings = (await complianceStore.getSettings(orgId)) || {};
         if (_relevance(settings).data_act === 'not_relevant') {
@@ -128,6 +131,7 @@ module.exports = {
         evidence.unmounted_routes = unmounted;
 
         if (uncovered.length > 0) {
+            /** @type {string[]} */
             const parts = [];
             if (productGaps.length) parts.push(`no export endpoint exists for ${productGaps.join(', ')} (product gap)`);
             if (unmounted.length) parts.push(`the declared export route is not mounted for ${unmounted.join(', ')}`);

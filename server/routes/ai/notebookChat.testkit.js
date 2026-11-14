@@ -69,7 +69,7 @@ function notebookChatStubs(fx, over = {}) {
             touchActivity: async () => {},
         },
         '../../stores/notebookConversationStore': { appendMessages: async () => {} },
-        '../../support/kbAccess': { partitionAccessibleKBIds: async (/** @type {unknown} */ req, /** @type {string[]} */ ids) => ({ allowed: ids, denied: /** @type {string[]} */ ([]) }) },
+        '../../core/kb/kbAccess': { partitionAccessibleKBIds: async (/** @type {unknown} */ req, /** @type {string[]} */ ids) => ({ allowed: ids, denied: /** @type {string[]} */ ([]) }) },
         '../../core/entitlements/betaFeatures': {},
         '../../core/entitlements/limits': { checkSubscriptionLimits: /** @returns {Promise<null>} */ async () => null },
         '../../auth': { resolveUserOrgIds: async () => new Set(['org-1']) },

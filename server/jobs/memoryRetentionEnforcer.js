@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Memory Retention Enforcer — GDPR Art. 5(1)(e) "storage limitation" for the
  * user_memories table.
@@ -83,6 +83,7 @@ const HARD_DELETE_DAYS = 90;
 const HARD_DELETE_BATCH = 1000;
 const HARD_DELETE_RUN_CAP = 10000;
 
+/** @type {NodeJS.Timeout | null} */
 let _timer = null;
 let _running = false;
 
@@ -100,7 +101,7 @@ async function getRetentionPolicy(orgId) {
         settings = await complianceStore.getSettings(orgId);
     } catch (e) {
         // Unknown must narrow to "do nothing", never to "sweep on the default".
-        log.warn(`[MemoryRetentionEnforcer] settings for "${orgId}" unreadable — retention OFF:`, e.message);
+        log.warn(`[MemoryRetentionEnforcer] settings for "${orgId}" unreadable — retention OFF:`, /** @type {Error} */ (e).message);
         return { enabled: false, days: DEFAULT_RETENTION_DAYS, reason: 'settings_unreachable' };
     }
     const enabled = settings?.memory_retention_enabled === true;
@@ -123,7 +124,7 @@ async function _expireMemories() {
         `);
         return rowCount || 0;
     } catch (e) {
-        log.warn('[MemoryRetentionEnforcer] expire query failed:', e.message);
+        log.warn('[MemoryRetentionEnforcer] expire query failed:', /** @type {Error} */ (e).message);
         return 0;
     }
 }
@@ -147,7 +148,10 @@ const AGE_SWEEP_SQL = `
     )
 `;
 
-/** 2. Age sweep, per org, only where enabled. Returns the total expired. */
+/**
+ * 2. Age sweep, per org, only where enabled. Returns the total expired.
+ * @param {Set<string>} orgIds
+ */
 async function _sweepByAge(orgIds) {
     let total = 0;
     for (const orgId of orgIds) {
@@ -161,7 +165,7 @@ async function _sweepByAge(orgIds) {
                 log.info(`[MemoryRetentionEnforcer] org "${orgId}": expired ${n} memories older than ${policy.days} days`);
             }
         } catch (e) {
-            log.warn(`[MemoryRetentionEnforcer] age sweep for "${orgId}" failed:`, e.message);
+            log.warn(`[MemoryRetentionEnforcer] age sweep for "${orgId}" failed:`, /** @type {Error} */ (e).message);
         }
     }
     return total;
@@ -200,7 +204,12 @@ const RESTORABLE_DELETE_SQL = `
     SELECT COUNT(*)::int AS n FROM gone
 `;
 
-/** Batches of one statement until a short batch or the per-run cap. */
+/**
+ * Batches of one statement until a short batch or the per-run cap.
+ * @param {string} sql
+ * @param {string[]} leadingParams
+ * @param {number} budget
+ */
 async function _deleteInBatches(sql, leadingParams, budget) {
     let total = 0;
     while (total < budget) {
@@ -217,12 +226,15 @@ async function _hardDeleteHistory() {
     try {
         return await _deleteInBatches(HARD_DELETE_SQL, [String(HARD_DELETE_DAYS)], HARD_DELETE_RUN_CAP);
     } catch (e) {
-        log.warn('[MemoryRetentionEnforcer] hard delete failed:', e.message);
+        log.warn('[MemoryRetentionEnforcer] hard delete failed:', /** @type {Error} */ (e).message);
         return 0;
     }
 }
 
-/** 3b. Hard delete of archived/expired rows, per org, only where retention is on. */
+/**
+ * 3b. Hard delete of archived/expired rows, per org, only where retention is on.
+ * @param {Set<string>} orgIds
+ */
 async function _hardDeleteRestorable(orgIds) {
     let total = 0;
     for (const orgId of orgIds) {
@@ -233,7 +245,7 @@ async function _hardDeleteRestorable(orgIds) {
             total += n;
             if (n > 0) log.info(`[MemoryRetentionEnforcer] org "${orgId}": deleted ${n} archived/expired memories older than ${policy.days} days`);
         } catch (e) {
-            log.warn(`[MemoryRetentionEnforcer] restorable delete for "${orgId}" failed:`, e.message);
+            log.warn(`[MemoryRetentionEnforcer] restorable delete for "${orgId}" failed:`, /** @type {Error} */ (e).message);
         }
     }
     return total;
@@ -247,16 +259,19 @@ async function _listOrgIds() {
             if (o?.id) orgIds.add(o.id);
         }
     } catch (e) {
-        log.warn('[MemoryRetentionEnforcer] could not list orgs:', e.message);
+        log.warn('[MemoryRetentionEnforcer] could not list orgs:', /** @type {Error} */ (e).message);
     }
     return orgIds;
 }
 
-/** 3. Heartbeat, so the compliance check can see the job is alive. */
+/**
+ * 3. Heartbeat, so the compliance check can see the job is alive.
+ * @param {Set<string>} orgIds
+ */
 async function _stampHeartbeats(orgIds) {
     for (const orgId of orgIds) {
         try { await complianceStore.markRetentionRun(orgId); }
-        catch (e) { log.warn(`[MemoryRetentionEnforcer] heartbeat for "${orgId}" failed:`, e.message); }
+        catch (e) { log.warn(`[MemoryRetentionEnforcer] heartbeat for "${orgId}" failed:`, /** @type {Error} */ (e).message); }
     }
 }
 

@@ -112,7 +112,7 @@ function shapeOf(value, limits, counts, depth = 1) {
  */
 function describePayload(value, limits) {
     if (value === undefined || value === null) return { present: false };
-    const { isTruncatedOutput, fullOutputRefOf } = require('../core/automationModel/payloadTruncation');
+    const { isTruncatedOutput, fullOutputRefOf } = require('../stores/automationStore/payloadTruncation');
     const counts = newCounts();
     if (isTruncatedOutput(value)) {
         const shape = value.preview !== undefined ? shapeOf(value.preview, limits, counts) : null;

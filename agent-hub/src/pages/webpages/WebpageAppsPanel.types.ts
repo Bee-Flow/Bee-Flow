@@ -24,7 +24,7 @@ import type { CatalogApp } from '../../components/automation/Builder/flow/stepPa
 
 export interface AutomationOption { id?: string; automationId?: string; title?: string }
 
-export interface GrantedIntegration {
+interface GrantedIntegration {
     tool: string;
     label?: string;
     integrationLabel?: string;
@@ -32,7 +32,7 @@ export interface GrantedIntegration {
     available: boolean | null;
 }
 
-export interface GrantedAutomation { automationId: string; label?: string }
+interface GrantedAutomation { automationId: string; label?: string }
 
 export interface Grants {
     integrations?: GrantedIntegration[];

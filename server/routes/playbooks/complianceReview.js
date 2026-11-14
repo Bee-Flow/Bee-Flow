@@ -19,13 +19,9 @@
 
 const lifecycle = require('../../playbooks/lifecycle');
 const { sendErr } = require('./contract');
-const { kindOf, firstOfKind, appBefore, localeOf } = require('./phaseList');
+const { firstOfKind, appBefore, localeOf } = require('../../usecases/playbooks/phaseList');
 const log = require('../../telemetry/log');
-const { isMissingTable } = require('../../utils/isMissingTable');
-const { fallback } = require('../../utils/bestEffort');
-
-/** Rows the compliance review samples to judge personal data by its VALUES. */
-const SAMPLE_ROWS = 50;
+const { readTable, readAutomations, readApp, readFrameworks, sampleTable, recheckedPhases } = require('./complianceReviewFacts');
 
 function makeRunComplianceReview(ctx) {
     const { d, flow } = ctx;
@@ -61,116 +57,15 @@ function makeRunComplianceReview(ctx) {
             version = running.version;
         }
 
-        // ── what was built ──────────────────────────────────────────────
+        // What was built, which rules this organisation follows, and what is
+        // actually in the table (./complianceReviewFacts.js).
         const tableArt = (firstOfKind(phases, 'table') || {}).artifacts || {};
-        let table = null;
-        if (tableArt.datatableId) {
-            table = { id: tableArt.datatableId, scope: tableArt.datatableScope || null, name: tableArt.datatableName, fields: tableArt.fields || [], rowCount: tableArt.rowCount, isMirror: !!tableArt.isMirror };
-            try {
-                const row = await d.datatableStore.getDatatable(tableArt.datatableId, tableArt.datatableScope);
-                if (row && Number.isFinite(Number(row.rowCount))) table.rowCount = Number(row.rowCount);
-            } catch (err) { if (!isMissingTable(err)) throw err; log.debug('the columns are the material that matters', err); }
-        }
-        const automations = [];
-        for (const p of phases) {
-            const id = p && p.artifacts && p.artifacts.automationId;
-            if (!id || kindOf(p) !== 'automation') continue;
-            try {
-                const a = await d.automationStore.getAutomation(id);
-                if (a && a.userId === pb.userId) {
-                    automations.push({
-                        // The id is what a finding points at and what a fix is
-                        // written to — without it the review can describe an
-                        // automation but never take you to it.
-                        id,
-                        phaseKey: p.key,
-                        title: a.title,
-                        description: a.description || null,
-                        trigger: (a.definition && a.definition.trigger && a.definition.trigger.kind) || null,
-                        // type AND tool. The projection used to drop `tool`,
-                        // which quietly disarmed two of the review's own
-                        // checks: an integration_action is only outbound
-                        // depending on WHICH tool it runs (gmail_search reads,
-                        // gmail_compose sends), and "does this automation read
-                        // files" was matching tool-shaped patterns against step
-                        // types, so it could never be true. Tool NAMES are not
-                        // personal data — no argument values travel, only the
-                        // two identifiers the classifier needs.
-                        steps: (a.definition && Array.isArray(a.definition.steps))
-                            ? a.definition.steps.map((st) => ({ type: st && st.type, tool: (st && st.tool) || null }))
-                            : [],
-                        // The whole definition, for compliance/aiAct/signals.js —
-                        // it reads the graph, not a list of step types.
-                        definition: a.definition || null,
-                    });
-                }
-            } catch (err) { fallback('routes/playbooks/complianceReview:runComplianceReview', err); /* an automation that cannot be read is simply not reviewed */ }
-        }
-        let app = null;
-        let access = null;
+        const table = await readTable(d, tableArt);
+        const automations = await readAutomations(d, phases, pb);
         const appId = appBefore(phases, key) || ((firstOfKind(phases, 'access') || {}).artifacts || {}).appId || null;
-        if (appId) {
-            try {
-                const row = await d.studioAppStore.getStudioApp(appId);
-                if (row && row.userId === pb.userId) {
-                    app = {
-                        id: appId,
-                        name: row.name,
-                        published: !!row.isPublished,
-                        sharedGroups: Array.isArray(row.sharedGroups) ? row.sharedGroups : [],
-                        screenCount: (row.definition && Array.isArray(row.definition.screens)) ? row.definition.screens.length : null,
-                        // Public links live in studio_app_public_pages, not on the app row.
-                        publicPages: await d.studioAppStore.listPublicPages(appId)
-                            .then((list) => (Array.isArray(list) ? list.length : 0))
-                            .catch(() => 0),
-                    };
-                    const meta = await d.studioAppDataStore.getDataModel(appId, row.userId).catch((e) => fallback('routes/playbooks/complianceReview:runComplianceReview#2', e, null));
-                    const members = await d.studioAppDataStore.listMembers(appId, row.userId).catch((e) => fallback('routes/playbooks/complianceReview:runComplianceReview#3', e, []));
-                    access = {
-                        roles: (meta && meta.model && Array.isArray(meta.model.roles)) ? meta.model.roles : [],
-                        defaultRole: (meta && meta.model && meta.model.roleMapping && meta.model.roleMapping.default) || null,
-                        memberCount: Array.isArray(members) ? members.length : 0,
-                    };
-                    // Roles that carry a row rule: with one of those, "everyone
-                    // can open it" no longer means "everyone sees everything".
-                    const modelTables = (meta && meta.model && Array.isArray(meta.model.tables)) ? meta.model.tables : [];
-                    app.scopedRoles = [...new Set(modelTables.flatMap((mt) => Object.keys((mt && mt.access && mt.access.rowFilters) || {})))];
-                }
-            } catch (err) { fallback('routes/playbooks/complianceReview:runComplianceReview#4', err); /* reviewed without it */ }
-        }
-
-        // ── which rules this organisation actually follows ──────────────
-        let active = [];
-        try {
-            const set = await d.frameworkPolicy.activeRegulations(pb.organizationId || 'default', { req });
-            active = [...set];
-        } catch (e) {
-            log.warn('[Playbooks] could not read the active frameworks:', e.message);
-        }
-        // Frameworks carry `name_key`, never `name` — reading `fw.name` meant
-        // the reviewer has only ever seen bare codes.
-        const names = active.map((code) => {
-            const fw = d.complianceFrameworks.byRegulation ? d.complianceFrameworks.byRegulation(code) : null;
-            const human = fw && fw.name_key ? (d.guiDefaults || {})[fw.name_key] : null;
-            return human && human !== code ? `${code} (${human})` : code;
-        });
-
-        // ── what is ACTUALLY true (playbooks/phases/complianceFacts.js) ──
-        let rows = [];
-        let privacy = null;
-        if (tableArt.datatableId) {
-            try {
-                const row = await d.datatableStore.getDatatable(tableArt.datatableId, tableArt.datatableScope);
-                if (row) privacy = { lawfulBasis: row.lawfulBasis, retentionDays: row.retentionDays, retentionField: row.retentionField, subjectColumn: row.subjectColumn, rowScope: row.rowScope };
-                const principal = await d.datatableAccessPlan.resolveDatatablePrincipalForUser(pb.userId);
-                const resolved = await d.datatableRuntime.resolveForPrincipal(tableArt.datatableId, principal, { needed: 'viewer' });
-                const page = await d.datatableRuntime.readRows(resolved, {
-                    allowColumns: (tableArt.fields || []).map((f) => f.key).filter(Boolean),
-                    limit: SAMPLE_ROWS,
-                });
-                rows = Array.isArray(page && page.rows) ? page.rows : [];
-            } catch (err) { fallback('routes/playbooks/complianceReview:runComplianceReview#5', err); /* the review still runs on what it has */ }
-        }
+        const { app, access } = await readApp(d, appId, pb);
+        const { active, names } = await readFrameworks(d, pb, req);
+        const { rows, privacy } = await sampleTable(d, tableArt, pb);
         let enrichment = null;
         try {
             enrichment = await d.enrichComplianceFacts({
@@ -190,24 +85,7 @@ function makeRunComplianceReview(ctx) {
         });
         const doneIso = new Date(d.now()).toISOString();
         phases = recheck
-            ? phases.map((p) => (p.key === key
-                ? {
-                    ...p,
-                    summary: result.summary,
-                    error: null,
-                    finishedAt: doneIso,
-                    artifacts: {
-                        ...(p.artifacts || {}),
-                        ...result.artifacts,
-                        // What it looked like before, so the card can say
-                        // "two fewer than a moment ago" — the point of a fix.
-                        rechecks: [
-                            ...(((p.artifacts && p.artifacts.rechecks) || [])),
-                            { at: doneIso, was: ((p.artifacts && p.artifacts.findings) || []).length, now: result.artifacts.findings.length },
-                        ].slice(-5),
-                    },
-                }
-                : p))
+            ? recheckedPhases(phases, key, result, doneIso)
             : lifecycle.applyTransition(phases, key, 'awaiting', { artifacts: result.artifacts, summary: result.summary, error: null }, doneIso);
         const saved = await savePhaseOutcome(pb, key, phases, version);
         if (!saved.ok) return sendErr(res, 409, 'version_conflict', 'This playbook changed elsewhere.', { currentVersion: saved.currentVersion, playbook: saved.playbook });

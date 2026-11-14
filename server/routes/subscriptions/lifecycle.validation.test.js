@@ -50,7 +50,7 @@ const MOCKS = {
         cancelSubscriptionAtPeriodEnd: async (id) => { touched.push({ what: 'cancel', args: [id] }); return { cancel_at: 0, current_period_end: 0 }; },
         reactivateSubscription: async (id) => { touched.push({ what: 'reactivate', args: [id] }); },
     },
-    '../../services/planEntitlements': { applyPlanToOrg: async () => {} },
+    '../../core/entitlements/planEntitlements': { applyPlanToOrg: async () => {} },
 };
 
 const MOCK_IDS = {};

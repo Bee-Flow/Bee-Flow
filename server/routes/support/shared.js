@@ -9,7 +9,7 @@
  */
 
 const supportStore = require('../../stores/supportStore');
-const staffAccess = require('../../support/staffAccess');
+const staffAccess = require('../../core/support/staffAccess');
 const log = require('../../telemetry/log');
 const { tagGate } = require('../../auth/gateMeta');
 
@@ -47,7 +47,7 @@ function getUserDisplay(req) {
     return u.displayName || u.name || u.email || u.username || u.id || null;
 }
 
-// Staff gate — shared home (support/staffAccess). Thin shim so the ~30
+// Staff gate — shared home (core/support/staffAccess). Thin shim so the ~30
 // call sites keep their name.
 async function _hasAdminSupport(req) {
     return staffAccess.hasAdminSupport(req, getUserId(req));
@@ -117,14 +117,14 @@ h1{font-size:22px;margin:0 0 12px;color:#0f172a}p{color:#475569;line-height:1.5;
 }
 
 // ── SSE event bus for the staff inbox ─────────────────────────────────────
-// The bus itself lives in support/events so background services can emit
+// The bus itself lives in core/support/events so background services can emit
 // without requiring a route module. Same single instance, re-exported here.
-const { supportEvents } = require('../../support/events');
+const { supportEvents } = require('../../core/support/events');
 // Both moved out of this file: four background services need them and must
-// not require a route module. See support/notifications.js.
-const { notifyStaff, renderCannedBody } = require('../../support/notifications');
+// not require a route module. See core/support/notifications.js.
+const { notifyStaff, renderCannedBody } = require('../../core/support/notifications');
 
-const { emit: _emit } = require('../../support/events');
+const { emit: _emit } = require('../../core/support/events');
 
 function _logListenerPressure() {
     // Warn (not crash) when the bus approaches the configured cap. Half-closed

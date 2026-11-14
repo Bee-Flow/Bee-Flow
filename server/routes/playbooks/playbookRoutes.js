@@ -19,7 +19,7 @@ const { refreshFillPhase } = require('../../playbooks/phases/fillPhase');
 const { copyFor } = require('../../playbooks/copy');
 const { userIdOf } = require('../studio/shared');
 const { z, sendErr, isObject, localeOfRequest, worded, closedObject, bodyOf, localeCode, tierName, check, MAX_TITLE, MAX_FOLDER, MAX_DESCRIPTION, MAX_BRIEF, TABLE_MODES, CLIENT_STATUSES, onUnknownKeys, typeError } = require('./contract');
-const { kindOf, localeOf, withClosingPhases, summarise } = require('./phaseList');
+const { kindOf, localeOf, withClosingPhases, summarise } = require('../../usecases/playbooks/phaseList');
 const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 

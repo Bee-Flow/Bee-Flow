@@ -52,6 +52,7 @@ let _refreshing = null;
 /**
  * @param {string} model
  * @param {string} tier
+ * @param {string} provider
  */
 const _key = (provider, model, tier) => `${provider}|${String(model).toLowerCase()}|${tier}`;
 

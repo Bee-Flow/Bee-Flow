@@ -10,8 +10,8 @@
  */
 
 const configStore = require('../../../stores/configStore');
-const { makeTierToolParamsGetter } = require('./toolExec');
-const { handleSessionSkillCompleteResult } = require('./stepMachine');
+const { makeTierToolParamsGetter } = require('../../../usecases/ai/directChat/toolExec');
+const { handleSessionSkillCompleteResult } = require('../../../usecases/ai/directChat/stepMachine');
 
 /** @param {ReturnType<typeof import('./turnState').createTurnState>} turn */
 function createToolContextFactory(turn) {

@@ -107,10 +107,10 @@ const MOCKS = {
             return ids.map((id) => ({ id }));
         },
     },
-    '../agents/memory/memoryWriter': {
+    '../core/memory/memoryWriter': {
         // The real detectors (they are what the route asks); a fake pipeline.
-        detectSensitiveIdentifier: require('../agents/memory/memoryWriter.js').detectSensitiveIdentifier,
-        looksArt9: require('../agents/memory/memoryWriter.js').looksArt9,
+        detectSensitiveIdentifier: require('../core/memory/memoryWriter.js').detectSensitiveIdentifier,
+        looksArt9: require('../core/memory/memoryWriter.js').looksArt9,
         writeMemory: async (candidate, ctx) => { fx.writeCalls.push({ candidate, ctx }); return fx.writeResult(candidate); },
     },
     '../core/memory/memoryPolicy': {

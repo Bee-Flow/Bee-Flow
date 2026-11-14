@@ -11,7 +11,7 @@ const supportInboxStore = require('../../stores/supportInboxStore');
 const supportStore = require('../../stores/supportStore');
 const { setupSSE, startSseHeartbeat } = require('../../core/http/sseHelpers');
 const { validateSharedGroupsForOrg } = require('../../auth/permissions');
-const access = require('../../support/access');
+const access = require('../../core/support/access');
 const audit = require('../../support/audit');
 const { supportEvents } = require('../support');
 const { getUserId, resolveOrgScope, loadInboxInScope } = require('./inboxScope');
@@ -73,7 +73,7 @@ async function insights(req, res) {
  */
 async function teammates(req, res) {
     const scope = await resolveOrgScope(req);
-    const { _eligibleStaffForOrg } = require('../../services/supportAutoAssigner');
+    const { _eligibleStaffForOrg } = require('../../core/support/supportAutoAssigner');
     const userStore = require('../../stores/userStore');
     const seen = new Set();
     const out = [];
@@ -109,7 +109,7 @@ async function availableIntegrations(req, res) {
     if (!operatorUserId) return res.json({ integrations: [], operatorUserId: null });
 
     const userStore = require('../../stores/userStore');
-    const { _eligibleStaffForOrg } = require('../../services/supportAutoAssigner');
+    const { _eligibleStaffForOrg } = require('../../core/support/supportAutoAssigner');
     const eligible = await _eligibleStaffForOrg(inbox.organization_id, { tenantInbox: true }).catch((e) => fallback('routes/support/inboxSettings:availableIntegrations', e, /** @type {string[]} */ ([])));
     if (!Array.isArray(eligible) || !eligible.includes(operatorUserId)) {
         return res.status(400).json({ error: "Operator must be a member of this inbox's organisation." });
@@ -249,7 +249,7 @@ function inboxToSettings(inbox) {
 async function _resolveAccessMembers(inbox, sharedGroups) {
     try {
         const userStore = require('../../stores/userStore');
-        const { _eligibleStaffForOrg } = require('../../services/supportAutoAssigner');
+        const { _eligibleStaffForOrg } = require('../../core/support/supportAutoAssigner');
         const eligible = await _eligibleStaffForOrg(inbox.organization_id, { tenantInbox: true }).catch((e) => fallback('routes/support/inboxSettings:_resolveAccessMembers', e, /** @type {string[]} */ ([])));
         let memberIds = Array.isArray(eligible) ? eligible : [];
         if (Array.isArray(sharedGroups) && sharedGroups.length) {

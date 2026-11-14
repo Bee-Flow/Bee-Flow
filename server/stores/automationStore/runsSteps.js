@@ -1,8 +1,8 @@
 // @typecheck
 const { initDB, run, getOne, getAll } = require('./core');
 const { rowToRun, rowToRunStep } = require('./rowMappers');
-const { redactForPersistence, safeOutputKeysForTool } = require('../../automation/runLogRedaction');
-const { truncatePayload } = require('../../automation/payloadTruncation');
+const { redactForPersistence, safeOutputKeysForTool } = require('./runLogRedaction');
+const { truncatePayload } = require('./payloadTruncation');
 const { persistableOutput } = require('./runFullOutputs');
 const { persistableBindingWarnings } = require('./bindingWarnings');
 const log = require('../../telemetry/log');

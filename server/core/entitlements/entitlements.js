@@ -68,7 +68,7 @@ const ORG_EXEMPT_APPS = new Set(['workspace', 'regex-gen', 'kb-ingest']);
 let _userStore, _beta, _planEnt, _configStore, _middleware, _sessionCache;
 function userStore() { return _userStore || (_userStore = require('../../stores/userStore')); }
 function beta() { return _beta || (_beta = require('./betaFeatures')); }
-function planEnt() { return _planEnt || (_planEnt = require('../../services/planEntitlements')); }
+function planEnt() { return _planEnt || (_planEnt = require('./planEntitlements')); }
 function configStore() { return _configStore || (_configStore = require('../../stores/configStore')); }
 function middleware() { return _middleware || (_middleware = require('../../license/middleware')); }
 function sessionCache() { return _sessionCache || (_sessionCache = require('../../auth/sessionCache')); }

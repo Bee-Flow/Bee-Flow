@@ -98,7 +98,7 @@ async function validateKnowledgeBaseIds(req, ids, projectOrganizationId) {
     if (ids.length > MAX_KB_IDS) return { ok: false, invalid: [], tooMany: true };
 
     const kbStore = require('../stores/knowledgeBases');
-    const { partitionAccessibleKBIds } = require('../support/kbAccess');
+    const { partitionAccessibleKBIds } = require('../core/kb/kbAccess');
 
     // Read access, via the shared request-shaped wrapper. Unknown ids count as
     // denied, so a guessed UUID cannot slip through.

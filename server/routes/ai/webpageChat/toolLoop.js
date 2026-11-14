@@ -25,7 +25,7 @@ const { WEBPAGE_SCREENSHOT_TOOL } = require('../../../integrations/webpageScreen
 const { WEBPAGE_BRIDGE_TOOLS } = require('../../../integrations/webpageBridgeTools');
 const { WEBPAGE_KB_SEARCH_TOOL } = require('../../../core/webpages/webpageKnowledgeSearch');
 const { createToolDispatcher } = require('./tools');
-const { createValidationRepair } = require('./validation');
+const { createValidationRepair } = require('../../../usecases/ai/webpageChat/validation');
 const { fallback, bestEffort } = require('../../../utils/bestEffort');
 
 /**
@@ -260,7 +260,7 @@ async function runToolLoop({
             if (repair) {
                 // A user turn, not a system message: the request has to
                 // end on a user turn or Claude rejects it as prefill.
-                const { validationRepairTurn } = require('../../../services/webpageValidation');
+                const { validationRepairTurn } = require('../../../core/webpages/webpageValidation');
                 messages.push(...validationRepairTurn(fullContent, repair));
                 turn.validationRepairUsed = true;
                 continue;

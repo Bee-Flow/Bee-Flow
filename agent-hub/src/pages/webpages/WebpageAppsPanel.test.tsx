@@ -44,6 +44,7 @@ vi.mock('../../hooks/useAutomationApi', () => ({
     default: () => ({ getCatalog, listAutomations }),
 }));
 
+import { withQueryClient } from '../../test/queryWrapper';
 import WebpageAppsPanel from './WebpageAppsPanel';
 
 function grantsResponse(body = GRANTS, ok = true, status = 200) {
@@ -62,7 +63,7 @@ beforeEach(() => {
 
 describe('WebpageAppsPanel', () => {
     it('lists granted apps with their live status and automations', async () => {
-        render(<WebpageAppsPanel webpageId="wp1" />);
+        render(withQueryClient(<WebpageAppsPanel webpageId="wp1" />));
         await waitFor(() => expect(screen.getByText('gmail search')).toBeTruthy());
         expect(screen.getByText('Connected')).toBeTruthy();
         expect(screen.getByText('Needs reconnect')).toBeTruthy();
@@ -71,7 +72,7 @@ describe('WebpageAppsPanel', () => {
     });
 
     it('offers a reconnect deep link (with return URL) for a disconnected grant', async () => {
-        render(<WebpageAppsPanel webpageId="wp1" />);
+        render(withQueryClient(<WebpageAppsPanel webpageId="wp1" />));
         const link = await screen.findByRole('link', { name: 'Reconnect' });
         expect(link.getAttribute('href')).toBe(
             '/app/settings/integrations?return=%2Fapp%2Fstudio%2Fwebpages%2Fwp1',
@@ -80,7 +81,7 @@ describe('WebpageAppsPanel', () => {
 
     it('revokes an integration grant via DELETE', async () => {
         const user = userEvent.setup();
-        render(<WebpageAppsPanel webpageId="wp1" />);
+        render(withQueryClient(<WebpageAppsPanel webpageId="wp1" />));
         const btn = await screen.findByRole('button', { name: 'Remove gmail_search' });
         await user.click(btn);
         await waitFor(() => expect(authFetch).toHaveBeenCalledWith(
@@ -91,7 +92,7 @@ describe('WebpageAppsPanel', () => {
 
     it('greys out unconnected apps in the picker and points at Settings', async () => {
         const user = userEvent.setup();
-        render(<WebpageAppsPanel webpageId="wp1" />);
+        render(withQueryClient(<WebpageAppsPanel webpageId="wp1" />));
         await user.click(await screen.findByRole('button', { name: /Add an app/ }));
         const appSelect = await screen.findByLabelText<HTMLSelectElement>('App');
         const youtrackOption = [...appSelect.options].find(o => o.value === 'youtrack') as HTMLOptionElement;
@@ -104,7 +105,7 @@ describe('WebpageAppsPanel', () => {
 
     it('grants a connected app action via POST', async () => {
         const user = userEvent.setup();
-        render(<WebpageAppsPanel webpageId="wp1" />);
+        render(withQueryClient(<WebpageAppsPanel webpageId="wp1" />));
         await user.click(await screen.findByRole('button', { name: /Add an app/ }));
         await user.selectOptions(await screen.findByLabelText('App'), 'gmail');
         await user.selectOptions(await screen.findByLabelText('Action'), 'gmail_search');
@@ -125,7 +126,7 @@ describe('WebpageAppsPanel', () => {
             }
             return grantsResponse();
         });
-        render(<WebpageAppsPanel webpageId="wp1" />);
+        render(withQueryClient(<WebpageAppsPanel webpageId="wp1" />));
         await user.click(await screen.findByRole('button', { name: /Add an app/ }));
         await user.selectOptions(await screen.findByLabelText('App'), 'gmail');
         await user.selectOptions(await screen.findByLabelText('Action'), 'gmail_search');
@@ -134,8 +135,50 @@ describe('WebpageAppsPanel', () => {
         expect(screen.getByRole('link', { name: 'Reconnect it' }).getAttribute('href')).toContain('/app/settings/integrations');
     });
 
+    it('a refused grants read shows the server text and says the lists are unread, not empty', async () => {
+        authFetch.mockImplementation(async () => ({ ok: false, status: 403, json: async () => ({ error: 'Not your page.' }) }));
+        render(withQueryClient(<WebpageAppsPanel webpageId="wp1" />));
+        expect(await screen.findByRole('alert')).toHaveTextContent('Not your page.');
+        expect(screen.getByTestId('apps-empty')).toHaveTextContent(/could not be read/);
+        // The catalog and the automations are still asked: the pane stays usable without the grants.
+        expect(getCatalog).toHaveBeenCalledTimes(1);
+        expect(listAutomations).toHaveBeenCalledTimes(1);
+    });
+
+    it('a failed catalog keeps the grants and switches "Add an app" off', async () => {
+        getCatalog.mockRejectedValueOnce(new Error('automations are off'));
+        render(withQueryClient(<WebpageAppsPanel webpageId="wp1" />));
+        expect(await screen.findByText('gmail search')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Add an app/ })).toBeDisabled();
+        expect(screen.getByText(/app catalog couldn't be loaded/)).toBeInTheDocument();
+    });
+
+    it('asks the grants, the catalog and the automations again after a revoke and on Refresh', async () => {
+        const user = userEvent.setup();
+        render(withQueryClient(<WebpageAppsPanel webpageId="wp1" />));
+        await user.click(await screen.findByRole('button', { name: 'Remove gmail_search' }));
+        const grantReads = () => authFetch.mock.calls.filter(c => String(c[0]).endsWith('/grants') && !c[1]).length;
+        await waitFor(() => expect(grantReads()).toBe(2));
+        await waitFor(() => expect(getCatalog).toHaveBeenCalledTimes(2));
+        expect(listAutomations).toHaveBeenCalledTimes(2);
+        await user.click(screen.getByRole('button', { name: 'Refresh apps and grants' }));
+        await waitFor(() => expect(grantReads()).toBe(3));
+        await waitFor(() => expect(getCatalog).toHaveBeenCalledTimes(3));
+    });
+
+    it('a refused revoke shows the server text and asks nothing again', async () => {
+        const user = userEvent.setup();
+        authFetch.mockImplementation(async (_url, opts) => (opts?.method === 'DELETE'
+            ? { ok: false, status: 409, json: async () => ({ error: 'Still in use.' }) }
+            : grantsResponse()));
+        render(withQueryClient(<WebpageAppsPanel webpageId="wp1" />));
+        await user.click(await screen.findByRole('button', { name: 'Remove gmail_search' }));
+        expect(await screen.findByRole('alert')).toHaveTextContent('Still in use.');
+        expect(getCatalog).toHaveBeenCalledTimes(1);
+    });
+
     it('renders the owner-only note for read-only viewers', () => {
-        render(<WebpageAppsPanel webpageId="wp1" readOnly />);
+        render(withQueryClient(<WebpageAppsPanel webpageId="wp1" readOnly />));
         expect(screen.getByText(/Only the page owner/)).toBeTruthy();
         expect(authFetch).not.toHaveBeenCalled();
     });

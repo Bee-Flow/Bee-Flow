@@ -141,6 +141,7 @@ function containerName(webpageId) {
 
 /**
  * @param {string} webpageId
+ * @param {string | null | undefined} orgId
  */
 function runtimeLabels(webpageId, orgId) {
     return {
@@ -189,6 +190,9 @@ const LOCAL_IMAGE_TAG = 'beeflow-webpage-runner:local';
 /** @type {string | null} */
 let _resolvedImage = null;
 
+/**
+ * @param {DockerClient} docker
+ */
 async function resolveImage(docker) {
     if (_resolvedImage) return _resolvedImage;
     if (process.env.WEBPAGE_RUNNER_IMAGE) {
@@ -228,6 +232,7 @@ function connectSelfToNetwork(docker) {
  * truth; the container is disposable. Returns the file count written.
  * @param {string} workdir
  * @param {string} webpageId
+ * @param {string | undefined} userId
  */
 async function hydrateProject(webpageId, userId, workdir) {
     await fsp.mkdir(workdir, { recursive: true });

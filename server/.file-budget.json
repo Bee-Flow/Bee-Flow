@@ -54,7 +54,7 @@
     }
   ],
   "files": {
-    "agents/memory/memoryWriter.js": 410,
+    "core/memory/memoryWriter.js": 410,
     "appStudio/actionExecutor/aiSteps.js": 777,
     "appStudio/actionExecutor/emailStep.js": 440,
     "appStudio/actionExecutor/records.js": 584,
@@ -270,7 +270,7 @@
     "playbooks/phases/compliancePhase.js": 846,
     "playbooks/recipeDoc.js": 824,
     "playbooks/resolvePlan.js": 684,
-    "projects/changeFeed.js": 499,
+    "core/projectContent/changeFeed.js": 499,
     "projects/comments/commentAssistant.js": 515,
     "projects/completeness.js": 460,
     "projects/graph.js": 475,
@@ -307,7 +307,7 @@
     "routes/ai/config/modelTiers.js": 586,
     "routes/ai/config/userSettings.js": 469,
     "routes/ai/directChat/conversationRoutes.js": 418,
-    "routes/ai/directChat/toolExec.js": 546,
+    "usecases/ai/directChat/toolExec.js": 546,
     "routes/ai/learning.js": 681,
     "routes/ai/templateChat.js": 449,
     "routes/ai/voice.js": 680,

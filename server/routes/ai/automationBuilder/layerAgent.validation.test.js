@@ -43,7 +43,7 @@ const MOCKS = {
     '../../../core/http/sseHelpers': quietSse(),
     '../../../auth/permissions': { requireAuth: pass },
     '../../../usecases/ai/automationBuilder/rateLimits': { layerAgentRateLimit: pass },
-    './builderDraft': {
+    '../../../usecases/ai/automationBuilder/builderDraft': {
         loadOrCreateDraft: async ({ automationId }) => {
             touched.push(['loadOrCreateDraft', automationId]);
             return { automationId, def: { steps: [], layers: { l_existing: { title: 'Enrich', steps: [] } } } };

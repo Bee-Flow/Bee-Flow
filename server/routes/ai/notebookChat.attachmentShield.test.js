@@ -76,7 +76,7 @@ const restore = installResolveStub(withStepAliases({
         touchActivity: async () => {},
     },
     '../../stores/notebookConversationStore': { appendMessages: async () => {} },
-    '../../support/kbAccess': { partitionAccessibleKBIds: async (req, ids) => ({ allowed: ids, denied: [] }) },
+    '../../core/kb/kbAccess': { partitionAccessibleKBIds: async (req, ids) => ({ allowed: ids, denied: [] }) },
     '../../core/entitlements/betaFeatures': {},
     '../../core/entitlements/limits': { checkSubscriptionLimits: async () => null },
     '../../auth': { resolveUserOrgIds: async () => (fx.orgId ? new Set([fx.orgId]) : new Set()) },

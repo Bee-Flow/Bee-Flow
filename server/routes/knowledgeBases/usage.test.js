@@ -61,7 +61,7 @@ const MOCKS = {
         resolveUserGroups: async () => [],
         validateSharedGroupsForOrg: async () => {},
     },
-    '../support/kbAccess': { ...fakeKbGates({ kbStore: { getKB: (id) => MOCKS['../stores/knowledgeBases'].getKB(id) }, canRead: () => fx.canAccess, canManage: () => fx.canAccess }),
+    '../core/kb/kbAccess': { ...fakeKbGates({ kbStore: { getKB: (id) => MOCKS['../stores/knowledgeBases'].getKB(id) }, canRead: () => fx.canAccess, canManage: () => fx.canAccess }),
         resolveAdminOrgIds: async () => new Set(),
     },
     '../core/kb/kbUsage': {

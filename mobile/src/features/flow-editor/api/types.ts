@@ -180,7 +180,7 @@ export interface FlowFormLink {
     createdAt: string | null;
     lastSeenAt: string | null;
     submissions: number;
-    /** 'restricted' | 'org' | … — who may fill it in (automation/formAudience). */
+    /** 'restricted' | 'org' | … — who may fill it in (auth/formAudience). */
     audience: string;
     sharedGroups: string[];
     sharedUserIds: string[];

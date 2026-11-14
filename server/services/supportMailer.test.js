@@ -27,7 +27,7 @@ let graphCalls = [];      // { path, method, body }
 let refreshedWith = [];   // tokens written back through onRefresh
 let inboxRow = null;
 
-stub('./email/providerClients', {
+stub('../utils/emailProviderClients', {
     gmailClientFromTokens: async (tokens, onRefresh) => {
         assert.ok(tokens && tokens.accessToken, 'gmail client must receive tokens');
         assert.strictEqual(typeof onRefresh, 'function', 'gmail client must receive an onRefresh callback');

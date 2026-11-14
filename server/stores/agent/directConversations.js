@@ -22,7 +22,7 @@ const { buildUpdate } = require('../lib/sqlBuilder');
 // store (and through it server/db.js), and this store is deliberately cut off
 // from the database at the require seam in its own tests. Shape only here;
 // the access decision belongs to the caller.
-const { normaliseKbIds } = require('../../core/kb/kbIdList');
+const { normaliseKbIds } = require('../kb/kbIdList');
 const log = require('../../telemetry/log');
 const { _restoreTokensInMessages, _displayTokenMap } = require('./tokenDisplay');
 const { searchConversationRows, byUpdatedDesc, DIRECT_SEARCH } = require('../lib/conversationSearch');
@@ -251,7 +251,7 @@ function _missingKbColumn(err) {
  * AUTHORISE.
  *
  * Callers MUST have run the list through `core/kb/kbSelection.resolveUsableKbIds`
- * (or its request-shaped wrapper `support/kbAccess.usableKbIdsForRequest`)
+ * (or its request-shaped wrapper `core/kb/kbAccess.usableKbIdsForRequest`)
  * first. What the store guarantees is only that it never WIDENS what it is
  * handed: non-strings, blanks and duplicates are dropped and the list is
  * capped, so an unreadable input becomes an EMPTY list rather than a
@@ -613,7 +613,7 @@ async function deleteDirectConversation(id, userId) {
 
     const rowCount = await deleteConversationsWhere(withTransaction, 'direct_conversations', 'id = $1 AND user_id = $2', [id, userId]);
     // Cached DLP state: unscoped by id (nulls pii_token_map on BOTH tables), hence gated on the ownership check above.
-    try { require('../../core/dlp/dlpRunner').clearConversationState(id); } catch (err) { bestEffort('stores/agent/directConversations:deleteDirectConversation', err); /* module not loaded yet */ }
+    try { require('./conversationStatePort').clearConversationState(id); } catch (err) { bestEffort('stores/agent/directConversations:deleteDirectConversation', err); /* the row is gone; the cached state ages out */ }
     return rowCount > 0;
 }
 

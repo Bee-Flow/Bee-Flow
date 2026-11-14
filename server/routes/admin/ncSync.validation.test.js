@@ -178,7 +178,7 @@ test('block means block, all the way into the stored shield', async () => {
 // ═══ POST /admin/:orgId/nc-sync/run ═════════════════════════════════
 
 test('"Sync now" goes straight to runFullSync: the backstop\'s 24h backoff never applies to it', async () => {
-    // The backoff after a failed sync lives in jobs/ncSyncBackstop.js alone.
+    // The backoff after a failed sync lives in services/ncSyncBackstop.js alone.
     // An admin who just re-paired the connector must be able to retry at once.
     fullSyncs.length = 0;
     const res = await dispatch({ method: 'POST', url: '/admin/org1/nc-sync/run' });

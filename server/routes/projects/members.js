@@ -41,7 +41,7 @@ const { fallback } = require('../../utils/bestEffort');
  *   userStore: typeof import('../../stores/userStore'),
  *   getUserId: (req: import('express').Request) => string|undefined, // the caller's user id
  *   resolveUserGroups: typeof import('../../auth/audience').resolveUserGroups,
- *   recordProjectChange: typeof import('../../projects/changeFeed').recordProjectChange,
+ *   recordProjectChange: typeof import('../../core/projectContent/changeFeed').recordProjectChange,
  *   collabNotifier: ReturnType<typeof import('../../projects/collabNotify').makeCollabNotifier>,
  *   perUserRateLimit: typeof import('../../utils/perUserRateLimit').perUserRateLimit }} deps
  */

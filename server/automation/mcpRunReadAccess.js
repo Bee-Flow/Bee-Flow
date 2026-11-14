@@ -6,7 +6,7 @@
  *   scope   the automation must be the token user's own, in that user's
  *           organisation; anything else answers 404, like a run that does not
  *           exist. On top comes the run-data read check every run read makes
- *           (core/automationModel/callerRunVisibility.js).
+ *           (auth/callerRunVisibility.js).
  *   policy  the organisation setting `rawReadsAllowed` (off by default) and the
  *           access-audit row every raw read writes first.
  *
@@ -126,7 +126,7 @@ function makeAccess(overrides = {}) {
 
     /** Find one step row: the given attempt, else the last one. */
     async function findStep(run, legs, stepId, attempts, userId) {
-        const { canReadRunData } = require('../core/automationModel/callerRunVisibility');
+        const { canReadRunData } = require('../auth/callerRunVisibility');
         const rows = (await store().getRunStepsForChain(run.id)).filter((s) => s.stepId === stepId);
         const row = attempts
             ? rows.find((s) => s.attempts === attempts)

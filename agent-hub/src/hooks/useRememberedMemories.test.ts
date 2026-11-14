@@ -1,6 +1,8 @@
+import { notifyManager } from '@tanstack/react-query';
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchRecentMemories } from '../api/memoryApi';
+import { queryWrapper } from '../test/queryWrapper';
 import useRememberedMemories from './useRememberedMemories';
 
 vi.mock('../api/memoryApi', () => ({ fetchRecentMemories: vi.fn() }));
@@ -12,11 +14,15 @@ const MEMORY = { id: 'm1', type: 'fact', content: 'Lives in Utrecht' };
 beforeEach(() => { vi.useFakeTimers(); fetchRecent.mockReset(); fetchRecent.mockResolvedValue([]); });
 afterEach(() => { vi.useRealTimers(); });
 
+// Under fake timers the query would hand its answer to React on a 0 ms timer, one tick
+// after the answer; a microtask keeps the answer inside the tick that produced it.
+notifyManager.setScheduler(queueMicrotask);
+
 const tick = (ms: number) => act(async () => { await vi.advanceTimersByTimeAsync(ms); });
 
 describe('useRememberedMemories', () => {
     it('asks at 2 s, 6 s and 15 s and then gives up', async () => {
-        const { result } = renderHook(() => useRememberedMemories({ conversationId: 'c1', since: SINCE, enabled: true }));
+        const { result } = renderHook(() => useRememberedMemories({ conversationId: 'c1', since: SINCE, enabled: true }), { wrapper: queryWrapper() });
         expect(fetchRecent).not.toHaveBeenCalled();
         await tick(2000);
         expect(fetchRecent).toHaveBeenCalledTimes(1);
@@ -35,7 +41,7 @@ describe('useRememberedMemories', () => {
 
     it('stops at the first non-empty answer', async () => {
         fetchRecent.mockResolvedValueOnce([]).mockResolvedValueOnce([MEMORY]);
-        const { result } = renderHook(() => useRememberedMemories({ conversationId: 'c1', since: SINCE, enabled: true }));
+        const { result } = renderHook(() => useRememberedMemories({ conversationId: 'c1', since: SINCE, enabled: true }), { wrapper: queryWrapper() });
         await tick(6000);
         expect(result.current.items).toEqual([MEMORY]);
         await tick(60000);
@@ -44,20 +50,20 @@ describe('useRememberedMemories', () => {
 
     it('a failed lookup counts as nothing yet and the next one still runs', async () => {
         fetchRecent.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce([MEMORY]);
-        const { result } = renderHook(() => useRememberedMemories({ conversationId: 'c1', since: SINCE, enabled: true }));
+        const { result } = renderHook(() => useRememberedMemories({ conversationId: 'c1', since: SINCE, enabled: true }), { wrapper: queryWrapper() });
         await tick(6000);
         expect(result.current.items).toEqual([MEMORY]);
     });
 
     it('does not ask at all when disabled or without a conversation', async () => {
-        renderHook(() => useRememberedMemories({ conversationId: 'c1', since: SINCE, enabled: false }));
-        renderHook(() => useRememberedMemories({ conversationId: null, since: SINCE, enabled: true }));
+        renderHook(() => useRememberedMemories({ conversationId: 'c1', since: SINCE, enabled: false }), { wrapper: queryWrapper() });
+        renderHook(() => useRememberedMemories({ conversationId: null, since: SINCE, enabled: true }), { wrapper: queryWrapper() });
         await tick(60000);
         expect(fetchRecent).not.toHaveBeenCalled();
     });
 
     it('leaving the conversation cancels what is pending', async () => {
-        const { unmount } = renderHook(() => useRememberedMemories({ conversationId: 'c1', since: SINCE, enabled: true }));
+        const { unmount } = renderHook(() => useRememberedMemories({ conversationId: 'c1', since: SINCE, enabled: true }), { wrapper: queryWrapper() });
         await tick(2000);
         expect(fetchRecent).toHaveBeenCalledTimes(1);
         unmount();
@@ -72,7 +78,7 @@ describe('useRememberedMemories', () => {
         fetchRecent.mockResolvedValue([early, late]);
         const { result, rerender } = renderHook(
             (p: { until?: string }) => useRememberedMemories({ conversationId: 'c1', since: SINCE, until: p.until, enabled: true }),
-            { initialProps: {} as { until?: string } },
+            { initialProps: {} as { until?: string }, wrapper: queryWrapper() },
         );
         await tick(1000);
         // Turn two starts before the first poll fired: polling for turn one stops.
@@ -88,7 +94,7 @@ describe('useRememberedMemories', () => {
         fetchRecent.mockResolvedValue([early, late]);
         const { result, rerender } = renderHook(
             (p: { until?: string }) => useRememberedMemories({ conversationId: 'c1', since: SINCE, until: p.until, enabled: true }),
-            { initialProps: {} as { until?: string } },
+            { initialProps: {} as { until?: string }, wrapper: queryWrapper() },
         );
         await tick(2000);
         expect(result.current.items.map((i) => i.id)).toEqual(['m8', 'm9']);

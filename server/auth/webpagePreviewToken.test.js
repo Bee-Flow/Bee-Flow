@@ -153,3 +153,52 @@ test('the owner role round-trips; its absence, or any other value, is a viewer',
         }
     });
 });
+
+// ── The middleware ───────────────────────────────────────────────────
+
+/** Run requirePreviewToken; answers what it wrote, or `{ next: true, claims }`. */
+function gate(mod, { authorization, id } = {}) {
+    const req = { headers: authorization === undefined ? {} : { authorization }, params: id ? { id } : {} };
+    let out = null;
+    const res = { status(code) { out = { status: code }; return this; }, json(body) { out.body = body; return this; } };
+    mod.requirePreviewToken(req, res, () => { out = { next: true, claims: req.previewClaims }; });
+    return out;
+}
+
+test('requirePreviewToken lets a valid token for this webpage through with its claims', () => {
+    withEnv({ NODE_ENV: 'production', WEBPAGE_PREVIEW_TOKEN_SECRET: 'x'.repeat(32) }, () => {
+        const mod = freshModule();
+        const { token, expiresAt } = mod.issuePreviewToken({ userId: 'u1', webpageId: 'w1' });
+        const expected = { userId: 'u1', webpageId: 'w1', viewerUserId: null, role: 'viewer', expiresAt };
+        assert.deepStrictEqual(gate(mod, { authorization: `Bearer ${token}`, id: 'w1' }), { next: true, claims: expected });
+        // A route without an id in its path has nothing to compare with.
+        assert.deepStrictEqual(gate(mod, { authorization: `bearer  ${token} ` }), { next: true, claims: expected });
+    });
+});
+
+test('requirePreviewToken refuses a missing header, another scheme, a bad token and another webpage', () => {
+    withEnv({ NODE_ENV: 'production', WEBPAGE_PREVIEW_TOKEN_SECRET: 'x'.repeat(32) }, () => {
+        const mod = freshModule();
+        const { token } = mod.issuePreviewToken({ userId: 'u1', webpageId: 'w1' });
+        assert.strictEqual(gate(mod, { id: 'w1' }).status, 401);
+        assert.strictEqual(gate(mod, { authorization: `Basic ${token}`, id: 'w1' }).status, 401);
+        assert.deepStrictEqual(gate(mod, { authorization: 'Bearer not-a-token', id: 'w1' }), { status: 401, body: { error: 'Invalid or expired preview token' } });
+        assert.strictEqual(gate(mod, { authorization: `Bearer ${token}`, id: 'w2' }).status, 403);
+    });
+});
+
+test('a preview token is good up to and including the millisecond it expires', () => {
+    withEnv({ NODE_ENV: 'production', WEBPAGE_PREVIEW_TOKEN_SECRET: 'x'.repeat(32) }, () => {
+        const mod = freshModule();
+        const { token, expiresAt } = mod.issuePreviewToken({ userId: 'u1', webpageId: 'w1' });
+        const realNow = Date.now;
+        try {
+            Date.now = () => expiresAt;
+            assert.strictEqual(mod.verifyPreviewToken(token)?.webpageId, 'w1');
+            Date.now = () => expiresAt + 1;
+            assert.strictEqual(mod.verifyPreviewToken(token), null);
+        } finally {
+            Date.now = realNow;
+        }
+    });
+});

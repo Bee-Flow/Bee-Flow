@@ -46,7 +46,7 @@ async function getServiceEmailConfig() {
  * @returns {Promise<string>}
  */
 async function buildConnectUrl({ redirectUri, state }) {
-    const providerClients = require('../services/email/providerClients');
+    const providerClients = require('./emailProviderClients');
     return providerClients.buildAuthUrl('gmail', { redirectUri, state });
 }
 
@@ -58,7 +58,7 @@ async function buildConnectUrl({ redirectUri, state }) {
  * @returns {Promise<{ address: string }>}
  */
 async function completeOAuthConnect({ code, redirectUri }) {
-    const providerClients = require('../services/email/providerClients');
+    const providerClients = require('./emailProviderClients');
     const { tokens, emailAddress } = await providerClients.exchangeCode('gmail', { code, redirectUri });
     await _saveOAuthTokens(tokens);
     await configStore.setConfig('service_email_address', emailAddress || '');
@@ -73,9 +73,11 @@ async function disconnectServiceEmail() {
     log.info('[EmailService] Service email disconnected');
 }
 
+/** @typedef {{ from: string, to: string, cc?: string | undefined, bcc?: string | undefined, replyTo?: string | undefined, subject: string, text?: string | undefined, html?: string | undefined }} _buildRawMessageArgs */
 /**
  * Build a base64url-encoded RFC822 message for the Gmail API `messages.send`
  * `raw` field, using nodemailer's MailComposer (same approach as supportMailer).
+ * @param {_buildRawMessageArgs} param0
  */
 async function _buildRawMessage({ from, to, cc, bcc, replyTo, subject, text, html }) {
     // nodemailer 10 ships its own declarations with `export default`; the
@@ -108,7 +110,7 @@ async function sendServiceEmail({ to, subject, text, html, cc, bcc, replyTo }) {
             throw new Error('Service email is not connected. Connect a Google account in Admin → Integrations → Email.');
         }
 
-        const { gmailClientFromTokens } = require('../services/email/providerClients');
+        const { gmailClientFromTokens } = require('./emailProviderClients');
         // Refreshed access tokens are written back so the next send reuses them.
         const gmail = await gmailClientFromTokens(tokens, (updated) => _saveOAuthTokens(updated));
 
@@ -130,11 +132,11 @@ async function sendServiceEmail({ to, subject, text, html, cc, bcc, replyTo }) {
             messageId: sent.data.id,
         };
     } catch (error) {
-        log.error(`[EmailService] ❌ Failed to send email:`, error.message);
-        log.error(`[EmailService] Full error:`, error.stack || error);
+        log.error(`[EmailService] ❌ Failed to send email:`, /** @type {Error} */ (error).message);
+        log.error(`[EmailService] Full error:`, /** @type {Error} */ (error).stack || error);
         return {
             success: false,
-            error: error.message,
+            error: /** @type {Error} */ (error).message,
         };
     }
 }

@@ -5,7 +5,7 @@
  */
 
 const memoryStore = require('../../stores/memoryStore');
-const { writeMemory } = require('./memoryWriter');
+const { writeMemory } = require('../../core/memory/memoryWriter');
 const { isTaskLike, isQuestion } = require('../../core/memory/contentRules');
 const agentStore = require('../../stores/agentStore');
 const { resolveMemoryExtractionModel, EXTRACTION_CHAT_OPTIONS, EXTRACTION_MAX_CHARS } = require('../../core/memory/extractionModel');
@@ -188,7 +188,7 @@ async function extractFromConversation(userId, agentId, messages, conversationId
             }
 
             // One pipeline for every automatic write: hard drops, Art. 9,
-            // confirm / supersede / duplicate checks, cap (agents/memory/memoryWriter.js).
+            // confirm / supersede / duplicate checks, cap (core/memory/memoryWriter.js).
             const outcome = await writeMemory({
                 type: memory.type,
                 content: memory.content,

@@ -85,6 +85,14 @@ test('an activation is stored active, bound to its target, and audited', async (
     assert.deepEqual(await auditActions(), [{ action: 'license_activated', target_id: 'org-a' }]);
 });
 
+test('the audit row names what the licence is bound to: the user for a consumer licence, the system for a server licence', async () => {
+    await activate({ licenseId: 'c1', scope: 'consumer', userId: 'u-a' });
+    assert.deepEqual(await auditActions(), [{ action: 'license_activated', target_id: 'u-a' }]);
+    await pg.exec('DELETE FROM subscription_audit_log;');
+    await activate({ licenseId: 's1', scope: 'server' });
+    assert.deepEqual(await auditActions(), [{ action: 'license_activated', target_id: 'system' }]);
+});
+
 // ── Superseding ─────────────────────────────────────────────────────────
 
 test('a new organisation licence supersedes the old one of that organisation, not of another', async () => {
@@ -226,6 +234,9 @@ test('revoking an organisation licence ends that organisation\'s sessions; a con
     await store.markRevoked('org', 'refund');
     await store.markRevoked('usr');
     assert.deepEqual(ended, ['org:org-a', 'user:u-b']);
+    assert.deepEqual((await auditActions()).filter((a) => a.action === 'license_revoked'), [
+        { action: 'license_revoked', target_id: 'org-a' }, { action: 'license_revoked', target_id: 'u-b' },
+    ], 'each revocation is audited against what the licence was bound to');
     const lic = await store.getLicenseById('org');
     assert.equal(lic.refreshStatus, 'revoked');
     assert.ok(lic.revokedAt);

@@ -60,6 +60,9 @@ function _renderEmailShell({ title, intro, body, ctaLabel, ctaUrl, footer }) {
     return html;
 }
 
+/**
+ * @param {string} s
+ */
 function _escapeHtml(s) {
     return String(s == null ? '' : s)
         .replace(/&/g, '&amp;')
@@ -90,6 +93,9 @@ function _escapeHtml(s) {
  */
 const RAW = Symbol('raw-html');
 
+/**
+ * @param {string} value
+ */
 const raw = (value) => ({ [RAW]: String(value == null ? '' : value) });
 
 function safeHtml(strings, ...values) {
@@ -102,14 +108,22 @@ function safeHtml(strings, ...values) {
     return out;
 }
 
-/** Replace {{var}} tokens with raw values from `vars` (unknown tokens → ''). */
+/**
+ * Replace {{var}} tokens with raw values from `vars` (unknown tokens → '').
+ * @param {string | undefined} str
+ * @param {Record<string, string | null | undefined>} [vars]
+ */
 function _substituteVars(str, vars = {}) {
     return String(str == null ? '' : str).replace(/\{\{\s*(\w+)\s*\}\}/g, (_m, key) =>
         Object.prototype.hasOwnProperty.call(vars, key) ? String(vars[key] ?? '') : ''
     );
 }
 
-/** Render a plain-text template field to safe HTML (substitute → escape → <br>). */
+/**
+ * Render a plain-text template field to safe HTML (substitute → escape → <br>).
+ * @param {string | undefined} str
+ * @param {Record<string, string | null | undefined>} vars
+ */
 function _renderField(str, vars, { multiline = false } = {}) {
     const escaped = _escapeHtml(_substituteVars(str, vars));
     return multiline ? escaped.replace(/\n/g, '<br>') : escaped;

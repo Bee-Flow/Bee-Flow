@@ -44,6 +44,9 @@ const log = require('../telemetry/log');
 const { STORE_MODULES } = require('../storeModules');
 const { bestEffort } = require('../utils/bestEffort');
 
+/**
+ * @param {string} file
+ */
 const loadStore = (file) => require(path.join(__dirname, '..', file));
 
 /**
@@ -70,7 +73,7 @@ function startStoreSchemas({ log: logger = log, modules, load = loadStore } = {}
             handle.catch((e) => bestEffort('boot/storeSchemas:startStoreSchemas', e));
         } catch (err) {
             report.failed.push(store.name);
-            logger.error(`[StoreSchemas] ${store.name} could not be loaded: ${err.message}`);
+            logger.error(`[StoreSchemas] ${store.name} could not be loaded: ${/** @type {Error} */ (err).message}`);
         }
     }
     if (report.unverified.length > 0) {

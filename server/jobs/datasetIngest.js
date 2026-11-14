@@ -1,3 +1,4 @@
+/** @typedef {import('pg').PoolClient} PoolClient */
 // @typecheck
 /**
  * Dataset ingest — the background half of large-dataset uploads.
@@ -48,14 +49,21 @@ const FAILED_RAW_TTL_H = envInt('DATASET_FAILED_RAW_TTL_H', 24, { min: 1 });
 const HEARTBEAT_MS = 60 * 1000;
 
 let _inFlight = false;
+/** @type {NodeJS.Timeout | null} */
 let _timer = null;
 
-/** Buffers bgzf blocks into ≥PART_BYTES storage parts; tracks byte offsets. */
+/**
+ * Buffers bgzf blocks into ≥PART_BYTES storage parts; tracks byte offsets.
+ * @param {string} dataKey
+ * @param {string} uploadId
+ */
 function makeDataSink(dataKey, uploadId) {
     let total = 0;
+    /** @type {Buffer<ArrayBufferLike>[]} */
     let bufs = [];
     let bufBytes = 0;
     let partNumber = 0;
+    /** @type {{ partNumber: number; etag: string; }[]} */
     const parts = [];
     async function flush() {
         if (bufBytes === 0) return;
@@ -66,6 +74,9 @@ function makeDataSink(dataKey, uploadId) {
         bufBytes = 0;
     }
     return {
+        /**
+         * @param {Buffer<ArrayBufferLike>} block
+         */
         async write(block) {
             const offset = total;
             total += block.length;
@@ -82,10 +93,17 @@ function makeDataSink(dataKey, uploadId) {
     };
 }
 
-/** Spills rsID records to 64 scratch files; sorted + serialized at finalize. */
+/**
+ * Spills rsID records to 64 scratch files; sorted + serialized at finalize.
+ * @param {string} scratchDir
+ */
 function makeRsidSpill(scratchDir) {
     const streams = new Map(); // shard -> WriteStream
     return {
+        /**
+         * @param {number} shard
+         * @param {{ rsNum: number; contigIdx: number; pos: number; }} rec
+         */
         write(shard, rec) {
             let ws = streams.get(shard);
             if (!ws) {
@@ -103,6 +121,7 @@ function makeRsidSpill(scratchDir) {
             const out = [];
             for (const shard of streams.keys()) {
                 const raw = fs.readFileSync(path.join(scratchDir, `rsid-${shard}.bin`));
+                /** @type {{ rsNum: number; contigIdx: number; pos: number; }[]} */
                 const records = [];
                 for (let p = 0; p + 16 <= raw.length; p += 16) {
                     records.push({
@@ -118,7 +137,10 @@ function makeRsidSpill(scratchDir) {
     };
 }
 
-/** Is the raw upload gzip? Two ranged bytes answer it — nothing was persisted. */
+/**
+ * Is the raw upload gzip? Two ranged bytes answer it — nothing was persisted.
+ * @param {string} rawKey
+ */
 async function rawIsGzip(rawKey) {
     const head = await storageStore.streamFile(rawKey, { range: { start: 0, end: 1 } });
     const chunks = [];
@@ -137,8 +159,10 @@ async function ingestOne(ds) {
     const indexKey = storageStore.buildStudioAppDatasetKey(ds.ownerId, ds.appId, ds.id, 'index.bin');
     const rsidPrefix = `studio-apps/${ds.ownerId}/${ds.appId}/datasets/${ds.id}/rsid`;
 
+    /** @type {string | null} */
     let scratchDir = null;
     let dataUploadId = null;
+    /** @type {NodeJS.Timeout | null} */
     let heartbeat = null;
     let claimLost = false;
 
@@ -207,7 +231,7 @@ async function ingestOne(ds) {
         log.info(`[DatasetIngest] ready: ${ds.id} (${result.stats.variantCount} variants, ${result.stats.blockCount} blocks)`);
         return { ok: true };
     } catch (e) {
-        const msg = e?.message || 'ingest failed';
+        const msg = /** @type {Error} */ (e)?.message || 'ingest failed';
         log.warn(`[DatasetIngest] failed: ${ds.id} — ${msg}`);
         await datasetFileStore.markFailed(ds.id, msg).catch((e) => bestEffort('jobs/datasetIngest:ingestOne#3', e));
         // Partial artifacts are noise — clean them; the raw stays for the TTL
@@ -231,6 +255,7 @@ async function sweepFailedRaws() {
     }
 }
 
+/** @typedef {{ mayIngest?: () => Promise<boolean> | null }} ProcessTickArgs */
 /**
  * One pass: sweep expired failed raws, then claim and ingest.
  *
@@ -239,10 +264,12 @@ async function sweepFailedRaws() {
  * App Studio off stops new ingests while failed raw uploads past their TTL are
  * still deleted: a deletion obligation must not stop with a billable feature
  * (same reasoning as jobs/datatableRetention.js and jobs/platformRetention.js).
+ * @param {ProcessTickArgs} [param0]
  */
 async function processTick({ mayIngest = null } = {}) {
     if (_inFlight) return;
     _inFlight = true;
+    /** @type {PoolClient | null} */
     let client = null;
     let acquired = false;
     const t0 = Date.now();
@@ -269,7 +296,7 @@ async function processTick({ mayIngest = null } = {}) {
         }
     } catch (e) {
         ok = false;
-        log.warn('[DatasetIngest] tick error:', e.message);
+        log.warn('[DatasetIngest] tick error:', /** @type {Error} */ (e).message);
     } finally {
         if (client) {
             try { if (acquired) await client.query('SELECT pg_advisory_unlock($1)', [LOCK_KEY]); } catch (err) { bestEffort('jobs/datasetIngest:processTick', err); /* best-effort */ }

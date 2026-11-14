@@ -47,7 +47,7 @@ const MOCKS = {
             return fx.kbs[id] || null;
         },
     },
-    '../support/kbAccess': {
+    '../core/kb/kbAccess': {
         partitionAccessibleKBIds: async (_req, ids) => ({
             allowed: ids.filter(id => fx.readable.includes(id)),
             denied: ids.filter(id => !fx.readable.includes(id)),

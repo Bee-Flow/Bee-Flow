@@ -87,7 +87,7 @@ async function _notifySkillSync(orgId, skillId, action = 'pending', projectId = 
         }
         // When auto-sync is enabled, push the change to GitHub (debounced).
         if (config.autoSync === true) {
-            require('../services/githubSyncService').autoSyncResource(orgId, 'skill', skillId, action);
+            require('./resourceSyncPort').autoSyncResource(orgId, 'skill', skillId, action);
         }
     } catch (e) { bestEffort('stores/skillStore:_notifySkillSync', e); /* non-fatal */ }
 }

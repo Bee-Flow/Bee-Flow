@@ -26,7 +26,7 @@ const { buildDatatableCatalogForUser } = require('../../../automation/builderDat
 const { openSse } = require('../../../core/http/sseHelpers');
 const { requireAuth } = require('../../../auth/permissions');
 const { layerAgentRateLimit } = require('../../../usecases/ai/automationBuilder/rateLimits');
-const { loadOrCreateDraft, persistDraftWrap } = require('./builderDraft');
+const { loadOrCreateDraft, persistDraftWrap } = require('../../../usecases/ai/automationBuilder/builderDraft');
 const { sessionUser } = require('../../../core/http/sessionUser');
 
 const SAVE_FIRST = 'Save the automation first, then build a flowlet.';

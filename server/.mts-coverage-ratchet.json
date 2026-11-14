@@ -1,0 +1,5 @@
+{
+  "_comment": "Lowest line coverage (percent) the .mts files of server may report. Raise it with `node scripts/mts-coverage.mjs server --update` after adding tests; lowering it is a deliberate edit that belongs in a commit message with a reason.",
+  "_generated": "2026-11-14",
+  "lines": 81
+}

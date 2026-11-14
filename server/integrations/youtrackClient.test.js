@@ -19,7 +19,7 @@ const { useConfigRows } = require('../testUtils/configRows');
 // The real configStore over an empty config table.
 const config = useConfigRows();
 const ytc = require('./youtrackClient');
-const { _setFetchForTests } = require('./shared/apiClient');
+const { _setFetchForTests } = require('../utils/apiClient');
 
 const CREDS = { baseUrl: 'https://yt.example.com', token: 'test-token' };
 

@@ -9,18 +9,10 @@ const crypto = require('crypto');
 const { normalizePermission } = require('./rows');
 
 /**
- * @param {{
- *   run: (sql: string, params?: any[]) => Promise<any>,
- *   getOne: (sql: string, params?: any[]) => Promise<any>,
- *   getAll: (sql: string, params?: any[]) => Promise<any[]>,
- *   getClient: () => Promise<any>,
- *   initDB: () => Promise<unknown>,
- *   refuseStageBound: (projectId: string) => Promise<void>,
- * }} ctx  the store's db facade and schema init (built by makeProjectStore)
+ * Sharing: invite, read, change the role, revoke.
+ * @param {Parameters<typeof makeMemberFns>[0]} ctx
  */
-function makeMemberFns({ run, getOne, getAll, initDB, refuseStageBound }) {
-    // ── Sharing ──────────────────────────────────────────────
-
+function makeSharingFns({ run, getOne, getAll, initDB }) {
     /**
      * Invite a user or group, or change their permission if already invited.
      *
@@ -80,6 +72,35 @@ function makeMemberFns({ run, getOne, getAll, initDB, refuseStageBound }) {
         return rowCount > 0;
     }
 
+    /** @param {string} shareId */
+    async function unshareProject(shareId) {
+        await initDB();
+        const { rowCount } = await run('DELETE FROM project_shares WHERE id = $1', [shareId]);
+        return rowCount > 0;
+    }
+
+    /** @param {string} projectId */
+    async function getProjectShares(projectId) {
+        await initDB();
+        const rows = await getAll('SELECT * FROM project_shares WHERE project_id = $1 ORDER BY created_at', [projectId]);
+        return rows.map(r => ({
+            id: r.id,
+            projectId: r.project_id,
+            sharedWithType: r.shared_with_type,
+            sharedWithId: r.shared_with_id,
+            permission: r.permission,
+            createdAt: r.created_at,
+        }));
+    }
+
+    return { shareProject, getShareById, updateMemberRole, unshareProject, getProjectShares };
+}
+
+/**
+ * Ownership: hand-over and transfer.
+ * @param {Parameters<typeof makeMemberFns>[0]} ctx
+ */
+function makeOwnershipFns({ run, initDB, refuseStageBound }) {
     /**
      * Hand a project over when its owner goes away: the longest-standing EDITOR (a person, by when they were
      * added) becomes the owner, and their share row goes, since the owner is not also a member. Nobody is
@@ -154,29 +175,14 @@ function makeMemberFns({ run, getOne, getAll, initDB, refuseStageBound }) {
         return rows?.length ? { ok: true } : { ok: false, reason: 'owner_changed' };
     }
 
-    /** @param {string} shareId */
-    async function unshareProject(shareId) {
-        await initDB();
-        const { rowCount } = await run('DELETE FROM project_shares WHERE id = $1', [shareId]);
-        return rowCount > 0;
-    }
+    return { handOverProject, transferOwner };
+}
 
-    /** @param {string} projectId */
-    async function getProjectShares(projectId) {
-        await initDB();
-        const rows = await getAll('SELECT * FROM project_shares WHERE project_id = $1 ORDER BY created_at', [projectId]);
-        return rows.map(r => ({
-            id: r.id,
-            projectId: r.project_id,
-            sharedWithType: r.shared_with_type,
-            sharedWithId: r.shared_with_id,
-            permission: r.permission,
-            createdAt: r.created_at,
-        }));
-    }
-
-    // ── Access check ─────────────────────────────────────────
-
+/**
+ * The access check.
+ * @param {Parameters<typeof makeMemberFns>[0]} ctx
+ */
+function makeAccessCheckFns({ getOne, initDB }) {
     /**
      * Returns the user's effective role on a project: 'owner' | 'editor' | 'viewer' | null.
      * Owner trumps any share. For non-owners, returns the highest matching share permission
@@ -216,16 +222,33 @@ function makeMemberFns({ run, getOne, getAll, initDB, refuseStageBound }) {
         return role !== null;
     }
 
+    return { getProjectRole, userHasAccess };
+}
+
+/**
+ * @param {{
+ *   run: (sql: string, params?: any[]) => Promise<any>,
+ *   getOne: (sql: string, params?: any[]) => Promise<any>,
+ *   getAll: (sql: string, params?: any[]) => Promise<any[]>,
+ *   getClient: () => Promise<any>,
+ *   initDB: () => Promise<unknown>,
+ *   refuseStageBound: (projectId: string) => Promise<void>,
+ * }} ctx  the store's db facade and schema init (built by makeProjectStore)
+ */
+function makeMemberFns(ctx) {
+    const sharing = makeSharingFns(ctx);
+    const ownership = makeOwnershipFns(ctx);
+    const access = makeAccessCheckFns(ctx);
     return {
-        shareProject,
-        unshareProject,
-        handOverProject,
-        transferOwner,
-        getProjectShares,
-        getShareById,
-        updateMemberRole,
-        getProjectRole,
-        userHasAccess,
+        shareProject: sharing.shareProject,
+        unshareProject: sharing.unshareProject,
+        handOverProject: ownership.handOverProject,
+        transferOwner: ownership.transferOwner,
+        getProjectShares: sharing.getProjectShares,
+        getShareById: sharing.getShareById,
+        updateMemberRole: sharing.updateMemberRole,
+        getProjectRole: access.getProjectRole,
+        userHasAccess: access.userHasAccess,
     };
 }
 

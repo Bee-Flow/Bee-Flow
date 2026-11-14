@@ -116,7 +116,7 @@ const MOCKS = {
         },
     },
     '../stores/userStore': { getUser: async () => null, getAllGroups: async () => [] },
-    '../support/kbAccess': { partitionAccessibleKBIds: async (_req, ids) => ({ allowed: ids, denied: [] }) },
+    '../core/kb/kbAccess': { partitionAccessibleKBIds: async (_req, ids) => ({ allowed: ids, denied: [] }) },
     '../auth': { resolveUserGroups: async () => [] },
     '../core/projectEventBus': { publishProjectEvent: async () => {}, publishTransient: async () => {} },
     '../auth/projectAccess': {

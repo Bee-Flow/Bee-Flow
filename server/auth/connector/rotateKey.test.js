@@ -102,6 +102,16 @@ test('a long-lived rotation token is refused', async () => {
     assert.equal(secrets[`${PREFIX}org1`], OLD_KEY);
 });
 
+test('a token the connector may otherwise use for minutes is too long-lived to rotate with', async () => {
+    // Five minutes passes the connector's general bearer check (fifteen at most);
+    // the rotation route itself asks for two.
+    const { status, body } = await rotate(rotateToken(OLD_KEY, { exp: Math.floor(Date.now() / 1000) + 300 }));
+    assert.equal(status, 401);
+    assert.equal(body.code, 'token_lifetime');
+    assert.equal(secrets[`${PREFIX}org1`], OLD_KEY);
+    assert.equal(audits.length, 0);
+});
+
 test('an unknown key or no token rotates nothing', async () => {
     assert.equal((await rotate(rotateToken('some-other-key-not-a-tenant-key-xx'))).status, 401);
     assert.equal((await rotate(null)).status, 401);

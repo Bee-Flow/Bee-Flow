@@ -20,8 +20,8 @@ const assert = require('node:assert');
 process.env.NODE_ENV = 'test';
 
 const { emitKbSources } = require('./promptContext');
-const { emitToolResultEvents } = require('./toolResultEvents');
-const { buildAssistantRow } = require('./finalizeRows');
+const { emitToolResultEvents } = require('../../../usecases/ai/directChat/toolResultEvents');
+const { buildAssistantRow } = require('../../../usecases/ai/directChat/finalizeRows');
 const { CITATION_FIELDS } = require('../../../core/kb/citation');
 
 // A document id that is not a uuid: the "kept original" lookup has nothing to ask the database.

@@ -63,6 +63,7 @@ test('isEnvelope recognises objects and JSON strings, rejects ordinary text', ()
         undefined,
         42,
         '{ this is not json',
+        '{ "_bfenc": 1, "ct": this is long enough and names the marker, but is not JSON',
         JSON.stringify({ _bfenc: 99, ct: 'x' }),   // wrong version
         JSON.stringify({ _bfenc: 1 }),             // no ciphertext
     ]) {

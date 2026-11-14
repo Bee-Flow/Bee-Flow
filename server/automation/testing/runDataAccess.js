@@ -32,7 +32,7 @@
 const { HttpError } = require('../../core/http/errors');
 const { makeAutomationAccess } = require('../access');
 const { makeJourneyReader } = require('../journeyReader');
-const { isCallerRun } = require('../../core/automationModel/callerRunVisibility');
+const { isCallerRun } = require('../../auth/callerRunVisibility');
 const log = require('../../telemetry/log');
 const { fallback } = require('../../utils/bestEffort');
 

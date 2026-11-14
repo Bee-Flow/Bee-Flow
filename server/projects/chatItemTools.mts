@@ -130,7 +130,7 @@ function iso(v: unknown): string | null {
 
 function resolvePorts(deps: ItemToolDeps): Ports {
     const markdown = () => nodeRequire('../core/markdown');
-    const collab = () => nodeRequire('../agents/notebooks/notebookCollab');
+    const collab = () => nodeRequire('../core/collab/notebookCollab');
     return {
         ...deps,
         notebooks: () => deps.notebooks || nodeRequire('../stores/notebookStore'),

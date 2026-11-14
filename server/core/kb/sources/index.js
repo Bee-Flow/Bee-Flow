@@ -96,7 +96,7 @@ const ADAPTERS = {
 const log = require('../../../telemetry/log');
 const { removeUnseenDocuments, labelDocuments } = require('./syncFinish');
 const { runPrecheck, saveCursor } = require('./precheck');
-const { keepFetchedOriginal } = require('./keepOriginals');
+const { syncItem, recordTableVersion } = require('./syncItem');
 
 /** Kinds this engine can refresh today. K7–K10 register theirs here. */
 function supportedKinds() {
@@ -203,6 +203,32 @@ async function indexStoredDocuments(kbId, sourceId, deps) {
 }
 
 /**
+ * The stores and helpers of a pass: the real ones, with whatever the caller hands in on top.
+ * @param {Partial<SyncDeps>} [given]
+ * @returns {SyncDeps}
+ */
+function passDeps(given) {
+    return {
+        kbStore, kbSourcesStore,
+        helpers: given?.helpers || require('../kbIngestionHelpers'),
+        ...(given || {}),
+    };
+}
+
+/**
+ * The items this pass looks at: at most `ctx.maxItems`, and a longer list marks the pass truncated.
+ * @param {unknown} items  what the adapter enumerated
+ * @param {SyncCtx} ctx
+ * @param {{ truncated: boolean }} counts
+ * @returns {SourceItem[]}
+ */
+function itemWindow(items, ctx, counts) {
+    const list = Array.isArray(items) ? items : [];
+    if (list.length > ctx.maxItems) counts.truncated = true;
+    return list.slice(0, ctx.maxItems);
+}
+
+/**
  * Refresh one source.
  *
  * @param {any} source  a kb_sources row, already CLAIMED by the caller
@@ -212,11 +238,7 @@ async function indexStoredDocuments(kbId, sourceId, deps) {
  *          for a failure of the whole pass.
  */
 async function syncSource(source, opts = {}) {
-    const deps = {
-        kbStore, kbSourcesStore,
-        helpers: opts.deps?.helpers || require('../kbIngestionHelpers'),
-        ...(opts.deps || {}),
-    };
+    const deps = passDeps(opts.deps);
     const counts = { added: 0, updated: 0, removed: 0, unchanged: 0, failed: 0, cancelled: false, truncated: false };
 
     const kb = await deps.kbStore.getKB(source.knowledgeBaseId);
@@ -247,6 +269,7 @@ async function syncSource(source, opts = {}) {
         return { ...counts, precheckUnchanged: true, nextRefreshAt: nextRefreshFor(source, { consecutiveErrors: 0 }) };
     }
     const { byExternalId, unmatchable } = await indexStoredDocuments(kb.id, source.id, deps);
+    /** @type {Set<string>} */
     const seen = new Set();
     /**
      * Documents to label, collected during the pass and summarised AFTER it.
@@ -256,107 +279,18 @@ async function syncSource(source, opts = {}) {
      * into 40 serial round trips inside a tick that has a time budget. The
      * document is already stored and searchable by then — the label is what
      * arrives a moment later.
+     * @type {import('./syncItem').SummaryList}
      */
     const summarise = [];
 
-    const items = await adapter.enumerate(source, ctx, deps);
-    const list = Array.isArray(items) ? items : [];
-    if (list.length > ctx.maxItems) counts.truncated = true;
-    const window = list.slice(0, ctx.maxItems);
+    const window = itemWindow(await adapter.enumerate(source, ctx, deps), ctx, counts);
 
+    const pass = { adapter, byExternalId, seen, counts, summarise };
     for (const item of window) {
         // Between documents: the one place a stop is safe.
         if (await deps.kbSourcesStore.isCancelRequested(source.id)) { counts.cancelled = true; break; }
         if (ctx.now() > ctx.deadline) { counts.truncated = true; break; }
-
-        const externalId = String(item.externalId);
-        seen.add(externalId);
-        const stored = byExternalId.get(externalId) || null;
-
-        try {
-            // A row the text filter once marked duplicate has no chunks of
-            // its own. For an adapter that has since said its items are never
-            // duplicates of each other, "unchanged" would keep it empty for
-            // ever; it is rebuilt instead, once, and reads as itself after.
-            const wronglyDuplicate = adapter.dedupe === false && stored?.status === 'duplicate';
-            if (stored && !wronglyDuplicate && adapter.isUnchanged(item, stored)) {
-                counts.unchanged += 1;
-                continue;
-            }
-            const fetched = await adapter.fetch(item, stored, ctx, deps);
-            if (fetched === null) { counts.unchanged += 1; continue; } // adapter found it unchanged after all
-
-            /**
-             * The privacy screen applies to a scheduled refresh exactly as it
-             * does to an upload. A folder source pulls in whatever the folder
-             * gained since last week, at 06:00, with nobody looking — which
-             * is precisely the ingest that most needs screening, not least.
-             */
-            const privacy = { orgId: kb.organization_id || null, userId: source.createdBy || null };
-
-            if (stored) {
-                const reingested = await deps.helpers.reingestDocument(ctx.tenantId, kb.id, stored.id, fetched.content, {
-                    title: fetched.title || stored.title,
-                    // What the adapter knows about the thing itself — a
-                    // meeting's own date, the rows a block covers. Both
-                    // helpers have always accepted it and this loop never
-                    // passed it, so it was fetched, built and dropped one hop
-                    // short of the column that holds it.
-                    //
-                    // Present only when there IS something: an explicit null
-                    // here means "clear the column", and an adapter with
-                    // nothing to add must not erase what an earlier pass wrote.
-                    ...(fetched.metadata ? { metadata: fetched.metadata } : {}),
-                    externalId,
-                    sourceModifiedAt: fetched.sourceModifiedAt || null,
-                    sizeBytes: fetched.sizeBytes ?? null,
-                    mime: fetched.mime || null,
-                    pageCount: fetched.pageCount ?? null,
-                    sheetCount: fetched.sheetCount ?? null,
-                    onFailure: 'record',
-                    privacy,
-                });
-                counts.updated += 1;
-                await keepFetchedOriginal({ kb, tenantId: ctx.tenantId, docId: stored.id, status: reingested?.status, fetched, log: ctx.log, deps });
-                summarise.push({ docId: stored.id, text: fetched.content, title: fetched.title || stored.title });
-            } else {
-                const made = await deps.helpers.ingestDocument(
-                    ctx.tenantId, kb.id, fetched.content, fetched.title || externalId,
-                    fetched.sourceType || source.kind, fetched.sourceUri || null,
-                    {
-                        sourceId: source.id,
-                        metadata: fetched.metadata || null,
-                        externalId,
-                        // An adapter whose items carry their OWN identity (a
-                        // table row is its id, not its text) opts out of the
-                        // text-similarity duplicate filter: two invoices from
-                        // one supplier differ in a date and an amount, and
-                        // "near-identical" is exactly what distinct rows of a
-                        // narrow table look like. Ten of twenty-three rows
-                        // went missing that way in a real import.
-                        skipDedup: adapter.dedupe === false,
-                        sourceModifiedAt: fetched.sourceModifiedAt || null,
-                        sizeBytes: fetched.sizeBytes ?? null,
-                        mime: fetched.mime || null,
-                        pageCount: fetched.pageCount ?? null,
-                        sheetCount: fetched.sheetCount ?? null,
-                        createdBy: source.createdBy || null,
-                        onFailure: 'record',
-                        privacy,
-                    },
-                );
-                counts.added += 1;
-                await keepFetchedOriginal({ kb, tenantId: ctx.tenantId, docId: made?.document?.id, status: made?.status, fetched, log: ctx.log, deps });
-                if (made?.document?.id && made.status !== 'skipped') {
-                    summarise.push({ docId: made.document.id, text: fetched.content, title: fetched.title || externalId });
-                }
-            }
-        } catch (e) {
-            // One document failing is a row with a reason on it, not a failed
-            // refresh: the other 37 files in the folder still belong here.
-            counts.failed += 1;
-            ctx.log(`source ${source.id} item ${externalId} failed: ${/** @type {Error} */ (e).message}`);
-        }
+        await syncItem(item, ctx, pass, deps);
     }
 
     await removeUnseenDocuments(ctx, { byExternalId, seen, counts }, deps);
@@ -370,39 +304,7 @@ async function syncSource(source, opts = {}) {
     }
 
     await labelDocuments(summarise, ctx, deps);
-
-    /**
-     * Record the table version this pass covered (K8).
-     *
-     * Only when the pass actually FINISHED. A cancelled or truncated pass saw
-     * part of the table, and writing the version there would tell the backstop
-     * "we are up to date" about rows nobody read — which is precisely the
-     * silence "live" exists to prevent.
-     *
-     * Read AFTER the rows, never before: a write that landed mid-pass belongs
-     * to the next version, and recording the earlier number simply means one
-     * more refresh. Recording the later one would mean skipping that write for
-     * ever.
-     *
-     * The TARGET tables of the source's relation columns ride along
-     * (`ctx.relatedTables`, filled by the adapter, versions read after their
-     * labels): a `live` source is armed when one of those changes too, because
-     * a supplier renamed in its own table changes every order document that
-     * names it, with no row of the orders table having moved at all.
-     */
-    if (source.kind === 'datatable' && !counts.cancelled && !counts.truncated) {
-        try {
-            const datatableId = source.config?.datatableId;
-            const dtStore = deps.datatableStore || require('../../../stores/datatableStore');
-            const version = datatableId ? await dtStore.getDataVersion(datatableId) : null;
-            const related = ctx.relatedTables && typeof ctx.relatedTables === 'object' ? ctx.relatedTables : null;
-            if (version !== null) await deps.kbSourcesStore.setSeenDataVersion(source.id, version, related);
-        } catch (e) {
-            // The backstop simply arms once more; nothing is lost.
-            ctx.log(`could not record the table version for source ${source.id}: ${/** @type {Error} */ (e).message}`);
-        }
-    }
-
+    await recordTableVersion(ctx, counts, deps);
     await saveCursor(source, check.cursor, counts, ctx, deps);
 
     return { ...counts, nextRefreshAt: nextRefreshFor(source, { consecutiveErrors: 0 }) };

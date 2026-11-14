@@ -1,0 +1,7480 @@
+{
+ "unbound": {
+  "threw": {
+   "message": "A platform administrator must configure the Azure sync organization and tenant first.",
+   "status": 503,
+   "code": "azure_sync_unbound"
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ]
+  ],
+  "groupsChanged": [],
+  "usersChanged": [],
+  "status": null
+ },
+ "bindingWithoutTenant": {
+  "threw": {
+   "message": "A platform administrator must configure the Azure sync organization and tenant first.",
+   "status": 503,
+   "code": "azure_sync_unbound"
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ]
+  ],
+  "groupsChanged": [],
+  "usersChanged": [],
+  "status": null
+ },
+ "otherOrganisation": {
+  "threw": {
+   "message": "This Azure directory is bound to a different organization or tenant.",
+   "status": 403,
+   "code": "azure_sync_wrong_organization"
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ]
+  ],
+  "groupsChanged": [],
+  "usersChanged": [],
+  "status": null
+ },
+ "bindingChangesBeforeTheLock": {
+  "threw": {
+   "message": "This Azure directory is bound to a different organization or tenant.",
+   "status": 403,
+   "code": "azure_sync_wrong_organization"
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [],
+  "usersChanged": [],
+  "status": null
+ },
+ "credentialsMissing": {
+  "result": {
+   "ok": false,
+   "synced": {
+    "groups": 0,
+    "users": 0
+   },
+   "details": [],
+   "errors": [
+    "Configure Microsoft SSO credentials first"
+   ]
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "partial",
+     "syncedGroups": 0,
+     "syncedUsers": 0,
+     "errors": [
+      "Configure Microsoft SSO credentials first"
+     ]
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "partial",
+   "syncedGroups": 0,
+   "syncedUsers": 0,
+   "errors": [
+    "Configure Microsoft SSO credentials first"
+   ]
+  }
+ },
+ "providerNotConfigured": {
+  "result": {
+   "ok": false,
+   "synced": {
+    "groups": 0,
+    "users": 0
+   },
+   "details": [],
+   "errors": [
+    "Configure Microsoft SSO credentials first"
+   ]
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "partial",
+     "syncedGroups": 0,
+     "syncedUsers": 0,
+     "errors": [
+      "Configure Microsoft SSO credentials first"
+     ]
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "partial",
+   "syncedGroups": 0,
+   "syncedUsers": 0,
+   "errors": [
+    "Configure Microsoft SSO credentials first"
+   ]
+  }
+ },
+ "tenantDiffers": {
+  "result": {
+   "ok": false,
+   "synced": {
+    "groups": 0,
+    "users": 0
+   },
+   "details": [],
+   "errors": [
+    "Azure sync tenant differs from the Microsoft SSO tenant"
+   ]
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "partial",
+     "syncedGroups": 0,
+     "syncedUsers": 0,
+     "errors": [
+      "Azure sync tenant differs from the Microsoft SSO tenant"
+     ]
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "partial",
+   "syncedGroups": 0,
+   "syncedUsers": 0,
+   "errors": [
+    "Azure sync tenant differs from the Microsoft SSO tenant"
+   ]
+  }
+ },
+ "tenantInCapitals": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 0,
+    "users": 0
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "dddddddd-dddd-dddd-dddd-dddddddddddd"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 0,
+     "syncedUsers": 0,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 0,
+   "syncedUsers": 0,
+   "errors": []
+  }
+ },
+ "tenantNotConcrete": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 0,
+    "users": 0
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 0,
+     "syncedUsers": 0,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 0,
+   "syncedUsers": 0,
+   "errors": []
+  }
+ },
+ "tokenFails": {
+  "result": {
+   "ok": false,
+   "synced": {
+    "groups": 0,
+    "users": 0
+   },
+   "details": [],
+   "errors": [
+    "AADSTS7000215"
+   ]
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "partial",
+     "syncedGroups": 0,
+     "syncedUsers": 0,
+     "errors": [
+      "AADSTS7000215"
+     ]
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "partial",
+   "syncedGroups": 0,
+   "syncedUsers": 0,
+   "errors": [
+    "AADSTS7000215"
+   ]
+  }
+ },
+ "assignmentsFail": {
+  "result": {
+   "ok": false,
+   "synced": {
+    "groups": 0,
+    "users": 0
+   },
+   "details": [],
+   "errors": [
+    "Graph 403"
+   ]
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "partial",
+     "syncedGroups": 0,
+     "syncedUsers": 0,
+     "errors": [
+      "Graph 403"
+     ]
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "partial",
+   "syncedGroups": 0,
+   "syncedUsers": 0,
+   "errors": [
+    "Graph 403"
+   ]
+  }
+ },
+ "noAssignments": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 0,
+    "users": 0
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 0,
+     "syncedUsers": 0,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 0,
+   "syncedUsers": 0,
+   "errors": []
+  }
+ },
+ "twoGroups": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 2,
+    "users": 0
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+   ],
+   [
+    "graph.graphGet",
+    "groups/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-ga",
+    {
+     "name": "Group aaaa",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getUserByAzureId",
+    "22222222-2222-2222-2222-222222222222",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "membership.add",
+    "u1",
+    "azure-ga",
+    "22222222-2222-2222-2222-222222222222"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-gb",
+    {
+     "name": "Group bbbb",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getUserByAzureId",
+    "22222222-2222-2222-2222-222222222222",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "membership.add",
+    "u1",
+    "azure-gb",
+    "22222222-2222-2222-2222-222222222222"
+   ],
+   [
+    "users.getUserByAzureId",
+    "33333333-3333-3333-3333-333333333333",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "membership.add",
+    "u2",
+    "azure-gb",
+    "33333333-3333-3333-3333-333333333333"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 2,
+     "syncedUsers": 0,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-ga",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "source": "azure",
+    "name": "Group aaaa",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   },
+   {
+    "id": "azure-gb",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    "source": "azure",
+    "name": "Group bbbb",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [
+   {
+    "id": "u2",
+    "email": "two@example.test",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "33333333-3333-3333-3333-333333333333",
+    "organizationId": "A",
+    "groups": [
+     "manual-B",
+     "azure-ga",
+     "azure-gb"
+    ]
+   }
+  ],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 2,
+   "syncedUsers": 0,
+   "errors": []
+  }
+ },
+ "principalInCapitals": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 1,
+    "users": 0
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-ga",
+    {
+     "name": "Group aaaa",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getUserByAzureId",
+    "22222222-2222-2222-2222-222222222222",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "membership.add",
+    "u1",
+    "azure-ga",
+    "22222222-2222-2222-2222-222222222222"
+   ],
+   [
+    "users.getAllUsers"
+   ],
+   [
+    "membership.remove",
+    "u2",
+    "azure-ga",
+    "33333333-3333-3333-3333-333333333333"
+   ],
+   [
+    "membership.remove",
+    "u3",
+    "azure-ga",
+    "44444444-4444-4444-4444-444444444444"
+   ],
+   [
+    "membership.remove",
+    "u1",
+    "azure-gb",
+    "22222222-2222-2222-2222-222222222222"
+   ],
+   [
+    "membership.remove",
+    "u2",
+    "azure-gb",
+    "33333333-3333-3333-3333-333333333333"
+   ],
+   [
+    "membership.remove",
+    "u3",
+    "azure-gb",
+    "44444444-4444-4444-4444-444444444444"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 1,
+     "syncedUsers": 0,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-ga",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "source": "azure",
+    "name": "Group aaaa",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [
+   {
+    "id": "u1",
+    "email": "one@example.test",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "22222222-2222-2222-2222-222222222222",
+    "organizationId": "B",
+    "groups": [
+     "azure-ga"
+    ]
+   },
+   {
+    "id": "u2",
+    "email": "two@example.test",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "33333333-3333-3333-3333-333333333333",
+    "organizationId": "A",
+    "groups": [
+     "manual-B"
+    ]
+   },
+   {
+    "id": "u3",
+    "email": "three@example.test",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "44444444-4444-4444-4444-444444444444",
+    "organizationId": "A",
+    "groups": [
+     "manual-A"
+    ]
+   }
+  ],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 1,
+   "syncedUsers": 0,
+   "errors": []
+  }
+ },
+ "principalInvalid": {
+  "result": {
+   "ok": false,
+   "synced": {
+    "groups": 0,
+    "users": 0
+   },
+   "details": [],
+   "errors": [
+    "Directory read failed for not-a-guid: Invalid Graph principal ID",
+    "Directory read failed for 42: Invalid Graph principal ID",
+    "Directory read failed for undefined: Invalid Graph principal ID"
+   ]
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "partial",
+     "syncedGroups": 0,
+     "syncedUsers": 0,
+     "errors": [
+      "Directory read failed for not-a-guid: Invalid Graph principal ID",
+      "Directory read failed for 42: Invalid Graph principal ID",
+      "Directory read failed for undefined: Invalid Graph principal ID"
+     ]
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "partial",
+   "syncedGroups": 0,
+   "syncedUsers": 0,
+   "errors": [
+    "Directory read failed for not-a-guid: Invalid Graph principal ID",
+    "Directory read failed for 42: Invalid Graph principal ID",
+    "Directory read failed for undefined: Invalid Graph principal ID"
+   ]
+  }
+ },
+ "principalOfAnotherType": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 0,
+    "users": 0
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getAllUsers"
+   ],
+   [
+    "membership.remove",
+    "u1",
+    "azure-ga",
+    "22222222-2222-2222-2222-222222222222"
+   ],
+   [
+    "membership.remove",
+    "u2",
+    "azure-ga",
+    "33333333-3333-3333-3333-333333333333"
+   ],
+   [
+    "membership.remove",
+    "u3",
+    "azure-ga",
+    "44444444-4444-4444-4444-444444444444"
+   ],
+   [
+    "membership.remove",
+    "u1",
+    "azure-gb",
+    "22222222-2222-2222-2222-222222222222"
+   ],
+   [
+    "membership.remove",
+    "u2",
+    "azure-gb",
+    "33333333-3333-3333-3333-333333333333"
+   ],
+   [
+    "membership.remove",
+    "u3",
+    "azure-gb",
+    "44444444-4444-4444-4444-444444444444"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 0,
+     "syncedUsers": 0,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [],
+  "usersChanged": [
+   {
+    "id": "u1",
+    "email": "one@example.test",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "22222222-2222-2222-2222-222222222222",
+    "organizationId": "B",
+    "groups": []
+   },
+   {
+    "id": "u2",
+    "email": "two@example.test",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "33333333-3333-3333-3333-333333333333",
+    "organizationId": "A",
+    "groups": [
+     "manual-B"
+    ]
+   },
+   {
+    "id": "u3",
+    "email": "three@example.test",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "44444444-4444-4444-4444-444444444444",
+    "organizationId": "A",
+    "groups": [
+     "manual-A"
+    ]
+   }
+  ],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 0,
+   "syncedUsers": 0,
+   "errors": []
+  }
+ },
+ "groupIdentityMismatch": {
+  "result": {
+   "ok": false,
+   "synced": {
+    "groups": 0,
+    "users": 0
+   },
+   "details": [],
+   "errors": [
+    "Directory read failed for aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa: Graph group identity mismatch"
+   ]
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "partial",
+     "syncedGroups": 0,
+     "syncedUsers": 0,
+     "errors": [
+      "Directory read failed for aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa: Graph group identity mismatch"
+     ]
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "partial",
+   "syncedGroups": 0,
+   "syncedUsers": 0,
+   "errors": [
+    "Directory read failed for aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa: Graph group identity mismatch"
+   ]
+  }
+ },
+ "groupWithoutIdentity": {
+  "result": {
+   "ok": false,
+   "synced": {
+    "groups": 0,
+    "users": 0
+   },
+   "details": [],
+   "errors": [
+    "Directory read failed for aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa: Graph group identity mismatch"
+   ]
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "partial",
+     "syncedGroups": 0,
+     "syncedUsers": 0,
+     "errors": [
+      "Directory read failed for aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa: Graph group identity mismatch"
+     ]
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "partial",
+   "syncedGroups": 0,
+   "syncedUsers": 0,
+   "errors": [
+    "Directory read failed for aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa: Graph group identity mismatch"
+   ]
+  }
+ },
+ "groupIdentityInCapitals": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 1,
+    "users": 0
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-ga",
+    {
+     "name": "Capitals",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 1,
+     "syncedUsers": 0,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-ga",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "source": "azure",
+    "name": "Capitals",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 1,
+   "syncedUsers": 0,
+   "errors": []
+  }
+ },
+ "groupMembersFail": {
+  "result": {
+   "ok": false,
+   "synced": {
+    "groups": 1,
+    "users": 0
+   },
+   "details": [],
+   "errors": [
+    "Directory read failed for bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb: partial Graph read"
+   ]
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+   ],
+   [
+    "graph.graphGet",
+    "groups/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-ga",
+    {
+     "name": "Group aaaa",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "partial",
+     "syncedGroups": 1,
+     "syncedUsers": 0,
+     "errors": [
+      "Directory read failed for bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb: partial Graph read"
+     ]
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-ga",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "source": "azure",
+    "name": "Group aaaa",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "partial",
+   "syncedGroups": 1,
+   "syncedUsers": 0,
+   "errors": [
+    "Directory read failed for bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb: partial Graph read"
+   ]
+  }
+ },
+ "userAssignment": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 0,
+    "users": 0
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "users/22222222-2222-2222-2222-222222222222?$select=id,displayName,givenName,surname,mail,userPrincipalName",
+    "token-1"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getUserByAzureId",
+    "22222222-2222-2222-2222-222222222222",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 0,
+     "syncedUsers": 0,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 0,
+   "syncedUsers": 0,
+   "errors": []
+  }
+ },
+ "userAssignmentNew": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 0,
+    "users": 1
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "users/66666666-6666-6666-6666-666666666666?$select=id,displayName,givenName,surname,mail,userPrincipalName",
+    "token-1"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getUserByAzureId",
+    "66666666-6666-6666-6666-666666666666",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "findUnboundIdentity",
+    "66666666-6666-6666-6666-666666666666"
+   ],
+   [
+    "users.getUserByEmail",
+    "new@example.test"
+   ],
+   [
+    "users.createUserWithSeatCheck",
+    {
+     "id": "azure-11111111-1111-1111-1111-111111111111-66666666-6666-6666-6666-666666666666",
+     "username": "new@example.test",
+     "displayName": "New Person",
+     "firstName": "New",
+     "lastName": "Person",
+     "email": "new@example.test",
+     "organizationId": "B",
+     "azureTenantId": "11111111-1111-1111-1111-111111111111",
+     "azureUserId": "66666666-6666-6666-6666-666666666666",
+     "role": "user",
+     "groups": [],
+     "orgRole": "",
+     "status": "active",
+     "passwordHash": ""
+    },
+    {
+     "strict": false
+    }
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 0,
+     "syncedUsers": 1,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [],
+  "usersChanged": [
+   {
+    "id": "azure-11111111-1111-1111-1111-111111111111-66666666-6666-6666-6666-666666666666",
+    "username": "new@example.test",
+    "displayName": "New Person",
+    "firstName": "New",
+    "lastName": "Person",
+    "email": "new@example.test",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "66666666-6666-6666-6666-666666666666",
+    "role": "user",
+    "groups": [],
+    "orgRole": "",
+    "status": "active",
+    "passwordHash": ""
+   }
+  ],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 0,
+   "syncedUsers": 1,
+   "errors": []
+  }
+ },
+ "userAssignmentWithRemoval": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 2,
+    "users": 0
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "users/22222222-2222-2222-2222-222222222222?$select=id,displayName,givenName,surname,mail,userPrincipalName",
+    "token-1"
+   ],
+   [
+    "graph.graphGet",
+    "groups/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+   ],
+   [
+    "graph.graphGet",
+    "groups/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getUserByAzureId",
+    "22222222-2222-2222-2222-222222222222",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-ga",
+    {
+     "name": "Group aaaa",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getUserByAzureId",
+    "22222222-2222-2222-2222-222222222222",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "membership.add",
+    "u1",
+    "azure-ga",
+    "22222222-2222-2222-2222-222222222222"
+   ],
+   [
+    "users.getUserByAzureId",
+    "33333333-3333-3333-3333-333333333333",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "membership.add",
+    "u2",
+    "azure-ga",
+    "33333333-3333-3333-3333-333333333333"
+   ],
+   [
+    "users.getUserByAzureId",
+    "44444444-4444-4444-4444-444444444444",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "membership.add",
+    "u3",
+    "azure-ga",
+    "44444444-4444-4444-4444-444444444444"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-gb",
+    {
+     "name": "Group bbbb",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getUserByAzureId",
+    "22222222-2222-2222-2222-222222222222",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "membership.add",
+    "u1",
+    "azure-gb",
+    "22222222-2222-2222-2222-222222222222"
+   ],
+   [
+    "users.getUserByAzureId",
+    "33333333-3333-3333-3333-333333333333",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "membership.add",
+    "u2",
+    "azure-gb",
+    "33333333-3333-3333-3333-333333333333"
+   ],
+   [
+    "users.getUserByAzureId",
+    "44444444-4444-4444-4444-444444444444",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "membership.add",
+    "u3",
+    "azure-gb",
+    "44444444-4444-4444-4444-444444444444"
+   ],
+   [
+    "users.getAllUsers"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 2,
+     "syncedUsers": 0,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-ga",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "source": "azure",
+    "name": "Group aaaa",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   },
+   {
+    "id": "azure-gb",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    "source": "azure",
+    "name": "Group bbbb",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [
+   {
+    "id": "u2",
+    "email": "two@example.test",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "33333333-3333-3333-3333-333333333333",
+    "organizationId": "A",
+    "groups": [
+     "manual-B",
+     "azure-ga",
+     "azure-gb"
+    ]
+   },
+   {
+    "id": "u3",
+    "email": "three@example.test",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "44444444-4444-4444-4444-444444444444",
+    "organizationId": "A",
+    "groups": [
+     "manual-A",
+     "azure-ga",
+     "azure-gb"
+    ]
+   }
+  ],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 2,
+   "syncedUsers": 0,
+   "errors": []
+  }
+ },
+ "userIdentityMismatch": {
+  "result": {
+   "ok": false,
+   "synced": {
+    "groups": 0,
+    "users": 0
+   },
+   "details": [],
+   "errors": [
+    "Directory read failed for 22222222-2222-2222-2222-222222222222: Graph user identity mismatch"
+   ]
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "users/22222222-2222-2222-2222-222222222222?$select=id,displayName,givenName,surname,mail,userPrincipalName",
+    "token-1"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "partial",
+     "syncedGroups": 0,
+     "syncedUsers": 0,
+     "errors": [
+      "Directory read failed for 22222222-2222-2222-2222-222222222222: Graph user identity mismatch"
+     ]
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "partial",
+   "syncedGroups": 0,
+   "syncedUsers": 0,
+   "errors": [
+    "Directory read failed for 22222222-2222-2222-2222-222222222222: Graph user identity mismatch"
+   ]
+  }
+ },
+ "graphReadFails": {
+  "result": {
+   "ok": false,
+   "synced": {
+    "groups": 1,
+    "users": 0
+   },
+   "details": [],
+   "errors": [
+    "Directory read failed for 22222222-2222-2222-2222-222222222222: Graph 404"
+   ]
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "users/22222222-2222-2222-2222-222222222222?$select=id,displayName,givenName,surname,mail,userPrincipalName",
+    "token-1"
+   ],
+   [
+    "graph.graphGet",
+    "groups/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-ga",
+    {
+     "name": "Group aaaa",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getUserByAzureId",
+    "22222222-2222-2222-2222-222222222222",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "membership.add",
+    "u1",
+    "azure-ga",
+    "22222222-2222-2222-2222-222222222222"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "partial",
+     "syncedGroups": 1,
+     "syncedUsers": 0,
+     "errors": [
+      "Directory read failed for 22222222-2222-2222-2222-222222222222: Graph 404"
+     ]
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-ga",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "source": "azure",
+    "name": "Group aaaa",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "partial",
+   "syncedGroups": 1,
+   "syncedUsers": 0,
+   "errors": [
+    "Directory read failed for 22222222-2222-2222-2222-222222222222: Graph 404"
+   ]
+  }
+ },
+ "groupUpdated": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 1,
+    "users": 0
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-ga",
+    {
+     "name": "Finance",
+     "description": "Money",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 1,
+     "syncedUsers": 0,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-ga",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "source": "azure",
+    "name": "Finance",
+    "description": "Money",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 1,
+   "syncedUsers": 0,
+   "errors": []
+  }
+ },
+ "groupUpdateKeepsName": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 1,
+    "users": 0
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-ga",
+    {
+     "name": "Old A",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 1,
+     "syncedUsers": 0,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-ga",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "source": "azure",
+    "name": "Old A",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 1,
+   "syncedUsers": 0,
+   "errors": []
+  }
+ },
+ "groupUpdateFails": {
+  "result": {
+   "ok": false,
+   "synced": {
+    "groups": 0,
+    "users": 0
+   },
+   "details": [],
+   "errors": [
+    "Could not update Azure group aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+   ]
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+   ],
+   [
+    "graph.graphGet",
+    "groups/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-ga",
+    {
+     "name": "Group aaaa",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "partial",
+     "syncedGroups": 0,
+     "syncedUsers": 0,
+     "errors": [
+      "Could not update Azure group aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+     ]
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "partial",
+   "syncedGroups": 0,
+   "syncedUsers": 0,
+   "errors": [
+    "Could not update Azure group aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+   ]
+  }
+ },
+ "groupCreated": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 1,
+    "users": 1
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/cccccccc-cccc-cccc-cccc-cccccccccccc?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "cccccccc-cccc-cccc-cccc-cccccccccccc"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "cccccccc-cccc-cccc-cccc-cccccccccccc",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.createGroup",
+    {
+     "id": "azure-c0f2d982f6861b92cd3f8cd7",
+     "organizationId": "B",
+     "azureTenantId": "11111111-1111-1111-1111-111111111111",
+     "azureGroupId": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+     "name": "Created",
+     "description": "Fresh",
+     "source": "azure",
+     "permissions": [
+      "read",
+      "chat"
+     ],
+     "roles": [],
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getGroupByAzureId",
+    "cccccccc-cccc-cccc-cccc-cccccccccccc",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.getUserByAzureId",
+    "22222222-2222-2222-2222-222222222222",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "membership.add",
+    "u1",
+    "azure-c0f2d982f6861b92cd3f8cd7",
+    "22222222-2222-2222-2222-222222222222"
+   ],
+   [
+    "users.getUserByAzureId",
+    "66666666-6666-6666-6666-666666666666",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "findUnboundIdentity",
+    "66666666-6666-6666-6666-666666666666"
+   ],
+   [
+    "users.getUserByEmail",
+    "new@example.test"
+   ],
+   [
+    "users.createUserWithSeatCheck",
+    {
+     "id": "azure-11111111-1111-1111-1111-111111111111-66666666-6666-6666-6666-666666666666",
+     "username": "new@example.test",
+     "displayName": "New Person",
+     "firstName": "New",
+     "lastName": "Person",
+     "email": "new@example.test",
+     "organizationId": "B",
+     "azureTenantId": "11111111-1111-1111-1111-111111111111",
+     "azureUserId": "66666666-6666-6666-6666-666666666666",
+     "role": "user",
+     "groups": [],
+     "orgRole": "",
+     "status": "active",
+     "passwordHash": ""
+    },
+    {
+     "strict": false
+    }
+   ],
+   [
+    "membership.add",
+    "azure-11111111-1111-1111-1111-111111111111-66666666-6666-6666-6666-666666666666",
+    "azure-c0f2d982f6861b92cd3f8cd7",
+    "66666666-6666-6666-6666-666666666666"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 1,
+     "syncedUsers": 1,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-c0f2d982f6861b92cd3f8cd7",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+    "name": "Created",
+    "description": "Fresh",
+    "source": "azure",
+    "permissions": [
+     "read",
+     "chat"
+    ],
+    "roles": [],
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [
+   {
+    "id": "u1",
+    "email": "one@example.test",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "22222222-2222-2222-2222-222222222222",
+    "organizationId": "B",
+    "groups": [
+     "azure-ga",
+     "azure-gb",
+     "azure-c0f2d982f6861b92cd3f8cd7"
+    ]
+   },
+   {
+    "id": "azure-11111111-1111-1111-1111-111111111111-66666666-6666-6666-6666-666666666666",
+    "username": "new@example.test",
+    "displayName": "New Person",
+    "firstName": "New",
+    "lastName": "Person",
+    "email": "new@example.test",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "66666666-6666-6666-6666-666666666666",
+    "role": "user",
+    "groups": [
+     "azure-c0f2d982f6861b92cd3f8cd7"
+    ],
+    "orgRole": "",
+    "status": "active",
+    "passwordHash": ""
+   }
+  ],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 1,
+   "syncedUsers": 1,
+   "errors": []
+  }
+ },
+ "groupCreatedBare": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 1,
+    "users": 0
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/cccccccc-cccc-cccc-cccc-cccccccccccc?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "cccccccc-cccc-cccc-cccc-cccccccccccc"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "cccccccc-cccc-cccc-cccc-cccccccccccc",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.createGroup",
+    {
+     "id": "azure-c0f2d982f6861b92cd3f8cd7",
+     "organizationId": "B",
+     "azureTenantId": "11111111-1111-1111-1111-111111111111",
+     "azureGroupId": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+     "name": "Group cccc",
+     "description": "",
+     "source": "azure",
+     "permissions": [
+      "read",
+      "chat"
+     ],
+     "roles": [],
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getGroupByAzureId",
+    "cccccccc-cccc-cccc-cccc-cccccccccccc",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 1,
+     "syncedUsers": 0,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-c0f2d982f6861b92cd3f8cd7",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+    "name": "Group cccc",
+    "description": "",
+    "source": "azure",
+    "permissions": [
+     "read",
+     "chat"
+    ],
+    "roles": [],
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 1,
+   "syncedUsers": 0,
+   "errors": []
+  }
+ },
+ "groupCreatedWithoutAName": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 1,
+    "users": 0
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/cccccccc-cccc-cccc-cccc-cccccccccccc?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "cccccccc-cccc-cccc-cccc-cccccccccccc"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "cccccccc-cccc-cccc-cccc-cccccccccccc",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.createGroup",
+    {
+     "id": "azure-c0f2d982f6861b92cd3f8cd7",
+     "organizationId": "B",
+     "azureTenantId": "11111111-1111-1111-1111-111111111111",
+     "azureGroupId": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+     "name": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+     "description": "",
+     "source": "azure",
+     "permissions": [
+      "read",
+      "chat"
+     ],
+     "roles": [],
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getGroupByAzureId",
+    "cccccccc-cccc-cccc-cccc-cccccccccccc",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 1,
+     "syncedUsers": 0,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-c0f2d982f6861b92cd3f8cd7",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+    "name": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+    "description": "",
+    "source": "azure",
+    "permissions": [
+     "read",
+     "chat"
+    ],
+    "roles": [],
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 1,
+   "syncedUsers": 0,
+   "errors": []
+  }
+ },
+ "groupCreateFails": {
+  "result": {
+   "ok": false,
+   "synced": {
+    "groups": 0,
+    "users": 0
+   },
+   "details": [],
+   "errors": [
+    "Could not create Azure group cccccccc-cccc-cccc-cccc-cccccccccccc"
+   ]
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/cccccccc-cccc-cccc-cccc-cccccccccccc?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "cccccccc-cccc-cccc-cccc-cccccccccccc"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "cccccccc-cccc-cccc-cccc-cccccccccccc",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.createGroup",
+    {
+     "id": "azure-c0f2d982f6861b92cd3f8cd7",
+     "organizationId": "B",
+     "azureTenantId": "11111111-1111-1111-1111-111111111111",
+     "azureGroupId": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+     "name": "Group cccc",
+     "description": "",
+     "source": "azure",
+     "permissions": [
+      "read",
+      "chat"
+     ],
+     "roles": [],
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "partial",
+     "syncedGroups": 0,
+     "syncedUsers": 0,
+     "errors": [
+      "Could not create Azure group cccccccc-cccc-cccc-cccc-cccccccccccc"
+     ]
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "partial",
+   "syncedGroups": 0,
+   "syncedUsers": 0,
+   "errors": [
+    "Could not create Azure group cccccccc-cccc-cccc-cccc-cccccccccccc"
+   ]
+  }
+ },
+ "legacyGroupBound": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 1,
+    "users": 0
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/cccccccc-cccc-cccc-cccc-cccccccccccc?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "cccccccc-cccc-cccc-cccc-cccccccccccc"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "cccccccc-cccc-cccc-cccc-cccccccccccc",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "legacy-c",
+    {
+     "azureTenantId": "11111111-1111-1111-1111-111111111111",
+     "azureGroupId": "cccccccc-cccc-cccc-cccc-cccccccccccc"
+    }
+   ],
+   [
+    "users.updateGroup",
+    "legacy-c",
+    {
+     "name": "Group cccc",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getUserByAzureId",
+    "22222222-2222-2222-2222-222222222222",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "membership.add",
+    "u1",
+    "legacy-c",
+    "22222222-2222-2222-2222-222222222222"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 1,
+     "syncedUsers": 0,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "legacy-c",
+    "organizationId": "B",
+    "azureGroupId": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+    "source": "azure",
+    "name": "Group cccc",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [
+   {
+    "id": "u1",
+    "email": "one@example.test",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "22222222-2222-2222-2222-222222222222",
+    "organizationId": "B",
+    "groups": [
+     "azure-ga",
+     "azure-gb",
+     "legacy-c"
+    ]
+   }
+  ],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 1,
+   "syncedUsers": 0,
+   "errors": []
+  }
+ },
+ "legacyGroupBindFails": {
+  "result": {
+   "ok": false,
+   "synced": {
+    "groups": 0,
+    "users": 0
+   },
+   "details": [],
+   "errors": [
+    "Could not bind legacy Azure group cccccccc-cccc-cccc-cccc-cccccccccccc"
+   ]
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/cccccccc-cccc-cccc-cccc-cccccccccccc?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "cccccccc-cccc-cccc-cccc-cccccccccccc"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "cccccccc-cccc-cccc-cccc-cccccccccccc",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "legacy-c",
+    {
+     "azureTenantId": "11111111-1111-1111-1111-111111111111",
+     "azureGroupId": "cccccccc-cccc-cccc-cccc-cccccccccccc"
+    }
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "partial",
+     "syncedGroups": 0,
+     "syncedUsers": 0,
+     "errors": [
+      "Could not bind legacy Azure group cccccccc-cccc-cccc-cccc-cccccccccccc"
+     ]
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "partial",
+   "syncedGroups": 0,
+   "syncedUsers": 0,
+   "errors": [
+    "Could not bind legacy Azure group cccccccc-cccc-cccc-cccc-cccccccccccc"
+   ]
+  }
+ },
+ "legacyGroupAmbiguous": {
+  "result": {
+   "ok": false,
+   "synced": {
+    "groups": 0,
+    "users": 0
+   },
+   "details": [],
+   "errors": [
+    "Ambiguous legacy Azure group cccccccc-cccc-cccc-cccc-cccccccccccc; administrator review required"
+   ]
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/cccccccc-cccc-cccc-cccc-cccccccccccc?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "cccccccc-cccc-cccc-cccc-cccccccccccc"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "cccccccc-cccc-cccc-cccc-cccccccccccc",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "partial",
+     "syncedGroups": 0,
+     "syncedUsers": 0,
+     "errors": [
+      "Ambiguous legacy Azure group cccccccc-cccc-cccc-cccc-cccccccccccc; administrator review required"
+     ]
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "partial",
+   "syncedGroups": 0,
+   "syncedUsers": 0,
+   "errors": [
+    "Ambiguous legacy Azure group cccccccc-cccc-cccc-cccc-cccccccccccc; administrator review required"
+   ]
+  }
+ },
+ "legacyGroupOfAnotherOrganisation": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 1,
+    "users": 0
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/cccccccc-cccc-cccc-cccc-cccccccccccc?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "cccccccc-cccc-cccc-cccc-cccccccccccc"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "cccccccc-cccc-cccc-cccc-cccccccccccc",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.createGroup",
+    {
+     "id": "azure-c0f2d982f6861b92cd3f8cd7",
+     "organizationId": "B",
+     "azureTenantId": "11111111-1111-1111-1111-111111111111",
+     "azureGroupId": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+     "name": "Group cccc",
+     "description": "",
+     "source": "azure",
+     "permissions": [
+      "read",
+      "chat"
+     ],
+     "roles": [],
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getGroupByAzureId",
+    "cccccccc-cccc-cccc-cccc-cccccccccccc",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 1,
+     "syncedUsers": 0,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-c0f2d982f6861b92cd3f8cd7",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+    "name": "Group cccc",
+    "description": "",
+    "source": "azure",
+    "permissions": [
+     "read",
+     "chat"
+    ],
+    "roles": [],
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 1,
+   "syncedUsers": 0,
+   "errors": []
+  }
+ },
+ "memberInvalid": {
+  "result": {
+   "ok": false,
+   "synced": {
+    "groups": 1,
+    "users": 0
+   },
+   "details": [],
+   "errors": [
+    "Directory returned an invalid user object ID",
+    "Directory returned an invalid user object ID",
+    "Directory returned an invalid user object ID"
+   ]
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-ga",
+    {
+     "name": "Group aaaa",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getUserByAzureId",
+    "22222222-2222-2222-2222-222222222222",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "membership.add",
+    "u1",
+    "azure-ga",
+    "22222222-2222-2222-2222-222222222222"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "partial",
+     "syncedGroups": 1,
+     "syncedUsers": 0,
+     "errors": [
+      "Directory returned an invalid user object ID",
+      "Directory returned an invalid user object ID",
+      "Directory returned an invalid user object ID"
+     ]
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-ga",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "source": "azure",
+    "name": "Group aaaa",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "partial",
+   "syncedGroups": 1,
+   "syncedUsers": 0,
+   "errors": [
+    "Directory returned an invalid user object ID",
+    "Directory returned an invalid user object ID",
+    "Directory returned an invalid user object ID"
+   ]
+  }
+ },
+ "memberKnown": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 1,
+    "users": 0
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-gb",
+    {
+     "name": "Group bbbb",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getUserByAzureId",
+    "33333333-3333-3333-3333-333333333333",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "membership.add",
+    "u2",
+    "azure-gb",
+    "33333333-3333-3333-3333-333333333333"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 1,
+     "syncedUsers": 0,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-gb",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    "source": "azure",
+    "name": "Group bbbb",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [
+   {
+    "id": "u2",
+    "email": "two@example.test",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "33333333-3333-3333-3333-333333333333",
+    "organizationId": "A",
+    "groups": [
+     "manual-B",
+     "azure-ga",
+     "azure-gb"
+    ]
+   }
+  ],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 1,
+   "syncedUsers": 0,
+   "errors": []
+  }
+ },
+ "memberKnownWithAnotherAccountsMail": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 1,
+    "users": 0
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-gb",
+    {
+     "name": "Group bbbb",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getUserByAzureId",
+    "33333333-3333-3333-3333-333333333333",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "membership.add",
+    "u2",
+    "azure-gb",
+    "33333333-3333-3333-3333-333333333333"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 1,
+     "syncedUsers": 0,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-gb",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    "source": "azure",
+    "name": "Group bbbb",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [
+   {
+    "id": "u2",
+    "email": "two@example.test",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "33333333-3333-3333-3333-333333333333",
+    "organizationId": "A",
+    "groups": [
+     "manual-B",
+     "azure-ga",
+     "azure-gb"
+    ]
+   }
+  ],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 1,
+   "syncedUsers": 0,
+   "errors": []
+  }
+ },
+ "memberSpelledInCapitals": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 1,
+    "users": 0
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-ga",
+    {
+     "name": "Group aaaa",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getUserByAzureId",
+    "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "membership.add",
+    "ue",
+    "azure-ga",
+    "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"
+   ],
+   [
+    "users.getAllUsers"
+   ],
+   [
+    "membership.remove",
+    "u1",
+    "azure-ga",
+    "22222222-2222-2222-2222-222222222222"
+   ],
+   [
+    "membership.remove",
+    "u2",
+    "azure-ga",
+    "33333333-3333-3333-3333-333333333333"
+   ],
+   [
+    "membership.remove",
+    "u3",
+    "azure-ga",
+    "44444444-4444-4444-4444-444444444444"
+   ],
+   [
+    "membership.remove",
+    "u1",
+    "azure-gb",
+    "22222222-2222-2222-2222-222222222222"
+   ],
+   [
+    "membership.remove",
+    "u2",
+    "azure-gb",
+    "33333333-3333-3333-3333-333333333333"
+   ],
+   [
+    "membership.remove",
+    "u3",
+    "azure-gb",
+    "44444444-4444-4444-4444-444444444444"
+   ],
+   [
+    "membership.remove",
+    "ue",
+    "azure-gb",
+    "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 1,
+     "syncedUsers": 0,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-ga",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "source": "azure",
+    "name": "Group aaaa",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [
+   {
+    "id": "u1",
+    "email": "one@example.test",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "22222222-2222-2222-2222-222222222222",
+    "organizationId": "B",
+    "groups": []
+   },
+   {
+    "id": "u2",
+    "email": "two@example.test",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "33333333-3333-3333-3333-333333333333",
+    "organizationId": "A",
+    "groups": [
+     "manual-B"
+    ]
+   },
+   {
+    "id": "u3",
+    "email": "three@example.test",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "44444444-4444-4444-4444-444444444444",
+    "organizationId": "A",
+    "groups": [
+     "manual-A"
+    ]
+   },
+   {
+    "id": "ue",
+    "email": "e@example.test",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+    "organizationId": "B",
+    "groups": [
+     "azure-ga"
+    ]
+   }
+  ],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 1,
+   "syncedUsers": 0,
+   "errors": []
+  }
+ },
+ "memberStoredInCapitals": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 1,
+    "users": 0
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-ga",
+    {
+     "name": "Group aaaa",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getUserByAzureId",
+    "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "membership.add",
+    "ue",
+    "azure-ga",
+    "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 1,
+     "syncedUsers": 0,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-ga",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "source": "azure",
+    "name": "Group aaaa",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 1,
+   "syncedUsers": 0,
+   "errors": []
+  }
+ },
+ "memberOutsideTheOrganisation": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 1,
+    "users": 0
+   },
+   "details": [
+    "Skipped 44444444-4444-4444-4444-444444444444: user is not an authorized member of the sync organization"
+   ],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-ga",
+    {
+     "name": "Group aaaa",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getUserByAzureId",
+    "44444444-4444-4444-4444-444444444444",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 1,
+     "syncedUsers": 0,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-ga",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "source": "azure",
+    "name": "Group aaaa",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 1,
+   "syncedUsers": 0,
+   "errors": []
+  }
+ },
+ "memberInOrganisationThroughAManagedGroup": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 1,
+    "users": 0
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-gb",
+    {
+     "name": "Group bbbb",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getUserByAzureId",
+    "44444444-4444-4444-4444-444444444444",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "membership.add",
+    "u3",
+    "azure-gb",
+    "44444444-4444-4444-4444-444444444444"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 1,
+     "syncedUsers": 0,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-gb",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    "source": "azure",
+    "name": "Group bbbb",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [
+   {
+    "id": "u3",
+    "email": "three@example.test",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "44444444-4444-4444-4444-444444444444",
+    "organizationId": "A",
+    "groups": [
+     "manual-A",
+     "azure-ga",
+     "azure-gb"
+    ]
+   }
+  ],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 1,
+   "syncedUsers": 0,
+   "errors": []
+  }
+ },
+ "memberUnboundIdentity": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 1,
+    "users": 0
+   },
+   "details": [
+    "Skipped 66666666-6666-6666-6666-666666666666: legacy Microsoft identity requires administrator confirmation"
+   ],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-ga",
+    {
+     "name": "Group aaaa",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getUserByAzureId",
+    "66666666-6666-6666-6666-666666666666",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "findUnboundIdentity",
+    "66666666-6666-6666-6666-666666666666"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 1,
+     "syncedUsers": 0,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-ga",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "source": "azure",
+    "name": "Group aaaa",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 1,
+   "syncedUsers": 0,
+   "errors": []
+  }
+ },
+ "memberKnownByMail": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 1,
+    "users": 0
+   },
+   "details": [
+    "Skipped 66666666-6666-6666-6666-666666666666: Microsoft identity requires administrator confirmation"
+   ],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-ga",
+    {
+     "name": "Group aaaa",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getUserByAzureId",
+    "66666666-6666-6666-6666-666666666666",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "findUnboundIdentity",
+    "66666666-6666-6666-6666-666666666666"
+   ],
+   [
+    "users.getUserByEmail",
+    "legacy@example.test"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 1,
+     "syncedUsers": 0,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-ga",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "source": "azure",
+    "name": "Group aaaa",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 1,
+   "syncedUsers": 0,
+   "errors": []
+  }
+ },
+ "memberKnownByPrincipalName": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 1,
+    "users": 0
+   },
+   "details": [
+    "Skipped 66666666-6666-6666-6666-666666666666: Microsoft identity requires administrator confirmation"
+   ],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-ga",
+    {
+     "name": "Group aaaa",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getUserByAzureId",
+    "66666666-6666-6666-6666-666666666666",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "findUnboundIdentity",
+    "66666666-6666-6666-6666-666666666666"
+   ],
+   [
+    "users.getUserByEmail",
+    "legacy@example.test"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 1,
+     "syncedUsers": 0,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-ga",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "source": "azure",
+    "name": "Group aaaa",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 1,
+   "syncedUsers": 0,
+   "errors": []
+  }
+ },
+ "memberNew": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 1,
+    "users": 1
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-ga",
+    {
+     "name": "Group aaaa",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getUserByAzureId",
+    "66666666-6666-6666-6666-666666666666",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "findUnboundIdentity",
+    "66666666-6666-6666-6666-666666666666"
+   ],
+   [
+    "users.getUserByEmail",
+    "new@example.test"
+   ],
+   [
+    "users.createUserWithSeatCheck",
+    {
+     "id": "azure-11111111-1111-1111-1111-111111111111-66666666-6666-6666-6666-666666666666",
+     "username": "new@example.test",
+     "displayName": "New Person",
+     "firstName": "New",
+     "lastName": "Person",
+     "email": "new@example.test",
+     "organizationId": "B",
+     "azureTenantId": "11111111-1111-1111-1111-111111111111",
+     "azureUserId": "66666666-6666-6666-6666-666666666666",
+     "role": "user",
+     "groups": [],
+     "orgRole": "",
+     "status": "active",
+     "passwordHash": ""
+    },
+    {
+     "strict": false
+    }
+   ],
+   [
+    "membership.add",
+    "azure-11111111-1111-1111-1111-111111111111-66666666-6666-6666-6666-666666666666",
+    "azure-ga",
+    "66666666-6666-6666-6666-666666666666"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 1,
+     "syncedUsers": 1,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-ga",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "source": "azure",
+    "name": "Group aaaa",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [
+   {
+    "id": "azure-11111111-1111-1111-1111-111111111111-66666666-6666-6666-6666-666666666666",
+    "username": "new@example.test",
+    "displayName": "New Person",
+    "firstName": "New",
+    "lastName": "Person",
+    "email": "new@example.test",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "66666666-6666-6666-6666-666666666666",
+    "role": "user",
+    "groups": [
+     "azure-ga"
+    ],
+    "orgRole": "",
+    "status": "active",
+    "passwordHash": ""
+   }
+  ],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 1,
+   "syncedUsers": 1,
+   "errors": []
+  }
+ },
+ "memberNewBare": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 1,
+    "users": 1
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-ga",
+    {
+     "name": "Group aaaa",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getUserByAzureId",
+    "66666666-6666-6666-6666-666666666666",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "findUnboundIdentity",
+    "66666666-6666-6666-6666-666666666666"
+   ],
+   [
+    "users.createUserWithSeatCheck",
+    {
+     "id": "azure-11111111-1111-1111-1111-111111111111-66666666-6666-6666-6666-666666666666",
+     "username": "azure-11111111-1111-1111-1111-111111111111-66666666-6666-6666-6666-666666666666",
+     "displayName": "azure-11111111-1111-1111-1111-111111111111-66666666-6666-6666-6666-666666666666",
+     "firstName": "",
+     "lastName": "",
+     "email": "",
+     "organizationId": "B",
+     "azureTenantId": "11111111-1111-1111-1111-111111111111",
+     "azureUserId": "66666666-6666-6666-6666-666666666666",
+     "role": "user",
+     "groups": [],
+     "orgRole": "",
+     "status": "active",
+     "passwordHash": ""
+    },
+    {
+     "strict": false
+    }
+   ],
+   [
+    "membership.add",
+    "azure-11111111-1111-1111-1111-111111111111-66666666-6666-6666-6666-666666666666",
+    "azure-ga",
+    "66666666-6666-6666-6666-666666666666"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 1,
+     "syncedUsers": 1,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-ga",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "source": "azure",
+    "name": "Group aaaa",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [
+   {
+    "id": "azure-11111111-1111-1111-1111-111111111111-66666666-6666-6666-6666-666666666666",
+    "username": "azure-11111111-1111-1111-1111-111111111111-66666666-6666-6666-6666-666666666666",
+    "displayName": "azure-11111111-1111-1111-1111-111111111111-66666666-6666-6666-6666-666666666666",
+    "firstName": "",
+    "lastName": "",
+    "email": "",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "66666666-6666-6666-6666-666666666666",
+    "role": "user",
+    "groups": [
+     "azure-ga"
+    ],
+    "orgRole": "",
+    "status": "active",
+    "passwordHash": ""
+   }
+  ],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 1,
+   "syncedUsers": 1,
+   "errors": []
+  }
+ },
+ "memberNewByPrincipalName": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 1,
+    "users": 1
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-ga",
+    {
+     "name": "Group aaaa",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getUserByAzureId",
+    "66666666-6666-6666-6666-666666666666",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "findUnboundIdentity",
+    "66666666-6666-6666-6666-666666666666"
+   ],
+   [
+    "users.getUserByEmail",
+    "upn@example.test"
+   ],
+   [
+    "users.createUserWithSeatCheck",
+    {
+     "id": "azure-11111111-1111-1111-1111-111111111111-66666666-6666-6666-6666-666666666666",
+     "username": "upn@example.test",
+     "displayName": "azure-11111111-1111-1111-1111-111111111111-66666666-6666-6666-6666-666666666666",
+     "firstName": "",
+     "lastName": "",
+     "email": "upn@example.test",
+     "organizationId": "B",
+     "azureTenantId": "11111111-1111-1111-1111-111111111111",
+     "azureUserId": "66666666-6666-6666-6666-666666666666",
+     "role": "user",
+     "groups": [],
+     "orgRole": "",
+     "status": "active",
+     "passwordHash": ""
+    },
+    {
+     "strict": false
+    }
+   ],
+   [
+    "membership.add",
+    "azure-11111111-1111-1111-1111-111111111111-66666666-6666-6666-6666-666666666666",
+    "azure-ga",
+    "66666666-6666-6666-6666-666666666666"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 1,
+     "syncedUsers": 1,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-ga",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "source": "azure",
+    "name": "Group aaaa",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [
+   {
+    "id": "azure-11111111-1111-1111-1111-111111111111-66666666-6666-6666-6666-666666666666",
+    "username": "upn@example.test",
+    "displayName": "azure-11111111-1111-1111-1111-111111111111-66666666-6666-6666-6666-666666666666",
+    "firstName": "",
+    "lastName": "",
+    "email": "upn@example.test",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "66666666-6666-6666-6666-666666666666",
+    "role": "user",
+    "groups": [
+     "azure-ga"
+    ],
+    "orgRole": "",
+    "status": "active",
+    "passwordHash": ""
+   }
+  ],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 1,
+   "syncedUsers": 1,
+   "errors": []
+  }
+ },
+ "memberNewMailBeforePrincipalName": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 1,
+    "users": 1
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-ga",
+    {
+     "name": "Group aaaa",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getUserByAzureId",
+    "66666666-6666-6666-6666-666666666666",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "findUnboundIdentity",
+    "66666666-6666-6666-6666-666666666666"
+   ],
+   [
+    "users.getUserByEmail",
+    "new@example.test"
+   ],
+   [
+    "users.createUserWithSeatCheck",
+    {
+     "id": "azure-11111111-1111-1111-1111-111111111111-66666666-6666-6666-6666-666666666666",
+     "username": "new@example.test",
+     "displayName": "azure-11111111-1111-1111-1111-111111111111-66666666-6666-6666-6666-666666666666",
+     "firstName": "",
+     "lastName": "",
+     "email": "new@example.test",
+     "organizationId": "B",
+     "azureTenantId": "11111111-1111-1111-1111-111111111111",
+     "azureUserId": "66666666-6666-6666-6666-666666666666",
+     "role": "user",
+     "groups": [],
+     "orgRole": "",
+     "status": "active",
+     "passwordHash": ""
+    },
+    {
+     "strict": false
+    }
+   ],
+   [
+    "membership.add",
+    "azure-11111111-1111-1111-1111-111111111111-66666666-6666-6666-6666-666666666666",
+    "azure-ga",
+    "66666666-6666-6666-6666-666666666666"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 1,
+     "syncedUsers": 1,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-ga",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "source": "azure",
+    "name": "Group aaaa",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [
+   {
+    "id": "azure-11111111-1111-1111-1111-111111111111-66666666-6666-6666-6666-666666666666",
+    "username": "new@example.test",
+    "displayName": "azure-11111111-1111-1111-1111-111111111111-66666666-6666-6666-6666-666666666666",
+    "firstName": "",
+    "lastName": "",
+    "email": "new@example.test",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "66666666-6666-6666-6666-666666666666",
+    "role": "user",
+    "groups": [
+     "azure-ga"
+    ],
+    "orgRole": "",
+    "status": "active",
+    "passwordHash": ""
+   }
+  ],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 1,
+   "syncedUsers": 1,
+   "errors": []
+  }
+ },
+ "memberNewPending": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 1,
+    "users": 1
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-ga",
+    {
+     "name": "Group aaaa",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getUserByAzureId",
+    "66666666-6666-6666-6666-666666666666",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "findUnboundIdentity",
+    "66666666-6666-6666-6666-666666666666"
+   ],
+   [
+    "users.getUserByEmail",
+    "new@example.test"
+   ],
+   [
+    "users.createUserWithSeatCheck",
+    {
+     "id": "azure-11111111-1111-1111-1111-111111111111-66666666-6666-6666-6666-666666666666",
+     "username": "new@example.test",
+     "displayName": "New Person",
+     "firstName": "New",
+     "lastName": "Person",
+     "email": "new@example.test",
+     "organizationId": "B",
+     "azureTenantId": "11111111-1111-1111-1111-111111111111",
+     "azureUserId": "66666666-6666-6666-6666-666666666666",
+     "role": "user",
+     "groups": [],
+     "orgRole": "",
+     "status": "pending",
+     "passwordHash": ""
+    },
+    {
+     "strict": false
+    }
+   ],
+   [
+    "membership.add",
+    "azure-11111111-1111-1111-1111-111111111111-66666666-6666-6666-6666-666666666666",
+    "azure-ga",
+    "66666666-6666-6666-6666-666666666666"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 1,
+     "syncedUsers": 1,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-ga",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "source": "azure",
+    "name": "Group aaaa",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [
+   {
+    "id": "azure-11111111-1111-1111-1111-111111111111-66666666-6666-6666-6666-666666666666",
+    "username": "new@example.test",
+    "displayName": "New Person",
+    "firstName": "New",
+    "lastName": "Person",
+    "email": "new@example.test",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "66666666-6666-6666-6666-666666666666",
+    "role": "user",
+    "groups": [
+     "azure-ga"
+    ],
+    "orgRole": "",
+    "status": "pending",
+    "passwordHash": ""
+   }
+  ],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 1,
+   "syncedUsers": 1,
+   "errors": []
+  }
+ },
+ "memberNewOverTheSeatLimit": {
+  "result": {
+   "ok": false,
+   "synced": {
+    "groups": 2,
+    "users": 0
+   },
+   "details": [],
+   "errors": [
+    "User 66666666-6666-6666-6666-666666666666 was not provisioned (seat_cap)"
+   ]
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+   ],
+   [
+    "graph.graphGet",
+    "groups/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-ga",
+    {
+     "name": "Group aaaa",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getUserByAzureId",
+    "66666666-6666-6666-6666-666666666666",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "findUnboundIdentity",
+    "66666666-6666-6666-6666-666666666666"
+   ],
+   [
+    "users.getUserByEmail",
+    "new@example.test"
+   ],
+   [
+    "users.createUserWithSeatCheck",
+    {
+     "id": "azure-11111111-1111-1111-1111-111111111111-66666666-6666-6666-6666-666666666666",
+     "username": "new@example.test",
+     "displayName": "New Person",
+     "firstName": "New",
+     "lastName": "Person",
+     "email": "new@example.test",
+     "organizationId": "B",
+     "azureTenantId": "11111111-1111-1111-1111-111111111111",
+     "azureUserId": "66666666-6666-6666-6666-666666666666",
+     "role": "user",
+     "groups": [],
+     "orgRole": "",
+     "status": "active",
+     "passwordHash": ""
+    },
+    {
+     "strict": false
+    }
+   ],
+   [
+    "users.getGroupByAzureId",
+    "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-gb",
+    {
+     "name": "Group bbbb",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getUserByAzureId",
+    "22222222-2222-2222-2222-222222222222",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "membership.add",
+    "u1",
+    "azure-gb",
+    "22222222-2222-2222-2222-222222222222"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "partial",
+     "syncedGroups": 2,
+     "syncedUsers": 0,
+     "errors": [
+      "User 66666666-6666-6666-6666-666666666666 was not provisioned (seat_cap)"
+     ]
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-ga",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "source": "azure",
+    "name": "Group aaaa",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   },
+   {
+    "id": "azure-gb",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    "source": "azure",
+    "name": "Group bbbb",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "partial",
+   "syncedGroups": 2,
+   "syncedUsers": 0,
+   "errors": [
+    "User 66666666-6666-6666-6666-666666666666 was not provisioned (seat_cap)"
+   ]
+  }
+ },
+ "membershipWriteFails": {
+  "result": {
+   "ok": false,
+   "synced": {
+    "groups": 1,
+    "users": 0
+   },
+   "details": [],
+   "errors": [
+    "membership write failed"
+   ]
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+   ],
+   [
+    "graph.graphGet",
+    "groups/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-ga",
+    {
+     "name": "Group aaaa",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getUserByAzureId",
+    "22222222-2222-2222-2222-222222222222",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "membership.add",
+    "u1",
+    "azure-ga",
+    "22222222-2222-2222-2222-222222222222"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "partial",
+     "syncedGroups": 1,
+     "syncedUsers": 0,
+     "errors": [
+      "membership write failed"
+     ]
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-ga",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "source": "azure",
+    "name": "Group aaaa",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "partial",
+   "syncedGroups": 1,
+   "syncedUsers": 0,
+   "errors": [
+    "membership write failed"
+   ]
+  }
+ },
+ "removalOff": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 2,
+    "users": 0
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+   ],
+   [
+    "graph.graphGet",
+    "groups/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-ga",
+    {
+     "name": "Group aaaa",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getGroupByAzureId",
+    "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-gb",
+    {
+     "name": "Group bbbb",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 2,
+     "syncedUsers": 0,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-ga",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "source": "azure",
+    "name": "Group aaaa",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   },
+   {
+    "id": "azure-gb",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    "source": "azure",
+    "name": "Group bbbb",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 2,
+   "syncedUsers": 0,
+   "errors": []
+  }
+ },
+ "removalOfDepartedMembers": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 2,
+    "users": 0
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+   ],
+   [
+    "graph.graphGet",
+    "groups/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-ga",
+    {
+     "name": "Group aaaa",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getUserByAzureId",
+    "22222222-2222-2222-2222-222222222222",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "membership.add",
+    "u1",
+    "azure-ga",
+    "22222222-2222-2222-2222-222222222222"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-gb",
+    {
+     "name": "Group bbbb",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getAllUsers"
+   ],
+   [
+    "membership.remove",
+    "u2",
+    "azure-ga",
+    "33333333-3333-3333-3333-333333333333"
+   ],
+   [
+    "membership.remove",
+    "u3",
+    "azure-ga",
+    "44444444-4444-4444-4444-444444444444"
+   ],
+   [
+    "membership.remove",
+    "u1",
+    "azure-gb",
+    "22222222-2222-2222-2222-222222222222"
+   ],
+   [
+    "membership.remove",
+    "u2",
+    "azure-gb",
+    "33333333-3333-3333-3333-333333333333"
+   ],
+   [
+    "membership.remove",
+    "u3",
+    "azure-gb",
+    "44444444-4444-4444-4444-444444444444"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 2,
+     "syncedUsers": 0,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-ga",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "source": "azure",
+    "name": "Group aaaa",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   },
+   {
+    "id": "azure-gb",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    "source": "azure",
+    "name": "Group bbbb",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [
+   {
+    "id": "u1",
+    "email": "one@example.test",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "22222222-2222-2222-2222-222222222222",
+    "organizationId": "B",
+    "groups": [
+     "azure-ga"
+    ]
+   },
+   {
+    "id": "u2",
+    "email": "two@example.test",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "33333333-3333-3333-3333-333333333333",
+    "organizationId": "A",
+    "groups": [
+     "manual-B"
+    ]
+   },
+   {
+    "id": "u3",
+    "email": "three@example.test",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "44444444-4444-4444-4444-444444444444",
+    "organizationId": "A",
+    "groups": [
+     "manual-A"
+    ]
+   }
+  ],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 2,
+   "syncedUsers": 0,
+   "errors": []
+  }
+ },
+ "removalFromGroupsNoLongerAssigned": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 1,
+    "users": 0
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-gb",
+    {
+     "name": "Group bbbb",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getUserByAzureId",
+    "22222222-2222-2222-2222-222222222222",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "membership.add",
+    "u1",
+    "azure-gb",
+    "22222222-2222-2222-2222-222222222222"
+   ],
+   [
+    "users.getAllUsers"
+   ],
+   [
+    "membership.remove",
+    "u2",
+    "azure-gb",
+    "33333333-3333-3333-3333-333333333333"
+   ],
+   [
+    "membership.remove",
+    "u3",
+    "azure-gb",
+    "44444444-4444-4444-4444-444444444444"
+   ],
+   [
+    "membership.remove",
+    "u1",
+    "azure-ga",
+    "22222222-2222-2222-2222-222222222222"
+   ],
+   [
+    "membership.remove",
+    "u2",
+    "azure-ga",
+    "33333333-3333-3333-3333-333333333333"
+   ],
+   [
+    "membership.remove",
+    "u3",
+    "azure-ga",
+    "44444444-4444-4444-4444-444444444444"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 1,
+     "syncedUsers": 0,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-gb",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    "source": "azure",
+    "name": "Group bbbb",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [
+   {
+    "id": "u1",
+    "email": "one@example.test",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "22222222-2222-2222-2222-222222222222",
+    "organizationId": "B",
+    "groups": [
+     "azure-gb"
+    ]
+   },
+   {
+    "id": "u2",
+    "email": "two@example.test",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "33333333-3333-3333-3333-333333333333",
+    "organizationId": "A",
+    "groups": [
+     "manual-B"
+    ]
+   },
+   {
+    "id": "u3",
+    "email": "three@example.test",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "44444444-4444-4444-4444-444444444444",
+    "organizationId": "A",
+    "groups": [
+     "manual-A"
+    ]
+   }
+  ],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 1,
+   "syncedUsers": 0,
+   "errors": []
+  }
+ },
+ "removalWithNoAssignments": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 0,
+    "users": 0
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getAllUsers"
+   ],
+   [
+    "membership.remove",
+    "u1",
+    "azure-ga",
+    "22222222-2222-2222-2222-222222222222"
+   ],
+   [
+    "membership.remove",
+    "u2",
+    "azure-ga",
+    "33333333-3333-3333-3333-333333333333"
+   ],
+   [
+    "membership.remove",
+    "u3",
+    "azure-ga",
+    "44444444-4444-4444-4444-444444444444"
+   ],
+   [
+    "membership.remove",
+    "u1",
+    "azure-gb",
+    "22222222-2222-2222-2222-222222222222"
+   ],
+   [
+    "membership.remove",
+    "u2",
+    "azure-gb",
+    "33333333-3333-3333-3333-333333333333"
+   ],
+   [
+    "membership.remove",
+    "u3",
+    "azure-gb",
+    "44444444-4444-4444-4444-444444444444"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 0,
+     "syncedUsers": 0,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [],
+  "usersChanged": [
+   {
+    "id": "u1",
+    "email": "one@example.test",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "22222222-2222-2222-2222-222222222222",
+    "organizationId": "B",
+    "groups": []
+   },
+   {
+    "id": "u2",
+    "email": "two@example.test",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "33333333-3333-3333-3333-333333333333",
+    "organizationId": "A",
+    "groups": [
+     "manual-B"
+    ]
+   },
+   {
+    "id": "u3",
+    "email": "three@example.test",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "44444444-4444-4444-4444-444444444444",
+    "organizationId": "A",
+    "groups": [
+     "manual-A"
+    ]
+   }
+  ],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 0,
+   "syncedUsers": 0,
+   "errors": []
+  }
+ },
+ "removalLeavesGroupsItDoesNotManage": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 0,
+    "users": 0
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getAllUsers"
+   ],
+   [
+    "membership.remove",
+    "u1",
+    "azure-ga",
+    "22222222-2222-2222-2222-222222222222"
+   ],
+   [
+    "membership.remove",
+    "u1",
+    "azure-gb",
+    "22222222-2222-2222-2222-222222222222"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 0,
+     "syncedUsers": 0,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 0,
+   "syncedUsers": 0,
+   "errors": []
+  }
+ },
+ "removalSkipsUsersOutsideTheOrganisation": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 0,
+    "users": 0
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getAllUsers"
+   ],
+   [
+    "membership.remove",
+    "u1",
+    "azure-ga",
+    "22222222-2222-2222-2222-222222222222"
+   ],
+   [
+    "membership.remove",
+    "u1",
+    "azure-gb",
+    "22222222-2222-2222-2222-222222222222"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 0,
+     "syncedUsers": 0,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [],
+  "usersChanged": [
+   {
+    "id": "u1",
+    "email": "one@example.test",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "22222222-2222-2222-2222-222222222222",
+    "organizationId": "B",
+    "groups": []
+   }
+  ],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 0,
+   "syncedUsers": 0,
+   "errors": []
+  }
+ },
+ "removalKeepsMembersSpelledInCapitals": {
+  "result": {
+   "ok": true,
+   "synced": {
+    "groups": 1,
+    "users": 0
+   },
+   "details": [],
+   "errors": []
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-ga",
+    {
+     "name": "Group aaaa",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getUserByAzureId",
+    "22222222-2222-2222-2222-222222222222",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "membership.add",
+    "u1",
+    "azure-ga",
+    "22222222-2222-2222-2222-222222222222"
+   ],
+   [
+    "users.getUserByAzureId",
+    "33333333-3333-3333-3333-333333333333",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "membership.add",
+    "u2",
+    "azure-ga",
+    "33333333-3333-3333-3333-333333333333"
+   ],
+   [
+    "users.getUserByAzureId",
+    "44444444-4444-4444-4444-444444444444",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "membership.add",
+    "u3",
+    "azure-ga",
+    "44444444-4444-4444-4444-444444444444"
+   ],
+   [
+    "users.getAllUsers"
+   ],
+   [
+    "membership.remove",
+    "u1",
+    "azure-gb",
+    "22222222-2222-2222-2222-222222222222"
+   ],
+   [
+    "membership.remove",
+    "u2",
+    "azure-gb",
+    "33333333-3333-3333-3333-333333333333"
+   ],
+   [
+    "membership.remove",
+    "u3",
+    "azure-gb",
+    "44444444-4444-4444-4444-444444444444"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 1,
+     "syncedUsers": 0,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-ga",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "source": "azure",
+    "name": "Group aaaa",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [
+   {
+    "id": "u1",
+    "email": "one@example.test",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureUserId": "22222222-2222-2222-2222-222222222222",
+    "organizationId": "B",
+    "groups": [
+     "azure-ga"
+    ]
+   }
+  ],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "success",
+   "syncedGroups": 1,
+   "syncedUsers": 0,
+   "errors": []
+  }
+ },
+ "removalHeldBackByAnError": {
+  "result": {
+   "ok": false,
+   "synced": {
+    "groups": 2,
+    "users": 0
+   },
+   "details": [],
+   "errors": [
+    "Directory returned an invalid user object ID"
+   ]
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+   ],
+   [
+    "graph.graphGet",
+    "groups/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-ga",
+    {
+     "name": "Group aaaa",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getGroupByAzureId",
+    "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-gb",
+    {
+     "name": "Group bbbb",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "partial",
+     "syncedGroups": 2,
+     "syncedUsers": 0,
+     "errors": [
+      "Directory returned an invalid user object ID"
+     ]
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-ga",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "source": "azure",
+    "name": "Group aaaa",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   },
+   {
+    "id": "azure-gb",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    "source": "azure",
+    "name": "Group bbbb",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "partial",
+   "syncedGroups": 2,
+   "syncedUsers": 0,
+   "errors": [
+    "Directory returned an invalid user object ID"
+   ]
+  }
+ },
+ "removalUserListFails": {
+  "result": {
+   "ok": false,
+   "synced": {
+    "groups": 2,
+    "users": 0
+   },
+   "details": [],
+   "errors": [
+    "user list unavailable"
+   ]
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+   ],
+   [
+    "graph.graphGet",
+    "groups/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-ga",
+    {
+     "name": "Group aaaa",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getGroupByAzureId",
+    "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-gb",
+    {
+     "name": "Group bbbb",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getAllUsers"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "partial",
+     "syncedGroups": 2,
+     "syncedUsers": 0,
+     "errors": [
+      "user list unavailable"
+     ]
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-ga",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "source": "azure",
+    "name": "Group aaaa",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   },
+   {
+    "id": "azure-gb",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    "source": "azure",
+    "name": "Group bbbb",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "partial",
+   "syncedGroups": 2,
+   "syncedUsers": 0,
+   "errors": [
+    "user list unavailable"
+   ]
+  }
+ },
+ "removalWriteFails": {
+  "result": {
+   "ok": false,
+   "synced": {
+    "groups": 2,
+    "users": 0
+   },
+   "details": [],
+   "errors": [
+    "membership write failed"
+   ]
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "graph.graphGet",
+    "groups/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+   ],
+   [
+    "graph.graphGet",
+    "groups/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb?$select=id,displayName,description",
+    "token-1"
+   ],
+   [
+    "graph.getGroupMembers",
+    "token-1",
+    "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "users.getGroupByAzureId",
+    "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-ga",
+    {
+     "name": "Group aaaa",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getGroupByAzureId",
+    "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    "11111111-1111-1111-1111-111111111111",
+    "B"
+   ],
+   [
+    "users.updateGroup",
+    "azure-gb",
+    {
+     "name": "Group bbbb",
+     "description": "",
+     "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+    }
+   ],
+   [
+    "users.getAllUsers"
+   ],
+   [
+    "membership.remove",
+    "u1",
+    "azure-ga",
+    "22222222-2222-2222-2222-222222222222"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "partial",
+     "syncedGroups": 2,
+     "syncedUsers": 0,
+     "errors": [
+      "membership write failed"
+     ]
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [
+   {
+    "id": "azure-ga",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    "source": "azure",
+    "name": "Group aaaa",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   },
+   {
+    "id": "azure-gb",
+    "organizationId": "B",
+    "azureTenantId": "11111111-1111-1111-1111-111111111111",
+    "azureGroupId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    "source": "azure",
+    "name": "Group bbbb",
+    "description": "",
+    "lastSyncedAt": "2026-03-01T10:00:00.000Z"
+   }
+  ],
+  "usersChanged": [],
+  "status": {
+   "lastSyncAt": "2026-03-01T10:00:00.000Z",
+   "lastSyncResult": "partial",
+   "syncedGroups": 2,
+   "syncedUsers": 0,
+   "errors": [
+    "membership write failed"
+   ]
+  }
+ },
+ "statusWriteFails": {
+  "threw": {
+   "message": "config write failed"
+  },
+  "calls": [
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "lock.acquire"
+   ],
+   [
+    "config.getConfigFresh",
+    "azure_group_sync_binding"
+   ],
+   [
+    "config.getConfig",
+    "azure_group_sync_B"
+   ],
+   [
+    "loadConfig"
+   ],
+   [
+    "graph.getClientCredentialsToken",
+    "app",
+    "<secret>",
+    "11111111-1111-1111-1111-111111111111"
+   ],
+   [
+    "graph.getAppRoleAssignments",
+    "token-1",
+    "app"
+   ],
+   [
+    "users.getAllGroups"
+   ],
+   [
+    "config.setConfig",
+    "azure_group_sync_status_B",
+    {
+     "lastSyncAt": "2026-03-01T10:00:00.000Z",
+     "lastSyncResult": "success",
+     "syncedGroups": 0,
+     "syncedUsers": 0,
+     "errors": []
+    }
+   ],
+   [
+    "lock.release"
+   ]
+  ],
+  "groupsChanged": [],
+  "usersChanged": [],
+  "status": null
+ }
+}

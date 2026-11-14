@@ -37,6 +37,9 @@ _eld.enable();
 
 /** Event-loop delay quantiles in milliseconds. NaN (no samples yet) → 0. */
 function eventLoopDelayMs() {
+    /**
+     * @param {number} ns
+     */
     const ms = (ns) => (Number.isFinite(ns) ? ns / 1e6 : 0);
     return {
         p50: ms(_eld.percentile(50)),
@@ -81,6 +84,10 @@ const MAX_HTTP_SERIES = 1000;
 const OVERFLOW_ROUTE = '__overflow__';
 const httpSeries = new Set();
 
+/** @typedef {{ method: string, route: string, status?: number, ms: number }} RecordHttpArgs */
+/**
+ * @param {RecordHttpArgs} param0
+ */
 function recordHttp({ method, route, status, ms }) {
     const seriesKey = `${method} ${route}`;
     if (!httpSeries.has(seriesKey)) {
@@ -93,20 +100,30 @@ function recordHttp({ method, route, status, ms }) {
     if (ms > HTTP_SLOW_MS) inc('http_requests_slow_total', { method, route });
 }
 
+/**
+ * @param {number} ms
+ */
 function recordQuery(ms) {
     inc('db_queries_total', {});
     observe('db_query_duration_ms', {}, ms);
     if (ms > DB_SLOW_MS) inc('db_queries_slow_total', {});
 }
 
-/** Record a cache lookup outcome. `cache` is a stable cache name (e.g. 'permissions'). */
+/**
+ * Record a cache lookup outcome. `cache` is a stable cache name (e.g. 'permissions').
+ * @param {string} cache
+ * @param {boolean} hit
+ */
 function recordCache(cache, hit) {
     inc(hit ? 'cache_hits_total' : 'cache_misses_total', { cache });
 }
 
+/**
+ * @param {string} labelStr
+ */
 function _fmtLabels(labelStr) {
     if (!labelStr) return '';
-    return `{${labelStr.split('|').map(p => {
+    return `{${labelStr.split('|').map((/** @type {string | string[]} */ p) => {
         const i = p.indexOf('=');
         return `${p.slice(0, i)}="${p.slice(i + 1)}"`;
     }).join(',')}}`;
@@ -114,6 +131,7 @@ function _fmtLabels(labelStr) {
 
 /** Prometheus-style textual dump. Safe to mount behind an admin endpoint. */
 function renderTextFormat() {
+    /** @type {string[]} */
     const lines = [];
     for (const [key, value] of counters) {
         const [name, labelStr] = key.split('::');
