@@ -49,7 +49,7 @@ const log = require('../telemetry/log');
 const { makeLazyDeps } = require('./studio/shared');
 const {
     shapeSummary, shapeAreas, shapeStudio, shapeItems, shapeGroups, shapePerson, compactPeople,
-} = require('./usageAdoptionShape');
+} = require('../usecases/usageAdoptionShape');
 const access = require('./usageAdoptionAccess');
 
 const CACHE_TTL_MS = 60_000;
@@ -241,10 +241,10 @@ function topPeopleLabel(d, orgId) {
  * The avatars of revealed people, by id.
  * @param {AdoptionRouteDeps} d
  * @param {string[]} ids
- * @returns {Promise<Map<string, import('./usageAdoptionShape').AvatarRow>>}
+ * @returns {Promise<Map<string, import('../usecases/usageAdoptionShape').AvatarRow>>}
  */
 async function avatarsOf(d, ids) {
-    /** @type {import('./usageAdoptionShape').AvatarRow[]} */
+    /** @type {import('../usecases/usageAdoptionShape').AvatarRow[]} */
     const rows = (await d.userStore.getUserAvatarsByIds(ids)) || [];
     return new Map(rows.map((u) => [String(u.id), u]));
 }

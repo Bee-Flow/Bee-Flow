@@ -44,7 +44,7 @@ function isKbIngestTool(name) {
  * @param {string | null} orgId
  */
 async function mergeArticles(priorArticle, incomingArticle, orgId) {
-    const { createChatCompletion } = require('../agents/providerAdapters');
+    const { createChatCompletion } = require('../core/llm/providerAdapters');
     const { DEFAULT_MERGE_PROMPT } = require('../core/text/emailTextUtils');
     const { resolveModelForTierName } = require('../core/llm/modelResolver');
     // With a fallback the resolver always names a model.

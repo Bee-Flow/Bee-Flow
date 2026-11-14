@@ -15,7 +15,7 @@ const crypto = require('crypto');
 const log = require('../../telemetry/log');
 const { lazyProjectRoleGate } = require('./roleGate');
 const { forbidden, notFound } = require('../../core/http/errors');
-const { isAutomatic, presentThread } = require('./commentsPresent');
+const { isAutomatic, presentThread } = require('../../usecases/projects/commentsPresent');
 const { fallback } = require('../../utils/bestEffort');
 
 /** The dependencies, each defaulting to the real module, required on first use. */

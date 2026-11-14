@@ -31,7 +31,7 @@ const MOCKS = {
     '../stores/userStore': { getUser: async () => null, getGroup: async () => null, getAllGroups: async () => [] },
     '../stores/automationStore': { countGroupMembers: async () => new Map() },
     '../stores/knowledgeBases': { getKB: async () => null },
-    '../support/kbAccess': { partitionAccessibleKBIds: async () => ({ allowed: [], denied: [] }) },
+    '../core/kb/kbAccess': { partitionAccessibleKBIds: async () => ({ allowed: [], denied: [] }) },
     '../auth': { resolveUserGroups: async () => [] },
     '../auth/admin/orgAdminGuards': { isOrgAdminForOrg: async () => fx.admin },
     '../auth/projectAccess': {

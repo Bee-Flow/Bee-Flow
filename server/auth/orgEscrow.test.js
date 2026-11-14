@@ -126,6 +126,27 @@ test('returns the same root key on subsequent calls', async () => {
     assert.ok(firstCopy.equals(second), 'root key must be stable across reads');
 });
 
+test('the key cache is bounded: one organisation more than it holds pushes the oldest out, which is read again', async () => {
+    reset();
+    const realGetOne = dbMock.getOne;
+    const reads = [];
+    dbMock.getOne = async (sql, params) => {
+        if (/FROM organizations/i.test(sql)) reads.push(params[0]);
+        return realGetOne(sql, params);
+    };
+    try {
+        for (let i = 0; i <= 200; i++) { seedOrg(`org-${i}`); await escrow.getOrgRootKey(`org-${i}`); }
+        reads.length = 0;
+        await escrow.getOrgRootKey('org-200');
+        await escrow.getOrgRootKey('org-1');
+        assert.deepStrictEqual(reads, [], 'the newest and the second oldest are still cached');
+        await escrow.getOrgRootKey('org-0');
+        assert.ok(reads.includes('org-0'), 'the oldest was pushed out and comes from the store again');
+    } finally {
+        dbMock.getOne = realGetOne;
+    }
+});
+
 test('different orgs get different root keys', async () => {
     reset();
     seedOrg('org-a'); seedOrg('org-b');

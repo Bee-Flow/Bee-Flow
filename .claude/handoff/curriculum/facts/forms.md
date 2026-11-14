@@ -5,7 +5,7 @@ Status: **the feature exists and is substantial** (not a stub). Roughly 3.3k lin
 `agent-hub/src/components/forms/PublicFormRenderer.jsx`, and ~2.7k lines of backend in
 `server/routes/automation/formPublic.js`, `server/routes/automation/crud.js`,
 `server/routes/automation/formsAi.js`, `server/automation/formTriggerContract.js`,
-`server/automation/formAudience.js`, `server/automation/formAnswers/*`,
+`server/auth/formAudience.js`, `server/automation/formAnswers/*`,
 `server/stores/automationStore/forms.js`.
 
 **One correction lesson authors must not get wrong: a Bee Flow form is NOT public today.**
@@ -443,7 +443,7 @@ Visitor-side (signed-in today, token-keyed): `GET /api/automation/form/:token`, 
 - `server/routes/automation/crud.js` — `GET /forms`, `GET /forms/:automationId`, `PUT /forms/:id/audience`, `POST /forms/:id/answers-table`, `ensureFormPages`, `ensureAnswersTable`
 - `server/routes/automation/formPublic.js` — the visitor surface and every limit
 - `server/routes/automation/formsAi.js` + `server/automation/formDraft.js` — "Build it with AI"
-- `server/automation/formTriggerContract.js`, `server/automation/formAudience.js`, `server/automation/formAnswers/{derive,provision,write,summary}.js`
+- `server/automation/formTriggerContract.js`, `server/auth/formAudience.js`, `server/automation/formAnswers/{derive,provision,write,summary}.js`
 - `server/stores/automationStore/forms.js` — the token row, audience defaults, sessions, upload ledger
 - `server/routes/datatables.js` (~line 2100) — `GET /:id/answers/summary`, `POST /:id/aggregate`, retired-column delete, "release"
 - Tests worth reading: `server/routes/automation/crud.forms.test.js`, `formPublic/*.test.js`, `formsAi.test.js`, `formAnswers.integration.test.js`, `agent-hub/src/components/admin/Studio/Forms/*.test.jsx`

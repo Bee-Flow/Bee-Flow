@@ -5,7 +5,7 @@
 // The run history keeps at most 256 KB of a step's output and swaps the rest
 // for `{ __truncated__, originalBytes, headSample }`. When the server also kept
 // a full copy beside the row, the sentinel names it in `fullOutputRef`
-// (server/automation/payloadTruncation.js); without that ref there is nothing
+// (server/stores/automationStore/payloadTruncation.js); without that ref there is nothing
 // to fetch, and the head sample is all there is.
 //
 // Loaded on request, not on render: the copy can be megabytes, and the panel

@@ -33,12 +33,15 @@ const Module = require('module');
 // Every write lands in `touched`. A refused request must leave it empty.
 const touched = [];
 const pass = (req, res, next) => next();
+// The accounts the waitlist routes can find.
+const ACCOUNTS = { waiting: { id: 'waiting', status: 'waitlist' }, member: { id: 'member', status: 'active' } };
 
 const MOCKS = {
     '../../stores/userStore': {
         getAllUsers: async () => [],
+        getUser: async (id) => ACCOUNTS[id] || null,
         updateUser: async () => true,
-        deleteUser: async () => true,
+        deleteUser: async (id) => { touched.push({ what: 'deleteUser', args: [id] }); return true; },
         logAccessAudit: async () => {},
     },
     '../../stores/configStore': {
@@ -147,4 +150,29 @@ test('a waitlist decision takes no fields: one sent is refused by name before th
         assert.strictEqual(res.body.code, 'invalid_request');
         assert.match(res.body.error, /does not take "status"/);
     }
+});
+
+// ── The waitlist ─────────────────────────────────────────────────────
+
+test('rejecting from the waitlist deletes the waiting account, and only that', async () => {
+    const reject = (userId) => dispatch({ method: 'POST', url: `/admin/waitlist/${userId}/reject`, body: {} });
+
+    const unknown = await reject('nobody');
+    assert.strictEqual(unknown.statusCode, 404);
+    assert.deepStrictEqual(unknown.body, { error: 'User not found' });
+
+    const active = await reject('member');
+    assert.strictEqual(active.statusCode, 400);
+    assert.deepStrictEqual(active.body, { error: 'User is not on the waitlist' });
+    assert.deepStrictEqual(touched, [], 'neither answer deleted anything');
+
+    const waiting = await reject('waiting');
+    assert.strictEqual(waiting.statusCode, 200);
+    assert.deepStrictEqual(touched, [{ what: 'deleteUser', args: ['waiting'] }]);
+});
+
+test('approving an account that is unknown or not waiting is refused the same way', async () => {
+    const approve = (userId) => dispatch({ method: 'POST', url: `/admin/waitlist/${userId}/approve`, body: {} });
+    assert.strictEqual((await approve('nobody')).statusCode, 404);
+    assert.strictEqual((await approve('member')).statusCode, 400);
 });

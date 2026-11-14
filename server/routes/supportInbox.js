@@ -25,7 +25,7 @@ const express = require('express');
 const router = express.Router();
 
 const supportInboxStore = require('../stores/supportInboxStore');
-const access = require('../support/access');
+const access = require('../core/support/access');
 const audit = require('../support/audit');
 const { validate } = require('../core/http/validate');
 const S = require('./support/inboxSchemas');
@@ -109,7 +109,7 @@ router.patch('/inboxes/:id', validate({ body: S.PatchInboxBody }), async (/** @t
     // operator would expose another org's credentials/entitlements. Empty
     // string / null clears the operator (allowed).
     if (typeof req.body?.operator_user_id === 'string' && req.body.operator_user_id.trim()) {
-        const { _eligibleStaffForOrg } = require('../services/supportAutoAssigner');
+        const { _eligibleStaffForOrg } = require('../core/support/supportAutoAssigner');
         const eligible = await _eligibleStaffForOrg(inbox.organization_id, { tenantInbox: true }).catch((e) => fallback('routes/supportInbox:anon', e, /** @type {string[]} */ ([])));
         const op = req.body.operator_user_id.trim();
         if (!Array.isArray(eligible) || !eligible.includes(op)) {

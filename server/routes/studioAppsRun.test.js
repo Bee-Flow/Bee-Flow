@@ -631,7 +631,7 @@ test('an answer too large to keep says so (_outputTooLarge) instead of passing a
     // the truncation sentinel, with no kept copy to swap in. deriveRunOutcome
     // reports that as outputTooLarge; the app must hear it, or a list bound
     // to the answer is just empty with nothing saying why.
-    const { truncatePayload } = require('../automation/payloadTruncation');
+    const { truncatePayload } = require('../stores/automationStore/payloadTruncation');
     const big = truncatePayload({ value: Array.from({ length: 300 }, (_, i) => ({ id: `m${i}`, body: 'x'.repeat(900) })) });
     assert.strictEqual(big.truncated, true, 'the fixture is over the cap');
     runnerImpl = async () => ({ id: 'run-big', status: 'success', error: null });

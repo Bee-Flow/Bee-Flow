@@ -10,7 +10,7 @@
  * The lock is NAMED (core/scheduling/namedLock.js), not numbered: number keys collide
  * (0xBEEF10A is also the ISO evidence collector's key), so each job would
  * silently skip its tick on every pod while the other one held the lock
- * (jobs/isoEvidenceCollector.test.js drives both against one lock table).
+ * (compliance/isoEvidenceCollector.test.js drives both against one lock table).
  *
  * In its own file, not in ticks.js, so that test can load it with a fake pool
  * through _setDepsForTests: ticks.js pulls in the whole runner at require time.

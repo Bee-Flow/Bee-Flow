@@ -44,7 +44,7 @@ mock(path.join(SERVER, 'stores/automationStore/core.js'), { ...dbFacade, initDB:
 
 const { up } = require('./automation-form-audience-2026-09');
 const forms = require('../stores/automationStore/forms');
-const { audienceAdmits, needsGroups, publicAudience } = require('../automation/formAudience');
+const { audienceAdmits, needsGroups, publicAudience } = require('../auth/formAudience');
 
 async function columns() {
     const r = await rawQuery(`SELECT column_name, column_default, is_nullable FROM information_schema.columns

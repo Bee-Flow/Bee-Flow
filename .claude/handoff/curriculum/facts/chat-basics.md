@@ -373,7 +373,7 @@ that runs on its own (now or on a schedule). The mode is locked after the first 
 | Image base64 fallback cap | 300 KB | `directChat/attachmentIntake.js` |
 | Composer text box | grows to **180 px**, then scrolls | `InputArea.jsx` |
 | Send key | **Enter** on desktop, **Shift+Enter** = newline; on true touch devices Enter is newline and you tap ↑ | `handleKeyDown` |
-| Knowledge bases per conversation | **50** (`MAX_ATTACHED_KB_IDS` server, `MAX_ATTACHED_KBS` client) | `core/kb/kbIdList.js` |
+| Knowledge bases per conversation | **50** (`MAX_ATTACHED_KB_IDS` server, `MAX_ATTACHED_KBS` client) | `stores/kb/kbIdList.js` |
 | Default tier | **`auto`** (persisted per user in scoped localStorage) | `useModelTierSelection.js` |
 | Web search default | **on** (`webSearchEnabled`, per-browser) | `InputArea.jsx` |
 | Memory writing default | **on** (`memoryWriteEnabled`, per-browser) | `InputArea.jsx` |

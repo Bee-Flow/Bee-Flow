@@ -12,7 +12,7 @@ description: Why the log of knowledge-base questions and answers is off by defau
 log or the licence is missing), `core/kb/queryLog/searchCallSites.inventory.test.js` (every search call
 site is hooked or says why not), `routes/knowledgeBases/queryLog.test.js` (readers and other organisations
 get 404), `routes/compliance/kbQueryLog.test.js` (no content without an open data-subject request; the
-audit row is written first and its failure refuses the request), `core/kb/queryLog/crypto.test.js`,
+audit row is written first and its failure refuses the request), `stores/kb/queryLog/crypto.test.js`,
 `server/routes.contract.test.js` and `server/tenantIsolation.matrix.test.js`.
 
 ## Context

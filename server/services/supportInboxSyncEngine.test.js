@@ -92,7 +92,7 @@ let dueReads = 0;
 const restore = installResolveStub({
     '../stores/supportInboxStore': store,
     '../stores/supportStore': {},
-    './email/providerClients': {
+    '../utils/emailProviderClients': {
         gmailClientFromTokens: async (tokens, onRefresh) => inboxes.get(tokens._inboxId).gmail(onRefresh),
         graphFetchFromTokens: async () => { throw new Error('outlook not used in these tests'); },
     },

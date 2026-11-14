@@ -14,7 +14,7 @@ const { getProviderForModel } = require('../../../core/aiAgent');
 const { getAdapter } = require('../../../core/providers');
 const { bootstrapSessionSkills } = require('../../../core/tools/sessionSkillRuntime');
 const { requireAuth } = require('../../../auth/permissions');
-const { usableKbIdsForRequest } = require('../../../support/kbAccess');
+const { usableKbIdsForRequest } = require('../../../core/kb/kbAccess');
 const { MAX_ATTACHED_KB_IDS } = require('../../../core/kb/kbSelection');
 const { encryptionOpts } = require('./shared');
 const { z, typeError } = require('../../../utils/zod');
@@ -112,7 +112,7 @@ router.get('/direct/conversations/:id', requireAuth, async (req, res) => {
         const { resolveConversationAccess } = require('../../../stores/agent/conversationAccess');
         const access = await resolveConversationAccess(conv.id, userId, 'direct');
         if (!access) return res.status(404).json({ error: 'Conversation not found' });
-        payload = require('./sharedDirectRead').directMemberView(conv, access);
+        payload = require('../../../usecases/ai/directChat/sharedDirectRead').directMemberView(conv, access);
     } else {
         payload = { ...conv };
         delete payload.knowledge_base_ids;

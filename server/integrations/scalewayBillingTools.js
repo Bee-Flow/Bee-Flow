@@ -25,7 +25,7 @@
  *
  * API reference: https://www.scaleway.com/en/developers/api/billing/
  */
-const { jsonApiRequest } = require('./shared/apiClient');
+const { jsonApiRequest } = require('../utils/apiClient');
 const log = require('../telemetry/log');
 
 const API_BASE = 'https://api.scaleway.com/billing/v2beta1';

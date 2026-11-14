@@ -28,7 +28,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 
 const { tokenizeText } = require('./tokenizer');
-const { restoreTokens } = require('./tokenRestore');
+const { restoreTokens } = require('../../../utils/piiTokenRestore');
 
 /** A detected span for the first occurrence of `value` at or after `from`. */
 function span(text, value, category = 'Person', from = 0) {

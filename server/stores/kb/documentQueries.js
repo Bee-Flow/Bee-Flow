@@ -9,11 +9,10 @@
 const { UUID_RE, ACTIVE_STATUS_SQL, DOC_SELECT, buildDocumentFilters, withStoredDateGuard, PLAIN_DATE_SQL, GUARDED_DATE_SQL } = require('./model');
 
 /**
- * @param {import('./model').KbCtx} ctx  the barrel's db handle, schema init,
- *        write guard and the store object itself (methods dispatch through it,
- *        so a method swapped on the export is the one the others call)
+ * Near-duplicate lookup, documents by source and external id, and the per-source counters.
+ * @param {import('./model').KbCtx} ctx
  */
-function makeDocumentQueryFns(ctx) {
+function makeSourceLookupFns(ctx) {
     const { getOne, getAll, initDB, self: KnowledgeBasesStore } = ctx;
     return {
         /**
@@ -98,7 +97,16 @@ function makeDocumentQueryFns(ctx) {
             }
             return out;
         },
+    };
+}
 
+/**
+ * The per-base status counters, the projected listings and the thread explorer.
+ * @param {import('./model').KbCtx} ctx
+ */
+function makeListingFns(ctx) {
+    const { getOne, getAll, initDB } = ctx;
+    return {
         /**
          * KB-level counters with the same status semantics as listKBs:
          * { documentCount (active), documentCountAll, totalChunks }.
@@ -184,7 +192,16 @@ function makeDocumentQueryFns(ctx) {
                 [kbId, threadId]
             ));
         },
+    };
+}
 
+/**
+ * One document, its stored text, and the content-hash and source-uri lookups.
+ * @param {import('./model').KbCtx} ctx
+ */
+function makeDocumentReadFns(ctx) {
+    const { getOne, initDB, self: KnowledgeBasesStore } = ctx;
+    return {
         /** One document, projected (no original_content). */
         getDocument: async (id) => {
             if (!id || !UUID_RE.test(String(id))) return null;
@@ -244,8 +261,16 @@ function makeDocumentQueryFns(ctx) {
                 [kbId, sourceUri]
             );
         },
-
     };
+}
+
+/**
+ * @param {import('./model').KbCtx} ctx  the barrel's db handle, schema init,
+ *        write guard and the store object itself (methods dispatch through it,
+ *        so a method swapped on the export is the one the others call)
+ */
+function makeDocumentQueryFns(ctx) {
+    return { ...makeSourceLookupFns(ctx), ...makeListingFns(ctx), ...makeDocumentReadFns(ctx) };
 }
 
 module.exports = { makeDocumentQueryFns };

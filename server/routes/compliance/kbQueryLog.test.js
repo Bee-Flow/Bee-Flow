@@ -18,7 +18,7 @@ process.env.MASTER_ENCRYPTION_KEY = process.env.MASTER_ENCRYPTION_KEY || 'qlc-te
 const { usePglitePool } = require('../../testUtils/pglitePool');
 const { pg, close: closePg } = usePglitePool();
 const h = require('../../testUtils/routeHarness');
-const crypto = require('../../core/kb/queryLog/crypto.mts');
+const crypto = require('../../stores/kb/queryLog/crypto.mts');
 
 const ORG = 'org-qc';
 const ORG_OTHER = 'org-qc-2';

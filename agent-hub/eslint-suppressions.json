@@ -3365,11 +3365,6 @@
       "count": 2
     }
   },
-  "src/components/admin/org/orgInfo/license/useOrgSubscription.ts": {
-    "max-depth": {
-      "count": 1
-    }
-  },
   "src/components/admin/org/orgInfo/orgInfoShared.tsx": {
     "complexity": {
       "count": 1
@@ -8701,6 +8696,11 @@
       "count": 2
     }
   },
+  "src/hooks/useIconPack.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
   "src/hooks/useKnowledgeBases.ts": {
     "complexity": {
       "count": 1
@@ -10485,11 +10485,6 @@
   },
   "vite.config.js": {
     "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "src/hooks/useIconPack.tsx": {
-    "react-hooks/set-state-in-effect": {
       "count": 1
     }
   }

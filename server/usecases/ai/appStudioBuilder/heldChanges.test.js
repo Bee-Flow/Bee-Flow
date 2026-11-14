@@ -37,7 +37,7 @@ test.after(() => originals.forEach(([target, saved]) => Object.assign(target, sa
 
 const { holdCall, readConfirmation, settleHeldChange, APPLY, SKIP } = require('./heldChanges.mts');
 const { frameAppData, APP_DATA_RULE } = require('../../../appStudio/builderPrompt/appDataFrame.mts');
-const { runRoundTools } = require('../../../routes/ai/appStudioBuilder/buildTools');
+const { runRoundTools } = require('./buildTools');
 const { emptyDefinition } = require('../../../appStudio/componentSpecs');
 const { buildSystemPrompt } = require('../../../appStudio/builderPrompt');
 

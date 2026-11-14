@@ -23,6 +23,7 @@ const EU_VAT_COUNTRIES = new Set([
  * matches it. Returns {type, value} on success, null when the value is
  * empty or doesn't look like a supported VAT id. Strips spaces and
  * separators, uppercases, and validates the country prefix.
+ * @param {string | null | undefined} rawVat
  */
 function resolveStripeTaxId(rawVat) {
     if (!rawVat || typeof rawVat !== 'string') return null;
@@ -57,6 +58,7 @@ function buildStripeAddress(org) {
     if (!org) return null;
     const country = (org.billingCountry || org.billing_country || '').trim().toUpperCase();
     if (!country) return null;
+    /** @type {{ country: string; line1?: string; line2?: string; postal_code?: string; city?: string }} */
     const addr = { country };
     const line1 = (org.address || '').trim();
     const line2 = (org.billingLine2 || org.billing_line2 || '').trim();

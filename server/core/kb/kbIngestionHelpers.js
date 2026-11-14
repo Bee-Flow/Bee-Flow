@@ -56,11 +56,11 @@ async function findActiveByHash(kbId, hash) {
  * @param {string}  title     — document title
  * @param {string}  sourceType — 'text' | 'web' | 'upload' | 'notebook_source' | …
  * @param {string|null} sourceUri — source identifier (filename, URL, source ID)
- * @param {{ skipDedup?: boolean, lang?: string, metadata?: Record<string, unknown>, simhashDistance?: number,
- *   sourceId?: string | null, externalId?: string | null, sourceModifiedAt?: Date|string, sizeBytes?: number | null, mime?: string | null,
+ * @param {{ skipDedup?: boolean, lang?: string, metadata?: Record<string, unknown> | null, simhashDistance?: number,
+ *   sourceId?: string | null, externalId?: string | null, sourceModifiedAt?: Date|string|null, sizeBytes?: number | null, mime?: string | null,
  *   pageCount?: number | null, sheetCount?: number | null, pages?: ExtractedPage[] | null,
  *   privacy?: { orgId?: string | null, userId?: string | null, pages?: ExtractedPage[] | null } | null,
- *   createdBy?: string, status?: 'processed'|'redacted', piiStatus?: string, piiCategories?: string[] | null,
+ *   createdBy?: string | null, status?: 'processed'|'redacted', piiStatus?: string, piiCategories?: string[] | null,
  *   extractSummary?: string, onFailure?: 'throw'|'record' }} [options] `skipDedup`: skip deduplication
  *   check (default false); `lang`: language hint (default 'auto'); `metadata`: rich metadata (sender,
  *   threadId, …); `simhashDistance`: defaults to 3; `sourceId`: kb_sources.id the document belongs to;

@@ -1,7 +1,7 @@
 /**
  * projects/participation/engine.js with the REAL store over PGlite, the real
  * policy module (configStore injected), and an in-memory surface and gate.
- * The job (jobs/aiParticipation.js) drives it, two instances of it standing
+ * The job (projects/participation/aiParticipationJob.js) drives it, two instances of it standing
  * in for two servers.
  *
  * Proven (ai-participation.md §7.13):
@@ -30,7 +30,7 @@ const { pgliteDb } = require('../../testUtils/pgliteDb');
 const { makeProjectAiParticipationStore, DDL } = require('../../stores/projectAiParticipationStore');
 const { makeParticipationEngine, BREAKER_THRESHOLD } = require('./engine');
 const { makePolicy, CONFIG_KEY_PREFIX, USER_KEY_PREFIX } = require('./policy');
-const { makeParticipationJob } = require('../../jobs/aiParticipation');
+const { makeParticipationJob } = require('./aiParticipationJob');
 
 const SECRET = 'Project Nightingale budget 0612345678';
 

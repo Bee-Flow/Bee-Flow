@@ -100,7 +100,7 @@ const MOCKS = {
     '../core/documents/documentParser': { parseDocument: async () => ({ text: '' }), isSupportedDocument: () => true },
     '../core/kb/kbIngestionHelpers': { deleteDocumentChunks: async () => {}, findDocumentBySourceUri: async () => null },
     '../auth': { requirePermission: () => (req, res, next) => next() },
-    '../support/kbAccess': { partitionAccessibleKBIds: async (req, ids) => ({ allowed: ids || [], denied: [] }) },
+    '../core/kb/kbAccess': { partitionAccessibleKBIds: async (req, ids) => ({ allowed: ids || [], denied: [] }) },
     '../auth/permissions': {
         requireAuth: (req, res, next) => {
             if (!req.session?.user) return res.status(401).json({ error: 'Unauthorized' });

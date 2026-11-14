@@ -67,7 +67,7 @@ const MOCKS = {
     '../stores/kbSources': { listByKb: async () => [] },
     '../stores/userStore': { getUser: async () => null, getAllGroups: async () => [] },
     '../stores/knowledgeBases': { getKB: async () => null, countDocumentsByStatus: async () => ({ documentCount: 0 }) },
-    '../support/kbAccess': { partitionAccessibleKBIds: async () => ({ allowed: [], denied: [] }) },
+    '../core/kb/kbAccess': { partitionAccessibleKBIds: async () => ({ allowed: [], denied: [] }) },
     '../auth': { resolveUserGroups: async () => [] },
     '../projects/knowledgeBaseMembership': {
         MAX_KB_IDS: 10,

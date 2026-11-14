@@ -11,7 +11,7 @@ const automationStore = require('../../stores/automationStore');
 const { validate } = require('../../core/http/validate');
 const { bodyOf } = require('../../core/http/schemaParts');
 const { syncDatatableUsage } = require('../../automation/datatableUsageSync');
-const { audienceAdmits, needsGroups, publicAudience } = require('../../automation/formAudience');
+const { audienceAdmits, needsGroups, publicAudience } = require('../../auth/formAudience');
 const { AudienceBody, readAudienceBody } = require('./formAudienceBody');
 const { roleSatisfies } = require('../../automation/access');
 const { orgOf, automationAccess } = require('./crudContext');
@@ -156,7 +156,7 @@ function registerFormRoutes(router) {
                 // the automation endpoints are still per-user.
                 mine,
                 // Whether this caller may FILL IT IN — the visitor gate's own
-                // rule (automation/formAudience), so /app/forms lists exactly
+                // rule (auth/formAudience), so /app/forms lists exactly
                 // the forms that open. The list of who else may is the
                 // owner's to see.
                 canOpen: admits(row),

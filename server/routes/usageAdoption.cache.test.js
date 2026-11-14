@@ -1,7 +1,7 @@
 'use strict';
 /**
  * The Adoption report's 60 s answer cache (routes/usageAdoption.js createCache)
- * and what a people page keeps in it (routes/usageAdoptionShape.js compactPeople).
+ * and what a people page keeps in it (usecases/usageAdoptionShape.js compactPeople).
  *
  *   - bounded by its entries AND by the people rows they hold, oldest first;
  *   - expired entries leave on the next write, not only when read again;
@@ -15,7 +15,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createCache, CACHE_TTL_MS } = require('./usageAdoption');
-const { compactPeople } = require('./usageAdoptionShape');
+const { compactPeople } = require('../usecases/usageAdoptionShape');
 
 const page = (n) => ({ people: Array.from({ length: n }, (_, i) => ({ i })), partial: false });
 

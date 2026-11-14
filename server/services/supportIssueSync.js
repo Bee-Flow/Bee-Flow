@@ -22,7 +22,7 @@ const supportStore = require('../stores/supportStore');
 const ytc = require('../integrations/youtrackClient');
 const notificationStore = require('../stores/notificationStore');
 const chat = require('./outboundChatNotifier');
-const supportBus = require('../support/events');
+const supportBus = require('../core/support/events');
 const log = require('../telemetry/log');
 const { bestEffort } = require('../utils/bestEffort');
 
@@ -239,6 +239,7 @@ async function syncTick({ chunkSize = 50 } = {}) {
 /**
  * Refresh just this ticket's issues, now. Backs the refresh button, so it may
  * use the caller's own credentials when no service connection is configured.
+ * @param {string | string[]} threadId
  */
 async function syncThread(threadId, { userId = null } = {}) {
     const links = await supportStore.listIssueLinks(threadId);

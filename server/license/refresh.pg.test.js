@@ -150,7 +150,7 @@ test('expired expires at once only when the local expiry has passed too', async 
     await pg.exec('DELETE FROM license_keys');
     const lapsed = await stored();
     const r2 = await refresh.refreshOne({ ...lapsed, expiresAt: iso(-1000) });
-    assert.equal(r2.graceWindow, 0);
+    assert.deepEqual(r2, { ok: true, status: 'expired', graceWindow: 0 }, 'the server was reached: an answer, not a failed refresh');
     assert.equal((await row()).refreshStatus, 'expired');
 });
 
@@ -231,6 +231,22 @@ test('the revocation cursor never moves back', async () => {
     await refresh.crlTick();
     assert.equal(config.get('license_crl_last_since'), '20');
     assert.equal(refresh.getRefresherHealth().crl.lastSince, 20, 'health reports the cursor that is kept');
+});
+
+test('a revocation list that offers the cursor it was asked from writes no cursor', async () => {
+    replyJson({ revoked: [], next_since: 0 });
+    await refresh.crlTick();
+    assert.equal(config.has('license_crl_last_since'), false, 'nothing moved, nothing written');
+    assert.equal(refresh.getRefresherHealth().crl.lastSince, 0);
+});
+
+test('a revocation poll that is cut off is recorded as a time-out, any other failure by its message', async () => {
+    answer = () => ({ throws: Object.assign(new Error('This operation was aborted'), { name: 'AbortError' }) });
+    await refresh.crlTick();
+    assert.match(refresh.getRefresherHealth().crl.lastError, /^timeout_\d+ms$/);
+    answer = () => ({ throws: new Error('ECONNRESET') });
+    await refresh.crlTick();
+    assert.equal(refresh.getRefresherHealth().crl.lastError, 'ECONNRESET');
 });
 
 test('a revocation list that fails or does not parse revokes nothing and records why', async () => {

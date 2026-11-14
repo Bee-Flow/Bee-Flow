@@ -13,7 +13,7 @@
 const multer = require('multer');
 const { z, worded } = require('../core/http/schemaParts');
 const { requireNotebookRole } = require('../auth/notebookAccess.mts');
-const notebookCollab = require('../agents/notebooks/notebookCollab');
+const notebookCollab = require('../core/collab/notebookCollab');
 const { makeNotebookFeed } = require('../agents/notebooks/notebookFeed');
 
 // Role gates, one per level (see auth/notebookAccess.mts).

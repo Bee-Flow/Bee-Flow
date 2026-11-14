@@ -13,8 +13,8 @@
  * Module-private keys are NOT covered (they are not reachable without a
  * source-text test): the six in core/automationRunner/scheduler/passes.js
  * (0xBEEF105-0xBEEF107, 0xBEEF10E, 0xBEEF112, 0xBEEF113), and those of
- * usageOpenObservePush, opsMetricsPush, projectTaskDueNotifier,
- * monitoringRetention, memoryEmbeddingBackfill, isoEvidenceCollector,
+ * usageOpenObservePush, opsMetricsPush, projects/taskDueNotifier,
+ * monitoringRetention, memoryEmbeddingBackfill, compliance/isoEvidenceCollector,
  * learningNudge and core/kb/embeddingMigration. Export one to bring it under
  * this test. A hashtext() name and a number share one key space; a collision
  * between the two kinds is not checked here (hashtext is Postgres-side).

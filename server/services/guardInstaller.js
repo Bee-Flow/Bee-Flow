@@ -80,6 +80,7 @@ const STATUS = {
     ERROR: 'error',
 };
 
+/** @type {Promise<void> | null} */
 let _inFlight = null;
 
 // ── Progress reporting ──────────────────────────────────────────────────
@@ -127,6 +128,8 @@ function isKubernetes() {
 /**
  * Probe guard-service /health. Used by both /api/guard/health and getStatus().
  * Returns the parsed body on success, or null on any failure.
+ * @param {string} url
+ * @param {string} apiKey
  */
 async function probeGuardHealth(url, apiKey) {
     if (!url) return null;
@@ -239,7 +242,7 @@ async function getStatus() {
             result.status = STATUS.UNHEALTHY;
         }
     } catch (err) {
-        log.warn('[GuardInstaller] Status probe failed:', err.message);
+        log.warn('[GuardInstaller] Status probe failed:', /** @type {Error} */ (err).message);
     }
 
     return result;
@@ -279,6 +282,7 @@ async function startGuard(docker, { apiKey, model, serverNetwork, publishPort, i
         `SERVICES_API_KEY=${apiKey || ''}`,
     ];
 
+    /** @type {{ RestartPolicy: { Name: string; }; NetworkMode: string; PortBindings?: { '8100/tcp': { HostIp: string; HostPort: string; }[]; } }} */
     const hostConfig = {
         RestartPolicy: { Name: 'unless-stopped' },
         NetworkMode: GUARD_NETWORK,
@@ -315,13 +319,17 @@ async function startGuard(docker, { apiKey, model, serverNetwork, publishPort, i
                 EndpointConfig: { Aliases: [GUARD_CONTAINER] },
             });
         } catch (err) {
-            log.warn(`[GuardInstaller] Could not attach guard to ${serverNetwork}: ${err.message}`);
+            log.warn(`[GuardInstaller] Could not attach guard to ${serverNetwork}: ${/** @type {Error} */ (err).message}`);
         }
     }
 
     await container.start();
 }
 
+/**
+ * @param {string} url
+ * @param {string} apiKey
+ */
 async function waitForHealth(url, apiKey) {
     const deadline = Date.now() + HEALTH_TIMEOUT_MS;
     while (Date.now() < deadline) {
@@ -341,6 +349,10 @@ async function waitForHealth(url, apiKey) {
     throw new Error('guard-service did not become healthy within 300s');
 }
 
+/** @typedef {{ apiKey: string | undefined, model?: string | undefined }} _doInstallArgs */
+/**
+ * @param {_doInstallArgs} param0
+ */
 async function _doInstall({ apiKey: requestedApiKey, model }) {
     await configStore.setConfig('pii_guard_installed', STATUS.INSTALLING);
     await configStore.setConfig('pii_guard_last_error', '');
@@ -407,8 +419,8 @@ async function _doInstall({ apiKey: requestedApiKey, model }) {
         }
 
         const fullError = logTail
-            ? `${err.message || err}\n\n--- guard container logs (last 40 lines) ---\n${logTail}`
-            : (err.message || String(err));
+            ? `${/** @type {Error} */ (err).message || err}\n\n--- guard container logs (last 40 lines) ---\n${logTail}`
+            : (/** @type {Error} */ (err).message || String(err));
         await configStore.setConfig('pii_guard_last_error', fullError);
         await configStore.setConfig('pii_guard_installed', STATUS.ERROR);
 
@@ -421,7 +433,7 @@ async function _doInstall({ apiKey: requestedApiKey, model }) {
                 await removeContainerIfExists(docker, GUARD_CONTAINER);
                 await removeContainerIfExists(docker, REDIS_CONTAINER);
             } catch (cleanupErr) {
-                log.warn('[GuardInstaller] Cleanup after failed install:', cleanupErr.message);
+                log.warn('[GuardInstaller] Cleanup after failed install:', /** @type {Error} */ (cleanupErr).message);
             }
         } else {
             log.warn('[GuardInstaller] Health timeout — keeping containers for diagnosis. Run `docker logs beeflow-guard` to investigate.');
@@ -431,6 +443,10 @@ async function _doInstall({ apiKey: requestedApiKey, model }) {
     }
 }
 
+/** @typedef {{ removeVolume?: boolean }} _doUninstallArgs */
+/**
+ * @param {_doUninstallArgs} param0
+ */
 async function _doUninstall({ removeVolume }) {
     await configStore.setConfig('pii_guard_installed', STATUS.UNINSTALLING);
     _setProgress('cleanup', { message: 'Removing containers…', percent: null });
@@ -445,7 +461,7 @@ async function _doUninstall({ removeVolume }) {
             try {
                 await docker.getVolume(REDIS_VOLUME).remove();
             } catch (err) {
-                if (err.statusCode !== 404) log.warn('[GuardInstaller] Volume removal:', err.message);
+                if (err.statusCode !== 404) log.warn('[GuardInstaller] Volume removal:', /** @type {Error} */ (err).message);
             }
         }
 
@@ -457,7 +473,7 @@ async function _doUninstall({ removeVolume }) {
         _clearProgress();
     } catch (err) {
         log.error('[GuardInstaller] Uninstall failed:', err);
-        await configStore.setConfig('pii_guard_last_error', err.message || String(err));
+        await configStore.setConfig('pii_guard_last_error', /** @type {Error} */ (err).message || String(err));
         await configStore.setConfig('pii_guard_installed', STATUS.ERROR);
         _clearProgress();
         throw err;
@@ -488,6 +504,10 @@ function install({ apiKey, model } = {}) {
     return _inFlight;
 }
 
+/** @typedef {{ removeVolume?: boolean }} UninstallArgs */
+/**
+ * @param {UninstallArgs} [param0]
+ */
 function uninstall({ removeVolume = false } = {}) {
     if (isKubernetes()) {
         throw Object.assign(new Error('Uninstall is not supported on Kubernetes deployments'), { code: 'UNSUPPORTED_ENV' });

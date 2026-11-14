@@ -160,3 +160,12 @@ test('requireOrgScope passes the scope through when there is an org', async () =
     const scope = await requireOrgScope(REQ());
     assert.equal(scope.orgId, 'orgA');
 });
+
+test('an anonymous request is nobody: no user, no platform admin', async () => {
+    for (const req of [{ session: {} }, {}, null, undefined]) {
+        const scope = await orgScope(req);
+        assert.equal(scope.userId, null);
+        assert.equal(scope.isSuperAdmin, false);
+        assert.equal(scope.homeOrgId, null);
+    }
+});

@@ -333,3 +333,14 @@ export function useLastScan() {
 export function useScanFeedback() {
     return useMutation({ mutationFn: (body: FeedbackBody) => repeatingApi.postFeedback(body) });
 }
+
+/**
+ * The feedback sent while the page goes away. Its observer is gone by then, so what
+ * follows a sent choice is the mutation's own `onSent`, not a callback of the caller.
+ */
+export function useScanFeedbackOnLeave(onSent: (key: string) => void) {
+    return useMutation({
+        mutationFn: ({ body }: { key: string; body: FeedbackBody }) => repeatingApi.postFeedback(body),
+        onSuccess: (_data, { key }) => onSent(key),
+    });
+}

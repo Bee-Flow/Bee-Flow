@@ -49,8 +49,8 @@
  */
 function projectOrgRun(full, viewerUserId = null) {
     // A run on the starter's own connections shows no summary or error text to
-    // anybody else (automation/callerRunVisibility.js).
-    const hidden = !require('../../core/automationModel/callerRunVisibility').canReadRunData(full, viewerUserId);
+    // anybody else (auth/callerRunVisibility.js).
+    const hidden = !require('../../auth/callerRunVisibility').canReadRunData(full, viewerUserId);
     return {
         id: full.id,
         journeyRunId: full.journeyRunId ?? null,

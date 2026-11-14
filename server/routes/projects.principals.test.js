@@ -30,7 +30,7 @@ const MOCKS = {
         countGroupMembers: async () => fx.counts,
     },
     '../stores/knowledgeBases': { getKB: async () => null },
-    '../support/kbAccess': { partitionAccessibleKBIds: async () => ({ allowed: [], denied: [] }) },
+    '../core/kb/kbAccess': { partitionAccessibleKBIds: async () => ({ allowed: [], denied: [] }) },
     '../auth': { resolveUserGroups: async () => [] },
     '../auth/projectAccess': {
         requireProjectRole: (minRole) => async (req, res, next) => {

@@ -257,6 +257,7 @@ function resolveAvHook() {
  *   - EICAR is always flagged (deterministic test hook).
  *   - A configured UPLOAD_AV_HOOK gets the final say.
  *   - Otherwise: no-op clean (dev / self-host without a scanner).
+ * @param {Buffer<ArrayBufferLike>} buffer
  */
 async function scanBuffer(buffer) {
     if (!Buffer.isBuffer(buffer)) return { clean: false, signature: 'invalid-buffer' };

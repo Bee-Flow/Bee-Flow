@@ -130,7 +130,7 @@ stub('auth', {
         return S.groups;
     },
 });
-stub('support/kbAccess', {
+stub('core/kb/kbAccess', {
     resolveAdminOrgIds: async () => { if (S.orgAdminThrows) throw new Error('admin down'); return S.orgAdmin ? new Set(['o1']) : new Set(); },
 });
 stub('automation/builderPickerCatalog', {

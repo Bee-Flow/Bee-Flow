@@ -82,7 +82,7 @@ const MOCKS = {
             return null;
         },
         assignConversation: async (convId, projectId, userId) => { fx.assigned.push({ convId, projectId, userId }); return true; },
-        // The audit row and its live event, one transaction (projects/changeFeed).
+        // The audit row and its live event, one transaction (core/projectContent/changeFeed).
         recordActivityEvent: async (projectId, entry) => { fx.activity.push({ projectId, actorId: entry.actorId, action: entry.action }); return null; },
         listActivity: async () => [],
         normalizePermission: (p) => (p === 'edit' ? 'editor' : p === 'view' ? 'viewer' : p),
@@ -95,7 +95,7 @@ const MOCKS = {
     '../stores/knowledgeBases': {
         getKB: async (id) => fx.kbs[id] || null,
     },
-    '../support/kbAccess': {
+    '../core/kb/kbAccess': {
         partitionAccessibleKBIds: async (req, ids) => ({
             allowed: ids.filter(i => !fx.deniedKbIds.includes(i)),
             denied: ids.filter(i => fx.deniedKbIds.includes(i)),

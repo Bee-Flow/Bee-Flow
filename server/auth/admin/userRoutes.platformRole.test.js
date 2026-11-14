@@ -210,3 +210,31 @@ test('a platform admin still manages that account', async () => {
     assert.equal(mfa.status, 200, mfa.text);
     assert.equal(mfa.body.wasEnabled, true);
 });
+
+test('a platform admin lists every account and the system administrator; an organisation admin only their own organisation', async () => {
+    const all = await call('GET', '/users', ANN);
+    assert.equal(all.status, 200, all.text);
+    assert.deepEqual(all.body.map((u) => u.id).sort(), ['admin', 'ann', 'eva', 'jan']);
+    assert.equal(all.body.find((u) => u.id === 'admin').isSystem, true);
+
+    const own = await call('GET', '/users', JAN);
+    assert.equal(own.status, 200, own.text);
+    assert.deepEqual(own.body.map((u) => u.id).sort(), ['eva', 'jan']);
+});
+
+test('a create beyond the seats of the plan is refused with the count and the cap; any other failure is not dressed up as one', async () => {
+    const body = { username: 'extra', displayName: 'Extra', password: 'Correct-Horse-Battery-42', organizationId: 'orgA' };
+    let undo = swaps.swap(userStore, 'createUserWithSeatCheck', async () => { throw new userStore.SeatCapExceededError(5, 5); });
+    try {
+        const full = await call('POST', '/users', ANN, body);
+        assert.equal(full.status, 403);
+        assert.deepEqual(full.body, { error: 'seat_cap_exceeded', current: 5, max: 5 });
+    } finally { undo(); }
+
+    undo = swaps.swap(userStore, 'createUserWithSeatCheck', async () => { throw new Error('connection reset'); });
+    try {
+        const broken = await call('POST', '/users', ANN, body);
+        assert.equal(broken.status, 500);
+        assert.notEqual(broken.body?.error, 'seat_cap_exceeded');
+    } finally { undo(); }
+});

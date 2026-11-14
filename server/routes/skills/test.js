@@ -139,7 +139,7 @@ async function listAgents(req, res) {
  *
  * ── THE RETRIEVAL CHECK, NOT THE MANAGEMENT ONE ─────────────────────
  * `usableKbIdsForRequest`, never `partitionAccessibleKBIds`. The doctrine is
- * written out in `support/kbAccess.js`: the management check lets an ORG
+ * written out in `core/kb/kbAccess.js`: the management check lets an ORG
  * ADMIN reach every base in their org (drafts and group-restricted ones
  * included) and reads a super admin's `null` org set as "everything, every
  * tenant". Right for a picker; wrong the moment a passage becomes text a
@@ -163,7 +163,7 @@ async function allowedKbIds(req, skill, { surface = 'direct_chat' } = {}) {
     const unique = [...new Set(declared.filter(id => typeof id === 'string' && id))];
     if (unique.length === 0) return { ids: [], declared: 0, failed: false };
     try {
-        const { usableKbIdsForRequest } = require('../../support/kbAccess');
+        const { usableKbIdsForRequest } = require('../../core/kb/kbAccess');
         const ids = await usableKbIdsForRequest(req, unique, { surface });
         return { ids: Array.isArray(ids) ? ids : [], declared: unique.length, failed: false };
     } catch (err) {

@@ -221,7 +221,7 @@ export async function createMailDraft(p: DraftInput): Promise<DraftResult> {
     assertDraftScope(p.provider, p.tokens.scope, p.mailbox);
 
     const send = nodeRequire('./send.js') as typeof import('./send.js');
-    const clients = nodeRequire('./providerClients.js') as { graphFetchFromTokens: GraphFetch; gmailClientFromTokens: (t: Tokens, r: OnRefresh) => Promise<GmailClient> };
+    const clients = nodeRequire('../../utils/emailProviderClients.js') as { graphFetchFromTokens: GraphFetch; gmailClientFromTokens: (t: Tokens, r: OnRefresh) => Promise<GmailClient> };
     try {
         return p.provider === 'outlook'
             ? await draftViaOutlook(p, send, clients.graphFetchFromTokens)

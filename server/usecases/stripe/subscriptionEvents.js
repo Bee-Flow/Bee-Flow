@@ -177,7 +177,7 @@ async function updateOrgFromStripe(subscription, updateData, plan) {
  */
 async function applyChangedPlan(orgId, priorPlanId, planId) {
     try {
-        await require('../../services/planEntitlements').applyPlanToOrg(orgId, planId, { mode: 'reset' });
+        await require('../../core/entitlements/planEntitlements').applyPlanToOrg(orgId, planId, { mode: 'reset' });
     } catch (e) {
         log.warn('[Stripe Webhook] applyPlanToOrg (plan change) failed:', e.message);
     }

@@ -98,7 +98,7 @@ const TERMINAL_CODES = new Set([
 ]);
 // Expected outcomes the poller does not log as failures (the members overview
 // does not count them as failed imports either).
-const QUIET_CODES = new Set(require('./teamsImportOutcomes.mts').TEAMS_EXPECTED_OUTCOME_CODES);
+const QUIET_CODES = new Set(require('../../stores/teamsImportOutcomes.mts').TEAMS_EXPECTED_OUTCOME_CODES);
 
 /**
  * Users with their own Teams settings, plus members of orgs that turned autoImport on,

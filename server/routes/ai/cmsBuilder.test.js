@@ -26,6 +26,15 @@ const state = {
     classifyCalls: 0,          // how many times the tier classifier ran
     permittedTiers: ['auto', 'fast', 'standard'],
     tiers: { fast: { modelId: 'test-model-large' }, standard: { modelId: 'test-model-large' } },
+    // The golden scenarios steer these; the defaults are what every other test runs on.
+    adapterOptions: [],        // the full options of each adapter.stream call (tools by name)
+    classify: null,            // { tier } → the classifier's pick; { throws } → it fails
+    permittedThrows: false,    // the tier permission lookup fails
+    providerError: null,       // string → getProviderForModel throws it
+    globalModel: 'test-model-large',
+    orgIds: ['orgA'],          // the organisations resolveUserOrgIds answers
+    classifyTiers: [],         // the tier keys each classifier run was offered
+    observed: [],              // what a script round saw (the abort signal after a hang-up)
 };
 
 // ── In-memory config table + db LIKE queries (real cmsStore on top) ──
@@ -44,6 +53,7 @@ const mockUsageStore = {
 const mockAdapter = {
     async stream(apiKey, url, modelId, messages, options, onEvent) {
         state.adapterCalls.push({ modelId, messages: clone(messages), options: { toolChoice: options.toolChoice, reasoningEffort: options.reasoningEffort } });
+        state.adapterOptions.push({ ...options, signal: options.signal ? 'AbortSignal' : options.signal, tools: (options.tools || []).length });
         const turn = state.script.shift();
         if (!turn) { onEvent('text', { text: 'Nothing scripted.' }); return; }
         await turn(messages, options, onEvent);
@@ -61,7 +71,7 @@ const MOCKS = {
     '../../stores/usageStore': mockUsageStore,
     // route plumbing
     '../../core/entitlements/limits': { checkSubscriptionLimits: async () => state.limitError },
-    '../../auth': { resolveUserOrgIds: async () => new Set(['orgA']) },
+    '../../auth': { resolveUserOrgIds: async () => new Set(state.orgIds) },
     // The decision of the real platform gate (auth/permissionsOrgGates.js requireSuperAdmin).
     '../auth/permissions': {
         requireSuperAdmin: (req, res, next) => {
@@ -74,14 +84,19 @@ const MOCKS = {
         getUserTierMap: async () => clone(state.tiers),
     },
     '../../core/entitlements/userTiers': {
-        getPermittedTierKeys: async () => new Set(state.permittedTiers),
+        getPermittedTierKeys: async () => { if (state.permittedThrows) throw new Error('permission lookup down'); return new Set(state.permittedTiers); },
     },
     '../../core/llm/promptClassifier': {
-        classifyWithLLM: async () => { state.classifyCalls += 1; return { tier: 'fast', method: 'mock', reason: 'test' }; },
+        classifyWithLLM: async (_message, tiers) => {
+            state.classifyCalls += 1;
+            state.classifyTiers.push(Object.keys(tiers));
+            if (state.classify?.throws) throw new Error(state.classify.throws);
+            return { tier: state.classify?.tier || 'fast', method: 'mock', reason: 'test' };
+        },
     },
     '../../core/aiAgent': {
-        getProviderForModel: async () => ({ providerType: 'mock', url: '', apiKey: 'k' }),
-        getAIConfig: async () => ({ model: 'test-model-large' }),
+        getProviderForModel: async () => { if (state.providerError) throw new Error(state.providerError); return { providerType: 'mock', url: '', apiKey: 'k' }; },
+        getAIConfig: async () => ({ model: state.globalModel }),
     },
     '../../core/providers': { getAdapter: () => mockAdapter },
 };
@@ -114,7 +129,7 @@ test.before(async () => {
             req.session = {
                 isAuthenticated: true,
                 isAdmin: req.headers['x-test-admin'] === '1',
-                user: { id: uid, organizationId: 'orgA' },
+                user: { id: uid, ...(uid === 'no-org' ? {} : { organizationId: 'orgA' }) },
             };
         }
         next();
@@ -706,4 +721,258 @@ test('editor context: whitelisted keys ride in the machine message; junk rejecte
         { role: 'assistant', content: 'real answer' },
     ]);
     assert.deepStrictEqual(cleaned.map((m) => m.content), ['real question', 'real answer']);
+});
+
+// ── Golden: whole turns, event by event ─────────────────────────────
+// Per scenario: the status, the JSON answer or every SSE event in order, what
+// each model round was given (messages and options; the system prompt by
+// length), the usage row and the stored session. Ids and times are numbered
+// in order of appearance. Regenerate ONLY for an intended behaviour change:
+//   UPDATE_GOLDEN=1 node --require ./testUtils/registerFeatures.js --test routes/ai/cmsBuilder.test.js
+
+const GOLDEN = require('node:path').join(__dirname, 'cmsBuilder.stream.golden.json');
+const tool = (id, name, input) => ['tool_use', { id, name, input }];
+const round = (...events) => async (_m, _o, onEvent) => { for (const [type, data] of events) onEvent(type, data); };
+const done = ['done', { prompt_tokens: 10, completion_tokens: 2 }];
+const abortError = () => Object.assign(new Error('cancelled'), { name: 'AbortError' });
+/** Replaces `object[name]` for one turn; the returned function puts it back. */
+const during = (object, name, fn) => () => { const real = object[name]; object[name] = fn; return () => { object[name] = real; }; };
+/** The client side of the turn in flight: a script round hangs up with it. */
+let hangUp = () => {};
+const pageIdIn = (messages) => toolResultFor(messages, 'cms_create_page').pageId;
+
+/** @type {Record<string, { body?: object, state?: object, session?: object, script?: Function[] | ((ids: { homePageId: string }) => Function[]), before?: () => () => void, disconnect?: boolean, locales?: boolean, user?: string | null, admin?: boolean, site?: boolean }>} */
+const GOLDEN_TURNS = {
+    'build: page, blocks (one unknown type), header, then prose': {
+        body: { modelTier: 'standard', message: '  Build an about page  ', timezone: 'Europe/Amsterdam' },
+        script: [
+            round(['thinking_start', { partId: 'a' }], ['thinking', { partId: 'a', text: 'plan' }], ['thinking_signature', { partId: 'a', signature: 'sig-a' }], ['thinking_stop', { partId: 'a' }],
+                ['thinking_start', { partId: 'b' }], ['thinking', { partId: 'b', text: 'unsigned' }], ['thinking_stop', { partId: 'b' }],
+                ['text', { text: 'Creating the page. ' }], ['tool_use', { id: 'c1', name: 'cms_create_page', input: { title: 'About us' }, thought_signature: 'ts-1' }], done),
+            async (messages, _o, onEvent) => {
+                onEvent('tool_use', { id: 'c2', name: 'cms_add_blocks', input: { pageId: pageIdIn(messages), blocks: [{ type: 'hero', content: { lead: 'Who we are.' } }, { type: 'carousel3000' }] } });
+                onEvent('tool_use', { id: 'c3', name: 'cms_update_header_nav', input: { links: [{ label: 'About', href: '/about-us' }] } });
+                onEvent('tool_use', { id: 'c4', name: 'cms_list_site', input: {} });
+                onEvent('done', { prompt_tokens: 30, completion_tokens: 5, cached_tokens: 20, stop_reason: 'tool_use' });
+            },
+            round(['text', { text: 'Built ' }], ['text', { text: 'the About page.' }], done),
+        ],
+    },
+    'auto tier: the classifier picks, the tool fails, the model recovers': {
+        body: { message: 'Rename a page' }, state: { classify: { tier: 'standard' } },
+        script: [
+            round(tool('e1', 'cms_update_page_meta', { pageId: 'pg_missing', title: 'New' }), tool('e2', 'cms_not_a_tool', { a: 1 }), ['done', {}]),
+            round(tool('e3', 'cms_get_page', 'a string for arguments'), done),
+            round(['text', { text: 'That page does not exist.' }], ['done', { completion_tokens: 4 }]),
+        ],
+    },
+    'validation: a link to a page that is not there is reported back': {
+        body: { modelTier: 'fast', message: 'Link to pricing' },
+        script: ({ homePageId }) => [
+            round(tool('v1', 'cms_add_blocks', { pageId: homePageId, blocks: [{ type: 'cta', content: { button: { label: 'Pricing', link: { kind: 'page', pageId: 'pg_ghost' } } } }] }), done),
+            round(tool('v2', 'cms_update_header_nav', { links: 'not a list' }), done),
+            round(['text', { text: 'Noted.' }], done),
+        ],
+    },
+    'a resumed session: history, the editor focus and the client session id': {
+        body: { modelTier: 'fast', message: 'Make this bigger', builderSessionId: 'cms_client1', context: { activeBlockId: 'blk_sel1', activeLocale: 'nl', evil: 'x' } },
+        session: { sessionId: 'cms_stored', messages: [{ role: 'user', content: 'earlier question' }, { role: 'assistant', content: 'earlier answer' }, { role: 'system', content: 'dropped' }, { role: 'user', content: '[VALIDATION REPORT]\n[]' }] },
+        script: [round(['text', { text: 'Bigger it is.' }], done)],
+    },
+    'a stored session without a client id keeps its id': {
+        body: { modelTier: 'fast', message: 'Continue' }, session: { sessionId: 'cms_stored2', messages: 'not a list' },
+        script: [round(['done', { prompt_tokens: 1, completion_tokens: 0 }])],
+    },
+    'an explicit tier that is not permitted falls back to auto': {
+        body: { modelTier: 'pro', message: 'x' }, script: [round(['text', { text: 'ok' }], done)],
+    },
+    'an explicit tier that is configured but not permitted falls back to auto': {
+        body: { modelTier: 'pro', message: 'x' }, state: { tiers: { fast: { modelId: 'test-model-large' }, pro: { modelId: 'pro-model-large' }, 'custom:mine': { modelId: 'custom-model' }, swarm: { modelId: 'swarm-model' } } },
+        script: [round(['text', { text: 'ok' }], done)],
+    },
+    'an explicit tier that is permitted but not configured falls back to auto': {
+        body: { modelTier: 'pro', message: 'x' }, state: { permittedTiers: ['auto', 'fast', 'pro'] }, script: [round(['text', { text: 'ok' }], done)],
+    },
+    'an explicit tier that is permitted and configured runs': {
+        body: { modelTier: 'pro', message: 'x' }, state: { permittedTiers: ['pro'], tiers: { fast: { modelId: 'test-model-large' }, pro: { modelId: 'pro-model-large' } } },
+        script: [round(['text', { text: 'ok' }], done)],
+    },
+    'thinking harder: only the round after a refused call, and the round after dropped blocks': {
+        body: { modelTier: 'fast', message: 'x' },
+        script: [
+            round(tool('h1', 'cms_get_page', { pageId: 'pg_missing' }), done),
+            round(tool('h2', 'cms_list_site', {}), done),
+            round(tool('h3', 'cms_create_page', { title: 'Team' }), done),
+            async (messages, _o, onEvent) => { onEvent('tool_use', { id: 'h4', name: 'cms_add_blocks', input: { pageId: pageIdIn(messages), blocks: [{ type: 'hero' }, { type: 'carousel3000' }] } }); onEvent('done', {}); },
+            round(tool('h5', 'cms_list_site', {}), done),
+            round(tool('h6', 'cms_list_site', {}), done),
+            round(['text', { text: 'ok' }], done),
+        ],
+    },
+    'the caller has another organisation than the session, and locales come from the overrides': {
+        body: { modelTier: 'fast', message: 'x' }, state: { orgIds: ['orgB', 'orgC'] }, locales: true,
+        script: [round(['text', { text: 'ok' }], done)],
+    },
+    'the session names no organisation: the first of the caller counts': {
+        body: { modelTier: 'fast', message: 'x' }, state: { orgIds: ['orgB', 'orgC'] }, user: 'no-org',
+        script: [round(['text', { text: 'ok' }], done)],
+    },
+    'the caller has no organisation': {
+        body: { modelTier: 'fast', message: 'x' }, state: { orgIds: [] }, user: 'no-org',
+        script: [round(['text', { text: 'ok' }], done)],
+    },
+    'an explicit tier whose permission lookup fails falls back to auto, and the classifier failing means fast': {
+        body: { modelTier: 'standard', message: 'x' }, state: { permittedThrows: true, classify: { throws: 'classifier down' } },
+        script: [round(['text', { text: 'ok' }], done)],
+    },
+    'a tier without a model runs on the installation model': {
+        body: { modelTier: 'fast', message: 'x' }, state: { tiers: { fast: {}, standard: { modelId: 'test-model-large' } }, globalModel: 'global-model-large' },
+        script: [round(['text', { text: 'ok' }], done)],
+    },
+    'auto on a small model is lifted to a larger tier': {
+        body: { message: 'x' }, state: { tiers: { fast: { modelId: 'ministral-3b-latest' }, standard: { modelId: 'test-model-large', reasoningSummary: 'detailed' } } },
+        script: [round(['text', { text: 'ok' }], done)],
+    },
+    'an explicit small model is kept': {
+        body: { modelTier: 'fast', message: 'x' }, state: { tiers: { fast: { modelId: 'ministral-3b-latest', reasoningSummary: null }, standard: { modelId: 'test-model-large' } } },
+        script: [round(tool('s1', 'cms_list_site', {}), done), round(['text', { text: 'ok' }], done)],
+    },
+    'no model anywhere': { body: { modelTier: 'fast', message: 'x' }, state: { tiers: {}, globalModel: '' } },
+    'the provider of the model cannot be resolved': { body: { modelTier: 'fast', message: 'x' }, state: { providerError: 'No provider serves test-model-large' } },
+    'the subscription limit is reached': { body: { message: 'x' }, state: { limitError: 'Chat limit reached for your plan' } },
+    'the provider fails in the first round': { body: { modelTier: 'fast', message: 'x' }, script: [async () => { throw new Error('provider exploded'); }] },
+    'the provider fails after a tool round': {
+        body: { modelTier: 'fast', message: 'x' },
+        script: [round(tool('p1', 'cms_create_page', { title: 'Kept page' }), done), async () => { throw new Error('provider exploded'); }],
+    },
+    'the request is aborted in flight': { body: { modelTier: 'fast', message: 'x' }, script: [async () => { throw abortError(); }] },
+    'the client hangs up during a round: the round is used, the next one is not asked': {
+        body: { modelTier: 'fast', message: 'x' }, disconnect: true,
+        script: [
+            round(tool('d1', 'cms_create_page', { title: 'Before the hang-up' }), done),
+            async (_m, options, onEvent) => { await hangUp(); state.observed.push({ signalAborted: options.signal.aborted }); onEvent('tool_use', { id: 'd2', name: 'cms_create_page', input: { title: 'During the hang-up' } }); onEvent('done', {}); },
+            round(['text', { text: 'never asked' }], done),
+        ],
+    },
+    'the client hangs up and the provider call fails': {
+        body: { modelTier: 'fast', message: 'x' }, disconnect: true,
+        script: [async () => { await hangUp(); throw new Error('socket closed'); }],
+    },
+    'the stored session cannot be read: the turn starts a new one': {
+        body: { modelTier: 'fast', message: 'x' }, session: { sessionId: 'cms_stored3', messages: [{ role: 'user', content: 'unread' }] },
+        before: during(cmsStore, 'getBuilderSession', async () => { throw new Error('store down'); }),
+        script: [round(['text', { text: 'ok' }], done)],
+    },
+    'the session cannot be stored: the turn still ends': {
+        body: { modelTier: 'fast', message: 'x' },
+        before: during(cmsStore, 'setBuilderSession', async () => { throw new Error('store down'); }),
+        script: [round(['text', { text: 'ok' }], done)],
+    },
+    'the usage row cannot be written': {
+        body: { modelTier: 'fast', message: 'x' },
+        before: during(mockUsageStore, 'logUsage', async () => { throw new Error('usage table down'); }),
+        script: [round(['text', { text: 'ok' }], done)],
+    },
+    'the turn breaks after the stream opened': {
+        body: { modelTier: 'fast', message: 'x' },
+        before: during(mockUsageStore, 'logUsage', () => { throw new Error('usage store broke'); }),
+        script: [round(['text', { text: 'ok' }], done)],
+    },
+    'the stream reports an error after text': {
+        body: { modelTier: 'fast', message: 'x' }, script: [round(['text', { text: 'Half an ans' }], ['error', { error: 'upstream reset' }], ['done', {}])],
+    },
+    'the round budget runs out': {
+        body: { modelTier: 'fast', message: 'loop' },
+        script: Array.from({ length: 17 }, (_, i) => round(tool(`b${i}`, 'cms_list_site', {}), ['done', { prompt_tokens: 1, completion_tokens: 1 }])),
+    },
+    'a site that does not exist': { body: { modelTier: 'fast', message: 'x', siteId: 'pj_deadbeef' }, site: false },
+    'a member': { body: { message: 'x' }, admin: false },
+    'nobody signed in': { body: { message: 'x' }, user: null },
+    'a misspelled key': { body: { message: 'x', modelTeir: 'fast' } },
+    'an empty message': { body: { message: '   ' } },
+};
+
+/** Ids, session ids and times numbered in order of appearance. */
+function numbered(value) {
+    const seen = new Map();
+    const text = JSON.stringify(value)
+        .replace(/\b(pj|pg|blk|b|sec|nav|lnk|col)_[0-9a-f]{16}\b/g, (id, prefix) => { if (!seen.has(id)) seen.set(id, `${prefix}#${seen.size + 1}`); return seen.get(id); })
+        .replace(/\bcms_[0-9a-z]{8,9}\b(?!["\w]*stored)/g, (id) => (/^cms_(client|stored)/.test(id) ? id : 'cms_<time>'))
+        .replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/g, '<time>')
+        .replace(/"(duration_ms|durationMs|updatedAt|createdAt)":\d+/g, '"$1":"<ms>"');
+    return JSON.parse(text);
+}
+
+/** Each round's messages as what the round added to the previous round's list. */
+function addedPerRound(rounds) {
+    let before = [];
+    return rounds.map((r) => {
+        const kept = r.messages.findIndex((m, i) => JSON.stringify(m) !== JSON.stringify(before[i]));
+        const from = kept === -1 ? r.messages.length : kept;
+        before = r.messages;
+        return { ...r, messages: { kept: from, added: r.messages.slice(from) } };
+    });
+}
+
+test('golden: whole turns, event by event', async () => {
+    const defaults = { limitError: null, classify: null, permittedThrows: false, providerError: null, globalModel: 'test-model-large', orgIds: ['orgA'], tiers: clone(state.tiers), permittedTiers: [...state.permittedTiers] };
+    const actual = {};
+    // The turn's metadata goes out as one log line.
+    const log = require('../../telemetry/log');
+    const usageLines = [];
+    const undoLog = during(log, 'info', (line) => { if (String(line).startsWith('[CmsBuilder] usage ')) usageLines.push(JSON.parse(String(line).slice('[CmsBuilder] usage '.length))); })();
+    let n = 0;
+    for (const [name, turn] of Object.entries(GOLDEN_TURNS)) {
+        n += 1;
+        const ids = turn.site === false ? { siteId: null } : await makeSite(`Golden site ${n}`);
+        const { siteId } = ids;
+        const script = typeof turn.script === 'function' ? turn.script(ids) : (turn.script || []);
+        Object.assign(state, clone(defaults), turn.state || {}, { script: [...script], adapterCalls: [], adapterOptions: [], classifyCalls: 0, classifyTiers: [], observed: [] });
+        usageEvents.length = 0;
+        usageLines.length = 0;
+        if (turn.locales) {
+            await cmsStore.setSiteLocaleOverride(siteId, 'nl', {});
+            await cmsStore.setPageLocaleOverride(siteId, ids.homePageId, 'de', {});
+        }
+        if (turn.session) await cmsStore.setBuilderSession(siteId, { siteId, updatedAt: 'earlier', lastTier: 'fast', ...turn.session });
+        const undo = turn.before ? turn.before() : () => {};
+        let res;
+        if (turn.disconnect) {
+            // The client reads nothing: it hangs up from inside a model round, and the turn is over when its usage row is written.
+            const client = new AbortController();
+            const gone = fetch(`${baseUrl}/stream`, { method: 'POST', signal: client.signal, headers: { 'content-type': 'application/json', 'x-test-user': `golden-${n}`, 'x-test-admin': '1' }, body: JSON.stringify({ siteId, ...turn.body }) })
+                .then((r) => r.text()).catch((e) => e.name);
+            hangUp = async () => { client.abort(); await gone; await new Promise((resolve) => setTimeout(resolve, 50)); };
+            assert.strictEqual(await gone, 'AbortError', name);
+            for (let i = 0; i < 200 && !usageEvents.length; i++) await new Promise((resolve) => setTimeout(resolve, 10));
+            res = { status: 'hung up', contentType: 'text/event-stream', text: '', body: null };
+        } else {
+            res = await api('POST', '/stream', { user: turn.user === null ? undefined : (turn.user || `golden-${n}`), admin: turn.admin !== false, body: { siteId, ...turn.body } });
+        }
+        // The usage row is written after the last event.
+        await new Promise((resolve) => setImmediate(resolve));
+        undo();
+        const sse = res.contentType.includes('text/event-stream');
+        const body = res.body && res.body.correlationId ? { ...res.body, correlationId: '<id>' } : res.body;
+        actual[name] = numbered({
+            status: res.status,
+            ...(sse ? { events: parseSSE(res.text).map((e) => [e.event, e.data]) } : { answer: body ?? '<not JSON>' }),
+            rounds: addedPerRound(state.adapterCalls.map((call, i) => ({
+                modelId: call.modelId,
+                options: state.adapterOptions[i],
+                messages: call.messages.map((m) => (m.role === 'system' ? { role: 'system', length: m.content.length } : m)),
+            }))),
+            classifierRuns: state.classifyTiers,
+            observed: state.observed,
+            usageLine: [...usageLines],
+            scriptLeft: state.script.length,
+            usage: clone(usageEvents),
+            session: siteId && sse ? (await cmsStore.getBuilderSession(siteId)) ?? '<none>' : undefined,
+            pages: siteId && sse ? (await cmsStore.getProject(siteId)).pages.map((p) => p.title) : undefined,
+        });
+    }
+    Object.assign(state, clone(defaults), { script: [] });
+    undoLog();
+    if (process.env.UPDATE_GOLDEN) require('node:fs').writeFileSync(GOLDEN, `${JSON.stringify(actual, null, 1)}\n`);
+    assert.deepStrictEqual(actual, JSON.parse(require('node:fs').readFileSync(GOLDEN, 'utf8')));
 });

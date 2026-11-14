@@ -21,7 +21,7 @@
 
 'use strict';
 
-/** The kinds the change feed follows (projects/changeFeed ITEM_TYPES). */
+/** The kinds the change feed follows (core/projectContent/changeFeed ITEM_TYPES). */
 const FEED_KINDS = Object.freeze(['notebook', 'document', 'meeting']);
 
 /**

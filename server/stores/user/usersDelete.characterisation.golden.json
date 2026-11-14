@@ -1,0 +1,2757 @@
+{
+ "unknown account": {
+  "outcome": {
+   "returned": false
+  },
+  "trace": [
+   {
+    "sql": "SELECT to_regclass('solution_stages') IS NOT NULL AS present",
+    "params": []
+   },
+   {
+    "sql": "SELECT s.* FROM solution_stages s LEFT JOIN projects p ON p.id = s.project_id WHERE s.run_as_user_id = $1 OR p.owner_id = $1 ORDER BY s.solution_id, s.stage",
+    "params": [
+     "nobody"
+    ]
+   },
+   {
+    "sql": "SELECT id, \"organizationId\" FROM users WHERE id = $1",
+    "params": [
+     "nobody"
+    ]
+   }
+  ],
+  "left": {
+   "users": 0,
+   "mcp_tokens": 0,
+   "notebook_conversations": 0,
+   "user_memories": 0,
+   "pii_vault_entries": 0,
+   "pii_vault_counters": 0,
+   "execution_history": 0,
+   "message_feedback": 0,
+   "ai_usage_log": 0,
+   "chat_signal_objections": 0,
+   "automation_credentials": 0,
+   "voiceprints": 0,
+   "integration_connections": 0,
+   "user_sessions": 0,
+   "config": 0,
+   "connection_grants": 0,
+   "project_shares": 0,
+   "notifications": 0,
+   "agents": 0,
+   "agent_conversations": 0,
+   "conversation_messages": 0,
+   "reminders": 0,
+   "projects": 0,
+   "datatables": 0,
+   "datatable_grants": 0,
+   "datatable_models": 0
+  }
+ },
+ "full account": {
+  "before": {
+   "users": 1,
+   "mcp_tokens": 1,
+   "notebook_conversations": 1,
+   "user_memories": 1,
+   "pii_vault_entries": 1,
+   "pii_vault_counters": 1,
+   "execution_history": 1,
+   "message_feedback": 1,
+   "ai_usage_log": 1,
+   "chat_signal_objections": 1,
+   "automation_credentials": 1,
+   "voiceprints": 1,
+   "integration_connections": 1,
+   "user_sessions": 1,
+   "config": 5,
+   "connection_grants": 1,
+   "project_shares": 1,
+   "notifications": 1,
+   "agents": 1,
+   "agent_conversations": 1,
+   "conversation_messages": 1,
+   "reminders": 1,
+   "projects": 1,
+   "datatables": 3,
+   "datatable_grants": 1,
+   "datatable_models": 1
+  },
+  "outcome": {
+   "returned": true
+  },
+  "trace": [
+   {
+    "sql": "SELECT to_regclass('solution_stages') IS NOT NULL AS present",
+    "params": []
+   },
+   {
+    "sql": "SELECT s.* FROM solution_stages s LEFT JOIN projects p ON p.id = s.project_id WHERE s.run_as_user_id = $1 OR p.owner_id = $1 ORDER BY s.solution_id, s.stage",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "SELECT id, \"organizationId\" FROM users WHERE id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "log": "log",
+    "line": "[UserStore] Erasing the data of user 'full-leaver'..."
+   },
+   {
+    "sql": "SELECT value FROM config WHERE key = $1",
+    "params": [
+     "learning_certificate_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "learning_cert_lookup_hash-full-leaver"
+    ]
+   },
+   {
+    "sql": "SELECT pg_notify($1, $2)",
+    "params": [
+     "beeflow_config_invalidate",
+     "learning_cert_lookup_hash-full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "fireflies_api_key_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "gamma_api_key_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "youtrack_url_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "youtrack_token_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "signrequest_subdomain_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "signrequest_token_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "afas_member_number_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "afas_token_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "afas_env_type_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "nmbrs_api_mode_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "nmbrs_subdomain_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "nmbrs_email_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "nmbrs_token_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "nmbrs_env_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "nmbrs_subscription_key_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "nmbrs_client_id_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "nmbrs_client_secret_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "vplan_api_key_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "vplan_api_env_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "firebird_host_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "firebird_port_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "firebird_database_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "firebird_user_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "firebird_password_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "firebird_charset_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "frappe_crm_url_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "frappe_crm_api_key_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "frappe_crm_api_secret_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "scaleway_billing_secret_key_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "scaleway_billing_org_id_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "gads_developer_token_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "gads_manager_id_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "gads_customer_id_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "enabled_apps_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "github_token_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "github_username_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "linkedin_access_token_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "linkedin_person_id_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "linkedin_name_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "google_workspace_email_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "microsoft365_email_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "withings_userid_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "simple_mode_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "learning_path_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "memory_enabled_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "memory_sensitive_opt_in_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "teams_autoimport_skip_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "learning_progress_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "SELECT pg_notify($1, $2)",
+    "params": [
+     "beeflow_config_invalidate",
+     "learning_progress_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "learning_exercises_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "learning_certificate_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "SELECT pg_notify($1, $2)",
+    "params": [
+     "beeflow_config_invalidate",
+     "learning_certificate_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "learning_intro_migrated_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "has_seen_intro_tour_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "mcp_server_token_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "mcp_server_token_user_full-leaver_revoked"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "mcp_server_token_user_full-leaver_issued"
+    ]
+   },
+   {
+    "sql": "DELETE FROM user_sessions WHERE sess::jsonb -> 'user' ->> 'id' = $1 RETURNING sid",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "log": "log",
+    "line": "[SessionCache] bust.user user_id=full-leaver sessions=1 bridge_tokens=0"
+   },
+   {
+    "sql": "DELETE FROM mcp_tokens WHERE user_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "SELECT key FROM config WHERE key LIKE $1 ESCAPE '\\'",
+    "params": [
+     "mcp\\_cred\\_%"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "mcp_cred_frappe_FRAPPE_API_SECRET_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "SELECT pg_notify($1, $2)",
+    "params": [
+     "beeflow_config_invalidate",
+     "mcp_cred_frappe_FRAPPE_API_SECRET_user_full-leaver"
+    ]
+   },
+   {
+    "sql": "INSERT INTO access_audit_log (id, action, target_type, target_id, organization_id, changed_by, old_values, new_values) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)",
+    "params": [
+     "<id1>",
+     "credential.delete",
+     "credential",
+     "mcp_cred_frappe_FRAPPE_API_SECRET_user_full-leaver",
+     null,
+     "system",
+     null,
+     "{\"integration\":\"unknown\",\"action\":\"delete\"}"
+    ]
+   },
+   {
+    "sql": "SELECT key FROM config WHERE key LIKE $1 ESCAPE '\\'",
+    "params": [
+     "cms\\_mcp\\_upload\\_%"
+    ]
+   },
+   {
+    "sql": "SELECT value FROM config WHERE key = $1",
+    "params": [
+     "cms_mcp_upload_ticket-full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "cms_mcp_upload_ticket-full-leaver"
+    ]
+   },
+   {
+    "sql": "SELECT pg_notify($1, $2)",
+    "params": [
+     "beeflow_config_invalidate",
+     "cms_mcp_upload_ticket-full-leaver"
+    ]
+   },
+   {
+    "port": "notebooks.deleteAllForUser",
+    "args": [
+     "full-leaver"
+    ]
+   },
+   {
+    "log": "log",
+    "line": "[UserStore] Erased 2 notebook(s) for 'full-leaver'"
+   },
+   {
+    "sql": "DELETE FROM notebook_conversations WHERE user_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM user_memories WHERE user_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM pii_vault_entries WHERE user_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM pii_vault_counters WHERE user_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM conversation_messages WHERE conversation_id IN ( SELECT id FROM agent_conversations WHERE user_id = $1 UNION SELECT id FROM direct_conversations WHERE user_id = $1)",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM agent_conversations WHERE user_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM direct_conversations WHERE user_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE conversation_messages SET author_user_id = NULL WHERE author_user_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM execution_history WHERE user_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM message_feedback WHERE user_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM ai_usage_log WHERE user_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM chat_signal_objections WHERE user_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM kb_query_log_ack WHERE user_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM kb_query_log WHERE user_id = $1 AND ($2::text IS NULL OR organization_id = $2)",
+    "params": [
+     "full-leaver",
+     null
+    ]
+   },
+   {
+    "sql": "UPDATE kb_query_log SET reviewed_by = NULL WHERE reviewed_by = $1 AND ($2::text IS NULL OR organization_id = $2)",
+    "params": [
+     "full-leaver",
+     null
+    ]
+   },
+   {
+    "sql": "DELETE FROM suggestion_scan_cache WHERE user_id = $1 OR scope_key = $2",
+    "params": [
+     "full-leaver",
+     "user:full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM automation_suggestion_feedback WHERE user_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM automation_credentials WHERE user_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM integration_response_cache WHERE user_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM connection_grants WHERE grantor_user_id = $1 OR (grantee_type = 'user' AND grantee_id = $1)",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM integration_connections WHERE owner_user_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM voiceprints WHERE user_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "SELECT id FROM projects WHERE owner_id = $1 ORDER BY id",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "SELECT p.stage_of, EXISTS (SELECT 1 FROM projects s WHERE s.stage_of = p.id) AS has_stages FROM projects p WHERE p.id = $1",
+    "params": [
+     "p-full-leaver"
+    ]
+   },
+   {
+    "sql": "SELECT 1 AS x FROM solution_stages WHERE solution_id = $1 LIMIT 1",
+    "params": [
+     "p-full-leaver"
+    ]
+   },
+   {
+    "sql": "WITH heir AS ( SELECT id, shared_with_id FROM project_shares WHERE project_id = $1 AND shared_with_type = 'user' AND permission = 'editor' AND shared_with_id <> $2 ORDER BY created_at, id LIMIT 1 ), moved AS ( UPDATE projects SET owner_id = (SELECT shared_with_id FROM heir), updated_at = NOW() WHERE id = $1 AND owner_id = $2 AND EXISTS (SELECT 1 FROM heir) RETURNING owner_id ), dropped AS ( DELETE FROM project_shares WHERE id IN (SELECT id FROM heir) AND EXISTS (SELECT 1 FROM moved) ) SELECT owner_id FROM moved",
+    "params": [
+     "p-full-leaver",
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "SELECT (SELECT COUNT(*) FROM direct_conversations WHERE project_id = $1 AND shared_scope = 'project') + (SELECT COUNT(*) FROM agent_conversations WHERE project_id = $1 AND shared_scope = 'project') AS n",
+    "params": [
+     "p-full-leaver"
+    ]
+   },
+   {
+    "port": "projects.deleteProject",
+    "args": [
+     "p-full-leaver"
+    ]
+   },
+   {
+    "log": "log",
+    "line": "[UserStore] Owned projects of 'full-leaver': {\"deleted\":1,\"kept\":0,\"failed\":0,\"handedOver\":0}"
+   },
+   {
+    "sql": "DELETE FROM project_shares WHERE shared_with_type = 'user' AND shared_with_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "BEGIN",
+    "params": []
+   },
+   {
+    "sql": "UPDATE project_chat_messages SET content = '', mentions = '[]'::jsonb, refs = '[]'::jsonb, deleted_at = NOW() WHERE author_user_id = $1 AND deleted_at IS NULL RETURNING id, chat_id",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM project_chat_reads WHERE user_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "COMMIT",
+    "params": []
+   },
+   {
+    "sql": "BEGIN",
+    "params": []
+   },
+   {
+    "sql": "UPDATE project_comments SET content = '', mentions = '[]'::jsonb, mentions_ai = FALSE, deleted_at = NOW() WHERE author_user_id = $1 AND deleted_at IS NULL RETURNING thread_id",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE project_comments SET mentions = mentions - $1::text WHERE mentions ? $1::text RETURNING id",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "COMMIT",
+    "params": []
+   },
+   {
+    "sql": "BEGIN",
+    "params": []
+   },
+   {
+    "sql": "UPDATE collab_doc_updates SET user_id = NULL WHERE user_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE collab_doc_clients SET user_id = NULL WHERE user_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE collab_docs SET created_by = NULL WHERE created_by = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "COMMIT",
+    "params": []
+   },
+   {
+    "sql": "DELETE FROM project_member_state WHERE user_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM project_item_reads WHERE user_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM project_ai_feedback WHERE user_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM project_ai_watch WHERE author_user_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM config WHERE key = $1",
+    "params": [
+     "user_ai_participation_full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM project_hint_dismissals WHERE user_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "SELECT id FROM agents WHERE owner_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM conversation_messages WHERE conversation_id IN (SELECT id FROM agent_conversations WHERE agent_id = $1)",
+    "params": [
+     "ag-full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM agent_conversations WHERE agent_id = $1",
+    "params": [
+     "ag-full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM agents WHERE owner_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "SELECT id, tags FROM transcriptions WHERE user_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "SELECT id FROM webpages WHERE user_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "SELECT id FROM studio_apps WHERE user_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "SELECT id FROM skills WHERE user_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "SELECT id, tenant_id FROM knowledge_bases WHERE tenant_id = $1 AND organization_id IS NULL",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "SELECT key FROM config WHERE key LIKE $1 ESCAPE '\\'",
+    "params": [
+     "org\\_%"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"conversation_labels\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"agent_favorites\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"kb_favorites\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"meeting_prefs\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"gmeet_import_jobs\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"teams_import_jobs\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"reminders\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"playbooks\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"ai_tasks\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"ai_task_termination_log\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"cowork_schedules\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"studio_documents\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"studio_document_folders\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"document_suggestions\" WHERE \"author_user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"word_templates\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"icon_packs\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"summary_templates\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"summary_templates\" SET \"created_by\" = NULL WHERE \"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"user_security_keys\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"sso_identities\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"user_notification_prefs\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"consent_acceptances\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"consumer_subscriptions\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"azure_sync_memberships\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"azure_service_usage_log\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"integration_activity_log\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"skill_activations\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"workflows\" WHERE \"owner_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"folders\" WHERE \"owner_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"project_chat_reads\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"project_item_reads\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"project_member_colors\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"project_member_state\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"project_notification_mutes\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"project_ai_feedback\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"project_ai_watch\" WHERE \"author_user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"collab_doc_clients\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"automations\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"automation_runs\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"automation_approvals\" WHERE \"owner_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"automation_approval_deliveries\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"automation_caller_notices\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"automation_event_subscriptions\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"automation_evolutions\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"automation_alert_rules\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"automation_usage\" WHERE \"owner_user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"automation_notification_events\" WHERE \"recipient_user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"webpage_public_shares\" WHERE \"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"studio_app_members\" WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"studio_app_attachments\" WHERE \"owner_user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"studio_app_connector_sync\" WHERE \"owner_user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"studio_app_data_meta\" WHERE \"owner_user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"studio_app_datasets\" WHERE \"owner_user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"studio_app_dataset_files\" WHERE \"owner_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"studio_app_action_runs\" WHERE \"owner_user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"studio_app_action_runs\" SET \"viewer_user_id\" = NULL WHERE \"viewer_user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"studio_app_triggers\" WHERE \"owner_user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE support_threads SET requester_user_id = NULL, requester_email = '', requester_name = NULL, requester_ip = NULL, requester_ua = NULL, updated_at = now() WHERE requester_user_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"guardrail_events\" SET \"user_id\" = NULL WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"license_keys\" SET \"user_id\" = NULL WHERE \"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"agent_versions\" SET \"created_by\" = NULL WHERE \"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"documents\" SET \"created_by\" = NULL WHERE \"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"kb_sources\" SET \"created_by\" = NULL WHERE \"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"collab_docs\" SET \"created_by\" = NULL WHERE \"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"support_messages\" SET \"author_user_id\" = NULL WHERE \"author_user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"support_canned_responses\" SET \"created_by\" = NULL WHERE \"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"org_house_styles\" SET \"created_by\" = NULL WHERE \"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"dsr_requests\" SET \"created_by\" = NULL WHERE \"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"compliance_custom_frameworks\" SET \"created_by\" = NULL WHERE \"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"compliance_incidents\" SET \"created_by\" = NULL WHERE \"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"isms_documents\" SET \"owner_user_id\" = NULL WHERE \"owner_user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"iso_audits\" SET \"created_by\" = NULL WHERE \"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"iso_management_reviews\" SET \"created_by\" = NULL WHERE \"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"iso_nonconformities\" SET \"created_by\" = NULL WHERE \"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"iso_nonconformities\" SET \"owner_user_id\" = NULL WHERE \"owner_user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"iso_objectives\" SET \"created_by\" = NULL WHERE \"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"iso_objectives\" SET \"owner_user_id\" = NULL WHERE \"owner_user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"iso_obligations\" SET \"created_by\" = NULL WHERE \"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"iso_obligations\" SET \"owner_user_id\" = NULL WHERE \"owner_user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"iso_risks\" SET \"created_by\" = NULL WHERE \"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"iso_risks\" SET \"owner_user_id\" = NULL WHERE \"owner_user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"iso_risk_treatments\" SET \"owner_user_id\" = NULL WHERE \"owner_user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"iso_soa_entries\" SET \"owner_user_id\" = NULL WHERE \"owner_user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"automation_agent_bindings\" SET \"created_by\" = NULL WHERE \"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"studio_app_email_log\" SET \"viewer_user_id\" = NULL WHERE \"viewer_user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"studio_app_action_tests\" SET \"created_by\" = NULL WHERE \"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"studio_app_action_tests\" SET \"updated_by\" = NULL WHERE \"updated_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"automation_form_scenarios\" SET \"created_by\" = NULL WHERE \"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"automation_golden_runs\" SET \"created_by\" = NULL WHERE \"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"automation_shares\" SET \"created_by\" = NULL WHERE \"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"automation_test_cases\" SET \"created_by\" = NULL WHERE \"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"apps\" WHERE \"created_by\" = $1 AND \"organization_id\" IS NULL",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "SELECT DISTINCT \"organization_id\" AS org FROM \"apps\" WHERE \"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"automation_templates\" WHERE \"created_by\" = $1 AND \"organization_id\" IS NULL",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "SELECT DISTINCT \"organization_id\" AS org FROM \"automation_templates\" WHERE \"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"studio_app_templates\" WHERE \"created_by\" = $1 AND \"organization_id\" IS NULL",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "SELECT DISTINCT \"organization_id\" AS org FROM \"studio_app_templates\" WHERE \"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"project_blueprints\" WHERE \"created_by\" = $1 AND \"organization_id\" IS NULL",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "SELECT DISTINCT \"organization_id\" AS org FROM \"project_blueprints\" WHERE \"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"solution_stages\" WHERE \"created_by\" = $1 AND \"organization_id\" IS NULL",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "SELECT DISTINCT \"organization_id\" AS org FROM \"solution_stages\" WHERE \"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"support_inboxes\" WHERE \"created_by\" = $1 AND \"organization_id\" IS NULL",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "SELECT DISTINCT \"organization_id\" AS org FROM \"support_inboxes\" WHERE \"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM \"org_custom_integrations\" WHERE \"created_by\" = $1 AND \"org_id\" IS NULL",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "SELECT DISTINCT \"org_id\" AS org FROM \"org_custom_integrations\" WHERE \"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"org_custom_integration_versions\" t SET \"created_by\" = p.\"created_by\" FROM \"org_custom_integrations\" p WHERE p.id = t.\"integration_id\" AND t.\"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"project_chats\" t SET \"created_by\" = p.\"owner_id\" FROM \"projects\" p WHERE p.id = t.\"project_id\" AND t.\"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"project_comment_threads\" t SET \"created_by\" = p.\"owner_id\" FROM \"projects\" p WHERE p.id = t.\"project_id\" AND t.\"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"project_sprints\" t SET \"created_by\" = p.\"owner_id\" FROM \"projects\" p WHERE p.id = t.\"project_id\" AND t.\"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"project_tasks\" t SET \"created_by\" = p.\"owner_id\" FROM \"projects\" p WHERE p.id = t.\"project_id\" AND t.\"created_by\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE \"studio_app_versions\" t SET \"user_id\" = p.\"user_id\" FROM \"studio_apps\" p WHERE p.id = t.\"app_id\" AND t.\"user_id\" = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM datatable_grants WHERE grantee_type = 'user' AND grantee_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "log": "log",
+    "line": "[UserStore] Removed 1 datatable grant(s) for 'full-leaver'"
+   },
+   {
+    "sql": "SELECT d.*, (SELECT COUNT(*)::int FROM datatable_grants g WHERE g.datatable_id = d.id) AS grant_count FROM datatables d WHERE d.owner_user_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "BEGIN",
+    "params": []
+   },
+   {
+    "sql": "SELECT model, model_version FROM datatable_models WHERE scope_kind = $1 AND scope_id = $2 FOR UPDATE",
+    "params": [
+     "org",
+     "org-char"
+    ]
+   },
+   {
+    "sql": "SELECT 1 AS ok FROM pg_attribute WHERE attrelid = to_regclass('projects') AND attname = 'stage_of' AND NOT attisdropped",
+    "params": []
+   },
+   {
+    "sql": "SELECT d.id, d.project_id, p.stage, p.stage_of FROM datatables d JOIN projects p ON p.id = d.project_id WHERE d.id = ANY($1::text[]) AND p.stage_of IS NOT NULL",
+    "params": [
+     [
+      "<id2>"
+     ]
+    ]
+   },
+   {
+    "sql": "UPDATE datatable_models SET model = $1::jsonb, model_version = model_version + 1, updated_at = NOW() WHERE scope_kind = $2 AND scope_id = $3",
+    "params": [
+     "{\"tables\":[{\"id\":\"<id3>\",\"key\":\"team_list\",\"name\":\"Team list\",\"fields\":[{\"key\":\"name\",\"type\":\"text\",\"label\":\"Name\"}]}],\"modelVersion\":1}",
+     "org",
+     "org-char"
+    ]
+   },
+   {
+    "sql": "DELETE FROM datatables WHERE id = $1 AND scope_kind = $2 AND scope_id = $3",
+    "params": [
+     "<id2>",
+     "org",
+     "org-char"
+    ]
+   },
+   {
+    "sql": "SELECT to_regnamespace($3::text) IS NOT NULL AS has_hashed, to_regnamespace($4::text) IS NOT NULL AS has_legacy FROM datatable_models WHERE scope_kind = $1 AND scope_id = $2",
+    "params": [
+     "org",
+     "org-char",
+     "\"dt_c6ed4ab5f84ffc87c51602e54e623439c134edda\"",
+     "\"dtorg_org-char\""
+    ]
+   },
+   {
+    "sql": "SET LOCAL search_path = \"dt_c6ed4ab5f84ffc87c51602e54e623439c134edda\", pg_temp",
+    "params": []
+   },
+   {
+    "sql": "CREATE SCHEMA IF NOT EXISTS \"dt_c6ed4ab5f84ffc87c51602e54e623439c134edda\"",
+    "params": []
+   },
+   {
+    "sql": "SAVEPOINT sp_migrate",
+    "params": []
+   },
+   {
+    "sql": "DROP TABLE IF EXISTS \"private_notes\"",
+    "params": []
+   },
+   {
+    "sql": "RELEASE SAVEPOINT sp_migrate",
+    "params": []
+   },
+   {
+    "sql": "CREATE TABLE IF NOT EXISTS \"_meta\" (key TEXT PRIMARY KEY, value TEXT)",
+    "params": []
+   },
+   {
+    "sql": "INSERT INTO \"_meta\" (key, value) VALUES ('schema_stamp', $1) ON CONFLICT (key) DO UPDATE SET value = GREATEST( CASE WHEN \"_meta\".value ~ '^[0-9]+$' THEN \"_meta\".value::bigint ELSE 0 END, EXCLUDED.value::bigint )::text",
+    "params": [
+     "3"
+    ]
+   },
+   {
+    "sql": "SET LOCAL search_path = DEFAULT",
+    "params": []
+   },
+   {
+    "sql": "COMMIT",
+    "params": []
+   },
+   {
+    "log": "log",
+    "line": "[UserStore] Private datatable 'private_notes' (<id2>) deleted with account 'full-leaver'"
+   },
+   {
+    "sql": "SELECT id FROM users WHERE \"organizationId\" = $1 AND \"orgRole\" = 'org_admin' AND id <> $2 ORDER BY \"createdAt\" ASC NULLS LAST, id ASC LIMIT 1",
+    "params": [
+     "org-char",
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "UPDATE datatables SET owner_user_id = $4, updated_at = NOW() WHERE id = $1 AND scope_kind = $2 AND scope_id = $3",
+    "params": [
+     "<id3>",
+     "org",
+     "org-char",
+     "heir-char"
+    ]
+   },
+   {
+    "sql": "SELECT * FROM datatables WHERE id = $1 AND scope_kind = $2 AND scope_id = $3",
+    "params": [
+     "<id3>",
+     "org",
+     "org-char"
+    ]
+   },
+   {
+    "log": "log",
+    "line": "[UserStore] Transferred datatable 'team_list' (<id3>) from 'full-leaver' to org_admin 'heir-char'"
+   },
+   {
+    "sql": "BEGIN",
+    "params": []
+   },
+   {
+    "sql": "SELECT model, model_version FROM datatable_models WHERE scope_kind = $1 AND scope_id = $2 FOR UPDATE",
+    "params": [
+     "user",
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "SELECT d.id, d.project_id, p.stage, p.stage_of FROM datatables d JOIN projects p ON p.id = d.project_id WHERE d.id = ANY($1::text[]) AND p.stage_of IS NOT NULL",
+    "params": [
+     [
+      "<id4>"
+     ]
+    ]
+   },
+   {
+    "sql": "UPDATE datatable_models SET model = $1::jsonb, model_version = model_version + 1, updated_at = NOW() WHERE scope_kind = $2 AND scope_id = $3",
+    "params": [
+     "{\"tables\":[],\"modelVersion\":1}",
+     "user",
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "DELETE FROM datatables WHERE id = $1 AND scope_kind = $2 AND scope_id = $3",
+    "params": [
+     "<id4>",
+     "user",
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "SELECT to_regnamespace($3::text) IS NOT NULL AS has_hashed, to_regnamespace($4::text) IS NOT NULL AS has_legacy FROM datatable_models WHERE scope_kind = $1 AND scope_id = $2",
+    "params": [
+     "user",
+     "full-leaver",
+     "\"dt_bd05ad101bf2fb575cb7b56522b3f12449374d99\"",
+     null
+    ]
+   },
+   {
+    "sql": "SET LOCAL search_path = \"dt_bd05ad101bf2fb575cb7b56522b3f12449374d99\", pg_temp",
+    "params": []
+   },
+   {
+    "sql": "CREATE SCHEMA IF NOT EXISTS \"dt_bd05ad101bf2fb575cb7b56522b3f12449374d99\"",
+    "params": []
+   },
+   {
+    "sql": "SAVEPOINT sp_migrate",
+    "params": []
+   },
+   {
+    "sql": "DROP TABLE IF EXISTS \"own_list\"",
+    "params": []
+   },
+   {
+    "sql": "RELEASE SAVEPOINT sp_migrate",
+    "params": []
+   },
+   {
+    "sql": "CREATE TABLE IF NOT EXISTS \"_meta\" (key TEXT PRIMARY KEY, value TEXT)",
+    "params": []
+   },
+   {
+    "sql": "INSERT INTO \"_meta\" (key, value) VALUES ('schema_stamp', $1) ON CONFLICT (key) DO UPDATE SET value = GREATEST( CASE WHEN \"_meta\".value ~ '^[0-9]+$' THEN \"_meta\".value::bigint ELSE 0 END, EXCLUDED.value::bigint )::text",
+    "params": [
+     "2"
+    ]
+   },
+   {
+    "sql": "SET LOCAL search_path = DEFAULT",
+    "params": []
+   },
+   {
+    "sql": "COMMIT",
+    "params": []
+   },
+   {
+    "log": "log",
+    "line": "[UserStore] Private datatable 'own_list' (<id4>) deleted with account 'full-leaver'"
+   },
+   {
+    "sql": "SELECT 1 AS present FROM datatable_models WHERE scope_kind = 'user' AND scope_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "BEGIN",
+    "params": []
+   },
+   {
+    "sql": "DROP SCHEMA IF EXISTS \"dt_bd05ad101bf2fb575cb7b56522b3f12449374d99\" CASCADE",
+    "params": []
+   },
+   {
+    "sql": "UPDATE datatable_models SET size_bytes = 0, schema_stamp = 0, updated_at = NOW() WHERE scope_kind = $1 AND scope_id = $2",
+    "params": [
+     "user",
+     "full-leaver"
+    ]
+   },
+   {
+    "sql": "COMMIT",
+    "params": []
+   },
+   {
+    "sql": "DELETE FROM datatable_models WHERE scope_kind = 'user' AND scope_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "log": "log",
+    "line": "[UserStore] Dropped the personal datatable schema for 'full-leaver'"
+   },
+   {
+    "sql": "DELETE FROM notifications WHERE user_id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "log": "log",
+    "line": "[NotificationStore] Deleted 1 notification(s) for user full-leaver"
+   },
+   {
+    "sql": "DELETE FROM users WHERE id = $1",
+    "params": [
+     "full-leaver"
+    ]
+   },
+   {
+    "log": "log",
+    "line": "[UserStore] Cleanup complete for user 'full-leaver'"
+   }
+  ],
+  "left": {
+   "users": 0,
+   "mcp_tokens": 0,
+   "notebook_conversations": 0,
+   "user_memories": 0,
+   "pii_vault_entries": 0,
+   "pii_vault_counters": 0,
+   "execution_history": 0,
+   "message_feedback": 0,
+   "ai_usage_log": 0,
+   "chat_signal_objections": 0,
+   "automation_credentials": 0,
+   "voiceprints": 0,
+   "integration_connections": 0,
+   "user_sessions": 0,
+   "config": 0,
+   "connection_grants": 0,
+   "project_shares": 0,
+   "notifications": 0,
+   "agents": 0,
+   "agent_conversations": 0,
+   "conversation_messages": 0,
+   "reminders": 0,
+   "projects": 0,
+   "datatables": 0,
+   "datatable_grants": 0,
+   "datatable_models": 0
+  }
+ },
+ "full account: tables handed to the heir": [
+  "team_list"
+ ],
+ "stage run-as": {
+  "threw": {
+   "status": 409,
+   "code": "stage_run_as",
+   "message": "This account runs a Solution stage. An org admin can detach or remove the stages first.",
+   "expose": true,
+   "stages": 1
+  },
+  "statements": 2,
+  "left": {
+   "users": 1,
+   "mcp_tokens": 1,
+   "notebook_conversations": 1,
+   "user_memories": 1,
+   "pii_vault_entries": 1,
+   "pii_vault_counters": 1,
+   "execution_history": 1,
+   "message_feedback": 1,
+   "ai_usage_log": 1,
+   "chat_signal_objections": 1,
+   "automation_credentials": 1,
+   "voiceprints": 1,
+   "integration_connections": 1,
+   "user_sessions": 1,
+   "config": 5,
+   "connection_grants": 1,
+   "project_shares": 1,
+   "notifications": 1,
+   "agents": 1,
+   "agent_conversations": 1,
+   "conversation_messages": 1,
+   "reminders": 1,
+   "projects": 3,
+   "datatables": 0,
+   "datatable_grants": 0,
+   "datatable_models": 0
+  }
+ },
+ "fault: certificate lookups": {
+  "outcome": {
+   "threw": {
+    "status": 500,
+    "code": "erasure_incomplete",
+    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
+    "expose": true,
+    "details": {
+     "failed": [
+      "certificate lookups"
+     ]
+    }
+   }
+  },
+  "errorLines": [
+   "[UserStore] erasure step 'certificate lookups' failed for user 'fault-1' (57014)"
+  ],
+  "statements": 245,
+  "trace": "0c9dc4366cacdee3ba07fdca3d7cd1b18706b62b4ad2e393f3d453f066544f73",
+  "accountKept": 1,
+  "retry": {
+   "outcome": {
+    "returned": true
+   },
+   "trace": "68a966ed8918659c1790e4f055080b549fe33a57cbfd7bf1bb3150f92d837763",
+   "left": 1
+  }
+ },
+ "fault: config keys": {
+  "outcome": {
+   "threw": {
+    "status": 500,
+    "code": "erasure_incomplete",
+    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
+    "expose": true,
+    "details": {
+     "failed": [
+      "config keys"
+     ]
+    }
+   }
+  },
+  "errorLines": [
+   "[UserStore] erasure step 'config keys' failed for user 'fault-2' (57014)"
+  ],
+  "statements": 237,
+  "trace": "5f7576cbb28fc140e75e25a91c1279d1ca65d69c0b003c4d083f06cd5e7c7057",
+  "accountKept": 1,
+  "retry": {
+   "outcome": {
+    "returned": true
+   },
+   "trace": "1c019d6ff8284c0fb8ccff057efc74c4ef37250b0218083a9c09f0b35fea7a1d",
+   "left": 0
+  }
+ },
+ "fault: sessions": {
+  "outcome": {
+   "threw": {
+    "status": 500,
+    "code": "erasure_incomplete",
+    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
+    "expose": true,
+    "details": {
+     "failed": [
+      "sessions"
+     ]
+    }
+   }
+  },
+  "errorLines": [
+   "[SessionCache] bustSessionsForUser error: canceling statement due to statement timeout",
+   "[UserStore] erasure step 'sessions' failed for user 'fault-3' (57014)"
+  ],
+  "statements": 246,
+  "trace": "b5a42351ee1564ce33d4d6028c6b0d175950bed6f9212aeb738dd46d6d1130ac",
+  "accountKept": 1,
+  "retry": {
+   "outcome": {
+    "returned": true
+   },
+   "trace": "f03403d255a97a7c4edce514f853302ac58063b264fbd1fe98c813b2a31d6019",
+   "left": 0
+  }
+ },
+ "fault: mcp_tokens": {
+  "outcome": {
+   "threw": {
+    "status": 500,
+    "code": "erasure_incomplete",
+    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
+    "expose": true,
+    "details": {
+     "failed": [
+      "mcp_tokens"
+     ]
+    }
+   }
+  },
+  "errorLines": [
+   "[UserStore] erasure step 'mcp_tokens' failed for user 'fault-4' (57014)"
+  ],
+  "statements": 246,
+  "trace": "f13350aeb47777d38d3e2aaa6884065f00de9dbeaa60f7abaad8ee48c875d87a",
+  "accountKept": 1,
+  "retry": {
+   "outcome": {
+    "returned": true
+   },
+   "trace": "0246126e148d7d4f37fc5816b17f48f8ee873c9ef3c0f70bff0bd48662587185",
+   "left": 0
+  }
+ },
+ "fault: mcp credentials": {
+  "outcome": {
+   "threw": {
+    "status": 500,
+    "code": "erasure_incomplete",
+    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
+    "expose": true,
+    "details": {
+     "failed": [
+      "mcp credentials"
+     ]
+    }
+   }
+  },
+  "errorLines": [
+   "[UserStore] erasure step 'mcp credentials' failed for user 'fault-5' (57014)"
+  ],
+  "statements": 244,
+  "trace": "7e41e5f4be45f508eca11b8c290e0ba0608baa14c62571eedac167f82b656e3d",
+  "accountKept": 1,
+  "retry": {
+   "outcome": {
+    "returned": true
+   },
+   "trace": "5cb1df2c41a32e978f1f8ba4cdf8c67e6d45672ecd572e71b575ee9fcfef5ae5",
+   "left": 0
+  }
+ },
+ "fault: cms upload tickets": {
+  "outcome": {
+   "threw": {
+    "status": 500,
+    "code": "erasure_incomplete",
+    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
+    "expose": true,
+    "details": {
+     "failed": [
+      "cms upload tickets"
+     ]
+    }
+   }
+  },
+  "errorLines": [
+   "[UserStore] erasure step 'cms upload tickets' failed for user 'fault-6' (57014)"
+  ],
+  "statements": 245,
+  "trace": "27e0d3112437cfef09dc179da31c8363ca56b0f2ddffde27659e865ca1386e6b",
+  "accountKept": 1,
+  "retry": {
+   "outcome": {
+    "returned": true
+   },
+   "trace": "5562c35e9775ebe05b80ba5ac589275039916855d6496cd73e258775080c63b0",
+   "left": 0
+  }
+ },
+ "fault: notebooks": {
+  "outcome": {
+   "threw": {
+    "status": 500,
+    "code": "erasure_incomplete",
+    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
+    "expose": true,
+    "details": {
+     "failed": [
+      "notebooks"
+     ]
+    }
+   }
+  },
+  "errorLines": [
+   "[UserStore] erasure step 'notebooks' failed for user 'fault-7' (ECONNREFUSED)"
+  ],
+  "statements": 246,
+  "trace": "8d178f75b750d5a7fc418d8c143aa97015586f4031170b82a705942d215db752",
+  "accountKept": 1,
+  "retry": {
+   "outcome": {
+    "returned": true
+   },
+   "trace": "414cbeed9ad4792343ada8198a1e62de4da09d500737be8cdf0d7b840df6cf9d",
+   "left": 0
+  }
+ },
+ "fault: notebook_conversations": {
+  "outcome": {
+   "threw": {
+    "status": 500,
+    "code": "erasure_incomplete",
+    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
+    "expose": true,
+    "details": {
+     "failed": [
+      "notebook_conversations"
+     ]
+    }
+   }
+  },
+  "errorLines": [
+   "[UserStore] erasure step 'notebook_conversations' failed for user 'fault-8' (57014)"
+  ],
+  "statements": 246,
+  "trace": "05a0824fa93688eda946842c7b98081b3f437fe0cb4968a29bd04449101bb700",
+  "accountKept": 1,
+  "retry": {
+   "outcome": {
+    "returned": true
+   },
+   "trace": "4f92ed60d9eed0ac8ba616912b72ac0d01da9587a958f28706becc4ad066c5d8",
+   "left": 0
+  }
+ },
+ "fault: user_memories": {
+  "outcome": {
+   "threw": {
+    "status": 500,
+    "code": "erasure_incomplete",
+    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
+    "expose": true,
+    "details": {
+     "failed": [
+      "user_memories",
+      "owned projects"
+     ]
+    }
+   }
+  },
+  "errorLines": [
+   "[UserStore] erasure step 'user_memories' failed for user 'fault-9' (57014)",
+   "[UserStore] deleting owned project p-fault-9 failed: canceling statement due to statement timeout"
+  ],
+  "statements": 246,
+  "trace": "7eae436c5c93779ef73dc869f684a28da2acdd5259438979f3e977ac24be47d9",
+  "accountKept": 1,
+  "retry": {
+   "outcome": {
+    "returned": true
+   },
+   "trace": "7a2c8ae90d32a7567f7abbfa7725bcfbbcb5be245cb0f4ff4ed665b85354e64a",
+   "left": 0
+  }
+ },
+ "fault: pii_vault_entries": {
+  "outcome": {
+   "threw": {
+    "status": 500,
+    "code": "erasure_incomplete",
+    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
+    "expose": true,
+    "details": {
+     "failed": [
+      "pii_vault_entries"
+     ]
+    }
+   }
+  },
+  "errorLines": [
+   "[UserStore] erasure step 'pii_vault_entries' failed for user 'fault-10' (57014)"
+  ],
+  "statements": 246,
+  "trace": "f080d30aaccc5e55daf99980b3a23bf33c26dbe75417e04168b29c8f683b51d8",
+  "accountKept": 1,
+  "retry": {
+   "outcome": {
+    "returned": true
+   },
+   "trace": "c31328f2ed39ddbb2c7da3efcf6ffe3b42bcd3cea0d8852c110b2b5b27edbb65",
+   "left": 0
+  }
+ },
+ "fault: pii_vault_counters": {
+  "outcome": {
+   "threw": {
+    "status": 500,
+    "code": "erasure_incomplete",
+    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
+    "expose": true,
+    "details": {
+     "failed": [
+      "pii_vault_counters"
+     ]
+    }
+   }
+  },
+  "errorLines": [
+   "[UserStore] erasure step 'pii_vault_counters' failed for user 'fault-11' (57014)"
+  ],
+  "statements": 246,
+  "trace": "af929b366529e3fd8b395f30ffccb245ef73d17c6186d2b49316774f4db151e1",
+  "accountKept": 1,
+  "retry": {
+   "outcome": {
+    "returned": true
+   },
+   "trace": "ef8c9fb622099de1be1bcfd37377543ae25bcf12b15f553f8cde5b20be596003",
+   "left": 0
+  }
+ },
+ "fault: conversations (content port)": {
+  "outcome": {
+   "threw": {
+    "status": 500,
+    "code": "erasure_incomplete",
+    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
+    "expose": true,
+    "details": {
+     "failed": [
+      "conversations",
+      "agents"
+     ]
+    }
+   }
+  },
+  "errorLines": [
+   "[UserStore] erasure step 'conversations' failed for user 'fault-12' (57014)",
+   "[UserStore] erasure step 'agents' failed for user 'fault-12' (57014)"
+  ],
+  "statements": 243,
+  "trace": "96caf8577cc17ae006ea18f0bd55bae85de6ed9b548b3ffb3d3346e5e4ec33e4",
+  "accountKept": 1,
+  "retry": {
+   "outcome": {
+    "returned": true
+   },
+   "trace": "0c396b109b97595580c8768ab6afebc1e68b2a21814209538501cfec9e01e74a",
+   "left": 0
+  }
+ },
+ "fault: execution_history": {
+  "outcome": {
+   "threw": {
+    "status": 500,
+    "code": "erasure_incomplete",
+    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
+    "expose": true,
+    "details": {
+     "failed": [
+      "execution_history"
+     ]
+    }
+   }
+  },
+  "errorLines": [
+   "[UserStore] erasure step 'execution_history' failed for user 'fault-13' (57014)"
+  ],
+  "statements": 246,
+  "trace": "c76af137c2a9aed38dbd4fe36c220ff631569dffe9e98aea0a3e1e05b538788d",
+  "accountKept": 1,
+  "retry": {
+   "outcome": {
+    "returned": true
+   },
+   "trace": "709d83ab926611cbb3200f56f66f3c6a4abd3d44a6ea12b104b0095e02d28eb5",
+   "left": 0
+  }
+ },
+ "fault: message_feedback": {
+  "outcome": {
+   "threw": {
+    "status": 500,
+    "code": "erasure_incomplete",
+    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
+    "expose": true,
+    "details": {
+     "failed": [
+      "message_feedback"
+     ]
+    }
+   }
+  },
+  "errorLines": [
+   "[UserStore] erasure step 'message_feedback' failed for user 'fault-14' (57014)"
+  ],
+  "statements": 246,
+  "trace": "be849304445525c2cf2a96d11fb37e6d37d73ad112449d2a295b11ccef00f7a0",
+  "accountKept": 1,
+  "retry": {
+   "outcome": {
+    "returned": true
+   },
+   "trace": "850619c2ad4123280dcf2f83c762426eac5e783fe500e5d174738c89d414b317",
+   "left": 0
+  }
+ },
+ "fault: ai_usage_log": {
+  "outcome": {
+   "threw": {
+    "status": 500,
+    "code": "erasure_incomplete",
+    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
+    "expose": true,
+    "details": {
+     "failed": [
+      "ai_usage_log"
+     ]
+    }
+   }
+  },
+  "errorLines": [
+   "[UserStore] erasure step 'ai_usage_log' failed for user 'fault-15' (57014)"
+  ],
+  "statements": 246,
+  "trace": "7284c2350c2afb2fcfc2db36afedffe62ae71c13df3802cb49dc86cf5d2dcb2c",
+  "accountKept": 1,
+  "retry": {
+   "outcome": {
+    "returned": true
+   },
+   "trace": "c7163bf27ccafb8d8362f35ef17f6255cc709d5187d11d3f058580b56b35a3ee",
+   "left": 0
+  }
+ },
+ "fault: chat_signal_objections": {
+  "outcome": {
+   "threw": {
+    "status": 500,
+    "code": "erasure_incomplete",
+    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
+    "expose": true,
+    "details": {
+     "failed": [
+      "chat_signal_objections"
+     ]
+    }
+   }
+  },
+  "errorLines": [
+   "[UserStore] erasure step 'chat_signal_objections' failed for user 'fault-16' (57014)"
+  ],
+  "statements": 246,
+  "trace": "5cada2cc8f881563055024e105540d615c4cd8b3dfc09326f776d48efa457763",
+  "accountKept": 1,
+  "retry": {
+   "outcome": {
+    "returned": true
+   },
+   "trace": "850b217517c1348d3a59c03317244c86804e1afd30f8a4c0d403ae85f90c9677",
+   "left": 0
+  }
+ },
+ "fault: kb_query_log": {
+  "outcome": {
+   "threw": {
+    "status": 500,
+    "code": "erasure_incomplete",
+    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
+    "expose": true,
+    "details": {
+     "failed": [
+      "kb_query_log"
+     ]
+    }
+   }
+  },
+  "errorLines": [
+   "[UserStore] erasure step 'kb_query_log' failed for user 'fault-17' (57014)"
+  ],
+  "statements": 245,
+  "trace": "abeecb49d887f8ae61eb8262f7120930ecbb997388cab53519c3361c39ba2b30",
+  "accountKept": 1,
+  "retry": {
+   "outcome": {
+    "returned": true
+   },
+   "trace": "59e560aea2d85a774ad95303a6c84346659434d62bb405e58f3fb4abebc0526a",
+   "left": 0
+  }
+ },
+ "fault: suggestion traces": {
+  "outcome": {
+   "threw": {
+    "status": 500,
+    "code": "erasure_incomplete",
+    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
+    "expose": true,
+    "details": {
+     "failed": [
+      "suggestion traces"
+     ]
+    }
+   }
+  },
+  "errorLines": [
+   "[UserStore] erasure step 'suggestion traces' failed for user 'fault-18' (57014)"
+  ],
+  "statements": 246,
+  "trace": "a4a4555bd8d3077b94dae1f325761dbff78eb60445b88bbe041a6c56466db694",
+  "accountKept": 1,
+  "retry": {
+   "outcome": {
+    "returned": true
+   },
+   "trace": "566b8a963270ec25b04a8dbf5bdeca92149ff4df0aa99ae70a872212dc25330c",
+   "left": 0
+  }
+ },
+ "fault: automation_credentials": {
+  "outcome": {
+   "threw": {
+    "status": 500,
+    "code": "erasure_incomplete",
+    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
+    "expose": true,
+    "details": {
+     "failed": [
+      "automation_credentials"
+     ]
+    }
+   }
+  },
+  "errorLines": [
+   "[UserStore] erasure step 'automation_credentials' failed for user 'fault-19' (57014)"
+  ],
+  "statements": 246,
+  "trace": "19799a9f9e600a0b86e81f4766d91cbe1cdf022fc66bda3633c977db07ce7394",
+  "accountKept": 1,
+  "retry": {
+   "outcome": {
+    "returned": true
+   },
+   "trace": "d0209438f3554b44e29151ea451aae15bb836ec31a502b89215e7210bdca5ecc",
+   "left": 0
+  }
+ },
+ "fault: integration cache": {
+  "outcome": {
+   "threw": {
+    "status": 500,
+    "code": "erasure_incomplete",
+    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
+    "expose": true,
+    "details": {
+     "failed": [
+      "integration cache"
+     ]
+    }
+   }
+  },
+  "errorLines": [
+   "[UserStore] erasure step 'integration cache' failed for user 'fault-20' (57014)"
+  ],
+  "statements": 246,
+  "trace": "61cb3a65a9482424f5b2fe1306bcecf1a3760208307e679f47e41d11e02895d0",
+  "accountKept": 1,
+  "retry": {
+   "outcome": {
+    "returned": true
+   },
+   "trace": "d86b5d117e1fe414b70ffb90406582af621fb6ce4658ffad74f3c6a4734b3fc6",
+   "left": 0
+  }
+ },
+ "fault: connection_grants": {
+  "outcome": {
+   "threw": {
+    "status": 500,
+    "code": "erasure_incomplete",
+    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
+    "expose": true,
+    "details": {
+     "failed": [
+      "connection_grants",
+      "integration_connections"
+     ]
+    }
+   }
+  },
+  "errorLines": [
+   "[UserStore] erasure step 'connection_grants' failed for user 'fault-21' (57014)",
+   "[UserStore] erasure step 'integration_connections' failed for user 'fault-21' (57014)"
+  ],
+  "statements": 246,
+  "trace": "f7c0ecddd7b9c9675f4a052b0dbc328d22e35ee976ae6931f24d786ea01849ab",
+  "accountKept": 1,
+  "retry": {
+   "outcome": {
+    "returned": true
+   },
+   "trace": "09af9d90877476d3e630ae0e0fa3b63296038481e191874a0a219e5e7958b5a6",
+   "left": 0
+  }
+ },
+ "fault: integration_connections": {
+  "outcome": {
+   "threw": {
+    "status": 500,
+    "code": "erasure_incomplete",
+    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
+    "expose": true,
+    "details": {
+     "failed": [
+      "integration_connections"
+     ]
+    }
+   }
+  },
+  "errorLines": [
+   "[UserStore] erasure step 'integration_connections' failed for user 'fault-22' (57014)"
+  ],
+  "statements": 246,
+  "trace": "516e9c785f63fee362de8098b5fb06c12073344534944f2427b826bb881a2f7a",
+  "accountKept": 1,
+  "retry": {
+   "outcome": {
+    "returned": true
+   },
+   "trace": "73e3cb184c1027c2650ad46987fb95178841a546063c4ba5bacc62e632763130",
+   "left": 0
+  }
+ },
+ "fault: voiceprints": {
+  "outcome": {
+   "threw": {
+    "status": 500,
+    "code": "erasure_incomplete",
+    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
+    "expose": true,
+    "details": {
+     "failed": [
+      "voiceprints"
+     ]
+    }
+   }
+  },
+  "errorLines": [
+   "[UserStore] erasure step 'voiceprints' failed for user 'fault-23' (57014)"
+  ],
+  "statements": 246,
+  "trace": "8699bd0a52b4cc0ca5368e0f100a15002a69b1db26325d15c2afcfcc841817e4",
+  "accountKept": 1,
+  "retry": {
+   "outcome": {
+    "returned": true
+   },
+   "trace": "729d3ce6a8497d2bfa735640c359d5e307913a104c7b5cdf1b1ad343fc49c5d4",
+   "left": 0
+  }
+ },
+ "fault: owned projects": {
+  "outcome": {
+   "threw": {
+    "status": 500,
+    "code": "erasure_incomplete",
+    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
+    "expose": true,
+    "details": {
+     "failed": [
+      "owned projects"
+     ]
+    }
+   }
+  },
+  "errorLines": [
+   "[UserStore] deleting owned project p-fault-24 failed: teardown refused"
+  ],
+  "statements": 246,
+  "trace": "a53e7a7628716bd15d1f4d1687c5a2c9ab5d01f6df21a7b90688ccfacc12a8c0",
+  "accountKept": 1,
+  "retry": {
+   "outcome": {
+    "returned": true
+   },
+   "trace": "e8e7db0f73129473779ce03596414694dd4fb41e1cf533cd9a9595e35dec517a",
+   "left": 0
+  }
+ },
+ "fault: project_shares": {
+  "outcome": {
+   "threw": {
+    "status": 500,
+    "code": "erasure_incomplete",
+    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
+    "expose": true,
+    "details": {
+     "failed": [
+      "owned projects",
+      "project_shares"
+     ]
+    }
+   }
+  },
+  "errorLines": [
+   "[UserStore] deleting owned project p-fault-25 failed: canceling statement due to statement timeout",
+   "[UserStore] erasure step 'project_shares' failed for user 'fault-25' (57014)"
+  ],
+  "statements": 245,
+  "trace": "6730224e544c1da625f8641f073897650819d9ad0bd65ed6f73ad3c4a838aee8",
+  "accountKept": 1,
+  "retry": {
+   "outcome": {
+    "returned": true
+   },
+   "trace": "e477ef4698fdd3ebc69fa2a0dee5d3a0164df6fe9f3c27990ac67e2f4da768ed",
+   "left": 0
+  }
+ },
+ "fault: project traces": {
+  "outcome": {
+   "threw": {
+    "status": 500,
+    "code": "erasure_incomplete",
+    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
+    "expose": true,
+    "details": {
+     "failed": [
+      "project comments"
+     ]
+    }
+   }
+  },
+  "errorLines": [
+   "[UserStore] erasing comments failed: canceling statement due to statement timeout"
+  ],
+  "statements": 245,
+  "trace": "d8f7c1737f1dfeaf107c2ba7c69ee5550278b8179584618b27562cf1495736f6",
+  "accountKept": 1,
+  "retry": {
+   "outcome": {
+    "returned": true
+   },
+   "trace": "6e23d9208c0f14f6b169be3984315d1c72b50ed02b5c597f1d7393f83869ef05",
+   "left": 0
+  }
+ },
+ "fault: agents": {
+  "outcome": {
+   "threw": {
+    "status": 500,
+    "code": "erasure_incomplete",
+    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
+    "expose": true,
+    "details": {
+     "failed": [
+      "agents"
+     ]
+    }
+   }
+  },
+  "errorLines": [
+   "[UserStore] erasure step 'agents' failed for user 'fault-27' (57014)"
+  ],
+  "statements": 246,
+  "trace": "e8e535932400d839204661e042259f0379c2602e00377c3db528ebe1e6865fbb",
+  "accountKept": 1,
+  "retry": {
+   "outcome": {
+    "returned": true
+   },
+   "trace": "6d3f3e1f8fead0f41aa9fa9498a297a7c425d9249f0f9311a8cd51adf6b26677",
+   "left": 0
+  }
+ },
+ "fault: content (coverage map)": {
+  "outcome": {
+   "threw": {
+    "status": 500,
+    "code": "erasure_incomplete",
+    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
+    "expose": true,
+    "details": {
+     "failed": [
+      "reminders"
+     ]
+    }
+   }
+  },
+  "errorLines": [
+   "[UserStore] erasure step 'reminders' failed for user 'fault-28' (57014)"
+  ],
+  "statements": 246,
+  "trace": "660eae4ec039dda978790af50b3389569578caf7259e9f287c625e0dd779be15",
+  "accountKept": 1,
+  "retry": {
+   "outcome": {
+    "returned": true
+   },
+   "trace": "bba30ebcd311ff21c21fafc191dae0a2f025344ccd0cc31563f538775bbfb569",
+   "left": 0
+  }
+ },
+ "fault: datatables": {
+  "outcome": {
+   "threw": {
+    "status": 500,
+    "code": "erasure_incomplete",
+    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
+    "expose": true,
+    "details": {
+     "failed": [
+      "datatables"
+     ]
+    }
+   }
+  },
+  "errorLines": [
+   "[UserStore] erasure step 'datatables' failed for user 'fault-29' (57014)"
+  ],
+  "statements": 244,
+  "trace": "dc6755dbac7538ed20de0bc9583d0549b211dbce8657c47d45b264eed1f85610",
+  "accountKept": 1,
+  "retry": {
+   "outcome": {
+    "returned": true
+   },
+   "trace": "018e1d6b2645facd63113495912a83b6e17a14b17232671d8ae3086de355746a",
+   "left": 0
+  }
+ },
+ "fault: notifications": {
+  "outcome": {
+   "threw": {
+    "status": 500,
+    "code": "erasure_incomplete",
+    "message": "The account could not be fully erased. It is kept so the delete can be retried.",
+    "expose": true,
+    "details": {
+     "failed": [
+      "notifications"
+     ]
+    }
+   }
+  },
+  "errorLines": [
+   "[UserStore] erasure step 'notifications' failed for user 'fault-30' (57014)"
+  ],
+  "statements": 246,
+  "trace": "f2965a9db8906ca154f8ff1593a4b5f57e4bfc729764f644df1bb80fd359adcb",
+  "accountKept": 1,
+  "retry": {
+   "outcome": {
+    "returned": true
+   },
+   "trace": "5300156c714d8a72d235a8cef71253d68d4070b87ed1de07338abb46bbc37713",
+   "left": 0
+  }
+ }
+}

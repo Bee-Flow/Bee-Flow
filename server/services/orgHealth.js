@@ -62,6 +62,9 @@ const MAX_DEPTH = 2;
 
 // Same masking shape as connectorBootstrap.maskEmail: first char + ••• +
 // last char + full domain ('tomsmit@beeflow.nl' → 't•••t@beeflow.nl').
+/**
+ * @param {string} email
+ */
 function _maskEmail(email) {
     const [local = '', domain = ''] = String(email || '').split('@');
     if (!domain) return '***';
@@ -158,7 +161,10 @@ function _capMap(map, max = 10000) {
     if (map.size > max) map.clear(); // crude but bounded; per-replica hygiene
 }
 
-/** Test hook: inject a fake clock (pass nothing to restore Date.now). */
+/**
+ * Test hook: inject a fake clock (pass nothing to restore Date.now).
+ * @param {() => number} [fn]
+ */
 function _setNow(fn) { _now = typeof fn === 'function' ? fn : () => Date.now(); }
 /** Test hook: clear all in-memory throttle state. */
 function _resetThrottles() { _recurrenceMarks.clear(); _livenessMarks.clear(); }
@@ -214,6 +220,7 @@ async function _problemAsync(code, opts) {
  * Record (or bump) a problem for a subject. One-liner-safe:
  *   orgHealth.problem('bootstrap.community_fallback', { orgId });
  * Options: { orgId, ncInstanceId, subjectKey, meta, message, severity, source, req }
+ * @param {string} code
  */
 function problem(code, opts = {}) {
     try {
@@ -248,6 +255,7 @@ async function _eventAsync(code, opts) {
  * Append a lifecycle/timeline event unconditionally (used for ALWAYS_APPEND
  * codes like bootstrap.org_created, onboarding.completed, binding.*).
  * Options: { orgId, ncInstanceId, subjectKey, actorUserId, actorKind, meta, message, severity, req }
+ * @param {string} code
  */
 function event(code, opts = {}) {
     try {

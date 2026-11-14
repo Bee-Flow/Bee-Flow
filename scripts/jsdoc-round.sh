@@ -81,14 +81,14 @@ one_batch() {
   echo "-- tests"
   nearby_tests > "$WORK/$label.tests.txt"
   if [ -s "$WORK/$label.tests.txt" ]; then
-    (cd server && NODE_ENV=test node --test $(sed 's#^server/##' "$WORK/$label.tests.txt") > "$WORK/$label.testrun.txt" 2>&1)
+    (cd server && NODE_ENV=test node --require ./testUtils/registerFeatures.js --test --test-concurrency=4 $(sed 's#^server/##' "$WORK/$label.tests.txt") > "$WORK/$label.testrun.txt" 2>&1)
     grep -E "^# (tests|pass|fail)" "$WORK/$label.testrun.txt" | tr '\n' ' ' | tee -a "$LOG"; echo
     if grep -qE '^not ok' "$WORK/$label.testrun.txt"; then
       # A test that fails on HEAD as well (one that needs Postgres, say) is not this round's
       # doing: the same files run once more on the untouched tree, and only a failure that is
-      # new counts. The round's edits wait in a stash meanwhile.
+      # new counts. The round's edits wait in a patch file meanwhile (never the shared stash).
       grep -E '^not ok' "$WORK/$label.testrun.txt" | sed -E 's/^not ok [0-9]+ - //' | sort > "$WORK/$label.failed.txt"
-      git stash push -q -- server && (cd server && NODE_ENV=test node --test $(sed 's#^server/##' "$WORK/$label.tests.txt") > "$WORK/$label.testrun.head.txt" 2>&1); git stash pop -q
+      git diff --binary -- server > "$WORK/$label.round.patch" && git checkout -q -- server && (cd server && NODE_ENV=test node --require ./testUtils/registerFeatures.js --test --test-concurrency=4 $(sed 's#^server/##' "$WORK/$label.tests.txt") > "$WORK/$label.testrun.head.txt" 2>&1); git apply --whitespace=nowarn "$WORK/$label.round.patch"
       grep -E '^not ok' "$WORK/$label.testrun.head.txt" | sed -E 's/^not ok [0-9]+ - //' | sort > "$WORK/$label.failed.head.txt"
       local new; new=$(comm -23 "$WORK/$label.failed.txt" "$WORK/$label.failed.head.txt")
       if [ -n "$new" ]; then echo "tests failed that pass on HEAD: reverting" | tee -a "$LOG"; echo "$new" | head -5 | tee -a "$LOG"; git checkout -- server; return 4; fi
@@ -114,8 +114,7 @@ compiled line changed). Errors under noImplicitAny over the batch: $before.
 $promoted. Files whose new types broke the typecheck, or that the added lines pushed
 over a ceiling, went back to HEAD. The tests in the changed files' directories pass.
 
-Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>
-Claude-Session: https://claude.ai/code/session_0141CJBkRYpevGAuNN2PAmvt
+Co-Authored-By: Claude <noreply@anthropic.com>
 MSG
   git log --oneline -1 | tee -a "$LOG"
 }

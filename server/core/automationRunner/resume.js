@@ -8,7 +8,7 @@
  */
 
 const automationStore = require('../../stores/automationStore');
-const { isTruncatedOutput } = require('../automationModel/payloadTruncation');
+const { isTruncatedOutput } = require('../../stores/automationStore/payloadTruncation');
 const { replayEntryFromRow, withFullOutput } = require('./replaySeeding');
 const { gapsReadAfterPause } = require('./replayGaps');
 const { executeAutomation } = require('./execution');

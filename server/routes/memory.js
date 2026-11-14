@@ -245,7 +245,7 @@ const ReviewQuery = orEmpty(z.object({
 const orgIdOf = (req) => req.session?.user?.organizationId || null;
 
 /** The writer and its detectors are resolved lazily (and replaced in tests). */
-const writer = () => require('../agents/memory/memoryWriter');
+const writer = () => require('../core/memory/memoryWriter');
 
 // Get memory type definitions
 router.get('/types', validate({ query: NoQuery }), (req, res) => {

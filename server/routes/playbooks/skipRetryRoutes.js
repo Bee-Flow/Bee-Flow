@@ -35,7 +35,7 @@ const RetryBody = bodyOf({
     expectedVersion: lockedVersion(),
     resetBrief: z.boolean({ error: typeError({ invalid: 'resetBrief is true or false.' }) }).optional(),
 });
-const { kindOf } = require('./phaseList');
+const { kindOf } = require('../../usecases/playbooks/phaseList');
 const log = require('../../telemetry/log');
 
 /**

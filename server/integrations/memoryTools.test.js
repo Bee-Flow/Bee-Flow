@@ -30,11 +30,11 @@ mock(path.resolve(__dirname, '../stores/memoryStore'), {
     },
 });
 
-// The write pipeline has its own tests (agents/memory/memoryWriter.test.js); here
+// The write pipeline has its own tests (core/memory/memoryWriter.test.js); here
 // it records what the tool hands it and answers with a scripted outcome.
 let writeCalls = [];
 let writeResult = { action: 'created', id: 'mem-1' };
-mock(path.resolve(__dirname, '../agents/memory/memoryWriter'), {
+mock(path.resolve(__dirname, '../core/memory/memoryWriter'), {
     async writeMemory(candidate, ctx) { writeCalls.push({ candidate, ctx }); return writeResult; },
 });
 

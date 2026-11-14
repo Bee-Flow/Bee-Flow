@@ -13,7 +13,7 @@ const log = require('../../telemetry/log');
 const { forbidden, notFound, conflict } = require('../../core/http/errors');
 const {
     BACKOFF_DISMISSALS, PAUSE_MS, isAutomatic, threadEvent, presentComment, presentThread, storeRefusal,
-} = require('./commentsPresent');
+} = require('../../usecases/projects/commentsPresent');
 
 /** @typedef {import('./commentsContext').CommentsCtx} Ctx */
 /** @typedef {import('express').Request<{ id: string, threadId: string, commentId?: string }>} Req */

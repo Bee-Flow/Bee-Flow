@@ -65,7 +65,7 @@ function realDeps(deps = {}) {
         get agentStore() { return deps.agentStore || require('../stores/agentStore'); },
         get userStore() { return deps.userStore || require('../stores/userStore'); },
         get access() { return deps.access || require('./access'); },
-        get agentAccess() { return deps.agentAccess || require('../agents/agentAccess').defaultAgentAccess(); },
+        get agentAccess() { return deps.agentAccess || require('../core/agentRuntime/agentAccess').defaultAgentAccess(); },
     };
 }
 
@@ -526,7 +526,7 @@ module.exports = {
  * @property {Pick<typeof import('../stores/agentStore'), 'getForRuntime' | 'getAgents' | 'getPublishedAgents' | 'getPublishedAgentsForUser'>} [agentStore]
  * @property {Pick<typeof import('../stores/userStore'), 'getUser'>} [userStore]
  * @property {Pick<ReturnType<typeof import('./access').makeAutomationAccess>, 'roleFor'>} [access]  the module itself or a makeAutomationAccess() instance; only roleFor is read
- * @property {Pick<ReturnType<typeof import('../agents/agentAccess').defaultAgentAccess>, 'buildCanModifyContext' | 'canModifyAgent'>} [agentAccess]
+ * @property {Pick<ReturnType<typeof import('../core/agentRuntime/agentAccess').defaultAgentAccess>, 'buildCanModifyContext' | 'canModifyAgent'>} [agentAccess]
  * @property {typeof import('../core/agentRuntime/toolPolicy')} [toolPolicy]
  */
 

@@ -3,7 +3,7 @@
  * How a failed Nextcloud read of the user/group sync is recorded on org
  * health: which code it opens and what the row may say about it.
  *
- * Three codes, because the backstop (jobs/ncSyncBackstop.js) backs off
+ * Three codes, because the backstop (services/ncSyncBackstop.js) backs off
  * differently on them and the admin UI words them differently: a 401 means
  * the connector refuses our signature (the tenant keys diverged) and a 404
  * means AppAPI answers for a disabled or uninstalled app. Neither heals by

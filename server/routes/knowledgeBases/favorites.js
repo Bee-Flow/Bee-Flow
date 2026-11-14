@@ -8,12 +8,12 @@ const router = express.Router();
 const kbStore = require('../../stores/knowledgeBases');
 const { requireAuth } = require('../../auth');
 const { getUserId } = require('./shared');
-// Favouriting needs read access to the base (support/kbAccess.js, the one
+// Favouriting needs read access to the base (core/kb/kbAccess.js, the one
 // place that decides it): a published or shared base stays favouritable, an
 // unknown or foreign id answers the same 404. Removing a favourite is the
 // caller's own list, so it takes any id: a base unshared since must still be
 // removable.
-const { canAccessKB, requireKbGrade } = require('../../support/kbAccess');
+const { canAccessKB, requireKbGrade } = require('../../core/kb/kbAccess');
 const { validate } = require('../../core/http/validate');
 const { bodyOf } = require('../../core/http/schemaParts');
 const { z, typeError } = require('../../utils/zod');

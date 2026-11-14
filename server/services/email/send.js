@@ -12,7 +12,7 @@
  * Extracted from services/supportMailer.js so the support inbox is no longer the
  * only thing that can send threaded mail. Everything here is store-agnostic:
  * callers pass a token blob + an `onRefresh` callback (the contract
- * email/providerClients.js already uses) plus a mailbox descriptor.
+ * utils/emailProviderClients.js already uses) plus a mailbox descriptor.
  *
  * Two axes the support inbox never needed, and this layer adds:
  *
@@ -31,11 +31,14 @@
 
 const crypto = require('crypto');
 const MailComposer = require('nodemailer/lib/mail-composer').default;
-const { gmailClientFromTokens, graphFetchFromTokens } = require('./providerClients');
+const { gmailClientFromTokens, graphFetchFromTokens } = require('../../utils/emailProviderClients');
 const { graphAttachments } = require('./graphAttachments.mts');
 
 // ── Pure helpers (moved verbatim from supportMailer.js) ──────────────────────
 
+/**
+ * @param {string} email
+ */
 function senderDomain(email) {
     const at = String(email || '').split('@')[1];
     return (at && at.trim()) || 'beeflow.nl';
@@ -268,6 +271,7 @@ function buildReferenceChain(references, inReplyTo) {
 /**
  * RFC822 Message-ID we mint ourselves so the reply can be threaded on later.
  * @param {string} seed
+ * @param {string} fromEmail
  */
 function mintMessageId(seed, fromEmail) {
     return `<support-${seed}-${crypto.randomUUID()}@${senderDomain(fromEmail)}>`;

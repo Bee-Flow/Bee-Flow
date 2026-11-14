@@ -106,7 +106,7 @@ const MOCKS = {
     // their org, a super admin every base of every tenant, and the surface
     // question is never asked), and a route that reaches for it here would
     // throw rather than silently widen what a test run may read.
-    '../../support/kbAccess': {
+    '../../core/kb/kbAccess': {
         usableKbIdsForRequest: async (req, ids, opts) => {
             rec('usableKbIdsForRequest', { ids, opts });
             if (fx.kbThrows) throw new Error('kb store down');

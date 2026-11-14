@@ -125,6 +125,7 @@ async function markCompleted(id) {
 
 /**
  * @param {string | number | Date} remindAt
+ * @param {string} interval
  */
 function advanceRemindAt(remindAt, interval) {
     const d = new Date(remindAt);

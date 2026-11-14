@@ -11,7 +11,7 @@
  */
 function errorLine(text, chars) {
     if (typeof text !== 'string' || !text) return null;
-    const { redactForPersistence } = require('../core/automationModel/runLogRedaction');
+    const { redactForPersistence } = require('../stores/automationStore/runLogRedaction');
     const masked = redactForPersistence(text).value;
     return masked.length > chars ? `${masked.slice(0, chars)}…` : masked;
 }
@@ -35,7 +35,7 @@ const QUOTED_RE = /(?<!\w)(?:"[^"\n]*"|'[^'\n]*'|`[^`\n]*`|“[^”\n]*”|‘[^
 function valueFreeErrorLine(text, errorClass, chars) {
     if (typeof text !== 'string' || !text) return null;
     if (errorClass === 'stop_error') return `«message:${text.length}»`;
-    const { redactForPersistence } = require('../core/automationModel/runLogRedaction');
+    const { redactForPersistence } = require('../stores/automationStore/runLogRedaction');
     const scrubbed = redactForPersistence(text).value
         .replace(QUOTED_RE, (m) => `«string:${m.length - 2}»`)
         .replace(/\bhttps?:\/\/\S+/gi, '«url»')

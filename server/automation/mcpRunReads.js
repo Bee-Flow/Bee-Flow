@@ -34,7 +34,7 @@
  * owned by the token's user, in that user's organisation. A run of anybody
  * else's automation answers 404, the same as a run that does not exist. On top
  * comes the run-data read check every run read makes
- * (core/automationModel/callerRunVisibility.js): a run that used its starter's
+ * (auth/callerRunVisibility.js): a run that used its starter's
  * own connections shows its data to the starter alone.
  *
  * CAPS are environment variables with a generous default; 0 = unlimited.

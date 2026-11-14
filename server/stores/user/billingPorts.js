@@ -12,7 +12,7 @@ const log = require('../../telemetry/log');
 /** @typedef {{ mode?: 'intersect' | 'reset' }} PlanOpts */
 
 /** @type {(orgId: string, planId: string, opts?: PlanOpts) => Promise<unknown>} */
-let applyPlan = async () => { throw new Error('applyPlanToOrg is not installed: services/planEntitlements.js has not loaded'); };
+let applyPlan = async () => { throw new Error('applyPlanToOrg is not installed: core/entitlements/planEntitlements.js has not loaded'); };
 
 let trialWarned = false;
 /** @type {(orgId: string) => unknown} */

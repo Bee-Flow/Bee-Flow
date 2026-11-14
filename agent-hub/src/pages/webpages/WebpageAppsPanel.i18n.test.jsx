@@ -42,6 +42,7 @@ vi.mock('../../hooks/useAutomationApi', () => ({
 }));
 
 import WebpageAppsPanel from './WebpageAppsPanel';
+import { withQueryClient } from '../../test/queryWrapper';
 
 const GRANTS = {
     integrations: [
@@ -62,7 +63,7 @@ beforeEach(() => {
 
 describe('WebpageAppsPanel — i18n', () => {
     it('BIJT — de drie statussen van een koppeling dragen elk een eigen sleutel', async () => {
-        render(<WebpageAppsPanel webpageId="wp1" />);
+        render(withQueryClient(<WebpageAppsPanel webpageId="wp1" />));
 
         expect(await screen.findByText('⟦webpages.apps.status_connected⟧')).toBeInTheDocument();
         expect(screen.getByText('⟦webpages.apps.status_reconnect⟧')).toBeInTheDocument();
@@ -72,16 +73,17 @@ describe('WebpageAppsPanel — i18n', () => {
     });
 
     it('BIJT — de kop, de ondertitel en de twee sectiekoppen komen uit het woordenboek', async () => {
-        render(<WebpageAppsPanel webpageId="wp1" />);
+        render(withQueryClient(<WebpageAppsPanel webpageId="wp1" />));
 
         expect(await screen.findByText('⟦webpages.apps.title⟧')).toBeInTheDocument();
         expect(screen.getByText('⟦webpages.apps.subtitle⟧')).toBeInTheDocument();
-        expect(screen.getByText('⟦webpages.apps.section_apps⟧')).toBeInTheDocument();
+        // The section heads come with the lists, once the three reads are in.
+        expect(await screen.findByText('⟦webpages.apps.section_apps⟧')).toBeInTheDocument();
         expect(screen.getByText('⟦webpages.apps.section_automations⟧')).toBeInTheDocument();
     });
 
     it('BIJT — "Verwijder X" reist met de naam als PARAMETER, niet als aangeplakte tekst', async () => {
-        render(<WebpageAppsPanel webpageId="wp1" />);
+        render(withQueryClient(<WebpageAppsPanel webpageId="wp1" />));
 
         // Dezelfde sleutel als de verwijderknop in BuildBar: identieke Engelse
         // tekst, identieke parameter, identiek doel. Een tweede sleutel zou een
@@ -93,7 +95,7 @@ describe('WebpageAppsPanel — i18n', () => {
 
     it('BIJT — een niet-verbonden app in de keuzelijst is één zin met {name}, geen naam + Engels staartje', async () => {
         const user = userEvent.setup();
-        render(<WebpageAppsPanel webpageId="wp1" />);
+        render(withQueryClient(<WebpageAppsPanel webpageId="wp1" />));
         await user.click(await screen.findByRole('button', { name: /webpages\.apps\.add_app/ }));
 
         const select = await screen.findByLabelText('⟦webpages.apps.field_app⟧');
@@ -115,7 +117,7 @@ describe('WebpageAppsPanel — i18n', () => {
         getCatalog.mockResolvedValueOnce({
             apps: [{ id: 'drive', label: 'Drive', available: null, actions: [{ name: 'drive_list', label: 'drive list' }] }],
         });
-        render(<WebpageAppsPanel webpageId="wp1" />);
+        render(withQueryClient(<WebpageAppsPanel webpageId="wp1" />));
         await user.click(await screen.findByRole('button', { name: /webpages\.apps\.add_app/ }));
 
         const select = await screen.findByLabelText('⟦webpages.apps.field_app⟧');
@@ -129,7 +131,7 @@ describe('WebpageAppsPanel — i18n', () => {
     });
 
     it('BIJT — de lezer-zin voor niet-eigenaars is vertaalbaar', () => {
-        render(<WebpageAppsPanel webpageId="wp1" readOnly />);
+        render(withQueryClient(<WebpageAppsPanel webpageId="wp1" readOnly />));
 
         expect(screen.getByText('⟦webpages.apps.owner_only⟧')).toBeInTheDocument();
         expect(authFetch).not.toHaveBeenCalled();

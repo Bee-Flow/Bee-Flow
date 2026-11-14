@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useEffectEvent, useState } from 'react';
 import {
     AppWindow, AlertTriangle, CheckCircle2, HelpCircle, Loader2, Lock,
     Plug, Plus, RefreshCw, Trash2, Workflow, X,
@@ -8,8 +8,9 @@ import useTranslation, { TranslateParams } from '../../hooks/useTranslation';
 import { RefusedError, errorBody } from '../../api/mutate';
 import { apiRequest } from '../../api/typedRequest';
 import type { CatalogApp } from '../../components/automation/Builder/flow/stepPalette.types';
-import type { AutomationOption, GrantedIntegration, GrantedAutomation, Grants, AutomationApi, StatusPillProps, AddAutomationFormProps, WebpageAppsPanelProps } from './WebpageAppsPanel.types';
-import { readJson, ConnectLink, AddAppForm } from './AddAppForm';
+import type { AutomationOption, Grants, AutomationApi, StatusPillProps, AddAutomationFormProps, WebpageAppsPanelProps } from './WebpageAppsPanel.types';
+import { ConnectLink, AddAppForm } from './AddAppForm';
+import { useReloadWebpageAppsPane, useRevokeWebpageGrant, useWebpageGrantsQuery, useWebpagePaneList } from '../../api/queries/webpageGrants';
 
 // How long a catalog/grants snapshot may be shown stale; a window-focus or a
 // manual refresh re-fetches (the author may have just connected an app).
@@ -102,91 +103,71 @@ function AddAutomationForm({ webpageId, automations, onGranted, onError }: AddAu
 
 // ─── The panel ──────────────────────────────────────────────────────
 
-export default function WebpageAppsPanel({ webpageId, readOnly = false }: WebpageAppsPanelProps) {
-    // Keep the api in a ref: useAutomationApi is memoised in production, but
-    // depending on it directly would re-fire load() whenever a consumer's mock
-    // (or any future change) returns a fresh object per render — the exact
-    // loop the hook's own useMemo warns about.
+/** The sentence for a grants read or a revoke that failed: the server's own text, else ours with the status. */
+function failureText(err: Error, refused: (status: number) => string): string {
+    if (err instanceof RefusedError) return errorBody(err)?.error || refused(err.status);
+    return err.message;
+}
+
+/** The pane's three reads, as the lists and states it renders. */
+function usePaneReads(webpageId: string, active: boolean) {
     const { t } = useTranslation();
-    // The same reason as apiRef above: without a TranslationProvider, t is a new
-    // function on every render, and in the deps of load() that would fire the
-    // load effect endlessly.
-    const tRef = React.useRef(t);
-    tRef.current = t;
-    const apiRef = React.useRef<AutomationApi | null>(null);
-    apiRef.current = useAutomationApi();
-    const [grants, setGrants] = useState<Grants | null>(null);
-    const [catalog, setCatalog] = useState<{ apps: CatalogApp[] } | null>(null);
-    const [catalogFailed, setCatalogFailed] = useState(false);
-    const [automations, setAutomations] = useState<AutomationOption[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const api: AutomationApi = useAutomationApi();
+    const grantsQuery = useWebpageGrantsQuery<Grants>(webpageId, active);
+    // Catalog + automations are best-effort: grants stay manageable without them.
+    const catalogQuery = useWebpagePaneList(webpageId, 'catalog', () => api.getCatalog<{ apps: CatalogApp[] }>(), active);
+    const automationsQuery = useWebpagePaneList(webpageId, 'automations', () => api.listAutomations<{ automations?: AutomationOption[] }>(), active);
+    // A failed read of a best-effort list shows as no list, also when an earlier read had one.
+    const catalogFailed = catalogQuery.isError;
+    return {
+        grants: grantsQuery.data ?? null,
+        catalogFailed,
+        catalog: catalogFailed ? null : catalogQuery.data ?? null,
+        automations: automationsQuery.isError ? [] : automationsQuery.data?.automations || [],
+        loading: grantsQuery.isPending || catalogQuery.isPending || automationsQuery.isPending,
+        loadError: grantsQuery.error && !grantsQuery.isFetching
+            ? failureText(grantsQuery.error, status => t('webpages.apps.err_load', 'Could not load apps ({status})', { status }))
+            : null,
+    };
+}
+
+export default function WebpageAppsPanel({ webpageId, readOnly = false }: WebpageAppsPanelProps) {
+    const { t } = useTranslation();
+    const active = !!webpageId && !readOnly;
+    const { grants, catalog, catalogFailed, automations, loading, loadError } = usePaneReads(webpageId, active);
+    const reloadPane = useReloadWebpageAppsPane(webpageId);
+    const revokeGrant = useRevokeWebpageGrant(webpageId);
+    // What an add or a remove reported; the next load clears it.
+    const [actionError, setError] = useState<string | null>(null);
     const [adding, setAdding] = useState<string | null>(null); // null | 'app' | 'automation'
     const lastFetchRef = React.useRef(0);
+    useEffect(() => { lastFetchRef.current = Date.now(); }, [webpageId, readOnly]);
 
-    const load = useCallback(async () => {
-        if (!webpageId || readOnly) return;
+    const load = async () => {
+        if (!active) return;
         lastFetchRef.current = Date.now();
         setError(null);
-        try {
-            let body: Grants;
-            try {
-                const res = await apiRequest('GET /api/webpages/{id}/grants', { params: { id: webpageId } });
-                body = await readJson(res);
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                throw new Error(errorBody(err)?.error || tRef.current('webpages.apps.err_load', 'Could not load apps ({status})', { status: err.status }));
-            }
-            setGrants(body);
-        } catch (e) {
-            setError((e as Error).message);
-        }
-        // Catalog + automations are best-effort: grants stay manageable without them.
-        try {
-            const c = await (apiRef.current as AutomationApi).getCatalog<{ apps: CatalogApp[] }>();
-            setCatalog(c);
-            setCatalogFailed(false);
-        } catch {
-            setCatalog(null);
-            setCatalogFailed(true);
-        }
-        try {
-            const r = await (apiRef.current as AutomationApi).listAutomations<{ automations?: AutomationOption[] }>();
-            setAutomations(r.automations || []);
-        } catch {
-            setAutomations([]);
-        }
-        setLoading(false);
-    }, [webpageId, readOnly]);
-
-    useEffect(() => { setLoading(true); load(); }, [load]);
+        await reloadPane();
+    };
 
     // Refetch when the window regains focus (e.g. back from Settings →
     // Integrations), but not more often than FOCUS_REFETCH_MS.
+    const onFocus = useEffectEvent(() => {
+        if (Date.now() - lastFetchRef.current > FOCUS_REFETCH_MS) void load();
+    });
     useEffect(() => {
-        const onFocus = () => {
-            if (Date.now() - lastFetchRef.current > FOCUS_REFETCH_MS) load();
-        };
         window.addEventListener('focus', onFocus);
         return () => window.removeEventListener('focus', onFocus);
-    }, [load]);
+    }, []);
 
-    const revoke = async (kind: 'integrations' | 'automations', key: string | number | boolean) => {
+    const revoke = (kind: 'integrations' | 'automations', key: string) => {
         setError(null);
-        try {
-            try {
-                await (kind === 'integrations'
-                    ? apiRequest('DELETE /api/webpages/{id}/grants/integrations/{tool}', { params: { id: webpageId, tool: String(key) } })
-                    : apiRequest('DELETE /api/webpages/{id}/grants/automations/{automationId}', { params: { id: webpageId, automationId: String(key) } }));
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                throw new Error(errorBody(err)?.error || t('webpages.apps.err_remove', 'Could not remove ({status})', { status: err.status }));
-            }
-            await load();
-        } catch (e) {
-            setError((e as Error).message);
-        }
+        revokeGrant.mutate({ kind, key }, {
+            onSuccess: () => { lastFetchRef.current = Date.now(); },
+            onError: (err) => setError(failureText(err, status => t('webpages.apps.err_remove', 'Could not remove ({status})', { status }))),
+        });
     };
+    const error = actionError ?? loadError;
 
     if (readOnly) {
         return (

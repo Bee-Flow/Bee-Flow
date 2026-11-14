@@ -232,7 +232,7 @@ jobs:
               # Studio, billing): lockstep tests and serverContract.test.ts
               # read these as text or require() them.
               - 'server/auth/{adminRoutes.js,ncBindingRoutes.js,permissions.js,router.js,permissionsCatalog.js,permissionsOrgGates.js}'
-              - 'server/auth/admin/{featureAccessRoutes.js,groupRoleRoutes.js,invitationRoutes.js,orgRoutes.js,userRoutes.js,userSupportRoutes.js}'
+              - 'server/auth/admin/{featureAccessRoutes.js,groupRoleRoutes.js,invitationRoutes.js,orgRoutes.js,userRoutes.js,userSupportRoutes.js,userUpdateSupportRoutes.js}'
               - 'server/auth/login/{currentUserRoutes.js,myPermissionsRoutes.js}'
               - 'server/automation/{deliverableEvents.js,formPickSources.js}'
               - 'server/automation/validate/constants.js'
@@ -299,7 +299,7 @@ jobs:
             server:
               - 'server/**'
               - '.nvmrc'
-              - 'scripts/{eslint-budget,complexity-tail-ratchet,check-server-manifest,check-playwright-lockstep,check-legal-catalogue,source-text-tests,count-ratchet,coverage-ratchet,checkjs-ratchet,check-new-code-types,check-compat-corpus,gen-i18n-defaults,i18n-key-guard,i18n-split,entry-point}.mjs'
+              - 'scripts/{eslint-budget,complexity-tail-ratchet,any-share,check-server-manifest,check-playwright-lockstep,check-legal-catalogue,source-text-tests,count-ratchet,coverage-ratchet,mts-coverage,checkjs-ratchet,check-new-code-types,check-compat-corpus,gen-i18n-defaults,i18n-key-guard,i18n-split,entry-point}.mjs'
               - 'scripts/{gen-api-reference.mjs,api-reference-walk.cjs}'
               - 'docs/static/openapi.json'
               - 'scripts/eslint/**'
@@ -347,6 +347,8 @@ jobs:
               - 'server/i18n/defaults/**'
               - 'server/learning/**'
               - 'server/services/email/**'
+              # the mailbox clients server/services/email/ is built on
+              - 'server/utils/emailProviderClients.js'
               - 'server/shared/**'
               - 'server/stores/{datatableStore,lib,user}/**'
               - 'server/stores/{datatableStore,projectStore,storageStore,studioAppDataStore,studioAppDbStore,studioAppStore,userStore}.js'
@@ -742,6 +744,18 @@ jobs:
       # tsc, and the number of such files may only rise (phase 6.4).
       - name: Typecheck (files marked // @typecheck)
         run: npm run typecheck
+      # Passing the typecheck says nothing about how much of the code the
+      # checker sees as `any`. This counts it (expressions, and exported
+      # functions with an any parameter or return) and the two shares may only
+      # go down. It needs the TypeScript API (the root's typescript-api; the
+      # server's own TypeScript 7 has none) and this job's server install for
+      # the typings, so check:fast leaves it out.
+      - name: Install the root packages (TypeScript API for the any-share ratchet)
+        working-directory: .
+        run: npm ci --no-audit --no-fund
+      - name: any-share ratchet (expressions and exported functions typed any)
+        working-directory: .
+        run: npm run lint:any-share-ratchet
       # The API reference in docs/ is read from the running app's router (every
       # route, its gates, its zod request schemas). It needs this job's server
       # install, so check:fast leaves it out. Stale after a route change?
@@ -866,6 +880,14 @@ jobs:
       - name: Coverage floor
         working-directory: .
         run: node scripts/coverage-ratchet.mjs server
+      # The same merged report, the .mts files only: the old JavaScript carries
+      # the total, so the TypeScript sources get a floor of their own
+      # (server/.mts-coverage-ratchet.json, `--update` only raises it). The
+      # step prints the share per folder.
+      - name: Coverage floor of the .mts files
+        if: ${{ !cancelled() }}
+        working-directory: .
+        run: node scripts/mts-coverage.mjs server
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: ${{ !cancelled() }}
         with:

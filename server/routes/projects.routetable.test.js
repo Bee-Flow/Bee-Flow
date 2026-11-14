@@ -30,7 +30,7 @@ const { mockModule: mock } = require('../testUtils/moduleMock');
 mock(path.join(SERVER, 'stores/projectStore'), {});
 mock(path.join(SERVER, 'stores/userStore'), {});
 mock(path.join(SERVER, 'stores/knowledgeBases'), {});
-mock(path.join(SERVER, 'support/kbAccess'), { partitionAccessibleKBIds: async () => ({ allowed: [], denied: [] }) });
+mock(path.join(SERVER, 'core/kb/kbAccess'), { partitionAccessibleKBIds: async () => ({ allowed: [], denied: [] }) });
 mock(path.join(SERVER, 'auth'), { resolveUserGroups: async () => [] });
 // The limiter is mocked, so its layer name comes from here. Give it a real name
 // so the baseline below records "a rate limiter sits on this route" rather than

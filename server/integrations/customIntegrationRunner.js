@@ -28,6 +28,7 @@ const {
     EXACT_PLACEHOLDER_RE, DEFAULT_MAX_RESPONSE_CHARS, truncateBudget, scrubSecrets, getByDotPath,
     callRemoteMcpTool, resolveRunCredentials, requestHeaders, shapeResponse,
 } = require('./customIntegrationSteps');
+const { openRunGate, loadIntegration, authoriseRun } = require('./customIntegrationAccess');
 
 const SLUG_RE = /^[a-z0-9]{4,16}$/;
 const TOOL_NAME_RE = /^[a-z][a-z0-9_]{2,40}$/;
@@ -293,6 +294,264 @@ async function readBodyCapped(response, capBytes) {
 // ─── Execution ─────────────────────────────────────────────────
 
 /**
+ * What a run reaches outside this file. The stores, the run gate and
+ * entitlements load on first use, so requiring this module never touches the
+ * database; a test passes its own.
+ */
+const RUN_DEPS = {
+    loadRunGate: () => require('../core/customIntegrations/mcpLibrary/gate').loadRunGate(),
+    integrationStore: () => require('../stores/orgCustomIntegrationStore'),
+    connectionStore: () => require('../stores/integrationConnectionStore'),
+    getUser: (/** @type {string} */ userId) => require('../stores/userStore').getUser(userId),
+    hasCapability: (/** @type {string} */ capability, /** @type {{ userId: string, orgId: string }} */ who) =>
+        require('../core/entitlements/entitlements').hasCapability(capability, who),
+    callRemoteMcpTool,
+    ssrfGuard,
+    log,
+};
+
+/**
+ * Definition: active runs the FROZEN activated_definition only; draft mode
+ * runs the working copy.
+ * @param {CustomIntegrationRow} integration
+ * @param {boolean} isDraft
+ */
+function runnableDefinition(integration, isDraft) {
+    const def = isDraft ? integration.definition : integration.activatedDefinition;
+    if (!def || typeof def !== 'object' || !def.api || typeof def.api !== 'object' || !Array.isArray(def.tools)) {
+        return { refusal: 'This custom integration has no runnable definition.' };
+    }
+    let baseOrigin;
+    try { baseOrigin = new URL(def.api.baseUrl).origin; } catch { return { refusal: 'The integration base URL is invalid.' }; }
+    return { def, baseOrigin };
+}
+
+/**
+ * The tool a call names, with its checks in order. Method gate: non-GET
+ * requires the allow_writes activation flag — strict for drafts too.
+ * Arguments: reject, never coerce.
+ * @param {CustomIntegrationRow} integration
+ * @param {CustomIntegrationDefinition} def
+ * @param {string} toolName
+ * @param {Record<string, unknown>} args
+ */
+function resolveToolCall(integration, def, toolName, args) {
+    const tool = def.tools.find(t => t && typeof t === 'object' && t.name === toolName);
+    if (!tool) return { refusal: `Tool "${toolName}" is not part of this integration.` };
+
+    const method = typeof tool.method === 'string' ? tool.method.toUpperCase() : '';
+    if (!METHODS.has(method)) return { refusal: 'This tool has an invalid HTTP method.' };
+    if (method !== 'GET' && integration.allowWrites !== true) {
+        return { refusal: 'This integration is read-only — write operations were not enabled at activation.' };
+    }
+
+    const check = validateArgsAgainstSchema(tool.parameters, args);
+    if (!check.ok) return { refusal: `Invalid arguments: ${check.errors.join(' ')}` };
+    const toolArgs = (args && typeof args === 'object') ? args : {};
+    return { tool, method, toolArgs };
+}
+
+/**
+ * URL build (origin pin asserted inside) + resolving SSRF check.
+ * @param {typeof ssrfGuard} guard
+ * @param {CustomIntegrationDefinition} def
+ * @param {RestTool} tool
+ * @param {Record<string, unknown>} toolArgs
+ */
+async function checkedToolUrl(guard, def, tool, toolArgs) {
+    let url;
+    try {
+        url = buildToolUrl(def, tool, toolArgs);
+    } catch (e) {
+        return { refusal: e.message }; // buildToolUrl messages are generic
+    }
+    try {
+        await guard.assertPublicHttpsTarget(url.href);
+    } catch (e) {
+        return { refusal: SAFE_GUARD_ERRORS.has(e?.message) ? e.message : 'Target address is not allowed.' };
+    }
+    return { url };
+}
+
+/**
+ * Auth goes on LAST: the rendered value into the header or query parameter
+ * its type names, and into the run's secret values so composed forms (e.g.
+ * Basic b64) are scrubbed too.
+ * @param {AuthConfig} auth
+ * @param {unknown} secret
+ * @param {{ url: URL, headers: Record<string, string>, run: { secretValues: string[] } }} request
+ * @returns {{ refusal: string } | null}  why the value cannot be rendered
+ */
+function applyAuth(auth, secret, { url, headers, run }) {
+    let authValue;
+    try {
+        authValue = renderAuthValue(auth, secret);
+    } catch (e) {
+        return { refusal: e.message };
+    }
+    run.secretValues.push(authValue);
+    if (auth.type === 'bearer' || auth.type === 'basic') headers['Authorization'] = authValue;
+    else if (auth.type === 'header') headers[String(auth.header)] = authValue;
+    else if (auth.type === 'query') url.searchParams.append(String(auth.queryParam), authValue);
+    return null;
+}
+
+/**
+ * Headers (definition literals, requestHeaders), JSON body, then auth.
+ * @param {{ def: CustomIntegrationDefinition, tool: RestTool, method: string, toolArgs: Record<string, unknown> }} call
+ * @param {{ auth: AuthConfig, secret: unknown, url: URL, run: { secretValues: string[] } }} target
+ * @returns {{ refusal: string } | { headers: Record<string, string>, body: string | undefined }}
+ */
+function buildRequest({ def, tool, method, toolArgs }, { auth, secret, url, run }) {
+    const headers = requestHeaders(def, tool);
+    let body;
+    // fetch() rejects GET bodies outright, so a (validator-warned) GET
+    // body template is dropped rather than failing the whole call.
+    if (tool.body && tool.body.mode === 'json' && method !== 'GET') {
+        body = JSON.stringify(buildJsonBody(tool.body.template, toolArgs) ?? {});
+        if (!Object.keys(headers).some(h => h.toLowerCase() === 'content-type')) {
+            headers['Content-Type'] = 'application/json';
+        }
+    }
+    if (auth.type !== 'none') {
+        const refused = applyAuth(auth, secret, { url, headers, run });
+        if (refused) return refused;
+    }
+    return { headers, body };
+}
+
+/**
+ * The request itself, under the definition's (clamped) timeout.
+ * @param {typeof ssrfGuard} guard
+ * @param {URL} url
+ * @param {{ method: string, headers: Record<string, string>, body: string | undefined }} request
+ * @param {unknown} definedTimeoutMs
+ */
+async function sendRequest(guard, url, { method, headers, body }, definedTimeoutMs) {
+    const timeoutMs = clampInt(definedTimeoutMs, MIN_TIMEOUT_MS, MAX_TIMEOUT_MS, DEFAULT_TIMEOUT_MS);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    if (typeof timer.unref === 'function') timer.unref();
+    try {
+        return { response: await guard.safeFetch(url.href, { method, headers, body, signal: controller.signal }) };
+    } catch (err) {
+        if ((err && err.name === 'AbortError') || controller.signal.aborted) {
+            return { refusal: `The request timed out after ${Math.round(timeoutMs / 1000)}s.` };
+        }
+        // Never echo fetch internals — they can carry the URL (and with
+        // query auth, the credential).
+        return { refusal: SAFE_GUARD_ERRORS.has(err?.message) ? err.message : 'Could not reach the API host.' };
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+/**
+ * Response: capped read, sanitized errors.
+ * @param {Awaited<ReturnType<typeof ssrfGuard.safeFetch>>} response
+ */
+async function readAnswer(response) {
+    let raw;
+    try {
+        raw = await readBodyCapped(response, MAX_RAW_BYTES);
+    } catch (e) {
+        return { refusal: e && e.tooLarge
+            ? `The response exceeded the ${Math.round(MAX_RAW_BYTES / 1024)} KB limit. Narrow the request (filters, pagination).`
+            : 'Failed to read the API response.' };
+    }
+    if (!response.ok) {
+        const detail = extractErrorMessage(raw.toString('utf8'));
+        return { refusal: detail ? `The API returned HTTP ${response.status}: ${detail}` : `The API returned HTTP ${response.status}.` };
+    }
+    return { raw };
+}
+
+/**
+ * A 'rest' call from the checked integration to the shaped answer: the
+ * definition, the tool with its method and arguments, the credentials
+ * (provider 'custom:<integrationId>'), the origin-pinned and target-checked
+ * URL, the request, the capped read, a best-effort usage stamp and the
+ * budgeted result.
+ * @param {typeof RUN_DEPS} deps
+ * @param {{ secretValues: string[] }} run
+ * @param {{ integration: CustomIntegrationRow, toolName: string,
+ *   connStore: import('./customIntegrationAccess').ConnectionStore,
+ *   args: Record<string, unknown>, isDraft: boolean, connectionOverrideId: string | null, userId: string, userOrg: string, integrationOrg: string }} call
+ */
+async function runRestCall(deps, run, { integration, connStore, toolName, args, isDraft, connectionOverrideId, userId, userOrg, integrationOrg }) {
+    const defined = runnableDefinition(integration, isDraft);
+    if ('refusal' in defined) return defined;
+    const { def, baseOrigin } = defined;
+    const resolved = resolveToolCall(integration, def, toolName, args);
+    if ('refusal' in resolved) return resolved;
+    const { tool, method, toolArgs } = resolved;
+
+    const auth = (def.auth && typeof def.auth === 'object') ? def.auth : { type: 'none' };
+    let connection = null;
+    let secret = null;
+    if (auth.type !== 'none') {
+        const creds = await resolveRunCredentials(connStore, {
+            integration, connectionOverrideId, userId, userOrg, integrationOrg, baseOrigin,
+        });
+        if ('refusal' in creds) return creds;
+        ({ connection, secret } = creds);
+        run.secretValues = Object.values(secret).filter(v => typeof v === 'string');
+    }
+
+    const target = await checkedToolUrl(deps.ssrfGuard, def, tool, toolArgs);
+    if ('refusal' in target) return target;
+    const { url } = target;
+    const request = buildRequest({ def, tool, method, toolArgs }, { auth, secret, url, run });
+    if ('refusal' in request) return request;
+
+    deps.log.info(`[CustomIntegration] ${integration.slug}.${toolName} (${method})`);
+
+    const sent = await sendRequest(deps.ssrfGuard, url, { method, ...request }, def.api.timeoutMs);
+    if ('refusal' in sent) return sent;
+    const answer = await readAnswer(sent.response);
+    if ('refusal' in answer) return answer;
+
+    if (connection) {
+        try { await connStore.touchLastUsed(connection.id); } catch (err) { bestEffort('integrations/customIntegrationRunner:executeCustomIntegrationTool', err); /* best effort */ }
+    }
+
+    const maxChars = clampInt(def.api.maxResponseChars, MIN_RESPONSE_CHARS, DEFAULT_MAX_RESPONSE_CHARS, DEFAULT_MAX_RESPONSE_CHARS);
+    return shapeResponse(sent.response, answer.raw, tool, maxChars, run.secretValues);
+}
+
+/**
+ * The steps of a run, in order; each refusal ends it. `run.secretValues`
+ * holds the credential material loaded so far, for the caller's scrub.
+ * @param {string} prefixedName
+ * @param {Record<string, unknown>} args
+ * @param {{ userId: string | null, draftIntegration: CustomIntegrationRow | null, connectionOverrideId: string | null, unattended: boolean }} opts
+ * @param {typeof RUN_DEPS} deps
+ * @param {{ secretValues: string[] }} run
+ */
+async function runToolCall(prefixedName, args, { userId, draftIntegration, connectionOverrideId, unattended }, deps, run) {
+    const isDraft = !!draftIntegration;
+    const gate = await openRunGate(deps, isDraft);
+    if ('refusal' in gate) return gate;
+    const parsed = parsePrefixedName(prefixedName);
+    if (!parsed) return { refusal: 'Unknown custom integration tool.' };
+    const loaded = await loadIntegration(deps, gate, { prefixedName, slug: parsed.slug, draftIntegration });
+    if ('refusal' in loaded) return loaded;
+    const { integration, connStore } = loaded;
+    const access = await authoriseRun(deps, connStore, integration, { userId, isDraft, unattended });
+    if ('refusal' in access) return access;
+
+    // mcp_remote → delegate, then apply the same scrub/truncate.
+    if (integration.kind === 'mcp_remote') {
+        return deps.callRemoteMcpTool(integration, {
+            prefixedName, toolName: parsed.toolName, args, userId, secretValues: run.secretValues,
+        });
+    }
+    return runRestCall(deps, run, {
+        integration, connStore, toolName: parsed.toolName, args, isDraft, connectionOverrideId, userId, ...access,
+    });
+}
+
+/**
  * Execute a cint_<slug>_<tool> call. Returns afasTools-style result objects:
  * { error } on refusal/failure, or { status, result, truncated?, message? }
  * (result is the truncated serialized response). Every returned string is
@@ -306,201 +565,19 @@ async function readBodyCapped(response, capBytes) {
  *   builder's test route, which skips the status and capability checks (the route
  *   pre-authorizes) and runs the WORKING definition; `connectionOverrideId` an explicit
  *   connection (test route); `unattended` an automated run (refused for now)
+ * @param {typeof RUN_DEPS} [deps]  the collaborators (tests)
  */
 async function executeCustomIntegrationTool(prefixedName, args, {
     userId = null, draftIntegration = null, connectionOverrideId = null, unattended = false,
-} = {}) {
-    let secretValues = [];
-    const fail = (msg) => ({ error: scrubSecrets(String(msg), secretValues) });
+} = {}, deps = RUN_DEPS) {
+    const run = { secretValues: /** @type {string[]} */ ([]) };
     try {
-        // 0. Run gate — the same check that gates injection: the builder's
-        //    dark-ship flag for builder rows, the server-wide org MCP policy
-        //    for MCP-library rows (customIntegrations/mcpLibrary/gate.js).
-        //    Checked here too so a stale tool list (or any future injection
-        //    path) can never execute once it is switched off. Loaded before
-        //    the row so that, with everything off, nothing is even read.
-        const { loadRunGate } = require('../core/customIntegrations/mcpLibrary/gate');
-        const gate = await loadRunGate();
-        if (!gate.anyRunnable) return fail('Custom integrations are disabled.');
-        // The builder's test route runs drafts; that is a builder feature.
-        if (draftIntegration && !gate.builderEnabled) return fail('Custom integrations are disabled.');
-
-        // 1. Parse + load + slug re-assert (a draftIntegration for another
-        //    slug must not be reachable through this name).
-        const parsed = parsePrefixedName(prefixedName);
-        if (!parsed) return fail('Unknown custom integration tool.');
-        const store = require('../stores/orgCustomIntegrationStore');
-        const connStore = require('../stores/integrationConnectionStore');
-        const integration = draftIntegration || await store.getBySlug(parsed.slug);
-        if (!integration) return fail('This custom integration no longer exists.');
-        if (typeof integration.slug !== 'string' || !prefixedName.startsWith(`cint_${integration.slug}_`)) {
-            return fail('Unknown custom integration tool.');
-        }
-        if (!draftIntegration && !gate.isRunnable(integration)) {
-            return fail('This integration has been switched off by your server administrator.');
-        }
-
-        // 2. Org isolation: the runner only ever acts inside the calling
-        //    user's own org (store rows are shaped camelCase: orgId).
-        if (!userId) return fail('User context required for custom integrations.');
-        let user = null;
-        try { user = await require('../stores/userStore').getUser(userId); } catch (_) { user = null; }
-        if (!user) return fail('User context required for custom integrations.');
-        const userOrg = connStore.resolveOrgId(user.organizationId);
-        const integrationOrg = connStore.resolveOrgId(integration.orgId);
-        if (integrationOrg !== userOrg) return fail('This custom integration belongs to a different organization.');
-        if (!draftIntegration && integration.status !== 'active') {
-            return fail('This custom integration is not active.');
-        }
-
-        // 3. No unattended runs yet (automations/AI tasks need per-run consent design).
-        if (unattended === true) return fail('Custom integrations are not available in automated runs yet.');
-
-        // 5. Capability backstop (fail-closed; deliberately BEFORE the
-        //    mcp_remote delegation so no kind bypasses entitlements). Skipped
-        //    in draft mode — the builder test route pre-authorizes admins.
-        //    NOTE: until the entitlements phase registers 'custom:<uuid>'
-        //    capability ids, hasCapability returns false (unknown cap) and
-        //    every non-draft call refuses here.
-        if (!draftIntegration) {
-            let allowed = false;
-            try {
-                allowed = await require('../core/entitlements/entitlements')
-                    .hasCapability(`custom:${integration.id}`, { userId, orgId: userOrg });
-            } catch (_) {
-                allowed = false;
-            }
-            if (!allowed) return fail('This custom integration is not enabled for your account. An org admin can enable it.');
-        }
-
-        // 4. mcp_remote → delegate, then apply the same scrub/truncate.
-        if (integration.kind === 'mcp_remote') {
-            const res = await callRemoteMcpTool(integration, {
-                prefixedName, toolName: parsed.toolName, args, userId, secretValues,
-            });
-            return 'refusal' in res ? fail(res.refusal) : res;
-        }
-
-        // 6. Definition: active runs the FROZEN activated_definition only;
-        //    draft mode runs the working copy.
-        const def = draftIntegration ? integration.definition : integration.activatedDefinition;
-        if (!def || typeof def !== 'object' || !def.api || typeof def.api !== 'object' || !Array.isArray(def.tools)) {
-            return fail('This custom integration has no runnable definition.');
-        }
-        let baseOrigin;
-        try { baseOrigin = new URL(def.api.baseUrl).origin; } catch { return fail('The integration base URL is invalid.'); }
-        const tool = def.tools.find(t => t && typeof t === 'object' && t.name === parsed.toolName);
-        if (!tool) return fail(`Tool "${parsed.toolName}" is not part of this integration.`);
-
-        // 7. Method gate: non-GET requires the allow_writes activation flag —
-        //    strict for drafts too.
-        const method = typeof tool.method === 'string' ? tool.method.toUpperCase() : '';
-        if (!METHODS.has(method)) return fail('This tool has an invalid HTTP method.');
-        if (method !== 'GET' && integration.allowWrites !== true) {
-            return fail('This integration is read-only — write operations were not enabled at activation.');
-        }
-
-        // 8. Arguments: reject, never coerce.
-        const check = validateArgsAgainstSchema(tool.parameters, args);
-        if (!check.ok) return fail(`Invalid arguments: ${check.errors.join(' ')}`);
-        const toolArgs = (args && typeof args === 'object') ? args : {};
-
-        // 9. Credential resolution (provider 'custom:<integrationId>').
-        const auth = (def.auth && typeof def.auth === 'object') ? def.auth : { type: 'none' };
-        let connection = null;
-        let secret = null;
-        if (auth.type !== 'none') {
-            const creds = await resolveRunCredentials(connStore, {
-                integration, connectionOverrideId, userId, userOrg, integrationOrg, baseOrigin,
-            });
-            if ('refusal' in creds) return fail(creds.refusal);
-            ({ connection, secret } = creds);
-            secretValues = Object.values(secret).filter(v => typeof v === 'string');
-        }
-
-        // 10. URL build (origin pin asserted inside) + resolving SSRF check.
-        let url;
-        try {
-            url = buildToolUrl(def, tool, toolArgs);
-        } catch (e) {
-            return fail(e.message); // buildToolUrl messages are generic
-        }
-        try {
-            await ssrfGuard.assertPublicHttpsTarget(url.href);
-        } catch (e) {
-            return fail(SAFE_GUARD_ERRORS.has(e?.message) ? e.message : 'Target address is not allowed.');
-        }
-
-        // 11/12. Headers (definition literals, requestHeaders), JSON body, then auth LAST.
-        const headers = requestHeaders(def, tool);
-        let body;
-        // fetch() rejects GET bodies outright, so a (validator-warned) GET
-        // body template is dropped rather than failing the whole call.
-        if (tool.body && tool.body.mode === 'json' && method !== 'GET') {
-            body = JSON.stringify(buildJsonBody(tool.body.template, toolArgs) ?? {});
-            if (!Object.keys(headers).some(h => h.toLowerCase() === 'content-type')) {
-                headers['Content-Type'] = 'application/json';
-            }
-        }
-        if (auth.type !== 'none') {
-            let authValue;
-            try {
-                authValue = renderAuthValue(auth, secret);
-            } catch (e) {
-                return fail(e.message);
-            }
-            secretValues.push(authValue); // scrub composed forms (e.g. Basic b64) too
-            if (auth.type === 'bearer' || auth.type === 'basic') headers['Authorization'] = authValue;
-            else if (auth.type === 'header') headers[String(auth.header)] = authValue;
-            else if (auth.type === 'query') url.searchParams.append(String(auth.queryParam), authValue);
-        }
-
-        log.info(`[CustomIntegration] ${integration.slug}.${parsed.toolName} (${method})`);
-
-        const timeoutMs = clampInt(def.api.timeoutMs, MIN_TIMEOUT_MS, MAX_TIMEOUT_MS, DEFAULT_TIMEOUT_MS);
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), timeoutMs);
-        if (typeof timer.unref === 'function') timer.unref();
-        let response;
-        try {
-            response = await ssrfGuard.safeFetch(url.href, { method, headers, body, signal: controller.signal });
-        } catch (err) {
-            if ((err && err.name === 'AbortError') || controller.signal.aborted) {
-                return fail(`The request timed out after ${Math.round(timeoutMs / 1000)}s.`);
-            }
-            // Never echo fetch internals — they can carry the URL (and with
-            // query auth, the credential).
-            return fail(SAFE_GUARD_ERRORS.has(err?.message) ? err.message : 'Could not reach the API host.');
-        } finally {
-            clearTimeout(timer);
-        }
-
-        // 13/14. Response: capped read, sanitized errors, budgeted result.
-        let raw;
-        try {
-            raw = await readBodyCapped(response, MAX_RAW_BYTES);
-        } catch (e) {
-            return fail(e && e.tooLarge
-                ? `The response exceeded the ${Math.round(MAX_RAW_BYTES / 1024)} KB limit. Narrow the request (filters, pagination).`
-                : 'Failed to read the API response.');
-        }
-        if (!response.ok) {
-            const detail = extractErrorMessage(raw.toString('utf8'));
-            return fail(detail ? `The API returned HTTP ${response.status}: ${detail}` : `The API returned HTTP ${response.status}.`);
-        }
-
-        // 16. Best-effort usage stamp.
-        if (connection) {
-            try { await connStore.touchLastUsed(connection.id); } catch (err) { bestEffort('integrations/customIntegrationRunner:executeCustomIntegrationTool', err); /* best effort */ }
-        }
-
-        const maxChars = clampInt(def.api.maxResponseChars, MIN_RESPONSE_CHARS, DEFAULT_MAX_RESPONSE_CHARS, DEFAULT_MAX_RESPONSE_CHARS);
-        const shaped = shapeResponse(response, raw, tool, maxChars, secretValues);
-        return 'refusal' in shaped ? fail(shaped.refusal) : shaped;
+        const out = await runToolCall(prefixedName, args, { userId, draftIntegration, connectionOverrideId, unattended }, deps, run);
+        return 'refusal' in out ? { error: scrubSecrets(String(out.refusal), run.secretValues) } : out;
     } catch (err) {
         // Unexpected failure: log a scrubbed message, return a fixed string
         // (never err.message — it could carry a URL with query auth).
-        log.warn(`[CustomIntegration] ${String(prefixedName).slice(0, 80)} failed: ${scrubSecrets(String(err && err.message), secretValues)}`);
+        deps.log.warn(`[CustomIntegration] ${String(prefixedName).slice(0, 80)} failed: ${scrubSecrets(String(err && err.message), run.secretValues)}`);
         return { error: 'Custom integration request failed.' };
     }
 }
@@ -516,7 +593,7 @@ module.exports = {
     scrubSecrets,
     truncateBudget,
     // Tests / debugging only
-    _internals: { buildJsonBody, extractErrorMessage, getByDotPath, clampInt, readBodyCapped },
+    _internals: { buildJsonBody, extractErrorMessage, getByDotPath, clampInt, readBodyCapped, RUN_DEPS },
 };
 
 /** @typedef {{ type?: string, valueTemplate?: string, header?: string, queryParam?: string }} AuthConfig */

@@ -14,7 +14,9 @@ const { bestEffort } = require('../utils/bestEffort');
 /* global document, window, parent, NodeFilter, CSS, Highlight */
 
 function bridgeCore(B) {
+    /** @type {Record<string, NodeJS.Timeout>} */
     var timers = {};
+    /** @type {string | null} */
     var lastCaret;
     /** @type {string | null} */
     var lastSelection = null;
@@ -84,8 +86,11 @@ function bridgeCore(B) {
         var section = el && el.closest ? el.closest('[data-doc-section]') : null;
         return section ? section.getAttribute('data-doc-section') : null;
     }
+    /**
+     * @param {string} id
+     */
     function sectionEl(id) {
-        return Array.prototype.find.call(document.body.querySelectorAll('[data-doc-section]'), function (el) { return el.getAttribute('data-doc-section') === id; }) || null;
+        return Array.prototype.find.call(document.body.querySelectorAll('[data-doc-section]'), function (/** @type {{ getAttribute: (arg0: string) => string; }} */ el) { return el.getAttribute('data-doc-section') === id; }) || null;
     }
 
     function outlineNodes() {

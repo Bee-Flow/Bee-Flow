@@ -1,6 +1,7 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { withQueryClient } from '@/test/queryWrapper';
 import AppApprovalList from './AppApprovalList';
 import { DataProvider } from '../DataContext';
 import { RuntimeProvider, buildScope, DEFAULT_RUNTIME } from '../RuntimeContext';
@@ -37,13 +38,14 @@ const ROW = {
 
 function renderList(n = node(), { mode = 'run', currentUser = { id: 'u1', name: 'Sam' }, runAction = vi.fn(), appId = 'app_7' } = {}) {
     const value = { ...DEFAULT_RUNTIME, scope: buildScope({ now: '2026-08-22T00:00:00.000Z' }), mode, currentUser, runAction };
-    const utils = render(
+    // One client per case, as the app's provider is one per page: a case never reads another's list.
+    const utils = render(withQueryClient(
         <RuntimeProvider value={value}>
             <DataProvider appId={appId}>
                 <AppApprovalList node={n} />
             </DataProvider>
         </RuntimeProvider>,
-    );
+    ));
     return { ...utils, runAction };
 }
 
@@ -131,6 +133,35 @@ describe('AppApprovalList', () => {
         renderList();
         await screen.findByText('Approve the quote?');
         expect(screen.queryByTestId('approval-list-stage')).not.toBeInTheDocument();
+    });
+
+    it('a refused read shows the server text; a failed one the default sentence', async () => {
+        globalThis.__authFetch = vi.fn(async () => ({ ok: false, status: 403, json: async () => ({ error: 'Approvals are off for this workspace.' }) }));
+        const first = renderList();
+        expect(await screen.findByText('Approvals are off for this workspace.')).toBeInTheDocument();
+        first.unmount();
+        globalThis.__authFetch = vi.fn(async () => { throw new Error('offline'); });
+        renderList();
+        expect(await screen.findByText('Could not load approvals')).toBeInTheDocument();
+    });
+
+    it('an empty answer shows the empty text', async () => {
+        globalThis.__authFetch = vi.fn(async () => jsonReply({ approvals: [] }));
+        renderList();
+        expect(await screen.findByText('No approvals right now.')).toBeInTheDocument();
+    });
+
+    it('asks the list again every 30 seconds', async () => {
+        vi.useFakeTimers({ shouldAdvanceTime: true });
+        try {
+            renderList();
+            await screen.findByText('Approve the quote?');
+            expect(globalThis.__authFetch).toHaveBeenCalledTimes(1);
+            await act(async () => { await vi.advanceTimersByTimeAsync(30_000); });
+            expect(globalThis.__authFetch).toHaveBeenCalledTimes(2);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it('a decided row leaves the "waiting" slice', async () => {

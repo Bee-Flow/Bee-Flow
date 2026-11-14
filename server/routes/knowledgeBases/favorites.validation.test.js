@@ -36,8 +36,8 @@ const MOCKS = {
     },
     '../../auth': { requireAuth: (req, res, next) => next() },
     './shared': { getUserId: (req) => req.session?.user?.id || null },
-    // Read access to the base is support/kbAccess.js's question; here every base is readable.
-    '../../support/kbAccess': { ...fakeKbGates({ kbStore: { getKB: (id) => MOCKS['../../stores/knowledgeBases'].getKB(id) }, canRead: () => true }) },
+    // Read access to the base is core/kb/kbAccess.js's question; here every base is readable.
+    '../../core/kb/kbAccess': { ...fakeKbGates({ kbStore: { getKB: (id) => MOCKS['../../stores/knowledgeBases'].getKB(id) }, canRead: () => true }) },
 };
 
 const MOCK_IDS = {};

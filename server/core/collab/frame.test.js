@@ -30,6 +30,9 @@ test('a sealed frame round-trips, and the header names the format', () => {
     assert.deepStrictEqual(F.openFrame(frame, { key: KEY, aad: F.updateAad('d', 3) }), plain);
     assert.strictEqual(F.frameFormat(Buffer.from([0x00, 1])), 'plain');
     assert.strictEqual(F.frameFormat(Buffer.from([0x07])), 'unknown');
+    // The format is the first byte: a frame of that byte alone still has one, an empty frame has none.
+    assert.strictEqual(F.frameFormat(Buffer.from([F.FRAME_PLAIN])), 'plain');
+    assert.strictEqual(F.frameFormat(Buffer.alloc(0)), 'unknown');
 });
 
 test('the binding, the key and every byte are part of the tag', () => {
@@ -106,4 +109,13 @@ test('the key comes from the project and its organisation; e2e documents are ref
     assert.deepStrictEqual(asked, [['p1', 'org1']]);
     await assert.rejects(cc.forDoc({ ...DOC, keyScope: 'e2e' }), (err) => err.status === 409 && err.code === 'COLLAB_UNSUPPORTED');
     await assert.rejects(cc.forDoc({ id: 'x' }), /with a project is required/);
+});
+
+test('a document needs both its id and its project before any key is asked for', async () => {
+    let asked = 0;
+    const cc = F.makeCollabCrypto({ getProjectKey: async () => { asked += 1; return KEY; } });
+    for (const bad of [null, undefined, {}, { projectId: 'p1' }, { id: '', projectId: 'p1' }, { id: 'x', projectId: '' }]) {
+        await assert.rejects(cc.forDoc(bad), /with a project is required/);
+    }
+    assert.strictEqual(asked, 0);
 });

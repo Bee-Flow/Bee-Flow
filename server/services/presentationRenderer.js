@@ -1,3 +1,4 @@
+/** @typedef {import('../core/documents/render/documentRenderer').AiMarking} AiMarking */
 // @typecheck
 /**
  * Presentation Renderer — a deck in, a real .pptx (or a PDF deck) out.
@@ -230,6 +231,7 @@ async function prepareTheme(theme, resolveImage = null, warnings = []) {
  * Flatten the compliance marking into what the builders write. Same rule as
  * renderDocument: a marking that is switched off or has no footer sentence is
  * no marking at all.
+ * @param {AiMarking | null} marking
  */
 function flattenMarking(marking) {
     if (!marking || marking.enabled === false) return null;

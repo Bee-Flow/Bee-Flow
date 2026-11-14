@@ -86,13 +86,12 @@ function verifyTotpStep(secretPlain, token, { afterStep = null } = {}) {
             guardrails: GUARDRAILS,
         });
         if (!result.valid) return { ok: false };
-        // `timeStep` is the step of the clock; `delta` says how many steps away
-        // the code that matched was. The step the code BELONGS to is what is
-        // stored and compared, so a code read a step early is spent as such.
-        // Checked here rather than through otplib's `afterTimeStep`, which also
-        // refused the step after the stored one in its current version.
-        const valid = /** @type {{ timeStep: number, delta?: number }} */ (result);
-        const codeStep = valid.timeStep + (valid.delta || 0);
+        // otplib's `timeStep` is the step of the code that matched (its `delta`
+        // says how many steps that is from the clock). The step the code
+        // BELONGS to is what is stored and compared, so a code read a step
+        // early is spent as such. Checked here rather than through otplib's
+        // `afterTimeStep`, which also refuses the step after the stored one.
+        const codeStep = /** @type {{ timeStep: number }} */ (result).timeStep;
         if (Number.isInteger(afterStep) && codeStep <= /** @type {number} */ (afterStep)) return { ok: false };
         return { ok: true, timeStep: codeStep };
     } catch (_) {

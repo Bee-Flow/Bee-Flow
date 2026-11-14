@@ -129,7 +129,7 @@ const headerIn = (headers: HeaderList, name: string): string =>
 
 /** The two headers that mark an automatic mail, read straight from the provider (the read layer does not keep them). */
 async function automaticHeaders(provider: 'gmail' | 'outlook', tokens: Tokens, messageId: string, shared: string | null): Promise<AutoHeaders> {
-    const clients = nodeRequire('../../services/email/providerClients.js') as {
+    const clients = nodeRequire('../../utils/emailProviderClients.js') as {
         gmailClientFromTokens: (t: Tokens, r: () => void) => Promise<{ users: { messages: { get: (p: Row) => Promise<{ data?: { payload?: { headers?: HeaderList } } }> } } }>;
         graphFetchFromTokens: (t: Tokens, r: () => void, path: string) => Promise<{ internetMessageHeaders?: HeaderList }>;
     };

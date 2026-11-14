@@ -35,6 +35,8 @@ const { initDB: initUsers } = require('../stores/user/schema');
 /** @type {{ url: string, init: any }[]} */
 const asked = [];
 let answer = () => new Response('{}', { status: 200 });
+/** @type {() => void} */
+let restoreSlow = () => {};
 
 const { swap, restore } = makeSwaps();
 before(async () => {
@@ -131,4 +133,29 @@ test('a consumer checkout activates the licence for the user only', async () => 
     replyJson({ token, license_id: 'lic-usr' });
     await issueLicenseFromCheckout(orgCheckout({ scope: 'consumer', organizationId: 'org-a', userId: 'u-1' }));
     assert.deepEqual(await storedRows(), [{ id: 'lic-usr', scope: 'consumer', organization_id: null, user_id: 'u-1', tier: 'enterprise', activated_by: 'stripe_webhook' }]);
+});
+
+test('the activation is asked for the organisation or for the user, never both', async (t) => {
+    const license = require('./index');
+    const activations = t.mock.method(license, 'activateLicense', async () => ({}));
+    replyJson({ token: 'any-token', license_id: 'lic-args' });
+    await issueLicenseFromCheckout(orgCheckout());
+    await issueLicenseFromCheckout(orgCheckout({ scope: 'consumer' }));
+    assert.deepEqual(activations.mock.calls.map((c) => c.arguments[0]), [
+        { token: 'any-token', organizationId: 'org-a', userId: null, activatedBy: 'stripe_webhook' },
+        { token: 'any-token', organizationId: null, userId: 'u-1', activatedBy: 'stripe_webhook' },
+    ]);
+});
+
+test('an answer that takes a moment is waited for: the time limit is seconds, not the next tick', async () => {
+    const token = sign(claims({ license_id: 'lic-slow' }));
+    answer = () => new Response(JSON.stringify({ token, license_id: 'lic-slow' }), { status: 200 });
+    restoreSlow = swap(globalThis, 'fetch', async (_url, init) => {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        if (init.signal.aborted) throw new Error('aborted before the licence server answered');
+        return answer();
+    });
+    try {
+        assert.deepEqual(await issueLicenseFromCheckout(orgCheckout()), { token, licenseId: 'lic-slow' });
+    } finally { restoreSlow(); }
 });

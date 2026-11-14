@@ -25,7 +25,7 @@
 const zlib = require('zlib');
 const { promisify } = require('util');
 const core = require('./core');
-const { truncatePayload, fullOutputMaxBytes, FULL_OUTPUT_REF } = require('../../automation/payloadTruncation');
+const { truncatePayload, fullOutputMaxBytes, FULL_OUTPUT_REF } = require('./payloadTruncation');
 const log = require('../../telemetry/log');
 
 const gzip = promisify(zlib.gzip);

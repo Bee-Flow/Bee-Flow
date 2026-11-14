@@ -16,7 +16,7 @@ const test = require('node:test');
 const assert = require('node:assert');
 
 const { neutraliseTokens } = require('./tokenNeutralise');
-const { restoreTokens } = require('./tokenRestore');
+const { restoreTokens } = require('../../../utils/piiTokenRestore');
 
 /** A reader's map — a DIFFERENT conversation's people behind the same keys. */
 const READER_MAP = {

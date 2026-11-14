@@ -47,7 +47,6 @@
  */
 const express = require('express');
 const log = require('../../telemetry/log');
-const { trackUsageTotals, usageTotalsLogFields } = require('../../core/providers/usageNormalizer');
 const router = express.Router();
 const cmsStore = require('../../stores/cmsStore');
 const usageStore = require('../../stores/usageStore');
@@ -55,16 +54,12 @@ const { getProviderForModel, getAIConfig } = require('../../core/aiAgent');
 const { getAdapter } = require('../../core/providers');
 const { getUserTierMap } = require('../../core/llm/modelResolver');
 const { getPermittedTierKeys } = require('../../core/entitlements/userTiers');
-const { TOOL_SCHEMAS, MUTATING_TOOLS, SITE_DRAFT_TOOLS, PAGE_DRAFT_TOOLS, applyToolCall } = require('../../cmsBuilder/builderTools');
-const { buildSystemPrompt } = require('../../cmsBuilder/builderPrompt');
-const { validateSiteDraft } = require('../../cmsBuilder/validate');
-const { getProfileForModel, effortForIteration } = require('../../cmsBuilder/builderModelProfiles');
 const { isTransientChatError, applyBuilderTierFloor, streamWithRetry: sharedStreamWithRetry } = require('../../usecases/ai/builderShared');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
-const { openSse, onClientGone } = require('../../core/http/sseHelpers');
+const { openSse } = require('../../core/http/sseHelpers');
 const {
     VALIDATION_NOTE_PREFIX, DRAFT_STATE_PREFIX, EDITOR_CONTEXT_PREFIX, BLOCK_FEEDBACK_PREFIX,
-    renderValidationNote, renderBlockFeedbackNote, renderDraftStateNote, sanitizeEditorContext,
+    renderValidationNote, renderBlockFeedbackNote, sanitizeEditorContext,
     renderEditorContextNote, sanitizeHistory, labelForTool, summariseToolResult, parseToolArgs, truncateJson,
 } = require('../../usecases/ai/cmsBuilderMessages');
 // The same admin gate + siteId validation the CMS CRUD routes use — the
@@ -72,7 +67,9 @@ const {
 const { requireAdmin, SITE_ID_RE } = require('../cmsShared');
 const { validate } = require('../../core/http/validate');
 const { z, worded, bodyOf, closedObject, typeError } = require('../../core/http/schemaParts');
-const { fallback, bestEffort, ignoreGone } = require('../../utils/bestEffort');
+const { bestEffort } = require('../../utils/bestEffort');
+const { selectTurnModel } = require('../../usecases/ai/cmsBuilder/modelSelection');
+const { loadSiteDraft, runBuilderTurn, logTurnUsage } = require('../../usecases/ai/cmsBuilder/builderTurn');
 
 // ── What a caller may send ───────────────────────────────────────────
 // The body keys the builder reads, and nothing else: a misspelled
@@ -97,10 +94,6 @@ const StreamBody = bodyOf({
 // calls — expensive. Same ceiling as the other builders: 12/min/user.
 const builderRateLimit = perUserRateLimit({ windowMs: 60_000, max: 12 });
 
-// Hard ceiling on iterations per turn regardless of profile. Pages are much
-// cheaper to assemble than app trees — 16 is plenty.
-const MAX_ITERATIONS = 16;
-
 // GET the persisted builder-session snapshot for a site. Used by the client
 // on mount to rehydrate chat history + validation state after a refresh or
 // SSE drop. Site-scoped and shared between admins (see the file header).
@@ -116,144 +109,84 @@ router.get('/session/:siteId', requireAdmin, validate({ params: SessionParams })
     res.json({ snapshot });
 });
 
+/** The model plumbing selectTurnModel asks; the classifier is loaded when a turn needs it. */
+const MODEL_SELECTION = {
+    getUserTierMap,
+    getPermittedTierKeys,
+    getAIConfig,
+    classify: (message, tiers, who) => require('../../core/llm/promptClassifier').classifyWithLLM(message, tiers, who),
+};
+
+/**
+ * What is wrong with the message or the site id, in the schema's own words.
+ * @param {unknown} message
+ * @param {unknown} siteId
+ */
+function inputRefusal(message, siteId) {
+    if (!message || !String(message).trim()) return 'Message required';
+    if (!siteId || typeof siteId !== 'string' || !SITE_ID_RE.test(siteId)) return 'Valid siteId required';
+    return null;
+}
+
+/**
+ * The organisation a turn counts against: the caller's first one.
+ * @param {Set<string> | null | undefined} orgIds
+ */
+const firstOrgOf = (orgIds) => (orgIds && orgIds.size > 0 ? Array.from(orgIds)[0] : null);
+
+/**
+ * The tier, model, provider and adapter of the turn, or `refusal` when none
+ * can be resolved (no model configured, no provider that serves it).
+ * @param {import('../../usecases/ai/cmsBuilder/modelSelection').ModelRequest} request
+ */
+async function resolveTurnModel(request) {
+    try {
+        const selected = await selectTurnModel(request, MODEL_SELECTION);
+        if ('refusal' in selected) return selected;
+        const cfg = await getProviderForModel(selected.modelId);
+        /** @type {BaseProvider} */
+        const adapter = getAdapter(cfg.providerType, cfg.url);
+        return { ...selected, cfg, adapter };
+    } catch (e) {
+        return { refusal: /** @type {Error} */ (e).message };
+    }
+}
+
 router.post('/stream', requireAdmin, builderRateLimit, validate({ body: StreamBody }), async (req, res) => {
     const userId = req.session.user.id;
-    // Wall-clock start of the turn — feeds the usage row's duration_ms and
+    // Wall-clock start of the turn: feeds the usage row's duration_ms and
     // the structured observability line. Set before any SSE so a turn that
-    // dies mid-stream still reports a real duration from the outer catch.
+    // dies mid-stream still reports a real duration.
     const turnStartedAt = Date.now();
-    const {
-        message,
-        siteId,
-        builderSessionId: clientSession,
-        modelTier = 'auto',
-        timezone, // accepted for parity with the other builders; pages carry no time semantics
-    } = req.body || {};
-    void timezone;
-    // Editor context (what the user is looking at) — whitelisted + bounded,
+    // timezone is accepted for parity with the other builders; pages carry no time semantics.
+    const { message, siteId, builderSessionId: clientSession, modelTier = 'auto' } = req.body || {};
+    // Editor context (what the user is looking at): whitelisted and bounded,
     // rendered as a machine message after the draft state (never persisted).
     const editorContext = sanitizeEditorContext(req.body?.context);
 
-    if (!message || !String(message).trim()) {
-        return res.status(400).json({ error: 'Message required' });
-    }
-    if (!siteId || typeof siteId !== 'string' || !SITE_ID_RE.test(siteId)) {
-        return res.status(400).json({ error: 'Valid siteId required' });
-    }
+    const refused = inputRefusal(message, siteId);
+    if (refused) return res.status(400).json({ error: refused });
 
-    // ── Subscription limit enforcement — BEFORE switching to SSE, so the
-    //    402 stays clean JSON (same shape as appStudioBuilder). ──
-    let limitOrgId = null;
+    // Everything up to openSse answers in clean JSON: the subscription limit
+    // (402, the same shape as appStudioBuilder), a site that does not exist
+    // (404) and a model that cannot be resolved (400).
     const { checkSubscriptionLimits } = require('../../core/entitlements/limits');
     const { resolveUserOrgIds } = require('../../auth');
-    const orgIds = await resolveUserOrgIds(req);
-    limitOrgId = orgIds && orgIds.size > 0 ? Array.from(orgIds)[0] : null;
+    const limitOrgId = firstOrgOf(await resolveUserOrgIds(req));
     const limitError = await checkSubscriptionLimits(limitOrgId, 'chat', userId);
     if (limitError) return res.status(402).json({ error: limitError, code: 'subscription_limit' });
 
-    // ── Load the site draft — a bad siteId 404s pre-SSE. getAdminPayload
-    //    pulls the SiteDoc + every PageDoc + locale overrides in one shot
-    //    (fresh reads — the builder needs read-your-writes like the panel). ──
-    let draftWrap;
-    let priorSnapshot = null;
-    const project = await cmsStore.getProject(siteId);
-    if (!project) return res.status(404).json({ error: 'Site not found' });
-    priorSnapshot = await cmsStore.getBuilderSession(siteId).catch((e) => fallback('routes/ai/cmsBuilder:anon', e, null));
-    const payload = await cmsStore.getAdminPayload(siteId);
-    const locales = new Set(Object.keys(payload.localeOverrides?.siteByLocale || {}));
-    for (const perPage of Object.values(payload.localeOverrides?.pagesByLocale || {})) {
-        for (const loc of Object.keys(perPage || {})) locales.add(loc);
-    }
-    draftWrap = {
-        siteId,
-        userId,
-        orgId: req.session?.user?.organizationId || limitOrgId || null,
-        builderSessionId: clientSession || priorSnapshot?.sessionId || `cms_${Date.now().toString(36)}`,
-        site: payload.site,
-        pages: new Map((payload.pages || []).map((p) => [p.id, p])),
-        defaultLocale: payload.defaultLocale || 'en',
-        locales: [...locales].sort(),
-        createdPageIds: [],
-        touchedPageIds: new Set(),
-    };
+    const orgId = req.session?.user?.organizationId || limitOrgId || null;
+    const loaded = await loadSiteDraft({ siteId, userId, orgId, clientSession });
+    if (!loaded) return res.status(404).json({ error: 'Site not found' });
+    const { draftWrap, priorSnapshot } = loaded;
 
-    // ── Model resolution (pre-SSE — clean JSON errors). ──
-    const userOrgForTiers = req.session?.user?.organizationId || limitOrgId || null;
-    /** @type {string} */
-    let resolvedTier;
-    let modelId;
-    let tier = {};
-    let cfg;
-    /** @type {BaseProvider} */
-    let adapter;
-    try {
-        {
-            const tiers = await getUserTierMap({ userOrgId: userOrgForTiers, userId });
-            resolvedTier = (typeof modelTier === 'string' && modelTier) ? modelTier : 'auto';
-            let explicitPick = resolvedTier !== 'auto';
-            // An explicit client tier must be one the user is permitted to
-            // select — a disallowed/unknown tier silently falls back to auto
-            // (never a hard error; the builder should always run).
-            if (explicitPick) {
-                try {
-                    const permitted = await getPermittedTierKeys({ userId, session: req.session });
-                    if (!permitted.has(resolvedTier) || !tiers[resolvedTier]) {
-                        log.info(`[CmsBuilder] Tier "${resolvedTier}" not permitted/configured for user — falling back to auto`);
-                        resolvedTier = 'auto';
-                        explicitPick = false;
-                    }
-                } catch (err) {
-                    log.info(`[CmsBuilder] Tier permission check failed (${/** @type {Error} */ (err).message}) — falling back to auto`);
-                    resolvedTier = 'auto';
-                    explicitPick = false;
-                }
-            }
-            if (resolvedTier === 'auto') {
-                try {
-                    const { classifyWithLLM } = require('../../core/llm/promptClassifier');
-                    const classifyTiers = Object.fromEntries(
-                        Object.entries(tiers).filter(([k]) => !k.startsWith('custom:') && k !== 'swarm'),
-                    );
-                    const result = await classifyWithLLM(String(message), classifyTiers, { userOrgId: userOrgForTiers, userId });
-                    resolvedTier = result.tier;
-                    log.info(`[CmsBuilder] Auto: tier="${resolvedTier}" (${result.method}: ${result.reason})`);
-                } catch (err) {
-                    log.info(`[CmsBuilder] Auto classification failed: ${/** @type {Error} */ (err).message}, using fast`);
-                    resolvedTier = 'fast';
-                }
-            }
-            tier = tiers[resolvedTier] || {};
-            modelId = tier.modelId;
-            if (!modelId) {
-                const globalConfig = await getAIConfig();
-                modelId = globalConfig?.model || null;
-            }
-            if (!modelId) {
-                return res.status(400).json({ error: `No model configured for tier ${resolvedTier}`, code: 'model_unavailable' });
-            }
-            // Capability floor: assembling structured blocks on a small model
-            // loops to the iteration cap. Only applies when the tier came from
-            // 'auto'; an explicit tier choice is always honoured.
-            if (!explicitPick) {
-                const floored = applyBuilderTierFloor(resolvedTier, modelId, tiers);
-                if (floored.modelId !== modelId) {
-                    log.info(`[CmsBuilder] Auto floor: bumped small "${resolvedTier}" → "${floored.tier}" (${floored.modelId})`);
-                    resolvedTier = floored.tier;
-                    modelId = floored.modelId;
-                    tier = tiers[resolvedTier] || tier;
-                }
-            }
-            cfg = await getProviderForModel(modelId);
-        }
-        adapter = getAdapter(cfg.providerType, cfg.url);
-    } catch (e) {
-        return res.status(400).json({ error: /** @type {Error} */ (e).message, code: 'model_unavailable' });
-    }
+    const model = await resolveTurnModel({ modelTier, message, userId, userOrgId: orgId, session: req.session });
+    if ('refusal' in model) return res.status(400).json({ error: model.refusal, code: 'model_unavailable' });
 
-    // ── SSE from here on. flushHeaders + 10s heartbeat are REQUIRED: a
-    //    thinking model can go silent for 30–60s and an idle gateway would
-    //    otherwise drop the stream into a false 504 (same class as the
-    //    automation-builder incident / BFSF-221). ──
+    // SSE from here on. flushHeaders and the 10s heartbeat are REQUIRED: a
+    // thinking model can go silent for 30–60s and an idle gateway would
+    // otherwise drop the stream into a false 504.
     const { send, stopHeartbeat } = openSse(res, { heartbeat: true, flush: true });
 
     // SSE `error` carries a machine `code` AND leaves a structured stderr
@@ -264,280 +197,27 @@ router.post('/stream', requireAdmin, builderRateLimit, validate({ body: StreamBo
      */
     const sendError = (code, userMessage) => {
         send('error', { message: userMessage, code });
-        log.error(`[CmsBuilder] code=${code} siteId=${siteId} session=${draftWrap.builderSessionId || '-'} model=${modelId || '-'}`);
+        log.error(`[CmsBuilder] code=${code} siteId=${siteId} session=${draftWrap.builderSessionId || '-'} model=${model.modelId || '-'}`);
     };
 
-    // Per-turn usage metrics + outcome. Declared out here (not inside the
-    // try) so the outer catch can still log a turn that blew up.
-    const usageTotals = { inputTokens: 0, outputTokens: 0 };
-    let iter = 0;
-    let toolCallCount = 0;
-    let mutatingToolCalls = 0;
-    let validationErrorCount = 0;
-    let usageLogged = false;
-    /**
-     * @param {string} outcome
-     */
-    const logTurnUsage = (outcome) => {
-        if (usageLogged) return; // one row per turn, even if both paths fire
-        usageLogged = true;
-        const durationMs = Date.now() - turnStartedAt;
-        const metadata = {
-            siteId,
-            sessionId: draftWrap.builderSessionId,
-            tier: resolvedTier,
-            iterations: iter,
-            toolCallCount,
-            mutatingToolCalls,
-            validationErrorCount,
-            createdPages: draftWrap.createdPageIds.length,
-            touchedPages: draftWrap.touchedPageIds.size,
-            outcome,
-            durationMs,
-        };
-        // ai_usage_log has no metadata column, so fold the identifying fields
-        // into real columns (agent_id=siteId, conversation_id=session,
-        // stop_reason=outcome) and ship the full metadata as a structured
-        // stdout line → OpenObserve. Fire-and-forget: usage logging must
-        // never break a turn.
-        Promise.resolve(
-            usageStore.logUsage({
-                user_id: userId,
-                organization_id: draftWrap.orgId || null,
-                agent_id: siteId,
-                agent_name: `CMS builder: ${draftWrap.site?.name || 'Untitled site'}`,
-                agent_type: 'cms_builder',
-                model: modelId,
-                ...usageTotalsLogFields(usageTotals),
-                duration_ms: durationMs,
-                source: 'cms_builder',
-                conversation_id: draftWrap.builderSessionId || siteId,
-                stop_reason: outcome,
-            }),
-        ).catch((e) => log.error('[CmsBuilder] usage log failed (non-fatal):', e.message));
-        log.info(`[CmsBuilder] usage ${JSON.stringify(metadata)}`);
+    // The counters live on the turn, not inside runBuilderTurn, so a turn
+    // that blew up still logs what it used.
+    const turn = {
+        siteId, userId, message, turnStartedAt, editorContext, draftWrap, priorSnapshot, model, send, sendError, res,
+        usageTotals: { inputTokens: 0, outputTokens: 0 },
+        iter: 0, toolCallCount: 0, mutatingToolCalls: 0, validationErrorCount: 0, usageLogged: false,
     };
-
     try {
-        send('builder_session', { sessionId: draftWrap.builderSessionId, siteId });
-        send('model_selected', { modelId, tier: resolvedTier });
-
-        const profile = getProfileForModel(modelId);
-        const sys = buildSystemPrompt();
-        const tools = TOOL_SCHEMAS;
-
-        // Prior conversation from the persisted snapshot (server-owned — the
-        // client does not resend history). Machine notes are stripped.
-        const history = sanitizeHistory(priorSnapshot?.messages);
-
-        // Live site state — ONE LATE role:'user' machine message (never in
-        // the cached system prompt; see the cache-discipline note on top).
-        // The editor-context line rides inside the same message.
-        /** @type {Array<{ role: string, content: unknown, tool_calls?: unknown[], tool_call_id?: string }>} */
-        const messages = [
-            { role: 'system', content: sys },
-            ...history,
-            { role: 'user', content: renderDraftStateNote(draftWrap, editorContext) },
-            { role: 'user', content: String(message) },
-        ];
-
-        const iterationBudget = Math.min(profile.maxIterations || MAX_ITERATIONS, MAX_ITERATIONS);
-
-        // Stop the loop the moment the client disconnects — no point burning
-        // tokens with nowhere to send the output. The flag ends the LOOP; the
-        // signal ends the request that is in flight RIGHT NOW, which is what
-        // frees a single-slot local model instead of leaving it generating an
-        // answer nobody will read.
-        let clientGone = false;
-        const clientAbort = new AbortController();
-        onClientGone(res, () => {
-            clientGone = true;
-            try { clientAbort.abort(); } catch (err) { ignoreGone('routes/ai/cmsBuilder:abortOnClose', err); }
-        });
-
-        let lastValidation = null;
-        let escalateNextRound = false;
-        let streamFailed = false;
-        let sawFinalProse = false;
-        /** @type {string[]} */
-        const proseParts = [];
-
-        for (iter = 0; iter < iterationBudget; iter++) {
-            if (clientGone || res.writableEnded) {
-                log.info('[cmsBuilder/stream] client disconnected — aborting build loop');
-                break;
-            }
-            const turnToolChoice = (iter === 0 && profile.forceFirstToolCall) ? 'required' : 'auto';
-            const turnEffort = effortForIteration(iter, escalateNextRound, profile);
-            escalateNextRound = false;
-
-            let response;
-            try {
-                response = await streamWithRetry(adapter, cfg, modelId, messages, {
-                    maxTokens: 8192,
-                    temperature: typeof profile.temperature === 'number' ? profile.temperature : 0.2,
-                    tools,
-                    toolChoice: turnToolChoice,
-                    reasoningEffort: turnEffort,
-                    reasoningSummary: tier.reasoningSummary !== undefined ? tier.reasoningSummary : 'auto',
-                    promptCacheKey: draftWrap.builderSessionId || undefined,
-                    userId: String(userId),
-                }, { send, signal: clientAbort.signal });
-            } catch (chatErr) {
-                if (clientGone || /** @type {Error} */ (chatErr)?.name === 'AbortError' || clientAbort.signal.aborted) {
-                    log.info('[CmsBuilder] build cancelled by the client');
-                    streamFailed = true;
-                    break;
-                }
-                log.error('[CmsBuilder] chat failed after retries:', /** @type {Error} */ (chatErr).message);
-                sendError('transient_upstream', 'The AI provider had a temporary problem. Your site is saved — please send your message again.');
-                streamFailed = true;
-                break;
-            }
-
-            if (response.content) proseParts.push(response.content);
-            if (response.usage) {
-                trackUsageTotals(usageTotals, response.usage);
-                send('usage', { ...usageTotals });
-            }
-
-            if (!response.toolCalls || !response.toolCalls.length) { sawFinalProse = true; break; }
-
-            // Signed thinking blocks must be replayed before the tool_use
-            // blocks on the next request (Anthropic conversation integrity).
-            const thinkingForReplay = (response.thinkingParts || [])
-                .filter((p) => p.signature && p.text && !p.redacted)
-                .map((p) => ({ text: p.text, signature: p.signature }));
-
-            messages.push({
-                role: 'assistant',
-                content: response.content || null,
-                ...(thinkingForReplay.length ? { thinking: thinkingForReplay } : {}),
-                tool_calls: response.toolCalls.map((tc) => ({
-                    id: tc.id, type: 'function',
-                    function: {
-                        name: tc.function.name,
-                        arguments: typeof tc.function.arguments === 'string' ? tc.function.arguments : JSON.stringify(tc.function.arguments),
-                    },
-                    _thought_signature: tc._thought_signature || undefined,
-                })),
-            });
-
-            let mutatedThisIter = false;
-            const droppedBlockFeedback = [];
-            for (const tc of response.toolCalls) {
-                toolCallCount += 1;
-                const name = tc.function.name;
-                const { args, truncated } = parseToolArgs(tc.function.arguments, name);
-                /** @type {{ error?: string, pageId?: string, dropped?: Array<{ type?: string }>, [k: string]: unknown }} */
-                let toolResult;
-                if (truncated) {
-                    // Truncated-JSON self-repair: a machine message, not a crash.
-                    toolResult = { error: `Your arguments for ${name} were not valid JSON (likely truncated mid-call). Resend just THIS single tool call with complete, valid JSON arguments.` };
-                    escalateNextRound = true;
-                } else {
-                    toolResult = await applyToolCall(draftWrap, name, args);
-                }
-                const ok = !(toolResult && typeof toolResult === 'object' && toolResult.error);
-                send('tool_call', { name, label: labelForTool(name), ok, summary: summariseToolResult(name, args, toolResult) });
-
-                // Draft events after every successful mutation (tools persist
-                // through cmsStore themselves) — page first (the doc), then
-                // site (the index), so the client can hydrate in one pass.
-                if (ok && MUTATING_TOOLS.has(name)) {
-                    mutatingToolCalls += 1;
-                    mutatedThisIter = true;
-                    if (PAGE_DRAFT_TOOLS.has(name)) {
-                        const pageId = toolResult.pageId || args?.pageId || null;
-                        const page = pageId ? draftWrap.pages.get(pageId) : null;
-                        if (pageId && page) send('draft', { siteId, kind: 'page', pageId, page });
-                    }
-                    if (SITE_DRAFT_TOOLS.has(name)) {
-                        send('draft', { siteId, kind: 'site', site: draftWrap.site });
-                    }
-                }
-                // Dropped blocks are a teaching signal: besides the tool
-                // result, they get a machine feedback message next round.
-                if (name === 'cms_add_blocks' && toolResult && Array.isArray(toolResult.dropped) && toolResult.dropped.length) {
-                    droppedBlockFeedback.push(...toolResult.dropped.map((d) => d.type).filter(Boolean));
-                    escalateNextRound = true;
-                }
-                if (!ok) escalateNextRound = true;
-
-                messages.push({
-                    role: 'tool',
-                    tool_call_id: tc.id,
-                    content: typeof toolResult === 'string' ? toolResult : truncateJson(toolResult),
-                });
-            }
-
-            if (droppedBlockFeedback.length) {
-                messages.push({ role: 'user', content: renderBlockFeedbackNote(droppedBlockFeedback) });
-            }
-
-            // Validation feedback loop: after any mutation, validate the whole
-            // draft, surface the records to the client, and feed errors back
-            // to the model as a clearly-framed role:'user' report (NOT
-            // role:'system' — system messages get hoisted/concatenated by the
-            // Claude/Gemini adapters and would invalidate the prompt cache
-            // mid-turn).
-            if (mutatedThisIter) {
-                lastValidation = validateSiteDraft(draftWrap);
-                send('validation_errors', { errors: lastValidation.errors, warnings: lastValidation.warnings });
-                if (lastValidation.errors.length) {
-                    messages.push({ role: 'user', content: renderValidationNote(lastValidation) });
-                    escalateNextRound = true;
-                }
-            }
-        }
-
-        // Budget exhausted without the model wrapping up. Everything the
-        // model built is already persisted (tools write through), so this is
-        // informational — the user just sends another message to continue.
-        const budgetExhausted = !sawFinalProse && !streamFailed && !clientGone && iter >= iterationBudget;
-        if (budgetExhausted) {
-            sendError('budget_exhausted', 'I ran out of build turns — everything so far is saved. Send another message and I\'ll keep going.');
-        }
-
-        // Session snapshot for rehydration (site-scoped, shared between
-        // admins; the store trims >64KB dropping oldest messages first).
-        try {
-            const conversationTail = [
-                ...history,
-                { role: 'user', content: String(message) },
-                ...(proseParts.length ? [{ role: 'assistant', content: proseParts.join('') }] : []),
-            ].slice(-40);
-            await cmsStore.setBuilderSession(siteId, {
-                sessionId: draftWrap.builderSessionId,
-                siteId,
-                messages: conversationTail,
-                lastValidation: lastValidation || null,
-                updatedAt: new Date().toISOString(),
-                lastTier: resolvedTier,
-            });
-        } catch (err) { bestEffort('routes/ai/cmsBuilder:anon#2', err); /* non-fatal */ }
-
-        validationErrorCount = Array.isArray(lastValidation?.errors) ? lastValidation.errors.length : 0;
-        const outcome = streamFailed ? 'transient_upstream'
-            : budgetExhausted ? 'budget_exhausted'
-                : clientGone ? 'client_disconnected'
-                    : 'completed';
-        logTurnUsage(outcome);
-
-        send('done', {
-            siteId,
-            createdPageIds: draftWrap.createdPageIds,
-            touchedPageIds: [...draftWrap.touchedPageIds],
-        });
+        await runBuilderTurn(turn, { usageStore, streamWithRetry });
         stopHeartbeat();
         res.end();
     } catch (e) {
         log.error('[cmsBuilder/stream] error:', e);
         sendError('internal', /** @type {Error} */ (e).message);
-        // Still record the turn's usage — a turn that died mid-stream burned
-        // tokens too. logTurnUsage is idempotent, so a done-path log that
-        // already ran wins; this only fires when we never reached it.
-        try { logTurnUsage('internal'); } catch (err) { bestEffort('routes/ai/cmsBuilder:anon#3', err); /* never block cleanup */ }
+        // Still record the turn's usage: a turn that died mid-stream burned
+        // tokens too. logTurnUsage writes one row per turn, so a done-path
+        // row that already ran wins.
+        try { logTurnUsage(turn, 'internal', usageStore); } catch (err) { bestEffort('routes/ai/cmsBuilder:anon#3', err); /* never block cleanup */ }
         stopHeartbeat();
         res.end();
     }

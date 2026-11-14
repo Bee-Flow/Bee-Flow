@@ -125,8 +125,8 @@ const restore = installResolveStub({
 
     './notificationStore': { deleteNotificationsForUser: async () => {} },
     '../notificationStore': { deleteNotificationsForUser: async () => {} },
-    '../services/planEntitlements': { applyPlanToOrg: async () => {} },
-    '../../services/planEntitlements': { applyPlanToOrg: async () => {} },
+    '../core/entitlements/planEntitlements': { applyPlanToOrg: async () => {} },
+    '../../core/entitlements/planEntitlements': { applyPlanToOrg: async () => {} },
     './usageStore': { invalidatePaygCache: () => {} },
     '../usageStore': { invalidatePaygCache: () => {} },
 

@@ -41,8 +41,8 @@ const { resolveTurnSetup } = require('./turnSetup');
 const { runSetupPhases } = require('./turnPhases');
 const { runInputGates } = require('./inputGates');
 const { countDirectTurn } = require('./chatSignalsTurn');
-const { compactConversation } = require('./compactionPhase');
-const { buildChatOptions } = require('./chatOptions');
+const { compactConversation } = require('../../../usecases/ai/directChat/compactionPhase');
+const { buildChatOptions } = require('../../../usecases/ai/directChat/chatOptions');
 const { prepareToolLoop } = require('./toolLoopSetup');
 const { runToolLoop } = require('./toolLoopRounds');
 const { toFriendlyTurnError } = require('../../../usecases/ai/directChat/turnErrors');
@@ -76,7 +76,7 @@ function makeInterruptedTurnPersister(turn) {
         if (turn.incognito) return;
         try {
             const { buildInterruptedTurnMessages } = require('../../../usecases/ai/directChat/interruptedTurn');
-            const { turnAnchorId } = require('./finalizeRows');
+            const { turnAnchorId } = require('../../../usecases/ai/directChat/finalizeRows');
             const { placeTurnRows } = require('../../../core/conversation/historyMerge');
             const anchorId = turnAnchorId(turn);
             // This turn's own two rows (null: nothing side-effecting ran).

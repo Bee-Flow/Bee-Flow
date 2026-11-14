@@ -139,7 +139,7 @@ function makeProjectChatTools(deps = {}) {
     const documents = () => deps.documents || require('../stores/documentStore');
     const notebooks = () => deps.notebooks || require('../stores/notebookStore');
     const membership = () => deps.membership || require('./membership');
-    const recordCreated = deps.recordCreated || ((e) => require('./changeFeed').recordItemCreated(e));
+    const recordCreated = deps.recordCreated || ((e) => require('../core/projectContent/changeFeed').recordItemCreated(e));
     const markdownToHtml = deps.markdownToHtml || ((md) => require('../core/markdown').markdownToHtml(md));
     // The web search is integrations/' (a feature), looked up through core's feature-module registry.
     const searchDefinition = deps.searchDefinition || (() => featureModule('integrations/agentSearchTools').AGENT_SEARCH_TOOLS[0]);

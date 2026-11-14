@@ -16,7 +16,7 @@ const { test } = require('node:test');
 const assert = require('node:assert');
 
 const ClaudeProvider = require('./claude');
-const { validationRepairTurn } = require('../../services/webpageValidation');
+const { validationRepairTurn } = require('../webpages/webpageValidation');
 
 const base = [
     { role: 'system', content: 'webpage builder rules' },

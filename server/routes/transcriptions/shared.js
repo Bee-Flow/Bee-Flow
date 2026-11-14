@@ -92,27 +92,11 @@ async function resolveUserOrgFromReq(req) {
     return null;
 }
 
+const { envMs, MEETING_LLM_TIMEOUT_MS } = require('../../usecases/transcriptions/timeouts');
+
 // Voxtral sends the whole file in one SDK call; the old 5-minute timeout was
 // routinely too tight for hour-plus recordings.
-/**
- * A millisecond deadline from the environment; unset or empty means the
- * default, a non-numeric or negative value is refused at boot.
- * @param {string} name @param {number} fallback
- */
-function envMs(name, fallback) {
-    const raw = process.env[name];
-    if (raw === undefined || raw === '') return fallback;
-    const n = Number(raw);
-    if (!Number.isFinite(n) || n < 0) throw new Error(`${name} must be a non-negative number of milliseconds, got ${JSON.stringify(raw)}`);
-    return Math.trunc(n);
-}
-
 const VOXTRAL_TIMEOUT_MS = envMs('VOXTRAL_TIMEOUT_MS', 1_800_000);
-
-// The cut-off of one meeting-notes LLM call made from a route, the same env
-// and default as the pipeline's own calls (core/meetingNotes/summaryLlm.js).
-// Without one, a generic OpenAI-compatible adapter waits with no deadline.
-const MEETING_LLM_TIMEOUT_MS = envMs('MEETING_LLM_TIMEOUT_MS', 540_000);
 
 /**
  * Resolve the caller's default summary TEMPLATE (personal ▸ group ▸ org), so that a

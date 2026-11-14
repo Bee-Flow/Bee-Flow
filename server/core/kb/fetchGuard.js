@@ -42,7 +42,7 @@ const { isMetadataHost } = require('../../utils/nextcloudTarget');
  * also a new functional restriction for on-prem customers: a self-hosted
  * install legitimately wants to index its own intranet wiki, and every url on
  * such a box is an RFC1918 address. The repo already ships this exact escape
- * hatch twice — integrations/shared/apiClient.js (`allowPrivate`) and
+ * hatch twice — utils/apiClient.js (`allowPrivate`) and
  * integrations/nextcloudTarget.js (NEXTCLOUD_ALLOW_PRIVATE_HOSTS=1) — so the KB
  * fetches get the equivalent rather than a hard wall.
  *

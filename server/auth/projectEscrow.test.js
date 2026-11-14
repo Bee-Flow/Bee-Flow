@@ -227,6 +227,24 @@ test('a key handed out survives the cache entry expiring (every caller gets its 
     }
 });
 
+test('a cached key answers up to and including five minutes, and is derived again after that', async () => {
+    resetFx();
+    const realNow = Date.now;
+    const t0 = realNow();
+    try {
+        Date.now = () => t0;
+        await projectEscrow.getProjectKey('p1', 'org1');
+        Date.now = () => t0 + 5 * 60_000;
+        await projectEscrow.getProjectKey('p1', 'org1');
+        assert.strictEqual(fx.orkCalls.length, 1, 'at five minutes exactly: still the cached key');
+        Date.now = () => t0 + 5 * 60_000 + 1;
+        await projectEscrow.getProjectKey('p1', 'org1');
+        assert.strictEqual(fx.orkCalls.length, 2, 'one millisecond later: derived again');
+    } finally {
+        Date.now = realNow;
+    }
+});
+
 test('a key handed out survives invalidation and FIFO eviction', async () => {
     resetFx();
     const fresh = await projectEscrow.getProjectKey('p1', 'org1');

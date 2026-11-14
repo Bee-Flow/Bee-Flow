@@ -107,9 +107,10 @@ function _registrationRow(r) {
 }
 
 /**
- * @param {{ run: Function, getOne: Function, getAll: Function, initDB: () => Promise<any> }} deps
+ * Which deadline notices were already sent.
+ * @param {Parameters<typeof createFindings>[0]} ctx
  */
-function createFindings({ run, getOne, getAll, initDB }) {
+function createNotifierMarks({ run, getOne, initDB }) {
     // ───────────────────────── Notifier idempotency ─────────────────────────
     //
     // The deadline notifier fires tiers (DSR 7 d/1 d/overdue, CRA 24 h/72 h,
@@ -136,6 +137,14 @@ function createFindings({ run, getOne, getAll, initDB }) {
         return !!row;
     }
 
+    return { markNotified, wasNotified };
+}
+
+/**
+ * The recorded decisions on findings and the processing records of subjects.
+ * @param {Parameters<typeof createFindings>[0]} ctx
+ */
+function createFindingDecisions({ run, getOne, getAll, initDB }) {
     /** Every recorded decision of an org (a few rows per check at most). */
     async function listFindingStates(orgId) {
         await initDB();
@@ -220,6 +229,21 @@ function createFindings({ run, getOne, getAll, initDB }) {
         return (r?.rowCount || 0) > 0;
     }
 
+    return {
+        listFindingStates,
+        setFindingState,
+        clearFindingState,
+        listSubjectRegistrations,
+        upsertSubjectRegistration,
+        deleteSubjectRegistration,
+    };
+}
+
+/**
+ * The hints a person put away in a project.
+ * @param {Parameters<typeof createFindings>[0]} ctx
+ */
+function createHintDismissals({ run, getAll, initDB }) {
     // ───────────────────────── End-user hint dismissals ─────────────────────────
 
     /** `{[hintKey]: {fingerprint, snoozedUntil, dismissedAt}}` for one person in one project. */
@@ -305,20 +329,14 @@ function createFindings({ run, getOne, getAll, initDB }) {
         return { rows };
     }
 
-    return {
-        markNotified,
-        wasNotified,
-        listFindingStates,
-        setFindingState,
-        clearFindingState,
-        listSubjectRegistrations,
-        upsertSubjectRegistration,
-        deleteSubjectRegistration,
-        getHintDismissals,
-        recordHintDismissal,
-        eraseHintDismissals,
-        pruneHintDismissals,
-    };
+    return { getHintDismissals, recordHintDismissal, eraseHintDismissals, pruneHintDismissals };
+}
+
+/**
+ * @param {{ run: Function, getOne: Function, getAll: Function, initDB: () => Promise<any> }} deps
+ */
+function createFindings(deps) {
+    return { ...createNotifierMarks(deps), ...createFindingDecisions(deps), ...createHintDismissals(deps) };
 }
 
 module.exports = { FINDING_STATES, FINDING_DDL, createFindings };

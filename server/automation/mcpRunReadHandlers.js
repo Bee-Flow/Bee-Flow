@@ -19,7 +19,7 @@ const { fallback } = require('../utils/bestEffort');
 async function listRuns(acc, userId, args) {
     const { loadOwnedAutomation, requireRawAllowed, auditRawRead, store } = acc;
     const { automation, orgId } = await loadOwnedAutomation(text(args.automationId), userId);
-    const { redactRunForViewer } = require('../core/automationModel/callerRunVisibility');
+    const { redactRunForViewer } = require('../auth/callerRunVisibility');
     const wantRaw = args.raw === true;
     if (wantRaw) await requireRawAllowed(orgId);
     const c = caps();
@@ -59,7 +59,7 @@ async function listRuns(acc, userId, args) {
 async function getRunSteps(acc, userId, args) {
     const { loadOwnedRun, requireRawAllowed, auditRawRead, store } = acc;
     const { run, legs, orgId } = await loadOwnedRun(args.runId, userId);
-    const { redactChainStepsForViewer } = require('../core/automationModel/callerRunVisibility');
+    const { redactChainStepsForViewer } = require('../auth/callerRunVisibility');
     const wantRaw = args.raw === true;
     if (wantRaw) await requireRawAllowed(orgId);
     const c = caps();
@@ -99,7 +99,7 @@ async function getRunSteps(acc, userId, args) {
 async function getStepOutput(acc, userId, args) {
     const { loadOwnedRun, findStep, requireRawAllowed, auditRawRead, store } = acc;
     const { run, orgId, automation, legs } = await loadOwnedRun(args.runId, userId);
-    const { assertCanReadRunData } = require('../core/automationModel/callerRunVisibility');
+    const { assertCanReadRunData } = require('../auth/callerRunVisibility');
     assertCanReadRunData(run, userId);
     const stepId = text(args.stepId);
     if (!stepId || stepId.length > MAX_ID_CHARS) throw new HttpError(400, 'invalid_step_id', 'stepId is required (from automations_get_run_steps).');
@@ -127,7 +127,7 @@ async function getStepOutput(acc, userId, args) {
 
     const row = await findStep(run, legs, stepId, attempts, userId);
     let output = row.output;
-    const { fullOutputRefOf } = require('../core/automationModel/payloadTruncation');
+    const { fullOutputRefOf } = require('../stores/automationStore/payloadTruncation');
     const ref = fullOutputRefOf(output);
     if (ref) {
         const full = await store().getRunFullOutput(ref.runId, ref.stepId, ref.attempts).catch((e) => fallback('automation/mcpRunReadHandlers:getStepOutput', e, null));
@@ -148,7 +148,7 @@ async function getStepOutput(acc, userId, args) {
     let shown;
     if (wantRaw) {
         // Credentials the run log would mask stay masked in a raw read too.
-        const { redactForPersistence } = require('../core/automationModel/runLogRedaction');
+        const { redactForPersistence } = require('../stores/automationStore/runLogRedaction');
         shown = redactForPersistence(value).value;
     } else {
         shown = placeholderize(value);
@@ -160,7 +160,7 @@ async function getStepOutput(acc, userId, args) {
     let bytes = 0;
     try { bytes = Buffer.byteLength(JSON.stringify(shown) ?? 'null', 'utf8'); } catch { bytes = 0; }
     if (c.bytes > 0 && bytes > c.bytes) {
-        const { shapePreview } = require('../core/automationModel/payloadTruncation');
+        const { shapePreview } = require('../stores/automationStore/payloadTruncation');
         const cut = shapePreview(shown, { maxBytes: c.bytes });
         body = cut ? cut.preview : null;
         truncated = { originalBytes: bytes, previewCut: cut ? cut.previewCut : undefined, note: 'Too large to return whole: read part of it with `path`.' };
@@ -188,7 +188,7 @@ async function getStepOutput(acc, userId, args) {
 async function listRunFiles(acc, userId, args) {
     const { loadOwnedRun, requireRawAllowed, auditRawRead, store } = acc;
     const { run, legs, orgId } = await loadOwnedRun(args.runId, userId);
-    const { assertCanReadRunData, canReadRunData } = require('../core/automationModel/callerRunVisibility');
+    const { assertCanReadRunData, canReadRunData } = require('../auth/callerRunVisibility');
     assertCanReadRunData(run, userId);
     const wantRaw = args.raw === true;
     if (wantRaw) await requireRawAllowed(orgId);

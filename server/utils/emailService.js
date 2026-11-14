@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * Email Service — Gmail API sender using OAuth2 (configStore credentials)
  *
@@ -9,7 +9,7 @@
  * (and most cloud hosts) block outbound SMTP (25/465/587) for anti-abuse, so
  * the App-Password/SMTP path timed out in production. OAuth2 + the Gmail API
  * runs entirely over 443 — the same path the Support inbox already uses
- * (see services/email/providerClients.js) — and survives node replacement.
+ * (see utils/emailProviderClients.js) — and survives node replacement.
  *
  * The admin connects a Google account once (Admin → Integrations → Email);
  * the resulting refresh-token blob is stored encrypted via configStore.setSecret
@@ -246,7 +246,7 @@ async function sendProjectCollabEmail({ userId, locale, event, vars = {}, ctaUrl
         }
         return { sent: true };
     } catch (err) {
-        log.warn(`[EmailService] collaboration mail (${event}) not sent: ${err && err.message}`);
+        log.warn(`[EmailService] collaboration mail (${event}) not sent: ${err && /** @type {Error} */ (err).message}`);
         return { sent: false };
     }
 }

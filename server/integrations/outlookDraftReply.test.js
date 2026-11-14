@@ -34,7 +34,7 @@ after(() => { global.fetch = realFetch; });
 
 const { executeOutlookTool, OUTLOOK_TOOLS } = require('./outlookTools');
 // The draft service's own Graph client (token blob, no session) is replaced by property, not through the module system.
-const providerClients = require('../services/email/providerClients');
+const providerClients = require('../utils/emailProviderClients');
 const graphCalls = [];
 providerClients.graphFetchFromTokens = async (tokens, onRefresh, path, opts = {}) => {
     graphCalls.push({ path, method: opts.method || 'GET', body: opts.body ? JSON.parse(opts.body) : null, scope: tokens.scope });

@@ -12,7 +12,7 @@
  *
  * Proven, per route: the happy path (owned by the caller, filed in the project,
  * ONE "content.created" entry: the audit row and its live event, written by
- * the real projects/changeFeed over a recording store), and every refusal (no session, not a
+ * the real core/projectContent/changeFeed over a recording store), and every refusal (no session, not a
  * member, a viewer, a Studio Solution, another organisation, a closed schema,
  * a store refusal) — and that a refused request creates nothing and announces
  * nothing.
@@ -26,7 +26,7 @@ const { HttpError } = require('../../core/http/errors');
 const { serve, assertRefused } = require('../../testUtils/routeHarness');
 const membership = require('../../projects/membership');
 const { makeContentRouter } = require('./content');
-const { makeChangeFeed } = require('../../projects/changeFeed');
+const { makeChangeFeed } = require('../../core/projectContent/changeFeed');
 const { makeNotebookGate } = require('./notebookGate');
 const { makeSwaps } = require('../../testUtils/swaps');
 
@@ -307,7 +307,7 @@ test('a feed that fails after the create still answers 201, and announces nothin
     const res = await api.call('POST', '/api/projects/p1/documents', { body: { name: 'x' } });
     assert.strictEqual(res.status, 201, 'a retry would create a second document');
     // The audit row and the live event are now one transaction
-    // (projects/changeFeed): an event nobody can find in the activity log is
+    // (core/projectContent/changeFeed): an event nobody can find in the activity log is
     // exactly what that rules out, so a failed write sends neither.
     assert.deepStrictEqual(rec.events, []);
 });

@@ -203,7 +203,7 @@ async function reconcileRowCount(table, meta, scopeKey) {
         const n = Number(out.rows?.[0]?.n);
         if (Number.isFinite(n)) await datatableStore.setRowCount(table.id, table.scope, n);
     } catch (e) {
-        log.warn(`[datatableRetention] could not re-count ${table.id}: ${e.message}`);
+        log.warn(`[datatableRetention] could not re-count ${table.id}: ${/** @type {Error} */ (e).message}`);
     }
     try {
         // Mirrored into datatable_models by the engine itself (mirrorScopeSize).
@@ -226,11 +226,11 @@ async function sweepOrphanSheetTables() {
             try {
                 if (await datatableDbStore.dropDatatable(table.id, table.scope)) dropped += 1;
             } catch (e) {
-                log.warn(`[datatableRetention] could not drop orphaned spreadsheet table ${table.id}: ${e.message}`);
+                log.warn(`[datatableRetention] could not drop orphaned spreadsheet table ${table.id}: ${/** @type {Error} */ (e).message}`);
             }
         }
     } catch (e) {
-        log.error('[datatableRetention] orphaned spreadsheet tables not swept:', e.message);
+        log.error('[datatableRetention] orphaned spreadsheet tables not swept:', /** @type {Error} */ (e).message);
     }
     if (dropped) log.info(`[datatableRetention] dropped ${dropped} spreadsheet table(s) no document points at`);
     return { dropped };
@@ -264,12 +264,12 @@ async function datatableRetentionPass() {
                 // One table's failure is not the pass's failure — the next org
                 // in the list has its own retention obligation.
                 skipped += 1;
-                log.error(`[datatableRetention] ${table.id} failed: ${e.message}`);
+                log.error(`[datatableRetention] ${table.id} failed: ${/** @type {Error} */ (e).message}`);
             }
         }
     } catch (e) {
         ok = false;
-        log.error('[datatableRetention] pass error:', e.message);
+        log.error('[datatableRetention] pass error:', /** @type {Error} */ (e).message);
     }
     const { dropped: orphanSheetTables } = await sweepOrphanSheetTables();
     recordJobRun({ job: 'datatable_retention', status: ok ? 'ok' : 'error', durationMs: Date.now() - t0 });

@@ -1,0 +1,107 @@
+{
+  "_comment": "The mutation sample of scripts/mutation-sample.mjs: the groups it draws from (folders or files, only files with a test next to them), how many mutants, the seed, and the lowest kill rate (percent) the sample may report. \"tests\" names, per source file, test files under another name that exercise it (they run for its mutants on top of the tests next to it; the sample itself does not change). Raise the floor with `node scripts/mutation-sample.mjs server --update` after adding tests; lowering it is a deliberate edit that belongs in a commit message with a reason.",
+  "count": 180,
+  "seed": 20261114,
+  "perFile": 8,
+  "groups": {
+    "auth": [
+      "auth"
+    ],
+    "license": [
+      "license"
+    ],
+    "crypto": [
+      "core/collab/frame.js",
+      "core/privacy/customData/mask.js",
+      "projects/chatCrypto.js",
+      "projects/comments/commentCrypto.js",
+      "stores/agent/messageCrypto.js",
+      "stores/agent/messageEncryption.js",
+      "stores/configEncryption.js",
+      "stores/kb/queryLog/crypto.mts",
+      "stores/lib/documentCrypto.js",
+      "stores/lib/fieldEnvelope.js",
+      "stores/memoryCrypto.js",
+      "stores/orgVault.js",
+      "stores/piiVaultStore.js",
+      "stores/user/appPasswords.js",
+      "utils/secretBox.js"
+    ]
+  },
+  "tests": {
+    "auth/admin/groupRoleRoutes.js": [
+      "auth/admin/listRoutes.adminScope.test.js"
+    ],
+    "auth/admin/orgRoutes.js": [
+      "auth/admin/listRoutes.adminScope.test.js"
+    ],
+    "auth/admin/userRoutes.js": [
+      "auth/admin/listRoutes.adminScope.test.js"
+    ],
+    "auth/adminRoutes.js": [
+      "auth/appPasswordSession.test.js",
+      "auth/permissionsOrgGates.orgChoice.test.js"
+    ],
+    "auth/establishSession.js": [
+      "auth/loginAudit.paths.test.js",
+      "auth/suppressSessionPersistence.test.js"
+    ],
+    "auth/login/finalizeLogin.js": [
+      "auth/login/pendingMfa.test.js"
+    ],
+    "auth/login/finalizeOpaqueLogin.js": [
+      "auth/login/pendingMfa.test.js"
+    ],
+    "auth/mcpAccess/gate.js": [
+      "auth/mcpAccess/envAllowlist.test.js"
+    ],
+    "auth/mcpAccess/orgPolicy.js": [
+      "auth/mcpAccess/envAllowlist.test.js",
+      "auth/mcpAccess/gate.test.js"
+    ],
+    "auth/mcpAccess/scopes.js": [
+      "auth/mcpAccess/gate.test.js"
+    ],
+    "auth/microsoftIdentity.js": [
+      "auth/oauthRoutes.callback.test.js"
+    ],
+    "auth/opaqueSetup.js": [
+      "auth/opaqueRoutes.enumeration.test.js"
+    ],
+    "auth/permissionsOrgGates.js": [
+      "auth/permissions.characterisation.test.js",
+      "auth/resolveAdminOrgIds.test.js"
+    ],
+    "auth/securityKeys/ceremony.js": [
+      "auth/securityKeys/loginRoutes.test.js",
+      "auth/securityKeys/managementRoutes.test.js"
+    ],
+    "auth/securityKeys/relyingParty.js": [
+      "auth/securityKeys/loginRoutes.test.js",
+      "auth/securityKeys/managementRoutes.test.js"
+    ],
+    "auth/sessionSeal.js": [
+      "auth/sessionCache.test.js"
+    ],
+    "auth/ssoUserResolver.js": [
+      "auth/oauthRoutes.callback.test.js"
+    ],
+    "license/index.js": [
+      "license/communityDefault.test.js",
+      "license/communityEnforcement.test.js",
+      "license/malformedInput.test.js",
+      "license/serverScope.test.js"
+    ],
+    "license/middleware.js": [
+      "license/communityEnforcement.test.js"
+    ],
+    "license/refresh.js": [
+      "license/malformedInput.test.js"
+    ],
+    "license/verify.js": [
+      "license/malformedInput.test.js"
+    ]
+  },
+  "_generated": "2026-11-14",
+  "floor": 85
+}

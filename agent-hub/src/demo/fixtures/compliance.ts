@@ -959,7 +959,7 @@ const ISO_READINESS = () => {
 };
 
 // Keyed by the catalogue's own ids (ISO_CONNECTORS). The collector writes
-// 'ok' with no error, or 'error' with the message (jobs/isoEvidenceCollector
+// 'ok' with no error, or 'error' with the message (compliance/isoEvidenceCollector
 // markSweep); GitHub's last sweep hit the API rate limit. YouTrack is
 // configured but switched off.
 const CONNECTOR_STATE: Record<string, { enabled: boolean; last_status: string; connection_id: string | null; swept: number; snapshots: number; last_error?: string }> = {

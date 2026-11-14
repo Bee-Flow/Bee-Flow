@@ -152,7 +152,7 @@ router.post('/stream', requireAuth, builderRateLimit, async (req, res) => {
     if (limitError) return res.status(402).json({ error: limitError, code: 'subscription_limit' });
 
     // ── Load the draft (owner-only) — a bad appId 404s pre-SSE. ──
-    /** @type {import('./buildRound').LoopDraft} */
+    /** @type {import('../../../usecases/ai/appStudioBuilder/buildRound').LoopDraft} */
     let draftWrap;
     let priorSnapshot = null;
     const loaded = await loadDraftWrap(req, { userId, requestedAppId, clientSession });
@@ -212,7 +212,7 @@ router.post('/stream', requireAuth, builderRateLimit, async (req, res) => {
     //    model_unavailable | transient_upstream | budget_exhausted |
     //    validation_failed | save_conflict | internal. ──
     let turnFailed = false; // an `error` went out: the turn leaves no end-of-turn version row
-    /** @type {import('./buildRound').BuildCtx['sendError']} */
+    /** @type {import('../../../usecases/ai/appStudioBuilder/buildRound').BuildCtx['sendError']} */
     const sendError = (code, userMessage) => {
         turnFailed = true;
         send('error', { message: userMessage, code });
@@ -290,7 +290,7 @@ router.post('/stream', requireAuth, builderRateLimit, async (req, res) => {
 
         // Per-turn checkpoint bookkeeping.
         let checkpointsThisTurn = 0;     // capped at MAX_CHECKPOINTS_PER_TURN
-        /** @type {import('./buildRound').BuildCtx['writeCheckpoint']} */
+        /** @type {import('../../../usecases/ai/appStudioBuilder/buildRound').BuildCtx['writeCheckpoint']} */
         const writeCheckpoint = async (summary) => {
             if (!draftWrap.appId || checkpointsThisTurn >= MAX_CHECKPOINTS_PER_TURN) return;
             try {

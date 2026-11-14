@@ -1,0 +1,4941 @@
+{
+ "oneNamedFile": {
+  "returned": "<undefined>",
+  "sameRecord": false,
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ]
+  ]
+ },
+ "oneNamelessFile": {
+  "returned": "<undefined>",
+  "sameRecord": false,
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "1 files"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ]
+  ]
+ },
+ "severalFiles": {
+  "returned": "<undefined>",
+  "sameRecord": false,
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 2 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "2 files"
+    }
+   ],
+   [
+    "processAttachments",
+    2,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ]
+  ]
+ },
+ "noShieldNoConversationNoConfig": {
+  "returned": "<undefined>",
+  "sameRecord": false,
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": null,
+     "conversationId": "<undefined>",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "unknown_fail_closed",
+      "displayName": "unknown"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ]
+  ]
+ },
+ "providerFromConfig": {
+  "returned": "<undefined>",
+  "sameRecord": false,
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": false,
+      "reason": "provider_type:ollama",
+      "displayName": "ollama"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ]
+  ]
+ },
+ "providerPrivateHost": {
+  "returned": "<undefined>",
+  "sameRecord": false,
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": false,
+      "reason": "private_host",
+      "displayName": "custom"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ]
+  ]
+ },
+ "providerAllowlistedHost": {
+  "returned": "<undefined>",
+  "sameRecord": false,
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpAllowlistedHosts": [
+       "llm.example.com"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": false,
+      "reason": "private_host",
+      "displayName": "custom"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ]
+  ]
+ },
+ "providerSameHostNotAllowlisted": {
+  "returned": "<undefined>",
+  "sameRecord": false,
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {},
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "unknown_fail_closed",
+      "displayName": "custom"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ]
+  ]
+ },
+ "answerWithoutSummaries": {
+  "returned": "<undefined>",
+  "sameRecord": false,
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ]
+  ]
+ },
+ "answerEmptySummaries": {
+  "returned": "<undefined>",
+  "sameRecord": false,
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ]
+  ]
+ },
+ "keepsTheRecordItWasHanded": {
+  "returned": {
+   "source": "privacy_shield",
+   "action": "redact",
+   "count": 2,
+   "categories": [
+    "person"
+   ]
+  },
+  "sameRecord": true,
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ]
+  ]
+ },
+ "blockedFound": {
+  "threw": {
+   "message": "This attachment holds personal data and was not sent.",
+   "code": "ATTACHMENT_PII_BLOCKED",
+   "sameError": false
+  },
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ],
+   [
+    "blockAudit"
+   ],
+   [
+    "event",
+    "dlp_blocked",
+    {
+     "reason": "attachment_pii",
+     "filename": "report.pdf",
+     "categories": [
+      "person",
+      "iban"
+     ],
+     "findings": [],
+     "provider": {
+      "isExternal": false,
+      "reason": "attachment_pii"
+     }
+    }
+   ],
+   [
+    "guardrailEvents"
+   ],
+   [
+    "ledger.logGuardrailEvent",
+    {
+     "organization_id": "org-1",
+     "user_id": "user-1",
+     "agent_id": "agent-1",
+     "agent_name": "Helper",
+     "conversation_id": "conv-1",
+     "model": "model-x",
+     "source": "Claude",
+     "violation_type": "pii",
+     "violation_categories": "InternationalBankingAccountNumber,Person",
+     "direction": "input",
+     "action_taken": "blocked",
+     "attachment_filename": "report.pdf",
+     "attachment_page": null
+    }
+   ]
+  ]
+ },
+ "blockedNoCategories": {
+  "threw": {
+   "message": "This attachment holds personal data and was not sent.",
+   "code": "ATTACHMENT_PII_BLOCKED",
+   "sameError": false
+  },
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ],
+   [
+    "blockAudit"
+   ],
+   [
+    "event",
+    "dlp_blocked",
+    {
+     "reason": "attachment_pii",
+     "filename": "report.pdf",
+     "categories": [],
+     "findings": [],
+     "provider": {
+      "isExternal": false,
+      "reason": "attachment_pii"
+     }
+    }
+   ],
+   [
+    "guardrailEvents"
+   ],
+   [
+    "ledger.logGuardrailEvent",
+    {
+     "organization_id": "org-1",
+     "user_id": "user-1",
+     "agent_id": "agent-1",
+     "agent_name": "Helper",
+     "conversation_id": "conv-1",
+     "model": "model-x",
+     "source": "Claude",
+     "violation_type": "pii",
+     "violation_categories": null,
+     "direction": "input",
+     "action_taken": "blocked",
+     "attachment_filename": "report.pdf",
+     "attachment_page": null
+    }
+   ]
+  ]
+ },
+ "blockedNoReason": {
+  "threw": {
+   "message": "This attachment holds personal data and was not sent.",
+   "code": "ATTACHMENT_PII_BLOCKED",
+   "sameError": false
+  },
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ],
+   [
+    "blockAudit"
+   ],
+   [
+    "event",
+    "dlp_blocked",
+    {
+     "reason": "attachment_pii",
+     "filename": "report.pdf",
+     "categories": [
+      "person",
+      "iban"
+     ],
+     "findings": [],
+     "provider": {
+      "isExternal": false,
+      "reason": "attachment_pii"
+     }
+    }
+   ],
+   [
+    "guardrailEvents"
+   ],
+   [
+    "ledger.logGuardrailEvent",
+    {
+     "organization_id": "org-1",
+     "user_id": "user-1",
+     "agent_id": "agent-1",
+     "agent_name": "Helper",
+     "conversation_id": "conv-1",
+     "model": "model-x",
+     "source": "Claude",
+     "violation_type": "pii",
+     "violation_categories": "InternationalBankingAccountNumber,Person",
+     "direction": "input",
+     "action_taken": "blocked",
+     "attachment_filename": "report.pdf",
+     "attachment_page": null
+    }
+   ]
+  ]
+ },
+ "blockedOverflow": {
+  "threw": {
+   "message": "This attachment holds personal data and was not sent.",
+   "code": "ATTACHMENT_PII_BLOCKED",
+   "sameError": false
+  },
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ],
+   [
+    "blockAudit"
+   ],
+   [
+    "event",
+    "dlp_blocked",
+    {
+     "reason": "attachment_overflow",
+     "filename": "report.pdf",
+     "categories": [
+      "person",
+      "iban"
+     ],
+     "findings": [],
+     "provider": {
+      "isExternal": false,
+      "reason": "attachment_overflow"
+     }
+    }
+   ],
+   [
+    "guardrailEvents"
+   ],
+   [
+    "ledger.logGuardrailEvent",
+    {
+     "organization_id": "org-1",
+     "user_id": "user-1",
+     "agent_id": "agent-1",
+     "agent_name": "Helper",
+     "conversation_id": "conv-1",
+     "model": "model-x",
+     "source": "Claude",
+     "violation_type": "pii",
+     "violation_categories": "scan_overflow",
+     "direction": "input",
+     "action_taken": "held",
+     "attachment_filename": "report.pdf",
+     "attachment_page": null
+    }
+   ]
+  ]
+ },
+ "blockedTimeout": {
+  "threw": {
+   "message": "This attachment holds personal data and was not sent.",
+   "code": "ATTACHMENT_PII_BLOCKED",
+   "sameError": false
+  },
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ],
+   [
+    "blockAudit"
+   ],
+   [
+    "event",
+    "dlp_blocked",
+    {
+     "reason": "attachment_timeout",
+     "filename": "report.pdf",
+     "categories": [
+      "person",
+      "iban"
+     ],
+     "findings": [],
+     "provider": {
+      "isExternal": false,
+      "reason": "attachment_timeout"
+     }
+    }
+   ],
+   [
+    "guardrailEvents"
+   ],
+   [
+    "ledger.logGuardrailEvent",
+    {
+     "organization_id": "org-1",
+     "user_id": "user-1",
+     "agent_id": "agent-1",
+     "agent_name": "Helper",
+     "conversation_id": "conv-1",
+     "model": "model-x",
+     "source": "Claude",
+     "violation_type": "pii",
+     "violation_categories": "scan_timeout",
+     "direction": "input",
+     "action_taken": "held",
+     "attachment_filename": "report.pdf",
+     "attachment_page": null
+    }
+   ]
+  ]
+ },
+ "blockedDegraded": {
+  "threw": {
+   "message": "This attachment holds personal data and was not sent.",
+   "code": "ATTACHMENT_PII_BLOCKED",
+   "sameError": false
+  },
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ],
+   [
+    "blockAudit"
+   ],
+   [
+    "event",
+    "dlp_blocked",
+    {
+     "reason": "attachment_degraded",
+     "filename": "report.pdf",
+     "categories": [],
+     "findings": [],
+     "provider": {
+      "isExternal": false,
+      "reason": "attachment_degraded"
+     }
+    }
+   ],
+   [
+    "guardrailEvents"
+   ],
+   [
+    "ledger.logGuardrailEvent",
+    {
+     "organization_id": "org-1",
+     "user_id": "user-1",
+     "agent_id": "agent-1",
+     "agent_name": "Helper",
+     "conversation_id": "conv-1",
+     "model": "model-x",
+     "source": "Claude",
+     "violation_type": "pii",
+     "violation_categories": "scan_degraded",
+     "direction": "input",
+     "action_taken": "held",
+     "attachment_filename": "report.pdf",
+     "attachment_page": null
+    }
+   ]
+  ]
+ },
+ "blockedByThePerson": {
+  "threw": {
+   "message": "This attachment holds personal data and was not sent.",
+   "code": "ATTACHMENT_PII_BLOCKED",
+   "sameError": false
+  },
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ],
+   [
+    "blockAudit"
+   ],
+   [
+    "event",
+    "dlp_blocked",
+    {
+     "reason": "attachment_user_blocked",
+     "filename": "report.pdf",
+     "categories": [
+      "person",
+      "iban"
+     ],
+     "findings": [],
+     "provider": {
+      "isExternal": false,
+      "reason": "attachment_user_blocked"
+     }
+    }
+   ],
+   [
+    "guardrailEvents"
+   ],
+   [
+    "ledger.logGuardrailEvent",
+    {
+     "organization_id": "org-1",
+     "user_id": "user-1",
+     "agent_id": "agent-1",
+     "agent_name": "Helper",
+     "conversation_id": "conv-1",
+     "model": "model-x",
+     "source": "Claude",
+     "violation_type": "pii",
+     "violation_categories": "InternationalBankingAccountNumber,Person,user_blocked",
+     "direction": "input",
+     "action_taken": "blocked",
+     "attachment_filename": "report.pdf",
+     "attachment_page": null
+    }
+   ]
+  ]
+ },
+ "blockedAskTimeout": {
+  "threw": {
+   "message": "This attachment holds personal data and was not sent.",
+   "code": "ATTACHMENT_PII_BLOCKED",
+   "sameError": false
+  },
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ],
+   [
+    "blockAudit"
+   ],
+   [
+    "event",
+    "dlp_blocked",
+    {
+     "reason": "attachment_ask_timeout",
+     "filename": "report.pdf",
+     "categories": [
+      "person",
+      "iban"
+     ],
+     "findings": [],
+     "provider": {
+      "isExternal": false,
+      "reason": "attachment_ask_timeout"
+     }
+    }
+   ],
+   [
+    "guardrailEvents"
+   ],
+   [
+    "ledger.logGuardrailEvent",
+    {
+     "organization_id": "org-1",
+     "user_id": "user-1",
+     "agent_id": "agent-1",
+     "agent_name": "Helper",
+     "conversation_id": "conv-1",
+     "model": "model-x",
+     "source": "Claude",
+     "violation_type": "pii",
+     "violation_categories": "InternationalBankingAccountNumber,Person,ask_timeout",
+     "direction": "input",
+     "action_taken": "blocked",
+     "attachment_filename": "report.pdf",
+     "attachment_page": null
+    }
+   ]
+  ]
+ },
+ "blockedBareContext": {
+  "threw": {
+   "message": "This attachment holds personal data and was not sent.",
+   "code": "ATTACHMENT_PII_BLOCKED",
+   "sameError": false
+  },
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "<undefined>",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "<undefined>",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "unknown_fail_closed",
+      "displayName": "unknown"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ],
+   [
+    "blockAudit"
+   ],
+   [
+    "event",
+    "dlp_blocked",
+    {
+     "reason": "attachment_pii",
+     "filename": "report.pdf",
+     "categories": [
+      "person",
+      "iban"
+     ],
+     "findings": [],
+     "provider": {
+      "isExternal": false,
+      "reason": "attachment_pii"
+     }
+    }
+   ],
+   [
+    "guardrailEvents"
+   ],
+   [
+    "ledger.logGuardrailEvent",
+    {
+     "organization_id": null,
+     "user_id": null,
+     "agent_id": null,
+     "agent_name": null,
+     "conversation_id": null,
+     "model": "model-x",
+     "source": "LLM",
+     "violation_type": "pii",
+     "violation_categories": "InternationalBankingAccountNumber,Person",
+     "direction": "input",
+     "action_taken": "blocked",
+     "attachment_filename": "report.pdf",
+     "attachment_page": null
+    }
+   ]
+  ]
+ },
+ "blockedProviderType": {
+  "threw": {
+   "message": "This attachment holds personal data and was not sent.",
+   "code": "ATTACHMENT_PII_BLOCKED",
+   "sameError": false
+  },
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:openai",
+      "displayName": "openai"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ],
+   [
+    "blockAudit"
+   ],
+   [
+    "event",
+    "dlp_blocked",
+    {
+     "reason": "attachment_pii",
+     "filename": "report.pdf",
+     "categories": [
+      "person",
+      "iban"
+     ],
+     "findings": [],
+     "provider": {
+      "isExternal": false,
+      "reason": "attachment_pii"
+     }
+    }
+   ],
+   [
+    "guardrailEvents"
+   ],
+   [
+    "ledger.logGuardrailEvent",
+    {
+     "organization_id": "org-1",
+     "user_id": "user-1",
+     "agent_id": "agent-1",
+     "agent_name": "Helper",
+     "conversation_id": "conv-1",
+     "model": "model-x",
+     "source": "openai",
+     "violation_type": "pii",
+     "violation_categories": "InternationalBankingAccountNumber,Person",
+     "direction": "input",
+     "action_taken": "blocked",
+     "attachment_filename": "report.pdf",
+     "attachment_page": null
+    }
+   ]
+  ]
+ },
+ "blockedLedgerFails": {
+  "threw": {
+   "message": "This attachment holds personal data and was not sent.",
+   "code": "ATTACHMENT_PII_BLOCKED",
+   "sameError": false
+  },
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ],
+   [
+    "blockAudit"
+   ],
+   [
+    "event",
+    "dlp_blocked",
+    {
+     "reason": "attachment_pii",
+     "filename": "report.pdf",
+     "categories": [
+      "person",
+      "iban"
+     ],
+     "findings": [],
+     "provider": {
+      "isExternal": false,
+      "reason": "attachment_pii"
+     }
+    }
+   ],
+   [
+    "guardrailEvents"
+   ],
+   [
+    "ledger.logGuardrailEvent",
+    {
+     "organization_id": "org-1",
+     "user_id": "user-1",
+     "agent_id": "agent-1",
+     "agent_name": "Helper",
+     "conversation_id": "conv-1",
+     "model": "model-x",
+     "source": "Claude",
+     "violation_type": "pii",
+     "violation_categories": "InternationalBankingAccountNumber,Person",
+     "direction": "input",
+     "action_taken": "blocked",
+     "attachment_filename": "report.pdf",
+     "attachment_page": null
+    }
+   ]
+  ]
+ },
+ "blockedNoEventSink": {
+  "threw": {
+   "message": "This attachment holds personal data and was not sent.",
+   "code": "ATTACHMENT_PII_BLOCKED",
+   "sameError": false
+  },
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<undefined>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "blockAudit"
+   ],
+   [
+    "guardrailEvents"
+   ],
+   [
+    "ledger.logGuardrailEvent",
+    {
+     "organization_id": "org-1",
+     "user_id": "user-1",
+     "agent_id": "agent-1",
+     "agent_name": "Helper",
+     "conversation_id": "conv-1",
+     "model": "model-x",
+     "source": "Claude",
+     "violation_type": "pii",
+     "violation_categories": "InternationalBankingAccountNumber,Person",
+     "direction": "input",
+     "action_taken": "blocked",
+     "attachment_filename": "report.pdf",
+     "attachment_page": null
+    }
+   ]
+  ]
+ },
+ "otherFailure": {
+  "threw": {
+   "message": "extraction crashed",
+   "sameError": true
+  },
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ]
+  ]
+ },
+ "otherFailureWithCode": {
+  "threw": {
+   "message": "too large",
+   "code": "ATTACHMENT_TOO_LARGE",
+   "sameError": true
+  },
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ]
+  ]
+ },
+ "failureIsNothing": {
+  "threw": {
+   "value": null
+  },
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ]
+  ]
+ },
+ "tokenised": {
+  "returned": {
+   "source": "privacy_shield",
+   "action": "redact",
+   "count": 3,
+   "categories": [
+    "person",
+    "email"
+   ],
+   "automatic": true,
+   "attachments": [
+    {
+     "filename": "report.pdf",
+     "action": "tokenize",
+     "count": 3,
+     "byCategory": {
+      "person": 2,
+      "email": 1
+     }
+    }
+   ]
+  },
+  "sameRecord": false,
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ],
+   [
+    "guardrailEvents"
+   ],
+   [
+    "ledger.logAttachmentPiiFindings",
+    {
+     "summary": {
+      "filename": "report.pdf",
+      "action": "tokenize",
+      "count": 3,
+      "byCategory": {
+       "person": 2,
+       "email": 1
+      }
+     },
+     "auditBase": {
+      "organization_id": "org-1",
+      "user_id": "user-1",
+      "agent_id": "agent-1",
+      "agent_name": "Helper",
+      "conversation_id": "conv-1",
+      "model": "model-x",
+      "source": "Claude"
+     },
+     "action_taken": "redacted"
+    }
+   ],
+   [
+    "event",
+    "pii_tokenized",
+    {
+     "entities": [
+      {
+       "label": "person",
+       "category": "person"
+      },
+      {
+       "label": "email",
+       "category": "email"
+      }
+     ],
+     "tokenCount": 3,
+     "attachments": [
+      {
+       "filename": "report.pdf",
+       "action": "tokenize",
+       "count": 3,
+       "byCategory": {
+        "person": 2,
+        "email": 1
+       }
+      }
+     ],
+     "source": "privacy_shield"
+    }
+   ]
+  ]
+ },
+ "tokenisedSeveral": {
+  "returned": {
+   "source": "privacy_shield",
+   "action": "redact",
+   "count": 4,
+   "categories": [
+    "person",
+    "email",
+    "phone"
+   ],
+   "automatic": true,
+   "attachments": [
+    {
+     "filename": "report.pdf",
+     "action": "tokenize",
+     "count": 3,
+     "byCategory": {
+      "person": 2,
+      "email": 1
+     }
+    },
+    {
+     "filename": "scan.png",
+     "action": "tokenize",
+     "count": 1,
+     "byCategory": {
+      "person": 1,
+      "phone": 1
+     }
+    },
+    {
+     "filename": "c.txt",
+     "action": "tokenize",
+     "count": "<undefined>",
+     "byCategory": "<undefined>"
+    }
+   ]
+  },
+  "sameRecord": false,
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 2 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "2 files"
+    }
+   ],
+   [
+    "processAttachments",
+    2,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ],
+   [
+    "guardrailEvents"
+   ],
+   [
+    "ledger.logAttachmentPiiFindings",
+    {
+     "summary": {
+      "filename": "report.pdf",
+      "action": "tokenize",
+      "count": 3,
+      "byCategory": {
+       "person": 2,
+       "email": 1
+      }
+     },
+     "auditBase": {
+      "organization_id": "org-1",
+      "user_id": "user-1",
+      "agent_id": "agent-1",
+      "agent_name": "Helper",
+      "conversation_id": "conv-1",
+      "model": "model-x",
+      "source": "Claude"
+     },
+     "action_taken": "redacted"
+    }
+   ],
+   [
+    "ledger.logAttachmentPiiFindings",
+    {
+     "summary": {
+      "filename": "scan.png",
+      "action": "tokenize",
+      "count": 1,
+      "byCategory": {
+       "person": 1,
+       "phone": 1
+      }
+     },
+     "auditBase": {
+      "organization_id": "org-1",
+      "user_id": "user-1",
+      "agent_id": "agent-1",
+      "agent_name": "Helper",
+      "conversation_id": "conv-1",
+      "model": "model-x",
+      "source": "Claude"
+     },
+     "action_taken": "redacted"
+    }
+   ],
+   [
+    "ledger.logAttachmentPiiFindings",
+    {
+     "summary": {
+      "filename": "c.txt",
+      "action": "tokenize",
+      "count": "<undefined>",
+      "byCategory": "<undefined>"
+     },
+     "auditBase": {
+      "organization_id": "org-1",
+      "user_id": "user-1",
+      "agent_id": "agent-1",
+      "agent_name": "Helper",
+      "conversation_id": "conv-1",
+      "model": "model-x",
+      "source": "Claude"
+     },
+     "action_taken": "redacted"
+    }
+   ],
+   [
+    "event",
+    "pii_tokenized",
+    {
+     "entities": [
+      {
+       "label": "person",
+       "category": "person"
+      },
+      {
+       "label": "email",
+       "category": "email"
+      },
+      {
+       "label": "phone",
+       "category": "phone"
+      }
+     ],
+     "tokenCount": 4,
+     "attachments": [
+      {
+       "filename": "report.pdf",
+       "action": "tokenize",
+       "count": 3,
+       "byCategory": {
+        "person": 2,
+        "email": 1
+       }
+      },
+      {
+       "filename": "scan.png",
+       "action": "tokenize",
+       "count": 1,
+       "byCategory": {
+        "person": 1,
+        "phone": 1
+       }
+      },
+      {
+       "filename": "c.txt",
+       "action": "tokenize",
+       "count": "<undefined>",
+       "byCategory": "<undefined>"
+      }
+     ],
+     "source": "privacy_shield"
+    }
+   ]
+  ]
+ },
+ "allowed": {
+  "returned": {
+   "source": "privacy_shield",
+   "action": "redact",
+   "count": 3,
+   "categories": [
+    "person",
+    "email"
+   ],
+   "automatic": true,
+   "attachments": [
+    {
+     "filename": "report.pdf",
+     "action": "allowed",
+     "count": 3,
+     "byCategory": {
+      "person": 2,
+      "email": 1
+     }
+    }
+   ]
+  },
+  "sameRecord": false,
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ],
+   [
+    "guardrailEvents"
+   ],
+   [
+    "ledger.logAttachmentPiiFindings",
+    {
+     "summary": {
+      "filename": "report.pdf",
+      "action": "allowed",
+      "count": 3,
+      "byCategory": {
+       "person": 2,
+       "email": 1
+      }
+     },
+     "auditBase": {
+      "organization_id": "org-1",
+      "user_id": "user-1",
+      "agent_id": "agent-1",
+      "agent_name": "Helper",
+      "conversation_id": "conv-1",
+      "model": "model-x",
+      "source": "Claude"
+     },
+     "action_taken": "allowed"
+    }
+   ],
+   [
+    "event",
+    "pii_tokenized",
+    {
+     "entities": [
+      {
+       "label": "person",
+       "category": "person"
+      },
+      {
+       "label": "email",
+       "category": "email"
+      }
+     ],
+     "tokenCount": 3,
+     "attachments": [
+      {
+       "filename": "report.pdf",
+       "action": "allowed",
+       "count": 3,
+       "byCategory": {
+        "person": 2,
+        "email": 1
+       }
+      }
+     ],
+     "source": "privacy_shield"
+    }
+   ]
+  ]
+ },
+ "cleanFile": {
+  "returned": {
+   "source": "privacy_shield",
+   "action": "redact",
+   "count": 0,
+   "categories": [],
+   "automatic": true,
+   "attachments": [
+    {
+     "filename": "report.pdf",
+     "action": "none",
+     "count": 0,
+     "byCategory": {}
+    }
+   ]
+  },
+  "sameRecord": false,
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ],
+   [
+    "guardrailEvents"
+   ]
+  ]
+ },
+ "incompleteTokenised": {
+  "returned": {
+   "source": "privacy_shield",
+   "action": "redact",
+   "count": 3,
+   "categories": [
+    "person",
+    "email"
+   ],
+   "automatic": true,
+   "attachments": [
+    {
+     "filename": "report.pdf",
+     "action": "tokenize",
+     "count": 3,
+     "byCategory": {
+      "person": 2,
+      "email": 1
+     },
+     "reason": "overflow",
+     "scannedPages": 40,
+     "totalPages": 90
+    }
+   ]
+  },
+  "sameRecord": false,
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ],
+   [
+    "guardrailEvents"
+   ],
+   [
+    "ledger.logAttachmentPiiFindings",
+    {
+     "summary": {
+      "filename": "report.pdf",
+      "action": "tokenize",
+      "count": 3,
+      "byCategory": {
+       "person": 2,
+       "email": 1
+      },
+      "reason": "overflow",
+      "scannedPages": 40,
+      "totalPages": 90
+     },
+     "auditBase": {
+      "organization_id": "org-1",
+      "user_id": "user-1",
+      "agent_id": "agent-1",
+      "agent_name": "Helper",
+      "conversation_id": "conv-1",
+      "model": "model-x",
+      "source": "Claude"
+     },
+     "action_taken": "redacted"
+    }
+   ],
+   [
+    "ledger.logAttachmentScanIncomplete",
+    {
+     "auditBase": {
+      "organization_id": "org-1",
+      "user_id": "user-1",
+      "agent_id": "agent-1",
+      "agent_name": "Helper",
+      "conversation_id": "conv-1",
+      "model": "model-x",
+      "source": "Claude"
+     },
+     "filename": "report.pdf",
+     "reason": "overflow",
+     "scannedPages": 40,
+     "totalPages": 90,
+     "action_taken": "partial_redacted"
+    }
+   ],
+   [
+    "event",
+    "pii_tokenized",
+    {
+     "entities": [
+      {
+       "label": "person",
+       "category": "person"
+      },
+      {
+       "label": "email",
+       "category": "email"
+      }
+     ],
+     "tokenCount": 3,
+     "attachments": [
+      {
+       "filename": "report.pdf",
+       "action": "tokenize",
+       "count": 3,
+       "byCategory": {
+        "person": 2,
+        "email": 1
+       },
+       "reason": "overflow",
+       "scannedPages": 40,
+       "totalPages": 90
+      }
+     ],
+     "source": "privacy_shield"
+    }
+   ]
+  ]
+ },
+ "incompletePassedThrough": {
+  "returned": {
+   "source": "privacy_shield",
+   "action": "redact",
+   "count": 0,
+   "categories": [],
+   "automatic": true,
+   "attachments": [
+    {
+     "filename": "report.pdf",
+     "action": "none",
+     "count": 0,
+     "byCategory": {},
+     "reason": "timeout",
+     "scannedPages": 3,
+     "totalPages": 9
+    }
+   ]
+  },
+  "sameRecord": false,
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ],
+   [
+    "guardrailEvents"
+   ],
+   [
+    "ledger.logAttachmentScanIncomplete",
+    {
+     "auditBase": {
+      "organization_id": "org-1",
+      "user_id": "user-1",
+      "agent_id": "agent-1",
+      "agent_name": "Helper",
+      "conversation_id": "conv-1",
+      "model": "model-x",
+      "source": "Claude"
+     },
+     "filename": "report.pdf",
+     "reason": "timeout",
+     "scannedPages": 3,
+     "totalPages": 9,
+     "action_taken": "passed_unredacted"
+    }
+   ],
+   [
+    "event",
+    "pii_tokenized",
+    {
+     "entities": [],
+     "tokenCount": 0,
+     "attachments": [
+      {
+       "filename": "report.pdf",
+       "action": "none",
+       "count": 0,
+       "byCategory": {},
+       "reason": "timeout",
+       "scannedPages": 3,
+       "totalPages": 9
+      }
+     ],
+     "source": "privacy_shield"
+    }
+   ]
+  ]
+ },
+ "timedOutNoFindings": {
+  "returned": {
+   "source": "privacy_shield",
+   "action": "redact",
+   "count": 0,
+   "categories": [],
+   "automatic": true,
+   "attachments": [
+    {
+     "filename": "report.pdf",
+     "action": "none",
+     "count": 0,
+     "byCategory": {},
+     "timeout": true
+    }
+   ]
+  },
+  "sameRecord": false,
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ],
+   [
+    "guardrailEvents"
+   ],
+   [
+    "event",
+    "pii_tokenized",
+    {
+     "entities": [],
+     "tokenCount": 0,
+     "attachments": [
+      {
+       "filename": "report.pdf",
+       "action": "none",
+       "count": 0,
+       "byCategory": {},
+       "timeout": true
+      }
+     ],
+     "source": "privacy_shield"
+    }
+   ]
+  ]
+ },
+ "mergesIntoExistingRecord": {
+  "returned": {
+   "source": "privacy_shield",
+   "action": "redact",
+   "count": 5,
+   "categories": [
+    "person",
+    "iban",
+    "email"
+   ],
+   "provider": "x",
+   "attachments": [
+    {
+     "filename": "report.pdf",
+     "action": "tokenize",
+     "count": 3,
+     "byCategory": {
+      "person": 2,
+      "email": 1
+     }
+    }
+   ]
+  },
+  "sameRecord": true,
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ],
+   [
+    "guardrailEvents"
+   ],
+   [
+    "ledger.logAttachmentPiiFindings",
+    {
+     "summary": {
+      "filename": "report.pdf",
+      "action": "tokenize",
+      "count": 3,
+      "byCategory": {
+       "person": 2,
+       "email": 1
+      }
+     },
+     "auditBase": {
+      "organization_id": "org-1",
+      "user_id": "user-1",
+      "agent_id": "agent-1",
+      "agent_name": "Helper",
+      "conversation_id": "conv-1",
+      "model": "model-x",
+      "source": "Claude"
+     },
+     "action_taken": "redacted"
+    }
+   ],
+   [
+    "event",
+    "pii_tokenized",
+    {
+     "entities": [
+      {
+       "label": "person",
+       "category": "person"
+      },
+      {
+       "label": "email",
+       "category": "email"
+      }
+     ],
+     "tokenCount": 3,
+     "attachments": [
+      {
+       "filename": "report.pdf",
+       "action": "tokenize",
+       "count": 3,
+       "byCategory": {
+        "person": 2,
+        "email": 1
+       }
+      }
+     ],
+     "source": "privacy_shield"
+    }
+   ]
+  ]
+ },
+ "mergesIntoBareRecord": {
+  "returned": {
+   "source": "privacy_shield",
+   "action": "redact",
+   "attachments": [
+    {
+     "filename": "report.pdf",
+     "action": "tokenize",
+     "count": 3,
+     "byCategory": {
+      "person": 2,
+      "email": 1
+     }
+    }
+   ],
+   "count": 3,
+   "categories": [
+    "person",
+    "email"
+   ]
+  },
+  "sameRecord": true,
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ],
+   [
+    "guardrailEvents"
+   ],
+   [
+    "ledger.logAttachmentPiiFindings",
+    {
+     "summary": {
+      "filename": "report.pdf",
+      "action": "tokenize",
+      "count": 3,
+      "byCategory": {
+       "person": 2,
+       "email": 1
+      }
+     },
+     "auditBase": {
+      "organization_id": "org-1",
+      "user_id": "user-1",
+      "agent_id": "agent-1",
+      "agent_name": "Helper",
+      "conversation_id": "conv-1",
+      "model": "model-x",
+      "source": "Claude"
+     },
+     "action_taken": "redacted"
+    }
+   ],
+   [
+    "event",
+    "pii_tokenized",
+    {
+     "entities": [
+      {
+       "label": "person",
+       "category": "person"
+      },
+      {
+       "label": "email",
+       "category": "email"
+      }
+     ],
+     "tokenCount": 3,
+     "attachments": [
+      {
+       "filename": "report.pdf",
+       "action": "tokenize",
+       "count": 3,
+       "byCategory": {
+        "person": 2,
+        "email": 1
+       }
+      }
+     ],
+     "source": "privacy_shield"
+    }
+   ]
+  ]
+ },
+ "summariesBareContext": {
+  "returned": {
+   "source": "privacy_shield",
+   "action": "redact",
+   "count": 6,
+   "categories": [
+    "person",
+    "email"
+   ],
+   "automatic": true,
+   "attachments": [
+    {
+     "filename": "report.pdf",
+     "action": "tokenize",
+     "count": 3,
+     "byCategory": {
+      "person": 2,
+      "email": 1
+     }
+    },
+    {
+     "filename": "report.pdf",
+     "action": "allowed",
+     "count": 3,
+     "byCategory": {
+      "person": 2,
+      "email": 1
+     },
+     "reason": "degraded"
+    }
+   ]
+  },
+  "sameRecord": false,
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "<undefined>",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": null,
+     "conversationId": "<undefined>",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:azure",
+      "displayName": "azure"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ],
+   [
+    "guardrailEvents"
+   ],
+   [
+    "ledger.logAttachmentPiiFindings",
+    {
+     "summary": {
+      "filename": "report.pdf",
+      "action": "tokenize",
+      "count": 3,
+      "byCategory": {
+       "person": 2,
+       "email": 1
+      }
+     },
+     "auditBase": {
+      "organization_id": null,
+      "user_id": null,
+      "agent_id": null,
+      "agent_name": null,
+      "conversation_id": null,
+      "model": "model-x",
+      "source": "azure"
+     },
+     "action_taken": "redacted"
+    }
+   ],
+   [
+    "ledger.logAttachmentPiiFindings",
+    {
+     "summary": {
+      "filename": "report.pdf",
+      "action": "allowed",
+      "count": 3,
+      "byCategory": {
+       "person": 2,
+       "email": 1
+      },
+      "reason": "degraded"
+     },
+     "auditBase": {
+      "organization_id": null,
+      "user_id": null,
+      "agent_id": null,
+      "agent_name": null,
+      "conversation_id": null,
+      "model": "model-x",
+      "source": "azure"
+     },
+     "action_taken": "allowed"
+    }
+   ],
+   [
+    "ledger.logAttachmentScanIncomplete",
+    {
+     "auditBase": {
+      "organization_id": null,
+      "user_id": null,
+      "agent_id": null,
+      "agent_name": null,
+      "conversation_id": null,
+      "model": "model-x",
+      "source": "azure"
+     },
+     "filename": "report.pdf",
+     "reason": "degraded",
+     "scannedPages": "<undefined>",
+     "totalPages": "<undefined>",
+     "action_taken": "passed_unredacted"
+    }
+   ],
+   [
+    "event",
+    "pii_tokenized",
+    {
+     "entities": [
+      {
+       "label": "person",
+       "category": "person"
+      },
+      {
+       "label": "email",
+       "category": "email"
+      }
+     ],
+     "tokenCount": 6,
+     "attachments": [
+      {
+       "filename": "report.pdf",
+       "action": "tokenize",
+       "count": 3,
+       "byCategory": {
+        "person": 2,
+        "email": 1
+       }
+      },
+      {
+       "filename": "report.pdf",
+       "action": "allowed",
+       "count": 3,
+       "byCategory": {
+        "person": 2,
+        "email": 1
+       },
+       "reason": "degraded"
+      }
+     ],
+     "source": "privacy_shield"
+    }
+   ]
+  ]
+ },
+ "summariesLedgerFails": {
+  "returned": {
+   "source": "privacy_shield",
+   "action": "redact",
+   "count": 6,
+   "categories": [
+    "person",
+    "email"
+   ],
+   "automatic": true,
+   "attachments": [
+    {
+     "filename": "report.pdf",
+     "action": "tokenize",
+     "count": 3,
+     "byCategory": {
+      "person": 2,
+      "email": 1
+     },
+     "reason": "overflow"
+    },
+    {
+     "filename": "report.pdf",
+     "action": "allowed",
+     "count": 3,
+     "byCategory": {
+      "person": 2,
+      "email": 1
+     }
+    }
+   ]
+  },
+  "sameRecord": false,
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise this"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ],
+   [
+    "guardrailEvents"
+   ],
+   [
+    "ledger.logAttachmentPiiFindings",
+    {
+     "summary": {
+      "filename": "report.pdf",
+      "action": "tokenize",
+      "count": 3,
+      "byCategory": {
+       "person": 2,
+       "email": 1
+      },
+      "reason": "overflow"
+     },
+     "auditBase": {
+      "organization_id": "org-1",
+      "user_id": "user-1",
+      "agent_id": "agent-1",
+      "agent_name": "Helper",
+      "conversation_id": "conv-1",
+      "model": "model-x",
+      "source": "Claude"
+     },
+     "action_taken": "redacted"
+    }
+   ],
+   [
+    "ledger.logAttachmentScanIncomplete",
+    {
+     "auditBase": {
+      "organization_id": "org-1",
+      "user_id": "user-1",
+      "agent_id": "agent-1",
+      "agent_name": "Helper",
+      "conversation_id": "conv-1",
+      "model": "model-x",
+      "source": "Claude"
+     },
+     "filename": "report.pdf",
+     "reason": "overflow",
+     "scannedPages": "<undefined>",
+     "totalPages": "<undefined>",
+     "action_taken": "partial_redacted"
+    }
+   ],
+   [
+    "ledger.logAttachmentPiiFindings",
+    {
+     "summary": {
+      "filename": "report.pdf",
+      "action": "allowed",
+      "count": 3,
+      "byCategory": {
+       "person": 2,
+       "email": 1
+      }
+     },
+     "auditBase": {
+      "organization_id": "org-1",
+      "user_id": "user-1",
+      "agent_id": "agent-1",
+      "agent_name": "Helper",
+      "conversation_id": "conv-1",
+      "model": "model-x",
+      "source": "Claude"
+     },
+     "action_taken": "allowed"
+    }
+   ],
+   [
+    "event",
+    "pii_tokenized",
+    {
+     "entities": [
+      {
+       "label": "person",
+       "category": "person"
+      },
+      {
+       "label": "email",
+       "category": "email"
+      }
+     ],
+     "tokenCount": 6,
+     "attachments": [
+      {
+       "filename": "report.pdf",
+       "action": "tokenize",
+       "count": 3,
+       "byCategory": {
+        "person": 2,
+        "email": 1
+       },
+       "reason": "overflow"
+      },
+      {
+       "filename": "report.pdf",
+       "action": "allowed",
+       "count": 3,
+       "byCategory": {
+        "person": 2,
+        "email": 1
+       }
+      }
+     ],
+     "source": "privacy_shield"
+    }
+   ]
+  ]
+ },
+ "summariesNoEventSink": {
+  "returned": {
+   "source": "privacy_shield",
+   "action": "redact",
+   "count": 3,
+   "categories": [
+    "person",
+    "email"
+   ],
+   "automatic": true,
+   "attachments": [
+    {
+     "filename": "report.pdf",
+     "action": "tokenize",
+     "count": 3,
+     "byCategory": {
+      "person": 2,
+      "email": 1
+     }
+    }
+   ],
+   "tokenizedPrompt": "Summarise [person_1]",
+   "tokenMap": {
+    "[person_1]": "Ada"
+   }
+  },
+  "sameRecord": false,
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise [person_1]"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ],
+      "showRawPayload": true
+     },
+     "conversationId": "conv-1",
+     "emit": "<undefined>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "guardrailEvents"
+   ],
+   [
+    "ledger.logAttachmentPiiFindings",
+    {
+     "summary": {
+      "filename": "report.pdf",
+      "action": "tokenize",
+      "count": 3,
+      "byCategory": {
+       "person": 2,
+       "email": 1
+      }
+     },
+     "auditBase": {
+      "organization_id": "org-1",
+      "user_id": "user-1",
+      "agent_id": "agent-1",
+      "agent_name": "Helper",
+      "conversation_id": "conv-1",
+      "model": "model-x",
+      "source": "Claude"
+     },
+     "action_taken": "redacted"
+    }
+   ],
+   [
+    "getConversationTokenMap",
+    "conv-1"
+   ]
+  ]
+ },
+ "rawPayloadTextParts": {
+  "returned": {
+   "source": "privacy_shield",
+   "action": "redact",
+   "count": 3,
+   "categories": [
+    "person",
+    "email"
+   ],
+   "automatic": true,
+   "attachments": [
+    {
+     "filename": "report.pdf",
+     "action": "tokenize",
+     "count": 3,
+     "byCategory": {
+      "person": 2,
+      "email": 1
+     }
+    }
+   ],
+   "tokenizedPrompt": "Summarise [person_1]\nfrom the file",
+   "tokenMap": {
+    "[person_1]": "Ada"
+   }
+  },
+  "sameRecord": false,
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": [
+      {
+       "type": "text",
+       "text": "Summarise [person_1]"
+      },
+      {
+       "type": "image",
+       "data": "x"
+      },
+      {
+       "type": "note",
+       "text": "not a text part"
+      },
+      null,
+      {
+       "type": "text",
+       "text": 7
+      },
+      {
+       "type": "text",
+       "text": "from the file"
+      }
+     ]
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ],
+      "showRawPayload": true
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ],
+   [
+    "guardrailEvents"
+   ],
+   [
+    "ledger.logAttachmentPiiFindings",
+    {
+     "summary": {
+      "filename": "report.pdf",
+      "action": "tokenize",
+      "count": 3,
+      "byCategory": {
+       "person": 2,
+       "email": 1
+      }
+     },
+     "auditBase": {
+      "organization_id": "org-1",
+      "user_id": "user-1",
+      "agent_id": "agent-1",
+      "agent_name": "Helper",
+      "conversation_id": "conv-1",
+      "model": "model-x",
+      "source": "Claude"
+     },
+     "action_taken": "redacted"
+    }
+   ],
+   [
+    "event",
+    "pii_tokenized",
+    {
+     "entities": [
+      {
+       "label": "person",
+       "category": "person"
+      },
+      {
+       "label": "email",
+       "category": "email"
+      }
+     ],
+     "tokenCount": 3,
+     "attachments": [
+      {
+       "filename": "report.pdf",
+       "action": "tokenize",
+       "count": 3,
+       "byCategory": {
+        "person": 2,
+        "email": 1
+       }
+      }
+     ],
+     "source": "privacy_shield"
+    }
+   ],
+   [
+    "event",
+    "privacy_payload",
+    {
+     "tokenizedPrompt": "Summarise [person_1]\nfrom the file",
+     "provider": "model-x",
+     "source": "privacy_shield",
+     "timestamp": 1772359200000
+    }
+   ],
+   [
+    "getConversationTokenMap",
+    "conv-1"
+   ],
+   [
+    "event",
+    "privacy_token_map",
+    {
+     "tokenMap": {
+      "[person_1]": "Ada"
+     },
+     "source": "privacy_shield"
+    }
+   ]
+  ]
+ },
+ "rawPayloadString": {
+  "returned": {
+   "source": "privacy_shield",
+   "action": "redact",
+   "count": 3,
+   "categories": [
+    "person",
+    "email"
+   ],
+   "automatic": true,
+   "attachments": [
+    {
+     "filename": "report.pdf",
+     "action": "tokenize",
+     "count": 3,
+     "byCategory": {
+      "person": 2,
+      "email": 1
+     }
+    }
+   ],
+   "tokenizedPrompt": "Summarise [person_1]"
+  },
+  "sameRecord": false,
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise [person_1]"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ],
+      "showRawPayload": true
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ],
+   [
+    "guardrailEvents"
+   ],
+   [
+    "ledger.logAttachmentPiiFindings",
+    {
+     "summary": {
+      "filename": "report.pdf",
+      "action": "tokenize",
+      "count": 3,
+      "byCategory": {
+       "person": 2,
+       "email": 1
+      }
+     },
+     "auditBase": {
+      "organization_id": "org-1",
+      "user_id": "user-1",
+      "agent_id": "agent-1",
+      "agent_name": "Helper",
+      "conversation_id": "conv-1",
+      "model": "model-x",
+      "source": "Claude"
+     },
+     "action_taken": "redacted"
+    }
+   ],
+   [
+    "event",
+    "pii_tokenized",
+    {
+     "entities": [
+      {
+       "label": "person",
+       "category": "person"
+      },
+      {
+       "label": "email",
+       "category": "email"
+      }
+     ],
+     "tokenCount": 3,
+     "attachments": [
+      {
+       "filename": "report.pdf",
+       "action": "tokenize",
+       "count": 3,
+       "byCategory": {
+        "person": 2,
+        "email": 1
+       }
+      }
+     ],
+     "source": "privacy_shield"
+    }
+   ],
+   [
+    "event",
+    "privacy_payload",
+    {
+     "tokenizedPrompt": "Summarise [person_1]",
+     "provider": "model-x",
+     "source": "privacy_shield",
+     "timestamp": 1772359200000
+    }
+   ],
+   [
+    "getConversationTokenMap",
+    "conv-1"
+   ]
+  ]
+ },
+ "rawPayloadNothingToShow": {
+  "returned": {
+   "source": "privacy_shield",
+   "action": "redact",
+   "count": 3,
+   "categories": [
+    "person",
+    "email"
+   ],
+   "automatic": true,
+   "attachments": [
+    {
+     "filename": "report.pdf",
+     "action": "tokenize",
+     "count": 3,
+     "byCategory": {
+      "person": 2,
+      "email": 1
+     }
+    }
+   ],
+   "tokenMap": {
+    "[person_1]": "Ada"
+   }
+  },
+  "sameRecord": false,
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": []
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ],
+      "showRawPayload": true
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ],
+   [
+    "guardrailEvents"
+   ],
+   [
+    "ledger.logAttachmentPiiFindings",
+    {
+     "summary": {
+      "filename": "report.pdf",
+      "action": "tokenize",
+      "count": 3,
+      "byCategory": {
+       "person": 2,
+       "email": 1
+      }
+     },
+     "auditBase": {
+      "organization_id": "org-1",
+      "user_id": "user-1",
+      "agent_id": "agent-1",
+      "agent_name": "Helper",
+      "conversation_id": "conv-1",
+      "model": "model-x",
+      "source": "Claude"
+     },
+     "action_taken": "redacted"
+    }
+   ],
+   [
+    "event",
+    "pii_tokenized",
+    {
+     "entities": [
+      {
+       "label": "person",
+       "category": "person"
+      },
+      {
+       "label": "email",
+       "category": "email"
+      }
+     ],
+     "tokenCount": 3,
+     "attachments": [
+      {
+       "filename": "report.pdf",
+       "action": "tokenize",
+       "count": 3,
+       "byCategory": {
+        "person": 2,
+        "email": 1
+       }
+      }
+     ],
+     "source": "privacy_shield"
+    }
+   ],
+   [
+    "getConversationTokenMap",
+    "conv-1"
+   ],
+   [
+    "event",
+    "privacy_token_map",
+    {
+     "tokenMap": {
+      "[person_1]": "Ada"
+     },
+     "source": "privacy_shield"
+    }
+   ]
+  ]
+ },
+ "rawPayloadNoMessage": {
+  "returned": {
+   "source": "privacy_shield",
+   "action": "redact",
+   "count": 3,
+   "categories": [
+    "person",
+    "email"
+   ],
+   "automatic": true,
+   "attachments": [
+    {
+     "filename": "report.pdf",
+     "action": "tokenize",
+     "count": 3,
+     "byCategory": {
+      "person": 2,
+      "email": 1
+     }
+    }
+   ]
+  },
+  "sameRecord": false,
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    null,
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ],
+      "showRawPayload": true
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ],
+   [
+    "guardrailEvents"
+   ],
+   [
+    "ledger.logAttachmentPiiFindings",
+    {
+     "summary": {
+      "filename": "report.pdf",
+      "action": "tokenize",
+      "count": 3,
+      "byCategory": {
+       "person": 2,
+       "email": 1
+      }
+     },
+     "auditBase": {
+      "organization_id": "org-1",
+      "user_id": "user-1",
+      "agent_id": "agent-1",
+      "agent_name": "Helper",
+      "conversation_id": "conv-1",
+      "model": "model-x",
+      "source": "Claude"
+     },
+     "action_taken": "redacted"
+    }
+   ],
+   [
+    "event",
+    "pii_tokenized",
+    {
+     "entities": [
+      {
+       "label": "person",
+       "category": "person"
+      },
+      {
+       "label": "email",
+       "category": "email"
+      }
+     ],
+     "tokenCount": 3,
+     "attachments": [
+      {
+       "filename": "report.pdf",
+       "action": "tokenize",
+       "count": 3,
+       "byCategory": {
+        "person": 2,
+        "email": 1
+       }
+      }
+     ],
+     "source": "privacy_shield"
+    }
+   ],
+   [
+    "getConversationTokenMap",
+    "conv-1"
+   ]
+  ]
+ },
+ "rawPayloadOtherContent": {
+  "returned": {
+   "source": "privacy_shield",
+   "action": "redact",
+   "count": 3,
+   "categories": [
+    "person",
+    "email"
+   ],
+   "automatic": true,
+   "attachments": [
+    {
+     "filename": "report.pdf",
+     "action": "tokenize",
+     "count": 3,
+     "byCategory": {
+      "person": 2,
+      "email": 1
+     }
+    }
+   ]
+  },
+  "sameRecord": false,
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": 5
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ],
+      "showRawPayload": true
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ],
+   [
+    "guardrailEvents"
+   ],
+   [
+    "ledger.logAttachmentPiiFindings",
+    {
+     "summary": {
+      "filename": "report.pdf",
+      "action": "tokenize",
+      "count": 3,
+      "byCategory": {
+       "person": 2,
+       "email": 1
+      }
+     },
+     "auditBase": {
+      "organization_id": "org-1",
+      "user_id": "user-1",
+      "agent_id": "agent-1",
+      "agent_name": "Helper",
+      "conversation_id": "conv-1",
+      "model": "model-x",
+      "source": "Claude"
+     },
+     "action_taken": "redacted"
+    }
+   ],
+   [
+    "event",
+    "pii_tokenized",
+    {
+     "entities": [
+      {
+       "label": "person",
+       "category": "person"
+      },
+      {
+       "label": "email",
+       "category": "email"
+      }
+     ],
+     "tokenCount": 3,
+     "attachments": [
+      {
+       "filename": "report.pdf",
+       "action": "tokenize",
+       "count": 3,
+       "byCategory": {
+        "person": 2,
+        "email": 1
+       }
+      }
+     ],
+     "source": "privacy_shield"
+    }
+   ],
+   [
+    "getConversationTokenMap",
+    "conv-1"
+   ]
+  ]
+ },
+ "rawPayloadOnlyWithFindings": {
+  "returned": {
+   "source": "privacy_shield",
+   "action": "redact",
+   "count": 0,
+   "categories": [],
+   "automatic": true,
+   "attachments": [
+    {
+     "filename": "report.pdf",
+     "action": "none",
+     "count": 0,
+     "byCategory": {},
+     "timeout": true
+    }
+   ]
+  },
+  "sameRecord": false,
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "plain"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ],
+      "showRawPayload": true
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ],
+   [
+    "guardrailEvents"
+   ],
+   [
+    "event",
+    "pii_tokenized",
+    {
+     "entities": [],
+     "tokenCount": 0,
+     "attachments": [
+      {
+       "filename": "report.pdf",
+       "action": "none",
+       "count": 0,
+       "byCategory": {},
+       "timeout": true
+      }
+     ],
+     "source": "privacy_shield"
+    }
+   ]
+  ]
+ },
+ "rawPayloadOff": {
+  "returned": {
+   "source": "privacy_shield",
+   "action": "redact",
+   "count": 3,
+   "categories": [
+    "person",
+    "email"
+   ],
+   "automatic": true,
+   "attachments": [
+    {
+     "filename": "report.pdf",
+     "action": "tokenize",
+     "count": 3,
+     "byCategory": {
+      "person": 2,
+      "email": 1
+     }
+    }
+   ]
+  },
+  "sameRecord": false,
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise [person_1]"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ]
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ],
+   [
+    "guardrailEvents"
+   ],
+   [
+    "ledger.logAttachmentPiiFindings",
+    {
+     "summary": {
+      "filename": "report.pdf",
+      "action": "tokenize",
+      "count": 3,
+      "byCategory": {
+       "person": 2,
+       "email": 1
+      }
+     },
+     "auditBase": {
+      "organization_id": "org-1",
+      "user_id": "user-1",
+      "agent_id": "agent-1",
+      "agent_name": "Helper",
+      "conversation_id": "conv-1",
+      "model": "model-x",
+      "source": "Claude"
+     },
+     "action_taken": "redacted"
+    }
+   ],
+   [
+    "event",
+    "pii_tokenized",
+    {
+     "entities": [
+      {
+       "label": "person",
+       "category": "person"
+      },
+      {
+       "label": "email",
+       "category": "email"
+      }
+     ],
+     "tokenCount": 3,
+     "attachments": [
+      {
+       "filename": "report.pdf",
+       "action": "tokenize",
+       "count": 3,
+       "byCategory": {
+        "person": 2,
+        "email": 1
+       }
+      }
+     ],
+     "source": "privacy_shield"
+    }
+   ]
+  ]
+ },
+ "rawPayloadTokenMapFails": {
+  "returned": {
+   "source": "privacy_shield",
+   "action": "redact",
+   "count": 3,
+   "categories": [
+    "person",
+    "email"
+   ],
+   "automatic": true,
+   "attachments": [
+    {
+     "filename": "report.pdf",
+     "action": "tokenize",
+     "count": 3,
+     "byCategory": {
+      "person": 2,
+      "email": 1
+     }
+    }
+   ],
+   "tokenizedPrompt": "Summarise [person_1]"
+  },
+  "sameRecord": false,
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise [person_1]"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ],
+      "showRawPayload": true
+     },
+     "conversationId": "conv-1",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ],
+   [
+    "guardrailEvents"
+   ],
+   [
+    "ledger.logAttachmentPiiFindings",
+    {
+     "summary": {
+      "filename": "report.pdf",
+      "action": "tokenize",
+      "count": 3,
+      "byCategory": {
+       "person": 2,
+       "email": 1
+      }
+     },
+     "auditBase": {
+      "organization_id": "org-1",
+      "user_id": "user-1",
+      "agent_id": "agent-1",
+      "agent_name": "Helper",
+      "conversation_id": "conv-1",
+      "model": "model-x",
+      "source": "Claude"
+     },
+     "action_taken": "redacted"
+    }
+   ],
+   [
+    "event",
+    "pii_tokenized",
+    {
+     "entities": [
+      {
+       "label": "person",
+       "category": "person"
+      },
+      {
+       "label": "email",
+       "category": "email"
+      }
+     ],
+     "tokenCount": 3,
+     "attachments": [
+      {
+       "filename": "report.pdf",
+       "action": "tokenize",
+       "count": 3,
+       "byCategory": {
+        "person": 2,
+        "email": 1
+       }
+      }
+     ],
+     "source": "privacy_shield"
+    }
+   ],
+   [
+    "event",
+    "privacy_payload",
+    {
+     "tokenizedPrompt": "Summarise [person_1]",
+     "provider": "model-x",
+     "source": "privacy_shield",
+     "timestamp": 1772359200000
+    }
+   ],
+   [
+    "getConversationTokenMap",
+    "conv-1"
+   ]
+  ]
+ },
+ "rawPayloadNoConversation": {
+  "returned": {
+   "source": "privacy_shield",
+   "action": "redact",
+   "count": 3,
+   "categories": [
+    "person",
+    "email"
+   ],
+   "automatic": true,
+   "attachments": [
+    {
+     "filename": "report.pdf",
+     "action": "tokenize",
+     "count": 3,
+     "byCategory": {
+      "person": 2,
+      "email": 1
+     }
+    }
+   ],
+   "tokenizedPrompt": "Summarise [person_1]",
+   "tokenMap": {
+    "[person_1]": "Ada"
+   }
+  },
+  "sameRecord": false,
+  "calls": [
+   [
+    "log.info",
+    "[Agent] Processing 1 attachments..."
+   ],
+   [
+    "classification"
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "start",
+     "detail": "report.pdf"
+    }
+   ],
+   [
+    "processAttachments",
+    1,
+    {
+     "role": "user",
+     "content": "Summarise [person_1]"
+    },
+    "user-1",
+    {
+     "modelId": "model-x",
+     "persistedByLive": "<persistedByLive>",
+     "orgShield": {
+      "dlpEnabled": true,
+      "dlpAllowlistedHosts": [
+       "models.corp.local"
+      ],
+      "showRawPayload": true
+     },
+     "conversationId": "<undefined>",
+     "emit": "<onEvent>",
+     "provider": {
+      "isExternal": true,
+      "reason": "provider_type:anthropic",
+      "displayName": "anthropic"
+     }
+    }
+   ],
+   [
+    "event",
+    "phase",
+    {
+     "stage": "processing_attachments",
+     "status": "end",
+     "durationMs": 0
+    }
+   ],
+   [
+    "guardrailEvents"
+   ],
+   [
+    "ledger.logAttachmentPiiFindings",
+    {
+     "summary": {
+      "filename": "report.pdf",
+      "action": "tokenize",
+      "count": 3,
+      "byCategory": {
+       "person": 2,
+       "email": 1
+      }
+     },
+     "auditBase": {
+      "organization_id": "org-1",
+      "user_id": "user-1",
+      "agent_id": "agent-1",
+      "agent_name": "Helper",
+      "conversation_id": null,
+      "model": "model-x",
+      "source": "Claude"
+     },
+     "action_taken": "redacted"
+    }
+   ],
+   [
+    "event",
+    "pii_tokenized",
+    {
+     "entities": [
+      {
+       "label": "person",
+       "category": "person"
+      },
+      {
+       "label": "email",
+       "category": "email"
+      }
+     ],
+     "tokenCount": 3,
+     "attachments": [
+      {
+       "filename": "report.pdf",
+       "action": "tokenize",
+       "count": 3,
+       "byCategory": {
+        "person": 2,
+        "email": 1
+       }
+      }
+     ],
+     "source": "privacy_shield"
+    }
+   ],
+   [
+    "event",
+    "privacy_payload",
+    {
+     "tokenizedPrompt": "Summarise [person_1]",
+     "provider": "model-x",
+     "source": "privacy_shield",
+     "timestamp": 1772359200000
+    }
+   ],
+   [
+    "getConversationTokenMap",
+    "<undefined>"
+   ],
+   [
+    "event",
+    "privacy_token_map",
+    {
+     "tokenMap": {
+      "[person_1]": "Ada"
+     },
+     "source": "privacy_shield"
+    }
+   ]
+  ]
+ }
+}

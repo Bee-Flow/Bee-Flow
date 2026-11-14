@@ -3,7 +3,7 @@
  * Migration: teach the seeded memory-extractor prompt about sensitivity, what
  * never to save, and absolute dates (memory write pipeline, 2026-10).
  *
- * The write pipeline (agents/memory/memoryWriter.js) now drops identifiers and
+ * The write pipeline (core/memory/memoryWriter.js) now drops identifiers and
  * credentials, and holds special-category (GDPR Art. 9) facts back for the
  * user's consent. It can only do that well when the extractor says which facts
  * are Art. 9 (`sensitivity: "art9"`) and stops offering what must never be

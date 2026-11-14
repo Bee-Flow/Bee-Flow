@@ -87,6 +87,7 @@ function sanitizeUnicode(text) {
     }
 
     let stripped = 0;
+    /** @type {string[]} */
     const chars = [];
 
     for (let i = 0; i < text.length; i++) {
@@ -155,6 +156,7 @@ function sanitizeMessagesUnicode(messages) {
     }
 
     let totalStripped = 0;
+    /** @type {number[]} */
     const detectedIn = [];
 
     for (let i = 0; i < messages.length; i++) {

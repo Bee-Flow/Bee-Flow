@@ -12,7 +12,7 @@
 'use strict';
 
 const { HttpError } = require('../core/http/errors');
-const { assertCanReadRunData, canReadRunData } = require('../core/automationModel/callerRunVisibility');
+const { assertCanReadRunData, canReadRunData } = require('../auth/callerRunVisibility');
 const { fallback } = require('../utils/bestEffort');
 const { sessionUser } = require('../core/http/sessionUser');
 

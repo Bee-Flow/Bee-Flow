@@ -25,7 +25,7 @@ const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 
 const { persistableOutput, createRunFullOutputs } = require('./runFullOutputs');
-const { isTruncatedOutput, fullOutputRefOf, DEFAULT_MAX_BYTES } = require('../../automation/payloadTruncation');
+const { isTruncatedOutput, fullOutputRefOf, DEFAULT_MAX_BYTES } = require('./payloadTruncation');
 const { pgliteDb } = require('../../testUtils/pgliteDb');
 const { ladderPglite } = require('../../testUtils/pgliteTemplate');
 

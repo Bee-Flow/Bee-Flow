@@ -24,6 +24,9 @@ assert.strictEqual(t.normalizeTier('community'), 'community');
 assert.strictEqual(t.normalizeTier('enterprise'), 'enterprise');
 assert.strictEqual(t.normalizeTier('full'), 'full');
 assert.strictEqual(t.normalizeTier('bogus'), 'bogus', 'unknown tiers pass through unchanged');
+// A value that is not a string is handed back as it came (a licence row without a tier has null).
+assert.strictEqual(t.normalizeTier(/** @type {any} */ (null)), null);
+assert.strictEqual(t.normalizeTier(/** @type {any} */ (7)), 7);
 
 // ── Rank ────────────────────────────────────────────────────────────────
 assert.strictEqual(t.tierRank('community'), 0);
@@ -185,6 +188,10 @@ assert.strictEqual(pl.max_users, -1, 'legacy pro limits resolve to enterprise');
 const l1 = t.getLimitsForTier('community');
 l1.max_agents = 999;
 assert.strictEqual(t.getLimitsForTier('community').max_agents, -1, 'getLimitsForTier should return a fresh object');
+
+// An unknown tier gets the community limits (a fresh copy), never nothing.
+assert.deepStrictEqual(t.getLimitsForTier('bogus'), t.getLimitsForTier('community'));
+assert.deepStrictEqual(t.getLimitsForTier(/** @type {string} */ (/** @type {unknown} */ (undefined))), t.getLimitsForTier('community'));
 
 // ── tierHasFeature ──────────────────────────────────────────────────────
 assert.strictEqual(t.tierHasFeature('community', 'chat_basic'), true);

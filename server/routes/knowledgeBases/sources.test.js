@@ -223,7 +223,7 @@ const MOCKS = {
     },
     '../core/entitlements/betaFeatures': { userHasBetaFeature: async () => false },
     '../core/serviceAuth': { getServiceHeaders: () => ({}) },
-    '../support/kbAccess': { ...fakeKbGates({ kbStore: { getKB: (id) => MOCKS['../stores/knowledgeBases'].getKB(id) }, canRead: () => fx.canAccess, canManage: () => fx.canAccess && fx.canManage }),
+    '../core/kb/kbAccess': { ...fakeKbGates({ kbStore: { getKB: (id) => MOCKS['../stores/knowledgeBases'].getKB(id) }, canRead: () => fx.canAccess, canManage: () => fx.canAccess && fx.canManage }),
         resolveAdminOrgIds: async () => new Set(['org1']),
     },
     '../license': {

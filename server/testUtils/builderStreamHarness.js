@@ -148,8 +148,8 @@ function createBuilderStream() {
     // be one stable function that reads the run's adapter.
     swap('core/providers', { getAdapter: () => script.adapter });
     swap('automation/builderCatalog', { ...require(resolveInServer('automation/builderCatalog')), async buildCatalogForUser() { return snapshot(script.catalog); } }); // real pure helpers
-    swap('automation/builderDatatableCatalog', { async buildDatatableCatalogForUser() { return script.datatables; } });
-    swap('automation/builderDocumentCatalog', { async buildDocumentCatalogForUser() { return script.documents; } });
+    swap('automation/builderDatatableCatalog', { async buildDatatableCatalogForUser() { if (script.datatables instanceof Error) throw script.datatables; return script.datatables; } });
+    swap('automation/builderDocumentCatalog', { async buildDocumentCatalogForUser() { if (script.documents instanceof Error) throw script.documents; return script.documents; } });
     // Agents / knowledge bases / app_event providers: scripted per run (`pickers`),
     // empty by default so a turn never reaches the agent or knowledge stores.
     swap('automation/builderPickerCatalog', { async buildPickerCatalogsForUser() { return snapshot(script.pickers) || {}; } });
@@ -182,8 +182,8 @@ function createBuilderStream() {
 
     // load-or-create stays real (it is where seedMetadata lands); the persist
     // is the one step that would write SQL.
-    const realDraft = require(resolveInServer('routes/ai/automationBuilder/builderDraft'));
-    swap('routes/ai/automationBuilder/builderDraft', {
+    const realDraft = require(resolveInServer('usecases/ai/automationBuilder/builderDraft'));
+    swap('usecases/ai/automationBuilder/builderDraft', {
         ...realDraft,
         async persistDraftWrap(draftWrap) {
             if (!draftWrap.automationId) draftWrap.automationId = script.mintedAutomationId;

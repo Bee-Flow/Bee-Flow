@@ -1,7 +1,7 @@
 // @typecheck
 /**
  * Stand-in knowledge-base gate for the route tests that mock `./shared` or
- * `../support/kbAccess`: the REAL gate (auth/kbAccess.mts makeKbGates: the
+ * `../core/kb/kbAccess`: the REAL gate (auth/kbAccess.mts makeKbGates: the
  * 404 and 403 answers, what it leaves on `req.kbAccess`) over the test's own
  * verdicts.
  *

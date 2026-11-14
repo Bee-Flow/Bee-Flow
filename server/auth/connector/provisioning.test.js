@@ -63,7 +63,7 @@ const MOCKS = {
     '../connectorJwt': {
         invalidateTenantKeyCache: () => { },
     },
-    '../../services/planEntitlements': {
+    '../../core/entitlements/planEntitlements': {
         applyPlanToOrg: async (...args) => { fx.calls.push(['applyPlanToOrg', ...args]); },
     },
     '../../services/orgHealth': {

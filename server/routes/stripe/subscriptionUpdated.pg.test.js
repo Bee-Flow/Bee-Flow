@@ -20,7 +20,7 @@ const { stripeWebhookKit } = require('../../testUtils/stripeWebhookKit');
 
 const kit = stripeWebhookKit();
 const userStore = require('../../stores/userStore');
-const planEntitlements = require('../../services/planEntitlements');
+const planEntitlements = require('../../core/entitlements/planEntitlements');
 
 const ORG_META = { beeflow_org_id: 'org1' };
 const CONSUMER_META = { beeflow_subscriber_type: 'consumer', beeflow_user_id: 'u1' };

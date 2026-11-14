@@ -45,13 +45,13 @@ export type LastRunDeps = {
 };
 
 function defaultDeps(): LastRunDeps {
-    const { maskedRunValues } = nodeRequire('../../../routes/ai/automationBuilder/inspectionTools');
+    const { maskedRunValues } = nodeRequire('../../../usecases/ai/automationBuilder/inspectionTools');
     const log = nodeRequire('../../../telemetry/log');
     return {
         store: nodeRequire('../../../stores/automationStore'),
         // Read at call time, so the detector the process has now is the one used.
         mask: (values) => maskedRunValues(values, nodeRequire('../../../core/privacy/piiDetection')),
-        canRead: nodeRequire('../../../core/automationModel/callerRunVisibility').canReadRunData,
+        canRead: nodeRequire('../../../auth/callerRunVisibility').canReadRunData,
         warn: (message) => log.warn(message),
     };
 }

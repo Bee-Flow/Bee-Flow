@@ -10,7 +10,7 @@ const { PROJECT_FILES_KIND, KB_COUNTS_SELECT } = require('./model');
 
 /**
  * The organisations an administrator's shortcut applies in, as a Set. Accepts
- * a Set or an array (from support/kbAccess.js resolveAdminOrgIds); anything
+ * a Set or an array (from core/kb/kbAccess.js resolveAdminOrgIds); anything
  * else is no organisation.
  * @param {unknown} adminOrgIds
  * @returns {Set<string>}
@@ -22,12 +22,11 @@ function adminOrgSet(adminOrgIds) {
 }
 
 /**
- * @param {import('./model').KbCtx} ctx  the barrel's db handle, schema init,
- *        write guard and the store object itself (methods dispatch through it,
- *        so a method swapped on the export is the one the others call)
+ * The listing per caller: owner, org member, org admin, super admin, system bases.
+ * @param {import('./model').KbCtx} ctx
  */
-function makeAccessFns(ctx) {
-    const { getAll, initDB, self: KnowledgeBasesStore } = ctx;
+function makeListingFns(ctx) {
+    const { getAll, initDB } = ctx;
     return {
         /**
          * List KBs accessible to the user.
@@ -47,7 +46,7 @@ function makeAccessFns(ctx) {
          *   systemSlugs: When provided, system-managed KBs whose `system_slug` is in this list are included in
          *     addition to the normal personal/org results. Used by the chat layer to surface system KBs whose beta
          *     feature is enabled for the requesting user's org.
-         *   adminOrgIds: server-resolved (support/kbAccess.js resolveAdminOrgIds), the organisations the caller
+         *   adminOrgIds: server-resolved (core/kb/kbAccess.js resolveAdminOrgIds), the organisations the caller
          *     administers; in those, and only those, draft org KBs are listed too.
          */
         listKBs: async (tenantId, orgIds = undefined, opts = {}) => {
@@ -168,6 +167,7 @@ function makeAccessFns(ctx) {
             const adminOrgIdArray = orgIdArray.filter((o) => admin.has(o));
             /** @type {string[][]} */
             const adminParams = [];
+            /** @type {string} */
             let orgDraftClause;
             if (adminOrgIdArray.length === orgIdArray.length) orgDraftClause = '';
             else if (adminOrgIdArray.length === 0) orgDraftClause = ' AND kb.is_published = TRUE';
@@ -185,7 +185,16 @@ function makeAccessFns(ctx) {
                 [tenantId, orgIdArray, ...f.params, ...u.params, ...adminParams]
             );
         },
+    };
+}
 
+/**
+ * The group filter and the read and manage predicates.
+ * @param {import('./model').KbCtx} ctx
+ */
+function makePredicateFns(ctx) {
+    const { self: KnowledgeBasesStore } = ctx;
+    return {
         /**
          * Filter a KB list down to those the user is allowed to see based on
          * `shared_groups` group restrictions. Owner KBs (tenant_id = userId)
@@ -215,7 +224,7 @@ function makeAccessFns(ctx) {
          * @param {Array<string>} userGroups - Group ids the user belongs to
          * @param {{ adminOrgIds?: Set<string>|string[] }} [opts]
          *   adminOrgIds: the organisations the caller administers (server-resolved,
-         *   support/kbAccess.js resolveAdminOrgIds). Absent: none.
+         *   core/kb/kbAccess.js resolveAdminOrgIds). Absent: none.
          */
         canUserAccessKB: (kb, userId, orgIds = undefined, userGroups = [], opts = {}) => {
             if (!kb) return false;
@@ -280,8 +289,16 @@ function makeAccessFns(ctx) {
             if (!(orgIds instanceof Set) || !orgIds.has(kb.organization_id)) return false; // must share org
             return !!hasManagePermission;
         },
-
     };
+}
+
+/**
+ * @param {import('./model').KbCtx} ctx  the barrel's db handle, schema init,
+ *        write guard and the store object itself (methods dispatch through it,
+ *        so a method swapped on the export is the one the others call)
+ */
+function makeAccessFns(ctx) {
+    return { ...makeListingFns(ctx), ...makePredicateFns(ctx) };
 }
 
 module.exports = { makeAccessFns };

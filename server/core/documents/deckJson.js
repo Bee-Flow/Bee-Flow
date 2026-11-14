@@ -1,8 +1,8 @@
 // @typecheck
 const { chartFromAny, statsFromAny, stepsFromAny } = require('./deckChart');
-const { normaliseIconName } = require('./deckIcons');
 const { MAX_CARDS, stripInlineMarkdown, classifyImageRef } = require('./deckBase');
 const { fieldsFromContent, slideFromFields, deckFromMarkdown } = require('./deckParse');
+const { resolveStatIcons } = require('./deckSlideAssembly');
 
 function asBulletList(value) {
     if (!Array.isArray(value)) return [];
@@ -66,18 +66,28 @@ function asQuote(value) {
     return null;
 }
 
+/** @param {unknown} v */
+const given = (v) => v !== undefined && v !== null && v !== '';
+
 /**
- * @param {string} input
+ * The image a slide or card may keep; a remote one is a warning and nothing.
+ * @param {unknown} value
  * @param {string[]} warnings
  */
-function slideFromJson(input, warnings) {
-    if (typeof input === 'string') {
-        const f = fieldsFromContent(input);
-        return slideFromFields('', f, { warnings });
-    }
-    const s = /** @type {Record<string, any>} */ (input && typeof input === 'object' ? input : {}); // untrusted input, any shape
-    // `content` (a slide node's markdown) and `text`/`markdown` are parsed like
-    // a slide body; the structured fields override what parsing found.
+function usableImage(value, warnings) {
+    const image = asImage(value);
+    if (!image || !image.rejected) return image;
+    warnings.push(`remote image "${image.rejected.slice(0, 80)}" was skipped — only Bee Flow storage or data: images can be placed on a slide`);
+    return null;
+}
+
+/**
+ * The parsed fields of a JSON slide: `content` (a slide node's markdown) and
+ * `text`/`markdown`/`body` are parsed like a slide body; the structured
+ * fields override what parsing found.
+ * @param {Record<string, any>} s
+ */
+function fieldsFromJson(s) {
     const f = fieldsFromContent(s.content ?? s.text ?? s.markdown ?? s.body ?? '');
     if (typeof s.body === 'string' && (s.content !== undefined || s.text !== undefined || s.markdown !== undefined)) {
         f.body.push(...String(s.body).split('\n'));
@@ -88,55 +98,105 @@ function slideFromJson(input, warnings) {
     if (table) f.table = table;
     const quote = asQuote(s.quote);
     if (quote) f.quote = quote;
-    const image = asImage(s.image);
-    if (image && image.rejected) {
-        warnings.push(`remote image "${image.rejected.slice(0, 80)}" was skipped — only Bee Flow storage or data: images can be placed on a slide`);
-    }
-    // `cards` (3–4 titled texts), or `columns` given with three or four entries.
+    return f;
+}
+
+/**
+ * One entry of `cards` (or of `columns` given with three or more entries).
+ * @param {unknown} c
+ * @param {string[]} warnings
+ */
+function cardColumn(c, warnings) {
+    if (typeof c === 'string') { const cf = fieldsFromContent(c); return { title: '', bullets: cf.bullets, body: cf.body }; }
+    const cc = /** @type {Record<string, any>} */ (c && typeof c === 'object' ? c : {});
+    const cf = fieldsFromContent(cc.text ?? cc.content ?? cc.body ?? '');
+    const cb = asBulletList(cc.bullets ?? cc.items);
+    const img = usableImage(cc.image, warnings);
+    return { title: stripInlineMarkdown(cc.title ?? cc.heading ?? cc.label ?? ''), bullets: cb.length ? cb : cf.bullets, body: cf.body, icon: cc.icon ? String(cc.icon) : null, image: img || cf.image || null };
+}
+
+/**
+ * One of the two entries of a `columns` pair.
+ * @param {unknown} c
+ */
+function pairColumn(c) {
+    if (typeof c === 'string') { const cf = fieldsFromContent(c); return { title: '', bullets: cf.bullets, body: cf.body }; }
+    const cc = /** @type {Record<string, any>} */ (c && typeof c === 'object' ? c : {});
+    const cf = fieldsFromContent(cc.content ?? cc.text ?? '');
+    const cb = asBulletList(cc.bullets ?? cc.items);
+    return { title: stripInlineMarkdown(cc.title ?? cc.heading ?? ''), bullets: cb.length ? cb : cf.bullets, body: cf.body };
+}
+
+/**
+ * `cards` (titled texts), or `columns` given with three or more entries, else
+ * a `columns` pair; null when the slide names neither.
+ * @param {Record<string, any>} s
+ * @param {string[]} warnings
+ */
+function columnsFromJson(s, warnings) {
     const cardsIn = Array.isArray(s.cards) && s.cards.length ? s.cards : (Array.isArray(s.columns) && s.columns.length >= 3 ? s.columns : null);
-    if (cardsIn) {
-        f.columns = cardsIn.slice(0, MAX_CARDS).map((c) => {
-            if (typeof c === 'string') { const cf = fieldsFromContent(c); return { title: '', bullets: cf.bullets, body: cf.body }; }
-            const cc = c && typeof c === 'object' ? c : {};
-            const cf = fieldsFromContent(cc.text ?? cc.content ?? cc.body ?? '');
-            const cb = asBulletList(cc.bullets ?? cc.items);
-            const img = asImage(cc.image);
-            if (img && img.rejected) warnings.push(`remote image "${img.rejected.slice(0, 80)}" was skipped — only Bee Flow storage or data: images can be placed on a slide`);
-            return { title: stripInlineMarkdown(cc.title ?? cc.heading ?? cc.label ?? ''), bullets: cb.length ? cb : cf.bullets, body: cf.body, icon: cc.icon ? String(cc.icon) : null, image: img && !img.rejected ? img : (cf.image || null) };
-        });
-    } else if (Array.isArray(s.columns) && s.columns.length) {
-        f.columns = s.columns.slice(0, 2).map((c) => {
-            if (typeof c === 'string') { const cf = fieldsFromContent(c); return { title: '', bullets: cf.bullets, body: cf.body }; }
-            const cc = c && typeof c === 'object' ? c : {};
-            const cf = fieldsFromContent(cc.content ?? cc.text ?? '');
-            const cb = asBulletList(cc.bullets ?? cc.items);
-            return { title: stripInlineMarkdown(cc.title ?? cc.heading ?? ''), bullets: cb.length ? cb : cf.bullets, body: cf.body };
-        });
-    }
+    if (cardsIn) return cardsIn.slice(0, MAX_CARDS).map((/** @type {unknown} */ c) => cardColumn(c, warnings));
+    if (Array.isArray(s.columns) && s.columns.length) return s.columns.slice(0, 2).map(pairColumn);
+    return null;
+}
+
+/** `chart: "bar"` alone names a type: no data, no "label: n" lines, no JSON. @param {unknown} chart */
+const namesChartType = (chart) => typeof chart === 'string' && !/[\n:{[|]/.test(chart);
+
+/**
+ * `chart` is the model or a {type, data, labels?, values?} wrapper (data =
+ * rows, a matrix, a table, a markdown table, "label: n" lines); a bare type
+ * means "chart the table", which then is the chart's data and no longer a table.
+ * @param {Record<string, any>} s
+ * @param {ReturnType<typeof fieldsFromContent>} f
+ * @param {string[]} warnings
+ */
+function chartFromJson(s, f, warnings) {
+    if (!namesChartType(s.chart)) return given(s.chart) ? chartFromAny(s.chart, {}, warnings) : null;
+    if (!f.table) { warnings.push('`chart` names a type but the slide has no table or data'); return null; }
+    const chart = chartFromAny({ columns: f.table.columns, rows: f.table.rows }, { type: s.chart }, warnings);
+    if (chart) f.table = null;
+    return chart;
+}
+
+/** @param {Record<string, any>} s */
+function layoutFromJson(s) {
     const layout = typeof s.layout === 'string' ? s.layout.trim().toLowerCase().replace(/-/g, '_') : null;
-    const explicitNotes = typeof s.notes === 'string' ? s.notes : (typeof s.speakerNotes === 'string' ? s.speakerNotes : null);
-    // Visuals: `chart` is the model or a {type, data, labels?, values?} wrapper
-    // (data = rows, a matrix, a table, a markdown table, "label: n" lines);
-    // `chart:"bar"` alone means "chart the table". `stats` = tiles, `steps` /
-    // `timeline` = process steps, `style` = the slide's tint.
-    let chart = null;
-    if (typeof s.chart === 'string' && !/[\n:{[|]/.test(s.chart)) {
-        if (f.table) { chart = chartFromAny({ columns: f.table.columns, rows: f.table.rows }, { type: s.chart }, warnings); if (chart) f.table = null; }
-        else warnings.push('`chart` names a type but the slide has no table or data');
-    } else if (s.chart !== undefined && s.chart !== null && s.chart !== '') {
-        chart = chartFromAny(s.chart, {}, warnings);
+    return layout && layout !== 'auto' ? layout : null;
+}
+
+/** @param {Record<string, any>} s */
+function notesFromJson(s) {
+    if (typeof s.notes === 'string') return s.notes;
+    return typeof s.speakerNotes === 'string' ? s.speakerNotes : null;
+}
+
+/**
+ * One slide from a JSON slide (or a string of slide markdown). `stats` are
+ * tiles, `steps` / `timeline` process steps, `style` the slide's tint.
+ * @param {unknown} input
+ * @param {string[]} warnings
+ */
+function slideFromJson(input, warnings) {
+    if (typeof input === 'string') {
+        const f = fieldsFromContent(input);
+        return slideFromFields('', f, { warnings });
     }
-    const stats = s.stats !== undefined && s.stats !== null && s.stats !== '' ? statsFromAny(s.stats, warnings) : null;
-    if (stats) for (const t of stats) { if (t.icon) { const n = normaliseIconName(t.icon); if (!n) warnings.push(`unknown icon "${t.icon}" was skipped`); t.icon = n; } }
+    const s = /** @type {Record<string, any>} */ (input && typeof input === 'object' ? input : {}); // untrusted input, any shape
+    const f = fieldsFromJson(s);
+    const image = usableImage(s.image, warnings);
+    const columns = columnsFromJson(s, warnings);
+    if (columns) f.columns = columns;
+    const chart = chartFromJson(s, f, warnings);
+    const stats = given(s.stats) ? resolveStatIcons(statsFromAny(s.stats, warnings), warnings) : null;
     const stepsIn = s.steps ?? s.timeline;
-    const steps = stepsIn !== undefined && stepsIn !== null && stepsIn !== '' ? stepsFromAny(stepsIn, warnings) : null;
     return slideFromFields(s.title ?? s.heading ?? '', f, {
-        layout: layout && layout !== 'auto' ? layout : null,
-        notes: explicitNotes,
-        image: image && !image.rejected ? image : null,
+        layout: layoutFromJson(s),
+        notes: notesFromJson(s),
+        image,
         chart,
         stats: stats && stats.length ? stats : null,
-        steps,
+        steps: given(stepsIn) ? stepsFromAny(stepsIn, warnings) : null,
         style: s.style,
         warnings,
     });

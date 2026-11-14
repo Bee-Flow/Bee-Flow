@@ -14,8 +14,8 @@
 'use strict';
 
 const { parseStepUrl } = require('./httpQuery');
-const { canReadRunData } = require('../automationModel/callerRunVisibility');
-const { isTruncatedOutput } = require('../automationModel/payloadTruncation');
+const { canReadRunData } = require('../../auth/callerRunVisibility');
+const { isTruncatedOutput } = require('../../stores/automationStore/payloadTruncation');
 const { fallback } = require('../../utils/bestEffort');
 const { refIsSynthetic, collectBindingPaths } = require('./shared');
 

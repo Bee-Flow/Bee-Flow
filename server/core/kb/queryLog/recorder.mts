@@ -23,7 +23,7 @@
 
 import { createRequire } from 'node:module';
 import { randomUUID } from 'node:crypto';
-import { CHUNK_TEXT_CAP, QUERY_CAP, RETRIEVAL_ONLY_CHANNELS, cap, isAckRequiredChannel, type Channel, type Outcome } from './vocab.mts';
+import { CHUNK_TEXT_CAP, QUERY_CAP, RETRIEVAL_ONLY_CHANNELS, cap, isAckRequiredChannel, type Channel, type Outcome } from '../../../stores/kb/queryLog/vocab.mts';
 import type { FinishPatch, InsertRow, LogChunk } from '../../../stores/kb/queryLog/index.mts';
 
 const nodeRequire = createRequire(import.meta.url);

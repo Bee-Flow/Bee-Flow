@@ -1,8 +1,8 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { repeatingApi } from '@/api/queries/automation/repeating';
+import { repeatingApi, repeatingKeys } from '@/api/queries/automation/repeating';
 import type { ScanEventHandler, ScanResult, ScanSources } from '@/api/queries/automation/repeating';
-import { queryWrapper } from '@/test/queryWrapper';
+import { queryWrapper, testQueryClient } from '@/test/queryWrapper';
 import useRepeatingScan, { IDLE_RUN, finalResult, reduceRun, scanError, viewerTimeZone } from './useRepeatingScan';
 import type { RunState } from './useRepeatingScan';
 
@@ -168,6 +168,20 @@ it('brings the pattern back when the choice cannot be saved', async () => {
     act(() => view.result.current.feedback.hide(view.result.current.suggestions[0], 'snoozed'));
     expect(view.result.current.suggestions).toHaveLength(0);
     await waitFor(() => expect(view.result.current.suggestions).toHaveLength(1));
+});
+
+it('leaving inside the undo window still sends the choice and drops the pattern from the cached scan', async () => {
+    vi.spyOn(repeatingApi, 'fetchScanSources').mockResolvedValue(SOURCES);
+    vi.spyOn(repeatingApi, 'fetchLastScan').mockResolvedValue(lastScan());
+    const postFeedback = vi.spyOn(repeatingApi, 'postFeedback').mockResolvedValue();
+    const client = testQueryClient();
+    const view = renderHook(() => useRepeatingScan({ undoMs: 60_000 }), { wrapper: queryWrapper(client) });
+    await waitFor(() => expect(view.result.current.suggestions).toHaveLength(1));
+    act(() => view.result.current.feedback.hide(view.result.current.suggestions[0], 'snoozed'));
+    expect(postFeedback).not.toHaveBeenCalled();
+    view.unmount();
+    await waitFor(() => expect(postFeedback).toHaveBeenCalledWith(expect.objectContaining({ action: 'snoozed' })));
+    await waitFor(() => expect(client.getQueryData<ScanResult | null>(repeatingKeys.last)?.suggestions).toEqual([]));
 });
 
 it('Stop aborts the stream and remembers that it stopped', async () => {

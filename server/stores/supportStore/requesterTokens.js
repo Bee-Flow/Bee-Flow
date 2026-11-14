@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck strict
 /**
  * Requester capability tokens — the HMACs that let someone without an account
  * act on exactly one thread: read it back (access token) and rate it (CSAT

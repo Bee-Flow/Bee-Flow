@@ -39,7 +39,7 @@ const { validate } = require('../core/http/validate');
 const { contentDisposition, safeFileName } = require('../core/http/contentDisposition');
 const { z, worded, bodyOf, choice, idList, typeError } = require('../core/http/schemaParts');
 const { badRequest, HttpError } = require('../core/http/errors');
-const { usableKbIdsForRequest } = require('../support/kbAccess');
+const { usableKbIdsForRequest } = require('../core/kb/kbAccess');
 
 const MAX_NAME = 200;
 const MAX_DESCRIPTION = 5000;

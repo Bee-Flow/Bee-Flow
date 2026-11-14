@@ -165,7 +165,7 @@
       "hooked": true
     },
     {
-      "file": "routes/ai/webpageChat/context.js",
+      "file": "usecases/ai/webpageChat/context.js",
       "fn": "searchWebpageKB",
       "channel": "webpage",
       "hooked": true

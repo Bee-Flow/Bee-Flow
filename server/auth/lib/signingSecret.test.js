@@ -117,3 +117,27 @@ test('an env secret wins and the store is never asked', async () => {
         delete process.env[name];
     }
 });
+
+test('a retry waits its delay: the next attempt starts only when the timer fires', async () => {
+    await inProduction(async () => {
+        /** @type {{ fn: () => void, ms: number }[]} */
+        const timers = [];
+        let calls = 0;
+        const secret = make({
+            retryDelaysMs: [250],
+            setTimer: (/** @type {() => void} */ fn, /** @type {number} */ ms) => { timers.push({ fn, ms }); },
+            setSecretIfAbsent: async () => {
+                calls++;
+                if (calls < 2) throw new Error('timeout exceeded when trying to connect');
+                return STORED;
+            },
+        });
+        const done = secret.ensureDurable();
+        await new Promise((resolve) => setImmediate(resolve));
+        assert.strictEqual(calls, 1, 'the second attempt has not started');
+        assert.deepStrictEqual(timers.map((t) => t.ms), [250]);
+        timers[0].fn();
+        assert.strictEqual(await done, true);
+        assert.strictEqual(calls, 2);
+    });
+});

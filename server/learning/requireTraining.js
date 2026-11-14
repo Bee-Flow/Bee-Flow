@@ -77,7 +77,11 @@ const AREA_PATHS = Object.freeze({
     cowork: [/^\/$/, /^\/[^/]+$/],
 });
 
-/** True when this request is one of the writes `areaId` locks. */
+/**
+ * True when this request is one of the writes `areaId` locks.
+ * @param {string} areaId
+ * @param {string} reqPath
+ */
 function pathIsGated(areaId, reqPath) {
     const patterns = AREA_PATHS[areaId];
     if (!patterns) return true;
@@ -85,7 +89,7 @@ function pathIsGated(areaId, reqPath) {
     return patterns.some((rx) => rx.test(p));
 }
 
-const isOrgAdminPerms = (perms) => Array.isArray(perms) && (perms.includes('all') || perms.includes('org_admin'));
+const isOrgAdminPerms = (/** @type {string | string[]} */ perms) => Array.isArray(perms) && (perms.includes('all') || perms.includes('org_admin'));
 
 /**
  * Evaluate every area for one user. Exported because the route that feeds the
@@ -127,6 +131,9 @@ async function evaluateForRequest(req, { extraCourses = [] } = {}) {
     }
 }
 
+/**
+ * @param {string} areaId
+ */
 function requireTraining(areaId) {
     if (!AREA_BY_ID.has(areaId)) throw new Error(`requireTraining: unknown area '${areaId}'`);
     return async function trainingGate(/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) {

@@ -11,7 +11,7 @@
  * One engine per process (engine.js), built on first use with the real store,
  * the org/user policy (policy.js) and the fast-tier relevance gate
  * (relevanceGate.js); the team chat surface (chatSurface.js) is registered
- * with it. The background job (jobs/aiParticipation.js) drives processWatch.
+ * with it. The background job (projects/participation/aiParticipationJob.js) drives processWatch.
  *
  * A surface registers when its module loads. The job only claims watches of
  * surfaces this process knows, so a watch never meets a missing adapter.

@@ -2,7 +2,7 @@
  * stores/kb/queryLog: the KB query log (one row per search per knowledge base that logs).
  *
  * Content (query, passages, answer, citations, review note) is sealed by
- * core/kb/queryLog/crypto.mts before it reaches the database and opened after it leaves.
+ * stores/kb/queryLog/crypto.mts before it reaches the database and opened after it leaves.
  * Metadata (time, user, channel, outcome, status, counts) stays in the clear so SQL can filter.
  * A decrypt failure of one field never fails a list: that field comes back null and the row
  * carries `decryptFailed: true`.
@@ -16,10 +16,10 @@ import { randomUUID } from 'node:crypto';
 import {
     ANSWER_CAP, CHUNK_TEXT_CAP, DEFAULT_RETENTION_DAYS, QUERY_CAP, cap,
     type ReviewStatus,
-} from '../../../core/kb/queryLog/vocab.mts';
+} from './vocab.mts';
 import { makeAckFns } from './acks.mts';
 import { makeSettingsFns } from './settings.mts';
-import * as realCrypto from '../../../core/kb/queryLog/crypto.mts';
+import * as realCrypto from './crypto.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 

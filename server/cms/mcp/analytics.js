@@ -160,7 +160,7 @@ function createAnalyticsKit(deps) {
         try {
             return await fn();
         } catch (e) {
-            log.warn(`[CmsMcp] analytics ${tool} failed: ${e.message}`);
+            log.warn(`[CmsMcp] analytics ${tool} failed: ${/** @type {Error} */ (e).message}`);
             return err('The analytics service did not answer. Try again in a moment; an operator can check it in the CMS analytics settings.');
         }
     }
@@ -220,6 +220,9 @@ function createSummaryHandlers(kit) {
             const prevTime = statPrev(stats, 'totaltime');
             const prevBounceRate = prevVisits > 0 && prevBounces !== null ? (prevBounces / prevVisits) * 100 : null;
             const prevAvgVisit = prevVisits > 0 && prevTime !== null ? prevTime / prevVisits : null;
+            /**
+             * @param {number} [digits]
+             */
             const pair = (/** @type {number | null} */ current, /** @type {number | null} */ previous, digits = 0) => ({
                 value: current === null ? null : round(current, digits),
                 previous: previous === null ? null : round(previous, digits),

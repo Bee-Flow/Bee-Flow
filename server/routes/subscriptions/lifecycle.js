@@ -147,7 +147,7 @@ async function performOrgPlanChange(orgId, planId, adminId) {
         }), 'upgrade', `organization ${orgId}`, sub.stripe_subscription_id);
 
         try {
-            await require('../../services/planEntitlements').applyPlanToOrg(orgId, newPlan.id, { mode: 'reset' });
+            await require('../../core/entitlements/planEntitlements').applyPlanToOrg(orgId, newPlan.id, { mode: 'reset' });
         } catch (e) {
             log.warn('[Subscriptions] applyPlanToOrg (upgrade) failed:', e.message);
         }

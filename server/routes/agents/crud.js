@@ -53,7 +53,7 @@ const {
 // The request schemas live in ./crudSchemas.js, the persona write in
 // ./agentPersonaWrite.js and the agent save (PUT /:id) in ./agentUpdate.js.
 const { CategoryBody, CategoryPatch, DeleteCategoryQuery, TransferBody, ToolParamsBody, AgentUpdateBody } = require('./crudSchemas');
-const { verifyHandoffAutomation, resolvePersonaWrite } = require('./agentPersonaWrite');
+const { verifyHandoffAutomation, resolvePersonaWrite } = require('../../usecases/agents/agentPersonaWrite');
 const { makeUpdateAgentHandler } = require('./agentUpdate');
 
 // Block all writes when the caller's org is suspended/archived. Reads are

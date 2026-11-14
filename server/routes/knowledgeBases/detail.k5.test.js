@@ -70,7 +70,7 @@ const MOCKS = {
             return orgId;
         },
     },
-    '../support/kbAccess': { ...fakeKbGates({ kbStore: { getKB: (id) => MOCKS['../stores/knowledgeBases'].getKB(id) }, canRead: () => true, canManage: () => fx.canManage }), resolveAdminOrgIds: async () => new Set() },
+    '../core/kb/kbAccess': { ...fakeKbGates({ kbStore: { getKB: (id) => MOCKS['../stores/knowledgeBases'].getKB(id) }, canRead: () => true, canManage: () => fx.canManage }), resolveAdminOrgIds: async () => new Set() },
     '../core/kb/kbUsage': {
         usageForKb: async () => fx.usage,
         scrubReferences: async (id) => { fx.scrubbed.push(id); return { agent: 1 }; },

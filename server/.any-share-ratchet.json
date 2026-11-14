@@ -1,0 +1,15 @@
+{
+  "_comment": "Highest share of `any` server's checked code may still carry: expressions whose type is any, and exported functions with an any parameter or return (scripts/any-share.mjs explains what is counted). Lower it with `node scripts/any-share.mjs server --update` after typing work; raising it is a deliberate edit that belongs in a commit message with a reason.",
+  "_generated": "2026-11-14",
+  "tolerance": 0.1,
+  "expressions": {
+    "any": 314647,
+    "total": 1500627,
+    "pct": 20.97
+  },
+  "exportedFunctions": {
+    "any": 4518,
+    "total": 14207,
+    "pct": 31.8
+  }
+}

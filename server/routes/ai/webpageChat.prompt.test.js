@@ -38,7 +38,7 @@ const bf = require('../../core/webpages/bfElements');
 
 // The prompt text lives in webpageChat/systemPrompt.js since the route was
 // split; the "no second list" rule covers the route and every step of it.
-const SOURCE = fs.readFileSync(path.join(__dirname, 'webpageChat', 'systemPrompt.js'), 'utf8');
+const SOURCE = fs.readFileSync(path.join(__dirname, '..', '..', 'usecases', 'ai', 'webpageChat', 'systemPrompt.js'), 'utf8');
 const ROUTE_FILES = ['webpageChat.js', ...fs.readdirSync(path.join(__dirname, 'webpageChat'))
     .filter(f => f.endsWith('.js') && !f.endsWith('.test.js'))
     .map(f => path.join('webpageChat', f))];

@@ -22,7 +22,7 @@ const { initDB, run, getOne, getAll } = require('./core');
 // accumulate.
 const UPLOAD_TTL_MS = 6 * 60 * 60 * 1000;
 
-const { AUDIENCES } = require('../../automation/formAudience');
+const { AUDIENCES } = require('../../auth/formAudience');
 const { makeFormTestPageStore } = require('./formTestPageStore.mts');
 
 /**

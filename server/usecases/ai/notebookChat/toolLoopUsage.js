@@ -1,6 +1,6 @@
 // @typecheck strict
 /**
- * Notebook chat: the usage meter of one turn (routes/ai/notebookChat/toolLoop.js).
+ * Notebook chat: the usage meter of one turn (usecases/ai/notebookChat/toolLoop.js).
  * Every round's usage (the adapter's `done` payload) is added up; one ledger
  * row per turn, source notebook_chat, is written when the loop is over
  * (core/llm/surfaceUsage.js).

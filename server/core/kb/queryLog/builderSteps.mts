@@ -22,7 +22,7 @@
  */
 
 import { createRequire } from 'node:module';
-import { REVIEW_STATUSES, isChannel, isOutcome, isReviewStatus, type ReviewStatus } from './vocab.mts';
+import { REVIEW_STATUSES, isChannel, isOutcome, isReviewStatus, type ReviewStatus } from '../../../stores/kb/queryLog/vocab.mts';
 import type { EntryRow } from '../../../stores/kb/queryLog/index.mts';
 import { summarise } from '../../../stores/kb/queryLog/redact.mts';
 import { maskAsker, resolveAskerFilter } from './askers.mts';

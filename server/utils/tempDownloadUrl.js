@@ -1,4 +1,4 @@
-// @typecheck
+// @typecheck noImplicitAny
 /**
  * HMAC-signed, time-limited download URLs for storage objects.
  *
@@ -28,6 +28,7 @@ if (!HMAC_SECRET || HMAC_SECRET.length < 32) {
  * localPathFor only guarantees containment in the storage ROOT, not in the
  * caller's own prefix. S3 treats keys literally so only local mode is
  * exploitable, but that is the default self-host configuration.
+ * @param {string} key
  */
 function hasTraversal(key) {
     if (typeof key !== 'string') return true;
@@ -42,6 +43,9 @@ function hasTraversal(key) {
 //     to automations by an app_trigger run (appStudio/actionExecutor.js); the
 //     sha256 segment is strict so only content-addressed attachment blobs (never
 //     data.db or other app objects) can be minted.
+/**
+ * @param {string} key
+ */
 function isTempDownloadKey(key) {
     if (hasTraversal(key)) return false;
     return key.startsWith('transcription-tmp/')
@@ -76,6 +80,9 @@ function generateTempDownloadUrl(key, ttlSeconds = 900) {
  * server-side readers enforce EXACTLY the same rules.
  *
  * @returns {'ok'|'missing'|'forbidden'|'expired'|'invalid_token'}
+ * @param {string | null | undefined} key
+ * @param {number} expires
+ * @param {string} token
  */
 function verifyTempSignature(key, expires, token) {
     if (!key || !expires || !token) return 'missing';
@@ -100,9 +107,11 @@ function verifyTempSignature(key, expires, token) {
  * Parse a temp-download URL back into its storage key, verifying the signature
  * and expiry the same way the route does. Returns null for anything that isn't
  * a currently-valid temp URL — callers must treat null as "not readable".
+ * @param {string | globalThis.URL} url
  */
 function resolveTempDownloadKey(url) {
     if (typeof url !== 'string' || !url.includes('/api/storage/tmp/')) return null;
+    /** @type {globalThis.URL} */
     let parsed;
     try {
         // Base only matters for relative inputs; the origin is never used.
@@ -116,6 +125,7 @@ function resolveTempDownloadKey(url) {
     const expires = parseInt(parsed.searchParams.get('expires'), 10);
     // decodeURIComponent THROWS on a malformed escape (`%zz`), and the URL is
     // caller-supplied (an image_url in a chat message): not a valid temp URL.
+    /** @type {string} */
     let token;
     try { token = decodeURIComponent(match[1]); } catch { return null; }
     return verifyTempSignature(key, expires, token) === 'ok' ? key : null;

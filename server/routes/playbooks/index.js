@@ -48,9 +48,9 @@ const express = require('express');
 const { requireAuth, requirePermission, Permissions } = require('../../auth/permissions');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
 const { checkElementWords } = require('../../playbooks/phases/designPhase');
-const { makeDefaultDeps } = require('./deps');
+const { makeDefaultDeps } = require('../../usecases/playbooks/deps');
 const { makeFlow } = require('./phaseFlow');
-const { summarise } = require('./phaseList');
+const { summarise } = require('../../usecases/playbooks/phaseList');
 
 // The designer's words are checked against App Studio's REAL catalog here, not
 // in the phase: playbooks/ may not require appStudio/ (one feature never

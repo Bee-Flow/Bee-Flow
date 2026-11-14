@@ -68,7 +68,7 @@ function startPlanCapDriftAudit() {
             const PLAN_CAP_AUTO_TRIM = process.env.PLAN_CAP_AUTO_TRIM === 'true';
             const runPlanCapDrift = async ({ isBoot = false } = {}) => {
                 try {
-                    const r = await require('../services/planEntitlements').auditPlanCapDrift({ trim: PLAN_CAP_AUTO_TRIM });
+                    const r = await require('../core/entitlements/planEntitlements').auditPlanCapDrift({ trim: PLAN_CAP_AUTO_TRIM });
                     if (r.drifted > 0) {
                         log.info(`[PlanCapDrift] scanned=${r.scanned} drifted=${r.drifted} trimmed=${r.trimmed} auto_trim=${PLAN_CAP_AUTO_TRIM}${isBoot ? ' boot=1' : ''}`);
                         if (isBoot) {

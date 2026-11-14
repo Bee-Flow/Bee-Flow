@@ -56,7 +56,7 @@ const MOCKS = {
         getUser: async () => ({ id: 'alice', organizationId: 'orgA' }),
         getOrganization: async () => ({ name: 'Org' }),
     },
-    '../../../support/kbAccess': { usableKbIdsForRequest: async (_req, ids) => ids },
+    '../../../core/kb/kbAccess': { usableKbIdsForRequest: async (_req, ids) => ids },
     '../../../auth/permissions': {
         requireAuth: (req, res, next) => (req.session?.user?.id ? next() : res.status(401).json({ error: 'Not authenticated' })),
     },

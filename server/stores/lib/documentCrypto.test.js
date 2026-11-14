@@ -61,3 +61,48 @@ test('zk tier with the session key: seals and opens inside that session', async 
         })().then(resolve, reject);
     }));
 });
+
+test('which key a write uses: the organisation key for anything shared, the owner key otherwise', async () => {
+    withPolicy({ enabled: true, tier: 'managed' });
+    const scopeOf = async (extra) => (await content.writeContext({ ...resource, ...extra })).scope;
+    assert.strictEqual(await scopeOf({}), 'user');
+    // Each sign of sharing on its own is enough.
+    assert.strictEqual(await scopeOf({ cryptoContext: { scope: 'organisation' } }), 'organisation');
+    assert.strictEqual(await scopeOf({ projectId: 'p1' }), 'organisation');
+    assert.strictEqual(await scopeOf({ visibility: 'team' }), 'organisation');
+    assert.strictEqual(await scopeOf({ sharingAudience: 'organisation' }), 'organisation');
+    assert.strictEqual(await scopeOf({ sharingAudience: 'restricted' }), 'organisation');
+    assert.strictEqual(await scopeOf({ visibility: 'private', sharingAudience: 'private', cryptoContext: { scope: 'user' } }), 'user');
+    assert.deepStrictEqual(await content.writeContext(resource), { scope: 'user', tier: 'managed', orgId: 'o1', userId: 'u1' });
+});
+
+test('a row becomes the resource its key is derived for', () => {
+    const row = { id: 'd9', user_id: 'u9', organization_id: 'o9', project_id: 'p9', visibility: 'team', sharing_audience: 'restricted' };
+    assert.deepStrictEqual(content.resourceOf(row), { type: 'document', id: 'd9', userId: 'u9', organizationId: 'o9',
+        projectId: 'p9', visibility: 'team', sharingAudience: 'restricted', cryptoContext: undefined });
+    assert.strictEqual(content.resourceOf(row, 'notebook').type, 'notebook');
+    const ctx = { scope: 'organisation', tier: 'managed', orgId: 'o9' };
+    assert.deepStrictEqual(content.resourceOf({ ...row, _contentCryptoContext: ctx }).cryptoContext, ctx);
+});
+
+test('a notebook\'s text columns are sealed as text, its settings as a JSON object, and all open again', async () => {
+    withPolicy({ enabled: true, tier: 'managed' });
+    content.keySources.userKey = async () => ROOT;
+    const notebook = { type: 'notebook', id: 'n1', userId: 'u1', organizationId: 'o1' };
+    const row = { document_content: '{"doc":1}', document_md: '# title', instructions: 'be brief', preview: 'first lines', settings: { a: 1 } };
+    const stored = await content.sealFields(row, notebook, content.NOTEBOOK_FIELDS);
+    for (const field of ['document_content', 'document_md', 'instructions', 'preview']) {
+        assert.strictEqual(typeof stored[field], 'string', `${field} stays a text column`);
+        assert.ok(!stored[field].includes(row[field]), `${field} is sealed`);
+    }
+    assert.strictEqual(typeof stored.settings, 'object');
+    assert.deepStrictEqual(await content.openFields({ id: 'n1', ...stored }, 'notebook', content.NOTEBOOK_FIELDS), { id: 'n1', ...row });
+});
+
+test('a row that is not there stays the null the query answered', async () => {
+    assert.strictEqual(await content.openRow(null), null);
+    assert.strictEqual(await content.openFields(null, 'notebook', content.NOTEBOOK_FIELDS), null);
+    const db = content.readingDb({ getOne: async () => null, getAll: async () => [], withTransaction: async () => undefined });
+    assert.strictEqual(await db.getOne('any query'), null);
+    assert.deepStrictEqual(await db.getAll('any query'), []);
+});

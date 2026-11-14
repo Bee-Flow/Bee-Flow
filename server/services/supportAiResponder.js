@@ -393,7 +393,7 @@ async function _maybeAutoAssign(threadId) {
             sharedGroups = Array.isArray(inbox?.shared_groups) ? inbox.shared_groups : [];
         } catch (err) { fallback('services/supportAiResponder:_maybeAutoAssign', err); /* default open */ }
     }
-    const { pickNextAssignee } = require('./supportAutoAssigner');
+    const { pickNextAssignee } = require('../core/support/supportAutoAssigner');
     const next = await pickNextAssignee(thread.organization_id || null, { sharedGroups, tenantInbox: !!thread.inbox_id });
     if (!next) return;
     await supportStore.updateThread(threadId, { assignee_user_id: next, auto_assigned: true });

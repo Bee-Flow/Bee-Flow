@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { fetchRecentMemories, type RecentMemory } from '../api/memoryApi';
-import { logger } from '../utils/logger';
+import { useQueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo, useState } from 'react';
+import type { RecentMemory } from '../api/memoryApi';
+import { rememberedMemoriesKey, useRememberedMemoriesPoll } from '../api/queries/rememberedMemories';
 
 /**
  * After a turn ends, ask the server what it saved: at 2 s, 6 s and 15 s after the
@@ -9,8 +10,6 @@ import { logger } from '../utils/logger';
  * cancels whatever is pending. Pass `enabled: false` when the turn could not have
  * saved anything (writing off, memory paused or off for the organisation).
  */
-const REMEMBERED_POLL_DELAYS_MS: readonly number[] = [2000, 4000, 9000];
-
 export interface UseRememberedMemoriesOptions {
     conversationId: string | null | undefined;
     /** ISO time the turn started. */
@@ -24,52 +23,36 @@ export interface UseRememberedMemoriesOptions {
 }
 
 export default function useRememberedMemories({ conversationId, since, until, enabled }: UseRememberedMemoriesOptions) {
-    const [items, setItems] = useState<RecentMemory[]>([]);
-    const [done, setDone] = useState(false);
-    // The latest items, so the effect never has to depend on them.
-    const foundRef = useRef(false);
+    const queryClient = useQueryClient();
+    // What was found, kept for the life of the chip: once a turn has its answer nothing is asked again.
+    const [items, setItems] = useState<RecentMemory[] | null>(null);
+    const polling = enabled && !!conversationId && !!since && !until && items === null;
 
+    // Leaving the turn (unmount, another conversation, the next turn) drops its lookups,
+    // an ask in flight included, so coming back starts the waits again.
     useEffect(() => {
-        if (!enabled || !conversationId || !since || until || foundRef.current) return undefined;
-        let cancelled = false;
-        let timer: ReturnType<typeof setTimeout> | undefined;
-        const controller = new AbortController();
+        if (!polling || !conversationId || !since) return undefined;
+        return () => queryClient.removeQueries({ queryKey: rememberedMemoriesKey(conversationId, since) });
+    }, [polling, conversationId, since, queryClient]);
 
-        const attempt = (index: number) => {
-            timer = setTimeout(async () => {
-                let found: RecentMemory[] = [];
-                try {
-                    found = await fetchRecentMemories(conversationId, since, controller.signal);
-                } catch (err) { logger.debug('A failed lookup is the same as nothing yet: try the next time.', err); }
-                if (cancelled) return;
-                if (found.length > 0) {
-                    foundRef.current = true;
-                    setItems(found);
-                    setDone(true);
-                } else if (index + 1 < REMEMBERED_POLL_DELAYS_MS.length) {
-                    attempt(index + 1);
-                } else {
-                    setDone(true);
-                }
-            }, REMEMBERED_POLL_DELAYS_MS[index]);
-        };
-        attempt(0);
+    const read = useRememberedMemoriesPoll(conversationId ?? '', since ?? '', polling);
+    const fresh = polling ? read.found : EMPTY;
+    if (items === null && fresh.length > 0) setItems(fresh);
+    const held = items ?? fresh;
 
-        return () => {
-            cancelled = true;
-            if (timer) clearTimeout(timer);
-            controller.abort();
-        };
-    }, [conversationId, since, until, enabled]);
+    const visible = useMemo(() => createdBefore(held, until), [held, until]);
 
-    const visible = useMemo(() => {
-        const limit = until ? Date.parse(until) : NaN;
-        if (!Number.isFinite(limit)) return items;
-        return items.filter(i => {
-            const created = i.created_at ? Date.parse(i.created_at) : NaN;
-            return !Number.isFinite(created) || created <= limit;
-        });
-    }, [items, until]);
+    return { items: visible, done: items !== null || read.done };
+}
 
-    return { items: visible, done, setItems };
+const EMPTY: RecentMemory[] = [];
+
+/** The items created before the next turn started (all of them while there is no next turn). */
+function createdBefore(items: RecentMemory[], until: string | null | undefined): RecentMemory[] {
+    const limit = until ? Date.parse(until) : NaN;
+    if (!Number.isFinite(limit)) return items;
+    return items.filter(i => {
+        const created = i.created_at ? Date.parse(i.created_at) : NaN;
+        return !Number.isFinite(created) || created <= limit;
+    });
 }

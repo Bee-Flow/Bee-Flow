@@ -35,7 +35,7 @@ const S = require('./schemas');
  * @param {{ requireProjectRole?: import('./roleGate').ProjectRoleGate, // middleware named requireProjectRoleMw
  *   store?: Pick<typeof import('../../stores/projectStore'), 'getProject'|'setProjectKind'>,
  *   kindChange?: Pick<typeof import('../../projects/kindChange'), 'refusedContent'>,
- *   recordProjectChange?: typeof import('../../projects/changeFeed').recordProjectChange }} [deps]
+ *   recordProjectChange?: typeof import('../../core/projectContent/changeFeed').recordProjectChange }} [deps]
  */
 function makeKindRouter(deps = {}) {
     const router = express.Router({ mergeParams: true });
@@ -43,7 +43,7 @@ function makeKindRouter(deps = {}) {
     const store = () => deps.store || require('../../stores/projectStore');
     const kindChange = () => deps.kindChange || require('../../projects/kindChange');
     const recordProjectChange = (/** @type {any[]} */ ...a) =>
-        (deps.recordProjectChange || require('../../projects/changeFeed').recordProjectChange)(...a);
+        (deps.recordProjectChange || require('../../core/projectContent/changeFeed').recordProjectChange)(...a);
 
     /** 409: the owner (or the backfill's corrected guess) already decided. */
     function alreadySet(/** @type {string|null} */ kind) {

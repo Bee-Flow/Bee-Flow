@@ -159,6 +159,9 @@ function applySetLayerContract(draft, args) {
  * the flowlet selected via scope); `draft` is always the root document
  * (flowlets live there); `scope` is the calling flowlet key (null at root) —
  * needed for the recursion check.
+ * @param draft
+ * @param args
+ * @param {{ graph?: Record<string, any>, scope?: string | null }} [opts]
  */
 function applyAddCallLayer(draft, args, { graph = draft, scope = null } = {}) {
     if (!args.layerKey || typeof args.layerKey !== 'string') {

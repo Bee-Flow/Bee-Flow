@@ -69,7 +69,7 @@ const MOCKS = {
         resolveUserGroups: async () => [],
         validateSharedGroupsForOrg: async () => {},
     },
-    '../support/kbAccess': { ...fakeKbGates({ kbStore: { getKB: (id) => MOCKS['../stores/knowledgeBases'].getKB(id) }, canRead: () => fx.canAccess, canManage: (kb) => fx.canAccess && MOCKS['../stores/knowledgeBases'].canUserManageKB(kb, null, null, true) }), resolveAdminOrgIds: async () => new Set() },
+    '../core/kb/kbAccess': { ...fakeKbGates({ kbStore: { getKB: (id) => MOCKS['../stores/knowledgeBases'].getKB(id) }, canRead: () => fx.canAccess, canManage: (kb) => fx.canAccess && MOCKS['../stores/knowledgeBases'].canUserManageKB(kb, null, null, true) }), resolveAdminOrgIds: async () => new Set() },
     '../core/agentRuntime/knowledgeSearch': {
         quickKBSearch: async (userId, kbIds, query, opts) => {
             fx.searchCalls.push({ userId, kbIds, query, opts });

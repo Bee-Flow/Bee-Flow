@@ -1,7 +1,7 @@
 // @typecheck strict
 /**
  * The bell notifications of project tasks: "a task was given to you" and, from
- * jobs/projectTaskDueNotifier.js, "a task is due". A notification names the
+ * projects/taskDueNotifier.js, "a task is due". A notification names the
  * project and points at the task; it never carries what the task says (the
  * title and description are sealed with the project key, and the bell is a
  * plain table).

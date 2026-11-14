@@ -1,3 +1,4 @@
+import { notifyManager } from '@tanstack/react-query';
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
@@ -5,9 +6,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { OPEN_MEMORY_PANEL_EVENT } from '@/utils/memoryMode';
 import { toast } from '../../shared/Toast';
 import { deleteMemory, fetchRecentMemories } from '@/api/memoryApi';
+import { withQueryClient } from '@/test/queryWrapper';
 import RememberedChip from './RememberedChip';
 
 vi.mock('@/api/memoryApi', () => ({ fetchRecentMemories: vi.fn(), deleteMemory: vi.fn() }));
+
+// Under fake timers the query would hand its answer to React on a 0 ms timer, one tick
+// after the answer; a microtask keeps the answer inside the tick that produced it.
+notifyManager.setScheduler(queueMicrotask);
 
 const fetchRecent = vi.mocked(fetchRecentMemories);
 const remove = vi.mocked(deleteMemory);
@@ -23,14 +29,14 @@ afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
 
 async function showChip(items: Array<{ id: string; type: string; content: string }>) {
     fetchRecent.mockResolvedValue(items);
-    render(<RememberedChip conversationId="c1" since={SINCE} />);
+    render(withQueryClient(<RememberedChip conversationId="c1" since={SINCE} />));
     await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
 }
 
 describe('RememberedChip', () => {
     it('shows nothing until something was saved', async () => {
         fetchRecent.mockResolvedValue([]);
-        render(<RememberedChip conversationId="c1" since={SINCE} />);
+        render(withQueryClient(<RememberedChip conversationId="c1" since={SINCE} />));
         await act(async () => { await vi.advanceTimersByTimeAsync(30000); });
         expect(screen.queryByTestId('memory-remembered')).not.toBeInTheDocument();
     });

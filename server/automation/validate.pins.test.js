@@ -20,7 +20,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { validateDefinition, COMPLETENESS_CODES } = require('./validate');
-const { DEFAULT_MAX_BYTES, truncatePayload } = require('./payloadTruncation');
+const { DEFAULT_MAX_BYTES, truncatePayload } = require('../stores/automationStore/payloadTruncation');
 
 const trigger = (extra = {}) => ({ id: 'trg', type: 'trigger', kind: 'manual', ...extra });
 const note = (id) => ({ id, type: 'notification', title: id, body: 'x', channels: ['notification'] });

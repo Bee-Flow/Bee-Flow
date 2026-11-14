@@ -107,7 +107,7 @@ const {
 
 /**
  * Write the audit trail AND the live feed, in ONE transaction
- * (projects/changeFeed.recordProjectChange): project_activity is the durable,
+ * (core/projectContent/changeFeed.recordProjectChange): project_activity is the durable,
  * human-readable history; project_events the ordered channel clients tail.
  * Written together, the two can never disagree (an audit row nobody was told
  * about, or an event with no row behind it); the doorbell rings after the
@@ -119,7 +119,7 @@ const {
  * The feed is built over this router's own projectStore, so the route tests'
  * store doubles see what it writes.
  */
-const { recordProjectChange, recordItemMoved } = require('../projects/changeFeed').makeChangeFeed({ store: projectStore });
+const { recordProjectChange, recordItemMoved } = require('../core/projectContent/changeFeed').makeChangeFeed({ store: projectStore });
 
 // Something a project compliance check reads changed (ids only).
 const { signalProjectChanged } = require('../usecases/projects/complianceSignal');

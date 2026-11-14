@@ -1,7 +1,7 @@
 /** Types of the KB query log store (split from index.mts for its file budget). */
 
-import type { Channel, Outcome } from '../../../core/kb/queryLog/vocab.mts';
-import type * as realCrypto from '../../../core/kb/queryLog/crypto.mts';
+import type { Channel, Outcome } from './vocab.mts';
+import type * as realCrypto from './crypto.mts';
 
 export interface Db { query: (sql: string, params?: unknown[]) => Promise<{ rows: any[]; rowCount?: number | null }> }
 export interface CryptoApi {

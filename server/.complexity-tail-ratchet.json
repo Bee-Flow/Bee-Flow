@@ -2,5 +2,5 @@
   "_comment": "Highest number of functions above complexity 40 server may still carry (eslint's complexity rule, the package's own config). Lower it with `node scripts/complexity-tail-ratchet.mjs server --update` after a refactor; raising it is a deliberate edit that belongs in a commit message with a reason.",
   "_generated": "2026-11-14",
   "threshold": 40,
-  "count": 214
+  "count": 191
 }

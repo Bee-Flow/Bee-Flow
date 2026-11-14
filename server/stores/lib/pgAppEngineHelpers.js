@@ -16,7 +16,10 @@ const SIZE_TTL_MS = 30_000;
 // ── Pure helpers ────────────────────────────────────────────────────
 
 
-/** An Error carrying the HTTP status and the field it is about. @typedef {Error & { status?: number, code?: string, tableId?: string, fieldId?: string, column?: string, constraint?: string }} EngineError */
+/**
+ * An Error carrying the HTTP status and the field it is about. @typedef {Error & { status?: number, code?: string, tableId?: string, fieldId?: string, column?: string, constraint?: string }} EngineError
+ * @param {string} name
+ */
 function quoteIdent(name) {
     return '"' + String(name).replace(/"/g, '""') + '"';
 }

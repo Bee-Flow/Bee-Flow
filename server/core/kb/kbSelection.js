@@ -40,7 +40,7 @@
 
 const { filterKbIdsForUser } = require('./kbVisibility');
 const { kbUsableIn } = require('./usageContexts');
-const { normaliseKbIds, MAX_ATTACHED_KB_IDS } = require('./kbIdList');
+const { normaliseKbIds, MAX_ATTACHED_KB_IDS } = require('../../stores/kb/kbIdList');
 const kbStore = require('../../stores/knowledgeBases');
 const log = require('../../telemetry/log');
 

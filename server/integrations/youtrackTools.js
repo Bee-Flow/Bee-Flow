@@ -8,7 +8,7 @@
  */
 
 const configStore = require('../stores/configStore');
-require('./shared/apiClient');
+require('../utils/apiClient');
 const log = require('../telemetry/log');
 
 const { YOUTRACK_TOOLS } = require('./youtrackToolDefs');

@@ -61,11 +61,8 @@ const jsonOrNull = (v) => (v === undefined || v === null ? null : JSON.stringify
 // A project whose kind is unset or only guessed holds no content check yet.
 const kindUnsettled = (row) => row.kind == null || row.kind_guessed === true;
 
-/**
- * @param {{ query: Function, tx: Function }} db
- * @param {{ ready: () => Promise<unknown>, projectStore: () => any, valuesMemo?: Map<string, unknown> }} ctx
- */
-function makeStagesStore(db, { ready, projectStore, valuesMemo = new Map() }) {
+/** Creating the stages of a Solution. @param {Parameters<typeof makeStagesStore>[0]} db @param {Required<Parameters<typeof makeStagesStore>[1]>} ctx */
+function makeStageCreation(db, { ready, projectStore }) {
     /**
      * A legacy Dev (kind unset or guessed) becomes a Solution here. A Solution
      * holds no chats (kindChange SOLUTION_HOLDS_NO_CHATS), so one that holds
@@ -149,6 +146,11 @@ function makeStagesStore(db, { ready, projectStore, valuesMemo = new Map() }) {
         });
     }
 
+    return { createStages };
+}
+
+/** Reading a stage, its settings, its current release and its paused state. @param {Parameters<typeof makeStagesStore>[0]} db @param {Required<Parameters<typeof makeStagesStore>[1]>} ctx */
+function makeStageState(db, { ready, valuesMemo }) {
     /** One stage by its stage project id, or null. */
     async function getStage(stageProjectId, { client = null } = {}) {
         await ready();
@@ -280,6 +282,11 @@ function makeStagesStore(db, { ready, projectStore, valuesMemo = new Map() }) {
         return null;
     }
 
+    return { getStage, getStageFor, listStages, updateStageSettings, setCurrentRelease, setPausedState };
+}
+
+/** Detaching a stage, removing its rows, and the stages an account runs. @param {Parameters<typeof makeStagesStore>[0]} db @param {Required<Parameters<typeof makeStagesStore>[1]>} ctx */
+function makeStageRemoval(db, { ready, projectStore, valuesMemo }) {
     /**
      * The escape hatch (design 5.4): the stage stops being a stage. Refused
      * with 409 stage_busy while a deployment is active or awaiting approval.
@@ -360,10 +367,17 @@ function makeStagesStore(db, { ready, projectStore, valuesMemo = new Map() }) {
         return r.rows.map(mapStage);
     }
 
-    return {
-        createStages, getStage, getStageFor, listStages, updateStageSettings,
-        setCurrentRelease, setPausedState, detachStage, removeStageRows, runAsStagesFor,
-    };
+    return { detachStage, removeStageRows, runAsStagesFor };
+}
+
+/**
+ * @param {{ query: Function, tx: Function }} db
+ * @param {{ ready: () => Promise<unknown>, projectStore: () => any, valuesMemo?: Map<string, unknown> }} ctx
+ */
+function makeStagesStore(db, { ready, projectStore, valuesMemo = new Map() }) {
+    // One memo for every group: a write in one drops what another cached.
+    const ctx = { ready, projectStore, valuesMemo };
+    return { ...makeStageCreation(db, ctx), ...makeStageState(db, ctx), ...makeStageRemoval(db, ctx) };
 }
 
 module.exports = { makeStagesStore, mapStage, STAGES, BUSY_STATUSES, stageLockSql };

@@ -14,7 +14,7 @@
  *
  * Scope: ALWAYS the calling user's own memory (context.userId). There is no
  * parameter to read or write anyone else's. Writes go through the one write
- * pipeline (agents/memory/memoryWriter.js): hard drops, Art. 9 review, confirm /
+ * pipeline (core/memory/memoryWriter.js): hard drops, Art. 9 review, confirm /
  * supersede on (type, subject, attribute), never a duplicate.
  */
 
@@ -24,7 +24,7 @@
 // datatableStore (the server then crash-loops on boot).
 const getMemoryStore = () => require('../stores/memoryStore');
 
-const getMemoryWriter = () => require('../agents/memory/memoryWriter');
+const getMemoryWriter = () => require('../core/memory/memoryWriter');
 
 const getMemoryPolicy = () => require('../core/memory/memoryPolicy');
 

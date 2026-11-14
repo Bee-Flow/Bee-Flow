@@ -21,7 +21,7 @@ let graphResult = { value: [] };
 let graphError = null;
 let graphHandler = null;
 
-stub('./providerClients', {
+stub('../../utils/emailProviderClients', {
     gmailClientFromTokens: async () => ({
         users: {
             getProfile: async () => ({ data: { emailAddress: 'IK@Acme.nl' } }),

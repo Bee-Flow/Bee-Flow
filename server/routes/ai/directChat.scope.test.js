@@ -66,7 +66,7 @@ const MOCKS = {
     },
     '../../../integrations/workspaceTools': { syncClientWorkspaceContent: async () => ({ seeded: false }) },
     '../../../core/dlp/applyTokenMapToOutbound': { applyTokenMapToMessages: ({ messages }) => messages },
-    './directChat/toolExec': { executeDirectChatToolCall: async () => ({}) },
+    '../../../usecases/ai/directChat/toolExec': { executeDirectChatToolCall: async () => ({}) },
     '../../../services/orgHealth': {
         problem: (kind, meta) => fx.orgProblems.push({ kind, meta }),
         resolve: noop,
@@ -131,22 +131,22 @@ const MOCKS = {
         },
     },
     './directChat/chatSignalsTurn': { countDirectTurn: (args) => { fx.counted.push(args); } },
-    './directChat/compactionPhase': { compactConversation: async () => {} },
-    './directChat/chatOptions': { buildChatOptions: (turn) => { turn.chatOptions = {}; } },
-    './directChat/stepMachine': {
+    '../../../usecases/ai/directChat/compactionPhase': { compactConversation: async () => {} },
+    '../../../usecases/ai/directChat/chatOptions': { buildChatOptions: (turn) => { turn.chatOptions = {}; } },
+    '../../../usecases/ai/directChat/stepMachine': {
         computeStepMachineGuard: () => ({ systemAppend: '', toolChoice: undefined, mode: 'auto', mute: false }),
         pipelineNeedsWrapUp: () => false,
         callAdapterWithFallback: async (call, tc) => call(tc),
     },
     './directChat/toolRefresh': { applyLoadTools: noop, onSkillsActivated: noop },
     './directChat/toolContext': { createToolContextFactory: () => () => ({}) },
-    './directChat/streamCallbacks': {
+    '../../../usecases/ai/directChat/streamCallbacks': {
         createUntokeniserSink: noop,
         createStreamCallbacks: () => ({ primary: noop, follow: noop }),
         snapshotThinkingParts: () => [],
     },
-    './directChat/toolResultEvents': { emitToolResultEvents: async () => {} },
-    './directChat/turnUsage': { logTurnUsage: async () => {} },
+    '../../../usecases/ai/directChat/toolResultEvents': { emitToolResultEvents: async () => {} },
+    '../../../usecases/ai/directChat/turnUsage': { logTurnUsage: async () => {} },
     './directChat/finalizeTurn': { finalizeDirectChatTurn: async () => ({}) },
 
     // ── Lazily required inside the handler ───────────────────────────

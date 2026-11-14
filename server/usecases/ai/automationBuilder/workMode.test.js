@@ -23,7 +23,7 @@ const {
     writePlan, writeQuestions, stripListMarker, QUESTIONS_TOOL, PLAN_TOOL, MAX_QUESTIONS, MAX_OPTIONS,
     TABLE_CONSENT_RULE, planDatatableEntry, changedSteps, withChangeStatus, reviewStatusNote, questionStatusNote,
 } = require('./workMode');
-const { endsInQuestion } = require('../../../routes/ai/automationBuilder/roundNudges');
+const { endsInQuestion } = require('./roundNudges');
 const { briefGaps, briefText } = require('./briefGaps.mts');
 const { askFirstRefusal, questionLimit, asksFirst, turnModeOf, DESCRIBE_RULE, DESCRIBE_QUESTIONS } = require('./modeRules.mts');
 const { TOOL_SCHEMAS } = require('../../../automation/builderTools');

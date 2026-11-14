@@ -15,7 +15,7 @@
 import type { FillField } from './fillTypes';
 
 /**
- * Who may fill a form in (automation/formAudience.js publicAudience): the whole
+ * Who may fill a form in (auth/formAudience.js publicAudience): the whole
  * organisation, or only the people and groups the owner listed. The lists are
  * the owner's to see; everyone else gets the mode alone (empty lists here).
  */

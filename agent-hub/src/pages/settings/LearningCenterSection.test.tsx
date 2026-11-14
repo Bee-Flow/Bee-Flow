@@ -40,6 +40,7 @@ vi.mock('../../components/onboarding/actionChecks', async (importOriginal) => {
 
 import LearningCenterSection from './LearningCenterSection';
 import { LESSON_PLAYER_OPEN_EVENT } from '../../components/onboarding/lessons';
+import { withQueryClient } from '../../test/queryWrapper';
 import { authFetch } from '../../utils/helpers';
 
 const USER = { id: 'u1', role: 'admin', permissions: ['manage_agents', 'manage_skills', 'manage_knowledge', 'manage_users'] };
@@ -66,7 +67,7 @@ beforeEach(() => {
 
 describe('LearningCenterSection — redesigned shell', () => {
     it('mounts the rail, the hero and the curriculum map', async () => {
-        render(<LearningCenterSection user={USER} />);
+        render(withQueryClient(<LearningCenterSection user={USER} />));
         expect(screen.getByTestId('learning-rail')).toBeTruthy();
         expect(await screen.findByTestId('learning-hero')).toBeTruthy();
         expect(screen.getByTestId('curriculum-map')).toBeTruthy();
@@ -88,7 +89,7 @@ describe('LearningCenterSection — redesigned shell', () => {
         const seen: { courseId?: string; layout?: string | null }[] = [];
         const onOpen = (e: Event) => seen.push((e as CustomEvent).detail);
         window.addEventListener(LESSON_PLAYER_OPEN_EVENT, onOpen);
-        render(<LearningCenterSection user={USER} />);
+        render(withQueryClient(<LearningCenterSection user={USER} />));
         await user.click(await screen.findByTestId('learning-continue'));
         expect(seen[0].courseId).toBeTruthy();
         expect(seen[0].layout).toBeNull();
@@ -99,7 +100,7 @@ describe('LearningCenterSection — redesigned shell', () => {
 
     it('a course opens as its own screen with a lessons table, and back returns to the map', async () => {
         const user = userEvent.setup();
-        render(<LearningCenterSection user={USER} />);
+        render(withQueryClient(<LearningCenterSection user={USER} />));
         // Wait for the server-hydrated path to settle the columns first: the
         // pre-hydration paint expands a different path column, and grabbing a
         // row before the reorder captures an element the collapse then
@@ -124,8 +125,10 @@ describe('LearningCenterSection — redesigned shell', () => {
 
     it('the curriculum map opens as category tiles: one path expanded, the rest behind their tile (BFSF-473)', async () => {
         const user = userEvent.setup();
-        render(<LearningCenterSection user={USER} />);
+        render(withQueryClient(<LearningCenterSection user={USER} />));
         await screen.findByTestId('learning-hero');
+        // The server's path ('builder') puts its column first, once the settings are in.
+        await waitFor(() => expect(within(screen.getAllByTestId('curriculum-column')[0]).getByText('Build agents & automations')).toBeTruthy());
         // Every category renders as one large tile — never more than one list open.
         const tiles = screen.getAllByTestId('curriculum-tile');
         expect(tiles.length).toBeGreaterThanOrEqual(3);
@@ -144,7 +147,7 @@ describe('LearningCenterSection — redesigned shell', () => {
 
     it('the Review and Achievements tabs render from the rail', async () => {
         const user = userEvent.setup();
-        render(<LearningCenterSection user={USER} />);
+        render(withQueryClient(<LearningCenterSection user={USER} />));
         await screen.findByTestId('learning-hero');
         const rail = screen.getByTestId('learning-rail');
         await user.click(within(rail).getByText('Achievements'));

@@ -22,7 +22,7 @@ const fs = require('node:fs');
 // Since the route was split, the end of the turn lives in webpageChat/finalize.js,
 // the pre-turn copy in webpageChat/toolLoop.js and the tool writes in
 // webpageChat/tools.js.
-const SRC = fs.readFileSync(require.resolve('./webpageChat/finalize'), 'utf8');
+const SRC = fs.readFileSync(require.resolve('../../usecases/ai/webpageChat/finalize'), 'utf8');
 const LOOP_SRC = fs.readFileSync(require.resolve('./webpageChat/toolLoop'), 'utf8');
 const TOOLS_SRC = fs.readFileSync(require.resolve('./webpageChat/tools'), 'utf8');
 

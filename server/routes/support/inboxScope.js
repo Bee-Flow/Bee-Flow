@@ -11,7 +11,7 @@ const log = require('../../telemetry/log');
 const supportInboxStore = require('../../stores/supportInboxStore');
 const supportStore = require('../../stores/supportStore');
 const { resolveUserOrgIds, hasPermission } = require('../../auth/permissions');
-const access = require('../../support/access');
+const access = require('../../core/support/access');
 // supportEvents is a shared bus; tenant events carry inboxId so the company
 // /api/support/stream skips them and the tenant /stream forwards only in-scope inboxes.
 const { supportEvents } = require('../support');

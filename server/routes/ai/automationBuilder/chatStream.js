@@ -88,8 +88,8 @@ const { resolveTurnModel } = require('./modelSelection');
 const { assembleTurnPrompt } = require('./promptAssembly');
 const { buildToolMenu } = require('./toolMenu');
 const { runBuildLoop } = require('./buildLoop');
-const { closeTurn } = require('./turnClosing');
-const { MAX_ITERATIONS } = require('./turnStop');
+const { closeTurn } = require('../../../usecases/ai/automationBuilder/turnClosing');
+const { MAX_ITERATIONS } = require('../../../usecases/ai/automationBuilder/turnStop');
 
 // requireAuth is the canonical gate from auth/permissions (verifies the
 // user still exists in the DB, cached 5s, and destroys deleted-user sessions).

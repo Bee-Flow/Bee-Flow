@@ -28,10 +28,10 @@ const { effortForIteration } = require('../../../appStudio/builderModelProfiles'
 const { emptyUsageTotals } = require('../../../usecases/ai/appStudioBuilder/turnLoop');
 const {
     MAX_TOKENS_PER_ROUND, requestRound, recoverWrittenCalls, accountRound, thinkingToReplay, settleToolLessRound, assistantToolMessage,
-} = require('./buildRound');
+} = require('../../../usecases/ai/appStudioBuilder/buildRound');
 const {
     TOOL_REFUSAL_STREAK_MAX, runRoundTools, repeatedStopMessage, flushVisionImages, validateAfterMutation,
-} = require('./buildTools');
+} = require('../../../usecases/ai/appStudioBuilder/buildTools');
 const log = require('../../../telemetry/log');
 
 /**
@@ -40,9 +40,9 @@ const log = require('../../../telemetry/log');
  * modelEndedTurn, builtThisTurn, proposedPlan, lastPhaseIndex, the counters
  * and iter) lives on `turn`, and usageTotals/proseParts are the caller's
  * (Wave 6c), so the route's outer catch can still log a turn that blew up.
- * @param {import('./buildRound').BuildCtx['profile']} profile
- * @param {import('./buildRound').BuildCtx['tier']} tier
- * @returns {import('./buildRound').LoopState}
+ * @param {import('../../../usecases/ai/appStudioBuilder/buildRound').BuildCtx['profile']} profile
+ * @param {import('../../../usecases/ai/appStudioBuilder/buildRound').BuildCtx['tier']} tier
+ * @returns {import('../../../usecases/ai/appStudioBuilder/buildRound').LoopState}
  */
 function freshLoopState(profile, tier) {
     return {
@@ -71,8 +71,8 @@ function freshLoopState(profile, tier) {
  * One round; returns 'next' to run another, or 'end' to end the turn.
  * @param {import('../../../usecases/ai/appStudioBuilder/turnClosing').BuilderTurn} turn
  * @param {number} iter
- * @param {import('./buildRound').BuildCtx} ctx
- * @param {import('./buildRound').LoopState} ls
+ * @param {import('../../../usecases/ai/appStudioBuilder/buildRound').BuildCtx} ctx
+ * @param {import('../../../usecases/ai/appStudioBuilder/buildRound').LoopState} ls
  * @returns {Promise<'next'|'end'>}
  */
 async function runRound(turn, iter, ctx, ls) {
@@ -113,7 +113,7 @@ async function runRound(turn, iter, ctx, ls) {
 
 /**
  * @param {import('../../../usecases/ai/appStudioBuilder/turnClosing').BuilderTurn} turn
- * @param {import('./buildRound').BuildCtx} ctx
+ * @param {import('../../../usecases/ai/appStudioBuilder/buildRound').BuildCtx} ctx
  */
 async function runBuildLoop(turn, ctx) {
     const { res, iterationBudget, profile, tier } = ctx;

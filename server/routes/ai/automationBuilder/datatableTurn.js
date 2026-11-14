@@ -21,7 +21,7 @@
 'use strict';
 
 const { checkDatatableCreate } = require('../../../automation/builderTools/datatableCreateAccess');
-const { pendingCatalogEntry, usedDatatables } = require('../../../automation/builderTools/pendingDatatables');
+const { pendingCatalogEntry } = require('../../../automation/builderTools/pendingDatatables');
 const { buildApprovedSet, resolveTableChoice } = require('../../../automation/builderTools/datatableApproval');
 
 /**
@@ -66,36 +66,4 @@ async function setupDatatableTurn({
     return answered;
 }
 
-/**
- * What a proposal preview carries: the definition, its base, and the tables it creates and uses.
- * @param {BuilderDraftWrap} draftWrap
- * @param {DraftGraph} baseDraft
- */
-function proposalPreviewPayload(draftWrap, baseDraft) {
-    const pending = draftWrap._pendingDatatables || [];
-    return {
-        definition: draftWrap.def, baseDefinition: baseDraft, title: draftWrap.title, description: draftWrap.description,
-        ...(pending.length ? { pendingDatatables: pending } : {}),
-        usedDatatables: usedDatatables(baseDraft, draftWrap.def, draftWrap._datatables, pending),
-    };
-}
-
-/**
- * The snapshot as the CLIENT may see it: the question `choice` (how the server
- * reads a table answer back) and the proposal's Apply claim stay server-side.
- */
-function clientSnapshot(snapshot) {
-    if (!snapshot || typeof snapshot !== 'object') return snapshot;
-    const out = { ...snapshot };
-    if (Array.isArray(out.reviewQuestions)) out.reviewQuestions = out.reviewQuestions.map(({ choice, ...q }) => q);
-    if (out.proposal) out.proposal = clientProposal(out.proposal);
-    return out;
-}
-
-function clientProposal(proposal) {
-    if (!proposal || typeof proposal !== 'object' || !('applying' in proposal)) return proposal;
-    const { applying, ...rest } = proposal;
-    return rest;
-}
-
-module.exports = { setupDatatableTurn, proposalPreviewPayload, clientSnapshot, clientProposal };
+module.exports = { setupDatatableTurn };

@@ -34,7 +34,7 @@ export async function shieldTitleContext(conversationId: string | null, text: st
     const map = await d.tokenMapFor(conversationId);
     if (!map || Object.keys(map).length === 0) return identity;
     const { buildReverseReplacer } = nodeRequire('./applyTokenMapToOutbound.js');
-    const { restoreTokens } = nodeRequire('../privacy/piiDetection/tokenRestore.js');
+    const { restoreTokens } = nodeRequire('../../utils/piiTokenRestore.js');
     const replace = buildReverseReplacer(map) as ((s: string) => string) | null;
     return {
         text: replace ? replace(text) : text,

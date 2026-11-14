@@ -72,7 +72,7 @@ function asHttpError(err, /** @type {Pick<typeof import('../../telemetry/log'), 
  * @param {import('./roleGate').ProjectRoleGate} [deps.requireProjectRole]  middleware named requireProjectRoleMw
  * @param {any} [deps.store]  stores/projectStore; typed, unshareOwn's project?.organizationId (undefined) would not fit orgId
  * @param {typeof import('../../stores/agent/sharedConversations')} [deps.shared]
- * @param {typeof import('../../projects/changeFeed').recordProjectChange} [deps.recordProjectChange]
+ * @param {typeof import('../../core/projectContent/changeFeed').recordProjectChange} [deps.recordProjectChange]
  * @param {Pick<typeof import('../../telemetry/log'), 'error'>} [deps.log]
  */
 function makeThreadsRouter(deps = {}) {
@@ -81,7 +81,7 @@ function makeThreadsRouter(deps = {}) {
     const store = () => deps.store || require('../../stores/projectStore');
     const shared = () => deps.shared || require('../../stores/agent/sharedConversations');
     const recordProjectChange = (/** @type {any[]} */ ...a) =>
-        (deps.recordProjectChange || require('../../projects/changeFeed').recordProjectChange)(...a);
+        (deps.recordProjectChange || require('../../core/projectContent/changeFeed').recordProjectChange)(...a);
     const log = deps.log || require('../../telemetry/log');
 
     // Every route here runs behind the project role gate, which guarantees the session user.

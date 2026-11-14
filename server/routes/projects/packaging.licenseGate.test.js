@@ -34,7 +34,7 @@ function mock(rel, exports) {
 // needs just to load and to answer PUT /:id/conversations with an empty body.
 mock(path.join(SERVER, 'stores/userStore'), {});
 mock(path.join(SERVER, 'stores/knowledgeBases'), {});
-mock(path.join(SERVER, 'support/kbAccess'), { partitionAccessibleKBIds: async () => ({ allowed: [], denied: [] }) });
+mock(path.join(SERVER, 'core/kb/kbAccess'), { partitionAccessibleKBIds: async () => ({ allowed: [], denied: [] }) });
 mock(path.join(SERVER, 'auth'), { resolveUserGroups: async () => [] });
 mock(path.join(SERVER, 'utils/perUserRateLimit'), {
     perUserRateLimit: () => function rateLimiter(req, res, next) { next(); },

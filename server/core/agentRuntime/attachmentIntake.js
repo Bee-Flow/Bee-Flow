@@ -22,7 +22,7 @@
 const { withPhase } = require('./phaseEvents');
 const { processAttachments } = require('./attachmentProcessor');
 const log = require('../../telemetry/log');
-const { bestEffort, fallback } = require('../../utils/bestEffort');
+const { phaseDetail, auditContext, reportBlockedAttachment, auditScanSummaries, mergeScanSummaries, showRawPayload } = require('./attachmentTurnSteps');
 
 async function appendUserTurn({ messageMetadata, userMessage, userId, messages, durableMessages, persistedByLive }) {
     // The current user turn, as two objects: `userSave` is what gets persisted,
@@ -128,170 +128,78 @@ async function appendUserTurn({ messageMetadata, userMessage, userId, messages, 
     return { userSave, promptUserMsg };
 }
 
-async function processTurnAttachments({ messageMetadata, lastMsg, userId, modelToUse, persistedByLive, dlpShield, conversation, onEvent, agent, agentId, config, _assistantTokenisationInfo }) {
-                log.info(`[Agent] Processing ${messageMetadata.attachments.length} attachments...`);
-                const { classifyProvider } = require('../providers/classification');
-                const _attachOpts = {
-                    modelId: modelToUse,
-                    persistedByLive,
-                    // Privacy Shield: scan extracted text from each attachment
-                    // and either tokenise (default) or block (when org chose
-                    // "Block the message" action) — or, under dlpMode:'ask',
-                    // pause for the same review the typed message already gets
-                    // (see attachmentAskFlow.js). Auto-follows the message-
-                    // level toggle — same categories, threshold, action.
-                    orgShield: dlpShield,
-                    conversationId: conversation?.id,
-                    emit: onEvent,
-                    provider: classifyProvider(config || {}, dlpShield?.dlpAllowlistedHosts || []),
-                };
-                let _attachResult;
-                try {
-                    const firstAtt = messageMetadata.attachments[0];
-                    const detail = messageMetadata.attachments.length === 1 && firstAtt?.name
-                        ? firstAtt.name
-                        : `${messageMetadata.attachments.length} files`;
-                    _attachResult = await withPhase(onEvent, 'processing_attachments', detail, () =>
-                        processAttachments(messageMetadata.attachments, lastMsg, userId, _attachOpts)
-                    );
-                } catch (attErr) {
-                    if (attErr && attErr.code === 'ATTACHMENT_PII_BLOCKED') {
-                        const cats = Object.keys(attErr.summary?.byCategory || {});
-                        // Held (scan couldn't cover the input) vs blocked (policy or
-                        // the person decided) — see attachmentBlockAudit.
-                        const { attachmentBlockAudit } = require('../dlp/attachmentBlockAudit');
-                        const audit = attachmentBlockAudit(attErr.reason, cats);
-                        const cause = audit.cause;
-                        const sseReason = cause === 'pii' ? 'attachment_pii' : `attachment_${cause}`;
-                        onEvent?.('dlp_blocked', {
-                            reason: sseReason,
-                            filename: attErr.filename,
-                            categories: cats,
-                            findings: [],
-                            provider: { isExternal: false, reason: sseReason },
-                        });
-                        const guardEvents = require('../../stores/guardrailEventStore');
-                        guardEvents.logGuardrailEvent({
-                            organization_id: agent.organization_id || null,
-                            user_id: userId || null,
-                            agent_id: agentId || null,
-                            agent_name: agent.name || null,
-                            conversation_id: conversation?.id || null,
-                            model: modelToUse,
-                            source: config?.providerName || config?.providerType || 'LLM',
-                            violation_type: 'pii',
-                            violation_categories: audit.violation_categories,
-                            direction: 'input',
-                            action_taken: audit.action_taken,
-                            attachment_filename: attErr.filename,
-                            attachment_page: null,
-                        }).catch((e) => bestEffort('core/agentRuntime/attachmentIntake:processTurnAttachments', e));
-                        const e = new Error(/** @type {Error} */ (attErr).message);
-                        e.code = 'ATTACHMENT_PII_BLOCKED';
-                        throw e;
-                    }
-                    throw attErr;
-                }
+/**
+ * What attachment expansion reaches outside this file. The provider
+ * classification, the block audit, the guardrail ledger and the token maps
+ * load on first use, at the point the turn needs them; a test passes its own.
+ */
+const INTAKE_DEPS = {
+    processAttachments,
+    classification: () => require('../providers/classification'),
+    blockAudit: () => require('../dlp/attachmentBlockAudit'),
+    guardrailEvents: () => require('../../stores/guardrailEventStore'),
+    dlpRunner: () => require('../dlp/dlpRunner'),
+    log,
+};
 
-                // Audit + UI surfacing for tokenised attachments.
-                if (_attachResult?.attachmentScanSummaries?.length > 0) {
-                    const dlpStore = require('../../stores/guardrailEventStore');
-                    const auditBase = {
-                        organization_id: agent.organization_id || null,
-                        user_id: userId || null,
-                        agent_id: agentId || null,
-                        agent_name: agent.name || null,
-                        conversation_id: conversation?.id || null,
-                        model: modelToUse,
-                        source: config?.providerName || config?.providerType || 'LLM',
-                    };
-                    for (const s of _attachResult.attachmentScanSummaries) {
-                        if (s.action === 'tokenize') {
-                            dlpStore.logAttachmentPiiFindings({ summary: s, auditBase, action_taken: 'redacted' }).catch((e) => bestEffort('core/agentRuntime/attachmentIntake:processTurnAttachments#2', e));
-                        }
-                        // Found something but sent it unredacted anyway (ask
-                        // flow "send anyway", or a remembered "allow") — audit
-                        // it explicitly, same as a redaction is audited. Never
-                        // silent just because nothing was masked.
-                        if (s.action === 'allowed') {
-                            dlpStore.logAttachmentPiiFindings({ summary: s, auditBase, action_taken: 'allowed' }).catch((e) => bestEffort('core/agentRuntime/attachmentIntake:processTurnAttachments#3', e));
-                        }
-                        // Incomplete scan passed through unredacted (fail_open) —
-                        // audit it explicitly so large-input pass-throughs are
-                        // measurable, never silent.
-                        if (s.reason) {
-                            dlpStore.logAttachmentScanIncomplete({
-                                auditBase, filename: s.filename, reason: s.reason,
-                                scannedPages: s.scannedPages, totalPages: s.totalPages,
-                                action_taken: s.action === 'tokenize' ? 'partial_redacted' : 'passed_unredacted',
-                            }).catch((e) => bestEffort('core/agentRuntime/attachmentIntake:processTurnAttachments#4', e));
-                        }
-                    }
-                    // Merge per-file detail into the assistant tokenisation info
-                    // so the chat UI can render the per-attachment badge.
-                    const aggCount = _attachResult.attachmentScanSummaries.reduce((a, s) => a + (s.count || 0), 0);
-                    const aggCats = new Set();
-                    for (const s of _attachResult.attachmentScanSummaries) {
-                        for (const c of Object.keys(s.byCategory || {})) aggCats.add(c);
-                    }
-                    _assistantTokenisationInfo = _assistantTokenisationInfo || {
-                        source: 'privacy_shield',
-                        action: 'redact',
-                        count: 0,
-                        categories: [],
-                        automatic: true,
-                    };
-                    _assistantTokenisationInfo.attachments = _attachResult.attachmentScanSummaries;
-                    _assistantTokenisationInfo.count = (_assistantTokenisationInfo.count || 0) + aggCount;
-                    const catSet = new Set([...(_assistantTokenisationInfo.categories || []), ...aggCats]);
-                    _assistantTokenisationInfo.categories = [...catSet];
-
-                    // Live SSE so the chat UI displays the privacy badge during
-                    // the turn (not only after a page reload). Mirrors directChat.
-                    if (aggCount > 0 || _attachResult.attachmentScanSummaries.some(s => s.timeout || s.reason)) {
-                        onEvent?.('pii_tokenized', {
-                            entities: [...aggCats].map(label => ({ label, category: label })),
-                            tokenCount: aggCount,
-                            attachments: _attachResult.attachmentScanSummaries,
-                            source: 'privacy_shield',
-                        });
-                    }
-
-                    // Raw-payload transparency for attachments (only when the
-                    // org opted in). Lets the user verify the exact tokenised
-                    // text Claude received — the missing "Sent to AI" pane
-                    // in the privacy panel was the source of the "I can't see
-                    // that anything was tokenised" feedback.
-                    if (aggCount > 0 && dlpShield?.showRawPayload) {
-                        try {
-                            const flat = Array.isArray(lastMsg?.content)
-                                ? lastMsg.content
-                                    .filter(p => p && p.type === 'text' && typeof p.text === 'string')
-                                    .map(p => p.text)
-                                    .join('\n')
-                                : (typeof lastMsg?.content === 'string' ? lastMsg.content : '');
-                            if (flat) {
-                                onEvent?.('privacy_payload', {
-                                    tokenizedPrompt: flat,
-                                    provider: modelToUse,
-                                    source: 'privacy_shield',
-                                    timestamp: Date.now(),
-                                });
-                                _assistantTokenisationInfo.tokenizedPrompt = flat;
-                            }
-                            const _convMap = require('../dlp/dlpRunner').getConversationTokenMap(conversation?.id);
-                            if (_convMap && Object.keys(_convMap).length > 0) {
-                                onEvent?.('privacy_token_map', { tokenMap: _convMap, source: 'privacy_shield' });
-                                _assistantTokenisationInfo.tokenMap = _convMap;
-                            }
-                        } catch (err) { fallback('core/agentRuntime/attachmentIntake:processTurnAttachments#5', err); /* transparency is best-effort */ }
-                    }
-                }
-
-    return _assistantTokenisationInfo;
+/**
+ * What the attachment processor is told about this turn.
+ * Privacy Shield: scan extracted text from each attachment and either
+ * tokenise (default) or block (when org chose "Block the message" action) —
+ * or, under dlpMode:'ask', pause for the same review the typed message
+ * already gets (see attachmentAskFlow.js). Auto-follows the message-level
+ * toggle — same categories, threshold, action.
+ */
+function attachOptions({ modelToUse, persistedByLive, dlpShield, conversation, onEvent, config }, deps) {
+    const { classifyProvider } = deps.classification();
+    return {
+        modelId: modelToUse,
+        persistedByLive,
+        orgShield: dlpShield,
+        conversationId: conversation?.id,
+        emit: onEvent,
+        provider: classifyProvider(config || {}, dlpShield?.dlpAllowlistedHosts || []),
+    };
 }
 
-module.exports = { appendUserTurn, processTurnAttachments };
+// The second parameter is the collaborators above; only a test passes its own.
+async function processTurnAttachments(turn, deps = INTAKE_DEPS) {
+    const { messageMetadata, lastMsg, userId, modelToUse, dlpShield, conversation, onEvent, _assistantTokenisationInfo } = turn;
+    deps.log.info(`[Agent] Processing ${messageMetadata.attachments.length} attachments...`);
+    const _attachOpts = attachOptions(turn, deps);
+    let _attachResult;
+    try {
+        const detail = phaseDetail(messageMetadata.attachments);
+        _attachResult = await withPhase(onEvent, 'processing_attachments', detail, () =>
+            deps.processAttachments(messageMetadata.attachments, lastMsg, userId, _attachOpts)
+        );
+    } catch (attErr) {
+        if (attErr && attErr.code === 'ATTACHMENT_PII_BLOCKED') throw reportBlockedAttachment(attErr, turn, deps);
+        throw attErr;
+    }
+
+    // Audit + UI surfacing for tokenised attachments.
+    const summaries = _attachResult?.attachmentScanSummaries;
+    if (!(summaries?.length > 0)) return _assistantTokenisationInfo;
+    const dlpStore = deps.guardrailEvents();
+    auditScanSummaries(summaries, auditContext(turn), dlpStore);
+    const { info, aggCount, aggCats } = mergeScanSummaries(_assistantTokenisationInfo, summaries);
+
+    // Live SSE so the chat UI displays the privacy badge during
+    // the turn (not only after a page reload). Mirrors directChat.
+    if (aggCount > 0 || summaries.some(s => s.timeout || s.reason)) {
+        onEvent?.('pii_tokenized', {
+            entities: [...aggCats].map(label => ({ label, category: label })),
+            tokenCount: aggCount,
+            attachments: summaries,
+            source: 'privacy_shield',
+        });
+    }
+    if (aggCount > 0 && dlpShield?.showRawPayload) showRawPayload({ lastMsg, modelToUse, conversation, onEvent }, info, deps);
+    return info;
+}
+
+module.exports = { appendUserTurn, processTurnAttachments, INTAKE_DEPS };
 
 /**
  * @typedef {import('./attachmentKinds').Attachment} Attachment

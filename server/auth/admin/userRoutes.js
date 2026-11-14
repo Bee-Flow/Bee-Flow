@@ -13,11 +13,11 @@ const { receiveImage } = require('../../middleware/uploadedImage');
 const log = require('../../telemetry/log');
 const { bestEffort, fallback } = require('../../utils/bestEffort');
 const { isPlatformOperator } = require('../platformOperator');
-const { costLimitRefusal, imageLimitsRefusal, imageLimitsColumn, stripKeyMaterial, buildRoleDowngradeHint, CreateUserBody, ChangePasswordBody, USER_UPDATE_FIELDS, SUPER_ADMIN_ONLY_FIELDS, isKnownRoleId, USER_TEXT_FIELDS, needsAdminPasswordFloor, unknownFieldsRefusal, accessChanges, endSessionsFor, leavesServerWithoutPlatformAdmin, refusedDelete } = require('./userSupportRoutes');
+const { costLimitRefusal, imageLimitsRefusal, stripKeyMaterial, CreateUserBody, ChangePasswordBody, isKnownRoleId, needsAdminPasswordFloor, unknownFieldsRefusal, endSessionsFor, leavesServerWithoutPlatformAdmin, refusedDelete } = require('./userSupportRoutes');
 const router = express.Router();
 
 const userStore = require('../../stores/userStore');
-const { loadConfig, requireAuth, getUserPermissions, invalidatePermissionCache, resolveUserOrgIds, isOrgAdminRole, resolveAdminOrgId } = require('../permissions');
+const { loadConfig, requireAuth, getUserPermissions, invalidatePermissionCache, resolveUserOrgIds, resolveAdminOrgId } = require('../permissions');
 const { rewrapUserDEKCompat, adminResetUser } = require('../encryption');
 // One password policy for every write path. Without it /change-password would
 // accept 4 characters and the admin create / update paths would hash whatever
@@ -25,22 +25,18 @@ const { rewrapUserDEKCompat, adminResetUser } = require('../encryption');
 // panel could carry a one-character password while signup and password-reset
 // enforce 8.
 const { validatePassword } = require('../passwordPolicy');
-const { sanitizePlainTextFields } = require('../../utils/htmlSanitizer');
 const { checkResourceLimits } = require('../../core/entitlements/limits');
 const { validate } = require('../../core/http/validate');
 const { bodyOf } = require('../../core/http/schemaParts');
 const {
-    isActiveUserStatus,
-    wouldOrphanOrg,
-    orgsAdministeredBy,
     repairIfOrphaned,
     refuseLastOrgAdmin,
-    normaliseOrgId,
     requireOrgAdminForUser,
     defaultGroupsRefused,
     credentialResetRefusal,
 } = require('./orgAdminGuards');
 const { LAST_PLATFORM_ADMIN_REFUSAL } = require('./platformAdminCount.mts');
+const { roleValueRefusal, userSnapshot, userUpdatesFrom, orgAdminGuard, afterUserUpdate } = require('./userUpdateSupportRoutes');
 
 /**
  * A new password on PUT /users/:id. Same policy as signup and password reset:
@@ -281,120 +277,33 @@ router.post('/users', requireOrgAdminForUser, validate({ body: CreateUserBody })
     }
 });
 
-// Update user
+// Update user. The steps are in userUpdateSupportRoutes.js; this is their order, and
+// every refusal is answered before anything is written.
 router.put('/users/:id', requireOrgAdminForUser, async (req, res) => {
     const { id } = req.params;
     const body = req.body || {};
 
-    // Anything outside the allow-list is refused instead of silently dropped.
-    // A pentester sent {"isAdmin":true} here and got 200 {"success":true} while
-    // the flag went nowhere: the handler only ever copied a fixed field list.
-    // No escalation happened — but a report of "success" for a privilege change
-    // that did not happen is exactly how a real escalation gets mistaken for a
-    // failed one, and a failed one for a real escalation. Sibling refusals in
-    // this file (role='admin' → 403 'Cannot assign super admin role') already
-    // name what they reject; this does the same.
+    // Anything outside the allow-list is refused instead of silently dropped:
+    // a "success" for a change that did not happen is how a failed escalation
+    // gets mistaken for a real one. Sibling refusals in this file already name
+    // what they reject; this does the same.
     const refusal = unknownFieldsRefusal(body) || costLimitRefusal(body) || imageLimitsRefusal(body);
     if (refusal) return res.status(400).json(refusal);
 
-    // Everything else is read through `updates` below, which is built from
-    // USER_UPDATE_FIELDS so it cannot fall out of step with the allow-list.
+    // Everything else is read through `updates` below.
     const { role, password, oldPassword, confirmSelfDemotion } = body;
+    const roleRefusal = await roleValueRefusal(id, role);
+    if (roleRefusal) return res.status(400).json(roleRefusal);
 
-    if (isPlatformOperator(id)) {
-        if (role && role !== 'admin') {
-            return res.status(400).json({ error: 'Cannot downgrade system admin' });
-        }
-    }
-
-    // The value, not just the field. `role` was guarded by a denylist of one
-    // exact string, so `super_admin` and `root` were stored happily — and the
-    // error message on the one refusal ("Cannot assign super admin role") named
-    // the very value that succeeded. An allow-list of roles this installation
-    // actually defines removes the whole class, for super admins too: a role
-    // that resolves to nothing is a corrupted record, not an assignment.
-    if (role !== undefined && !(await isKnownRoleId(role))) {
-        return res.status(400).json({
-            error: `Unknown role: ${String(role).slice(0, 64)}`,
-            code: 'unknown_role',
-        });
-    }
-
-    // Snapshot the user's access-relevant fields before mutation so the
-    // audit row captures the actual transition rather than just the new
-    // state. Failures here are non-fatal — auditing must not block the
-    // update.
-    let prevUser = null;
-    try { prevUser = await userStore.getUser(id); } catch (_) { prevUser = null; }
-
-    const updates = sanitizePlainTextFields(
-        Object.fromEntries(USER_UPDATE_FIELDS.map(f => [f, body[f]])),
-        USER_TEXT_FIELDS,
-    );
-    updates.imageLimits = imageLimitsColumn(body);
-
-    // Tenant membership is super-admin-only (see SUPER_ADMIN_ONLY_FIELDS). For
-    // anyone else the key is dropped rather than refused here — the middleware
-    // has already 403'd an actual CHANGE, so what reaches this point is the users
-    // panel echoing the row back unchanged, and failing that would break every
-    // ordinary org-admin save.
+    const prevUser = await userSnapshot(id);
     const isSuperAdmin = req.session?.isAdmin || req.session?.user?.role === 'admin';
-    if (isSuperAdmin) {
-        for (const field of SUPER_ADMIN_ONLY_FIELDS) updates[field] = body[field];
+    const updates = userUpdatesFrom(body, prevUser, isSuperAdmin);
+    const callerId = req.session?.user?.id;
 
-        // A relocated user keeps no standing from the tenant they left: org_admin
-        // in the old org says nothing about the new one, and carrying it across is
-        // what turned the reported tenant hop into a tenant takeover. An explicit
-        // orgRole in the same request still wins — the operator may say what the
-        // user should be on arrival.
-        const movingOrg = updates.organizationId !== undefined
-            && normaliseOrgId(updates.organizationId) !== normaliseOrgId(prevUser?.organizationId);
-        if (movingOrg && body.orgRole === undefined) {
-            updates.orgRole = normaliseOrgId(updates.organizationId) === null ? '' : 'member';
-        }
-    }
-
-    // ── Sole-org-admin protection (see countOtherOrgAdmins) ──
-    // Three of the writable fields can take an administrator off an
-    // organisation's roster, and all three had to be closed together: demote the
-    // orgRole, move them to another org, or park them in a non-active status.
-    // The platform `role` is deliberately not one of them — that is super-admin,
-    // a platform axis, and it has no bearing on who can administer a tenant.
-    /** @type {string[]} */
-    let guardedOrgIds = [];
-    if (prevUser && isOrgAdminRole(prevUser.orgRole)) {
-        const orgId = prevUser.organizationId;
-        const losesRole = updates.orgRole !== undefined && !isOrgAdminRole(updates.orgRole);
-        const losesOrg = updates.organizationId !== undefined && updates.organizationId !== orgId;
-        const losesActive = updates.status !== undefined && !isActiveUserStatus(updates.status);
-
-        if (losesRole || losesOrg || losesActive) {
-            // Every org this user administers, not just their primary one —
-            // see orgsAdministeredBy for why those differ.
-            guardedOrgIds = await orgsAdministeredBy(prevUser);
-            for (const guardedOrg of guardedOrgIds) {
-                if (await wouldOrphanOrg(guardedOrg, id)) {
-                    return refuseLastOrgAdmin(res, 'That change');
-                }
-            }
-        }
-
-        // Self-demotion is allowed — an admin may hand the org over and step
-        // down — but never as a side effect of a click. The SPA PUTs the whole
-        // user row back, so a mis-set role dropdown could strip the caller's own
-        // administration rights in one request with nothing to confirm. The
-        // opt-in makes the client say it meant it, and the 409 carries the same
-        // `hint` payload the success response would have, so the panel can drive
-        // its confirm dialog straight off this response.
-        if (losesRole && id && id === req.session?.user?.id && confirmSelfDemotion !== true) {
-            const hint = buildRoleDowngradeHint(prevUser.orgRole, updates.orgRole);
-            return res.status(409).json({
-                error: 'This would remove your own administrator rights over this organisation. Re-send with confirmSelfDemotion: true to proceed.',
-                code: 'confirm_self_demotion',
-                ...(hint ? { hint } : {}),
-            });
-        }
-    }
+    // The last organisation admin stays, and one's own demotion is confirmed.
+    const guard = await orgAdminGuard({ id, prevUser, updates, callerId, confirmSelfDemotion });
+    if (guard.lastOrgAdmin) return refuseLastOrgAdmin(res, 'That change');
+    if (guard.refusal) return res.status(409).json(guard.refusal);
 
     // The last platform admin keeps the role and stays active (self-demotion of
     // the platform role is otherwise allowed; the panel asks first).
@@ -406,52 +315,16 @@ router.put('/users/:id', requireOrgAdminForUser, async (req, res) => {
     if (resetRefusal) return res.status(403).json(resetRefusal);
     if (password && await refusedPassword(res, { id, password, oldPassword, prevUser, updates })) return;
 
-    if (await userStore.updateUser(id, updates)) {
-        // The pre-check is a read; this is the write. Two admins demoting each
-        // other in parallel both pass the read. See repairIfOrphaned.
-        if (guardedOrgIds.length) {
-            const orphaned = await repairIfOrphaned(guardedOrgIds, prevUser);
-            if (orphaned) return refuseLastOrgAdmin(res, 'That change');
-        }
+    if (!await userStore.updateUser(id, updates)) return res.status(404).json({ error: 'User not found' });
 
-        // A non-active status or a new password ends the account's sessions (the person changing their own keeps this one).
-        const becomesInactive = updates.status !== undefined && !isActiveUserStatus(updates.status);
-        if (becomesInactive || password) await endSessionsFor(id, id === req.session?.user?.id && !becomesInactive ? { keepSid: req.sessionID } : {});
-
-        const changedFields = Object.keys(updates).filter(k => updates[k] !== undefined);
-        log.info(`[Audit] ${req.session.user?.id || 'system'} updated user '${id}' — fields: ${changedFields.join(', ')}`);
-        // Capture only the access-relevant changes for audit (role, orgRole,
-        // groups, organizationId, status) — never log password material.
-        const { oldVals, newVals } = accessChanges(prevUser, updates);
-        if (Object.keys(newVals).length > 0) {
-            await userStore.logAccessAudit(
-                'user.update',
-                'user',
-                id,
-                req.session.user?.id || null,
-                oldVals,
-                newVals,
-                (prevUser && prevUser.organizationId) || updates.organizationId || null,
-            );
-        }
-        // Role / orgRole / group changes alter the user's effective permissions.
-        await invalidatePermissionCache(id);
-        // Bust the requireAuth user-existence cache so a role demotion takes
-        // effect on the very next request instead of waiting USER_CHECK_TTL.
-        try { await require('../permissions').invalidateUserExistenceCache(id); } catch (err) { bestEffort('auth/admin/users:invalidateExistenceCache', err); }
-
-        // Soft hint when the admin is assigning a *weaker* orgRole than the
-        // user already had. Not an error — admins legitimately demote — but
-        // the UI can show a confirm prompt before applying. The ranks come
-        // from orgRoles.json's effective-permission count (more permissions
-        // = "higher"), via orgRoleRank().
-        const hint = updates.orgRole !== undefined
-            ? buildRoleDowngradeHint(prevUser?.orgRole, updates.orgRole)
-            : null;
-        res.json({ success: true, ...(hint ? { hint } : {}) });
-    } else {
-        res.status(404).json({ error: 'User not found' });
+    // The pre-check is a read; this is the write. Two admins demoting each
+    // other in parallel both pass the read. See repairIfOrphaned.
+    if (guard.guardedOrgIds.length && await repairIfOrphaned(guard.guardedOrgIds, prevUser)) {
+        return refuseLastOrgAdmin(res, 'That change');
     }
+
+    const hint = await afterUserUpdate({ id, prevUser, updates, callerId, sessionID: req.sessionID, passwordChanged: !!password });
+    res.json({ success: true, ...(hint ? { hint } : {}) });
 });
 
 // Reset a user's two-factor authentication. Org admins over their

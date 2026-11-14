@@ -14,7 +14,7 @@ const path = require('node:path');
 const fs = require('node:fs');
 
 const { scanSearchCallSites } = require('./searchCallSites.scan.mts');
-const { CHANNELS } = require('./vocab.mts');
+const { CHANNELS } = require('../../../stores/kb/queryLog/vocab.mts');
 const inventory = require('./searchCallSites.inventory.json');
 
 const SERVER_ROOT = path.resolve(__dirname, '../../..');

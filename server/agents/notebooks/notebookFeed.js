@@ -6,7 +6,7 @@
  * Payloads are ids and counts, never a title, a name or a word of content: the
  * feed resolves titles at read time with the reader's own access.
  *
- * The recorder (projects/changeFeed.js) is resolved when used and every call
+ * The recorder (core/projectContent/changeFeed.js) is resolved when used and every call
  * is fire-and-forget: a feed that is missing or failing costs a log line,
  * never the request that triggered it.
  */
@@ -19,7 +19,7 @@ const ITEM_TYPE = 'notebook';
 
 /** @returns {Record<string, any>|null} */
 function defaultChangeFeed() {
-    try { return require('../../projects/changeFeed'); } catch { return null; }
+    try { return require('../../core/projectContent/changeFeed'); } catch { return null; }
 }
 
 /**

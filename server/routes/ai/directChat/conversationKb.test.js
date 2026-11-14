@@ -59,7 +59,7 @@ const MOCKS = {
         updateDirectConversationWorkspace: async () => true,
         listLabels: async () => [], createLabel: async () => ({}), updateLabel: async () => true, deleteLabel: async () => true,
     },
-    '../../../support/kbAccess': {
+    '../../../core/kb/kbAccess': {
         usableKbIdsForRequest: async (req, ids) => {
             if (fx.usableThrows) throw new Error('policy unavailable');
             return (Array.isArray(ids) ? ids : []).filter(id => fx.usable.includes(id));

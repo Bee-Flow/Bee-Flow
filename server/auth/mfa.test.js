@@ -205,6 +205,9 @@ test('verifyTotpStep: the same code is refused the second time, a later step is 
     const first = mfa.verifyTotpStep(secret, at(0));
     assert.strictEqual(first.ok, true);
     assert.strictEqual(typeof first.timeStep, 'number');
+    // A code is spent as the step it was made for, not the step of the clock that accepted it.
+    assert.deepStrictEqual(mfa.verifyTotpStep(secret, at(-30_000)), { ok: true, timeStep: first.timeStep - 1 });
+    assert.deepStrictEqual(mfa.verifyTotpStep(secret, at(30_000)), { ok: true, timeStep: first.timeStep + 1 });
     // The person signs in again with the SAME code, still inside the window.
     const replay = mfa.verifyTotpStep(secret, at(0), { afterStep: first.timeStep });
     assert.strictEqual(replay.ok, false, 'one code, one sign-in');

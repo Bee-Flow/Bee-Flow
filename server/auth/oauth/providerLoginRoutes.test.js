@@ -261,3 +261,15 @@ test('Microsoft is not linked this way, and an ordinary sign-in clears a pending
     assert.strictEqual(session.oauthLinkUserId, undefined);
     assert.strictEqual(session.returnTo, 'https://app.example', 'an ordinary sign-in returns to the site root');
 });
+
+test('a provider that is not set up, or not known, sends the browser back with the reason and starts nothing', async () => {
+    // The config of this file names no Nextcloud (`oauth: {}`).
+    const session = newSession();
+    const nextcloud = await navigate('/login/nextcloud', session);
+    assert.strictEqual(nextcloud.statusCode, 302);
+    assert.strictEqual(nextcloud.location, 'https://app.example?error=nextcloud_not_configured');
+
+    const unknown = await navigate('/login/gitlab', newSession());
+    assert.strictEqual(unknown.statusCode, 302);
+    assert.strictEqual(unknown.location, 'https://app.example?error=unknown_provider');
+});

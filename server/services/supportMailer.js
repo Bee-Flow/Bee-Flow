@@ -1,4 +1,5 @@
-// @typecheck
+/** @typedef {import('./email/send').MailTokens} MailTokens */
+// @typecheck noImplicitAny
 /**
  * Support Mailer — outbound replies for the tenant Support inbox.
  *
@@ -66,6 +67,9 @@ async function sendReply(inboxId, thread, opts = {}) {
     if (!inbox.tokens || !inbox.tokens.accessToken) throw new Error('Inbox is not connected — reconnect the mailbox.');
     if (!SUPPORTED_PROVIDERS.has(inbox.provider)) throw new Error(`Unsupported provider: ${inbox.provider}`);
 
+    /**
+     * @param {MailTokens} t
+     */
     const onRefresh = (t) => supportInboxStore.updateTokens(inbox.id, t).catch((e) => fallback('services/supportMailer:onRefresh', e));
     const baseSubject = opts.subject || thread.subject || '(no subject)';
     const subject = /^\s*re:/i.test(baseSubject) ? baseSubject : `Re: ${baseSubject}`;

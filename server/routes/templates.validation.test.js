@@ -26,7 +26,7 @@ const h = require('../testUtils/routeHarness');
 const usable = new Set(['kb-mine']);
 const { db, api } = h.routeUnderTest(test, '/api/templates', () => {
     require('../core/entitlements/betaFeatures').requireBetaFeature = () => (req, res, next) => next();
-    require('../support/kbAccess').usableKbIdsForRequest = async (_req, ids) => ids.filter((id) => usable.has(id));
+    require('../core/kb/kbAccess').usableKbIdsForRequest = async (_req, ids) => ids.filter((id) => usable.has(id));
     return require('./templates');
 }, { answer: (sql) => (/^\s*UPDATE word_templates/i.test(sql) ? { rows: [], rowCount: 1 } : undefined) });
 

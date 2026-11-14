@@ -37,7 +37,7 @@ const RunBody = bodyOf({
     feedback: worded(FEEDBACK_TEXT).max(MAX_FEEDBACK, `feedback is at most ${MAX_FEEDBACK} characters.`).nullish(),
     recheck: z.boolean({ error: typeError({ invalid: 'recheck is true or false.' }) }).optional(),
 });
-const { kindOf, firstOfKind, automationBefore, localeOf } = require('./phaseList');
+const { kindOf, firstOfKind, automationBefore, localeOf } = require('../../usecases/playbooks/phaseList');
 const { makeRunComplianceReview } = require('./complianceReview');
 const log = require('../../telemetry/log');
 const { bestEffort, fallback } = require('../../utils/bestEffort');
@@ -305,7 +305,7 @@ module.exports = { register };
  * @typedef {import('express').Request<{ id: string, key: string }>} Req
  * @typedef {import('express').Response} Res
  * @typedef {Extract<Awaited<ReturnType<import('./index').PlaybookRouteCtx['d']['runDesignPhase']>>, { ok: false }>} DesignFailure
- * @typedef {import('./phaseList').PlaybookRow} PlaybookRow
+ * @typedef {import('../../usecases/playbooks/phaseList').PlaybookRow} PlaybookRow
  * @typedef {import('../../playbooks/lifecycle').Phase} Phase
  * @typedef {import('../../playbooks/lifecycle').PhaseArtifacts & { datatableScope?: { kind: string, id: string }, fields?: import('../../playbooks/phases/designPhase').DesignField[], rowCount?: number }} TableArtifacts
  */

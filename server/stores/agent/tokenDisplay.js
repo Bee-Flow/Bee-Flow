@@ -72,7 +72,7 @@ async function _displayTokenMap(row) {
  */
 function _restoreTokensInMessages(messages, convTokenMap = null) {
     if (!Array.isArray(messages)) return messages;
-    const restoreTokens = require('../../core/privacy/piiDetection/tokenRestore').restoreTokens;
+    const restoreTokens = require('../../utils/piiTokenRestore').restoreTokens;
     if (typeof restoreTokens !== 'function') return messages;
     const tokenMap = _onlyTokens(convTokenMap);
     const convMapHasEntries = !!tokenMap && Object.keys(tokenMap).length > 0;

@@ -229,3 +229,13 @@ test('consumer accounts (no org) see only the platform flag', async () => {
     currentSession = makeSession();
     assert.strictEqual((await getUser()).body.mfaSetupRequired, false);
 });
+
+test('the answer carries the caller\'s organisation as id, name and logo; an account without one gets null', async () => {
+    const org = freshOrg();
+    currentFreshUser = makeUser(org);
+    currentSession = makeSession();
+    assert.deepStrictEqual((await getUser()).body.organization, { id: org, name: 'Org', logo: null });
+
+    currentFreshUser = makeUser(null);
+    assert.strictEqual((await getUser()).body.organization, null);
+});

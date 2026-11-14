@@ -50,7 +50,7 @@ const readTool = shapeOf({
 
 /**
  * Tool steps. The server persists `{name, args, status, resultPreview}` rows
- * with no id (routes/ai/directChat/toolExec.js), so the position stands in
+ * with no id (usecases/ai/directChat/toolExec.js), so the position stands in
  * for one — every row needs a key, and a list of '' keys is not a list.
  */
 function tools(value: unknown): ToolActivity[] | undefined {

@@ -1,0 +1,961 @@
+{
+  "statements": [
+    {
+      "sha256": "35de74eaa5c9b85540b83fcd6e80f16aaea198fdacfa06e35d34da3c9b655da8",
+      "head": "CREATE TABLE IF NOT EXISTS webpages ( id TEXT PRIMARY KEY, user_id TEX"
+    },
+    {
+      "sha256": "df85ac2b7ed4cf6db87cef9e73c2c910efef1b62f75329ffca66f5cfca7f5c59",
+      "head": "CREATE TABLE IF NOT EXISTS webpage_sources ( id TEXT PRIMARY KEY, webp"
+    },
+    {
+      "sha256": "3bf73cbb3a838d4e386a88fb523521d1846e6fb9becc0a4b1bce354a5a0ce321",
+      "head": "CREATE TABLE IF NOT EXISTS webpage_versions ( id TEXT PRIMARY KEY, web"
+    },
+    {
+      "sha256": "af7dc9b1d8ee0605fe8492c85535e65aef8dcfaa3099f04e5fa1a6c8a0e7c6dd",
+      "head": "ALTER TABLE webpages ADD COLUMN IF NOT EXISTS chat_messages JSONB DEFA"
+    },
+    {
+      "sha256": "47dd63c55ef9e80c0e47ef5a3c4bb73da97a757695c0475a43118b62ccb62cea",
+      "head": "ALTER TABLE webpages ADD COLUMN IF NOT EXISTS db_sha256 TEXT DEFAULT '"
+    },
+    {
+      "sha256": "f8829df43eb3bf0c8400e355b94d038f5f861d369926e91c4e5b773e1d41be27",
+      "head": "ALTER TABLE webpages ADD COLUMN IF NOT EXISTS db_size INTEGER DEFAULT "
+    },
+    {
+      "sha256": "d971487857e6541917171591d1baf1c80ef38f40b12e43b26b30f54ec3276d71",
+      "head": "ALTER TABLE webpages ADD COLUMN IF NOT EXISTS icon TEXT DEFAULT ''"
+    },
+    {
+      "sha256": "d5844cc095bc5821d9c1ca3e5e4e92af1f9f76b003632e429fd1db84d73c244c",
+      "head": "ALTER TABLE webpages ADD COLUMN IF NOT EXISTS accent_color TEXT DEFAUL"
+    },
+    {
+      "sha256": "ff67e208f9c3540b1233b0436d18fa021b2bc48e3edd85eaf1b4ed2616c75f9a",
+      "head": "ALTER TABLE webpages ADD COLUMN IF NOT EXISTS tagline TEXT DEFAULT ''"
+    },
+    {
+      "sha256": "887380d0600fe789a956272a90d0263997fd7f82b5b0dcf710c8a445fb54edda",
+      "head": "ALTER TABLE webpages ADD COLUMN IF NOT EXISTS thumbnail_sha256 TEXT DE"
+    },
+    {
+      "sha256": "f0e27dc2419991ff6e581ab60df45120c939e0107a071da785f04f4d936996ee",
+      "head": "ALTER TABLE webpages ADD COLUMN IF NOT EXISTS thumbnail_size INTEGER D"
+    },
+    {
+      "sha256": "df7c9d869cc36289dfa6142e05de862eb299cacb8b8e6c4aa5e8cc3858df9162",
+      "head": "ALTER TABLE webpages ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEF"
+    },
+    {
+      "sha256": "e698073fe8811d60f5dbb4f6ac880e59386efa466f3cc16136e6541f4b4308f0",
+      "head": "ALTER TABLE webpages ADD COLUMN IF NOT EXISTS shared_groups TEXT DEFAU"
+    },
+    {
+      "sha256": "58a93046d069fa12d01b8430ad1478bcbb5b39a645bca5bf6c33a53dee7a38c3",
+      "head": "ALTER TABLE webpages ADD COLUMN IF NOT EXISTS organization_id TEXT"
+    },
+    {
+      "sha256": "da5e12a9aec59a8987286f3453b9e075cc5b844d941dc4c7ac88d9f5fcc06325",
+      "head": "CREATE INDEX IF NOT EXISTS idx_webpages_org_published ON webpages(orga"
+    },
+    {
+      "sha256": "ea2fdfd6a094d9855fa33800e8ca53e1b9f44b81d8bb1345060ed2fe6ea1d67c",
+      "head": "ALTER TABLE webpages ADD COLUMN IF NOT EXISTS bridge_grants JSONB DEFA"
+    },
+    {
+      "sha256": "cc00c0632b982af28fc3ce60f8dc69c2ad2765f917cfb0ed4d520ad5359d856d",
+      "head": "ALTER TABLE webpages ADD COLUMN IF NOT EXISTS project_id TEXT"
+    },
+    {
+      "sha256": "dd2b7a22451a78fdc211888fa93b29bfd1297cb9c3c65e3dddcbdf487a8909c0",
+      "head": "CREATE INDEX IF NOT EXISTS idx_webpages_project ON webpages(project_id"
+    },
+    {
+      "sha256": "9b89c8cb33afc738dff9ee2fb215a4ff8230475d53a0e3ca6aa2664b9feb2e77",
+      "head": "ALTER TABLE webpages ADD COLUMN IF NOT EXISTS published_version_id TEX"
+    },
+    {
+      "sha256": "a035bf8d3fb5bf7cc0d2ed51efe9cff1eb5242b5cbf8ac3cf6e3be26583b1671",
+      "head": "ALTER TABLE webpage_versions ADD COLUMN IF NOT EXISTS source TEXT NOT "
+    },
+    {
+      "sha256": "75ffee269137882168ad754c09e110ad475d952f2ae474dfbd3900f21ada88cd",
+      "head": "ALTER TABLE webpages ADD COLUMN IF NOT EXISTS slug TEXT"
+    },
+    {
+      "sha256": "085d3c0bd0f8fe290d14500452e0fd5f40e03a24f4ba6678ec9a8ed1a6662d4a",
+      "head": "CREATE UNIQUE INDEX IF NOT EXISTS idx_webpages_slug ON webpages(slug) "
+    },
+    {
+      "sha256": "b5c0ab3691d438fb9ec9644bd63935bf0dce6ea446817ed907fc0bbe7d027552",
+      "head": "ALTER TABLE webpages ADD COLUMN IF NOT EXISTS public_share_id TEXT"
+    },
+    {
+      "sha256": "76f48a5b0659f729de6dc901c5996d037f0d1faeb075fcc1f33622c62dc7def9",
+      "head": "ALTER TABLE webpage_versions ADD COLUMN IF NOT EXISTS seq INTEGER"
+    },
+    {
+      "sha256": "e0f02c4b457bc2cd7fcf06df445106f7aacb3d2f59837bb7009d2478fb63b257",
+      "head": "UPDATE webpage_versions v SET seq = b.base + b.rn FROM ( SELECT n.id, "
+    },
+    {
+      "sha256": "72ba63e0d8ebb99243f3b792194311f9ea72c172eccbb058d1815d55ef1a1740",
+      "head": "CREATE UNIQUE INDEX IF NOT EXISTS idx_webpage_versions_seq ON webpage_"
+    },
+    {
+      "sha256": "a357b8c834d01ef49bcbff3284980a592486f25ae0105211c8dc7ae1b881617a",
+      "head": "ALTER TABLE webpage_versions ADD COLUMN IF NOT EXISTS actor_user_id TE"
+    },
+    {
+      "sha256": "2a38861a15d9afcc89855b59e47502ae09f3e9a34f4530ce73d406849d797b13",
+      "head": "ALTER TABLE webpage_versions ADD COLUMN IF NOT EXISTS line_delta INTEG"
+    },
+    {
+      "sha256": "c6bb31297fd977ce03bbe4df6e1baa844d09082e863f02d06f7ff213db2881dd",
+      "head": "CREATE TABLE IF NOT EXISTS webpage_extra_files ( id TEXT PRIMARY KEY, "
+    }
+  ],
+  "catalog": {
+    "columns": [
+      {
+        "table_name": "webpage_extra_files",
+        "ordinal_position": 1,
+        "column_name": "id",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "webpage_extra_files",
+        "ordinal_position": 2,
+        "column_name": "webpage_id",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "webpage_extra_files",
+        "ordinal_position": 3,
+        "column_name": "path",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "webpage_extra_files",
+        "ordinal_position": 4,
+        "column_name": "mime_type",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "NO",
+        "column_default": "'text/plain'::text"
+      },
+      {
+        "table_name": "webpage_extra_files",
+        "ordinal_position": 5,
+        "column_name": "is_text",
+        "data_type": "boolean",
+        "udt_name": "bool",
+        "is_nullable": "NO",
+        "column_default": "true"
+      },
+      {
+        "table_name": "webpage_extra_files",
+        "ordinal_position": 6,
+        "column_name": "sha256",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "NO",
+        "column_default": "''::text"
+      },
+      {
+        "table_name": "webpage_extra_files",
+        "ordinal_position": 7,
+        "column_name": "size",
+        "data_type": "integer",
+        "udt_name": "int4",
+        "is_nullable": "NO",
+        "column_default": "0"
+      },
+      {
+        "table_name": "webpage_extra_files",
+        "ordinal_position": 8,
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "udt_name": "timestamptz",
+        "is_nullable": "NO",
+        "column_default": "now()"
+      },
+      {
+        "table_name": "webpage_extra_files",
+        "ordinal_position": 9,
+        "column_name": "updated_at",
+        "data_type": "timestamp with time zone",
+        "udt_name": "timestamptz",
+        "is_nullable": "NO",
+        "column_default": "now()"
+      },
+      {
+        "table_name": "webpage_sources",
+        "ordinal_position": 1,
+        "column_name": "id",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "webpage_sources",
+        "ordinal_position": 2,
+        "column_name": "webpage_id",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "webpage_sources",
+        "ordinal_position": 3,
+        "column_name": "type",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "NO",
+        "column_default": "'text'::text"
+      },
+      {
+        "table_name": "webpage_sources",
+        "ordinal_position": 4,
+        "column_name": "name",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "NO",
+        "column_default": "'Untitled'::text"
+      },
+      {
+        "table_name": "webpage_sources",
+        "ordinal_position": 5,
+        "column_name": "storage_key",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "table_name": "webpage_sources",
+        "ordinal_position": 6,
+        "column_name": "file_name",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "table_name": "webpage_sources",
+        "ordinal_position": 7,
+        "column_name": "metadata",
+        "data_type": "jsonb",
+        "udt_name": "jsonb",
+        "is_nullable": "YES",
+        "column_default": "'{}'::jsonb"
+      },
+      {
+        "table_name": "webpage_sources",
+        "ordinal_position": 8,
+        "column_name": "status",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "NO",
+        "column_default": "'processing'::text"
+      },
+      {
+        "table_name": "webpage_sources",
+        "ordinal_position": 9,
+        "column_name": "error",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "table_name": "webpage_sources",
+        "ordinal_position": 10,
+        "column_name": "word_count",
+        "data_type": "integer",
+        "udt_name": "int4",
+        "is_nullable": "YES",
+        "column_default": "0"
+      },
+      {
+        "table_name": "webpage_sources",
+        "ordinal_position": 11,
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "udt_name": "timestamptz",
+        "is_nullable": "NO",
+        "column_default": "now()"
+      },
+      {
+        "table_name": "webpage_sources",
+        "ordinal_position": 12,
+        "column_name": "updated_at",
+        "data_type": "timestamp with time zone",
+        "udt_name": "timestamptz",
+        "is_nullable": "NO",
+        "column_default": "now()"
+      },
+      {
+        "table_name": "webpage_versions",
+        "ordinal_position": 1,
+        "column_name": "id",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "webpage_versions",
+        "ordinal_position": 2,
+        "column_name": "webpage_id",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "webpage_versions",
+        "ordinal_position": 3,
+        "column_name": "summary",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "YES",
+        "column_default": "''::text"
+      },
+      {
+        "table_name": "webpage_versions",
+        "ordinal_position": 4,
+        "column_name": "html_sha256",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "YES",
+        "column_default": "''::text"
+      },
+      {
+        "table_name": "webpage_versions",
+        "ordinal_position": 5,
+        "column_name": "css_sha256",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "YES",
+        "column_default": "''::text"
+      },
+      {
+        "table_name": "webpage_versions",
+        "ordinal_position": 6,
+        "column_name": "js_sha256",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "YES",
+        "column_default": "''::text"
+      },
+      {
+        "table_name": "webpage_versions",
+        "ordinal_position": 7,
+        "column_name": "content_length",
+        "data_type": "integer",
+        "udt_name": "int4",
+        "is_nullable": "YES",
+        "column_default": "0"
+      },
+      {
+        "table_name": "webpage_versions",
+        "ordinal_position": 8,
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "udt_name": "timestamptz",
+        "is_nullable": "NO",
+        "column_default": "now()"
+      },
+      {
+        "table_name": "webpage_versions",
+        "ordinal_position": 9,
+        "column_name": "source",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "NO",
+        "column_default": "'manual'::text"
+      },
+      {
+        "table_name": "webpage_versions",
+        "ordinal_position": 10,
+        "column_name": "seq",
+        "data_type": "integer",
+        "udt_name": "int4",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "table_name": "webpage_versions",
+        "ordinal_position": 11,
+        "column_name": "actor_user_id",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "table_name": "webpage_versions",
+        "ordinal_position": 12,
+        "column_name": "line_delta",
+        "data_type": "integer",
+        "udt_name": "int4",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "table_name": "webpages",
+        "ordinal_position": 1,
+        "column_name": "id",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "webpages",
+        "ordinal_position": 2,
+        "column_name": "user_id",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "NO",
+        "column_default": null
+      },
+      {
+        "table_name": "webpages",
+        "ordinal_position": 3,
+        "column_name": "name",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "NO",
+        "column_default": "'Untitled Webpage'::text"
+      },
+      {
+        "table_name": "webpages",
+        "ordinal_position": 4,
+        "column_name": "description",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "YES",
+        "column_default": "''::text"
+      },
+      {
+        "table_name": "webpages",
+        "ordinal_position": 5,
+        "column_name": "instructions",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "YES",
+        "column_default": "''::text"
+      },
+      {
+        "table_name": "webpages",
+        "ordinal_position": 6,
+        "column_name": "knowledge_base_ids",
+        "data_type": "jsonb",
+        "udt_name": "jsonb",
+        "is_nullable": "YES",
+        "column_default": "'[]'::jsonb"
+      },
+      {
+        "table_name": "webpages",
+        "ordinal_position": 7,
+        "column_name": "settings",
+        "data_type": "jsonb",
+        "udt_name": "jsonb",
+        "is_nullable": "YES",
+        "column_default": "'{}'::jsonb"
+      },
+      {
+        "table_name": "webpages",
+        "ordinal_position": 8,
+        "column_name": "html_sha256",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "YES",
+        "column_default": "''::text"
+      },
+      {
+        "table_name": "webpages",
+        "ordinal_position": 9,
+        "column_name": "css_sha256",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "YES",
+        "column_default": "''::text"
+      },
+      {
+        "table_name": "webpages",
+        "ordinal_position": 10,
+        "column_name": "js_sha256",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "YES",
+        "column_default": "''::text"
+      },
+      {
+        "table_name": "webpages",
+        "ordinal_position": 11,
+        "column_name": "html_size",
+        "data_type": "integer",
+        "udt_name": "int4",
+        "is_nullable": "YES",
+        "column_default": "0"
+      },
+      {
+        "table_name": "webpages",
+        "ordinal_position": 12,
+        "column_name": "css_size",
+        "data_type": "integer",
+        "udt_name": "int4",
+        "is_nullable": "YES",
+        "column_default": "0"
+      },
+      {
+        "table_name": "webpages",
+        "ordinal_position": 13,
+        "column_name": "js_size",
+        "data_type": "integer",
+        "udt_name": "int4",
+        "is_nullable": "YES",
+        "column_default": "0"
+      },
+      {
+        "table_name": "webpages",
+        "ordinal_position": 14,
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "udt_name": "timestamptz",
+        "is_nullable": "NO",
+        "column_default": "now()"
+      },
+      {
+        "table_name": "webpages",
+        "ordinal_position": 15,
+        "column_name": "updated_at",
+        "data_type": "timestamp with time zone",
+        "udt_name": "timestamptz",
+        "is_nullable": "NO",
+        "column_default": "now()"
+      },
+      {
+        "table_name": "webpages",
+        "ordinal_position": 16,
+        "column_name": "chat_messages",
+        "data_type": "jsonb",
+        "udt_name": "jsonb",
+        "is_nullable": "YES",
+        "column_default": "'[]'::jsonb"
+      },
+      {
+        "table_name": "webpages",
+        "ordinal_position": 17,
+        "column_name": "db_sha256",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "YES",
+        "column_default": "''::text"
+      },
+      {
+        "table_name": "webpages",
+        "ordinal_position": 18,
+        "column_name": "db_size",
+        "data_type": "integer",
+        "udt_name": "int4",
+        "is_nullable": "YES",
+        "column_default": "0"
+      },
+      {
+        "table_name": "webpages",
+        "ordinal_position": 19,
+        "column_name": "icon",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "YES",
+        "column_default": "''::text"
+      },
+      {
+        "table_name": "webpages",
+        "ordinal_position": 20,
+        "column_name": "accent_color",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "YES",
+        "column_default": "''::text"
+      },
+      {
+        "table_name": "webpages",
+        "ordinal_position": 21,
+        "column_name": "tagline",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "YES",
+        "column_default": "''::text"
+      },
+      {
+        "table_name": "webpages",
+        "ordinal_position": 22,
+        "column_name": "thumbnail_sha256",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "YES",
+        "column_default": "''::text"
+      },
+      {
+        "table_name": "webpages",
+        "ordinal_position": 23,
+        "column_name": "thumbnail_size",
+        "data_type": "integer",
+        "udt_name": "int4",
+        "is_nullable": "YES",
+        "column_default": "0"
+      },
+      {
+        "table_name": "webpages",
+        "ordinal_position": 24,
+        "column_name": "is_published",
+        "data_type": "boolean",
+        "udt_name": "bool",
+        "is_nullable": "YES",
+        "column_default": "false"
+      },
+      {
+        "table_name": "webpages",
+        "ordinal_position": 25,
+        "column_name": "shared_groups",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "YES",
+        "column_default": "'[]'::text"
+      },
+      {
+        "table_name": "webpages",
+        "ordinal_position": 26,
+        "column_name": "organization_id",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "table_name": "webpages",
+        "ordinal_position": 27,
+        "column_name": "bridge_grants",
+        "data_type": "jsonb",
+        "udt_name": "jsonb",
+        "is_nullable": "YES",
+        "column_default": "'{\"ai\": {\"enabled\": true, \"groundOnPage\": true}, \"automations\": [], \"integrations\": []}'::jsonb"
+      },
+      {
+        "table_name": "webpages",
+        "ordinal_position": 28,
+        "column_name": "project_id",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "table_name": "webpages",
+        "ordinal_position": 29,
+        "column_name": "published_version_id",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "table_name": "webpages",
+        "ordinal_position": 30,
+        "column_name": "slug",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "YES",
+        "column_default": null
+      },
+      {
+        "table_name": "webpages",
+        "ordinal_position": 31,
+        "column_name": "public_share_id",
+        "data_type": "text",
+        "udt_name": "text",
+        "is_nullable": "YES",
+        "column_default": null
+      }
+    ],
+    "indexes": [
+      {
+        "tablename": "webpage_extra_files",
+        "indexname": "idx_webpage_extra_path",
+        "indexdef": "CREATE UNIQUE INDEX idx_webpage_extra_path ON public.webpage_extra_files USING btree (webpage_id, path)"
+      },
+      {
+        "tablename": "webpage_extra_files",
+        "indexname": "webpage_extra_files_pkey",
+        "indexdef": "CREATE UNIQUE INDEX webpage_extra_files_pkey ON public.webpage_extra_files USING btree (id)"
+      },
+      {
+        "tablename": "webpage_sources",
+        "indexname": "idx_webpage_sources_webpage",
+        "indexdef": "CREATE INDEX idx_webpage_sources_webpage ON public.webpage_sources USING btree (webpage_id)"
+      },
+      {
+        "tablename": "webpage_sources",
+        "indexname": "webpage_sources_pkey",
+        "indexdef": "CREATE UNIQUE INDEX webpage_sources_pkey ON public.webpage_sources USING btree (id)"
+      },
+      {
+        "tablename": "webpage_versions",
+        "indexname": "idx_webpage_versions_seq",
+        "indexdef": "CREATE UNIQUE INDEX idx_webpage_versions_seq ON public.webpage_versions USING btree (webpage_id, seq) WHERE (seq IS NOT NULL)"
+      },
+      {
+        "tablename": "webpage_versions",
+        "indexname": "idx_webpage_versions_webpage",
+        "indexdef": "CREATE INDEX idx_webpage_versions_webpage ON public.webpage_versions USING btree (webpage_id, created_at DESC)"
+      },
+      {
+        "tablename": "webpage_versions",
+        "indexname": "webpage_versions_pkey",
+        "indexdef": "CREATE UNIQUE INDEX webpage_versions_pkey ON public.webpage_versions USING btree (id)"
+      },
+      {
+        "tablename": "webpages",
+        "indexname": "idx_webpages_created",
+        "indexdef": "CREATE INDEX idx_webpages_created ON public.webpages USING btree (created_at DESC)"
+      },
+      {
+        "tablename": "webpages",
+        "indexname": "idx_webpages_org_published",
+        "indexdef": "CREATE INDEX idx_webpages_org_published ON public.webpages USING btree (organization_id, is_published)"
+      },
+      {
+        "tablename": "webpages",
+        "indexname": "idx_webpages_project",
+        "indexdef": "CREATE INDEX idx_webpages_project ON public.webpages USING btree (project_id) WHERE (project_id IS NOT NULL)"
+      },
+      {
+        "tablename": "webpages",
+        "indexname": "idx_webpages_slug",
+        "indexdef": "CREATE UNIQUE INDEX idx_webpages_slug ON public.webpages USING btree (slug) WHERE (slug IS NOT NULL)"
+      },
+      {
+        "tablename": "webpages",
+        "indexname": "idx_webpages_user",
+        "indexdef": "CREATE INDEX idx_webpages_user ON public.webpages USING btree (user_id)"
+      },
+      {
+        "tablename": "webpages",
+        "indexname": "webpages_pkey",
+        "indexdef": "CREATE UNIQUE INDEX webpages_pkey ON public.webpages USING btree (id)"
+      }
+    ],
+    "constraints": [
+      {
+        "table_name": "webpage_extra_files",
+        "conname": "webpage_extra_files_created_at_not_null",
+        "contype": "n",
+        "definition": "NOT NULL created_at"
+      },
+      {
+        "table_name": "webpage_extra_files",
+        "conname": "webpage_extra_files_id_not_null",
+        "contype": "n",
+        "definition": "NOT NULL id"
+      },
+      {
+        "table_name": "webpage_extra_files",
+        "conname": "webpage_extra_files_is_text_not_null",
+        "contype": "n",
+        "definition": "NOT NULL is_text"
+      },
+      {
+        "table_name": "webpage_extra_files",
+        "conname": "webpage_extra_files_mime_type_not_null",
+        "contype": "n",
+        "definition": "NOT NULL mime_type"
+      },
+      {
+        "table_name": "webpage_extra_files",
+        "conname": "webpage_extra_files_path_not_null",
+        "contype": "n",
+        "definition": "NOT NULL path"
+      },
+      {
+        "table_name": "webpage_extra_files",
+        "conname": "webpage_extra_files_pkey",
+        "contype": "p",
+        "definition": "PRIMARY KEY (id)"
+      },
+      {
+        "table_name": "webpage_extra_files",
+        "conname": "webpage_extra_files_sha256_not_null",
+        "contype": "n",
+        "definition": "NOT NULL sha256"
+      },
+      {
+        "table_name": "webpage_extra_files",
+        "conname": "webpage_extra_files_size_not_null",
+        "contype": "n",
+        "definition": "NOT NULL size"
+      },
+      {
+        "table_name": "webpage_extra_files",
+        "conname": "webpage_extra_files_updated_at_not_null",
+        "contype": "n",
+        "definition": "NOT NULL updated_at"
+      },
+      {
+        "table_name": "webpage_extra_files",
+        "conname": "webpage_extra_files_webpage_id_fkey",
+        "contype": "f",
+        "definition": "FOREIGN KEY (webpage_id) REFERENCES webpages(id) ON DELETE CASCADE"
+      },
+      {
+        "table_name": "webpage_extra_files",
+        "conname": "webpage_extra_files_webpage_id_not_null",
+        "contype": "n",
+        "definition": "NOT NULL webpage_id"
+      },
+      {
+        "table_name": "webpage_sources",
+        "conname": "webpage_sources_created_at_not_null",
+        "contype": "n",
+        "definition": "NOT NULL created_at"
+      },
+      {
+        "table_name": "webpage_sources",
+        "conname": "webpage_sources_id_not_null",
+        "contype": "n",
+        "definition": "NOT NULL id"
+      },
+      {
+        "table_name": "webpage_sources",
+        "conname": "webpage_sources_name_not_null",
+        "contype": "n",
+        "definition": "NOT NULL name"
+      },
+      {
+        "table_name": "webpage_sources",
+        "conname": "webpage_sources_pkey",
+        "contype": "p",
+        "definition": "PRIMARY KEY (id)"
+      },
+      {
+        "table_name": "webpage_sources",
+        "conname": "webpage_sources_status_not_null",
+        "contype": "n",
+        "definition": "NOT NULL status"
+      },
+      {
+        "table_name": "webpage_sources",
+        "conname": "webpage_sources_type_not_null",
+        "contype": "n",
+        "definition": "NOT NULL type"
+      },
+      {
+        "table_name": "webpage_sources",
+        "conname": "webpage_sources_updated_at_not_null",
+        "contype": "n",
+        "definition": "NOT NULL updated_at"
+      },
+      {
+        "table_name": "webpage_sources",
+        "conname": "webpage_sources_webpage_id_fkey",
+        "contype": "f",
+        "definition": "FOREIGN KEY (webpage_id) REFERENCES webpages(id) ON DELETE CASCADE"
+      },
+      {
+        "table_name": "webpage_sources",
+        "conname": "webpage_sources_webpage_id_not_null",
+        "contype": "n",
+        "definition": "NOT NULL webpage_id"
+      },
+      {
+        "table_name": "webpage_versions",
+        "conname": "webpage_versions_created_at_not_null",
+        "contype": "n",
+        "definition": "NOT NULL created_at"
+      },
+      {
+        "table_name": "webpage_versions",
+        "conname": "webpage_versions_id_not_null",
+        "contype": "n",
+        "definition": "NOT NULL id"
+      },
+      {
+        "table_name": "webpage_versions",
+        "conname": "webpage_versions_pkey",
+        "contype": "p",
+        "definition": "PRIMARY KEY (id)"
+      },
+      {
+        "table_name": "webpage_versions",
+        "conname": "webpage_versions_source_not_null",
+        "contype": "n",
+        "definition": "NOT NULL source"
+      },
+      {
+        "table_name": "webpage_versions",
+        "conname": "webpage_versions_webpage_id_fkey",
+        "contype": "f",
+        "definition": "FOREIGN KEY (webpage_id) REFERENCES webpages(id) ON DELETE CASCADE"
+      },
+      {
+        "table_name": "webpage_versions",
+        "conname": "webpage_versions_webpage_id_not_null",
+        "contype": "n",
+        "definition": "NOT NULL webpage_id"
+      },
+      {
+        "table_name": "webpages",
+        "conname": "webpages_created_at_not_null",
+        "contype": "n",
+        "definition": "NOT NULL created_at"
+      },
+      {
+        "table_name": "webpages",
+        "conname": "webpages_id_not_null",
+        "contype": "n",
+        "definition": "NOT NULL id"
+      },
+      {
+        "table_name": "webpages",
+        "conname": "webpages_name_not_null",
+        "contype": "n",
+        "definition": "NOT NULL name"
+      },
+      {
+        "table_name": "webpages",
+        "conname": "webpages_pkey",
+        "contype": "p",
+        "definition": "PRIMARY KEY (id)"
+      },
+      {
+        "table_name": "webpages",
+        "conname": "webpages_updated_at_not_null",
+        "contype": "n",
+        "definition": "NOT NULL updated_at"
+      },
+      {
+        "table_name": "webpages",
+        "conname": "webpages_user_id_not_null",
+        "contype": "n",
+        "definition": "NOT NULL user_id"
+      }
+    ]
+  }
+}

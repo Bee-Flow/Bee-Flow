@@ -49,7 +49,7 @@ function makeActionPolicy({ actionLevel = 'none', budget = 5 } = {}) {
 function _emitThreadUpdated(thread) {
     try {
         if (!thread?.inbox_id) return;
-        const { supportEvents } = require('../support/events');
+        const { supportEvents } = require('../core/support/events');
         supportEvents.emit('event', { event: 'thread_updated', data: { threadId: thread.id, inboxId: thread.inbox_id } });
     } catch (err) { bestEffort('integrations/supportTools:_emitThreadUpdated', err); /* non-fatal */ }
 }
@@ -151,14 +151,14 @@ async function requestMoreInfo(_args, { toolName, thread, policy }) {
 async function assignToTeammate(args, { toolName, thread }) {
     const userId = String(args.userId || '').trim();
     if (!userId) return { error: 'userId required' };
-    const { _eligibleStaffForOrg } = require('../services/supportAutoAssigner');
+    const { _eligibleStaffForOrg } = require('../core/support/supportAutoAssigner');
     const eligible = /** @type {string[]} */ (await _eligibleStaffForOrg(thread.organization_id || null, { tenantInbox: !!thread.inbox_id }).catch((e) => fallback('integrations/supportTools:executeSupportActionTool', e, [])));
     if (!eligible.includes(userId)) return { error: 'Not an eligible teammate for this organisation.' };
     // On a group-restricted inbox the assignee must be able to work it,
     // otherwise the ticket is stranded with someone who'd be 403'd.
     const sharedGroups = await _inboxSharedGroups(thread);
     if (sharedGroups.length) {
-        const access = require('../support/access');
+        const access = require('../core/support/access');
         const g = await access.userGroupsFor(userId);
         if (!g.some((/** @type {string} */ x) => sharedGroups.includes(x))) {
             return { error: 'That teammate does not have access to this inbox.' };
@@ -178,7 +178,7 @@ async function escalateToHuman(args, { toolName, thread, policy }) {
     try {
         const fresh = await supportStore.getThread(thread.id);
         if (fresh && !fresh.assignee_user_id) {
-            const { pickNextAssignee } = require('../services/supportAutoAssigner');
+            const { pickNextAssignee } = require('../core/support/supportAutoAssigner');
             const sharedGroups = await _inboxSharedGroups(thread);
             const next = await pickNextAssignee(thread.organization_id || null, { sharedGroups, tenantInbox: !!thread.inbox_id });
             if (next) await supportStore.updateThread(thread.id, { assignee_user_id: next, auto_assigned: true });
@@ -332,7 +332,7 @@ async function searchKnowledgeBase(args, { thread, context }) {
 /** @type {ReadHandler} */
 async function cannedResponses(_args, { thread }) {
     try {
-        const { renderCannedBody } = require('../support/notifications');
+        const { renderCannedBody } = require('../core/support/notifications');
         const list = await supportStore.listCannedResponses(thread.organization_id || null);
         return list.map(c => ({
             title: c.title,

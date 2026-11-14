@@ -16,7 +16,7 @@
  *
  * A version is the state AFTER a checkpoint. Naming and restoring read the
  * CURRENT document, which while co-editing is the live co-editing state, not
- * the row's mirror (agents/notebooks/notebookCollab.js). A restore first keeps
+ * the row's mirror (core/collab/notebookCollab.js). A restore first keeps
  * the current state as a `pre_restore` version, so a restore is itself undoable,
  * then writes the old state: through the co-editing engine when a session is
  * active (everyone's editor follows), otherwise as a compare-and-set write
@@ -101,7 +101,7 @@ function versionMeta(/** @type {Awaited<ReturnType<typeof import('../stores/note
  */
 function makeNotebookVersionsRouter(deps = {}) {
     const store = deps.store || require('../stores/notebookStore');
-    const notebookCollab = require('../agents/notebooks/notebookCollab');
+    const notebookCollab = require('../core/collab/notebookCollab');
     const collab = () => (deps.collab !== undefined ? deps.collab : notebookCollab.defaultFacade());
     const feed = deps.feed || require('../agents/notebooks/notebookFeed').makeNotebookFeed();
     const gate = (/** @type {'viewer'|'editor'|'owner'} */ min) => requireNotebookRole(min, { store });

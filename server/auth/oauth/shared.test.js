@@ -99,3 +99,42 @@ test('getReturnUrl: in production the Referer is never a target', () => withEnv(
         });
     },
 ));
+
+test('the vault copy of a sign-in keeps the access and the refresh token, the scope and the expiry', async () => {
+    const { _vaultUpsertSafe } = require('./shared');
+    const credentialStore = require('../../stores/automationCredentialStore');
+    const coworkStore = require('../../stores/coworkStore');
+    const real = { upsert: credentialStore.upsertCredential, resume: coworkStore.resumeNeedsReauthForUser };
+    /** @type {Record<string, unknown>[]} */
+    const saved = [];
+    /** @type {string[]} */
+    const resumedFor = [];
+    credentialStore.upsertCredential = /** @type {typeof credentialStore.upsertCredential} */ (/** @type {unknown} */ (async (/** @type {Record<string, unknown>} */ row) => { saved.push(row); }));
+    coworkStore.resumeNeedsReauthForUser = /** @type {typeof coworkStore.resumeNeedsReauthForUser} */ (/** @type {unknown} */ (async (/** @type {string} */ userId) => { resumedFor.push(userId); return 0; }));
+    try {
+        const before = Date.now();
+        await _vaultUpsertSafe({ userId: 'u1', orgId: 'o1', provider: 'google', tokenData: { access_token: 'at-1', refresh_token: 'rt-1', expires_in: '3600', scope: 'mail calendar' } });
+        assert.strictEqual(saved.length, 1);
+        const { expiresAt, ...row } = saved[0];
+        assert.deepStrictEqual(row, { userId: 'u1', orgId: 'o1', provider: 'google', accessToken: 'at-1', refreshToken: 'rt-1', scope: 'mail calendar' });
+        assert.ok(typeof expiresAt === 'number' && expiresAt >= before + 3_600_000 && expiresAt <= Date.now() + 3_600_000, String(expiresAt));
+        assert.deepStrictEqual(resumedFor, ['u1'], 'automations paused for a new sign-in are picked up again');
+
+        // What the provider left out is stored as absent, not as an empty string or a guess.
+        await _vaultUpsertSafe({ userId: 'u1', orgId: 'o1', provider: 'google', tokenData: {} });
+        assert.deepStrictEqual(saved[1], { userId: 'u1', orgId: 'o1', provider: 'google', accessToken: null, refreshToken: null, expiresAt: null, scope: null });
+
+        // Without a user, an organisation, a provider or tokens there is nothing to store.
+        for (const partial of [{ orgId: 'o1', provider: 'google', tokenData: {} }, { userId: 'u1', provider: 'google', tokenData: {} }, { userId: 'u1', orgId: 'o1', tokenData: {} }, { userId: 'u1', orgId: 'o1', provider: 'google' }]) {
+            await _vaultUpsertSafe(partial);
+        }
+        assert.strictEqual(saved.length, 2);
+
+        // A vault that fails does not fail the sign-in.
+        credentialStore.upsertCredential = /** @type {typeof credentialStore.upsertCredential} */ (/** @type {unknown} */ (async () => { throw new Error('vault down'); }));
+        await _vaultUpsertSafe({ userId: 'u1', orgId: 'o1', provider: 'google', tokenData: { access_token: 'at-2' } });
+    } finally {
+        credentialStore.upsertCredential = real.upsert;
+        coworkStore.resumeNeedsReauthForUser = real.resume;
+    }
+});

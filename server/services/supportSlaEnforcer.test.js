@@ -46,8 +46,8 @@ const restoreStubs = installResolveStub({
         getSlaPolicy: async () => null,
     },
     '../stores/notificationStore': { createNotification: async () => ({}) },
-    '../support/notifications': { notifyStaff: (n) => { calls.staff.push(n); } },
-    '../support/events': { supportEvents: { emit() {} } },
+    '../core/support/notifications': { notifyStaff: (n) => { calls.staff.push(n); } },
+    '../core/support/events': { supportEvents: { emit() {} } },
     './outboundChatNotifier': {
         notify: async (n) => {
             calls.chat.push(n);

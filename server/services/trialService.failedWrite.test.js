@@ -38,7 +38,7 @@ function arrange(t, stored) {
     stub(userStore, 'logSubscriptionAudit', () => true);
     stub(stripeService, 'isEnabled', () => true);
     stub(stripeService, 'createTrialSubscription', () => TRIAL);
-    t.mock.method(require('./planEntitlements'), 'applyPlanToOrg', async () => {});
+    t.mock.method(require('../core/entitlements/planEntitlements'), 'applyPlanToOrg', async () => {});
     return calls;
 }
 

@@ -425,17 +425,14 @@ async function pruneExpired() {
  */
 async function purgeForUser(userId) {
     if (!userId) return 0;
-    try {
-        await initDB();
-        const r = await run(`DELETE FROM ${TABLE} WHERE user_id = $1`, [userId]);
-        // The row's org is not in hand here, so drop every memoised count
-        // rather than leave one org believing it still holds what was erased.
-        invalidateUsage();
-        return r?.rowCount || 0;
-    } catch (e) {
-        log.warn('[IntegrationCache] user purge failed:', e.message);
-        return 0;
-    }
+    // A failure is the caller's to report: account erasure counts this step
+    // as done only when the rows are gone.
+    await initDB();
+    const r = await run(`DELETE FROM ${TABLE} WHERE user_id = $1`, [userId]);
+    // The row's org is not in hand here, so drop every memoised count
+    // rather than leave one org believing it still holds what was erased.
+    invalidateUsage();
+    return r?.rowCount || 0;
 }
 
 /**

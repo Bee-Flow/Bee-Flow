@@ -23,100 +23,10 @@ const { parseJsonArray, toArray } = require('./jsonArrays');
 const { artifactColumnSql } = require('./artifactWindow');
 
 /**
- * @param {{ transcriptCrypto: any }} deps  the module stores/transcriptCrypto.js
+ * The generic UPDATE of a note, sealing content columns.
+ * @param {Parameters<typeof createWrites>[0]} ctx
  */
-function createWrites({ transcriptCrypto }) {
-    // ── CRUD ─────────────────────────────────────────────────
-
-    // NOTE: this destructure IS the write contract. A caller can pass anything, but
-    // only the keys named here reach the INSERT — `sharedWith` was missing for a
-    // long time, so Google Meet's "share the note with the attendees" feature
-    // silently discarded its share list on every single import, with no error.
-    // Adding a column means adding it in THREE places: here, the column list, and
-    // the values array. A column holding CONTENT means a fourth: the list in
-    // stores/transcriptCrypto.js, or it goes to disk in plaintext.
-    /** @param {{ userId: string, [field: string]: any }} fields */
-    async function createTranscription({ userId, organizationId, title, fileName, language, durationSeconds, speakerCount, segmentCount, fullText, transcript, segments, speakers, summary, status, audioPath, provider, actionItems, source, sourceUri, talkRoomToken, meetMeetingCode, attendees, chapters, numSpeakers, audioStorageKey, decisions, questions, tags, sharedWith, client, summaryTemplateId, summaryTemplateVersion, projectId }) {
-        await initDB();
-        const id = crypto.randomUUID();
-        // Content columns are sealed here, before anything reaches the driver. The
-        // counters and the preview are computed from the PLAINTEXT first — after
-        // encryption there is nothing left to count or truncate.
-        const ctx = await transcriptCrypto.resolveTranscriptCrypto(organizationId || null);
-        const snippet = transcriptCrypto.buildSnippet(id, fullText || '', ctx);
-        const summarySnippet = transcriptCrypto.buildSummarySnippet(id, summary || '', ctx);
-        const sealed = transcriptCrypto.encryptRow(id, {
-            full_text: fullText || '',
-            transcript: transcript || '',
-            summary: summary || '',
-            segments: JSON.stringify(toArray(segments)),
-            speakers: JSON.stringify(toArray(speakers)),
-            attendees: JSON.stringify(toArray(attendees)),
-            chapters: JSON.stringify(toArray(chapters)),
-        }, ctx);
-        const { rowCount } = await run(
-            `INSERT INTO transcriptions (id, user_id, organization_id, title, file_name, language, duration_seconds, speaker_count, segment_count, full_text, transcript, segments, speakers, summary, status, audio_path, provider, action_items, source, source_uri, talk_room_token, meet_meeting_code, attendees, chapters, num_speakers, audio_storage_key, decisions, questions, tags, shared_with, client, summary_template_id, summary_template_version, full_text_snippet_enc, summary_snippet_enc, project_id)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36)
-             ON CONFLICT (source_uri) WHERE source_uri IS NOT NULL DO NOTHING`,
-            [id, userId, organizationId || null, title || fileName || 'Untitled', fileName, language || 'nl', durationSeconds || 0, speakerCount || 0, segmentCount || 0, sealed.full_text, sealed.transcript, sealed.segments, sealed.speakers, sealed.summary, status || 'completed', audioPath || '', provider || 'voxtral', JSON.stringify(toArray(actionItems)), source || 'upload', sourceUri || null, talkRoomToken || null, meetMeetingCode || null, sealed.attendees, sealed.chapters, Number.isFinite(numSpeakers) && numSpeakers >= 1 ? Math.round(numSpeakers) : null, audioStorageKey || null, JSON.stringify(toArray(decisions)), JSON.stringify(toArray(questions)), JSON.stringify(toArray(tags)), JSON.stringify(toArray(sharedWith)), client || currentClient(), summaryTemplateId || null, Number.isInteger(summaryTemplateVersion) ? summaryTemplateVersion : null, snippet, summarySnippet, projectId || null]
-        );
-        // Lost the race (same source_uri already ingested concurrently) — return the winner.
-        if (rowCount === 0 && sourceUri) {
-            const existing = await getOne('SELECT id, user_id, organization_id FROM transcriptions WHERE source_uri = $1', [sourceUri]);
-            if (existing) {
-                log.info(`[TranscriptionStore] Dedup hit for ${sourceUri} → existing ${existing.id}`);
-                return { id: existing.id, userId: existing.user_id, organizationId: existing.organization_id || null, dedup: true };
-            }
-        }
-        log.info(`[TranscriptionStore] Created transcription "${title}" (${status || 'completed'}) via ${provider || 'voxtral'} for user ${userId}`);
-        return { id, userId, organizationId: organizationId || null, title, fileName, language, durationSeconds, speakerCount, segmentCount, status: status || 'completed', provider: provider || 'voxtral', source: source || 'upload', sourceUri: sourceUri || null, talkRoomToken: talkRoomToken || null, meetMeetingCode: meetMeetingCode || null, projectId: projectId || null, createdAt: new Date().toISOString() };
-    }
-
-    /**
-     * Take exclusive ownership of a note for a (re)processing run.
-     *
-     * Reprocess used to read the status, then blind-write `processing`, so two
-     * concurrent runs both believed they owned the note — a double-click on Retry
-     * was enough. Whichever finished LAST won, and a loser that merely errored
-     * (e.g. a 429 caused by the other run) wrote `status:'failed'` over the
-     * winner's completed note, destroying the generated summary. Both runs were
-     * billed in full.
-     *
-     * The claim is a single conditional UPDATE, so exactly one caller can win even
-     * across replicas.
-     *
-     * @returns {Promise<boolean>} true when this caller now owns the run.
-     */
-    async function claimForProcessing(id, userId) {
-        await initDB();
-        const { rowCount } = await run(
-            `UPDATE transcriptions SET status = 'processing', updated_at = NOW()
-              WHERE id = $1 AND user_id = $2 AND status IS DISTINCT FROM 'processing'`,
-            [id, userId]
-        );
-        return rowCount > 0;
-    }
-
-    /**
-     * Write the outcome of a run ONLY while this caller still owns it.
-     *
-     * Guards the mirror image of the race above: a slow failing run must not stamp
-     * its error over a note that has since been completed (or re-claimed) by
-     * someone else. `status` is part of the predicate, not just the payload.
-     *
-     * @returns {Promise<boolean>} false when the claim was lost and nothing was written.
-     */
-    async function finishProcessing(id, userId, updates) {
-        await initDB();
-        const owned = await getOne(
-            `SELECT id FROM transcriptions WHERE id = $1 AND user_id = $2 AND status = 'processing'`,
-            [id, userId]
-        );
-        if (!owned) return false;
-        await updateTranscription(id, userId, updates);
-        return true;
-    }
-
+function makeUpdateWrites({ transcriptCrypto }) {
     /**
      * The plain assignments of a note: one value in, one column out, one
      * parameter. A factory rather than a constant, because the content columns
@@ -313,7 +223,115 @@ function createWrites({ transcriptCrypto }) {
         };
     }
 
-    return { createTranscription, claimForProcessing, finishProcessing, updateTranscription };
+    return { updateTranscription };
+}
+
+/**
+ * The INSERT, and the claim/finish pair a (re)processing run writes through.
+ * @param {Parameters<typeof createWrites>[0]} ctx
+ * @param {ReturnType<typeof makeUpdateWrites>['updateTranscription']} updateTranscription  what finishProcessing writes through
+ */
+function makeCreateWrites({ transcriptCrypto }, updateTranscription) {
+    // ── CRUD ─────────────────────────────────────────────────
+
+    // NOTE: this destructure IS the write contract. A caller can pass anything, but
+    // only the keys named here reach the INSERT — `sharedWith` was missing for a
+    // long time, so Google Meet's "share the note with the attendees" feature
+    // silently discarded its share list on every single import, with no error.
+    // Adding a column means adding it in THREE places: here, the column list, and
+    // the values array. A column holding CONTENT means a fourth: the list in
+    // stores/transcriptCrypto.js, or it goes to disk in plaintext.
+    /** @param {{ userId: string, [field: string]: any }} fields */
+    async function createTranscription({ userId, organizationId, title, fileName, language, durationSeconds, speakerCount, segmentCount, fullText, transcript, segments, speakers, summary, status, audioPath, provider, actionItems, source, sourceUri, talkRoomToken, meetMeetingCode, attendees, chapters, numSpeakers, audioStorageKey, decisions, questions, tags, sharedWith, client, summaryTemplateId, summaryTemplateVersion, projectId }) {
+        await initDB();
+        const id = crypto.randomUUID();
+        // Content columns are sealed here, before anything reaches the driver. The
+        // counters and the preview are computed from the PLAINTEXT first — after
+        // encryption there is nothing left to count or truncate.
+        const ctx = await transcriptCrypto.resolveTranscriptCrypto(organizationId || null);
+        const snippet = transcriptCrypto.buildSnippet(id, fullText || '', ctx);
+        const summarySnippet = transcriptCrypto.buildSummarySnippet(id, summary || '', ctx);
+        const sealed = transcriptCrypto.encryptRow(id, {
+            full_text: fullText || '',
+            transcript: transcript || '',
+            summary: summary || '',
+            segments: JSON.stringify(toArray(segments)),
+            speakers: JSON.stringify(toArray(speakers)),
+            attendees: JSON.stringify(toArray(attendees)),
+            chapters: JSON.stringify(toArray(chapters)),
+        }, ctx);
+        const { rowCount } = await run(
+            `INSERT INTO transcriptions (id, user_id, organization_id, title, file_name, language, duration_seconds, speaker_count, segment_count, full_text, transcript, segments, speakers, summary, status, audio_path, provider, action_items, source, source_uri, talk_room_token, meet_meeting_code, attendees, chapters, num_speakers, audio_storage_key, decisions, questions, tags, shared_with, client, summary_template_id, summary_template_version, full_text_snippet_enc, summary_snippet_enc, project_id)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36)
+             ON CONFLICT (source_uri) WHERE source_uri IS NOT NULL DO NOTHING`,
+            [id, userId, organizationId || null, title || fileName || 'Untitled', fileName, language || 'nl', durationSeconds || 0, speakerCount || 0, segmentCount || 0, sealed.full_text, sealed.transcript, sealed.segments, sealed.speakers, sealed.summary, status || 'completed', audioPath || '', provider || 'voxtral', JSON.stringify(toArray(actionItems)), source || 'upload', sourceUri || null, talkRoomToken || null, meetMeetingCode || null, sealed.attendees, sealed.chapters, Number.isFinite(numSpeakers) && numSpeakers >= 1 ? Math.round(numSpeakers) : null, audioStorageKey || null, JSON.stringify(toArray(decisions)), JSON.stringify(toArray(questions)), JSON.stringify(toArray(tags)), JSON.stringify(toArray(sharedWith)), client || currentClient(), summaryTemplateId || null, Number.isInteger(summaryTemplateVersion) ? summaryTemplateVersion : null, snippet, summarySnippet, projectId || null]
+        );
+        // Lost the race (same source_uri already ingested concurrently) — return the winner.
+        if (rowCount === 0 && sourceUri) {
+            const existing = await getOne('SELECT id, user_id, organization_id FROM transcriptions WHERE source_uri = $1', [sourceUri]);
+            if (existing) {
+                log.info(`[TranscriptionStore] Dedup hit for ${sourceUri} → existing ${existing.id}`);
+                return { id: existing.id, userId: existing.user_id, organizationId: existing.organization_id || null, dedup: true };
+            }
+        }
+        log.info(`[TranscriptionStore] Created transcription "${title}" (${status || 'completed'}) via ${provider || 'voxtral'} for user ${userId}`);
+        return { id, userId, organizationId: organizationId || null, title, fileName, language, durationSeconds, speakerCount, segmentCount, status: status || 'completed', provider: provider || 'voxtral', source: source || 'upload', sourceUri: sourceUri || null, talkRoomToken: talkRoomToken || null, meetMeetingCode: meetMeetingCode || null, projectId: projectId || null, createdAt: new Date().toISOString() };
+    }
+
+    /**
+     * Take exclusive ownership of a note for a (re)processing run.
+     *
+     * Reprocess used to read the status, then blind-write `processing`, so two
+     * concurrent runs both believed they owned the note — a double-click on Retry
+     * was enough. Whichever finished LAST won, and a loser that merely errored
+     * (e.g. a 429 caused by the other run) wrote `status:'failed'` over the
+     * winner's completed note, destroying the generated summary. Both runs were
+     * billed in full.
+     *
+     * The claim is a single conditional UPDATE, so exactly one caller can win even
+     * across replicas.
+     *
+     * @returns {Promise<boolean>} true when this caller now owns the run.
+     */
+    async function claimForProcessing(id, userId) {
+        await initDB();
+        const { rowCount } = await run(
+            `UPDATE transcriptions SET status = 'processing', updated_at = NOW()
+              WHERE id = $1 AND user_id = $2 AND status IS DISTINCT FROM 'processing'`,
+            [id, userId]
+        );
+        return rowCount > 0;
+    }
+
+    /**
+     * Write the outcome of a run ONLY while this caller still owns it.
+     *
+     * Guards the mirror image of the race above: a slow failing run must not stamp
+     * its error over a note that has since been completed (or re-claimed) by
+     * someone else. `status` is part of the predicate, not just the payload.
+     *
+     * @returns {Promise<boolean>} false when the claim was lost and nothing was written.
+     */
+    async function finishProcessing(id, userId, updates) {
+        await initDB();
+        const owned = await getOne(
+            `SELECT id FROM transcriptions WHERE id = $1 AND user_id = $2 AND status = 'processing'`,
+            [id, userId]
+        );
+        if (!owned) return false;
+        await updateTranscription(id, userId, updates);
+        return true;
+    }
+
+    return { createTranscription, claimForProcessing, finishProcessing };
+}
+
+/**
+ * @param {{ transcriptCrypto: any }} deps  the module stores/transcriptCrypto.js
+ */
+function createWrites(deps) {
+    const { updateTranscription } = makeUpdateWrites(deps);
+    return { ...makeCreateWrites(deps, updateTranscription), updateTranscription };
 }
 
 module.exports = { createWrites };

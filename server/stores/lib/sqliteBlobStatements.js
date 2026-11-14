@@ -61,12 +61,16 @@ function normalizeParams(params) {
     });
 }
 
+/**
+ * @param {string} name
+ */
 function quoteIdent(name) {
     return '"' + String(name).replace(/"/g, '""') + '"';
 }
 
 /**
  * @param {{ sql?: unknown, params?: unknown }[]} statements
+ * @param {string} label
  */
 function validateBatch(statements, label) {
     if (!Array.isArray(statements) || statements.length === 0) {
@@ -213,6 +217,8 @@ function createReadApi({ getHandle, runner }) {
      * Return a read handle. Identical to getWriteHandle today — reads and
      * writes share the in-process handle. Kept separate to document read
      * intent and to leave room for read-replica routing later.
+     * @param {string} ownerId
+     * @param {string} id
      */
     async function getReadHandle(ownerId, id) {
         return getHandle(ownerId, id);
@@ -222,6 +228,8 @@ function createReadApi({ getHandle, runner }) {
      * Run a read-only SELECT (see STATEMENT_OPS.query).
      * @param {string} sql
      * @returns {Promise<QueryResult>}
+     * @param {string} ownerId
+     * @param {string} id
      */
     async function query(ownerId, id, sql, params = []) {
         validateSql(sql);
@@ -233,6 +241,8 @@ function createReadApi({ getHandle, runner }) {
     /**
      * Inspect the schema — tables, their columns, and column types.
      * @returns {Promise<SchemaResult>}
+     * @param {string} ownerId
+     * @param {string} id
      */
     async function schema(ownerId, id) {
         const entry = await getReadHandle(ownerId, id);
@@ -251,6 +261,8 @@ function createWriteApi({ getHandle, scheduleFlush, entityLabel, runner }) {
      * Return the writable handle. In single-replica mode this is just
      * getHandle; the accessor exists so future lease-based multi-replica
      * routing has a single seam to change without touching every caller.
+     * @param {string} ownerId
+     * @param {string} id
      */
     async function getWriteHandle(ownerId, id) {
         return getHandle(ownerId, id);
@@ -268,6 +280,8 @@ function createWriteApi({ getHandle, scheduleFlush, entityLabel, runner }) {
      * Run a single write or DDL statement (see STATEMENT_OPS.exec).
      * @param {string} sql
      * @returns {Promise<ExecResult>}
+     * @param {string} ownerId
+     * @param {string} id
      */
     async function exec(ownerId, id, sql, params = []) {
         validateSql(sql);

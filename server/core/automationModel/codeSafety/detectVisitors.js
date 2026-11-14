@@ -13,7 +13,7 @@ const { forEachNode } = require('./parse');
 const { literalPieces } = require('./fold');
 const { mentionsMining, mentionsCollection } = require('./hosts');
 const { propName, hasExit, mentionsClock, hostOfCall, looksPacked, isInternalName } = require('./detectShapes');
-const { SECRET_PATTERNS } = require('../runLogRedaction');
+const { SECRET_PATTERNS } = require('../../../stores/automationStore/runLogRedaction');
 
 const INTERNAL_PROPS = new Set(['derefInto', 'applySync', 'applyIgnored', 'applySyncPromise', 'getSync', 'setSync', 'transferList', 'cachedData']);
 const NODE_GLOBALS = new Set(['require', 'process', 'module', 'exports', '__dirname', '__filename']);

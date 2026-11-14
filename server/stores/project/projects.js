@@ -12,19 +12,10 @@ const { parseJSONObject: parseJSON } = require('../lib/json');
 const { PROJECT_KINDS, kindForNewProject, mapProjectRow } = require('./rows');
 
 /**
- * @param {{
- *   run: (sql: string, params?: any[]) => Promise<any>,
- *   getOne: (sql: string, params?: any[]) => Promise<any>,
- *   getAll: (sql: string, params?: any[]) => Promise<any[]>,
- *   getClient: () => Promise<any>,
- *   initDB: () => Promise<unknown>,
- *   guard: () => { assertManagedWrite: Function },
- *   refuseStageBound: (projectId: string) => Promise<void>,
- * }} ctx  the store's db facade and schema init (built by makeProjectStore)
+ * Create a project and read one.
+ * @param {Parameters<typeof makeProjectFns>[0]} ctx
  */
-function makeProjectFns({ run, getOne, getAll, initDB, guard, refuseStageBound }) {
-    // ── CRUD ─────────────────────────────────────────────────
-
+function makeCreateReadFns({ run, getOne, initDB }) {
     /**
      * Create a project. `kind` defaults to 'workspace'; a Solution says so
      * (the Studio form and the Blueprint installer both do).
@@ -59,6 +50,14 @@ function makeProjectFns({ run, getOne, getAll, initDB, guard, refuseStageBound }
         return row ? mapProjectRow(row) : null;
     }
 
+    return { createProject, getProject };
+}
+
+/**
+ * The projects a person can reach.
+ * @param {Parameters<typeof makeProjectFns>[0]} ctx
+ */
+function makeListFns({ getAll, initDB }) {
     /**
      * List projects the user can access (owned + shared via user or group).
      *
@@ -134,6 +133,15 @@ function makeProjectFns({ run, getOne, getAll, initDB, guard, refuseStageBound }
         return rows.map(row => ({ ...mapProjectRow(row), permission: row.user_permission || 'viewer' }));
     }
 
+    return { listUserProjects };
+}
+
+/**
+ * Archive, kind and the files knowledge base.
+ * @param {Parameters<typeof makeProjectFns>[0]} ctx
+ * @param {ReturnType<typeof makeCreateReadFns>['getProject']} getProject  reads the project back after a write
+ */
+function makeStateFns({ run, getOne, initDB, refuseStageBound }, getProject) {
     /**
      * Archive a project (`userId`) or restore it (`null`).
      *
@@ -219,6 +227,15 @@ function makeProjectFns({ run, getOne, getAll, initDB, guard, refuseStageBound }
         return row ? (row.files_kb_id || null) : null;
     }
 
+    return { setArchived, setProjectKind, setFilesKbId };
+}
+
+/**
+ * Settings update, delete and the installed version.
+ * @param {Parameters<typeof makeProjectFns>[0]} ctx
+ * @param {ReturnType<typeof makeCreateReadFns>['getProject']} getProject  reads the project back after a write
+ */
+function makeUpdateFns({ run, getOne, initDB, guard }, getProject) {
     const PROJECT_COLUMNS = {
         // A whole-array replace, so it is serialized rather than merged.
         knowledgeBaseIds: { col: 'knowledge_base_ids', transform: v => JSON.stringify(v) },
@@ -318,16 +335,35 @@ function makeProjectFns({ run, getOne, getAll, initDB, guard, refuseStageBound }
         return rowCount > 0;
     }
 
+    return { updateProject, deleteProject, setInstalledVersion };
+}
+
+/**
+ * @param {{
+ *   run: (sql: string, params?: any[]) => Promise<any>,
+ *   getOne: (sql: string, params?: any[]) => Promise<any>,
+ *   getAll: (sql: string, params?: any[]) => Promise<any[]>,
+ *   getClient: () => Promise<any>,
+ *   initDB: () => Promise<unknown>,
+ *   guard: () => { assertManagedWrite: Function },
+ *   refuseStageBound: (projectId: string) => Promise<void>,
+ * }} ctx  the store's db facade and schema init (built by makeProjectStore)
+ */
+function makeProjectFns(ctx) {
+    const read = makeCreateReadFns(ctx);
+    const list = makeListFns(ctx);
+    const state = makeStateFns(ctx, read.getProject);
+    const update = makeUpdateFns(ctx, read.getProject);
     return {
-        createProject,
-        getProject,
-        listUserProjects,
-        setProjectKind,
-        setArchived,
-        setInstalledVersion,
-        setFilesKbId,
-        updateProject,
-        deleteProject,
+        createProject: read.createProject,
+        getProject: read.getProject,
+        listUserProjects: list.listUserProjects,
+        setProjectKind: state.setProjectKind,
+        setArchived: state.setArchived,
+        setInstalledVersion: update.setInstalledVersion,
+        setFilesKbId: state.setFilesKbId,
+        updateProject: update.updateProject,
+        deleteProject: update.deleteProject,
     };
 }
 

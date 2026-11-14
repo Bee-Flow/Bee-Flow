@@ -1,0 +1,10719 @@
+{
+ "noTool": {
+  "result": [
+   {
+    "id": "m1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ]
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    }
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null
+   }
+  ],
+  "sameRows": true,
+  "calls": [],
+  "budgetLeft": 50,
+  "rowsUntouched": true
+ },
+ "toolNotAString": {
+  "result": [
+   {
+    "id": "m1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ]
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    }
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null
+   }
+  ],
+  "sameRows": true,
+  "calls": [],
+  "budgetLeft": 50,
+  "rowsUntouched": true
+ },
+ "noRows": {
+  "result": [],
+  "sameRows": false,
+  "calls": [],
+  "budgetLeft": 50,
+  "rowsUntouched": true
+ },
+ "bindsFromPaths": {
+  "result": [
+   {
+    "id": "m1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "lookup_id": "full-m1",
+    "body": "Hello",
+    "lookup_attachments": [
+     {
+      "id": "a1",
+      "name": "x.pdf",
+      "subject": "att"
+     },
+     {
+      "id": "a2",
+      "name": "y.pdf"
+     }
+    ]
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "lookup_id": "full-m2",
+    "body": "World",
+    "attachments": []
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "lookup_id": "full-m3",
+    "body": "Third",
+    "attachments": [
+     "plain.txt",
+     null,
+     {
+      "id": "a3"
+     }
+    ]
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "crm_lookup",
+    "args": {
+     "messageId": "m1",
+     "sender": "a@example.test"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "crm_lookup",
+    "args": {
+     "messageId": "m2",
+     "sender": "b@example.test"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "crm_lookup",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "pinnedArgsWin": {
+  "result": [
+   {
+    "id": "m1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "read_id": "full-m1",
+    "body": "Hello",
+    "read_attachments": [
+     {
+      "id": "a1",
+      "name": "x.pdf",
+      "subject": "att"
+     },
+     {
+      "id": "a2",
+      "name": "y.pdf"
+     }
+    ]
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "read_id": "full-m2",
+    "body": "World",
+    "attachments": []
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "read_id": "full-m3",
+    "body": "Third",
+    "attachments": [
+     "plain.txt",
+     null,
+     {
+      "id": "a3"
+     }
+    ]
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1",
+     "format": "full",
+     "extra": 1
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2",
+     "format": "full",
+     "extra": 1
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3",
+     "format": "full",
+     "extra": 1
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "argsFromNotAnObject": {
+  "result": [
+   {
+    "id": "m1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "read": null
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "read": null
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "read": null
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {},
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {},
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {},
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "rowsThatAreNotObjects": {
+  "result": [
+   {
+    "read": null
+   },
+   {
+    "0": "t",
+    "1": "e",
+    "2": "x",
+    "3": "t",
+    "read": null
+   },
+   {
+    "read": null
+   },
+   {
+    "0": "a",
+    "read": null
+   },
+   {
+    "id": "m1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "read_id": "full-m1",
+    "body": "Hello",
+    "read_attachments": [
+     {
+      "id": "a1",
+      "name": "x.pdf",
+      "subject": "att"
+     },
+     {
+      "id": "a2",
+      "name": "y.pdf"
+     }
+    ]
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 49,
+  "rowsUntouched": true
+ },
+ "carriedError": {
+  "result": [
+   {
+    "id": "m1",
+    "_error": "earlier step failed"
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "read_id": "full-m2",
+    "body": "World",
+    "attachments": []
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 49,
+  "rowsUntouched": true
+ },
+ "budgetRunsOut": {
+  "result": [
+   {
+    "id": "m1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "read_id": "full-m1",
+    "body": "Hello",
+    "read_attachments": [
+     {
+      "id": "a1",
+      "name": "x.pdf",
+      "subject": "att"
+     },
+     {
+      "id": "a2",
+      "name": "y.pdf"
+     }
+    ]
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "read_id": "full-m2",
+    "body": "World",
+    "attachments": []
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "_partial": true
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 0,
+  "rowsUntouched": true
+ },
+ "budgetEmpty": {
+  "result": [
+   {
+    "id": "m1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "_partial": true
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "_partial": true
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "_partial": true
+   }
+  ],
+  "sameRows": false,
+  "calls": [],
+  "budgetLeft": 0,
+  "rowsUntouched": true
+ },
+ "budgetSkipsCarriedRows": {
+  "result": [
+   {
+    "id": "m1",
+    "_error": "x"
+   },
+   {
+    "read": null
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "read_id": "full-m2",
+    "body": "World",
+    "attachments": []
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "_partial": true
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 0,
+  "rowsUntouched": true
+ },
+ "carriedRowAfterTheBudgetRanOut": {
+  "result": [
+   {
+    "id": "m1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "read_id": "full-m1",
+    "body": "Hello",
+    "read_attachments": [
+     {
+      "id": "a1",
+      "name": "x.pdf",
+      "subject": "att"
+     },
+     {
+      "id": "a2",
+      "name": "y.pdf"
+     }
+    ]
+   },
+   {
+    "id": "m9",
+    "_error": "earlier"
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "_partial": true
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 0,
+  "rowsUntouched": true
+ },
+ "callFails": {
+  "result": [
+   {
+    "id": "m1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "read_id": "full-m1",
+    "body": "Hello",
+    "read_attachments": [
+     {
+      "id": "a1",
+      "name": "x.pdf",
+      "subject": "att"
+     },
+     {
+      "id": "a2",
+      "name": "y.pdf"
+     }
+    ]
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "_error": "Message not found"
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "read_id": "full-m3",
+    "body": "Third",
+    "attachments": [
+     "plain.txt",
+     null,
+     {
+      "id": "a3"
+     }
+    ]
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "callFailsLongMessage": {
+  "result": [
+   {
+    "id": "m1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "_error": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "read_id": "full-m2",
+    "body": "World",
+    "attachments": []
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "read_id": "full-m3",
+    "body": "Third",
+    "attachments": [
+     "plain.txt",
+     null,
+     {
+      "id": "a3"
+     }
+    ]
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "callAnswersAnError": {
+  "result": [
+   {
+    "id": "m1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "read_id": "full-m1",
+    "body": "Hello",
+    "read_attachments": [
+     {
+      "id": "a1",
+      "name": "x.pdf",
+      "subject": "att"
+     },
+     {
+      "id": "a2",
+      "name": "y.pdf"
+     }
+    ]
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "_error": "quota exceeded"
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "read_id": "full-m3",
+    "body": "Third",
+    "attachments": [
+     "plain.txt",
+     null,
+     {
+      "id": "a3"
+     }
+    ]
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "connectionMissing": {
+  "threw": {
+   "message": "connect first",
+   "status": 409,
+   "code": "connection_required"
+  },
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "callFailsClassified": {
+  "result": [
+   {
+    "id": "m1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "_error": "teapot"
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "read_id": "full-m2",
+    "body": "World",
+    "attachments": []
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "read_id": "full-m3",
+    "body": "Third",
+    "attachments": [
+     "plain.txt",
+     null,
+     {
+      "id": "a3"
+     }
+    ]
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "extend": {
+  "result": [
+   {
+    "id": "m1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "read_id": "full-m1",
+    "body": "Hello",
+    "read_attachments": [
+     {
+      "id": "a1",
+      "name": "x.pdf",
+      "subject": "att"
+     },
+     {
+      "id": "a2",
+      "name": "y.pdf"
+     }
+    ]
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "read_id": "full-m2",
+    "body": "World",
+    "attachments": []
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "read_id": "full-m3",
+    "body": "Third",
+    "attachments": [
+     "plain.txt",
+     null,
+     {
+      "id": "a3"
+     }
+    ]
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "extendNoAlias": {
+  "result": [
+   {
+    "id": "m1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "lookup_id": "full-m1",
+    "body": "Hello",
+    "lookup_attachments": [
+     {
+      "id": "a1",
+      "name": "x.pdf",
+      "subject": "att"
+     },
+     {
+      "id": "a2",
+      "name": "y.pdf"
+     }
+    ]
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "lookup_id": "full-m2",
+    "body": "World",
+    "attachments": []
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "lookup_id": "full-m3",
+    "body": "Third",
+    "attachments": [
+     "plain.txt",
+     null,
+     {
+      "id": "a3"
+     }
+    ]
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "lookup",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "lookup",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "lookup",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "nest": {
+  "result": [
+   {
+    "id": "m1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "read": {
+     "id": "full-m1",
+     "body": "Hello",
+     "attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    }
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "read": {
+     "id": "full-m2",
+     "body": "World",
+     "attachments": []
+    }
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "read": {
+     "id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "nestWithAlias": {
+  "result": [
+   {
+    "id": "m1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "message": {
+     "id": "full-m1",
+     "body": "Hello",
+     "attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    }
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "message": {
+     "id": "full-m2",
+     "body": "World",
+     "attachments": []
+    }
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "message": {
+     "id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "resultNotAnObject": {
+  "result": [
+   {
+    "id": "m1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "read": "plain text"
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "read": null
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "read": [
+     1,
+     2
+    ]
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "resultNothing": {
+  "result": [
+   {
+    "id": "m1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "read": null
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "read": null
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "read": null
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "nestResultNothing": {
+  "result": [
+   {
+    "id": "m1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "read": null
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "read": null
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "read": null
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "resultKeysAnObjectInherits": {
+  "result": [
+   {
+    "id": "m1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "toString": "own text",
+    "constructor": "own",
+    "read_id": "x"
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    }
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "aliasEmptyFallsBackToTool": {
+  "result": [
+   {
+    "id": "m1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "read": 7
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "read": 8
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "read": 9
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "expand": {
+  "result": [
+   {
+    "id": "a1",
+    "subject": "att",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "read_id": "full-m1",
+    "body": "Hello",
+    "parent_id": "m1",
+    "name": "x.pdf",
+    "parent_subject": "One"
+   },
+   {
+    "id": "a2",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "read_id": "full-m1",
+    "body": "Hello",
+    "parent_id": "m1",
+    "name": "y.pdf"
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "read_id": "full-m2",
+    "body": "World"
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "read_id": "full-m3",
+    "body": "Third",
+    "attachments": "plain.txt"
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "read_id": "full-m3",
+    "body": "Third",
+    "attachments": null
+   },
+   {
+    "id": "a3",
+    "subject": "Three",
+    "threadId": null,
+    "read_id": "full-m3",
+    "body": "Third",
+    "parent_id": "m3"
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "expandFromTheRow": {
+  "result": [
+   {
+    "id": "r1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "body": "only a body",
+    "parent_id": "m1",
+    "name": "row.pdf"
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "read": "text"
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "read": null
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "expandNotAList": {
+  "result": [
+   {
+    "id": "m1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "read_id": "full-m1",
+    "body": "Hello",
+    "read_attachments": [
+     {
+      "id": "a1",
+      "name": "x.pdf",
+      "subject": "att"
+     },
+     {
+      "id": "a2",
+      "name": "y.pdf"
+     }
+    ]
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "read_id": "full-m2",
+    "body": "World",
+    "attachments": []
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "read_id": "full-m3",
+    "body": "Third",
+    "attachments": [
+     "plain.txt",
+     null,
+     {
+      "id": "a3"
+     }
+    ]
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "expandNested": {
+  "result": [
+   {
+    "id": "p1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "payload": {
+     "parts": [
+      {
+       "id": "p1"
+      }
+     ]
+    },
+    "parent_id": "m1"
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "payload": {}
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "payload": {
+     "parts": []
+    }
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "expandWithNest": {
+  "result": [
+   {
+    "id": "m1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "att": {
+     "id": "a1",
+     "name": "x.pdf",
+     "subject": "att"
+    }
+   },
+   {
+    "id": "m1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "att": {
+     "id": "a2",
+     "name": "y.pdf"
+    }
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "att": {
+     "id": "full-m2",
+     "body": "World"
+    }
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "att": {
+     "attachments": "plain.txt"
+    }
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "att": {
+     "attachments": null
+    }
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "att": {
+     "id": "a3"
+    }
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "expandOnlyTheList": {
+  "result": [
+   {
+    "id": "a1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "parent_id": "m1"
+   },
+   {
+    "id": "m2",
+    "subject": "collides",
+    "from": {
+     "address": "b@example.test"
+    },
+    "parent_subject": "Two"
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "ownTable": {
+  "result": [
+   {
+    "id": "m1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "read_id": "full-m1",
+    "body": "Hello",
+    "read_attachments": [
+     {
+      "id": "a1",
+      "name": "x.pdf",
+      "subject": "att"
+     },
+     {
+      "id": "a2",
+      "name": "y.pdf"
+     }
+    ]
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "read_id": "full-m2",
+    "body": "World",
+    "attachments": []
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "read_id": "full-m3",
+    "body": "Third",
+    "attachments": [
+     "plain.txt",
+     null,
+     {
+      "id": "a3"
+     }
+    ]
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "ownTableResultNotAnObject": {
+  "result": [
+   {
+    "id": "m1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "read": "text"
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "read": null
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "read_id": "x"
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "ownTableLosesToExpand": {
+  "result": [
+   {
+    "id": "a1",
+    "subject": "att",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "read_id": "full-m1",
+    "body": "Hello",
+    "parent_id": "m1",
+    "name": "x.pdf",
+    "parent_subject": "One"
+   },
+   {
+    "id": "a2",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "read_id": "full-m1",
+    "body": "Hello",
+    "parent_id": "m1",
+    "name": "y.pdf"
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "read_id": "full-m2",
+    "body": "World"
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "read_id": "full-m3",
+    "body": "Third",
+    "attachments": "plain.txt"
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "read_id": "full-m3",
+    "body": "Third",
+    "attachments": null
+   },
+   {
+    "id": "a3",
+    "subject": "Three",
+    "threadId": null,
+    "read_id": "full-m3",
+    "body": "Third",
+    "parent_id": "m3"
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "ownTableWithAnExpandThatIsNotAList": {
+  "result": [
+   {
+    "id": "m1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "read_id": "full-m1",
+    "body": "Hello",
+    "read_attachments": [
+     {
+      "id": "a1",
+      "name": "x.pdf",
+      "subject": "att"
+     },
+     {
+      "id": "a2",
+      "name": "y.pdf"
+     }
+    ]
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "read_id": "full-m2",
+    "body": "World",
+    "attachments": []
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "read_id": "full-m3",
+    "body": "Third",
+    "attachments": [
+     "plain.txt",
+     null,
+     {
+      "id": "a3"
+     }
+    ]
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "ownTableTruthyOnly": {
+  "result": [
+   {
+    "id": "m1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "read_id": "full-m1",
+    "body": "Hello",
+    "read_attachments": [
+     {
+      "id": "a1",
+      "name": "x.pdf",
+      "subject": "att"
+     },
+     {
+      "id": "a2",
+      "name": "y.pdf"
+     }
+    ]
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "read_id": "full-m2",
+    "body": "World",
+    "attachments": []
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "read_id": "full-m3",
+    "body": "Third",
+    "attachments": [
+     "plain.txt",
+     null,
+     {
+      "id": "a3"
+     }
+    ]
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "mixed": {
+  "result": [
+   {
+    "id": "m0",
+    "_error": "earlier"
+   },
+   {
+    "id": "a1",
+    "subject": "att",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "read_id": "full-m1",
+    "body": "Hello",
+    "parent_id": "m1",
+    "name": "x.pdf",
+    "parent_subject": "One"
+   },
+   {
+    "id": "a2",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "read_id": "full-m1",
+    "body": "Hello",
+    "parent_id": "m1",
+    "name": "y.pdf"
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "_error": "gone"
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "read_id": "full-m3",
+    "body": "Third",
+    "attachments": "plain.txt"
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "read_id": "full-m3",
+    "body": "Third",
+    "attachments": null
+   },
+   {
+    "id": "a3",
+    "subject": "Three",
+    "threadId": null,
+    "read_id": "full-m3",
+    "body": "Third",
+    "parent_id": "m3"
+   },
+   {
+    "id": "m4",
+    "_partial": true
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 0,
+  "rowsUntouched": true
+ },
+ "mixedOwnTable": {
+  "result": [
+   {
+    "id": "m0",
+    "_error": "earlier"
+   },
+   {
+    "id": "m1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "read_id": "full-m1",
+    "body": "Hello",
+    "read_attachments": [
+     {
+      "id": "a1",
+      "name": "x.pdf",
+      "subject": "att"
+     },
+     {
+      "id": "a2",
+      "name": "y.pdf"
+     }
+    ]
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "_error": "gone"
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "read_id": "full-m3",
+    "body": "Third",
+    "attachments": [
+     "plain.txt",
+     null,
+     {
+      "id": "a3"
+     }
+    ]
+   },
+   {
+    "id": "m4",
+    "_partial": true
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 0,
+  "rowsUntouched": true
+ },
+ "mixedEnrich": {
+  "result": [
+   {
+    "id": "m0",
+    "_error": "earlier"
+   },
+   {
+    "0": "t",
+    "1": "e",
+    "2": "x",
+    "3": "t",
+    "read": null
+   },
+   {
+    "id": "m1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "read_id": "full-m1",
+    "body": "Hello",
+    "read_attachments": [
+     {
+      "id": "a1",
+      "name": "x.pdf",
+      "subject": "att"
+     },
+     {
+      "id": "a2",
+      "name": "y.pdf"
+     }
+    ]
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "_error": "gone"
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "read_id": "full-m3",
+    "body": "Third",
+    "attachments": [
+     "plain.txt",
+     null,
+     {
+      "id": "a3"
+     }
+    ]
+   },
+   {
+    "id": "m4",
+    "_partial": true
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 0,
+  "rowsUntouched": true
+ },
+ "rowCapOnExpand": {
+  "result": {
+   "<list>": 500,
+   "first": {
+    "id": "big",
+    "n": 0
+   },
+   "last": {
+    "id": "big",
+    "n": 499
+   }
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "big_list",
+    "args": {
+     "messageId": "big"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "big_list",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 3,
+  "rowsUntouched": true
+ },
+ "rowCapOnRows": {
+  "result": {
+   "<list>": 500,
+   "first": {
+    "id": "r0",
+    "row": null
+   },
+   "last": {
+    "id": "r499",
+    "row": null
+   }
+  },
+  "sameRows": false,
+  "calls": {
+   "<list>": 503,
+   "first": {
+    "tool": "echo_row",
+    "args": {
+     "messageId": "r0"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   "last": {
+    "tool": "echo_row",
+    "args": {
+     "messageId": "r502"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  },
+  "budgetLeft": 7,
+  "rowsUntouched": true
+ },
+ "rowCapReachedByASkippedRow": {
+  "result": {
+   "<list>": 500,
+   "first": {
+    "id": "r0",
+    "row": null
+   },
+   "last": {
+    "id": "r499",
+    "_partial": true
+   }
+  },
+  "sameRows": false,
+  "calls": {
+   "<list>": 499,
+   "first": {
+    "tool": "echo_row",
+    "args": {
+     "messageId": "r0"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   "last": {
+    "tool": "echo_row",
+    "args": {
+     "messageId": "r498"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  },
+  "budgetLeft": 0,
+  "rowsUntouched": true
+ },
+ "noTool/trace": {
+  "result": [
+   {
+    "id": "m1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ]
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    }
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null
+   }
+  ],
+  "sameRows": true,
+  "calls": [],
+  "budgetLeft": 50,
+  "rowsUntouched": true
+ },
+ "toolNotAString/trace": {
+  "result": [
+   {
+    "id": "m1",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ]
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    }
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null
+   }
+  ],
+  "sameRows": true,
+  "calls": [],
+  "budgetLeft": 50,
+  "rowsUntouched": true
+ },
+ "noRows/trace": {
+  "result": {
+   "rows": [],
+   "parentRows": [],
+   "childRows": null,
+   "grainIndexOf": []
+  },
+  "sameRows": false,
+  "calls": [],
+  "budgetLeft": 50,
+  "rowsUntouched": true
+ },
+ "bindsFromPaths/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "lookup_id": "full-m1",
+     "body": "Hello",
+     "lookup_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "lookup_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "lookup_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "lookup_id": "full-m1",
+     "body": "Hello",
+     "lookup_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "lookup_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "lookup_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "crm_lookup",
+    "args": {
+     "messageId": "m1",
+     "sender": "a@example.test"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "crm_lookup",
+    "args": {
+     "messageId": "m2",
+     "sender": "b@example.test"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "crm_lookup",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "pinnedArgsWin/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1",
+     "format": "full",
+     "extra": 1
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2",
+     "format": "full",
+     "extra": 1
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3",
+     "format": "full",
+     "extra": 1
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "argsFromNotAnObject/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read": null
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read": null
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read": null
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read": null
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read": null
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read": null
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {},
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {},
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {},
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "rowsThatAreNotObjects/trace": {
+  "result": {
+   "rows": [
+    {
+     "read": null
+    },
+    {
+     "0": "t",
+     "1": "e",
+     "2": "x",
+     "3": "t",
+     "read": null
+    },
+    {
+     "read": null
+    },
+    {
+     "0": "a",
+     "read": null
+    },
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    }
+   ],
+   "parentRows": [
+    {
+     "read": null
+    },
+    {
+     "0": "t",
+     "1": "e",
+     "2": "x",
+     "3": "t",
+     "read": null
+    },
+    {
+     "read": null
+    },
+    {
+     "0": "a",
+     "read": null
+    },
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 49,
+  "rowsUntouched": true
+ },
+ "carriedError/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "_error": "earlier step failed"
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m1",
+     "_error": "earlier step failed"
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 49,
+  "rowsUntouched": true
+ },
+ "budgetRunsOut/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "_partial": true
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "_partial": true
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 0,
+  "rowsUntouched": true
+ },
+ "budgetEmpty/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "_partial": true
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "_partial": true
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "_partial": true
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "_partial": true
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "_partial": true
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "_partial": true
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [],
+  "budgetLeft": 0,
+  "rowsUntouched": true
+ },
+ "budgetSkipsCarriedRows/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "_error": "x"
+    },
+    {
+     "read": null
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "_partial": true
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m1",
+     "_error": "x"
+    },
+    {
+     "read": null
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "_partial": true
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2,
+    3
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 0,
+  "rowsUntouched": true
+ },
+ "carriedRowAfterTheBudgetRanOut/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m9",
+     "_error": "earlier"
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "_partial": true
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m9",
+     "_error": "earlier"
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "_partial": true
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 0,
+  "rowsUntouched": true
+ },
+ "callFails/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "_error": "Message not found"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "_error": "Message not found"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "callFailsLongMessage/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "_error": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "_error": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "callAnswersAnError/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "_error": "quota exceeded"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "_error": "quota exceeded"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "connectionMissing/trace": {
+  "threw": {
+   "message": "connect first",
+   "status": 409,
+   "code": "connection_required"
+  },
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "callFailsClassified/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "_error": "teapot"
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "_error": "teapot"
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "extend/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "extendNoAlias/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "lookup_id": "full-m1",
+     "body": "Hello",
+     "lookup_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "lookup_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "lookup_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "lookup_id": "full-m1",
+     "body": "Hello",
+     "lookup_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "lookup_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "lookup_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "lookup",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "lookup",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "lookup",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "nest/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read": {
+      "id": "full-m1",
+      "body": "Hello",
+      "attachments": [
+       {
+        "id": "a1",
+        "name": "x.pdf",
+        "subject": "att"
+       },
+       {
+        "id": "a2",
+        "name": "y.pdf"
+       }
+      ]
+     }
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read": {
+      "id": "full-m2",
+      "body": "World",
+      "attachments": []
+     }
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read": {
+      "id": "full-m3",
+      "body": "Third",
+      "attachments": [
+       "plain.txt",
+       null,
+       {
+        "id": "a3"
+       }
+      ]
+     }
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read": {
+      "id": "full-m1",
+      "body": "Hello",
+      "attachments": [
+       {
+        "id": "a1",
+        "name": "x.pdf",
+        "subject": "att"
+       },
+       {
+        "id": "a2",
+        "name": "y.pdf"
+       }
+      ]
+     }
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read": {
+      "id": "full-m2",
+      "body": "World",
+      "attachments": []
+     }
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read": {
+      "id": "full-m3",
+      "body": "Third",
+      "attachments": [
+       "plain.txt",
+       null,
+       {
+        "id": "a3"
+       }
+      ]
+     }
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "nestWithAlias/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "message": {
+      "id": "full-m1",
+      "body": "Hello",
+      "attachments": [
+       {
+        "id": "a1",
+        "name": "x.pdf",
+        "subject": "att"
+       },
+       {
+        "id": "a2",
+        "name": "y.pdf"
+       }
+      ]
+     }
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "message": {
+      "id": "full-m2",
+      "body": "World",
+      "attachments": []
+     }
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "message": {
+      "id": "full-m3",
+      "body": "Third",
+      "attachments": [
+       "plain.txt",
+       null,
+       {
+        "id": "a3"
+       }
+      ]
+     }
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "message": {
+      "id": "full-m1",
+      "body": "Hello",
+      "attachments": [
+       {
+        "id": "a1",
+        "name": "x.pdf",
+        "subject": "att"
+       },
+       {
+        "id": "a2",
+        "name": "y.pdf"
+       }
+      ]
+     }
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "message": {
+      "id": "full-m2",
+      "body": "World",
+      "attachments": []
+     }
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "message": {
+      "id": "full-m3",
+      "body": "Third",
+      "attachments": [
+       "plain.txt",
+       null,
+       {
+        "id": "a3"
+       }
+      ]
+     }
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "resultNotAnObject/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read": "plain text"
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read": null
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read": [
+      1,
+      2
+     ]
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read": "plain text"
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read": null
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read": [
+      1,
+      2
+     ]
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "resultNothing/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read": null
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read": null
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read": null
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read": null
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read": null
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read": null
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "nestResultNothing/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read": null
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read": null
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read": null
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read": null
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read": null
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read": null
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "resultKeysAnObjectInherits/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "toString": "own text",
+     "constructor": "own",
+     "read_id": "x"
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     }
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "toString": "own text",
+     "constructor": "own",
+     "read_id": "x"
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     }
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "aliasEmptyFallsBackToTool/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read": 7
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read": 8
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read": 9
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read": 7
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read": 8
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read": 9
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "expand/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "a1",
+     "subject": "att",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "parent_id": "m1",
+     "name": "x.pdf",
+     "parent_subject": "One"
+    },
+    {
+     "id": "a2",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "parent_id": "m1",
+     "name": "y.pdf"
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": "plain.txt"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": null
+    },
+    {
+     "id": "a3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "parent_id": "m3"
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello"
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third"
+    }
+   ],
+   "childRows": [
+    {
+     "id": "a1",
+     "name": "x.pdf",
+     "subject": "att",
+     "_parentIndex": 0
+    },
+    {
+     "id": "a2",
+     "name": "y.pdf",
+     "_parentIndex": 0
+    },
+    {
+     "attachments": "plain.txt",
+     "_parentIndex": 2
+    },
+    {
+     "attachments": null,
+     "_parentIndex": 2
+    },
+    {
+     "id": "a3",
+     "_parentIndex": 2
+    }
+   ],
+   "grainIndexOf": [
+    0,
+    1,
+    -1,
+    2,
+    3,
+    4
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "expandFromTheRow/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "r1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "body": "only a body",
+     "parent_id": "m1",
+     "name": "row.pdf"
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read": "text"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read": null
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "body": "only a body"
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read": "text"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read": null
+    }
+   ],
+   "childRows": [
+    {
+     "id": "r1",
+     "name": "row.pdf",
+     "_parentIndex": 0
+    }
+   ],
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "expandNotAList/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "expandNested/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "p1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "payload": {
+      "parts": [
+       {
+        "id": "p1"
+       }
+      ]
+     },
+     "parent_id": "m1"
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "payload": {}
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "payload": {
+      "parts": []
+     }
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "payload": {
+      "parts": [
+       {
+        "id": "p1"
+       }
+      ]
+     }
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "payload": {}
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "payload": {
+      "parts": []
+     }
+    }
+   ],
+   "childRows": [
+    {
+     "id": "p1",
+     "_parentIndex": 0
+    }
+   ],
+   "grainIndexOf": [
+    0,
+    1,
+    -1
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "expandWithNest/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "att": {
+      "id": "a1",
+      "name": "x.pdf",
+      "subject": "att"
+     }
+    },
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "att": {
+      "id": "a2",
+      "name": "y.pdf"
+     }
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "att": {
+      "id": "full-m2",
+      "body": "World"
+     }
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "att": {
+      "attachments": "plain.txt"
+     }
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "att": {
+      "attachments": null
+     }
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "att": {
+      "id": "a3"
+     }
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "att": {
+      "id": "full-m1",
+      "body": "Hello"
+     }
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "att": {
+      "id": "full-m2",
+      "body": "World"
+     }
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "att": {
+      "id": "full-m3",
+      "body": "Third"
+     }
+    }
+   ],
+   "childRows": [
+    {
+     "id": "a1",
+     "name": "x.pdf",
+     "subject": "att",
+     "_parentIndex": 0
+    },
+    {
+     "id": "a2",
+     "name": "y.pdf",
+     "_parentIndex": 0
+    },
+    {
+     "attachments": "plain.txt",
+     "_parentIndex": 2
+    },
+    {
+     "attachments": null,
+     "_parentIndex": 2
+    },
+    {
+     "id": "a3",
+     "_parentIndex": 2
+    }
+   ],
+   "grainIndexOf": [
+    0,
+    1,
+    -1,
+    2,
+    3,
+    4
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "expandOnlyTheList/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "a1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "parent_id": "m1"
+    },
+    {
+     "id": "m2",
+     "subject": "collides",
+     "from": {
+      "address": "b@example.test"
+     },
+     "parent_subject": "Two"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     }
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null
+    }
+   ],
+   "childRows": [
+    {
+     "id": "a1",
+     "_parentIndex": 0
+    },
+    {
+     "subject": "collides",
+     "_parentIndex": 1
+    }
+   ],
+   "grainIndexOf": [
+    0,
+    1,
+    -1
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "ownTable/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     }
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null
+    }
+   ],
+   "childRows": [
+    {
+     "id": "full-m1",
+     "body": "Hello",
+     "attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ],
+     "_parentIndex": 0
+    },
+    {
+     "id": "full-m2",
+     "body": "World",
+     "attachments": [],
+     "_parentIndex": 1
+    },
+    {
+     "id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ],
+     "_parentIndex": 2
+    }
+   ],
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "ownTableResultNotAnObject/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read": "text"
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read": null
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "x"
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     }
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null
+    }
+   ],
+   "childRows": [
+    {
+     "read": "text",
+     "_parentIndex": 0
+    },
+    {
+     "read": null,
+     "_parentIndex": 1
+    },
+    {
+     "id": "x",
+     "_parentIndex": 2
+    }
+   ],
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "ownTableLosesToExpand/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "a1",
+     "subject": "att",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "parent_id": "m1",
+     "name": "x.pdf",
+     "parent_subject": "One"
+    },
+    {
+     "id": "a2",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "parent_id": "m1",
+     "name": "y.pdf"
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": "plain.txt"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": null
+    },
+    {
+     "id": "a3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "parent_id": "m3"
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello"
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third"
+    }
+   ],
+   "childRows": [
+    {
+     "id": "a1",
+     "name": "x.pdf",
+     "subject": "att",
+     "_parentIndex": 0
+    },
+    {
+     "id": "a2",
+     "name": "y.pdf",
+     "_parentIndex": 0
+    },
+    {
+     "attachments": "plain.txt",
+     "_parentIndex": 2
+    },
+    {
+     "attachments": null,
+     "_parentIndex": 2
+    },
+    {
+     "id": "a3",
+     "_parentIndex": 2
+    }
+   ],
+   "grainIndexOf": [
+    0,
+    1,
+    -1,
+    2,
+    3,
+    4
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "ownTableWithAnExpandThatIsNotAList/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "ownTableTruthyOnly/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "mixed/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "m0",
+     "_error": "earlier"
+    },
+    {
+     "id": "a1",
+     "subject": "att",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "parent_id": "m1",
+     "name": "x.pdf",
+     "parent_subject": "One"
+    },
+    {
+     "id": "a2",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "parent_id": "m1",
+     "name": "y.pdf"
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "_error": "gone"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": "plain.txt"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": null
+    },
+    {
+     "id": "a3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "parent_id": "m3"
+    },
+    {
+     "id": "m4",
+     "_partial": true
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m0",
+     "_error": "earlier"
+    },
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello"
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "_error": "gone"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third"
+    },
+    {
+     "id": "m4",
+     "_partial": true
+    }
+   ],
+   "childRows": [
+    {
+     "id": "a1",
+     "name": "x.pdf",
+     "subject": "att",
+     "_parentIndex": 1
+    },
+    {
+     "id": "a2",
+     "name": "y.pdf",
+     "_parentIndex": 1
+    },
+    {
+     "attachments": "plain.txt",
+     "_parentIndex": 3
+    },
+    {
+     "attachments": null,
+     "_parentIndex": 3
+    },
+    {
+     "id": "a3",
+     "_parentIndex": 3
+    }
+   ],
+   "grainIndexOf": [
+    -1,
+    0,
+    1,
+    -1,
+    2,
+    3,
+    4,
+    -1
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 0,
+  "rowsUntouched": true
+ },
+ "mixedOwnTable/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "m0",
+     "_error": "earlier"
+    },
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "_error": "gone"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    },
+    {
+     "id": "m4",
+     "_partial": true
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m0",
+     "_error": "earlier"
+    },
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "_error": "gone"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null
+    },
+    {
+     "id": "m4",
+     "_partial": true
+    }
+   ],
+   "childRows": [
+    {
+     "id": "full-m1",
+     "body": "Hello",
+     "attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ],
+     "_parentIndex": 1
+    },
+    {
+     "id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ],
+     "_parentIndex": 3
+    }
+   ],
+   "grainIndexOf": [
+    -1,
+    0,
+    -1,
+    1,
+    -1
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 0,
+  "rowsUntouched": true
+ },
+ "mixedEnrich/trace": {
+  "result": {
+   "rows": [
+    {
+     "id": "m0",
+     "_error": "earlier"
+    },
+    {
+     "0": "t",
+     "1": "e",
+     "2": "x",
+     "3": "t",
+     "read": null
+    },
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "_error": "gone"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    },
+    {
+     "id": "m4",
+     "_partial": true
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "m0",
+     "_error": "earlier"
+    },
+    {
+     "0": "t",
+     "1": "e",
+     "2": "x",
+     "3": "t",
+     "read": null
+    },
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "_error": "gone"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    },
+    {
+     "id": "m4",
+     "_partial": true
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 0,
+  "rowsUntouched": true
+ },
+ "rowCapOnExpand/trace": {
+  "result": {
+   "rows": {
+    "<list>": 500,
+    "first": {
+     "id": "big",
+     "n": 0
+    },
+    "last": {
+     "id": "big",
+     "n": 499
+    }
+   },
+   "parentRows": [
+    {
+     "id": "big"
+    },
+    {
+     "id": "m1"
+    }
+   ],
+   "childRows": {
+    "<list>": 500,
+    "first": {
+     "n": 0,
+     "_parentIndex": 0
+    },
+    "last": {
+     "n": 499,
+     "_parentIndex": 0
+    }
+   },
+   "grainIndexOf": {
+    "<list>": 500,
+    "first": 0,
+    "last": 499
+   }
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "big_list",
+    "args": {
+     "messageId": "big"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "big_list",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 3,
+  "rowsUntouched": true
+ },
+ "rowCapOnRows/trace": {
+  "result": {
+   "rows": {
+    "<list>": 500,
+    "first": {
+     "id": "r0",
+     "row": null
+    },
+    "last": {
+     "id": "r499",
+     "row": null
+    }
+   },
+   "parentRows": {
+    "<list>": 503,
+    "first": {
+     "id": "r0",
+     "row": null
+    },
+    "last": {
+     "id": "r502"
+    }
+   },
+   "childRows": null,
+   "grainIndexOf": {
+    "<list>": 500,
+    "first": 0,
+    "last": 499
+   }
+  },
+  "sameRows": false,
+  "calls": {
+   "<list>": 503,
+   "first": {
+    "tool": "echo_row",
+    "args": {
+     "messageId": "r0"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   "last": {
+    "tool": "echo_row",
+    "args": {
+     "messageId": "r502"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  },
+  "budgetLeft": 7,
+  "rowsUntouched": true
+ },
+ "rowCapReachedByASkippedRow/trace": {
+  "result": {
+   "rows": {
+    "<list>": 500,
+    "first": {
+     "id": "r0",
+     "row": null
+    },
+    "last": {
+     "id": "r499",
+     "_partial": true
+    }
+   },
+   "parentRows": {
+    "<list>": 503,
+    "first": {
+     "id": "r0",
+     "row": null
+    },
+    "last": {
+     "id": "r502",
+     "_partial": true
+    }
+   },
+   "childRows": null,
+   "grainIndexOf": {
+    "<list>": 500,
+    "first": 0,
+    "last": 499
+   }
+  },
+  "sameRows": false,
+  "calls": {
+   "<list>": 499,
+   "first": {
+    "tool": "echo_row",
+    "args": {
+     "messageId": "r0"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   "last": {
+    "tool": "echo_row",
+    "args": {
+     "messageId": "r498"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  },
+  "budgetLeft": 0,
+  "rowsUntouched": true
+ },
+ "extend/grains": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "g-m1",
+     "subject": "Grain one",
+     "read_id": "full-m1",
+     "body": "Hello",
+     "attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "g-m2",
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "g-m3",
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "extend/grainsShifted": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "g-m1",
+     "subject": "Grain one"
+    },
+    {
+     "id": "g-m2"
+    },
+    {
+     "id": "g-m3",
+     "read_id": "full-m1",
+     "body": "Hello",
+     "attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    2,
+    -1,
+    -1
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "extend/grainsNoIndex": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "g-m1",
+     "subject": "Grain one",
+     "read_id": "full-m1",
+     "body": "Hello",
+     "attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "g-m2",
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "nest/grains": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read": {
+      "id": "full-m1",
+      "body": "Hello",
+      "attachments": [
+       {
+        "id": "a1",
+        "name": "x.pdf",
+        "subject": "att"
+       },
+       {
+        "id": "a2",
+        "name": "y.pdf"
+       }
+      ]
+     }
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read": {
+      "id": "full-m2",
+      "body": "World",
+      "attachments": []
+     }
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read": {
+      "id": "full-m3",
+      "body": "Third",
+      "attachments": [
+       "plain.txt",
+       null,
+       {
+        "id": "a3"
+       }
+      ]
+     }
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "g-m1",
+     "subject": "Grain one",
+     "read": {
+      "id": "full-m1",
+      "body": "Hello",
+      "attachments": [
+       {
+        "id": "a1",
+        "name": "x.pdf",
+        "subject": "att"
+       },
+       {
+        "id": "a2",
+        "name": "y.pdf"
+       }
+      ]
+     }
+    },
+    {
+     "id": "g-m2",
+     "read": {
+      "id": "full-m2",
+      "body": "World",
+      "attachments": []
+     }
+    },
+    {
+     "id": "g-m3",
+     "read": {
+      "id": "full-m3",
+      "body": "Third",
+      "attachments": [
+       "plain.txt",
+       null,
+       {
+        "id": "a3"
+       }
+      ]
+     }
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "nest/grainsShifted": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read": {
+      "id": "full-m1",
+      "body": "Hello",
+      "attachments": [
+       {
+        "id": "a1",
+        "name": "x.pdf",
+        "subject": "att"
+       },
+       {
+        "id": "a2",
+        "name": "y.pdf"
+       }
+      ]
+     }
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read": {
+      "id": "full-m2",
+      "body": "World",
+      "attachments": []
+     }
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read": {
+      "id": "full-m3",
+      "body": "Third",
+      "attachments": [
+       "plain.txt",
+       null,
+       {
+        "id": "a3"
+       }
+      ]
+     }
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "g-m1",
+     "subject": "Grain one"
+    },
+    {
+     "id": "g-m2"
+    },
+    {
+     "id": "g-m3",
+     "read": {
+      "id": "full-m1",
+      "body": "Hello",
+      "attachments": [
+       {
+        "id": "a1",
+        "name": "x.pdf",
+        "subject": "att"
+       },
+       {
+        "id": "a2",
+        "name": "y.pdf"
+       }
+      ]
+     }
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    2,
+    -1,
+    -1
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "nest/grainsNoIndex": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read": {
+      "id": "full-m1",
+      "body": "Hello",
+      "attachments": [
+       {
+        "id": "a1",
+        "name": "x.pdf",
+        "subject": "att"
+       },
+       {
+        "id": "a2",
+        "name": "y.pdf"
+       }
+      ]
+     }
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read": {
+      "id": "full-m2",
+      "body": "World",
+      "attachments": []
+     }
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read": {
+      "id": "full-m3",
+      "body": "Third",
+      "attachments": [
+       "plain.txt",
+       null,
+       {
+        "id": "a3"
+       }
+      ]
+     }
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "g-m1",
+     "subject": "Grain one",
+     "read": {
+      "id": "full-m1",
+      "body": "Hello",
+      "attachments": [
+       {
+        "id": "a1",
+        "name": "x.pdf",
+        "subject": "att"
+       },
+       {
+        "id": "a2",
+        "name": "y.pdf"
+       }
+      ]
+     }
+    },
+    {
+     "id": "g-m2",
+     "read": {
+      "id": "full-m2",
+      "body": "World",
+      "attachments": []
+     }
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read": {
+      "id": "full-m3",
+      "body": "Third",
+      "attachments": [
+       "plain.txt",
+       null,
+       {
+        "id": "a3"
+       }
+      ]
+     }
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "expand/grains": {
+  "result": {
+   "rows": [
+    {
+     "id": "a1",
+     "subject": "att",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "parent_id": "m1",
+     "name": "x.pdf",
+     "parent_subject": "One"
+    },
+    {
+     "id": "a2",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "parent_id": "m1",
+     "name": "y.pdf"
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": "plain.txt"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": null
+    },
+    {
+     "id": "a3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "parent_id": "m3"
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "g-m1",
+     "subject": "Grain one",
+     "read_id": "full-m1",
+     "body": "Hello"
+    },
+    {
+     "id": "g-m2",
+     "read_id": "full-m2",
+     "body": "World"
+    },
+    {
+     "id": "g-m3",
+     "read_id": "full-m3",
+     "body": "Third"
+    }
+   ],
+   "childRows": [
+    {
+     "id": "a1",
+     "name": "x.pdf",
+     "subject": "att",
+     "_parentIndex": 0
+    },
+    {
+     "id": "a2",
+     "name": "y.pdf",
+     "_parentIndex": 0
+    },
+    {
+     "attachments": "plain.txt",
+     "_parentIndex": 2
+    },
+    {
+     "attachments": null,
+     "_parentIndex": 2
+    },
+    {
+     "id": "a3",
+     "_parentIndex": 2
+    }
+   ],
+   "grainIndexOf": [
+    0,
+    1,
+    -1,
+    2,
+    3,
+    4
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "expand/grainsShifted": {
+  "result": {
+   "rows": [
+    {
+     "id": "a1",
+     "subject": "att",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "parent_id": "m1",
+     "name": "x.pdf",
+     "parent_subject": "One"
+    },
+    {
+     "id": "a2",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "parent_id": "m1",
+     "name": "y.pdf"
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": "plain.txt"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": null
+    },
+    {
+     "id": "a3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "parent_id": "m3"
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "g-m1",
+     "subject": "Grain one"
+    },
+    {
+     "id": "g-m2"
+    },
+    {
+     "id": "g-m3",
+     "read_id": "full-m1",
+     "body": "Hello"
+    }
+   ],
+   "childRows": [
+    {
+     "id": "a1",
+     "name": "x.pdf",
+     "subject": "att",
+     "_parentIndex": 2
+    },
+    {
+     "id": "a2",
+     "name": "y.pdf",
+     "_parentIndex": 2
+    },
+    {
+     "attachments": "plain.txt",
+     "_parentIndex": -1
+    },
+    {
+     "attachments": null,
+     "_parentIndex": -1
+    },
+    {
+     "id": "a3",
+     "_parentIndex": -1
+    }
+   ],
+   "grainIndexOf": [
+    0,
+    1,
+    -1,
+    2,
+    3,
+    4
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "expand/grainsNoIndex": {
+  "result": {
+   "rows": [
+    {
+     "id": "a1",
+     "subject": "att",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "parent_id": "m1",
+     "name": "x.pdf",
+     "parent_subject": "One"
+    },
+    {
+     "id": "a2",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "parent_id": "m1",
+     "name": "y.pdf"
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": "plain.txt"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": null
+    },
+    {
+     "id": "a3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "parent_id": "m3"
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "g-m1",
+     "subject": "Grain one",
+     "read_id": "full-m1",
+     "body": "Hello"
+    },
+    {
+     "id": "g-m2",
+     "read_id": "full-m2",
+     "body": "World"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third"
+    }
+   ],
+   "childRows": [
+    {
+     "id": "a1",
+     "name": "x.pdf",
+     "subject": "att",
+     "_parentIndex": 0
+    },
+    {
+     "id": "a2",
+     "name": "y.pdf",
+     "_parentIndex": 0
+    },
+    {
+     "attachments": "plain.txt",
+     "_parentIndex": 2
+    },
+    {
+     "attachments": null,
+     "_parentIndex": 2
+    },
+    {
+     "id": "a3",
+     "_parentIndex": 2
+    }
+   ],
+   "grainIndexOf": [
+    0,
+    1,
+    -1,
+    2,
+    3,
+    4
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "expandFromTheRow/grains": {
+  "result": {
+   "rows": [
+    {
+     "id": "r1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "body": "only a body",
+     "parent_id": "m1",
+     "name": "row.pdf"
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read": "text"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read": null
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "g-m1",
+     "subject": "Grain one",
+     "body": "only a body"
+    },
+    {
+     "id": "g-m2",
+     "read": "text"
+    },
+    {
+     "id": "g-m3",
+     "read": null
+    }
+   ],
+   "childRows": [
+    {
+     "id": "r1",
+     "name": "row.pdf",
+     "_parentIndex": 0
+    }
+   ],
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "expandFromTheRow/grainsShifted": {
+  "result": {
+   "rows": [
+    {
+     "id": "r1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "body": "only a body",
+     "parent_id": "m1",
+     "name": "row.pdf"
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read": "text"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read": null
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "g-m1",
+     "subject": "Grain one"
+    },
+    {
+     "id": "g-m2"
+    },
+    {
+     "id": "g-m3",
+     "body": "only a body"
+    }
+   ],
+   "childRows": [
+    {
+     "id": "r1",
+     "name": "row.pdf",
+     "_parentIndex": 2
+    }
+   ],
+   "grainIndexOf": [
+    0,
+    -1,
+    -1
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "expandFromTheRow/grainsNoIndex": {
+  "result": {
+   "rows": [
+    {
+     "id": "r1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "body": "only a body",
+     "parent_id": "m1",
+     "name": "row.pdf"
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read": "text"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read": null
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "g-m1",
+     "subject": "Grain one",
+     "body": "only a body"
+    },
+    {
+     "id": "g-m2",
+     "read": "text"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read": null
+    }
+   ],
+   "childRows": [
+    {
+     "id": "r1",
+     "name": "row.pdf",
+     "_parentIndex": 0
+    }
+   ],
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "ownTable/grains": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "g-m1",
+     "subject": "Grain one"
+    },
+    {
+     "id": "g-m2"
+    },
+    {
+     "id": "g-m3"
+    }
+   ],
+   "childRows": [
+    {
+     "id": "full-m1",
+     "body": "Hello",
+     "attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ],
+     "_parentIndex": 0
+    },
+    {
+     "id": "full-m2",
+     "body": "World",
+     "attachments": [],
+     "_parentIndex": 1
+    },
+    {
+     "id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ],
+     "_parentIndex": 2
+    }
+   ],
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "ownTable/grainsShifted": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "g-m1",
+     "subject": "Grain one"
+    },
+    {
+     "id": "g-m2"
+    },
+    {
+     "id": "g-m3"
+    }
+   ],
+   "childRows": [
+    {
+     "id": "full-m1",
+     "body": "Hello",
+     "attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ],
+     "_parentIndex": 2
+    },
+    {
+     "id": "full-m2",
+     "body": "World",
+     "attachments": [],
+     "_parentIndex": -1
+    },
+    {
+     "id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ],
+     "_parentIndex": -1
+    }
+   ],
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "ownTable/grainsNoIndex": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "g-m1",
+     "subject": "Grain one"
+    },
+    {
+     "id": "g-m2"
+    }
+   ],
+   "childRows": [
+    {
+     "id": "full-m1",
+     "body": "Hello",
+     "attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ],
+     "_parentIndex": 0
+    },
+    {
+     "id": "full-m2",
+     "body": "World",
+     "attachments": [],
+     "_parentIndex": 1
+    },
+    {
+     "id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ],
+     "_parentIndex": 2
+    }
+   ],
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "callFails/grains": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "_error": "Message not found"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "g-m1",
+     "subject": "Grain one",
+     "read_id": "full-m1",
+     "body": "Hello",
+     "attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "g-m2",
+     "_error": "Message not found"
+    },
+    {
+     "id": "g-m3",
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "callFails/grainsShifted": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "_error": "Message not found"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "g-m1",
+     "subject": "Grain one"
+    },
+    {
+     "id": "g-m2"
+    },
+    {
+     "id": "g-m3",
+     "read_id": "full-m1",
+     "body": "Hello",
+     "attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    2,
+    -1,
+    -1
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "callFails/grainsNoIndex": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "_error": "Message not found"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "g-m1",
+     "subject": "Grain one",
+     "read_id": "full-m1",
+     "body": "Hello",
+     "attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "g-m2",
+     "_error": "Message not found"
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read_id": "full-m3",
+     "body": "Third",
+     "attachments": [
+      "plain.txt",
+      null,
+      {
+       "id": "a3"
+      }
+     ]
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "budgetRunsOut/grains": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "_partial": true
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "g-m1",
+     "subject": "Grain one",
+     "read_id": "full-m1",
+     "body": "Hello",
+     "attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "g-m2",
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "g-m3",
+     "_partial": true
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 0,
+  "rowsUntouched": true
+ },
+ "budgetRunsOut/grainsShifted": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "_partial": true
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "g-m1",
+     "subject": "Grain one"
+    },
+    {
+     "id": "g-m2"
+    },
+    {
+     "id": "g-m3",
+     "read_id": "full-m1",
+     "body": "Hello",
+     "attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    2,
+    -1,
+    -1
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 0,
+  "rowsUntouched": true
+ },
+ "budgetRunsOut/grainsNoIndex": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read_id": "full-m1",
+     "body": "Hello",
+     "read_attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "_partial": true
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "g-m1",
+     "subject": "Grain one",
+     "read_id": "full-m1",
+     "body": "Hello",
+     "attachments": [
+      {
+       "id": "a1",
+       "name": "x.pdf",
+       "subject": "att"
+      },
+      {
+       "id": "a2",
+       "name": "y.pdf"
+      }
+     ]
+    },
+    {
+     "id": "g-m2",
+     "read_id": "full-m2",
+     "body": "World",
+     "attachments": []
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "_partial": true
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 0,
+  "rowsUntouched": true
+ },
+ "resultNotAnObject/grains": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read": "plain text"
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read": null
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read": [
+      1,
+      2
+     ]
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "g-m1",
+     "subject": "Grain one",
+     "read": "plain text"
+    },
+    {
+     "id": "g-m2",
+     "read": null
+    },
+    {
+     "id": "g-m3",
+     "read": [
+      1,
+      2
+     ]
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "resultNotAnObject/grainsShifted": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read": "plain text"
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read": null
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read": [
+      1,
+      2
+     ]
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "g-m1",
+     "subject": "Grain one"
+    },
+    {
+     "id": "g-m2"
+    },
+    {
+     "id": "g-m3",
+     "read": "plain text"
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    2,
+    -1,
+    -1
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "resultNotAnObject/grainsNoIndex": {
+  "result": {
+   "rows": [
+    {
+     "id": "m1",
+     "subject": "One",
+     "from": {
+      "address": "a@example.test"
+     },
+     "attachments": [
+      {
+       "id": "r1",
+       "name": "row.pdf"
+      }
+     ],
+     "read": "plain text"
+    },
+    {
+     "id": "m2",
+     "subject": "Two",
+     "from": {
+      "address": "b@example.test"
+     },
+     "read": null
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read": [
+      1,
+      2
+     ]
+    }
+   ],
+   "parentRows": [
+    {
+     "id": "g-m1",
+     "subject": "Grain one",
+     "read": "plain text"
+    },
+    {
+     "id": "g-m2",
+     "read": null
+    },
+    {
+     "id": "m3",
+     "subject": "Three",
+     "threadId": null,
+     "read": [
+      1,
+      2
+     ]
+    }
+   ],
+   "childRows": null,
+   "grainIndexOf": [
+    0,
+    1,
+    2
+   ]
+  },
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ },
+ "expand/grainsWithoutTrace": {
+  "result": [
+   {
+    "id": "a1",
+    "subject": "att",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "read_id": "full-m1",
+    "body": "Hello",
+    "parent_id": "m1",
+    "name": "x.pdf",
+    "parent_subject": "One"
+   },
+   {
+    "id": "a2",
+    "subject": "One",
+    "from": {
+     "address": "a@example.test"
+    },
+    "attachments": [
+     {
+      "id": "r1",
+      "name": "row.pdf"
+     }
+    ],
+    "read_id": "full-m1",
+    "body": "Hello",
+    "parent_id": "m1",
+    "name": "y.pdf"
+   },
+   {
+    "id": "m2",
+    "subject": "Two",
+    "from": {
+     "address": "b@example.test"
+    },
+    "read_id": "full-m2",
+    "body": "World"
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "read_id": "full-m3",
+    "body": "Third",
+    "attachments": "plain.txt"
+   },
+   {
+    "id": "m3",
+    "subject": "Three",
+    "threadId": null,
+    "read_id": "full-m3",
+    "body": "Third",
+    "attachments": null
+   },
+   {
+    "id": "a3",
+    "subject": "Three",
+    "threadId": null,
+    "read_id": "full-m3",
+    "body": "Third",
+    "parent_id": "m3"
+   }
+  ],
+  "sameRows": false,
+  "calls": [
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m1"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m2"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   },
+   {
+    "tool": "gmail_read",
+    "args": {
+     "messageId": "m3"
+    },
+    "as": "owner-1",
+    "org": "org-1"
+   }
+  ],
+  "budgetLeft": 47,
+  "rowsUntouched": true
+ }
+}

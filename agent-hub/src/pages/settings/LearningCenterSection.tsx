@@ -1,9 +1,9 @@
 import { Map, Footprints, Ellipsis, RotateCcw, Award } from 'lucide-react';
 import { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react';
-import { readLearningPath, mirrorLearningPath, saveLearningPath } from '../../api/learningPath';
+import { readLearningPath, saveLearningPath } from '../../api/learningPath';
 import { orderCoursesForPath } from '../../components/onboarding/learningPaths';
-import { fetchCatalog } from '../../api/catalogClient';
-import { fetchAchievements, issueCertificate } from '../../api/achievements';
+import { issueCertificate } from '../../api/achievements';
+import { useAchievementsQuery, useLearnerSettingsQuery, useLearningCatalogQuery } from '../../api/queries/learningCenter';
 import { getActionCheck, runActionCheck, applicableCriteria } from '../../components/onboarding/actionChecks';
 import LearningRail from './learning/LearningRail';
 import LearningHeader, { HeaderTile, PathChip } from './learning/LearningHeader';
@@ -54,14 +54,13 @@ import {
 import { TOUR_START_EVENT } from '../../components/onboarding/tourSteps';
 import AnchoredMenu from '../../components/shared/AnchoredMenu';
 import { useTranslation } from '../../hooks/useTranslation';
-import type { ProgressMap, Course, PracticeItem, ServerLessonDoc } from '../../api/lessons.types';
+import type { ProgressMap, Course, PracticeItem, ServerCatalog, ServerLessonDoc } from '../../api/lessons.types';
 import type { LocaleCoverage } from '../../components/admin/product-website/shell/LocaleMenu';
 import type { SettingsUser } from './shell/settingsShellTypes';
 import type { LearningNavTarget } from './learning/learning.types';
 import type { StudioSectionHeaderTab } from '../../components/projects/workspace/studioParts';
 import type { CertificateRecord, LearningCenterSectionProps } from './LearningCenterSection.types';
 import { logger } from '../../utils/logger';
-import { apiFetch } from '@/api/typedRequest';
 /**
  * LearningCenterSection — "Bee Flow Academy", redesigned (handoff "Learning
  * Center.dc.html", Sep 2026): the same shell as Compliance — a 300px rail, a
@@ -94,6 +93,23 @@ function computeMasteredMap(progressMap: ProgressMap) {
 // How long we wait for AI practice items before starting a review without them.
 const PRACTICE_SOFT_TIMEOUT_MS = 4000;
 
+/** Lays the server catalog (structure, org courses) over the bundled one; what the screen reads of it comes back. */
+function overlayServerCatalog(serverCatalog: ServerCatalog) {
+    const orgLessons = (serverCatalog.courses || [])
+        .filter((c) => Array.isArray(c.lessons))
+        .flatMap((c) => c.lessons as ServerLessonDoc[]);
+    if (orgLessons.length) registerServerLessons(orgLessons);
+    applyServerCatalog(serverCatalog);
+    return {
+        practiceLessonIds: Array.isArray(serverCatalog.practiceLessonIds) ? serverCatalog.practiceLessonIds : [],
+        version: catalogVersion(),
+    };
+}
+
+interface CertificateRow { certificateId: string; title: string; level: string; eligible: boolean; issued: boolean; isPublic: boolean; progress: LocaleCoverage; courseIds: string[] }
+interface AchievementsRead { certificates?: Omit<CertificateRow, 'courseIds'>[]; badges?: never[] }
+const NO_BADGES: never[] = [];
+
 const TAB_VIEWS = ['overview', 'review', 'achievements'];
 
 export default function LearningCenterSection({ user }: LearningCenterSectionProps) {
@@ -102,54 +118,40 @@ export default function LearningCenterSection({ user }: LearningCenterSectionPro
     const [completedMap, setCompletedMap] = useState<Record<string, boolean>>({});
     const [masteredMap, setMasteredMap] = useState<Record<string, boolean>>({});
     const [progressMap, setProgressMap] = useState<ProgressMap>({});
-    const [certificates, setCertificates] = useState<{ certificateId: string; title: string; level: string; eligible: boolean; issued: boolean; isPublic: boolean; progress: LocaleCoverage; courseIds: string[] }[]>([]);
-    const [earnedBadges, setEarnedBadges] = useState([]);
     const [certModal, setCertModal] = useState<CertificateRecord | null>(null);
     const [busyCertId, setBusyCertId] = useState<string | null>(null);
-    const [catVersion, setCatVersion] = useState(() => catalogVersion());
+    const [bundledVersion] = useState(() => catalogVersion());
     const [path, setPath] = useState(() => readLearningPath(user));
     const [reviewBuilding, setReviewBuilding] = useState(false);
-    const [practiceIds, setPracticeIds] = useState(() => new Set(PRACTICE_LESSON_IDS));
+    const [bundledPracticeIds] = useState(() => new Set(PRACTICE_LESSON_IDS));
     const [nav, setNav] = useState<LearningNavTarget>(() => takePendingLearningNavigate() || { view: 'overview' });
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef<HTMLButtonElement>(null);
     const reviewBusyRef = useRef(false);
     const scrollRef = useRef<HTMLDivElement>(null);
     // Server catalog overlay (structure + org courses + practiceable ids).
-    useEffect(() => {
-        let cancelled = false;
-        (async () => {
-            const serverCatalog = await fetchCatalog();
-            if (cancelled || !serverCatalog) return;
-            const orgLessons = (serverCatalog.courses || [])
-                .filter((c) => Array.isArray(c.lessons))
-                .flatMap((c) => c.lessons as ServerLessonDoc[]);
-            if (orgLessons.length) registerServerLessons(orgLessons);
-            if (Array.isArray(serverCatalog.practiceLessonIds) && serverCatalog.practiceLessonIds.length) {
-                setPracticeIds(new Set(serverCatalog.practiceLessonIds));
-            }
-            if (applyServerCatalog(serverCatalog)) setCatVersion(catalogVersion());
-        })();
-        return () => { cancelled = true; };
-    }, []);
+    const serverCatalog = useLearningCatalogQuery(overlayServerCatalog).data;
+    const catVersion = serverCatalog?.version ?? bundledVersion;
+    const practiceIds = useMemo(
+        () => (serverCatalog?.practiceLessonIds.length ? new Set(serverCatalog.practiceLessonIds) : bundledPracticeIds),
+        [serverCatalog, bundledPracticeIds],
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps -- catVersion invalidates the module-level catalog
     const visibleCourses = useMemo(() => resolveCourses(user, { hasFeature }), [user, hasFeature, catVersion]);
     const courses = useMemo(() => orderCoursesForPath(visibleCourses, path), [visibleCourses, path]);
     const lessonsOf = useCallback((course: Course | null) => courseLessons(course, user, hasFeature), [user, hasFeature]);
 
-    const loadAchievements = useCallback(async () => {
-        const data = await fetchAchievements();
-        if (data?.certificates) {
-            // The panel says what is still missing per certificate: the courses
-            // of its track, resolved from the client catalog.
-            setCertificates(data.certificates.map((c: { certificateId: string; }) => {
-                const def = getCertificate(c.certificateId);
-                const courseIds = def?.track ? resolveCourses(user, { hasFeature }).filter((x) => x.track === def.track).map((x) => x.id) : [];
-                return { ...c, courseIds };
-            }));
-        }
-        if (Array.isArray(data?.badges)) setEarnedBadges(data.badges);
-    }, [user, hasFeature]);
+    const achievements = useAchievementsQuery<AchievementsRead>(user?.id);
+    const { refetch: refetchAchievements } = achievements;
+    const loadAchievements = useCallback(async () => { await refetchAchievements(); }, [refetchAchievements]);
+    // The panel says what is still missing per certificate: the courses
+    // of its track, resolved from the client catalog.
+    const certificates = useMemo<CertificateRow[]>(() => (achievements.data?.certificates || []).map((c) => {
+        const def = getCertificate(c.certificateId);
+        const courseIds = def?.track ? resolveCourses(user, { hasFeature }).filter((x) => x.track === def.track).map((x) => x.id) : [];
+        return { ...c, courseIds };
+    }), [achievements.data, user, hasFeature]);
+    const earnedBadges = Array.isArray(achievements.data?.badges) ? achievements.data.badges : NO_BADGES;
 
     const refreshLocalProgress = useCallback(() => {
         const progress = readLearningProgress(user);
@@ -160,29 +162,18 @@ export default function LearningCenterSection({ user }: LearningCenterSectionPro
     // Seed from the local mirror, then hydrate from the server (authoritative).
     // Once per user id: the seed and the mirror read the current user.
     const seedFromLocal = useEffectEvent(() => refreshLocalProgress());
-    const mirrorPath = useEffectEvent((path: string) => mirrorLearningPath(user, path));
-    useEffect(() => {
-        let cancelled = false;
-        seedFromLocal();
-        (async () => {
-            try {
-                const res = await apiFetch('GET /ai/user-settings');
-                if (!res.ok || cancelled) return;
-                const data = await res.json();
-                if (cancelled) return;
-                setProgressMap(data?.learningProgress || {});
-                setCompletedMap(computeCompletedMap(data?.learningProgress));
-                setMasteredMap(computeMasteredMap(data?.learningProgress));
-                if (typeof data?.learningPath === 'string' && data.learningPath) {
-                    mirrorPath(data.learningPath);
-                    setPath(data.learningPath);
-                }
-            } catch (err) { logger.debug('keep the local seed', err); }
-        })();
-        return () => { cancelled = true; };
-    }, [user?.id]);
-
-    useEffect(() => { loadAchievements(); }, [user?.id, loadAchievements]);
+    useEffect(() => { seedFromLocal(); }, [user?.id]);
+    // The server's copy replaces the seed once, when it arrives.
+    const serverSettings = useLearnerSettingsQuery(user).data;
+    const serverPath = typeof serverSettings?.learningPath === 'string' && serverSettings.learningPath ? serverSettings.learningPath : null;
+    const [hydratedFrom, setHydratedFrom] = useState<typeof serverSettings>(undefined);
+    if (serverSettings && serverSettings !== hydratedFrom) {
+        setHydratedFrom(serverSettings);
+        setProgressMap(serverSettings.learningProgress || {});
+        setCompletedMap(computeCompletedMap(serverSettings.learningProgress || {}));
+        setMasteredMap(computeMasteredMap(serverSettings.learningProgress || {}));
+        if (serverPath) setPath(serverPath);
+    }
 
     useEffect(() => {
         const onDone = () => { refreshLocalProgress(); loadAchievements(); };

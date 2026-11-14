@@ -31,7 +31,7 @@
  * copy. This makes the wreckage readable and honest; it does not undo it.
  */
 
-const { COMPACTION_MARKERS } = require('../../core/llm/compaction');
+const { COMPACTION_MARKERS } = require('./compactionMarkers');
 
 /**
  * Headers `attachmentProcessor` splices in front of extracted document text.

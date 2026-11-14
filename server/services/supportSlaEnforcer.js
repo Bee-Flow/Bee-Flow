@@ -41,7 +41,7 @@ async function computeSlaDueAt(thread) {
 async function _notifyBreach(row, which) {
     // Lazy-require to avoid a circular dependency (routes/support requires this).
     let notifyStaff;
-    try { notifyStaff = require('../support/notifications').notifyStaff; } catch (err) { if (err?.code !== 'MODULE_NOT_FOUND') throw err; log.debug('noop', err); }
+    try { notifyStaff = require('../core/support/notifications').notifyStaff; } catch (err) { if (err?.code !== 'MODULE_NOT_FOUND') throw err; log.debug('noop', err); }
     const label = which === 'first' ? 'First-response' : 'Resolution';
     try {
         await supportStore.recordThreadEvent({
@@ -82,7 +82,7 @@ async function _notifyBreach(row, which) {
         } catch (e) { log.warn('[SupportSLA] chat notification skipped:', /** @type {Error} */ (e).message); }
     }
     try {
-        require('../support/events').supportEvents.emit('event', {
+        require('../core/support/events').supportEvents.emit('event', {
             event: 'thread_updated', data: { threadId: row.id },
         });
     } catch (err) { bestEffort('services/supportSlaEnforcer:_notifyBreach#3', err); /* noop */ }

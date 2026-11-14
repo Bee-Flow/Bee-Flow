@@ -26,7 +26,7 @@ async function _notifySync(orgId, agentId, action = 'pending') {
         }
         // When auto-sync is enabled, push the change to GitHub (debounced).
         if (config.autoSync === true) {
-            require('../../services/githubSyncService').autoSyncResource(orgId, 'agent', agentId, action);
+            require('../resourceSyncPort').autoSyncResource(orgId, 'agent', agentId, action);
         }
     } catch (e) { bestEffort('stores/agent/agentSync:_notifySync', e); /* non-fatal — sync tracking failure should never break agent ops */ }
 }

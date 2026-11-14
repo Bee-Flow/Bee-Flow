@@ -55,6 +55,25 @@ test('exp: a token that expires one second from now is still valid', async () =>
     assert.equal(r.valid, true, r.error);
 });
 
+// ── required claims ─────────────────────────────────────────────────────
+
+test('a token without a licence id, or with an empty one, is refused as such', async () => {
+    assert.deepEqual(await check({ license_id: undefined }), { valid: false, error: 'missing_license_id' });
+    assert.deepEqual(await check({ license_id: '' }), { valid: false, error: 'missing_license_id' });
+    assert.deepEqual(await check({ license_id: 7 }), { valid: false, error: 'missing_license_id' });
+});
+
+test('a token without an expiry, or with one that is not a number, is refused as such', async () => {
+    assert.deepEqual(await check({ exp: undefined }), { valid: false, error: 'missing_exp' });
+    assert.deepEqual(await check({ exp: String(NOW + 3600) }), { valid: false, error: 'missing_exp' });
+});
+
+test('a token whose header names another type than JWT is refused before its signature is looked at', async () => {
+    const header = b64url(JSON.stringify({ alg: 'RS256', typ: 'at+jwt' }));
+    const token = `${header}.${b64url(JSON.stringify(claims({})))}.c2ln`;
+    assert.deepEqual(await verify.verifyToken(token, { now: NOW, publicKeyOverride: publicKey }), { valid: false, error: 'unexpected_typ: at+jwt' });
+});
+
 // ── nbf ─────────────────────────────────────────────────────────────────
 
 test('nbf: a token that starts beyond the 60-second leeway is not yet valid', async () => {

@@ -5,7 +5,7 @@
  * Everything the KB sub-routers under routes/knowledgeBases/ have in common:
  * the system-KB beta resolution, the usage-context query helpers, the SSRF
  * screening used by every caller-influenced fetch, and the access gate (auth/kbAccess.mts,
- * through support/kbAccess.js). Module-level state (SEARCH_SERVICE_URL, SYSTEM_KB_BETA_SLUGS) lives
+ * through core/kb/kbAccess.js). Module-level state (SEARCH_SERVICE_URL, SYSTEM_KB_BETA_SLUGS) lives
  * here and nowhere else.
  *
  * No request schema lives here: this file declares no route. The query helpers
@@ -126,11 +126,11 @@ const getUserId = (/** @type {import('express').Request<any, any, any, any>} */ 
 const resolveUserGroups = (req) => resolveUserGroupsById(getUserId(req));
 
 // Who may read or manage a base is decided in auth/kbAccess.mts, wired once in
-// support/kbAccess.js, so every router that lets a client name a kb id (this
+// core/kb/kbAccess.js, so every router that lets a client name a kb id (this
 // one, notebooks, projects) applies the identical policy. `requireKbGrade` is
 // the tagged gate every `/:id` route here puts in its chain; the handler takes
 // the loaded base from `kbAccessOf(req)`.
-const { canAccessKB, canManageKB, requireKbGrade, kbAccessOf, resolveAdminOrgIds } = require('../../support/kbAccess');
+const { canAccessKB, canManageKB, requireKbGrade, kbAccessOf, resolveAdminOrgIds } = require('../../core/kb/kbAccess');
 
 /**
  * Guard for mutating routes. System-managed KBs are read-only — their content

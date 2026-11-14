@@ -35,7 +35,7 @@ const { createBuilderStream, call } = require('../../../testUtils/builderStreamH
 const h = createBuilderStream();
 after(() => h.restore());
 
-const { loadOrCreateDraft, seedFor } = require('./builderDraft');
+const { loadOrCreateDraft, seedFor } = require('../../../usecases/ai/automationBuilder/builderDraft');
 const { UNTITLED_AUTOMATION } = require('../../../automation/builderTools/deriveTitle');
 
 const BRIEF = 'Lees elke nieuwe factuur uit Nextcloud en schrijf de boeking weg in de tabel Boekingen.';

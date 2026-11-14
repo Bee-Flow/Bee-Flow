@@ -8,7 +8,7 @@
  */
 
 const orgHealth = require('../../services/orgHealth');
-const planEntitlements = require('../../services/planEntitlements');
+const planEntitlements = require('../../core/entitlements/planEntitlements');
 
 /**
  * Is the Nextcloud uid stored on a user still a live account with this e-mail

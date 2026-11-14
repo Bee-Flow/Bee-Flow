@@ -5,7 +5,7 @@ import { apiFetch } from '../../api/typedRequest';
 import type { ConnectLinkProps, AddAppFormProps } from './WebpageAppsPanel.types';
 
 
-export async function readJson(res: Response) {
+async function readJson(res: Response) {
     try { return await res.json(); } catch { return null; }
 }
 

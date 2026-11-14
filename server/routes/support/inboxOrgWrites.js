@@ -6,7 +6,7 @@
  */
 
 const supportStore = require('../../stores/supportStore');
-const access = require('../../support/access');
+const access = require('../../core/support/access');
 const audit = require('../../support/audit');
 const { HttpError } = require('../../core/http/errors');
 const { getUserId } = require('./inboxScope');

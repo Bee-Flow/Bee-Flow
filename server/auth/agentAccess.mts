@@ -39,7 +39,7 @@
  *                                public page (so the two cannot be told
  *                                apart), 403 for a signed-in person outside
  *                                the audience.
- * Pure: every dependency comes in through `deps`; agents/agentAccess.js wires
+ * Pure: every dependency comes in through `deps`; core/agentRuntime/agentAccess.js wires
  * the real stores and auth lazily (`defaultAgentAccess`), and
  * routes/agents/crud.js builds the router's instance from its own, mockable
  * imports. The per-request lookups (organisations, groups, permissions) are
@@ -93,7 +93,7 @@ export type AgentUser = { id?: string; organizationId?: string | null; orgRole?:
 /** The per-user inputs of the edit rule, prefetched once per request. */
 export type EditContext = { permissions: OrgPermissions; orgIds: Set<string> | null; user: AgentUser | null };
 
-/** What the edit rule alone needs (agents/agentAccess.js makeAgentAccess, automation/agentBinding.js). */
+/** What the edit rule alone needs (core/agentRuntime/agentAccess.js makeAgentAccess, automation/agentBinding.js). */
 export type AgentEditDeps = {
     resolvePermissionsByOrg: (userId: string, session?: unknown) => Promise<OrgPermissions>;
     resolveUserOrgIds: (req: AgentRequest) => Promise<Set<string> | null>;
@@ -163,7 +163,7 @@ function sharedGroupsOf(agent: AgentRow): string[] {
 
 /**
  * The edit rule and its prefetch, on the deps it alone needs. The order of the
- * rules is the contract (routes/agents/crud.authz.test.js, agents/agentAccess.test.js):
+ * rules is the contract (routes/agents/crud.authz.test.js, core/agentRuntime/agentAccess.test.js):
  *   1. the owner, before any lookup (owners without manage_agents keep their flows);
  *   2. the super admin;
  *   3. an agent without an organisation is its owner's;

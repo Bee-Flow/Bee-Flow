@@ -87,7 +87,7 @@ const MOCKS = {
     },
     '../../modules': { listInactiveCapabilityIds: async () => [] },
     '../../license': { getLicense: async () => null },
-    '../../services/planEntitlements': { getOrgCaps: async () => ({}) },
+    '../../core/entitlements/planEntitlements': { getOrgCaps: async () => ({}) },
     '../../core/customIntegrations/featureFlag': { customIntegrationsEnabled: async () => false },
     '../../core/integrations/ncIntegrationCatalog': { NC_INTEGRATION_IDS: [], NC_INTEGRATION_ID_SET: new Set() },
     '../../stores/orgCustomIntegrationStore': { listForOrg: async () => [] },

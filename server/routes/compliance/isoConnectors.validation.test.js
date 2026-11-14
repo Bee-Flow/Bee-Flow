@@ -49,7 +49,7 @@ const MOCKS = {
         getAll: () => [{ id: 'tls-probe', titleKey: 't', descKey: 'd' }],
         get: (id) => (id === 'tls-probe' ? { id: 'tls-probe', credential: null } : null),
     },
-    '../../jobs/isoEvidenceCollector': {
+    '../../compliance/isoEvidenceCollector': {
         sweepOne: async (cfg) => { touched.push({ what: 'sweepOne', args: [cfg] }); return { ok: true, snapshots: 1 }; },
     },
     '../../auth/permissions': { requireAuth: pass, requirePermission: () => pass },

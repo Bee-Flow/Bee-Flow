@@ -122,7 +122,7 @@ router.post('/iso/connectors/:id/sweep', requireAuth, requirePermission('admin_c
     const isoEvidenceStore = require('../../stores/isoEvidenceStore');
     const config = await isoEvidenceStore.getConfig(orgId, String(req.params.id));
     if (!config?.enabled) return res.status(400).json({ error: 'connector not enabled' });
-    const { sweepOne } = require('../../jobs/isoEvidenceCollector');
+    const { sweepOne } = require('../../compliance/isoEvidenceCollector');
     const result = await sweepOne(config);
     res.status(result.ok ? 200 : 502).json(result);
 });

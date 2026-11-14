@@ -90,7 +90,7 @@ const MOCKS = {
                 id: `conv${i + 1}`, type: 'direct', ownerId: i === 0 ? 'bob' : 'alice',
             }));
         },
-        // The audit row and its live event, one transaction (projects/changeFeed).
+        // The audit row and its live event, one transaction (core/projectContent/changeFeed).
         recordActivityEvent: async (projectId, entry) => {
             record('activity', { projectId, action: entry.action, targetType: entry.targetType, targetId: entry.targetId });
             return null;
@@ -245,7 +245,7 @@ const MOCKS = {
             return fx.kbs[id] || null;
         },
     },
-    '../support/kbAccess': {
+    '../core/kb/kbAccess': {
         partitionAccessibleKBIds: async (_req, ids) => ({
             allowed: ids.filter(id => fx.readableKBs.includes(id)),
             denied: ids.filter(id => !fx.readableKBs.includes(id)),

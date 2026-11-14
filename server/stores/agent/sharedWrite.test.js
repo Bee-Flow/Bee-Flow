@@ -116,9 +116,8 @@ mock(path.join(SERVER, 'stores', 'agent', 'conversationMessages'), {
     },
 });
 const fxDlpCleared = [];
-mock(path.join(SERVER, 'core', 'dlp', 'dlpRunner'), {
-    clearConversationState: (id) => fxDlpCleared.push(id),
-});
+// The store drops the cached DLP state through its port (boot/lateBoundPorts.js installs the real cleaner).
+require('./conversationStatePort').setConversationStateCleaner((id) => fxDlpCleared.push(id));
 mock(path.join(SERVER, 'auth', 'projectAccess'), {
     hasProjectRole: async (userId, projectId, minRole) => {
         const role = fx.roles[`${userId}|${projectId}`];

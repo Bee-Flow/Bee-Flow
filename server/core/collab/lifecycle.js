@@ -24,7 +24,7 @@
  * job's pass over one document.
  *
  * The owners' hooks (resources.js) and the other workstreams' services
- * (projects/changeFeed.recordContentChange, core/dlp/contentSignals
+ * (core/projectContent/changeFeed.recordContentChange, core/dlp/contentSignals
  * .queueContentScan) are called defensively: a piece that is missing or
  * fails is logged and skipped, never allowed to fail the edit or the job.
  *

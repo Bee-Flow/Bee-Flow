@@ -281,3 +281,24 @@ test('a column that is not there yet means "feature off", on a write too', async
         invalidatePolicyCache();
     }
 });
+
+// ── The pieces every resolution is built from ───────────────────────────────
+
+test('the plaintext context holds no key and encrypts no surface', () => {
+    assert.deepStrictEqual({ ...PLAINTEXT_CONTEXT }, {
+        key: null, backgroundKey: null, encryptMessages: false, encryptMeta: false, encryptConversationMeta: false,
+        encryptTitle: false, encryptNotebookMessages: false, encryptMemories: false, tier: 'none',
+    });
+    assert.ok(Object.isFrozen(PLAINTEXT_CONTEXT));
+});
+
+test('a key is 32 bytes: a buffer as it is, a string from base64, anything else is no key', () => {
+    const { _toKeyBuffer } = require('./messageCrypto');
+    const raw = crypto.randomBytes(32);
+    assert.strictEqual(_toKeyBuffer(raw), raw);
+    assert.deepStrictEqual(_toKeyBuffer(raw.toString('base64')), raw);
+    assert.strictEqual(_toKeyBuffer(crypto.randomBytes(31)), null);
+    assert.strictEqual(_toKeyBuffer(crypto.randomBytes(16).toString('base64')), null);
+    assert.strictEqual(_toKeyBuffer(null), null);
+    assert.strictEqual(_toKeyBuffer(''), null);
+});

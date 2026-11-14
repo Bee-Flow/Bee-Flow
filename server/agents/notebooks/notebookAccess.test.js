@@ -30,7 +30,7 @@ const kbStore = require('../../stores/knowledgeBases');
 const { ensureNotebookKBFor } = require('./sourceIngestion');
 const { partitionNotebookKbIds } = require('./notebookKbAccess');
 const { makeNotebookFeed } = require('./notebookFeed');
-const notebookCollab = require('./notebookCollab');
+const notebookCollab = require('../../core/collab/notebookCollab');
 
 const { swap, restore } = makeSwaps();
 after(restore);

@@ -84,7 +84,7 @@ const MOCKS = {
             return fx.resolvedTenant || null;
         },
     },
-    '../services/planEntitlements': {
+    '../core/entitlements/planEntitlements': {
         applyPlanToOrg: async (...args) => { fx.calls.push(['applyPlanToOrg', ...args]); },
     },
     '../services/orgHealth': {

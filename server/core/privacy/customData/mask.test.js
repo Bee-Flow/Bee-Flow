@@ -103,6 +103,20 @@ test('keepFixed keeps the fixed part and masks the rest', () => {
     assert.ok(out.startsWith('KL-'));
     assert.notEqual(out.slice(3), '12345');
     assert.match(out, /^KL-\d{5}$/);
+    // The fixed part ends where it ends: the first character after it is masked like the rest.
+    [...'12345'].forEach((digit, i) => assert.notEqual(out[3 + i], digit, `position ${i} after the fixed part`));
+});
+
+test('an example whose every look-alike is another example gets none, and still has its place in the result', () => {
+    // A single digit can only become another digit, and every other digit is an example here.
+    const digits = [...'0123456789'];
+    assert.deepEqual(maskExamples(digits, OPTS), digits.map((example) => ({ example, lookalike: null })));
+});
+
+test('the look-alike of a value is the same in every release: a long value under a fixed key', () => {
+    // 1000 draws from the key stream, so a change in how a byte becomes a character shows.
+    const out = maskExample('0123456789'.repeat(100), OPTS);
+    assert.equal(crypto.createHash('sha256').update(out).digest('hex'), 'fcc17013eb046112198a40be6e581827e1b0e45339c39b3d1af21bdd9d311d00');
 });
 
 test('keepFixed proposal: pattern only, shared prefix/suffix, at most 4 letters', () => {
@@ -124,4 +138,13 @@ test('keepFixed sent by a client is accepted only in its safe shape', () => {
     assert.deepEqual(acceptedKeepFixed(['XY-'], ex, 'pattern'), [], 'not shared by the examples');
     assert.equal(keepFixedShapeOk('12'), false);
     assert.equal(keepFixedShapeOk('KL-'), true);
+});
+
+test('a keepFixed entry that is not a non-empty string is ignored, whatever else it is', () => {
+    const plain = maskExample('KL-12345', { ...OPTS, keepFixed: [] });
+    for (const odd of [12345, '', null, true, { length: 3 }, ['KL-']]) {
+        assert.equal(maskExample('KL-12345', { ...OPTS, keepFixed: /** @type {string[]} */ (/** @type {unknown} */ ([odd])) }), plain, String(odd));
+    }
+    // A usable entry next to an odd one still counts.
+    assert.ok(maskExample('KL-12345', { ...OPTS, keepFixed: /** @type {string[]} */ (/** @type {unknown} */ ([12345, 'KL-'])) }).startsWith('KL-'));
 });

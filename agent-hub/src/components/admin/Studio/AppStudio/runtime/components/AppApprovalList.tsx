@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronRight, Clock, Download, FileText, Loader2, LogIn, ShieldCheck } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import useTranslation from '@/hooks/useTranslation';
 import { FormRichText } from '@/components/forms/PublicFormRenderer';
 import ApprovalDecisionControls, { type ApprovalField } from '@/components/admin/Studio/Approvals/ApprovalDecisionControls';
@@ -12,6 +12,8 @@ import type React from 'react';
 import type { NodeProps } from './appNode.types';
 import { errorBody, RefusedError } from '@/api/mutate';
 import { apiRequest, apiUrl } from '@/api/typedRequest';
+import { useOptionalQueryClient } from '@/api/queries/optionalQueryClient';
+import { useViewerApprovalsQuery, viewerApprovalsKey } from '@/api/queries/automation/viewerApprovals';
 import type { ApiBody } from '@/api/typedRequest';
 
 /**
@@ -85,6 +87,15 @@ const SAMPLE_ROWS: ApprovalRow[] = [
     { id: 'sample-2', status: 'approved', prompt: 'Publish the June newsletter?', automationTitle: 'Marketing', createdAt: new Date().toISOString(), decidedByName: 'Fleur' },
 ];
 
+const NO_ROWS: ApprovalRow[] = [];
+
+/** The sentence for a list that could not be read: the server's own text for a refusal, else ours. */
+function listFailure(err: Error | null, tr: (key: string, fallback: string) => string): string | null {
+    if (!err) return null;
+    const refused = err instanceof RefusedError ? errorBody(err)?.error : null;
+    return refused || tr('studio_apps_runtime.approvals.load_failed', 'Could not load approvals');
+}
+
 interface ApprovalListProps {
     scope?: string;
     show?: string;
@@ -106,51 +117,20 @@ export default function AppApprovalList({ node }: NodeProps<ApprovalListProps>) 
     tRef.current = t;
     const tr = useCallback((key: string, fallback: string | TranslateParams, params?: TranslateParams) => tRef.current(key, fallback, params), []);
     const live = mode === 'run' && !!currentUser;
-    const [rows, setRows] = useState<ApprovalRow[]>([]);
-    const [loading, setLoading] = useState(live);
-    const [error, setError] = useState<string | null>(null);
     const [openId, setOpenId] = useState<string | null>(null);
     const [detail, setDetail] = useState<ApprovalDetail | null>(null);   // { approval, canDecide } for openId
-    const gen = useRef(0);
 
-    const load = useCallback(async () => {
-        if (!live) return;
-        const g = ++gen.current;
-        try {
-            const q = new URLSearchParams();
-            q.set('scope', 'mine');                       // viewer scope is the server's law
-            const status = SHOW_TO_STATUS[show] ?? SHOW_TO_STATUS.waiting;
-            if (status) q.set('status', status);
-            q.set('limit', String(Math.max(1, Math.min(50, Number(limit) || 10))));
-            if (scope === 'app' && appId) q.set('appId', appId);
-            let res: Response;
-            try {
-                res = await apiRequest('GET /api/automation/approvals', { query: q });
-            } catch (err) {
-                if (!(err instanceof RefusedError)) throw err;
-                if (g === gen.current) setError(errorBody(err)?.error || tr('studio_apps_runtime.approvals.load_failed', 'Could not load approvals'));
-                return;
-            }
-            const body = await res.json().catch(() => null);
-            if (g !== gen.current) return;
-            setError(null);
-            setRows(Array.isArray(body?.approvals) ? body.approvals : []);
-        } catch {
-            if (g === gen.current) setError(tr('studio_apps_runtime.approvals.load_failed', 'Could not load approvals'));
-        } finally {
-            if (g === gen.current) setLoading(false);
-        }
-    }, [live, show, limit, scope, appId, tr]);
-
-    useEffect(() => { setLoading(live); load(); }, [load, live]);
-
-    // Liveness at the platform's bell cadence — polling, deliberately (prod is
-    // multi-pod; there is no per-viewer push channel to approvals).
-    useEffect(() => {
-        if (!live) return undefined;
-        const t = setInterval(load, 30_000);
-        return () => clearInterval(t);
-    }, [live, load]);
+    const status = SHOW_TO_STATUS[show] ?? SHOW_TO_STATUS.waiting;
+    const cap = Math.max(1, Math.min(50, Number(limit) || 10));
+    const listAppId = scope === 'app' && appId ? appId : null;
+    // Liveness at the platform's bell cadence is the query's own 30-second refresh.
+    const { client } = useOptionalQueryClient();
+    const list = useViewerApprovalsQuery<ApprovalRow>({ status, limit: cap, appId: listAppId }, live, client);
+    const rows = list.data ?? NO_ROWS;
+    const loading = live && list.isPending;
+    const error = listFailure(list.error, tr);
+    const { refetch } = list;
+    const load = useCallback(() => { void refetch(); }, [refetch]);
 
     const openRow = useCallback(async (row: ApprovalRow) => {
         if (!showDetails) return;
@@ -196,10 +176,9 @@ export default function AppApprovalList({ node }: NodeProps<ApprovalListProps>) 
         setDetail({ approval: fresh, canDecide: false });
         // A row whose new status no longer matches the visible slice LEAVES the
         // list — a just-approved request lingering under "waiting" reads as a bug.
-        const visible = SHOW_TO_STATUS[show] ?? SHOW_TO_STATUS.waiting;
-        setRows((prev) => prev
+        client.setQueryData<ApprovalRow[]>(viewerApprovalsKey({ status, limit: cap, appId: listAppId }), (prev) => (prev || [])
             .map((r) => (r.id === fresh.id ? fresh : r))
-            .filter((r) => !visible || visible.split(',').includes(r.status)));
+            .filter((r) => !status || status.split(',').includes(r.status)));
         // The in-app reaction channel: a wired onDecided runs its sequence
         // with the decision in the triggering form scope — TERMINAL outcomes
         // only, never an intermediate panel vote.
@@ -213,7 +192,7 @@ export default function AppApprovalList({ node }: NodeProps<ApprovalListProps>) 
             };
             runAction(node.onDecided, { formValues: payload, ...payload });
         }
-    }, [load, node.onDecided, runAction, show, tr]);
+    }, [load, node.onDecided, runAction, tr, client, status, cap, listAppId]);
 
     // ── Editor preview ───────────────────────────────────────────────────
     if (mode !== 'run') {

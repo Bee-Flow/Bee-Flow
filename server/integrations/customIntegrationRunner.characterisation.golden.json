@@ -1,0 +1,7207 @@
+{
+ "gateAllOff": {
+  "result": {
+   "error": "Custom integrations are disabled."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ]
+  ]
+ },
+ "gateDraftBuilderOff": {
+  "result": {
+   "error": "Custom integrations are disabled."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ]
+  ]
+ },
+ "gateThrows": {
+  "result": {
+   "error": "Custom integration request failed."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "log.warn",
+    "[CustomIntegration] cint_acme1234_list_items failed: config down"
+   ]
+  ]
+ },
+ "nameNotCint": {
+  "result": {
+   "error": "Unknown custom integration tool."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ]
+  ]
+ },
+ "nameNoTool": {
+  "result": {
+   "error": "Unknown custom integration tool."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ]
+  ]
+ },
+ "nameBadSlug": {
+  "result": {
+   "error": "Unknown custom integration tool."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ]
+  ]
+ },
+ "nameNotAString": {
+  "result": {
+   "error": "Unknown custom integration tool."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ]
+  ]
+ },
+ "nameNull": {
+  "result": {
+   "error": "Unknown custom integration tool."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ]
+  ]
+ },
+ "rowMissing": {
+  "result": {
+   "error": "This custom integration no longer exists."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ]
+  ]
+ },
+ "rowOtherSlug": {
+  "result": {
+   "error": "Unknown custom integration tool."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ]
+  ]
+ },
+ "rowSlugNotAString": {
+  "result": {
+   "error": "Unknown custom integration tool."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ]
+  ]
+ },
+ "rowSlugAListOfTheSlug": {
+  "result": {
+   "error": "Unknown custom integration tool."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ]
+  ]
+ },
+ "draftOtherSlug": {
+  "result": {
+   "error": "Unknown custom integration tool."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ]
+  ]
+ },
+ "rowNotRunnable": {
+  "result": {
+   "error": "This integration has been switched off by your server administrator."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ]
+  ]
+ },
+ "draftSkipsRunnable": {
+  "result": {
+   "status": 200,
+   "result": "[{\"id\":1}]"
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ]
+  ]
+ },
+ "storeThrows": {
+  "result": {
+   "error": "Custom integration request failed."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "log.warn",
+    "[CustomIntegration] cint_acme1234_list_items failed: db down"
+   ]
+  ]
+ },
+ "storeLoadThrows": {
+  "result": {
+   "error": "Custom integration request failed."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "log.warn",
+    "[CustomIntegration] cint_acme1234_list_items failed: module missing"
+   ]
+  ]
+ },
+ "noUserId": {
+  "result": {
+   "error": "User context required for custom integrations."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ]
+  ]
+ },
+ "userLookupThrows": {
+  "result": {
+   "error": "User context required for custom integrations."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ]
+  ]
+ },
+ "userMissing": {
+  "result": {
+   "error": "User context required for custom integrations."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ]
+  ]
+ },
+ "otherOrganisation": {
+  "result": {
+   "error": "This custom integration belongs to a different organization."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-b"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ]
+  ]
+ },
+ "bothDefaultOrganisation": {
+  "result": {
+   "status": 200,
+   "result": "[{\"id\":1}]"
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "<undefined>"
+   ],
+   [
+    "conn.resolveOrgId",
+    null
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-default"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-default",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    null
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ]
+  ]
+ },
+ "otherOrganisationBeforeStatus": {
+  "result": {
+   "error": "This custom integration belongs to a different organization."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-b"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ]
+  ]
+ },
+ "notActive": {
+  "result": {
+   "error": "This custom integration is not active."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ]
+  ]
+ },
+ "draftNotActive": {
+  "result": {
+   "status": 200,
+   "result": "[{\"id\":1}]"
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ]
+  ]
+ },
+ "unattended": {
+  "result": {
+   "error": "Custom integrations are not available in automated runs yet."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ]
+  ]
+ },
+ "unattendedTruthyOnly": {
+  "result": {
+   "status": 200,
+   "result": "[{\"id\":1}]"
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ]
+  ]
+ },
+ "unattendedBeforeCapability": {
+  "result": {
+   "error": "Custom integrations are not available in automated runs yet."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ]
+  ]
+ },
+ "capabilityOff": {
+  "result": {
+   "error": "This custom integration is not enabled for your account. An org admin can enable it."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ]
+  ]
+ },
+ "capabilityThrows": {
+  "result": {
+   "error": "This custom integration is not enabled for your account. An org admin can enable it."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ]
+  ]
+ },
+ "capabilityTruthy": {
+  "result": {
+   "status": 200,
+   "result": "[{\"id\":1}]"
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ]
+  ]
+ },
+ "draftSkipsCapability": {
+  "result": {
+   "status": 200,
+   "result": "[{\"id\":1}]"
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ]
+  ]
+ },
+ "capabilityBeforeMcp": {
+  "result": {
+   "error": "This custom integration is not enabled for your account. An org admin can enable it."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ]
+  ]
+ },
+ "mcpResult": {
+  "result": {
+   "result": "done",
+   "truncated": true
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "callRemoteMcpTool",
+    "acme1234",
+    {
+     "prefixedName": "cint_acme1234_list_items",
+     "toolName": "list_items",
+     "args": {
+      "q": 1
+     },
+     "userId": "u-1",
+     "secretValues": []
+    }
+   ]
+  ]
+ },
+ "mcpRefusal": {
+  "result": {
+   "error": "Tool \"list_items\" is not part of this integration."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "callRemoteMcpTool",
+    "acme1234",
+    {
+     "prefixedName": "cint_acme1234_list_items",
+     "toolName": "list_items",
+     "args": "<undefined>",
+     "userId": "u-1",
+     "secretValues": []
+    }
+   ]
+  ]
+ },
+ "mcpThrows": {
+  "result": {
+   "error": "Custom integration request failed."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "callRemoteMcpTool",
+    "acme1234",
+    {
+     "prefixedName": "cint_acme1234_list_items",
+     "toolName": "list_items",
+     "args": "<undefined>",
+     "userId": "u-1",
+     "secretValues": []
+    }
+   ],
+   [
+    "log.warn",
+    "[CustomIntegration] cint_acme1234_list_items failed: socket closed"
+   ]
+  ]
+ },
+ "mcpDraft": {
+  "result": {
+   "result": "{}"
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "callRemoteMcpTool",
+    "acme1234",
+    {
+     "prefixedName": "cint_acme1234_list_items",
+     "toolName": "list_items",
+     "args": "<undefined>",
+     "userId": "u-1",
+     "secretValues": []
+    }
+   ]
+  ]
+ },
+ "definitionMissing": {
+  "result": {
+   "error": "This custom integration has no runnable definition."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ]
+  ]
+ },
+ "definitionNotAnObject": {
+  "result": {
+   "error": "This custom integration has no runnable definition."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ]
+  ]
+ },
+ "definitionNoApi": {
+  "result": {
+   "error": "This custom integration has no runnable definition."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ]
+  ]
+ },
+ "definitionApiNotAnObject": {
+  "result": {
+   "error": "This custom integration has no runnable definition."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ]
+  ]
+ },
+ "definitionToolsNotAList": {
+  "result": {
+   "error": "This custom integration has no runnable definition."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ]
+  ]
+ },
+ "definitionBadBaseUrl": {
+  "result": {
+   "error": "The integration base URL is invalid."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ]
+  ]
+ },
+ "definitionToolUnknown": {
+  "result": {
+   "error": "Tool \"nope_tool\" is not part of this integration."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ]
+  ]
+ },
+ "draftRunsWorkingDefinition": {
+  "result": {
+   "status": 200,
+   "result": "[{\"id\":1}]"
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://draft.example.com/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://draft.example.com/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-Tool": "list"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ]
+  ]
+ },
+ "activeRunsFrozenDefinition": {
+  "result": {
+   "status": 200,
+   "result": "[{\"id\":1}]"
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ]
+  ]
+ },
+ "methodInvalid": {
+  "result": {
+   "error": "This tool has an invalid HTTP method."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ]
+  ]
+ },
+ "methodMissing": {
+  "result": {
+   "error": "This tool has an invalid HTTP method."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ]
+  ]
+ },
+ "writeNotAllowed": {
+  "result": {
+   "error": "This integration is read-only — write operations were not enabled at activation."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ]
+  ]
+ },
+ "writeNotAllowedTruthy": {
+  "result": {
+   "error": "This integration is read-only — write operations were not enabled at activation."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ]
+  ]
+ },
+ "writeNotAllowedDraft": {
+  "result": {
+   "error": "This integration is read-only — write operations were not enabled at activation."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ]
+  ]
+ },
+ "methodBeforeArguments": {
+  "result": {
+   "error": "This integration is read-only — write operations were not enabled at activation."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ]
+  ]
+ },
+ "argsUnknown": {
+  "result": {
+   "error": "Invalid arguments: Unknown argument \"bogus\"."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ]
+  ]
+ },
+ "argsMissingRequired": {
+  "result": {
+   "error": "Invalid arguments: Missing required argument \"id\"."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ]
+  ]
+ },
+ "argsNull": {
+  "result": {
+   "error": "Missing required path parameter \"p\"."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ]
+  ]
+ },
+ "argsNotAnObject": {
+  "result": {
+   "error": "Invalid arguments: Arguments must be a JSON object."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ]
+  ]
+ },
+ "argsList": {
+  "result": {
+   "error": "Invalid arguments: Arguments must be a JSON object."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ]
+  ]
+ },
+ "argsBeforeCredentials": {
+  "result": {
+   "error": "Invalid arguments: Missing required argument \"id\". Unknown argument \"bogus\"."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ]
+  ]
+ },
+ "authNone": {
+  "result": {
+   "status": 200,
+   "result": "[{\"id\":1}]"
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ]
+  ]
+ },
+ "authNotAnObject": {
+  "result": {
+   "status": 200,
+   "result": "[{\"id\":1}]"
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ]
+  ]
+ },
+ "credentialsNone": {
+  "result": {
+   "error": "No credentials connected for this integration. Add them under Settings → Connections."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ]
+  ]
+ },
+ "credentialsNoConnectionId": {
+  "result": {
+   "error": "No credentials connected for this integration. Add them under Settings → Connections."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ]
+  ]
+ },
+ "credentialsOverride": {
+  "result": {
+   "status": 200,
+   "result": "[{\"id\":1}]"
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-9"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ]
+  ]
+ },
+ "credentialsOverrideOtherProvider": {
+  "result": {
+   "error": "The selected connection does not belong to this integration."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-9"
+   ]
+  ]
+ },
+ "credentialsInactive": {
+  "result": {
+   "error": "The stored credentials are unavailable — re-enter credentials for this integration."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ]
+  ]
+ },
+ "credentialsGone": {
+  "result": {
+   "error": "The stored credentials are unavailable — re-enter credentials for this integration."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ]
+  ]
+ },
+ "credentialsOtherOrganisation": {
+  "result": {
+   "error": "The stored credentials belong to a different organization."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-b"
+   ]
+  ]
+ },
+ "credentialsOtherHost": {
+  "result": {
+   "error": "The stored credential is bound to a different API host — re-enter credentials for this integration."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ]
+  ]
+ },
+ "credentialsUnreadable": {
+  "result": {
+   "error": "The stored credentials could not be read — re-enter credentials for this integration."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ]
+  ]
+ },
+ "credentialsThrow": {
+  "result": {
+   "error": "Custom integration request failed."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "log.warn",
+    "[CustomIntegration] cint_acme1234_list_items failed: vault down"
+   ]
+  ]
+ },
+ "credentialsBeforeUrl": {
+  "result": {
+   "error": "No credentials connected for this integration. Add them under Settings → Connections."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ]
+  ]
+ },
+ "urlMissingPathParam": {
+  "result": {
+   "error": "Missing required path parameter \"p\"."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ]
+  ]
+ },
+ "urlTraversal": {
+  "result": {
+   "error": "Resolved request path contains a traversal sequence."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ]
+  ]
+ },
+ "urlEncodesPathAndQuery": {
+  "result": {
+   "status": 200,
+   "result": "[{\"id\":1}]"
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a%20b%2Fc?q=x%26y%3Dz&tags=t1%2Ct2&fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a%20b%2Fc?q=x%26y%3Dz&tags=t1%2Ct2&fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ]
+  ]
+ },
+ "guardRefusesWithSafeMessage": {
+  "result": {
+   "error": "Target host could not be resolved."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ]
+  ]
+ },
+ "guardRefusesWithOtherMessage": {
+  "result": {
+   "error": "Target address is not allowed."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ]
+  ]
+ },
+ "guardThrowsNothing": {
+  "result": {
+   "error": "Target address is not allowed."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ]
+  ]
+ },
+ "guardBeforeAuthRender": {
+  "result": {
+   "error": "Target address is not allowed."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ]
+  ]
+ },
+ "bodyJson": {
+  "result": {
+   "status": 201,
+   "result": "{\"id\":9}"
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.create_item (POST)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items",
+    {
+     "method": "POST",
+     "headers": {
+      "X-App": "bf",
+      "Content-Type": "application/json",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "{\"name\":\"Widget\",\"n\":3,\"list\":[\"Widget\",\"x\"],\"kind\":\"fixed\"}",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ]
+  ]
+ },
+ "bodyJsonOptionalAbsent": {
+  "result": {
+   "status": 200,
+   "result": "{\"id\":9}"
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.create_item (POST)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items",
+    {
+     "method": "POST",
+     "headers": {
+      "X-App": "bf",
+      "Content-Type": "application/json",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "{\"list\":[null,\"x\"],\"kind\":\"fixed\"}",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ]
+  ]
+ },
+ "bodyNoTemplateKeepsContentType": {
+  "result": {
+   "status": 200,
+   "result": "{}"
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.put_item (PUT)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a",
+    {
+     "method": "PUT",
+     "headers": {
+      "X-App": "bf",
+      "content-type": "application/vnd.x+json",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "{}",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ]
+  ]
+ },
+ "bodyDroppedOnGet": {
+  "result": {
+   "status": 200,
+   "result": "{\"data\":[{\"id\":1}],\"other\":true}"
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/echo"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.get_body (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/echo",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ]
+  ]
+ },
+ "bodyOtherModeIgnored": {
+  "result": {
+   "status": 204,
+   "contentType": "unknown",
+   "bytes": 0
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.form_item (DELETE)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a",
+    {
+     "method": "DELETE",
+     "headers": {
+      "X-App": "bf",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ]
+  ]
+ },
+ "authBasic": {
+  "result": {
+   "status": 200,
+   "result": "[{\"id\":1}]"
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list",
+      "Authorization": "Basic <base64 of user:password>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ]
+  ]
+ },
+ "authBasicIncomplete": {
+  "result": {
+   "error": "Stored credentials are incomplete — re-enter the username and password for this integration."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ]
+  ]
+ },
+ "authHeader": {
+  "result": {
+   "status": 200,
+   "result": "[{\"id\":1}]"
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list",
+      "X-Api-Key": "<token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ]
+  ]
+ },
+ "authQuery": {
+  "result": {
+   "status": 200,
+   "result": "[{\"id\":1}]"
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?q=find&fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?q=find&fixed=1&api_key=<token>",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ]
+  ]
+ },
+ "authUnknownType": {
+  "result": {
+   "status": 200,
+   "result": "[{\"id\":1}]"
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ]
+  ]
+ },
+ "authTemplateMissing": {
+  "result": {
+   "error": "The integration auth template is missing."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ]
+  ]
+ },
+ "authCredentialKeyMissing": {
+  "result": {
+   "error": "Stored credentials are missing \"apiKey\" — re-enter credentials for this integration."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ]
+  ]
+ },
+ "fetchAbortError": {
+  "result": {
+   "error": "The request timed out after 1s."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ]
+  ]
+ },
+ "fetchAbortErrorLongTimeout": {
+  "result": {
+   "error": "The request timed out after 30s."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ]
+  ]
+ },
+ "fetchAbortErrorDefaultTimeout": {
+  "result": {
+   "error": "The request timed out after 20s."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ]
+  ]
+ },
+ "fetchTimesOut": {
+  "result": {
+   "error": "The request timed out after 1s."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ]
+  ]
+ },
+ "fetchGuardMessage": {
+  "result": {
+   "error": "Target address is not allowed."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ]
+  ]
+ },
+ "fetchOtherError": {
+  "result": {
+   "error": "Could not reach the API host."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ]
+  ]
+ },
+ "fetchThrowsNothing": {
+  "result": {
+   "error": "Could not reach the API host."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ]
+  ]
+ },
+ "answerTooLarge": {
+  "result": {
+   "error": "The response exceeded the 256 KB limit. Narrow the request (filters, pagination)."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ]
+  ]
+ },
+ "answerAtTheLimit": {
+  "result": {
+   "status": 200,
+   "result": "<1000 chars, sha256 44f8354494a5ba03>",
+   "truncated": true
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ]
+  ]
+ },
+ "answerReadFails": {
+  "result": {
+   "error": "Failed to read the API response."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ]
+  ]
+ },
+ "answerNoBody": {
+  "result": {
+   "status": 204,
+   "contentType": "unknown",
+   "bytes": 0
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/x/a"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.free_path (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/x/a",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ]
+  ]
+ },
+ "vendorErrorJson": {
+  "result": {
+   "error": "The API returned HTTP 401: Bad token [redacted:credential] for you"
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ]
+  ]
+ },
+ "vendorErrorNested": {
+  "result": {
+   "error": "The API returned HTTP 429: Quota exceeded"
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ]
+  ]
+ },
+ "vendorErrorXml": {
+  "result": {
+   "error": "The API returned HTTP 404: No such item"
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ]
+  ]
+ },
+ "vendorErrorNoDetail": {
+  "result": {
+   "error": "The API returned HTTP 502."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ]
+  ]
+ },
+ "vendorErrorNoStamp": {
+  "result": {
+   "error": "The API returned HTTP 500."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ]
+  ]
+ },
+ "stampFailureIgnored": {
+  "result": {
+   "status": 200,
+   "result": "[{\"id\":1}]"
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ]
+  ]
+ },
+ "jsonResultPath": {
+  "result": {
+   "status": 200,
+   "result": "[{\"id\":1}]"
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ]
+  ]
+ },
+ "jsonResultPathMissing": {
+  "result": {
+   "status": 200,
+   "result": "{\"rows\":[1,2]}"
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ]
+  ]
+ },
+ "jsonPlusSuffix": {
+  "result": {
+   "status": 200,
+   "result": "1"
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ]
+  ]
+ },
+ "jsonInvalid": {
+  "result": {
+   "error": "The API returned invalid JSON."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ]
+  ]
+ },
+ "jsonTruncated": {
+  "result": {
+   "status": 200,
+   "result": "<1200 chars, sha256 ee341a68418766b4>",
+   "truncated": true,
+   "message": "Response truncated to 1200 characters. Narrow the request (filters, pagination) for complete data."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ]
+  ]
+ },
+ "jsonBudgetFloor": {
+  "result": {
+   "status": 200,
+   "result": "<1000 chars, sha256 cac61806d42baf8d>",
+   "truncated": true,
+   "message": "Response truncated to 1000 characters. Narrow the request (filters, pagination) for complete data."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ]
+  ]
+ },
+ "jsonBudgetCeiling": {
+  "result": {
+   "status": 200,
+   "result": "<30000 chars, sha256 7026ff2e7830b2e0>",
+   "truncated": true,
+   "message": "Response truncated to 30000 characters. Narrow the request (filters, pagination) for complete data."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ]
+  ]
+ },
+ "jsonEchoesSecret": {
+  "result": {
+   "status": 200,
+   "result": "{\"seen\":\"[redacted:credential]\",\"b64\":\"[redacted:credential]\"}"
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ]
+  ]
+ },
+ "basicEchoesComposedSecret": {
+  "result": {
+   "status": 200,
+   "result": "auth was [redacted:credential]"
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list",
+      "Authorization": "Basic <base64 of user:password>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ]
+  ]
+ },
+ "textResult": {
+  "result": {
+   "status": 200,
+   "result": "plain words"
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ]
+  ]
+ },
+ "binaryResult": {
+  "result": {
+   "status": 200,
+   "contentType": "application/pdf",
+   "bytes": 8
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ]
+  ]
+ },
+ "noContentType": {
+  "result": {
+   "status": 200,
+   "contentType": "unknown",
+   "bytes": 2
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ]
+  ]
+ },
+ "unexpectedFailure": {
+  "result": {
+   "error": "Custom integration request failed."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "gate.isRunnable",
+    "acme1234"
+   ],
+   [
+    "getUser",
+    "u-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "hasCapability",
+    "custom:int-1",
+    {
+     "userId": "u-1",
+     "orgId": "org-a"
+    }
+   ],
+   [
+    "conn.resolveConnectionForRun",
+    {
+     "runningUserId": "u-1",
+     "runningUserOrgId": "org-a",
+     "runningUserGroups": [],
+     "ownerUserId": "u-1",
+     "provider": "custom:int-1"
+    }
+   ],
+   [
+    "conn.getConnectionWithSecret",
+    "conn-1"
+   ],
+   [
+    "conn.resolveOrgId",
+    "org-a"
+   ],
+   [
+    "guard.assertPublicHttpsTarget",
+    "https://api.example.com/v2/items/a?fixed=1"
+   ],
+   [
+    "log.info",
+    "[CustomIntegration] acme1234.list_items (GET)"
+   ],
+   [
+    "guard.safeFetch",
+    "https://api.example.com/v2/items/a?fixed=1",
+    {
+     "method": "GET",
+     "headers": {
+      "X-App": "bf",
+      "X-Tool": "list",
+      "Authorization": "Bearer <token>"
+     },
+     "body": "<undefined>",
+     "signal": true
+    }
+   ],
+   [
+    "conn.touchLastUsed",
+    "conn-1"
+   ],
+   [
+    "log.warn",
+    "[CustomIntegration] cint_acme1234_list_items failed: boom [redacted:credential]"
+   ]
+  ]
+ },
+ "unexpectedFailureLongName": {
+  "result": {
+   "error": "Custom integration request failed."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "integrationStore"
+   ],
+   [
+    "connectionStore"
+   ],
+   [
+    "store.getBySlug",
+    "acme1234"
+   ],
+   [
+    "log.warn",
+    "[CustomIntegration] cint_acme1234_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa failed: db down"
+   ]
+  ]
+ },
+ "unexpectedFailureNameCutInTheLog": {
+  "result": {
+   "error": "Custom integration request failed."
+  },
+  "calls": [
+   [
+    "gate.load"
+   ],
+   [
+    "log.warn",
+    "[CustomIntegration] cint_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx failed: config down"
+   ]
+  ]
+ }
+}

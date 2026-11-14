@@ -55,3 +55,23 @@ test('clearing a pending invitation takes no fields: one sent is refused by name
     assert.equal(cleared.statusCode, 200);
     assert.equal(session.pendingInviteToken, undefined);
 });
+
+test('an invitation kept on the session answers its organisation, without handing the token back; one that no longer resolves is dropped', async () => {
+    const { dispatcher } = require('../../testUtils/routeHarness');
+    const invitationStore = require('../../stores/invitationStore');
+    const pending = (/** @type {Record<string, unknown>} */ session) => dispatcher(router, { session: () => session })({ method: 'GET', url: '/pending-invite' });
+
+    const kept = { pendingInviteToken: 'tok' };
+    const res = await pending(kept);
+    assert.equal(res.body.valid, true);
+    assert.equal(res.body.token, invitationStore.SESSION_INVITE_MARKER);
+    assert.notEqual(res.body.token, 'tok');
+    assert.deepEqual([res.body.organizationId, res.body.orgName, res.body.role], ['org-a', 'Acme', 'user']);
+    assert.equal(kept.pendingInviteToken, 'tok', 'the entry stays for the sign-up that follows');
+
+    const gone = { pendingInviteToken: 'revoked' };
+    assert.deepEqual((await pending(gone)).body, { valid: false, error: 'Invitation expired or invalid' });
+    assert.equal(gone.pendingInviteToken, undefined);
+
+    assert.deepEqual((await pending({})).body, { valid: false });
+});

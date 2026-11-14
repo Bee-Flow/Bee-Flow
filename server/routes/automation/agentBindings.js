@@ -43,7 +43,7 @@ const BindingsBody = closedObject({
  *   binding?: typeof import('../../automation/agentBinding'), // the automation/agentBinding.js surface
  *   agentStore?: typeof import('../../stores/agentStore'), // agent store surface (getForRuntime, getAgents, ...)
  *   userStore?: typeof import('../../stores/userStore'), // { getUser }
- *   agentAccess?: ReturnType<typeof import('../../agents/agentAccess').defaultAgentAccess>, // { buildCanModifyContext, canModifyAgent }
+ *   agentAccess?: ReturnType<typeof import('../../core/agentRuntime/agentAccess').defaultAgentAccess>, // { buildCanModifyContext, canModifyAgent }
  *   getUser?: (id: string) => Promise<any>, // (id) => user row
  *   hasPermission?: (userId: string, permission: string, session?: any) => Promise<boolean> }} [overrides]  hasPermission: (userId, perm, session) => bool
  */

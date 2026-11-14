@@ -74,10 +74,11 @@ function rowToEvent(r) {
 /** @typedef {{ limit?: number }} ListDigestAutomationsArgs */
 /** @typedef {{ days?: number }} PurgeNotificationEventsArgs */
 /**
- * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }> }} db
- * @param {{ ready?: () => Promise<void> }} [opts]
+ * Recording attempts, the throttle count, and the bundles waiting to be reported.
+ * @param {Parameters<typeof makeNotificationEventsStore>[0]} db
+ * @param {() => Promise<void>} ready  the schema init the store waits for
  */
-function makeNotificationEventsStore(db, { ready = async () => {} } = {}) {
+function makeAttemptFns(db, ready) {
     /**
      * Write attempts. Each row: { automationId, runId?, event, recipient,
      * channel, urgency?, createdAt (Date|ISO), delivered (bool), bundled? }.
@@ -185,6 +186,15 @@ function makeNotificationEventsStore(db, { ready = async () => {} } = {}) {
         return r.rowCount ?? 0;
     }
 
+    return { recordNotificationEvents, countRecentMessages, listPendingBundles, markEventsReported };
+}
+
+/**
+ * What a digest reads: held rows, the last digest, the automations and their run numbers.
+ * @param {Parameters<typeof makeNotificationEventsStore>[0]} db
+ * @param {() => Promise<void>} ready  the schema init the store waits for
+ */
+function makeDigestFns(db, ready) {
     /**
      * Held rows a digest should report and then mark: every unreported
      * held row (throttled or digest-only) of these automations for this
@@ -292,6 +302,15 @@ function makeNotificationEventsStore(db, { ready = async () => {} } = {}) {
         return out;
     }
 
+    return { listHeldForDigest, lastDigestAt, listDigestAutomations, digestRunStats };
+}
+
+/**
+ * The recent attempts of one automation, and the retention purge.
+ * @param {Parameters<typeof makeNotificationEventsStore>[0]} db
+ * @param {() => Promise<void>} ready  the schema init the store waits for
+ */
+function makeHistoryFns(db, ready) {
     /**
      * The automation's most recent notification attempts, newest first.
      * @param {string} automationId
@@ -323,18 +342,15 @@ function makeNotificationEventsStore(db, { ready = async () => {} } = {}) {
         return r.rowCount ?? 0;
     }
 
-    return {
-        recordNotificationEvents,
-        countRecentMessages,
-        listPendingBundles,
-        markEventsReported,
-        listHeldForDigest,
-        lastDigestAt,
-        listDigestAutomations,
-        digestRunStats,
-        listRecentNotificationEvents,
-        purgeNotificationEvents,
-    };
+    return { listRecentNotificationEvents, purgeNotificationEvents };
+}
+
+/**
+ * @param {{ query: (sql: string, params?: any[]) => Promise<{ rows: any[], rowCount?: number | null }> }} db
+ * @param {{ ready?: () => Promise<void> }} [opts]
+ */
+function makeNotificationEventsStore(db, { ready = async () => {} } = {}) {
+    return { ...makeAttemptFns(db, ready), ...makeDigestFns(db, ready), ...makeHistoryFns(db, ready) };
 }
 
 // The instance the app uses: the pool, behind the store's schema init.

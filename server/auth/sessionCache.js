@@ -228,10 +228,11 @@ async function evictCached(r, sids) {
  * `keepSid` spares one session — the caller's own, when they changed their
  * own password and should stay signed in where they are.
  *
- * Returns the number of sessions destroyed (PG row count).
+ * Returns the number of sessions destroyed (PG row count); 0 when the delete
+ * failed, unless `strict` (an erasure must know): then the failure is thrown.
  * `db` is the test seam (pool + getRedis, as db.js exports them).
  */
-async function bustSessionsForUser(userId, { db = require('../db'), keepSid = null, sessionTokens = require('../utils/sessionToken') } = {}) {
+async function bustSessionsForUser(userId, { db = require('../db'), keepSid = null, sessionTokens = require('../utils/sessionToken'), strict = false } = {}) {
     if (!userId) return 0;
     try {
         const { pool, getRedis } = db;
@@ -258,7 +259,7 @@ async function bustSessionsForUser(userId, { db = require('../db'), keepSid = nu
         return sids.length;
     } catch (e) {
         log.error('[SessionCache] bustSessionsForUser error:', e.message);
-        if (e instanceof CacheEvictionError) throw e;
+        if (strict || e instanceof CacheEvictionError) throw e;
         return 0;
     }
 }

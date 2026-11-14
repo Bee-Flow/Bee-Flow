@@ -28,13 +28,7 @@ const { executeScreenshotTool, isScreenshotTool } = require('../../../integratio
 const { executeBridgeTool, isBridgeTool } = require('../../../integrations/webpageBridgeTools');
 const { executeWebpageKBSearchTool } = require('../../../core/webpages/webpageKnowledgeSearch');
 const { fallback } = require('../../../utils/bestEffort');
-
-/**
- * @param {string | undefined} slot
- */
-function slotFilename(slot) {
-    return slot === 'html' ? 'index.html' : slot === 'css' ? 'style.css' : 'script.js';
-}
+const { slotFilename } = require('../../../usecases/ai/webpageChat/slotFilename');
 
 /**
  * Strip bulky payloads from tool results before they re-enter the model's
