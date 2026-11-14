@@ -39,6 +39,8 @@ const MAX_PER_SYNC = envInt('SUPPORT_COMPANY_MAILBOX_MAX_PER_SYNC', 50);
 /** A message larger than this (MB) becomes a ticket without its body. 0 = no cap. */
 const MAX_MESSAGE_MB = envInt('SUPPORT_COMPANY_MAILBOX_MAX_MESSAGE_MB', 25);
 const LOCK_TTL_MINUTES = 10;
+/** AI replies per email ticket before the AI hands it to staff (a loop brake against other bots). 0 = no cap. */
+const MAX_AI_REPLIES = envInt('SUPPORT_COMPANY_MAILBOX_MAX_AI_REPLIES', 3);
 
 export interface Mailbox extends MailboxConnection {
     displayName: string;
@@ -78,6 +80,8 @@ interface Deps {
     chatNotify: (a: { thread: Row; event: string }) => Promise<unknown>;
     computeSlaDueAt: (t: Row) => Promise<{ first?: unknown; resolution?: unknown } | null>;
     runAi: (threadId: string) => Promise<{ message?: { id: string; body: string }; escalated?: boolean; escalateReason?: string | null } | null>;
+    countAiReplies: (threadId: string) => Promise<number>;
+    maxAiReplies?: number;
     sendReply: typeof sendCompanyReply;
     detectAutoOrBulk: (get: (n: string) => string, o: { fromAddress: string; inboxAddress: string }) => { skip: boolean; reason: string | null };
     htmlToText: (html: string) => string;
@@ -92,6 +96,11 @@ function defaultDeps(): Deps {
         chatNotify: (a) => (r('../outboundChatNotifier.js') as { notify: Deps['chatNotify'] }).notify(a),
         computeSlaDueAt: (t) => (r('../supportSlaEnforcer.js') as { computeSlaDueAt: Deps['computeSlaDueAt'] }).computeSlaDueAt(t),
         runAi: (id) => (r('../supportAiResponder.js') as { runAiAutoResponder: Deps['runAi'] }).runAiAutoResponder(id),
+        countAiReplies: async (id) => {
+            const msgs = await (r('../../stores/supportStore.js') as { getThreadMessages: (t: string, o: { includeInternal: boolean }) => Promise<Row[]> })
+                .getThreadMessages(id, { includeInternal: false });
+            return msgs.filter((m) => m.author_kind === 'ai').length;
+        },
         sendReply: sendCompanyReply,
         detectAutoOrBulk: (r('../email/parse.js') as { detectAutoOrBulk: Deps['detectAutoOrBulk'] }).detectAutoOrBulk,
         htmlToText: (r('../supportMailer.js') as { htmlToText: Deps['htmlToText'] }).htmlToText,
@@ -167,6 +176,13 @@ export async function ingestCompanyMail(n: NormalizedMail, mb: Pick<Mailbox, 'em
 async function answerWithAi(thread: Row, deps: Deps): Promise<void> {
     const threadId = String(thread.id);
     try {
+        // Another bot that answers every mail without marking itself would
+        // otherwise keep this conversation going forever.
+        const cap = deps.maxAiReplies ?? MAX_AI_REPLIES;
+        if (cap > 0 && await deps.countAiReplies(threadId) >= cap) {
+            deps.notifyStaff({ title: `AI reply limit reached: ${String(thread.subject || '')}`, message: `The AI answered ${cap} times; a person takes it from here.`, threadId }).catch(ignore);
+            return;
+        }
         const result = await deps.runAi(threadId);
         if (!result?.message) return;
         if (result.escalated) {

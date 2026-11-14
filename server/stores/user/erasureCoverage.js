@@ -192,6 +192,8 @@ const ERASURE_COVERAGE = Object.freeze({
     project_blueprints: { mode: 'reassigned', column: 'created_by', org: 'organization_id' },
     solution_stages: { mode: 'reassigned', column: 'created_by', org: 'organization_id' },
     support_inboxes: { mode: 'reassigned', column: 'created_by', org: 'organization_id' },
+    // The company inbox mailbox only names who connected it; the mailbox stays.
+    support_company_mailbox: { mode: 'detached', column: 'created_by' },
     org_custom_integrations: { mode: 'reassigned', column: 'created_by', org: 'org_id' },
     // (after its parent above, so a version takes the parent's new author)
     org_custom_integration_versions: { mode: 'reassigned', column: 'created_by', via: { parent: 'org_custom_integrations', key: 'integration_id', owner: 'created_by' } },

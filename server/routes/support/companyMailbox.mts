@@ -35,7 +35,7 @@ const { bodyOf, closedObject, choice, wholeNumber, worded, flag } = nodeRequire(
 };
 const { validate } = nodeRequire('../../core/http/validate.js') as { validate: (schemas: Record<string, unknown>) => Handler };
 const { HttpError } = nodeRequire('../../core/http/errors.js') as { HttpError: HttpErrorCtor };
-const { requireSuperAdmin } = nodeRequire('../../auth/index.js') as { requireSuperAdmin: Handler };
+const { requireSuperAdmin } = nodeRequire('../../auth/permissions.js') as { requireSuperAdmin: Handler };
 const mailboxStore = nodeRequire('../../stores/supportCompanyMailboxStore.js') as typeof import('../../stores/supportCompanyMailboxStore.js');
 const supportStore = nodeRequire('../../stores/supportStore.js') as { recordAuditEvent: (e: Record<string, unknown>) => Promise<unknown> };
 const log = nodeRequire('../../telemetry/log.js') as { info: (...a: unknown[]) => void; warn: (...a: unknown[]) => void };

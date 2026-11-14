@@ -31,7 +31,7 @@ function parsed(over = {}) {
 }
 
 /** A fake support store and the side channels, recording every call. */
-function fakes({ existing = /** @type {Record<string, unknown> | null} */ (null), known = /** @type {string[]} */ ([]) } = {}) {
+function fakes({ existing = /** @type {Record<string, unknown> | null} */ (null), known = /** @type {string[]} */ ([]), aiReplies = 0 } = {}) {
     /** @type {Record<string, unknown[]>} */
     const calls = { created: [], appended: [], updated: [], notified: [], emitted: [], chat: [], ai: [], sent: [] };
     const deps = {
@@ -51,6 +51,8 @@ function fakes({ existing = /** @type {Record<string, unknown> | null} */ (null)
         chatNotify: async (/** @type {{ event: string }} */ a) => { calls.chat.push(a.event); },
         computeSlaDueAt: async () => null,
         runAi: async (/** @type {string} */ id) => { calls.ai.push(id); return { message: { id: 'ai-1', body: 'Try resetting your password.' } }; },
+        countAiReplies: async () => aiReplies,
+        maxAiReplies: 3,
         sendReply: async (/** @type {unknown} */ t, /** @type {unknown} */ a) => { calls.sent.push({ t, a }); return { rfc822MessageId: '<x@y>' }; },
         detectAutoOrBulk,
         htmlToText: (/** @type {string} */ h) => h.replace(/<[^>]+>/g, ''),
@@ -145,6 +147,17 @@ test('with aiAutoReply on, a reply on a ticket a person already answered is left
     await ingestCompanyMail(norm({ messageId: '<m3@c>', inReplyTo: '<ours@example.test>' }), { ...MAILBOX, aiAutoReply: true }, /** @type {any} */ (deps));
     await new Promise((r) => setImmediate(r));
     assert.deepStrictEqual(calls.ai, []);
+});
+
+test('with aiAutoReply on, the AI stops after the cap and hands the ticket to staff (a loop with another bot ends)', async () => {
+    const existing = { id: 't-bot', status: 'awaiting_agent', subject: 'Ticket', ids: ['<ai3@example.test>'], first_response_at: null, ai_handled: true };
+    const { calls, deps } = fakes({ existing, aiReplies: 3 });
+    await ingestCompanyMail(norm({ messageId: '<bot4@other>', inReplyTo: '<ai3@example.test>' }), { ...MAILBOX, aiAutoReply: true }, /** @type {any} */ (deps));
+    await new Promise((r) => setImmediate(r));
+    await new Promise((r) => setImmediate(r));
+    assert.deepStrictEqual(calls.ai, [], 'no fourth AI answer');
+    assert.deepStrictEqual(calls.sent, []);
+    assert.ok(JSON.stringify(calls.notified).includes('AI reply limit reached'));
 });
 
 test('headerLinesOf unfolds continuation lines so the bulk checks see oversized mail too', () => {
