@@ -621,6 +621,10 @@
       "gate": "open",
       "reason": "the public site search index, built from published pages (routes/publicSearchIndexRender.js)"
     },
+    "GET /^\\/([a-z]{2,3})\\/integrations\\/([a-z0-9][a-z0-9-]*)\\/?$/": {
+      "gate": "open",
+      "reason": "the same public directory and integration pages in a translation of the site (/nl/integrations/<id>); the locale must be one the site publishes (routes/publicIntegrationsRender.js)"
+    },
     "GET /agents": {
       "gate": "handler",
       "via": "mount"

@@ -204,7 +204,7 @@ router.get('/sitemap.xml', async (/** @type {import('express').Request} */ req, 
         const blogEntries = await blogSitemap(siteId, { snapshot, defaultLocale, locales, lastmod });
 
         res.type('application/xml').set('Cache-Control', 'public, max-age=600');
-        return res.send(buildSitemap([...pages, ...blogEntries, ...integrationSitemapEntries(listGalleryItems(), { defaultLocale, lastmod })], { origin, defaultLocale, locales }));
+        return res.send(buildSitemap([...pages, ...blogEntries, ...integrationSitemapEntries(listGalleryItems(), { defaultLocale, locales, lastmod })], { origin, defaultLocale, locales }));
     } catch (err) {
         log.warn('[SEO] sitemap failed:', /** @type {Error} */ (err).message);
         res.type('application/xml').set('Cache-Control', 'no-store');
@@ -319,7 +319,7 @@ router.use(require('./publicLlmsRender').createLlmsRouter({ resolveOrigin, getLi
 
 // ── marketing pages ──────────────────────────────────────────────────
 router.use(require('./publicSearchIndexRender').createSearchIndexRouter({ getLiveSiteId, siteLocales }));
-router.use(require('./publicIntegrationsRender').createIntegrationsRouter({ resolveOrigin, getLiveSiteId }));
+router.use(require('./publicIntegrationsRender').createIntegrationsRouter({ resolveOrigin, getLiveSiteId, siteLocales }));
 
 router.get(/^\/(?!api\/|assets\/|__demo__\/|__cms_preview__).*/, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res, /** @type {import('express').NextFunction} */ next) => {
     try {
