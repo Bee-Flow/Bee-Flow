@@ -114,6 +114,7 @@ function createIntegrationsRouter({
     async function directory(req, res, next, asked) {
         const ctx = await context(req, asked);
         if (!ctx) return next();
+        // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- the target is directoryPath(<the site default locale>), a same-site path; the visitor's query string follows the '?' and cannot change the host
         if (asked && !hasPageIn(null, asked)) return res.redirect(301, `${dir.directoryPath(ctx.defaultLocale, ctx.defaultLocale)}${rawQueryString(req)}`);
         // nosemgrep: ajinabraham.njsscan.xss.xss_node.express_xss -- q is written only as esc(query) in the search input's value, category only when it is a known slug; neither reaches the JSON-LD
         const q = typeof req.query.q === 'string' ? req.query.q : '';
@@ -134,7 +135,7 @@ function createIntegrationsRouter({
             const shell = await getShell();
             return shell ? sendNotFound(res, shell, ctx.locale, false) : next();
         }
-        // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- the target is detailPath(<a catalogue id>), a same-site path
+        // nosemgrep: ajinabraham.njsscan.redirect.open_redirect.express_open_redirect -- the target is detailPath(<a catalogue id>), a same-site path; the visitor's query string follows the '?' and cannot change the host
         if (asked && !hasPageIn(item.id, asked)) return res.redirect(301, `${dir.detailPath(item.id, ctx.defaultLocale, ctx.defaultLocale)}${rawQueryString(req)}`);
         res.type('html').set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=86400');
         // nosemgrep: javascript.express.security.audit.xss.direct-response-write.direct-response-write, ajinabraham.njsscan.xss.xss_node.express_xss -- every interpolated string goes through esc() in renderDetailPage
