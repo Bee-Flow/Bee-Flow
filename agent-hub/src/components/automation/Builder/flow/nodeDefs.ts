@@ -140,7 +140,7 @@ export const NODE_DEFS = {
         // 'agent' (R2) is in simpleSections on purpose: it is where a step is
         // handed to an agent, and a section Simple mode leaves out is a feature
         // half the users cannot reach at all.
-        sectionKeys: ['agent', 'inputs', 'advanced', 'output', 'checks'],
+        sectionKeys: ['agent', 'inputs', 'images', 'advanced', 'output', 'checks'],
         simpleSections: ['agent', 'inputs'],
         issueSections: {
             fallback: 'advanced',
@@ -151,7 +151,7 @@ export const NODE_DEFS = {
                 // An agent error (`ai_step.agent_unavailable`) must open the
                 // section that holds the picker, not Advanced — the fallback
                 // would have sent the author to a section with no agent in it.
-                agentId: 'agent', skillIds: 'agent', agentPermissions: 'agent',
+                agentId: 'agent', skillIds: 'agent', agentPermissions: 'agent', images: 'images',
             },
         },
     },
@@ -165,11 +165,11 @@ export const NODE_DEFS = {
         typeLabel: 'Extract data', defaultLabel: 'Extract data',
         label: 'Extract data', desc: 'Pull named fields out of text — an invoice, an e-mail, a PDF',
         help: 'Reads a piece of text an earlier step produced and pulls out the fields you name — a date, an amount, a customer — as one tidy record the next steps can use.',
-        sectionKeys: ['source', 'fields', 'instructions', 'advanced'],
+        sectionKeys: ['source', 'images', 'fields', 'instructions', 'advanced'],
         simpleSections: ['source', 'fields', 'instructions'],
         issueSections: {
             fallback: 'fields',
-            map: { label: FLAT, source: 'source', fields: 'fields', instructions: 'instructions', forEach: 'advanced' },
+            map: { label: FLAT, source: 'source', images: 'images', fields: 'fields', instructions: 'instructions', forEach: 'advanced' },
         },
     },
     integration_action: {

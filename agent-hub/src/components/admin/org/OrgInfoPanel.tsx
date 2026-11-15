@@ -1,6 +1,7 @@
 import { Building2 } from 'lucide-react';
 import OrgAiContextEditor from './OrgAiContextEditor';
 import OrgAiParticipationEditor from './OrgAiParticipationEditor';
+import OrgAutomationImageAiEditor from './OrgAutomationImageAiEditor';
 import OrgCollabEditor from './OrgCollabEditor';
 import useOrgSubscription from './orgInfo/license/useOrgSubscription';
 import OrgAuthSection from './orgInfo/OrgAuthSection';
@@ -195,6 +196,10 @@ const OrgInfoPanel = ({ user, orgId, activeSection, onSave: parentOnSave, onStat
                         <OrgAiParticipationEditor orgId={orgData?.id} enabled={projectsOn} />
                         {/* Real-time co-editing of project notebooks and pages. */}
                         <OrgCollabEditor orgId={orgData?.id} enabled={projectsOn} />
+                        {/* Whether automations may show pictures to an AI model:
+                            same orgId discipline, it decides what leaves the
+                            organisation in every automation. */}
+                        <OrgAutomationImageAiEditor orgId={orgData?.id} />
                     </div>
                 )}
                 {/* ── Reusing integration answers between runs ── */}
