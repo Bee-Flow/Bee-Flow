@@ -18,11 +18,12 @@ title: Gamma
 
 | Tool | Purpose |
 |------|---------|
-| `gamma_create` | Create a new presentation from a brief. |
-| `gamma_list` | List your decks. |
-| `gamma_get` | Read a deck (slides + speaker notes). |
-| `gamma_update` | Edit a slide or add new ones. |
-| `gamma_export` | Export to PDF / PPTX. |
+| `gamma_create_presentation` | Start creating a new Gamma presentation, document, webpage, or social post from text. |
+| `gamma_create_from_template` | Start creating a new Gamma from an existing Gamma item used as a template. |
+| `gamma_revise_as_new` | Workaround for editing: create a new revised Gamma from supplied existing content plus edit instructions. |
+| `gamma_get_generation_status` | Check the status of an existing Gamma generation ID. |
+| `gamma_list_themes` | List available Gamma themes in the authenticated workspace. |
+| `gamma_list_folders` | List Gamma folders the authenticated user can access. |
 
 ## Use cases
 
@@ -32,7 +33,7 @@ title: Gamma
 
 ## Preview pane
 
-When `gamma_create` runs, the SPA opens the [Gamma Preview Panel](../studio/index.md) on the right side of the chat — you see the deck rendering in real time.
+When `gamma_create_presentation` runs, the SPA opens the [Gamma Preview Panel](../studio/index.md) on the right side of the chat — you see the deck rendering in real time.
 
 ## Common errors
 

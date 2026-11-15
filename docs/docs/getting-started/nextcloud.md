@@ -249,23 +249,26 @@ for a template service file.
 
 :::note What is and is not real-time
 Nextcloud only exposes *some* of its events to webhooks. Files, tags, calendar
-objects, **Forms** submissions and **Tables** rows are delivered this way.
-Sharing, Deck and Talk events are not — Nextcloud has no webhook for them — so
-Bee Flow reads those from the activity feed on a polling interval instead.
+objects, **Forms** submissions, **Tables** rows and **Deck** cards (Deck 1.18.0
+or newer) are delivered this way. **Talk** messages and reactions arrive through
+the Bee Flow Talk bot, only in conversations the bot has been added to. Sharing
+events are not — Nextcloud has no webhook for them — so Bee Flow reads a received
+share from the activity feed on a polling interval instead.
 Triggers with no producer at all are labelled in the Automations builder rather
 than failing silently.
 :::
 
 ### Optional apps
 
-Two of the trigger families need their Nextcloud app installed before the
-connector can subscribe to them. Both are optional and skipped cleanly when
+Three of the trigger families need their Nextcloud app installed before the
+connector can subscribe to them. All are optional and skipped cleanly when
 absent (you will see them in the `[Webhooks] … skipped` count above):
 
 | App | Unlocks |
 |---|---|
 | [Forms](https://apps.nextcloud.com/apps/forms) | the `forms.submitted` trigger and the `nextcloud_forms_*` actions |
 | [Tables](https://apps.nextcloud.com/apps/tables) | the `tables.row.*` triggers and the `nextcloud_tables_*` actions |
+| [Deck](https://apps.nextcloud.com/apps/deck) (1.18.0 or newer) | the `deck.card.*` triggers |
 
 [Nextcloud Office](https://apps.nextcloud.com/apps/richdocuments) is likewise
 optional: it backs the "convert to PDF" action, and it is what opens the
@@ -279,9 +282,10 @@ Everything above lets Bee Flow act *on* Nextcloud. This does the reverse: it
 makes Bee Flow's tools and automations callable from Nextcloud's own **Assistant**,
 via the Model Context Protocol.
 
-1. In Bee Flow, open **Settings → Connections → MCP access** and mint a token.
-   It is shown once — Bee Flow stores only a hash-equivalent, so it cannot be
-   displayed again. Minting a new one revokes the old.
+1. In Bee Flow, open **Settings → Security → MCP tokens** and create a token
+   with the **Integrations** server switched on. It is shown once — Bee Flow
+   stores only its hash, so it cannot be displayed again. Each token can be
+   revoked on its own.
 2. In Nextcloud, go to **Administration settings → Artificial intelligence →
    Context Agent → MCP Config** and add:
 
@@ -324,7 +328,8 @@ there is nothing to configure. Check it took:
 **Administration settings → Artificial intelligence** — Bee Flow appears in the
 provider dropdown for the text task types (summary, headline, topics, proofread,
 reformulate, simplify, formalise, improve, translate, and free-form prompts).
-Select it for the ones you want.
+Select it for the ones you want. It is also registered for the Assistant's agent
+task type (`core:contextagent:interaction`, listed as **Bee Flow (agent)**).
 
 What this gets you: those features now run on your organisation's own model
 choice, through Bee Flow's Privacy Shield, in the region you host in — rather

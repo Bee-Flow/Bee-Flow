@@ -18,13 +18,12 @@ CalDAV-backed access to the user's calendars.
 | Tool | Purpose |
 |------|---------|
 | `nextcloud_calendar_list` | List the user's calendars. |
-| `nextcloud_calendar_search` | Search events by date range / keyword. |
+| `nextcloud_calendar_list_events` | List events from a Nextcloud calendar within a date range. |
+| `nextcloud_calendar_search_events` | Search events in a calendar by case-insensitive substring match against summary, description, location, attendee list. Optional date-range narrowing. |
 | `nextcloud_calendar_get_event` | Fetch one event by URI. |
 | `nextcloud_calendar_create_event` | Create a new event. |
 | `nextcloud_calendar_update_event` | Update title / time / attendees / body. |
 | `nextcloud_calendar_delete_event` | Delete. |
-| `nextcloud_calendar_list_attendees` | Who's invited and their RSVP status. |
-| `nextcloud_calendar_respond` | Accept / decline / tentative on an invite. |
 
 ## Endpoints (CalDAV)
 

@@ -29,7 +29,7 @@ on.
 
 ## Creating a token
 
-Open **Settings → MCP tokens**, give the token a name and tick the `cms` server:
+Open **Settings → Security → MCP tokens**, give the token a name and tick the `cms` server:
 
 | Level | What the token can do |
 | --- | --- |

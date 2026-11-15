@@ -147,7 +147,8 @@ A local runtime can serve embeddings too. Pull an embedding model
 **Admin → AI Config → Embeddings**.
 
 Re-embedding is required if you switch embedding models — vectors from different
-models are not comparable. Existing knowledge-base content must be re-ingested.
+models are not comparable. Bee Flow re-embeds the stored knowledge-base content in
+the background when you save the new model.
 
 ## Cost accounting
 

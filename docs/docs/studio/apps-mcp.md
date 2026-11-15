@@ -31,7 +31,7 @@ recreate the server container. While the variable is unset the route is never
 mounted and the module is never loaded, so `/mcp/studio` simply does not exist.
 
 Then create a token for the user whose apps you want to edit. In Bee Flow open
-**Settings → MCP tokens**, give the token a name, tick the `studio` server (level
+**Settings → Security → MCP tokens**, give the token a name, tick the `studio` server (level
 *read* to inspect only, *write* to build), and optionally restrict it to specific
 tools, to a list of IP ranges, or give it an expiry. The token is shown **once**;
 revoke it from the same list. The older single token from

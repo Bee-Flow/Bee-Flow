@@ -25,12 +25,14 @@ The umbrella Nextcloud integration. Backs all file operations the assistant perf
 | `nextcloud_create_document` | Build a real `.docx` / `.odt` from text or markdown — opens in Nextcloud Office. |
 | `nextcloud_create_presentation` | Build a real `.pptx` in the organisation's house style from structured slides or a markdown outline; answers with the `/f/<fileId>` link that opens it in Nextcloud Office (Impress). |
 | `nextcloud_create_folder` | Create a folder. |
-| `nextcloud_share_file` | Create an internal share or a public link. |
-| `nextcloud_move_file` | Move / rename. |
-| `nextcloud_copy_file` | Copy. |
-| `nextcloud_delete_file` | Delete (moves to trashbin). |
-| `nextcloud_get_file_versions` | Browse the version history. |
-| `nextcloud_restore_file_version` | Restore a previous version. |
+| `nextcloud_create_share` | Create a public share link for a file or folder. Returns the share URL. Permissions default to read-only. |
+| `nextcloud_share_with_user` | Share a file or folder with a specific Nextcloud user. |
+| `nextcloud_share_with_group` | Share a file or folder with a Nextcloud group. |
+| `nextcloud_move` | Move / rename. |
+| `nextcloud_copy` | Copy. |
+| `nextcloud_delete` | Delete (moves to trashbin). |
+| `nextcloud_list_versions` | List previous versions of a file (by fileId). |
+| `nextcloud_restore_version` | Restore a previous version. |
 
 All tools take paths relative to the user's root (`/Documents/Foo.pdf`, not `/remote.php/dav/files/<uid>/Documents/Foo.pdf`).
 

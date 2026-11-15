@@ -23,10 +23,9 @@ Read, draft and send mail through the [Nextcloud Mail app](https://apps.nextclou
 | `nextcloud_mail_search` | Search messages (subject / from / body / flag). |
 | `nextcloud_mail_read` | Fetch a message body. |
 | `nextcloud_mail_read_attachment` | Read an attachment. |
-| `nextcloud_mail_compose` | Create a draft. |
 | `nextcloud_mail_send` | Send a draft (or a freshly composed message). |
-| `nextcloud_mail_reply` | Reply to a thread, preserving headers. |
-| `nextcloud_mail_flag` | Star / mark read / etc. |
+| `nextcloud_mail_set_flags` | Mark a message read/unread, flagged/unflagged, or junk. |
+| `nextcloud_mail_save_attachment` | Save an email attachment directly to a folder in Nextcloud Files (no download/re-upload — handled server-side by the Mail app). |
 | `nextcloud_mail_move` | Move to another folder. |
 
 ## Auth details

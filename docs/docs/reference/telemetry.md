@@ -42,7 +42,7 @@ At `LOG_LEVEL=debug`: also logs request bodies (PII-redacted via the same Privac
 - **OAuth access tokens** / refresh tokens
 - **Session JWTs**
 - **API keys**
-- **Licence private key material** (we don't have it in the open-source server)
+- **Licence private key material** (we don't have it in the source-available server)
 - **Plaintext PII matched by the Privacy Shield** (only the categories + counts)
 
 This is true at every log level.

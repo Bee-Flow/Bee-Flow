@@ -21,12 +21,21 @@ title: Nextcloud — Talk
 | `nextcloud_talk_list_rooms` | List rooms the user is in. |
 | `nextcloud_talk_get_room` | Room details + participant list. |
 | `nextcloud_talk_send_message` | Post a message. |
-| `nextcloud_talk_get_messages` | Read recent messages. |
+| `nextcloud_talk_list_messages` | Fetch the most recent messages from a Talk room. |
 | `nextcloud_talk_search_messages` | Full-text search across rooms. |
-| `nextcloud_talk_react` | Add an emoji reaction. |
-| `nextcloud_talk_set_typing` | Send a typing indicator. |
+| `nextcloud_talk_add_reaction` | Add an emoji reaction to a message. |
+| `nextcloud_talk_remove_reaction` | Remove your own emoji reaction from a message. |
+| `nextcloud_talk_delete_message` | Delete (soft-delete) a Talk message you sent. |
+| `nextcloud_talk_mark_read` | Mark a Talk room as read up to the given message id. |
+| `nextcloud_talk_share_file` | Share a file from Nextcloud Files into a Talk conversation, so it appears as an attachment rather than a link. |
 | `nextcloud_talk_create_room` | Create a new public / group / one-to-one room. |
-| `nextcloud_talk_invite` | Invite a user to a room. |
+| `nextcloud_talk_list_participants` | List the participants of a Talk room (display names, actor ids, participant type, in-call flags). |
+| `nextcloud_talk_create_poll` | Create a poll in a Talk conversation. |
+| `nextcloud_talk_get_poll` | Read a poll's question, options and current results. |
+| `nextcloud_talk_vote_poll` | Cast a vote on a Talk poll, as the connected user. |
+| `nextcloud_talk_close_poll` | Close a poll so no further votes are accepted and the final result is published. |
+| `nextcloud_talk_start_recording` | Start recording the active call in a Talk room. Moderator/owner only; requires the recording backend. |
+| `nextcloud_talk_stop_recording` | Stop the active call recording in a Talk room. Moderator/owner only. |
 
 ## Endpoints
 

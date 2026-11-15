@@ -48,13 +48,13 @@ After chunking, the ingestion pipeline:
 3. Embeds via the configured embedding model (provider → CPU fallback).
 4. Inserts into `kb_chunks` (or upserts the remote search-service index when `kb_provider = remote`).
 
-Re-ingesting an unchanged document is a no-op. The local pipeline auto-detects the embedding dim on first ingest and ALTERs `kb_chunks.embedding` to match — no manual schema migration when switching models, as long as the table is empty or you re-ingest existing docs.
+Re-ingesting an unchanged document is a no-op. The local pipeline auto-detects the embedding dim on first ingest and ALTERs `kb_chunks.embedding` to match — no manual schema migration when switching models; stored chunks are re-embedded by themselves (see [Operational notes](#operational-notes)).
 
 ## Supported file types
 
 | Format | Notes |
 |--------|-------|
-| PDF | Layout-aware extraction. Falls back to LLM-based extraction for scanned PDFs. |
+| PDF | Text from the PDF's text layer. A scanned PDF without a text layer is read only when Azure Document Intelligence is switched on (it then handles every file type); otherwise the document is not ingested and says so. |
 | Plain text (.txt) | UTF-8 expected. |
 | Markdown (.md) | Headings preserved as chunk anchors. |
 | HTML | Stripped of `<script>` / `<style>`; whitespace normalised. |
@@ -75,7 +75,7 @@ There is **no search mode to choose** — not per instance, not per knowledge ba
 
 1. **Vector and keyword retrieval run in parallel**, always. The vector leg is a pgvector cosine scan; the keyword leg is a Postgres full-text query, tried as an AND-join first and retried as an OR-join when AND finds nothing. Neither leg is optional: a failure in one is logged and returns no rows, and the other still answers. The vector leg is simply absent if pgvector is unavailable or the query could not be embedded.
 2. **The two result sets are fused with RRF** (Reciprocal Rank Fusion) into one ranking, with a table-of-contents demotion and a heading boost applied on top.
-3. **The top candidates go through the reranker chain**, in a fixed order of preference: Azure Cohere reranker → in-process CPU cross-encoder → an external reranker you run (`RERANKER_URL`). Each falls through to the next on failure, and if none is reachable the RRF ordering is used as-is.
+3. **The top candidates go through the reranker chain**, in a fixed order of preference: a local llama.cpp reranker (when switched on) → a rerank model of a configured provider (such as IONOS) → Azure Cohere reranker → in-process CPU cross-encoder → an external reranker you run (`RERANKER_URL`). Each falls through to the next on failure, and if none is reachable the RRF ordering is used as-is.
 
 So keyword retrieval and reranking are not features you switch on. The CPU cross-encoder is on unless an admin sets `cpu_reranker_enabled = false`; everything else about the ordering is automatic. The remote search-service backend runs the same pipeline — vector + full-text → merge → dedupe → rerank.
 
@@ -109,7 +109,7 @@ Before retrieval, the list is narrowed by **who is asking** — and this can onl
 
 ## Operational notes
 
-- **Switching embedding model**: the embedding model is an instance-wide setting, not a per-KB one, and changing it does not re-embed anything by itself. Existing chunks keep the vectors they were written with; re-ingest the documents to move them to the new model. (A `knowledge_bases.embedding_model` column exists from an earlier design and no longer decides which model is used.)
+- **Switching embedding model**: the embedding model is an instance-wide setting, not a per-KB one. Saving a new model re-embeds the stored chunks in the background, from the text already stored (also at boot, and before the next local ingest, if a switch was not finished); until that finishes, a model with another dimension leaves search on keywords only. This applies to the local backend; with the remote search service, that service's own model writes the vectors. (A `knowledge_bases.embedding_model` column exists from an earlier design and no longer decides which model is used.)
 - **Storage**: the embedding is the part you can compute exactly — 4 bytes per dimension, so 4 KB per chunk at 1024 dims and 1.5 KB at 384 (the CPU fallback). The chunk text itself varies with your documents; at the 800-token cap, budget a few KB. Treat any total as an order of magnitude, not a quote.
 - **Cost**: embedding is charged per token by whichever provider you configured, so the bill scales with how much you ingest and re-ingest — there is no flat figure. Self-hosted and CPU-fallback embedding cost nothing per call.
 - **Privacy**: chunks live alongside your Postgres. Nothing is sent to the embedding provider beyond the chunk text — no metadata, no IDs.
