@@ -44,9 +44,11 @@ export interface ChoiceCardOption<TValue extends string> {
 }
 
 /**
- * `tint` (the default) fills the chosen card green. `radio` draws a ring dot
- * and a dark outline instead — for pages in the neutral style where green
- * already means "stays inside" and must not double as "selected".
+ * `tint` (the default) fills the chosen card with the theme's selected-row
+ * tint (`--item-active-bg`) and outlines it in ink. `radio` draws a ring dot
+ * and an ink outline on a clear card instead. Neither uses a status colour:
+ * green means "OK" or "stays inside" elsewhere and must not double as
+ * "selected".
  */
 type ChoiceCardsAppearance = 'tint' | 'radio';
 
@@ -73,7 +75,8 @@ const GRID: Record<number, string> = {
 
 // `flex-1`, not `h-full`: the card fills its cell, and a locked notice under
 // it gets its own space instead of being painted over.
-const RADIO_BASE = 'w-full flex-1 text-left rounded-[10px] flex flex-col gap-1.5 bg-transparent transition-colors disabled:opacity-60 disabled:cursor-not-allowed';
+const FOCUS = 'focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]';
+const RADIO_BASE = `w-full flex-1 text-left rounded-[10px] flex flex-col gap-1.5 bg-transparent transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${FOCUS}`;
 // The chosen card's 2px outline would push its text 1px inwards; the padding
 // gives that pixel back so both cards' text lines up.
 const RADIO_CARD = {
@@ -105,26 +108,26 @@ function RadioFace<TValue extends string>({ opt, selected }: { opt: ChoiceCardOp
     );
 }
 
-// The default look, unchanged: these are the exact values the inline style
-// objects used to carry, as literal classes.
-const TINT_BASE = 'w-full h-full text-left px-3 py-2.5 rounded-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed border-[1.5px]';
+// The default look: the selected-row tint of the theme with an ink outline
+// (the same 1.5px on both, so the text never shifts when the choice moves).
+const TINT_BASE = `w-full h-full text-left px-3 py-2.5 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed border-[1.5px] ${FOCUS}`;
 const TINT_CARD = {
-    on: `${TINT_BASE} bg-[rgba(16,185,129,0.10)] border-[#10B981]`,
-    off: `${TINT_BASE} bg-[var(--bg-primary)] border-[var(--border-subtle)]`,
+    on: `${TINT_BASE} bg-[var(--item-active-bg)] border-[var(--text-primary)]`,
+    off: `${TINT_BASE} bg-[var(--bg-primary)] border-[var(--border-default)] enabled:hover:bg-[var(--item-hover-bg)]`,
 };
 
-function TintFace<TValue extends string>({ opt, selected }: { opt: ChoiceCardOption<TValue>; selected: boolean }) {
+function TintFace<TValue extends string>({ opt }: { opt: ChoiceCardOption<TValue> }) {
     return (
         <>
-            <span className={`text-xs font-medium flex items-center gap-1.5 ${selected ? 'text-[#10B981]' : 'text-[var(--text-primary)]'}`}>
+            <span className="text-[13px] font-medium flex items-center gap-1.5 text-[var(--text-primary)]">
                 {opt.Icon && <opt.Icon className="w-4 h-4 shrink-0" aria-hidden="true" />}
                 <span>{opt.label}</span>
                 {opt.badge && (
-                    <span className="text-[9px] px-1.5 py-px rounded-full bg-[rgba(16,185,129,0.15)] text-[#10B981]">{opt.badge}</span>
+                    <span className="text-[10px] font-semibold px-1.5 py-px rounded-full border border-[var(--border-default)] text-[var(--text-secondary)]">{opt.badge}</span>
                 )}
             </span>
             {opt.description && (
-                <span className="text-[10px] mt-0.5 leading-relaxed block text-[var(--text-muted)]">{opt.description}</span>
+                <span className="text-xs mt-0.5 leading-relaxed block text-[var(--text-secondary)]">{opt.description}</span>
             )}
         </>
     );
@@ -193,10 +196,10 @@ export default function ChoiceCards<TValue extends string>({
                             onKeyDown={(e) => onKeyDown(e, idx)}
                             className={cardClass}
                         >
-                            {radio ? <RadioFace opt={opt} selected={selected} /> : <TintFace opt={opt} selected={selected} />}
+                            {radio ? <RadioFace opt={opt} selected={selected} /> : <TintFace opt={opt} />}
                         </button>
                         {off && opt.lockedNotice && (
-                            <p className={radio ? 'text-[11px] mt-1 leading-relaxed text-[var(--text-tertiary)]' : 'text-[10px] mt-1 leading-relaxed text-[var(--text-muted)]'}>
+                            <p className="text-[11px] mt-1 leading-relaxed text-[var(--text-tertiary)]">
                                 {opt.lockedNotice}
                             </p>
                         )}

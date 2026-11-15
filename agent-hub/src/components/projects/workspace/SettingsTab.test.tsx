@@ -45,7 +45,7 @@ describe('SettingsTab — saving', () => {
         await user.type(name, '  Autumn launch  ');
         await user.clear(screen.getByTestId('project-field-instructions'));
         await user.type(screen.getByTestId('project-field-instructions'), 'Be concise.');
-        await user.click(screen.getByRole('checkbox', { name: 'Remember useful facts from chats' }));
+        await user.click(screen.getByRole('switch', { name: 'Remember useful facts from chats' }));
         await user.click(screen.getByTestId('settings-save'));
 
         await waitFor(() => expect(api.callsTo('PUT', '/api/projects/p1')).toHaveLength(1));
@@ -141,7 +141,7 @@ describe('SettingsTab — delete and leave', () => {
 describe('SettingsTab — collaboration, ownership, archive', () => {
     it('lets the owner switch off "Editors may invite people" and saves it', async () => {
         const { api, user } = renderTab('owner', OWNER_ID, {}, { editorsCanInvite: true });
-        await user.click(screen.getByRole('checkbox', { name: 'Editors may invite people' }));
+        await user.click(screen.getByRole('switch', { name: 'Editors may invite people' }));
         await user.click(screen.getByTestId('settings-save'));
         await waitFor(() => expect(api.callsTo('PUT', '/api/projects/p1')).toHaveLength(1));
         expect(api.callsTo('PUT', '/api/projects/p1')[0].body).toMatchObject({ editorsCanInvite: false });
@@ -185,7 +185,7 @@ describe('SettingsTab: mute this project', () => {
             'PUT /api/projects/p1/mute': { muted: true },
             'DELETE /api/projects/p1/mute': { muted: false },
         });
-        const toggle = screen.getByRole('checkbox', { name: 'Mute this project for me' });
+        const toggle = screen.getByRole('switch', { name: 'Mute this project for me' });
         expect(toggle).not.toBeChecked();
         await user.click(toggle);
         await waitFor(() => expect(api.callsTo('PUT', '/api/projects/p1/mute')).toHaveLength(1));
@@ -193,12 +193,12 @@ describe('SettingsTab: mute this project', () => {
 
     it('unmutes from the state the project row carries (after a reload)', async () => {
         const { api, user } = renderTab('viewer', VIEWER_ID, { 'DELETE /api/projects/p1/mute': { muted: false } }, { muted: true });
-        await user.click(screen.getByRole('checkbox', { name: 'Mute this project for me' }));
+        await user.click(screen.getByRole('switch', { name: 'Mute this project for me' }));
         await waitFor(() => expect(api.callsTo('DELETE', '/api/projects/p1/mute')).toHaveLength(1));
     });
 
     it('starts muted when the project row says so', () => {
         renderTab('editor', EDITOR_ID, {}, { muted: true });
-        expect(screen.getByRole('checkbox', { name: 'Mute this project for me' })).toBeChecked();
+        expect(screen.getByRole('switch', { name: 'Mute this project for me' })).toBeChecked();
     });
 });

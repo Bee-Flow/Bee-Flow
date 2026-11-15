@@ -140,7 +140,7 @@ describe('AI step: schema, writeTo with replaceWhere, prompt, knowledge bases, c
     it('replaceWhere: a clause and an OR group are written as the server keeps them; switching it off removes it', async () => {
         const user = userEvent.setup();
         const h = renderField(extractLines(), 'writeTo');
-        await user.click(await screen.findByRole('checkbox', { name: 'Delete matching rows before writing' }));
+        await user.click(await screen.findByRole('switch', { name: 'Delete matching rows before writing' }));
         await user.click(screen.getByRole('button', { name: /Add filter/ }));
         const replace = screen.getByText((_, el) => el?.getAttribute('data-replace-where') === 'on') as HTMLElement;
         await user.selectOptions(within(replace).getAllByLabelText('Filter field')[0], 'invoice_no');
@@ -150,7 +150,7 @@ describe('AI step: schema, writeTo with replaceWhere, prompt, knowledge bases, c
         expect(rw[0]).toMatchObject({ field: 'invoice_no', op: 'eq' });
         expect(rw[1]).toHaveProperty('any');
         expect((s.writeTo as Record<string, unknown>).constants).toEqual((extractLines().writeTo as Record<string, unknown>).constants);
-        await user.click(screen.getByRole('checkbox', { name: 'Delete matching rows before writing' }));
+        await user.click(screen.getByRole('switch', { name: 'Delete matching rows before writing' }));
         expect((h.kept().writeTo as Record<string, unknown>).replaceWhere).toBeUndefined();
     });
 
@@ -158,7 +158,7 @@ describe('AI step: schema, writeTo with replaceWhere, prompt, knowledge bases, c
         const user = userEvent.setup();
         const { writeTo: _w, ...rest } = extractLines();
         const h = renderField(canon({ ...rest, schema: [{ name: 'field', type: 'string' }] } as Step), 'writeTo');
-        await user.click(await screen.findByRole('checkbox', { name: 'Write extracted rows to a data table' }));
+        await user.click(await screen.findByRole('switch', { name: 'Write extracted rows to a data table' }));
         const s = h.kept();
         expect((s.schema as unknown[]).length).toBeGreaterThan(1);
         expect((s.writeTo as { tableId: string }).tableId).toBe((TABLES[0] as { id: string }).id);

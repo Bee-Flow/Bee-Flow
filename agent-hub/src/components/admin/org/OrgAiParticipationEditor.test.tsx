@@ -50,7 +50,7 @@ function renderEditor(orgId: string | null = 'org1', enabled?: boolean) {
 it('shows the current policy, and saves the whole of it', async () => {
     const user = userEvent.setup();
     renderEditor();
-    const master = await screen.findByRole('checkbox', { name: /Let the AI join conversations by itself/ });
+    const master = await screen.findByRole('switch', { name: /Let the AI join conversations by itself/ });
     expect(master).toBeChecked();
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
 
@@ -70,8 +70,8 @@ it('shows the current policy, and saves the whole of it', async () => {
 it('with the switch off, the rest is locked', async () => {
     const user = userEvent.setup();
     renderEditor();
-    await user.click(await screen.findByRole('checkbox', { name: /Let the AI join conversations by itself/ }));
-    expect(screen.getByRole('checkbox', { name: /Also in comment threads/ })).toBeDisabled();
+    await user.click(await screen.findByRole('switch', { name: /Let the AI join conversations by itself/ }));
+    expect(screen.getByRole('switch', { name: /Also in comment threads/ })).toBeDisabled();
     expect(screen.getByLabelText('Answers per chat, per hour')).toBeDisabled();
     await user.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(puts[0]).toMatchObject({ autoAllowed: false }));
@@ -81,17 +81,17 @@ it('a refused save says so and keeps the change on screen', async () => {
     putStatus = 403;
     const user = userEvent.setup();
     renderEditor();
-    await user.click(await screen.findByRole('checkbox', { name: /Allow "Always"/ }));
+    await user.click(await screen.findByRole('switch', { name: /Allow "Always"/ }));
     await user.click(screen.getByRole('button', { name: 'Save' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not save these settings. Try again.');
-    expect(screen.getByRole('checkbox', { name: /Allow "Always"/ })).not.toBeChecked();
+    expect(screen.getByRole('switch', { name: /Allow "Always"/ })).not.toBeChecked();
 });
 
 it('a load that failed is said, never shown as the defaults', async () => {
     getStatus = 503;
     renderEditor();
     expect(await screen.findByText('Could not load these settings.')).toBeInTheDocument();
-    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('switch')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
 });
 

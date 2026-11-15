@@ -86,8 +86,8 @@ describe('AccessPermissionsPanel and the dashboard organisation', () => {
 
     it('an organisation admin manages the integrations next to the features and betas', async () => {
         render(withQueryClient(<AccessPermissionsPanel user={{ id: 'u2', isAdmin: false, role: 'user', permissions: ['org_admin'] }} activeSection="grants" />));
-        expect(await screen.findByRole('checkbox', { name: 'Slack' })).toBeInTheDocument();
-        expect(screen.getByRole('checkbox', { name: 'Webpages' })).toBeInTheDocument();
+        expect(await screen.findByRole('switch', { name: 'Slack' })).toBeInTheDocument();
+        expect(screen.getByRole('switch', { name: 'Webpages' })).toBeInTheDocument();
         expect(calls.some(c => c.url.includes('/auth/me/group-access'))).toBe(true);
     });
 });

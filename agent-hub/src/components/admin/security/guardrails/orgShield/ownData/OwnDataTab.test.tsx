@@ -214,7 +214,7 @@ describe('the locked view (Community)', () => {
         expect(screen.getByRole('heading', { name: 'Never hidden' })).toBeInTheDocument();
         await user.type(screen.getByLabelText('Add a name that should stay visible'), 'Van Dael{Enter}');
         expect(form.current?.piiAllowTerms).toEqual(['Kifid', 'Van Dael']);
-        await user.click(screen.getByRole('checkbox', { name: /well-known companies/i }));
+        await user.click(screen.getByRole('switch', { name: /well-known companies/i }));
         expect(form.current?.piiAllowPublicOrgs).toBe(false);
     });
 });

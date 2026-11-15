@@ -105,6 +105,17 @@
     --item-hover-bg: color-mix(in srgb, var(--text-primary) 7%, transparent);
     --item-active-bg: color-mix(in srgb, var(--accent-primary) 12%, transparent);
 
+    /* Switch and slider parts (shared/Toggle, shared/Slider). The knob is the
+       page colour so it reads against the ink track of a switch that is on;
+       the off track is half ink, half page, so it keeps at least 3:1 against
+       the page in every theme (WCAG 1.4.11; the default border was ~1.3:1 in
+       dark) and still reads lighter than the full-ink track of a switch that
+       is on. Both resolve here, on <html>, against the active theme. The
+       glass themes declare their own: their --bg-primary is transparent, so a
+       knob in it would vanish. */
+    --control-knob: var(--bg-primary);
+    --control-track-off: color-mix(in srgb, var(--text-primary) 50%, var(--bg-primary));
+
     /* Tooltip tile. shared/Tooltip.tsx has always painted one dark slate tile
        in every theme, but read it through two tokens that were never declared
        (so the hex fallbacks shipped). Declared once here, theme-independent on

@@ -59,12 +59,12 @@ describe('ignore upper and lower case', () => {
     it('writes ci only when switched on, and drops it when switched off or the operator changes', async () => {
         const user = userEvent.setup();
         const on = renderEditor([{ field: 'title', op: 'eq', value: 'a' }], true);
-        await user.click(on.getByRole('checkbox', { name: /Ignore upper and lower case/ }));
+        await user.click(on.getByRole('switch', { name: /Ignore upper and lower case/ }));
         expect(on.last()[0]).toEqual({ field: 'title', op: 'eq', value: 'a', ci: true });
         on.unmount();
 
         const off = renderEditor([{ field: 'title', op: 'eq', value: 'a', ci: true }], true);
-        await user.click(off.getByRole('checkbox', { name: /Ignore upper and lower case/ }));
+        await user.click(off.getByRole('switch', { name: /Ignore upper and lower case/ }));
         expect(off.last()[0]).toEqual({ field: 'title', op: 'eq', value: 'a' });
         off.unmount();
 

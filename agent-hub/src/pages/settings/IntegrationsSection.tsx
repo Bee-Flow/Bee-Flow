@@ -21,6 +21,7 @@ import { ApiError, RefusedError } from '../../api/mutate';
 import { IntegrationRow, ApiKeyField, DisconnectButton } from './IntegrationPrimitives';
 import { GoogleWorkspaceIntegration, LinkedInIntegration, WithingsIntegration } from './OAuthIntegrations';
 import { apiRequest, apiUrl } from '@/api/typedRequest';
+import { GOOGLE_APP_IDS } from '@/utils/integrationFamilies';
 
 const GroupLabel = ({ children }: GroupLabelProps) => (
     <p className="text-[11px] font-semibold uppercase tracking-widest px-1 mb-2 text-[var(--text-muted)]">
@@ -511,7 +512,7 @@ const IntegrationsSection = ({ statuses, onSaved, user }: IntegrationsSectionPro
 
     // BFSF-255: show the Google Workspace connect tile whenever at least one
     // Google integration is in the org's effective entitlement set.
-    const showGoogle = ['gmail', 'google-calendar', 'google-drive'].some(isEnabled);
+    const showGoogle = GOOGLE_APP_IDS.some(isEnabled);
     // Nextcloud-bound users always see the card so they can manage their link.
     // `provider` (login payload) covers connector + OAuth NC users synchronously,
     // so the card never depends on the async app-password-status fetch, which can

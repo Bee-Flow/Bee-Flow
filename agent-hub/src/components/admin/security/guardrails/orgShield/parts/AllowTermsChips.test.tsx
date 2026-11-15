@@ -92,7 +92,7 @@ describe('AllowTermsChips', () => {
     it('keeps the well-known companies switch, with the size of the list while it is on', async () => {
         const user = userEvent.setup();
         const { onChangePublicOrgs } = renderCard();
-        const box = screen.getByRole('checkbox', { name: /well-known companies/i });
+        const box = screen.getByRole('switch', { name: /well-known companies/i });
         expect(box).toBeChecked();
         expect(screen.getByText('221')).toBeInTheDocument();
         await user.click(box);
@@ -101,7 +101,7 @@ describe('AllowTermsChips', () => {
 
     it('says Off instead of a count when the well-known list is not used', () => {
         renderCard({ publicOrgs: false });
-        expect(screen.getByRole('checkbox', { name: /well-known companies/i })).not.toBeChecked();
+        expect(screen.getByRole('switch', { name: /well-known companies/i })).not.toBeChecked();
         expect(screen.queryByText('221')).toBeNull();
         expect(screen.getByText('Off')).toBeInTheDocument();
     });
@@ -111,6 +111,6 @@ describe('AllowTermsChips', () => {
         expect(screen.getByText('Kifid')).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Remove Kifid' })).toBeNull();
         expect(screen.queryByLabelText('Add a name that should stay visible')).toBeNull();
-        expect(screen.getByRole('checkbox', { name: /well-known companies/i })).toBeDisabled();
+        expect(screen.getByRole('switch', { name: /well-known companies/i })).toBeDisabled();
     });
 });

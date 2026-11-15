@@ -39,7 +39,7 @@ describe('SupportAIConfig', () => {
 describe('SupportToolsTab', () => {
     it('switches tool use on and saves both settings', async () => {
         renderWithClient(<SupportToolsTab />);
-        const toggle = await screen.findByRole('checkbox', { name: 'Enable tool-using AI (v2)' });
+        const toggle = await screen.findByRole('switch', { name: 'Enable tool-using AI (v2)' });
         await userEvent.click(toggle);
         await userEvent.click(screen.getByRole('button', { name: 'Save' }));
         expect(await screen.findByText('Saved')).toBeInTheDocument();

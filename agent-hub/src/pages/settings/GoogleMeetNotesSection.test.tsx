@@ -59,8 +59,8 @@ describe('GoogleMeetNotesSection', () => {
         asMock(authFetch).mockResolvedValue(jsonRes(SETTINGS));
         render(<GoogleMeetNotesSection />);
         await screen.findByText('Auto-import my recorded Meet meetings');
-        expect(screen.getByRole('button', { name: 'Auto-import my recorded Meet meetings', pressed: true })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Also pre-enable auto-recording for meetings I organize', pressed: false })).toBeInTheDocument();
+        expect(screen.getByRole('switch', { name: 'Auto-import my recorded Meet meetings', checked: true })).toBeInTheDocument();
+        expect(screen.getByRole('switch', { name: 'Also pre-enable auto-recording for meetings I organize', checked: false })).toBeInTheDocument();
         expect(screen.getByRole('combobox', { name: 'Which meetings' })).toHaveValue('organizer');
         expect(screen.getByRole('combobox', { name: 'Default language' })).toHaveValue('nl');
     });

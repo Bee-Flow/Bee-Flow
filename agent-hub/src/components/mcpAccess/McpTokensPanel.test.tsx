@@ -110,10 +110,10 @@ async function openCreate(user: User): Promise<Form> {
 /** Integrations (write, three tools) and the website (write, may publish), two networks, 30 days. */
 async function fillFullForm(user: User, form: Form) {
     await user.type(form.getByLabelText('Name'), '  Cursor  ');
-    await user.click(form.getByRole('checkbox', { name: 'Integrations' }));
+    await user.click(form.getByRole('switch', { name: 'Integrations' }));
     await user.click(within(form.getByRole('group', { name: 'Integrations' })).getByRole('radio', { name: 'Read and write' }));
     await user.type(form.getByLabelText('Only these tools for Integrations (optional)'), 'search_files, read_file{enter}list_files');
-    await user.click(form.getByRole('checkbox', { name: 'Website (CMS)' }));
+    await user.click(form.getByRole('switch', { name: 'Website (CMS)' }));
     const cms = within(form.getByRole('group', { name: 'Website (CMS)' }));
     // Publishing needs write access: the box is disabled on read.
     expect(cms.getByRole('checkbox', { name: /May publish the website/ })).toBeDisabled();
@@ -152,7 +152,7 @@ it('grants starting runs only when ticked, only with write access, and shows it 
     const user = await renderLoaded();
     const form = await openCreate(user);
     await user.type(form.getByLabelText('Name'), 'Runner');
-    await user.click(form.getByRole('checkbox', { name: 'Automations' }));
+    await user.click(form.getByRole('switch', { name: 'Automations' }));
     const automations = within(form.getByRole('group', { name: 'Automations' }));
     // Off by default, and not offered on read-only access.
     expect(automations.getByRole('checkbox', { name: /May start automation runs/ })).not.toBeChecked();
@@ -176,7 +176,7 @@ it('does not send the run permission unless it was ticked', async () => {
     const user = await renderLoaded();
     const form = await openCreate(user);
     await user.type(form.getByLabelText('Name'), 'Plain');
-    await user.click(form.getByRole('checkbox', { name: 'Automations' }));
+    await user.click(form.getByRole('switch', { name: 'Automations' }));
     await user.click(within(form.getByRole('group', { name: 'Automations' })).getByRole('radio', { name: 'Read and write' }));
     await user.click(form.getByRole('button', { name: 'Create token' }));
     const body = (await waitFor(() => {
@@ -192,8 +192,8 @@ it('shows the secret once, with a ready command for exactly the servers granted,
     const user = await renderLoaded();
     const form = await openCreate(user);
     await user.type(form.getByLabelText('Name'), 'New one');
-    await user.click(form.getByRole('checkbox', { name: 'Integrations' }));
-    await user.click(form.getByRole('checkbox', { name: 'Website (CMS)' }));
+    await user.click(form.getByRole('switch', { name: 'Integrations' }));
+    await user.click(form.getByRole('switch', { name: 'Website (CMS)' }));
     await user.click(form.getByRole('button', { name: 'Create token' }));
 
     const reveal = await screen.findByRole('dialog', { name: 'Your new token' });
@@ -234,7 +234,7 @@ it('shows the server\'s reason when creating fails, and keeps the form', async (
     await user.click(screen.getByRole('button', { name: 'Create token' }));
     const form = within(await screen.findByRole('dialog', { name: 'Create an MCP token' }));
     await user.type(form.getByLabelText('Name'), 'X');
-    await user.click(form.getByRole('checkbox', { name: 'Studio' }));
+    await user.click(form.getByRole('switch', { name: 'Studio' }));
     await user.click(form.getByRole('button', { name: 'Create token' }));
     expect(await form.findByRole('alert')).toHaveTextContent('You cannot use the CMS server.');
     expect(form.getByLabelText('Name')).toHaveValue('X');
@@ -277,7 +277,7 @@ it('switches a token off at once, sends the PATCH, and shows the Uitgeschakeld-s
     const user = await renderLoaded();
     const live = within(row('Claude Code laptop'));
     expect(live.queryByText('Switched off')).not.toBeInTheDocument();
-    const toggle = live.getByRole('checkbox', { name: 'Token Claude Code laptop on or off' });
+    const toggle = live.getByRole('switch', { name: 'Token Claude Code laptop on or off' });
     expect(toggle).toBeChecked();
 
     api.on('GET', PATH, { body: { tokens: [record({ enabled: false, disabledAt: '2026-10-10T14:00:00.000Z' }), OLD], legacy: { exists: false } } });
@@ -285,7 +285,7 @@ it('switches a token off at once, sends the PATCH, and shows the Uitgeschakeld-s
 
     await waitFor(() => expect(api.bodies('PATCH', `${PATH}/tok-1`)).toEqual([{ enabled: false }]));
     expect(await within(row('Claude Code laptop')).findByText('Switched off')).toBeInTheDocument();
-    expect(within(row('Claude Code laptop')).getByRole('checkbox', { name: 'Token Claude Code laptop on or off' })).not.toBeChecked();
+    expect(within(row('Claude Code laptop')).getByRole('switch', { name: 'Token Claude Code laptop on or off' })).not.toBeChecked();
 });
 
 it('switches a token back on', async () => {
@@ -295,7 +295,7 @@ it('switches a token back on', async () => {
     const user = await renderLoaded();
     expect(within(row('Claude Code laptop')).getByText('Switched off')).toBeInTheDocument();
     api.on('GET', PATH, { body: { tokens: [record()], legacy: { exists: false } } });
-    await user.click(within(row('Claude Code laptop')).getByRole('checkbox', { name: 'Token Claude Code laptop on or off' }));
+    await user.click(within(row('Claude Code laptop')).getByRole('switch', { name: 'Token Claude Code laptop on or off' }));
     await waitFor(() => expect(api.bodies('PATCH', `${PATH}/tok-1`)).toEqual([{ enabled: true }]));
     await waitFor(() => expect(within(row('Claude Code laptop')).queryByText('Switched off')).not.toBeInTheDocument());
 });
@@ -303,15 +303,15 @@ it('switches a token back on', async () => {
 it('rolls the switch back when the server refuses', async () => {
     api.on('PATCH', `${PATH}/tok-1`, { status: 500, body: { error: 'internal', code: 'internal', message: 'Could not save.' } });
     const user = await renderLoaded();
-    await user.click(within(row('Claude Code laptop')).getByRole('checkbox', { name: 'Token Claude Code laptop on or off' }));
+    await user.click(within(row('Claude Code laptop')).getByRole('switch', { name: 'Token Claude Code laptop on or off' }));
     await waitFor(() => expect(api.bodies('PATCH', `${PATH}/tok-1`)).toHaveLength(1));
-    await waitFor(() => expect(within(row('Claude Code laptop')).getByRole('checkbox', { name: 'Token Claude Code laptop on or off' })).toBeChecked());
+    await waitFor(() => expect(within(row('Claude Code laptop')).getByRole('switch', { name: 'Token Claude Code laptop on or off' })).toBeChecked());
     expect(within(row('Claude Code laptop')).queryByText('Switched off')).not.toBeInTheDocument();
 });
 
 it('gives a revoked token no switch', async () => {
     await renderLoaded();
-    expect(within(row('Old CI')).queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(within(row('Old CI')).queryByRole('switch')).not.toBeInTheDocument();
 });
 
 it('does not offer a server the operator has not switched on, and disables one the user lacks access to', async () => {
@@ -322,18 +322,18 @@ it('does not offer a server the operator has not switched on, and disables one t
     } });
     const user = await renderLoaded();
     const form = await openCreate(user);
-    expect(form.queryByRole('checkbox', { name: 'Automations' })).not.toBeInTheDocument();
+    expect(form.queryByRole('switch', { name: 'Automations' })).not.toBeInTheDocument();
     const studio = within(form.getByRole('group', { name: 'Studio' }));
-    expect(studio.getByRole('checkbox', { name: 'Studio' })).toBeDisabled();
+    expect(studio.getByRole('switch', { name: 'Studio' })).toBeDisabled();
     expect(studio.getByText("You don't have access to this yourself, so a token can't either.")).toBeInTheDocument();
-    expect(form.getByRole('checkbox', { name: 'Integrations' })).toBeEnabled();
+    expect(form.getByRole('switch', { name: 'Integrations' })).toBeEnabled();
 });
 
 it('only lets the website token publish when the user may publish', async () => {
     listWith({ eligibility: { ...ELIGIBLE, cms: { available: true, canPublish: false } } });
     const user = await renderLoaded();
     const form = await openCreate(user);
-    await user.click(form.getByRole('checkbox', { name: 'Website (CMS)' }));
+    await user.click(form.getByRole('switch', { name: 'Website (CMS)' }));
     const cms = within(form.getByRole('group', { name: 'Website (CMS)' }));
     await user.click(cms.getByRole('radio', { name: 'Read and write' }));
     expect(cms.getByRole('checkbox', { name: /May publish the website/ })).toBeDisabled();
@@ -352,7 +352,7 @@ it('builds the claude mcp add line from the base URL the server reports', async 
     const user = await renderLoaded();
     const form = await openCreate(user);
     await user.type(form.getByLabelText('Name'), 'Site');
-    await user.click(form.getByRole('checkbox', { name: 'Website (CMS)' }));
+    await user.click(form.getByRole('switch', { name: 'Website (CMS)' }));
     await user.click(form.getByRole('button', { name: 'Create token' }));
     const reveal = await screen.findByRole('dialog', { name: 'Your new token' });
     expect(within(reveal).getByText(/claude mcp add --transport http beeflow-cms https:\/\/flow\.example\.org\/mcp\/cms /)).toBeInTheDocument();

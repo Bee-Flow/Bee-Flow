@@ -58,7 +58,8 @@ const FIXTURES = [
     },
     {
         // Org B itself: its settings, logo and encryption status (auth/admin/orgRoutes.js)
-        // and its access grants (auth/admin/featureAccessRoutes.js). The id is the org's.
+        // and its access grants and integration availability (auth/admin/featureAccessRoutes.js,
+        // auth/admin/orgIntegrationAvailabilityRoutes.mts). The id is the org's.
         // PUT encryption and POST encryption/backfill validate their body before the
         // org-admin check, so they carry a body the schema accepts.
         kind: 'organization',
@@ -77,6 +78,7 @@ const FIXTURES = [
             'GET /auth/organizations/:orgId/active-beta-features', 'PUT /auth/organizations/:orgId/active-beta-features',
             'PUT /auth/organizations/:orgId/beta-features',
             'GET /auth/organizations/:orgId/org-availability', 'PUT /auth/organizations/:orgId/org-availability',
+            'GET /auth/organizations/:orgId/integration-availability',
             'PUT /auth/organizations/:id/encryption', 'POST /auth/organizations/:id/encryption/backfill',
         ],
         bodies: {

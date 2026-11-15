@@ -37,13 +37,6 @@ export const shortModel = (m?: string | null): string => {
             .replace(/-\d{4}-\d{2}-\d{2}$/, '');
 };
 
-// Date → value for an <input type="datetime-local"> (local time, no seconds).
-export const toLocalInput = (date: Date | string | number): string => {
-    const d = new Date(date);
-    const pad = (n: number) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-};
-
 // Relative "just now / 5m / 3h" within a day, else a locale date.
 export const fmtTime = (ts?: string | number | Date | null): string => {
     if (!ts) return '—';

@@ -105,7 +105,12 @@
     "lint:env-inventory-ratchet": "node scripts/env-inventory.mjs --check",
     "lint:secret-equality-ratchet": "node scripts/count-ratchet.mjs secret-equality server",
     "lint:instance-config-gate-ratchet": "node scripts/count-ratchet.mjs instance-config-gate server",
-    "lint:tenant-matrix-ratchet": "node scripts/count-ratchet.mjs tenant-matrix-exemptions server"
+    "lint:tenant-matrix-ratchet": "node scripts/count-ratchet.mjs tenant-matrix-exemptions server",
+    "lint:admin-palette-ratchet": "node scripts/theme-ratchet.mjs admin-palette agent-hub",
+    "lint:accent-text-white-ratchet": "node scripts/theme-ratchet.mjs accent-text-white agent-hub",
+    "lint:bare-text-token-ratchet": "node scripts/theme-ratchet.mjs bare-text-token agent-hub",
+    "lint:undefined-css-var": "node scripts/theme-ratchet.mjs undefined-css-var agent-hub",
+    "lint:vendor-name-ratchet": "node scripts/vendor-name-ratchet.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",

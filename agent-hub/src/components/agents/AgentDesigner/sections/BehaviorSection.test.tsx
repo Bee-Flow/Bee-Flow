@@ -25,10 +25,10 @@ describe('BehaviorSection', () => {
         const p = props();
         render(<BehaviorSection {...p} />);
         expect(screen.getByRole('heading', { level: 2, name: 'Behavior Settings' })).toBeInTheDocument();
-        expect(screen.getByRole('checkbox', { name: 'Allow Copying' })).toBeChecked();
-        await userEvent.click(screen.getByRole('checkbox', { name: 'Disable Integrations & Web Search' }));
+        expect(screen.getByRole('switch', { name: 'Allow Copying' })).toBeChecked();
+        await userEvent.click(screen.getByRole('switch', { name: 'Disable Integrations & Web Search' }));
         expect(p.setDisableExternalTools).toHaveBeenCalledWith(true);
-        await userEvent.click(screen.getByRole('checkbox', { name: 'Web Embed' }));
+        await userEvent.click(screen.getByRole('switch', { name: 'Web Embed' }));
         expect(p.setEmbedEnabled).toHaveBeenCalledWith(true);
         expect(screen.queryByText('Embed Settings')).toBeNull();
     });

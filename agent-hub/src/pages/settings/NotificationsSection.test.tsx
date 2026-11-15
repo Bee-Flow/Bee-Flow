@@ -38,16 +38,16 @@ describe('NotificationsSection', () => {
         render(withQueryClient(<NotificationsSection />));
         expect(await screen.findByTestId('notification-row-chat_mention')).toBeInTheDocument();
         for (const event of NOTIFICATION_EVENTS) expect(screen.getByTestId(`notification-row-${event}`)).toBeInTheDocument();
-        expect(screen.getAllByRole('checkbox')).toHaveLength(16);
-        expect(screen.getByRole('checkbox', { name: 'Removed from a project: E-mail' })).not.toBeChecked();
-        expect(screen.getByRole('checkbox', { name: 'Removed from a project: Bell' })).toBeChecked();
+        expect(screen.getAllByRole('switch')).toHaveLength(16);
+        expect(screen.getByRole('switch', { name: 'Removed from a project: E-mail' })).not.toBeChecked();
+        expect(screen.getByRole('switch', { name: 'Removed from a project: Bell' })).toBeChecked();
     });
 
     it('PUTs only the switch that moved', async () => {
         const api = serve();
         const user = userEvent.setup();
         render(withQueryClient(<NotificationsSection />));
-        await user.click(await screen.findByRole('checkbox', { name: 'Removed from a project: E-mail' }));
+        await user.click(await screen.findByRole('switch', { name: 'Removed from a project: E-mail' }));
         await waitFor(() => expect(api.callsTo('PUT', '/api/me/notification-prefs')).toHaveLength(1));
         expect(api.callsTo('PUT', '/api/me/notification-prefs')[0].body).toEqual({ email: { removed: true } });
         expect(await screen.findByText(/Saved/)).toBeInTheDocument();
@@ -57,7 +57,7 @@ describe('NotificationsSection', () => {
         serve(reply(500, { error: 'boom' }));
         const user = userEvent.setup();
         render(withQueryClient(<NotificationsSection />));
-        const box = await screen.findByRole('checkbox', { name: 'Mentioned in a team chat: Bell' });
+        const box = await screen.findByRole('switch', { name: 'Mentioned in a team chat: Bell' });
         await user.click(box);
         expect(await screen.findByTestId('notification-prefs-save-error')).toBeInTheDocument();
         await waitFor(() => expect(box).toBeChecked());

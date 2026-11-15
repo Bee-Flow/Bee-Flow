@@ -47,7 +47,7 @@ it('switching Running off sends {enabled:false}, and everything else waits while
     const gate = deferred<Reply>();
     api.on('PATCH', SERVER, () => gate.promise);
     const { user } = renderDrawer();
-    const running = screen.getByRole('checkbox', { name: 'Running' });
+    const running = screen.getByRole('switch', { name: 'Running' });
     expect(running).toBeChecked();
 
     await user.click(running);
@@ -165,7 +165,7 @@ it('a server the policy blocks says why, and cannot be switched on or checked fo
     renderDrawer({ blockedByPolicy: true, blockedReason: 'host_not_allowed', status: 'disabled' });
     expect(drawer()).toHaveTextContent('Blocked by policy');
     expect(screen.getByText('This host is no longer on your server administrator\'s list. The server is kept but does not run.')).toBeInTheDocument();
-    expect(screen.getByRole('checkbox', { name: 'Running' })).toBeDisabled();
+    expect(screen.getByRole('switch', { name: 'Running' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Check for new tools' })).toBeDisabled();
 });
 
@@ -198,6 +198,6 @@ it('an unsaved tool edit survives an unrelated update of the row, and yields to 
 // possible (only switching ON is refused while blocked).
 it('a blocked server that is still active can be switched off', async () => {
     const { user } = renderDrawer({ blockedByPolicy: true, blockedReason: 'not_official', status: 'active' });
-    await user.click(screen.getByRole('checkbox', { name: 'Running' }));
+    await user.click(screen.getByRole('switch', { name: 'Running' }));
     expect(api.bodies('PATCH', SERVER)).toEqual([{ enabled: false }]);
 });

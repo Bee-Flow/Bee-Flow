@@ -116,7 +116,7 @@ describe('ThemePanel: what server steps can read', () => {
     it('is off on an app that never set it, and switching it on writes serverScope: wide', async () => {
         const user = userEvent.setup();
         const { getByRole, onCommit } = renderPanel();
-        const toggle = getByRole('checkbox', { name: LABEL }) as HTMLInputElement;
+        const toggle = getByRole('switch', { name: LABEL }) as HTMLInputElement;
         expect(toggle.checked).toBe(false);
         await user.click(toggle);
         expect(onCommit).toHaveBeenCalledTimes(1);
@@ -126,7 +126,7 @@ describe('ThemePanel: what server steps can read', () => {
     it('switching it off removes the key', async () => {
         const user = userEvent.setup();
         const { getByRole, onCommit } = renderPanel({ ...DEF, serverScope: 'wide' });
-        const toggle = getByRole('checkbox', { name: LABEL }) as HTMLInputElement;
+        const toggle = getByRole('switch', { name: LABEL }) as HTMLInputElement;
         expect(toggle.checked).toBe(true);
         await user.click(toggle);
         expect(onCommit.mock.calls[0][0]).toEqual(DEF);
