@@ -282,9 +282,10 @@ Everything above lets Bee Flow act *on* Nextcloud. This does the reverse: it
 makes Bee Flow's tools and automations callable from Nextcloud's own **Assistant**,
 via the Model Context Protocol.
 
-1. In Bee Flow, open **Settings → Connections → MCP access** and mint a token.
-   It is shown once — Bee Flow stores only a hash-equivalent, so it cannot be
-   displayed again. Minting a new one revokes the old.
+1. In Bee Flow, open **Settings → Security → MCP tokens** and create a token
+   with the **Integrations** server switched on. It is shown once — Bee Flow
+   stores only its hash, so it cannot be displayed again. Each token can be
+   revoked on its own.
 2. In Nextcloud, go to **Administration settings → Artificial intelligence →
    Context Agent → MCP Config** and add:
 

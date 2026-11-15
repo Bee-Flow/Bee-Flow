@@ -33,7 +33,7 @@ mounted and the module is never loaded, so `/mcp/automations` simply does not
 exist.
 
 Then create a token for the user whose automations you want to edit. In Bee Flow
-open **Settings → MCP tokens**, give the token a name, tick the `automations`
+open **Settings → Security → MCP tokens**, give the token a name, tick the `automations`
 server (and a level: *read* lists and inspects, *write* builds), and optionally
 restrict it to specific tools, to a list of IP ranges, or give it an expiry. The
 token is shown **once**; revoke it from the same list. Several named tokens can
