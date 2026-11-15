@@ -3,17 +3,17 @@
  * (they spend the owner's model quota, mail allowance or storage and need a role), which are
  * model calls, and which per-(viewer, app) limiters a step of a kind is charged against, in
  * order. One list for the /step route and a background job (backgroundRun.mts), so a click and
- * a job spend the same buckets.
+ * a job spend the same buckets. It lives here, below the routes, because the job reads it too.
  */
 
 import { createRequire } from 'node:module';
 
-import { isBulkWriteStep } from '../appStudio/bulkWritePolicy.mts';
-import { CODE_RPM_ENV, codeStepLimiter } from './studioAppCodeStepLimit.mts';
+import { isBulkWriteStep } from './bulkWritePolicy.mts';
+import { CODE_RPM_ENV, codeStepLimiter } from './codeStepLimit.mts';
 
 const nodeRequire = createRequire(import.meta.url);
 
-const { STEP_POLICY_LISTS } = nodeRequire('../appStudio/componentSpecs/stepRegistry.js') as {
+const { STEP_POLICY_LISTS } = nodeRequire('./componentSpecs/stepRegistry.js') as {
     STEP_POLICY_LISTS: { heavyStepKinds: readonly string[]; aiStepKinds: readonly string[] };
 };
 
@@ -40,10 +40,10 @@ export type StepBudget = { limiter: Limiter; name: string; daily: boolean };
  * step is a bulk write (filter-mode update/delete_record or a writeTo replaceWhere, package 5),
  * which changes up to 500 rows in one step and so costs a run, not a step.
  */
-export function limitersForStep(kind: string, limiters: Record<string, Limiter> = nodeRequire('./studioAppRateLimits'), bulk = false): StepBudget[] {
+export function limitersForStep(kind: string, limiters: Record<string, Limiter> = nodeRequire('./rateLimits'), bulk = false): StepBudget[] {
     const out: StepBudget[] = [];
     if (AI_STEP_KINDS.includes(kind)) out.push({ limiter: limiters.aiStepLimiter, name: 'STUDIO_APP_AI_STEP_RPM', daily: false });
-    // A sandbox run: its own bucket (studioAppCodeStepLimit.mts), not the /run one.
+    // A sandbox run: its own bucket (codeStepLimit.mts), not the /run one.
     else if (kind === 'code') out.push({ limiter: limiters.codeStepLimiter ?? codeStepLimiter(), name: CODE_RPM_ENV, daily: false });
     else if (HEAVY_STEP_KINDS.includes(kind) || bulk) out.push({ limiter: limiters.actionRunLimiter, name: 'STUDIO_APP_ACTION_RUN_RPM', daily: false });
     if (kind === 'send_email') {

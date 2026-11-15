@@ -4,9 +4,9 @@
  * 0 = no limit).
  *
  *   codeStepLimiter        a signed-in click and a background job: per (viewer, app), like the
- *                          other step buckets (studioAppStepBudget.mts charges it)
+ *                          other step buckets (stepBudget.mts charges it)
  *   checkPublicCodeBudget  an anonymous visitor of a public page: per (page, IP), on top of the
- *                          page's ordinary step bucket (studioAppPublic.js)
+ *                          page's ordinary step bucket (routes/studioAppPublic.js)
  *
  * Built on first use, so a test can set the env before it.
  */
@@ -41,10 +41,10 @@ export function buildCodeLimiter(name: string, keyFn: (req: Req) => string, env:
 let signedIn: CodeLimiter | null = null;
 let publicPage: CodeLimiter | null = null;
 
-/** Per (viewer, app): the key the other App Studio step buckets use (studioAppRateLimits.actionRunKey). */
+/** Per (viewer, app): the key the other App Studio step buckets use (rateLimits.actionRunKey). */
 export function codeStepLimiter(): CodeLimiter {
     if (!signedIn) {
-        const { actionRunKey } = nodeRequire('./studioAppRateLimits.js') as { actionRunKey: (req: Req) => string };
+        const { actionRunKey } = nodeRequire('./rateLimits.js') as { actionRunKey: (req: Req) => string };
         signedIn = buildCodeLimiter('studio-code-step', actionRunKey);
     }
     return signedIn;

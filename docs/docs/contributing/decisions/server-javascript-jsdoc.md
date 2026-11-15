@@ -5,7 +5,9 @@ description: Why server/ is CommonJS JavaScript with JSDoc types that are checke
 
 # 0001: The server stays JavaScript, typed with JSDoc
 
-**Status:** accepted, in effect. **Enforced by:** `server/scripts/typecheck.mjs`,
+**Status:** superseded by [0026](./server-typescript-for-new-code.md): new server code is
+TypeScript (`.mts`) that Node runs as written; what this record says about the existing JavaScript
+files still holds. **Enforced by:** `server/scripts/typecheck.mjs`,
 `scripts/checkjs-ratchet.mjs`, `scripts/check-new-code-types.mjs`.
 
 ## Context

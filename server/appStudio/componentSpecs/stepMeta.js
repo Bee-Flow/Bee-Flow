@@ -34,7 +34,7 @@
  * What the catalogue says about one step kind:
  *   side           client: browser chrome; control: flow the walkers evaluate; server: executed on the API
  *   retrySafe      a failed step may be tried again (false: its effect leaves Bee Flow or waits on a person)
- *   budget         server kinds: the limiter bucket (routes/studioAppStepBudget.mts)
+ *   budget         server kinds: the limiter bucket (stepBudget.mts)
  *   handler        server kinds: a case in actionExecutor/dispatch.js, or actionExecutor/steps/<kind>.mts
  *   writesRecords  writes rows of the app table its `tableId` names
  *   noLoop         may never sit inside a loop (an error)

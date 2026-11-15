@@ -36,7 +36,7 @@ const { envInt } = require('../../utils/envNumber.mts');
 
 // ── Rate limits (per viewer + app) ──────────────────────────────────
 // Reads are cheaper than writes; both keyed userId:appId so one noisy viewer
-// can't drain another's budget for the same app (mirrors studioAppRateLimits).
+// can't drain another's budget for the same app (mirrors appStudio/rateLimits).
 const DATA_READ_RPM = envInt('STUDIO_APP_DATA_READ_RPM', 60, { min: 1 });
 const DATA_WRITE_RPM = envInt('STUDIO_APP_DATA_WRITE_RPM', 20, { min: 1 });
 /** @param {import('express').Request<{ id: string }>} req */

@@ -63,7 +63,7 @@ stub('../appStudio/actionExecutor', {
     },
 });
 // Rate limiters: pass-through (behaviour of the limiter is its own test).
-stub('./studioAppRateLimits', {
+stub('../appStudio/rateLimits', {
     browseStepLimiter: Object.assign((req, res, next) => next(), { check: async () => true }),
     aiStepLimiter: Object.assign((req, res, next) => next(), { check: async () => true }),
 });

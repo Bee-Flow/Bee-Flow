@@ -26,7 +26,11 @@
  * requires that make it up. Each require call counts, lazy ones included: the
  * whole file is scanned, function bodies too, not only the top-level requires
  * (comment lines are skipped). The lazy require is exactly how most of these
- * edges hide, so it is not a way around the budget.
+ * edges hide, so it is not a way around the budget. The require of a
+ * TypeScript file counts the same: a `.mts` file is an ES module without a
+ * `require`, so it loads CommonJS through `createRequire(import.meta.url)`,
+ * called directly or under the name `nodeRequire`. A createRequire kept under
+ * any other name is not read: name it `nodeRequire`.
  *
  *   node --test server/layering.test.js         the gate (also `npm run lint:layering-ratchet`)
  *   node server/layering.test.js --list         every counted pair, its count and budget
@@ -139,7 +143,10 @@ function resolveTarget(abs) {
     return abs;
 }
 
-const REQUIRE = /require\(\s*['"](\.[^'"]+)['"]\s*\)/g;
+// `require('./y')`, and the require of a TypeScript file (.mts): `nodeRequire('./y')`, the name
+// such a file gives its `createRequire(import.meta.url)`, or that createRequire called directly.
+// An ES module has no `require` of its own, so that is how it loads CommonJS, lazily or not.
+const REQUIRE = /(?:require|nodeRequire|createRequire\(import\.meta\.url\))\(\s*['"](\.[^'"]+)['"]\s*\)/g;
 // `import x from './y'`, `export { x } from './y'`, `import './y'` and `await import('./y')`.
 // A statement may span lines, so these run over the whole file. `import type` and
 // `export type` load nothing at run time and are not edges; neither is the
@@ -222,6 +229,8 @@ if (require.main === module && process.argv.includes('--update')) {
     const total = Object.values(sorted).reduce((s, n) => s + n, 0);
     fs.writeFileSync(BUDGET_FILE, JSON.stringify({
         _comment: COMMENT,
+        // A hand-written note (why pairs were once raised) is carried over as it stands.
+        ...(existing && existing._note ? { _note: existing._note } : {}),
         _generated: new Date().toISOString().slice(0, 10),
         total,
         pairs: sorted,
@@ -251,7 +260,10 @@ test('synthetic: requires and imports are edges, type-only imports and comments 
         `export { d } from '${R}d.mts';`,
         `import '${R}e.mts';`,
         `const f = await import('${R}f.mts');`,
-    ].join('\n')), ['./a:1', './b.mts:2', './c.mts:5', './d.mts:6', './e.mts:7', './f.mts:8']);
+        // How a .mts file loads CommonJS: the lazy form is where the upward edges hide.
+        `const g = () => nodeRequire('${R}g');`,
+        `const { h } = createRequire(import.meta.url)('${R}h.js') as { h: number };`,
+    ].join('\n')), ['./a:1', './b.mts:2', './c.mts:5', './d.mts:6', './e.mts:7', './f.mts:8', './g:9', './h.js:10']);
     assert.deepEqual(specs([
         `import type { T } from '${R}t.mts';`,
         `export type { U } from '${R}u.mts';`,

@@ -23,7 +23,12 @@
  *   - static `import … from`, `export … from` and side-effect `import '…'`;
  *   - `require('…')` and `import('…')` ANYWHERE in the file, function bodies
  *     included. The lazy require is exactly how the server's big cycle hides,
- *     so it is not a way around the budget.
+ *     so it is not a way around the budget;
+ *   - the require of an ES module: a `.mts` file has no `require`, so it loads
+ *     CommonJS through `createRequire(import.meta.url)`, called directly or
+ *     under the name the server gives it, `nodeRequire('…')`. The server's
+ *     TypeScript (`.mts`) loads most of its neighbours this way, so a scanner
+ *     that skips it misses the server's largest cycle.
  * Not counted:
  *   - type-only imports where the syntax says so (`import type`, `export type`,
  *     `import { type A, type B }`, `typeof import(…)`): TypeScript erases them,
@@ -32,7 +37,9 @@
  *     '@/x'" is not an edge; the audit's script counted those);
  *   - test files (`*.test.*`, `*.spec.*`, `*.testkit.*`, `__tests__/`,
  *     `__mocks__/`) and declaration files: nothing in the app imports them;
- *   - specifiers built at run time (`require(name)`, a template with `${}`).
+ *   - specifiers built at run time (`require(name)`, a template with `${}`);
+ *   - a `createRequire` kept under any other name than `require` or
+ *     `nodeRequire`: name it `nodeRequire`, or its edges stay unseen.
  *
  * Usage:
  *   node scripts/scc-ratchet.mjs <package>...           gate
@@ -52,12 +59,13 @@ import { isEntryPoint } from './entry-point.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-const CODE = /\.(?:[cm]?js|jsx|ts|tsx)$/;
+// `.mts` is the server's TypeScript (Node strips the types, no build step): source like any other.
+const CODE = /\.(?:[cm]?js|jsx|m?ts|tsx)$/;
 const NOT_SOURCE = /\.(?:test|spec|testkit)\.[cm]?[jt]sx?$|\.d\.[cm]?ts$/;
 // Build output, vendored code and test scaffolding: not part of the app's graph.
 const SKIP_DIRS = new Set(['node_modules', 'dist', 'build', 'coverage', '.vite', '__tests__', '__mocks__']);
 // Resolution order for an extensionless specifier, as the bundlers try them.
-const EXTS = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'];
+const EXTS = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.mts'];
 
 /* ------------------------------------------------------------------ */
 /* Comments out, everything else kept                                  */
@@ -194,7 +202,10 @@ export function stripComments(src) {
 // (`x.require(…)`) but not a spread (`...require('./part')`).
 const FROM = /(?<![\w$])(?<![^.]\.)(import|export)\s+([^'"`;()]*?)\s*from\s*(['"])([^'"\n]+)\3/g;
 const SIDE_EFFECT = /(?<![\w$])(?<![^.]\.)import\s*(['"])([^'"\n]+)\1/g;
-const CALL = /(?<![\w$])(?<![^.]\.)(require|import)\s*\(\s*(['"`])([^'"`\n]+)\2\s*\)/g;
+// `nodeRequire` is the name a `.mts` file gives the `createRequire(import.meta.url)` it loads
+// CommonJS with (an ES module has no `require`); some files call the createRequire directly.
+// Both are the same edge as a `require`.
+const CALL = /(?<![\w$])(?<![^.]\.)(require|nodeRequire|createRequire\(import\.meta\.url\)|import)\s*\(\s*(['"`])([^'"`\n]+)\2\s*\)/g;
 
 /** Does an import/export clause load only types? */
 export function typeOnlyClause(clause) {
@@ -382,6 +393,8 @@ function gate(pkg, opts) {
     if (update || !existing) {
         const next = {
             _comment: `Number of files the largest import cycle (strongly connected component, lazy requires included, type-only imports excluded) under ${scanned} may still have. Lower it with \`node scripts/scc-ratchet.mjs ${pkg} --update\` after a split; raising it is a deliberate edit that belongs in a commit message with a reason.`,
+            // A hand-written note (why a budget was once raised) is carried over as it stands.
+            ...(existing?._note ? { _note: existing._note } : {}),
             _generated: new Date().toISOString().slice(0, 10),
             size: existing ? Math.min(size, existing.size) : size,
             // The number of separate cycles (SCCs of 2+ files) may only fall too. A budget file

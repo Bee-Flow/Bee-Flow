@@ -330,6 +330,8 @@ const sidebars: SidebarsConfig = {
             'contributing/decisions/unattended-runs-act-as-the-owner',
             'contributing/decisions/trigger-chain-keeps-its-start',
             'contributing/decisions/column-rights-in-the-data-layer',
+            'contributing/decisions/server-typescript-for-new-code',
+            'contributing/decisions/provider-type-outside-the-adapters',
           ],
         },
       ],

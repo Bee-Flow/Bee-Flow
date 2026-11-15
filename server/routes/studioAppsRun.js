@@ -81,7 +81,7 @@ async function runBody(run) {
 const { resolveAudienceContext } = require('../auth/audience');
 const { DATA_MUTATING_STEP_KINDS } = require('../appStudio/componentSpecs');
 const { stepPolicy } = require('../appStudio/componentSpecs/stepRegistry');
-const { actionRunLimiter, stepLimiter, jobStatusLimiter } = require('./studioAppRateLimits');
+const { actionRunLimiter, stepLimiter, jobStatusLimiter } = require('../appStudio/rateLimits');
 const runEventBus = require('../core/runEventBus');
 
 // requireAuth is the canonical gate from auth/permissions (verifies the
@@ -168,8 +168,8 @@ async function resolveStartedRunId(runIds, { appId, viewerId, actionId }) {
 
 // Step kinds that cost what a /run costs (a full automation, a model call, a write into the
 // owner's storage envelope), the model calls among them, and the limiters per kind: one list
-// for this route and a background job (studioAppStepBudget.mts, where the reasoning lives).
-const { HEAVY_STEP_KINDS, limitersForStepDef } = require('./studioAppStepBudget.mts');
+// for this route and a background job (appStudio/stepBudget.mts, where the reasoning lives).
+const { HEAVY_STEP_KINDS, limitersForStepDef } = require('../appStudio/stepBudget.mts');
 const { mountBackgroundRoutes, refuseLocked } = require('./studioAppBackground');
 // The run log of a browser run (package 8): the step envelope and the end report.
 const { loggedSignedInStep, logAutomationRun, signedInClick, endClickRun } = require('../appStudio/runLog/clickRuns.mts');
@@ -243,7 +243,7 @@ router.post('/:id/actions/:actionId/step', requireAuth, stepLimiter, jsonBody, b
     // asynchronous, so the check is awaited — BFSF-459). Model calls have their
     // own bucket (an action loops them once per document), other heavy kinds the
     // /run bucket; send_email is charged per minute and per day, file_intake and
-    // dataset_query on their own buckets (studioAppStepBudget.mts).
+    // dataset_query on their own buckets (appStudio/stepBudget.mts).
     // A bulk write (filter-mode update/delete, writeTo replaceWhere) costs a run, not a step
     // (appStudio/bulkWritePolicy.mts).
     for (const { limiter } of limitersForStepDef(step)) {

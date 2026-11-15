@@ -79,7 +79,7 @@ const connectors = require('../appStudio/connectors');
 const connectorSchema = require('../appStudio/connectorSchema');
 const connectorSync = require('../appStudio/connectorSync');
 const { resolveAudienceContext } = require('../auth/audience');
-const { connectorRunLimiter, connectorSyncLimiter } = require('./studioAppRateLimits');
+const { connectorRunLimiter, connectorSyncLimiter } = require('../appStudio/rateLimits');
 const { requireAuth } = require('../auth/permissions');
 
 // Form/params ride in the JSON body; 64KB is far above any real connector call

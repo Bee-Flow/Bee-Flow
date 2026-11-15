@@ -22,6 +22,17 @@ function fakeRes() {
     return { statusCode: 200, status(c) { this.statusCode = c; return this; }, json() { return this; } };
 }
 
+test('the request gates and a background run read one copy of the role rules', () => {
+    // The rules live below the routes (a background run reads them too); this module only
+    // hands them on. A second implementation here is how one surface would drift wider.
+    const rules = require('../appStudio/runGateRules');
+    const gate = require('./studioAppRunGate');
+    for (const name of ['roleAllows', 'actionRoleAccess', 'documentChecks', 'stepDocumentContext']) {
+        assert.strictEqual(typeof rules[name], 'function', name);
+        assert.strictEqual(gate[name], rules[name], name);
+    }
+});
+
 test('a callee of an admin-only root is referenced and refused for a member', () => {
     const def = defWith([['act_admin', ['admin']]], { act_admin: SEQ(CALL('act_mail')), act_mail: MAIL });
     assert.deepStrictEqual(actionRoleAccess(def, 'act_mail', 'member'), { referenced: true, allowed: false });

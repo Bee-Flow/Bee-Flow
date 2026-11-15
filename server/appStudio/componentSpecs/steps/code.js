@@ -33,7 +33,7 @@ module.exports = {
     retrySafe: true,
     policy: { click: 'step', background: 'run', mailboxHook: 'run', unattended: 'run', mcpRun: 'run', mcpDryRun: 'run', public: 'step' },
     // A role is needed to run it (it spends server CPU), and it has its own per-minute
-    // bucket, STUDIO_APP_CODE_RPM (routes/studioAppStepBudget.mts).
+    // bucket, STUDIO_APP_CODE_RPM (stepBudget.mts).
     budget: 'heavy',
     handler: 'file',
     inLoop: {

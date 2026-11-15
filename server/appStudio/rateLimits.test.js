@@ -6,14 +6,14 @@
  * store modules) so the per-(user, app) keying and 429 behavior are verified
  * end-to-end. Mirrors webpagesPreviewRateLimits.test.js.
  *
- * Run: node --test routes/studioAppRateLimits.test.js
+ * Run: node --test appStudio/rateLimits.test.js
  */
 
 const test = require('node:test');
 const assert = require('node:assert');
 const http = require('node:http');
 const express = require('express');
-const { actionRunLimiter, stepLimiter, actionRunKey, ACTION_RUN_RPM, STEP_RPM } = require('./studioAppRateLimits');
+const { actionRunLimiter, stepLimiter, actionRunKey, ACTION_RUN_RPM, STEP_RPM } = require('./rateLimits');
 
 // Mounts the limiter behind a fake requireAuth stand-in (sets req.session.user
 // from a header so each test controls the caller identity) and returns
@@ -103,7 +103,7 @@ test('actionRunLimiter returns 429 after the per-(user, app) cap, with Retry-Aft
 // to the /run bucket meant a nine-drawing order died mid-flight at "limit is 10
 // per 60s", after paying for the calls that had already landed.
 test('model-call steps get their own bucket, well clear of the run bucket', () => {
-    const limits = require('./studioAppRateLimits');
+    const limits = require('./rateLimits');
     assert.equal(typeof limits.aiStepLimiter, 'function');
     assert.ok(
         limits.AI_STEP_RPM > limits.ACTION_RUN_RPM,

@@ -10,7 +10,7 @@ import { backgroundLimits } from './backgroundRunPolicy.mts';
 import type { BackgroundLimits } from './backgroundRunPolicy.mts';
 import type { ActionRunRow, ActionRunStore } from '../stores/studioAppData/actionRuns.mts';
 import type { RunLogStore } from '../stores/studioAppData/runLogStore.mts';
-import type { StepBudget } from '../routes/studioAppStepBudget.mts';
+import type { StepBudget } from './stepBudget.mts';
 import type { ResumeContext, RunMeta } from './backgroundRunIdentity.mts';
 
 const nodeRequire = createRequire(import.meta.url);
@@ -164,9 +164,9 @@ export function withDefaults(given: Partial<RunnerDeps>): RunnerDeps {
         buildScope: given.buildScope ?? ((ctx) => nodeRequire('./actionExecutor/shared').buildServerScope(ctx)),
         resolveBinding: given.resolveBinding ?? ((binding, ctx, scope) => nodeRequire('./actionExecutor/shared').resolveBinding(binding, ctx, scope)),
         readData: given.readData,
-        budgetsFor: given.budgetsFor ?? ((kind, step) => (nodeRequire('../routes/studioAppStepBudget.mts') as { limitersForStepDef: (s: unknown) => StepBudget[] }).limitersForStepDef(step ?? { kind })),
-        heavyKinds: given.heavyKinds ?? (nodeRequire('../routes/studioAppStepBudget.mts') as { HEAVY_STEP_KINDS: readonly string[] }).HEAVY_STEP_KINDS,
-        stepDocumentContext: given.stepDocumentContext ?? ((step, def, role) => nodeRequire('../routes/studioAppRunGate').stepDocumentContext(step, def, role)),
+        budgetsFor: given.budgetsFor ?? ((kind, step) => (nodeRequire('./stepBudget.mts') as { limitersForStepDef: (s: unknown) => StepBudget[] }).limitersForStepDef(step ?? { kind })),
+        heavyKinds: given.heavyKinds ?? (nodeRequire('./stepBudget.mts') as { HEAVY_STEP_KINDS: readonly string[] }).HEAVY_STEP_KINDS,
+        stepDocumentContext: given.stepDocumentContext ?? ((step, def, role) => nodeRequire('./runGateRules').stepDocumentContext(step, def, role)),
         logUsage: given.logUsage ?? ((entry) => nodeRequire('../stores/usageStore').logUsage(entry)),
         log: given.log ?? nodeRequire('../telemetry/log'),
         now: given.now ?? (() => Date.now()),

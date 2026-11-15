@@ -106,7 +106,7 @@ function makeAppDocumentsRouter(deps = {}) {
     };
     const rpm = compareRpm();
     const limiter = deps.limiter !== undefined ? deps.limiter : (rpm > 0
-        ? require('../utils/perUserRateLimit').perUserRateLimit({ windowMs: 60_000, max: rpm, keyFn: require('./studioAppRateLimits').actionRunKey, name: 'studio-doc-compare' })
+        ? require('../utils/perUserRateLimit').perUserRateLimit({ windowMs: 60_000, max: rpm, keyFn: require('../appStudio/rateLimits').actionRunKey, name: 'studio-doc-compare' })
         : null);
     let readerDeps = /** @type {import('../appStudio/appDocuments/reader.mts').ReaderDeps | null} */ (null);
     const readerOf = () => (readerDeps ||= d.reader());

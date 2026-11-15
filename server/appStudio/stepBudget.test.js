@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { limitersForStep, limitersForStepDef } = require('./studioAppStepBudget.mts');
+const { limitersForStep, limitersForStepDef } = require('./stepBudget.mts');
 
 const fake = (name) => ({ limiterName: name, check: async () => true, take: async () => ({ ok: true }) });
 const LIMITERS = Object.fromEntries(['aiStepLimiter', 'actionRunLimiter', 'sendEmailLimiter', 'sendEmailDailyLimiter', 'fileIntakeLimiter', 'datasetQueryLimiter'].map((n) => [n, fake(n)]));

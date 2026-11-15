@@ -5,7 +5,9 @@ description: Why every LLM provider is a file in server/core/providers, why Olla
 
 # 0003: One adapter per provider, one for all self-hosted runtimes
 
-**Status:** accepted, in effect. **Enforced by:** the adapter factory in
+**Status:** superseded by [0027](./provider-type-outside-the-adapters.md): the adapters and the
+pricing rule stand, but code outside the adapters does compare the stored provider type, and that
+record lists where. **Enforced by:** the adapter factory in
 `server/core/providers/index.js`; `LOCAL_RUNTIMES` in `server/core/providers/localModels.js`.
 
 ## Context

@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * The code step's own per-minute bucket (./studioAppCodeStepLimit.mts): STUDIO_APP_CODE_RPM with
+ * The code step's own per-minute bucket (./codeStepLimit.mts): STUDIO_APP_CODE_RPM with
  * 0 as no limit, charged for a code step instead of the /run bucket, and on a public page on top
  * of the ordinary step bucket.
  */
@@ -9,8 +9,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { buildCodeLimiter, checkPublicCodeBudget, CODE_RPM_DEFAULT } = require('./studioAppCodeStepLimit.mts');
-const { limitersForStep } = require('./studioAppStepBudget.mts');
+const { buildCodeLimiter, checkPublicCodeBudget, CODE_RPM_DEFAULT } = require('./codeStepLimit.mts');
+const { limitersForStep } = require('./stepBudget.mts');
 
 const keyOf = (req) => `t:${req.params.id}`;
 

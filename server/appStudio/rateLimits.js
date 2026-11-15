@@ -2,6 +2,9 @@
 /**
  * Rate limiters for the App Studio action-run bridge (server/routes/studioAppsRun.js).
  *
+ * In appStudio/, not in routes/: a background job (backgroundRun.mts) spends the same buckets as
+ * a click through stepBudget.mts, and nothing below the API layer may require a router file.
+ *
  * Split into its own near-dependency-free module (only utils/perUserRateLimit)
  * so it can be unit-tested without pulling in studioAppsRun.js's graph of
  * stores/runner, most of which require live env config (DB) at import time —

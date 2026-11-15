@@ -1,6 +1,7 @@
 {
   "_comment": "Number of files the largest import cycle (strongly connected component, lazy requires included, type-only imports excluded) under server may still have. Lower it with `node scripts/scc-ratchet.mjs server --update` after a split; raising it is a deliberate edit that belongs in a commit message with a reason.",
-  "_generated": "2026-10-26",
-  "size": 5,
-  "cycles": 22
+  "_note": "2026-11-14: size 5 -> 32 and cycles 22 -> 25. This corrects the measurement and adds no debt: the scanner skipped every .mts file and did not read nodeRequire(...), the call such a file loads CommonJS with, so these cycles existed unseen (4473 files were read, 4973 are). No import was added. The largest cycle is appStudio/validate/* with appStudio/actionExecutor/shared.js (32 files); the next is auth/encryption.js with stores/user* (15). Both numbers are the measured ones, without slack.",
+  "_generated": "2026-11-14",
+  "size": 32,
+  "cycles": 25
 }

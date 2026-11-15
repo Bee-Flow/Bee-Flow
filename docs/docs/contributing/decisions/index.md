@@ -13,9 +13,9 @@ decision that changes gets a new record that supersedes the old one.
 
 | Record | Decision |
 |---|---|
-| [0001](./server-javascript-jsdoc.md) | The server stays JavaScript; types are JSDoc, checked per file at rising levels |
+| [0001](./server-javascript-jsdoc.md) | The server stays JavaScript; types are JSDoc, checked per file at rising levels (superseded by 0026) |
 | [0002](./ratchets.md) | Quality is kept by ratchets: budgets that may only go down |
-| [0003](./provider-adapters.md) | One adapter per LLM provider, one adapter for every self-hosted runtime, pricing on the stored provider type |
+| [0003](./provider-adapters.md) | One adapter per LLM provider, one adapter for every self-hosted runtime, pricing on the stored provider type (superseded by 0027) |
 | [0004](./context-management.md) | Two context-management mechanisms: lossless by default, lossy compaction opt-in |
 | [0005](./generated-copies.md) | Generated copies, never hand copies |
 | [0006](./desktop-loads-the-spa.md) | The desktop client loads the SPA from the server; IPC trust comes from the sender's URL |
@@ -38,3 +38,5 @@ decision that changes gets a new record that supersedes the old one.
 | [0023](./unattended-runs-act-as-the-owner.md) | Unattended runs act as the app owner, and are armed only from a published definition |
 | [0024](./trigger-chain-keeps-its-start.md) | A chain of trigger runs keeps the rules of what started it |
 | [0025](./column-rights-in-the-data-layer.md) | Column rights are enforced in the data layer and proved by oracle tests |
+| [0026](./server-typescript-for-new-code.md) | New server code is TypeScript (`.mts`) that Node runs as written; the existing files stay JavaScript with JSDoc types, and the architecture gates read how the two load each other |
+| [0027](./provider-type-outside-the-adapters.md) | One adapter per LLM provider; code outside the adapters compares the stored provider type for model registration, price keys, the path a call takes and configuration, and a price never follows a guessed adapter |

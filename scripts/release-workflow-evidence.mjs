@@ -1,3 +1,11 @@
+/**
+ * Verify that release evidence comes from a successful, manually started run of the named
+ * workflow on main, and hand its commit and attempt to the next step.
+ *
+ *   node scripts/release-workflow-evidence.mjs <run id> <workflow path>
+ *
+ * Run by promote-release.yml and staging-release-validation.yml.
+ */
 import fs from 'node:fs';
 import { isEntryPoint } from './entry-point.mjs';
 const isCommitSha = (s) => typeof s === 'string' && s.length === 40 && [...s].every((c) => '0123456789abcdef'.includes(c));
