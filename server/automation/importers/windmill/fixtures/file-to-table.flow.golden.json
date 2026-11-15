@@ -560,8 +560,7 @@
         "validation": {
           "errors": [],
           "warnings": [
-            "edge.after_stop_error",
-            "edge.label_unknown"
+            "edge.after_stop_error"
           ]
         }
       }

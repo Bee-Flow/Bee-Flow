@@ -187,9 +187,7 @@
         "suggestedRunPolicy": {},
         "validation": {
           "errors": [],
-          "warnings": [
-            "edge.label_unknown"
-          ]
+          "warnings": []
         }
       }
     }
