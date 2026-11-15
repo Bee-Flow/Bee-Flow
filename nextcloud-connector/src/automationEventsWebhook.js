@@ -251,6 +251,38 @@ function nodeFields(node) {
 }
 
 /**
+ * A Mail id as Mail serialises it (an integer), or null.
+ * @param {unknown} v
+ * @returns {number | null}
+ */
+function mailId(v) {
+    return typeof v === 'number' && Number.isSafeInteger(v) && v > 0 ? v : null;
+}
+
+/**
+ * `mail.new`, built from an allow-list: the ids, the subject and when it came
+ * in. Mail's `NewMessageReceivedEvent::getWebhookSerializable()` also carries
+ * the RFC message ids, the thread root, the send date and the message's OCS
+ * address; none of that is forwarded. There is no sender and no attachment
+ * flag in the event at all: the Bee Flow server reads those as the mailbox's
+ * owner, who it finds from `accountId` (the delivery comes from Mail's
+ * background sync, so `actor` is usually null).
+ * @param {HookEventBody & { accountId?: unknown, mailboxId?: unknown, messageId?: unknown, subject?: unknown }} e
+ * @param {{ actor: string | null, actorName: string | null, datetime: string }} base
+ * @returns {HookPayload}
+ */
+function mailPayload(e, base) {
+    return {
+        accountId: mailId(e.accountId),
+        mailboxId: mailId(e.mailboxId),
+        messageId: mailId(e.messageId),
+        subject: typeof e.subject === 'string' ? e.subject.slice(0, 998) : '',
+        receivedAt: base.datetime,
+        ...base,
+    };
+}
+
+/**
  * @param {string} event  the Bee Flow trigger id
  * @param {HookEnvelope} envelope
  * @returns {HookPayload}
@@ -366,6 +398,8 @@ function normalisePayload(event, envelope) {
             ...base,
         };
     }
+
+    if (event === 'mail.new') return mailPayload(e, base);
 
     // Unknown-but-registered class: forward the serialized event as-is rather
     // than dropping data the SaaS might understand.

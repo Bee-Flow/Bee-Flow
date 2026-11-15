@@ -229,6 +229,13 @@ for (const situation of SITUATIONS) {
         const callback = await get('/nc/ocs/v2.php/cloud/users/admin');
         assert.ok(callback.status >= 400, `the callback route answered ${callback.status}`);
 
+        // Nor does the Windmill inventory: refused, and the webhook rows are not read.
+        const rowReads = () => nc.calls.filter((c) => c.url.includes('/webhook_listeners/')).length;
+        const readsBefore = rowReads();
+        const inventory = await post('/hooks/windmill-inventory', { 'X-Beeflow-Sig': `${Math.floor(Date.now() / 1000)}.${'0'.repeat(64)}` }, {});
+        assert.equal(inventory.status, 401, 'no tenant key, so no signature verifies');
+        assert.equal(rowReads(), readsBefore, 'the webhook rows were not listed');
+
         // AppAPI's /init: answered at once, and the background setup reaches 100.
         const reportsBefore = progressReports();
         const init = await post('/init', authHeader(''));

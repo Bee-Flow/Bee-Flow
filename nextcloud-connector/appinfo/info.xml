@@ -78,7 +78,7 @@ Er wordt niets in bulk geëxporteerd, en standaard wordt niets gekopieerd, gespi
 
 Documentatie (Engels): [docs.beeflow.ai/connector](https://docs.beeflow.ai/connector). Vragen: **info@beeflow.nl**.
         ]]></description>
-    <version>2.0.0</version>
+    <version>2.1.0</version>
     <licence>AGPL-3.0-or-later</licence>
     <author mail="tomkooy@beeflow.nl" homepage="https://beeflow.nl/">Bee Flow B.V.</author>
     <namespace>BeeFlow</namespace>

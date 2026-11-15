@@ -11,7 +11,9 @@
  * APPROXIMATE are classes with no exact counterpart that map onto the nearest
  * delivered event, with a warning: a "before" event becomes its "after"
  * event, a touch becomes a change, moving to the bin becomes a deletion.
- * The Mail event is A5's `mail.new` (targetNames.mts).
+ * The Mail event is A5's `mail.new` (targetNames.mts), registered by the
+ * connector under Mail's plural `Events` namespace; the singular spelling
+ * stays as an approximate alias for an export that names it so.
  */
 
 import { NEW_NEXTCLOUD_EVENTS } from './targetNames.mts';
@@ -36,6 +38,7 @@ export const EXACT: Readonly<Record<string, string>> = Object.freeze({
     'OCA\\Deck\\Event\\CardCreatedEvent': 'deck.card.created',
     'OCA\\Deck\\Event\\CardUpdatedEvent': 'deck.card.changed',
     'OCA\\Deck\\Event\\CardDeletedEvent': 'deck.card.deleted',
+    'OCA\\Mail\\Events\\NewMessageReceivedEvent': NEW_NEXTCLOUD_EVENTS.mailNew,
 });
 
 export const APPROXIMATE: Readonly<Record<string, { event: string; note: string }>> = Object.freeze({
@@ -47,7 +50,6 @@ export const APPROXIMATE: Readonly<Record<string, { event: string; note: string 
     'OCP\\Files\\Events\\Node\\BeforeNodeCopiedEvent': { event: 'file.copied', note: 'Starts after the copy, not before.' },
     'OCP\\Files\\Events\\Node\\BeforeNodeTouchedEvent': { event: 'file.changed', note: 'Starts after any change of the file.' },
     'OCP\\Calendar\\Events\\CalendarObjectMovedToTrashEvent': { event: 'calendar.event.deleted', note: 'Moving an event to the bin starts the "deleted" trigger.' },
-    'OCA\\Mail\\Events\\NewMessageReceivedEvent': { event: NEW_NEXTCLOUD_EVENTS.mailNew, note: 'The Nextcloud Mail trigger reads the sender and attachments itself.' },
     'OCA\\Mail\\Event\\NewMessageReceivedEvent': { event: NEW_NEXTCLOUD_EVENTS.mailNew, note: 'The Nextcloud Mail trigger reads the sender and attachments itself.' },
 });
 

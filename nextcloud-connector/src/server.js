@@ -79,6 +79,11 @@ app.use('/', require('./talkBot'));
 // SaaS that made it.
 require('./studioAppMenus').mountPushHook(app);
 
+// The Bee Flow server asks which Windmill flows listen to this Nextcloud (an
+// org admin opened the Windmill import). Same caller and tenant-key HMAC as
+// the push above; the answer is a summary, never a row (windmillInventory.js).
+require('./windmillInventory').mountInventoryHook(app);
+
 app.use(appApiAuthMiddleware);
 
 // Body parsing sits AFTER the auth gate on purpose. Every route reached before

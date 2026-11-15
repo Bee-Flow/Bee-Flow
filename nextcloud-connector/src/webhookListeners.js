@@ -40,7 +40,9 @@
  * `OCP\SystemTag\Tag{Assigned,Unassigned}Event`, the `OCP\Calendar\Events\CalendarObject*`
  * family, `OCA\Forms\Events\FormSubmittedEvent`, `OCA\Tables\Event\Row*Event`,
  * and — since Deck v1.18.0 (2026-05-03) — `OCA\Deck\Event\Card{Created,Updated,Deleted}Event`
- * via `ACardEvent`. Verified NOT compatible: `OCP\Share\Events\*`, which still
+ * via `ACardEvent`, and Mail's `OCA\Mail\Events\NewMessageReceivedEvent` (the
+ * namespace is the plural `Events`; a Mail version without the interface
+ * refuses the class with a 4xx). Verified NOT compatible: `OCP\Share\Events\*`, which still
  * `extends Event` with no webhook interface on server HEAD. Talk is handled by
  * the Talk-bot webhook instead (its events are not compatible either). Do not
  * add classes to EVENTS below without checking the interface first.
@@ -75,7 +77,7 @@ const WEBHOOKS_API = '/ocs/v2.php/apps/webhook_listeners/api/v1/webhooks';
 const HOOK_PATH = '/hooks/nextcloud';
 
 /** @typedef {{ class: string, event: string, optional?: boolean }} HookEvent */
-/** @typedef {{ id?: number | string, event?: string, uri?: string, appId?: string | null, headers?: Record<string, string> | null }} WebhookRow  a row of NC's webhook_listeners list */
+/** @typedef {{ id?: number | string, event?: string, uri?: string, appId?: string | null, headers?: Record<string, string> | null, eventFilter?: unknown }} WebhookRow  a row of NC's webhook_listeners list */
 
 /**
  * Event classes we subscribe to, and the Bee Flow trigger id each maps to.
@@ -119,6 +121,11 @@ const EVENTS = [
     { class: 'OCA\\Deck\\Event\\CardCreatedEvent', event: 'deck.card.created', optional: true },
     { class: 'OCA\\Deck\\Event\\CardUpdatedEvent', event: 'deck.card.changed', optional: true },
     { class: 'OCA\\Deck\\Event\\CardDeletedEvent', event: 'deck.card.deleted', optional: true },
+    // ── Mail (optional app; a Mail version without the webhook interface
+    // refuses the class with a 4xx, which is "not available", not a failure) ─
+    // Dispatched by Mail's background sync for every new message, usually with
+    // no session user: the Bee Flow server finds the account's owner itself.
+    { class: 'OCA\\Mail\\Events\\NewMessageReceivedEvent', event: 'mail.new', optional: true },
 ];
 
 // Reverse lookup used by the delivery handler: class name → Bee Flow event id.
@@ -222,22 +229,17 @@ function isOurRow(row) {
 }
 
 /**
- * Our existing rows: one per event class to update in place, and every other
- * row of ours to delete.
- *
- * Listed WITHOUT `?uri=`: Nextcloud filters that by exact match, and our rows
- * can carry more than one uri (the relative form, and an absolute address
- * from a connector before 2.0 or from before the public Nextcloud URL
- * changed). Every one of them is found here, so a class with a row is updated
- * in place and never gets a second row, which would fire every automation
- * twice. The same pass removes duplicates of one class.
+ * Every webhook_listeners row on this Nextcloud, of every app: the list is
+ * asked at service level (AppAPI's shared secret, no user) and WITHOUT `?uri=`,
+ * so Nextcloud answers `WebhookListenerMapper::getAll()`. Callers filter it.
+ * Throws an Error with `status` on a non-2xx answer (404: the app is off).
  * @param {{ warmupRetry?: boolean }} [opts] false where waiting out a warm-up is pointless
- * @returns {Promise<{ byClass: Map<string, WebhookRow>, extras: WebhookRow[] }>}
+ * @returns {Promise<WebhookRow[]>}
  */
-async function listExisting({ warmupRetry = true } = {}) {
+async function listAllRows({ warmupRetry = true } = {}) {
     const url = `${config.nextcloudUrl}${WEBHOOKS_API}`;
     // Only the fetch is retried: withWarmupRetry recognises the AppAPI warm-up 401
-    // on a Response, not on a thrown error or a parsed Map.
+    // on a Response, not on a thrown error or a parsed list.
     const get = () => fetch(url, {
         method: 'GET',
         headers: appApiHeaders(),
@@ -252,7 +254,25 @@ async function listExisting({ warmupRetry = true } = {}) {
         err.status = res.status;
         throw err;
     }
-    const rows = (ocsData(await res.text()) || []).filter(isOurRow);
+    const rows = ocsData(await res.text());
+    return Array.isArray(rows) ? rows : [];
+}
+
+/**
+ * Our existing rows: one per event class to update in place, and every other
+ * row of ours to delete.
+ *
+ * Listed WITHOUT `?uri=`: Nextcloud filters that by exact match, and our rows
+ * can carry more than one uri (the relative form, and an absolute address
+ * from a connector before 2.0 or from before the public Nextcloud URL
+ * changed). Every one of them is found here, so a class with a row is updated
+ * in place and never gets a second row, which would fire every automation
+ * twice. The same pass removes duplicates of one class.
+ * @param {{ warmupRetry?: boolean }} [opts] false where waiting out a warm-up is pointless
+ * @returns {Promise<{ byClass: Map<string, WebhookRow>, extras: WebhookRow[] }>}
+ */
+async function listExisting({ warmupRetry = true } = {}) {
+    const rows = (await listAllRows({ warmupRetry })).filter(isOurRow);
     const current = hookUri();
     const wanted = new Set(EVENTS.map(e => e.class));
     /** @type {Map<string, WebhookRow>} */
@@ -462,6 +482,8 @@ module.exports = {
     hookSecret,
     hookUri,
     absoluteHookUri,
+    listAllRows,
+    isOurRow,
     isRegistered: () => _registered,
     EVENTS,
     EVENT_BY_CLASS,
