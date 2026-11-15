@@ -63,11 +63,12 @@ describe('ReactComponent section', () => {
     });
 
     it('names the frame after the block and gives its document the page language', async () => {
-        window.history.replaceState({}, '', '/nl/pricing');
+        document.documentElement.lang = 'nl';
         const { container } = render(<ReactComponent data={{ compiled: COMPILED, frameTitle: 'Cost calculator' }} />);
         const frame = container.querySelector('iframe') as HTMLIFrameElement;
         expect(frame.getAttribute('title')).toBe('Cost calculator');
         await waitFor(() => expect(frame.getAttribute('srcdoc')).toContain('<html lang="nl">'));
+        document.documentElement.lang = '';
     });
 
     it('a disabled block renders nothing', () => {

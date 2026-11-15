@@ -10,7 +10,6 @@ import { safeEmbedSrc } from './embedSrc';
 import { inlineTextStyle } from './textStyle';
 import type { ContentData } from './contentMigration';
 import type { ContentBlockData, RenderElement } from './Content.types';
-import { firstHeadingAt, headingSizeClass } from './contentHeadings';
 
 /**
  * Flexible Content section. Each block is a grid of N columns, each column
@@ -34,8 +33,6 @@ export default function Content({ data }: { data?: ContentBlockData }) {
     const bgClass     = c.background && c.background !== 'none'
         ? `content-block--bg-${c.background}`
         : '';
-
-    const outlineHead = firstHeadingAt(c.columns, isEditable());
 
     return (
         <SectionFrame id="content" name="Content" enabled={data.enabled}>
@@ -62,13 +59,11 @@ export default function Content({ data }: { data?: ContentBlockData }) {
                                             el={el as RenderElement}
                                             colIdx={colIdx}
                                             elIdx={elIdx}
-                                            // The block's first heading is its
-                                            // h2 (page outline), every other one
-                                            // an h3; the size stays where it was
-                                            // (the first element of the first
-                                            // column is the large one).
-                                            firstHeading={outlineHead[0] === colIdx && outlineHead[1] === elIdx}
-                                            leadSize={colIdx === 0 && elIdx === 0}
+                                            // First text element on the first
+                                            // column gets an h2 (page-level
+                                            // heading hierarchy); subsequent
+                                            // text elements get h3.
+                                            firstHeading={colIdx === 0 && elIdx === 0}
                                             fullWidth={el.kind === 'image' && imageFull}
                                         />
                                     ))}
@@ -94,14 +89,13 @@ interface ContentElementProps {
     colIdx: number;
     elIdx: number;
     firstHeading: boolean;
-    leadSize: boolean;
     fullWidth: boolean;
 }
 
-function ContentElement({ el, colIdx, elIdx, firstHeading, leadSize, fullWidth }: ContentElementProps) {
+function ContentElement({ el, colIdx, elIdx, firstHeading, fullWidth }: ContentElementProps) {
     const pathBase = `content.columns.${colIdx}.elements.${elIdx}`;
     switch (el?.kind) {
-        case 'text':   return <TextElement   el={el} pathBase={pathBase} firstHeading={firstHeading} leadSize={leadSize} />;
+        case 'text':   return <TextElement   el={el} pathBase={pathBase} firstHeading={firstHeading} />;
         case 'image':  return <ImageElement  el={el} pathBase={pathBase} fullWidth={fullWidth} />;
         case 'video':  return <VideoElement  el={el} pathBase={pathBase} />;
         case 'iframe': return <IframeElement el={el} pathBase={pathBase} />;
@@ -110,10 +104,9 @@ function ContentElement({ el, colIdx, elIdx, firstHeading, leadSize, fullWidth }
     }
 }
 
-function TextElement({ el, pathBase, firstHeading, leadSize }: ElementProps & { firstHeading: boolean; leadSize: boolean }) {
+function TextElement({ el, pathBase, firstHeading }: ElementProps & { firstHeading: boolean }) {
     const align = (['left', 'center', 'right'] as Array<string | undefined>).includes(el.align) ? el.align : 'left';
     const HeadingTag = firstHeading ? 'h2' : 'h3';
-    const headingSize = headingSizeClass(leadSize);
     // Per-text inline overrides from the editor's StyleTriplet — empty
     // values fall through to CSS / Design tab defaults. Alignment is
     // resolved per field: each field uses its own `{field}Align`, falling
@@ -134,7 +127,7 @@ function TextElement({ el, pathBase, firstHeading, leadSize }: ElementProps & { 
                     path={`${pathBase}.heading`}
                     multiline
                     placeholder="Heading"
-                    className={`content-el-heading ${headingSize}`}
+                    className="content-el-heading"
                     style={headingStyle}
                 >
                     {el.heading || ''}

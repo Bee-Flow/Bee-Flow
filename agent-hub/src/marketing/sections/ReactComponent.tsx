@@ -5,8 +5,6 @@ import { readSiteTheme, themeCss, type FrameMode } from '../reactBlock/frameDoc'
 import { resolveBlockProps } from '../reactBlock/blockProps';
 import { loadReactRuntime, loadedReactRuntime } from '../reactBlock/loadRuntime';
 import { logger } from '../../utils/logger';
-import { LOCALE_PREFIXES } from '../../utils/cmsPublicRouting';
-import { pageLocale } from './formBlockModel';
 
 /**
  * React component block: an author's TSX, compiled by the CMS on save
@@ -50,10 +48,9 @@ export function frameTitleOf(data: ReactComponentData): string {
         || text(props.title) || text(props.heading) || DEFAULT_FRAME_TITLE;
 }
 
-/** The language of the page the block sits on: the path prefix, else <html lang>. */
+/** The language of the page the block sits on (the server sets <html lang> per locale). */
 function pageLang(): string {
-    if (typeof window === 'undefined') return '';
-    return pageLocale(window.location.pathname, document.documentElement.lang || '', LOCALE_PREFIXES) || '';
+    return typeof document === 'undefined' ? '' : document.documentElement.lang || '';
 }
 
 export const DEFAULT_MIN_HEIGHT = 240;
