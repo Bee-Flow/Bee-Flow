@@ -4,7 +4,7 @@ title: LinkedIn
 
 # LinkedIn
 
-Read-only LinkedIn lookups via OAuth.
+Post to LinkedIn as the connected user via OAuth. Every post is shown to the user for approval before it is published.
 
 ## Setup
 
@@ -17,24 +17,22 @@ Read-only LinkedIn lookups via OAuth.
 
 | Scope | Purpose |
 |-------|---------|
-| `r_liteprofile` | Basic profile info |
-| `r_emailaddress` | User's email |
-
-(LinkedIn no longer permits broad search via OAuth for new apps. The `r_basicprofile` scope is grandfathered for some apps.)
+| `openid` | Sign-in with OpenID Connect |
+| `profile` | The member id and name of the connected user |
+| `w_member_social` | Publish posts as the connected user |
 
 ## Tools
 
 | Tool | Purpose |
 |------|---------|
-| `linkedin_get_profile` | Read the connected user's own profile. |
+| `linkedin_create_post` | Create a LinkedIn post on behalf of the user. The post text will be shown to the user for approval before being published. |
 
-This integration is intentionally minimal. It exists so the assistant can ground answers in the user's actual current job title / company without manual entry. We don't expose tools that would scrape other users' profiles — LinkedIn's TOS forbid that.
+This integration is intentionally minimal: one tool, which publishes a post as the connected user once they approve it. We don't expose tools that would scrape other users' profiles — LinkedIn's TOS forbid that.
 
 ## Use cases
 
-- "Sign me up to the demo with my title and company."
-- (Onboarding) Pre-fill the org admin's "headline" from LinkedIn.
+- "Turn this release note into a LinkedIn post."
 
 ## Privacy
 
-Profile data is held in the user's session only — not persisted. Re-fetched on demand.
+The access token is stored per user as an encrypted secret, together with the LinkedIn member id and name. Nothing is posted until the user approves the draft.

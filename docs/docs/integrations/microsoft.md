@@ -22,11 +22,11 @@ For Teams meeting notes, the full setup (admin consent, Teams settings, the buil
 
 | Integration ID | Tools |
 |----------------|-------|
-| `outlook` | `outlook_search`, `outlook_list_recent`, `outlook_read`, `outlook_read_many`, `outlook_compose` |
+| `outlook` | `outlook_search`, `outlook_list_recent`, `outlook_read`, `outlook_read_many`, `outlook_compose`, `outlook_create_draft`, `outlook_reply_in_thread` |
 | `outlook-readonly` | `outlook_search`, `outlook_list_recent`, `outlook_read`, `outlook_read_many` |
-| `ms-calendar` | `mscal_list`, `mscal_search`, `mscal_create`, `mscal_update`, `mscal_delete` |
-| `ms-contacts` | `mscontacts_list`, `mscontacts_search` |
-| `onedrive` | `onedrive_list`, `onedrive_search`, `onedrive_read`, `onedrive_upload` |
+| `ms-calendar` | `ms_calendar_list_events`, `ms_calendar_search_events`, `ms_calendar_create_event`, `ms_calendar_update_event`, `ms_calendar_delete_event` |
+| `ms-contacts` | `ms_contacts_list`, `ms_contacts_search`, `ms_contacts_create`, `ms_contacts_update` |
+| `onedrive` | `onedrive_list_files`, `onedrive_list_recent`, `onedrive_search`, `onedrive_get_file`, `onedrive_create_folder` |
 | Teams meeting notes | none (no agent tools; powers [Meeting Notes](#microsoft-teams-meeting-notes)) |
 
 The two Outlook flavours exist for orgs that want a strict-read-only audit-friendly variant alongside a full read-write one.
@@ -75,14 +75,14 @@ Organisation-wide Teams import (application permissions) has its own table on
 
 ### MS Contacts
 
-- `/me/contacts`, read-only. We don't create/edit contacts to keep blast radius small.
+- `/me/contacts`: list, search, create and update. There is no tool that deletes a contact.
 
 ### OneDrive
 
 - `/me/drive/root` and `/me/drive/items/{id}/children`.
 - Search via `/me/drive/root/search(q='...')`.
-- Read returns binary, with text extraction for Office formats.
-- Upload via `PUT /me/drive/items/{parent}:/{name}:/content` for ≤4 MB; resumable session for larger files.
+- `onedrive_get_file` returns metadata and a download URL, not the file's text.
+- Office files Bee Flow creates can be saved to OneDrive with `PUT /me/drive/root:/{path}:/content`.
 - An Excel or csv file in OneDrive can also become a live **datatable**: see [Spreadsheets as datatables](./spreadsheet-datatables.md).
 
 ## Microsoft Teams meeting notes
