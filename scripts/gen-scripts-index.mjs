@@ -68,6 +68,22 @@ export function headerText(source, name) {
 }
 
 /**
+ * The length of the separator that follows a script's name in its own header
+ * ("` — ", " - ", ": "), or 0 when the header does not go on that way. Plain
+ * string steps: the paragraph has its white space folded to single spaces.
+ * @param {string} rest
+ */
+function separatorLength(rest) {
+    let i = rest.startsWith('`') ? 1 : 0;
+    while (rest[i] === ' ') i++;
+    if (i >= rest.length || !'—–-:'.includes(rest[i])) return 0;
+    const afterMark = i + 1;
+    i = afterMark;
+    while (rest[i] === ' ') i++;
+    return i > afterMark ? i : 0;
+}
+
+/**
  * The first sentence of a header: its first paragraph on one line, cut after the first full
  * stop that ends a sentence (not the one in `e.g.`, in `...` or in a file name), without the
  * script's own name in front, and shortened at a word when it runs long.
@@ -77,10 +93,11 @@ export function headerText(source, name) {
 export function firstSentence(text, name) {
     const paragraph = text.split(/\n\s*\n/)[0].replace(/\s+/g, ' ').trim();
     // "name.sh — what it does": the row already names the script.
-    const titled = paragraph.startsWith(name) || paragraph.startsWith(`\`${name}\``)
-        ? /^`?\s*(?:—|–|-|:)\s+/.exec(paragraph.slice(paragraph.indexOf(name) + name.length))
-        : null;
-    const own = titled ? paragraph.slice(paragraph.indexOf(name) + name.length + titled[0].length) : paragraph;
+    const afterName = paragraph.startsWith(name) || paragraph.startsWith(`\`${name}\``)
+        ? paragraph.slice(paragraph.indexOf(name) + name.length)
+        : '';
+    const skip = separatorLength(afterName);
+    const own = skip ? afterName.slice(skip) : paragraph;
     const end = /(?<!\b(?:e\.g|i\.e|etc|vs)|\.)[.!?](?=\s+[A-Z`'"(]|$)/.exec(own);
     // A paragraph that introduces a list ends in a colon; the row is a statement.
     const sentence = (end ? own.slice(0, end.index + 1) : own).replace(/:$/, '');

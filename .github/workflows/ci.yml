@@ -282,7 +282,7 @@ jobs:
               - 'server/routes/transcriptions/*'
               - 'server/routes/webpages/*'
               - 'server/usecases/*'
-              - 'server/usecases/{playbooks,webpages}/*'
+              - 'server/usecases/{compliance,datatables,playbooks,webpages}/*'
               - 'server/services/ncUserGroupSync.js'
               - 'server/shared/expr/*'
               - 'server/stores/*'
@@ -425,7 +425,7 @@ jobs:
               - 'agent-hub/src/hooks/demoLang.ts'
               - 'agent-hub/src/i18n/{loadEnglishDefaults,enNamespaces}.ts'
               - 'agent-hub/src/demo/demoNamespaces.ts'
-              - 'agent-hub/src/utils/{appVersion.ts,cmsPublicRouting.ts,copyText.ts,helpers.ts,helpers.types.ts,sseStream.ts,storageMigrations.ts}'
+              - 'agent-hub/src/utils/{appVersion.ts,cmsPublicRouting.ts,copyText.ts,helpers.ts,helpers.types.ts,sessionRecovery.ts,sseStream.ts,storageMigrations.ts}'
               # required by Builder/flow/stepPalette.ts, BindingField.tsx and dataSummary.ts (now TypeScript, so followed), and what those require in turn
               - 'agent-hub/src/utils/integrationIcons.ts'
               - 'agent-hub/src/config/integrationCatalog.ts'
