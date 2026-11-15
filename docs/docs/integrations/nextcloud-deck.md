@@ -22,12 +22,18 @@ title: Nextcloud — Deck
 | `nextcloud_deck_list_cards` | Cards in a board (or a stack). |
 | `nextcloud_deck_get_card` | Card detail (title, description, labels, attachments, comments). |
 | `nextcloud_deck_create_card` | Add a card to a stack. |
-| `nextcloud_deck_update_card` | Edit title / description / due date / labels. |
-| `nextcloud_deck_move_card` | Move between stacks (or boards). |
-| `nextcloud_deck_assign_card` | Assign / unassign users. |
+| `nextcloud_deck_update_card` | Update fields on a Deck card. Only provided fields change. Pass `targetStackId` to move the card between columns. |
+| `nextcloud_deck_search_cards` | Search cards on a board by case-insensitive substring match against title and description. |
+| `nextcloud_deck_archive_card` | Archive (or unarchive) a Deck card. |
+| `nextcloud_deck_delete_card` | Delete a Deck card permanently. |
 | `nextcloud_deck_add_comment` | Append a comment. |
-| `nextcloud_deck_list_labels` | List labels on a board. |
-| `nextcloud_deck_create_label` | Create a label. |
+| `nextcloud_deck_list_comments` | List comments on a Deck card (newest first). |
+| `nextcloud_deck_assign_label` | Attach a label (by id) to a card. |
+| `nextcloud_deck_remove_label` | Detach a label from a card. |
+| `nextcloud_deck_list_stacks` | List the columns ("stacks") of a Deck board. Each stack carries the cards currently in that column. |
+| `nextcloud_deck_create_stack` | Create a new column ("stack") on a Deck board. |
+| `nextcloud_deck_update_stack` | Rename a stack or change its order. Only provided fields change. |
+| `nextcloud_deck_delete_stack` | Delete a stack (column) from a Deck board. This also removes the stack's cards. |
 
 ## Endpoints
 

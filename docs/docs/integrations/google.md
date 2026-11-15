@@ -27,13 +27,13 @@ For org-wide Workspace deployments, register Bee Flow as an internal app in the 
 
 | Integration ID | Scope(s) | Tools |
 |----------------|----------|-------|
-| `gmail` | `gmail.readonly`, `gmail.compose`, `gmail.send` | `gmail_search`, `gmail_read`, `gmail_read_many`, `gmail_read_attachment`, `gmail_compose`, `gmail_create_draft`, `gmail_list_labels`, `gmail_modify_labels`, `gmail_bulk_modify`, `gmail_mark_read`, `gmail_mark_unread`, `gmail_archive`, `gmail_trash` |
-| `google-calendar` | `calendar` | `gcal_list`, `gcal_search`, `gcal_create_event`, `gcal_update_event`, `gcal_delete_event` |
-| `google-drive` | `drive.readonly`, `drive.file` | `gdrive_list`, `gdrive_search`, `gdrive_read`, `gdrive_upload` |
-| `google-docs` | `documents.readonly` | `gdocs_read`, `gdocs_create`, `gdocs_update` |
-| `google-keep` | `keep` | `gkeep_list`, `gkeep_create`, `gkeep_search` |
-| `google-contacts` | `contacts.readonly` | `gcontacts_list`, `gcontacts_search` |
-| `google-groups` | (delegated admin) | `ggroups_list_members` |
+| `gmail` | `gmail.readonly`, `gmail.compose`, `gmail.send` | `gmail_search`, `gmail_read`, `gmail_read_many`, `gmail_read_attachment`, `gmail_compose`, `gmail_create_draft`, `gmail_reply_in_thread`, `gmail_list_labels`, `gmail_modify_labels`, `gmail_bulk_modify`, `gmail_mark_read`, `gmail_mark_unread`, `gmail_archive`, `gmail_trash` |
+| `google-calendar` | `calendar` | `calendar_list_events`, `calendar_search_events`, `calendar_create_event`, `calendar_update_event`, `calendar_delete_event` |
+| `google-drive` | `drive.readonly`, `drive.file` | `drive_search`, `drive_list_files`, `drive_list_recent`, `drive_get_file`, `drive_get_content`, `drive_create_folder`, `drive_move_file`, `drive_upload_file` |
+| `google-docs` | `documents.readonly` | `docs_read`, `docs_create`, `docs_append`, `docs_replace_text` |
+| `google-keep` | `keep` | `keep_list`, `keep_get`, `keep_create`, `keep_delete` |
+| `google-contacts` | `contacts.readonly` | `contacts_list`, `contacts_search`, `contacts_create`, `contacts_update` |
+| `google-groups` | (delegated admin) | `groups_list_conversations`, `groups_read_conversation`, `groups_reply` |
 | `google-meet` | `meetings.space.readonly`, `meetings.space.settings` | — (no agent tools; powers [Meeting Notes](#google-meet-meeting-notes)) |
 
 The minimum-scope principle applies: Bee Flow asks only for what's needed by the integrations you enable.
@@ -43,8 +43,8 @@ The minimum-scope principle applies: Bee Flow asks only for what's needed by the
 ### Gmail
 
 - **Reading** — `gmail_search` accepts the same query syntax as the Gmail UI (`from:alice subject:invoice newer_than:7d`).
-- **Composing** — `gmail_compose` creates a draft. Sending requires `gmail.send` scope and an explicit `gmail_send` call. This split is intentional — agents can suggest replies without auto-sending.
-- **Replies** — `gmail_reply` preserves `In-Reply-To` and `References` headers so threading works.
+- **Composing** — `gmail_compose` shows the person a preview with Send, Save as Draft and Discard buttons; no email is sent automatically. `gmail_create_draft` saves a draft without sending. This split is intentional — agents can suggest replies without auto-sending.
+- **Replies** — `gmail_reply_in_thread` preserves `In-Reply-To` and `References` headers so threading works.
 - **Many emails at once** — in an automation, read a whole search result with `gmail_read_many` (up to 100 emails, sent to Gmail as [batches](https://developers.google.com/workspace/gmail/api/guides/batch) of 50) and change them with `gmail_bulk_modify` (labels, read/unread, archive: up to 1,000 emails in one request), instead of one call per email in a *for each*. Every email still counts toward Gmail's per-user quota, but the round trips drop from one per email to one or two per list. Label names are looked up once a minute per run, not once per email.
 - **Rate limits** — when Google says a mailbox is over its rate limit (429, or 403 `userRateLimitExceeded` / `rateLimitExceeded`), Bee Flow waits (its `Retry-After` when given, otherwise about 1, 2 and 4 seconds) and tries again. A request that sends an email is never repeated.
 

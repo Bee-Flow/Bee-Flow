@@ -53,25 +53,24 @@ The aspect ratio the person picks is mapped to a size the model accepts. The Ope
 
 | Tool | Backend | Notes |
 |------|---------|-------|
-| `video_gen` | Provider-agnostic | Configurable per org. |
-
-Sora-class generation is Pro+. Lower-tier plans get static "video stub" previews.
+| `generate_video` | Google (Veo) | Short clips of 5–8 seconds; generation takes 1–3 minutes. |
 
 ## Music
 
 | Tool | Backend | Notes |
 |------|---------|-------|
-| `music_gen` | ElevenLabs Music | Royalty-free instrumental tracks up to 4 min. |
+| `generate_music` | Google (Lyria) | Instrumental music from a text prompt. |
+| `elevenlabs_music` | ElevenLabs Music | Music or songs, with or without vocals. |
 
-Requires an ElevenLabs API key, entered in **Admin → AI Config** and stored encrypted in the database. There is no environment variable for it.
+`elevenlabs_music` requires an ElevenLabs API key, entered in **Admin → AI Config** and stored encrypted in the database. There is no environment variable for it.
 
 ## Text-to-speech
 
 | Tool | Backend | Notes |
 |------|---------|-------|
-| `tts_speak` | ElevenLabs / Voxtral | Streamed via SSE for low first-byte latency. |
+| `elevenlabs_tts` | ElevenLabs | Text read aloud; the audio plays inline. |
 
-Used by [Voice](../features/voice.md). Different from `voice_call` — `tts_speak` is one-shot for a specific message.
+`elevenlabs_tts` is one-shot for a specific message; [Voice](../features/voice.md) conversations have their own speech pipeline.
 
 ## Transcription
 
@@ -82,12 +81,6 @@ Used by [Voice](../features/voice.md). Different from `voice_call` — `tts_spea
 The default is **Voxtral** (Mistral cloud) — fast, multilingual, cheapest per minute. Switch in **Admin → Integrations → Transcription** (pick the engine in the list, then **Use this provider**).
 
 For audio capture in the chat UI (voice messages, "press to talk"), the in-process **whisper.cpp** path runs entirely on CPU — no GPU, no API key needed. Toggle via `local_whisper_enabled` config.
-
-## Sound effects
-
-| Tool | Backend | Notes |
-|------|---------|-------|
-| `sound_effect_gen` | ElevenLabs Sound Effects | 10s clips. |
 
 ## Agent Search
 
@@ -107,11 +100,10 @@ All AI module outputs go through the Privacy Shield on the way out. Inputs (the 
 | Module | Approx cost per call |
 |--------|----------------------|
 | `generate_image` | Google: the provider's rate. Azure: the price per image you entered for the deployment. |
-| `video_gen` (Sora-class) | $0.50–2.00 per 6-second clip |
-| `music_gen` | $0.30 per minute generated |
-| `tts_speak` | $0.05 per minute synthesised |
+| `generate_video` | $0.50–2.00 per 6-second clip |
+| `elevenlabs_music` | $0.30 per minute generated |
+| `elevenlabs_tts` | $0.05 per minute synthesised |
 | `transcribe_audio` | $0.005–0.01 per minute |
-| `sound_effect_gen` | $0.01 per clip |
 
 Pricing varies by provider and tier — check the provider's current rates.
 
@@ -131,10 +123,9 @@ The same rows are what the [image limits](../admin/users-and-groups.md#image-lim
 |--------|----------|
 | `agent_search` | Community |
 | `generate_image` | Community |
-| `tts_speak` | Pro (voice feature) |
+| `elevenlabs_tts` | Pro (voice feature) |
 | `transcribe_audio` | Pro |
-| `music_gen` | Pro |
-| `video_gen` | Pro |
-| `sound_effect_gen` | Pro |
+| `generate_music`, `elevenlabs_music` | Pro |
+| `generate_video` | Pro |
 
 (Community has limited monthly quota for image gen; Pro+ uses your provider quota.)

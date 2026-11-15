@@ -7,6 +7,7 @@ vi.mock('../webhooks/useWebhooks', () => ({
     default: () => hook.current,
     webhookUrl: (w: { id: string }) => `https://cloud.example.nl/api/automation/webhook/${w.id}`,
     maskSecret: () => '••••••••1234',
+    isHeaderToken: (w: { authMode?: string } | null) => w?.authMode === 'header_token',
 }));
 
 import AdvancedSection, { parseDuration } from './AdvancedSection';

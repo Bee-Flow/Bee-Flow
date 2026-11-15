@@ -21,6 +21,7 @@ const { checkPinnedOutput } = require('./pinnedOutput');
 const { checkIntegrationAction, checkHttpRequest, checkAskOnce, checkCacheInto } = require('./integrationRules');
 const { checkApproval } = require('./approvalRules');
 const { checkDataExtraction } = require('./modelStepRules');
+const { checkStepImages } = require('./imageRules.mts');
 const { checkAiStep } = require('./aiStepRules');
 const { checkAiStepReliability } = require('./aiStepReliabilityRules');
 const { checkCondition, checkBranchWiring, checkPrivacyScan, checkSwitch } = require('./branchingRules');
@@ -45,11 +46,11 @@ const { checkComplianceFindings } = require('./complianceRules');
  */
 function createStepChecker({
     graph, trigger, ids, seenSoFar, pushE, pushW,
-    availableTools, toolRequiredParams, knownConnectionIds, knownVarNames, writtenVars, availableAgents, topicClassifier, isContractScope,
+    availableTools, toolRequiredParams, knownConnectionIds, knownVarNames, writtenVars, availableAgents, topicClassifier, imageModels, isContractScope,
 }) {
     const base = createStepContext({
         graph, trigger, ids, seenSoFar, pushE, pushW,
-        availableTools, toolRequiredParams, knownConnectionIds, knownVarNames, writtenVars, availableAgents, topicClassifier, isContractScope,
+        availableTools, toolRequiredParams, knownConnectionIds, knownVarNames, writtenVars, availableAgents, topicClassifier, imageModels, isContractScope,
     });
     const { outgoingLabelsFor } = base;
 
@@ -127,6 +128,7 @@ function createStepChecker({
         checkSlide(ctx, step, at);
         checkPresentation(ctx, step, at);
         checkDataExtraction(ctx, step, at);
+        checkStepImages(ctx, step, at);
         checkSwitch(ctx, step, at);
         checkRoutes(ctx, step, at);
         checkCollectionOps(ctx, step, at);

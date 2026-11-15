@@ -93,6 +93,18 @@ function normalizeCodeLimits(value) {
 }
 
 /**
+ * `images` as the add path builds it (../imageBindings.mts): an empty list
+ * clears it; a shape the sanitizer refuses is kept as sent, so the
+ * validator names it (images_invalid) instead of the patch silently dropping it.
+ * @param {unknown} v
+ */
+function normalizeImagesPatch(v) {
+    const r = require('../imageBindings.mts').sanitizeImageBindings(v);
+    if (r.error !== undefined) return v;
+    return r.images.length ? r.images : undefined;
+}
+
+/**
  * Rebuilt, never merged: a model reaching for this invents `ttl`,
  * `cacheSeconds`, `scope`. The runtime reads none of them, so passing the
  * object through would persist a field that LOOKS configured and does nothing.
@@ -144,6 +156,7 @@ const FIELD_RULES = {
         disabledAgentSkillIds: (v) => cycleDeps.sanitizeDisabledAgentSkillIds(v),
         ...ASK_ONCE,
         ...sameRule(['temperature', 'enumFrom', 'checks', 'fallback'], normalizeAiReliabilityPatch),
+        images: normalizeImagesPatch,
     },
     code: {
         outputSchema: (v) => v || null,
@@ -217,6 +230,7 @@ const FIELD_RULES = {
         values: (v) => (isPlainObject(v) ? v : {}),
     },
     data_extraction: {
+        images: normalizeImagesPatch,
         // Same trim-and-cap applyAddDataExtraction applies; blank clears it.
         instructions: (v) => (typeof v === 'string' ? v.trim().slice(0, DATA_EXTRACTION_MAX_INSTRUCTIONS_CHARS) : '') || undefined,
     },

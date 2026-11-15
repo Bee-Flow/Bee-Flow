@@ -19,7 +19,7 @@ interface Op<P = NoParams, Q = UndeclaredQuery, B = unknown> {
     response: unknown;
 }
 
-/** 1913 operations. */
+/** 1920 operations. */
 export interface ApiOperations {
     'GET /.well-known/microsoft-identity-association.json': Op;
     'GET /.well-known/security.txt': Op;
@@ -1424,6 +1424,24 @@ export interface ApiOperations {
         sharedUserIds?: Array<string>;
     }>;
     'POST /api/automation/import': Op;
+    'GET /api/automation/import/windmill/inventory': Op<NoParams, {
+        orgId?: string;
+    }>;
+    'POST /api/automation/import/windmill/remote': Op<NoParams, UndeclaredQuery, {
+        baseUrl: string;
+        compare?: {
+            saveAsTests?: boolean;
+        };
+        mode: 'preview' | 'commit';
+        select?: Array<string>;
+        source: 'windmill_api';
+        token: string;
+        workspace: string;
+    }>;
+    'POST /api/automation/import/windmill/upload': Op<NoParams, UndeclaredQuery, {
+        mode: 'preview' | 'commit';
+        select?: string;
+    }>;
     'GET /api/automation/runs/{id}': Op<{ id: string | number }>;
     'POST /api/automation/runs/{id}/approve': Op<{ id: string | number }, UndeclaredQuery, {
         decision: 'approve' | 'reject';
@@ -1561,6 +1579,10 @@ export interface ApiOperations {
     'POST /api/automation/{id}/goldens/replay': Op<{ id: string | number }, UndeclaredQuery, {
         aiAnswers?: 'live' | 'cache';
         goldenIds?: Array<string>;
+    }>;
+    'GET /api/automation/{id}/import-report': Op<{ id: string | number }>;
+    'POST /api/automation/{id}/import-report/acknowledge': Op<{ id: string | number }, UndeclaredQuery, {
+        wmIds: Array<string>;
     }>;
     'GET /api/automation/{id}/notifications': Op<{ id: string | number }>;
     'GET /api/automation/{id}/principals': Op<{ id: string | number }>;
@@ -1729,6 +1751,7 @@ export interface ApiOperations {
     }>;
     'POST /api/automation/{id}/versions/{versionId}/restore': Op<{ id: string | number; versionId: string | number }, UndeclaredQuery, Record<string, never>>;
     'POST /api/automation/{id}/webhook': Op<{ id: string | number }, UndeclaredQuery, {
+        authMode?: 'hmac' | 'header_token';
         triggerStepId?: string | null;
     }>;
     'DELETE /api/automation/{id}/webhook/{slug}': Op<{ id: string | number; slug: string | number }>;
@@ -3680,6 +3703,10 @@ export interface ApiOperations {
         compactionThreshold?: number;
         contextBudgetPercent?: number;
         recentWindow?: number;
+    }>;
+    'GET /api/org-automation-image-ai/{orgId}': Op<{ orgId: string | number }>;
+    'PUT /api/org-automation-image-ai/{orgId}': Op<{ orgId: string | number }, UndeclaredQuery, {
+        enabled: boolean;
     }>;
     'GET /api/org-azure-config/{orgId}': Op<{ orgId: string | number }>;
     'PUT /api/org-azure-config/{orgId}': Op<{ orgId: string | number }, UndeclaredQuery, {

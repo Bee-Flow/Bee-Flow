@@ -49,13 +49,22 @@ function suppliedOf(updates) {
     return out;
 }
 
-/** @param {{ userId: string, organizationId?: string | null, title: string, description?: string, definition: Record<string, unknown>, triggerType: string, scheduleCron?: string | null, scheduleTz?: string, nextRunAt?: string | null, createdFromChatId?: string | null, versionMeta?: VersionMeta | null }} automation */
-async function createAutomation({ userId, organizationId = null, title, description = '', definition, triggerType, scheduleCron = null, scheduleTz = 'Europe/Amsterdam', nextRunAt = null, createdFromChatId = null, versionMeta = null }) {
+/**
+ * A new automation (always an inactive draft) and its v1 version, in one transaction.
+ *
+ * `client`: a caller's open transaction (an import writes its report row in the
+ * same one). The two inserts then run on it, nothing is committed here, and the
+ * row is read back through it; without one the store opens its own.
+ * @param {{ userId: string, organizationId?: string | null, title: string, description?: string, definition: Record<string, unknown>, triggerType: string, scheduleCron?: string | null, scheduleTz?: string, nextRunAt?: string | null, createdFromChatId?: string | null, versionMeta?: VersionMeta | null }} automation
+ * @param {{ client?: { query: (sql: string, params?: unknown[]) => Promise<{ rows: any[] }> } | null }} [opts]
+ */
+async function createAutomation({ userId, organizationId = null, title, description = '', definition, triggerType, scheduleCron = null, scheduleTz = 'Europe/Amsterdam', nextRunAt = null, createdFromChatId = null, versionMeta = null }, { client: callerClient = null } = {}) {
     await initDB();
     const id = crypto.randomUUID();
     // The row and its v1 version commit together: a row without v1 would show
     // runs that fire before the first edit with no flow to render.
-    await withTransaction(async (client) => {
+    /** @param {{ query: (sql: string, params?: unknown[]) => Promise<unknown> }} client */
+    const insertBoth = async (client) => {
         // Layers are inline (definition.layers): every new row is a plain
         // automation; the `kind` column's default covers it.
         await client.query(
@@ -80,7 +89,13 @@ async function createAutomation({ userId, organizationId = null, title, descript
                 typeof v1.name === 'string' && v1.name.trim() ? v1.name.trim() : null,
                 v1.description || 'Created', JSON.stringify(v1Json)],
         );
-    });
+    };
+    if (callerClient) {
+        await insertBoth(callerClient);
+        const { rows } = await callerClient.query(`${AUTOMATION_SELECT} WHERE a.id = $1`, [id]);
+        return rowToAutomation(rows[0]);
+    }
+    await withTransaction(insertBoth);
     return getAutomation(id);
 }
 
@@ -384,12 +399,15 @@ async function reapStuckAutomations({ staleAfterMs = 10 * 60_000, maxAttempts = 
  * awaiting_step_expires_at deadline. This flips any run past its deadline to a
  * terminal error so paused runs can't accumulate forever and can no longer be
  * approved after the window. Returns the reaped runs so the caller can emit
- * run.failed lifecycle events.
+ * run.failed lifecycle events, each with the approval step it was waiting on
+ * (`awaitingStepId`, as it was before this write cleared it): an approval with
+ * an expired branch continues from there (core/automationRunner/approvalExpiry.mts).
+ * The UPDATE is the one claim: of two reapers, one flips a run.
  */
 async function reapExpiredApprovals() {
     await initDB();
     const { rows } = await pool.query(
-        `UPDATE automation_runs
+        `UPDATE automation_runs r
             SET status = 'error',
                 error_class = 'ApprovalExpired',
                 error = COALESCE(error, 'Approval was not granted before the deadline'),
@@ -398,12 +416,17 @@ async function reapExpiredApprovals() {
                 duration_ms = COALESCE(duration_ms, GREATEST(0, EXTRACT(EPOCH FROM (NOW() - started_at)) * 1000)::int),
                 awaiting_step_id = NULL,
                 approval_token = NULL
-          WHERE status = 'awaiting_approval'
-            AND awaiting_step_expires_at IS NOT NULL
-            AND awaiting_step_expires_at < NOW()
-          RETURNING id, automation_id, user_id`,
+           FROM (SELECT id AS due_id, awaiting_step_id AS due_step_id FROM automation_runs
+                  WHERE status = 'awaiting_approval'
+                    AND awaiting_step_expires_at IS NOT NULL
+                    AND awaiting_step_expires_at < NOW()) due
+          WHERE r.id = due.due_id
+            AND r.status = 'awaiting_approval'
+            AND r.awaiting_step_expires_at IS NOT NULL
+            AND r.awaiting_step_expires_at < NOW()
+          RETURNING r.id, r.automation_id, r.user_id, due.due_step_id`,
     );
-    return rows.map(r => ({ id: r.id, automationId: r.automation_id, userId: r.user_id }));
+    return rows.map(r => ({ id: r.id, automationId: r.automation_id, userId: r.user_id, awaitingStepId: r.due_step_id ?? null }));
 }
 
 /**

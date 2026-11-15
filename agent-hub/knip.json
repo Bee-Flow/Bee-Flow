@@ -10,6 +10,7 @@
     "scripts/*.mjs",
     "vite.config.js",
     "vite.runtime.config.js",
+    "src/marketing/reactBlock/runtime/entry.ts",
     "src/components/admin/Studio/AppStudio/runtime/components/pdfCompare/pdfEngine.stub.ts",
     "src/components/admin/Studio/AppStudio/flow/StepSettings/fieldTypes/*.tsx",
     "src/components/admin/Studio/AppStudio/flow/steps/*.ts",

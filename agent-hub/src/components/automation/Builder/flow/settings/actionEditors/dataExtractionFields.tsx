@@ -7,6 +7,7 @@ import BindingField from '@/components/automation/Builder/mapping/BindingField';
 import AccordionSection from '../../AccordionSection';
 import { ConcurrencyField } from '../aiStepReliability/ConcurrencyField';
 import { ForEachSection, RetrySection, retryIsSet, type StepEditorProps } from '../collectionEditors';
+import ImageInputsSection from '../ImageInputsSection';
 import { AMBER_NOTE, cardClass, hintTextClass, rowInputClass, textareaClass } from '../formPrimitives';
 import {
     EXTRACTION_FIELD_TYPES, MAX_EXTRACTION_FIELDS, MAX_EXTRACTION_INSTRUCTIONS,
@@ -96,6 +97,9 @@ function DataExtractionFields({ draft, set, groups = [], onFocusField, previewSa
                     {modelNote}
                 </p>
             </AccordionSection>
+
+            <ImageInputsSection stepType="data_extraction" images={Array.isArray(draft.images) ? draft.images : []} onChange={(next) => set('images', next)}
+                onFocusField={onFocusField} previewSample={previewSample} forceOpen={errorSections.has('images')} />
 
             <AccordionSection stepType="data_extraction" sectionKey="fields" title={t('automations.ndv.extraction.fields', 'Fields to extract')} defaultOpen forceOpen={errorSections.has('fields')}>
                 <p className={`${hintTextClass()} mb-2`}>

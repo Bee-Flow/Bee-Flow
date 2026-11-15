@@ -6,6 +6,19 @@ const { isPlainObject, clone, deepMerge, newBlockId, pageIdsHint, blockIdsHint, 
 
 const MAX_BLOCKS_PER_CALL = 10;
 
+/**
+ * A new block's content: the given content deep-merged over the type's defaults.
+ * A React component that brings its own code starts without the sample
+ * component's fields and props.
+ * @param {string} type
+ * @param {Record<string, unknown>} content
+ */
+function seedContent(type, content) {
+    const base = BLOCK_DEFAULTS[type] || {};
+    const own = type === 'react-component' && typeof content.source === 'string';
+    return deepMerge(own ? { ...base, fields: [], props: {} } : base, content);
+}
+
 /** Resolve an insert position → index into `blocks`, or { error }. */
 function resolveInsertIndex(blocks, position, page) {
     if (position === undefined || position === null || position === 'end') return { index: blocks.length };
@@ -62,7 +75,7 @@ async function applyAddBlocks(draftWrap, args) {
         }
         const type = probe.blocks[0].type;
         if (type !== entry.type) warnings.push(`blocks[${i}]: type "${entry.type}" was normalized to "${type}".`);
-        const content = deepMerge(BLOCK_DEFAULTS[type] || {}, isPlainObject(entry.content) ? entry.content : {});
+        const content = seedContent(type, isPlainObject(entry.content) ? entry.content : {});
         let style = {};
         if (entry.style !== undefined) {
             const validated = validateStylePatch(entry.style);

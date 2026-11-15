@@ -127,7 +127,7 @@ export const ORG_HUB_SECTIONS: readonly OrgHubSection[] = [
         icon: FolderGit2, group: 'connections',
     },
     {
-        id: 'integration-cache', labelKey: 'admin_nav.answer_cache', labelFallback: 'Automation answer cache',
+        id: 'integration-cache', labelKey: 'admin_nav.answer_cache', labelFallback: 'Automations',
         descriptionKey: 'admin_nav.answer_cache_desc', descriptionFallback: 'Reuse answers from outside services between automation runs.',
         icon: DatabaseZap, group: 'connections',
     },

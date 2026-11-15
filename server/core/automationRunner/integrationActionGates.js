@@ -22,9 +22,11 @@ const { fallback } = require('../../utils/bestEffort');
 /**
  * Throws when `step.tool` is no longer in the user's CURRENT allowed tool set.
  * Caches the set on `ctx.allowedToolNames` (null = lookup failed for a
- * read-only tool; skip the check for the rest of the run).
+ * read-only tool; skip the check for the rest of the run). With `inputs`, a
+ * nextcloud_request step is also held to the app switch of the Nextcloud app
+ * its path reaches (assertNcRequestAppsOn).
  */
-async function assertStepToolPermitted(step, ctx, sideEffect, deps) {
+async function assertStepToolPermitted(step, ctx, sideEffect, deps, inputs = undefined) {
     // Defense-in-depth permission check. The catalog filter that the
     // builder used at design-time may be out of date by the time a
     // scheduled automation fires (org admin disabled the integration,
@@ -74,6 +76,38 @@ async function assertStepToolPermitted(step, ctx, sideEffect, deps) {
         err.stepErrorCode = 'tool_not_permitted';
         throw err;
     }
+    if (step.tool === 'nextcloud_request' && ctx.allowedToolNames && inputs) assertNcRequestAppsOn(ctx.allowedToolNames, inputs);
+}
+
+/**
+ * nextcloud_request is offered with the Files app, but its path may reach any
+ * Nextcloud app. A family is switched on for the owner when its own tools are
+ * in the owner's current catalog (that is where isAppOn, the scope and the
+ * org's switches meet); the families of the path (core/integrations/
+ * ncRequestFamily.mts) must all be on, and a path of no known family needs
+ * every family on.
+ * @param {Set<string>} allowed
+ * @param {Record<string, unknown>} inputs
+ */
+function assertNcRequestAppsOn(allowed, inputs) {
+    const { requestFamilies, NC_FAMILY_IDS, familyLabel } = require('../integrations/ncRequestFamily.mts');
+    const { integrationIdForTool } = require('../integrations/ncScopePolicies');
+    const on = new Set();
+    for (const name of allowed) {
+        if (name === 'nextcloud_request') continue;
+        const id = integrationIdForTool(name);
+        if (id) on.add(id);
+    }
+    const families = requestFamilies(inputs.path);
+    const off = (families || NC_FAMILY_IDS).find((/** @type {string} */ id) => !on.has(id));
+    if (!off) return;
+    const name = familyLabel(off);
+    /** @type {Error & { stepErrorCode?: string }} */
+    const err = new Error(families
+        ? `This Nextcloud request goes to ${name}, which is switched off for the owner of this automation. Ask your organisation admin to switch it on, or use another path.`
+        : `This Nextcloud request does not go to a Nextcloud app Bee Flow can place, so it needs every Nextcloud app switched on for the owner of this automation, and ${name} is not.`);
+    err.stepErrorCode = 'tool_not_permitted';
+    throw err;
 }
 
 /**

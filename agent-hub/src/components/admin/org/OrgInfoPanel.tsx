@@ -2,6 +2,7 @@ import { Building2 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import OrgAiContextEditor from './OrgAiContextEditor';
 import OrgAiParticipationEditor from './OrgAiParticipationEditor';
+import OrgAutomationImageAiEditor from './OrgAutomationImageAiEditor';
 import OrgCollabEditor from './OrgCollabEditor';
 import useOrgSubscription from './orgInfo/license/useOrgSubscription';
 import type { OrgSubscriptionState } from './orgInfo/license/useOrgSubscription';
@@ -137,11 +138,15 @@ const PARTS: Readonly<Record<string, (c: PartContext) => ReactNode>> = {
             <OrgCollabEditor orgId={c.form.orgData.id} enabled={c.projectsOn} />
         </div>
     ),
-    // Whether the organisation's third-party response payloads are STORED:
-    // the same orgId discipline.
+    // The organisation's automation policies, one page (the dashboard's
+    // Automations row): whether third-party response payloads are STORED
+    // between runs, and whether an automation may show a picture itself to an
+    // AI model. Both decide what leaves or stays in the organisation: the same
+    // orgId discipline.
     integration_cache: (c) => (
-        <div className="animate-fadeIn">
+        <div className="animate-fadeIn space-y-8">
             <OrgIntegrationCacheEditor orgId={c.form.orgData.id} />
+            <OrgAutomationImageAiEditor orgId={c.form.orgData.id} />
         </div>
     ),
 };

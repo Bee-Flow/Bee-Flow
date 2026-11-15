@@ -113,3 +113,32 @@ test('live and replay take the same edge for the same decision', async () => {
         assert.deepStrictEqual(live.ran.sort(), replay.ran.sort(), `decision ${JSON.stringify(decision)}`);
     }
 });
+
+// ── The expired branch ('on_expired') ───────────────────────────────────────
+
+const expired = approvalOutput({ approved: false, expired: true });
+/** def() plus `late` on the approval's expired branch. */
+function defWithExpired(opts) {
+    const d = def(opts);
+    d.steps.push(note('late'));
+    d.edges.push({ from: 'ap', to: 'late', label: 'on_expired' });
+    return d;
+}
+
+test('the routing rule: an expiry routes on on_expired, a reject still on on_rejected', () => {
+    assert.strictEqual(approvalRouteLabel({ type: 'approval' }, expired), 'on_expired');
+    assert.strictEqual(approvalRouteLabel({ type: 'approval' }, { approved: false, expired: 'yes' }), 'on_rejected');
+    assert.strictEqual(approvalRouteLabel({ type: 'approval' }, { approved: true, expired: true }), null);
+});
+
+for (const [name, run] of [['live', runLive], ['replay', runReplay]]) {
+    test(`${name}: an expiry follows only on_expired`, async () => {
+        const { ran } = await run(defWithExpired({ onSuccess: true }), expired);
+        assert.deepStrictEqual(ran, ['late']);
+    });
+
+    test(`${name}: with an expired branch wired, an approve and a reject route exactly as before`, async () => {
+        assert.deepStrictEqual((await run(defWithExpired({ onSuccess: true }), approve)).ran.sort(), ['also', 'yes']);
+        assert.deepStrictEqual((await run(defWithExpired({ onSuccess: true }), reject)).ran, ['no']);
+    });
+}

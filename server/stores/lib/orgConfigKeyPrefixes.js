@@ -17,6 +17,7 @@ const AI_CONTEXT_CONFIG_KEY_PREFIX = 'org_ai_context_';
 const DOCUMENT_STYLE_CONFIG_KEY_PREFIX = 'org_document_style_';
 const TRAINING_GATES_CONFIG_KEY_PREFIX = 'org_training_gates_';
 const AI_PARTICIPATION_CONFIG_KEY_PREFIX = 'org_ai_participation_';
+const AUTOMATION_IMAGE_AI_CONFIG_KEY_PREFIX = 'org_automation_image_ai_';
 const USER_AI_PARTICIPATION_KEY_PREFIX = 'user_ai_participation_'; // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_username -- a config key prefix, not a username
 
 module.exports = {
@@ -25,5 +26,6 @@ module.exports = {
     DOCUMENT_STYLE_CONFIG_KEY_PREFIX,
     TRAINING_GATES_CONFIG_KEY_PREFIX,
     AI_PARTICIPATION_CONFIG_KEY_PREFIX,
+    AUTOMATION_IMAGE_AI_CONFIG_KEY_PREFIX,
     USER_AI_PARTICIPATION_KEY_PREFIX,
 };

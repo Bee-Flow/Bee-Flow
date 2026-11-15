@@ -70,7 +70,14 @@ const approvalBranch: FlowDefinition = {
     edges: [{ from: 'trg', to: 'ap' }, { from: 'ap', to: 'yes' }, { from: 'ap', to: 'no', label: 'on_rejected' }],
 };
 
-const CASES = Object.entries({ ...FIXTURES, ...TEMPLATES, nested, approvalBranch }).map(([name, def]) => [name, clone(def)] as [string, FlowDefinition]);
+/** The same with an expired branch too: its three ports. */
+const approvalExpired: FlowDefinition = {
+    ...approvalBranch,
+    steps: [...approvalBranch.steps, { id: 'late', type: 'notification', position: { x: 640, y: 300 } }],
+    edges: [...approvalBranch.edges, { from: 'ap', to: 'late', label: 'on_expired' }],
+};
+
+const CASES = Object.entries({ ...FIXTURES, ...TEMPLATES, nested, approvalBranch, approvalExpired }).map(([name, def]) => [name, clone(def)] as [string, FlowDefinition]);
 const EXPANSIONS: Record<string, string[]> = { loopy: ['loop_1'], nested: ['outer', 'outer/inner', 'empty'] };
 
 describe('the edge model', () => {

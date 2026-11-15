@@ -59,11 +59,14 @@ const TRIGGER_PROMPT_NOTES = Object.freeze({
         more: ['excludeOwnUploads'],
         fields: ['fileId', 'name', 'mimeType', 'webViewLink'],
     },
-    'nextcloud.file.new': { group: 'nc-file', filters: ['inFolder', 'extension', 'nameContains'], more: ['excludeOwnUploads'], fields: ['path', 'name', 'extension', 'actor'], note: 'bind path, never an id (file.deleted has none).', fullNote: 'Paths are user-relative ("/Documents/x.pdf"); file.renamed also carries oldPath.' },
+    'nextcloud.file.new': { group: 'nc-file', filters: ['inFolder', 'extension', 'nameContains'], more: ['excludeOwnUploads'], fields: ['path', 'name', 'extension', 'actor'], note: 'bind path, never an id (file.deleted has none).', fullNote: 'Paths are user-relative ("/Documents/x.pdf"); file.renamed also carries oldPath, file.copied oldPath + sourceId (the original). file.restored = taken back out of the trash bin.' },
     'nextcloud.file.changed': { group: 'nc-file' },
     'nextcloud.file.deleted': { group: 'nc-file' },
     'nextcloud.file.renamed': { group: 'nc-file' },
+    'nextcloud.file.copied': { group: 'nc-file' },
+    'nextcloud.file.restored': { group: 'nc-file' },
     'nextcloud.file.tagged': {
+        group: 'nc-tag',
         filters: ['tagId (the numeric id from nextcloud_list_tags, or the tag name)'],
         fields: ['fileId', 'tagId'],
         // nextcloud_read_file takes a path, and this payload has none (ids
@@ -71,12 +74,13 @@ const TRIGGER_PROMPT_NOTES = Object.freeze({
         note: 'the payload has ids only — no path, no tag name.',
         fullNote: 'To reach the file, call nextcloud_find_files_by_tag with trigger.output.tagId and take the item whose id equals trigger.output.fileId (it carries the path); nextcloud_direct_link takes trigger.output.fileId.',
     },
+    'nextcloud.file.untagged': { group: 'nc-tag' },
     'nextcloud.forms.submitted': {
         filters: ['formId', 'includeColleagues (true = also others\' submissions; off = only the owner\'s own)'],
         more: ['formHash', 'titleContains', 'submittedByEquals'],
         fields: ['formId', 'submissionId'],
         note: 'the answers are NOT in the payload: follow with nextcloud_forms_get_submissions.',
-        fullNote: 'Bind it to trigger.output.formId and trigger.output.submissionId; it returns the answers keyed by question text (steps.<id>.output.submissions[0].answers.<Question>).',
+        fullNote: 'Bind it to trigger.output.formId and trigger.output.submissionId; it returns the answers keyed by question text (steps.<id>.output.submissions[0].answers.<Question>). Uploaded files: steps.<id>.output.submissions[0].files.<Question>, a list of { fileId, name }.',
     },
     'nextcloud.tables.row.added': {
         group: 'nc-tables',
@@ -87,6 +91,7 @@ const TRIGGER_PROMPT_NOTES = Object.freeze({
         fields: ['tableId', 'rowId', 'values (keyed by numeric column id)'],
     },
     'nextcloud.tables.row.updated': { group: 'nc-tables' },
+    'nextcloud.tables.row.deleted': { group: 'nc-tables' },
     'nextcloud.calendar.event.upcoming': {
         filters: ['leadMinutes', 'calendarId (omit = every calendar)', 'summaryContains'],
         fields: ['uid', 'summary', 'startsAt', 'endsAt', 'attendees'],
@@ -98,8 +103,16 @@ const TRIGGER_PROMPT_NOTES = Object.freeze({
         // calendarUri: automationEventsWebhook.js normalisePayload sets it on every calendar.* envelope.
         extraFields: ['calendarUri'],
         note: 'metadata only, no summary — read it with nextcloud_calendar_get_event (calendar: trigger.output.calendarUri, uid: trigger.output.uid).',
+        // deleted: CalendarObjectDeletedEvent, which Nextcloud's CalDavBackend
+        // dispatches on a permanent delete only (a delete into the calendar
+        // trash bin dispatches CalendarObjectMovedToTrashEvent, not delivered).
+        // moved: the connector sets calendarId to the target calendar and
+        // forwards sourceCalendarId / targetCalendarId.
+        fullNote: 'calendar.event.deleted fires when the event is deleted for good (with the calendar trash bin on, the default: when it leaves the trash bin), so there is nothing left to read. calendar.event.moved = moved to another calendar: calendarId is the calendar it moved into, sourceCalendarId / targetCalendarId name both.',
     },
     'nextcloud.calendar.event.changed': { group: 'nc-cal' },
+    'nextcloud.calendar.event.deleted': { group: 'nc-cal' },
+    'nextcloud.calendar.event.moved': { group: 'nc-cal' },
     'nextcloud.talk.message.received': {
         filters: ['roomToken', 'messageContains', 'excludeOwnMessages', 'includeColleagues (true = also other members\' messages; off = only the owner\'s own)'],
         more: ['roomNameContains', 'actorEquals'],
@@ -126,6 +139,12 @@ const TRIGGER_PROMPT_NOTES = Object.freeze({
     'nextcloud.share.received': { filters: ['actorEquals', 'nameContains'], more: ['kindEquals ("file" | "folder")'], fields: ['path', 'name', 'actor'] },
     'nextcloud.activity.new': { filters: ['type', 'actorEquals'], more: ['objectNameContains'], fields: ['type', 'subject', 'objectName', 'actor'] },
     'nextcloud.notification.new': { filters: ['app', 'subjectContains'], fields: ['app', 'subject', 'message'] },
+    'nextcloud.mail.new': {
+        filters: ['accountId', 'mailboxId', 'fromContains', 'subjectContains', 'hasAttachment'],
+        fields: ['messageId', 'from', 'subject', 'hasAttachments'],
+        note: 'no body: read it with nextcloud_mail_read.',
+        fullNote: 'Without mailboxId only the inbox fires. Reply with nextcloud_mail_send replyTo: trigger.output.messageId. Only the mailbox owner\'s automations fire.',
+    },
     'meeting-notes.meeting.processed': {
         filters: ['tags (empty = EVERY meeting)', 'reprocessed'],
         fields: ['transcriptionId', 'tags'],
@@ -180,8 +199,8 @@ const TRIGGER_PROMPT_NOTES = Object.freeze({
 /** @type {Readonly<Record<string, string>>} */
 const PROVIDER_PROMPT_NOTES = Object.freeze({
     nextcloud: [
-        'Delivery: Files, system tags, Calendar, Forms, Tables and Deck are pushed by the Bee Flow connector within seconds (webhook); file.new / file.changed, share.received, activity.new, notification.new and calendar.event.upcoming are read on a ~60 s poll and need no connector; Talk events come from the Bee Flow bot, which only sees conversations a moderator added it to.',
-        'Whose events: a pushed event reaches the automations of the person who caused it; filter.includeColleagues:true also reacts to colleagues\' events, and only fires when the automation\'s owner can see the resource. file.tagged stays with the person who caused it; file.new / file.changed read the owner\'s activity feed and need no switch.',
+        'Delivery: Files, system tags, Calendar, Forms, Tables and Deck are pushed by the Bee Flow connector within seconds (webhook); file.new / file.changed, share.received, activity.new, notification.new and calendar.event.upcoming are read on a ~60 s poll and need no connector; Talk events come from the Bee Flow bot, which only sees conversations a moderator added it to; mail.new (Nextcloud Mail) is pushed when Mail synchronises, or read on the poll.',
+        'Whose events: a pushed event reaches the automations of the person who caused it; filter.includeColleagues:true also reacts to colleagues\' events, and only fires when the automation\'s owner can see the resource. file.tagged / file.untagged and file.copied / file.restored stay with the person who caused them; file.new / file.changed read the owner\'s activity feed and need no switch.',
         'Nextcloud cannot tell us that something was shared (share.created has no producer): for "when a file is shared" offer a schedule + nextcloud_list_shares instead.',
     ].join(' '),
 });

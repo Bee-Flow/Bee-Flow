@@ -24,6 +24,8 @@
  * triggerRegistry.golden.test.js — regenerate the golden when editing this file.
  */
 const { FILE_EVENTS } = require('../nextcloudFileEvents');
+const { CALENDAR_EVENTS } = require('../nextcloudCalendarEvents.mts');
+const { MAIL_EVENTS } = require('../nextcloudMailEvents.mts');
 const { withColleagues } = require('../../triggerBus/ncVisibility.mts');
 
 module.exports = { TRIGGER_SOURCES: [{
@@ -112,70 +114,7 @@ module.exports = { TRIGGER_SOURCES: [{
                     kind: 'poller',
                 },
             },
-            {
-                id: 'calendar.event.upcoming',
-                label: 'Calendar event upcoming (lead-time before start)',
-                fields: ['uid', 'calendarId', 'calendarUri', 'summary', 'startsAt', 'endsAt', 'location', 'attendees', 'minutesUntilStart', 'actor', 'datetime'],
-                sample: {
-                    uid: 'evt-9f2a',
-                    calendarId: 'personal',
-                    calendarUri: 'personal',
-                    summary: 'Kickoff with Nextcloud',
-                    startsAt: '2026-05-13T15:00:00+02:00',
-                    endsAt: '2026-05-13T15:30:00+02:00',
-                    location: 'Online',
-                    attendees: ['alice@example.com', 'bob@example.com'],
-                    minutesUntilStart: 15,
-                    actor: 'me',
-                    datetime: '2026-05-13T14:45:00Z',
-                },
-                scope: 'org',
-                source: {
-                    kind: 'poller',
-                },
-            },
-            {
-                id: 'calendar.event.created',
-                label: 'Calendar event created',
-                fields: ['uid', 'calendarId', 'calendarUri', 'objectUri', 'summary', 'startsAt', 'endsAt', 'location', 'actor', 'datetime'],
-                sample: {
-                    calendarUri: 'personal',
-                    objectUri: 'event-1.ics',
-                    uid: 'evt-9f2b',
-                    calendarId: 'personal',
-                    summary: 'Design review',
-                    startsAt: '2026-05-14T10:00:00+02:00',
-                    endsAt: '2026-05-14T11:00:00+02:00',
-                    location: '',
-                    actor: 'alice',
-                    datetime: '2026-05-13T09:00:00Z',
-                },
-                scope: 'org',
-                source: {
-                    kind: 'push',
-                },
-            },
-            {
-                id: 'calendar.event.changed',
-                label: 'Calendar event changed',
-                fields: ['uid', 'calendarId', 'calendarUri', 'objectUri', 'summary', 'startsAt', 'endsAt', 'location', 'actor', 'datetime'],
-                sample: {
-                    calendarUri: 'personal',
-                    objectUri: 'event-1.ics',
-                    uid: 'evt-9f2b',
-                    calendarId: 'personal',
-                    summary: 'Design review (moved)',
-                    startsAt: '2026-05-14T11:00:00+02:00',
-                    endsAt: '2026-05-14T12:00:00+02:00',
-                    location: 'Room 2',
-                    actor: 'alice',
-                    datetime: '2026-05-13T09:30:00Z',
-                },
-                scope: 'org',
-                source: {
-                    kind: 'push',
-                },
-            },
+            ...CALENDAR_EVENTS,
             {
                 id: 'deck.card.created',
                 label: 'Deck card created',
@@ -309,6 +248,24 @@ module.exports = { TRIGGER_SOURCES: [{
                 },
             },
             {
+                id: 'file.untagged',
+                label: 'Tag removed from a file',
+                fields: ['fileId', 'objectIds', 'tagId', 'tagIds', 'objectType', 'actor', 'datetime'],
+                sample: {
+                    fileId: '437',
+                    objectIds: ['437'],
+                    tagId: 3,
+                    tagIds: [3],
+                    objectType: 'files',
+                    actor: 'alice',
+                    datetime: '2026-05-13T09:40:00Z',
+                },
+                scope: 'org',
+                source: {
+                    kind: 'push',
+                },
+            },
+            {
                 id: 'forms.submitted',
                 label: 'Form submitted (Nextcloud Forms)',
                 fields: [
@@ -372,6 +329,24 @@ module.exports = { TRIGGER_SOURCES: [{
                 },
             },
             {
+                // RowDeletedEvent serialises the row as it was: `values` is
+                // its last content, keyed by numeric column id.
+                id: 'tables.row.deleted',
+                label: 'Row deleted from a Nextcloud Table',
+                fields: ['tableId', 'rowId', 'values', 'actor', 'datetime'],
+                sample: {
+                    tableId: 34,
+                    rowId: 7,
+                    values: { 0: 'Project X', 1: 2026, 2: 'done' },
+                    actor: 'carol',
+                    datetime: '2026-05-13T09:25:00Z',
+                },
+                scope: 'org',
+                source: {
+                    kind: 'push',
+                },
+            },
+            {
                 id: 'talk.message.received',
                 label: 'Talk message received',
                 fields: ['messageId', 'roomToken', 'roomName', 'actor', 'actorName', 'message', 'isMarkdown', 'inReplyTo', 'isOwn', 'datetime'],
@@ -412,5 +387,6 @@ module.exports = { TRIGGER_SOURCES: [{
                     kind: 'push',
                 },
             },
+            ...MAIL_EVENTS,
         ].map(withColleagues),
     }] };

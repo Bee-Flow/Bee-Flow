@@ -5591,11 +5591,6 @@
       "count": 1
     }
   },
-  "src/components/automation/Builder/WebhookPanel.tsx": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "src/components/automation/Builder/applyAddNode.ts": {
     "complexity": {
       "count": 1

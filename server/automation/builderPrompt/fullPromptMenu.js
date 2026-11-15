@@ -125,7 +125,10 @@ const FULL_PROMPT_STEP_MENU = `
                      on REJECT the run ENDS — unless you wire a rejected branch: the next
                      step with afterStepId=<approval id> and branch:"rejected" runs only on
                      reject (output.approved is false there); plain edges run only on approve. Optional
-                     expiresInHours (0..720, 0 = no deadline, default 168). Never place one
+                     expiresInHours (0..720, 0 = no deadline, default 168). When nobody decides
+                     in time the run ENDS as expired — unless you wire an expired branch with
+                     branch:"expired" (runs only on expiry; output.expired is true there), e.g.
+                     a reminder or an escalation. Never place one
                      inside a loop, a parallel branch or a flowlet, and never give it forEach.
   form_page        — ONLY when the trigger is kind=form. A further page of the automation's own
                      public form, shown on the SAME /f/<token> URL the visitor is already on:

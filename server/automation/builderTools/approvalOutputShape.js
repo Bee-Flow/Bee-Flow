@@ -7,7 +7,9 @@
  * to record. The keys are fixed, so the shape is complete (`sure`): a key
  * outside the contract is refused. `answers` holds the step's own questions
  * when it declares them (an answer left empty may be missing: not sure),
- * `votes` a panel's votes.
+ * `votes` a panel's votes. `expired` is there too: it is true only on the
+ * approval's expired branch ('on_expired', edgeLabels.mts) and missing
+ * everywhere else, so a binding on it reads true there and nothing otherwise.
  */
 
 'use strict';
@@ -33,7 +35,7 @@ function approvalOutputShape(step) {
         answers: names.length ? obj(names.map((n) => [n, ANY]), { sure: false }) : obj([], { open: true, sure: false }),
         votes: { t: 'arr', item: obj([], { open: true, sure: false }), sure: true },
     };
-    return obj(Object.keys(approvalOutput()).map(k => [k, byKey[k] || ANY]));
+    return obj([...Object.keys(approvalOutput()).map((k) => /** @type {[string, any]} */ ([k, byKey[k] || ANY])), ['expired', { t: 'bool' }]]);
 }
 
 module.exports = { approvalOutputShape };

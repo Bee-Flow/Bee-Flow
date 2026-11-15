@@ -216,7 +216,7 @@ describe('AdminDashboard scope groups', () => {
             'Organisation info', 'Licence & usage', 'People', 'Projects', 'Learning Center', 'Usage & monitoring',
             'Agents', 'Knowledge bases', 'Models', 'Conversations', 'Memory', 'Meeting notes',
             'Preferred sign-in method', 'Access', 'Privacy Shield', 'Encryption', 'MCP client access', 'Compliance',
-            'Integration status', 'MCP servers', 'Nextcloud', 'Microsoft 365', 'GitHub sync', 'Automation answer cache',
+            'Integration status', 'MCP servers', 'Nextcloud', 'Microsoft 365', 'GitHub sync', 'Automations',
         ]);
         expect(nav.queryByRole('link', { name: 'Organisation' })).not.toBeInTheDocument();
         expect(rowNames(nav.getByTestId('admin-rail-section-instance'))).toEqual([
@@ -249,7 +249,7 @@ describe('AdminDashboard scope groups', () => {
             'Organisation info', 'Licence & usage', 'People', 'Projects', 'Usage & monitoring',
             'Agents', 'Models', 'Conversations', 'Memory',
             'Preferred sign-in method', 'Access', 'Encryption', 'MCP client access', 'Compliance',
-            'Integration status', 'MCP servers', 'Nextcloud', 'Microsoft 365', 'Automation answer cache',
+            'Integration status', 'MCP servers', 'Nextcloud', 'Microsoft 365', 'Automations',
         ]);
         expect(nav.queryByTestId('server-wide-mark')).not.toBeInTheDocument();
     });
@@ -272,7 +272,7 @@ describe('AdminDashboard scope groups', () => {
             'Organisation info', 'Licence & usage', 'People', 'Projects', 'Usage & monitoring',
             'Models', 'Conversations', 'Memory',
             'Preferred sign-in method', 'Access', 'Encryption', 'MCP client access',
-            'Integration status', 'MCP servers', 'Nextcloud', 'Microsoft 365', 'Automation answer cache',
+            'Integration status', 'MCP servers', 'Nextcloud', 'Microsoft 365', 'Automations',
         ]);
         // admin/ alone falls back to the Organisation tab, which opens its first section.
         expect(within(rail()).getByRole('link', { name: 'Organisation info' })).toHaveAttribute('aria-current', 'page');

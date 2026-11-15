@@ -50,6 +50,7 @@ export {
     readExtractionFields,
     sanitizeExtractionFields,
 } from './extractionFields';
+export { MAX_IMAGE_BINDINGS, emptyImageBinding, readImageBindings, sanitizeImageBindings } from './imageBindings';
 export { deepEqual } from './primitives';
 export {
     AI_STEP_AGENT_PERMISSION_KEYS,

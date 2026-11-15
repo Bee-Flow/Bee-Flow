@@ -2,6 +2,7 @@
  * buildPatch for the steps that make or read documents: generated documents,
  * slides, presentations, filled templates and data extraction.
  */
+import { sanitizeImageBindings } from '../imageBindings';
 import { isEmptyExtractionSource, MAX_EXTRACTION_INSTRUCTIONS, sanitizeExtractionFields } from '../extractionFields';
 import { clamp } from '../primitives';
 import { applyForEachPatch } from '../stepOptions';
@@ -109,6 +110,7 @@ export const documentPatchers: Record<string, TypePatcher> = {
         patch.source = isEmptyExtractionSource(draft.source) ? undefined : draft.source;
         patch.fields = sanitizeExtractionFields(draft.fields);
         patch.instructions = (draft.instructions || '').slice(0, MAX_EXTRACTION_INSTRUCTIONS) || undefined;
+        patch.images = sanitizeImageBindings(draft.images);
         applyForEachPatch(patch, step, draft);
     },
 };

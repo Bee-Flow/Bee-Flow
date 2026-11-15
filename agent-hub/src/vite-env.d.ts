@@ -27,3 +27,10 @@ interface ImportMetaEnv {
 interface ImportMeta {
     readonly env: ImportMetaEnv;
 }
+
+// The self-hosted React runtime of the CMS's react-component block, as text
+// (vite.cmsReactRuntime.mjs bundles src/marketing/reactBlock/runtime/entry.ts).
+declare module 'virtual:cms-react-runtime' {
+    const runtime: string;
+    export default runtime;
+}

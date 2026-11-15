@@ -136,6 +136,34 @@ const SITE_DEFAULTS = {
 // { kind: 'anchor', anchor: '' } so newly-added buttons don't point at
 // app routes the user hasn't created.
 
+// The starting code of a new React component block: the authoring contract in
+// a few lines (one file, a default export, typed props from `fields`, state,
+// the site theme through --bf-* variables). The frame always sets every --bf-*
+// variable and the body font and colour, so the sample needs no fallbacks. It
+// ships in the public entry with the other defaults: keep it short.
+const REACT_COMPONENT_DEFAULT_SOURCE = [
+    "import { useState } from 'react';",
+    '',
+    'type Props = { title: string; buttonLabel: string; start: number; accent?: string };',
+    '',
+    'export default function Counter({ title, buttonLabel, start, accent }: Props) {',
+    '  const [count, setCount] = useState(Number(start) || 0);',
+    "  const color = accent || 'var(--bf-primary)';",
+    "  const radius = 'var(--bf-radius)';",
+    '  return (',
+    "    <div style={{ padding: 24, textAlign: 'center', background: 'var(--bf-surface)', borderRadius: radius }}>",
+    "      <h3 style={{ margin: '0 0 8px', fontFamily: 'var(--bf-font-heading)' }}>{title}</h3>",
+    '      <p style={{ margin: 0, fontSize: 48, fontWeight: 700, color }}>{count}</p>',
+    '      <button type="button" onClick={() => setCount((n) => n + 1)}',
+    "        style={{ padding: '10px 20px', border: 0, borderRadius: radius, background: color, color: '#fff', font: 'inherit', cursor: 'pointer' }}>",
+    '        {buttonLabel}',
+    '      </button>',
+    '    </div>',
+    '  );',
+    '}',
+    '',
+].join('\n');
+
 const BLOCK_DEFAULTS = {
     hero: {
         eyebrow: '',
@@ -513,6 +541,30 @@ const BLOCK_DEFAULTS = {
         // authored cta { label, link } still renders if a block carries one.
     },
 
+    // React component — one TSX/JSX file with a default export, rendered in a
+    // sandboxed iframe by the site's own React runtime (no CDN). The compiler
+    // and its rules are server/shared/cmsReact/compile.mjs. `fields` declares
+    // the props an editor can change; `props` holds their values (only these
+    // translate). `compiled` / `compileError` are written by the server on
+    // every save (stores/cms/reactBlock.mts); whatever a client sends there is
+    // discarded. The theme reaches the component as --bf-* CSS variables
+    // (REACT_THEME_VARS in compile.mjs).
+    'react-component': {
+        source:       REACT_COMPONENT_DEFAULT_SOURCE,
+        css:          '',
+        fields: [
+            { name: 'title',       label: 'Title',         type: 'text' },
+            { name: 'buttonLabel', label: 'Button label',  type: 'text' },
+            { name: 'start',       label: 'Start value',   type: 'number' },
+            { name: 'accent',      label: 'Accent colour', type: 'color' },
+        ],
+        props: { title: 'Count with me', buttonLabel: 'Add one', start: 0, accent: '' },
+        width:        'container',            // 'container' | 'full'
+        minHeight:    240,                    // px until the component reports its own height
+        compiled:     '',
+        compileError: '',
+    },
+
     // Public roadmap. Items are grouped into status buckets AT RENDER TIME,
     // never stored in sorted order — locale overrides address array items by
     // numeric index, so reordering `items` in the default locale would drag
@@ -841,6 +893,9 @@ const BLOCK_TYPES = [
     // deployment drops them.
     { type: 'scrollStory',   label: 'Scroll story',     icon: 'GalleryVertical',    category: 'Content' },
     { type: 'tour',          label: 'Product tour',     icon: 'Route',              category: 'Content' },
+    // Same rollback caveat: an export with this block imported into an older
+    // deployment drops it.
+    { type: 'react-component', label: 'React component', icon: 'Puzzle',       category: 'Content' },
 ];
 
 // Bounds of a tabs block. The editor stops at the maximum; the validator warns

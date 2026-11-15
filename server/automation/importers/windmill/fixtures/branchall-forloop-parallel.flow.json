@@ -1,0 +1,130 @@
+{
+  "summary": "Parallel review",
+  "value": {
+    "modules": [
+      {
+        "id": "items",
+        "summary": "Items",
+        "value": {
+          "type": "rawscript",
+          "language": "bun",
+          "content": "export async function main() { return [{ id: 1, path: '/A.pdf' }, { id: 2, path: '/B.pdf' }]; }",
+          "input_transforms": {}
+        }
+      },
+      {
+        "id": "both",
+        "value": {
+          "type": "branchall",
+          "parallel": true,
+          "branches": [
+            {
+              "summary": "Per item",
+              "modules": [
+                {
+                  "id": "per_item",
+                  "value": {
+                    "type": "forloopflow",
+                    "parallel": true,
+                    "skip_failures": true,
+                    "iterator": {
+                      "type": "javascript",
+                      "expr": "results.items"
+                    },
+                    "modules": [
+                      {
+                        "id": "read",
+                        "summary": "Read",
+                        "value": {
+                          "type": "script",
+                          "path": "hub/1/nextcloud/nextcloud_webdav:_get_file_content",
+                          "input_transforms": {
+                            "path": {
+                              "type": "javascript",
+                              "expr": "flow_input.iter.value.path"
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "id": "kind",
+                        "value": {
+                          "type": "branchone",
+                          "branches": [
+                            {
+                              "summary": "Long",
+                              "expr": "results.read.length > 1000",
+                              "modules": [
+                                {
+                                  "id": "long_note",
+                                  "summary": "Note long file",
+                                  "value": {
+                                    "type": "script",
+                                    "path": "hub/2/nextcloud/send_a_notification_to_a_user",
+                                    "input_transforms": {
+                                      "notificationUserId": {
+                                        "type": "static",
+                                        "value": "office"
+                                      },
+                                      "subject": {
+                                        "type": "javascript",
+                                        "expr": "`Long file ${flow_input.iter.value.path}`"
+                                      }
+                                    }
+                                  }
+                                }
+                              ]
+                            }
+                          ],
+                          "default": []
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "summary": "Count",
+              "modules": [
+                {
+                  "id": "count",
+                  "summary": "Count",
+                  "value": {
+                    "type": "rawscript",
+                    "language": "bun",
+                    "content": "export async function main(items: any[]) { return items.length; }",
+                    "input_transforms": {
+                      "items": {
+                        "type": "javascript",
+                        "expr": "results.items"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "id": "done",
+        "summary": "Report",
+        "value": {
+          "type": "script",
+          "path": "hub/2/nextcloud/send_a_notification_to_a_user",
+          "input_transforms": {
+            "notificationUserId": {
+              "type": "static",
+              "value": "office"
+            },
+            "subject": {
+              "type": "javascript",
+              "expr": "`Checked ${results.count} files`"
+            }
+          }
+        }
+      }
+    ]
+  }
+}

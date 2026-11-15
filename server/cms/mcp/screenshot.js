@@ -438,7 +438,7 @@ function createScreenshotRenderer(overrides = null) {
                     why,
                     `The full page is ${shot.pageHeight}px tall at this width${args.fullPage ? ' (scaled down to fit)' : '; pass offsetY to look further down it, or fullPage:true for an overview'}.`,
                     liveFrames > 0
-                        ? `The page contains ${liveFrames} live-component frame${liveFrames === 1 ? '' : 's'} (sandboxed iframes): a blank area where one sits may be a capture artefact (the frame had not painted), not an empty block; take the screenshot again or check the block's code.`
+                        ? `The page contains ${liveFrames} sandboxed component frame${liveFrames === 1 ? '' : 's'} (live and React components): a blank area where one sits may be a capture artefact (the frame had not painted), not an empty block; take the screenshot again or check the block's code.`
                         : '',
                 ].filter(Boolean).join(' '),
             };

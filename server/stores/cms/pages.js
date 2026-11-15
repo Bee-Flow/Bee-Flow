@@ -13,6 +13,7 @@ const {
     newId, isPlainObject, clone, normalizeStoredSlug, assertSiteId, pageKey,
 } = require('./shared');
 const { writePageAligned } = require('./overrideAlign');
+const { prepareReactBlocks } = require('./reactBlock.mts');
 
 // ── Pages ────────────────────────────────────────────────────────────
 
@@ -61,7 +62,10 @@ async function getPage(siteId, pageId, { fresh = false } = {}) {
 async function setPage(siteId, page, { expectedRev } = {}) {
     assertSiteId(siteId);
     if (!isPlainObject(page) || !page.id) throw new Error('page.id required');
-    const { blocks, dropped } = sanitizeBlocks(Array.isArray(page.blocks) ? page.blocks : []);
+    const { blocks: survivors, dropped } = sanitizeBlocks(Array.isArray(page.blocks) ? page.blocks : []);
+    // React component blocks: shape cleaned and `source` compiled here, on every
+    // save; a `compiled` the caller sent is never stored (reactBlock.mts).
+    const blocks = await prepareReactBlocks(survivors);
     const sanitized = {
         version: PAGE_VERSION,
         id: String(page.id),
@@ -117,6 +121,7 @@ const BLOCK_TYPE_ALIASES = {
     mediatext: 'media-text', media_text: 'media-text',
     ctabanner: 'cta-banner', cta_banner: 'cta-banner',
     livecomponent: 'live-component', live_component: 'live-component',
+    react: 'react-component', reactcomponent: 'react-component', react_component: 'react-component',
     customersupport: 'customer-support', customer_support: 'customer-support',
     'call-to-action': 'cta', calltoaction: 'cta',
     testimonial: 'testimonials', faqs: 'faq', forms: 'form',

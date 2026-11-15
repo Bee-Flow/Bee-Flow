@@ -44,6 +44,20 @@ const OUTPUT_SCHEMAS_NEXTCLOUD_FILES = {
         shape: { count: 'integer', groups: 'array of string (group ids)' },
         sample: { count: 2, groups: ['admin', 'finance'] },
     },
+    nextcloud_file_info: {
+        // One node, by file id (WebDAV SEARCH) or by path (PROPFIND). `path`
+        // is relative to the owner's Files root; `modifiedAt` is ISO 8601.
+        shape: { fileId: 'integer', path: 'string', name: 'string', mimeType: 'string|null (null for a folder)', size: 'integer|null', owner: 'string|null (owner uid)', modifiedAt: 'string|null (ISO 8601)', isFolder: 'boolean' },
+        sample: { fileId: 4211, path: '/Invoices/Invoice-2026-001.pdf', name: 'Invoice-2026-001.pdf', mimeType: 'application/pdf', size: 51200, owner: 'alice', modifiedAt: '2026-10-05T09:12:00.000Z', isFolder: false },
+        echo: { fileId: 'fileId', path: 'path' },
+    },
+    nextcloud_get_user: {
+        // OCS cloud/users/<uid>. Not visible to the caller: { error } instead.
+        // `manager` is a list of uids (empty when none is set).
+        shape: { uid: 'string', displayName: 'string|null', email: 'string|null', groups: 'array of string (group ids)', manager: 'array of string (uids)', language: 'string|null' },
+        sample: { uid: 'alice', displayName: 'Alice Example', email: 'alice@example.com', groups: ['staff'], manager: ['bob'], language: 'en' },
+        echo: { uid: 'uid' },
+    },
     nextcloud_list_shares: {
         shape: { count: 'integer', shares: 'array of { id, shareType, shareWith, shareWithDisplayName, path, fileTarget, permissions, expiration, token, url, stime, note }' },
         sample: { count: 1, shares: [{ id: 37, shareType: 3, shareWith: null, shareWithDisplayName: null, path: '/Reports/Q3.pdf', fileTarget: '/Q3.pdf', permissions: 1, expiration: null, token: 'aBcD1234', url: 'https://cloud.example.com/s/aBcD1234', stime: 1791100000, note: '' }] },
@@ -73,6 +87,14 @@ const OUTPUT_SCHEMAS_NEXTCLOUD_FILES = {
     },
 
     // ── Files: writes ─────────────────────────────────────────────
+    nextcloud_request: {
+        // The generic OCS / WebDAV call (automations only). `body` is the
+        // parsed JSON for a JSON answer (an OCS answer keeps its envelope:
+        // body.ocs.data), else the text (WebDAV XML). A 4xx/5xx answer is
+        // { error, status, body } and fails the step.
+        shape: { status: 'integer', ok: 'boolean', contentType: 'string', body: 'object|array|string', truncated: 'boolean (the answer was longer than the response cap)' },
+        sample: { status: 200, ok: true, contentType: 'application/json; charset=utf-8', body: { ocs: { meta: { status: 'ok', statuscode: 200, message: 'OK' }, data: [] } }, truncated: false },
+    },
     nextcloud_upload_file: {
         shape: { success: 'boolean', path: 'string', bytes: 'integer', created: 'boolean (a new file)', updated: 'boolean (an existing file was overwritten)' },
         sample: { success: true, path: '/Reports/report.txt', bytes: 1024, created: true, updated: false },

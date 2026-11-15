@@ -9,7 +9,7 @@
  *   integrations/toolFamilies.js   every integration's tools -> core/tools/toolFamilyRegistry.js
  *   automation/runnerPorts.js      approvals, trigger bus, form queue, code sandbox, ...
  *   jobs/runnerPorts.js            the retention and digest passes the runner ticks drive
- *   integrations/runnerPorts.js    the Nextcloud admin bell, KB ingest, custom-integration auth
+ *   integrations/runnerPorts.js    the Nextcloud admin bell and image reads, KB ingest, custom-integration auth
  *   services/runnerPorts.js        the presentation renderer
  *   core/meetingNotes/runnerPorts.js  the Meet/Teams/Talk passes the scheduler drives
  *                                  (all five -> core/automationRunner/featurePorts.js)

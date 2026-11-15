@@ -14,7 +14,7 @@ const { davStatusError } = require('./davStatusError.mts');
  * @typedef {{ baseUrl: string, ncFetch: import('../nextcloudClient.types').NcAuth['fetch'],
  *   authError: string, uid: string, root: string, session?: Partial<Express.Session>,
  *   mode?: string | null, publicBaseUrl?: string | null, userId?: string, orgId?: string | null,
- *   runScope?: { runId: string, rootRunId?: string } | null }} FilesToolCtx
+ *   runScope?: { runId: string, rootRunId?: string } | null, automationId?: string | null }} FilesToolCtx
  */
 
 const MAX_TEXT_BYTES = 200 * 1024;          // 200 KB cap on file reads

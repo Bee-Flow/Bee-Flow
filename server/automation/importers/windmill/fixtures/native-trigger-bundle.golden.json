@@ -1,0 +1,301 @@
+{
+  "flows": [
+    {
+      "flowPath": "f/ops/invoice_intake",
+      "automation": {
+        "title": "Invoice intake",
+        "description": "A PDF lands in the Invoices folder; read it and tell the team.",
+        "triggerType": "app_event",
+        "scheduleCron": null,
+        "scheduleTz": null
+      },
+      "definition": {
+        "trigger": {
+          "id": "trg",
+          "type": "trigger",
+          "kind": "app_event",
+          "label": "Nextcloud: file.new",
+          "appEvent": {
+            "provider": "nextcloud",
+            "event": "file.new",
+            "filter": {
+              "inFolder": "/Invoices",
+              "expr": "trigger.actor == \"office\""
+            }
+          }
+        },
+        "steps": [
+          {
+            "id": "name",
+            "type": "code",
+            "label": "File name",
+            "code": "/**\n * File name\n * @param {*} inputs.path - path\n */\nasync function main(inputs, ctx) {\n    async function __wm_main(path) {\n      const parts = path.split(\"/\");\n      return parts[parts.length - 1];\n    }\n    return __wm_main(inputs.path);\n}\n",
+            "inputs": {
+              "path": {
+                "kind": "ref",
+                "path": "trigger.output.path"
+              }
+            },
+            "allowedHosts": []
+          },
+          {
+            "id": "read",
+            "type": "integration_action",
+            "label": "Get file content",
+            "tool": "nextcloud_read_file",
+            "inputs": {
+              "path": {
+                "kind": "ref",
+                "path": "trigger.output.path"
+              }
+            },
+            "retry": {
+              "max": 3,
+              "backoffMs": 10000
+            }
+          },
+          {
+            "id": "post",
+            "type": "integration_action",
+            "label": "Tell the team",
+            "tool": "nextcloud_talk_send_message",
+            "inputs": {
+              "token": {
+                "kind": "literal",
+                "value": "room-token-to-pick"
+              },
+              "message": {
+                "kind": "expr",
+                "value": "(\"New invoice: \" + toStr(steps.name.output.result) + \" (\" + toStr(len(steps.read.output.content)) + \" characters)\")"
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "from": "trg",
+            "to": "name"
+          },
+          {
+            "from": "name",
+            "to": "read"
+          },
+          {
+            "from": "read",
+            "to": "post"
+          },
+          {
+            "from": "trg_2",
+            "to": "name"
+          }
+        ],
+        "triggers": [
+          {
+            "id": "trg_2",
+            "type": "trigger",
+            "kind": "schedule",
+            "label": "Schedule",
+            "schedule": {
+              "cron": "0 7 * * 1-5",
+              "tz": "Europe/Amsterdam"
+            }
+          }
+        ],
+        "vars": {
+          "folder": "/Invoices"
+        }
+      },
+      "report": {
+        "flowPath": "f/ops/invoice_intake",
+        "modules": [
+          {
+            "wmId": "name",
+            "summary": "File name",
+            "source": "rawscript:bun",
+            "status": "shim",
+            "confidence": "medium",
+            "reason": "Plain script without packages: it runs as a code step.",
+            "stepIds": [
+              "name"
+            ]
+          },
+          {
+            "wmId": "read",
+            "summary": "Get file content",
+            "source": "script:hub/28150/nextcloud/nextcloud_webdav:_get_file_content",
+            "status": "mapped",
+            "confidence": "medium",
+            "reason": "Known Nextcloud Hub script.",
+            "stepIds": [
+              "read"
+            ]
+          },
+          {
+            "wmId": "post",
+            "summary": "Tell the team",
+            "source": "script:hub/28140/nextcloud/nextcloud_talk:_send_a_message",
+            "status": "mapped",
+            "confidence": "high",
+            "reason": "Known Nextcloud Hub script.",
+            "stepIds": [
+              "post"
+            ]
+          }
+        ],
+        "aiChecklist": [],
+        "warnings": [
+          {
+            "code": "schedule_seconds",
+            "message": "The schedule \"30 0 7 * * 1-5\" fired on a second other than 0; Bee Flow schedules run on whole minutes."
+          },
+          {
+            "code": "trigger_switch_off",
+            "message": "Switch the Windmill trigger off (or delete the flow there) once this automation is active, or every event runs twice."
+          },
+          {
+            "code": "option_approximated",
+            "message": "Bee Flow reads the TEXT of the file (a PDF, a document, a sheet), not its bytes.",
+            "wmId": "read"
+          },
+          {
+            "code": "repick_id",
+            "message": "Pick the Talk room again for \"Tell the team\": ids differ between installations.",
+            "wmId": "post"
+          },
+          {
+            "code": "identity_change",
+            "message": "Windmill ran parts of this flow with the connections of whoever set it up; Bee Flow runs it with the connections of the automation's owner, so what it may read and change follows the owner's rights."
+          },
+          {
+            "code": "trigger_approximated",
+            "message": "File paths in Bee Flow start inside the user's files (\"/Uploads/x.pdf\"); Windmill read \"/<user>/files/Uploads/x.pdf\"."
+          }
+        ],
+        "connections": [],
+        "outboundHosts": [],
+        "counts": {
+          "mapped": 2,
+          "pattern": 0,
+          "shim": 1,
+          "ai": 0,
+          "unsupported": 0,
+          "dropped": 0
+        },
+        "suggestedRunPolicy": {},
+        "validation": {
+          "errors": [],
+          "warnings": []
+        }
+      }
+    },
+    {
+      "flowPath": "f/ops/ticket_hook",
+      "automation": {
+        "title": "Ticket hook",
+        "description": "",
+        "triggerType": "webhook",
+        "scheduleCron": null,
+        "scheduleTz": null
+      },
+      "definition": {
+        "trigger": {
+          "id": "trg",
+          "type": "trigger",
+          "kind": "webhook",
+          "label": "Webhook"
+        },
+        "steps": [
+          {
+            "id": "note",
+            "type": "integration_action",
+            "label": "nextcloud_notifications_send",
+            "tool": "nextcloud_notifications_send",
+            "inputs": {
+              "userId": {
+                "kind": "literal",
+                "value": "office"
+              },
+              "shortMessage": {
+                "kind": "template",
+                "value": "Ticket {{trigger.output.ticket}}"
+              },
+              "longMessage": {
+                "kind": "literal",
+                "value": "A ticket came in."
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "from": "trg",
+            "to": "note"
+          }
+        ]
+      },
+      "report": {
+        "flowPath": "f/ops/ticket_hook",
+        "modules": [
+          {
+            "wmId": "note",
+            "source": "script:hub/28136/nextcloud/send_a_notification_to_a_user",
+            "status": "mapped",
+            "confidence": "high",
+            "reason": "Known Nextcloud Hub script.",
+            "stepIds": [
+              "note"
+            ]
+          }
+        ],
+        "aiChecklist": [],
+        "warnings": [
+          {
+            "code": "new_webhook_url",
+            "message": "The HTTP route post /tickets/new becomes a Bee Flow webhook with a new address: point the caller at it and let it sign its requests, or give it a header token."
+          },
+          {
+            "code": "trigger_unsupported",
+            "message": "The e-mail trigger (f/ops/tickets.email_trigger.yaml) is not migrated: choose a mailbox trigger (Gmail, Outlook or Nextcloud Mail) for it."
+          },
+          {
+            "code": "trigger_switch_off",
+            "message": "Switch the Windmill trigger off (or delete the flow there) once this automation is active, or every event runs twice."
+          },
+          {
+            "code": "identity_change",
+            "message": "Windmill ran parts of this flow with the connections of whoever set it up; Bee Flow runs it with the connections of the automation's owner, so what it may read and change follows the owner's rights."
+          }
+        ],
+        "connections": [
+          {
+            "kind": "resource",
+            "path": "f/ops/nextcloud",
+            "where": [
+              "note.nextcloud"
+            ],
+            "resourceType": "nextcloud"
+          }
+        ],
+        "outboundHosts": [],
+        "counts": {
+          "mapped": 1,
+          "pattern": 0,
+          "shim": 0,
+          "ai": 0,
+          "unsupported": 0,
+          "dropped": 0
+        },
+        "suggestedRunPolicy": {},
+        "validation": {
+          "errors": [],
+          "warnings": []
+        },
+        "suggestedWebhookAuth": "header_token"
+      }
+    }
+  ],
+  "notMigrated": [
+    "The Windmill app f/ops/dashboard__raw_app is not migrated (build it in App Studio)."
+  ],
+  "readWarnings": []
+}

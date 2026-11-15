@@ -305,15 +305,27 @@ test('the screenshot context asks for reduced motion, so the site shows every sc
     assert.equal(seen && seen.reducedMotion, 'reduce');
 });
 
-test('live-component frames are reported with a note that a blank area may be a capture artefact', async () => {
+test('sandboxed component frames are reported with a note that a blank area may be a capture artefact', async () => {
     const { deps } = makeDeps({ capture: async () => ({ png: await bigPng(1280, 800), hydrated: true, pageHeight: 3000, liveComponentFrames: 2 }) });
     const out = await createScreenshotRenderer(deps).render({ siteId: SITE.id, offsetY: 1250 });
     assert.equal(out.liveComponentFrames, 2);
-    assert.match(out.text, /2 live-component frames/);
+    assert.match(out.text, /2 sandboxed component frames/);
     assert.match(out.text, /capture artefact/);
+    const one = await createScreenshotRenderer(makeDeps({ capture: async () => ({ png: await bigPng(1280, 800), hydrated: true, pageHeight: 3000, liveComponentFrames: 1 }) }).deps).render({ siteId: SITE.id });
+    assert.match(one.text, /1 sandboxed component frame /);
     const none = await createScreenshotRenderer(makeDeps().deps).render({ siteId: SITE.id });
     assert.equal(none.liveComponentFrames, 0);
-    assert.doesNotMatch(none.text, /live-component/);
+    assert.doesNotMatch(none.text, /component frame/);
+});
+
+test('the frame count covers live components and React component frames', async () => {
+    const { countLiveFrames, COMPONENT_FRAME_SELECTOR } = require('./screenshotWalk.mts');
+    assert.match(COMPONENT_FRAME_SELECTOR, /iframe\[title="Live Component"\]/);
+    assert.match(COMPONENT_FRAME_SELECTOR, /iframe\[data-cms-frame\]/);
+    let asked = null;
+    const n = await countLiveFrames({ evaluate: async (_fn, sel) => { asked = sel; return 4; } });
+    assert.equal(n, 4);
+    assert.equal(asked, COMPONENT_FRAME_SELECTOR);
 });
 
 test('capture walks the offset region (two frames per stop) before photographing, and counts the frames', async () => {

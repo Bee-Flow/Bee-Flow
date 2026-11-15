@@ -363,8 +363,8 @@ const OUTPUT_SCHEMAS_PART_1 = {
     // ── Nextcloud Mail / Talk / Calendar / Notifications ──────────
     // Shapes verified against the tool modules' actual return statements.
     nextcloud_mail_send: {
-        shape: { success: 'boolean', outboxId: 'integer', to: 'string', subject: 'string' },
-        sample: { success: true, outboxId: 1, to: 'recipient@example.com', subject: 'Sample subject' },
+        shape: { success: 'boolean', outboxId: 'integer', to: 'string', subject: 'string', attachments: 'array of string (the attached file names)' },
+        sample: { success: true, outboxId: 1, to: 'recipient@example.com', subject: 'Sample subject', attachments: ['Confirmation.pdf'] },
         echo: { to: 'to', subject: 'subject' },
     },
     nextcloud_talk_send_message: {

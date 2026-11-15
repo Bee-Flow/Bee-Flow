@@ -157,7 +157,7 @@ const LEAN = Object.freeze({
             outputSchema: { description: 'The JSON shape of the answer, e.g. {digest:"string"}.' },
             modelTier: { description: 'One of the tiers in the "This turn" note, or omit.' },
             allowTools: { description: 'true lets the step call the user\'s tools itself. Rare.' },
-            tools: null, useMemory: null, agentPermissions: null, disabledAgentSkillIds: null, temperature: null, enumFrom: null, checks: null, fallback: null, askOnce: null,
+            tools: null, useMemory: null, agentPermissions: null, disabledAgentSkillIds: null, temperature: null, enumFrom: null, checks: null, fallback: null, askOnce: null, images: null,
             agentId: { description: 'Only an id from "Agents you may use" (or one the user named); never invent one.' },
             skillIds: { description: 'Only ids the user showed you; never invent one.' },
             knowledgeBaseIds: { description: 'Only ids from "Knowledge bases you may use" (or ones the user named); never invent one.' },
@@ -212,7 +212,7 @@ const LEAN = Object.freeze({
                     required: ['name', 'type'],
                 },
             },
-            instructions: { description: 'Optional one-line guidance (units, language, which of two dates).' },
+            instructions: { description: 'Optional one-line guidance (units, language, which of two dates).' }, images: null,
         },
     },
     builder_add_datatable: {
@@ -251,7 +251,7 @@ const LEAN = Object.freeze({
         },
     },
     builder_add_approval: {
-        description: 'Append a step that PAUSES the run until a person approves. prompt = what the approver reads (template — quote the thing: {{steps.x.output.total}}). assignee = {userId} or {groupId}; omit = the owner decides. On approve the run continues (steps.<id>.output.approved/by/reason); on reject it ENDS unless a step is added after it with branch:"rejected" (runs only on reject). Never with forEach.',
+        description: 'Append a step that PAUSES the run until a person approves. prompt = what the approver reads (template — quote the thing: {{steps.x.output.total}}). assignee = {userId} or {groupId}; omit = the owner decides. On approve the run continues (steps.<id>.output.approved/by/reason); on reject it ENDS unless a step is added after it with branch:"rejected" (runs only on reject); when nobody decides before the deadline it ENDS unless a step is added with branch:"expired" (runs only on expiry; output.expired is true). Never with forEach.',
         props: {
             prompt: { description: 'The question the approver sees; template string.' },
             expiresInHours: { description: '0..720; 0 = no deadline; default 168.' },

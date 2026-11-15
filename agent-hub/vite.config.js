@@ -4,6 +4,7 @@ import path from 'path'
 import react from '@vitejs/plugin-react'
 import { visualizer } from 'rollup-plugin-visualizer'
 import { defineConfig, loadEnv } from 'vite'
+import { cmsReactRuntime } from './vite.cmsReactRuntime.mjs'
 import { lucideEntryTest } from './vite.lucideChunks.mjs'
 
 // Loaded only for a CI shard, so `vite build` and local test runs never import vitest/node.
@@ -149,6 +150,9 @@ export default defineConfig(({ mode }) => {
         plugins: [
             react(),
             monacoSelfHost(),
+            // `virtual:cms-react-runtime`: the self-hosted React of the CMS's
+            // react-component block, inlined into its sandboxed frame.
+            cmsReactRuntime(),
             ...(enableAnalyzer ? [visualizer({
                 filename: 'dist/stats.html',
                 template: 'treemap',

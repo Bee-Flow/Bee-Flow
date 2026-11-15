@@ -32,12 +32,14 @@ const { isPlainObject, clone, deepMerge, pageIdsHint, findIndexEntry, getPageDoc
 const { NAV_LIMITS, sanitizeHeaderNav, applyUpdateHeaderNav } = require('./builderToolsNav');
 const { summariseDesign, sanitizeDesignPatch, applyUpdateDesign } = require('./builderToolsDesign');
 const { MAX_BLOCKS_PER_CALL, resolveInsertIndex, applyAddBlocks, applyUpdateBlock, applyRemoveBlock, applyReorderBlocks } = require('./builderToolsBlocks');
+const { applyUpdateReactComponent } = require('./builderToolsReact.mts');
+const { redactCompiledPage } = require('../stores/cms/reactBlock.mts');
 
 // ── Mutation bookkeeping (the route emits draft events from these) ──
 
 const MUTATING_TOOLS = new Set([
     'cms_create_page', 'cms_update_page_meta', 'cms_update_page_seo',
-    'cms_add_blocks', 'cms_update_block', 'cms_remove_block', 'cms_reorder_blocks',
+    'cms_add_blocks', 'cms_update_block', 'cms_update_react_component', 'cms_remove_block', 'cms_reorder_blocks',
     'cms_set_homepage', 'cms_reorder_pages', 'cms_update_header_nav', 'cms_update_design',
 ]);
 
@@ -53,7 +55,7 @@ const SITE_DRAFT_TOOLS = new Set([
 // { kind:'page', pageId } event (pageId from result.pageId).
 const PAGE_DRAFT_TOOLS = new Set([
     'cms_create_page', 'cms_update_page_meta', 'cms_update_page_seo',
-    'cms_add_blocks', 'cms_update_block', 'cms_remove_block', 'cms_reorder_blocks',
+    'cms_add_blocks', 'cms_update_block', 'cms_update_react_component', 'cms_remove_block', 'cms_reorder_blocks',
 ]);
 
 // Column data only ever renders under the 'columns' layout — see
@@ -101,7 +103,9 @@ async function applyGetPage(draftWrap, args) {
     if (!doc) {
         return { error: `Page document for ${pageId} is missing.`, _fixHint: pageIdsHint(draftWrap) };
     }
-    return { page: clone(doc), meta: clone(entry) };
+    // A react-component block's compiled code is shown as a size note: noise to a
+    // reader, and recomputed by the server on every save anyway.
+    return { page: clone(redactCompiledPage(doc)), meta: clone(entry) };
 }
 
 // ── MUTATING tools ───────────────────────────────────────────────────
@@ -284,6 +288,7 @@ const TOOL_IMPLS = {
     cms_update_page_seo: applyUpdatePageSeo,
     cms_add_blocks: applyAddBlocks,
     cms_update_block: applyUpdateBlock,
+    cms_update_react_component: applyUpdateReactComponent,
     cms_remove_block: applyRemoveBlock,
     cms_reorder_blocks: applyReorderBlocks,
     cms_set_homepage: applySetHomepage,

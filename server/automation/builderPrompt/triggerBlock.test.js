@@ -62,7 +62,11 @@ test('two renders are the same bytes (memoised, global registry, no per-user inp
     assert.equal(renderTriggerBlockLean(), block);
     assert.equal(renderTriggerBlockLean(), renderTriggerBlockLean());
     assert.ok(block.startsWith('## Triggers (builder_propose_trigger'));
-    assert.ok(block.length < 6000, `the block is the diet, not the catalogue: ${block.length} chars`);
+    // 6000 → 6100 when six delivered Nextcloud events became selectable
+    // (file.copied / restored / untagged, calendar.event.deleted / moved,
+    // tables.row.deleted): each joins an existing line, ~115 chars in all.
+    // 6100 → 6250 for nextcloud mail.new (Nextcloud Mail, one new line).
+    assert.ok(block.length < 6250, `the block is the diet, not the catalogue: ${block.length} chars`);
 });
 
 test('agent_call and app_trigger are proposable from the lean band, with the binding path and the linking step', () => {
@@ -81,6 +85,7 @@ const MATCHER_SOURCES = [
     path.join('triggerBus', 'filtersTables.js'),
     path.join('triggerBus', 'filtersNcTags.js'),
     path.join('triggerBus', 'filtersMsGraph.js'),
+    path.join('triggerBus', 'filtersNcMail.mts'),
     // includeColleagues is a delivery switch read where the fan-out happens.
     path.join('triggerBus', 'dispatch.js'),
     'triggerBus.js',

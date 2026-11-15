@@ -86,6 +86,10 @@ function strayLane(label: string, edges: FlowEdge[]): Lane {
     if (label === PORT.onRejected) {
         return { handle: label, identity: { label }, text: { key: 'automation_editor.approval_port_rejected', fallback: 'On rejected' }, tone: 'error', edges };
     }
+    // Its expired branch likewise (web ApprovalNode 'On expired').
+    if (label === PORT.onExpired) {
+        return { handle: label, identity: { label }, text: { key: 'automation_approval_expiry.port', fallback: 'On expired' }, tone: 'default', edges };
+    }
     return {
         handle: label,
         identity: caseName != null ? { label, caseName } : { label },

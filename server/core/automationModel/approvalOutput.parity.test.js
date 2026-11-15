@@ -102,6 +102,8 @@ test('a dry run (synthesised and harness) and the builder\'s binding shape use t
 
     const { stepOutputShape } = require('../../automation/builderTools/refCheck');
     const shape = stepOutputShape({ steps: [STEP], edges: [] }, STEP, null);
-    assert.deepStrictEqual([...shape.keys.keys()].sort(), CONTRACT, 'builder binding shape');
+    // Plus `expired`, which only the expired branch's output carries (approvalOutput.mts):
+    // a binding on it is accepted, and reads true on that branch only.
+    assert.deepStrictEqual([...shape.keys.keys()].sort(), [...CONTRACT, 'expired'].sort(), 'builder binding shape');
     assert.strictEqual(shape.sure, true, 'the contract is complete: an unknown key is refused');
 });

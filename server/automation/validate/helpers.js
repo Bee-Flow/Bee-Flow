@@ -150,6 +150,8 @@ module.exports = {
  * @property {Set<string> | null} [knownVarNames]
  * @property {Set<string> | null} [availableAgents]
  * @property {boolean | null} [topicClassifier]
+ * @property {ImageModelsFact | null} [imageModels]
+ * @typedef {{ tiers?: Record<string, boolean>, dataExtraction?: boolean | null }} ImageModelsFact  which models can see an image (automation/imageModelsFact.mts)
  * @typedef {ValidateCatalogs & { scope?: string, stage?: string }} ValidateOptions  the options of validateDefinition
  * @typedef GraphCtx  what validateGraph hands to every rule group of one graph
  * @property {GraphDoc} graph

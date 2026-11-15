@@ -79,6 +79,11 @@ const FIXTURES = [
         adminRoutes: ['PUT /api/org-collab/:orgId'],
         bodies: { 'PUT /api/org-collab/:orgId': { collabEnabled: true } },
     }),
+    ...orgArea('orgAutomationImageAi', '/api/org-automation-image-ai', () => require('../../routes/orgAutomationImageAi.mts').orgAutomationImageAiRouter, {
+        memberReads: ['GET /api/org-automation-image-ai/:orgId'],
+        adminRoutes: ['PUT /api/org-automation-image-ai/:orgId'],
+        bodies: { 'PUT /api/org-automation-image-ai/:orgId': { enabled: false } },
+    }),
     ...orgArea('orgIntegrationCache', '/api/org-integration-cache', () => require('../../routes/orgIntegrationCache'), {
         memberReads: ['GET /api/org-integration-cache/:orgId'],
         adminRoutes: ['PUT /api/org-integration-cache/:orgId', 'DELETE /api/org-integration-cache/:orgId/entries'],

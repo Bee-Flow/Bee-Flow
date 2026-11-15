@@ -190,8 +190,10 @@ async function approvalNotificationTargets(approval, automation) {
  * One expired row's fallout: audit event, trigger event, urgent bells to the
  * owner + assignee(s) — an approval dying silently was the bug this whole
  * path fixes. Shared by the run reaper and the app-approval sweep.
+ * `continued` (true): the run went on along the approval's expired branch
+ * (approvalExpiry.mts) instead of being closed; only the bell's words differ.
  */
-async function announceExpiredApproval(ap) {
+async function announceExpiredApproval(ap, continued = false) {
     await automationStore.appendApprovalAudit({
         approvalId: ap.id, runId: ap.runId, stepId: ap.stepId,
         decidedBy: null, decision: 'expired', source: 'reaper',
@@ -222,7 +224,9 @@ async function announceExpiredApproval(ap) {
     }
     // Run-less rows (app, deployment) have no run to close.
     const isRunless = (ap.source || 'run') !== 'run';
-    const closed = !isRunless
+    const closed = continued
+        ? 'nobody decided before the deadline, so the run continued on its expired branch.'
+        : !isRunless
         ? 'nobody decided before the deadline, so the run was closed.'
         : (ap.source === 'deployment'
             ? 'nobody decided before the deadline, so the deployment was cancelled.'
@@ -255,6 +259,23 @@ async function expireApprovalsForReapedRuns(reapedRuns) {
         return;
     }
     for (const ap of expired) await announceExpiredApproval(ap);
+}
+
+/**
+ * The approval rows of a run that continues on its approval's expired branch
+ * (approvalExpiry.mts): flipped to expired like any other, and the people are
+ * told the run went on rather than that it was closed.
+ * @param {string} runId
+ */
+async function expireApprovalsForContinuedRun(runId) {
+    let expired = [];
+    try {
+        expired = await automationStore.expireApprovalsForRuns([runId]);
+    } catch (e) {
+        log.warn(`[ApprovalLifecycle] expiry of the approval of run ${runId} not recorded: ${/** @type {Error} */ (e).message}`);
+        return;
+    }
+    for (const ap of expired) await announceExpiredApproval(ap, true);
 }
 
 /**
@@ -430,6 +451,7 @@ module.exports = {
     sendApprovalReminder,
     approvalNotificationTargets,
     expireApprovalsForReapedRuns,
+    expireApprovalsForContinuedRun,
     expireOverdueAppApprovals,
     remindAndEscalateDueApprovals,
     approvalClocks,

@@ -32,6 +32,7 @@ import {
 } from '@shared/webpage/reactPreview.mjs';
 
 import { buildBfElementsScript } from './bfElementsRuntime';
+import { getEsbuild } from './esbuildWasm';
 
 // The pinned esm.sh runtime, the import map, the esbuild virtual-fs plugin, the
 // runtime guard, the asset resolver and the document shell live in
@@ -39,27 +40,8 @@ import { buildBfElementsScript } from './bfElementsRuntime';
 // with the server's headless screenshot and public React share.
 ;
 
-// ── esbuild-wasm lazy singleton ────────────────────────────────────────────
-
-let _esbuild: typeof import('esbuild-wasm') | null = null;
-let _initPromise: Promise<typeof import('esbuild-wasm')> | null = null;
-
-async function getEsbuild() {
-    if (_esbuild) return _esbuild;
-    if (!_initPromise) {
-        _initPromise = (async () => {
-            const esbuild = await import('esbuild-wasm');
-            // Serve the wasm from the app origin ('self') via Vite's ?url asset
-            // import — keeps the bundler itself working without any CDN (only
-            // react/@mui come from esm.sh), which matters for self-hosted installs.
-            const wasmURL = (await import('esbuild-wasm/esbuild.wasm?url')).default;
-            await esbuild.initialize({ wasmURL, worker: false });
-            _esbuild = esbuild;
-            return esbuild;
-        })().catch((err) => { _initPromise = null; throw err; });
-    }
-    return _initPromise;
-}
+// The esbuild-wasm lazy singleton lives in ./esbuildWasm (shared with the
+// CMS React component block's live compile).
 
 /**
  * Bundle the react-mui project into a single ESM string. Throws an Error whose

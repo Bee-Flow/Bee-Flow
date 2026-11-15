@@ -6,7 +6,7 @@
  */
 
 const { BRANCHING_TYPES, listStepIds, findStepAnywhere } = require('../draftGraph');
-const { ON_REJECTED_LABEL } = require('../../../core/automationModel/edgeLabels.mts');
+const { ON_REJECTED_LABEL, ON_EXPIRED_LABEL } = require('../../../core/automationModel/edgeLabels.mts');
 
 /**
  * Which surviving steps still reference `id` in a binding.
@@ -107,11 +107,11 @@ function applyRemoveStep(graph, args) {
     if (reconnect && incoming.length && outgoing.length) {
         const branching = BRANCHING_TYPES.has(step.type);
         // Successor targets to bridge to: prefer the success path (skip
-        // on_error). An approval's rejected branch is never bridged: as a
+        // on_error). An approval's rejected or expired branch is never bridged: as a
         // plain edge it would run on every success.
         let targets;
         if (!branching) {
-            const kept = outgoing.filter(e => e.label !== ON_REJECTED_LABEL);
+            const kept = outgoing.filter(e => e.label !== ON_REJECTED_LABEL && e.label !== ON_EXPIRED_LABEL);
             const succ = kept.filter(e => e.label !== 'on_error').map(e => e.to);
             targets = succ.length ? succ : kept.map(e => e.to);
         } else {

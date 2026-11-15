@@ -36,6 +36,10 @@
  *       older connector sends no owner, so its calendar events stay with the
  *       actor.
  *
+ *   mail.new
+ *       EVERY subscriber, the actor too: the Mail account is in their own
+ *       account list (ncMailVisibility.mts; Mail's sync names no user).
+ *
  * Everything else stays with the actor: file.tagged / file.untagged (the tag
  * itself may be invisible to the subscriber) and any event not listed above.
  *
@@ -48,6 +52,11 @@
  *
  * A leaf: the server's modules arrive through `deps` (built in triggerBus.js).
  */
+
+import { mailOwnerDecision } from './ncMailVisibility.mts';
+import { fileOverrides, pathFromSearch, fileIdSearchBody } from './ncFileVisibility.mts';
+
+export { pathFromSearch, fileIdSearchBody };
 
 type Payload = Record<string, unknown>;
 type ToolResult = Record<string, unknown> | null | undefined;
@@ -69,7 +78,7 @@ export interface NcVisibilityDeps {
     log?: { warn: (...a: unknown[]) => void };
 }
 
-export type VisibilityKind = 'talk_room' | 'deck_board' | 'table_rows' | 'form_results' | 'file' | 'calendar';
+export type VisibilityKind = 'talk_room' | 'deck_board' | 'table_rows' | 'form_results' | 'file' | 'calendar' | 'mail_account';
 
 /** The event types a colleague's automation may receive, and how each is checked. */
 export const EVENT_VISIBILITY: Readonly<Record<string, VisibilityKind>> = Object.freeze({
@@ -92,6 +101,9 @@ export const EVENT_VISIBILITY: Readonly<Record<string, VisibilityKind>> = Object
     'calendar.event.changed': 'calendar',
     'calendar.event.deleted': 'calendar',
     'calendar.event.moved': 'calendar',
+    // Every subscriber, the actor included: the account's owner, asked as
+    // them (ncMailVisibility.mts). No colleague switch: mail is personal.
+    'mail.new': 'mail_account',
 });
 
 /**
@@ -102,7 +114,7 @@ export const EVENT_VISIBILITY: Readonly<Record<string, VisibilityKind>> = Object
  * to files the subscriber can see — and always has.
  */
 export const COLLEAGUE_SWITCH_EVENTS: ReadonlySet<string> = new Set(
-    Object.keys(EVENT_VISIBILITY).filter(e => e !== 'file.new' && e !== 'file.changed'),
+    Object.keys(EVENT_VISIBILITY).filter(e => e !== 'file.new' && e !== 'file.changed' && e !== 'mail.new'),
 );
 
 /** A catalog event marked `colleagues: true` when it offers that switch (the builder shows it only there). */
@@ -147,23 +159,6 @@ function memoised<T>(memo: VisibilityMemo, key: string, run: () => Promise<T>): 
     return p;
 }
 
-function xmlEscape(s: string): string {
-    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-/** WebDAV SEARCH body: the node with this file id anywhere in the user's Files tree. */
-export function fileIdSearchBody(uid: string, fileId: string): string {
-    return `<?xml version="1.0" encoding="UTF-8"?>
-<d:searchrequest xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns">
-  <d:basicsearch>
-    <d:select><d:prop><oc:fileid/></d:prop></d:select>
-    <d:from><d:scope><d:href>/files/${xmlEscape(uid)}</d:href><d:depth>infinity</d:depth></d:scope></d:from>
-    <d:where><d:eq><d:prop><oc:fileid/></d:prop><d:literal>${xmlEscape(fileId)}</d:literal></d:eq></d:where>
-    <d:limit><d:nresults>1</d:nresults></d:limit>
-  </d:basicsearch>
-</d:searchrequest>`;
-}
-
 const CALENDAR_PROPFIND = '<?xml version="1.0" encoding="UTF-8"?>'
     + '<d:propfind xmlns:d="DAV:"><d:prop><d:resourcetype/></d:prop></d:propfind>';
 
@@ -182,46 +177,18 @@ function sharesMayReach(shares: unknown, uid: string): boolean {
     });
 }
 
-/** The user-relative path of the first SEARCH hit in `uid`'s Files tree, or null. */
-export function pathFromSearch(xml: string, uid: string): string | null {
-    const prefix = `/remote.php/dav/files/${uid}`;
-    for (const m of xml.matchAll(/<(?:[A-Za-z0-9_-]+:)?href>([^<]*)<\/(?:[A-Za-z0-9_-]+:)?href>/g)) {
-        let href = m[1].trim();
-        try { href = decodeURIComponent(href); } catch { continue; }
-        const at = href.indexOf(prefix);
-        if (at < 0) continue;
-        const rest = href.slice(at + prefix.length);
-        if (rest !== '' && !rest.startsWith('/')) continue; // another user whose uid starts with ours
-        const path = rest.replace(/\/+$/, '');
-        if (path) return path;
+/** What one check is about, for the per-dispatch memo. */
+function resourceKey(kind: VisibilityKind, payload: Payload): string | null {
+    const text = (v: unknown) => (typeof v === 'string' ? v : '');
+    switch (kind) {
+        case 'talk_room': return idOf(payload.roomToken);
+        case 'deck_board': return idOf(payload.boardId);
+        case 'table_rows': return idOf(payload.tableId);
+        case 'form_results': return idOf(payload.formId);
+        case 'calendar': return `${text(payload.calendarOwner)}|${text(payload.calendarUri)}`;
+        case 'mail_account': return `${idOf(payload.accountId) ?? ''}|${idOf(payload.mailboxId) ?? ''}|${idOf(payload.messageId) ?? ''}`;
+        default: return `${idOf(payload.id) ?? ''}|${text(payload.owner)}|${text(payload.path)}`;
     }
-    return null;
-}
-
-function dirOf(path: string): string {
-    const i = path.lastIndexOf('/');
-    return i <= 0 ? '/' : path.slice(0, i);
-}
-
-function baseOf(path: string): string {
-    return path.slice(path.lastIndexOf('/') + 1);
-}
-
-/**
- * The subscriber-view payload keys for a file found at `path`. A rename's
- * `oldPath` is translated only when the file stayed in the same folder; after
- * a move the old folder is the actor's business, so it is dropped.
- */
-function fileOverrides(payload: Payload, path: string, uid: string): Payload {
-    const name = baseOf(path);
-    const dot = name.lastIndexOf('.');
-    const extension = dot > 0 && dot < name.length - 1 ? name.slice(dot + 1).toLowerCase() : null;
-    const out: Payload = { path, name, extension, owner: uid };
-    if (typeof payload.oldPath === 'string' && typeof payload.path === 'string') {
-        out.oldPath = dirOf(payload.oldPath) === dirOf(payload.path) ? `${dirOf(path) === '/' ? '' : dirOf(path)}/${baseOf(payload.oldPath)}` : null;
-    }
-    if (typeof payload.objectName === 'string') out.objectName = path;
-    return out;
 }
 
 export function createNcVisibility(deps: NcVisibilityDeps) {
@@ -329,6 +296,12 @@ export function createNcVisibility(deps: NcVisibilityDeps) {
         return { visible: true, overrides: { calendarUri: sharedUri, calendarShares: null } };
     }
 
+    async function mailAccount(userId: string, session: unknown, payload: Payload, memo: VisibilityMemo): Promise<Decision> {
+        const auth = await authFor(userId, session, memo);
+        if (!auth) return NOT_VISIBLE;
+        return mailOwnerDecision(auth, payload, (name, args) => deps.scopeDenied(name, args, userId, session));
+    }
+
     /**
      * Decide one delivery. `userId` is the SUBSCRIBER (the automation owner),
      * never the actor: the actor's own deliveries do not come through here.
@@ -336,12 +309,7 @@ export function createNcVisibility(deps: NcVisibilityDeps) {
     async function check(userId: string, event: string, payload: Payload, memo: VisibilityMemo): Promise<Decision> {
         const kind = visibilityKind(event);
         if (!kind || !userId) return NOT_VISIBLE;
-        const resource = kind === 'talk_room' ? idOf(payload.roomToken)
-            : kind === 'deck_board' ? idOf(payload.boardId)
-                : kind === 'table_rows' ? idOf(payload.tableId)
-                    : kind === 'form_results' ? idOf(payload.formId)
-                        : kind === 'calendar' ? `${typeof payload.calendarOwner === 'string' ? payload.calendarOwner : ''}|${typeof payload.calendarUri === 'string' ? payload.calendarUri : ''}`
-                            : `${idOf(payload.id) ?? ''}|${typeof payload.owner === 'string' ? payload.owner : ''}|${typeof payload.path === 'string' ? payload.path : ''}`;
+        const resource = resourceKey(kind, payload);
         return memoised(memo, `vis|${userId}|${kind}|${resource ?? ''}`, async () => {
             try {
                 const session = await sessionFor(userId, memo);
@@ -353,6 +321,7 @@ export function createNcVisibility(deps: NcVisibilityDeps) {
                     case 'form_results': return await formResults(userId, session, payload, memo);
                     case 'file': return await file(userId, session, payload, memo);
                     case 'calendar': return await calendar(userId, session, payload, memo);
+                    case 'mail_account': return await mailAccount(userId, session, payload, memo);
                     default: return NOT_VISIBLE;
                 }
             } catch (e) {

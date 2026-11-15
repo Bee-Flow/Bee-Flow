@@ -14,7 +14,7 @@ const assert = require('node:assert');
 const crypto = require('crypto');
 
 const { NOT_ACCEPTED, verifyDeliverySignature, startSignedDelivery, _resetRefusedLog } = require('./webhookReceive.mts');
-const { checkWebhookSignature } = require('./webhookSignature');
+const { checkWebhookSignature, checkHeaderToken, hashWebhookToken } = require('./webhookSignature');
 
 beforeEach(() => _resetRefusedLog());
 
@@ -22,16 +22,21 @@ const SECRET = 'ab'.repeat(32);
 const sign = (secret, message) => 'sha256=' + crypto.createHmac('sha256', secret).update(message).digest('hex');
 
 /** A world with one webhook (`hook1`, automation `auto1`), and what happened in it. */
-function world({ automation = { id: 'auto1', isActive: true, isDraft: false }, secret = SECRET, previousSecret = null, seenNonces = [], live = true, rejectLogPerMinute = 20, logDelivery } = {}) {
-    const seen = { checks: [], executions: [], touched: [], nonces: [...seenNonces], logged: [] };
+function world({ automation = { id: 'auto1', isActive: true, isDraft: false }, secret = SECRET, previousSecret = null, seenNonces = [], live = true, rejectLogPerMinute = 20, logDelivery, token = null, previousToken = null } = {}) {
+    const seen = { checks: [], tokenChecks: [], executions: [], touched: [], nonces: [...seenNonces], logged: [] };
+    // `token` set: the webhook is in header_token mode, as the store hands it out (no signing secret).
+    const hook = token
+        ? { id: 'hook1', automationId: 'auto1', authMode: 'header_token', secret: null, previousSecret: null, tokenHash: hashWebhookToken(token), previousTokenHash: previousToken ? hashWebhookToken(previousToken) : null, triggerStepId: 'trg2' }
+        : { id: 'hook1', automationId: 'auto1', secret, previousSecret, triggerStepId: 'trg2' };
     const deps = {
         store: {
-            getWebhook: async (slug) => (slug === 'hook1' ? { id: 'hook1', automationId: 'auto1', secret, previousSecret, triggerStepId: 'trg2' } : null),
+            getWebhook: async (slug) => (slug === 'hook1' ? hook : null),
             checkAndStoreNonce: async (nonce) => { if (seen.nonces.includes(nonce)) return false; seen.nonces.push(nonce); return true; },
             touchWebhook: async (slug) => { seen.touched.push(slug); },
             getAutomation: async () => automation,
         },
         check: (input) => { seen.checks.push(input); return checkWebhookSignature(input); },
+        checkToken: (input) => { seen.tokenChecks.push(input); return checkHeaderToken(input); },
         liveHasTrigger: () => live,
         execute: async (a, options) => { seen.executions.push({ automation: a, options }); },
         logDelivery: logDelivery || (async (d) => { seen.logged.push(d); }),
@@ -213,4 +218,72 @@ test('a log that cannot be written changes no answer and stops no run', async ()
     assert.deepStrictEqual(await answer(delivery({ secret: 'cd'.repeat(32) }), deps), NOT_ACCEPTED);
     await flush();
     assert.strictEqual(seen.executions.length, 1);
+});
+
+// ── Header token (auth mode 'header_token') ─────────────────────────────────
+
+const TOKEN = 'tt'.repeat(32);
+
+/** A delivery from a caller that cannot sign: the token in a header, no signature, maybe no nonce. */
+function tokenDelivery({ token = TOKEN, nonce = '', body = { order: 1 }, slug = 'hook1' } = {}) {
+    return { slug, signature: '', nonce, timestamp: null, token, rawBody: JSON.stringify(body), body, headers: { content_type: 'application/json' } };
+}
+
+test('a webhook in header_token mode starts a run for its token and answers 202', async () => {
+    const { deps, seen } = world({ token: TOKEN });
+    assert.deepStrictEqual(await answer(tokenDelivery(), deps), { status: 202, body: { accepted: true, automationId: 'auto1' } });
+    await flush();
+    assert.strictEqual(seen.executions.length, 1);
+    assert.deepStrictEqual(seen.nonces, [], 'no nonce sent: none is spent');
+    assert.strictEqual(seen.logged[0].status, 'accepted');
+});
+
+test('a wrong or missing token gets the one answer and starts nothing (the query string: events.webhookPayload.test.js)', async () => {
+    const refused = {
+        'another token': tokenDelivery({ token: 'uu'.repeat(32) }),
+        'no token': tokenDelivery({ token: '' }),
+        'the stored hash instead of the token': tokenDelivery({ token: hashWebhookToken(TOKEN) }),
+    };
+    for (const [why, d] of Object.entries(refused)) {
+        const { deps, seen } = world({ token: TOKEN });
+        assert.deepStrictEqual(await answer(d, deps), NOT_ACCEPTED, why);
+        await flush();
+        assert.deepStrictEqual([seen.executions.length, seen.nonces.length], [0, 0], why);
+        assert.strictEqual(seen.logged[0]?.status, 'bad_token', why);
+    }
+});
+
+test('a signature does not open a header_token webhook, and a token does not open a signed one', async () => {
+    const tokenHook = world({ token: TOKEN });
+    // A delivery signed with any secret: the webhook has no signing secret, so the check runs against a decoy.
+    assert.deepStrictEqual(await answer(delivery(), tokenHook.deps), NOT_ACCEPTED);
+    const signedHook = world();
+    assert.deepStrictEqual(await answer(tokenDelivery({ token: SECRET }), signedHook.deps), NOT_ACCEPTED);
+    assert.deepStrictEqual(await answer({ ...delivery({ signature: '' }), token: SECRET }, signedHook.deps), NOT_ACCEPTED);
+});
+
+test('every delivery runs the signature and the token checks, whatever the mode or address', async () => {
+    for (const [name, w, d] of [['hmac', world(), delivery()], ['header_token', world({ token: TOKEN }), tokenDelivery()], ['no webhook', world(), tokenDelivery({ slug: 'nobody' })]]) {
+        await verifyDeliverySignature(d, w.deps);
+        assert.deepStrictEqual([w.seen.checks.length, w.seen.tokenChecks.length], [2, 2], name);
+    }
+});
+
+test('a header-token delivery with a nonce is refused the second time', async () => {
+    const { deps, seen } = world({ token: TOKEN });
+    const d = tokenDelivery({ nonce: 'once' });
+    assert.strictEqual((await answer(d, deps)).status, 202);
+    assert.deepStrictEqual(await answer(d, deps), { status: 401, body: { error: 'Replayed nonce' } });
+    await flush();
+    assert.strictEqual(seen.executions.length, 1);
+});
+
+test('during a rotation\'s overlap the new token and the one before both open; any other does not', async () => {
+    const OLD = 'oo'.repeat(32);
+    for (const [token, status] of [[TOKEN, 202], [OLD, 202], ['vv'.repeat(32), 401]]) {
+        const { deps } = world({ token: TOKEN, previousToken: OLD });
+        assert.strictEqual((await answer(tokenDelivery({ token }), deps)).status, status);
+    }
+    const { deps } = world({ token: TOKEN });
+    assert.deepStrictEqual(await answer(tokenDelivery({ token: OLD }), deps), NOT_ACCEPTED, 'after the overlap only the new one');
 });

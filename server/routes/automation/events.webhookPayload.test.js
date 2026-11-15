@@ -20,11 +20,15 @@ const SERVER = path.resolve(__dirname, '..', '..');
 const { mockModule: mock } = require('../../testUtils/moduleMock');
 
 const SECRET = 'shh'.repeat(12);
+const TOKEN = 'tok'.repeat(16);
+const tokenHash = crypto.createHash('sha256').update(TOKEN).digest('hex');
 let executions = [];
 const nonceCalls = [];
 
 mock(path.join(SERVER, 'stores/automationStore'), {
-    getWebhook: async (slug) => (slug === 'hook1' ? { id: 'hook1', automationId: 'auto1', secret: SECRET, triggerStepId: 'trg2' } : null),
+    getWebhook: async (slug) => (slug === 'hook1' ? { id: 'hook1', automationId: 'auto1', secret: SECRET, triggerStepId: 'trg2' }
+        : slug === 'tokhook' ? { id: 'tokhook', automationId: 'auto1', authMode: 'header_token', secret: null, previousSecret: null, tokenHash, previousTokenHash: null, triggerStepId: 'trg2' }
+            : null),
     checkAndStoreNonce: async (nonce, options) => { nonceCalls.push({ nonce, options }); return true; },
     touchWebhook: async () => {},
     logWebhookDelivery: async () => {},
@@ -143,4 +147,52 @@ test('a delivery without a timestamp keeps its nonce past the 24 h sweep; a time
     await flushAsync();
     assert.strictEqual(res.statusCode, 202);
     assert.deepStrictEqual(nonceCalls[1], { nonce: 'hook1:nonce-1', options: { retain: false } });
+});
+
+// ── A webhook in header_token mode ─────────────────────────────────────────
+
+function tokenReq(body, headers = {}, query = {}) {
+    const all = { 'content-type': 'application/json', ...headers };
+    return { params: { slug: 'tokhook' }, query, body, headers: all, get: (name) => all[String(name).toLowerCase()] };
+}
+
+test('a header_token webhook accepts its token as Authorization: Bearer or X-BeeFlow-Token, and never passes it on', async () => {
+    for (const headers of [{ authorization: `Bearer ${TOKEN}` }, { 'x-beeflow-token': TOKEN }]) {
+        executions = [];
+        const res = makeRes();
+        await handler(tokenReq({ a: 1 }, headers), res);
+        await flushAsync();
+        assert.strictEqual(res.statusCode, 202, JSON.stringify(Object.keys(headers)));
+        assert.strictEqual(executions.length, 1);
+        const h = executions[0].opts.triggerHeaders;
+        assert.ok(!('x_beeflow_token' in h) && !('authorization' in h), 'the token never reaches run state');
+        assert.ok(!JSON.stringify(h).includes(TOKEN));
+    }
+});
+
+test('a header_token webhook refuses its token in the query string, and a wrong token', async () => {
+    for (const req of [
+        tokenReq({ a: 1 }, {}, { token: TOKEN, access_token: TOKEN }),
+        tokenReq({ a: 1 }, { authorization: `Bearer ${'x'.repeat(48)}` }),
+        tokenReq({ a: 1 }, { authorization: `Basic ${TOKEN}` }),
+    ]) {
+        executions = [];
+        const res = makeRes();
+        await handler(req, res);
+        await flushAsync();
+        assert.strictEqual(res.statusCode, 401);
+        assert.deepStrictEqual(res.body, { error: 'Delivery not accepted' });
+        assert.strictEqual(executions.length, 0);
+    }
+});
+
+test('a signed webhook is not opened by a token', async () => {
+    executions = [];
+    const req = tokenReq({ a: 1 }, { authorization: `Bearer ${SECRET}`, 'x-beeflow-token': SECRET });
+    req.params.slug = 'hook1';
+    const res = makeRes();
+    await handler(req, res);
+    await flushAsync();
+    assert.strictEqual(res.statusCode, 401);
+    assert.strictEqual(executions.length, 0);
 });

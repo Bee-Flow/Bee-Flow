@@ -58,8 +58,9 @@ const read = (rel) => {
 // The kinds, read from the store's own list — not restated here, so a kind
 // added there without an entry below fails the first guard.
 // The automation create, import and update handlers: crud.js, with import split
-// out to importExport.js. Counted together, as when they were one file.
-const AUTOMATION_CRUD_SRC = () => ['routes/automation/crud.js', 'routes/automation/importExport.js'].map(read).join('\n');
+// out to usecases/automation/importEnvelope.mts (the one pipeline the JSON
+// import and the Windmill import share). Counted together, as when they were one file.
+const AUTOMATION_CRUD_SRC = () => ['routes/automation/crud.js', 'usecases/automation/importEnvelope.mts'].map(read).join('\n');
 
 const STORE_SRC = read('stores/datatableStore.js');
 const CONSUMER_KINDS = JSON.parse(
@@ -77,7 +78,7 @@ const SAVE_PATHS = {
             call: /syncDatatableUsage\(/,
             files: [
                 'routes/automation/crud.js',              // create, update
-                'routes/automation/importExport.js',      // import (split out of crud.js)
+                'usecases/automation/importEnvelope.mts', // import (JSON and Windmill)
                 'routes/automation/forms.js',             // a form's answers table (split out of crud.js)
                 'routes/automation/versions.js',          // restore a version
                 'routes/automation/actions.js',           // duplicate (handoff 5)
@@ -171,7 +172,7 @@ test('every listed file really makes the call', () => {
         for (const f of purge.files) assert.match(read(f), purge.call, `${f} must purge ${kind} usage`);
     }
     // create AND import AND update, in the route group that owns all three
-    // (crud.js, with import split out to importExport.js).
+    // (crud.js, with import split out to usecases/automation/importEnvelope.mts).
     assert.ok((AUTOMATION_CRUD_SRC().match(/syncDatatableUsage\(/g) || []).length >= 3,
         'create, import and update each persist an automation definition');
     // EIGHT webpage save paths live in ONE module (routes/webpages/, gesplitst
@@ -210,13 +211,13 @@ test('the webpage store reconciles from its own writers, so a new caller cannot 
         'upsertBinaryExtraFile stays unwrapped — binaries cannot change a binding');
 });
 
-/** Every .js source under server/, minus dependencies, tests and vendored code. */
+/** Every .js and .mts source under server/, minus dependencies, tests and vendored code. */
 function* sources(dir) {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
         if (['node_modules', '.git', 'vendor', 'dist', 'coverage'].includes(entry.name)) continue;
         const full = path.join(dir, entry.name);
         if (entry.isDirectory()) { yield* sources(full); continue; }
-        if (!entry.name.endsWith('.js') || /\.test\.js$/.test(entry.name)) continue;
+        if (!/\.m?ts$|\.js$/.test(entry.name) || entry.name.endsWith('.d.ts') || /\.test\.m?[jt]s$/.test(entry.name)) continue;
         yield full;
     }
 }
@@ -278,7 +279,7 @@ test('a kind that is wired anywhere lists that file — no half-covered consumer
 // definition, so any path that persists one and skips either is wrong.
 const KB_SOURCE_SAVE_PATHS = [
     'routes/automation/crud.js',              // create, update
-    'routes/automation/importExport.js',      // import (split out of crud.js)
+    'usecases/automation/importEnvelope.mts', // import (JSON and Windmill)
     'routes/automation/versions.js',          // restore a version
     'routes/automation/actions.js',           // duplicate (handoff 5)
     'routes/step.js',                         // reusable Steps

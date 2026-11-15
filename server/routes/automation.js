@@ -4,6 +4,7 @@
  *
  *   GET    /catalog                        list apps, actions, triggers, side-effects
  *   GET    /catalog/sample/:tool           sample output for builder hints
+ *   GET    /import/windmill/inventory      Windmill flows that listen to the org's Nextcloud (org admins)
  *
  *   GET    /                               list user's automations
  *   POST   /                               create automation (draft or finalised)
@@ -103,6 +104,9 @@ router.use(require('./automation/catalog'));
 // The code editor's analyze and "Try it" (routes/automation/codeTools.js).
 // BEFORE crud: `/code/...` has a literal first segment that /:id would swallow.
 router.use(require('./automation/codeTools').makeCodeToolsRouter());
+// The Windmill flows that listen to this org's Nextcloud (routes/automation/windmillInventory.mts),
+// org admins only. BEFORE crud, like the other literal first segments.
+router.use(require('./automation/windmillInventory.mts').makeWindmillInventoryRouter());
 router.use(require('./automation/crud'));
 router.use(require('./automation/runs'));
 router.use(require('./automation/versions'));

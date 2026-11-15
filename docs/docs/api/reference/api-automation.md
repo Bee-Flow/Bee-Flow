@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # `/api/automation`
 
-162 routes, 95 with a request schema. Back to the [endpoint reference](../reference.md).
+167 routes, 99 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -351,6 +351,22 @@ No request schema.
 | `goldenIds` | array of string |  | max items 50 |
 | `aiAnswers` | one of `"live"`, `"cache"` |  |  |
 
+### `GET /api/automation/:id/import-report`
+
+**Access:** Signed-in user · Licence feature `automations` · Capability `automations` · middleware `trainingGate`
+
+No request schema.
+
+### `POST /api/automation/:id/import-report/acknowledge`
+
+**Access:** Signed-in user · Licence feature `automations` · Capability `automations` · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `wmIds` | array of string | yes | min items 1; max items 1000 |
+
 ### `GET /api/automation/:id/notifications`
 
 **Access:** Signed-in user · Licence feature `automations` · Capability `automations` · middleware `trainingGate`
@@ -650,6 +666,7 @@ No request schema.
 | Field | Type | Required | Notes |
 |-------|------|:--------:|-------|
 | `triggerStepId` | string or null |  |  |
+| `authMode` | one of `"hmac"`, `"header_token"` |  |  |
 
 ### `DELETE /api/automation/:id/webhook/:slug`
 
@@ -1426,9 +1443,47 @@ No request schema.
 
 ### `POST /api/automation/import`
 
-**Access:** Signed-in user · Licence feature `automations` · Capability `automations` · middleware `trainingGate` · the handler also checks who the caller is
+**Access:** Signed-in user · Licence feature `automations` · Capability `automations` · middleware `trainingGate`
 
 No request schema.
+
+### `GET /api/automation/import/windmill/inventory`
+
+**Access:** Signed-in user · Admin of their own organisation · Licence feature `automations` · Licence feature `automation_import` · Capability `automations` · middleware `trainingGate`
+
+**Query**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `orgId` | string |  |  |
+
+### `POST /api/automation/import/windmill/remote`
+
+**Access:** Signed-in user · Licence feature `automations` · Licence feature `automation_import` · Capability `automations` · middleware `trainingGate`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `source` | `"windmill_api"` | yes |  |
+| `baseUrl` | string | yes | min length 1; max length 2048 |
+| `workspace` | string | yes | min length 1; max length 64 |
+| `token` | string | yes | min length 1; max length 4096 |
+| `mode` | one of `"preview"`, `"commit"` | yes |  |
+| `select` | array of string |  | max items 5000 |
+| `compare` | object |  | no other keys |
+| `compare.saveAsTests` | boolean |  |  |
+
+### `POST /api/automation/import/windmill/upload`
+
+**Access:** Signed-in user · Licence feature `automations` · Licence feature `automation_import` · Capability `automations` · middleware `trainingGate`, `uploadGuardMiddleware`
+
+**Body**
+
+| Field | Type | Required | Notes |
+|-------|------|:--------:|-------|
+| `mode` | one of `"preview"`, `"commit"` | yes |  |
+| `select` | string |  | max length 500000 |
 
 ## `runs`
 

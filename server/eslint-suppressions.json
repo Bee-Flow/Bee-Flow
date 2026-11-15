@@ -13,20 +13,7 @@
       "count": 1
     }
   },
-  "core/memory/memoryWriter.js": {
-    "complexity": {
-      "count": 2
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "agents/notebooks/notebookAiShield.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "core/collab/notebookRebase.js": {
     "complexity": {
       "count": 1
     }
@@ -2756,6 +2743,11 @@
       "count": 1
     }
   },
+  "compliance/isoEvidenceCollector.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
   "compliance/lib/sbomLocator.js": {
     "complexity": {
       "count": 1
@@ -3137,11 +3129,6 @@
   "core/automationModel/refPaths.js": {
     "complexity": {
       "count": 2
-    }
-  },
-  "stores/automationStore/runLogRedaction.js": {
-    "complexity": {
-      "count": 1
     }
   },
   "core/automationModel/runProfile.mts": {
@@ -3678,6 +3665,11 @@
   },
   "core/collab/lifecycleVersions.js": {
     "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "core/collab/notebookRebase.js": {
+    "complexity": {
       "count": 1
     }
   },
@@ -4406,6 +4398,11 @@
       "count": 1
     }
   },
+  "core/entitlements/planEntitlements.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
   "core/entitlements/userTiers.js": {
     "complexity": {
       "count": 1
@@ -5020,6 +5017,14 @@
       "count": 3
     }
   },
+  "core/memory/memoryWriter.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
   "core/memory/scrubMemoryContext.js": {
     "complexity": {
       "count": 2
@@ -5198,6 +5203,14 @@
   },
   "core/privacy/toolPiiGate.js": {
     "complexity": {
+      "count": 2
+    }
+  },
+  "core/projectContent/changeFeed.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
       "count": 2
     }
   },
@@ -5400,6 +5413,16 @@
     }
   },
   "core/skills/skillTest.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/support/access.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "core/support/notifications.js": {
     "complexity": {
       "count": 1
     }
@@ -5611,6 +5634,11 @@
   "core/webpages/webpageUsageSync.js": {
     "complexity": {
       "count": 2
+    }
+  },
+  "core/webpages/webpageValidation.js": {
+    "complexity": {
+      "count": 1
     }
   },
   "integrations/afasTools.js": {
@@ -6024,11 +6052,6 @@
       "count": 2
     }
   },
-  "utils/apiClient.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "integrations/shared/idList.js": {
     "complexity": {
       "count": 1
@@ -6139,11 +6162,6 @@
       "count": 3
     }
   },
-  "projects/participation/aiParticipationJob.js": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "jobs/automationDigest.js": {
     "complexity": {
       "count": 2
@@ -6158,11 +6176,6 @@
     }
   },
   "jobs/datasetIngest.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "compliance/isoEvidenceCollector.js": {
     "complexity": {
       "count": 1
     }
@@ -6409,14 +6422,6 @@
       "count": 1
     }
   },
-  "core/projectContent/changeFeed.js": {
-    "complexity": {
-      "count": 2
-    },
-    "max-lines-per-function": {
-      "count": 2
-    }
-  },
   "projects/changeTitles.js": {
     "complexity": {
       "count": 1
@@ -6600,6 +6605,11 @@
       "count": 2
     }
   },
+  "projects/participation/aiParticipationJob.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
   "projects/participation/answerWriter.js": {
     "complexity": {
       "count": 1
@@ -6779,11 +6789,6 @@
       "count": 1
     }
   },
-  "usecases/agents/agentPersonaWrite.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "routes/agents/chat.js": {
     "complexity": {
       "count": 1
@@ -6854,65 +6859,12 @@
       "count": 1
     }
   },
-  "usecases/ai/appStudioBuilder/buildRound.js": {
-    "max-params": {
-      "count": 1
-    }
-  },
-  "usecases/ai/appStudioBuilder/buildTools.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "routes/ai/appStudioBuilder/chatStream.js": {
     "complexity": {
       "count": 1
     },
     "max-lines-per-function": {
       "count": 1
-    }
-  },
-  "usecases/ai/appStudioBuilder/heldChanges.mts": {
-    "complexity": {
-      "count": 2
-    }
-  },
-  "usecases/ai/appStudioBuilder/inboundImages.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "usecases/ai/appStudioBuilder/modelSelection.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "usecases/ai/appStudioBuilder/modelStream.js": {
-    "max-params": {
-      "count": 1
-    }
-  },
-  "usecases/ai/appStudioBuilder/planProgress.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "usecases/ai/appStudioBuilder/promptAssembly.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "usecases/ai/appStudioBuilder/toolCallEvents.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "usecases/ai/appStudioBuilder/turnClosing.js": {
-    "complexity": {
-      "count": 2
     }
   },
   "routes/ai/appStudioBuilder/turnSetup.js": {
@@ -6949,40 +6901,12 @@
       "count": 1
     }
   },
-  "usecases/ai/automationBuilder/codeAssistPrompt.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "usecases/ai/automationBuilder/codeAssistTurn.js": {
-    "complexity": {
-      "count": 2
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "routes/ai/automationBuilder/datatableTurn.js": {
     "complexity": {
       "count": 1
     }
   },
-  "usecases/ai/automationBuilder/inspectionTools.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "usecases/ai/automationBuilder/lastRunContext.mts": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "routes/ai/automationBuilder/layerAgent.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "usecases/ai/automationBuilder/layerDelegation.js": {
     "complexity": {
       "count": 1
     }
@@ -6997,22 +6921,7 @@
       "count": 1
     }
   },
-  "usecases/ai/automationBuilder/modelStream.js": {
-    "max-params": {
-      "count": 2
-    }
-  },
-  "usecases/ai/automationBuilder/planProgress.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "routes/ai/automationBuilder/promptAssembly.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "usecases/ai/automationBuilder/roundNudges.js": {
     "complexity": {
       "count": 1
     }
@@ -7040,11 +6949,6 @@
       "count": 2
     }
   },
-  "usecases/ai/automationBuilder/suggestMappingsVerify.js": {
-    "complexity": {
-      "count": 7
-    }
-  },
   "routes/ai/automationBuilder/suggestions.js": {
     "complexity": {
       "count": 2
@@ -7053,30 +6957,7 @@
       "count": 2
     }
   },
-  "usecases/ai/automationBuilder/thoughtNarrator.js": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "usecases/ai/automationBuilder/toolDraft.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-depth": {
-      "count": 1
-    }
-  },
   "routes/ai/automationBuilder/toolMenu.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "usecases/ai/automationBuilder/turnClosing.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "usecases/ai/automationBuilder/turnMessages.js": {
     "complexity": {
       "count": 1
     }
@@ -7086,34 +6967,8 @@
       "count": 1
     }
   },
-  "usecases/ai/automationBuilder/webResearch.js": {
-    "complexity": {
-      "count": 2
-    }
-  },
-  "usecases/ai/automationBuilder/workMode.js": {
-    "complexity": {
-      "count": 3
-    }
-  },
-  "usecases/ai/builderShared.js": {
-    "complexity": {
-      "count": 2
-    },
-    "max-lines-per-function": {
-      "count": 1
-    },
-    "max-params": {
-      "count": 1
-    }
-  },
   "routes/ai/cmsBuilder.js": {
     "max-params": {
-      "count": 1
-    }
-  },
-  "usecases/ai/cmsBuilderMessages.js": {
-    "complexity": {
       "count": 1
     }
   },
@@ -7161,11 +7016,6 @@
       "count": 1
     }
   },
-  "usecases/ai/directChat/chatOptions.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "routes/ai/directChat/conversationRoutes.js": {
     "complexity": {
       "count": 1
@@ -7176,22 +7026,7 @@
       "count": 1
     }
   },
-  "usecases/ai/directChat/finalizeRows.js": {
-    "max-depth": {
-      "count": 1
-    }
-  },
   "routes/ai/directChat/inputGates.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "usecases/ai/directChat/inputRegexGate.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "usecases/ai/directChat/memoryProtection.js": {
     "complexity": {
       "count": 1
     }
@@ -7217,11 +7052,6 @@
       "count": 1
     }
   },
-  "usecases/ai/directChat/stageModelSwap.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "routes/ai/directChat/streamTurn.js": {
     "complexity": {
       "count": 1
@@ -7235,25 +7065,12 @@
       "count": 1
     }
   },
-  "usecases/ai/directChat/toolExec.js": {
-    "complexity": {
-      "count": 2
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "routes/ai/directChat/toolLoopRounds.js": {
     "complexity": {
       "count": 1
     }
   },
   "routes/ai/directChat/toolRefresh.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "usecases/ai/directChat/toolResultEvents.js": {
     "complexity": {
       "count": 1
     }
@@ -7327,17 +7144,6 @@
       "count": 9
     }
   },
-  "usecases/ai/notebookChat/toolLoop.js": {
-    "complexity": {
-      "count": 2
-    },
-    "max-depth": {
-      "count": 2
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
   "routes/ai/templateChat.js": {
     "complexity": {
       "count": 1
@@ -7361,27 +7167,6 @@
     "complexity": {
       "count": 1
     },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "usecases/ai/webpageChat/context.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "usecases/ai/webpageChat/messages.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-depth": {
-      "count": 10
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "usecases/ai/webpageChat/systemPrompt.js": {
     "max-lines-per-function": {
       "count": 1
     }
@@ -7410,11 +7195,6 @@
   "routes/automation/activate.js": {
     "complexity": {
       "count": 1
-    }
-  },
-  "usecases/automation/agentStepCatalog.js": {
-    "complexity": {
-      "count": 2
     }
   },
   "routes/automation/agentStepRoutes.js": {
@@ -7495,14 +7275,6 @@
     }
   },
   "routes/automation/goldens.js": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "routes/automation/importExport.js": {
-    "complexity": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     }
@@ -7661,14 +7433,6 @@
     }
   },
   "routes/compliance/projectRegistrations.js": {
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "usecases/compliance/buildRopa.js": {
-    "complexity": {
-      "count": 1
-    },
     "max-lines-per-function": {
       "count": 1
     }
@@ -7843,16 +7607,6 @@
       "count": 1
     }
   },
-  "usecases/mcpDatatableRows.js": {
-    "complexity": {
-      "count": 2
-    }
-  },
-  "usecases/mcpDatatableTools.js": {
-    "complexity": {
-      "count": 2
-    }
-  },
   "routes/mcpServer.js": {
     "complexity": {
       "count": 1
@@ -8010,11 +7764,6 @@
       "count": 1
     }
   },
-  "usecases/projects/chatsPresent.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "routes/projects/collab.js": {
     "max-lines-per-function": {
       "count": 1
@@ -8086,11 +7835,6 @@
     }
   },
   "routes/projects/tasksHandlers.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "usecases/projects/tasksPresent.js": {
     "complexity": {
       "count": 1
     }
@@ -8178,32 +7922,9 @@
       "count": 1
     }
   },
-  "usecases/stripe/checkoutEvents.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "usecases/stripe/customerEvents.js": {
-    "complexity": {
-      "count": 2
-    }
-  },
-  "usecases/stripe/paymentEvents.js": {
-    "complexity": {
-      "count": 3
-    },
-    "max-depth": {
-      "count": 1
-    }
-  },
   "routes/stripe/shared.js": {
     "complexity": {
       "count": 1
-    }
-  },
-  "usecases/stripe/subscriptionEvents.js": {
-    "complexity": {
-      "count": 2
     }
   },
   "routes/stripe/webhook.js": {
@@ -8381,22 +8102,6 @@
       "count": 1
     }
   },
-  "usecases/templateAi.js": {
-    "complexity": {
-      "count": 1
-    },
-    "max-depth": {
-      "count": 8
-    },
-    "max-lines-per-function": {
-      "count": 1
-    }
-  },
-  "usecases/templateContext.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "routes/transcriptions/audio.js": {
     "complexity": {
       "count": 1
@@ -8501,11 +8206,6 @@
       "count": 1
     }
   },
-  "usecases/webpages/versionListing.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "routes/webpages/versions.js": {
     "complexity": {
       "count": 1
@@ -8578,11 +8278,6 @@
       "count": 4
     }
   },
-  "utils/emailProviderClients.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "services/githubSyncService.js": {
     "complexity": {
       "count": 1
@@ -8620,11 +8315,6 @@
     }
   },
   "services/outboundChatNotifier.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
-  "core/entitlements/planEntitlements.js": {
     "complexity": {
       "count": 1
     }
@@ -8731,11 +8421,6 @@
     },
     "max-depth": {
       "count": 3
-    }
-  },
-  "core/webpages/webpageValidation.js": {
-    "complexity": {
-      "count": 1
     }
   },
   "shared/appDefinition/definitionOps.mjs": {
@@ -8951,6 +8636,11 @@
     }
   },
   "stores/automationStore/runListing.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "stores/automationStore/runLogRedaction.js": {
     "complexity": {
       "count": 1
     }
@@ -9926,11 +9616,6 @@
       "count": 1
     }
   },
-  "core/support/access.js": {
-    "complexity": {
-      "count": 1
-    }
-  },
   "support/emails.js": {
     "complexity": {
       "count": 1
@@ -9941,7 +9626,309 @@
       "count": 1
     }
   },
-  "core/support/notifications.js": {
+  "usecases/agents/agentPersonaWrite.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "usecases/ai/appStudioBuilder/buildRound.js": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "usecases/ai/appStudioBuilder/buildTools.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "usecases/ai/appStudioBuilder/heldChanges.mts": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "usecases/ai/appStudioBuilder/inboundImages.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "usecases/ai/appStudioBuilder/modelSelection.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "usecases/ai/appStudioBuilder/modelStream.js": {
+    "max-params": {
+      "count": 1
+    }
+  },
+  "usecases/ai/appStudioBuilder/planProgress.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "usecases/ai/appStudioBuilder/promptAssembly.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "usecases/ai/appStudioBuilder/toolCallEvents.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "usecases/ai/appStudioBuilder/turnClosing.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "usecases/ai/automationBuilder/codeAssistPrompt.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "usecases/ai/automationBuilder/codeAssistTurn.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "usecases/ai/automationBuilder/inspectionTools.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "usecases/ai/automationBuilder/lastRunContext.mts": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "usecases/ai/automationBuilder/layerDelegation.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "usecases/ai/automationBuilder/modelStream.js": {
+    "max-params": {
+      "count": 2
+    }
+  },
+  "usecases/ai/automationBuilder/planProgress.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "usecases/ai/automationBuilder/roundNudges.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "usecases/ai/automationBuilder/suggestMappingsVerify.js": {
+    "complexity": {
+      "count": 7
+    }
+  },
+  "usecases/ai/automationBuilder/thoughtNarrator.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "usecases/ai/automationBuilder/toolDraft.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "usecases/ai/automationBuilder/turnClosing.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "usecases/ai/automationBuilder/turnMessages.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "usecases/ai/automationBuilder/webResearch.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "usecases/ai/automationBuilder/workMode.js": {
+    "complexity": {
+      "count": 3
+    }
+  },
+  "usecases/ai/builderShared.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    },
+    "max-params": {
+      "count": 1
+    }
+  },
+  "usecases/ai/cmsBuilderMessages.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "usecases/ai/directChat/chatOptions.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "usecases/ai/directChat/finalizeRows.js": {
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "usecases/ai/directChat/inputRegexGate.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "usecases/ai/directChat/memoryProtection.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "usecases/ai/directChat/stageModelSwap.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "usecases/ai/directChat/toolExec.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "usecases/ai/directChat/toolResultEvents.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "usecases/ai/notebookChat/toolLoop.js": {
+    "complexity": {
+      "count": 2
+    },
+    "max-depth": {
+      "count": 2
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "usecases/ai/webpageChat/context.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "usecases/ai/webpageChat/messages.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 10
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "usecases/ai/webpageChat/systemPrompt.js": {
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "usecases/automation/agentStepCatalog.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "usecases/compliance/buildRopa.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "usecases/mcpDatatableRows.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "usecases/mcpDatatableTools.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "usecases/projects/chatsPresent.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "usecases/projects/tasksPresent.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "usecases/stripe/checkoutEvents.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "usecases/stripe/customerEvents.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "usecases/stripe/paymentEvents.js": {
+    "complexity": {
+      "count": 3
+    },
+    "max-depth": {
+      "count": 1
+    }
+  },
+  "usecases/stripe/subscriptionEvents.js": {
+    "complexity": {
+      "count": 2
+    }
+  },
+  "usecases/templateAi.js": {
+    "complexity": {
+      "count": 1
+    },
+    "max-depth": {
+      "count": 8
+    },
+    "max-lines-per-function": {
+      "count": 1
+    }
+  },
+  "usecases/templateContext.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "usecases/webpages/versionListing.js": {
+    "complexity": {
+      "count": 1
+    }
+  },
+  "utils/apiClient.js": {
     "complexity": {
       "count": 1
     }
@@ -9959,6 +9946,11 @@
   "utils/emailParse.js": {
     "complexity": {
       "count": 2
+    }
+  },
+  "utils/emailProviderClients.js": {
+    "complexity": {
+      "count": 1
     }
   },
   "utils/emailService.js": {

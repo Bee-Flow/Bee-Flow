@@ -531,6 +531,22 @@ declare namespace DbRow {
         last_replay_run_id: string | null;
         run_id: string;
     }
+    /** Row of `automation_imports`. */
+    interface AutomationImports {
+        acknowledged: Json;
+        automation_id: string;
+        cleared_at: Date | null;
+        created_at: Date;
+        dry_run_ok_at: Date | null;
+        dry_run_version: number | null;
+        id: string;
+        org_id: string | null;
+        report: Json;
+        source_kind: string;
+        user_id: string | null;
+        windmill_generation: string | null;
+        windmill_path: string | null;
+    }
     /** Row of `automation_notification_events`. */
     interface AutomationNotificationEvents {
         automation_id: string;
@@ -754,6 +770,7 @@ declare namespace DbRow {
     /** Row of `automation_webhooks`. */
     interface AutomationWebhooks {
         allow_methods: string;
+        auth_mode: string;
         automation_id: string;
         created_at: Date;
         id: string;

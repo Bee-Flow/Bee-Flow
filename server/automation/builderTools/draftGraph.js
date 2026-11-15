@@ -6,7 +6,10 @@
  * ../builderTools facade.
  */
 const crypto = require('crypto');
-const { ON_REJECTED_LABEL, ON_REJECTED_SOURCE_TYPES } = require('../../core/automationModel/edgeLabels.mts');
+const { ON_REJECTED_LABEL, ON_REJECTED_SOURCE_TYPES, ON_EXPIRED_LABEL, ON_EXPIRED_SOURCE_TYPES } = require('../../core/automationModel/edgeLabels.mts');
+/** The labelled branches only an approval has (they go with the type), and the label each `branch` value wires. */
+const APPROVAL_BRANCH_LABELS = new Set([ON_REJECTED_LABEL, ON_EXPIRED_LABEL]);
+const BRANCH_LABEL = new Map([['error', 'on_error'], ['rejected', ON_REJECTED_LABEL], ['expired', ON_EXPIRED_LABEL]]);
 
 function newId(prefix = 's') { return `${prefix}_${crypto.randomBytes(3).toString('hex')}`; }
 
@@ -48,16 +51,13 @@ function lastStepId(def) {
  * `branch` override; switches use `caseName`. Non-branching predecessors get
  * a plain `{from, to}` edge — identical to the previous behaviour.
  *
- * §WS4: `branch:'error'` → 'on_error', `branch:'rejected'` → 'on_rejected', whatever the
- * predecessor: the runner follows it only when that step fails after its retries / that
- * approval is rejected; validation enforces the legal sources (edge.*_label_invalid).
+ * §WS4: `branch:'error'` / `'rejected'` / `'expired'` → BRANCH_LABEL, whatever the predecessor: followed only when that
+ * step fails after its retries / that approval is rejected / expires; validation enforces the legal sources (edge.*_label_invalid).
  */
 function branchEdgeFor(draft, fromId, toId, /** @type {{ branch?: string, caseName?: string }} */ { branch, caseName } = {}) {
+    const named = BRANCH_LABEL.get(branch || '');
+    if (named) return { from: fromId, to: toId, label: named };
     const edge = { from: fromId, to: toId };
-    if (branch === 'error' || branch === 'rejected') {
-        edge.label = branch === 'error' ? 'on_error' : ON_REJECTED_LABEL;
-        return edge;
-    }
     const pred = (draft.steps || []).find(s => s.id === fromId);
     // A guard branches exactly like a condition: then = personal data found,
     // else = clean (core/automationRunner/execFlow.js treats the two alike).
@@ -272,8 +272,8 @@ function reconcileOutgoingEdges(graph, oldStep, newStep) {
     const dropIdx = new Set();
     for (const e of out) {
         const lbl = e.label;
-        if (lbl === 'on_error' || lbl === ON_REJECTED_LABEL) {   // a rejected branch exists only on an approval
-            if (lbl === 'on_error' ? ERROR_BRANCH_FORBIDDEN_SOURCES.has(newStep.type) : !ON_REJECTED_SOURCE_TYPES.has(newStep.type)) dropIdx.add(e);
+        if (lbl === 'on_error' || APPROVAL_BRANCH_LABELS.has(lbl)) {   // a rejected or expired branch exists only on an approval
+            if (lbl === 'on_error' ? ERROR_BRANCH_FORBIDDEN_SOURCES.has(newStep.type) : !(lbl === ON_EXPIRED_LABEL ? ON_EXPIRED_SOURCE_TYPES : ON_REJECTED_SOURCE_TYPES).has(newStep.type)) dropIdx.add(e);
             continue;
         }
         const isBranchLabel = lbl === 'then' || lbl === 'else' || (typeof lbl === 'string' && lbl.startsWith('case:'));
@@ -365,8 +365,8 @@ function moveStepAfter(graph, stepId, /** @type {{ afterStepId?: string, branch?
     // ── Detach ──
     const incoming = edges.filter(e => e && e.to === stepId);
     const outgoing = edges.filter(e => e && e.from === stepId);
-    const travels = new Set(branching ? outgoing : outgoing.filter(e => e.label === 'on_error' || e.label === ON_REJECTED_LABEL));
-    const successors = branching ? [] : outgoing.filter(e => e.label !== 'on_error' && e.label !== ON_REJECTED_LABEL).map(e => e.to);
+    const travels = new Set(branching ? outgoing : outgoing.filter(e => e.label === 'on_error' || APPROVAL_BRANCH_LABELS.has(e.label)));
+    const successors = branching ? [] : outgoing.filter(e => e.label !== 'on_error' && !APPROVAL_BRANCH_LABELS.has(e.label)).map(e => e.to);
     const kept = edges.filter(e => e && e.to !== stepId && (e.from !== stepId || travels.has(e)));
     const bridged = [];
     const droppedHandlers = [];

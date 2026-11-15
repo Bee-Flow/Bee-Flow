@@ -91,3 +91,34 @@ test('bindings on an approval are checked against the output contract', async ()
     }
     assert.ok(check(`steps.${ap.id}.output.prompt`).error, 'a key outside the contract is refused');
 });
+
+// ── The expired branch ('on_expired'): the same rules ───────────────────────
+
+test('every branch enum offers "expired", and branch:"expired" after an approval wires an on_expired edge', async () => {
+    for (const t of TOOL_SCHEMAS.filter(s => s.function?.parameters?.properties?.branch?.enum)) {
+        assert.ok(t.function.parameters.properties.branch.enum.includes('expired'), `${t.function.name} lacks "expired"`);
+    }
+    const { dw, ap, no } = await approvalWithBranches();
+    await call(dw, 'builder_add_notification', { afterStepId: ap.id, branch: 'expired', title: 'Reminder', body: 'late', label: 'late' });
+    const late = dw.def.steps.find(s => s.label === 'late');
+    assert.deepStrictEqual(dw.def.edges.find(e => e.to === late.id), { from: ap.id, to: late.id, label: 'on_expired' });
+    assert.strictEqual(dw.def.edges.find(e => e.to === no.id).label, 'on_rejected', 'the rejected branch stays as it was');
+
+    // Removing the approval bridges neither branch as a plain edge.
+    await call(dw, 'builder_remove_step', { stepId: ap.id });
+    const fromTrigger = dw.def.edges.filter(e => e.from === dw.def.trigger.id).map(e => e.to);
+    assert.ok(!fromTrigger.includes(late.id) && !fromTrigger.includes(no.id));
+});
+
+test('replacing the approval with another type drops the expired edge too', async () => {
+    const { dw, ap } = await approvalWithBranches();
+    await call(dw, 'builder_add_notification', { afterStepId: ap.id, branch: 'expired', title: 'Reminder', body: 'late', label: 'late' });
+    await call(dw, 'builder_replace_step', { stepId: ap.id, newType: 'notification', spec: { title: 'x', body: 'y' } });
+    assert.ok(!dw.def.edges.some(e => e.from === ap.id && e.label === 'on_expired'));
+});
+
+test('a binding on output.expired is accepted (the expired branch carries it)', async () => {
+    const { dw, ap } = await approvalWithBranches();
+    const check = (path) => validateAndFixBindings({ v: { kind: 'ref', path } }, dw.def, { draftWrap: dw });
+    assert.strictEqual(check(`steps.${ap.id}.output.expired`).error, null);
+});

@@ -57,6 +57,10 @@ export interface TriggerFilterValues {
     includeColleagues?: boolean;
     /** msgraph.mail.new: a shared mailbox's address; absent = the own inbox. */
     mailbox?: string;
+    /** nextcloud.mail.new: the Mail account and mailbox (absent = every account, the inbox). */
+    accountId?: number;
+    mailboxId?: number;
+    fromContains?: string;
     [key: string]: unknown;
 }
 

@@ -141,6 +141,7 @@ function aiStepRefs(step, c) {
         c.ref(ch.sameCountAs, `checks[${i}].sameCountAs`);
     });
     if (isObject(step.fallback)) c.bindings(step.fallback.fields, 'fallback.fields');
+    listOf(step.images).forEach((b, i) => c.bindings(b, `images[${i}]`)); // pictures shown to the model (aiStepImages.mts)
 }
 
 /**
@@ -152,6 +153,7 @@ function aiStepRefs(step, c) {
  * @type {Surface}
  */
 function dataExtractionRefs(step, c) {
+    listOf(step.images).forEach((b, i) => c.bindings(b, `images[${i}]`));
     if (!(typeof step.source === 'string' && step.source.trim())) { c.bindings(step.source, 'source'); return; }
     if (hasPlaceholder(step.source)) c.template(step.source, 'source');
     else if (isBareRefString(step.source)) c.ref(step.source.trim(), 'source');

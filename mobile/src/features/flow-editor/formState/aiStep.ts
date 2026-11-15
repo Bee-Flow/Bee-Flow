@@ -7,6 +7,7 @@
 
 import { buildReliabilityPatch, readReliability } from './aiStepReliability';
 import { applyAskOncePatch, applyForEachPatch, sanitizeInputs } from './common';
+import { readImageBindings, sanitizeImageBindings } from './extraction';
 import { fieldsToSchema, schemaToFields } from './outputSchema';
 import { arrOr, or, trimmedOr } from './read';
 import type { Extractor, Patcher } from './types';
@@ -55,6 +56,8 @@ export const extractAiStep: Extractor = (step, base) => ({
     forEach: or(step.forEach, null),
     // Answer checks, the fallback, the temperature and "reuse the answer".
     ...readReliability(step),
+    // The pictures the step may show its model (always a list in the form).
+    images: readImageBindings(step.images),
 });
 
 function toolsPatch(draft: Record<string, unknown>): Record<string, unknown> {
@@ -82,4 +85,6 @@ export const patchAiStep: Patcher = (patch, step, draft) => {
     applyForEachPatch(patch, step, draft); // C12 — was dropped both ways
     Object.assign(patch, buildReliabilityPatch(draft, step));
     applyAskOncePatch(patch, step, draft);
+    // Absent, not [], when there are none: a step nobody gave images keeps no key.
+    patch.images = sanitizeImageBindings(draft.images);
 };

@@ -230,7 +230,7 @@ const SETTING_LABELS = {
     agentPermissions: 'What the agent may do', expr: 'Condition', cases: 'Cases', defaultBranch: 'Otherwise',
     overRef: 'List to go through', itemVar: 'Item name', maxIterations: 'Maximum rounds', channels: 'Channels',
     title: 'Title', message: 'Message', text: 'Text', code: 'Code', seconds: 'Wait time', datatableId: 'Table',
-    knowledgeBaseId: 'Knowledge base', knowledgeBaseIds: 'Knowledge bases', documentId: 'Document', format: 'Format',
+    knowledgeBaseId: 'Knowledge base', knowledgeBaseIds: 'Knowledge bases', images: 'Images', documentId: 'Document', format: 'Format',
     fileName: 'File name', content: 'Content', outputSchema: 'Output fields', fields: 'Fields', where: 'Filter',
     op: 'Operation', approval: 'Approval', form: 'Form', onError: 'When it fails', forEach: 'For each item',
     schedule: 'Schedule', cron: 'Schedule', tz: 'Time zone', appEvent: 'Event', event: 'Event', provider: 'App',

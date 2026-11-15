@@ -113,6 +113,17 @@ const FILES_POLICIES = {
     nextcloud_list_tags: 'allow',
     nextcloud_create_tag: 'allow',
     nextcloud_list_groups: 'allow',
+    // A user's profile: directory metadata like the group list, and Nextcloud
+    // itself decides whose profile the caller may read.
+    nextcloud_get_user: 'allow',
+    // By path the path is checked; by file id there is no folder to check it
+    // against without the lookup itself, so an id-only call is refused under
+    // 'selected' like the other fileId-indirect tools.
+    nextcloud_file_info: { args: ['path'], allowMissing: false },
+    // Any OCS or WebDAV path: no argument maps it onto a selected folder. Not
+    // read for this tool: ncScopeGuard judges it by the app its path reaches
+    // (ncRequestFamily.mts), where a selection refuses like this entry would.
+    nextcloud_request: 'deny',
     // fileId/shareId-indirect tools: the id cannot be mapped to a folder
     // without an extra lookup — v1 denies them under 'selected'.
     nextcloud_convert_file: 'deny',
@@ -290,9 +301,15 @@ const MAIL_ARG_POLICIES = {
 // So these arguments get a SECOND check against the family that actually owns
 // them, after the tool's own family policy has passed. Narrowing only: this
 // can add a denial, never remove one.
+// A key ending in `[].path` names a list argument: the `path` of every entry
+// is checked (a mail attachment from Files).
 const CROSS_FAMILY_ARGS = {
     nextcloud_talk_share_file: { path: 'nextcloud' },
     nextcloud_mail_save_attachment: { targetPath: 'nextcloud' },
+    // A file id cannot be placed in a folder without the lookup itself, so
+    // under a narrowed Files scope it is refused (ncScopeGuard: an id-like key),
+    // as nextcloud_file_info by id is.
+    nextcloud_mail_send: { 'attachments[].path': 'nextcloud', 'attachments[].fileId': 'nextcloud' },
 };
 
 // Result-filter item candidates: which fields identify an entry, per family.

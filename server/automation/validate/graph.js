@@ -112,7 +112,8 @@ function automationTargetRef(graph, pathPrefix, path, target) {
  *   layers              — the ROOT layers map (for call_layer reference checks)
  *   availableTools / toolRequiredParams / deliverableEvents /
  *   availableAgents /
- *   topicClassifier     — as on validateDefinition.
+ *   topicClassifier /
+ *   imageModels         — as on validateDefinition.
  *   writtenVars         — the `vars.<name>` the whole document sets
  *                         (varsWriters.mts); null skips the unknown-var rules.
  *
@@ -122,7 +123,7 @@ function automationTargetRef(graph, pathPrefix, path, target) {
  * @param {string} pathPrefix
  */
 function validateGraph(graph, pathPrefix, opts) {
-    const { errors, warnings, scope = 'root', layers = {}, availableTools = null, toolRequiredParams = null, deliverableEvents = null, availableBlocks = null, knownConnectionIds = null, knownVarNames = null, writtenVars = null, availableAgents = null, topicClassifier = null, target = null } = opts;
+    const { errors, warnings, scope = 'root', layers = {}, availableTools = null, toolRequiredParams = null, deliverableEvents = null, availableBlocks = null, knownConnectionIds = null, knownVarNames = null, writtenVars = null, availableAgents = null, topicClassifier = null, imageModels = null, target = null } = opts;
     // Every record that leaves this graph carries the two fields the shared
     // Finding shape adds (core/findings/finding.js): `kind`, and a `targetRef`
     // naming WHICH automation and — when the path addresses one — WHICH step.
@@ -175,7 +176,7 @@ function validateGraph(graph, pathPrefix, opts) {
         validateCallBlockStep(step, at, availableBlocks, pushE);
     }
 
-    walkGraphSteps(ctx, { ids, stepById, order, availableTools, toolRequiredParams, knownConnectionIds, knownVarNames, writtenVars, availableAgents, topicClassifier });
+    walkGraphSteps(ctx, { ids, stepById, order, availableTools, toolRequiredParams, knownConnectionIds, knownVarNames, writtenVars, availableAgents, topicClassifier, imageModels });
     checkDataRefCycles(ctx);
     checkFormEndings(ctx, stepById);
 }

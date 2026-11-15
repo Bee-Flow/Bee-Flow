@@ -88,13 +88,37 @@ function collectStrings(node, path, emit) {
     if (typeof node === 'string' && isTranslatableValue(node)) emit(path, node);
 }
 
+// Field types of a React component block whose prop value is prose.
+const REACT_PROSE_FIELDS = new Set(['text', 'textarea']);
+
+/**
+ * A React component block (`react-component`): only the values of its text and
+ * textarea props are prose. Its code, stylesheet, field list and compiled
+ * output are never sent; a locale override of the block may hold props only
+ * (stores/cms/reactBlock.mts).
+ * @param {{ id: string, content?: any }} block
+ * @param {(fp: Array<string | number>, src: string) => void} emit
+ */
+function collectReactProps(block, emit) {
+    const c = block.content || {};
+    const fields = Array.isArray(c.fields) ? c.fields : [];
+    const props = c.props && typeof c.props === 'object' ? c.props : {};
+    for (const f of fields) {
+        if (!f || !REACT_PROSE_FIELDS.has(f.type) || typeof f.name !== 'string') continue;
+        const v = props[f.name];
+        if (typeof v === 'string' && isTranslatableValue(v)) emit(['props', f.name], v);
+    }
+}
+
 // Each entry = { targetPath: [...segments into the OVERRIDE root...], source }.
 function extractPageEntries(pageDoc) {
     const entries = [];
     for (const block of pageDoc.blocks || []) {
-        collectStrings(block.content, [], (fp, src) => {
+        const emit = (fp, src) => {
             entries.push({ targetPath: ['blocks', block.id, 'content', ...fp], source: src });
-        });
+        };
+        if (block.type === 'react-component') collectReactProps(block, emit);
+        else collectStrings(block.content, [], emit);
     }
     if (pageDoc.seo) {
         for (const f of ['metaTitle', 'metaDescription']) {

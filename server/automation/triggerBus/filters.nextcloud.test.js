@@ -107,3 +107,41 @@ test('calendar filters on each producer\'s canonical payload', () => {
     assert.strictEqual(matchNextcloudCalendarFilter(pushed, { calendarId: 4 }), true);
     assert.strictEqual(matchNextcloudCalendarFilter(polled, { summaryContains: 'kick' }), true);
 });
+
+// ── G-01: the six delivered events that are now selectable ──────────────
+const { pickMatcher } = require('./filters');
+// The connector's normalisePayload shapes (nextcloud-connector/src/automationEventsWebhook.js).
+const copied = normaliseNextcloudPayload('file.copied', { id: 9, path: '/Invoices/2026/a (copy).pdf', name: 'a (copy).pdf', extension: 'pdf', owner: 'alice', oldPath: '/Invoices/2026/a.pdf', sourceId: 8, actor: 'alice' });
+const restored = normaliseNextcloudPayload('file.restored', { id: 7, path: '/Invoices/old.docx', owner: 'alice', actor: 'bob' });
+
+test('file.copied / file.restored go through the file matcher, not the shallow generic one', () => {
+    for (const ev of ['file.copied', 'file.restored']) {
+        assert.strictEqual(pickMatcher('nextcloud', ev), matchNextcloudFileFilter, ev);
+    }
+    // inFolder is a path-prefix rule the generic matcher cannot express.
+    assert.strictEqual(pickMatcher('nextcloud', 'file.copied')(copied, { inFolder: '/Invoices' }), true);
+    assert.strictEqual(pickMatcher('nextcloud', 'file.copied')(copied, { inFolder: '/Other' }), false);
+    assert.strictEqual(pickMatcher('nextcloud', 'file.copied')(copied, { extension: 'pdf', nameContains: 'COPY' }), true);
+    assert.strictEqual(pickMatcher('nextcloud', 'file.restored')(restored, { extension: 'docx' }), true);
+    assert.strictEqual(pickMatcher('nextcloud', 'file.restored')(restored, { extension: 'pdf' }), false);
+    assert.strictEqual(copied.oldPath, '/Invoices/2026/a.pdf', 'the copy keeps its original');
+    assert.strictEqual(copied.sourceId, 8);
+});
+
+test('file.untagged, tables.row.deleted and calendar.event.deleted / moved have their family matcher', () => {
+    assert.strictEqual(pickMatcher('nextcloud', 'file.untagged'), matchNextcloudTagFilter);
+    assert.strictEqual(pickMatcher('nextcloud', 'tables.row.deleted'), matchNextcloudTablesRowFilter);
+    assert.strictEqual(pickMatcher('nextcloud', 'calendar.event.deleted'), matchNextcloudCalendarFilter);
+    assert.strictEqual(pickMatcher('nextcloud', 'calendar.event.moved'), matchNextcloudCalendarFilter);
+    assert.strictEqual(matchNextcloudTagFilter({ tagIds: [3, 17], objectIds: ['437'] }, { tagId: 17 }), true);
+    const deletedRow = { tableId: 34, rowId: 7, values: { 2: 'done' }, previousValues: null };
+    assert.strictEqual(matchNextcloudTablesRowFilter(deletedRow, { tableId: 34, columnId: 2, valueEquals: 'done' }), true);
+    assert.strictEqual(matchNextcloudTablesRowFilter(deletedRow, { tableId: 35 }), false);
+    // The shared Tables form offers changedOnly; on a deleted row it is a no-op.
+    assert.strictEqual(matchNextcloudTablesRowFilter(deletedRow, { tableId: 34, changedOnly: true }), true);
+    // A move: calendarId is the calendar it landed in.
+    const moved = normaliseNextcloudPayload('calendar.event.moved', { calendarId: 7, calendarUri: 'work', sourceCalendarId: 3, targetCalendarId: 7, uid: 'a' });
+    assert.strictEqual(matchNextcloudCalendarFilter(moved, { calendarId: 7 }), true);
+    assert.strictEqual(matchNextcloudCalendarFilter(moved, { calendarId: 'work' }), true);
+    assert.strictEqual(matchNextcloudCalendarFilter(moved, { calendarId: 3 }), false);
+});

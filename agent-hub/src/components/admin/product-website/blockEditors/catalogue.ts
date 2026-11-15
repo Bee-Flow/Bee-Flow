@@ -32,6 +32,7 @@ import { ProductMockupEditor } from './ProductMockupEditor';
 import { CardCarouselEditor } from './CardCarouselEditor';
 import { ScrollStoryEditor } from './ScrollStoryEditor';
 import { TourEditor } from './TourEditor';
+import { ReactComponentEditor } from './ReactComponentEditor';
 import { withExperiment } from './ExperimentCard';
 import { supportsExperiment } from '@/marketing/experiments/altPolicy';
 
@@ -71,6 +72,7 @@ export const BLOCK_CATALOGUE: Record<string, BlockCatalogueEntry> = {
     cta:          { type: 'cta',          label: 'Call to action', icon: 'Target',           category: 'Conversion' },
     'cta-banner': { type: 'cta-banner',   label: 'CTA Banner',     icon: 'Rocket',           category: 'Conversion' },
     'live-component': { type: 'live-component', label: 'Live Component', icon: 'Code',         category: 'Content' },
+    'react-component': { type: 'react-component', label: 'React component', icon: 'Puzzle',      category: 'Content' },
     pricing:      { type: 'pricing',      label: 'Pricing',        icon: 'CreditCard',       category: 'Conversion' },
     'customer-support': { type: 'customer-support', label: 'Customer Support', icon: 'LifeBuoy', category: 'Conversion' },
     form:         { type: 'form',        label: 'Form',           icon: 'ListChecks',       category: 'Conversion' },
@@ -111,6 +113,7 @@ const RAW_BLOCK_EDITORS = {
     cta:          { component: CTAEditor,          label: 'Call to action', icon: 'Target'           },
     'cta-banner': { component: CtaBannerEditor,    label: 'CTA Banner',     icon: 'Rocket'           },
     'live-component': { component: LiveComponentEditor, label: 'Live Component', icon: 'Code'        },
+    'react-component': { component: ReactComponentEditor, label: 'React component', icon: 'Puzzle' },
     pricing:      { component: PricingEditor,      label: 'Pricing',        icon: 'CreditCard'        },
     'customer-support': { component: CustomerSupportEditor, label: 'Customer Support', icon: 'LifeBuoy' },
     form:         { component: FormEditor,         label: 'Form',           icon: 'ListChecks'        },

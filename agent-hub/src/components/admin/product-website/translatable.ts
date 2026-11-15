@@ -108,6 +108,26 @@ export function collectMedia(node: unknown, path: FieldPath, out: FoundString[])
     }
 }
 
+// Field types of a React component block whose prop value is prose.
+const REACT_PROSE_FIELDS = new Set(['text', 'textarea']);
+
+/**
+ * A React component block: only the values of its text and textarea props
+ * translate. Its code, stylesheet, field list and compiled output never do,
+ * and a locale override of the block holds props only (server: cmsTranslate.js
+ * collectReactProps, stores/cms/reactBlock.mts).
+ */
+export function collectReactProps(content: unknown, out: FoundString[]): void {
+    const c = (content && typeof content === 'object' ? content : {}) as { fields?: unknown; props?: unknown };
+    const fields = Array.isArray(c.fields) ? c.fields as Array<{ name?: unknown; type?: unknown } | null> : [];
+    const props = (c.props && typeof c.props === 'object' ? c.props : {}) as Record<string, unknown>;
+    for (const f of fields) {
+        if (!f || typeof f.name !== 'string' || typeof f.type !== 'string' || !REACT_PROSE_FIELDS.has(f.type)) continue;
+        const v = props[f.name];
+        if (typeof v === 'string' && isTranslatableValue(v)) out.push({ fieldPath: ['props', f.name], source: v });
+    }
+}
+
 /** A stored override value is only text when it is a string; anything else counts as untranslated. */
 function asText(v: unknown): string | undefined {
     return typeof v === 'string' ? v : undefined;
@@ -199,7 +219,8 @@ export function buildPageGroups(page: CmsPageDoc | null | undefined, pageOverrid
 
     for (const block of page.blocks || []) {
         const found: FoundString[] = [];
-        collectStrings(block.content, [], found);
+        if (block.type === 'react-component') collectReactProps(block.content, found);
+        else collectStrings(block.content, [], found);
         const media: FoundString[] = [];
         collectMedia(block.content, [], media);
         if (!found.length && !media.length) continue;

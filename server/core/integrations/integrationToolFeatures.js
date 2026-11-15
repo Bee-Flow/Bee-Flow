@@ -196,7 +196,7 @@ async function nextcloudAppInstalled({ userId, session, D }) {
  * contacts, Deck, notifications) gates on its own per-app toggle so admins
  * can disable individual surfaces.
  */
-async function addNextcloudTools({ userId, session, userOrgId, hideAbsentNextcloudApps, isAppOn, addTools, T, D }) {
+async function addNextcloudTools({ userId, session, userOrgId, automationStep, hideAbsentNextcloudApps, isAppOn, addTools, T, D }) {
     try {
         const oauthCfg = (await D.configStore.getConfig('oauth')) || {};
         // Connector-bound user: NC tools route through the connector's /nc/*
@@ -249,6 +249,13 @@ async function addNextcloudTools({ userId, session, userOrgId, hideAbsentNextclo
         for (const [appId, toolset] of NEXTCLOUD_FAMILIES) {
             if (scopeOn(appId) && isAppOn(appId) && installed(appId)) addTools(T[toolset]);
         }
+        // The generic nextcloud_request: automation steps only, never chat,
+        // agents, MCP or an AI step (those ask without automationStep). It
+        // rides on the Files app's switches; each call is then held to the
+        // scope (ncScopeGuard) and the app switch (automationRunner/
+        // integrationActionGates) of the app its path reaches, and the handler
+        // re-checks that it runs inside an automation.
+        if (automationStep && scopeOn('nextcloud') && isAppOn('nextcloud')) addTools(T.NEXTCLOUD_REQUEST_TOOLS);
     } catch (e) { fallback('core/integrations/integrationToolFeatures:addNextcloudTools', e); /* no Nextcloud tools offered */ }
 }
 

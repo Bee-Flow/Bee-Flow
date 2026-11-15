@@ -22,6 +22,7 @@
 const ncClient = require('./nextcloudClient');
 const { nextcloudHttpError } = require('./nextcloudHttpError');
 const { addQuestion, updateSettings } = require('./nextcloudFormsWrites');
+const { mapSubmission } = require('./nextcloudFormsSubmission.mts');
 
 const FORMS_API = '/ocs/v2.php/apps/forms/api/v3';
 const MAX_SUBMISSIONS = 200;
@@ -93,7 +94,7 @@ const NEXTCLOUD_FORMS_TOOLS = [
         type: 'function',
         function: {
             name: 'nextcloud_forms_get_submissions',
-            description: 'Read the responses to a form. Answers are returned keyed by QUESTION TEXT so they can be read and bound directly in an automation.',
+            description: 'Read the responses to a form. Answers are returned keyed by QUESTION TEXT so they can be read and bound directly in an automation. Uploaded files (a file question) also come back as files.<question text> = a list of { fileId, name }, one entry per file.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -184,43 +185,6 @@ function mapQuestion(q) {
         isRequired: !!q.isRequired,
         description: q.description || '',
         options: Array.isArray(q.options) ? q.options.map(o => ({ id: o.id, text: o.text })) : [],
-    };
-}
-
-/**
- * Join a raw submission against the form's questions so answers come back
- * keyed by question text. Questions with no answer are omitted rather than
- * emitted as null, so `Object.keys(answers)` means "what they actually filled
- * in". A question whose text is reused twice in one form would collide, so the
- * numeric-keyed original is preserved alongside as `answersByQuestionId`.
- */
-function mapSubmission(sub, questions) {
-    const textById = new Map(questions.map(q => [String(q.id), q.text]));
-    const answers = {};
-    const answersByQuestionId = {};
-    for (const a of Array.isArray(sub.answers) ? sub.answers : []) {
-        const qid = String(a.questionId);
-        const text = textById.get(qid);
-        // Multiple-choice answers arrive as one row per selected option.
-        /**
-         * @param {string} key
-         */
-        const push = (bag, key) => {
-            if (bag[key] === undefined) bag[key] = a.text;
-            else if (Array.isArray(bag[key])) bag[key].push(a.text);
-            else bag[key] = [bag[key], a.text];
-        };
-        push(answersByQuestionId, qid);
-        if (text !== undefined) push(answers, text);
-    }
-    return {
-        id: sub.id,
-        formId: sub.formId,
-        userId: sub.userId || null,
-        timestamp: sub.timestamp ?? null,
-        submittedAt: sub.timestamp ? new Date(sub.timestamp * 1000).toISOString() : null,
-        answers,
-        answersByQuestionId,
     };
 }
 

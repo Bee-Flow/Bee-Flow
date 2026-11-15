@@ -9,13 +9,14 @@ const { PROPFIND_BODY, joinDavPath, parsePropfind } = require('./webdav');
 const { readNextcloudFile } = require('./readFile');
 const { uploadNextcloudFile } = require('./uploadFile');
 const { davStatusError } = require('./davStatusError.mts');
+const { nextcloudFileInfo } = require('./fileInfo.mts');
 
 /**
  * The arguments of the file tools, as the model sent them.
  * @typedef {{ path?: string, fileId?: string | number, targetMimeType?: string, destination?: string, depth?: number,
  *   withParents?: boolean, sourceHandle?: { kind: string, messageId?: string, attachmentId?: string, fileId?: string,
  *   mimeType?: string }, content?: string, isBase64?: boolean, contentType?: string, source?: string,
- *   overwrite?: boolean }} FileOpArgs
+ *   overwrite?: boolean, formFields?: boolean }} FileOpArgs
  */
 
 /**
@@ -243,6 +244,7 @@ const HANDLERS = {
     nextcloud_folder_tree: folderTree,
     nextcloud_direct_link: directLink,
     nextcloud_read_file: (args, ctx) => readNextcloudFile(args, ctx),
+    nextcloud_file_info: async (args, ctx) => ({ ...(await nextcloudFileInfo(args, ctx)) }),
     nextcloud_upload_file: (args, ctx) => uploadNextcloudFile(args, ctx),
     nextcloud_create_folder: createFolder,
     nextcloud_delete: deletePath,

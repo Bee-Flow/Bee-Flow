@@ -20,11 +20,7 @@ Google Maps integration for location lookup and directions.
 | Tool | Purpose |
 |------|---------|
 | `maps_search_places` | Find places by name + region. |
-| `maps_get_place_details` | Address, opening hours, rating, photos. |
 | `maps_directions` | Driving / walking / transit directions. |
-| `maps_distance_matrix` | Distance + duration between many points. |
-| `maps_geocode` | Address → lat/lng. |
-| `maps_reverse_geocode` | lat/lng → address. |
 
 ## Use cases
 

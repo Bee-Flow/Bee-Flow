@@ -13,7 +13,13 @@
  *   answers    the approver's answers to the step's questions; {} when none
  *   votes      a panel's votes; [] when not a panel
  *
- * Nothing else: whether an output was synthesised is marked at the step level
+ * Nothing else, with ONE exception: an approval nobody decided before its
+ * deadline, continued along its 'on_expired' edge (edgeLabels.mts), carries
+ * `expired: true` next to `approved: false` (and by/reason null). Only that
+ * producer sets it; every other output has the six keys alone, so nothing
+ * changes for a flow without an expired branch.
+ *
+ * Whether an output was synthesised is marked at the step level
  * (`_dryRun` / dryRunSynthesised), by the producers that synthesise it.
  *
  * Pure, requires nothing.
@@ -28,6 +34,8 @@ export type ApprovalOutput = {
     decidedAt: string;
     answers: Record<string, unknown>;
     votes: ApprovalVote[];
+    /** Present (true) only on the expired branch. */
+    expired?: true;
 };
 
 export type ApprovalDecisionInput = {
@@ -37,6 +45,8 @@ export type ApprovalDecisionInput = {
     decidedAt?: unknown;
     answers?: unknown;
     votes?: unknown;
+    /** true only for the reaper's expiry with an 'on_expired' edge. */
+    expired?: unknown;
 };
 
 const isPlainObject = (x: unknown): x is Record<string, unknown> => !!x && typeof x === 'object' && !Array.isArray(x);
@@ -50,7 +60,7 @@ function isoOf(x: unknown, now: () => Date): string {
 /** The approval output for a decision. Unknown or malformed fields fall back to their empty value. */
 export function approvalOutput(input: ApprovalDecisionInput = {}, now: () => Date = () => new Date()): ApprovalOutput {
     const d = isPlainObject(input) ? input : {};
-    return {
+    const out: ApprovalOutput = {
         approved: d.approved === true,
         by: typeof d.by === 'string' && d.by ? d.by : null,
         reason: typeof d.reason === 'string' && d.reason ? d.reason : null,
@@ -58,4 +68,7 @@ export function approvalOutput(input: ApprovalDecisionInput = {}, now: () => Dat
         answers: isPlainObject(d.answers) ? { ...d.answers } : {},
         votes: Array.isArray(d.votes) ? d.votes.filter(isPlainObject).map((v) => ({ ...v })) : [],
     };
+    // An expiry is never an approval: `expired` only rides with approved:false.
+    if (d.expired === true && !out.approved) out.expired = true;
+    return out;
 }

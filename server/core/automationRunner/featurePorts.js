@@ -11,7 +11,7 @@
  *   automation/runnerPorts.js   approvals, triggerBus, formQueue, codeSandbox, ...
  *                               (the trigger bus also serves core/meetingNotes)
  *   jobs/runnerPorts.js         the retention and digest passes
- *   integrations/runnerPorts.js nextcloudAdmin, knowledgeBase, customIntegrations
+ *   integrations/runnerPorts.js nextcloudAdmin, nextcloudFiles, knowledgeBase, customIntegrations
  *   services/runnerPorts.js     presentations
  *   core/meetingNotes/runnerPorts.js  meetingImports (a separate module the
  *                               scheduler drives, not a feature, but the runner

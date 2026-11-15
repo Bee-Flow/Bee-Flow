@@ -81,7 +81,7 @@ describe('the Organisation tab for a platform admin', () => {
         expect(group('AI & agents')).toEqual(['Agents', 'Knowledge bases', 'Models', 'Conversations', 'Memory', 'Meeting notes']);
         expect(group('Security & access')).toEqual(['Preferred sign-in method', 'Access', 'Privacy Shield', 'Encryption', 'MCP client access']);
         // Org A has GitHub (the kit's availability): the row follows the organisation, not the viewer's own link.
-        expect(group('Connections')).toEqual(['Integration status', 'MCP servers', 'Nextcloud', 'Microsoft 365', 'GitHub sync', 'Automation answer cache']);
+        expect(group('Connections')).toEqual(['Integration status', 'MCP servers', 'Nextcloud', 'Microsoft 365', 'GitHub sync', 'Automations']);
         expect(nav().queryByText('Operations')).not.toBeInTheDocument();
         expect(nav().queryByRole('link', { name: 'Organisation' })).not.toBeInTheDocument();
         expect(nav().getByRole('link', { name: 'Organisation info' })).toHaveAttribute('aria-current', 'page');
@@ -98,7 +98,7 @@ describe('the Organisation tab for a platform admin', () => {
         await screen.findByDisplayValue('Org B');
         await waitFor(() => expect(nav().queryByRole('link', { name: 'MCP servers' })).not.toBeInTheDocument());
         expect(asked.some(u => u.includes('/auth/organizations/org-b/integration-availability'))).toBe(true);
-        expect(nav().queryByRole('link', { name: 'Automation answer cache' })).not.toBeInTheDocument();
+        expect(nav().queryByRole('link', { name: 'Automations' })).not.toBeInTheDocument();
         // Org B is bound to a Nextcloud (the viewer's own session is not): sign-in is Nextcloud's, the sync row is there.
         expect(nav().queryByRole('link', { name: 'Preferred sign-in method' })).not.toBeInTheDocument();
         expect(nav().getByRole('link', { name: 'Nextcloud' })).toBeInTheDocument();

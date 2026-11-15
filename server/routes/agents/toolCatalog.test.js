@@ -41,6 +41,11 @@ const CATALOG_TOOLS = {
         { function: { name: 'outlook_search', description: 'Search mail' } },
         { function: { name: 'outlook_read', description: 'Read a mail' } },
     ],
+    // A tool that declares itself for automation steps only (nextcloud_request).
+    nextcloud: [
+        { function: { name: 'nextcloud_list_files', description: 'List files' } },
+        { availableTo: ['automation_step'], function: { name: 'nextcloud_request', description: 'Any OCS call' } },
+    ],
 };
 
 const registryPath = require.resolve(path.join(SERVER, 'automation/toolRegistry'));
@@ -54,6 +59,7 @@ require.cache[registryPath] = {
             { app: 'broken-app', label: 'Broken' },
             { app: 'outlook', label: 'Outlook' },
             { app: 'outlook-readonly', label: 'Outlook (read-only)', grantsVia: 'outlook' },
+            { app: 'nextcloud', label: 'Nextcloud' },
         ],
         // The apps that inject their tools INLINE. They deliberately do not stand in
         // TOOL_REGISTRY (that would cut other answers), but the picker must be able to
@@ -331,4 +337,12 @@ test('een gate die niet kon draaien laat allebei de rijen op `null`', async () =
     assert.strictEqual(appNamed(body, 'outlook').available, null);
     assert.strictEqual(appNamed(body, 'outlook-readonly').available, null,
         '"ik kon het niet checken" is geen "hij is er niet"');
+});
+
+test('a tool declared for automation steps only is not an action the agent picker offers', async () => {
+    GATE_THROWS = false;
+    GATE_TOOLS = ['nextcloud_list_files'];
+    LOAD_THROWS_FOR = null;
+    const { body } = await get();
+    assert.deepStrictEqual(appNamed(body, 'nextcloud').actions.map(a => a.name), ['nextcloud_list_files']);
 });

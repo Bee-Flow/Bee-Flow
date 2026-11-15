@@ -103,7 +103,8 @@ async function activateAutomation(automationId, { userId, session, isAdmin = fal
     }
 
     const topicClassifier = await require('../core/classify/classifierClient').topicClassifierFor(def);
-    const v = validateDefinition(def, { availableTools, toolRequiredParams, deliverableEvents, availableAgents, topicClassifier });
+    const imageModels = await require('./imageModelsFact.mts').imageModelsForAutomation(def, a, userId);
+    const v = validateDefinition(def, { availableTools, toolRequiredParams, deliverableEvents, availableAgents, topicClassifier, imageModels });
     if (!v.ok) { const err = /** @type {Error & {details?: any}} */ (new Error('Invalid definition')); err.details = v.errors; throw err; }
 
     /**

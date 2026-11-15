@@ -5,14 +5,8 @@
 // had: templates and import before `/:id`, export beside the other `/:id/...`.
 const log = require('../../telemetry/log');
 const automationStore = require('../../stores/automationStore');
-const cron = require('../../automation/cron');
-const { validateDefinition } = require('../../automation/validate');
-const { getDeliverableEvents } = require('../../automation/deliverableEvents');
-const { TOOL_REGISTRY, loadTools } = require('../../automation/toolRegistry');
 const { perUserRateLimit } = require('../../utils/perUserRateLimit');
-const { buildExport, sanitizeImport, rebindDatatables, rekeyDefinition, stripAppRefs } = require('../../automation/portability');
-const { syncDatatableUsage } = require('../../automation/datatableUsageSync');
-const { syncKbSources } = require('../../core/kb/kbSourceSync');
+const { buildExport } = require('../../automation/portability');
 const { orgOf, kbFindingsFor, automationAccess } = require('./crudContext');
 const { sessionUser } = require('../../core/http/sessionUser');
 
@@ -88,137 +82,40 @@ function registerTemplateAndImportRoutes(router) {
     });
 
     router.post('/import', importLimiter, async (/** @type {import('express').Request} */ req, /** @type {import('express').Response} */ res) => {
-        const userId = sessionUser(req).id;
-        const { automation: incoming, errors: importErrors } = sanitizeImport(req.body);
-        if (!incoming || importErrors.length > 0) {
-            return res.status(400).json({ error: 'Invalid import file', details: importErrors });
-        }
-
-        // Re-link datatable steps BEFORE validating: export blanks the id (a
-        // datatable id names a table in ONE organisation) and keeps the key, and
-        // `datatable.table_missing` blocks at this stage — so until this ran, a
-        // automation with a datatable step could not be imported at all, not even
-        // as a draft to repair by hand. Only the caller's own tables are offered
-        // to it, so a re-link cannot cross a scope boundary.
-        const { entries: datatableEntries } = rebindDatatables(incoming.definition, await importableDatatables(req));
-        const datatableFindings = (stepIdOf = (_layer, id) => id) => datatableEntries.map(e => {
-            const stepId = stepIdOf(e.layerKey, e.stepId) || '';
-            return {
-                code: e.datatableId ? 'datatable.relinked' : 'datatable.unlinked',
-                severity: 'warning',
-                path: e.layerKey ? `layers.${e.layerKey}.steps.${stepId}` : `steps.${stepId}`,
-                message: e.message,
-                hint: e.datatableId ? 'A table key travels with an exported automation; the table it names here is yours.' : 'Open the step in the builder and pick a table.',
-            };
-        });
-
-        const v = validateDefinition(incoming.definition);
-        // The datatable findings ride along on the failure too: without them a
-        // automation that could not be re-linked is refused with "pick which
-        // datatable to use" and nothing that says which one it wanted. A refused
-        // file is reported in the ids the file itself uses.
-        if (!v.ok) return res.status(400).json({ error: 'Invalid definition', details: [...v.errors, ...datatableFindings()] });
-
-        // Fresh step ids per graph (root + each inline layer) so importing
-        // the same file twice never collides and crafted ids can't alias
-        // existing drafts' replay data. Done BEFORE the findings below, which
-        // describe the draft as it is STORED: a reference the rename missed used
-        // to land as a broken draft with nothing said, because only the
-        // pre-rename copy was ever validated.
-        const { definition, renameMap } = rekeyDefinition(incoming.definition);
-        const renamedId = (layerKey, id) => {
-            const map = layerKey ? renameMap?.layers?.[layerKey] : renameMap?.root;
-            return map && Object.prototype.hasOwnProperty.call(map, id) ? map[id] : id;
-        };
-
-        // Catalog-aware pass — same construction as the activate route
-        // (permission-based, fail-open). Because the catalog-free pass above
-        // already succeeded, everything this pass flags is a tool-availability /
-        // required-param / deliverability finding: surfaced as warnings so the
-        // user knows which integrations they still need to connect.
-        // Fallback when the catalog cannot be built: the stored draft, catalog-free.
-        // Its errors are warnings here (the draft lands inactive; activate re-checks).
-        const stored = definition === incoming.definition ? v : validateDefinition(definition);
-        let warnings = [...(stored === v ? [] : stored.errors || []), ...(stored.warnings || [])];
-        try {
-            const { getUserPermittedApps } = require('../../core/integrations/integrationTools');
-            const permitted = await getUserPermittedApps({ userId, session: req.session, isAdmin: !!req.session?.isAdmin });
-            const availableTools = new Set();
-            const toolRequiredParams = {};
-            for (const entry of TOOL_REGISTRY) {
-                const permittedApp = permitted.has(entry.app);
-                for (const t of loadTools(entry)) {
-                    const name = t?.function?.name;
-                    if (!name) continue;
-                    if (permittedApp) availableTools.add(name);
-                    const rq = t?.function?.parameters?.required;
-                    if (Array.isArray(rq)) toolRequiredParams[name] = rq;
-                }
-            }
-            const v2 = validateDefinition(definition, {
-                availableTools, toolRequiredParams, deliverableEvents: getDeliverableEvents(),
-            });
-            warnings = [...(v2.errors || []), ...(v2.warnings || [])];
-        } catch (e) {
-            log.warn('[automation/import] tool catalog build failed; importing without tool warnings:', e.message);
-        }
-        // An exported automation carries knowledge-base ids from wherever it was
-        // built. Non-blocking, like every other import finding: the draft lands
-        // inactive and activate re-checks — but the author is told now, while
-        // they still remember what the automation was supposed to read.
-        warnings = [...warnings, ...await kbFindingsFor(definition, req, sessionUser(req).id, 'draft')];
-
-        // And the back-pointer to an app button comes off — the SAME rule as on
-        // export, now on the way in too. `buildExport` removed it, so a truly
-        // exported file has none; a hand-written file can, and then an
-        // automation landed here pointing at someone else's app while the gate
-        // on POST / (`appRef` → appRefOwnerVerdict) refuses exactly the same
-        // definition with 403 `owner_mismatch`. Two create paths, one answer.
-        // Refusing would be too harsh here: it is a label, not a right, and the
-        // rest of the file imports fine.
-        const strippedRefs = stripAppRefs(definition, []);
-        if (strippedRefs) {
-            warnings = [...warnings, {
-                code: 'import.app_ref_removed', severity: 'warning', path: 'definition.trigger.appRef',
-                message: 'Removed the link back to an app button — it names a screen in the installation this file came from.',
-                hint: 'Open the button in App Studio and pick this automation there to link them again.',
-            }];
-        }
-
-        // Best-effort schedule arming — a bad cron in the file shouldn't
-        // block the import (the draft is inactive); activate recomputes.
-        let nextRunAt = null;
-        if (incoming.triggerType === 'schedule' && incoming.scheduleCron) {
-            try { nextRunAt = cron.nextRunAt(incoming.scheduleCron, incoming.scheduleTz || 'Europe/Amsterdam', Date.now()); }
-            catch (e) {
-                warnings = [...warnings, { code: 'import.bad_cron', severity: 'warning', path: 'scheduleCron', message: `Schedule "${incoming.scheduleCron}" did not parse (${e.message}).`, hint: 'Open the trigger and pick a schedule again before activating.' }];
-            }
-        }
-
-        const organizationId = await orgOf(req);   // see the note on the create route above
-        const a = await automationStore.createAutomation({
-            userId,
-            organizationId,
-            title: incoming.title,
-            description: incoming.description,
-            definition,
-            triggerType: incoming.triggerType,
-            scheduleCron: incoming.scheduleCron,
-            scheduleTz: incoming.scheduleTz || 'Europe/Amsterdam',
-            nextRunAt,
-        });
-        // portability blanks datatableId on export, so an imported automation
-        // usually indexes nothing — but one imported into the org it came from
-        // keeps its ids, and those steps have to appear in "used by".
-        await syncDatatableUsage(a.id, organizationId, definition, { label: 'automation import' });
-        // An import arrives with its knowledge base BLANKED (portability scrubs
-        // it), so this usually attaches nothing — until the importer picks a
-        // base of their own, at which point the next save attaches it.
-        await syncKbSources(a.id, definition, { userId: sessionUser(req).id, title: a.title });
-        // Appended LAST because the catalog pass above reassigns `warnings`
-        // wholesale — pushing them earlier would drop every one of them.
-        res.json({ automation: a, warnings: [...warnings, ...datatableFindings(renamedId)] });
+        // The gates and the write live in usecases/automation/importEnvelope.mts,
+        // shared with the Windmill importer: one pipeline for every envelope.
+        const { importEnvelope } = require('../../usecases/automation/importEnvelope.mts');
+        const r = await importEnvelope(req.body, await importContextFor(req));
+        if (r.ok === false) return res.status(r.status).json(r.body);
+        res.json({ automation: r.automation, warnings: r.warnings });
     });
+
+    // Import from Windmill (Enterprise, `automation_import`): /import/windmill/*
+    // and /:id/import-report, each gated per route (./windmillImport.mts).
+    require('./windmillImport.mts').registerWindmillImportRoutes(router, { importContextFor });
+}
+
+/**
+ * Who imports, and the three lookups an import needs from the request: the
+ * caller's datatables, the integrations they may use and the knowledge-base
+ * findings in their organisation. Shared with routes/automation/windmillImport.js.
+ * @param {import('express').Request} req
+ * @returns {Promise<import('../../usecases/automation/importEnvelope.mts').ImportContext>}
+ */
+async function importContextFor(req) {
+    const userId = sessionUser(req).id;
+    return {
+        userId,
+        organizationId: await orgOf(req),   // see the note on the create route in crud.js
+        importableDatatables: () => importableDatatables(req),
+        permittedApps: async () => {
+            const { getUserPermittedApps } = require('../../core/integrations/integrationTools');
+            return getUserPermittedApps({ userId, session: req.session, isAdmin: !!req.session?.isAdmin });
+        },
+        // An exported automation carries knowledge-base ids from wherever it was
+        // built: non-blocking, the draft lands inactive and activate re-checks.
+        kbFindings: (definition) => kbFindingsFor(definition, req, userId, 'draft'),
+    };
 }
 
 function registerExportRoute(router) {
@@ -235,4 +132,4 @@ function registerExportRoute(router) {
     });
 }
 
-module.exports = { registerTemplateAndImportRoutes, registerExportRoute };
+module.exports = { registerTemplateAndImportRoutes, registerExportRoute, importContextFor };

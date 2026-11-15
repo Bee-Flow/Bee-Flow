@@ -31,6 +31,7 @@ let chatReply = '{"datum":"2026-03-12","totaal":"€ 1.554,25"}';
 let configuredModel = 'model-extract';
 const guardCalls = [];
 const usageRows = [];
+let shieldOn = false;
 
 const restore = installResolveStub({
     '../../stores/configStore': {
@@ -52,7 +53,7 @@ const restore = installResolveStub({
         }),
     },
     './safety': {
-        async resolveAutomationPolicy() { return { action: 'off' }; },
+        async resolveAutomationPolicy() { return { action: 'off', piiEnabled: shieldOn }; },
         buildAuditBase() { return {}; },
         async guardAiInput(messages) { guardCalls.push({ kind: 'ai_input', messages: JSON.parse(JSON.stringify(messages)) }); return { blocked: false }; },
         async guardAiOutput(content) { guardCalls.push({ kind: 'ai_output', content }); return { content }; },
@@ -60,6 +61,9 @@ const restore = installResolveStub({
         buildPiiSummary() { return null; },
     },
     '../../stores/usageStore': { async logUsage(row) { usageRows.push(row); } },
+    // `images` (aiStepImages.mts): the organisation setting and the model's vision, doubled.
+    './imageAiSetting.mts': { imageAiEnabled: async () => true },
+    '../llm/modelVision.mts': { modelAcceptsImages: async () => true },
 });
 after(() => restore());
 
@@ -448,4 +452,61 @@ test('live: an error that is not a rate limit is not retried', async () => {
     chatReply = () => { throw new Error('API error 400: bad request'); };
     await assert.rejects(() => execDataExtraction(step(), CTX, state(), 'live'), /400/);
     assert.strictEqual(chatCalls.length, 1);
+});
+
+// ── images (aiStepImages.mts) ──────────────────────────────────────────────
+
+const { registerRunnerPorts, _clearRunnerPortsForTests } = require('./featurePorts');
+const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 7, 7]);
+const loads = [];
+registerRunnerPorts({
+    nextcloudFiles: { loadNextcloudImage: async (path) => { loads.push(path); return { ok: true, buffer: PNG, mimeType: 'image/png' }; } },
+});
+after(() => _clearRunnerPortsForTests('nextcloudFiles'));
+const IMG_STEP = {
+    id: 'ex', type: 'data_extraction',
+    images: [{ kind: 'ref', path: 'steps.read.output.sourceHandle' }],
+    fields: [{ name: 'total', type: 'number', description: 'Total' }],
+};
+const imgState = () => ({
+    trigger: { output: {} }, vars: {}, secrets: {}, loop: {},
+    steps: { read: { status: 'success', output: { path: '/R/receipt.png', content: 'TOTAL 12,50', sourceHandle: { kind: 'nextcloud_image', path: '/R/receipt.png', contentType: 'image/png' } } } },
+});
+const imgReset = () => { reset(); loads.length = 0; shieldOn = false; chatReply = '{"total": 12.5}'; };
+
+test('images, every gate open: the image block follows the guarded text, and the guard never sees the bytes', async () => {
+    imgReset();
+    const r = await execDataExtraction(IMG_STEP, CTX, imgState(), 'live');
+    assert.deepStrictEqual(r.output, { total: 12.5 });
+    assert.deepStrictEqual(loads, ['/R/receipt.png']);
+    const user = chatCalls[0].messages[1];
+    assert.ok(Array.isArray(user.content));
+    assert.strictEqual(user.content[0].type, 'text');
+    assert.deepStrictEqual(user.content.at(-1), { type: 'image_url', image_url: { url: `data:image/png;base64,${PNG.toString('base64')}` } });
+    assert.ok(!JSON.stringify(guardCalls).includes(PNG.toString('base64')), 'the guard scans text only');
+    assert.strictEqual(r.imageInput.sent, 1);
+    assert.strictEqual(r.imageInput.note, null);
+});
+
+test('images under the Privacy Shield: no image is loaded or sent; the OCR text goes, with the reason', async () => {
+    imgReset();
+    shieldOn = true;
+    const r = await execDataExtraction(IMG_STEP, CTX, imgState(), 'live');
+    shieldOn = false;
+    assert.deepStrictEqual(loads, []);
+    const user = chatCalls[0].messages[1];
+    assert.strictEqual(typeof user.content, 'string', 'no image block');
+    assert.match(user.content, /TOTAL 12,50/);
+    assert.match(user.content, /Privacy Shield/);
+    assert.match(guardCalls[0].messages[1].content, /TOTAL 12,50/, 'the OCR text was in front of the guard');
+    assert.strictEqual(r.imageInput.sent, 0);
+    assert.deepStrictEqual(r.imageInput.fellBack, [{ name: 'receipt.png', reason: 'privacy_shield' }]);
+});
+
+test('images in a dry run: no model call, no image loaded', async () => {
+    imgReset();
+    const r = await execDataExtraction(IMG_STEP, CTX, imgState(), 'dry_run');
+    assert.strictEqual(r.dryRunSynthesised, true);
+    assert.deepStrictEqual(loads, []);
+    assert.strictEqual(chatCalls.length, 0);
 });

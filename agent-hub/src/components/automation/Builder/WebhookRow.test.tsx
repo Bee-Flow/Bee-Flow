@@ -57,4 +57,16 @@ describe('a webhook row in the automation builder', () => {
         render(<ul><WebhookRow row={{ id: 'wh1', url, previousValidUntil: null }} ctl={rowCtl()} /></ul>);
         expect(screen.queryByTestId('webhook-previous-secret')).toBeNull();
     });
+
+    it('marks a header-token webhook, and says the token is shown once', () => {
+        const ctl = rowCtl({ revealedSecrets: { wh1: 'tok'.repeat(20) }, visibleSecretIds: { wh1: false } });
+        render(<ul><WebhookRow row={{ id: 'wh1', url, authMode: 'header_token' }} ctl={ctl} /></ul>);
+        expect(screen.getByTestId('webhook-header-token-badge').textContent).toBe('Header token');
+        expect(screen.getByText('You only see the token now. Requests without it in the Authorization header are refused.')).toBeTruthy();
+    });
+
+    it('shows no header-token badge on a signed webhook', () => {
+        render(<ul><WebhookRow row={{ id: 'wh1', url, authMode: 'hmac' }} ctl={rowCtl()} /></ul>);
+        expect(screen.queryByTestId('webhook-header-token-badge')).toBeNull();
+    });
 });

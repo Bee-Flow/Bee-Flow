@@ -54,3 +54,11 @@ test('the result is a copy: mutating it never edits the input', () => {
     assert.equal(answers.a, 1);
     assert.equal(votes[0].v, 1);
 });
+
+test('an expiry continued on its expired branch carries expired: true, and only next to approved: false', () => {
+    const out = approvalOutput({ approved: false, expired: true }, NOW);
+    assert.deepEqual(out, { approved: false, by: null, reason: null, decidedAt: '2026-11-03T10:00:00.000Z', answers: {}, votes: [], expired: true });
+    // Any other value, or an approval, never carries it: those outputs keep the six keys.
+    assert.deepEqual(Object.keys(approvalOutput({ approved: false, expired: 'yes' }, NOW)).sort(), KEYS);
+    assert.deepEqual(Object.keys(approvalOutput({ approved: true, expired: true }, NOW)).sort(), KEYS);
+});

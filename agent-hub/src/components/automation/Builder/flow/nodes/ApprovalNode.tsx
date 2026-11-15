@@ -3,7 +3,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import StepNodeBase, { NodeChip } from './StepNodeBase';
 import { approvalSummary, approvalDeadline } from '../nodeSummaries';
 import { nodeDefaultLabel, nodeHelp, nodeTypeLabel } from '../nodeDefs';
-import { APPROVAL_PORT_APPROVED, APPROVAL_PORT_REJECTED } from '../branchEdges';
+import { APPROVAL_PORT_APPROVED, APPROVAL_PORT_EXPIRED, APPROVAL_PORT_REJECTED } from '../branchEdges';
 import type { StepNodeProps } from './nodeProps';
 
 /**
@@ -15,10 +15,12 @@ import type { StepNodeProps } from './nodeProps';
  * reaches the approver as "Approval requested" and nothing else), so the muted
  * "no question yet" has to be visible from the canvas.
  *
- * Two source ports, the loop's pattern: "Approved" is the plain way on (an
+ * Three source ports, the loop's pattern: "Approved" is the plain way on (an
  * unlabelled edge, branchFromHandle), "On rejected" the branch the run takes
- * when the approver rejects (`label: 'on_rejected'`). Without a rejected
- * branch a rejection ends the run. No error port: approval is in the
+ * when the approver rejects (`label: 'on_rejected'`), "On expired" the one it
+ * takes when nobody decided before the deadline (`label: 'on_expired'`).
+ * Without a rejected branch a rejection ends the run; without an expired
+ * branch the deadline closes it, as before. No error port: approval is in the
  * engine's ON_ERROR_FORBIDDEN_SOURCE_TYPES. Like every node with named
  * ports, it has no "+" (which port would it mean?): drag from a port.
  */
@@ -31,6 +33,7 @@ export default function ApprovalNode({ id, data }: StepNodeProps) {
     const sourceHandles = [
         { id: APPROVAL_PORT_APPROVED, label: t('automation_editor.approval_port_approved', 'Approved'), tone: 'then' },
         { id: APPROVAL_PORT_REJECTED, label: t('automation_editor.approval_port_rejected', 'On rejected'), tone: 'error' },
+        { id: APPROVAL_PORT_EXPIRED, label: t('automation_approval_expiry.port', 'On expired'), tone: 'default' },
     ];
 
     const badges = (

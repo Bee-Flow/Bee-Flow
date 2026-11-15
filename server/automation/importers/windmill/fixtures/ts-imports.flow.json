@@ -1,0 +1,22 @@
+{
+  "summary": "Sheet update",
+  "value": {
+    "modules": [
+      {
+        "id": "sheet",
+        "summary": "Update the sheet",
+        "value": {
+          "type": "rawscript",
+          "language": "bun",
+          "content": "import * as wmill from \"windmill-client\";\nimport ExcelJS from \"exceljs\";\n\nexport async function main(path: string) {\n  const token = await wmill.getVariable(\"f/team/sheet_token\");\n  const book = new ExcelJS.Workbook();\n  return { path, sheets: book.worksheets.length, token: token.length };\n}\n",
+          "input_transforms": {
+            "path": {
+              "type": "static",
+              "value": "/Reports/Q3.xlsx"
+            }
+          }
+        }
+      }
+    ]
+  }
+}

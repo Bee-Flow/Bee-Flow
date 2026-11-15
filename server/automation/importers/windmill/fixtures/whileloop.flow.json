@@ -1,0 +1,29 @@
+{
+  "summary": "Poll until done",
+  "value": {
+    "modules": [
+      {
+        "id": "poll",
+        "value": {
+          "type": "whileloopflow",
+          "skip_failures": false,
+          "modules": [
+            {
+              "id": "check",
+              "summary": "Check the status",
+              "value": {
+                "type": "rawscript",
+                "language": "bun",
+                "content": "export async function main() { return { done: true }; }",
+                "input_transforms": {}
+              },
+              "stop_after_if": {
+                "expr": "result.done"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

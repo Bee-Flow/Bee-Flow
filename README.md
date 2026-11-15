@@ -52,7 +52,7 @@ for themselves where their data goes.
 
 - Build an assistant for a team or a task: instructions, knowledge, skills, tools and model, on one screen.
 - Knowledge bases from files (PDF, Word, Excel, CSV, Markdown), web pages, tables and meeting notes, with
-  OCR for scanned documents.
+  OCR for scanned documents when Azure Document Intelligence is connected.
 - Hybrid search (pgvector plus full text) reranked by a self-hosted cross-encoder. Answers cite their
   sources.
 - Notebooks: a document you write together with the AI, next to the sources it draws from.
