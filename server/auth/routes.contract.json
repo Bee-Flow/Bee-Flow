@@ -2572,6 +2572,10 @@
       "gate": "open",
       "reason": "anoniem marketing-endpoint (github-stats-blok op de publieke site), zegt het al in zijn mountnaam"
     },
+    "GET /api/ready": {
+      "gate": "open",
+      "reason": "readiness probe for orchestrators and the compose healthcheck, which run before any session exists: anonymous like /api/health. Answers { ready } plus one of four coarse reasons, never a table name, error text or build stamp."
+    },
     "GET /api/release-notes/admin": {
       "gate": "platform",
       "via": "superAdmin"

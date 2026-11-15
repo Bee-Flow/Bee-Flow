@@ -19,7 +19,7 @@ interface Op<P = NoParams, Q = UndeclaredQuery, B = unknown> {
     response: unknown;
 }
 
-/** 1911 operations. */
+/** 1912 operations. */
 export interface ApiOperations {
     'GET /.well-known/microsoft-identity-association.json': Op;
     'GET /.well-known/security.txt': Op;
@@ -4642,6 +4642,7 @@ export interface ApiOperations {
     'POST /api/public-share/ai/chat': Op;
     'POST /api/public-share/ai/stream': Op;
     'GET /api/public/github-stats': Op;
+    'GET /api/ready': Op;
     'GET /api/release-notes/admin': Op;
     'PUT /api/release-notes/admin/{id}': Op<{ id: string | number }, UndeclaredQuery, {
         items?: Array<{

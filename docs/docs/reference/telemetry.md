@@ -235,9 +235,11 @@ See [server/.env.example](https://github.com/Bee-Flow/beeflow/blob/main/server/.
 | Endpoint | Purpose |
 |----------|---------|
 | `GET /api/health` | Liveness. Always returns 200 if the process is up. |
+| `GET /api/ready` | Readiness. `200 {"ready":true}` when the server can serve; `503 {"ready":false,"reason":…}` while the schema and boot migrations are still running (`starting`), the database is unreachable (`database`) or not migrated (`schema`), and during a graceful shutdown (`shutting_down`). |
+| `GET /api/health/schema` | Always 200 with `{ok, schemaReady}`: the database answered, the core tables exist. For scripts and upgrade checks. |
 | `GET /api/guard/health` | Guard sidecar liveness — returns `not-configured` when `GUARD_SERVICE_URL` is unset. |
 
-Sub-endpoints for DB, Redis, and per-integration readiness are not currently exposed. For Kubernetes probes, point both `livenessProbe` and `readinessProbe` at `/api/health`; the server fails to start if Postgres is unreachable, so a 200 from `/api/health` is a reliable readiness signal.
+Sub-endpoints for Redis and per-integration readiness are not exposed, and `/api/ready` does not look at the sidecars. For Kubernetes probes, point `livenessProbe` at `/api/health` and `readinessProbe` at `/api/ready`: a database outage then takes pods out of rotation without restarting them.
 
 ## Privacy / GDPR notes
 

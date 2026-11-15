@@ -197,10 +197,10 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// Schema health probe: always 200, degrades when the database is unreachable or not migrated.
-// Unauthenticated, like /api/health above (which matches exactly and therefore does not swallow
-// this path). See routes/healthSchema.js.
+// Schema health (always 200, degrades; routes/healthSchema.js) and readiness (503 until this process can serve
+// and while it shuts down; routes/ready.js). Unauthenticated, like /api/health above, which matches exactly.
 app.use('/api/health/schema', require('./routes/healthSchema'));
+app.use('/api/ready', require('./routes/ready'));
 
 app.get('/api', (req, res) => {
     res.json({ name: 'Bee Flow API', status: 'ok' });
@@ -731,10 +731,10 @@ const { runStartupChecks, runStartupTasks } = require('./boot/startupTasks');
 // Auth-schema migrations, then listen, then the startup checks, the webpage
 // runtime reaper and the startup tasks — see boot/lifecycle.js. A failed
 // migration refuses startup (exit 1).
-lifecycle.startServer({ app, port: PORT, terminalErrorHandler, runStartupChecks, runStartupTasks });
+const { server } = lifecycle.startServer({ app, port: PORT, terminalErrorHandler, runStartupChecks, runStartupTasks });
 
 // ── Graceful shutdown ─────────────────────────────────────────────────────────
-// SIGTERM / SIGINT: drain the automation runner first, stop the pushers, flush,
-// close Redis, the blob engines and OTEL, then exit — see boot/lifecycle.js.
+// SIGTERM / SIGINT: stop accepting connections, drain the automation runner, stop the
+// pushers, flush, close Redis, the blob engines and OTEL, then exit — see boot/lifecycle.js.
 const { disconnectRedis } = require('./db');
-lifecycle.installGracefulShutdown({ otel, disconnectRedis });
+lifecycle.installGracefulShutdown({ otel, disconnectRedis, server });

@@ -58,6 +58,32 @@ test('a rejected init is counted as started and never becomes an unhandled rejec
     await new Promise((r) => setImmediate(r));   // an unswallowed rejection would crash here
 });
 
+test('the report carries `settled`: pending while an init runs, then the names of the inits that rejected', async () => {
+    let finishSlow = () => {};
+    const mods = {
+        slow: { initDB: () => new Promise((resolve) => { finishSlow = () => resolve(undefined); }) },
+        broken: { initDB: () => Promise.reject(new Error('DB down')) },
+        fine: { initDB: () => Promise.resolve() },
+    };
+    const report = startStoreSchemas({
+        log: quietLog,
+        modules: [{ name: 'slow', file: 'slow' }, { name: 'broken', file: 'broken' }, { name: 'fine', file: 'fine' }],
+        load: (f) => mods[f],
+    });
+    let outcome = null;
+    report.settled.then((o) => { outcome = o; });
+    await new Promise((r) => setImmediate(r));
+    assert.strictEqual(outcome, null, 'not settled while one init is still running');
+
+    finishSlow();
+    assert.deepStrictEqual(await report.settled, { rejected: ['broken'] });
+});
+
+test('`settled` resolves at once when no store has an awaitable init', async () => {
+    const report = startStoreSchemas({ log: quietLog, modules: [{ name: 'plain', file: 'p' }], load: () => ({}) });
+    assert.deepStrictEqual(await report.settled, { rejected: [] });
+});
+
 test('a store that cannot be loaded is reported, and the rest still start', () => {
     const started = [];
     const report = startStoreSchemas({

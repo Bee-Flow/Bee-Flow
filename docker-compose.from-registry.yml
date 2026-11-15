@@ -80,7 +80,12 @@ services:
     image: ${REGISTRY:-ghcr.io/bee-flow}/server:${TAG:-latest}
     container_name: ${STACK_NAME:-beeflow}-server
     profiles: [ "core" ]
-    command: npm start
+    # node itself (the image's own CMD), not `npm start`: npm puts a shell
+    # between Docker and the server, SIGTERM ends that shell, and the container
+    # stops without the server ever seeing the signal. Its graceful shutdown
+    # (finish the running automations, flush the App Studio data that is still
+    # in memory) then never runs on `docker compose stop`, `restart` or an upgrade.
+    command: [ "node", "index.js" ]
     # Loopback-only by default. Published on 0.0.0.0 the API answers on every
     # interface of the host, so /auth/*, /api/* and every other route can be
     # reached WITHOUT passing through the agent-hub nginx in front of it, and
@@ -345,6 +350,10 @@ services:
       - beeflow-network
       - beeflow-browser-network
     restart: unless-stopped
+    # The graceful shutdown may take up to about 40 s (25 s for running
+    # automations, then the flushes). Docker's default of 10 s would end it
+    # with SIGKILL halfway.
+    stop_grace_period: 45s
     depends_on:
       postgres:
         condition: service_healthy
@@ -354,12 +363,19 @@ services:
       # The server now reconnects on its own, but there is no reason to race.
       rustfs:
         condition: service_started
+    # Readiness, not just liveness: /api/ready answers 503 until the schema and
+    # the boot migrations have run, while the database is unreachable, and
+    # during a graceful shutdown. /api/health keeps answering 200 through all
+    # of that; the scripts that wait for the server use it. The start period
+    # covers a first install, whose schema and migrations take longer. A 404
+    # counts as healthy: it is an older server image without this route (a
+    # rollback with TAG set back), which answered and has no more to say.
     healthcheck:
-      test: [ "CMD", "node", "-e", "fetch('http://localhost:${SERVER_PORT:-3001}/api/health',{signal:AbortSignal.timeout(8000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))" ]
+      test: [ "CMD", "node", "-e", "fetch('http://localhost:${SERVER_PORT:-3001}/api/ready',{signal:AbortSignal.timeout(8000)}).then(r=>process.exit(r.ok||r.status===404?0:1)).catch(()=>process.exit(1))" ]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 120s
     logging:
       driver: json-file
       options:

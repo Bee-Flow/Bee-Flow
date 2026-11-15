@@ -9,7 +9,7 @@ toc_max_heading_level: 2
 
 # Other endpoints
 
-230 routes, 119 with a request schema. Back to the [endpoint reference](../reference.md).
+231 routes, 119 with a request schema. Back to the [endpoint reference](../reference.md).
 
 ## `(root)`
 
@@ -1072,6 +1072,14 @@ No request schema.
 ### `POST /api/public-share/ai/stream`
 
 **Access:** middleware `requireShareBridgeToken`
+
+No request schema.
+
+## `api/ready`
+
+### `GET /api/ready`
+
+**Access:** no gate in the middleware chain: the handler decides (it checks the session itself, or the route is public)
 
 No request schema.
 

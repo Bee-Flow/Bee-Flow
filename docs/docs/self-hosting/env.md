@@ -50,6 +50,9 @@ Postgres instance.
 | `SERVER_BIND_HOST` | `127.0.0.1` | Interface that publishes `SERVER_PORT`. Loopback on purpose: the API is meant to be reached through the agent-hub nginx, where the rate limits and security headers live. Set to `0.0.0.0` only when something off-machine must talk to the API port itself. |
 | `CLIENT_BIND_HOST` | `0.0.0.0` | Interface that publishes `CLIENT_PORT` (the web UI) in the compose stacks. All interfaces by default so a first install is reachable from the LAN. Docker publishes a port ahead of ufw/firewalld — a rule there does not close it — so behind a reverse proxy, and for any stack that must not be reachable from outside the machine, set `127.0.0.1`. A named stack (`STACK_NAME=…`, see [several stacks on one machine](multi-stack.md)) gets that default from `selfhost.sh`. |
 | `TRUST_PROXY_HOPS` | `1` | How many proxies sit in front of the server (a whole number; `0` means none). Rate limiting and login throttling key on the client IP; behind two proxies (e.g. CDN + nginx) set this to `2` or every visitor shares one bucket. A value that is not a number refuses to boot. |
+| `HTTP_KEEP_ALIVE_TIMEOUT_MS` | `65000` (65 s) | How long the server keeps an idle connection open. It must be longer than the idle time-out of the proxy or load balancer in front (60 s for nginx and most cloud load balancers), or the proxy now and then reuses a connection the server has just closed and answers 502. Raise it when your proxy keeps idle connections longer than a minute. |
+| `HTTP_HEADERS_TIMEOUT_MS` | `66000` (66 s) | How long a client may take to send its request headers. Always kept at least one second above `HTTP_KEEP_ALIVE_TIMEOUT_MS`. |
+| `BOOT_READY_TIMEOUT_MS` | `300000` (5 min) | How long the readiness probe (`GET /api/ready`) answers `503 starting` while the schema and the boot migrations are still running. After that the server reports ready anyway and logs which step is still running, so a migration that hangs cannot keep a rollout waiting for good. The liveness answer (`/api/health`) never waits for any of this. |
 | `PUBLIC_BASE_URL` | (none) | Public base URL of the API (`https://api.example.com`). Used for outgoing webhooks and callback URLs — and it is the switch that decides whether MS-Graph subscriptions get provisioned at all. |
 | `SERVER_PUBLIC_HOST` / `SERVER_PROTOCOL` | `localhost:3001` / `http` | How the API is addressed externally. |
 | `CLIENT_PUBLIC_HOST` / `CLIENT_PROTOCOL` | `localhost:5176` / `http` | Where the SPA lives; drives CORS and OAuth redirect URLs. |
@@ -72,6 +75,7 @@ Postgres instance.
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `DEPLOYMENT_MODE` | `cloud` | `cloud` (Bee Flow SaaS — Stripe subscriptions, consumer accounts) or `self-hosted` (customer-run — licence keys, no billing, Community tier by default, organisation domain allow-lists). These are the only two valid values; the retired `private-cloud` is treated as `self-hosted`. |
+| `STUDIO_APP_ENGINE` | `sqlite` | Where App Studio keeps the records of an app. `sqlite`: one SQLite file per app in object storage, written by **one** server process, so it fits a single server container (the compose install). `pg`: a Postgres schema per app in `beeflow_core`, required as soon as more than one server replica runs. Apps made under `sqlite` have to be moved before the switch (`node scripts/migrateStudioAppsToPg.js --all`, with `--dry-run` first); an app is only served by the engine it is marked for. See [Kubernetes](kubernetes.md#more-than-one-replica). |
 
 ## Download size limits
 
