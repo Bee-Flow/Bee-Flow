@@ -51,6 +51,8 @@ const INSTRUCTIONS = [
     '',
     'Start: cms_list_sites, then cms_list_site (pages, design summary) and cms_get_site_settings (header, footer, cookie banner, announcement). Edit pages with the page and block tools, site chrome with cms_update_site_settings / cms_update_header_nav, colours and fonts with cms_update_design, translations with cms_set_locale_override.',
     '',
+    'React components: a react-component block is one TSX file with a default export that the server compiles on every save. Change it with cms_update_react_component (sourceEdits for small fixes) and read compileError / diagnostics in its result until it compiles; cms_get_page shows the code, fields and props.',
+    '',
     'Images and video: never put file contents into a tool. cms_request_upload returns a one-time URL and a curl command; run it in a shell and use the asset url from its answer in a block (cms_list_assets shows what exists).',
     '',
     'Check your work: cms_screenshot (draft or published, desktop/tablet/mobile) and actually look at the image. Tool results carry `validation` warnings after edits and `_fixHint` when a call was rejected; both are worth reading.',

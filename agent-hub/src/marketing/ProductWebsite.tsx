@@ -508,7 +508,7 @@ function collectCustomFontFamilies(content: SiteContent) {
 // editing chrome must not sit inside an opacity transition).
 const WRAPPER_REVEAL_TYPES = new Set<string | undefined>([
     'socialProof', 'content', 'media-text', 'cta-banner',
-    'live-component', 'pricing', 'customer-support',
+    'live-component', 'pricing', 'customer-support', 'react-component',
 ]);
 
 function blockWrapClasses(style: BlockStyle | undefined, { type, inPreview, joined, early }: { type?: string; inPreview?: boolean; joined?: boolean; early?: boolean } = {}) {

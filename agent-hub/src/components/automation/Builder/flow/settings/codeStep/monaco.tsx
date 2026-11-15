@@ -15,6 +15,10 @@ export interface MonacoProps {
     onUnavailable: () => void;
     theme: string;
     options: Record<string, unknown>;
+    /** The model's file name: its extension tells the TypeScript worker the language (`.tsx` = JSX). */
+    path?: string;
+    /** Runs before the editor is created, with the Monaco namespace. */
+    beforeMount?: (monaco: unknown) => void;
 }
 
 /** The stand-in the failed import resolves to: it reports, and renders nothing. */

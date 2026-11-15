@@ -4011,3 +4011,7 @@ section.customer-support-block {
     width: 1.25rem;
     height: 1.25rem;
 }
+
+/* React component block (sections/ReactComponent.tsx): 'full' width spans the
+   section edge to edge, 'container' (default) uses .container. */
+.marketing-root .react-component-block__full { width: 100%; }

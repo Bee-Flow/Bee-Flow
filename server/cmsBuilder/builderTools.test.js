@@ -63,8 +63,8 @@ test('deepMerge: objects merge key-by-key, arrays REPLACE wholesale, null passes
     assert.deepStrictEqual(base.items.length, 3, 'base is not mutated');
 });
 
-test('tool bookkeeping sets: 11 mutating tools; page/site draft mappings', () => {
-    assert.strictEqual(MUTATING_TOOLS.size, 11);
+test('tool bookkeeping sets: 12 mutating tools; page/site draft mappings', () => {
+    assert.strictEqual(MUTATING_TOOLS.size, 12);
     assert.ok(SITE_DRAFT_TOOLS.has('cms_create_page') && SITE_DRAFT_TOOLS.has('cms_set_homepage'));
     assert.ok(SITE_DRAFT_TOOLS.has('cms_update_header_nav'), 'nav updates emit a site draft');
     assert.ok(SITE_DRAFT_TOOLS.has('cms_update_design'), 'design updates emit a site draft');
@@ -578,7 +578,7 @@ function rawSiteDoc(siteId) {
 test('cms_update_design: schema in the roster; deep-merge patch persists through the real store', async () => {
     const schema = TOOL_SCHEMAS.find((s) => s.function.name === 'cms_update_design');
     assert.ok(schema, 'schema registered');
-    assert.strictEqual(TOOL_SCHEMAS.length, 13, 'CLOSED SET — 13 tools');
+    assert.strictEqual(TOOL_SCHEMAS.length, 14, 'CLOSED SET — 14 tools');
     assert.ok(!schema.function.parameters.required, 'every field is optional (it is a patch)');
     assert.match(schema.function.description, /DEEP-MERGE PATCH/i, 'schema teaches patch semantics');
     // logo/favicon: only an uploaded image that exists in the asset store.

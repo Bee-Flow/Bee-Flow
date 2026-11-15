@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
     isDeniedKey, isTranslatableValue, collectStrings, labelForPath,
-    buildPageGroups, coverageForLocale, collectMedia,
+    buildPageGroups, coverageForLocale, collectMedia, collectReactProps,
 } from './translatable';
 import type { FieldPath, FoundString, TranslatableRow } from './translatable';
 
@@ -145,3 +145,37 @@ describe('stored override values that are not text', () => {
     });
 });
 
+
+describe('React component block', () => {
+    const content = {
+        source: 'export default function B({ title }) { return <h1>{title}</h1>; }',
+        css: '.a { color: red }',
+        compiled: 'module.exports.default = ...',
+        compileError: '',
+        fields: [
+            { name: 'title', label: 'Title', type: 'text' },
+            { name: 'body', label: 'Body', type: 'textarea' },
+            { name: 'accent', label: 'Accent', type: 'color' },
+            { name: 'size', label: 'Size', type: 'select', options: ['Small', 'Large'] },
+        ],
+        props: { title: 'Hello', body: 'Long words', accent: '#ff0000', size: 'Small', stray: 'not a field' },
+    };
+
+    it('only its text and textarea props translate (server: cmsTranslate collectReactProps)', () => {
+        const found: FoundString[] = [];
+        collectReactProps(content, found);
+        expect(found).toEqual([
+            { fieldPath: ['props', 'title'], source: 'Hello' },
+            { fieldPath: ['props', 'body'], source: 'Long words' },
+        ]);
+    });
+
+    it('the page groups never offer its code, css, fields or compiled output', () => {
+        const groups = buildPageGroups({ id: 'p', slug: 's', title: '', blocks: [{ id: 'r1', type: 'react-component', enabled: true, content }] } as never, null, null);
+        const rows = groups.flatMap(g => g.rows);
+        expect(rows.map(r => r.target)).toEqual([
+            { type: 'block', blockId: 'r1', fieldPath: ['props', 'title'] },
+            { type: 'block', blockId: 'r1', fieldPath: ['props', 'body'] },
+        ]);
+    });
+});

@@ -493,7 +493,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "auto",
@@ -505,7 +505,7 @@
      "added": [
       {
        "role": "system",
-       "length": 30313
+       "length": 34114
       },
       {
        "role": "user",
@@ -524,7 +524,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "low",
      "reasoningSummary": "auto",
@@ -569,7 +569,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "auto",
@@ -612,7 +612,7 @@
       {
        "role": "tool",
        "tool_call_id": "c2",
-       "content": "{\"pageId\":\"pg#2\",\"blockIds\":[\"blk#4\"],\"dropped\":[{\"index\":1,\"type\":\"carousel3000\",\"reason\":\"unknown-type\"}],\"warnings\":[],\"_fixHint\":\"1 block(s) dropped (\\\"carousel3000\\\"). Valid block types: hero, socialProof, content, media-text, features, steps, security, integrations, architecture, techStats, cta, cta-banner, live-component, pricing, customer-support, form, testimonials, faq, trust-band, showcase, feature-demo, roadmap, compare-table, github-stats, release-notes, blog-latest, tabs, feature-matrix, story-header, customer-stories, product-mockup, card-carousel, scrollStory, tour.\"}"
+       "content": "{\"pageId\":\"pg#2\",\"blockIds\":[\"blk#4\"],\"dropped\":[{\"index\":1,\"type\":\"carousel3000\",\"reason\":\"unknown-type\"}],\"warnings\":[],\"_fixHint\":\"1 block(s) dropped (\\\"carousel3000\\\"). Valid block types: hero, socialProof, content, media-text, features, steps, security, integrations, architecture, techStats, cta, cta-banner, live-component, pricing, customer-support, form, testimonials, faq, trust-band, showcase, feature-demo, roadmap, compare-table, github-stats, release-notes, blog-latest, tabs, feature-matrix, story-header, customer-stories, product-mockup, card-carousel, scrollStory, tour, react-component.\"}"
       },
       {
        "role": "tool",
@@ -626,7 +626,7 @@
       },
       {
        "role": "user",
-       "content": "[BLOCK FEEDBACK — machine-generated]\nYour cms_add_blocks call included unknown block type(s): \"carousel3000\" — those blocks were DROPPED and are NOT on the page. Re-add that content using only the valid types: hero, socialProof, content, media-text, features, steps, security, integrations, architecture, techStats, cta, cta-banner, live-component, pricing, customer-support, form, testimonials, faq, trust-band, showcase, feature-demo, roadmap, compare-table, github-stats, release-notes, blog-latest, tabs, feature-matrix, story-header, customer-stories, product-mockup, card-carousel, scrollStory, tour."
+       "content": "[BLOCK FEEDBACK — machine-generated]\nYour cms_add_blocks call included unknown block type(s): \"carousel3000\" — those blocks were DROPPED and are NOT on the page. Re-add that content using only the valid types: hero, socialProof, content, media-text, features, steps, security, integrations, architecture, techStats, cta, cta-banner, live-component, pricing, customer-support, form, testimonials, faq, trust-band, showcase, feature-demo, roadmap, compare-table, github-stats, release-notes, blog-latest, tabs, feature-matrix, story-header, customer-stories, product-mockup, card-carousel, scrollStory, tour, react-component."
       }
      ]
     }
@@ -803,7 +803,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "auto",
@@ -815,7 +815,7 @@
      "added": [
       {
        "role": "system",
-       "length": 30313
+       "length": 34114
       },
       {
        "role": "user",
@@ -834,7 +834,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "auto",
@@ -874,7 +874,7 @@
       {
        "role": "tool",
        "tool_call_id": "e2",
-       "content": "{\"error\":\"Unknown tool \\\"cms_not_a_tool\\\".\",\"_fixHint\":\"Valid tools: cms_list_site, cms_get_page, cms_create_page, cms_update_page_meta, cms_update_page_seo, cms_add_blocks, cms_update_block, cms_remove_block, cms_reorder_blocks, cms_set_homepage, cms_reorder_pages, cms_update_header_nav, cms_update_design.\"}"
+       "content": "{\"error\":\"Unknown tool \\\"cms_not_a_tool\\\".\",\"_fixHint\":\"Valid tools: cms_list_site, cms_get_page, cms_create_page, cms_update_page_meta, cms_update_page_seo, cms_add_blocks, cms_update_block, cms_update_react_component, cms_remove_block, cms_reorder_blocks, cms_set_homepage, cms_reorder_pages, cms_update_header_nav, cms_update_design.\"}"
       }
      ]
     }
@@ -885,7 +885,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "auto",
@@ -1141,7 +1141,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "auto",
@@ -1153,7 +1153,7 @@
      "added": [
       {
        "role": "system",
-       "length": 30313
+       "length": 34114
       },
       {
        "role": "user",
@@ -1172,7 +1172,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "auto",
@@ -1214,7 +1214,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "auto",
@@ -1384,7 +1384,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "auto",
@@ -1396,7 +1396,7 @@
      "added": [
       {
        "role": "system",
-       "length": 30313
+       "length": 34114
       },
       {
        "role": "user",
@@ -1547,7 +1547,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "auto",
@@ -1559,7 +1559,7 @@
      "added": [
       {
        "role": "system",
-       "length": 30313
+       "length": 34114
       },
       {
        "role": "user",
@@ -1688,7 +1688,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "auto",
@@ -1700,7 +1700,7 @@
      "added": [
       {
        "role": "system",
-       "length": 30313
+       "length": 34114
       },
       {
        "role": "user",
@@ -1838,7 +1838,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "auto",
@@ -1850,7 +1850,7 @@
      "added": [
       {
        "role": "system",
-       "length": 30313
+       "length": 34114
       },
       {
        "role": "user",
@@ -1988,7 +1988,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "auto",
@@ -2000,7 +2000,7 @@
      "added": [
       {
        "role": "system",
-       "length": 30313
+       "length": 34114
       },
       {
        "role": "user",
@@ -2138,7 +2138,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "auto",
@@ -2150,7 +2150,7 @@
      "added": [
       {
        "role": "system",
-       "length": 30313
+       "length": 34114
       },
       {
        "role": "user",
@@ -2730,7 +2730,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "auto",
@@ -2742,7 +2742,7 @@
      "added": [
       {
        "role": "system",
-       "length": 30313
+       "length": 34114
       },
       {
        "role": "user",
@@ -2761,7 +2761,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "auto",
@@ -2799,7 +2799,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "low",
      "reasoningSummary": "auto",
@@ -2837,7 +2837,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "low",
      "reasoningSummary": "auto",
@@ -2875,7 +2875,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "auto",
@@ -2902,11 +2902,11 @@
       {
        "role": "tool",
        "tool_call_id": "h4",
-       "content": "{\"pageId\":\"pg#2\",\"blockIds\":[\"blk#4\"],\"dropped\":[{\"index\":1,\"type\":\"carousel3000\",\"reason\":\"unknown-type\"}],\"warnings\":[],\"_fixHint\":\"1 block(s) dropped (\\\"carousel3000\\\"). Valid block types: hero, socialProof, content, media-text, features, steps, security, integrations, architecture, techStats, cta, cta-banner, live-component, pricing, customer-support, form, testimonials, faq, trust-band, showcase, feature-demo, roadmap, compare-table, github-stats, release-notes, blog-latest, tabs, feature-matrix, story-header, customer-stories, product-mockup, card-carousel, scrollStory, tour.\"}"
+       "content": "{\"pageId\":\"pg#2\",\"blockIds\":[\"blk#4\"],\"dropped\":[{\"index\":1,\"type\":\"carousel3000\",\"reason\":\"unknown-type\"}],\"warnings\":[],\"_fixHint\":\"1 block(s) dropped (\\\"carousel3000\\\"). Valid block types: hero, socialProof, content, media-text, features, steps, security, integrations, architecture, techStats, cta, cta-banner, live-component, pricing, customer-support, form, testimonials, faq, trust-band, showcase, feature-demo, roadmap, compare-table, github-stats, release-notes, blog-latest, tabs, feature-matrix, story-header, customer-stories, product-mockup, card-carousel, scrollStory, tour, react-component.\"}"
       },
       {
        "role": "user",
-       "content": "[BLOCK FEEDBACK — machine-generated]\nYour cms_add_blocks call included unknown block type(s): \"carousel3000\" — those blocks were DROPPED and are NOT on the page. Re-add that content using only the valid types: hero, socialProof, content, media-text, features, steps, security, integrations, architecture, techStats, cta, cta-banner, live-component, pricing, customer-support, form, testimonials, faq, trust-band, showcase, feature-demo, roadmap, compare-table, github-stats, release-notes, blog-latest, tabs, feature-matrix, story-header, customer-stories, product-mockup, card-carousel, scrollStory, tour."
+       "content": "[BLOCK FEEDBACK — machine-generated]\nYour cms_add_blocks call included unknown block type(s): \"carousel3000\" — those blocks were DROPPED and are NOT on the page. Re-add that content using only the valid types: hero, socialProof, content, media-text, features, steps, security, integrations, architecture, techStats, cta, cta-banner, live-component, pricing, customer-support, form, testimonials, faq, trust-band, showcase, feature-demo, roadmap, compare-table, github-stats, release-notes, blog-latest, tabs, feature-matrix, story-header, customer-stories, product-mockup, card-carousel, scrollStory, tour, react-component."
       }
      ]
     }
@@ -2917,7 +2917,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "low",
      "reasoningSummary": "auto",
@@ -2955,7 +2955,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "low",
      "reasoningSummary": "auto",
@@ -3125,7 +3125,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "auto",
@@ -3137,7 +3137,7 @@
      "added": [
       {
        "role": "system",
-       "length": 30313
+       "length": 34114
       },
       {
        "role": "user",
@@ -3270,7 +3270,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "auto",
@@ -3282,7 +3282,7 @@
      "added": [
       {
        "role": "system",
-       "length": 30313
+       "length": 34114
       },
       {
        "role": "user",
@@ -3415,7 +3415,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "auto",
@@ -3427,7 +3427,7 @@
      "added": [
       {
        "role": "system",
-       "length": 30313
+       "length": 34114
       },
       {
        "role": "user",
@@ -3560,7 +3560,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "auto",
@@ -3572,7 +3572,7 @@
      "added": [
       {
        "role": "system",
-       "length": 30313
+       "length": 34114
       },
       {
        "role": "user",
@@ -3710,7 +3710,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "auto",
@@ -3722,7 +3722,7 @@
      "added": [
       {
        "role": "system",
-       "length": 30313
+       "length": 34114
       },
       {
        "role": "user",
@@ -3855,7 +3855,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "detailed",
@@ -3867,7 +3867,7 @@
      "added": [
       {
        "role": "system",
-       "length": 30313
+       "length": 34114
       },
       {
        "role": "user",
@@ -4021,7 +4021,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.4,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "required",
      "reasoningEffort": "none",
      "reasoningSummary": null,
@@ -4033,7 +4033,7 @@
      "added": [
       {
        "role": "system",
-       "length": 30313
+       "length": 34114
       },
       {
        "role": "user",
@@ -4052,7 +4052,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.4,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "none",
      "reasoningSummary": null,
@@ -4239,7 +4239,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "auto",
@@ -4251,7 +4251,7 @@
      "added": [
       {
        "role": "system",
-       "length": 30313
+       "length": 34114
       },
       {
        "role": "user",
@@ -4638,7 +4638,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "auto",
@@ -4650,7 +4650,7 @@
      "added": [
       {
        "role": "system",
-       "length": 30313
+       "length": 34114
       },
       {
        "role": "user",
@@ -4669,7 +4669,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "low",
      "reasoningSummary": "auto",
@@ -4828,7 +4828,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "auto",
@@ -4840,7 +4840,7 @@
      "added": [
       {
        "role": "system",
-       "length": 30313
+       "length": 34114
       },
       {
        "role": "user",
@@ -4933,7 +4933,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "auto",
@@ -4945,7 +4945,7 @@
      "added": [
       {
        "role": "system",
-       "length": 30313
+       "length": 34114
       },
       {
        "role": "user",
@@ -4964,7 +4964,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "low",
      "reasoningSummary": "auto",
@@ -5111,7 +5111,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "auto",
@@ -5123,7 +5123,7 @@
      "added": [
       {
        "role": "system",
-       "length": 30313
+       "length": 34114
       },
       {
        "role": "user",
@@ -5252,7 +5252,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "auto",
@@ -5264,7 +5264,7 @@
      "added": [
       {
        "role": "system",
-       "length": 30313
+       "length": 34114
       },
       {
        "role": "user",
@@ -5397,7 +5397,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "auto",
@@ -5409,7 +5409,7 @@
      "added": [
       {
        "role": "system",
-       "length": 30313
+       "length": 34114
       },
       {
        "role": "user",
@@ -5526,7 +5526,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "auto",
@@ -5538,7 +5538,7 @@
      "added": [
       {
        "role": "system",
-       "length": 30313
+       "length": 34114
       },
       {
        "role": "user",
@@ -5637,7 +5637,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "auto",
@@ -5649,7 +5649,7 @@
      "added": [
       {
        "role": "system",
-       "length": 30313
+       "length": 34114
       },
       {
        "role": "user",
@@ -5728,7 +5728,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "auto",
@@ -5740,7 +5740,7 @@
      "added": [
       {
        "role": "system",
-       "length": 30313
+       "length": 34114
       },
       {
        "role": "user",
@@ -6123,7 +6123,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "medium",
      "reasoningSummary": "auto",
@@ -6135,7 +6135,7 @@
      "added": [
       {
        "role": "system",
-       "length": 30313
+       "length": 34114
       },
       {
        "role": "user",
@@ -6154,7 +6154,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "low",
      "reasoningSummary": "auto",
@@ -6192,7 +6192,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "low",
      "reasoningSummary": "auto",
@@ -6230,7 +6230,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "low",
      "reasoningSummary": "auto",
@@ -6268,7 +6268,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "low",
      "reasoningSummary": "auto",
@@ -6306,7 +6306,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "low",
      "reasoningSummary": "auto",
@@ -6344,7 +6344,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "low",
      "reasoningSummary": "auto",
@@ -6382,7 +6382,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "low",
      "reasoningSummary": "auto",
@@ -6420,7 +6420,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "low",
      "reasoningSummary": "auto",
@@ -6458,7 +6458,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "low",
      "reasoningSummary": "auto",
@@ -6496,7 +6496,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "low",
      "reasoningSummary": "auto",
@@ -6534,7 +6534,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "low",
      "reasoningSummary": "auto",
@@ -6572,7 +6572,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "low",
      "reasoningSummary": "auto",
@@ -6610,7 +6610,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "low",
      "reasoningSummary": "auto",
@@ -6648,7 +6648,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "low",
      "reasoningSummary": "auto",
@@ -6686,7 +6686,7 @@
      "signal": "AbortSignal",
      "maxTokens": 8192,
      "temperature": 0.2,
-     "tools": 13,
+     "tools": 14,
      "toolChoice": "auto",
      "reasoningEffort": "low",
      "reasoningSummary": "auto",

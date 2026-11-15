@@ -200,6 +200,12 @@
             "why": "Webpage preview document (bridges, inliners, react-mui import map, bundler plugin, runtime guard, asset resolver, shell): the web editor's preview (utils/composeWebpageDocument.js, utils/buildWebpagePreview.js) and the server's screenshot, public React share and phone draft document build the same document."
         },
         {
+            "source": "server/shared/cmsReact",
+            "target": "agent-hub/src/shared/cmsReact",
+            "transform": "none",
+            "why": "The CMS React component block's compiler (allowed imports, field types, esbuild options): the server compiles on every page save, the admin editor compiles the same source in the browser for its live preview and error markers."
+        },
+        {
             "source": "server/utils/htmlToMarkdown.js",
             "target": "components/webpage-to-markdown/htmlToMarkdown.js",
             "transform": "none",

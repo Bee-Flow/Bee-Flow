@@ -10,7 +10,7 @@ const {
     isPlainObject, isRecord, assertSiteId, pageKey, pageLocaleKey, projectKey, projectLocaleKey,
 } = require('./shared');
 const { withConfigGroup, realignRoot } = require('./overrideAlign');
-const { sanitizePageOverride, sanitizeSiteOverride, assertLocale } = require('./localeOverrides');
+const { sanitizePageOverride, sanitizeSiteOverride, assertLocale, limitReactOverrides } = require('./localeOverrides');
 
 /** @typedef {{ id?: unknown, content?: unknown }} StoredBlock */
 
@@ -45,6 +45,7 @@ async function saveTranslatedPageOverride(siteId, pageId, locale, result, snapsh
             blocks[blockId] = parked ? { ...moved, _orphans: parked } : moved;
         }
         const sanitized = sanitizePageOverride({ ...result, blocks });
+        limitReactOverrides(sanitized.blocks, current);
         await io.set(key, sanitized);
         return sanitized;
     });

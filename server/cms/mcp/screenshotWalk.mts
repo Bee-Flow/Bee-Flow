@@ -1,6 +1,7 @@
 /**
  * Page-side helpers of the CMS screenshot. Chrome does not paint off-screen
- * cross-origin frames (the sandboxed live-component iframes) until they have
+ * cross-origin frames (the sandboxed live-component and React component
+ * iframes) until they have
  * been in view, so a capture that jumps straight to `offsetY` photographs an
  * empty band. The walk scrolls through the region that will be photographed,
  * one viewport at a time, with two animation frames per stop.
@@ -8,7 +9,8 @@
 
 type WalkPage = { evaluate: (fn: (arg: any) => unknown, arg?: unknown) => Promise<unknown> };
 
-const LIVE_FRAME_SELECTOR = 'iframe[title="Live Component"]';
+/** The sandboxed component frames: live-component blocks, and react-component blocks (`data-cms-frame`). */
+export const COMPONENT_FRAME_SELECTOR = 'iframe[title="Live Component"], iframe[data-cms-frame]';
 
 /** Scroll through [from, to) so every frame in it has painted, then back to `from`. */
 export async function paintRegion(page: WalkPage, from: number, to: number): Promise<void> {
@@ -26,8 +28,8 @@ export async function paintRegion(page: WalkPage, from: number, to: number): Pro
     }, { a: from, b: to, stepMs: 60 });
 }
 
-/** How many live-component iframes the page holds (0 when unknown). */
+/** How many sandboxed component iframes the page holds (0 when unknown). */
 export async function countLiveFrames(page: WalkPage): Promise<number> {
-    const n = await page.evaluate((sel: string) => document.querySelectorAll(sel).length, LIVE_FRAME_SELECTOR).catch(() => 0);
+    const n = await page.evaluate((sel: string) => document.querySelectorAll(sel).length, COMPONENT_FRAME_SELECTOR).catch(() => 0);
     return Number.isInteger(n) && (n as number) > 0 && (n as number) < 1000 ? (n as number) : 0;
 }

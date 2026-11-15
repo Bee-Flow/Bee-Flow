@@ -27,6 +27,7 @@
  *             demo_poster_not_text, demo_caption_not_text — feature-demo poster/caption (validateBlocks.js)
  *             matrix_columns_count, matrix_missing_id, matrix_duplicate_id, matrix_empty_label,
  *             matrix_many_highlights, matrix_unknown_column, matrix_cell_kind — feature-matrix (validateBlocks.js)
+ *             react_compile_error, react_prop_type, react_prop_undeclared — react-component (validateBlocks.js)
  *
  * The three design checks are WARNINGS, never errors, per this file's
  * doctrine: cmsStore.sanitizeDesign() coerces instead of rejecting, so these
@@ -41,7 +42,7 @@
 
 const { sanitizeBlockDesignStyle, BLOCK_DESIGN_STYLE_KEYS, MEDIA_HEIGHTS, MEDIA_FITS } = require('../i18n/defaults/blockStyleEnums');
 const { BLOCK_VARIANTS, DEMO_FEATURE_IDS, COLOR_KEYS, BLANKABLE_COLORS, DARK_COLOR_KEYS, DESIGN_FONTS } = require('../i18n/defaults/cmsDefaults');
-const { checkTabs, checkFeatureMatrix, checkStoryHeader, checkScrollStory, checkFeatureDemo } = require('./validateBlocks');
+const { checkFeatureDemo, checkBlockContent } = require('./validateBlocks');
 const { slugProblem } = require('../stores/cms/slugRules');
 const { checkPageMedia } = require('./validateMedia');
 const { safeIconAsset } = require('../stores/cms/localeMedia');
@@ -381,10 +382,7 @@ function validateSiteDraft(draftWrap) {
                 }
                 checkFeatureDemo(b.content, `pages.${entry.id}.blocks[${i}].content`, warnings);
             }
-            if (b?.type === 'tabs') checkTabs(b.content, `pages.${entry.id}.blocks[${i}].content`, warnings);
-            if (b?.type === 'feature-matrix') checkFeatureMatrix(b.content, `pages.${entry.id}.blocks[${i}].content`, warnings);
-            if (b?.type === 'scrollStory') checkScrollStory(b.content, `pages.${entry.id}.blocks[${i}].content`, warnings);
-            if (b?.type === 'story-header') checkStoryHeader(b.content, `pages.${entry.id}.blocks[${i}].content`, warnings);
+            checkBlockContent(b?.type, b?.content, `pages.${entry.id}.blocks[${i}].content`, warnings);
             warnings.push(...experimentWarnings(b, `pages.${entry.id}.blocks[${i}].content`));
             checkBlockStyle(b?.style, `pages.${entry.id}.blocks[${i}].style`, warnings);
         });

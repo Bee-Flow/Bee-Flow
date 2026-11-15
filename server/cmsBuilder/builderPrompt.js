@@ -20,6 +20,8 @@ const {
     DISPLAY_SIZES, HEADING_WEIGHTS, DISPLAY_TRACKINGS, BODY_SIZES, COLOR_KEYS, BLANKABLE_COLORS, DARK_COLOR_KEYS, DESIGN_FONTS,
 } = require('../i18n/defaults/cmsDefaults');
 const { THEME_PRESETS } = require('../i18n/defaults/themePresets');
+const { ALLOWED_IMPORTS, FIELD_TYPES, REACT_THEME_VARS } = require('../shared/cmsReact/compile.mjs');
+const { redactCompiledPage } = require('../stores/cms/reactBlock.mts');
 
 // ---------------------------------------------------------------------------
 // Catalogue — rendered ONCE per process (byte-stable)
@@ -57,7 +59,7 @@ const LAYOUT_TEXT = enumLine(DESIGN_LAYOUT_ENUMS);
 // ---------------------------------------------------------------------------
 
 function buildSystemPrompt() {
-    return `You are the BeeFlow website builder. You build and edit pages of a CMS website as STRUCTURED BLOCKS — never code. There is no HTML, CSS or JavaScript here: a page is an ordered list of typed blocks you assemble exclusively through the cms_* tools. Do not describe the site in prose instead of building it — call the tools.
+    return `You are the BeeFlow website builder. You build and edit pages of a CMS website as STRUCTURED BLOCKS. A page is an ordered list of typed blocks you assemble exclusively through the cms_* tools; the one place code belongs is a react-component block (see React components below), and only when no other block type can do the job. Do not describe the site in prose instead of building it — call the tools.
 
 ## The content model
 
@@ -110,6 +112,15 @@ function buildSystemPrompt() {
 - The site LOGO and FAVICON are uploaded assets, not design values: you cannot set them here. Ask the user to upload one in the Design tab — never invent an asset key.
 - Contrast is your job: dark text on a light background and a readable button label on the primary colour. A low-contrast palette still saves but comes back as a warning you should fix.
 
+## React components (react-component, cms_update_react_component)
+
+- For something interactive no other block offers (a calculator, a configurator, a small game). Prefer the other blocks for ordinary content.
+- The code is ONE TSX/JSX file with a default export: the component. It may import only ${ALLOWED_IMPORTS.join(', ')} — no other packages, no second file.
+- Props come from \`fields\` ([{ name, label, type (${FIELD_TYPES.join(' | ')}), options?, help? }]) with their values in \`props\`; declare every value an editor should change (text, labels, numbers, colours) as a field instead of hard-coding it. Only text/textarea props are translated.
+- Theme: the site's design arrives as CSS variables ${REACT_THEME_VARS.join(', ')}. Always give a fallback: var(--bf-primary, #F5A623).
+- It runs in a sandboxed frame: no network access beyond this site (connect-src is the site itself), no cookies or storage of the page, and a link navigates the top page. \`css\` is a stylesheet for the frame; width is container | full; minHeight is the frame height (px) until the component reports its own.
+- Create it with cms_add_blocks { type: "react-component", content: { source, fields, props } }; change it with cms_update_react_component — sourceEdits [{find, replace}] for small changes (each find exactly once), source for a rewrite. The server compiles on every save: read compiled / compileError / diagnostics (line:column in component.tsx) in the result and fix the code until it compiles. The page JSON shows \`compiled\` as a size note; never write it yourself.
+
 ## Out of scope (redirect, never fake)
 
 - DELETING pages: you cannot delete a page. Suggest disabling its blocks (cms_update_block enabled:false) or tell the user to delete it in the Pages panel.
@@ -146,6 +157,12 @@ function isPlainObject(v) {
     return v !== null && typeof v === 'object' && !Array.isArray(v);
 }
 
+/** `(react: 3 fields, compiles)` / `(react: 0 fields, COMPILE ERROR)` for a react-component block. */
+function reactOutline(c) {
+    const fields = Array.isArray(c.fields) ? c.fields.length : 0;
+    return `(react: ${fields} field${fields === 1 ? '' : 's'}, ${c.compileError ? 'COMPILE ERROR' : 'compiles'})`;
+}
+
 /**
  * One line per block: `blk_x hero "Your headline here" [disabled]`.
  * @param {string} [indent]
@@ -159,6 +176,7 @@ function blockOutlineLine(b, indent = '    ') {
     if (Array.isArray(c.titleParts) && c.titleParts.length && bits.length === 1) {
         bits.push(q(c.titleParts.map((p) => p && p.text).filter(Boolean).join(' ')));
     }
+    if (b.type === 'react-component') bits.push(reactOutline(c));
     if (b.enabled === false) bits.push('[disabled]');
     return bits.join(' ');
 }
@@ -250,7 +268,7 @@ function renderDraftState(draftWrap, context = null) {
     if (focusId) {
         const doc = cache.get(focusId);
         if (doc) {
-            const json = JSON.stringify(doc);
+            const json = JSON.stringify(redactCompiledPage(doc));
             if (json.length <= PAGE_JSON_CAP) {
                 lines.push(`focus page ${focusId} — full JSON:`);
                 lines.push(json);

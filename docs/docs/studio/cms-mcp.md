@@ -65,7 +65,7 @@ touching the current draft.
 | Area | Tools |
 | --- | --- |
 | Sites | `cms_list_sites`, `cms_duplicate_site`, `cms_list_templates` |
-| Pages and blocks | `cms_list_site`, `cms_get_page`, `cms_create_page`, `cms_update_page_meta`, `cms_update_page_seo`, `cms_add_blocks`, `cms_update_block`, `cms_remove_block`, `cms_reorder_blocks`, `cms_set_homepage`, `cms_reorder_pages`, `cms_delete_page` |
+| Pages and blocks | `cms_list_site`, `cms_get_page`, `cms_create_page`, `cms_update_page_meta`, `cms_update_page_seo`, `cms_add_blocks`, `cms_update_block`, `cms_update_react_component`, `cms_remove_block`, `cms_reorder_blocks`, `cms_set_homepage`, `cms_reorder_pages`, `cms_delete_page` |
 | Site chrome | `cms_update_header_nav`, `cms_get_site_settings`, `cms_update_site_settings` (header, footer, cookie banner, announcement bar, Google Analytics id, site name), `cms_update_design` (colours, fonts, layout, logo and favicon from an uploaded image) |
 | Translations | `cms_get_locale_overrides`, `cms_set_locale_override` |
 | Blog | `cms_list_posts`, `cms_get_post`, `cms_create_post`, `cms_update_post`, `cms_delete_post`, `cms_set_post_translation`, `cms_update_blog_settings` (see [Blog posts](#blog-posts)) |
@@ -108,6 +108,76 @@ them, with their default content):
   published story as a card with a sector filter, in page order, and lists them in
   the page HTML; the stories also sit in the sitemap and have translations like any
   page. A draft story never appears: cards come from the last `cms_publish`.
+
+## React components
+
+A **`react-component`** block is a component you write yourself: one TSX (or JSX)
+file with a default export, rendered on the page in a sandboxed frame. Use it for
+something interactive that no other block offers, such as a calculator or a
+configurator. The React it runs on is served by this Bee Flow instance itself: a
+visitor's browser loads nothing from a CDN or any other host.
+
+```json
+{
+  "source": "import { useState } from 'react';\nexport default function Counter({ title }: { title: string }) { … }",
+  "css": "",
+  "fields": [{ "name": "title", "label": "Title", "type": "text" }],
+  "props": { "title": "Count with me" },
+  "width": "container",
+  "minHeight": 240
+}
+```
+
+**The authoring contract.**
+
+- One file, a default export (the component). It may import only `react`,
+  `react/jsx-runtime`, `react/jsx-dev-runtime`, `react-dom` and `react-dom/client`;
+  any other import is a compile error that names the allowed ones.
+- `fields` declares the props an editor can change: `{ name, label, type, options?,
+  help? }`, `name` a JavaScript identifier, `type` one of `text`, `textarea`,
+  `number`, `boolean`, `color` (`#rrggbb`), `image` (an asset key or URL), `link` (a
+  link object) and `select` (one of `options`). `props` holds the values; the
+  component receives them as its props. Only `text` and `textarea` props are
+  translated: a translation of the block can change its `props` and nothing else.
+- The site's design arrives as CSS variables on the frame: `--bf-primary`,
+  `--bf-secondary`, `--bf-accent`, `--bf-background`, `--bf-surface`, `--bf-text`,
+  `--bf-text-secondary`, `--bf-font-body`, `--bf-font-heading` and `--bf-radius`.
+  Give each a fallback (`var(--bf-primary, #F5A623)`) so the component also renders
+  on its own.
+- The frame is sandboxed: no access to the page, its cookies or its storage, and no
+  network beyond this site. A link navigates the whole page. `css` is a stylesheet
+  for the frame, `width` is `container` or `full`, and `minHeight` (px, 0-4000) is
+  the frame's height until the component reports its own.
+
+**Compiling.** The server compiles the code on every save and stores the result in
+the block (`compiled`, or `compileError` with `component.tsx:line:column`
+positions). Whatever a client sends in those two fields is discarded. A block whose
+code does not compile renders nothing on the public site, and the edit results
+carry a `react_compile_error` warning in `validation` (also `react_prop_type` for a
+prop that does not fit its field, and `react_prop_undeclared` for a prop without a
+field). `cms_get_page` shows `source`, `css`, `fields` and `props`, and `compiled`
+as a size note.
+
+**Changing one.** `cms_update_react_component { pageId, blockId, … }` takes any of:
+
+| Argument | What it does |
+| --- | --- |
+| `source` | Replaces the whole file. |
+| `sourceEdits` | `[{find, replace}]` for small changes: each `find` must occur exactly once in the current source, up to 20 per call, applied in order, all-or-nothing. Not together with `source`. |
+| `css` | Replaces the stylesheet. |
+| `fields` | Replaces the field list. |
+| `props` | Merged key by key; a key set to `null` is removed. |
+| `width`, `minHeight` | The frame's width and starting height. |
+
+It answers with the compile outcome, so an agent can fix its own errors: `{ ok,
+compiled, compileError, diagnostics: [{ line, column, text }], sourceBytes }` (line
+1-based, column 0-based). Create the block with `cms_add_blocks` (`type:
+"react-component"`); a block that brings its own `source` starts without the
+sample's fields and props.
+
+The largest source the server compiles is set with `CMS_REACT_SOURCE_MAX_BYTES`
+(default 200,000 bytes, `0` = unlimited, see [environment
+variables](../self-hosting/env.md)).
 
 ## Blog posts
 

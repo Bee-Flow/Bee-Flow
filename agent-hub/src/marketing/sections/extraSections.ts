@@ -23,6 +23,8 @@ const CustomerStories = lazySection(() => import('./CustomerStories'));
 const CompareTable = lazySection(() => import('./CompareTable'));
 const FeatureMatrix = lazySection(() => import('./FeatureMatrix'));
 const Roadmap = lazySection(() => import('./Roadmap'));
+// Runs an author's compiled React in a sandboxed frame; its runtime is a further lazy chunk.
+const ReactComponent = lazySection(() => import('./ReactComponent'));
 
 /**
  * Sections registered by block type outside ProductWebsite.jsx, which sits at
@@ -47,4 +49,5 @@ export const EXTRA_SECTIONS = {
     'compare-table': CompareTable,
     'feature-matrix': FeatureMatrix,
     roadmap: Roadmap,
+    'react-component': ReactComponent,
 };

@@ -10,6 +10,7 @@ const {
 } = require('./shared');
 const { getProject } = require('./projects');
 const { getPage } = require('./pages');
+const { REACT_BLOCK_TYPE, reactOverrideContent } = require('./reactBlock.mts');
 const {
     getDefaultLocale, getSiteLocaleOverride, getPageLocaleOverride,
 } = require('./localeOverrides');
@@ -275,7 +276,11 @@ async function resolveEffective(siteId, slug, locale, ctx) {
             if (!ov) return b;
             // Text first, then the media addresses (re-validated here: a snapshot or an
             // import may hold an override that predates the write-time check).
-            const ovContent = cleanOverrideMedia(ov.content || {});
+            // A React component translates its props only: an older override
+            // can never shadow its code (reactBlock.mts).
+            const ovContent = b.type === REACT_BLOCK_TYPE
+                ? reactOverrideContent(ov.content)
+                : cleanOverrideMedia(ov.content || {});
             return { ...b, content: applyOverrideMedia(mergeLocaleContent(b.content, ovContent), ovContent) };
         });
     }

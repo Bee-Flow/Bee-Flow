@@ -168,13 +168,13 @@ const DEMO_CONTENT: Record<string, Record<string, unknown>> = {
         title: 'Questions? Ask us anything',
         lead: 'Our assistant answers in seconds; a human follows up when it matters.',
     },
-    // 'live-component' and 'pricing' intentionally absent: those tiles keep
+    // 'live-component', 'react-component' and 'pricing' intentionally absent: those tiles keep
     // the SVG wireframe (raw user code / a network fetch have no business
     // running inside a thumbnail). SectionThumb checks WIREFRAME_ONLY.
 };
 
 /** Types that must never live-render in a thumbnail. */
-export const WIREFRAME_ONLY = new Set<string>(['live-component', 'pricing']);
+export const WIREFRAME_ONLY = new Set<string>(['live-component', 'react-component', 'pricing']);
 
 /**
  * Demo content for one block type: curated copy layered over the stock

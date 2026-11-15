@@ -8,7 +8,7 @@
  * here — the system prompt (./builderPrompt.js) renders the full
  * BLOCK_DEFAULTS catalogue; these descriptions only teach the call protocol.
  *
- * CLOSED SET — exactly 13 tools. Page delete, footer/cookie-banner edits,
+ * CLOSED SET — exactly 14 tools. Page delete, footer/cookie-banner edits,
  * locale overrides and publishing are deliberately NOT tools (the system
  * prompt redirects the user for those). The header MENU and the site DESIGN
  * are the two pieces of site chrome that ARE editable — via
@@ -22,6 +22,7 @@ const {
     DISPLAY_SIZES, HEADING_WEIGHTS, DISPLAY_TRACKINGS, BODY_SIZES, COLOR_KEYS, BLANKABLE_COLORS, DARK_COLOR_KEYS, DESIGN_FONTS,
 } = require('../i18n/defaults/cmsDefaults');
 const { THEME_PRESET_IDS } = require('../i18n/defaults/themePresets');
+const { ALLOWED_IMPORTS, FIELD_TYPES, REACT_THEME_VARS } = require('../shared/cmsReact/compile.mjs');
 
 const LINK_HINT = 'Links are objects: {kind:"page",pageId} | {kind:"external",url,newTab?} | {kind:"anchor",anchor} | {kind:"app",path}. Use REAL page ids from the draft state.';
 
@@ -177,6 +178,40 @@ const TOOL_SCHEMAS = [
                     contentPatch: { type: 'object', description: 'Partial content, deep-merged (arrays replace wholesale).' },
                     stylePatch: { type: 'object', description: 'Partial style wrapper (see the description for the closed key set).' },
                     enabled: { type: 'boolean', description: 'Show/hide the block.' },
+                },
+                required: ['pageId', 'blockId'],
+            },
+        },
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'cms_update_react_component',
+            description: `Edit a React component block (type react-component): its code, stylesheet, editable fields and prop values. The server compiles the code on save and returns the outcome: { ok, compiled, compileError, diagnostics:[{line, column, text}], sourceBytes } — line is 1-based, column 0-based in component.tsx. When ok is false, read the diagnostics, fix the code and call again; the public page shows nothing for the block until it compiles. The code is ONE TSX file with a default export (the component); it may import only ${ALLOWED_IMPORTS.join(', ')}. Send either source (the whole file) or sourceEdits [{find, replace}] for small changes: each find must occur EXACTLY ONCE in the current source (copy it from cms_get_page; include enough context to be unique), edits apply in order, and nothing is saved when one fails. fields REPLACES the field list; props MERGES key by key (null removes a key). Theme: ${REACT_THEME_VARS.join(', ')} with a fallback, e.g. var(--bf-primary, #F5A623).`,
+            parameters: {
+                type: 'object',
+                properties: {
+                    pageId: { type: 'string' },
+                    blockId: { type: 'string', description: 'The react-component block id (blk_…).' },
+                    source: { type: 'string', description: 'The whole component file (TSX), replacing the current one.' },
+                    sourceEdits: {
+                        type: 'array',
+                        description: 'Exact find/replace edits on the current source, applied in order (max 20).',
+                        items: {
+                            type: 'object',
+                            properties: { find: { type: 'string' }, replace: { type: 'string' } },
+                            required: ['find', 'replace'],
+                        },
+                    },
+                    css: { type: 'string', description: 'Stylesheet injected into the component frame (replaces the current one).' },
+                    fields: {
+                        type: 'array',
+                        description: `The COMPLETE list of editable props: { name (a JS identifier), label, type (${FIELD_TYPES.join('|')}), options? (select), help? }.`,
+                        items: { type: 'object' },
+                    },
+                    props: { type: 'object', description: 'Prop values, merged key by key into the current ones; null removes a key. text/textarea strings, number, boolean, color "#rrggbb", image an asset key or URL, link a link object, select one of its options.' },
+                    width: { type: 'string', enum: ['container', 'full'], description: 'Page container width or the full window width.' },
+                    minHeight: { type: 'number', description: 'Frame height in px (0-4000) until the component reports its own height.' },
                 },
                 required: ['pageId', 'blockId'],
             },

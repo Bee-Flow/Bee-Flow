@@ -16,6 +16,7 @@
 const { err, isPlainObject } = require('./handlerKit');
 const { LOCALE_PREFIXES } = require('../../core/seo/publicPath');
 const { mediaWarningFor } = require('../../stores/cms/localeMedia');
+const { reactOverrideNote } = require('../../stores/cms/reactBlock.mts');
 
 const SETTING_SECTIONS = ['header', 'footer', 'cookieBanner', 'announcement'];
 const SETTINGS_PATCH_MAX_CHARS = 100_000;
@@ -249,6 +250,8 @@ function createLocaleHandlers({ deps, cmsStore, resolveSite }) {
         const result = { siteId: site.siteId, locale, pageId, saved: true };
         const mediaWarning = mediaWarningFor(args.override, saved);
         if (mediaWarning) result.mediaWarning = mediaWarning;
+        const reactWarning = pageId ? reactOverrideNote(args.override, await cmsStore.getPage(site.siteId, pageId)) : '';
+        if (reactWarning) result.reactWarning = reactWarning;
         // The public router serves a fixed set of language prefixes; a translation outside
         // it is stored but no visitor can reach it, so say so instead of reporting plain success.
         if (locale === (await cmsStore.getDefaultLocale())) {
