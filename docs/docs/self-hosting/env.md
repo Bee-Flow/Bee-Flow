@@ -100,6 +100,8 @@ Each limit is in bytes, has a generous default, and `0` means no limit. They kee
 | `KB_CLOUD_MAX_FILE_MB` | `50` | Largest file (MB) a cloud-folder knowledge source reads. A bigger file is skipped and logged. `0` = unlimited. |
 | `KB_QUERY_LOG_READS_PER_HOUR` | `600` | Pages of a knowledge base's query log (question and answer text) one person reads per hour. Each page is recorded in the access audit. `0` = unlimited. |
 | `KB_CLOUD_CHANGE_POLL_SECONDS` | `300` | How often a cloud-folder source set to "on change" checks its folder (a cheap change check; the folder is read only when it moved). |
+| `NEXTCLOUD_MAIL_ATTACHMENT_MAX_MB` | `25` | All attachments of one message sent with the Nextcloud Mail tool (`nextcloud_mail_send`) together, in MB: files from Nextcloud Files and files a document step made. A bigger set is refused before anything is sent. `0` = unlimited. |
+| `NEXTCLOUD_MAIL_ATTACHMENT_MAX_COUNT` | `20` | Attachments one message sent with the Nextcloud Mail tool may carry. `0` = unlimited. |
 | `ATTACHMENT_MAX_BYTES` | `26214400` (25 MB) | Largest single attachment the Email Sender component adds, a file or a downloaded http(s) URL. Files come only from `ATTACHMENTS_DIR` (created when missing; default `beeflow-attachments` in the temp directory). |
 
 ## Inbound and integration limits

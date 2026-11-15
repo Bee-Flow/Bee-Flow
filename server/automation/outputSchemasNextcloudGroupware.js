@@ -193,8 +193,8 @@ const OUTPUT_SCHEMAS_NEXTCLOUD_GROUPWARE = {
         echo: { 'question.text': 'text', 'question.type': 'type' },
     },
     nextcloud_forms_get_submissions: {
-        shape: { formId: 'integer|string', formTitle: 'string', questions: 'array of string (question texts)', count: 'integer', truncated: 'boolean', submissions: 'array of { id, formId, userId, timestamp, submittedAt, answers (keyed by question text), answersByQuestionId }' },
-        sample: { formId: 12, formTitle: 'Intake', questions: ['Your name'], count: 1, truncated: false, submissions: [{ id: 501, formId: 12, userId: 'bob', timestamp: NOW, submittedAt: '2026-10-28T09:00:00.000Z', answers: { 'Your name': 'Bob' }, answersByQuestionId: { 31: 'Bob' } }] },
+        shape: { formId: 'integer|string', formTitle: 'string', questions: 'array of string (question texts)', count: 'integer', truncated: 'boolean', submissions: 'array of { id, formId, userId, timestamp, submittedAt, answers (keyed by question text), answersByQuestionId, files (file questions, keyed by question text: array of { fileId, name }), filesByQuestionId }' },
+        sample: { formId: 12, formTitle: 'Intake', questions: ['Your name', 'Receipts'], count: 1, truncated: false, submissions: [{ id: 501, formId: 12, userId: 'bob', timestamp: NOW, submittedAt: '2026-10-28T09:00:00.000Z', answers: { 'Your name': 'Bob', Receipts: 'receipt.pdf' }, answersByQuestionId: { 31: 'Bob', 32: 'receipt.pdf' }, files: { Receipts: [{ fileId: 5521, name: 'receipt.pdf' }] }, filesByQuestionId: { 32: [{ fileId: 5521, name: 'receipt.pdf' }] } }] },
         echo: { formId: 'formId' },
     },
     nextcloud_forms_update_settings: {

@@ -101,15 +101,15 @@ async function checkToolCall({ toolName, toolArgs = {}, userId, orgId = null, ag
     const borrowed = CROSS_FAMILY_ARGS[toolName];
     if (borrowed) {
         for (const [argKey, ownerId] of Object.entries(borrowed)) {
-            const value = toolArgs?.[argKey];
-            if (value === undefined || value === null || value === '') continue;
             const owner = scope[ownerId] || { mode: 'all', selected: null };
             const ownerLabel = (RESOURCE_KINDS[ownerId] && RESOURCE_KINDS[ownerId].label) || ownerId;
-            if (owner.mode === 'off') {
-                return deniedError(ownerLabel, `This call would reach a Nextcloud file, and Files is turned off for this user.`);
-            }
-            if (owner.mode === 'selected' && !pathAllowed(owner.selected || new Set(), value)) {
-                return deniedError(ownerLabel, `"${String(value).slice(0, 120)}" is outside the ${ownerLabel} this user has shared with Bee Flow.`);
+            for (const value of borrowedValues(toolArgs, argKey)) {
+                if (owner.mode === 'off') {
+                    return deniedError(ownerLabel, `This call would reach a Nextcloud file, and Files is turned off for this user.`);
+                }
+                if (owner.mode === 'selected' && !pathAllowed(owner.selected || new Set(), value)) {
+                    return deniedError(ownerLabel, `"${String(value).slice(0, 120)}" is outside the ${ownerLabel} this user has shared with Bee Flow.`);
+                }
             }
         }
     }
@@ -186,6 +186,28 @@ async function checkToolCall({ toolName, toolArgs = {}, userId, orgId = null, ag
         return deniedError(label, `This call must name one of the shared ${label} explicitly (argument: ${policy.args.join(' or ')}).`);
     }
     return null;
+}
+
+/**
+ * The values a CROSS_FAMILY_ARGS key names: the argument itself, or for a
+ * `list[].field` key the field of every entry. Blank values are skipped; a
+ * list entry that is not an object, or a field that is not a string, is
+ * checked as given (a non-path never passes pathAllowed).
+ * @param {Record<string, any>} toolArgs
+ * @param {string} argKey
+ * @returns {unknown[]}
+ */
+function borrowedValues(toolArgs, argKey) {
+    const blank = (/** @type {unknown} */ v) => v === undefined || v === null || v === '';
+    const marker = argKey.indexOf('[].');
+    if (marker === -1) {
+        const value = toolArgs?.[argKey];
+        return blank(value) ? [] : [value];
+    }
+    const list = toolArgs?.[argKey.slice(0, marker)];
+    const field = argKey.slice(marker + 3);
+    if (!Array.isArray(list)) return [];
+    return list.map(entry => (entry && typeof entry === 'object' ? entry[field] : undefined)).filter(v => !blank(v));
 }
 
 /**

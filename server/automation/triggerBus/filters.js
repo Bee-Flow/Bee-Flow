@@ -509,7 +509,8 @@ function pickMatcher(provider, event) {
         && (event === 'spreadsheet.changed' || event === 'spreadsheet.new')) return matchSheetsChangedFilter;
     if (provider === 'nextcloud') {
         // File family — share semantics same shape but slightly different fields.
-        if (event === 'file.new' || event === 'file.changed' || event === 'file.deleted' || event === 'file.renamed') return matchNextcloudFileFilter;
+        if (event === 'file.new' || event === 'file.changed' || event === 'file.deleted' || event === 'file.renamed'
+            || event === 'file.copied' || event === 'file.restored') return matchNextcloudFileFilter;
         if (event === 'file.commented')   return matchNextcloudCommentFilter;
         if (event === 'file.tagged' || event === 'file.untagged') return matchNextcloudTagFilter;
         // Forms / Tables
@@ -522,7 +523,8 @@ function pickMatcher(provider, event) {
             return matchNextcloudShareGenericFilter;
         // Calendar
         if (event === 'calendar.event.upcoming') return matchNextcloudCalendarUpcomingFilter;
-        if (event === 'calendar.event.created' || event === 'calendar.event.changed' || event === 'calendar.event.deleted')
+        if (event === 'calendar.event.created' || event === 'calendar.event.changed' || event === 'calendar.event.deleted'
+            || event === 'calendar.event.moved')
             return matchNextcloudCalendarFilter;
         // Deck
         if (event === 'deck.card.moved')   return matchNextcloudDeckCardMovedFilter;

@@ -74,6 +74,16 @@
           "colleagues": true
         },
         {
+          "id": "file.copied",
+          "label": "File copied",
+          "deliverability": "ok"
+        },
+        {
+          "id": "file.restored",
+          "label": "File restored",
+          "deliverability": "ok"
+        },
+        {
           "id": "share.received",
           "label": "Share received",
           "deliverability": "ok"
@@ -107,6 +117,18 @@
         {
           "id": "calendar.event.changed",
           "label": "Calendar event changed",
+          "deliverability": "ok",
+          "colleagues": true
+        },
+        {
+          "id": "calendar.event.deleted",
+          "label": "Calendar event deleted permanently",
+          "deliverability": "ok",
+          "colleagues": true
+        },
+        {
+          "id": "calendar.event.moved",
+          "label": "Calendar event moved to another calendar",
           "deliverability": "ok",
           "colleagues": true
         },
@@ -146,6 +168,11 @@
           "deliverability": "ok"
         },
         {
+          "id": "file.untagged",
+          "label": "Tag removed from a file",
+          "deliverability": "ok"
+        },
+        {
           "id": "forms.submitted",
           "label": "Form submitted (Nextcloud Forms)",
           "deliverability": "ok",
@@ -160,6 +187,12 @@
         {
           "id": "tables.row.updated",
           "label": "Row updated in a Nextcloud Table",
+          "deliverability": "ok",
+          "colleagues": true
+        },
+        {
+          "id": "tables.row.deleted",
+          "label": "Row deleted from a Nextcloud Table",
           "deliverability": "ok",
           "colleagues": true
         },
@@ -3123,6 +3156,318 @@
       "fields": [],
       "sample": {},
       "note": "trigger.output is the answers keyed by field name — bind trigger.output.<fieldName>. submitted_at / form_page_id are at trigger.headers.<name>."
+    },
+    "nextcloud.file.copied": {
+      "fields": [
+        {
+          "key": "id",
+          "sample": 4790
+        },
+        {
+          "key": "activityId",
+          "sample": null
+        },
+        {
+          "key": "path",
+          "sample": "/Documents/Invoices/Invoice-2026-001 (copy).pdf"
+        },
+        {
+          "key": "oldPath",
+          "sample": "/Documents/Invoices/Invoice-2026-001.pdf"
+        },
+        {
+          "key": "sourceId",
+          "sample": 4711
+        },
+        {
+          "key": "name",
+          "sample": "Invoice-2026-001 (copy).pdf"
+        },
+        {
+          "key": "extension",
+          "sample": "pdf"
+        },
+        {
+          "key": "kind",
+          "sample": "file"
+        },
+        {
+          "key": "actor",
+          "sample": "alice"
+        },
+        {
+          "key": "actorName",
+          "sample": "Alice"
+        },
+        {
+          "key": "owner",
+          "sample": "alice"
+        },
+        {
+          "key": "datetime",
+          "sample": "2026-05-13T12:00:00Z"
+        },
+        {
+          "key": "link",
+          "sample": null
+        },
+        {
+          "key": "isOwnAction",
+          "sample": false
+        }
+      ],
+      "sample": {
+        "id": 4790,
+        "actorName": "Alice",
+        "owner": "alice",
+        "activityId": null,
+        "path": "/Documents/Invoices/Invoice-2026-001 (copy).pdf",
+        "oldPath": "/Documents/Invoices/Invoice-2026-001.pdf",
+        "sourceId": 4711,
+        "name": "Invoice-2026-001 (copy).pdf",
+        "extension": "pdf",
+        "kind": "file",
+        "actor": "alice",
+        "datetime": "2026-05-13T12:00:00Z",
+        "link": null,
+        "isOwnAction": false
+      }
+    },
+    "nextcloud.file.restored": {
+      "fields": [
+        {
+          "key": "id",
+          "sample": 4712
+        },
+        {
+          "key": "activityId",
+          "sample": null
+        },
+        {
+          "key": "path",
+          "sample": "/Documents/Old/Draft.docx"
+        },
+        {
+          "key": "name",
+          "sample": "Draft.docx"
+        },
+        {
+          "key": "extension",
+          "sample": "docx"
+        },
+        {
+          "key": "kind",
+          "sample": "file"
+        },
+        {
+          "key": "actor",
+          "sample": "alice"
+        },
+        {
+          "key": "actorName",
+          "sample": "Alice"
+        },
+        {
+          "key": "owner",
+          "sample": "alice"
+        },
+        {
+          "key": "datetime",
+          "sample": "2026-05-13T12:15:00Z"
+        },
+        {
+          "key": "link",
+          "sample": null
+        },
+        {
+          "key": "isOwnAction",
+          "sample": false
+        }
+      ],
+      "sample": {
+        "id": 4712,
+        "actorName": "Alice",
+        "owner": "alice",
+        "activityId": null,
+        "path": "/Documents/Old/Draft.docx",
+        "name": "Draft.docx",
+        "extension": "docx",
+        "kind": "file",
+        "actor": "alice",
+        "datetime": "2026-05-13T12:15:00Z",
+        "link": null,
+        "isOwnAction": false
+      }
+    },
+    "nextcloud.file.untagged": {
+      "fields": [
+        {
+          "key": "fileId",
+          "sample": "437"
+        },
+        {
+          "key": "objectIds",
+          "sample": [
+            "437"
+          ]
+        },
+        {
+          "key": "tagId",
+          "sample": 3
+        },
+        {
+          "key": "tagIds",
+          "sample": [
+            3
+          ]
+        },
+        {
+          "key": "objectType",
+          "sample": "files"
+        },
+        {
+          "key": "actor",
+          "sample": "alice"
+        },
+        {
+          "key": "datetime",
+          "sample": "2026-05-13T09:40:00Z"
+        }
+      ],
+      "sample": {
+        "fileId": "437",
+        "objectIds": [
+          "437"
+        ],
+        "tagId": 3,
+        "tagIds": [
+          3
+        ],
+        "objectType": "files",
+        "actor": "alice",
+        "datetime": "2026-05-13T09:40:00Z"
+      }
+    },
+    "nextcloud.calendar.event.deleted": {
+      "fields": [
+        {
+          "key": "uid",
+          "sample": "evt-9f2b"
+        },
+        {
+          "key": "calendarId",
+          "sample": "personal"
+        },
+        {
+          "key": "calendarUri",
+          "sample": "personal"
+        },
+        {
+          "key": "objectUri",
+          "sample": "event-1.ics"
+        },
+        {
+          "key": "actor",
+          "sample": "alice"
+        },
+        {
+          "key": "datetime",
+          "sample": "2026-05-13T10:00:00Z"
+        }
+      ],
+      "sample": {
+        "calendarUri": "personal",
+        "objectUri": "event-1.ics",
+        "uid": "evt-9f2b",
+        "calendarId": "personal",
+        "actor": "alice",
+        "datetime": "2026-05-13T10:00:00Z"
+      }
+    },
+    "nextcloud.calendar.event.moved": {
+      "fields": [
+        {
+          "key": "uid",
+          "sample": "evt-9f2b"
+        },
+        {
+          "key": "calendarId",
+          "sample": 7
+        },
+        {
+          "key": "calendarUri",
+          "sample": "work"
+        },
+        {
+          "key": "objectUri",
+          "sample": "event-1.ics"
+        },
+        {
+          "key": "sourceCalendarId",
+          "sample": 3
+        },
+        {
+          "key": "targetCalendarId",
+          "sample": 7
+        },
+        {
+          "key": "actor",
+          "sample": "alice"
+        },
+        {
+          "key": "datetime",
+          "sample": "2026-05-13T10:05:00Z"
+        }
+      ],
+      "sample": {
+        "calendarUri": "work",
+        "objectUri": "event-1.ics",
+        "uid": "evt-9f2b",
+        "calendarId": 7,
+        "sourceCalendarId": 3,
+        "targetCalendarId": 7,
+        "actor": "alice",
+        "datetime": "2026-05-13T10:05:00Z"
+      }
+    },
+    "nextcloud.tables.row.deleted": {
+      "fields": [
+        {
+          "key": "tableId",
+          "sample": 34
+        },
+        {
+          "key": "rowId",
+          "sample": 7
+        },
+        {
+          "key": "values",
+          "sample": {
+            "0": "Project X",
+            "1": 2026,
+            "2": "done"
+          }
+        },
+        {
+          "key": "actor",
+          "sample": "carol"
+        },
+        {
+          "key": "datetime",
+          "sample": "2026-05-13T09:25:00Z"
+        }
+      ],
+      "sample": {
+        "tableId": 34,
+        "rowId": 7,
+        "values": {
+          "0": "Project X",
+          "1": 2026,
+          "2": "done"
+        },
+        "actor": "carol",
+        "datetime": "2026-05-13T09:25:00Z"
+      }
     }
   }
 }

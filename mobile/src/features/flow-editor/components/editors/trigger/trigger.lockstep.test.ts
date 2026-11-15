@@ -78,7 +78,7 @@ describe('the app-event filters', () => {
     const webMap = [...map.matchAll(/'([^']+)': (\w+),/g)].map((m) => [m[1] as string, m[2] as string] as [string, string]);
 
     it('maps the same events, in the same order', () => {
-        expect(webMap.length).toBe(22);
+        expect(webMap.length).toBe(27);
         expect(Object.keys(FILTER_FORMS)).toEqual(webMap.map(([k]) => k));
     });
 
