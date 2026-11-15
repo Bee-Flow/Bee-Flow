@@ -37,6 +37,7 @@ export interface ReactFrameProps {
 type FrameMessage = { type?: unknown; height?: unknown };
 
 function postProps(frame: HTMLIFrameElement | null, props: BlockProps): void {
+    // nosemgrep: javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration -- sandboxed srcDoc frame has an opaque origin; the props are the block's public content
     frame?.contentWindow?.postMessage({ type: 'bf-react-props', props }, '*');
 }
 

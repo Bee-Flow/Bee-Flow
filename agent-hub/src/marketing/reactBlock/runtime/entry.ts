@@ -68,6 +68,7 @@ function requireModule(name: string): unknown {
 
 /** The parent is opaque to this frame (no allow-same-origin), so the target origin can only be '*'; nothing secret is sent. */
 function post(message: Record<string, unknown>): void {
+    // nosemgrep: javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration -- an opaque-origin frame cannot name its parent's origin; it sends only its height and error text
     window.parent.postMessage(message, '*');
 }
 
