@@ -88,6 +88,32 @@ function stripeWebhookKit() {
     }
 
     /**
+     * Deliver one event the route must acknowledge.
+     * @param {string} type
+     * @param {Row} payload
+     */
+    async function deliverOk(type, payload) {
+        const res = await deliver(type, payload);
+        if (res.status !== 200) throw new Error(`${type} was answered with ${res.status}, not 200`);
+        return res;
+    }
+
+    /**
+     * The schema, one organisation (org1), one consumer (u1) and two plans:
+     * Free (the default organisation plan) and Team (sold as price_A).
+     */
+    async function seedSubscribers() {
+        const userStore = require('../stores/userStore');
+        await require('../stores/user/schema').initDB();
+        await pg.query(`INSERT INTO organizations (id, name) VALUES ('org1', 'Acme')`);
+        await pg.query(`INSERT INTO users (id, username, email) VALUES ('u1', 'u1', 'u1@example.test')`);
+        return {
+            free: await userStore.createPlan({ name: 'Free', price: 0, is_default: true }),
+            team: await userStore.createPlan({ name: 'Team', price: 20, stripe_price_id: 'price_A', stripe_product_id: 'prod_A' }),
+        };
+    }
+
+    /**
      * @param {string} sql
      * @param {unknown[]} [params]
      * @returns {Promise<Row[]>}
@@ -97,7 +123,7 @@ function stripeWebhookKit() {
     const rowOf = (table, col) => async (/** @type {string} */ id) => (await rows(`SELECT * FROM ${table} WHERE ${col} = $1`, [id]))[0];
 
     return {
-        pg, mails, deliver, swap,
+        pg, mails, deliver, deliverOk, seedSubscribers, swap,
         init: () => require('../stores/user/schema').initDB(),
         failWrites,
         orgSub: rowOf('organization_subscriptions', 'organization_id'),

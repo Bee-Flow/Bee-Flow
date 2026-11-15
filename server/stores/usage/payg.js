@@ -55,9 +55,12 @@ async function _resolvePaygTarget(organizationId, userId) {
                  WHERE cs.user_id = $1`, [userId]);
         }
     } catch (e) {
-        // Bad DB state shouldn't throw on the AI hot path; cache the miss
-        // so we don't retry the failing query on every call.
+        // Bad DB state shouldn't throw on the AI hot path. The failure is NOT
+        // cached: an entry would say "not pay-as-you-go" for the next minute,
+        // and every call of a metered subscriber in that minute would be
+        // logged without a billed cost and without a meter event.
         log.error('[UsageStore] _resolvePaygTarget query failed:', /** @type {Error} */ (e).message);
+        return null;
     }
 
     const eligible = !!row
@@ -97,7 +100,10 @@ async function _resolvePlanCurrency(organizationId, userId) {
             : await getOne(`SELECT sp.currency FROM consumer_subscriptions cs LEFT JOIN subscription_plans sp ON sp.id = cs.plan_id WHERE cs.user_id = $1`, [userId]);
         if (row?.currency) currency = String(row.currency).toUpperCase();
     } catch (e) {
+        // Not cached, for the same reason as above: the EUR fallback would be
+        // served as this subscriber's plan currency for the next minute.
         log.error('[UsageStore] _resolvePlanCurrency query failed:', /** @type {Error} */ (e).message);
+        return currency;
     }
     _paygCache.set(key, { value: currency, expiresAt: Date.now() + PAYG_CACHE_TTL_MS });
     return currency;

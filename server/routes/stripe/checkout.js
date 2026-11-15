@@ -13,6 +13,7 @@ const userStore = require('../../stores/userStore');
 const { isNcOrg } = require('../../auth/ncAudience');
 const { requireCloud, requireAuth, resolveOrgIdForUser, getOrigin, stripeIpLimiter, stripeUserLimiter } = require('./shared');
 const { handleCheckoutCompleted } = require('../../usecases/stripe/checkoutEvents');
+const { blockIfAlreadySubscribed, orgCheckoutCustomers, blockIfAnyAlreadySubscribed } = require('../../usecases/stripe/checkoutGuard');
 const { accountLicenseSettingsPath, orgLicenseSettingsPath } = require('../../utils/appPaths');
 const { validate } = require('../../core/http/validate');
 const { z, typeError } = require('../../utils/zod');
@@ -65,55 +66,6 @@ const CheckoutBody = bodyOf({
 
 // ── POST /checkout — Create a Stripe Checkout Session ────────────────────────
 // Supports both organization and consumer checkouts
-
-// Guard against a SECOND checkout for a subscriber Stripe still considers
-// subscribed. Checkout in `mode: 'subscription'` always mints a NEW
-// subscription on the customer; `handleCheckoutCompleted` then overwrites the
-// single local `stripe_subscription_id` with it. The previous subscription is
-// neither cancelled nor recorded anywhere, so the customer is billed twice
-// while the product knows about one, the orphan is invisible in the app, and no
-// code path can ever cancel it — and the local row flaps between the two as
-// both subscriptions' webhooks arrive.
-//
-// The question is asked of STRIPE, not of the local row: the local mirror going
-// stale (a second tab, a second admin, a webhook still in flight) is exactly
-// the situation this must catch. Changing plans on a live subscription has its
-// own route — POST /api/subscriptions/orgs/:orgId/upgrade — plus the Customer
-// Portal; neither creates a duplicate.
-//
-// @returns {Promise<null|{status:number, body:object}>} null = proceed.
-/**
- * @param {string | null | undefined} stripeCustomerId
- * @param {{ scope: string, targetId: string }} opts
- */
-async function blockIfAlreadySubscribed(stripeCustomerId, { scope, targetId }) {
-    if (!stripeCustomerId) return null;   // no customer yet ⇒ nothing to duplicate
-    let live;
-    try {
-        live = await stripeService.listLiveSubscriptions(stripeCustomerId);
-    } catch (e) {
-        // Fail CLOSED, for the same reason the allowed-plans lookup below does:
-        // undoing a duplicate subscription costs far more than a retry does.
-        log.error(`[Stripe] live-subscription check failed scope=${scope} target=${targetId} customer=${stripeCustomerId}:`, e.message);
-        return {
-            status: 503,
-            body: {
-                error: 'subscription_state_unavailable',
-                message: 'Could not verify your current subscription right now. Please try again in a moment.',
-            },
-        };
-    }
-    if (live.length === 0) return null;
-    log.warn(`[Stripe] duplicate checkout refused scope=${scope} target=${targetId} live=${live.map(s => `${s.id}:${s.status}`).join(',')}`);
-    return {
-        status: 409,
-        body: {
-            error: 'already_subscribed',
-            message: 'This account already has an active subscription. Change your plan from the subscription panel, or manage it in the billing portal.',
-            subscription_status: live[0].status,
-        },
-    };
-}
 
 router.post('/checkout', requireCloud, stripeIpLimiter, requireAuth, stripeUserLimiter, validate({ body: CheckoutBody }), async (req, res) => {
     try {
@@ -301,10 +253,10 @@ router.post('/checkout', requireCloud, stripeIpLimiter, requireAuth, stripeUserL
             res.json({ url: session.url, sessionId: session.id });
         } else {
             // ── Organization Checkout ──
-            const existingSub = await userStore.getOrgSubscription(orgId);
-            const stripeCustomerId = existingSub?.stripe_customer_id || null;
+            const customerIds = await orgCheckoutCustomers(orgId, await userStore.getOrgSubscription(orgId));
+            const stripeCustomerId = customerIds[0] || null;
 
-            const blocked = await blockIfAlreadySubscribed(stripeCustomerId, { scope: 'org', targetId: orgId });
+            const blocked = await blockIfAnyAlreadySubscribed(customerIds, { scope: 'org', targetId: orgId });
             if (blocked) return res.status(blocked.status).json(blocked.body);
 
             // Real path segment (/app/settings/organisation/license) — see BFSF-244.

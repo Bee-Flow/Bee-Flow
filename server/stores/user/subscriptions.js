@@ -112,10 +112,15 @@ async function writeOrgSubscription(exec, orgId, data, existing, { resetLimits =
     }
 }
 
-async function setOrgSubscription(orgId, data, { resetLimits = false } = {}) {
+// `onlyExisting` is for bookkeeping that is not a subscription (the Stripe
+// customer of a checkout that may never be paid): without a row there is
+// nothing to update, and the INSERT would make the organisation `active` with
+// no plan, which lifts every cap.
+async function setOrgSubscription(orgId, data, { resetLimits = false, onlyExisting = false } = {}) {
     await initDB();
     assertValidStatus(data);
     const existing = await getOrgSubscription(orgId);
+    if (!existing && onlyExisting) return true;
     try {
         await writeOrgSubscription(run, orgId, data, existing, { resetLimits });
         bustPaygCache(orgId, null);
@@ -378,19 +383,25 @@ async function setOrgSubscriptionWithLock(orgId, payload, { resetLimits = false 
 // concurrent webhooks serialise and an override set in between is seen.
 // `fullUpdate` applies when no override is active, `strippedUpdate` (the
 // payload without the admin-controlled fields) when one is. A failed write
-// throws, so the webhook is retried.
-// Returns { applied: 'full'|'stripped'|'none', overrideActive: bool }.
-async function writeRespectingOverride(scope, id, fullUpdate, strippedUpdate) {
+// throws, so the webhook is retried. `skipIf(row)` is asked on the locked row
+// and writes nothing when it says so (an event that is older than the row).
+// Returns { applied: 'full'|'stripped'|'none', overrideActive: bool }, with
+// `skipped: true` added when skipIf decided.
+/** @param {'organization'|'consumer'} scope @param {string} id @param {Record<string, any>} fullUpdate @param {Record<string, any>} strippedUpdate @param {{ skipIf?: (row: Record<string, any> | null) => boolean }} [opts] */
+async function writeRespectingOverride(scope, id, fullUpdate, strippedUpdate, { skipIf } = {}) {
     let overrideActive = false;
+    let skipped = false;
     const wrote = await writeUnderRowLock(scope, id, (row) => {
         overrideActive = isManualOverrideActive(row);
+        skipped = !!skipIf && !!skipIf(row);
+        if (skipped) return null;
         return overrideActive ? strippedUpdate : fullUpdate;
     });
-    return { applied: !wrote ? 'none' : (overrideActive ? 'stripped' : 'full'), overrideActive };
+    return { applied: !wrote ? 'none' : (overrideActive ? 'stripped' : 'full'), overrideActive, ...(skipped ? { skipped } : {}) };
 }
 
-const setOrgSubscriptionRespectingOverride = (orgId, fullUpdate, strippedUpdate) => writeRespectingOverride('organization', orgId, fullUpdate, strippedUpdate);
-const setConsumerSubscriptionRespectingOverride = (userId, fullUpdate, strippedUpdate) => writeRespectingOverride('consumer', userId, fullUpdate, strippedUpdate);
+const setOrgSubscriptionRespectingOverride = (orgId, fullUpdate, strippedUpdate, opts) => writeRespectingOverride('organization', orgId, fullUpdate, strippedUpdate, opts);
+const setConsumerSubscriptionRespectingOverride = (userId, fullUpdate, strippedUpdate, opts) => writeRespectingOverride('consumer', userId, fullUpdate, strippedUpdate, opts);
 
 // Locate a subscription row by stripe_customer_id so customer.deleted can
 // null the local mapping. Returns { scope: 'organization'|'consumer', id }
