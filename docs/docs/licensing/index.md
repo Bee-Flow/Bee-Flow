@@ -41,7 +41,7 @@ The authoritative table is [`LICENSE.md`](https://github.com/Bee-Flow/Bee-Flow/b
    └───────────────────────────────────────────────────────┘
 ```
 
-The verification code is part of the open-source server — read it in [`server/license/`](https://github.com/Bee-Flow/Bee-Flow/tree/main/server/license). Three files:
+The verification code is part of the source-available server — read it in [`server/license/`](https://github.com/Bee-Flow/Bee-Flow/tree/main/server/license). Three files:
 
 - `verify.js` — JWT signature verification (`RS256`) against the public key the operator configures: `LICENSE_PUBLIC_KEY`, `LICENSE_PUBLIC_KEY_FILE` or `LICENSE_JWKS_URL`. A self-hosted server does not ship with that key; see [Applying a licence key](apply.md#public-key).
 - `tiers.js` — feature-flag mapping per tier (source of truth).
