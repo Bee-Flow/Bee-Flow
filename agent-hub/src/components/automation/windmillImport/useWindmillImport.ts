@@ -29,13 +29,21 @@ export default function useWindmillImport({ onCommitted }: { onCommitted?: () =>
     const [preview, setPreview] = useState<WindmillImportAnswer | null>(null);
     const [selected, setSelected] = useState<Set<string>>(new Set());
     const [results, setResults] = useState<WindmillImportAnswer['results'] | null>(null);
+    // The side-by-side comparison (source W, when the server offers it): off until ticked.
+    const [compare, setCompare] = useState(false);
+    const [saveAsTests, setSaveAsTests] = useState(false);
 
     const send = (mode: ImportMode, select?: string[]) => {
         if (source === 'upload') {
             if (!file) throw new Error('no file');
             return uploadWindmill(file, mode, select);
         }
-        return importRemoteWindmill({ source: 'windmill_api', baseUrl: remote.baseUrl.trim(), workspace: remote.workspace.trim(), token: remote.token, mode, ...(select ? { select } : {}) });
+        const withCompare = mode === 'commit' && compare && !!preview?.compare?.runs;
+        return importRemoteWindmill({
+            source: 'windmill_api', baseUrl: remote.baseUrl.trim(), workspace: remote.workspace.trim(), token: remote.token, mode,
+            ...(select ? { select } : {}),
+            ...(withCompare ? { compare: { saveAsTests } } : {}),
+        });
     };
 
     const previewMutation = useMutation({
@@ -69,6 +77,8 @@ export default function useWindmillImport({ onCommitted }: { onCommitted?: () =>
         setPreview(null);
         setSelected(new Set());
         setResults(null);
+        setCompare(false);
+        setSaveAsTests(false);
         previewMutation.reset();
         commitMutation.reset();
     };
@@ -80,6 +90,8 @@ export default function useWindmillImport({ onCommitted }: { onCommitted?: () =>
         file, setFile: (f: File | null) => { setFile(f); setPreview(null); setResults(null); },
         remote, setRemote,
         preview, selected, toggle, results,
+        compare, setCompare: (on: boolean) => { setCompare(on); if (!on) setSaveAsTests(false); },
+        saveAsTests, setSaveAsTests,
         canPreview,
         runPreview: () => previewMutation.mutate(),
         runCommit: () => commitMutation.mutate(),

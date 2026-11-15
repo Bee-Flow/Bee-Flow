@@ -5,6 +5,10 @@
  *
  *   fetchWindmillExport({ baseUrl, workspace, token }, { maxBytes, maxFlows })
  *       → { input, notes }   input for the converter (toIntermediate)
+ *   openWindmill(src, limits)                    one read session: its answers share one byte budget
+ *   fetchFlowRuns(session, flowPath, n, { moduleIds })
+ *       → WindmillRun[]      the last n completed runs of one flow, with their input and the
+ *                            results of the named steps (PLAN B6, the side-by-side comparison)
  *
  * First the workspace archive (`workspaces/tarball`, zip, secrets skipped),
  * which carries flows, scripts, schedules and triggers together; when the
@@ -26,6 +30,14 @@
  *
  * A Windmill on a private address or plain HTTP is not reachable from here;
  * the person uploads the export instead.
+ *
+ * The run reads (Windmill OpenAPI, `listCompletedJobs`, `getCompletedJob`,
+ * `getCompletedJobResult`):
+ *   GET jobs/completed/list?script_path_exact=<path>&job_kinds=flow&has_null_parent=true&per_page=<n>
+ *   GET jobs_u/completed/get/<id>            args, success, flow_status.modules[] { id, type, job }
+ *   GET jobs_u/completed/get_result/<job>    the result of one step of that run
+ * A run's input and results are customer data: they are returned to the caller
+ * in memory and never logged here.
  */
 
 import { createRequire } from 'node:module';
@@ -139,9 +151,11 @@ export async function readCapped(body: ReadableStream<Uint8Array> | null, declar
     return out;
 }
 
-interface Client {
+/** One read session: every answer of it counts against the same byte budget. */
+export interface WindmillSession {
     get(path: string): Promise<{ status: number; bytes: Uint8Array | null }>;
 }
+type Client = WindmillSession;
 
 /**
  * The cap of the next answer: the per-answer cap, lowered to what is left of
@@ -195,9 +209,14 @@ function parseJson(bytes: Uint8Array): unknown {
     try { return JSON.parse(new TextDecoder().decode(bytes)); } catch { throw new WindmillRemoteError('not_windmill'); }
 }
 
+/** A read session on one Windmill workspace (throws invalid_address / invalid_workspace at once). */
+export function openWindmill(src: RemoteSource, limits: RemoteLimits, { fetchImpl }: { fetchImpl?: FetchLike } = {}): WindmillSession {
+    return clientFor(src, limits, fetchImpl ?? defaultFetch());
+}
+
 /** The workspace's flows, read once. The token is used for these requests only. */
-export async function fetchWindmillExport(src: RemoteSource, limits: RemoteLimits, { fetchImpl }: { fetchImpl?: FetchLike } = {}): Promise<{ input: RemoteInput; notes: string[] }> {
-    const client = clientFor(src, limits, fetchImpl ?? defaultFetch());
+export async function fetchWindmillExport(src: RemoteSource, limits: RemoteLimits, { fetchImpl, session }: { fetchImpl?: FetchLike; session?: WindmillSession } = {}): Promise<{ input: RemoteInput; notes: string[] }> {
+    const client = session ?? clientFor(src, limits, fetchImpl ?? defaultFetch());
     const tarball = await client.get('workspaces/tarball?archive_type=zip&skip_secrets=true&plain_secret=false&include_schedules=true&include_triggers=true&skip_variables=true&skip_resources=true');
     if (tarball.bytes && isZip(tarball.bytes)) return { input: { kind: 'zip', data: tarball.bytes }, notes: [] };
 
@@ -218,4 +237,72 @@ export async function fetchWindmillExport(src: RemoteSource, limits: RemoteLimit
         input: { kind: 'object', value: flows, name: 'windmill' },
         notes: ['This Windmill does not offer the workspace archive, so the flows were read one by one: schedules, triggers and the scripts the flows call were not read. Upload a `wmill sync pull` export to carry them over.'],
     };
+}
+
+// ── Runs of one flow (PLAN B6) ───────────────────────────────────────────
+
+export interface WindmillRun {
+    /** Windmill's job id (a uuid). */
+    id: string;
+    /** Whether Windmill finished the run without an error; null when it did not say. */
+    success: boolean | null;
+    /** The run's `flow_input`, as Windmill recorded it. */
+    args: unknown;
+    /** Windmill step id → that step's result, for the steps asked for that finished. */
+    stepResults: Map<string, unknown>;
+}
+
+/** Windmill per_page caps at 100. */
+const MAX_PER_PAGE = 100;
+const JOB_ID_CHARS = '0123456789abcdefABCDEF-';
+
+function isJobId(v: unknown): v is string {
+    if (typeof v !== 'string' || v.length < 1 || v.length > 64) return false;
+    for (const ch of v) if (!JOB_ID_CHARS.includes(ch)) return false;
+    return true;
+}
+
+const field = (v: unknown, key: string): unknown => (v && typeof v === 'object' && !Array.isArray(v) && Object.hasOwn(v, key) ? (v as Record<string, unknown>)[key] : undefined);
+
+/**
+ * The last `n` completed top-level runs of the flow at `flowPath`, newest
+ * first, each with its input and the results of the steps in `moduleIds`
+ * (all finished top-level steps when it is left out). Throws the same codes as
+ * the export read; a run or a step whose answer is missing is left out.
+ */
+export async function fetchFlowRuns(session: WindmillSession, flowPath: string, n: number, { moduleIds }: { moduleIds?: ReadonlySet<string> } = {}): Promise<WindmillRun[]> {
+    // The list filter takes a comma-separated list and a "!" negation: such a path is not one flow.
+    if (n <= 0 || !flowPath || flowPath.includes(',') || flowPath.startsWith('!')) return [];
+    const perPage = Math.min(Math.floor(n), MAX_PER_PAGE);
+    const list = await session.get(`jobs/completed/list?script_path_exact=${encodeURIComponent(flowPath)}&job_kinds=flow&has_null_parent=true&is_skipped=false&order_desc=true&per_page=${perPage}`);
+    if (!list.bytes) throw new WindmillRemoteError('not_windmill');
+    const listed = parseJson(list.bytes);
+    if (!Array.isArray(listed)) throw new WindmillRemoteError('not_windmill');
+    const ids = listed.map((j) => field(j, 'id')).filter(isJobId).slice(0, perPage);
+    const runs: WindmillRun[] = [];
+    for (const id of ids) {
+        const one = await session.get(`jobs_u/completed/get/${encodeURIComponent(id)}`);
+        if (!one.bytes) continue;
+        const job = parseJson(one.bytes);
+        if (!job || typeof job !== 'object' || Array.isArray(job)) continue;
+        const success = field(job, 'success');
+        runs.push({ id, success: typeof success === 'boolean' ? success : null, args: field(job, 'args') ?? {}, stepResults: await stepResultsOf(session, job, moduleIds) });
+    }
+    return runs;
+}
+
+async function stepResultsOf(session: WindmillSession, job: unknown, moduleIds: ReadonlySet<string> | undefined): Promise<Map<string, unknown>> {
+    const out = new Map<string, unknown>();
+    const modules = field(field(job, 'flow_status'), 'modules');
+    if (!Array.isArray(modules)) return out;
+    for (const m of modules) {
+        const stepId = field(m, 'id');
+        const jobId = field(m, 'job');
+        if (field(m, 'type') !== 'Success' || typeof stepId !== 'string' || !isJobId(jobId) || out.has(stepId)) continue;
+        if (moduleIds && !moduleIds.has(stepId)) continue;
+        const r = await session.get(`jobs_u/completed/get_result/${encodeURIComponent(jobId)}`);
+        if (!r.bytes) continue;
+        try { out.set(stepId, JSON.parse(new TextDecoder().decode(r.bytes))); } catch { /* not JSON: that step is not compared */ }
+    }
+    return out;
 }

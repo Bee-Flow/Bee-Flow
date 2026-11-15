@@ -56,6 +56,13 @@ export interface FlowConversion {
     envelope: { format: 'beeflow.automation'; schemaVersion: 1; automation: Record<string, unknown> };
     definition: Record<string, unknown>;
     trigger: Record<string, unknown>;
+    /** What `flow_input` is at run time, for re-mapping a Windmill run's input (payload.mts remapRunInput). */
+    payload: { kind: TriggerResult['payload']; event: string | null };
+    /**
+     * The top-level Windmill steps whose result has the SAME shape in Bee Flow:
+     * the Bee Flow step and the path in its output that holds it (PLAN B6 compares them).
+     */
+    outputs: Array<{ wmId: string; stepId: string; path: string[] }>;
     report: ConversionReport;
 }
 
@@ -75,7 +82,20 @@ export function convertFlow(flow: WmFlow, bundle: WmBundle, opts: ConvertOptions
     applyFlowOptions(ctx, flow);
     const definition = assemble(ctx, flow, trigger);
     flowWarnings(ctx, flow, bundle);
-    return finish(flow, definition, trigger, report, opts);
+    return { ...finish(flow, definition, trigger, report, opts), outputs: sameShapeOutputs(ctx) };
+}
+
+/** `steps.<id>.output[.<name>…]` of a root-graph step registered with the same shape; no wildcards, no indexes. */
+function sameShapeOutputs(ctx: MapCtx): FlowConversion['outputs'] {
+    const out: FlowConversion['outputs'] = [];
+    for (const [wmId, info] of ctx.outputs) {
+        if (info.reshape !== 'same' || info.graph !== '' || info.loops.length || !info.base.startsWith('steps.') || info.base.includes('[')) continue;
+        const segs = info.base.split('.');
+        const at = segs.indexOf('output');
+        if (at !== 2 || !segs[1]) continue;
+        out.push({ wmId, stepId: segs[1], path: segs.slice(3) });
+    }
+    return out;
 }
 
 function newContext(flow: WmFlow, bundle: WmBundle, report: ReportBuilder, trigger: TriggerResult, caps: Capabilities): MapCtx {
@@ -213,7 +233,7 @@ function flowWarnings(ctx: MapCtx, flow: WmFlow, bundle: WmBundle): void {
     }
 }
 
-function finish(flow: WmFlow, definition: Record<string, unknown>, trigger: TriggerResult, report: ReportBuilder, opts: ConvertOptions): FlowConversion {
+function finish(flow: WmFlow, definition: Record<string, unknown>, trigger: TriggerResult, report: ReportBuilder, opts: ConvertOptions): Omit<FlowConversion, 'outputs'> {
     const title = (flow.summary || flow.path).slice(0, 200);
     const cols = triggerColumnsFromDefinition(definition);
     const automation: Record<string, unknown> = {
@@ -227,7 +247,7 @@ function finish(flow: WmFlow, definition: Record<string, unknown>, trigger: Trig
     return {
         flowPath: flow.path, title,
         envelope: { format: 'beeflow.automation', schemaVersion: 1, automation },
-        definition, trigger: trigger.trigger, report: full,
+        definition, trigger: trigger.trigger, payload: { kind: trigger.payload, event: trigger.event }, report: full,
     };
 }
 

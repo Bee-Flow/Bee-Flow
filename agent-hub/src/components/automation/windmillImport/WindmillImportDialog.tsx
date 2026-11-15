@@ -105,10 +105,38 @@ function SourcePicker({ s }: { s: WindmillImportState }) {
     );
 }
 
+/** Source W, when the server offers it: replay the last Windmill runs as dry runs of the new drafts. */
+function CompareOptions({ s, runs }: { s: WindmillImportState; runs: number }) {
+    const { t } = useTranslation();
+    return (
+        <div className="space-y-1.5 rounded-lg border border-[var(--border-default)] p-2 text-[12px]">
+            <label className="flex items-start gap-2">
+                <input type="checkbox" className="mt-0.5" checked={s.compare} disabled={s.committing} onChange={(e) => s.setCompare(e.target.checked)} />
+                <span className="text-[var(--text-primary)]">{t('automation_import.compare_runs', 'Compare with the last {count} Windmill runs', { count: runs })}</span>
+            </label>
+            <p className="pl-5 text-[11px] text-[var(--text-secondary)]">
+                {t('automation_import.compare_help', 'Each run\'s input is replayed as a dry run of the new draft: nothing is sent or written, but reads and AI steps run for real. Only a summary is kept.')}
+            </p>
+            {s.compare && (
+                <>
+                    <label className="flex items-start gap-2 pl-5">
+                        <input type="checkbox" className="mt-0.5" checked={s.saveAsTests} disabled={s.committing} onChange={(e) => s.setSaveAsTests(e.target.checked)} />
+                        <span className="text-[var(--text-primary)]">{t('automation_import.compare_save', 'Save the runs as test cases')}</span>
+                    </label>
+                    <p className="pl-10 text-[11px] text-[var(--text-secondary)]">
+                        {t('automation_import.compare_save_help', 'Each dry run that reaches the end is kept as a golden run, with secret-shaped values removed from its input. Test data rules apply.')}
+                    </p>
+                </>
+            )}
+        </div>
+    );
+}
+
 function Preview({ s }: { s: WindmillImportState }) {
     const { t } = useTranslation();
     const p = s.preview;
     if (!p) return null;
+    const compareRuns = s.source === 'remote' ? (p.compare?.runs ?? 0) : 0;
     return (
         <div className="space-y-2">
             <p className="text-[12px] text-[var(--text-secondary)]">
@@ -119,6 +147,7 @@ function Preview({ s }: { s: WindmillImportState }) {
                     <FlowPreviewCard key={f.path} flow={f} selected={s.selected.has(f.path)} onToggle={() => s.toggle(f.path)} disabled={s.committing} />
                 ))}
             </ul>
+            {compareRuns > 0 && <CompareOptions s={s} runs={compareRuns} />}
             {[...p.notes, ...p.readWarnings, ...p.notMigrated].length > 0 && (
                 <details className="text-[11px] text-[var(--text-secondary)]">
                     <summary className="cursor-pointer">{t('automation_import.not_migrated', 'Not carried over')}</summary>
@@ -169,7 +198,9 @@ function DialogFooter({ s, step, onClose }: { s: WindmillImportState; step: Step
             )}
             {step === 'preview' && (
                 <button type="button" className={PRIMARY_BTN} disabled={s.selected.size === 0 || s.committing} onClick={() => s.runCommit()}>
-                    {s.committing ? t('automation_import.importing', 'Importing…') : t('automation_import.import_selected', 'Import {count} flows', { count: s.selected.size })}
+                    {s.committing
+                        ? (s.compare ? t('automation_import.importing_comparing', 'Importing and comparing…') : t('automation_import.importing', 'Importing…'))
+                        : t('automation_import.import_selected', 'Import {count} flows', { count: s.selected.size })}
                 </button>
             )}
         </div>

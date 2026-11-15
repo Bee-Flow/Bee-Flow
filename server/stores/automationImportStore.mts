@@ -12,6 +12,8 @@
  *   acknowledge(automationId, ids)   checklist items the person handles by hand (merged, never removed)
  *   markDryRunOk(automationId, v)    a dry run of version v ended without an error
  *   markCleared(automationId)        the draft went live: the gate is done for good
+ *   setComparison(automationId, c)   the side-by-side comparison's summary (report.comparison):
+ *                                    statuses, step ids, error codes and key paths, never a value
  *
  * Plain TypeScript (erasable syntax only); the database arrives as `db`, like
  * folderStore.mts, so the PGlite tests run it on the real schema. The report
@@ -134,7 +136,17 @@ export function makeAutomationImportStore(db: ImportDb) {
         await db.query('UPDATE automation_imports SET cleared_at = NOW() WHERE automation_id = $1 AND cleared_at IS NULL', [automationId]);
     }
 
-    return { insertReport, getForAutomation, acknowledge, markDryRunOk, markCleared };
+    /** Replaces `report.comparison`; the rest of the report stays as imported. */
+    async function setComparison(automationId: string, comparison: Record<string, unknown>): Promise<ImportRow | null> {
+        await ready();
+        const { rows } = await db.query(
+            `UPDATE automation_imports SET report = jsonb_set(COALESCE(report, '{}'::jsonb), '{comparison}', $2::jsonb, true) WHERE automation_id = $1 RETURNING *`,
+            [automationId, JSON.stringify(comparison)],
+        );
+        return rowToImport(rows[0]);
+    }
+
+    return { insertReport, getForAutomation, acknowledge, markDryRunOk, markCleared, setComparison };
 }
 
 export type AutomationImportStore = ReturnType<typeof makeAutomationImportStore>;

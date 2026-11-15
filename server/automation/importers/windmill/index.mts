@@ -23,8 +23,12 @@
  *                                      the builder), warnings[] (secret_removed, connection_needed,
  *                                      outbound_host, identity_change, …), connections[], outboundHosts[],
  *                                      suggestedRunPolicy, suggestedWebhookAuth, validation (draft codes)
+ *                          payload     what `flow_input` is at run time ({ kind, event }), for remapRunInput
  *       result.notMigrated[]  Windmill apps and triggers that have no flow here
  *       result.readWarnings[] problems reading the export (a file that did not parse)
+ *
+ *   remapRunInput(kind, event, input)   a Windmill run's `flow_input` as the draft's trigger payload
+ *   scrubValue(value, counter)           secret-shaped values replaced (scrub.mts)
  *
  * `capabilities` switches off targets an installation does not have yet
  * (capabilities.mts): those become AI checklist items instead. The Bee Flow
@@ -43,6 +47,8 @@ export { toIntermediate, BundleError, DEFAULT_LIMITS } from './bundle.mts';
 export type { WindmillInput, BundleLimits } from './bundle.mts';
 export { PathRefused } from './paths.mts';
 export { YamlError } from './yaml.mts';
+export { remapRunInput } from './payload.mts';
+export { scrubValue } from './scrub.mts';
 export type { ConvertOptions, FlowConversion } from './convert.mts';
 
 export interface ConversionResult {

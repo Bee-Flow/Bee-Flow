@@ -1471,6 +1471,8 @@ No request schema.
 | `token` | string | yes | min length 1; max length 4096 |
 | `mode` | one of `"preview"`, `"commit"` | yes |  |
 | `select` | array of string |  | max items 5000 |
+| `compare` | object |  | no other keys |
+| `compare.saveAsTests` | boolean |  |  |
 
 ### `POST /api/automation/import/windmill/upload`
 

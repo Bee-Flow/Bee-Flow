@@ -2,10 +2,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, CheckCircle2, Circle, Sparkles } from 'lucide-react';
 import useTranslation from '@/hooks/useTranslation';
 import { acknowledgeImportItems, fetchImportReport } from '@/api/windmillImport';
-import type { ImportReportView } from '@/api/windmillImport';
+import type { ImportComparison, ImportReportView } from '@/api/windmillImport';
 import { PRIMARY_BTN, SECONDARY_BTN } from '../Builder/settings/settingsUi';
 import { sortedWarnings } from './FlowPreviewCard';
 import useWindmillInventory from './useWindmillInventory';
+import ComparisonSection from './ComparisonSection';
 
 const importReportKey = (automationId: string) => ['automation', automationId, 'import-report'] as const;
 
@@ -39,11 +40,26 @@ function GateStatus({ gate }: { gate: ImportReportView['gate'] }) {
     );
 }
 
+/** What to check before switching it on, and the comparison with the last Windmill runs. */
+function ReportFooter({ warnings, comparison }: { warnings: ReturnType<typeof sortedWarnings>; comparison?: ImportComparison }) {
+    return (
+        <>
+            {warnings.length > 0 && (
+                <ul className="space-y-1 text-[11px] text-[var(--text-secondary)]">
+                    {warnings.map((w, i) => <li key={`${w.code}-${i}`}>{w.message}</li>)}
+                </ul>
+            )}
+            {comparison && <ComparisonSection comparison={comparison} />}
+        </>
+    );
+}
+
 /**
  * The migration report of one imported draft: what is still open, whether a
  * dry run of this version passed, and what to check (secrets left out,
- * outbound hosts, identity change, the Windmill trigger to switch off). The
- * same facts the activation gate reads on the server.
+ * outbound hosts, identity change, the Windmill trigger to switch off), and the
+ * comparison with the last Windmill runs when the import made one. The same
+ * facts the activation gate reads on the server.
  */
 export default function ImportReportPanel({ automationId, onCompleteWithAi, onOpen }: Props) {
     const { t } = useTranslation();
@@ -107,11 +123,7 @@ export default function ImportReportPanel({ automationId, onCompleteWithAi, onOp
                     {t('automation_import.ai_privacy', 'The briefing, including the source of the open items, goes to your organisation\'s AI model when you send it. You send it yourself; nothing is switched on.')}
                 </p>
             )}
-            {warnings.length > 0 && (
-                <ul className="space-y-1 text-[11px] text-[var(--text-secondary)]">
-                    {warnings.map((w, i) => <li key={`${w.code}-${i}`}>{w.message}</li>)}
-                </ul>
-            )}
+            <ReportFooter warnings={warnings} comparison={view.report.comparison} />
         </section>
     );
 }

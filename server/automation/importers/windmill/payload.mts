@@ -16,6 +16,7 @@
 
 import type { Seg } from './mapExpr.mts';
 import { familyOf } from './eventClasses.mts';
+import { entries, isObject } from './util.mts';
 
 type Family = ReturnType<typeof familyOf>;
 
@@ -79,4 +80,59 @@ export function relativeNcPath(internal: string): string | null {
     if (rest === '/files') return '/';
     if (!rest.startsWith('/files/')) return null;
     return rest.slice('/files'.length);
+}
+
+// ── A run's input (PLAN B6) ──────────────────────────────────────────────
+
+/** The value at a dotted path of an untrusted object (prototype keys never followed). */
+function at(value: unknown, path: string[]): unknown {
+    let cur = value;
+    for (const key of path) {
+        const hit = entries(cur).find(([k]) => k === key);
+        if (!hit) return undefined;
+        cur = hit[1];
+    }
+    return cur;
+}
+
+/**
+ * The `flow_input` of one Windmill run as the trigger payload of the converted
+ * draft: the same table the expressions are re-mapped with, read the other way.
+ *
+ *   nextcloud              the flat Bee Flow fields (`path` relative to the user's files,
+ *                          `actor` / `actorName` from the user or the trigger's user id);
+ *                          `authentication` and every field the table does not know are left out
+ *   schedule               null: the schedule's arguments are fixed in the draft (`vars`)
+ *   webhook, form, manual  `flow_input.<x>` is `trigger.output.<x>`: the input itself,
+ *                          without `authentication`
+ *
+ * Pure: the caller decides whether the input is scrubbed first.
+ */
+export function remapRunInput(kind: string, event: string | null, input: unknown): Record<string, unknown> | null {
+    if (kind === 'schedule') return null;
+    if (kind === 'nextcloud') return nextcloudPayload(event, input);
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of entries(input)) if (k !== 'authentication') out[k] = v;
+    return out;
+}
+
+function nextcloudPayload(event: string | null, input: unknown): Record<string, unknown> {
+    const out: Record<string, unknown> = {};
+    if (!event || !isObject(input)) return out;
+    const ev = at(input, ['event']);
+    for (const [key, { field }] of Object.entries(EVENT_FIELDS[familyOf(event)])) {
+        const v = at(ev, key.split('.'));
+        if (v === undefined || field in out) continue;
+        if (field === 'path') {
+            const rel = typeof v === 'string' ? relativeNcPath(v) : null;
+            if (rel !== null) out.path = rel;
+            continue;
+        }
+        out[field] = v;
+    }
+    const uid = at(input, ['user', 'uid']) ?? at(input, ['authentication', 'trigger', 'userId']);
+    if (uid !== undefined) out.actor = uid;
+    const name = at(input, ['user', 'displayName']);
+    if (name !== undefined) out.actorName = name;
+    return out;
 }

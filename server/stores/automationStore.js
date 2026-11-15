@@ -19,6 +19,8 @@ module.exports = {
     ...require('./automationStore/evolutions'),
     ...require('./automationStore/steps'),
     ...require('./automationStore/runs'),
+    // A dry run whose data may not be kept (the Windmill comparison), removed once summarised.
+    ...require('./automationStore/dryRunCleanup'),
     // Full copies of step outputs the run history truncated.
     ...require('./automationStore/runFullOutputs'),
     // Durations of recent legs (the public form poll's typical-duration hint).

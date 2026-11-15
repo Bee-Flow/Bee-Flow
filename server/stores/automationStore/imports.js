@@ -23,4 +23,5 @@ module.exports = {
     acknowledgeImportItems: store.acknowledge,
     markImportDryRunOk: store.markDryRunOk,
     markImportCleared: store.markCleared,
+    setImportComparison: store.setComparison,
 };

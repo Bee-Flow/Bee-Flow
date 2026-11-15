@@ -3,7 +3,10 @@
  *
  *   POST /import/windmill/upload             multipart: `file` (a `wmill sync pull` zip, a flow JSON or
  *                                            flow.yaml), `mode` preview|commit, `select` (JSON list of paths)
- *   POST /import/windmill/remote             JSON: a standalone Windmill read once with a read-only token
+ *   POST /import/windmill/remote             JSON: a standalone Windmill read once with a read-only token;
+ *                                            `compare: { saveAsTests? }` on a commit also dry-runs each new
+ *                                            draft with the input of its flow's last Windmill runs (PLAN B6,
+ *                                            usecases/automation/windmillCompare.mts), in this same request
  *   GET  /:id/import-report                  the migration report of an imported draft, its gate state
  *                                            and the "Complete with AI" briefing
  *   POST /:id/import-report/acknowledge      checklist items the person handles by hand
@@ -30,8 +33,10 @@ import { createRequire } from 'node:module';
 import type { NextFunction, Request, Response, Router } from 'express';
 import { convertWindmill, previewOf, commitWindmill, importReportView, windmillLimits } from '../../usecases/automation/windmillImport.mts';
 import type { WindmillLimits } from '../../usecases/automation/windmillImport.mts';
-import { fetchWindmillExport, WindmillRemoteError } from '../../usecases/automation/windmillRemote.mts';
+import { fetchFlowRuns, fetchWindmillExport, openWindmill, WindmillRemoteError } from '../../usecases/automation/windmillRemote.mts';
 import type { FetchLike } from '../../usecases/automation/windmillRemote.mts';
+import { compareImported, compareLimits } from '../../usecases/automation/windmillCompare.mts';
+import type { CompareDeps, CompareLimits, Comparison } from '../../usecases/automation/windmillCompare.mts';
 import type { ImportContext } from '../../usecases/automation/importEnvelope.mts';
 import type { ImportRow } from '../../stores/automationImportStore.mts';
 
@@ -71,6 +76,10 @@ const RemoteBody = z.object({
     token: z.string().min(1, 'token is a read-only Windmill token.').max(4096, 'token is too long.'),
     mode: Mode,
     select: z.array(z.string().max(1000, 'A path is at most 1000 characters.')).max(5000, 'select holds at most 5000 paths.').optional(),
+    // Only on a commit, and only while AUTOMATION_IMPORT_WINDMILL_COMPARE_RUNS is above 0.
+    compare: z.object({
+        saveAsTests: z.boolean({ error: 'compare.saveAsTests is true or false.' }).optional(),
+    }, { error: 'compare is an object.' }).strict().optional(),
 }).strict();
 
 const AcknowledgeBody = z.object({
@@ -99,6 +108,16 @@ export interface WindmillRouteDeps {
     importContextFor?: (req: Request) => Promise<ImportContext>;
     /** The automation and the caller's access to it; null once the 404 / 403 is sent. */
     load?: (req: Request, res: Response, need: 'view' | 'edit') => Promise<{ id: string; version?: number | null; definition?: Record<string, unknown> | null } | null>;
+    /** The side-by-side comparison's limits (AUTOMATION_IMPORT_WINDMILL_COMPARE_*). */
+    compareLimits?: () => CompareLimits;
+    /** The comparison's stores and runner (a test hands in doubles); the run reads always use the import's session. */
+    compareDeps?: Omit<CompareDeps, 'fetchRuns'>;
+}
+
+/** What the commit answer says per flow about its comparison: counts, never a value. */
+function comparedOf(c: Comparison | undefined) {
+    if (!c) return undefined;
+    return { status: c.status, scenarios: c.scenarios.length, reachedEnd: c.scenarios.filter((s) => s.reachedEnd).length };
 }
 
 function defaultLoad(req: Request, res: Response, need: 'view' | 'edit') {
@@ -125,14 +144,20 @@ export function registerWindmillImportRoutes(router: Router, deps: WindmillRoute
     const upload = uploadGuard({ maxBytes: boot.maxBytes > 0 ? boot.maxBytes : Number.MAX_SAFE_INTEGER, allow: UPLOAD_TYPES, field: 'file' });
     const importContextFor = deps.importContextFor ?? (async () => { throw new HttpError(500, 'import.not_wired', 'The import is not available here.'); });
 
-    type Answer = { input: unknown; mode: 'preview' | 'commit'; select: string[] | null; sourceKind: 'windmill_upload' | 'windmill_api'; notes: string[] };
-    async function answer(req: Request, res: Response, { input, mode, select, sourceKind, notes }: Answer) {
+    const compareCaps = deps.compareLimits ?? compareLimits;
+
+    type Compare = (flows: Array<Record<string, any>>, results: Awaited<ReturnType<typeof commitWindmill>>, userId: string) => Promise<Map<string, Comparison>>;
+    type Answer = { input: unknown; mode: 'preview' | 'commit'; select: string[] | null; sourceKind: 'windmill_upload' | 'windmill_api'; notes: string[]; compareRuns?: number; compare?: Compare | null };
+    async function answer(req: Request, res: Response, { input, mode, select, sourceKind, notes, compareRuns, compare }: Answer) {
         const l = limits();
         const conv = await convertWindmill(input, l, notes);
-        const preview = previewOf(conv);
+        // The dialog offers the comparison only when this server has it on.
+        const preview = { ...previewOf(conv), ...(compareRuns ? { compare: { runs: compareRuns } } : {}) };
         if (mode === 'preview') return res.json({ mode, ...preview });
-        const results = await commitWindmill(conv, { select, sourceKind, limits: l, ctx: await importContextFor(req) });
-        res.json({ mode, ...preview, results });
+        const ctx = await importContextFor(req);
+        const results = await commitWindmill(conv, { select, sourceKind, limits: l, ctx });
+        const compared = compare ? await compare(conv.flows, results, ctx.userId) : null;
+        res.json({ mode, ...preview, results: compared ? results.map((r) => ({ ...r, ...(compared.has(r.path) ? { compared: comparedOf(compared.get(r.path)) } : {}) })) : results });
     }
 
     router.post('/import/windmill/upload', licensed, limiter, upload, validate({ body: UploadBody }), async (req: Request, res: Response) => {
@@ -146,16 +171,28 @@ export function registerWindmillImportRoutes(router: Router, deps: WindmillRoute
     });
 
     router.post('/import/windmill/remote', licensed, limiter, validate({ body: RemoteBody }), async (req: Request, res: Response) => {
-        const { baseUrl, workspace, token, mode, select } = req.body as { baseUrl: string; workspace: string; token: string; mode: 'preview' | 'commit'; select?: string[] };
+        const { baseUrl, workspace, token, mode, select, compare } = req.body as { baseUrl: string; workspace: string; token: string; mode: 'preview' | 'commit'; select?: string[]; compare?: { saveAsTests?: boolean } };
         const l = limits();
+        const caps = compareCaps();
         let fetched;
+        let session;
         try {
-            fetched = await fetchWindmillExport({ baseUrl, workspace, token }, { maxBytes: l.maxBytes, maxFlows: l.maxFlows, maxTotalBytes: l.maxUnzippedBytes }, deps.fetchImpl ? { fetchImpl: deps.fetchImpl } : {});
+            // One session: the export and the run reads of the comparison share one byte budget.
+            session = openWindmill({ baseUrl, workspace, token }, { maxBytes: l.maxBytes, maxFlows: l.maxFlows, maxTotalBytes: l.maxUnzippedBytes }, deps.fetchImpl ? { fetchImpl: deps.fetchImpl } : {});
+            fetched = await fetchWindmillExport({ baseUrl, workspace, token }, { maxBytes: l.maxBytes, maxFlows: l.maxFlows, maxTotalBytes: l.maxUnzippedBytes }, { session });
         } catch (e) {
             if (e instanceof WindmillRemoteError) throw new HttpError(REMOTE_STATUS[e.code] ?? 502, `import.windmill.${e.code}`, e.message);
             throw new HttpError(502, 'import.windmill.unreachable', new WindmillRemoteError('unreachable').message);
         }
-        await answer(req, res, { input: fetched.input, mode, select: select ?? null, sourceKind: 'windmill_api', notes: fetched.notes });
+        const open = session;
+        // The token lives in `open` until this request ends: the comparison runs inside it.
+        const run: Compare | null = compare && caps.runs > 0
+            ? (flows, results, userId) => compareImported(
+                { flows, results, limits: caps, saveAsTests: compare.saveAsTests === true, userId },
+                { ...(deps.compareDeps ?? {}), fetchRuns: (path, n, moduleIds) => fetchFlowRuns(open, path, n, { moduleIds }) },
+            )
+            : null;
+        await answer(req, res, { input: fetched.input, mode, select: select ?? null, sourceKind: 'windmill_api', notes: fetched.notes, compareRuns: caps.runs, compare: run });
     });
 
     router.get('/:id/import-report', async (req: Request, res: Response) => {

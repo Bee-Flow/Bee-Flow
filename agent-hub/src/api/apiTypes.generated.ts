@@ -1429,6 +1429,9 @@ export interface ApiOperations {
     }>;
     'POST /api/automation/import/windmill/remote': Op<NoParams, UndeclaredQuery, {
         baseUrl: string;
+        compare?: {
+            saveAsTests?: boolean;
+        };
         mode: 'preview' | 'commit';
         select?: Array<string>;
         source: 'windmill_api';

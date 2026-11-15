@@ -66,6 +66,8 @@ export interface WindmillFlowPreview {
     importable: boolean;
 }
 
+export type ComparisonStatus = 'done' | 'no_runs' | 'skipped_flow_limit' | 'unauthorized' | 'unreadable' | 'budget_spent';
+
 interface WindmillFlowResult {
     path: string;
     title: string;
@@ -73,6 +75,8 @@ interface WindmillFlowResult {
     automationId?: string;
     openItems?: number;
     error?: string;
+    /** Only when the import compared this flow with its last Windmill runs: counts, never a value. */
+    compared?: { status: ComparisonStatus; scenarios: number; reachedEnd: number };
 }
 
 export interface WindmillImportAnswer {
@@ -81,7 +85,28 @@ export interface WindmillImportAnswer {
     notMigrated: string[];
     readWarnings: string[];
     notes: string[];
+    /** Source W only, while the server has the comparison on: how many runs per flow it compares. */
+    compare?: { runs: number };
     results?: WindmillFlowResult[];
+}
+
+/** One Windmill run replayed as a dry run of the draft: statuses, step ids, codes and key paths, never a value. */
+export interface ComparisonScenario {
+    windmillRunId: string;
+    windmillSuccess: boolean | null;
+    status: string;
+    reachedEnd: boolean;
+    failedSteps: Array<{ stepId: string; code: string }>;
+    shapeDiffs: Array<{ stepId: string; wmId: string; simulated: boolean; missing: string[]; extra: string[] }>;
+    saved: { golden: boolean; runId: string | null; reason: string | null } | null;
+}
+
+export interface ImportComparison {
+    at: string;
+    requested: number;
+    status: ComparisonStatus;
+    savedAsTests: boolean;
+    scenarios: ComparisonScenario[];
 }
 
 export interface ImportReportView {
@@ -105,6 +130,8 @@ export interface ImportReportView {
         appliedRunPolicy?: Record<string, unknown>;
         suggestedRunPolicy?: Record<string, unknown>;
         notes?: string[];
+        /** The side-by-side comparison with the last Windmill runs, when the import made one. */
+        comparison?: ImportComparison;
     };
     /** The "Complete with AI" briefing for the open items; null when nothing is open. */
     brief: string | null;
