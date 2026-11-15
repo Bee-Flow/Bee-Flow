@@ -1167,6 +1167,10 @@
     "GET /api/automation/forms/:automationId/test-link": {
       "gate": "auth"
     },
+    "GET /api/automation/import/windmill/inventory": {
+      "gate": "scope",
+      "via": "orgAdminOfOwnOrg"
+    },
     "GET /api/automation/runs/:id": {
       "gate": "auth"
     },
