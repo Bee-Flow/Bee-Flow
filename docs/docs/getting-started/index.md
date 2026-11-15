@@ -58,7 +58,7 @@ The workspace runs in any browser. There are also two clients that connect to it
 | **CPU** | 2 cores | 4 cores |
 | **RAM** | 2 GB (server) + 1 GB (Postgres) | 4 GB + 2 GB |
 | **Disk** | 5 GB | 20 GB + KB storage |
-| **OS** | Linux x86_64 / arm64 | Ubuntu 22.04 / Debian 12 |
+| **OS** | Linux x86_64 (the server images are `linux/amd64` only) | Ubuntu 22.04 / Debian 12 |
 | **Postgres** | 15+ with the `pgvector` extension | `pgvector/pgvector:pg15`, the image the Compose files run |
 | **Redis** | optional | 7+ for >1 server replica |
 
