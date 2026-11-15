@@ -176,7 +176,7 @@ deliberate edit with a reason.
 - An explicit AI-Act risk-tier classifier with manual override (today: the high-risk heuristic behind the DPIA/oversight checks).
 - Automatic conversation-content retention enforcement (opt-in, destructive — currently deliberately manual).
 - MDM/endpoint connectors (Intune/Jamf) for the device-facing Annex A controls (A.7.9, A.8.1).
-- SOC 2 / NIS2 / DORA as additional frameworks on the same control↔check mapping.
+- SOC 2 as an additional framework on the same control↔check mapping (NIS2 and DORA ship as frameworks with their own checks).
 
 ## Where to next
 
