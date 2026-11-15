@@ -159,6 +159,10 @@ export function WebhookRow({ row, ctl }: RowProps) {
 /** The secret (or header token) of a webhook while it is still in memory: right after Create or Renew. */
 function WebhookSecretBox({ rowId, secret, revealed, headerToken, ctl }: { rowId: string; secret: string; revealed: boolean; headerToken: boolean; ctl: RowProps['ctl'] }) {
     const { t } = useTranslation();
+    const onceText = headerToken
+        ? t('automation_webhook_log.auth.token_once', 'You only see the token now. Requests without it in the Authorization header are refused.')
+        // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- an i18n key that names the secret, not a secret
+        : t('automations.settings.webhook_secret_once', 'You only see the secret now. Requests without a valid signature are refused.');
     return (
         <div className="flex flex-col gap-1">
             <div className="flex items-center gap-2">
@@ -183,10 +187,7 @@ function WebhookSecretBox({ rowId, secret, revealed, headerToken, ctl }: { rowId
                 </button>
             </div>
             <div className="text-[var(--text-tertiary)]">
-                {/* nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- an i18n key that names the secret, not a secret */}
-                {headerToken
-                    ? t('automation_webhook_log.auth.token_once', 'You only see the token now. Requests without it in the Authorization header are refused.')
-                    : t('automations.settings.webhook_secret_once', 'You only see the secret now. Requests without a valid signature are refused.')}
+                {onceText}
             </div>
         </div>
     );
