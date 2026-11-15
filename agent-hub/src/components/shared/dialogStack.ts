@@ -132,6 +132,15 @@ export function closeDialog(entry: DialogEntry): void {
     changed();
 }
 
+/**
+ * Is a dialog open? For a layer with its own Escape that is not a dialog (a
+ * popover): while one is open the key belongs to the stack, so a confirmation
+ * or a form opened from that layer closes alone and the layer stays.
+ */
+export function dialogIsOpen(): boolean {
+    return stack.length > 0;
+}
+
 export function setDialogEscape(entry: DialogEntry, onEscape: (() => void) | null): void {
     entry.onEscape = onEscape;
 }

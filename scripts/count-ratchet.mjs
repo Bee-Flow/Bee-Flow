@@ -41,11 +41,11 @@
  *   authfetch-outside-api  non-test files outside src/api/ that call
  *                     authFetch or apiFetch (its typed form in
  *                     api/typedRequest.ts) themselves (utils/helpers.js, where it is
- *                     defined, not counted). The data layer is src/api/:
- *                     apiClient / createJsonResource (client.ts), mutate()
- *                     and the readers in api/queries/; a call written by hand
- *                     elsewhere is one more copy of URL, headers and error
- *                     handling.
+ *                     defined, not counted). The target is the same one
+ *                     url-outside-api names: a checked call through
+ *                     api/typedRequest.ts (apiJson, apiRequest) or a reader in
+ *                     api/queries/ built on it; an unchecked call written by
+ *                     hand elsewhere is one more copy of the error handling.
  *   url-outside-api   non-test files outside src/api/ that build a request
  *                     URL by hand (`${API_BASE}/…` in a template, or
  *                     `API_BASE + '/…'`) or call mutate()/request() from
@@ -846,7 +846,7 @@ const METRICS = {
         include: (rel) => !TEST_FILE.test(rel) && !rel.startsWith('api/') && rel !== 'utils/helpers.ts',
         measure: (text) => (UNCHECKED_CALL.test(blankNonCode(text)) ? 1 : 0),
         what: 'files calling authFetch or apiFetch outside src/api',
-        advice: 'call through src/api/ instead: apiClient or createJsonResource (api/client.ts), mutate() (api/mutate.ts), or a reader in api/queries/',
+        advice: 'call through api/typedRequest.ts instead (apiJson / apiRequest with an operation key of api/apiTypes.generated.ts; apiFetch counts here like authFetch), or a reader in api/queries/ built on it,',
     },
     'url-outside-api': {
         include: (rel) => !TEST_FILE.test(rel) && !rel.startsWith('api/'),

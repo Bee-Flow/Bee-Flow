@@ -61,6 +61,7 @@ export default {
     "login.enter_strong_password": "Enter a strong password",
     "login.re_enter_password": "Re-enter password",
     "login.password_requirements": "Must be at least 8 characters (uppercase, lowercase, and number)",
+    "login.show_password": "Show password",
     "login.setup_personal_account": "Set up your personal account",
     "login.back": "Back",
     "login.back_to_login": "Back to login",

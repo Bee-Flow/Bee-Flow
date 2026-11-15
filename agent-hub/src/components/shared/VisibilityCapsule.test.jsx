@@ -81,6 +81,23 @@ describe('VisibilityCapsule trigger', () => {
         expect(trigger()).toHaveAttribute('data-mode', 'personal');
     });
 
+    it('capsule variant: the accessible name holds the words on the button', () => {
+        // WCAG 2.5.3: a name of only "Visibility" hid the audience from a screen
+        // reader and from voice control ("click Personal" found nothing).
+        const { rerender } = renderCapsule({ variant: 'capsule', isPublished: false });
+        expect(trigger()).toHaveAccessibleName('Visibility: Personal');
+        rerender(
+            <VisibilityCapsule
+                variant="capsule"
+                isPublished
+                sharedGroups={['g1']}
+                orgGroups={ORG_GROUPS}
+                onToggle={() => {}} onClose={() => {}} onSetPersonal={() => {}} onSetEntireOrg={() => {}} onToggleGroup={() => {}}
+            />,
+        );
+        expect(trigger()).toHaveAccessibleName('Visibility: Group Sales');
+    });
+
     it('shows Entire organisation when published with no groups', () => {
         renderCapsule({ isPublished: true, sharedGroups: [] });
         expect(trigger()).toHaveTextContent('Entire organisation');

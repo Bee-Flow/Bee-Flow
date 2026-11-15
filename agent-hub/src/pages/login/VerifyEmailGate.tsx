@@ -24,7 +24,7 @@ const VerifyEmailGate = ({ verifyEmail, setVerifyEmail, resending, resendDone, o
     return (
         <div className={LOGIN_PAGE_CLASS}>
             <LoginBackdrop />
-            <div className="w-full max-w-[26rem] relative z-10">
+            <main className="w-full max-w-[26rem] relative z-10">
                 <div className={`${LOGIN_CARD_CLASS} text-center`}>
                     <div className="w-12 h-12 mx-auto mb-5 rounded-md flex items-center justify-center bg-[var(--bg-tertiary)]">
                         <MailCheck className="w-6 h-6 text-[var(--text-primary)]" />
@@ -74,7 +74,7 @@ const VerifyEmailGate = ({ verifyEmail, setVerifyEmail, resending, resendDone, o
                         {t('login.back_to_login', 'Back to login')}
                     </button>
                 </div>
-            </div>
+            </main>
         </div>
     );
 };

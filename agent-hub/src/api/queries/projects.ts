@@ -8,6 +8,7 @@
 
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, apiClient } from '../client';
+import { retryUnlessRefused } from '../queryClient';
 import { toProjectError } from './projectErrors';
 import { type ProjectKind, type ProjectRole, type ProjectForm, type ProjectMembers, type ProjectActivityItem, type ProjectResources, type ProjectThread, type MyProjectChat, type InviteForm, type ProjectPrincipals, type TransferOwnerForm } from './projects.types';
 import { projectKeys, enc, useMemberMutation } from './useSetMemberColor';
@@ -58,9 +59,9 @@ export class ProjectConflictError extends Error {
     }
 }
 
-/** A refusal (404 removed or deleted, 403 no longer a member) will not change on a second try: show it at once. */
-export const retryUnlessRefused = (failures: number, error: unknown): boolean =>
-    !(error instanceof ApiError && typeof error.status === 'number' && error.status >= 400 && error.status < 500 && error.status !== 408 && error.status !== 429) && failures < 2;
+// A refusal (404 removed or deleted, 403 no longer a member) will not change on a second try: the
+// rule every query now gets by default, kept under this name for the hooks and tests that say so.
+export { retryUnlessRefused };
 
 // ── Projects ────────────────────────────────────────────────────────────────
 

@@ -100,6 +100,7 @@ const MicrosoftButtons = ({ logins, onClick, disabled }: { logins: MicrosoftLogi
 };
 
 const PasswordInput = ({ value, onChange, inputClass, placeholder = "••••••••", label = "Password", labelClass, setupMode, minLength, id = "password" }: PasswordInputProps) => {
+    const { t } = useTranslation();
     const [showPassword, setShowPassword] = useState(false);
     return (
         <div>
@@ -122,14 +123,15 @@ const PasswordInput = ({ value, onChange, inputClass, placeholder = "•••�
                 <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
-                    aria-label={showPassword ? 'Toggle password visibility' : 'Toggle password visibility'}
-                    tabIndex={-1}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
+                    // One name in both states: aria-pressed says whether the password is readable.
+                    aria-label={t('login.show_password', 'Show password')}
+                    aria-pressed={showPassword}
                 >
                     {showPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
                 </button>
             </div>
-            {setupMode && <p className="text-xs text-[var(--text-tertiary)] mt-1.5 ml-1">{label === 'Password' ? '' : ''}{setupMode._t ? setupMode._t('login.password_requirements') : 'Must be at least 8 characters (uppercase, lowercase, and number)'}</p>}
+            {setupMode && <p className="text-xs text-[var(--text-tertiary)] mt-1.5 ml-1">{setupMode._t ? setupMode._t('login.password_requirements') : 'Must be at least 8 characters (uppercase, lowercase, and number)'}</p>}
         </div>
     );
 };

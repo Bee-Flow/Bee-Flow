@@ -291,6 +291,19 @@ test('authfetch-outside-api counts files calling authFetch outside src/api, not 
     assert.strictEqual(budgetOf(dir, 'authfetch-outside-api'), 2);
 });
 
+test('authfetch-outside-api fails a new caller over the budget and points at the typed request, like url-outside-api', () => {
+    const dir = sandbox({
+        metric: 'authfetch-outside-api',
+        budget: 0,
+        files: { 'components/New.tsx': 'const r = await authFetch(url);\n' },
+    });
+    const r = run(dir, 'authfetch-outside-api');
+    assert.strictEqual(r.code, 1);
+    assert.match(r.stderr, /api\/typedRequest\.ts/);
+    // One target, not a second list of helpers to choose from.
+    assert.doesNotMatch(r.stderr, /apiClient|createJsonResource/);
+});
+
 test('url-outside-api counts files outside src/api that build an API_BASE URL or call mutate()/request() with a URL', () => {
     const tick = '`';
     const dir = sandbox({

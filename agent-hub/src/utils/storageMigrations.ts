@@ -33,7 +33,8 @@
  * (`beeflow_iconpack_<packId>_<sha>`) — where serving last release's copy is
  * the bug being fixed. Everything below deliberately stays UNstamped and
  * must never be renamed per build:
- *   - `bf_session_token`, `bf_auth_reload_at` (sessionStorage, helpers.js):
+ *   - `bf_session_token` (sessionStorage, helpers.ts) and `bf_auth_reload_at`
+ *     (sessionStorage, sessionRecovery.ts):
  *     embed auth plumbing and the 401→reload loop-breaker; losing them
  *     mid-session breaks Nextcloud embeds.
  *   - `cookie_consent` (+ legacy `bf_cookie_consent`): a consent record —

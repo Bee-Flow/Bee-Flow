@@ -39,6 +39,7 @@ interface LanguagePickerProps {
 
 /** Language picker, only offered when the server lists more than one locale. */
 export const LanguagePicker = ({ availableLocales, locale, setLocale }: LanguagePickerProps) => {
+    const { t } = useTranslation();
     if (availableLocales.length <= 1) return null;
     return (
         <div className="absolute top-6 right-6 sm:top-9 sm:right-8 z-10">
@@ -48,6 +49,7 @@ export const LanguagePicker = ({ availableLocales, locale, setLocale }: Language
                 <select
                     value={locale}
                     onChange={(e) => setLocale(e.target.value)}
+                    aria-label={t('settings.language', 'Language')}
                     className="appearance-none pl-8 pr-3 py-1.5 rounded-md bg-[var(--bg-primary)] border border-[var(--border-default)] hover:border-[var(--text-tertiary)] text-xs font-medium text-[var(--text-secondary)] cursor-pointer transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)]"
                 >
                     {availableLocales.map(l => (

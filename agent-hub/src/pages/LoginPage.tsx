@@ -140,7 +140,7 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
 
             <LoginBackdrop />
 
-            <div className="w-full max-w-[26rem] relative z-10">
+            <main className="w-full max-w-[26rem] relative z-10">
                 <div className={LOGIN_CARD_CLASS}>
                     <LanguagePicker availableLocales={availableLocales} locale={locale} setLocale={setLocale} />
 
@@ -210,7 +210,7 @@ const LoginPage = ({ onLogin }: LoginPageProps) => {
                 </div>
 
                 <LoginFooter deploymentMode={deploymentMode} />
-            </div>
+            </main>
         </div>
     );
 };

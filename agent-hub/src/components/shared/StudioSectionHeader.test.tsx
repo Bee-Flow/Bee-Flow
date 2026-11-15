@@ -181,16 +181,20 @@ describe('StudioSectionHeader — tabs and badges', () => {
         expect(content.querySelector('[data-tone]')).toBeNull();
     });
 
-    it('folds a tab label behind its icon at the first stage', () => {
+    it('folds a tab label behind its icon at the first stage, out of sight but still its name', () => {
         renderHeader();
+        const TAB_LABEL_FOLD = '@max-[1440px]/objhead:sr-only';
         const settings = screen.getByRole('radio', { name: /Settings/ });
-        const label = settings.querySelector(`.${CSS.escape(OBJHEAD_FOLD.label)}`);
+        const label = settings.querySelector(`.${CSS.escape(TAB_LABEL_FOLD)}`);
         expect(label).not.toBeNull();
         expect(label).toHaveTextContent('Settings');
         expect(settings.querySelector('svg')).not.toBeNull();
+        // Not the `hidden` fold callers use for their own words: display:none
+        // would leave an icon-only radio that announces nothing.
+        expect(settings.querySelector(`.${CSS.escape(OBJHEAD_FOLD.label)}`)).toBeNull();
         // A tab without an icon keeps its label unconditionally.
         const content = screen.getByRole('radio', { name: /Content/ });
-        expect(content.querySelector(`.${CSS.escape(OBJHEAD_FOLD.label)}`)).toBeNull();
+        expect(content.querySelector(`.${CSS.escape(TAB_LABEL_FOLD)}`)).toBeNull();
     });
 
     it('folds the strip into the menu at 900px with tabsFold="compact", at 1180px without it', () => {
@@ -225,6 +229,11 @@ describe('StudioSectionHeader — tabs and badges', () => {
         renderHeader({ onTab, activeTab: 'review' });
         const trigger = screen.getByTestId('studio-section-tab-menu');
         expect(trigger).toHaveTextContent('Review2');
+        // Named by the tab it shows (the visible words), described as the
+        // section menu: a name of only "Sections" hid which tab is open.
+        expect(trigger).toHaveAccessibleName(/Review/);
+        expect(trigger).not.toHaveAttribute('aria-label');
+        expect(trigger).toHaveAccessibleDescription('Sections');
         expect(trigger).toHaveAttribute('aria-expanded', 'false');
         await user.click(trigger);
         expect(trigger).toHaveAttribute('aria-expanded', 'true');
