@@ -83,7 +83,11 @@ const TOOL_REGISTRY = [
     // approval. See integrations/automationEvolutionTools.js + automation/evolution.js.
     { app: 'automation-evolution',       label: 'Automation evolution',      module: '../integrations/automationEvolutionToolDefs',     arrayName: 'AUTOMATION_EVOLUTION_TOOLS',    enabledKey: 'automation-evolution',  availableTo: ['automation_step'] },
     { app: 'kb-ingest',               label: 'Knowledge Base Ingest',  module: '../integrations/kbIngestTools',             enabledKey: 'kb-ingest',          arrayName: 'KB_INGEST_TOOLS',            availableTo: ['automation_step'] },
-    { app: 'nextcloud',               label: 'Nextcloud',              module: '../integrations/nextcloudTools',            arrayName: 'NEXTCLOUD_TOOLS',            enabledKey: 'nextcloud' },
+    // NEXTCLOUD_CATALOG_TOOLS = NEXTCLOUD_TOOLS + the automation-only
+    // nextcloud_request, so the catalog, the side-effect map and activation
+    // attribute it to Nextcloud. Who is OFFERED it is getIntegrationTools'
+    // call (automation steps only), not this list.
+    { app: 'nextcloud',               label: 'Nextcloud',              module: '../integrations/nextcloudTools',            arrayName: 'NEXTCLOUD_CATALOG_TOOLS',    enabledKey: 'nextcloud' },
     { app: 'nextcloud-calendar',      label: 'Nextcloud Calendar',     module: '../integrations/nextcloudCalendarTools',    arrayName: 'NEXTCLOUD_CALENDAR_TOOLS',   enabledKey: 'nextcloud-calendar' },
     { app: 'nextcloud-contacts',      label: 'Nextcloud Contacts',     module: '../integrations/nextcloudContactsTools',    arrayName: 'NEXTCLOUD_CONTACTS_TOOLS',   enabledKey: 'nextcloud-contacts' },
     { app: 'nextcloud-deck',          label: 'Nextcloud Deck',         module: '../integrations/nextcloudDeckTools',        arrayName: 'NEXTCLOUD_DECK_TOOLS',       enabledKey: 'nextcloud-deck' },

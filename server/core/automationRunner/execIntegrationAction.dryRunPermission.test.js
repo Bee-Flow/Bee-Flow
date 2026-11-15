@@ -68,3 +68,23 @@ test('a step that names a built-in step type fails in a dry run, as live', async
     const ctx = { userId: 'u1', allowedToolNames: new Set(['gmail_search']) };
     await assert.rejects(() => execIntegrationAction(send('notification'), ctx, state(), 'dry_run', deps()), /built-in step type/);
 });
+
+// nextcloud_request's effect follows its method (sideEffectMap.isSideEffectCall):
+// a read is dispatched for real in a dry run, a write is synthesised.
+const ncRequest = (method) => ({ id: 'nc', type: 'integration_action', tool: 'nextcloud_request', inputs: { method: { kind: 'literal', value: method }, path: { kind: 'literal', value: '/ocs/v2.php/cloud/user' } } });
+const dispatchProbe = () => ({
+    ...deps(),
+    safety: { ...deps().safety, prepareForEgress: (v) => v },
+    toolDispatcher: () => { throw new Error('DISPATCHED'); },
+});
+
+test('a nextcloud_request write is synthesised in a dry run', async () => {
+    const ctx = { userId: 'u1', allowedToolNames: new Set(['nextcloud_request']) };
+    const out = anyOf(await execIntegrationAction(ncRequest('POST'), ctx, state(), 'dry_run', dispatchProbe()));
+    assert.equal(out.dryRunSynthesised, true);
+});
+
+test('a nextcloud_request read reaches the dispatcher in a dry run', async () => {
+    const ctx = { userId: 'u1', allowedToolNames: new Set(['nextcloud_request']) };
+    await assert.rejects(() => execIntegrationAction(ncRequest('get'), ctx, state(), 'dry_run', dispatchProbe()), /DISPATCHED/);
+});

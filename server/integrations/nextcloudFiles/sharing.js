@@ -1,11 +1,12 @@
 // @typecheck strict
 /**
  * Shares over the files_sharing OCS API — public links, user/group/email
- * shares, listing, updating and revoking — plus the group lookup a group share
- * needs first.
+ * shares, listing, updating and revoking — plus the directory lookups a share
+ * needs first: the groups, and one user's profile (./userProfile.mts).
  */
 
 const { extractReason } = require('../nextcloudHttpError');
+const { nextcloudGetUser } = require('./userProfile.mts');
 
 // Nextcloud sends a share id as a string ("12"); update_share and delete_share
 // take a number. Hand the number back everywhere so ids round-trip.
@@ -30,7 +31,7 @@ async function shareFailure(res, what) {
 }
 
 /**
- * @typedef {{ path?: string, shareId?: string | number, shareWith?: string, permissions?: number, password?: string, expireDate?: string, note?: string, search?: string, limit?: number, shared_with_me?: boolean }} ShareArgs
+ * @typedef {{ path?: string, shareId?: string | number, shareWith?: string, permissions?: number, password?: string, expireDate?: string, note?: string, search?: string, limit?: number, shared_with_me?: boolean, uid?: string }} ShareArgs
  * @typedef {(args: ShareArgs, ctx: import('./webdav').FilesToolCtx) => Promise<Record<string, any>>} ShareHandler
  */
 
@@ -210,6 +211,7 @@ async function deleteShare(args, { baseUrl, ncFetch, authError }) {
 /** @type {Record<string, ShareHandler>} */
 const HANDLERS = {
     nextcloud_list_groups: listGroups,
+    nextcloud_get_user: async (args, ctx) => ({ ...(await nextcloudGetUser(args, ctx)) }),
     nextcloud_create_share: createShare,
     nextcloud_share_with_user: shareWith(0),
     nextcloud_share_with_group: shareWith(1),

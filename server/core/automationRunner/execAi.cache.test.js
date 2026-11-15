@@ -87,6 +87,7 @@ const restore = installResolveStub({
     },
     '../automationModel/bindCapture': { captureBindingMisses: (fn) => ({ value: fn(), misses: [] }) },
     '../automationModel/sideEffectMap': { isSideEffect: () => false, isMemoisable: () => true },
+    '../automationModel/sideEffectCall.mts': { isSideEffectCall: () => false },
     '../../automation/outputSchemas': { synthesizeDryRunOutput: () => ({ sample: true }) },
     '../../automation/shapeCache': { async recordShape(rec) { shapeCalls.push(rec); } },
     '../http/outboundProbe': {

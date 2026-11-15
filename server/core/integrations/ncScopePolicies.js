@@ -113,6 +113,15 @@ const FILES_POLICIES = {
     nextcloud_list_tags: 'allow',
     nextcloud_create_tag: 'allow',
     nextcloud_list_groups: 'allow',
+    // A user's profile: directory metadata like the group list, and Nextcloud
+    // itself decides whose profile the caller may read.
+    nextcloud_get_user: 'allow',
+    // By path the path is checked; by file id there is no folder to check it
+    // against without the lookup itself, so an id-only call is refused under
+    // 'selected' like the other fileId-indirect tools.
+    nextcloud_file_info: { args: ['path'], allowMissing: false },
+    // Any OCS or WebDAV path: no argument maps it onto a selected folder.
+    nextcloud_request: 'deny',
     // fileId/shareId-indirect tools: the id cannot be mapped to a folder
     // without an extra lookup — v1 denies them under 'selected'.
     nextcloud_convert_file: 'deny',
