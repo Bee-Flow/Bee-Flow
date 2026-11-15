@@ -100,7 +100,7 @@ function dryRunWithoutDispatch(step, ctx, runState, { mode, sideEffect, guardedI
  */
 async function dryRunWritePermission(step, ctx, inputs, deps) {
     try {
-        await assertStepToolPermitted(step, ctx, true, deps);
+        await assertStepToolPermitted(step, ctx, true, deps, inputs);
         return null;
     } catch (err) {
         if (hasRunnerPort('stepTypes') && runnerPort('stepTypes').isBuiltinStepType(step.tool)) throw err;
@@ -267,7 +267,8 @@ async function execIntegrationAction(step, ctx, runState, mode, deps) {
     });
 
     // Defense-in-depth permission check (integrationActionGates.js).
-    await assertStepToolPermitted(step, ctx, sideEffect, deps);
+    // nextcloud_request is held to the app its path reaches (resolved path, before masking).
+    await assertStepToolPermitted(step, ctx, sideEffect, deps, resolvedInputs);
     const { executeTool } = deps.toolDispatcher();
     // Connection lending (GATED, default off): see integrationActionGates.js.
     const identity = await resolveLendingIdentity(step, ctx, deps);

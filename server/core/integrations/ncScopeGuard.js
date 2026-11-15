@@ -117,6 +117,9 @@ async function checkToolCall({ toolName, toolArgs = {}, userId, orgId = null, ag
         }
     }
 
+    // One tool for every OCS / WebDAV path: judged by the app its path reaches.
+    if (toolName === 'nextcloud_request') return requestScopeDenial(scope, toolArgs);
+
     const entry = scope[integrationId] || { mode: 'all', selected: null };
     const label = (RESOURCE_KINDS[integrationId] && RESOURCE_KINDS[integrationId].label) || integrationId;
 
@@ -187,6 +190,35 @@ async function checkToolCall({ toolName, toolArgs = {}, userId, orgId = null, ag
     }
     if (!sawAny && !policy.allowMissing) {
         return deniedError(label, `This call must name one of the shared ${label} explicitly (argument: ${policy.args.join(' or ')}).`);
+    }
+    return null;
+}
+
+/**
+ * nextcloud_request under the scope: the families its path reaches
+ * (./ncRequestFamily.mts) must each be `all`. A raw request cannot be
+ * narrowed to a selection, so `selected` refuses like `off`. A path of no
+ * known family runs only while no family is narrowed at all.
+ * @param {Record<string, { mode: string } | undefined>} scope
+ * @param {Record<string, any>} toolArgs
+ * @returns {{ error: string, nc_scope_denied: true } | null}
+ */
+function requestScopeDenial(scope, toolArgs) {
+    const { requestFamilies, NC_FAMILY_IDS, familyLabel: familyName } = require('./ncRequestFamily.mts');
+    const modeOf = (/** @type {string} */ id) => (scope[id] && scope[id].mode) || 'all';
+    const families = requestFamilies(toolArgs?.path);
+    if (!families) {
+        const narrowed = NC_FAMILY_IDS.find(id => modeOf(id) !== 'all');
+        if (!narrowed) return null;
+        return deniedError('Nextcloud', `This request does not go to a Nextcloud app Bee Flow can place, and ${familyName(narrowed)} is limited for this user, so it was not sent.`);
+    }
+    for (const id of families) {
+        const mode = modeOf(id);
+        if (mode === 'all') continue;
+        const label = (RESOURCE_KINDS[id] && RESOURCE_KINDS[id].label) || familyName(id);
+        return deniedError(label, mode === 'off'
+            ? `This request goes to ${familyName(id)}, which is turned off for this user.`
+            : `This request goes to ${familyName(id)}, which is limited to a selection for this user; a direct request cannot be limited that way. Use the ${familyName(id)} actions instead, or widen the scope.`);
     }
     return null;
 }

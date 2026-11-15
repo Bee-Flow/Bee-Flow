@@ -251,8 +251,10 @@ async function addNextcloudTools({ userId, session, userOrgId, automationStep, h
         }
         // The generic nextcloud_request: automation steps only, never chat,
         // agents, MCP or an AI step (those ask without automationStep). It
-        // rides on the Files app's switches; the handler re-checks that it runs
-        // inside an automation.
+        // rides on the Files app's switches; each call is then held to the
+        // scope (ncScopeGuard) and the app switch (automationRunner/
+        // integrationActionGates) of the app its path reaches, and the handler
+        // re-checks that it runs inside an automation.
         if (automationStep && scopeOn('nextcloud') && isAppOn('nextcloud')) addTools(T.NEXTCLOUD_REQUEST_TOOLS);
     } catch (e) { fallback('core/integrations/integrationToolFeatures:addNextcloudTools', e); /* no Nextcloud tools offered */ }
 }

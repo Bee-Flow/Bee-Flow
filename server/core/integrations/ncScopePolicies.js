@@ -120,7 +120,9 @@ const FILES_POLICIES = {
     // against without the lookup itself, so an id-only call is refused under
     // 'selected' like the other fileId-indirect tools.
     nextcloud_file_info: { args: ['path'], allowMissing: false },
-    // Any OCS or WebDAV path: no argument maps it onto a selected folder.
+    // Any OCS or WebDAV path: no argument maps it onto a selected folder. Not
+    // read for this tool: ncScopeGuard judges it by the app its path reaches
+    // (ncRequestFamily.mts), where a selection refuses like this entry would.
     nextcloud_request: 'deny',
     // fileId/shareId-indirect tools: the id cannot be mapped to a folder
     // without an extra lookup — v1 denies them under 'selected'.
