@@ -5,6 +5,8 @@ import { readSiteTheme, themeCss, type FrameMode } from '../reactBlock/frameDoc'
 import { resolveBlockProps } from '../reactBlock/blockProps';
 import { loadReactRuntime, loadedReactRuntime } from '../reactBlock/loadRuntime';
 import { logger } from '../../utils/logger';
+import { LOCALE_PREFIXES } from '../../utils/cmsPublicRouting';
+import { pageLocale } from './formBlockModel';
 
 /**
  * React component block: an author's TSX, compiled by the CMS on save
@@ -28,6 +30,30 @@ interface ReactComponentData {
     props?: unknown;
     width?: unknown;
     minHeight?: unknown;
+    /** What the frame is, for a screen reader (the iframe's title). */
+    frameTitle?: unknown;
+    title?: unknown;
+    heading?: unknown;
+}
+
+export const DEFAULT_FRAME_TITLE = 'Interactive example';
+
+const text = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
+
+/**
+ * The frame's accessible name: the block's own frameTitle, else its title or
+ * heading, else the component's title/heading prop, else a generic name.
+ */
+export function frameTitleOf(data: ReactComponentData): string {
+    const props = data.props && typeof data.props === 'object' ? data.props as Record<string, unknown> : {};
+    return text(data.frameTitle) || text(data.title) || text(data.heading)
+        || text(props.title) || text(props.heading) || DEFAULT_FRAME_TITLE;
+}
+
+/** The language of the page the block sits on: the path prefix, else <html lang>. */
+function pageLang(): string {
+    if (typeof window === 'undefined') return '';
+    return pageLocale(window.location.pathname, document.documentElement.lang || '', LOCALE_PREFIXES) || '';
 }
 
 export const DEFAULT_MIN_HEIGHT = 240;
@@ -115,7 +141,8 @@ export default function ReactComponent({ data }: { data?: ReactComponentData | n
                             props={resolveBlockProps(data.fields, data.props)}
                             mode={mode}
                             minHeight={frameMinHeight(data.minHeight)}
-                            title="React component"
+                            title={frameTitleOf(data)}
+                            lang={pageLang()}
                         />
                     ) : (
                         <CompilePlaceholder error={compileError} />

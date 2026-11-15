@@ -212,6 +212,7 @@ const TOOL_SCHEMAS = [
                     props: { type: 'object', description: 'Prop values, merged key by key into the current ones; null removes a key. text/textarea strings, number, boolean, color "#rrggbb", image an asset key or URL, link a link object, select one of its options.' },
                     width: { type: 'string', enum: ['container', 'full'], description: 'Page container width or the full window width.' },
                     minHeight: { type: 'number', description: 'Frame height in px (0-4000) until the component reports its own height.' },
+                    frameTitle: { type: 'string', description: 'What the frame is, for screen readers (its title, max 120). Without it a title prop, then "Interactive example" is used.' },
                 },
                 required: ['pageId', 'blockId'],
             },

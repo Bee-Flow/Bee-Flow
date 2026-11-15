@@ -97,6 +97,19 @@ export interface FrameDocInput {
     theme: string;
     props: Record<string, unknown>;
     mode: FrameMode;
+    /** The page's language, for `<html lang>` (a screen reader picks its voice by it). */
+    lang?: string;
+}
+
+/** A BCP 47-shaped tag (`en`, `nl`, `pt-BR`), else ''. Checked by character, never echoed raw. */
+export function frameLang(lang: unknown): string {
+    const s = typeof lang === 'string' ? lang.trim() : '';
+    if (!s || s.length > 12) return '';
+    for (const ch of s) {
+        const ok = (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch === '-';
+        if (!ok) return '';
+    }
+    return s;
 }
 
 /**
@@ -104,10 +117,11 @@ export interface FrameDocInput {
  * editor preview they open in a new tab, so a click never navigates the
  * editor away from unsaved work.
  */
-export function buildReactFrameDoc({ runtime, compiled, css = '', theme, props, mode }: FrameDocInput): string {
+export function buildReactFrameDoc({ runtime, compiled, css = '', theme, props, mode, lang }: FrameDocInput): string {
     const target = mode === 'editor' ? '_blank' : '_top';
+    const tag = frameLang(lang);
     return [
-        '<!DOCTYPE html><html><head><meta charset="utf-8">',
+        `<!DOCTYPE html><html${tag ? ` lang="${tag}"` : ''}><head><meta charset="utf-8">`,
         '<meta name="viewport" content="width=device-width, initial-scale=1">',
         `<base target="${target}">`,
         `<style>${defangStyleClose(theme)}\n${BASE_CSS}</style>`,

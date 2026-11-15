@@ -31,7 +31,7 @@ const MOCKS = {
         getDefaultLocale: async () => 'en',
         getEffectivePublished: async (siteId, slug) => (slug === 'missing' || slug === 'retired-page' ? { found: false } : {
             found: true, design: {}, header: {},
-            page: { id: 'p1', slug, title: 'Pricing', blocks: [], isHomepage: false },
+            page: { id: 'p1', slug, title: 'Pricing', blocks: [], isHomepage: slug === 'home' },
         }),
         getPublishedSnapshot: async () => page.snapshot,
     },
@@ -164,4 +164,13 @@ test('a page that exists at the address wins over a redirect from it', async () 
     page.snapshot = { redirects: [{ from: '/pricing', to: '/plans', status: 301, external: false }], site: { pages: [{ slug: 'pricing' }] } };
     const res = await get('/pricing');
     assert.strictEqual(res.statusCode, 200);
+});
+
+test('the homepage under its own slug moves to the root of its locale, query kept', async () => {
+    const res = await get('/home?utm_source=news');
+    assert.strictEqual(res.statusCode, 301);
+    assert.strictEqual(res.location, '/?utm_source=news');
+    const nl = await get('/nl/home');
+    assert.strictEqual(nl.statusCode, 301);
+    assert.strictEqual(nl.location, '/nl');
 });

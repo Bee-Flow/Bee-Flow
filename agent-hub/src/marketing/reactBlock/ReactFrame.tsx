@@ -32,6 +32,8 @@ export interface ReactFrameProps {
     mode: FrameMode;
     minHeight: number;
     title: string;
+    /** The page's language, for the frame's `<html lang>`. */
+    lang?: string;
 }
 
 type FrameMessage = { type?: unknown; height?: unknown };
@@ -48,7 +50,7 @@ function reportedHeight(data: FrameMessage): number | null {
     return Math.min(Math.ceil(h), MAX_FRAME_HEIGHT);
 }
 
-export default function ReactFrame({ runtime, compiled, css, theme, props, mode, minHeight, title }: ReactFrameProps) {
+export default function ReactFrame({ runtime, compiled, css, theme, props, mode, minHeight, title, lang = '' }: ReactFrameProps) {
     const frameRef = useRef<HTMLIFrameElement>(null);
     const [height, setHeight] = useState(minHeight);
 
@@ -62,10 +64,10 @@ export default function ReactFrame({ runtime, compiled, css, theme, props, mode,
     // The props the document is built with: the ones current when the
     // document last had to be rebuilt, not every later edit.
     const [docProps, setDocProps] = useState(currentProps);
-    useAdjustOnChange([runtime, compiled, css, theme, mode], () => setDocProps(currentProps));
+    useAdjustOnChange([runtime, compiled, css, theme, mode, lang], () => setDocProps(currentProps));
     const srcDoc = useMemo(
-        () => (runtime === null ? undefined : buildReactFrameDoc({ runtime, compiled, css, theme, props: docProps, mode })),
-        [runtime, compiled, css, theme, docProps, mode],
+        () => (runtime === null ? undefined : buildReactFrameDoc({ runtime, compiled, css, theme, props: docProps, mode, lang })),
+        [runtime, compiled, css, theme, docProps, mode, lang],
     );
 
     useEffect(() => {

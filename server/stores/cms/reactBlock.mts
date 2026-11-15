@@ -6,7 +6,10 @@
  * Content (see BLOCK_DEFAULTS['react-component'] in i18n/defaults/cmsDefaults.js):
  *
  *   { source, css, fields: [{ name, label, type, options?, help? }], props: { name: value },
- *     width: 'container' | 'full', minHeight, compiled, compileError }
+ *     width: 'container' | 'full', minHeight, frameTitle?, compiled, compileError }
+ *
+ * `frameTitle` is the frame's accessible name (the public page falls back to a
+ * `title` prop, which a translation can change, then to a generic name).
  *
  * `compiled` and `compileError` belong to the server. setPage (./pages.js)
  * runs every react-component block through prepareReactBlocks before the
@@ -57,6 +60,8 @@ export const REACT_MIN_HEIGHT_DEFAULT = 240;
 export const REACT_MIN_HEIGHT_MAX = 4000;
 export const REACT_FIELDS_MAX = 40;
 export const REACT_PROPS_MAX = 80;
+/** The frame's accessible name (the iframe's title), at most this many characters. */
+export const REACT_FRAME_TITLE_MAX = 120;
 const SELECT_OPTIONS_MAX = 50;
 const LABEL_MAX = 80;
 const HELP_MAX = 300;
@@ -188,6 +193,8 @@ export function sanitizeReactContent(raw: unknown): Json {
         compiled: '',
         compileError: '',
     };
+    const frameTitle = typeof c.frameTitle === 'string' ? c.frameTitle.trim().slice(0, REACT_FRAME_TITLE_MAX) : '';
+    if (frameTitle) out.frameTitle = frameTitle;
     for (const k of AB_KEYS) if (c[k] !== undefined) out[k] = jsonClone(c[k]);
     // The alternative of an A/B test may change props only, never the code.
     if (isPlainObject(c.abAlt)) out.abAlt = reactOverrideContent(c.abAlt);

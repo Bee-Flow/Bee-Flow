@@ -87,4 +87,22 @@ function buildPublicPath(locale, slug, defaultLocale) {
     return `${prefix}${tail}` || '/';
 }
 
-module.exports = { parsePublicPath, buildPublicPath, RESERVED_TOP_LEVEL, PUBLIC_SLUG_RE, LOCALE_PREFIXES, BLOG_BASE };
+/**
+ * The homepage also answers under its own slug (/home, /nl/home), which served
+ * the same page a second time with a canonical of its own. Its one address is
+ * the root of its locale: the target of that 301 (query kept), or null when
+ * the request is not the homepage under its slug.
+ * @param {string} slug the requested slug ('' for the root)
+ * @param {{ isHomepage?: boolean } | null | undefined} page the page that slug resolved to
+ * @param {string} locale
+ * @param {string} defaultLocale
+ * @param {string} [query] the query string as sent, without '?'
+ * @returns {string | null}
+ */
+function homeSlugRedirect(slug, page, locale, defaultLocale, query = '') {
+    if (!slug || !page?.isHomepage) return null;
+    const target = buildPublicPath(locale, '', defaultLocale);
+    return query ? `${target}?${query}` : target;
+}
+
+module.exports = { parsePublicPath, buildPublicPath, homeSlugRedirect, RESERVED_TOP_LEVEL, PUBLIC_SLUG_RE, LOCALE_PREFIXES, BLOG_BASE };

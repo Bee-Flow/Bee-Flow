@@ -15,8 +15,8 @@
  * and JSON-LD.
  */
 
-const { esc, meta, clamp, clampTitle, jsonForScript } = require('./html');
-const { buildJsonLd } = require('./jsonld');
+const { esc, meta, clamp, clampTitle, jsonForScript, ogLocale } = require('./html');
+const { buildJsonLd, DEFAULT_SAME_AS } = require('./jsonld');
 const { buildPublicPath } = require('./publicPath');
 const { buildFontsHead } = require('./fonts');
 
@@ -30,6 +30,25 @@ const DESC_MAX = 155;
 
 // Pages that describe the product itself get SoftwareApplication.
 const PRODUCT_SLUGS = new Set(['', 'platform', 'sovereignty']);
+
+/**
+ * The external profiles among the footer's social links (absolute http(s) URLs only).
+ * @param {unknown} footer the site footer (`socials: [{ platform, link: { href } }]`)
+ * @returns {string[]}
+ */
+function footerProfiles(footer) {
+    const socials = footer && typeof footer === 'object' ? /** @type {{ socials?: unknown }} */ (footer).socials : null;
+    if (!Array.isArray(socials)) return [];
+    /** @type {string[]} */
+    const out = [];
+    for (const s of socials) {
+        if (!s || typeof s !== 'object' || s.enabled === false) continue;
+        const href = typeof s.link?.href === 'string' ? s.link.href : (typeof s.href === 'string' ? s.href : '');
+        const lower = href.toLowerCase();
+        if (lower.startsWith('https://') || lower.startsWith('http://')) out.push(href);
+    }
+    return out;
+}
 
 /**
  * @param {string} origin
@@ -78,7 +97,7 @@ function shareImage(ctx, page, design) {
  *   page: CmsDoc, design: CmsDoc, siteName: string, ogType?: string,
  *   article?: { publishedTime: string, modifiedTime: string, author: string, tags?: string[] },
  *   extraJsonLd?: any[], breadcrumbTrail?: Array<{ name: string, path: string }>, extraLinks?: string[],
- *   shareImageVersion?: string, shareCardSlug?: string }} ctx
+ *   shareImageVersion?: string, shareCardSlug?: string, footer?: unknown, robots?: string }} ctx
  *   `origin`: e.g. https://beeflow.nl (no trailing slash); `slug`: '' for the homepage; `locale`: the
  *   locale being served; `locales`: every locale the site publishes; `page`: the resolved CMS page;
  *   `design`: site design (favicon, logo); `ogType`: 'website' (default) or 'article' (blog post);
@@ -86,7 +105,9 @@ function shareImage(ctx, page, design) {
  *   `breadcrumbTrail`: replaces the Home › page crumbs; `extraLinks`: pre-built <link> tags (the blog's
  *   RSS alternate); `shareImageVersion`: publish-time token: pages without an og:image get the
  *   generated card (/api/cms/og/…); `shareCardSlug`: the page whose generated card stands in when this
- *   URL has none of its own (the blog uses the homepage's)
+ *   URL has none of its own (the blog uses the homepage's); `footer`: the site footer, whose social links
+ *   become the Organization's sameAs; `robots`: replaces the default robots value (a tag-filtered blog
+ *   list is `noindex, follow`), unless the page itself is noIndex
  * @returns {string} tags to splice into <head>
  */
 function buildHead(ctx) {
@@ -115,6 +136,7 @@ function buildHead(ctx) {
     // noindex was authored in the CMS and applied only by client JS, i.e. it
     // was invisible to the crawlers it exists to stop.
     if (seo.noIndex) out.push(meta('robots', 'noindex, nofollow'));
+    else if (ctx.robots) out.push(meta('robots', ctx.robots));
     else out.push(meta('robots', 'index, follow, max-image-preview:large'));
 
     out.push(meta('og:type', ctx.ogType === 'article' ? 'article' : 'website', { property: true }));
@@ -122,9 +144,9 @@ function buildHead(ctx) {
     out.push(meta('og:title', title, { property: true }));
     out.push(meta('og:description', description, { property: true }));
     out.push(meta('og:url', url, { property: true }));
-    out.push(meta('og:locale', locale, { property: true }));
+    out.push(meta('og:locale', ogLocale(locale), { property: true }));
     for (const alt of locales.filter(l => l !== locale)) {
-        out.push(meta('og:locale:alternate', alt, { property: true }));
+        out.push(meta('og:locale:alternate', ogLocale(alt), { property: true }));
     }
     if (image) out.push(meta('og:image', image, { property: true }));
     if (generated) {
@@ -169,10 +191,10 @@ function buildHead(ctx) {
     if (fontsHead) out.push(fontsHead);
 
     const jsonLd = buildJsonLd({
-        origin, siteName, url, title, description, locale, slug,
+        origin, siteName, url, title, description, locale, locales, slug,
         localePrefix: locale && locale !== defaultLocale ? `/${locale}` : '',
         logoUrl: absolute(origin, design.logo || ''),
-        sameAs: ['https://github.com/Bee-Flow/Bee-Flow'],
+        sameAs: [...footerProfiles(ctx.footer), ...DEFAULT_SAME_AS],
         blocks: page.blocks || [],
         isProductPage: PRODUCT_SLUGS.has(slug),
         extraNodes: ctx.extraJsonLd,
@@ -183,4 +205,4 @@ function buildHead(ctx) {
     return out.filter(Boolean).join('\n    ');
 }
 
-module.exports = { buildHead, absolute, shareCardUrl, TITLE_MAX, DESC_MAX };
+module.exports = { buildHead, absolute, shareCardUrl, footerProfiles, TITLE_MAX, DESC_MAX };

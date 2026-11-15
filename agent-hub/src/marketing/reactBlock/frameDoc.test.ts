@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { REACT_THEME_VARS } from '@shared/cmsReact/compile.mjs';
-import { buildReactFrameDoc, readSiteTheme, scriptJson, themeCss, THEME_VARS } from './frameDoc';
+import { buildReactFrameDoc, frameLang, readSiteTheme, scriptJson, themeCss, THEME_VARS } from './frameDoc';
 
 const RUNTIME = '(function(){window.__bfReactMount=function(){};})();';
 
@@ -30,6 +30,14 @@ describe('buildReactFrameDoc', () => {
         ].map((s) => html.indexOf(s));
         expect(order.every((i) => i >= 0)).toBe(true);
         expect([...order].sort((a, b) => a - b)).toEqual(order);
+    });
+
+    it('sets <html lang> from the page language, and only a well-formed tag', () => {
+        expect(doc({ lang: 'nl' })).toContain('<!DOCTYPE html><html lang="nl"><head>');
+        expect(doc({ lang: 'pt-BR' })).toContain('<html lang="pt-BR">');
+        expect(doc({ lang: 'en" onload="x' })).toContain('<!DOCTYPE html><html><head>');
+        expect(doc()).toContain('<!DOCTYPE html><html><head>');
+        expect(frameLang(42)).toBe('');
     });
 
     it('opens links in a new tab in the editor preview, never over the editor', () => {

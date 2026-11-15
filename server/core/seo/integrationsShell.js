@@ -11,7 +11,7 @@
 
 'use strict';
 
-const { esc, clamp, clampTitle, jsonForScript } = require('./html');
+const { esc, clamp, clampTitle, jsonForScript, ogLocale } = require('./html');
 const { buildPublicPath } = require('./publicPath');
 const content = require('./integrationContent/model.mts');
 
@@ -155,7 +155,7 @@ function page({ site, lang, title, description, path, body, noindex = false, jso
         `<meta property="og:url" content="${esc(url)}">`,
         '<meta property="og:type" content="website">',
         `<meta property="og:site_name" content="${esc(siteName)}">`,
-        `<meta property="og:locale" content="${esc(lang)}">`,
+        `<meta property="og:locale" content="${esc(ogLocale(lang))}">`,
         `<style>${CSS}</style>`,
         ...jsonLd.map(j => `<script type="application/ld+json">${jsonForScript(j)}</script>`),
         '</head>',

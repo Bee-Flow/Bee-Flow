@@ -213,10 +213,13 @@ test('the graph carries no invented commercial data', () => {
         blocks: [], isProductPage: true,
     })['@graph'];
     const json = JSON.stringify(graph);
-    for (const bad of ['aggregateRating', 'offers', 'price', 'reviewCount']) {
+    for (const bad of ['aggregateRating', 'review', 'lowPrice', 'highPrice']) {
         assert.ok(!json.includes(bad), `${bad} must not be fabricated`);
     }
-    assert.ok(graph.some(n => n['@type'] === 'SoftwareApplication'));
+    const app = graph.find(n => n['@type'] === 'SoftwareApplication');
+    assert.ok(app);
+    assert.deepStrictEqual(app.offers, { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+        'the only price stated is the free edition; paid prices come from the plans table');
     assert.ok(!graph.some(n => n['@type'] === 'BreadcrumbList'), 'no crumbs on the homepage');
 });
 
