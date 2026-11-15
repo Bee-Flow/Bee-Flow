@@ -12,14 +12,30 @@
 
 const express = require('express');
 const cmsStore = require('../stores/cmsStore');
-const { buildLlmsTxt, publicSiteName } = require('../core/seo/sitemap');
+const { buildLlmsTxt, llmsGuides, publicSiteName, LLMS_GUIDES } = require('../core/seo/sitemap');
+const { localesForPage } = require('../i18n/pageLocales');
 const log = require('../telemetry/log');
 
 /**
- * @param {{ resolveOrigin: (req: import('express').Request) => string,
- *   getLiveSiteId: () => Promise<string|null>, isIndexableHost: (origin: string) => boolean }} deps
+ * The newest published posts in the default language, as Guides. Asks for more
+ * than it lists, so a noIndex post does not shorten the list.
+ * @param {string} siteId
+ * @param {{ posts?: Record<string, { seo?: { noIndex?: boolean } }> }} snapshot
+ * @param {string} origin
+ * @param {string} defaultLocale
+ * @returns {Promise<Array<{ title: string, url: string }>>}
  */
-function createLlmsRouter({ resolveOrigin, getLiveSiteId, isIndexableHost }) {
+async function latestGuides(siteId, snapshot, origin, defaultLocale) {
+    const latest = await cmsStore.getLatestPublishedPosts(siteId, { locale: defaultLocale, limit: LLMS_GUIDES * 2 });
+    return llmsGuides(latest.posts || [], { origin, defaultLocale, storedPosts: snapshot.posts || {} });
+}
+
+/**
+ * @param {{ resolveOrigin: (req: import('express').Request) => string,
+ *   getLiveSiteId: () => Promise<string|null>, isIndexableHost: (origin: string) => boolean,
+ *   siteLocales: () => Promise<{ defaultLocale: string, locales: string[] }> }} deps
+ */
+function createLlmsRouter({ resolveOrigin, getLiveSiteId, isIndexableHost, siteLocales }) {
     const router = express.Router();
     router.get('/llms.txt', async (req, res, next) => {
         try {
@@ -30,17 +46,22 @@ function createLlmsRouter({ resolveOrigin, getLiveSiteId, isIndexableHost }) {
             const snapshot = await cmsStore.getPublishedSnapshot(siteId);
             if (!snapshot) return next();
 
+            const { defaultLocale, locales } = await siteLocales();
             const pages = (snapshot.site?.pages || []).map((/** @type {import('../stores/cms/shared').PageIndexEntry} */ entry) => ({
                 ...entry,
                 seo: (snapshot.pages?.[entry.id] || {}).seo || {},
+                locales: localesForPage(snapshot, entry.id, defaultLocale, locales),
             }));
             const home = pages.find((/** @type {{ isHomepage?: boolean }} */ p) => p.isHomepage);
+            const guides = await latestGuides(siteId, snapshot, origin, defaultLocale);
 
             res.type('text/plain').set('Cache-Control', 'public, max-age=3600');
             return res.send(buildLlmsTxt(pages, {
                 origin,
                 siteName: publicSiteName(snapshot.site),
                 summary: String(home?.seo?.metaDescription || '').trim(),
+                defaultLocale,
+                guides,
             }));
         } catch (err) {
             log.warn('[SEO] llms.txt failed:', /** @type {Error} */ (err).message);

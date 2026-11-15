@@ -193,3 +193,13 @@ test('blog paths parse and round-trip; the feed and deeper paths are not pages',
     assert.strictEqual(parsePublicPath('/blog/Under_Score', ['en']), null);
     assert.strictEqual(buildPublicPath('nl', 'blog/hello-world', 'en'), '/nl/blog/hello-world');
 });
+
+test('a tag-filtered blog list is noindex, follow; the plain index stays indexable', () => {
+    const plain = buildBlogHead({ origin: ORIGIN, eff: indexEff(), locale: 'en', defaultLocale: 'en', locales: ['en'], siteName: 'Acme' });
+    assert.match(plain, /<meta name="robots" content="index, follow, max-image-preview:large">/);
+    const eff = indexEff();
+    eff.blog.tag = { slug: 'product', label: 'Product' };
+    const tagged = buildBlogHead({ origin: ORIGIN, eff, locale: 'en', defaultLocale: 'en', locales: ['en'], siteName: 'Acme' });
+    assert.match(tagged, /<meta name="robots" content="noindex, follow">/);
+    assert.doesNotMatch(tagged, /index, follow, max-image-preview/);
+});

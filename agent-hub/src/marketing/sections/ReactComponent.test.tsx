@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, it, expect } from 'vitest';
 import { EXTRA_SECTIONS } from './extraSections';
-import ReactComponent, { DEFAULT_MIN_HEIGHT, frameMinHeight } from './ReactComponent';
+import ReactComponent, { DEFAULT_FRAME_TITLE, DEFAULT_MIN_HEIGHT, frameMinHeight, frameTitleOf } from './ReactComponent';
 
 const COMPILED = 'module.exports.default = function () { return null; };';
 
@@ -62,6 +62,15 @@ describe('ReactComponent section', () => {
         await waitFor(() => expect(frame.getAttribute('srcdoc')).toContain('{"mode":"editor"}'));
     });
 
+    it('names the frame after the block and gives its document the page language', async () => {
+        document.documentElement.lang = 'nl';
+        const { container } = render(<ReactComponent data={{ compiled: COMPILED, frameTitle: 'Cost calculator' }} />);
+        const frame = container.querySelector('iframe') as HTMLIFrameElement;
+        expect(frame.getAttribute('title')).toBe('Cost calculator');
+        await waitFor(() => expect(frame.getAttribute('srcdoc')).toContain('<html lang="nl">'));
+        document.documentElement.lang = '';
+    });
+
     it('a disabled block renders nothing', () => {
         const { container } = render(<ReactComponent data={{ enabled: false, compiled: COMPILED }} />);
         expect(container.innerHTML).toBe('');
@@ -75,5 +84,16 @@ describe('frameMinHeight', () => {
         expect(frameMinHeight(99.6)).toBe(100);
         expect(frameMinHeight(-5)).toBe(0);
         expect(frameMinHeight(10 ** 6)).toBe(4000);
+    });
+});
+
+describe('frameTitleOf', () => {
+    it('prefers frameTitle, then the block title or heading, then the title prop, then a generic name', () => {
+        expect(frameTitleOf({ frameTitle: ' Calculator ', title: 'T' })).toBe('Calculator');
+        expect(frameTitleOf({ title: 'Block title' })).toBe('Block title');
+        expect(frameTitleOf({ heading: 'Block heading' })).toBe('Block heading');
+        expect(frameTitleOf({ props: { title: 'Prop title' } })).toBe('Prop title');
+        expect(frameTitleOf({ props: { heading: 5 } })).toBe(DEFAULT_FRAME_TITLE);
+        expect(DEFAULT_FRAME_TITLE).toBe('Interactive example');
     });
 });

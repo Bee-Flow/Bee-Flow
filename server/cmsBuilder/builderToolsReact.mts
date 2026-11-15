@@ -17,7 +17,7 @@
 import { createRequire } from 'node:module';
 import { FIELD_TYPES, isPropName, REACT_BLOCK_TYPE, utf8Bytes } from '../shared/cmsReact/compile.mjs';
 import {
-    compileReactSource, REACT_FIELDS_MAX, REACT_MIN_HEIGHT_MAX, REACT_PROPS_MAX, REACT_WIDTHS,
+    compileReactSource, REACT_FIELDS_MAX, REACT_FRAME_TITLE_MAX, REACT_MIN_HEIGHT_MAX, REACT_PROPS_MAX, REACT_WIDTHS,
 } from '../stores/cms/reactBlock.mts';
 
 const nodeRequire = createRequire(import.meta.url);
@@ -38,7 +38,7 @@ const shared = nodeRequire('./builderToolsShared') as Shared;
 export const SOURCE_EDITS_MAX = 20;
 export const FIND_MAX_CHARS = 5000;
 
-const EDIT_KEYS = ['source', 'sourceEdits', 'css', 'fields', 'props', 'width', 'minHeight'];
+const EDIT_KEYS = ['source', 'sourceEdits', 'css', 'fields', 'props', 'width', 'minHeight', 'frameTitle'];
 
 type ToolError = { error: string, _fixHint?: string };
 type SourceEdit = { find: string, replace: string };
@@ -50,6 +50,7 @@ interface Patch {
     props?: Json;
     width?: string;
     minHeight?: number;
+    frameTitle?: string;
 }
 
 function isPlainObject(v: unknown): v is Json {
@@ -110,12 +111,18 @@ function scalarProblem(args: Json): ToolError | null {
     return null;
 }
 
+function frameTitleProblem(frameTitle: unknown): ToolError | null {
+    if (typeof frameTitle === 'string' && frameTitle.length <= REACT_FRAME_TITLE_MAX) return null;
+    return fail(`frameTitle must be a string of at most ${REACT_FRAME_TITLE_MAX} characters ('' removes it).`);
+}
+
 /** The checked patch, or the first thing wrong with the arguments. */
 export function parseReactArgs(args: Json): { patch: Patch } | ToolError {
     if (!EDIT_KEYS.some((k) => args[k] !== undefined)) {
         return fail(`Nothing to change — pass at least one of: ${EDIT_KEYS.join(', ')}.`);
     }
     const problem = scalarProblem(args)
+        || (args.frameTitle !== undefined ? frameTitleProblem(args.frameTitle) : null)
         || (args.sourceEdits !== undefined ? editsProblem(args.sourceEdits) : null)
         || (args.fields !== undefined ? fieldsProblem(args.fields) : null)
         || (args.props !== undefined ? propsProblem(args.props) : null);
@@ -172,6 +179,7 @@ function patchContent(content: unknown, patch: Patch): Json {
     if (patch.props !== undefined) next.props = mergeProps(next.props, patch.props);
     if (patch.width !== undefined) next.width = patch.width;
     if (patch.minHeight !== undefined) next.minHeight = patch.minHeight;
+    if (patch.frameTitle !== undefined) next.frameTitle = patch.frameTitle;
     return next;
 }
 
