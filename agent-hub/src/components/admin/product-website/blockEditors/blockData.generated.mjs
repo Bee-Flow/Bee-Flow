@@ -896,7 +896,7 @@ const BLOCK_TYPES = [
     { type: 'tour',          label: 'Product tour',     icon: 'Route',              category: 'Content' },
     // Same rollback caveat: an export with this block imported into an older
     // deployment drops it.
-    { type: 'react-component', label: 'React component', icon: 'Atom',         category: 'Content' },
+    { type: 'react-component', label: 'React component', icon: 'Puzzle',       category: 'Content' },
 ];
 
 // Bounds of a tabs block. The editor stops at the maximum; the validator warns

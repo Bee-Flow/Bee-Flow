@@ -102,7 +102,7 @@ function CompileStatus({ error, compiling, unavailable }: { error: string; compi
         return <p className="text-xs text-[var(--text-muted)] mt-2">{t('cms_site.blocks.react_component.compile_unavailable', 'The live preview could not load its compiler. The code is still compiled when the page is saved.')}</p>;
     }
     if (error) {
-        return <pre role="alert" className="mt-2 p-2 rounded-md text-xs whitespace-pre-wrap break-words font-mono bg-[var(--status-error-bg,rgba(239,68,68,0.08))] text-[var(--status-error,#B91C1C)]">{error}</pre>;
+        return <pre role="alert" className="mt-2 p-2 rounded-md text-xs whitespace-pre-wrap break-words font-mono border border-[var(--error)] bg-[var(--error)]/10 text-[var(--error)]">{error}</pre>;
     }
     return (
         <p className="text-xs text-[var(--text-muted)] mt-2" aria-live="polite">

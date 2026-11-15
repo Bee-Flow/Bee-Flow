@@ -114,8 +114,8 @@ describe('ReactComponentEditor', () => {
 });
 
 describe('react-component registration (admin)', () => {
-    it('is in the catalogue as "React component" with the Atom icon, has an editor and the motion knobs', () => {
-        expect(BLOCK_CATALOGUE['react-component']).toEqual({ type: 'react-component', label: 'React component', icon: 'Atom', category: 'Content' });
+    it('is in the catalogue as "React component" with the Puzzle icon, has an editor and the motion knobs', () => {
+        expect(BLOCK_CATALOGUE['react-component']).toEqual({ type: 'react-component', label: 'React component', icon: 'Puzzle', category: 'Content' });
         expect(typeof (BLOCK_EDITORS as Record<string, { component: unknown }>)['react-component'].component).toBe('function');
         expect(getCapabilities('react-component')).toEqual({ columns: false, motion: true });
     });

@@ -51,7 +51,7 @@ async function reactSite(content) {
 
 test('react-component is in the catalogue; its sample uses state, typed props and theme variables', () => {
     assert.deepStrictEqual(BLOCK_TYPES.find((t) => t.type === 'react-component'),
-        { type: 'react-component', label: 'React component', icon: 'Atom', category: 'Content' });
+        { type: 'react-component', label: 'React component', icon: 'Puzzle', category: 'Content' });
     const d = BLOCK_DEFAULTS['react-component'];
     assert.match(d.source, /useState/);
     assert.match(d.source, /export default function/);
