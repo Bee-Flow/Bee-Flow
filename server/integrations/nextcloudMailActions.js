@@ -11,7 +11,8 @@
 const { mailError, MAX_BODY_BYTES, readJsonSafe, api, baseHeaders, trimBody } = require('./nextcloudMailShapes');
 const { toolFileMaxBytes, readBytesBounded, fileTooLargeMessage } = require('../core/http/httpResponseLimits');
 const { stripHtmlToText } = require('../core/text/emailTextUtils');
-const { resolveMailAttachments } = require('./nextcloudMailAttachments.mts');
+const { bestEffort } = require('../utils/bestEffort');
+const { resolveMailAttachments, ATTACHMENTS_PARAMETER } = require('./nextcloudMailAttachments.mts');
 
 /**
  * @typedef {import('./nextcloudClient.types').NcAuth} NcAuth
@@ -179,8 +180,10 @@ async function sendMail(args, ctx) {
     // Mail drops an attachment it cannot read (a share without download
     // permission) and would send the rest: never send a message short of one.
     if (draft.attached !== null && draft.attached < resolved.attachments.length) {
-        await ncFetch(api(baseUrl, `/outbox/${encodeURIComponent(outboxId)}`), { method: 'DELETE', headers: baseHeaders }).catch(() => null);
-        return { error: `Nextcloud Mail took ${draft.attached} of the ${resolved.attachments.length} attachments (a file it may not download is skipped), so the message was not sent.` };
+        const dropped = await ncFetch(api(baseUrl, `/outbox/${encodeURIComponent(outboxId)}`), { method: 'DELETE', headers: baseHeaders })
+            .catch(e => bestEffort('integrations/nextcloudMailActions:dropShortDraft', e));
+        const left = dropped && dropped.ok ? '' : ` The unsent draft is still in the Mail outbox (id ${outboxId}); delete it there.`;
+        return { error: `Nextcloud Mail took ${draft.attached} of the ${resolved.attachments.length} attachments (a file it may not download is skipped), so the message was not sent.${left}` };
     }
 
     // Step 2: dispatch the outbox message immediately. The send route
@@ -196,4 +199,4 @@ async function sendMail(args, ctx) {
     return { success: true, outboxId, to: args.to, subject: args.subject, attachments: resolved.names };
 }
 
-module.exports = { readMailAttachment, sendMail };
+module.exports = { readMailAttachment, sendMail, ATTACHMENTS_PARAMETER };

@@ -23,16 +23,13 @@
  *   POST /api/accounts/{id}/draft                       — create draft (returns id)
  *   POST /api/outbox/from-draft/{id}                    — promote draft to outbox
  *   POST /api/outbox/{id}                                — send outbox message
- *   POST /api/outbox                                    — create the outbox draft (attachments: cloud / local)
- *   POST /api/attachments                               — upload an attachment (multipart field "attachment")
- *   DELETE /api/outbox/{id}                             — drop an outbox draft
  */
 
 const ncClient = require('./nextcloudClient');
 const {
     mailError, normaliseRole, mailBodyText, MAX_BODY_BYTES, readJsonSafe, api, baseHeaders, trimBody,
 } = require('./nextcloudMailShapes');
-const { readMailAttachment, sendMail } = require('./nextcloudMailActions');
+const { readMailAttachment, sendMail, ATTACHMENTS_PARAMETER } = require('./nextcloudMailActions');
 
 
 const NEXTCLOUD_MAIL_TOOLS = [
@@ -136,24 +133,7 @@ const NEXTCLOUD_MAIL_TOOLS = [
                     body: { type: 'string', description: 'Plain-text body.' },
                     isHtml: { type: 'boolean', description: 'If true, body is interpreted as HTML.' },
                     replyTo: { type: 'integer', description: 'Optional: messageId being replied to — sets In-Reply-To / References headers and threads the conversation.' },
-                    attachments: {
-                        type: 'array',
-                        description: 'Optional files to attach, each EITHER { path } — a file in the sender\'s Nextcloud Files, e.g. "/Documents/offer.pdf" — OR, inside an automation, { sourceHandle } — the { kind: "generated_file", fileId } a generate_document / fill_document / presentation step returns (bind it: sourceHandle:{kind:"ref",path:"steps.<id>.output.sourceHandle"}). A missing file or a folder stops the send; nothing is sent without all of them. The server caps the number and the total size (NEXTCLOUD_MAIL_ATTACHMENT_MAX_COUNT, NEXTCLOUD_MAIL_ATTACHMENT_MAX_MB).',
-                        items: {
-                            type: 'object',
-                            properties: {
-                                path: { type: 'string', description: 'Path of a file in Nextcloud Files.' },
-                                sourceHandle: {
-                                    type: 'object',
-                                    description: 'A generated file of this automation run: { kind: "generated_file", fileId }.',
-                                    properties: {
-                                        kind: { type: 'string', description: 'Always "generated_file".' },
-                                        fileId: { type: 'string', description: 'The fileId a document or presentation step produced.' }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    attachments: ATTACHMENTS_PARAMETER,
                 },
                 required: ['accountId', 'to', 'subject', 'body']
             }
@@ -392,8 +372,7 @@ const HANDLERS = {
 /**
  * @param {string} toolName
  * @param {string} userId
- * @param {{ runScope?: { runId: string, rootRunId?: string } | null }} [extra]  the automation run, for a
- *   generated_file attachment on nextcloud_mail_send
+ * @param {{ runScope?: { runId: string, rootRunId?: string } | null }} [extra]  the run (a generated_file attachment)
  */
 async function executeNextcloudMailTool(toolName, args, userId, session, extra = {}) {
     const ctx = { ...(await ncClient.resolveAuth(session, userId)), runScope: (extra && extra.runScope) || null };

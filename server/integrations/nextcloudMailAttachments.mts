@@ -57,6 +57,26 @@ const DEFAULT_MAX_MB = 25;
 const DEFAULT_MAX_COUNT = 20;
 const MAIL_API_BASE = '/index.php/apps/mail/api';
 
+/** The `attachments` parameter of nextcloud_mail_send (nextcloudMailTools.js). */
+export const ATTACHMENTS_PARAMETER = {
+    type: 'array',
+    description: 'Optional files to attach, each EITHER { path } — a file in the sender\'s Nextcloud Files, e.g. "/Documents/offer.pdf" — OR, inside an automation, { sourceHandle } — the { kind: "generated_file", fileId } a generate_document / fill_document / presentation step returns (bind it: sourceHandle:{kind:"ref",path:"steps.<id>.output.sourceHandle"}). A missing file or a folder stops the send; nothing is sent without all of them. The server caps the number and the total size (NEXTCLOUD_MAIL_ATTACHMENT_MAX_COUNT, NEXTCLOUD_MAIL_ATTACHMENT_MAX_MB).',
+    items: {
+        type: 'object',
+        properties: {
+            path: { type: 'string', description: 'Path of a file in Nextcloud Files.' },
+            sourceHandle: {
+                type: 'object',
+                description: 'A generated file of this automation run: { kind: "generated_file", fileId }.',
+                properties: {
+                    kind: { type: 'string', description: 'Always "generated_file".' },
+                    fileId: { type: 'string', description: 'The fileId a document or presentation step produced.' },
+                },
+            },
+        },
+    },
+};
+
 export function attachmentLimits(): { maxBytes: number, maxCount: number } {
     const mb = envInt('NEXTCLOUD_MAIL_ATTACHMENT_MAX_MB', DEFAULT_MAX_MB, { min: 0 });
     const maxCount = envInt('NEXTCLOUD_MAIL_ATTACHMENT_MAX_COUNT', DEFAULT_MAX_COUNT, { min: 0 });
