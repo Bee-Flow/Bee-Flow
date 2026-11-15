@@ -249,6 +249,17 @@ test('props merge key by key (null removes one); fields replace; width and minHe
     assert.match((await call('cms_update_react_component', { pageId, blockId })).error, /Nothing to change/);
 });
 
+test('frameTitle is stored trimmed, set and cleared through the tool, and checked', async () => {
+    const { pageId, blockId, call, stored } = await reactSite({ source: OK_SOURCE, frameTitle: '  Cost calculator  ' });
+    assert.strictEqual((await stored()).content.frameTitle, 'Cost calculator');
+    const r = await call('cms_update_react_component', { pageId, blockId, frameTitle: 'Savings calculator' });
+    assert.strictEqual(r.ok, true, JSON.stringify(r));
+    assert.strictEqual((await stored()).content.frameTitle, 'Savings calculator');
+    await call('cms_update_react_component', { pageId, blockId, frameTitle: '' });
+    assert.strictEqual((await stored()).content.frameTitle, undefined, 'an empty title is not stored');
+    assert.match((await call('cms_update_react_component', { pageId, blockId, frameTitle: 'x'.repeat(121) })).error, /frameTitle/);
+});
+
 test('a compile error comes back with diagnostics and as a react_compile_error warning with its position', async () => {
     const { pageId, blockId, call } = await reactSite({ source: OK_SOURCE });
     const r = await call('cms_update_react_component', { pageId, blockId, source: BROKEN_SOURCE });

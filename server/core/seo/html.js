@@ -108,4 +108,20 @@ function clampTitle(value, max, brand = '') {
     return clamp(page, max);
 }
 
-module.exports = { esc, jsonForScript, meta, clamp, clampTitle };
+// Open Graph wants language_TERRITORY. The site's English is British.
+/** @type {Record<string, string>} */
+const OG_LOCALES = { en: 'en_GB', nl: 'nl_NL', de: 'de_DE', fr: 'fr_FR', es: 'es_ES', it: 'it_IT', pt: 'pt_PT' };
+
+/**
+ * A site locale (`en`, `nl`, `pt-BR`) as an og:locale value (`en_GB`, `nl_NL`, `pt_BR`).
+ * @param {string} locale
+ */
+function ogLocale(locale) {
+    const [lang, region] = String(locale || '').trim().replace('-', '_').split('_');
+    if (!lang) return '';
+    if (region) return `${lang.toLowerCase()}_${region.toUpperCase()}`;
+    const known = Object.hasOwn(OG_LOCALES, lang.toLowerCase()) ? OG_LOCALES[lang.toLowerCase()] : '';
+    return known || `${lang.toLowerCase()}_${lang.toUpperCase()}`;
+}
+
+module.exports = { esc, jsonForScript, meta, clamp, clampTitle, ogLocale };

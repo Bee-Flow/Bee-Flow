@@ -42,7 +42,8 @@ const express = require('express');
 const cmsStore = require('../stores/cmsStore');
 const configStore = require('../stores/configStore');
 const languageStore = require('../stores/languageStore');
-const { parsePublicPath, buildPublicPath, LOCALE_PREFIXES } = require('../core/seo/publicPath');
+const { parsePublicPath, buildPublicPath, homeSlugRedirect, LOCALE_PREFIXES } = require('../core/seo/publicPath');
+const { resolveOrigin, isIndexableHost } = require('../core/seo/publicOrigin');
 const { legalRedirectTarget } = require('../core/seo/legalPaths');
 const { buildHead } = require('../core/seo/head');
 const { renderBlocksWithHints, PREHYDRATE_CSS } = require('../core/seo/renderBlocks');
@@ -64,48 +65,6 @@ const log = require('../telemetry/log');
 const { fallback } = require('../utils/bestEffort');
 
 const router = express.Router();
-
-/**
- * The configured public origin of the MARKETING SITE, or '' when unset.
- *
- * `PUBLIC_SITE_URL` is deliberately its own variable rather than a reuse of
- * `PUBLIC_BASE_URL`. The latter means "the externally-reachable base URL of
- * this server" (automation/publicUrl.js) and doubles as the switch that decides
- * whether MS Graph subscriptions get provisioned at all — triggerBus.js skips
- * them when it is unset. Setting that on the cluster purely to satisfy the
- * indexability gate below would silently turn on webhook provisioning for every
- * existing automation, which is not a change an SEO fix should be making.
- *
- * The fallback keeps installs that already set only PUBLIC_BASE_URL working:
- * on a single-host self-host deployment the two origins are the same value.
- */
-function configuredOrigin() {
-    const configured = process.env.PUBLIC_SITE_URL || process.env.PUBLIC_BASE_URL || '';
-    return configured.replace(/\/+$/, '');
-}
-
-/**
- * The public origin. Wrong here means wrong canonicals on every page.
- * @param {import('express').Request} req
- */
-function resolveOrigin(req) {
-    const configured = configuredOrigin();
-    if (configured) return configured;
-    const proto = (req.get('x-forwarded-proto') || req.protocol || 'https').split(',')[0].trim();
-    const host = (req.get('x-forwarded-host') || req.get('host') || '').split(',')[0].trim();
-    return host ? `${proto}://${host}` : '';
-}
-
-/**
- * Only index the real site. A preview host or a bare IP that answers on the
- * same image would otherwise compete with beeflow.nl in the index.
- * @param {string} origin
- */
-function isIndexableHost(origin) {
-    const configured = configuredOrigin();
-    if (!configured) return false;               // unknown host ⇒ do not invite crawlers
-    return origin === configured || origin === configured.replace('://', '://www.');
-}
 
 /**
  * The locales this SITE publishes, default first.
@@ -315,7 +274,7 @@ async function renderBlog(req, res, { origin, siteId, parsed, defaultLocale, loc
     return true;
 }
 
-router.use(require('./publicLlmsRender').createLlmsRouter({ resolveOrigin, getLiveSiteId, isIndexableHost }));
+router.use(require('./publicLlmsRender').createLlmsRouter({ resolveOrigin, getLiveSiteId, isIndexableHost, siteLocales }));
 
 // ── marketing pages ──────────────────────────────────────────────────
 router.use(require('./publicSearchIndexRender').createSearchIndexRouter({ getLiveSiteId, siteLocales }));
@@ -411,6 +370,9 @@ router.get(/^\/(?!api\/|assets\/|__demo__\/|__cms_preview__).*/, async (/** @typ
             return sendNotFound(res, notFoundShell, locale, GONE_SLUGS.has(parsed.slug));
         }
 
+        const homeTarget = homeSlugRedirect(parsed.slug, eff.page, locale, defaultLocale, rawQuery(req).toString());
+        if (homeTarget) return res.redirect(301, homeTarget);
+
         const shell = await getShell();
         if (!shell) return next();
 
@@ -446,7 +408,7 @@ router.get(/^\/(?!api\/|assets\/|__demo__\/|__cms_preview__).*/, async (/** @typ
         const head = buildHead({
             origin, slug: parsed.slug, locale, defaultLocale, locales: pageLocales,
             page: eff.page, design: eff.design || {}, siteName, shareImageVersion: versionOf(snapshot && snapshot.publishedAt),
-            extraLinks: headLinks,
+            extraLinks: headLinks, footer: eff.footer,
         });
 
         /* The same payload GET /api/cms/site would return, inlined.

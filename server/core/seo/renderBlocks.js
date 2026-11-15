@@ -22,6 +22,7 @@
 
 const { esc } = require('./html');
 const { isFeatureMatrix, emitFeatureMatrix } = require('./renderFeatureMatrix');
+const { emitHeading } = require('./headingOutline');
 const { variantSrcSet, columnSizes, preloadLink, DEFAULT_SIZES } = require('../cms/imageDelivery');
 
 /** The LCP candidate is looked for in this many leading blocks. */
@@ -172,10 +173,12 @@ function emitCompareTable(node, out) {
     out.push(`<table>\n${cells.join('\n')}\n</table>`);
 }
 
+/** @typedef {import('./headingOutline').HeadingState} HeadingState */
+
 /**
  * @param {string[]} out
  * @param {number} depth
- * @param {{ h1Used: boolean; blockIndex: number; columns: number; heroImage: { src: string; srcset?: string; sizes: string; } | null; }} state
+ * @param {HeadingState} state
  */
 function walk(node, out, depth, state) {
     if (!node || typeof node !== 'object') return;
@@ -270,25 +273,6 @@ function collectLinks(tree, found) {
 }
 
 /**
- * @param {string} text
- * @param {string[]} out
- * @param {number} depth
- * @param {{ h1Used: boolean; blockIndex: number; columns: number; heroImage: { src: string; srcset?: string; sizes: string; } | null; }} state
- */
-function emitHeading(text, out, depth, state) {
-    // Exactly one h1 per document. The first heading encountered wins, which
-    // is the hero's — two h1s is a real (if mild) SEO defect and an
-    // accessibility one, so the rule is enforced here rather than trusted.
-    if (!state.h1Used) {
-        state.h1Used = true;
-        out.push(`<h1>${esc(text)}</h1>`);
-        return;
-    }
-    const level = Math.min(2 + Math.max(0, depth - 1), 4);
-    out.push(`<h${level}>${esc(text)}</h${level}>`);
-}
-
-/**
  * @param {Array<Record<string, any>>} blocks   page.blocks, already locale-resolved
  * @param {{ fallbackTitle?: string, chrome?: { header?: unknown, footer?: unknown } | null }} [opts]
  *   `fallbackTitle`: used as the h1 when no block supplies one; `chrome`: site header/footer, for the
@@ -309,11 +293,12 @@ function renderBlocks(blocks, opts = {}) {
 function renderBlocksWithHints(blocks, { fallbackTitle = '', chrome = null } = {}) {
     /** @type {string[]} */
     const out = [];
-    /** @type {{ h1Used: boolean, blockIndex: number, columns: number, heroImage: { src: string, srcset?: string, sizes: string } | null }} */
-    const state = { h1Used: false, blockIndex: 0, columns: 1, heroImage: null };
+    /** @type {HeadingState} */
+    const state = { h1Used: false, blockIndex: 0, columns: 1, heroImage: null, blockHeading: null };
 
     for (const block of blocks || []) {
         if (!block || block.enabled === false) continue;
+        state.blockHeading = null;
         const before = out.length;
         walk(block.content || {}, out, 1, state);
         if (out.length > before) {
@@ -377,6 +362,8 @@ const PREHYDRATE_CSS = `
 .cms-prehydrate h1 { font-size: var(--text-display); line-height: var(--leading-display); letter-spacing: var(--tracking-display); margin: 0 0 16px; }
 .cms-prehydrate h2 { font-size: 1.5rem; line-height: 1.25; margin: 32px 0 12px; }
 .cms-prehydrate h3, .cms-prehydrate h4 { font-size: 1.1rem; margin: 20px 0 8px; }
+.cms-prehydrate .h2 { font-size: 1.5rem; line-height: 1.25; margin: 32px 0 12px; }
+.cms-prehydrate .h3, .cms-prehydrate .h4 { font-size: 1.1rem; line-height: inherit; margin: 20px 0 8px; }
 .cms-prehydrate p { margin: 0 0 12px; max-width: 68ch; }
 .cms-prehydrate .label { font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; opacity: .7; margin: 0 0 8px; }
 `.trim();

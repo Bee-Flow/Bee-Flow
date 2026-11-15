@@ -13,7 +13,7 @@
  */
 
 const { esc } = require('./html');
-const { buildPublicPath } = require('./publicPath');
+const { buildPublicPath, BLOG_BASE } = require('./publicPath');
 
 // Homepage first, then the pages a buyer moves through, then the rest.
 // Sitemap priority is a weak signal at best, but ordering costs nothing.
@@ -187,6 +187,35 @@ function buildRobots({ origin, allow = true }) {
     ].join('\n');
 }
 
+/** The fixed links at the end of llms.txt: where the docs, the source and the Nextcloud app live. */
+const LLMS_LINKS = Object.freeze([
+    { title: 'Documentation', url: 'https://docs.beeflow.ai' },
+    { title: 'Source code (GitHub)', url: 'https://github.com/Bee-Flow/Bee-Flow' },
+    { title: 'Nextcloud App Store', url: 'https://apps.nextcloud.com/apps/bee_flow' },
+]);
+/** How many of the newest blog posts llms.txt lists as Guides. */
+const LLMS_GUIDES = 15;
+
+/**
+ * The Guides of llms.txt: the newest published posts, newest first, without
+ * the ones the CMS marks noIndex (the sitemap leaves those out too), at most
+ * LLMS_GUIDES, as absolute addresses in the default language.
+ * @param {Array<{ id?: string, slug?: string, title?: string }>} posts   newest first
+ * @param {{ origin: string, defaultLocale: string, storedPosts?: Record<string, { seo?: { noIndex?: boolean } }> }} opts
+ *   `storedPosts`: the snapshot's posts by id, whose seo decides noIndex
+ * @returns {Array<{ title: string, url: string }>}
+ */
+function llmsGuides(posts, { origin, defaultLocale, storedPosts = {} }) {
+    return (posts || [])
+        .filter(p => p && p.slug && !(p.id && storedPosts?.[p.id]?.seo?.noIndex))
+        .map(p => ({
+            title: String(p.title || p.slug || '').trim(),
+            url: `${origin}${buildPublicPath(defaultLocale, `${BLOG_BASE}/${p.slug}`, defaultLocale)}`,
+        }))
+        .filter(g => g.title)
+        .slice(0, LLMS_GUIDES);
+}
+
 /**
  * llms.txt — the same page inventory, addressed to language models.
  *
@@ -199,35 +228,46 @@ function buildRobots({ origin, allow = true }) {
  *
  * Built from the published snapshot so it cannot drift from what is actually
  * served, and it carries each page's own meta description rather than invented
- * blurbs. Comparison pages are listed under their own heading because they are
- * the ones a model is most likely to be asked to cite.
+ * blurbs. Comparison pages (`*-alternative`, `vs-*`, `compare`) are listed under
+ * their own heading because they are the ones a model is most likely to be
+ * asked to cite; the newest blog posts follow as Guides, then the fixed links
+ * (documentation, source, Nextcloud App Store). The text stays English; a page
+ * translated into another language lists that address after its own.
  *
- * @param {import('../../stores/cms/shared').CmsDoc[]} pages
- * @param {{ origin: string, siteName?: string, summary?: string }} opts
+ * @param {import('../../stores/cms/shared').CmsDoc[]} pages   a page may carry `locales` (the languages it is published in)
+ * @param {{ origin: string, siteName?: string, summary?: string, defaultLocale?: string,
+ *   guides?: Array<{ title: string, url: string }>, links?: ReadonlyArray<{ title: string, url: string }> }} opts
+ *   `guides`: the newest published posts, absolute URLs; `links`: replaces LLMS_LINKS
  */
-function buildLlmsTxt(pages, { origin, siteName = 'Bee Flow', summary = '' }) {
+function buildLlmsTxt(pages, { origin, siteName = 'Bee Flow', summary = '', defaultLocale = 'en', guides = [], links = LLMS_LINKS }) {
     const indexable = (pages || []).filter(p => !p?.seo?.noIndex && !p?.isNotFound);
     const line = (/** @type {import('../../stores/cms/shared').CmsDoc} */ p) => {
         const slug = p.isHomepage ? '' : String(p.slug || '');
         const title = String(p.title || slug || 'Home').trim();
         const desc = String(p?.seo?.metaDescription || '').trim();
-        return `- [${title}](${origin}/${slug})${desc ? `: ${desc}` : ''}`;
+        const others = (Array.isArray(p.locales) ? p.locales : []).filter((/** @type {string} */ l) => l !== defaultLocale)
+            .map((/** @type {string} */ l) => ` (${l}: ${origin}${buildPublicPath(l, slug, defaultLocale)})`).join('');
+        return `- [${title}](${origin}/${slug})${desc ? `: ${desc}` : ''}${others}`;
     };
-    const isComparison = (/** @type {import('../../stores/cms/shared').CmsDoc} */ p) => /-alternative$/.test(String(p.slug || '')) || p.slug === 'compare';
+    const isComparison = (/** @type {import('../../stores/cms/shared').CmsDoc} */ p) => {
+        const slug = String(p.slug || '');
+        return slug.endsWith('-alternative') || slug.startsWith('vs-') || slug === 'compare';
+    };
+    const link = (/** @type {{ title: string, url: string }} */ l) => `- [${String(l.title).trim()}](${l.url})`;
 
     const out = [`# ${siteName}`, ''];
     if (summary) out.push(summary, '');
     const main = indexable.filter(p => !isComparison(p));
     const comparisons = indexable.filter(isComparison);
-    if (main.length) {
-        out.push('## Pages', '');
-        for (const p of main) out.push(line(p));
-        out.push('');
-    }
-    if (comparisons.length) {
-        out.push('## Comparisons', '');
-        for (const p of comparisons) out.push(line(p));
-        out.push('');
+    /** @type {Array<[string, string[]]>} */
+    const sections = [
+        ['Pages', main.map(line)],
+        ['Comparisons', comparisons.map(line)],
+        ['Guides', (guides || []).filter(g => g && g.title && g.url).map(link)],
+        ['Links', (links || []).map(link)],
+    ];
+    for (const [heading, lines] of sections) {
+        if (lines.length) out.push(`## ${heading}`, '', ...lines, '');
     }
     return out.join('\n');
 }
@@ -243,4 +283,4 @@ function publicSiteName(site) {
     return brand || String(site?.name || '').trim() || 'Bee Flow';
 }
 
-module.exports = { buildSitemap, buildRobots, buildLlmsTxt, publicSiteName };
+module.exports = { buildSitemap, buildRobots, buildLlmsTxt, llmsGuides, publicSiteName, LLMS_LINKS, LLMS_GUIDES };
