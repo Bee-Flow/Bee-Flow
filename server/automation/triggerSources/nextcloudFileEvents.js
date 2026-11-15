@@ -15,6 +15,9 @@ const { FILE_FIELDS } = require('../triggerBus/ncPayload.mts');
 
 const FIELDS = [...FILE_FIELDS];
 const RENAMED_FIELDS = [...FILE_FIELDS.slice(0, 3), 'oldPath', ...FILE_FIELDS.slice(3)];
+// A copy names its original: `oldPath` is the path copied FROM and `sourceId`
+// its file id (automationEventsWebhook.js, the two-node branch).
+const COPIED_FIELDS = [...RENAMED_FIELDS.slice(0, 4), 'sourceId', ...RENAMED_FIELDS.slice(4)];
 const FILE_EVENTS = [
     {
         id: 'file.new',
@@ -102,6 +105,57 @@ const FILE_EVENTS = [
             actor: 'alice',
             datetime: '2026-05-13T11:45:00Z',
             link: 'https://cloud.example.com/f/12345',
+            isOwnAction: false,
+        },
+        scope: 'org',
+        source: {
+            kind: 'push',
+        },
+    },
+    {
+        id: 'file.copied',
+        label: 'File copied',
+        fields: COPIED_FIELDS,
+        sample: {
+            id: 4790,
+            actorName: 'Alice',
+            owner: 'alice',
+            activityId: null,
+            path: '/Documents/Invoices/Invoice-2026-001 (copy).pdf',
+            oldPath: '/Documents/Invoices/Invoice-2026-001.pdf',
+            sourceId: 4711,
+            name: 'Invoice-2026-001 (copy).pdf',
+            extension: 'pdf',
+            kind: 'file',
+            actor: 'alice',
+            datetime: '2026-05-13T12:00:00Z',
+            link: null,
+            isOwnAction: false,
+        },
+        scope: 'org',
+        source: {
+            kind: 'push',
+        },
+    },
+    {
+        // Nextcloud's NodeRestoredEvent (a file taken back out of the trash
+        // bin). Its source node is the trash entry, so no `oldPath` is
+        // declared: `path` is where the file is again.
+        id: 'file.restored',
+        label: 'File restored',
+        fields: FIELDS,
+        sample: {
+            id: 4712,
+            actorName: 'Alice',
+            owner: 'alice',
+            activityId: null,
+            path: '/Documents/Old/Draft.docx',
+            name: 'Draft.docx',
+            extension: 'docx',
+            kind: 'file',
+            actor: 'alice',
+            datetime: '2026-05-13T12:15:00Z',
+            link: null,
             isOwnAction: false,
         },
         scope: 'org',

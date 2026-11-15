@@ -177,6 +177,47 @@ module.exports = { TRIGGER_SOURCES: [{
                 },
             },
             {
+                // CalendarObjectDeletedEvent: with the calendar trash bin on
+                // (Nextcloud's default) it fires when the event leaves the
+                // trash bin for good, not when it is moved into it.
+                id: 'calendar.event.deleted',
+                label: 'Calendar event deleted permanently',
+                fields: ['uid', 'calendarId', 'calendarUri', 'objectUri', 'actor', 'datetime'],
+                sample: {
+                    calendarUri: 'personal',
+                    objectUri: 'event-1.ics',
+                    uid: 'evt-9f2b',
+                    calendarId: 'personal',
+                    actor: 'alice',
+                    datetime: '2026-05-13T10:00:00Z',
+                },
+                scope: 'org',
+                source: {
+                    kind: 'push',
+                },
+            },
+            {
+                // CalendarObjectMovedEvent: `calendarId` / `calendarUri` name
+                // the calendar it landed in (automationEventsWebhook.js).
+                id: 'calendar.event.moved',
+                label: 'Calendar event moved to another calendar',
+                fields: ['uid', 'calendarId', 'calendarUri', 'objectUri', 'sourceCalendarId', 'targetCalendarId', 'actor', 'datetime'],
+                sample: {
+                    calendarUri: 'work',
+                    objectUri: 'event-1.ics',
+                    uid: 'evt-9f2b',
+                    calendarId: 7,
+                    sourceCalendarId: 3,
+                    targetCalendarId: 7,
+                    actor: 'alice',
+                    datetime: '2026-05-13T10:05:00Z',
+                },
+                scope: 'org',
+                source: {
+                    kind: 'push',
+                },
+            },
+            {
                 id: 'deck.card.created',
                 label: 'Deck card created',
                 fields: ['cardId', 'boardId', 'stackId', 'title', 'description', 'done', 'archived', 'duedate', 'labels', 'assignedUsers', 'actor', 'datetime'],
@@ -309,6 +350,24 @@ module.exports = { TRIGGER_SOURCES: [{
                 },
             },
             {
+                id: 'file.untagged',
+                label: 'Tag removed from a file',
+                fields: ['fileId', 'objectIds', 'tagId', 'tagIds', 'objectType', 'actor', 'datetime'],
+                sample: {
+                    fileId: '437',
+                    objectIds: ['437'],
+                    tagId: 3,
+                    tagIds: [3],
+                    objectType: 'files',
+                    actor: 'alice',
+                    datetime: '2026-05-13T09:40:00Z',
+                },
+                scope: 'org',
+                source: {
+                    kind: 'push',
+                },
+            },
+            {
                 id: 'forms.submitted',
                 label: 'Form submitted (Nextcloud Forms)',
                 fields: [
@@ -365,6 +424,24 @@ module.exports = { TRIGGER_SOURCES: [{
                     previousValues: { 2: 'active' },
                     actor: 'carol',
                     datetime: '2026-05-13T09:20:00Z',
+                },
+                scope: 'org',
+                source: {
+                    kind: 'push',
+                },
+            },
+            {
+                // RowDeletedEvent serialises the row as it was: `values` is
+                // its last content, keyed by numeric column id.
+                id: 'tables.row.deleted',
+                label: 'Row deleted from a Nextcloud Table',
+                fields: ['tableId', 'rowId', 'values', 'actor', 'datetime'],
+                sample: {
+                    tableId: 34,
+                    rowId: 7,
+                    values: { 0: 'Project X', 1: 2026, 2: 'done' },
+                    actor: 'carol',
+                    datetime: '2026-05-13T09:25:00Z',
                 },
                 scope: 'org',
                 source: {

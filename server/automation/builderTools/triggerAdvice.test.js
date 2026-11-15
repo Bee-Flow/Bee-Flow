@@ -13,6 +13,16 @@ test('a deliverable event with known filter keys draws no warning', () => {
     assert.deepStrictEqual(appEventWarnings(nc('file.new', { any: [{ extension: 'pdf' }], expr: 'true' })), []);
 });
 
+test('G-01: the six newly selectable events take their family\'s filter keys', () => {
+    assert.deepStrictEqual(appEventWarnings(nc('file.copied', { inFolder: '/Invoices', extension: 'pdf' })), []);
+    assert.deepStrictEqual(appEventWarnings(nc('file.restored', { nameContains: 'draft' })), []);
+    assert.deepStrictEqual(appEventWarnings(nc('file.untagged', { tagId: 3 })), []);
+    assert.deepStrictEqual(appEventWarnings(nc('calendar.event.moved', { calendarId: 7 })), []);
+    assert.deepStrictEqual(appEventWarnings(nc('calendar.event.deleted', { calendarId: 7 })), []);
+    assert.deepStrictEqual(appEventWarnings(nc('tables.row.deleted', { tableId: 34, columnId: 2, valueEquals: 'done' })), []);
+    assert.ok(appEventWarnings(nc('calendar.event.moved', { summaryContains: 'x' })).some(m => /summaryContains never matches/.test(m)));
+});
+
 test('share.created warns loudly that it never fires', () => {
     const w = appEventWarnings(nc('share.created'));
     assert.ok(w.some(m => /NEVER fire/.test(m)), w.join('|'));

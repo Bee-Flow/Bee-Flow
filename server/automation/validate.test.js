@@ -395,6 +395,17 @@ function trigger() {
     assert.ok(!validateDefinition(mk('talk.mention.received')).warnings.some(w => w.code === 'trigger.app_event_undeliverable'), 'no deliverableEvents option → not checked');
 }
 
+// ── G-01: the six events the connector already delivers are declared, so they can fire ──
+{
+    const { getDeliverableEvents } = require('./deliverableEvents');
+    const mk = (ev) => ({ trigger: { id: 'trg', kind: 'app_event', appEvent: { provider: 'nextcloud', event: ev } }, steps: [], edges: [] });
+    for (const ev of ['file.copied', 'file.restored', 'file.untagged', 'tables.row.deleted', 'calendar.event.moved', 'calendar.event.deleted']) {
+        const r = validateDefinition(mk(ev), { deliverableEvents: getDeliverableEvents() });
+        const cannotFire = r.warnings.filter(w => w.code === 'trigger.app_event_unknown_event' || w.code === 'trigger.app_event_undeliverable');
+        assert.deepStrictEqual(cannotFire, [], `nextcloud.${ev} is declared and delivered: no "cannot fire" warning`);
+    }
+}
+
 // ── FIX 1: branch-labelled condition/switch edges satisfy the wiring checks ──
 {
     // Condition with both then + else labelled edges (what branch-aware

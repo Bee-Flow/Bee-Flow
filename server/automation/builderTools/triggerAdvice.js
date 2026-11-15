@@ -30,16 +30,21 @@ const NEXTCLOUD_FILTER_KEYS = {
     'file.changed': FILE_KEYS,
     'file.deleted': FILE_KEYS,
     'file.renamed': FILE_KEYS,
+    'file.copied': FILE_KEYS,
+    'file.restored': FILE_KEYS,
     'file.commented': ['pathPrefix', 'actorEquals', 'messageContains'],
     'file.tagged': ['tagId', 'tagName', 'tagAction', 'pathPrefix'],
     'file.untagged': ['tagId', 'tagName', 'tagAction', 'pathPrefix'],
     'forms.submitted': ['formId', 'formHash', 'titleContains', 'submittedByEquals'],
     'tables.row.added': ['tableId', 'actorEquals', 'columnId', 'valueEquals', 'valueContains', 'changedOnly'],
     'tables.row.updated': ['tableId', 'actorEquals', 'columnId', 'valueEquals', 'valueContains', 'changedOnly'],
+    // changedOnly stays accepted: the editor shares one Tables form across the
+    // three row events, and on a deleted row (no previousValues) it passes.
     'tables.row.deleted': ['tableId', 'actorEquals', 'columnId', 'valueEquals', 'valueContains', 'changedOnly'],
     'calendar.event.created': CALENDAR_KEYS,
     'calendar.event.changed': CALENDAR_KEYS,
     'calendar.event.deleted': CALENDAR_KEYS,
+    'calendar.event.moved': CALENDAR_KEYS,
     'calendar.event.upcoming': [...CALENDAR_KEYS, 'leadMinutes', 'includeAllDay', 'calendar', 'calendars'],
     'talk.message.received': TALK_MESSAGE_KEYS,
     'talk.mention.received': TALK_MESSAGE_KEYS,
@@ -104,8 +109,8 @@ function filterWarnings(provider, event, filter) {
             out.push(`filter.leadMinutes ${lead} is above this install's maximum of ${max} minutes (AUTOMATION_NC_UPCOMING_MAX_LEAD_MINUTES); the trigger fires ${max} minutes before the start instead.`);
         }
     }
-    if ((event === 'calendar.event.created' || event === 'calendar.event.changed' || event === 'calendar.event.deleted') && f.summaryContains) {
-        out.push('filter.summaryContains never matches on calendar.event.created / changed / deleted: the pushed event carries no summary. Filter on calendarId, or add a condition step after reading the event.');
+    if ((event === 'calendar.event.created' || event === 'calendar.event.changed' || event === 'calendar.event.deleted' || event === 'calendar.event.moved') && f.summaryContains) {
+        out.push('filter.summaryContains never matches on calendar.event.created / changed / deleted / moved: the pushed event carries no summary. Filter on calendarId, or add a condition step after reading the event.');
     }
     return out;
 }
