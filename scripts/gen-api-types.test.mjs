@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { OUT_REL, SPEC_REL, operationsOf, render, run, toTs } from './gen-api-types.mjs';
+import { OUT_RELS, SPEC_REL, operationsOf, render, run, toTs } from './gen-api-types.mjs';
 
 const spec = (paths) => ({ openapi: '3.1.0', paths });
 const jsonBody = (schema) => ({ content: { 'application/json': { schema } }, required: true });
@@ -60,17 +60,23 @@ test('operations are sorted by path, then by method, so the output is the same o
     assert.deepStrictEqual(keys, ['GET /a', 'POST /a', 'GET /b', 'DELETE /b']);
 });
 
-test('--check fails on a stale or missing file and passes once it is written', () => {
+/** A scratch repository root holding a small spec and the (empty) directories of every output. */
+function scratchRoot() {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'gen-api-types-'));
+    fs.mkdirSync(path.join(root, path.dirname(SPEC_REL)), { recursive: true });
+    for (const rel of OUT_RELS) fs.mkdirSync(path.join(root, path.dirname(rel)), { recursive: true });
+    fs.writeFileSync(path.join(root, SPEC_REL), JSON.stringify(spec({ '/a': { get: {} } })));
+    return root;
+}
+
+test('--check fails on a stale or missing file and passes once it is written', () => {
+    const root = scratchRoot();
     try {
-        fs.mkdirSync(path.join(root, path.dirname(SPEC_REL)), { recursive: true });
-        fs.mkdirSync(path.join(root, path.dirname(OUT_REL)), { recursive: true });
-        fs.writeFileSync(path.join(root, SPEC_REL), JSON.stringify(spec({ '/a': { get: {} } })));
         const quiet = { log: () => {}, error: () => {} };
         assert.strictEqual(run({ root, check: true, ...quiet }), 1, 'missing file');
         assert.strictEqual(run({ root, ...quiet }), 0);
         assert.strictEqual(run({ root, check: true, ...quiet }), 0);
-        fs.appendFileSync(path.join(root, OUT_REL), '// edited by hand\n');
+        fs.appendFileSync(path.join(root, OUT_RELS[0]), '// edited by hand\n');
         const errors = [];
         assert.strictEqual(run({ root, check: true, log: () => {}, error: (m) => errors.push(m) }), 1, 'hand edit');
         assert.match(errors[0], /npm run gen:api-types/);
@@ -79,6 +85,28 @@ test('--check fails on a stale or missing file and passes once it is written', (
     }
 });
 
-test('the committed file matches the committed spec', () => {
+test('agent-hub and mobile get the same text, and --check names the one that is stale', () => {
+    assert.deepStrictEqual(OUT_RELS, ['agent-hub/src/api/apiTypes.generated.ts', 'mobile/src/core/api/apiTypes.generated.ts']);
+    const root = scratchRoot();
+    try {
+        const quiet = { log: () => {}, error: () => {} };
+        assert.strictEqual(run({ root, ...quiet }), 0);
+        const [web, mobile] = OUT_RELS.map((rel) => fs.readFileSync(path.join(root, rel), 'utf8'));
+        assert.strictEqual(mobile, web);
+        for (const stale of OUT_RELS) {
+            fs.appendFileSync(path.join(root, stale), '// edited by hand\n');
+            const errors = [];
+            assert.strictEqual(run({ root, check: true, log: () => {}, error: (m) => errors.push(m) }), 1, `${stale} stale`);
+            assert.strictEqual(errors.length, 1, 'only the stale copy is reported');
+            assert.ok(errors[0].includes(stale), errors[0]);
+            assert.strictEqual(run({ root, ...quiet }), 0, 'a rewrite repairs it');
+        }
+        assert.strictEqual(run({ root, check: true, ...quiet }), 0);
+    } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test('the committed files match the committed spec', () => {
     assert.strictEqual(run({ check: true, log: () => {}, error: () => {} }), 0, 'run `npm run gen:api-types`');
 });

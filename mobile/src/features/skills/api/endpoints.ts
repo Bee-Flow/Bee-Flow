@@ -10,6 +10,7 @@
  * text columns — see model/types.
  */
 
+import { apiPath, type ApiBody } from '@/core/api/apiPath';
 import { api } from '@/core/api/client';
 import { guardedDelete } from '@/core/api/deleteGuard';
 import { readUsageAnswer, type UsageAnswer } from '@/core/api/usage';
@@ -34,7 +35,7 @@ export async function getSkillUsageSummary(signal?: AbortSignal): Promise<UsageS
 
 /** `{ usage, unchecked }` — agents that attach it, AI steps that apply it. */
 export async function getSkillUsage(id: string, signal?: AbortSignal): Promise<UsageAnswer> {
-    return readUsageAnswer(await api.get<unknown>(`${skillPath(id)}/usage`, { signal }));
+    return readUsageAnswer(await api.get<unknown>(apiPath('GET /api/skills/{id}/usage', { id }), { signal }));
 }
 
 /** 201 with the created row. Requires `manage_skills`. */
@@ -72,6 +73,7 @@ export async function draftSkill(sentence: string): Promise<SkillProposal | null
 
 /** "Improve with AI": the server rewrites AND persists, and answers with the stored row. */
 export async function improveSkill(id: string, note = ''): Promise<Skill | null> {
-    const res = await api.post<unknown>(`${skillPath(id)}/ai/improve`, { note }, { retry: false, timeoutMs: 90_000 });
+    const body = { note } satisfies ApiBody<'POST /api/skills/{id}/ai/improve'>;
+    const res = await api.post<unknown>(apiPath('POST /api/skills/{id}/ai/improve', { id }), body, { retry: false, timeoutMs: 90_000 });
     return readImproved(res);
 }
