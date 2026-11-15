@@ -304,38 +304,6 @@ async function checkBeforeLiveCore({ automation, definition, ownerId, organizati
 }
 
 /**
- * Immediate Gmail check after an activation: for every gmail/mail.new
- * subscription of THIS automation, pull the most recent matching email and
- * dispatch it once to that subscription (never the broad dispatchEvent, which
- * fanned out to every gmail automation of the user — A13). Fire-and-forget: the
- * caller never waits for it and it never throws.
- */
-function gmailCatchUp(store, automationId, ownerId, deps = {}) {
-    return (async () => {
-        try {
-            const dispatch = deps.dispatch || require('./triggerBus/dispatch');
-            const triggerBus = deps.triggerBus || require('./triggerBus');
-            const subs = await store.getSubscriptionsForAutomation(automationId);
-            const gmailSubs = (subs || []).filter((/** @type {{ provider: string; eventType: string; }} */ s) => s.provider === 'gmail' && s.eventType === 'mail.new');
-            for (const sub of gmailSubs) {
-                try {
-                    // sub.filter is the normalized copy of the trigger's filter,
-                    // so fetch and dispatch agree on what "matching" means.
-                    const latest = await triggerBus.fetchLatestGmailMatch(ownerId, sub.filter || null);
-                    if (latest) {
-                        dispatch.dispatchToSubscription(sub, { provider: 'gmail', event: 'mail.new', payload: latest });
-                    }
-                } catch (e) {
-                    log.warn(`[automation/activate] immediate Gmail dispatch failed for ${automationId} sub ${sub.id}: ${/** @type {Error} */ (e).message}`);
-                }
-            }
-        } catch (e) {
-            log.warn(`[automation/activate] immediate Gmail catchup failed for ${automationId}: ${/** @type {Error} */ (e).message}`);
-        }
-    })();
-}
-
-/**
  * The collaborators the activate/deactivate/converge cores write through —
  * getters, so a core only loads the defaults it actually destructures.
  */
@@ -420,7 +388,7 @@ async function activateCore({ automation, actorId, session = null, organizationI
     // Live once: the import gate is done for good (best-effort, never throws).
     await importGate.noteActivated(a.id, store);
 
-    gmailCatchUp(store, a.id, ownerId, deps);
+    require('./gmailCatchUp.mts').gmailCatchUp(store, a.id, ownerId, deps);
 
     // Live from here on — so is whatever it does with personal data. Never
     // awaited, never able to fail the activation.
