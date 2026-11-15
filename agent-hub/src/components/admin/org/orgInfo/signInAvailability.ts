@@ -47,6 +47,7 @@ export function unavailableSignInMethods(
 ): Partial<Record<AuthMethodId, SignInUnavailable>> {
     if (!status) return {};
     const out: Partial<Record<AuthMethodId, SignInUnavailable>> = {};
+    // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_password -- a reason code for a disabled sign-in method, not a password
     if (status.allowPasswordLogin === false) out.password = 'password_off';
     const ssoReason = (setUp: boolean): SignInUnavailable | undefined => {
         if (!setUp) return 'not_set_up';

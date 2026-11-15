@@ -61,6 +61,8 @@ interface OAuthAppGroupProps {
 /** A client id and secret of an OAuth app, saved together. */
 function OAuthAppGroup({ logo, title, description, configured, clientId, setClientId, clientSecret, setClientSecret, saving, onSave, hint }: OAuthAppGroupProps) {
     const { t } = useTranslation();
+    // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- the placeholder text of a password field, not a secret
+    const secretLabel = t('admin_platform.client_secret_ph', 'Client secret');
     return (
         <SettingsGroup
             title={<span className="flex items-center gap-2">{logo}{title}{configured && <StatusChip>{t('integ.services_configured', 'Configured')}</StatusChip>}</span>}
@@ -69,7 +71,7 @@ function OAuthAppGroup({ logo, title, description, configured, clientId, setClie
             <SettingsList>
                 <div className="flex flex-col gap-2 px-4 py-3 sm:flex-row">
                     <input type="text" value={clientId} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setClientId(e.target.value)} placeholder={configured ? MASK : t('admin_platform.client_id_ph', 'Client ID')} aria-label={t('admin_platform.client_id_ph', 'Client ID')} className={FIELD_INPUT} />
-                    <input type="password" value={clientSecret} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setClientSecret(e.target.value)} placeholder={configured ? MASK : t('admin_platform.client_secret_ph', 'Client secret')} aria-label={t('admin_platform.client_secret_ph', 'Client secret')} className={FIELD_INPUT} />
+                    <input type="password" value={clientSecret} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setClientSecret(e.target.value)} placeholder={configured ? MASK : secretLabel} aria-label={secretLabel} className={FIELD_INPUT} />
                     <SaveButton saving={saving} disabled={!clientId.trim() || !clientSecret.trim()} onClick={onSave}>{t('integ.services_save', 'Save')}</SaveButton>
                 </div>
             </SettingsList>
@@ -138,6 +140,8 @@ function WithingsGroup(p: ConnectedAppsProps) {
 
 function AzureDocIntelligenceRow(p: ConnectedAppsProps) {
     const { t } = useTranslation();
+    // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_api_key -- the placeholder text of a key field, not a key
+    const keyLabel = t('admin_platform.api_key_ph', 'API key');
     const empty = !p.azureDocEndpoint.trim() && !p.azureDocKey.trim();
     const save = () => {
         if (empty) return;
@@ -161,7 +165,7 @@ function AzureDocIntelligenceRow(p: ConnectedAppsProps) {
             expanded={(
                 <div className="flex flex-col gap-2 sm:flex-row">
                     <input type="text" value={p.azureDocEndpoint} onChange={(e: React.ChangeEvent<HTMLInputElement>) => p.setAzureDocEndpoint(e.target.value)} placeholder={p.hasAzureDocEndpoint ? MASK : 'https://your-resource.cognitiveservices.azure.com'} aria-label={t('admin_platform.endpoint_label', 'Endpoint')} className={FIELD_INPUT} />
-                    <input type="password" value={p.azureDocKey} onChange={(e: React.ChangeEvent<HTMLInputElement>) => p.setAzureDocKey(e.target.value)} placeholder={p.hasAzureDocKey ? MASK : t('admin_platform.api_key_ph', 'API key')} aria-label={t('admin_platform.api_key_ph', 'API key')} className={FIELD_INPUT} />
+                    <input type="password" value={p.azureDocKey} onChange={(e: React.ChangeEvent<HTMLInputElement>) => p.setAzureDocKey(e.target.value)} placeholder={p.hasAzureDocKey ? MASK : keyLabel} aria-label={keyLabel} className={FIELD_INPUT} />
                     <SaveButton saving={p.savingAzureDoc} disabled={empty} onClick={save}>{t('integ.services_save', 'Save')}</SaveButton>
                 </div>
             )}

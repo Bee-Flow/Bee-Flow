@@ -10,7 +10,7 @@ import { widgetSnippet, type WidgetOptions } from './embedSnippet';
 
 const MONO_INPUT = `${FIELD_INPUT} font-mono text-xs`;
 // The widget's own default bubble colours (what the snippet uses when left empty): data, not theme.
-const WIDGET_USER_BUBBLE = '#6366f1';
+const WIDGET_VISITOR_BUBBLE = '#6366f1';
 const WIDGET_ASSISTANT_BUBBLE = '#374151';
 const SEGMENT_ON = 'flex-1 rounded-md border border-[var(--text-primary)] bg-[var(--item-active-bg)] px-3 py-1.5 text-xs font-medium text-[var(--text-primary)] transition-colors';
 const SEGMENT_OFF = 'flex-1 rounded-md border border-[var(--border-default)] px-3 py-1.5 text-xs text-[var(--text-secondary)] transition-colors hover:bg-[var(--item-hover-bg)]';
@@ -106,7 +106,7 @@ function ChatLookFields(p: DesignerSectionProps) {
       <RangeField id="embed-font-size" label={t('agent_studio.behavior_font_size_chat_font_sizepx', 'Font Size: {chat_font_size}px', { chat_font_size: p.chatFontSize })} value={p.chatFontSize} onChange={p.setChatFontSize} min={12} max={20} />
       <RangeField id="embed-line-height" label={t('agent_studio.behavior_line_height', 'Line Height: {value}', { value: p.chatLineHeight })} value={p.chatLineHeight} onChange={p.setChatLineHeight} min={1.2} max={2.0} step={0.1} />
       <div className="hidden sm:block" />
-      <ColorField id="embed-user-color" label={t('agent_studio.behavior_user_bubble_color', 'User Bubble Color')} value={p.userBubbleColor} fallback={WIDGET_USER_BUBBLE} onChange={p.setUserBubbleColor} placeholder={t('agent_studio.behavior_default', 'Default')} />
+      <ColorField id="embed-user-color" label={t('agent_studio.behavior_user_bubble_color', 'User Bubble Color')} value={p.userBubbleColor} fallback={WIDGET_VISITOR_BUBBLE} onChange={p.setUserBubbleColor} placeholder={t('agent_studio.behavior_default', 'Default')} />
       <ColorField id="embed-assistant-color" label={t('agent_studio.behavior_assistant_bubble_color', 'Assistant Bubble Color')} value={p.assistantBubbleColor} fallback={WIDGET_ASSISTANT_BUBBLE} onChange={p.setAssistantBubbleColor} placeholder={t('agent_studio.behavior_default', 'Default')} />
       <div className="sm:col-span-2">
         <Field label={t('agent_studio.behavior_disclaimer_text', 'Disclaimer Text')} htmlFor="embed-disclaimer">

@@ -32,6 +32,9 @@ const SecretInput = ({ value, onChange, placeholder, onEnter, show, onToggleShow
     const [internalShow, setInternalShow] = useState(false);
     const isControlled = show !== undefined;
     const visible = isControlled ? show : internalShow;
+    // The eye button's name: what a click does to the field.
+    // nosemgrep: ajinabraham.njsscan.generic.hardcoded_secrets.node_secret -- translation keys of a button label, not a secret
+    const toggleLabel = visible ? t('ai_model_setup.secret_hide', 'Hide') : t('ai_model_setup.secret_show', 'Show');
 
     const toggleShow = () => {
         if (isControlled) onToggleShow?.(!visible);
@@ -52,8 +55,8 @@ const SecretInput = ({ value, onChange, placeholder, onEnter, show, onToggleShow
                 type="button"
                 onClick={toggleShow}
                 className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-[var(--text-tertiary)] hover:bg-[var(--item-hover-bg)]"
-                title={visible ? t('ai_model_setup.secret_hide', 'Hide') : t('ai_model_setup.secret_show', 'Show')}
-                aria-label={visible ? t('ai_model_setup.secret_hide', 'Hide') : t('ai_model_setup.secret_show', 'Show')}
+                title={toggleLabel}
+                aria-label={toggleLabel}
             >
                 {visible ? '👁️' : '👁️‍🗨️'}
             </button>
