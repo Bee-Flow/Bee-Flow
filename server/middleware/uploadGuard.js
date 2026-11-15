@@ -204,6 +204,11 @@ const MIME_FAMILIES = Object.freeze({
     // Not in DEFAULT_ALLOW: only a route that names it (the App Studio asset store) accepts a font.
     'font/woff2': ['woff2'],
     'application/pdf': ['pdf'],
+    // Not in DEFAULT_ALLOW: only a route that names them (the Windmill import,
+    // routes/automation/windmillImport.mts) accepts an archive, JSON or YAML.
+    'application/zip': ['zip'],
+    'application/json': ['text'],
+    'application/yaml': ['text'],
     // text/* is WIDENED with the text-shaped CAD families: a genuine STEP or
     // ASCII DXF declared text/plain used to sniff 'text' and pass — now that
     // those bytes sniff their own family, the widening keeps them passing.

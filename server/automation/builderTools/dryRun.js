@@ -100,6 +100,9 @@ async function applyRequestDryRun(draftWrap, args, deps) {
         // Headless: nobody is watching to answer a pause, so pauses synthesise.
         origin: originOf(draftWrap), pausesRequested: false,
     });
+    // An imported draft remembers a clean dry run of the SAVED version (its
+    // activation gate reads it); a staged preview ran a proposal, so it does not count.
+    if (!draftWrap._stagedDryRun && typeof d.noteDryRun === 'function') await d.noteDryRun(automation, run);
     const steps = await d.getRunSteps(run.id);
     const annotated = [];
     for (const s of steps) annotated.push({ ...s, _hint: await d.annotate(s, draftWrap) });

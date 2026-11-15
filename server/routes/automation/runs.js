@@ -166,6 +166,8 @@ router.post('/:id/dry-run', runTriggerLimiter, validate({ body: DryRunBody }), a
         ...(fromRun ? { harness: fromRun.harness } : {}),
     }), { respond: req.body.respond, label: 'automation/dry-run' });
     if (outcome.kind === 'pending') return res.status(202).json(pendingRunBody(outcome.runId));
+    // An imported draft remembers a clean dry run of this version (its activation gate reads it).
+    await require('../../automation/importGate.mts').noteDryRun(a, outcome.run, automationStore);
     const steps = await automationStore.getRunSteps(outcome.run.id);
     // The payload the run entered with (a pinned trigger sample included).
     const warnings = dryRunWarnings({ steps, definition: a.definition, trigger: entered.trigger, triggerPayload: outcome.run.triggerPayload ?? triggerPayload });

@@ -79,6 +79,9 @@ const FIXTURES = [
             'POST /api/automation/:id/transfer-owner', 'PUT /api/automation/:id/agent-bindings',
             'PUT /api/automation/:id/form-scenarios/:scenarioId', 'PUT /api/automation/:id/shares',
             'GET /api/automation/forms/:automationId', 'PUT /api/automation/forms/:automationId/audience',
+            // The Windmill import report (routes/automation/windmillImport.mts): the owner gets the 404 of
+            // an automation that was not imported; a member of org A never gets past the access check.
+            'GET /api/automation/:id/import-report', 'POST /api/automation/:id/import-report/acknowledge',
         ],
         // Routes whose body is checked before the handler's access check: a valid body, so the access check answers.
         bodies: {
@@ -94,6 +97,7 @@ const FIXTURES = [
             'PUT /api/automation/:id/form-scenarios/:scenarioId': { name: 'Matrix' },
             'PUT /api/automation/:id/shares': { shares: [] },
             'PUT /api/automation/forms/:automationId/audience': { audience: 'org' },
+            'POST /api/automation/:id/import-report/acknowledge': { wmIds: ['matrix'] },
         },
         queries: { 'GET /api/automation/:id/steps/:stepId/rerun-plan': 'seedRunId=r-matrix' },
     },

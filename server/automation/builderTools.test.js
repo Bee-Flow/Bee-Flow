@@ -1078,7 +1078,7 @@ function edge(def, fromId) {
         assert.ok(rep._warnings.some(w => /^source "loop\.r\.content" read as "loop\.r\.output\.content" — an entry of steps\.a_[0-9a-f]+\.output\.results is \{index, item, output, status\}; the step's result sits under output\.$/.test(w)), JSON.stringify(rep._warnings));
         // …a field the entry has nowhere is refused naming where the text is.
         const foo = await applyToolCall('builder_add_data_extraction', { source: { kind: 'ref', path: 'loop.r.foo' }, fields: [{ name: 'a', type: 'string' }], forEach: readRef }, dw);
-        assert.match(foo.error, /^source reads "loop\.r\.foo", but an entry of steps\.a_[0-9a-f]+\.output\.results \(nextcloud_read_file\) is \{index, item, output, status\} and output has: path, size, contentType, extractedVia, truncated, content, meta — the text is loop\.r\.output\.content\.$/);
+        assert.match(foo.error, /^source reads "loop\.r\.foo", but an entry of steps\.a_[0-9a-f]+\.output\.results \(nextcloud_read_file\) is \{index, item, output, status\} and output has: path, size, contentType, extractedVia, truncated, content, meta, formFields — the text is loop\.r\.output\.content\.$/);
         assert.match(foo._fixHint, /^Reject reason: the extraction reads a field the loop item does not have\./);
         // No prompt and no source: the plain refusal, with its own hint.
         const none = await applyToolCall('builder_add_data_extraction', { fields: [{ name: 'a', type: 'string' }] }, dw);

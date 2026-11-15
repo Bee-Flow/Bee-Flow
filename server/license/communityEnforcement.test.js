@@ -44,6 +44,8 @@ const FEATURES = [
     // do not, so in-flight approvals can still be drained after a lapse — is
     // pinned by routes/automation/approvals.licenseGate.test.js.
     'approvals',
+    // The importer from other workflow tools (Windmill): Enterprise for now.
+    'automation_import',
     // Enforcement pass: every other enterprise feature must 403 on community
     // too. mcp_marketplace moved out of community (it's an enterprise beta);
     // sso_saml gates Google/Microsoft/SAML (Nextcloud OAuth stays community);

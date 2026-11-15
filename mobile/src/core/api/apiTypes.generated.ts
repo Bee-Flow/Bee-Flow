@@ -19,7 +19,7 @@ interface Op<P = NoParams, Q = UndeclaredQuery, B = unknown> {
     response: unknown;
 }
 
-/** 1912 operations. */
+/** 1916 operations. */
 export interface ApiOperations {
     'GET /.well-known/microsoft-identity-association.json': Op;
     'GET /.well-known/security.txt': Op;
@@ -1424,6 +1424,18 @@ export interface ApiOperations {
         sharedUserIds?: Array<string>;
     }>;
     'POST /api/automation/import': Op;
+    'POST /api/automation/import/windmill/remote': Op<NoParams, UndeclaredQuery, {
+        baseUrl: string;
+        mode: 'preview' | 'commit';
+        select?: Array<string>;
+        source: 'windmill_api';
+        token: string;
+        workspace: string;
+    }>;
+    'POST /api/automation/import/windmill/upload': Op<NoParams, UndeclaredQuery, {
+        mode: 'preview' | 'commit';
+        select?: string;
+    }>;
     'GET /api/automation/runs/{id}': Op<{ id: string | number }>;
     'POST /api/automation/runs/{id}/approve': Op<{ id: string | number }, UndeclaredQuery, {
         decision: 'approve' | 'reject';
@@ -1561,6 +1573,10 @@ export interface ApiOperations {
     'POST /api/automation/{id}/goldens/replay': Op<{ id: string | number }, UndeclaredQuery, {
         aiAnswers?: 'live' | 'cache';
         goldenIds?: Array<string>;
+    }>;
+    'GET /api/automation/{id}/import-report': Op<{ id: string | number }>;
+    'POST /api/automation/{id}/import-report/acknowledge': Op<{ id: string | number }, UndeclaredQuery, {
+        wmIds: Array<string>;
     }>;
     'GET /api/automation/{id}/notifications': Op<{ id: string | number }>;
     'GET /api/automation/{id}/principals': Op<{ id: string | number }>;
