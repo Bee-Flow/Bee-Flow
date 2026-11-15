@@ -66,7 +66,7 @@ export interface WindmillFlowPreview {
     importable: boolean;
 }
 
-export type ComparisonStatus = 'done' | 'no_runs' | 'skipped_flow_limit' | 'unauthorized' | 'unreadable' | 'budget_spent';
+type ComparisonStatus = 'done' | 'no_runs' | 'skipped_flow_limit' | 'unauthorized' | 'unreadable' | 'budget_spent';
 
 interface WindmillFlowResult {
     path: string;

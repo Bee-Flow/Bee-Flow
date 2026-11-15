@@ -52,7 +52,7 @@ export default function ImageInputsSection({ stepType, images, onChange, onFocus
                 ))}
             </div>
             {rows.length < MAX_IMAGE_BINDINGS && (
-                <button type="button" onClick={add} className="mt-2 inline-flex items-center gap-1 text-sm text-[var(--accent-ink)] hover:underline">
+                <button type="button" onClick={add} className="mt-2 inline-flex items-center gap-1 text-sm text-[var(--accent)] hover:underline">
                     <Plus className="h-3.5 w-3.5" aria-hidden="true" />{t('automation_image_ai.row_add', 'Add an image')}
                 </button>
             )}
