@@ -132,6 +132,55 @@ describe('WindmillImportDialog', () => {
         await user.click(screen.getByRole('button', { name: 'Done' }));
     });
 
+    it('offers the comparison when the server does, sends it with the commit, and the report shows it', async () => {
+        const bodies: Array<Record<string, unknown>> = [];
+        const comparison = {
+            at: '2026-11-15T10:00:00.000Z', requested: 3, status: 'done', savedAsTests: true,
+            scenarios: [{ windmillRunId: 'wm-run-1', windmillSuccess: true, status: 'success', reachedEnd: true, failedSteps: [], shapeDiffs: [], saved: { golden: true, runId: 'r1', reason: null } }],
+        };
+        route = (method, path, init) => {
+            if (path.endsWith('/import/windmill/remote')) {
+                const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+                bodies.push(body);
+                return {
+                    status: 200,
+                    body: body.mode === 'commit'
+                        ? { ...PREVIEW, mode: 'commit', compare: { runs: 3 }, results: [{ path: FLOW.path, title: FLOW.title, ok: true, automationId: 'a-new', compared: { status: 'done', scenarios: 1, reachedEnd: 1 } }] }
+                        : { ...PREVIEW, compare: { runs: 3 } },
+                };
+            }
+            if (method === 'GET' && path.endsWith('/a-new/import-report')) return { status: 200, body: { ...REPORT, report: { ...REPORT.report, comparison } } };
+            return null;
+        };
+        const user = userEvent.setup();
+        renderWithClient(<Dialog />);
+        await user.click(screen.getByRole('tab', { name: 'Read from a Windmill' }));
+        await user.type(screen.getByLabelText('Windmill address (https://)'), 'https://wm.example.com');
+        await user.type(screen.getByLabelText('Workspace id'), 'main');
+        await user.type(screen.getByLabelText('Read-only token'), 'tok');
+        await user.click(screen.getByRole('button', { name: 'Preview' }));
+        await screen.findByText('Expense claim');
+        expect(screen.queryByRole('checkbox', { name: /Save the runs as test cases/ })).not.toBeInTheDocument();
+        await user.click(screen.getByRole('checkbox', { name: /Compare with the last 3 Windmill runs/ }));
+        await user.click(screen.getByRole('checkbox', { name: /Save the runs as test cases/ }));
+        await user.click(screen.getByRole('button', { name: 'Import 1 flows' }));
+        expect(await screen.findByText('1 of 1 dry runs reached the end')).toBeInTheDocument();
+        expect(screen.getByText('Kept as a golden run')).toBeInTheDocument();
+        expect(bodies[0].compare).toBeUndefined();
+        expect(bodies[1]).toMatchObject({ mode: 'commit', compare: { saveAsTests: true } });
+    });
+
+    it('an uploaded export has no comparison to offer', async () => {
+        route = (_m, path) => (path.endsWith('/import/windmill/upload') ? { status: 200, body: { ...PREVIEW, compare: { runs: 5 } } } : null);
+        const user = userEvent.setup();
+        const { container } = renderWithClient(<Dialog />);
+        const input = container.ownerDocument.querySelector('input[type="file"]') as HTMLInputElement;
+        await user.upload(input, new File(['{}'], 'flow.json', { type: 'application/json' }));
+        await user.click(screen.getByRole('button', { name: 'Preview' }));
+        await screen.findByText('Expense claim');
+        expect(screen.queryByRole('checkbox', { name: /Compare with the last/ })).not.toBeInTheDocument();
+    });
+
     it('shows the inventory only when the server says available', async () => {
         route = (method, path) => (method === 'GET' && path.endsWith('/import/windmill/inventory')
             ? { status: 200, body: { available: true, generation: 'standalone', flows: [{ path: 'f/a/b', summary: 'File to table', events: ['file.new'], active: true }] } }

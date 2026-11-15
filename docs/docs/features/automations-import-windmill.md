@@ -57,7 +57,34 @@ The preview converts everything without writing anything. Per flow you see:
 Select the flows you want and click **Import**. Each selected flow becomes its own inactive draft; a
 flow that cannot be imported is reported and the rest go on.
 
-## Complete with AI
+## Compare with the last Windmill runs
+
+With **Read from a Windmill**, the preview can offer **Compare with the last N Windmill runs**
+(N is 5 unless your administrator changed it). In the same import request, while the token is still
+at hand, Bee Flow reads the last N finished runs of each imported flow, turns each run's input into
+the trigger data of the new draft, and gives the draft one **dry run** per Windmill run. A dry run
+sends and writes nothing; reads and AI steps run for real, so AI steps send that input to your
+organisation's own AI model.
+
+The import report then has a **Comparison** section per flow. Per Windmill run you see:
+
+- whether the Bee Flow dry run reached the end;
+- which steps failed, with the error code;
+- which steps give a result with a different shape than the same step in Windmill: the field names
+  Bee Flow lacks and the ones only Bee Flow has. Values are never shown or kept. A step that a dry
+  run only simulates is marked, because its made-up result often differs anyway;
+- the Windmill run id, to look the run up in Windmill.
+
+The runs' input and results are your customers' data. Bee Flow keeps only that summary: the input is
+not stored or logged, and each dry run is deleted once it is summarised. A dry run of this version
+that reached the end counts as the dry run the activation check asks for (see below).
+
+Tick **Save the runs as test cases** to keep them for later. Secret-shaped values are removed from
+the input first. A dry run that reached the end is then kept as a
+[golden run](automation-testing.md#golden-runs), which you can replay after every change; the rules
+of test data apply (run retention, the run's own read access, never exported, not on a PRD stage).
+A dry run that did not reach the end cannot be a golden run and is not kept.
+
 
 A flow with open items (a script in a language Bee Flow does not run, a pattern the converter does
 not know) gets a **placeholder step** on the canvas for each one, plus a checklist item in the report.

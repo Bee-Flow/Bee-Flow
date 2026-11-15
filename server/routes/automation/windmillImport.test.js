@@ -204,6 +204,32 @@ test('source W: the address and the body are checked before anything goes out', 
     assert.strictEqual(fetchCalls.length, before, 'nothing went out');
 });
 
+test('source W: the comparison is offered while AUTOMATION_IMPORT_WINDMILL_COMPARE_RUNS is above 0, and 0 switches it off', async () => {
+    const zip = (await inputOf('native-trigger-bundle')).data;
+    fetchAnswer = async () => new Response(zip, { status: 200, headers: { 'content-type': 'application/zip' } });
+    const saved = process.env.AUTOMATION_IMPORT_WINDMILL_COMPARE_RUNS;
+    try {
+        delete process.env.AUTOMATION_IMPORT_WINDMILL_COMPARE_RUNS;
+        const on = await call('POST', '/import/windmill/remote', { body: remoteBody({ compare: { saveAsTests: true } }) });
+        assert.strictEqual(on.status, 200, on.text);
+        assert.deepStrictEqual(on.body.compare, { runs: 5 }, 'the default is the last 5 runs');
+        process.env.AUTOMATION_IMPORT_WINDMILL_COMPARE_RUNS = '0';
+        const before = fetchCalls.length;
+        const off = await call('POST', '/import/windmill/remote', { body: remoteBody({ compare: {} }) });
+        assert.strictEqual(off.status, 200, off.text);
+        assert.strictEqual(off.body.compare, undefined, 'nothing to offer');
+        assert.strictEqual(fetchCalls.length - before, 1, 'only the archive was read');
+        const upload = await call('POST', '/import/windmill/upload', { form: uploadForm('expense-claim.flow.json', 'application/json') });
+        assert.strictEqual(upload.body.compare, undefined, 'an uploaded export has no runs to compare');
+    } finally {
+        if (saved === undefined) delete process.env.AUTOMATION_IMPORT_WINDMILL_COMPARE_RUNS; else process.env.AUTOMATION_IMPORT_WINDMILL_COMPARE_RUNS = saved;
+    }
+    const bad = await call('POST', '/import/windmill/remote', { body: remoteBody({ compare: { saveAsTests: 'yes' } }) });
+    assert.strictEqual(bad.status, 400, 'compare.saveAsTests is a boolean');
+    const extra = await call('POST', '/import/windmill/remote', { body: remoteBody({ compare: { runs: 99 } }) });
+    assert.strictEqual(extra.status, 400, 'the number of runs is the server\'s to set');
+});
+
 const ROW = {
     id: 'r1', orgId: null, userId: 'u1', automationId: 'a-imported', sourceKind: 'windmill_upload',
     windmillPath: 'f/x/flow', windmillGeneration: 'standalone', acknowledged: [], dryRunOkAt: null, dryRunVersion: null, clearedAt: null, createdAt: null,

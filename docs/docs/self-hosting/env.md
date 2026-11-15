@@ -127,6 +127,8 @@ Optional; empty means the default.
 | `AUTOMATION_IMPORT_WINDMILL_RPM` | `20` | Windmill import requests (preview or import) one user may send per minute. `0` = unlimited. |
 | `AUTOMATION_IMPORT_WINDMILL_BRIEF_CHARS_PER_ITEM` | `6000` | Characters of source per open item in the "Complete with AI" briefing; the rest stays in the note step on the canvas. `0` = unlimited. |
 | `AUTOMATION_IMPORT_WINDMILL_BRIEF_CHARS_TOTAL` | `40000` | Characters of the whole "Complete with AI" briefing. `0` = unlimited. |
+| `AUTOMATION_IMPORT_WINDMILL_COMPARE_RUNS` | `5` | Windmill runs per flow that an import from a standalone Windmill replays as dry runs of the new draft ("Compare with the last N Windmill runs"; at most 100). Their reads count in the import's total read budget. `0` = the comparison is off. |
+| `AUTOMATION_IMPORT_WINDMILL_COMPARE_FLOWS` | `20` | Imported flows compared in one import; the rest say they were not compared. `0` = unlimited. |
 | `WEBHOOK_UNTIMED_NONCE_RETENTION_DAYS` | `0` (keep) | Days the nonce of a signed webhook delivery without a timestamp is kept for replay protection. `0` keeps it for good, so that table only grows; ordinary nonces are swept after 24 hours either way. |
 | `FIREBIRD_ALLOW_PRIVATE_HOSTS` | off | `1` allows a private or loopback Firebird host on `DEPLOYMENT_MODE=cloud`. Self-hosted allows them already. Link-local and cloud-metadata addresses are always refused. |
 | `FIREBIRD_ALLOWED_HOSTS` | empty (any) | Comma-separated host names a Firebird connection may use. |
