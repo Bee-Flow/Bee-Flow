@@ -353,13 +353,13 @@ No request schema.
 
 ### `GET /api/automation/:id/import-report`
 
-**Access:** Signed-in user · Licence feature `automations` · Licence feature `automation_import` · Capability `automations` · middleware `trainingGate`
+**Access:** Signed-in user · Licence feature `automations` · Capability `automations` · middleware `trainingGate`
 
 No request schema.
 
 ### `POST /api/automation/:id/import-report/acknowledge`
 
-**Access:** Signed-in user · Licence feature `automations` · Licence feature `automation_import` · Capability `automations` · middleware `trainingGate`
+**Access:** Signed-in user · Licence feature `automations` · Capability `automations` · middleware `trainingGate`
 
 **Body**
 

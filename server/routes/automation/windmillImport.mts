@@ -8,10 +8,15 @@
  *                                            and the "Complete with AI" briefing
  *   POST /:id/import-report/acknowledge      checklist items the person handles by hand
  *
- * Every route needs the `automation_import` licence feature (Enterprise), as
- * its FIRST handler: the /api/automation mount is Community, so the gate
- * cannot live at the mount, and an unlicensed caller never has a file parsed.
- * crud.js registers these before `/:id` (automation.routetable.test.js).
+ * The importing routes (upload, remote) need the `automation_import` licence
+ * feature (Enterprise), as their FIRST handler: the /api/automation mount is
+ * Community, so the gate cannot live at the mount, and an unlicensed caller
+ * never has a file parsed. The report and its acknowledgement are DELIBERATELY
+ * UNGATED (the drain exemption, license/featureMap.js): after a licence lapse
+ * an organisation can still read what is open on the drafts it already
+ * imported and mark items as handled, so no draft is stranded. They keep the
+ * automation's own access check. crud.js registers these before `/:id`
+ * (automation.routetable.test.js).
  *
  * Preview and commit are stateless: the commit sends the same input again and
  * the server converts it again. An import writes INACTIVE drafts only; the
@@ -153,7 +158,7 @@ export function registerWindmillImportRoutes(router: Router, deps: WindmillRoute
         await answer(req, res, { input: fetched.input, mode, select: select ?? null, sourceKind: 'windmill_api', notes: fetched.notes });
     });
 
-    router.get('/:id/import-report', licensed, async (req: Request, res: Response) => {
+    router.get('/:id/import-report', async (req: Request, res: Response) => {
         const a = await load(req, res, 'view');
         if (!a) return;
         const row = await store().getImportForAutomation(a.id);
@@ -161,7 +166,7 @@ export function registerWindmillImportRoutes(router: Router, deps: WindmillRoute
         res.json(importReportView(a, row, limits()));
     });
 
-    router.post('/:id/import-report/acknowledge', licensed, validate({ body: AcknowledgeBody }), async (req: Request, res: Response) => {
+    router.post('/:id/import-report/acknowledge', validate({ body: AcknowledgeBody }), async (req: Request, res: Response) => {
         const a = await load(req, res, 'edit');
         if (!a) return;
         const row = await store().getImportForAutomation(a.id);

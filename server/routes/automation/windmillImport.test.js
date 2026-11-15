@@ -5,8 +5,10 @@
  * database (the commit, the stored reports) is a double here; the commit
  * itself is proven on PGlite in usecases/automation/windmillImport.pg.test.js.
  *
- *   - every route needs the `automation_import` licence feature (Enterprise):
- *     a community caller gets 403 feature_locked;
+ *   - the importing routes need the `automation_import` licence feature
+ *     (Enterprise): a community caller gets 403 feature_locked;
+ *   - the report and its acknowledgement are the drain exemption: after a
+ *     lapse the drafts already imported can still be read and finished;
  *   - an upload preview converts and writes nothing;
  *   - source W: the token goes out in the Authorization header only, never
  *     comes back in an answer or an error; a refused token, an http:// address
@@ -103,18 +105,28 @@ function uploadForm(name, type, mode = 'preview', select) {
 
 const remoteBody = (over = {}) => ({ source: 'windmill_api', baseUrl: 'https://windmill.example.com', workspace: 'main', token: TOKEN, mode: 'preview', ...over });
 
-test('a community caller is refused on every route with feature_locked', async () => {
+test('a community caller is refused on the importing routes with feature_locked', async () => {
     const answers = [
         await call('POST', '/import/windmill/upload', { form: uploadForm('expense-claim.flow.json', 'application/json'), tier: 'community' }),
         await call('POST', '/import/windmill/remote', { body: remoteBody(), tier: 'community' }),
-        await call('GET', '/a-imported/import-report', { tier: 'community' }),
-        await call('POST', '/a-imported/import-report/acknowledge', { body: { wmIds: ['x'] }, tier: 'community' }),
     ];
     for (const a of answers) {
         assert.strictEqual(a.status, 403, a.text);
         assert.strictEqual(a.body.error, 'feature_locked');
     }
     assert.strictEqual(fetchCalls.length, 0, 'nothing was fetched for an unlicensed caller');
+});
+
+test('drain exemption: after a lapse the report of an imported draft can still be read and its items acknowledged', async () => {
+    rows['a-imported'] = { automationId: 'a-imported', acknowledged: [], dryRunVersion: null, clearedAt: null, report: { aiChecklist: [{ wmId: 'p1', stepId: 'p1', placeholder: true, title: 'Convert p1' }] } };
+    const read = await call('GET', '/a-imported/import-report', { tier: 'community' });
+    assert.strictEqual(read.status, 200, read.text);
+    assert.deepStrictEqual(read.body.gate.open.map((o) => o.wmId), ['p1']);
+    const ack = await call('POST', '/a-imported/import-report/acknowledge', { body: { wmIds: ['p1'] }, tier: 'community' });
+    assert.strictEqual(ack.status, 200, ack.text);
+    assert.deepStrictEqual(acks, [['a-imported', ['p1']]]);
+    // The automation's own access check still holds.
+    assert.strictEqual((await call('GET', '/a-elsewhere/import-report', { tier: 'community' })).status, 404);
 });
 
 test('an upload preview converts the flow and writes nothing', async () => {
