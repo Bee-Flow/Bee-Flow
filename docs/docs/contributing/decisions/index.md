@@ -40,3 +40,4 @@ decision that changes gets a new record that supersedes the old one.
 | [0025](./column-rights-in-the-data-layer.md) | Column rights are enforced in the data layer and proved by oracle tests |
 | [0026](./server-typescript-for-new-code.md) | New server code is TypeScript (`.mts`) that Node runs as written; the existing files stay JavaScript with JSDoc types, and the architecture gates read how the two load each other |
 | [0027](./provider-type-outside-the-adapters.md) | One adapter per LLM provider; code outside the adapters compares the stored provider type for model registration, price keys, the path a call takes and configuration, and a price never follows a guessed adapter |
+| [0028](./webhook-header-token.md) | Webhook callers that cannot sign may use a header token; signing stays the default |

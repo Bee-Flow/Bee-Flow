@@ -754,6 +754,7 @@ declare namespace DbRow {
     /** Row of `automation_webhooks`. */
     interface AutomationWebhooks {
         allow_methods: string;
+        auth_mode: string;
         automation_id: string;
         created_at: Date;
         id: string;

@@ -332,6 +332,7 @@ const sidebars: SidebarsConfig = {
             'contributing/decisions/column-rights-in-the-data-layer',
             'contributing/decisions/server-typescript-for-new-code',
             'contributing/decisions/provider-type-outside-the-adapters',
+            'contributing/decisions/webhook-header-token',
           ],
         },
       ],

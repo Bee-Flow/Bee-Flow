@@ -13,6 +13,13 @@
  *     five minutes of now, so a captured request stops working after that
  *     window on its own, before the nonce store is asked.
  * Every compare is constant-time.
+ *
+ * A webhook in 'header_token' mode (for a caller that cannot sign) is
+ * checked by checkHeaderToken instead: the caller sends a fixed token in
+ * `Authorization: Bearer <token>` or `X-BeeFlow-Token`, and its sha256 is
+ * compared with the one stored for the webhook. Never from the query string.
+ * Weaker than signing: whoever sees the token can send deliveries, and a
+ * delivery without a nonce can be sent again.
  */
 
 'use strict';
@@ -89,4 +96,39 @@ function isDigits(s, max) {
     return true;
 }
 
-module.exports = { checkWebhookSignature, hmacHeader, sameSignature, TIMESTAMP_SKEW_SECONDS };
+/**
+ * The sha256 (hex) a header token is stored and compared as.
+ * @param {string} token
+ */
+function hashWebhookToken(token) {
+    return crypto.createHash('sha256').update(String(token), 'utf8').digest('hex');
+}
+
+/**
+ * Does the token a caller sent match the stored hash? Constant-time; an empty
+ * token or a stored hash that is not a non-empty string verifies nothing.
+ * @param {{ tokenHash: string | null, token: string }} input
+ * @returns {{ ok: boolean, reason?: 'missing' | 'bad_signature' }}
+ */
+function checkHeaderToken({ tokenHash, token }) {
+    if (!token) return { ok: false, reason: 'missing' };
+    if (typeof tokenHash !== 'string' || !tokenHash) return { ok: false, reason: 'bad_signature' };
+    return sameSignature(hashWebhookToken(token), tokenHash) ? { ok: true } : { ok: false, reason: 'bad_signature' };
+}
+
+/**
+ * The token a delivery carries in its headers: `Authorization: Bearer <token>`
+ * first, else `X-BeeFlow-Token`. Plain string operations (request text).
+ * @param {string | null | undefined} authorization
+ * @param {string | null | undefined} tokenHeader
+ */
+function tokenFromHeaders(authorization, tokenHeader) {
+    const auth = typeof authorization === 'string' ? authorization.trim() : '';
+    if (auth.length > 7 && auth.slice(0, 7).toLowerCase() === 'bearer ') {
+        const token = auth.slice(7).trim();
+        if (token) return token;
+    }
+    return typeof tokenHeader === 'string' ? tokenHeader.trim() : '';
+}
+
+module.exports = { checkWebhookSignature, hmacHeader, sameSignature, hashWebhookToken, checkHeaderToken, tokenFromHeaders, TIMESTAMP_SKEW_SECONDS };

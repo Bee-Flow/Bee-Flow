@@ -15,6 +15,7 @@ function statusLabel(t: TranslateFn, status: string): string {
     switch (status) {
         case 'accepted': return t('automation_webhook_log.status.accepted', 'Accepted');
         case 'bad_signature': return t('automation_webhook_log.status.bad_signature', 'Signature not accepted');
+        case 'bad_token': return t('automation_webhook_log.status.bad_token', 'Token not accepted');
         case 'stale_timestamp': return t('automation_webhook_log.status.stale_timestamp', 'Timestamp outside the window');
         case 'replay': return t('automation_webhook_log.status.replay', 'Nonce used before');
         case 'inactive': return t('automation_webhook_log.status.inactive', 'Automation not active');

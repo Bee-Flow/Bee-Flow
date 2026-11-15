@@ -10,6 +10,22 @@ const { bestEffort } = require('../../utils/bestEffort');
 const { encryptValue, decryptValue } = require('../configEncryption');
 const { automationWebhookLimits } = require('./webhookPolicy.mts');
 
+/**
+ * The form a header token is stored as: its sha256 (hex). The same as
+ * usecases/automation/webhookSignature.js hashWebhookToken, which the inbound
+ * check compares with (webhooks.secret.test.js holds the two together).
+ * @param {string} token
+ */
+const hashWebhookToken = (token) => crypto.createHash('sha256').update(token, 'utf8').digest('hex');
+
+/** The two ways a caller proves itself; 'hmac' is the default. */
+const WEBHOOK_AUTH_MODES = Object.freeze(['hmac', 'header_token']);
+/**
+ * @param {unknown} mode
+ * @returns {'hmac' | 'header_token'}
+ */
+const authModeOf = (mode) => (mode === 'header_token' ? 'header_token' : 'hmac');
+
 // ── Webhooks ──────────────────────────────────────────
 //
 // THE SECRET is stored sealed (stores/configEncryption.js), under the
@@ -24,15 +40,22 @@ const { automationWebhookLimits } = require('./webhookPolicy.mts');
 // (AUTOMATION_WEBHOOK_ROTATION_OVERLAP_SECONDS; 0 = it stops at once), so a
 // sender can be moved over without a gap. One previous secret at a time: a
 // second rotation inside the overlap ends the first one's.
+//
+// THE AUTH MODE (auth_mode, migrations/automation-webhook-auth-mode-2026-11.js)
+// is 'hmac' (the caller signs; the default) or 'header_token' (the caller sends
+// a fixed token in a header). For a header token the secret column holds the
+// sha256 of the token, sealed the same way; the token itself is returned once,
+// as `secret`, and never stored. Rotation works the same for both modes.
 
 /**
- * A new secret, sealed for the automation's organisation.
- * @param {string} automationId
+ * A new secret, sealed for the automation's organisation: the signing secret
+ * itself, or for a header token its sha256.
+ * @param {string | null | undefined} orgId
+ * @param {'hmac' | 'header_token'} authMode
  */
-async function newSealedSecret(automationId) {
-    const owner = await getOne('SELECT organization_id FROM automations WHERE id = $1', [automationId]);
+function newSealedSecret(orgId, authMode) {
     const secret = crypto.randomBytes(32).toString('hex');
-    return { secret, sealed: seal(secret, owner?.organization_id) };
+    return { secret, sealed: seal(authMode === 'header_token' ? hashWebhookToken(secret) : secret, orgId) };
 }
 
 /**
@@ -56,35 +79,48 @@ function openSecret(stored) {
 }
 
 /**
+ * A new webhook. `secret` in the answer is what the caller needs, shown once:
+ * the signing secret, or for 'header_token' the token.
  * @param {string} automationId
  * @param {string | null} [triggerStepId]
+ * @param {{ authMode?: 'hmac' | 'header_token' }} [options]
  */
-async function createWebhook(automationId, triggerStepId = null) {
+async function createWebhook(automationId, triggerStepId = null, { authMode = 'hmac' } = {}) {
     await initDB();
     // WS5.1 — the slug is the only auth on /webhook/:slug, so give new ones
     // 192 bits of entropy (was 96). Both lengths stay valid: TEXT PK with
     // exact lookup, so pre-existing 24-hex slugs keep working.
     const id = crypto.randomBytes(24).toString('hex');
-    const { secret, sealed } = await newSealedSecret(automationId);
+    const mode = authModeOf(authMode);
+    const owner = await getOne('SELECT organization_id FROM automations WHERE id = $1', [automationId]);
+    const { secret, sealed } = newSealedSecret(owner?.organization_id, mode);
     await run(
-        `INSERT INTO automation_webhooks (id, automation_id, secret, trigger_step_id) VALUES ($1, $2, $3, $4)`,
-        [id, automationId, sealed, triggerStepId],
+        `INSERT INTO automation_webhooks (id, automation_id, secret, trigger_step_id, auth_mode) VALUES ($1, $2, $3, $4, $5)`,
+        [id, automationId, sealed, triggerStepId, mode],
     );
-    return { id, automationId, secret, triggerStepId };
+    return { id, automationId, secret, triggerStepId, authMode: mode };
 }
 
 /**
- * The webhook an inbound address names, with its secret in clear (null when
- * the stored value cannot be read: nothing verifies against it) and, while a
- * rotation's overlap lasts, the secret from before it.
+ * The webhook an inbound address names, with what a delivery is checked
+ * against: for 'hmac' its secret in clear (null when the stored value cannot
+ * be read: nothing verifies against it) and, while a rotation's overlap lasts,
+ * the secret from before it; for 'header_token' the same two as token hashes
+ * (tokenHash, previousTokenHash), and no signing secret.
  * @param {string} id
  */
 async function getWebhook(id) {
     await initDB();
     const r = await getOne('SELECT *, (prev_valid_until > NOW()) AS prev_live FROM automation_webhooks WHERE id = $1', [id]);
     if (!r) return null;
+    const authMode = authModeOf(r.auth_mode);
+    const current = openSecret(r.secret);
+    const previous = r.prev_live ? openSecret(r.prev_secret) : null;
+    const token = authMode === 'header_token';
     return {
-        id: r.id, automationId: r.automation_id, secret: openSecret(r.secret), previousSecret: r.prev_live ? openSecret(r.prev_secret) : null,
+        id: r.id, automationId: r.automation_id, authMode,
+        secret: token ? null : current, previousSecret: token ? null : previous,
+        tokenHash: token ? current : null, previousTokenHash: token ? previous : null,
         allowMethods: r.allow_methods, lastSeenAt: r.last_seen_at, triggerStepId: r.trigger_step_id ?? null,
     };
 }
@@ -97,14 +133,14 @@ async function getWebhook(id) {
 async function getWebhooksForAutomation(automationId) {
     await initDB();
     const rows = await getAll(
-        `SELECT id, automation_id, allow_methods, last_seen_at, created_at, trigger_step_id,
+        `SELECT id, automation_id, allow_methods, last_seen_at, created_at, trigger_step_id, auth_mode,
                 CASE WHEN prev_secret IS NOT NULL AND prev_valid_until > NOW() THEN prev_valid_until END AS prev_valid_until
            FROM automation_webhooks WHERE automation_id = $1`,
         [automationId],
     );
     return rows.map(r => ({
         id: r.id, automationId: r.automation_id, allowMethods: r.allow_methods, lastSeenAt: r.last_seen_at, createdAt: r.created_at,
-        triggerStepId: r.trigger_step_id ?? null, previousValidUntil: iso(r.prev_valid_until),
+        triggerStepId: r.trigger_step_id ?? null, previousValidUntil: iso(r.prev_valid_until), authMode: authModeOf(r.auth_mode),
     }));
 }
 
@@ -115,7 +151,8 @@ async function touchWebhook(id) {
 }
 
 /**
- * Rotate the HMAC secret for a webhook. The webhook's URL stays the same and
+ * Rotate the secret of a webhook (the signing secret, or for 'header_token'
+ * the token). The webhook's URL and mode stay the same and
  * the new secret verifies from the next inbound request. The secret from
  * before still verifies for `overlapSeconds` (the operator's
  * AUTOMATION_WEBHOOK_ROTATION_OVERLAP_SECONDS by default; 0 = it stops at
@@ -127,13 +164,14 @@ async function touchWebhook(id) {
 async function rotateWebhookSecret(webhookId, automationId, { overlapSeconds = automationWebhookLimits().rotationOverlapSeconds } = {}) {
     await initDB();
     const current = await getOne(
-        `SELECT w.secret, a.organization_id FROM automation_webhooks w LEFT JOIN automations a ON a.id = w.automation_id
+        `SELECT w.secret, w.auth_mode, a.organization_id FROM automation_webhooks w LEFT JOIN automations a ON a.id = w.automation_id
           WHERE w.id = $1 AND w.automation_id = $2`,
         [webhookId, automationId],
     );
     if (!current) return null;
-    const newSecret = crypto.randomBytes(32).toString('hex');
-    // The previous secret is sealed again here, so the column never holds a value from before sealing.
+    const authMode = authModeOf(current.auth_mode);
+    const { secret: newSecret, sealed } = newSealedSecret(current.organization_id, authMode);
+    // The previous secret (for a header token: its hash) is sealed again here, so the column never holds a value from before sealing.
     const before = overlapSeconds > 0 ? openSecret(current.secret) : null;
     const { rows } = await run(
         `UPDATE automation_webhooks
@@ -141,10 +179,10 @@ async function rotateWebhookSecret(webhookId, automationId, { overlapSeconds = a
                 prev_valid_until = CASE WHEN $2::text IS NULL THEN NULL ELSE NOW() + ($3::int * INTERVAL '1 second') END
           WHERE id = $4 AND automation_id = $5
       RETURNING prev_valid_until`,
-        [seal(newSecret, current.organization_id), before ? seal(before, current.organization_id) : null, Math.floor(overlapSeconds), webhookId, automationId],
+        [sealed, before ? seal(before, current.organization_id) : null, Math.floor(overlapSeconds), webhookId, automationId],
     );
     if (!rows || rows.length === 0) return null;
-    return { id: webhookId, automationId, secret: newSecret, previousValidUntil: iso(rows[0].prev_valid_until) };
+    return { id: webhookId, automationId, secret: newSecret, authMode, previousValidUntil: iso(rows[0].prev_valid_until) };
 }
 
 /**
@@ -231,4 +269,4 @@ async function listActiveAutomationsOfOrg(organizationId) {
     return rows.map(rowToAutomation);
 }
 
-module.exports = { listActiveAutomationsOfOrg, createWebhook, getWebhook, getWebhooksForAutomation, touchWebhook, rotateWebhookSecret, deleteWebhook, checkAndStoreNonce };
+module.exports = { WEBHOOK_AUTH_MODES, listActiveAutomationsOfOrg, createWebhook, getWebhook, getWebhooksForAutomation, touchWebhook, rotateWebhookSecret, deleteWebhook, checkAndStoreNonce };

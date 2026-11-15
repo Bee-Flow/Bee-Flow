@@ -19,7 +19,7 @@ const crypto = require('crypto');
 const { initDB, run, getAll } = require('./core');
 const { automationWebhookLimits } = require('./webhookPolicy.mts');
 
-/** @typedef {'accepted' | 'bad_signature' | 'stale_timestamp' | 'replay' | 'inactive' | 'trigger_not_live'} WebhookDeliveryStatus */
+/** @typedef {'accepted' | 'bad_signature' | 'bad_token' | 'stale_timestamp' | 'replay' | 'inactive' | 'trigger_not_live'} WebhookDeliveryStatus */
 /** @typedef {{ id: string, status: string, bodyBytes: number, bodyHash: string | null, receivedAt: string | null }} WebhookDelivery */
 
 /** @param {unknown} v  a timestamp column */

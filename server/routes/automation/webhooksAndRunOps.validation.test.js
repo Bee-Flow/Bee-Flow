@@ -135,7 +135,19 @@ test('a key the webhook route does not read is refused rather than answered with
 test('a webhook for the primary trigger still needs no body', async () => {
     const res = await dispatch({ method: 'POST', url: '/a1/webhook', body: {} });
     assert.strictEqual(res.statusCode, 200);
-    assert.deepStrictEqual(touched.find((t) => t.what === 'createWebhook').args, ['a1', null]);
+    assert.deepStrictEqual(touched.find((t) => t.what === 'createWebhook').args, ['a1', null, { authMode: 'hmac' }], 'signed unless asked otherwise');
+});
+
+test('a webhook may be created for a caller that cannot sign (authMode header_token)', async () => {
+    const res = await dispatch({ method: 'POST', url: '/a1/webhook', body: { authMode: 'header_token' } });
+    assert.strictEqual(res.statusCode, 200);
+    assert.deepStrictEqual(touched.filter((t) => t.what === 'createWebhook').pop().args, ['a1', null, { authMode: 'header_token' }]);
+});
+
+test('an auth mode the route does not know is refused by name', async () => {
+    for (const authMode of ['query_token', 'HMAC', 42]) {
+        await refuses({ method: 'POST', url: '/a1/webhook', body: { authMode } }, 'body.authMode');
+    }
 });
 
 // ═══ POST /:id/agent-invoke ═════════════════════════════════════════

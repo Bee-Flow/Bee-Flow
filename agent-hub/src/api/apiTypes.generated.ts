@@ -1729,6 +1729,7 @@ export interface ApiOperations {
     }>;
     'POST /api/automation/{id}/versions/{versionId}/restore': Op<{ id: string | number; versionId: string | number }, UndeclaredQuery, Record<string, never>>;
     'POST /api/automation/{id}/webhook': Op<{ id: string | number }, UndeclaredQuery, {
+        authMode?: 'hmac' | 'header_token';
         triggerStepId?: string | null;
     }>;
     'DELETE /api/automation/{id}/webhook/{slug}': Op<{ id: string | number; slug: string | number }>;

@@ -30,14 +30,14 @@ const RUN_TRIGGER_RPM = envInt('AUTOMATION_RUN_TRIGGER_RPM', 30, { min: 1 });
 const runTriggerLimiter = perUserRateLimit({ windowMs: 60_000, max: RUN_TRIGGER_RPM });
 
 const {
-    TriggerStepBody, ApproveStepBody, ApproveRunBody, CancelRunBody, FormPickBody, AgentInvokeBody, FullOutputQuery, RunFormBody,
+    TriggerStepBody, WebhookCreateBody, ApproveStepBody, ApproveRunBody, CancelRunBody, FormPickBody, AgentInvokeBody, FullOutputQuery, RunFormBody,
 } = require('./runOpsSchemas');
 const { fallback } = require('../../utils/bestEffort');
 const { startCapped, pendingRunBody } = require('../../core/automationRunner/startCapped.mts');
 const { pendingFormPage, formJourneyExtras, refusePublicJourney, finaliseContinuedRun, closeFormWait, addRunViewFacts } = require('../../usecases/automation/runPauseOps.mts');
 
 
-router.post('/:id/webhook', validate({ body: TriggerStepBody }), async (req, res) => {
+router.post('/:id/webhook', validate({ body: WebhookCreateBody }), async (req, res) => {
     const a = await automationStore.getAutomation(req.params.id);
     if (!a) return res.status(404).json({ error: 'Not found' });
     if (!await automationAccess.guard(req, res, a, 'edit')) return;
@@ -56,7 +56,8 @@ router.post('/:id/webhook', validate({ body: TriggerStepBody }), async (req, res
         triggerStepId = match.id;
     }
 
-    const wh = await automationStore.createWebhook(a.id, triggerStepId);
+    // Signed (the default) or a header token for callers that cannot sign; the secret (or token) is in this answer once.
+    const wh = await automationStore.createWebhook(a.id, triggerStepId, { authMode: req.body.authMode || 'hmac' });
     // Absolute, not a relative path: the client shows
     // this URL for the user to paste into an external system, so a
     // path-only value is unusable.
@@ -75,7 +76,7 @@ router.get('/:id/webhooks', async (req, res) => {
 });
 
 /**
- * Rotate a webhook's HMAC secret. The slug (URL) stays the same; the secret
+ * Rotate a webhook's secret (its HMAC secret, or its header token). The slug (URL) stays the same; the secret
  * from before keeps verifying until `previousValidUntil` (the operator's
  * overlap; null = it stopped at once). The new secret is returned ONCE so the
  * user can copy it before navigating away: it is stored sealed.

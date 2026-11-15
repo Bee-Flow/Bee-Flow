@@ -650,6 +650,7 @@ No request schema.
 | Field | Type | Required | Notes |
 |-------|------|:--------:|-------|
 | `triggerStepId` | string or null |  |  |
+| `authMode` | one of `"hmac"`, `"header_token"` |  |  |
 
 ### `DELETE /api/automation/:id/webhook/:slug`
 
